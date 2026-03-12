@@ -1,0 +1,954 @@
+import React, { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Terminal } from 'lucide-react';
+
+import Layout from './components/Layout';
+import Navigation from './components/Navigation';
+import MobileFloatingMenu from './components/MobileFloatingMenu';
+import SplashScreen from './components/SplashScreen';
+import AuthView from './components/AuthView';
+import LogoutChoiceScreen from './components/LogoutChoiceScreen';
+import SystemMessage from './components/SystemMessage';
+import ShadowLoading from './components/ShadowLoading';
+import ErrorBoundary from './components/ErrorBoundary';
+
+import { useSystem } from './hooks/useSystem';
+import { Tab, CoreStats, HealthProfile, Outfit, DbOutfit, TierLevel, PlayerData } from './types';
+import { OUTFITS } from './utils/gameData';
+
+// ── Existing lazy imports ──
+const AdminLogin = lazy(() => import('./components/AdminLogin'));
+const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
+const QuestsView = lazy(() => import('./components/QuestsView'));
+const ShopView = lazy(() => import('./components/ShopView'));
+const GrowthView = lazy(() => import('./components/GrowthView'));
+const HealthView = lazy(() =>
+  import('./components/HealthView').then(m => ({ default: m.HealthView }))
+);
+const RankingView = lazy(() => import('./components/RankingView'));
+const StatsLineChart = lazy(() => import('./components/StatsLineChart'));
+const StatBoxes = lazy(() => import('./components/StatBoxes'));
+const LevelUpCinematic = lazy(() => import('./components/LevelUpCinematic'));
+const WelcomeIntro = lazy(() => import('./components/WelcomeIntro'));
+const PenaltyZone = lazy(() => import('./components/PenaltyZone'));
+const TournamentResultModal = lazy(() => import('./components/TournamentResultModal'));
+const TutorialOverlay = lazy(() => import('./components/TutorialOverlay'));
+const DemonCastle = lazy(() => import('./components/DemonCastle'));
+const UpcomingQuests = lazy(() => import('./components/UpcomingQuests'));
+// ── New lazy imports ──
+const SystemAgreement = lazy(() => import('./components/SystemAgreement'));
+const CalibrationFlow = lazy(() => import('./components/CalibrationFlow'));
+const NameOnboarding = lazy(() => import('./components/NameOnboarding'));
+const AvatarGenerator = lazy(() => import('./components/AvatarGenerator'));
+const DuskChat = lazy(() => import('./components/DuskChat'));
+const XpCollectionOverlay = lazy(() => import('./components/XpCollectionOverlay'));
+const CheatWarningModal = lazy(() => import('./components/CheatWarningModal'));
+const LevelDownCinematic = lazy(() => import('./components/LevelDownCinematic'));
+const BanScreen = lazy(() => import('./components/BanScreen'));
+const GuildsView = lazy(() => import('./components/GuildsView'));
+const LevelProgressCard = lazy(() => import('./components/LevelProgressCard'));
+const WardrobePreviewCard = lazy(() => import('./components/WardrobePreviewCard'));
+const RankProgressionCard = lazy(() => import('./components/RankProgressionCard'));
+const DashboardWidgets = lazy(() => import('./components/DashboardWidgets'));
+const EarlyCompletionPenalty = lazy(() => import('./components/EarlyCompletionPenalty'));
+const DuskWelcomeScreen = lazy(() => import('./components/DuskWelcomeScreen'));
+const ProfileView = lazy(() => import('./components/ProfileView'));
+const RankUpCinematic = lazy(() => import('./components/RankUpCinematic'));
+
+// ── Types ──
+type OnboardingPhase = 'SPLASH' | 'WELCOME' | 'AGREEMENT' | 'NAMING' | 'CALIBRATION' | 'AUTH' | 'AVATAR' | 'APP' | 'LOGOUT_CHOICE';
+
+// ── SessionStorage helpers ──
+const SS_USER = 'reforge_temp_user';
+const SS_HEALTH = 'reforge_temp_health';
+const SS_STATS = 'reforge_temp_stats';
+
+function ssSet(key: string, value: unknown) {
+  try { sessionStorage.setItem(key, JSON.stringify(value)); } catch { /* ignore */ }
+}
+function ssGet<T>(key: string): T | null {
+  try { const v = sessionStorage.getItem(key); return v ? JSON.parse(v) as T : null; } catch { return null; }
+}
+function ssClear() {
+  try { sessionStorage.removeItem(SS_USER); sessionStorage.removeItem(SS_HEALTH); sessionStorage.removeItem(SS_STATS); } catch { /* ignore */ }
+}
+
+interface XpCollectionState {
+  startRect: DOMRect | null;
+  xpGained: number;
+  currentXp: number;
+  requiredXp: number;
+  level: number;
+}
+
+
+const TabLoader = () => (
+  <div className="flex items-center justify-center min-h-[200px]">
+    <ShadowLoading />
+  </div>
+);
+
+const App: React.FC = () => {
+  const {
+    player, setPlayer, notifications,
+    notificationHistory, hasUnreadNotifications, markNotificationsRead, clearNotificationHistory,
+    registerUser, addQuest, completeQuest, failQuest, failFlaggedQuest, resetQuest, deleteQuest,
+    purchaseItem, buyConsumable, addNotification,
+    removeNotification, saveHealthProfile, updateProfile,
+    logMeal, deleteMeal, completeWorkoutSession, failWorkout,
+    logout, advanceTutorial, completeTutorial, resetTutorial, resolvePenalty, reducePenalty,
+    claimTournamentReward, consumeKey,
+    deductGold, enterDungeon, addRewards,
+    recordStrike, removeStrike, markDuskMessagesRead,
+    verifyTicket, purchaseOutfit, equipOutfit,
+  } = useSystem();
+
+  const [loading, setLoading] = useState(true);
+  const [dbOutfits, setDbOutfits] = useState<Outfit[]>([]);
+
+  const _logoutDest = (() => {
+    const d = sessionStorage.getItem('reforge_logout_dest');
+    if (d) sessionStorage.removeItem('reforge_logout_dest');
+    return d;
+  })();
+
+  const [onboardingPhase, setOnboardingPhase] = useState<OnboardingPhase>(() => {
+    if (_logoutDest === 'CALIBRATION') return 'CALIBRATION';
+    if (_logoutDest === 'AUTH_SIGN_IN' || _logoutDest === 'AUTH_CREATE') return 'AUTH';
+    return player.isConfigured ? 'APP' : 'SPLASH';
+  });
+  const authInitialMode: 'SIGN_IN' | 'CREATE' = _logoutDest === 'AUTH_CREATE' ? 'CREATE' : 'SIGN_IN';
+  const [showLogoutChoice, setShowLogoutChoice] = useState(false);
+  const [activeTab, setActiveTab] = useState<Tab>('DASHBOARD');
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isNewUserOnboarding, setIsNewUserOnboarding] = useState(false);
+  const [highlightDungeon, setHighlightDungeon] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [showLevelUp, setShowLevelUp] = useState(false);
+  const [showLevelDown, setShowLevelDown] = useState(false);
+  const [showNav, setShowNav] = useState(true);
+  const handleToggleNav = useCallback((v: boolean) => setShowNav(v), []);
+  const [rankUpData, setRankUpData] = useState<{ oldRank: string; newRank: string } | null>(null);
+  const prevRankRef = useRef<string | null>(null);
+
+  const [isDungeonMode, setIsDungeonMode] = useState(false);
+  const [tutorialTarget, setTutorialTarget] = useState<string | null>(null);
+  const [tutorialAnalysisFailed, setTutorialAnalysisFailed] = useState(false);
+  const [showDuskChat, setShowDuskChat] = useState(false);
+  const [showCheatWarning, setShowCheatWarning] = useState(false);
+  const [xpCollection, setXpCollection] = useState<XpCollectionState | null>(null);
+  const [tempHealthProfile, setTempHealthProfile] = useState<HealthProfile | undefined>();
+  const [tempStats, setTempStats] = useState<CoreStats | undefined>();
+  const [tempUserData, setTempUserData] = useState<{ country: string; tz: string } | undefined>();
+  const [pendingPenalty, setPendingPenalty] = useState<{
+    questId: string; questTitle: string; asMini: boolean;
+    rect?: DOMRect; elapsedMinutes: number; minDurationMinutes: number;
+    xpGained: number; xpBefore: number; requiredXp: number; level: number; goldGained: number;
+  } | null>(null);
+
+  const isPenalty = player.isPenaltyActive;
+
+  // Restore session after page reload / localStorage clear
+  useEffect(() => {
+    if (player.isConfigured) return;
+    const restoreAfterAuth = async () => {
+      try {
+        const res = await fetch('/api/auth/whoami', { credentials: 'include' });
+        if (!res.ok) return;
+        const user = await res.json();
+        if (!user?.id) return;
+
+        // Returning user — try to load their full player record from the DB.
+        // This handles localStorage being cleared (mobile, new device, private mode, etc.)
+        // while the Google session cookie is still valid.
+        try {
+          const playerRes = await fetch(`/api/player/${user.id}`, { credentials: 'include' });
+          if (playerRes.ok) {
+            const row = await playerRes.json();
+            const rawData = row.raw_data as Partial<PlayerData> | null;
+            if (rawData?.isConfigured || rawData?.avatarUrl) {
+              registerUser({ id: user.id, name: user.firstName || rawData.name, raw_data: rawData });
+              return;
+            }
+          }
+        } catch { /* no DB record yet, fall through to calibration restore */ }
+
+        // New user mid-calibration — restore sessionStorage wizard progress
+        const savedUser = ssGet<{ country: string; tz: string }>(SS_USER);
+        const savedHealth = ssGet<HealthProfile>(SS_HEALTH);
+        const savedStats = ssGet<CoreStats>(SS_STATS);
+        if (savedUser) setTempUserData(savedUser);
+        if (savedHealth) setTempHealthProfile(savedHealth);
+        if (savedStats) setTempStats(savedStats);
+        if (savedUser || savedHealth || savedStats) {
+          setPlayer(prev => ({
+            ...prev,
+            userId: user.id || prev.userId,
+            ...(savedUser ? { country: savedUser.country, timezone: savedUser.tz } : {}),
+            ...(savedHealth ? { healthProfile: savedHealth } : {}),
+            ...(savedStats ? { stats: savedStats } : {}),
+          }));
+        }
+        if (savedHealth && savedStats) {
+          setOnboardingPhase('AVATAR');
+        } else if (savedUser) {
+          setOnboardingPhase('CALIBRATION');
+        }
+      } catch { /* not authenticated, let normal flow proceed */ }
+    };
+    restoreAfterAuth();
+  }, []);
+
+  useEffect(() => {
+    if (player.isConfigured) setOnboardingPhase('APP');
+  }, [player.isConfigured]);
+
+  // Fetch DB outfits — runs on mount when configured, and re-runs on window focus
+  // so changes saved in the admin panel are always reflected without a hard reload
+  const fetchDbOutfits = useCallback(() => {
+    if (!player.isConfigured) return;
+    fetch('/api/store/outfits')
+      .then(r => r.json())
+      .then((rows: DbOutfit[]) => {
+        if (!Array.isArray(rows) || rows.length === 0) return;
+        const converted: Outfit[] = rows.map(o => ({
+          id: o.outfit_key,
+          name: o.name,
+          description: o.description,
+          tier: o.tier as TierLevel,
+          image: o.image_url || '',
+          baseStats: { attack: o.attack, boost: o.boost, extraction: o.extraction, ultimate: o.ultimate },
+          cost: o.cost,
+          accentColor: o.accent_color,
+          introVideoUrl: o.intro_video_url,
+          loopVideoUrl: o.loop_video_url,
+          isDefault: o.is_default,
+          buffs: [],
+        }));
+        setDbOutfits(converted);
+      })
+      .catch(() => { /* silently fall back to static OUTFITS */ });
+  }, [player.isConfigured]);
+
+  useEffect(() => {
+    fetchDbOutfits();
+    const onFocus = () => fetchDbOutfits();
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [fetchDbOutfits]);
+
+  useEffect(() => {
+    if (player.logs.length > 0 && player.logs[0].type === 'LEVEL_UP') {
+      const diff = Date.now() - player.logs[0].timestamp;
+      if (diff < 5000) setShowLevelUp(true);
+    }
+    if (player.logs.length > 0 && player.logs[0].type === 'LEVEL_DOWN') {
+      const diff = Date.now() - player.logs[0].timestamp;
+      if (diff < 5000) setShowLevelDown(true);
+    }
+  }, [player.logs, player.level]);
+
+  useEffect(() => {
+    const currentRank = player.rank;
+    if (prevRankRef.current !== null && prevRankRef.current !== currentRank && player.isConfigured) {
+      const rankOrder = ['E', 'D', 'C', 'B', 'A', 'S'];
+      const oldIdx = rankOrder.indexOf(prevRankRef.current);
+      const newIdx = rankOrder.indexOf(currentRank);
+      if (newIdx > oldIdx) {
+        setRankUpData({ oldRank: prevRankRef.current, newRank: currentRank });
+      }
+    }
+    prevRankRef.current = currentRank;
+  }, [player.rank, player.isConfigured]);
+
+  useEffect(() => {
+    if (!isDungeonMode) setShowNav(true);
+  }, [activeTab, isDungeonMode]);
+
+
+  const handleTutorialNext = () => {
+    const nextStep = player.tutorialStep + 1;
+    if (nextStep === 5) setActiveTab('QUESTS');
+    if (nextStep === 18) setActiveTab('DASHBOARD');
+    advanceTutorial(nextStep);
+  };
+
+  const handleTutorialComplete = () => completeTutorial();
+
+  useEffect(() => {
+    if (!player.tutorialComplete) {
+      if (player.tutorialStep === 12 && player.quests.length > 0) {
+        setTutorialTarget(`quest-card-${player.quests[0].id}`);
+      } else {
+        setTutorialTarget(null);
+      }
+    }
+  }, [player.tutorialStep, player.quests, player.tutorialComplete]);
+
+  const handleStartDungeon = async (isFree: boolean) => {
+    const allowed = await enterDungeon(isFree);
+    if (allowed) {
+      setIsDungeonMode(true);
+      setActiveTab('CASTLE');
+    }
+  };
+
+  const handleQuestComplete = (id: string, asMini: boolean = false, rect?: DOMRect) => {
+    const quest = player.quests.find(q => q.id === id);
+    if (!quest) return;
+    const xpBefore = player.currentXp;
+    const levelBefore = player.level;
+    const requiredXpBefore = player.requiredXp;
+    const xpGained = asMini ? Math.floor((quest.xpReward || 50) * 0.1) : (quest.xpReward || 50);
+    const goldGained = asMini ? 5 : 20;
+
+    if (quest.minDurationMinutes && quest.minDurationMinutes > 0) {
+      const startTime = quest.createdAt;
+      const elapsedMinutes = (Date.now() - startTime) / 60000;
+      const threshold = quest.minDurationMinutes * 0.6;
+      if (elapsedMinutes < threshold) {
+        setPendingPenalty({
+          questId: id, questTitle: quest.title, asMini, rect,
+          elapsedMinutes, minDurationMinutes: quest.minDurationMinutes,
+          xpGained, xpBefore, requiredXp: requiredXpBefore, level: levelBefore, goldGained,
+        });
+        return;
+      }
+    }
+
+    finishQuestComplete(id, asMini, rect, xpGained, xpBefore, requiredXpBefore, levelBefore, goldGained);
+  };
+
+  const finishQuestComplete = (
+    id: string, asMini: boolean, rect: DOMRect | undefined,
+    xpGained: number, xpBefore: number, requiredXp: number, level: number, goldGained: number
+  ) => {
+    completeQuest(id, asMini);
+    if (rect) {
+      setXpCollection({ startRect: rect, xpGained, currentXp: xpBefore, requiredXp, level });
+    }
+    window.dispatchEvent(new CustomEvent('reforge:coin-earned', { detail: { goldGained, startRect: rect ?? null } }));
+    if (player.tutorialStep === 13) advanceTutorial(14);
+    if (player.tutorialStep === 14) advanceTutorial(15);
+    if (player.tutorialStep === 15) { advanceTutorial(16); setActiveTab('HEALTH'); }
+  };
+
+  const handlePenaltyAcknowledge = () => {
+    if (!pendingPenalty) return;
+    const { questId } = pendingPenalty;
+    setPendingPenalty(null);
+    recordStrike();
+    failFlaggedQuest(questId);
+  };
+
+  // ── Loading Screen ──
+  if (loading) {
+    return <SplashScreen onComplete={() => setLoading(false)} />;
+  }
+
+  // ── Admin ──
+  if (showAdminLogin) {
+    return (
+      <Suspense fallback={<TabLoader />}>
+        <ErrorBoundary fallbackLabel="Admin login failed to load">
+          <AdminLogin
+            onLoginSuccess={() => { setShowAdminLogin(false); setIsAdmin(true); }}
+            onBack={() => setShowAdminLogin(false)}
+          />
+        </ErrorBoundary>
+      </Suspense>
+    );
+  }
+
+  if (isAdmin) {
+    return (
+      <Suspense fallback={<TabLoader />}>
+        <ErrorBoundary fallbackLabel="Admin dashboard failed to load">
+          <AdminDashboard onLogout={() => setIsAdmin(false)} />
+        </ErrorBoundary>
+      </Suspense>
+    );
+  }
+
+  // ── Ban Screen ──
+  if (player.isBanned) {
+    return (
+      <Suspense fallback={<TabLoader />}>
+        <ErrorBoundary fallbackLabel="Ban screen failed">
+          <BanScreen
+            userId={player.userId}
+            onAdminUnban={() => setPlayer(prev => ({ ...prev, isBanned: false, cheatStrikes: 0 }))}
+          />
+        </ErrorBoundary>
+      </Suspense>
+    );
+  }
+
+  // ── New User Onboarding ──
+  if (onboardingPhase !== 'APP') {
+    if (onboardingPhase === 'SPLASH') {
+      return (
+        <Suspense fallback={<TabLoader />}>
+          <SplashScreen onComplete={() => setOnboardingPhase('WELCOME')} />
+        </Suspense>
+      );
+    }
+    if (onboardingPhase === 'WELCOME') {
+      return (
+        <Suspense fallback={<TabLoader />}>
+          <DuskWelcomeScreen onComplete={() => setOnboardingPhase('AGREEMENT')} />
+        </Suspense>
+      );
+    }
+    if (onboardingPhase === 'AGREEMENT') {
+      return (
+        <Suspense fallback={<TabLoader />}>
+          <ErrorBoundary fallbackLabel="Agreement failed">
+            <SystemAgreement onComplete={() => setOnboardingPhase('NAMING')} />
+          </ErrorBoundary>
+        </Suspense>
+      );
+    }
+    if (onboardingPhase === 'NAMING') {
+      return (
+        <Suspense fallback={<TabLoader />}>
+          <ErrorBoundary fallbackLabel="Naming failed">
+            <NameOnboarding
+              onComplete={(country: string, tz: string) => {
+                const userData = { country, tz };
+                setTempUserData(userData);
+                ssSet(SS_USER, userData);
+                setOnboardingPhase('CALIBRATION');
+              }}
+            />
+          </ErrorBoundary>
+        </Suspense>
+      );
+    }
+    if (onboardingPhase === 'CALIBRATION') {
+      return (
+        <Suspense fallback={<TabLoader />}>
+          <ErrorBoundary fallbackLabel="Calibration failed">
+            <CalibrationFlow
+              onComplete={(profile: HealthProfile, stats: CoreStats) => {
+                setTempHealthProfile(profile);
+                setTempStats(stats);
+                ssSet(SS_HEALTH, profile);
+                ssSet(SS_STATS, stats);
+                setOnboardingPhase('AUTH');
+              }}
+            />
+          </ErrorBoundary>
+        </Suspense>
+      );
+    }
+    if (onboardingPhase === 'AUTH') {
+      return (
+        <AuthView
+          initialMode={authInitialMode}
+          onLogin={(profile) => {
+            const merged = {
+              ...profile,
+              ...(tempUserData ? {
+                country: tempUserData.country,
+                timezone: tempUserData.tz,
+              } : {}),
+              ...(tempHealthProfile ? { healthProfile: tempHealthProfile } : {}),
+              ...(tempStats ? { stats: tempStats } : {}),
+            };
+            registerUser(merged);
+            setPlayer(prev => ({ ...prev, ...merged, startDate: Date.now() }));
+            const existingUser = !!(merged.isConfigured || merged.avatarUrl);
+            setIsNewUserOnboarding(!existingUser);
+            setOnboardingPhase(existingUser ? 'APP' : 'AVATAR');
+          }}
+        />
+      );
+    }
+    if (onboardingPhase === 'AVATAR') {
+      return (
+        <Suspense fallback={<TabLoader />}>
+          <ErrorBoundary fallbackLabel="Avatar generator failed">
+            <AvatarGenerator
+              playerId={player.userId ?? ''}
+              gender={tempHealthProfile?.gender}
+              onComplete={(avatarUrl: string, originalUrl: string) => {
+                setPlayer(prev => ({ ...prev, avatarUrl, originalSelfieUrl: originalUrl, isConfigured: true }));
+                ssClear();
+                setOnboardingPhase('APP');
+              }}
+            />
+          </ErrorBoundary>
+        </Suspense>
+      );
+    }
+  }
+
+  // ── Welcome Intro (for users who logged in via old flow) ──
+  if (showWelcome) {
+    return (
+      <Suspense fallback={<TabLoader />}>
+        <WelcomeIntro onComplete={() => setShowWelcome(false)} />
+      </Suspense>
+    );
+  }
+
+  // ── Penalty Zone ──
+  if (isPenalty) {
+    return (
+      <Suspense fallback={<TabLoader />}>
+        <ErrorBoundary fallbackLabel="Penalty zone failed to load">
+          <PenaltyZone
+            endTime={player.penaltyEndTime}
+            task={player.penaltyTask}
+            gold={player.gold}
+            onSurvive={resolvePenalty}
+            reducePenalty={reducePenalty}
+            onSacrifice={() => {
+              if (player.gold >= 500) {
+                purchaseItem({ id: 'penalty-bribe', title: 'Divine Intervention', description: 'Skip Penalty', cost: 500, icon: 'lock' });
+                resolvePenalty();
+              }
+            }}
+          />
+        </ErrorBoundary>
+      </Suspense>
+    );
+  }
+
+  const shouldShowNav = showNav && !isDungeonMode;
+
+  return (
+    <>
+      <SystemMessage notifications={notifications} removeNotification={removeNotification} />
+
+      {/* ── Overlays ── */}
+      <Suspense fallback={null}>
+        <AnimatePresence>
+          {showLevelUp && (
+            <ErrorBoundary>
+              <LevelUpCinematic level={player.level} onComplete={() => setShowLevelUp(false)} />
+            </ErrorBoundary>
+          )}
+          {showLevelDown && (
+            <ErrorBoundary>
+              <LevelDownCinematic onClose={() => setShowLevelDown(false)} />
+            </ErrorBoundary>
+          )}
+          {rankUpData && (
+            <ErrorBoundary>
+              <RankUpCinematic
+                oldRank={rankUpData.oldRank as 'E'|'D'|'C'|'B'|'A'|'S'}
+                newRank={rankUpData.newRank as 'E'|'D'|'C'|'B'|'A'|'S'}
+                onComplete={() => setRankUpData(null)}
+              />
+            </ErrorBoundary>
+          )}
+          {player.tournament.pendingReward && (
+            <ErrorBoundary>
+              <TournamentResultModal reward={player.tournament.pendingReward} onClaim={claimTournamentReward} />
+            </ErrorBoundary>
+          )}
+          {showDuskChat && (
+            <ErrorBoundary>
+              <DuskChat
+                player={player}
+                onClose={() => setShowDuskChat(false)}
+                onMarkRead={markDuskMessagesRead}
+              />
+            </ErrorBoundary>
+          )}
+          {xpCollection && (
+            <ErrorBoundary>
+              <XpCollectionOverlay
+                startRect={xpCollection.startRect}
+                xpGained={xpCollection.xpGained}
+                currentXp={xpCollection.currentXp}
+                requiredXp={xpCollection.requiredXp}
+                level={xpCollection.level}
+                onComplete={() => setXpCollection(null)}
+              />
+            </ErrorBoundary>
+          )}
+          {showCheatWarning && (
+            <ErrorBoundary>
+              <CheatWarningModal
+                strikes={player.cheatStrikes}
+                onAcknowledge={() => setShowCheatWarning(false)}
+                onRemoveStrike={removeStrike}
+                onVerifyTicket={(proof: string, reason: string) => verifyTicket(proof, reason, player.originalSelfieUrl)}
+                originalSelfieUrl={player.originalSelfieUrl}
+              />
+            </ErrorBoundary>
+          )}
+          {pendingPenalty && (
+            <Suspense fallback={null}>
+              <ErrorBoundary>
+                <EarlyCompletionPenalty
+                  questTitle={pendingPenalty.questTitle}
+                  elapsedMinutes={pendingPenalty.elapsedMinutes}
+                  minDurationMinutes={pendingPenalty.minDurationMinutes}
+                  currentStrikes={player.cheatStrikes}
+                  onAcknowledge={handlePenaltyAcknowledge}
+                />
+              </ErrorBoundary>
+            </Suspense>
+          )}
+        </AnimatePresence>
+      </Suspense>
+
+      {!player.tutorialComplete && isNewUserOnboarding && (
+        <Suspense fallback={null}>
+          <ErrorBoundary>
+            <TutorialOverlay
+              currentStep={player.tutorialStep}
+              onNext={handleTutorialNext}
+              onComplete={handleTutorialComplete}
+              dynamicTargetId={tutorialTarget}
+              analysisFailed={tutorialAnalysisFailed}
+              onAnalysisRetry={() => setTutorialAnalysisFailed(false)}
+            />
+          </ErrorBoundary>
+        </Suspense>
+      )}
+
+      <Layout
+        navigation={shouldShowNav && activeTab !== 'PROFILE' ? (
+          <Navigation
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            badges={{ ALLIANCE: !player.allianceId }}
+          />
+        ) : null}
+        playerLevel={player.level}
+        playerName={player.name}
+        playerUsername={player.username}
+        playerRank={player.rank}
+        streak={player.streak}
+        gold={player.gold}
+        keys={player.keys}
+        consumables={player.consumables}
+        replitUser={player.replitUser}
+        playerAvatarUrl={player.avatarUrl}
+        notificationHistory={notificationHistory}
+        hasUnreadNotifications={hasUnreadNotifications}
+        onMarkNotificationsRead={markNotificationsRead}
+        onClearNotificationHistory={clearNotificationHistory}
+        headerDisabled={isDungeonMode}
+        onGoldClick={!isDungeonMode ? () => setActiveTab('STORE') : undefined}
+        onLogout={() => setShowLogoutChoice(true)}
+        onAdminRequest={() => setShowAdminLogin(true)}
+        onEditProfile={() => setActiveTab('PROFILE')}
+      >
+        <AnimatePresence mode="wait">
+
+          {/* ── DASHBOARD ── */}
+          {activeTab === 'DASHBOARD' && (
+            <motion.div
+              key="dashboard"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="space-y-6"
+            >
+              {/* Stats Line Chart — hero element */}
+              <Suspense fallback={<TabLoader />}>
+                <ErrorBoundary fallbackLabel="Stats chart failed">
+                  <StatsLineChart
+                    dailyXp={player.dailyXp}
+                    dailyStats={player.dailyStats}
+                    yesterdayStats={player.yesterdayStats}
+                    weeklyStats={player.weeklyStats}
+                    monthlyStats={player.monthlyStats}
+                    playerLevel={player.level}
+                    rank={player.rank}
+                  />
+                </ErrorBoundary>
+              </Suspense>
+
+              {/* Stat Pillars */}
+              <div id="tut-stats">
+                <Suspense fallback={<TabLoader />}>
+                  <ErrorBoundary fallbackLabel="Stat boxes failed">
+                    <StatBoxes
+                      stats={player.stats}
+                      dailyStats={player.dailyStats}
+                      weeklyStats={player.weeklyStats}
+                    />
+                  </ErrorBoundary>
+                </Suspense>
+              </div>
+
+              {/* XP Level Progress */}
+              <Suspense fallback={<TabLoader />}>
+                <ErrorBoundary fallbackLabel="Level progress failed">
+                  <LevelProgressCard
+                    level={player.level}
+                    currentXP={player.currentXp}
+                    maxXP={player.requiredXp}
+                  />
+                </ErrorBoundary>
+              </Suspense>
+
+              {/* Monarch's Wardrobe Preview */}
+              <Suspense fallback={<TabLoader />}>
+                <ErrorBoundary fallbackLabel="Wardrobe preview failed">
+                  <WardrobePreviewCard
+                    gold={player.gold}
+                    unlockedOutfits={player.unlockedOutfits || ['outfit_starter']}
+                    equippedOutfitId={player.equippedOutfitId || 'outfit_starter'}
+                    outfits={dbOutfits.length > 0 ? dbOutfits : OUTFITS}
+                    onPurchase={purchaseOutfit}
+                    onEquip={equipOutfit}
+                    onOpenWardrobe={() => setActiveTab('STORE')}
+                  />
+                </ErrorBoundary>
+              </Suspense>
+
+              {/* Rank Progression */}
+              <Suspense fallback={<TabLoader />}>
+                <ErrorBoundary fallbackLabel="Rank progression failed">
+                  <RankProgressionCard level={player.level} rank={player.rank} />
+                </ErrorBoundary>
+              </Suspense>
+
+              {/* Upcoming Active Quests */}
+              <Suspense fallback={<TabLoader />}>
+                <ErrorBoundary fallbackLabel="Upcoming quests failed">
+                  <UpcomingQuests
+                    quests={player.quests}
+                    onNavigateToQuests={() => setActiveTab('QUESTS')}
+                  />
+                </ErrorBoundary>
+              </Suspense>
+
+              {/* Dashboard Widgets (clan chests + Dusk) */}
+              <Suspense fallback={<TabLoader />}>
+                <ErrorBoundary fallbackLabel="Dashboard widgets failed">
+                  <DashboardWidgets
+                    player={player}
+                    onOpenDuskChat={() => setShowDuskChat(true)}
+                    unreadCount={player.duskUnreadCount}
+                    onAddRewards={addRewards}
+                  />
+                </ErrorBoundary>
+              </Suspense>
+
+              <div className="grid grid-cols-1 gap-2">
+                <button
+                  onClick={() => setShowAdminLogin(true)}
+                  className="flex items-center justify-center gap-2 text-[10px] text-gray-500 hover:text-white transition-colors font-mono tracking-widest group border border-gray-800 hover:border-gray-500 px-3 py-3 rounded bg-black/40"
+                >
+                  <Terminal size={12} className="group-hover:text-system-neon transition-colors" />
+                  ADMIN PANEL
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ── CASTLE ── */}
+          {activeTab === 'CASTLE' && (
+            <motion.div key="castle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <Suspense fallback={<TabLoader />}>
+                <ErrorBoundary fallbackLabel="Demon Castle failed to load">
+                  <DemonCastle
+                    gold={player.gold}
+                    keys={player.keys}
+                    lastDungeonEntry={player.lastDungeonEntry ?? 0}
+                    onDeductGold={deductGold}
+                    onConsumeKey={consumeKey}
+                    onEnterDungeon={enterDungeon}
+                    onAddRewards={addRewards}
+                    onPlayStateChange={setIsDungeonMode}
+                    initialMode="PLAYING"
+                    onExit={() => {
+                      setIsDungeonMode(false);
+                      setActiveTab('REWARDS');
+                    }}
+                  />
+                </ErrorBoundary>
+              </Suspense>
+            </motion.div>
+          )}
+
+          {/* ── QUESTS ── */}
+          {activeTab === 'QUESTS' && (
+            <motion.div key="quests" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <Suspense fallback={<TabLoader />}>
+                <ErrorBoundary fallbackLabel="Quests failed to load">
+                  <QuestsView
+                    quests={player.quests}
+                    addQuest={addQuest}
+                    completeQuest={handleQuestComplete}
+                    failQuest={failQuest}
+                    resetQuest={resetQuest}
+                    deleteQuest={deleteQuest}
+                    tutorialStep={player.tutorialStep}
+                    onTutorialAction={advanceTutorial}
+                    onTutorialAnalysisFail={() => setTutorialAnalysisFailed(true)}
+                    playerData={player}
+                    onToggleNav={handleToggleNav}
+                    recordStrike={recordStrike}
+                  />
+                </ErrorBoundary>
+              </Suspense>
+            </motion.div>
+          )}
+
+          {/* ── STORE ── */}
+          {(activeTab === 'STORE' || activeTab === 'ARMORY') && (
+            <motion.div key="store" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <Suspense fallback={<TabLoader />}>
+                <ErrorBoundary fallbackLabel="Store failed to load">
+                  <ShopView
+                    gold={player.gold}
+                    items={player.shopItems}
+                    purchaseItem={purchaseItem}
+                    keys={player.keys}
+                    lastDungeonEntry={player.lastDungeonEntry ?? 0}
+                    onStartDungeon={handleStartDungeon}
+                    consumables={player.consumables}
+                    buyConsumable={buyConsumable}
+                    streak={player.streak}
+                    lastLoginDate={player.lastLoginDate}
+                    highlightDungeon={highlightDungeon}
+                    onHighlightConsumed={() => setHighlightDungeon(false)}
+                  />
+                </ErrorBoundary>
+              </Suspense>
+            </motion.div>
+          )}
+
+          {/* ── ALLIANCE ── */}
+          {activeTab === 'ALLIANCE' && (
+            <motion.div key="alliance" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <Suspense fallback={<TabLoader />}>
+                <ErrorBoundary fallbackLabel="Alliance failed to load">
+                  <GuildsView
+                    player={player}
+                    onJoin={(id: string) => setPlayer(p => ({ ...p, allianceId: id }))}
+                    onLeave={() => setPlayer(p => ({ ...p, allianceId: undefined }))}
+                  />
+                </ErrorBoundary>
+              </Suspense>
+            </motion.div>
+          )}
+
+          {/* ── REWARDS ── */}
+          {activeTab === 'REWARDS' && (
+            <motion.div key="rewards" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <Suspense fallback={<TabLoader />}>
+                <ErrorBoundary fallbackLabel="Shop failed to load">
+                  <ShopView
+                    gold={player.gold}
+                    items={player.shopItems}
+                    purchaseItem={purchaseItem}
+                    keys={player.keys}
+                    lastDungeonEntry={player.lastDungeonEntry ?? 0}
+                    onStartDungeon={handleStartDungeon}
+                    consumables={player.consumables}
+                    buyConsumable={buyConsumable}
+                    streak={player.streak}
+                    lastLoginDate={player.lastLoginDate}
+                  />
+                </ErrorBoundary>
+              </Suspense>
+            </motion.div>
+          )}
+
+          {/* ── GROWTH ── */}
+          {activeTab === 'GROWTH' && (
+            <motion.div key="growth" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <Suspense fallback={<TabLoader />}>
+                <ErrorBoundary fallbackLabel="Growth view failed to load">
+                  <GrowthView
+                    player={player}
+                    onAdminRequest={() => setShowAdminLogin(true)}
+                    onLogout={() => setShowLogoutChoice(true)}
+                  />
+                </ErrorBoundary>
+              </Suspense>
+            </motion.div>
+          )}
+
+          {/* ── HEALTH ── */}
+          {activeTab === 'HEALTH' && (
+            <motion.div key="health" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <Suspense fallback={<TabLoader />}>
+                <ErrorBoundary fallbackLabel="Health view failed to load">
+                  <HealthView
+                    healthProfile={player.healthProfile}
+                    onSaveProfile={saveHealthProfile}
+                    onCompleteWorkout={completeWorkoutSession}
+                    onFailWorkout={failWorkout}
+                    onLogMeal={logMeal}
+                    onDeleteMeal={deleteMeal}
+                    playerData={player}
+                    onTutorialAction={advanceTutorial}
+                    tutorialStep={player.tutorialStep}
+                    onToggleNav={handleToggleNav}
+                    onConsumeKey={consumeKey}
+                  />
+                </ErrorBoundary>
+              </Suspense>
+            </motion.div>
+          )}
+
+          {/* ── RANKING ── */}
+          {activeTab === 'RANKING' && (
+            <motion.div key="ranking" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <Suspense fallback={<TabLoader />}>
+                <ErrorBoundary fallbackLabel="Ranking failed to load">
+                  <RankingView currentPlayer={player} />
+                </ErrorBoundary>
+              </Suspense>
+            </motion.div>
+          )}
+
+          {/* ── PROFILE ── */}
+          {activeTab === 'PROFILE' && (
+            <motion.div key="profile" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <Suspense fallback={<TabLoader />}>
+                <ErrorBoundary fallbackLabel="Profile failed to load">
+                  <ProfileView
+                    player={player}
+                    onUpdate={updateProfile}
+                    onAdminRequest={() => setShowAdminLogin(true)}
+                    onLogout={() => setShowLogoutChoice(true)}
+                    onBack={() => setActiveTab('DASHBOARD')}
+                    onRetakeTutorial={() => { resetTutorial(); setActiveTab('DASHBOARD'); }}
+                  />
+                </ErrorBoundary>
+              </Suspense>
+            </motion.div>
+          )}
+
+        </AnimatePresence>
+
+        {activeTab === 'DASHBOARD' && (
+          <MobileFloatingMenu
+            gold={player.gold}
+            keys={player.keys}
+            lastDungeonEntry={player.lastDungeonEntry ?? 0}
+            onEnterDungeon={enterDungeon}
+            onNavigateToDungeon={() => { setActiveTab('STORE'); setHighlightDungeon(true); }}
+            onConsumeKey={consumeKey}
+            onAddRewards={addRewards}
+            onAddNotification={addNotification}
+          />
+        )}
+
+        {showLogoutChoice && (
+          <LogoutChoiceScreen
+            onLogout={logout}
+            onCancel={() => setShowLogoutChoice(false)}
+          />
+        )}
+
+      </Layout>
+    </>
+  );
+};
+
+export default App;

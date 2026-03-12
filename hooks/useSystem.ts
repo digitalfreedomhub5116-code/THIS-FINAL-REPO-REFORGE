@@ -1,0 +1,1106 @@
+import { useState, useEffect, useCallback, useRef } from 'react';
+import {
+  PlayerData, Quest, ShopItem, SystemNotification, NotificationType,
+  ActivityLog, HealthProfile, ProgressPhoto, MealLog, WorkoutDay, AdminExercise, DailyReward,
+  ReplitUser
+} from '../types';
+import { playSystemSoundEffect } from '../utils/soundEngine';
+
+export const isEmbed = (url: string) => {
+  return url.includes('youtube.com/embed') || url.includes('player.vimeo.com');
+};
+
+const DEFAULT_PLAYER: PlayerData = {
+  isConfigured: false,
+  tutorialStep: 0,
+  tutorialComplete: false,
+  name: '',
+  level: 1,
+  currentXp: 0,
+  requiredXp: 100,
+  totalXp: 0,
+  dailyXp: 0,
+  rank: 'E',
+  gold: 0,
+  keys: 0,
+  streak: 0,
+  stats: { strength: 10, intelligence: 10, discipline: 10, social: 10 },
+  dailyStats: { strength: 0, intelligence: 0, discipline: 0, social: 0 },
+  yesterdayStats: { strength: 0, intelligence: 0, discipline: 0, social: 0 },
+  weeklyStats: { strength: 0, intelligence: 0, discipline: 0, social: 0 },
+  monthlyStats: { strength: 0, intelligence: 0, discipline: 0, social: 0 },
+  lastStatUpdate: { strength: 0, intelligence: 0, discipline: 0, social: 0 },
+  lastDailyReset: Date.now(),
+  lastWeeklyReset: Date.now(),
+  lastMonthlyReset: Date.now(),
+  history: [],
+  hp: 100,
+  maxHp: 100,
+  mp: 100,
+  maxMp: 100,
+  fatigue: 0,
+  job: 'Civilian',
+  title: 'None',
+  lastLoginDate: '',
+  lastWorkoutDate: '',
+  dailyQuestComplete: false,
+  isPenaltyActive: false,
+  lastDungeonEntry: 0,
+  logs: [],
+  quests: [],
+  shopItems: [],
+  consumables: { healthPotions: 0, shadowScrolls: 0, ultOrbs: 0 },
+  awakening: { vision: [], antiVision: [] },
+  personalBests: {},
+  nutritionLogs: [],
+  exerciseDatabase: [],
+  focusVideos: {},
+  ownedOutfits: ['default'],
+  activeOutfit: 'default',
+  customProtocols: {},
+  tournament: { pendingReward: null },
+  username: '',
+  country: 'United States',
+  timezone: 'UTC',
+  cheatStrikes: 0,
+  isBanned: false,
+  trustScore: 100,
+  duskUnreadCount: 1,
+  startDate: 0,
+  equippedOutfitId: 'outfit_starter',
+  unlockedOutfits: ['outfit_starter'],
+  equippedShadows: [null, null, null] as (null)[],
+  combatStats: { attack: 0, boost: 0, ultimate: 0, extraction: 0 },
+  unlockedLooks: [],
+  activeLookId: '',
+};
+
+function migratePlayerData(raw: Partial<PlayerData>): PlayerData {
+  const merged = { ...DEFAULT_PLAYER, ...raw };
+  // Migrate old 5-stat shape to 4-stat shape
+  const migrateStats = (s: Record<string, number> | undefined) => {
+    if (!s) return { ...DEFAULT_PLAYER.stats };
+    return {
+      strength: s.strength ?? 10,
+      intelligence: s.intelligence ?? 10,
+      discipline: s.discipline ?? s.willpower ?? s.focus ?? 10,
+      social: s.social ?? 10,
+    };
+  };
+  merged.stats = migrateStats(raw.stats as Record<string, number> | undefined);
+  merged.dailyStats = migrateStats(raw.dailyStats as Record<string, number> | undefined);
+  merged.yesterdayStats = migrateStats(raw.yesterdayStats as Record<string, number> | undefined);
+  merged.weeklyStats = migrateStats(raw.weeklyStats as Record<string, number> | undefined);
+  merged.monthlyStats = migrateStats(raw.monthlyStats as Record<string, number> | undefined);
+  merged.lastStatUpdate = migrateStats(raw.lastStatUpdate as Record<string, number> | undefined);
+  if (!merged.ownedOutfits) merged.ownedOutfits = ['default'];
+  if (!merged.activeOutfit) merged.activeOutfit = 'default';
+  if (!merged.unlockedOutfits) merged.unlockedOutfits = ['outfit_starter'];
+  if (!merged.equippedOutfitId) merged.equippedOutfitId = 'outfit_starter';
+  if (!merged.equippedShadows) merged.equippedShadows = [null, null, null];
+  if (!merged.combatStats) merged.combatStats = { attack: 0, boost: 0, ultimate: 0, extraction: 0 };
+  if (merged.cheatStrikes === undefined) merged.cheatStrikes = 0;
+  if (merged.isBanned === undefined) merged.isBanned = false;
+  if (merged.trustScore === undefined) merged.trustScore = 100;
+  if (merged.duskUnreadCount === undefined) merged.duskUnreadCount = 1;
+  if (!merged.startDate) merged.startDate = Date.now();
+  if (!merged.unlockedLooks) merged.unlockedLooks = [];
+  if (!merged.activeLookId) merged.activeLookId = '';
+  if (!merged.consumables) merged.consumables = { healthPotions: 0, shadowScrolls: 0, ultOrbs: 0 };
+  merged.tutorialComplete = (data as any)?.tutorialComplete ?? false;
+  return merged;
+}
+
+function loadFromStorage(): PlayerData {
+  try {
+    const saved = localStorage.getItem('reforge_player_v2');
+    if (!saved) return DEFAULT_PLAYER;
+    const parsed = JSON.parse(saved) as Partial<PlayerData>;
+    return migratePlayerData(parsed);
+  } catch {
+    return DEFAULT_PLAYER;
+  }
+}
+
+interface StoredNotification extends SystemNotification {
+  timestamp: number;
+}
+
+const loadNotifHistory = (): StoredNotification[] => {
+  try {
+    const raw = localStorage.getItem('reforge_notif_history');
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+};
+
+const loadUnread = (): boolean => {
+  try { return localStorage.getItem('reforge_notif_unread') === 'true'; } catch { return false; }
+};
+
+export const useSystem = () => {
+  const [player, setPlayer] = useState<PlayerData>(loadFromStorage);
+  const [notifications, setNotifications] = useState<SystemNotification[]>([]);
+  const [notificationHistory, setNotificationHistory] = useState<StoredNotification[]>(loadNotifHistory);
+  const [hasUnreadNotifications, setHasUnreadNotifications] = useState<boolean>(loadUnread);
+  const notificationTimers = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+
+  useEffect(() => {
+    localStorage.setItem('reforge_player_v2', JSON.stringify(player));
+  }, [player]);
+
+  useEffect(() => {
+    localStorage.setItem('reforge_notif_history', JSON.stringify(notificationHistory));
+  }, [notificationHistory]);
+
+  useEffect(() => {
+    localStorage.setItem('reforge_notif_unread', hasUnreadNotifications ? 'true' : 'false');
+  }, [hasUnreadNotifications]);
+
+  useEffect(() => {
+    return () => {
+      notificationTimers.current.forEach(t => clearTimeout(t));
+    };
+  }, []);
+
+  useEffect(() => {
+    const fetchGlobalAssets = async () => {
+      try {
+        const [videosRes, protocolsRes] = await Promise.all([
+          fetch('/api/videos'),
+          fetch('/api/global-config/customProtocols'),
+        ]);
+
+        if (videosRes.ok) {
+          const videoMap = (await videosRes.json()) as Record<string, string>;
+          const exerciseDB: AdminExercise[] = Object.entries(videoMap).map(([key, url]) => ({
+            id: key,
+            name: key,
+            videoUrl: url,
+            imageUrl: '',
+            muscleGroup: 'General',
+            difficulty: 'Intermediate',
+            caloriesBurn: 0
+          }));
+          setPlayer(prev => ({
+            ...prev,
+            focusVideos: { ...prev.focusVideos, ...videoMap },
+            exerciseDatabase: exerciseDB
+          }));
+        }
+
+        if (protocolsRes.ok) {
+          const protocols = await protocolsRes.json() as Record<string, WorkoutDay[]>;
+          if (protocols && Object.keys(protocols).length > 0) {
+            setPlayer(prev => ({ ...prev, customProtocols: protocols }));
+          }
+        }
+      } catch (err) {
+        console.error('Global asset sync error', err);
+      }
+    };
+    fetchGlobalAssets();
+  }, []);
+
+  const syncToCloud = useCallback(async (data: PlayerData) => {
+    if (!data.userId || data.userId.startsWith('local-')) return;
+    try {
+      await fetch(`/api/player/${data.userId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+    } catch (e) {
+      console.error('Cloud Sync Error', e);
+    }
+  }, []);
+
+  const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (!player.userId || player.userId.startsWith('local-')) return;
+    if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+    syncTimerRef.current = setTimeout(() => {
+      syncToCloud(player);
+    }, 2000);
+    return () => {
+      if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+    };
+  }, [player, syncToCloud]);
+
+  const addNotification = useCallback((message: string, type: NotificationType) => {
+    const id = Date.now().toString();
+    setNotifications(prev => [...prev, { id, message, type }]);
+    const timer = setTimeout(() => {
+      setNotifications(prev => prev.filter(n => n.id !== id));
+      notificationTimers.current.delete(timer);
+    }, 5000);
+    notificationTimers.current.add(timer);
+    setNotificationHistory(prev => [{ id, message, type, timestamp: Date.now() }, ...prev].slice(0, 50));
+    setHasUnreadNotifications(true);
+  }, []);
+
+  const removeNotification = useCallback((id: string) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+  }, []);
+
+  const markNotificationsRead = useCallback(() => {
+    setHasUnreadNotifications(false);
+  }, []);
+
+  const clearNotificationHistory = useCallback(() => {
+    setNotificationHistory([]);
+    setHasUnreadNotifications(false);
+  }, []);
+
+  const createLog = (message: string, type: ActivityLog['type']): ActivityLog => ({
+    id: Math.random().toString(36).substring(2, 9),
+    message,
+    timestamp: Date.now(),
+    type
+  });
+
+  const processDailyReset = useCallback(() => {
+    setPlayer(prev => {
+      const now = Date.now();
+      const todayStart = new Date().setHours(0, 0, 0, 0);
+      if ((prev.lastDailyReset || 0) >= todayStart) return prev;
+
+      const newLogs: ActivityLog[] = [];
+      const updatedQuests: Quest[] = [];
+
+      for (const q of prev.quests) {
+        if (q.isDaily) {
+          updatedQuests.push({
+            ...q,
+            isCompleted: false,
+            failed: false,
+            completedAsMini: false,
+            lastResetAt: now,
+          });
+        } else {
+          if (!q.isCompleted && !q.failed) {
+            newLogs.push({
+              id: Math.random().toString(36).substring(2, 9),
+              message: `Quest Expired: ${q.title}`,
+              timestamp: now,
+              type: 'PENALTY',
+            });
+          }
+        }
+      }
+
+      return {
+        ...prev,
+        quests: updatedQuests,
+        lastDailyReset: now,
+        logs: [...newLogs, ...prev.logs].slice(0, 60),
+      };
+    });
+  }, []);
+
+  useEffect(() => {
+    processDailyReset();
+    const scheduleNextReset = () => {
+      const next = new Date();
+      next.setDate(next.getDate() + 1);
+      next.setHours(0, 1, 0, 0);
+      const ms = next.getTime() - Date.now();
+      return setTimeout(() => {
+        processDailyReset();
+        const t = scheduleNextReset();
+        return t;
+      }, ms);
+    };
+    const timer = scheduleNextReset();
+    return () => clearTimeout(timer);
+  }, [processDailyReset]);
+
+  const registerUser = (profile: { id?: string; name?: string; keys?: number; raw_data?: Partial<PlayerData>; replitUser?: ReplitUser }) => {
+    setPlayer(prev => {
+      const cloudData = (profile.raw_data || {}) as Partial<PlayerData>;
+      const currentKeys = profile.keys !== undefined ? profile.keys : (cloudData.keys ?? prev.keys);
+
+      let currentQuests = (cloudData.quests ?? prev.quests) || [];
+      if (!profile.raw_data && currentQuests.length === 0) {
+        const now = Date.now();
+        const oneDay = 24 * 60 * 60 * 1000;
+        currentQuests = [
+          {
+            id: `init_q1_${now}`,
+            title: 'Get Strength to Change Yourself',
+            description: 'Every transformation begins with a single decision. Choose strength — prove it with action.',
+            rank: 'E',
+            priority: 'HIGH',
+            category: 'strength',
+            xpReward: 20,
+            isCompleted: false,
+            createdAt: now,
+            expiresAt: now + oneDay * 7,
+            isDaily: false,
+            miniQuest: 'Claim your strength'
+          },
+          {
+            id: `init_q2_${now}`,
+            title: 'Take the 1st Step to Change',
+            description: 'Discipline is built one step at a time. Show up. Begin.',
+            rank: 'E',
+            priority: 'HIGH',
+            category: 'discipline',
+            xpReward: 20,
+            isCompleted: false,
+            createdAt: now,
+            expiresAt: now + oneDay * 7,
+            isDaily: false,
+            miniQuest: 'Take the first step'
+          },
+          {
+            id: `init_q3_${now}`,
+            title: 'Register One Quest',
+            description: 'You have already forged your first quest. That makes you a Hunter. Own it.',
+            rank: 'E',
+            priority: 'MEDIUM',
+            category: 'social',
+            xpReward: 20,
+            isCompleted: false,
+            createdAt: now,
+            expiresAt: now + oneDay * 7,
+            isDaily: false,
+            miniQuest: 'Complete your first quest'
+          }
+        ];
+      }
+
+      const updated: PlayerData = {
+        ...DEFAULT_PLAYER,
+        ...prev,
+        ...cloudData,
+        userId: (profile.id as string) || prev.userId,
+        name: (profile.name as string) || (cloudData.name as string) || prev.name,
+        keys: currentKeys,
+        quests: currentQuests,
+        isConfigured: true,
+        replitUser: profile.replitUser || prev.replitUser,
+        // Global assets: always keep locally-fetched global data, don't let per-user cloud data overwrite it
+        focusVideos: { ...(cloudData.focusVideos || {}), ...prev.focusVideos },
+        customProtocols: Object.keys(prev.customProtocols || {}).length > 0
+          ? prev.customProtocols
+          : (cloudData.customProtocols || {}),
+      };
+      return updated;
+    });
+    playSystemSoundEffect('SYSTEM');
+  };
+
+  const logout = async () => {
+    try {
+      if (player.userId && !player.userId.startsWith('local-')) {
+        await syncToCloud(player);
+      }
+    } catch (err) {
+      console.error('Pre-logout sync error:', err);
+    }
+    localStorage.removeItem('reforge_player_v2');
+    window.location.href = '/api/logout';
+  };
+
+  const consumeKey = async (amount: number = 1): Promise<boolean> => {
+    if (player.keys >= amount) {
+      setPlayer(prev => ({ ...prev, keys: prev.keys - amount }));
+      return true;
+    }
+    return false;
+  };
+
+  const enterDungeon = async (isFree: boolean): Promise<boolean> => {
+    if (isFree) {
+      setPlayer(prev => ({ ...prev, lastDungeonEntry: Date.now() }));
+      return true;
+    }
+    const COST = 3;
+    if (player.keys >= COST) {
+      setPlayer(prev => ({
+        ...prev,
+        keys: prev.keys - COST,
+        logs: [createLog(`Dungeon Access Purchased (-${COST} Keys)`, 'PURCHASE'), ...prev.logs]
+      }));
+      return true;
+    }
+    return false;
+  };
+
+  const CHEST_COOLDOWN_MS = 30 * 60 * 1000;
+  const CHEST_LS_KEY = 'reforge_login_chest_last';
+
+  const getDailyReward = (): DailyReward | null => {
+    const last = parseInt(localStorage.getItem(CHEST_LS_KEY) || '0', 10);
+    if (last && Date.now() - last < CHEST_COOLDOWN_MS) return null;
+
+    if (!last) {
+      return { type: 'WELCOME_KEYS', amount: 3, message: 'Welcome Bonus: 3 Keys Acquired' };
+    }
+
+    const rand = Math.random();
+    if (rand < 0.4) return { type: 'GOLD', amount: 100, message: 'Daily Stipend: 100 Gold' };
+    if (rand < 0.7) return { type: 'XP', amount: 100, message: 'Experience Boost: 100 XP' };
+    if (rand < 0.9) return { type: 'KEYS', amount: 1, message: 'Dungeon Key Found' };
+    return { type: 'DUNGEON_PASS', amount: 3, message: 'Dungeon Pass (3 Keys)' };
+  };
+
+  const applyDailyReward = (reward: DailyReward) => {
+    localStorage.setItem(CHEST_LS_KEY, String(Date.now()));
+    const today = new Date().toISOString().split('T')[0];
+    setPlayer(prev => {
+      let { currentXp, requiredXp, level, totalXp, dailyXp, gold, keys } = prev;
+      if (reward.type === 'GOLD') gold += reward.amount;
+      if (reward.type === 'WELCOME_KEYS' || reward.type === 'KEYS' || reward.type === 'DUNGEON_PASS') keys += reward.amount;
+      if (reward.type === 'XP') {
+        currentXp += reward.amount;
+        totalXp += reward.amount;
+        dailyXp += reward.amount;
+      }
+
+      let leveledUp = false;
+      if (reward.type === 'XP') {
+        while (currentXp >= requiredXp) {
+          currentXp -= requiredXp;
+          level++;
+          requiredXp = Math.floor(requiredXp * 1.2);
+          leveledUp = true;
+        }
+      }
+
+      const logs = [createLog(`Daily Reward: ${reward.message}`, 'SYSTEM'), ...prev.logs];
+      if (leveledUp) {
+        logs.unshift(createLog(`LEVEL UP! REACHED LEVEL ${level}`, 'LEVEL_UP'));
+        playSystemSoundEffect('LEVEL_UP');
+      }
+
+      return {
+        ...prev,
+        lastLoginDate: today,
+        gold,
+        keys,
+        currentXp,
+        requiredXp,
+        level,
+        totalXp,
+        dailyXp: reward.type === 'XP' ? reward.amount : 0,
+        yesterdayStats: { ...prev.dailyStats },
+        dailyStats: { strength: 0, intelligence: 0, discipline: 0, social: 0 },
+        logs,
+        ...(leveledUp ? { hp: prev.maxHp, mp: prev.maxMp } : {})
+      };
+    });
+  };
+
+  const checkDailyLogin = (): DailyReward | null => {
+    const reward = getDailyReward();
+    if (reward) applyDailyReward(reward);
+    return reward;
+  };
+
+  const deductGold = (amount: number): boolean => {
+    if (player.gold >= amount) {
+      setPlayer(prev => ({ ...prev, gold: prev.gold - amount }));
+      return true;
+    }
+    return false;
+  };
+
+  const unlockOutfit = (outfitId: string, cost: number) => {
+    setPlayer(prev => {
+      if ((prev.gold || 0) < cost) return prev;
+      const owned = prev.ownedOutfits || ['default'];
+      if (owned.includes(outfitId)) return prev;
+      return { ...prev, gold: prev.gold - cost, ownedOutfits: [...owned, outfitId] };
+    });
+  };
+
+  const setActiveOutfit = (outfitId: string) => {
+    setPlayer(prev => ({ ...prev, activeOutfit: outfitId }));
+  };
+
+  const addRewards = (gold: number, xp: number, keys: number = 0) => {
+    setPlayer(prev => {
+      let { currentXp, requiredXp, level, totalXp, dailyXp } = prev;
+      currentXp += xp;
+      totalXp += xp;
+      dailyXp += xp;
+
+      let leveledUp = false;
+      while (currentXp >= requiredXp) {
+        currentXp -= requiredXp;
+        level++;
+        requiredXp = Math.floor(requiredXp * 1.2);
+        leveledUp = true;
+      }
+
+      const newLogs = [...prev.logs];
+      if (gold > 0 || keys > 0) newLogs.unshift(createLog(`Loot Acquired: ${gold} G, ${keys} Keys, ${xp} XP`, 'LOOT'));
+      if (leveledUp) {
+        newLogs.unshift(createLog(`LEVEL UP! REACHED LEVEL ${level}`, 'LEVEL_UP'));
+        addNotification(`LEVEL UP! You are now Level ${level}`, 'LEVEL_UP');
+        playSystemSoundEffect('LEVEL_UP');
+      }
+
+      return {
+        ...prev,
+        gold: prev.gold + gold,
+        keys: prev.keys + keys,
+        currentXp,
+        requiredXp,
+        level,
+        totalXp,
+        dailyXp,
+        logs: newLogs,
+        ...(leveledUp ? { hp: prev.maxHp, mp: prev.maxMp } : {})
+      };
+    });
+  };
+
+  const updateFocusVideos = async (videos: Record<string, string>) => {
+    setPlayer(prev => ({ ...prev, focusVideos: { ...prev.focusVideos, ...videos } }));
+    try {
+      await fetch('/api/videos', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(videos)
+      });
+    } catch (err) {
+      console.error('Failed to sync videos:', err);
+    }
+  };
+
+  const updateCustomProtocols = async (protocols: Record<string, WorkoutDay[]>) => {
+    setPlayer(prev => ({ ...prev, customProtocols: protocols }));
+    try {
+      await fetch('/api/global-config/customProtocols', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'x-admin-token': 'system_admin_2025' },
+        body: JSON.stringify(protocols),
+      });
+    } catch (err) {
+      console.error('Failed to save customProtocols globally:', err);
+    }
+  };
+
+  const addXp = (amount: number, source: string) => {
+    setPlayer(prev => {
+      let { currentXp, requiredXp, level, totalXp, dailyXp } = prev;
+      currentXp += amount;
+      totalXp += amount;
+      dailyXp += amount;
+
+      let leveledUp = false;
+      while (currentXp >= requiredXp) {
+        currentXp -= requiredXp;
+        level++;
+        requiredXp = Math.floor(requiredXp * 1.2);
+        leveledUp = true;
+      }
+
+      const newLogs = [createLog(`Gained ${amount} XP (${source})`, 'XP'), ...prev.logs];
+      if (leveledUp) {
+        newLogs.unshift(createLog(`LEVEL UP! REACHED LEVEL ${level}`, 'LEVEL_UP'));
+        addNotification(`LEVEL UP! You are now Level ${level}`, 'LEVEL_UP');
+        playSystemSoundEffect('LEVEL_UP');
+      }
+
+      return {
+        ...prev,
+        currentXp,
+        requiredXp,
+        level,
+        totalXp,
+        dailyXp,
+        logs: newLogs,
+        ...(leveledUp ? { hp: prev.maxHp, mp: prev.maxMp } : {})
+      };
+    });
+  };
+
+  const addQuest = (quest: Quest) => {
+    setPlayer(prev => ({ ...prev, quests: [quest, ...prev.quests] }));
+    addNotification('New Quest Protocol Initialized', 'SYSTEM');
+  };
+
+  const completeQuest = (id: string, asMini: boolean = false, noRewards: boolean = false) => {
+    setPlayer(prev => {
+      const quests = [...prev.quests];
+      const qIndex = quests.findIndex(q => q.id === id);
+      if (qIndex === -1) return prev;
+
+      const quest = quests[qIndex];
+      if (quest.isCompleted || quest.failed) return prev;
+
+      quests[qIndex] = { ...quest, isCompleted: true, completedAsMini: asMini };
+
+      if (noRewards) {
+        playSystemSoundEffect('DANGER');
+        const newLogs = [createLog(`Quest closed (Anomaly): ${quest.title} — 0 XP, 0 Gold`, 'WARNING'), ...prev.logs];
+        return { ...prev, quests, logs: newLogs };
+      }
+
+      const reward = asMini ? Math.floor(quest.xpReward * 0.1) : quest.xpReward;
+      const goldReward = asMini ? 5 : 20;
+
+      const stats = { ...prev.stats };
+      const dailyStats = { ...prev.dailyStats };
+      if (quest.category) {
+        stats[quest.category] = (stats[quest.category] || 0) + (asMini ? 0.2 : 1);
+        dailyStats[quest.category] = (dailyStats[quest.category] || 0) + (asMini ? 0.2 : 1);
+      }
+
+      let { currentXp, requiredXp, level, totalXp, dailyXp } = prev;
+      currentXp += reward;
+      totalXp += reward;
+      dailyXp += reward;
+
+      let leveledUp = false;
+      while (currentXp >= requiredXp) {
+        currentXp -= requiredXp;
+        level++;
+        requiredXp = Math.floor(requiredXp * 1.2);
+        leveledUp = true;
+      }
+
+      const newLogs = [createLog(`Completed Quest: ${quest.title} (+${reward} XP)`, 'XP'), ...prev.logs];
+      if (leveledUp) {
+        newLogs.unshift(createLog(`LEVEL UP! REACHED LEVEL ${level}`, 'LEVEL_UP'));
+        playSystemSoundEffect('LEVEL_UP');
+      } else {
+        playSystemSoundEffect('SUCCESS');
+      }
+
+      return {
+        ...prev,
+        quests,
+        gold: prev.gold + goldReward,
+        stats,
+        dailyStats,
+        currentXp,
+        requiredXp,
+        level,
+        totalXp,
+        dailyXp,
+        logs: newLogs,
+        ...(leveledUp ? { hp: prev.maxHp, mp: prev.maxMp } : {})
+      };
+    });
+  };
+
+  const failQuest = (id: string) => {
+    setPlayer(prev => {
+      const quests = [...prev.quests];
+      const qIndex = quests.findIndex(q => q.id === id);
+      if (qIndex === -1) return prev;
+
+      quests[qIndex] = { ...quests[qIndex], failed: true };
+      const penaltyAmount = 50;
+      const currentXp = Math.max(0, prev.currentXp - penaltyAmount);
+
+      return {
+        ...prev,
+        quests,
+        currentXp,
+        logs: [createLog(`Failed Quest: ${quests[qIndex].title} (-${penaltyAmount} XP)`, 'PENALTY'), ...prev.logs]
+      };
+    });
+    playSystemSoundEffect('DANGER');
+    addNotification('Quest Failed. Penalty Applied.', 'DANGER');
+  };
+
+  const failFlaggedQuest = (id: string) => {
+    setPlayer(prev => {
+      const quests = [...prev.quests];
+      const qIndex = quests.findIndex(q => q.id === id);
+      if (qIndex === -1) return prev;
+      quests[qIndex] = { ...quests[qIndex], failed: true };
+      return {
+        ...prev,
+        quests,
+        logs: [createLog(`Quest Flagged: ${quests[qIndex].title} — FAILED. No rewards granted.`, 'WARNING'), ...prev.logs]
+      };
+    });
+    playSystemSoundEffect('DANGER');
+    addNotification('ForgeGuard: Quest FAILED. No XP or Gold awarded.', 'DANGER');
+  };
+
+  const resetQuest = (id: string) => {
+    setPlayer(prev => ({
+      ...prev,
+      quests: prev.quests.map(q => q.id === id ? { ...q, isCompleted: false, failed: false, completedAsMini: false } : q)
+    }));
+  };
+
+  const deleteQuest = (id: string) => {
+    setPlayer(prev => ({ ...prev, quests: prev.quests.filter(q => q.id !== id) }));
+  };
+
+  const purchaseItem = (item: ShopItem) => {
+    if (player.gold < item.cost) {
+      addNotification('Insufficient Funds', 'WARNING');
+      return;
+    }
+    setPlayer(prev => ({
+      ...prev,
+      gold: prev.gold - item.cost,
+      logs: [createLog(`Purchased: ${item.title} (-${item.cost} G)`, 'PURCHASE'), ...prev.logs]
+    }));
+    addNotification(`Acquired: ${item.title}`, 'PURCHASE');
+    playSystemSoundEffect('PURCHASE');
+  };
+
+  const buyConsumable = (type: 'healthPotion' | 'shadowScroll' | 'ultOrb') => {
+    const costs: Record<string, { gold?: number; keys?: number; label: string; field: keyof PlayerData['consumables'] }> = {
+      healthPotion: { gold: 100, label: 'Health Potion', field: 'healthPotions' },
+      shadowScroll: { gold: 150, label: 'Shadow Scroll', field: 'shadowScrolls' },
+      ultOrb: { keys: 3, label: 'ULT Refill Orb', field: 'ultOrbs' },
+    };
+    const c = costs[type];
+    if (c.gold !== undefined) {
+      if (player.gold < c.gold) { addNotification('Insufficient Coins', 'WARNING'); return; }
+      setPlayer(prev => ({
+        ...prev,
+        gold: prev.gold - c.gold!,
+        consumables: { ...prev.consumables, [c.field]: (prev.consumables?.[c.field] ?? 0) + 1 },
+        logs: [createLog(`Purchased: ${c.label} (-${c.gold} G)`, 'PURCHASE'), ...prev.logs],
+      }));
+    } else if (c.keys !== undefined) {
+      if (player.keys < c.keys) { addNotification('Insufficient Keys', 'WARNING'); return; }
+      setPlayer(prev => ({
+        ...prev,
+        keys: prev.keys - c.keys!,
+        consumables: { ...prev.consumables, [c.field]: (prev.consumables?.[c.field] ?? 0) + 1 },
+        logs: [createLog(`Purchased: ${c.label} (-${c.keys} Keys)`, 'PURCHASE'), ...prev.logs],
+      }));
+    }
+    addNotification(`${c.label} acquired!`, 'PURCHASE');
+    playSystemSoundEffect('PURCHASE');
+  };
+
+  const addShopItem = (item: ShopItem) => {
+    setPlayer(prev => ({ ...prev, shopItems: [...prev.shopItems, item] }));
+  };
+
+  const removeShopItem = (id: string) => {
+    setPlayer(prev => ({ ...prev, shopItems: prev.shopItems.filter(i => i.id !== id) }));
+  };
+
+  const saveHealthProfile = (profile: HealthProfile, identity: string) => {
+    setPlayer(prev => ({ ...prev, healthProfile: profile, identity }));
+    addNotification('Biometrics Updated. System Calibrated.', 'SUCCESS');
+  };
+
+  const updateProfile = (data: { name: string; username: string; job: string; title: string; healthProfile?: HealthProfile }) => {
+    setPlayer(prev => ({
+      ...prev,
+      name: data.name,
+      username: data.username,
+      job: data.job,
+      title: data.title,
+      ...(data.healthProfile ? { healthProfile: data.healthProfile } : {}),
+    }));
+    addNotification('Profile Updated.', 'SUCCESS');
+  };
+
+  const addProgressPhoto = (photo: ProgressPhoto) => {
+    setPlayer(prev => {
+      const profile = prev.healthProfile;
+      if (!profile) return prev;
+      const photos = [photo, ...(profile.progressPhotos || [])];
+      return { ...prev, healthProfile: { ...profile, progressPhotos: photos } };
+    });
+  };
+
+  const deleteProgressPhoto = (id: string) => {
+    setPlayer(prev => {
+      const profile = prev.healthProfile;
+      if (!profile) return prev;
+      const photos = (profile.progressPhotos || []).filter(p => p.id !== id);
+      return { ...prev, healthProfile: { ...profile, progressPhotos: photos } };
+    });
+  };
+
+  const logMeal = (meal: MealLog) => {
+    const recoveryAmount = 5;
+    setPlayer(prev => ({
+      ...prev,
+      hp: Math.min(prev.maxHp, prev.hp + recoveryAmount),
+      nutritionLogs: [...(prev.nutritionLogs || []), meal],
+      logs: [createLog(`Nutrition Logged: ${meal.label} (${meal.totalCalories} kcal) [+${recoveryAmount} HP]`, 'SYSTEM'), ...prev.logs]
+    }));
+    addNotification(`Meal Logged: ${meal.totalCalories} kcal. Vitality Restored.`, 'SUCCESS');
+  };
+
+  const deleteMeal = (id: string) => {
+    setPlayer(prev => ({ ...prev, nutritionLogs: prev.nutritionLogs.filter(m => m.id !== id) }));
+  };
+
+  const completeWorkoutSession = (
+    exercisesCompleted: number,
+    totalExercises: number,
+    results: Record<string, number>,
+    intensityModifier: boolean
+  ) => {
+    setPlayer(prev => {
+      const baseXp = exercisesCompleted * 50;
+      const bonusXp = intensityModifier ? 100 : 0;
+      const totalReward = baseXp + bonusXp;
+      const goldReward = Math.floor(totalReward / 10);
+
+      const stats = { ...prev.stats };
+      stats.strength += 2;
+      stats.discipline += 1;
+      if (intensityModifier) stats.strength += 1;
+
+      const newPBs = { ...prev.personalBests };
+      Object.entries(results).forEach(([key, val]) => {
+        if (!newPBs[key] || val > newPBs[key]) newPBs[key] = val;
+      });
+
+      let { currentXp, requiredXp, level, totalXp, dailyXp } = prev;
+      currentXp += totalReward;
+      totalXp += totalReward;
+      dailyXp += totalReward;
+
+      let leveledUp = false;
+      while (currentXp >= requiredXp) {
+        currentXp -= requiredXp;
+        level++;
+        requiredXp = Math.floor(requiredXp * 1.2);
+        leveledUp = true;
+      }
+
+      const newLogs = [
+        createLog(`Workout Completed: ${exercisesCompleted}/${totalExercises} Exercises (+${totalReward} XP)`, 'WORKOUT'),
+        ...prev.logs
+      ];
+      if (leveledUp) {
+        newLogs.unshift(createLog(`LEVEL UP! REACHED LEVEL ${level}`, 'LEVEL_UP'));
+        playSystemSoundEffect('LEVEL_UP');
+      }
+
+      const today = new Date().toISOString().split('T')[0];
+      const prevDate = prev.lastWorkoutDate || '';
+      let newStreak = prev.streak;
+      if (prevDate === today) {
+        newStreak = prev.streak;
+      } else {
+        const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+        newStreak = prevDate === yesterday ? prev.streak + 1 : 1;
+      }
+
+      return {
+        ...prev,
+        currentXp,
+        requiredXp,
+        level,
+        totalXp,
+        dailyXp,
+        stats,
+        personalBests: newPBs,
+        gold: prev.gold + goldReward,
+        logs: newLogs,
+        streak: newStreak,
+        lastWorkoutDate: today,
+        ...(leveledUp ? { hp: prev.maxHp, mp: prev.maxMp } : {})
+      };
+    });
+    addNotification(`Workout Complete! +${exercisesCompleted * 50} XP`, 'SUCCESS');
+  };
+
+  const failWorkout = () => {
+    addNotification('Workout Aborted. No Rewards.', 'WARNING');
+  };
+
+  const advanceTutorial = (step: number) => {
+    setPlayer(prev => ({ ...prev, tutorialStep: step }));
+  };
+
+  const completeTutorial = () => {
+    setPlayer(prev => ({ ...prev, tutorialComplete: true }));
+    addNotification('Tutorial Protocol Complete. System Fully Operational.', 'SUCCESS');
+  };
+
+  const resetTutorial = () => {
+    setPlayer(prev => ({ ...prev, tutorialStep: 1, tutorialComplete: false }));
+  };
+
+  const recordStrike = useCallback(() => {
+    setPlayer(prev => {
+      const strikes = (prev.cheatStrikes || 0) + 1;
+      let { currentXp, level } = prev;
+      let logs = [...prev.logs];
+      if (strikes >= 5) {
+        logs.unshift(createLog('PERMANENTLY BANNED: 5 anomaly violations recorded by ForgeGuard.', 'WARNING'));
+        playSystemSoundEffect('DANGER');
+        return { ...prev, cheatStrikes: strikes, isBanned: true, logs };
+      }
+      if (strikes >= 3) {
+        const deduction = Math.floor(currentXp * 0.2);
+        currentXp -= deduction;
+        logs.unshift(createLog(`Anomaly Strike ${strikes}/5: -20% XP. ${5 - strikes} violation(s) remaining before permanent ban.`, 'WARNING'));
+        playSystemSoundEffect('DANGER');
+      } else if (strikes >= 2) {
+        const deduction = Math.floor(currentXp * 0.1);
+        currentXp -= deduction;
+        logs.unshift(createLog(`Anomaly Strike ${strikes}/5: -10% XP. ${5 - strikes} violation(s) remaining before permanent ban.`, 'WARNING'));
+        playSystemSoundEffect('DANGER');
+      } else {
+        logs.unshift(createLog(`Anomaly Strike ${strikes}/5 issued. ${5 - strikes} violation(s) remaining before permanent ban.`, 'WARNING'));
+        playSystemSoundEffect('DANGER');
+      }
+      addNotification(`Anomaly Strike ${strikes}/5 — ${5 - strikes} remaining`, 'DANGER');
+      return { ...prev, cheatStrikes: strikes, currentXp: Math.max(0, currentXp), level, logs };
+    });
+  }, [addNotification]);
+
+  const removeStrike = useCallback(() => {
+    setPlayer(prev => ({
+      ...prev,
+      cheatStrikes: Math.max(0, (prev.cheatStrikes || 0) - 1),
+      trustScore: Math.min(100, (prev.trustScore || 100) + 5),
+      logs: [createLog('Anti-Cheat Strike Removed via Ticket.', 'SYSTEM'), ...prev.logs]
+    }));
+    addNotification('Strike Removed. Trust Restored.', 'SUCCESS');
+  }, [addNotification]);
+
+  const markDuskMessagesRead = useCallback(() => {
+    setPlayer(prev => ({ ...prev, duskUnreadCount: 0 }));
+  }, []);
+
+  const setDashboardTrigger = useCallback((type: string) => {
+    sessionStorage.setItem('dashboard_trigger', type);
+  }, []);
+
+  const verifyTicket = useCallback(async (proof: string, reason: string, originalSelfie?: string) => {
+    try {
+      const res = await fetch('/api/forge-guard/verify-proof', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageBase64: proof, reason, context: originalSelfie })
+      });
+      const data = await res.json();
+      if (data.verdict === 'APPROVED') {
+        removeStrike();
+      } else {
+        addNotification('Ticket Rejected: Insufficient proof.', 'DANGER');
+      }
+    } catch (err) {
+      addNotification('Ticket verification failed. Try again.', 'WARNING');
+    }
+  }, [removeStrike, addNotification]);
+
+  const purchaseOutfit = useCallback((outfit: { id: string; name: string; cost: number }) => {
+    setPlayer(prev => {
+      if ((prev.gold || 0) < outfit.cost) {
+        addNotification('Insufficient Gold.', 'DANGER');
+        return prev;
+      }
+      const unlocked = prev.unlockedOutfits || ['outfit_starter'];
+      if (unlocked.includes(outfit.id)) return prev;
+      playSystemSoundEffect('PURCHASE');
+      addNotification(`${outfit.name} Unlocked!`, 'PURCHASE');
+      return {
+        ...prev,
+        gold: prev.gold - outfit.cost,
+        unlockedOutfits: [...unlocked, outfit.id],
+        logs: [createLog(`Purchased: ${outfit.name} (-${outfit.cost}G)`, 'PURCHASE'), ...prev.logs]
+      };
+    });
+  }, [addNotification]);
+
+  const equipOutfit = useCallback((outfitId: string) => {
+    setPlayer(prev => ({
+      ...prev,
+      equippedOutfitId: outfitId,
+      logs: [createLog(`Equipped outfit: ${outfitId}`, 'EQUIP'), ...prev.logs]
+    }));
+  }, []);
+
+  const resolvePenalty = () => {
+    setPlayer(prev => ({ ...prev, isPenaltyActive: false, penaltyEndTime: undefined, penaltyTask: undefined }));
+    addNotification('Penalty Lifted. System Normalized.', 'SUCCESS');
+  };
+
+  const reducePenalty = (ms: number) => {
+    setPlayer(prev => {
+      if (!prev.penaltyEndTime) return prev;
+      const newEndTime = prev.penaltyEndTime - ms;
+      if (newEndTime <= Date.now()) {
+        addNotification('Penalty Lifted.', 'SUCCESS');
+        return { ...prev, isPenaltyActive: false, penaltyEndTime: undefined, penaltyTask: undefined };
+      }
+      return { ...prev, penaltyEndTime: newEndTime };
+    });
+  };
+
+  const claimTournamentReward = () => {
+    setPlayer(prev => {
+      const reward = prev.tournament?.pendingReward;
+      if (!reward) return prev;
+      return {
+        ...prev,
+        gold: prev.gold + reward.gold,
+        tournament: { ...prev.tournament, pendingReward: null },
+        logs: [createLog(`Claimed Tournament Reward: #${reward.rank} (+${reward.gold} G)`, 'TOURNAMENT'), ...prev.logs]
+      };
+    });
+  };
+
+  return {
+    player,
+    setPlayer,
+    notifications,
+    notificationHistory,
+    hasUnreadNotifications,
+    registerUser,
+    addQuest,
+    completeQuest,
+    failQuest,
+    failFlaggedQuest,
+    resetQuest,
+    deleteQuest,
+    purchaseItem,
+    buyConsumable,
+    addShopItem,
+    removeShopItem,
+    removeNotification,
+    markNotificationsRead,
+    clearNotificationHistory,
+    saveHealthProfile,
+    updateProfile,
+    addProgressPhoto,
+    deleteProgressPhoto,
+    logMeal,
+    deleteMeal,
+    completeWorkoutSession,
+    failWorkout,
+    logout,
+    advanceTutorial,
+    completeTutorial,
+    resetTutorial,
+    resolvePenalty,
+    reducePenalty,
+    claimTournamentReward,
+    updateFocusVideos,
+    updateCustomProtocols,
+    addXp,
+    consumeKey,
+    checkDailyLogin,
+    deductGold,
+    addRewards,
+    enterDungeon,
+    unlockOutfit,
+    setActiveOutfit,
+    recordStrike,
+    removeStrike,
+    markDuskMessagesRead,
+    setDashboardTrigger,
+    verifyTicket,
+    purchaseOutfit,
+    equipOutfit,
+    addNotification,
+  };
+};
+
