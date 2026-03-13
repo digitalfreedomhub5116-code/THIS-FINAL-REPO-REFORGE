@@ -42,6 +42,9 @@ async function startServer() {
   const app = express();
   const PORT = process.env.PORT ? parseInt(process.env.PORT) : 8001;
 
+  // Trust Railway's reverse proxy so secure cookies work over HTTPS
+  app.set('trust proxy', 1);
+
   // Middleware
   const allowedOrigins = [
     'http://localhost:5000',
@@ -51,6 +54,12 @@ async function startServer() {
     'https://localhost',
   ];
   if (process.env.DEPLOYED_URL) allowedOrigins.push(process.env.DEPLOYED_URL);
+
+  // Fix COOP header so Google OAuth popup can postMessage back to parent
+  app.use((_req, res, next) => {
+    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+    next();
+  });
 
   app.use(cors({
     origin: (origin, cb) => {
@@ -74,7 +83,17 @@ async function startServer() {
   };
   if (process.env.DATABASE_URL) {
     const pgPool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
-    sessionOptions.store = new pgSession({ pool: pgPool, tableName: 'session', createTableIfMissing: true });
+    // Pre-create session table directly — PgBouncer (Supabase pooler) blocks createTableIfMissing DDL
+    pgPool.query(`
+      CREATE TABLE IF NOT EXISTS session (
+        sid varchar NOT NULL COLLATE "default",
+        sess json NOT NULL,
+        expire timestamp(6) NOT NULL,
+        CONSTRAINT session_pkey PRIMARY KEY (sid) NOT DEFERRABLE INITIALLY IMMEDIATE
+      ) WITH (OIDS=FALSE);
+      CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON session (expire);
+    `).catch((err: unknown) => console.warn('[Server] Session table pre-create skipped:', (err as Error).message));
+    sessionOptions.store = new pgSession({ pool: pgPool, tableName: 'session', createTableIfMissing: false });
     console.log('[Server] Session store: PostgreSQL (connect-pg-simple)');
   } else {
     console.warn('[Server] SESSION WARNING: Using MemoryStore — sessions will not survive restarts. Set DATABASE_URL to enable persistent sessions.');

@@ -103,33 +103,24 @@ router.post('/register', async (req, res) => {
     }
 
     if (insertResult.error) {
-      throw insertResult.error;
+      console.error('[Auth Register] Supabase insert error:', JSON.stringify(insertResult.error));
+      return res.status(500).json({ error: `Registration failed: ${insertResult.error.message || insertResult.error.code || 'database error'}` });
     }
 
-    // Set session and save before responding
+    // Set session — non-fatal if session store fails
     (req.session as any).userId = userId;
     (req.session as any).authType = 'local';
+    const successPayload = {
+      message: 'Account created successfully',
+      user: { id: userId, username, name: username, email, level: 1, gold: 100, keys: 3 }
+    };
     req.session.save((saveErr) => {
-      if (saveErr) {
-        console.error('[Auth Register] Session save error:', saveErr);
-        return res.status(500).json({ error: 'Session error' });
-      }
-      return res.json({
-        message: 'Account created successfully',
-        user: {
-          id: userId,
-          username: username,
-          name: username,
-          email: email,
-          level: 1,
-          gold: 100,
-          keys: 3
-        }
-      });
+      if (saveErr) console.error('[Auth Register] Session save error (non-fatal):', saveErr);
+      return res.json(successPayload);
     });
-  } catch (err) {
+  } catch (err: any) {
     console.error('[Local Auth Register] Unexpected error:', err);
-    return res.status(500).json({ error: 'Registration failed' });
+    return res.status(500).json({ error: `Registration failed: ${err?.message || err?.code || 'unknown error'}` });
   }
 });
 
@@ -192,26 +183,24 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid codename or password' });
     }
 
-    // Set session and save before responding
+    // Set session — non-fatal if session store fails
     (req.session as any).userId = userData.supabase_id;
     (req.session as any).authType = 'local';
-    req.session.save((saveErr) => {
-      if (saveErr) {
-        console.error('[Auth Login] Session save error:', saveErr);
-        return res.status(500).json({ error: 'Session error' });
+    const loginPayload = {
+      message: 'Login successful',
+      user: {
+        id: userData.supabase_id,
+        username: userData.username,
+        name: userData.name,
+        email: userData.email,
+        level: userData.level,
+        gold: userData.gold,
+        keys: userData.keys
       }
-      return res.json({
-        message: 'Login successful',
-        user: {
-          id: userData.supabase_id,
-          username: userData.username,
-          name: userData.name,
-          email: userData.email,
-          level: userData.level,
-          gold: userData.gold,
-          keys: userData.keys
-        }
-      });
+    };
+    req.session.save((saveErr) => {
+      if (saveErr) console.error('[Auth Login] Session save error (non-fatal):', saveErr);
+      return res.json(loginPayload);
     });
   } catch (err) {
     console.error('[Local Auth Login]', err);

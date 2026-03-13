@@ -128,24 +128,16 @@ export async function setupGoogleAuth(app: Express) {
         }
       }
 
-      // Set session (same pattern as local auth)
+      // Set session — non-fatal if session store fails
       (req as any).session.userId = userId;
       (req as any).session.authType = 'google';
+      const googlePayload = {
+        message: 'Google login successful',
+        user: { id: userId, username, name, email, avatar_url: picture },
+      };
       (req as any).session.save((saveErr: any) => {
-        if (saveErr) {
-          console.error('[Auth Google] Session save error:', saveErr);
-          return res.status(500).json({ error: 'Session error' });
-        }
-        return res.json({
-          message: 'Google login successful',
-          user: {
-            id: userId,
-            username,
-            name,
-            email,
-            avatar_url: picture,
-          },
-        });
+        if (saveErr) console.error('[Auth Google] Session save error (non-fatal):', saveErr);
+        return res.json(googlePayload);
       });
     } catch (err) {
       console.error('[Auth Google] Error:', err);
