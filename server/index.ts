@@ -60,13 +60,15 @@ async function startServer() {
     credentials: true
   }));
   app.use(json({ limit: '50mb' }));
+  const isProduction = process.env.NODE_ENV === 'production';
   const sessionOptions: Record<string, unknown> = {
     secret: process.env.SESSION_SECRET || 'your-session-secret-here',
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: false,
+      secure: isProduction, // true for HTTPS (Railway), false for HTTP (localhost)
       httpOnly: true,
+      sameSite: isProduction ? 'none' : 'lax', // 'none' required for cross-origin on HTTPS
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     }
   };
