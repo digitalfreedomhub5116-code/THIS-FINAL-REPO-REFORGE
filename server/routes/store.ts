@@ -92,7 +92,7 @@ router.put('/outfits/:id', async (req: Request, res: Response) => {
     const { data, error } = await (supabaseServer() as any)
       .from('store_outfits')
       .update(updates)
-      .eq('id', parseInt(id as string))
+      .eq('id', id)
       .select()
       .single();
     if (error) throw error;
@@ -112,7 +112,7 @@ router.delete('/outfits/:id', async (req: Request, res: Response) => {
     const { data: check, error: checkErr } = await (supabaseServer() as any)
       .from('store_outfits')
       .select('is_default')
-      .eq('id', parseInt(id as string))
+      .eq('id', id)
       .single();
     if (checkErr || !check) return res.status(404).json({ error: 'Outfit not found' });
     if (check.is_default) {
@@ -121,7 +121,7 @@ router.delete('/outfits/:id', async (req: Request, res: Response) => {
     await (supabaseServer() as any)
       .from('store_outfits')
       .delete()
-      .eq('id', parseInt(id as string));
+      .eq('id', id);
     return res.json({ success: true });
   } catch (err) {
     console.error('[Store] DELETE outfit error:', err);
@@ -141,7 +141,7 @@ router.post('/outfits/:id/set-default', async (req: Request, res: Response) => {
     const { data, error } = await (supabaseServer() as any)
       .from('store_outfits')
       .update({ is_default: true })
-      .eq('id', parseInt(id as string))
+      .eq('id', id)
       .select()
       .single();
     if (error || !data) return res.status(404).json({ error: 'Outfit not found' });

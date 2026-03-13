@@ -1,12 +1,11 @@
 
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Check, Settings, LogOut, Lock } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check, Settings, LogOut } from 'lucide-react';
 import { PlayerData } from '../types';
 
 interface GrowthViewProps {
   player: PlayerData;
-  onAdminRequest: () => void;
   onLogout: () => void;
 }
 
@@ -27,7 +26,7 @@ type CalendarItem =
 const DAYS_OF_WEEK = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 
-const GrowthView: React.FC<GrowthViewProps> = ({ player, onAdminRequest, onLogout }) => {
+const GrowthView: React.FC<GrowthViewProps> = ({ player, onLogout }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showSettings, setShowSettings] = useState(false);
   const [tooltip, setTooltip] = useState<{ x: number, y: number, date: string, percentage: number, stats: string } | null>(null);
@@ -151,9 +150,6 @@ const GrowthView: React.FC<GrowthViewProps> = ({ player, onAdminRequest, onLogou
                             className="absolute right-0 top-full mt-2 w-48 bg-black border border-gray-800 rounded-xl shadow-xl overflow-hidden z-50"
                         >
                             <div className="p-1">
-                                <button onClick={onAdminRequest} className="w-full text-left px-4 py-3 text-[10px] font-mono text-gray-400 hover:bg-gray-900 hover:text-white flex items-center gap-2">
-                                    <Lock size={12} /> ADMIN CONSOLE
-                                </button>
                                 <button onClick={onLogout} className="w-full text-left px-4 py-3 text-[10px] font-mono text-red-500 hover:bg-red-900/20 flex items-center gap-2">
                                     <LogOut size={12} /> LOGOUT
                                 </button>

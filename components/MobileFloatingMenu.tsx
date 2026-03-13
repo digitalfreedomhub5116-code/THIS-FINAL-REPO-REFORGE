@@ -460,7 +460,7 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
               </div>
             )}
             <img
-              src="https://res.cloudinary.com/dcnqnbvp0/image/upload/v1771005827/finalimage_zeavky.png"
+              src="/images/ui/chest-icon.png"
               alt="Chest"
               className={`w-full h-full object-cover transition-opacity duration-500 ${isChestLoaded ? 'opacity-100' : 'opacity-0'}`}
               onLoad={() => setIsChestLoaded(true)}
@@ -490,7 +490,7 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
             className="w-12 h-12 bg-black/40 backdrop-blur-md border border-red-600/30 rounded-full flex items-center justify-center active:scale-90 transition-all relative overflow-hidden"
           >
             <img
-              src="https://res.cloudinary.com/dcnqnbvp0/image/upload/v1771017431/dungeonlogo_1_hucwnd.jpg"
+              src="/images/ui/dungeon-bg.jpg"
               alt="Dungeon"
               className="w-full h-full object-cover opacity-80"
             />

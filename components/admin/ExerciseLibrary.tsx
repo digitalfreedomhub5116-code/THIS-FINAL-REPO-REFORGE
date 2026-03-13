@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Edit3, Trash2, Search, Save, X, Video } from 'lucide-react';
 import { WorkoutExercise } from '../../types';
 
-const ADMIN_SECRET = 'system_admin_2025';
-
 const TYPES = ['COMPOUND', 'ISOLATION', 'CARDIO', 'ACCESSORY', 'STRETCH'];
 const EQUIPMENT_OPTIONS = ['GYM', 'BODYWEIGHT', 'HOME_DUMBBELLS', 'ANY'];
 const MUSCLE_GROUPS = ['CHEST', 'BACK', 'SHOULDERS', 'BICEPS', 'TRICEPS', 'QUADS', 'HAMSTRINGS', 'GLUTES', 'CALVES', 'CORE', 'REAR DELT', 'FULL BODY', 'CARDIO', 'MOBILITY'];
@@ -21,7 +19,7 @@ const emptyForm = () => ({
   is_active: true,
 });
 
-const ExerciseLibrary: React.FC = () => {
+const ExerciseLibrary: React.FC<{ adminToken: string }> = ({ adminToken }) => {
   const [exercises, setExercises] = useState<WorkoutExercise[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
@@ -37,7 +35,7 @@ const ExerciseLibrary: React.FC = () => {
   const fetchExercises = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/exercises', { headers: { 'x-admin-token': ADMIN_SECRET } });
+      const res = await fetch('/api/admin/exercises', { headers: { 'x-admin-token': adminToken } });
       const data = await res.json();
       setExercises(Array.isArray(data) ? data : []);
     } catch { setMsg({ type: 'error', text: 'Failed to load exercises' }); }
@@ -59,7 +57,7 @@ const ExerciseLibrary: React.FC = () => {
     try {
       const url = editing ? `/api/admin/exercises/${editing.id}` : '/api/admin/exercises';
       const method = editing ? 'PUT' : 'POST';
-      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json', 'x-admin-token': ADMIN_SECRET }, body: JSON.stringify(form) });
+      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json', 'x-admin-token': adminToken }, body: JSON.stringify(form) });
       if (!res.ok) throw new Error('Save failed');
       setMsg({ type: 'success', text: editing ? 'Exercise updated' : 'Exercise created' });
       setShowForm(false);
@@ -70,7 +68,7 @@ const ExerciseLibrary: React.FC = () => {
 
   const deleteExercise = async (id: number) => {
     try {
-      await fetch(`/api/admin/exercises/${id}`, { method: 'DELETE', headers: { 'x-admin-token': ADMIN_SECRET } });
+      await fetch(`/api/admin/exercises/${id}`, { method: 'DELETE', headers: { 'x-admin-token': adminToken } });
       setExercises(prev => prev.filter(e => e.id !== id));
       setConfirmDelete(null);
       setMsg({ type: 'success', text: 'Exercise deleted' });

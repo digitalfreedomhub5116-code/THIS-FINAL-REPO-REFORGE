@@ -6,6 +6,7 @@ import { Quest, CoreStats, Rank, Priority, PlayerData } from '../types';
 import RankBadge from './RankBadge';
 import type { RankType } from './RankBadge';
 import QuestCard from './QuestCard';
+import { PLEDGE_AMOUNTS, MANDATORY_RANKS } from './SystemPactScreen';
 import { playSystemSoundEffect } from '../utils/soundEngine';
 
 interface ForgeGuardResult {
@@ -33,6 +34,7 @@ interface QuestsViewProps {
   playerData?: PlayerData;
   onToggleNav?: (visible: boolean) => void;
   recordStrike?: () => void;
+  onShowPact?: (quest: Quest) => void;
 }
 
 const RANK_COLORS: Record<Rank, { bg: string; text: string; border: string; glow: string }> = {
@@ -263,7 +265,7 @@ const FuturisticCalendar: React.FC<{ quests: Quest[] }> = ({ quests }) => {
 
 const QuestsView: React.FC<QuestsViewProps> = ({
   quests, addQuest, completeQuest, failQuest, resetQuest, deleteQuest,
-  tutorialStep, onTutorialAction, onTutorialAnalysisFail, playerData, onToggleNav
+  tutorialStep, onTutorialAction, onTutorialAnalysisFail, playerData, onToggleNav, onShowPact
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [title, setTitle] = useState('');
@@ -310,6 +312,7 @@ const QuestsView: React.FC<QuestsViewProps> = ({
       const res = await fetch('/api/forge-guard/analyze-quest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           title: title.trim(),
           userStats: playerData?.stats,
@@ -357,6 +360,18 @@ const QuestsView: React.FC<QuestsViewProps> = ({
       playSystemSoundEffect('WARNING');
       return;
     }
+
+    // Mandatory pact gold check — block quest creation if player can't afford (skip during tutorial)
+    if (tutorialStep !== 11) {
+      const rank = forgeResult.rank;
+      const pledgeAmount = PLEDGE_AMOUNTS[rank];
+      if (MANDATORY_RANKS.has(rank) && (playerData?.gold ?? 0) < pledgeAmount) {
+        setError(`INSUFFICIENT GOLD — ${rank}-Rank quests require ${pledgeAmount}G Shadow Pledge. Earn more Gold before attempting this rank.`);
+        playSystemSoundEffect('WARNING');
+        return;
+      }
+    }
+
     const scheduledTimestamp = new Date(`${todayStr()}T${scheduleTime}`).toISOString();
     const newQuest: Quest = {
       id: Math.random().toString(36).substr(2, 9),
@@ -375,9 +390,20 @@ const QuestsView: React.FC<QuestsViewProps> = ({
       aiReasoning: forgeResult.reasoning,
       scheduledTime: scheduledTimestamp,
     };
-    addQuest(newQuest);
-    resetForm();
-    if (tutorialStep === 11 && onTutorialAction) onTutorialAction(12);
+
+    // During tutorial, skip pact (user has 0 gold, learns about pact at step 16)
+    if (tutorialStep === 11) {
+      addQuest(newQuest);
+      resetForm();
+      if (onTutorialAction) onTutorialAction(12);
+    } else if (onShowPact) {
+      onShowPact(newQuest);
+      setIsModalOpen(false);
+      resetForm();
+    } else {
+      addQuest(newQuest);
+      resetForm();
+    }
   };
 
   const resetForm = () => {
@@ -456,12 +482,6 @@ const QuestsView: React.FC<QuestsViewProps> = ({
             if (isTutorialWelcomePhase) {
               const isWelcomeQuest = quest.id.includes('init_q');
               if (!isWelcomeQuest) {
-                isLocked = true;
-              } else if (tutorialStep === 13 && !quest.id.includes('init_q1')) {
-                isLocked = true;
-              } else if (tutorialStep === 14 && !quest.id.includes('init_q2')) {
-                isLocked = true;
-              } else if (tutorialStep === 15 && !quest.id.includes('init_q3')) {
                 isLocked = true;
               }
             }
@@ -726,6 +746,7 @@ const QuestsView: React.FC<QuestsViewProps> = ({
           </div>
         )}
       </AnimatePresence>
+
     </div>
   );
 };

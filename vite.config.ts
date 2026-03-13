@@ -11,7 +11,6 @@ export default defineConfig({
     dedupe: ['react', 'react-dom', 'react/jsx-runtime'],
     alias: {
       '@assets': path.resolve(__dirname, 'attached_assets'),
-      '@shared': path.resolve(__dirname, 'shared'),
     }
   },
   build: {

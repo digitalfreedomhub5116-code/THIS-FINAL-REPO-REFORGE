@@ -438,6 +438,8 @@ export const HealthView: React.FC<HealthViewProps> = ({
   const [isTransformed, setIsTransformed] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
   const animationRef = useRef<number | null>(null);
+  const processingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const finalizingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const [activePlan, setActivePlan] = useState<WorkoutDay | null>(null);
   const [step, setStep] = useState(1);
@@ -514,11 +516,12 @@ export const HealthView: React.FC<HealthViewProps> = ({
 
   // Fetch user custom plans (manual + AI saved)
   useEffect(() => {
-      fetch('/api/workout/custom-plans')
+      if (!playerData.userId || playerData.userId.startsWith('local-') || playerData.userId.startsWith('local_')) return;
+      fetch('/api/workout/custom-plans', { credentials: 'include' })
           .then(r => r.ok ? r.json() : [])
           .then(data => setCustomPlans(Array.isArray(data) ? data : []))
           .catch(() => {});
-  }, []);
+  }, [playerData.userId]);
 
   // Trigger streak pop animation when streak increases
   useEffect(() => {
@@ -545,24 +548,26 @@ export const HealthView: React.FC<HealthViewProps> = ({
   const estimatedTimeStr = useMemo(() => calculateTimeEstimate(healthProfile || formData), [healthProfile, formData]);
 
   const startProcessing = () => {
+      if (processingIntervalRef.current) clearInterval(processingIntervalRef.current);
       setViewMode('PROCESSING');
       setProcessingPercent(0);
       let p = 0;
-      const interval = setInterval(() => {
+      processingIntervalRef.current = setInterval(() => {
           p += 1;
           setProcessingPercent(p);
-          if (p >= 100) { clearInterval(interval); setTimeout(() => setViewMode('DIAGNOSIS'), 500); }
+          if (p >= 100) { clearInterval(processingIntervalRef.current!); processingIntervalRef.current = null; setTimeout(() => setViewMode('DIAGNOSIS'), 500); }
       }, 40);
   };
 
   const startJourneySequence = () => {
+      if (finalizingIntervalRef.current) clearInterval(finalizingIntervalRef.current);
       setViewMode('FINALIZING');
       const sequence = ["BIOLOGICAL RESTRUCTURING...", "NEURAL SYNCING...", "CONSTRUCTING PROTOCOLS...", "SELECT YOUR PROGRAM."];
       let i = 0;
-      const interval = setInterval(() => {
+      finalizingIntervalRef.current = setInterval(() => {
           if (i < sequence.length) { setFinalizingLog(sequence[i]); i++; } 
           else {
-              clearInterval(interval);
+              clearInterval(finalizingIntervalRef.current!); finalizingIntervalRef.current = null;
               setTimeout(() => {
                 const fullProfile = { ...formData, bmi: parseFloat(currentBMI), bmr: nutritionInfo.bmr, macros: nutritionInfo.macros, injuries: [], category: 'Hunter', startingWeight: formData.weight } as HealthProfile;
                 onSaveProfile(fullProfile, "Shadow Vessel");
@@ -571,6 +576,14 @@ export const HealthView: React.FC<HealthViewProps> = ({
           }
       }, 1500); 
   };
+
+  // Cleanup leak-prone intervals on unmount
+  useEffect(() => {
+      return () => {
+          if (processingIntervalRef.current) clearInterval(processingIntervalRef.current);
+          if (finalizingIntervalRef.current) clearInterval(finalizingIntervalRef.current);
+      };
+  }, []);
 
   const handleSelectPlan = (plan: WorkoutPlan) => {
       const days = Array.isArray(plan.days) ? plan.days : [];
@@ -601,6 +614,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
           const res = await fetch('/api/workout/generate-ai', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
               body: JSON.stringify({
                   goal: profile.goal,
                   equipment: profile.equipment || 'GYM',
@@ -650,6 +664,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
               const saved = await fetch('/api/workout/custom-plans', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
+                  credentials: 'include',
                   body: JSON.stringify({ name: planName, days: planDays, plan_type: 'AI' }),
               });
               if (saved.ok) {
@@ -708,6 +723,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
           const response = await fetch('/api/nutrition/analyze', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
               body: JSON.stringify({ imageBase64, mimeType: file.type }),
           });
 
@@ -1442,7 +1458,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                                 >
                                                     <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, #1a0533 0%, #2d0a5e 40%, #0d0018 100%)' }} />
                                                     <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(168,85,247,0.35) 0%, transparent 65%)' }} />
-                                                    <div className="absolute inset-0" style={{ backgroundImage: 'url("https://res.cloudinary.com/dcnqnbvp0/image/upload/v1771017431/dungeonlogo_1_hucwnd.jpg")', backgroundSize: 'cover', backgroundPosition: 'center', opacity: 0.08 }} />
+                                                    <div className="absolute inset-0" style={{ backgroundImage: 'url("/images/ui/dungeon-bg.jpg")', backgroundSize: 'cover', backgroundPosition: 'center', opacity: 0.08 }} />
                                                     <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.1) 100%)' }} />
                                                     <div className="absolute inset-0 p-3.5 flex flex-col justify-between">
                                                         <div className="flex items-start justify-between">
@@ -1707,7 +1723,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
                             {/* ── FAB: Custom Plan Builder ── */}
                             <div className="fixed bottom-24 right-4 z-40">
                                 <motion.button
-                                    onClick={() => { setShowCustomPlanBuilder(true); onToggleNav(false); }}
+                                    onClick={() => { setShowCustomPlanBuilder(true); onToggleNav?.(false); }}
                                     className="animate-fab-float w-14 h-14 bg-system-neon text-black rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(0,210,255,0.5),0_4px_15px_rgba(0,0,0,0.4)] hover:bg-white transition-all"
                                     whileTap={{ scale: 0.9 }}
                                 >
@@ -2172,16 +2188,16 @@ export const HealthView: React.FC<HealthViewProps> = ({
             <CustomPlanBuilder
                 onClose={() => {
                     setShowCustomPlanBuilder(false);
-                    onToggleNav(true);
-                    fetch('/api/workout/custom-plans')
+                    onToggleNav?.(true);
+                    fetch('/api/workout/custom-plans', { credentials: 'include' })
                         .then(r => r.ok ? r.json() : [])
                         .then(data => setCustomPlans(Array.isArray(data) ? data : []))
                         .catch(() => {});
                 }}
                 onStartWorkout={(day) => {
                     setShowCustomPlanBuilder(false);
-                    onToggleNav(true);
-                    fetch('/api/workout/custom-plans')
+                    onToggleNav?.(true);
+                    fetch('/api/workout/custom-plans', { credentials: 'include' })
                         .then(r => r.ok ? r.json() : [])
                         .then(data => setCustomPlans(Array.isArray(data) ? data : []))
                         .catch(() => {});

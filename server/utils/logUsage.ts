@@ -31,23 +31,27 @@ function calcCost(model: string, inputTokens: number, outputTokens: number, isIm
 }
 
 export function logUsage(entry: UsageEntry): void {
-  const inputTokens  = entry.inputTokens  ?? 0;
-  const outputTokens = entry.outputTokens ?? 0;
-  const cost = calcCost(entry.model, inputTokens, outputTokens, entry.isImageGeneration ?? false);
+  try {
+    const inputTokens  = entry.inputTokens  ?? 0;
+    const outputTokens = entry.outputTokens ?? 0;
+    const cost = calcCost(entry.model, inputTokens, outputTokens, entry.isImageGeneration ?? false);
 
-  (supabaseServer() as any)
-    .from('api_usage_logs')
-    .insert({
-      route: entry.route,
-      model: entry.model,
-      input_tokens: inputTokens,
-      output_tokens: outputTokens,
-      cost_usd: cost,
-      success: entry.success ?? true,
-      user_id: entry.userId ?? null,
-    })
-    .then(() => {})
-    .catch((err: any) => {
-      console.warn('[logUsage] Failed to log API usage:', err?.message);
-    });
+    (supabaseServer() as any)
+      .from('api_usage_logs')
+      .insert({
+        route: entry.route,
+        model: entry.model,
+        input_tokens: inputTokens,
+        output_tokens: outputTokens,
+        cost_usd: cost,
+        success: entry.success ?? true,
+        user_id: entry.userId ?? null,
+      })
+      .then(() => {})
+      .catch((err: any) => {
+        console.warn('[logUsage] Failed to log API usage:', err?.message);
+      });
+  } catch (err: any) {
+    console.warn('[logUsage] Skipped (Supabase not configured):', err?.message);
+  }
 }

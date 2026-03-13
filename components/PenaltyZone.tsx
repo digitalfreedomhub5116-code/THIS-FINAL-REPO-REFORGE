@@ -58,7 +58,7 @@ const PenaltyZone: React.FC<PenaltyZoneProps> = ({ endTime, task, gold, onSurviv
       <div className="absolute inset-0 bg-red-900/10 z-0 animate-pulse" />
       
       {/* Glitch Overlay Effect */}
-      <div className="absolute inset-0 pointer-events-none opacity-20 z-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] brightness-50 contrast-150"></div>
+      <div className="absolute inset-0 pointer-events-none opacity-20 z-0 bg-[url('/images/ui/noise.svg')] brightness-50 contrast-150"></div>
 
       <motion.div 
          initial={{ scale: 0.9, opacity: 0 }}

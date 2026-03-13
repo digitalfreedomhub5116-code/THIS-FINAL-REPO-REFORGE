@@ -896,10 +896,10 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
   });
   
   const [baselines, setBaselines] = useState<BaselineStats>({
-      pushups: 10,
-      focusDuration: 30,
-      readingTime: 15,
-      sleepAvg: 7
+      pushups: 0,
+      focusDuration: 0,
+      readingTime: 0,
+      sleepAvg: 0
   });
 
   const [heightUnit, setHeightUnit] = useState<'CM' | 'FT'>('CM');
@@ -1371,7 +1371,22 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
 
                           <motion.div variants={setupItemVariants} className="sticky bottom-0 bg-[#0a0a0a] pt-3 pb-1 flex justify-between mt-4">
                               <button onClick={() => setStep(6)} className="text-gray-600 hover:text-white flex items-center gap-1 font-bold text-xs uppercase"><ChevronLeft size={14} /> BACK</button>
-                              <button onClick={() => setStep(8)} className="bg-system-neon text-black px-10 py-3 rounded-full font-black text-xs shadow-[0_0_15px_#00d2ff] hover:bg-white transition-all uppercase flex items-center gap-2">NEXT <ChevronRight size={14} /></button>
+                              <button 
+                                  onClick={() => {
+                                      // Check if all three selections are made (not default values)
+                                      if (baselines.pushups !== 0 && baselines.focusDuration !== 0 && baselines.sleepAvg !== 0) {
+                                          setStep(8);
+                                      }
+                                  }}
+                                  disabled={baselines.pushups === 0 || baselines.focusDuration === 0 || baselines.sleepAvg === 0}
+                                  className={`px-10 py-3 rounded-full font-black text-xs transition-all uppercase flex items-center gap-2 ${
+                                      baselines.pushups === 0 || baselines.focusDuration === 0 || baselines.sleepAvg === 0
+                                          ? 'bg-gray-800 text-gray-600 cursor-not-allowed'
+                                          : 'bg-system-neon text-black shadow-[0_0_15px_#00d2ff] hover:bg-white'
+                                  }`}
+                              >
+                                  NEXT <ChevronRight size={14} />
+                              </button>
                           </motion.div>
                       </motion.div>
                   )}

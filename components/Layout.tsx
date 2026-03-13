@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Bell, LogOut, Flame, ChevronRight, Edit3, Trash2 } from 'lucide-react';
+import { Bell, LogOut, Flame, Edit3, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SystemNotification, ReplitUser } from '../types';
 
@@ -65,7 +65,6 @@ interface LayoutProps {
   hasUnreadNotifications?: boolean;
   onGoldClick?: () => void;
   onLogout?: () => void;
-  onAdminRequest?: () => void;
   onEditProfile?: () => void;
   playerAvatarUrl?: string;
   onMarkNotificationsRead?: () => void;
@@ -98,7 +97,6 @@ const Layout: React.FC<LayoutProps> = ({
   hasUnreadNotifications = false,
   onGoldClick,
   onLogout,
-  onAdminRequest,
   onEditProfile,
   onMarkNotificationsRead,
   onClearNotificationHistory,
@@ -192,7 +190,69 @@ const Layout: React.FC<LayoutProps> = ({
       }
     };
     window.addEventListener('reforge:coin-earned', handleCoinEarned);
-    return () => window.removeEventListener('reforge:coin-earned', handleCoinEarned);
+
+    const COIN_LOST_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="none" stroke="#ef4444" stroke-width="1.5"/><text x="7" y="10.5" text-anchor="middle" font-size="6" font-weight="900" fill="#ef4444" font-family="monospace">◈</text></svg>`;
+    const handleCoinLost = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { amount: number; sourceRect: DOMRect | null };
+      const walletEl = document.getElementById('user-wallet-balance');
+      if (!walletEl) return;
+      setHeaderVisible(true);
+      const walletRect = walletEl.getBoundingClientRect();
+      const startX = walletRect.left + walletRect.width / 2;
+      const startY = walletRect.top + walletRect.height / 2;
+      const COIN_COUNT = 10;
+      for (let i = 0; i < COIN_COUNT; i++) {
+        setTimeout(() => {
+          const coin = document.createElement('div');
+          coin.style.cssText = `position:fixed;width:18px;height:18px;left:${startX - 9}px;top:${startY - 9}px;z-index:9999;pointer-events:none;`;
+          coin.innerHTML = COIN_LOST_SVG;
+          document.body.appendChild(coin);
+          const endX = (Math.random() - 0.5) * 200;
+          const endY = 150 + Math.random() * 200;
+          const midX = (Math.random() - 0.5) * 100;
+          const midY = -30 - Math.random() * 40;
+          coin.animate([
+            { transform: 'translate(0,0) scale(1)', opacity: 1 },
+            { transform: `translate(${midX}px,${midY}px) scale(1.2)`, opacity: 1, offset: 0.2 },
+            { transform: `translate(${endX}px,${endY}px) scale(0.3)`, opacity: 0 },
+          ], {
+            duration: 1000 + Math.random() * 400,
+            easing: 'cubic-bezier(0.4, 0, 1, 1)',
+            fill: 'forwards',
+          }).onfinish = () => coin.remove();
+        }, i * 50);
+      }
+      // Damage number overlay
+      if (detail.amount > 0) {
+        const dmg = document.createElement('div');
+        const targetRect = detail.sourceRect || walletRect;
+        const dmgX = targetRect.left + targetRect.width / 2;
+        const dmgY = targetRect.top;
+        dmg.style.cssText = `position:fixed;left:${dmgX}px;top:${dmgY}px;z-index:9999;pointer-events:none;font-family:monospace;font-weight:900;font-size:24px;color:#ef4444;text-shadow:0 0 12px rgba(239,68,68,0.6);transform:translate(-50%,0);`;
+        dmg.textContent = `-${detail.amount}G`;
+        document.body.appendChild(dmg);
+        dmg.animate([
+          { transform: 'translate(-50%,0) scale(0.5)', opacity: 0 },
+          { transform: 'translate(-50%,-10px) scale(1.2)', opacity: 1, offset: 0.15 },
+          { transform: 'translate(-50%,-60px) scale(1)', opacity: 1, offset: 0.6 },
+          { transform: 'translate(-50%,-100px) scale(0.8)', opacity: 0 },
+        ], {
+          duration: 1800,
+          easing: 'ease-out',
+          fill: 'forwards',
+        }).onfinish = () => dmg.remove();
+      }
+      // Flash wallet red briefly
+      walletEl.style.transition = 'filter 0.15s';
+      walletEl.style.filter = 'brightness(1.5) hue-rotate(-30deg)';
+      setTimeout(() => { walletEl.style.filter = ''; }, 400);
+    };
+    window.addEventListener('reforge:coin-lost', handleCoinLost);
+
+    return () => {
+      window.removeEventListener('reforge:coin-earned', handleCoinEarned);
+      window.removeEventListener('reforge:coin-lost', handleCoinLost);
+    };
   }, []);
 
   useEffect(() => {
@@ -305,15 +365,6 @@ const Layout: React.FC<LayoutProps> = ({
                             >
                               <Edit3 size={13} className="text-[#00d2ff]" />
                               <span className="tracking-wide">EDIT PROFILE</span>
-                            </button>
-                          )}
-                          {onAdminRequest && (
-                            <button
-                              onClick={() => { onAdminRequest(); setShowProfileMenu(false); }}
-                              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/[0.06] text-gray-500 hover:text-gray-300 transition-colors text-xs font-mono"
-                            >
-                              <ChevronRight size={13} />
-                              <span className="tracking-wide">ADMIN PANEL</span>
                             </button>
                           )}
                           <div className="h-px bg-white/[0.06] my-1" />

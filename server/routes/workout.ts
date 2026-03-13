@@ -242,4 +242,27 @@ router.delete('/custom-plans/:id', async (req: Request, res: Response) => {
   }
 });
 
+router.post('/log-complete', async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id || (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+    const { exercises_completed, total_exercises, xp_gained } = req.body;
+    const { error } = await (supabaseServer() as any)
+      .from('workouts')
+      .insert({
+        player_id: userId,
+        workout_date: new Date().toISOString().split('T')[0],
+        exercises_completed: exercises_completed ?? 0,
+        total_exercises: total_exercises ?? 0,
+        xp_gained: xp_gained ?? 0,
+        completed: true,
+      });
+    if (error) throw error;
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('[Workout] POST log-complete error:', err);
+    return res.status(500).json({ error: 'Failed to log workout' });
+  }
+});
+
 export default router;

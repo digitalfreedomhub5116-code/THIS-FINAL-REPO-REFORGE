@@ -118,6 +118,7 @@ const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({ playerId, gender, onC
       const valRes = await fetch('/api/avatar/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ imageBase64: compressed, mimeType: 'image/jpeg' })
       });
       const valData: ValidationResult = await valRes.json();
@@ -156,6 +157,7 @@ const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({ playerId, gender, onC
       const genRes = await fetch('/api/avatar/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           imageBase64: compressed,
           mimeType: 'image/jpeg',
@@ -195,6 +197,7 @@ const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({ playerId, gender, onC
         await fetch('/api/avatar/save', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({ playerId, avatarUrl: avatar, originalSelfieUrl: compOriginal })
         });
       }

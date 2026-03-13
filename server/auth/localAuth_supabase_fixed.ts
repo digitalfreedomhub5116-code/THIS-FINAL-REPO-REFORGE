@@ -1,4 +1,5 @@
 import express from 'express';
+import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 import { supabaseServer } from '../lib/supabase.js';
 
@@ -7,12 +8,10 @@ const router = express.Router();
 const SALT_ROUNDS = 12;
 
 function generateUserId(): string {
-  return 'local_' + Math.random().toString(36).slice(2, 11) + Date.now().toString(36);
+  return crypto.randomUUID();
 }
 
 router.post('/register', async (req, res) => {
-  console.log('[Auth Register] Request received:', req.body);
-  
   try {
     const { username, email, password } = req.body;
 
@@ -28,65 +27,44 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Codename can only contain letters, numbers, and underscores' });
     }
 
-    console.log('[Auth Register] About to check if user exists for username:', username);
-
     // Check if user exists
     let existingUser, checkError;
     try {
-      console.log('[Auth Register] Getting supabase client...');
-      const supabaseClient = supabaseServer();
-      console.log('[Auth Register] Supabase client obtained:', !!supabaseClient);
-      
-      const result = await supabaseClient
+      const result = await supabaseServer()
         .from('players')
         .select('username')
         .eq('username', username)
         .single();
-      
       existingUser = result.data;
       checkError = result.error;
-      
-      console.log('[Auth Register] User check result:', { data: existingUser, error: checkError });
     } catch (err) {
       console.error('[Auth Register] Error checking user existence:', err);
       return res.status(500).json({ error: 'Failed to check user existence' });
     }
 
     if (checkError && checkError.code !== 'PGRST116') {
-      console.error('[Auth Register] Database error during user check:', checkError);
       throw checkError;
     }
 
     if (existingUser) {
-      console.log('[Auth Register] User already exists:', existingUser);
       return res.status(409).json({ error: 'Codename already taken' });
     }
 
-    console.log('[Auth Register] About to hash password');
     // Hash password
     let hashedPassword;
     try {
       hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
-      console.log('[Auth Register] Password hashed successfully');
     } catch (err) {
       console.error('[Auth Register] Error hashing password:', err);
       return res.status(500).json({ error: 'Failed to process password' });
     }
-    
-    // Generate user ID
-    const userId = generateUserId();
-    console.log('[Auth Register] Generated user ID:', userId);
 
-    console.log('[Auth Register] About to insert user into database:', { userId, username, email });
+    const userId = generateUserId();
 
     // Create user in Supabase
     let insertResult;
     try {
-      console.log('[Auth Register] Getting supabase client for insert...');
-      const supabaseClient = supabaseServer();
-      console.log('[Auth Register] Supabase client for insert:', !!supabaseClient);
-      
-      insertResult = await supabaseClient
+      insertResult = await supabaseServer()
         .from('players')
         .insert({
           supabase_id: userId,
@@ -119,39 +97,35 @@ router.post('/register', async (req, res) => {
         .select()
         .single();
 
-      console.log('[Auth Register] Database insert result:', { data: insertResult.data, error: insertResult.error });
     } catch (err) {
       console.error('[Auth Register] Error inserting user:', err);
       return res.status(500).json({ error: 'Registration failed during database insert' });
     }
 
     if (insertResult.error) {
-      console.error('[Auth Register] Database insert error details:', insertResult.error);
       throw insertResult.error;
     }
 
-    console.log('[Auth Register] User created successfully:', insertResult.data);
-
-    // Set session
-    try {
-      (req.session as any).userId = userId;
-      (req.session as any).authType = 'local';
-      console.log('[Auth Register] Session set successfully');
-    } catch (err) {
-      console.error('[Auth Register] Error setting session:', err);
-    }
-
-    return res.json({
-      message: 'Account created successfully',
-      user: {
-        id: userId,
-        username: username,
-        name: username,
-        email: email,
-        level: 1,
-        gold: 100,
-        keys: 3
+    // Set session and save before responding
+    (req.session as any).userId = userId;
+    (req.session as any).authType = 'local';
+    req.session.save((saveErr) => {
+      if (saveErr) {
+        console.error('[Auth Register] Session save error:', saveErr);
+        return res.status(500).json({ error: 'Session error' });
       }
+      return res.json({
+        message: 'Account created successfully',
+        user: {
+          id: userId,
+          username: username,
+          name: username,
+          email: email,
+          level: 1,
+          gold: 100,
+          keys: 3
+        }
+      });
     });
   } catch (err) {
     console.error('[Local Auth Register] Unexpected error:', err);
@@ -161,50 +135,83 @@ router.post('/register', async (req, res) => {
 
 router.post('/login', async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const { identifier, username: legacyUsername, password } = req.body;
+    const loginId = (identifier || legacyUsername || '').trim();
 
-    if (!username || !password) {
-      return res.status(400).json({ error: 'Codename and password are required' });
+    if (!loginId || !password) {
+      return res.status(400).json({ error: 'Codename/email and password are required' });
     }
 
-    const { data: user, error } = await (supabaseServer() as any)
+    // Try username first, then email
+    // Use .order() to prefer rows WITH password_hash (handles legacy duplicates)
+    let user = null;
+
+    const { data: byName } = await (supabaseServer() as any)
       .from('players')
       .select('*')
-      .eq('username', username)
-      .single();
+      .eq('username', loginId)
+      .order('password_hash', { ascending: false, nullsFirst: false })
+      .limit(1);
 
-    if (error || !user) {
+    if (byName && byName.length > 0) {
+      user = byName[0];
+    } else {
+      const { data: byEmail } = await (supabaseServer() as any)
+        .from('players')
+        .select('*')
+        .eq('email', loginId)
+        .order('password_hash', { ascending: false, nullsFirst: false })
+        .limit(1);
+      if (byEmail && byEmail.length > 0) user = byEmail[0];
+    }
+
+    if (!user) {
       return res.status(401).json({ error: 'Invalid codename or password' });
     }
 
     // Type cast the user data
     const userData = user as any;
 
+    // DEBUG: Log password_hash state to diagnose login failures
+    console.log('[Auth Login DEBUG]', {
+      username: userData.username,
+      hasPasswordHash: !!userData.password_hash,
+      hashLength: userData.password_hash?.length,
+      hashPrefix: userData.password_hash?.substring(0, 7),
+      authType: userData.auth_type,
+    });
+
     if (!userData.password_hash) {
-      return res.status(401).json({ error: 'Invalid codename or password' });
+      return res.status(401).json({ error: 'Invalid codename or password (no hash found)' });
     }
 
     // Check password
     const isValid = await bcrypt.compare(password, userData.password_hash);
+    console.log('[Auth Login DEBUG] bcrypt compare result:', isValid);
     if (!isValid) {
       return res.status(401).json({ error: 'Invalid codename or password' });
     }
 
-    // Set session
+    // Set session and save before responding
     (req.session as any).userId = userData.supabase_id;
     (req.session as any).authType = 'local';
-
-    return res.json({
-      message: 'Login successful',
-      user: {
-        id: userData.supabase_id,
-        username: userData.username,
-        name: userData.name,
-        email: userData.email,
-        level: userData.level,
-        gold: userData.gold,
-        keys: userData.keys
+    req.session.save((saveErr) => {
+      if (saveErr) {
+        console.error('[Auth Login] Session save error:', saveErr);
+        return res.status(500).json({ error: 'Session error' });
       }
+      return res.json({
+        message: 'Login successful',
+        user: {
+          id: userData.supabase_id,
+          username: userData.username,
+          name: userData.name,
+          email: userData.email,
+          level: userData.level,
+          gold: userData.gold,
+          keys: userData.keys
+        }
+      });
     });
   } catch (err) {
     console.error('[Local Auth Login]', err);

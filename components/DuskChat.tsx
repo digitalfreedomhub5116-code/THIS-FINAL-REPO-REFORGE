@@ -75,6 +75,7 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, onClose, onMarkRead }) => {
         const res = await fetch('/api/dusk/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify({
                 message: userMessage,
                 history: messages.slice(-8),

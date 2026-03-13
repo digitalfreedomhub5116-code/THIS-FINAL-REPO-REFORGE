@@ -12,10 +12,10 @@ interface DuskWelcomeProps {
   loopVideoUrl?: string;
 }
 
-// Optimized Assets (Auto format, Auto quality, capped width)
-const DEFAULT_ENTRANCE = "https://res.cloudinary.com/dcnqnbvp0/video/upload/f_auto,q_auto,w_800/v1771057514/Subject_shadow_hunter_202601260131_jknp7_zorhsa_1_1_na5ppi.mp4";
-const DEFAULT_LOOP = "https://res.cloudinary.com/dcnqnbvp0/video/upload/f_auto,q_auto,w_800/v1769371165/final_default_motion_nujoxc.mp4";
-const PLACEHOLDER_IMG = "https://i.postimg.cc/LsgtG0FQ/Image-202601260855.jpg";
+// Local Assets (bundled for offline mobile use)
+const DEFAULT_ENTRANCE = "/videos/intro/entrance.mp4";
+const DEFAULT_LOOP = "/videos/intro/loop-bg.mp4";
+const PLACEHOLDER_IMG = "/images/ui/placeholder.jpg";
 
 const TypewriterText: React.FC<{ text: string; delay?: number; onComplete?: () => void; start: boolean }> = ({ text, delay = 0, onComplete, start }) => {
   const [displayedText, setDisplayedText] = useState('');

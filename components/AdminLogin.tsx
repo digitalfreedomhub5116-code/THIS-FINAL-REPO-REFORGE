@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldAlert, Lock, Terminal, ArrowLeft, Key } from 'lucide-react';
 
 interface AdminLoginProps {
-  onLoginSuccess: () => void;
+  onLoginSuccess: (token: string) => void;
   onBack: () => void;
 }
 
@@ -14,20 +14,27 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onBack }) => {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setIsLoading(true);
-
-    // Simulated network delay for realism
-    setTimeout(() => {
-      if (adminId === 'pruthvi' && password === 'psp5116') {
-        onLoginSuccess();
+    try {
+      const res = await fetch('/api/admin/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
+      const data = await res.json();
+      if (data.authorized) {
+        onLoginSuccess(password);
       } else {
-        setError("ACCESS DENIED: You are not the Game Master.");
+        setError(data.error || 'ACCESS DENIED.');
         setIsLoading(false);
       }
-    }, 1000);
+    } catch {
+      setError('Connection failed — try again.');
+      setIsLoading(false);
+    }
   };
 
   return (

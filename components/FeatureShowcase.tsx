@@ -14,7 +14,7 @@ const FEATURES = [
     title: 'INFINITE GROWTH',
     subtitle: 'THE SYSTEM LEVELS YOU UP',
     description: "Every action you take in real life earns XP. Level up your stats: Strength, Intelligence, and Discipline. Become the S-Rank Hunter.",
-    image: "https://res.cloudinary.com/dcnqnbvp0/video/upload/v1769880474/s_rank_video_ncpnqs.mp4",
+    image: "/videos/ranks/s-rank-showcase.mp4",
     isVideo: true,
     icon: Shield,
     color: '#a855f7', // Purple
@@ -229,7 +229,7 @@ const FeatureShowcase: React.FC<FeatureShowcaseProps> = ({ onComplete }) => {
       
       {/* Background Ambience */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(20,20,20,1)_0%,rgba(0,0,0,1)_100%)]" />
-      <div className="absolute inset-0 opacity-20 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] pointer-events-none" />
+      <div className="absolute inset-0 opacity-20 bg-[url('/images/ui/noise.svg')] pointer-events-none" />
       
       {/* Progress Bars */}
       <div className="absolute top-8 left-0 w-full px-8 flex gap-2 z-20">

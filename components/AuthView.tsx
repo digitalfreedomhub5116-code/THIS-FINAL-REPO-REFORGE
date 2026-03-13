@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import { PlayerData, ReplitUser } from '../types';
 
 interface AuthViewProps {
@@ -39,11 +40,12 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode }) => {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        const res = await fetch('/api/auth/whoami', { credentials: 'include' });
+        const res = await fetch('/api/auth/local/whoami', { credentials: 'include' });
         if (res.ok) {
-          const user: ReplitUser = await res.json();
-          if (user?.id) {
-            await loginWithUser(user);
+          const json = await res.json();
+          const user: ReplitUser = json.user || json;
+          if (user?.id || (user as any)?.supabase_id) {
+            await loginWithUser({ ...user, id: user.id || (user as any).supabase_id });
             return;
           }
         }
@@ -66,8 +68,10 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode }) => {
       ...playerData,
       userId: user.id,
       name: playerData.name || user.firstName || 'Hunter',
+      username: (user as any).username || playerData.username,
+      email: (user as any).email || (playerData as any).email,
       replitUser: user,
-    });
+    } as any);
   };
 
   const handleSignIn = async (e: React.FormEvent) => {
@@ -84,7 +88,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode }) => {
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || 'Login failed'); return; }
-      await loginWithUser(data);
+      await loginWithUser(data.user || data);
     } catch {
       setError('Connection error — please try again');
     } finally {
@@ -108,7 +112,34 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode }) => {
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || 'Registration failed'); return; }
-      await loginWithUser(data);
+      await loginWithUser(data.user || data);
+    } catch {
+      setError('Connection error — please try again');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
+    if (!credentialResponse.credential) {
+      setError('Google sign-in failed — no credential received');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch('/api/auth/google/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ credential: credentialResponse.credential }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Google sign-in failed');
+        return;
+      }
+      await loginWithUser(data.user || data);
     } catch {
       setError('Connection error — please try again');
     } finally {
@@ -267,6 +298,24 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode }) => {
 
                 <div className="flex items-center gap-3 my-5">
                   <div className="h-px flex-1 bg-white/06" />
+                  <span className="text-[10px] font-mono text-white/25 uppercase tracking-widest">or</span>
+                  <div className="h-px flex-1 bg-white/06" />
+                </div>
+
+                <div className="flex justify-center mb-4">
+                  <GoogleLogin
+                    onSuccess={handleGoogleSuccess}
+                    onError={() => setError('Google sign-in was cancelled')}
+                    theme="filled_black"
+                    shape="pill"
+                    size="large"
+                    text="signin_with"
+                    width="320"
+                  />
+                </div>
+
+                <div className="flex items-center gap-3 my-4">
+                  <div className="h-px flex-1 bg-white/06" />
                   <span className="text-[10px] font-mono text-white/25 uppercase tracking-widest">new here?</span>
                   <div className="h-px flex-1 bg-white/06" />
                 </div>
@@ -403,6 +452,24 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode }) => {
                     {loading ? 'Creating...' : 'Create Account'}
                   </button>
                 </form>
+
+                <div className="flex items-center gap-3 my-5">
+                  <div className="h-px flex-1 bg-white/06" />
+                  <span className="text-[10px] font-mono text-white/25 uppercase tracking-widest">or</span>
+                  <div className="h-px flex-1 bg-white/06" />
+                </div>
+
+                <div className="flex justify-center mb-4">
+                  <GoogleLogin
+                    onSuccess={handleGoogleSuccess}
+                    onError={() => setError('Google sign-up was cancelled')}
+                    theme="filled_black"
+                    shape="pill"
+                    size="large"
+                    text="signup_with"
+                    width="320"
+                  />
+                </div>
 
                 <p className="text-center text-white/25 text-xs mt-4">
                   Already have an account?{' '}

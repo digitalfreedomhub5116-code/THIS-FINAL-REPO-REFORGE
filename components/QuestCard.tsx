@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, X, Dumbbell, Brain, Shield, Users, Zap, Trash2, ZapOff, Lock } from 'lucide-react';
+import { Check, X, Dumbbell, Brain, Shield, Users, Zap, Trash2, ZapOff, Lock, Coins, Flame } from 'lucide-react';
 import { Quest, CoreStats, Rank } from '../types';
 
 interface QuestCardProps {
@@ -120,11 +120,14 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
       <div
         className="absolute left-0 top-0 bottom-0 w-[3px]"
         style={{
-          background: isCompleted ? '#22c55e' : isFailed ? '#ef4444' : rankColor,
+          background: isCompleted ? '#22c55e' : isFailed ? '#ef4444'
+            : (isActive && quest.hasPact && quest.pactStatus === 'active') ? '#fbbf24' : rankColor,
           boxShadow: isCompleted
             ? '0 0 8px rgba(34,197,94,0.4)'
             : isFailed
             ? '0 0 8px rgba(239,68,68,0.3)'
+            : (isActive && quest.hasPact && quest.pactStatus === 'active')
+            ? '0 0 10px rgba(251,191,36,0.4)'
             : `0 0 8px ${rankColor}60`,
         }}
       />
@@ -171,6 +174,36 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
               )}
             </div>
 
+            {/* Pact badge */}
+            {quest.hasPact && quest.pactAmount && quest.pactAmount > 0 && (
+              <div className="flex items-center gap-1.5 mt-1">
+                {quest.pactStatus === 'active' && (
+                  <span
+                    className="flex items-center gap-1 text-[8px] font-black font-mono tracking-widest px-1.5 py-0.5 rounded"
+                    style={{ color: '#fbbf24', background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)' }}
+                  >
+                    <Coins size={8} /> {quest.pactAmount}G PLEDGED
+                  </span>
+                )}
+                {quest.pactStatus === 'honored' && (
+                  <span
+                    className="flex items-center gap-1 text-[8px] font-black font-mono tracking-widest px-1.5 py-0.5 rounded"
+                    style={{ color: '#4ade80', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)' }}
+                  >
+                    <Check size={8} /> {quest.pactAmount}G RETURNED · 1.25x XP
+                  </span>
+                )}
+                {quest.pactStatus === 'burned' && (
+                  <span
+                    className="flex items-center gap-1 text-[8px] font-black font-mono tracking-widest px-1.5 py-0.5 rounded"
+                    style={{ color: '#f87171', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}
+                  >
+                    <Flame size={8} /> {quest.pactAmount}G BURNED
+                  </span>
+                )}
+              </div>
+            )}
+
             {/* Description */}
             {!isMiniActive && quest.description && (
               <p className="text-gray-600 text-[11px] mt-1.5 leading-relaxed line-clamp-1">
@@ -186,8 +219,8 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
             )}
           </div>
 
-          {/* XP pill */}
-          <div className="flex flex-col items-end flex-shrink-0">
+          {/* XP + Gold pills */}
+          <div className="flex flex-col items-end flex-shrink-0 gap-1">
             <div
               className="flex items-center gap-0.5 font-black font-mono text-sm"
               style={{ color: isCompleted ? '#22c55e' : isFailed ? '#6b7280' : '#00d2ff' }}
@@ -195,7 +228,13 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
               <Zap size={10} />
               {displayXp}
             </div>
-            <span className="text-[8px] text-gray-700 font-mono">XP</span>
+            {quest.hasPact && quest.pactAmount && quest.pactStatus === 'active' && (
+              <div className="flex items-center gap-0.5 font-bold font-mono text-[10px]" style={{ color: '#fbbf24' }}>
+                <Coins size={9} />
+                {quest.pactAmount}
+              </div>
+            )}
+            <span className="text-[8px] text-gray-700 font-mono">{quest.hasPact && quest.pactStatus === 'active' ? 'XP · Gold' : 'XP'}</span>
           </div>
         </div>
 

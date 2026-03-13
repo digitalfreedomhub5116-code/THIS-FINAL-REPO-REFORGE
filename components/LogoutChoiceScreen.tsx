@@ -3,15 +3,11 @@ import { motion } from 'framer-motion';
 import { RefreshCw, LogIn, UserPlus, X } from 'lucide-react';
 
 interface LogoutChoiceScreenProps {
-  onLogout: () => void;
+  onSelect: (dest: 'CALIBRATION' | 'AUTH_SIGN_IN_PAGE' | 'AUTH_CREATE_PAGE') => void;
   onCancel: () => void;
 }
 
-const LogoutChoiceScreen: React.FC<LogoutChoiceScreenProps> = ({ onLogout, onCancel }) => {
-  const handleSelect = (dest: 'CALIBRATION' | 'AUTH_SIGN_IN' | 'AUTH_CREATE') => {
-    sessionStorage.setItem('reforge_logout_dest', dest);
-    onLogout();
-  };
+const LogoutChoiceScreen: React.FC<LogoutChoiceScreenProps> = ({ onSelect, onCancel }) => {
 
   return (
     <motion.div
@@ -67,7 +63,7 @@ const LogoutChoiceScreen: React.FC<LogoutChoiceScreenProps> = ({ onLogout, onCan
 
           {/* RECALIBRATE — primary */}
           <motion.button
-            onClick={() => handleSelect('CALIBRATION')}
+            onClick={() => onSelect('CALIBRATION')}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.97 }}
             className="w-full flex items-center gap-4 p-4 rounded-2xl text-left transition-colors"
@@ -95,7 +91,7 @@ const LogoutChoiceScreen: React.FC<LogoutChoiceScreenProps> = ({ onLogout, onCan
 
           {/* SIGN IN */}
           <motion.button
-            onClick={() => handleSelect('AUTH_SIGN_IN')}
+            onClick={() => onSelect('AUTH_SIGN_IN_PAGE')}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.97 }}
             className="w-full flex items-center gap-4 p-4 rounded-2xl text-left transition-colors"
@@ -122,7 +118,7 @@ const LogoutChoiceScreen: React.FC<LogoutChoiceScreenProps> = ({ onLogout, onCan
 
           {/* CREATE ACCOUNT — ghost */}
           <motion.button
-            onClick={() => handleSelect('AUTH_CREATE')}
+            onClick={() => onSelect('AUTH_CREATE_PAGE')}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.97 }}
             className="w-full flex items-center gap-4 p-4 rounded-2xl text-left transition-colors"

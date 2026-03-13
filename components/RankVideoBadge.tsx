@@ -2,31 +2,31 @@
 import React, { useState } from 'react';
 
 // Configuration: Map each rank to both a static Image (instant load) and a Video (high quality loop).
-// OPTIMIZED: Added f_auto,q_auto,w_400 to video URLs to reduce memory footprint
+// LOCAL: All media files bundled in public/ for offline mobile use
 const RANK_MEDIA: Record<string, { video: string; image: string }> = {
   'E': {
-    video: 'https://res.cloudinary.com/dcnqnbvp0/video/upload/f_auto,q_auto,w_400/v1770384619/Untitled_video_-_Made_with_Clipchamp_17_nwvbzw.mp4',
-    image: 'https://res.cloudinary.com/dcnqnbvp0/image/upload/f_auto,q_auto,w_400/v1769880473/eranklogoimg_nra2wm.jpg' 
+    video: '/videos/ranks/rank-e.webm',
+    image: '/images/ranks/e-rank.jpg' 
   },
   'D': {
-    video: 'https://res.cloudinary.com/dcnqnbvp0/video/upload/f_auto,q_auto,w_400/v1769923050/Drank_edited_video_-_Made_with_Clipchamp_jswcm7.mp4',
-    image: 'https://res.cloudinary.com/dcnqnbvp0/image/upload/f_auto,q_auto,w_400/v1769880473/dranklogoimg_cmh3n9.jpg' 
+    video: '/videos/ranks/rank-d.webm',
+    image: '/images/ranks/d-rank.jpg' 
   },
   'C': {
-    video: 'https://res.cloudinary.com/dcnqnbvp0/video/upload/f_auto,q_auto,w_400/v1770384350/WhatsApp_Video_2026-02-06_at_3.19.23_PM_cfpnac.mp4',
-    image: 'https://res.cloudinary.com/dcnqnbvp0/image/upload/f_auto,q_auto,w_400/v1769880473/cranklogoimg_c0bkns.jpg' 
+    video: '/videos/ranks/rank-c.mp4',
+    image: '/images/ranks/c-rank.jpg' 
   },
   'B': {
-    video: 'https://res.cloudinary.com/dcnqnbvp0/video/upload/f_auto,q_auto,w_400/v1770384298/WhatsApp_Video_2026-02-06_at_3.19.22_PM_wq1ej5.mp4',
-    image: 'https://res.cloudinary.com/dcnqnbvp0/image/upload/f_auto,q_auto,w_400/v1769880470/branklogoimg_q1yqhw.jpg' 
+    video: '/videos/ranks/rank-b.mp4',
+    image: '/images/ranks/b-rank.jpg' 
   },
   'A': {
-    video: 'https://res.cloudinary.com/dcnqnbvp0/video/upload/f_auto,q_auto,w_400/v1770384246/WhatsApp_Video_2026-02-06_at_3.19.21_PM_ndj3ma.mp4',
-    image: 'https://res.cloudinary.com/dcnqnbvp0/image/upload/f_auto,q_auto,w_400/v1769880469/aranklogoimg_oufgrc.jpg' 
+    video: '/videos/ranks/rank-a.mp4',
+    image: '/images/ranks/a-rank.jpg' 
   },
   'S': {
-    video: 'https://res.cloudinary.com/dcnqnbvp0/video/upload/f_auto,q_auto,w_400/v1770371755/WhatsApp_Video_2026-02-06_at_3.19.20_PM_otzdld.mp4',
-    image: 'https://res.cloudinary.com/dcnqnbvp0/image/upload/f_auto,q_auto,w_400/v1769880469/sranklogoimg_bd6fu1.jpg' 
+    video: '/videos/ranks/rank-s.mp4',
+    image: '/images/ranks/s-rank.jpg' 
   },
 };
 

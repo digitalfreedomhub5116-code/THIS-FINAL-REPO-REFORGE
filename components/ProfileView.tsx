@@ -6,7 +6,6 @@ import { PlayerData, HealthProfile } from '../types';
 interface ProfileViewProps {
   player: PlayerData;
   onUpdate: (data: { name: string; username: string; job: string; title: string; healthProfile?: HealthProfile }) => void;
-  onAdminRequest: () => void;
   onLogout: () => void;
   onBack?: () => void;
   onRetakeTutorial?: () => void;
@@ -26,7 +25,7 @@ const glassPanel = {
 const inputClass = "w-full bg-black/60 border border-white/10 rounded-lg px-3 py-2.5 text-sm font-mono text-white focus:border-[#00d2ff]/50 focus:outline-none focus:ring-1 focus:ring-[#00d2ff]/20 transition-all placeholder-gray-700";
 const labelClass = "block text-[10px] text-gray-500 mb-1.5 font-mono tracking-widest uppercase";
 
-const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onAdminRequest, onLogout, onBack, onRetakeTutorial }) => {
+const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onLogout, onBack, onRetakeTutorial }) => {
   const [activeTab, setActiveTab] = useState<'STATS' | 'LOGS' | 'CONFIG'>('CONFIG');
 
   const [name, setName] = useState(player.name || '');
@@ -397,12 +396,6 @@ const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onAdminRequ
                   </button>
                 )}
                 <div className="pt-3 border-t border-white/[0.06] flex gap-3">
-                  <button
-                    onClick={onAdminRequest}
-                    className="flex-1 border border-white/10 text-gray-500 py-2 rounded-lg flex items-center justify-center gap-2 hover:border-gray-500 hover:text-white transition-colors text-xs font-mono"
-                  >
-                    <Lock size={12} /> ADMIN ACCESS
-                  </button>
                   <button
                     onClick={onLogout}
                     className="flex-1 bg-red-900/20 border border-red-900/50 text-red-500 py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-red-900/40 hover:text-red-400 transition-colors text-xs font-mono"

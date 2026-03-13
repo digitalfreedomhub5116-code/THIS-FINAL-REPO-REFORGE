@@ -168,6 +168,14 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({ currentStep, onNext, 
           forcePosition: 'bottom'
       },
       16: {
+          title: "The System Pact",
+          body: "Hunter. That Gold you earned is not a reward — it is leverage.\n\nBefore every quest, The System will demand a Shadow Pledge. Lock your Gold as proof of intent. Complete the quest with honor and it returns. Cheat, and it burns — forever — fed to those who did not falter.\n\nFor high-rank quests, the Pact is mandatory. There is no negotiation.\n\nThis is how The System separates hunters from pretenders.",
+          buttonText: "UNDERSTOOD",
+          targetId: 'tut-gold-display',
+          allowInteraction: false,
+          forcePosition: 'bottom'
+      },
+      17: {
           title: "Workout Module",
           body: "Workout plans adapt to your calibration data. Complete sessions to build Attack and Boost stats.",
           buttonText: "Next",
@@ -175,7 +183,7 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({ currentStep, onNext, 
           allowInteraction: true,
           forcePosition: 'top'
       },
-      17: {
+      18: {
           title: "Nutrition Protocol",
           body: "Track your macros here. Log meals to build the Extract stat. Tap Nutrition to explore.",
           buttonText: "Next",
@@ -183,7 +191,7 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({ currentStep, onNext, 
           allowInteraction: true,
           forcePosition: 'bottom'
       },
-      18: {
+      19: {
           title: "Protocol Complete",
           body: "Fully initialized. Every rep, every session — it counts.\nRise, Hunter.",
           buttonText: "Begin Ascent",
@@ -602,7 +610,7 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({ currentStep, onNext, 
                                         >
                                             Got It — Retry <ArrowRight size={14} />
                                         </motion.button>
-                                    ) : currentStep === 18 ? ( 
+                                    ) : currentStep === 19 ? ( 
                                         <motion.button 
                                             key="btn-complete"
                                             initial={{ opacity: 0, scale: 0.8 }}
@@ -647,7 +655,7 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({ currentStep, onNext, 
                     
                     {/* Progress Dots */}
                     <div className="bg-black/50 py-1.5 px-4 flex gap-1 justify-center shrink-0">
-                        {Array.from({ length: 19 }).map((_, i) => (
+                        {Array.from({ length: 20 }).map((_, i) => (
                             <motion.div 
                                 key={i}
                                 layout 

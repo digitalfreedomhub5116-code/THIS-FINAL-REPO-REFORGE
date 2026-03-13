@@ -1,15 +1,12 @@
 
-import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { LogOut, Database, Save, RefreshCw, Video, Link, Search, ChevronRight, ShieldAlert, Activity, Plus, Edit3, Trash2, Star, DollarSign, Dumbbell, BookOpen } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { LogOut, Save, RefreshCw, Video, Link, Search, Activity, Plus, Edit3, Trash2, Star, Dumbbell, BookOpen } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { WorkoutDay } from '../types';
 import { useSystem, isEmbed } from '../hooks/useSystem';
 import { MASTER_PROTOCOL_REGISTRY } from '../utils/workoutGenerator';
 import ExerciseLibrary from './admin/ExerciseLibrary';
 import PlanBuilder from './admin/PlanBuilder';
-
-const ADMIN_SECRET = 'system_admin_2025';
 
 interface StoreOutfit {
   id: number;
@@ -48,6 +45,7 @@ const emptyForm = (): Omit<StoreOutfit, 'id' | 'is_default' | 'display_order'> &
 });
 
 interface AdminDashboardProps {
+  adminToken: string;
   onLogout: () => void;
 }
 
@@ -59,23 +57,15 @@ type ProtocolCategory =
   | 'DB_PPL' 
   | 'DB_REGULAR';
 
-const CATEGORIES: { id: ProtocolCategory; label: string }[] = [
-  { id: 'GYM_PPL', label: '1) PPL + FULL GYM' },
-  { id: 'GYM_CLASSIC', label: '2) GYM BRO SPLIT' },
-  { id: 'BW_REGULAR', label: '3) BODYWEIGHT REGULAR' },
-  { id: 'BW_PPL', label: '4) BODYWEIGHT PPL' },
-  { id: 'DB_PPL', label: '5) DUMBBELL PPL' },
-  { id: 'DB_REGULAR', label: '6) DUMBBELL REGULAR' },
-];
 
-const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
+const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout }) => {
   const { updateFocusVideos, updateCustomProtocols, player } = useSystem();
   
   // --- STATE ---
   const [activeTab, setActiveTab] = useState<'PROTOCOLS' | 'REGIONS' | 'USERS' | 'STORE' | 'USAGE'>('PROTOCOLS');
-  const [selectedCategory, setSelectedCategory] = useState<ProtocolCategory>('GYM_PPL');
-  const [selectedWeek, setSelectedWeek] = useState<number>(1);
-  const [selectedDayIdx, setSelectedDayIdx] = useState<number>(0);
+  const [selectedCategory, _setSelectedCategory] = useState<ProtocolCategory>('GYM_PPL');
+  const [selectedWeek, _setSelectedWeek] = useState<number>(1);
+  const [selectedDayIdx, _setSelectedDayIdx] = useState<number>(0);
   
   // Local cache for editing protocol data (e.g. video URLs)
   // Initialize with player's saved protocols if they exist, otherwise master defaults
@@ -88,6 +78,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
   // User Data State
   const [users, setUsers] = useState<any[]>([]);
   const [userSearch, setUserSearch] = useState('');
+  const [confirmDeleteUserId, setConfirmDeleteUserId] = useState<string | null>(null);
+  const [viewUserData, setViewUserData] = useState<any>(null);
+  const [viewUserLoading, setViewUserLoading] = useState(false);
+  const [goldInput, setGoldInput] = useState<Record<string, string>>({});
+  const [keysInput, setKeysInput] = useState<Record<string, string>>({});
 
   // Usage State
   const [usageData, setUsageData] = useState<any>(null);
@@ -122,7 +117,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
   const fetchUsers = async () => {
       try {
           const res = await fetch('/api/admin/users', {
-              headers: { 'x-admin-token': 'system_admin_2025' }
+              headers: { 'x-admin-token': adminToken }
           });
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const data = await res.json();
@@ -136,7 +131,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
       try {
           const res = await fetch(`/api/admin/users/${id}/ban`, {
               method: 'POST',
-              headers: { 'x-admin-token': ADMIN_SECRET },
+              headers: { 'x-admin-token': adminToken },
           });
           const data = await res.json();
           if (data.success) {
@@ -155,13 +150,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
       try {
           const res = await fetch(`/api/admin/users/${id}/unban`, {
               method: 'POST',
-              headers: { 'x-admin-token': ADMIN_SECRET },
+              headers: { 'x-admin-token': adminToken },
           });
           const data = await res.json();
           if (data.success) {
+              const updated = data.user || {};
               setUsers(prev => prev.map(u =>
                   u.supabase_id === id
-                      ? { ...u, is_banned: data.is_banned, cheat_strikes: data.cheat_strikes }
+                      ? { ...u, is_banned: updated.is_banned ?? false, cheat_strikes: updated.cheat_strikes ?? 0 }
                       : u
               ));
           }
@@ -174,8 +170,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
       try {
           const res = await fetch(`/api/admin/users/${id}/adjust-gold`, {
               method: 'POST',
-              headers: { 'x-admin-token': ADMIN_SECRET, 'Content-Type': 'application/json' },
-              body: JSON.stringify({ delta }),
+              headers: { 'x-admin-token': adminToken, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ amount: delta }),
           });
           const data = await res.json();
           if (data.success) {
@@ -190,8 +186,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
       try {
           const res = await fetch(`/api/admin/users/${id}/adjust-keys`, {
               method: 'POST',
-              headers: { 'x-admin-token': ADMIN_SECRET, 'Content-Type': 'application/json' },
-              body: JSON.stringify({ delta }),
+              headers: { 'x-admin-token': adminToken, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ amount: delta }),
           });
           const data = await res.json();
           if (data.success) {
@@ -202,10 +198,61 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
       }
   };
 
+  const adjustStrikes = async (id: string, delta: 1 | -1) => {
+      try {
+          const res = await fetch(`/api/admin/users/${id}/adjust-strikes`, {
+              method: 'POST',
+              headers: { 'x-admin-token': adminToken, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ delta }),
+          });
+          const data = await res.json();
+          if (data.success) {
+              setUsers(prev => prev.map(u =>
+                  u.supabase_id === id
+                      ? { ...u, cheat_strikes: data.cheat_strikes, is_banned: data.is_banned }
+                      : u
+              ));
+          }
+      } catch (err) {
+          console.error('Adjust strikes error:', err);
+      }
+  };
+
+  const deleteUser = async (id: string) => {
+      try {
+          const res = await fetch(`/api/admin/users/${id}`, {
+              method: 'DELETE',
+              headers: { 'x-admin-token': adminToken },
+          });
+          const data = await res.json();
+          if (data.success) {
+              setUsers(prev => prev.filter(u => u.supabase_id !== id));
+              setConfirmDeleteUserId(null);
+          }
+      } catch (err) {
+          console.error('Delete user error:', err);
+      }
+  };
+
+  const fetchUserData = async (id: string) => {
+      setViewUserLoading(true);
+      try {
+          const res = await fetch(`/api/admin/users/${id}/data`, {
+              headers: { 'x-admin-token': adminToken },
+          });
+          const data = await res.json();
+          setViewUserData(data);
+      } catch (err) {
+          console.error('Fetch user data error:', err);
+      } finally {
+          setViewUserLoading(false);
+      }
+  };
+
   const fetchUsage = async (period = usagePeriod) => {
       setUsageLoading(true);
       try {
-          const res = await fetch(`/api/admin/usage?period=${period}`, { headers: { 'x-admin-token': ADMIN_SECRET } });
+          const res = await fetch(`/api/admin/usage?period=${period}`, { headers: { 'x-admin-token': adminToken } });
           if (res.ok) setUsageData(await res.json());
       } catch (err) { console.error('Usage fetch error:', err); }
       finally { setUsageLoading(false); }
@@ -227,11 +274,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
       return () => clearInterval(interval);
   }, [activeTab, usagePeriod]);
 
+  // Real-time sync: poll every 5s on USERS tab to reflect player-side changes
+  useEffect(() => {
+      if (activeTab !== 'USERS') return;
+      const interval = setInterval(() => fetchUsers(), 5000);
+      return () => clearInterval(interval);
+  }, [activeTab]);
+
   // --- STORE ACTIONS ---
   const fetchStoreOutfits = async () => {
       setStoreLoading(true);
       try {
-          const res = await fetch('/api/store/outfits', { headers: { 'x-admin-token': ADMIN_SECRET } });
+          const res = await fetch('/api/store/outfits', { headers: { 'x-admin-token': adminToken } });
           const data = await res.json();
           setStoreOutfits(data || []);
       } catch { setStoreMsg({ type: 'error', text: 'Failed to load outfits' }); }
@@ -273,7 +327,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
           const method = editingOutfit ? 'PUT' : 'POST';
           const res = await fetch(url, {
               method,
-              headers: { 'Content-Type': 'application/json', 'x-admin-token': ADMIN_SECRET },
+              headers: { 'Content-Type': 'application/json', 'x-admin-token': adminToken },
               body: JSON.stringify(outfitForm),
           });
           if (!res.ok) { const e = await res.json(); throw new Error(e.error || 'Save failed'); }
@@ -290,7 +344,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
       try {
           const res = await fetch(`/api/store/outfits/${id}`, {
               method: 'DELETE',
-              headers: { 'x-admin-token': ADMIN_SECRET },
+              headers: { 'x-admin-token': adminToken },
           });
           if (!res.ok) { const e = await res.json(); throw new Error(e.error || 'Delete failed'); }
           setStoreMsg({ type: 'success', text: 'Outfit removed.' });
@@ -306,7 +360,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
       try {
           await fetch(`/api/store/outfits/${id}/set-default`, {
               method: 'POST',
-              headers: { 'x-admin-token': ADMIN_SECRET },
+              headers: { 'x-admin-token': adminToken },
           });
           setStoreMsg({ type: 'success', text: 'Default outfit updated globally!' });
           fetchStoreOutfits();
@@ -315,7 +369,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
   };
 
   // --- ACTIONS ---
-  const handleUpdateExVideo = (exIdx: number, url: string) => {
+  const _handleUpdateExVideo = (exIdx: number, url: string) => {
       const updated = { ...localRegistry };
       const weekStartIdx = (selectedWeek - 1) * 7;
       const targetDayIdx = weekStartIdx + selectedDayIdx;
@@ -335,7 +389,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
       }
   };
 
-  const handleSaveProtocol = async () => {
+  const _handleSaveProtocol = async () => {
       setIsSaving(true);
       try {
           // 1. Save Structure to Global DB
@@ -380,9 +434,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
       }
   };
 
-  // Helper for current day data
   const currentPlanDays = localRegistry[selectedCategory] || [];
-  const currentDay = currentPlanDays[(selectedWeek - 1) * 7 + selectedDayIdx];
+  void currentPlanDays;
 
   return (
     <div className="min-h-screen bg-black text-white font-mono flex flex-col">
@@ -428,8 +481,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                            ? 'Manage the exercise database. All exercises here are available to AI for generating personalized plans.'
                            : 'Create and manage premade workout programs. Users select these from the Health tab.'}
                    </div>
-                   {protocolsSubTab === 'EXERCISES' && <ExerciseLibrary />}
-                   {protocolsSubTab === 'PLANS' && <PlanBuilder />}
+                   {protocolsSubTab === 'EXERCISES' && <ExerciseLibrary adminToken={adminToken} />}
+                   {protocolsSubTab === 'PLANS' && <PlanBuilder adminToken={adminToken} />}
                </div>
            )}
 
@@ -474,12 +527,31 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
 
            {activeTab === 'USERS' && (
                <div className="space-y-6 animate-in fade-in duration-500">
+                   {/* View User Data Modal */}
+                   {viewUserData && (
+                       <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setViewUserData(null)}>
+                           <div className="bg-[#0a0a0a] border border-gray-700 rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
+                               <div className="flex justify-between items-center mb-4">
+                                   <h3 className="text-sm font-black text-white uppercase tracking-widest">Player Data — {viewUserData.username || viewUserData.name || 'Unknown'}</h3>
+                                   <button onClick={() => setViewUserData(null)} className="text-gray-500 hover:text-white text-lg">✕</button>
+                               </div>
+                               <pre className="bg-black border border-gray-800 rounded-xl p-4 text-[10px] text-green-400 font-mono overflow-x-auto whitespace-pre-wrap break-all max-h-[60vh]">
+                                   {JSON.stringify(viewUserData, null, 2)}
+                               </pre>
+                           </div>
+                       </div>
+                   )}
+
                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                        <div className="bg-gray-900/40 border border-gray-800 p-4 rounded-xl">
                            <div className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Registered Hunters</div>
                            <div className="text-2xl font-bold text-white">{users.length}</div>
                        </div>
-                       <div className="bg-gray-900/40 border border-gray-800 p-4 rounded-xl md:col-span-2">
+                       <div className="bg-gray-900/40 border border-gray-800 p-4 rounded-xl">
+                           <div className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Banned</div>
+                           <div className="text-2xl font-bold text-red-400">{users.filter(u => u.is_banned).length}</div>
+                       </div>
+                       <div className="bg-gray-900/40 border border-gray-800 p-4 rounded-xl">
                             <div className="relative h-full flex items-center">
                                 <Search size={16} className="absolute left-3 text-gray-600" />
                                 <input 
@@ -497,97 +569,125 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                            <table className="w-full text-left border-collapse">
                                <thead>
                                    <tr className="bg-gray-900/50 text-[10px] text-gray-500 font-bold uppercase tracking-widest">
-                                       <th className="p-4 border-b border-gray-800">Hunter Identity</th>
-                                       <th className="p-4 border-b border-gray-800">Rank / Level</th>
-                                       <th className="p-4 border-b border-gray-800">Integrity</th>
-                                       <th className="p-4 border-b border-gray-800">Status</th>
-                                       <th className="p-4 border-b border-gray-800 text-center">Gold</th>
-                                       <th className="p-4 border-b border-gray-800 text-center">Keys</th>
-                                       <th className="p-4 border-b border-gray-800 text-right">Strike Control</th>
+                                       <th className="p-3 border-b border-gray-800">Hunter</th>
+                                       <th className="p-3 border-b border-gray-800">Rank</th>
+                                       <th className="p-3 border-b border-gray-800">Status</th>
+                                       <th className="p-3 border-b border-gray-800 text-center">Gold</th>
+                                       <th className="p-3 border-b border-gray-800 text-center">Keys</th>
+                                       <th className="p-3 border-b border-gray-800 text-center">Strikes</th>
+                                       <th className="p-3 border-b border-gray-800 text-right">Actions</th>
                                    </tr>
                                </thead>
                                <tbody>
-                                   {users.filter(u => u.username?.toLowerCase().includes(userSearch.toLowerCase())).map((user) => (
+                                   {users.filter(u => {
+                                       const q = userSearch.toLowerCase();
+                                       return (u.username?.toLowerCase().includes(q) || u.name?.toLowerCase().includes(q) || u.supabase_id?.toLowerCase().includes(q));
+                                   }).map((user) => (
                                        <tr key={user.supabase_id} className={`border-b border-gray-800/50 transition-colors ${user.is_banned ? 'bg-red-950/10 hover:bg-red-950/20' : 'hover:bg-white/5'}`}>
-                                           <td className="p-4">
+                                           <td className="p-3">
                                                <div className="font-bold text-sm text-white">{user.username || 'ANONYMOUS'}</div>
                                                <div className="text-[10px] text-gray-600 mt-0.5">{user.name}</div>
+                                               <div className="text-[8px] text-gray-700 mt-0.5 font-mono">{user.supabase_id?.slice(0, 12)}...</div>
                                            </td>
-                                           <td className="p-4">
+                                           <td className="p-3">
                                                <span className="text-[10px] bg-gray-800 px-2 py-1 rounded text-gray-400 font-bold tracking-widest uppercase">
-                                                   Rank {user.rank || 'E'} · Lv {user.level || 1}
+                                                   {user.rank || 'E'} · Lv{user.level || 1}
                                                </span>
                                            </td>
-                                           <td className="p-4">
-                                               <div className="flex items-center gap-1.5">
-                                                   {Array.from({ length: 5 }).map((_, i) => (
-                                                       <div key={i} className={`w-2 h-2 rounded-full ${i < (user.cheat_strikes || 0) ? 'bg-red-500' : 'bg-gray-800'}`} />
-                                                   ))}
-                                                   <span className="text-[9px] text-gray-600 ml-1 font-mono">{user.cheat_strikes || 0}/5</span>
-                                               </div>
-                                           </td>
-                                           <td className="p-4">
+                                           <td className="p-3">
                                                {user.is_banned ? (
                                                    <span className="text-[10px] bg-red-950 border border-red-800 px-2 py-1 rounded text-red-400 font-bold tracking-widest uppercase">BANNED</span>
                                                ) : (
                                                    <span className="text-[10px] bg-green-950/40 border border-green-900 px-2 py-1 rounded text-green-500 font-bold tracking-widest uppercase">ACTIVE</span>
                                                )}
                                            </td>
-                                           {/* Gold column */}
-                                           <td className="p-4 text-center">
-                                               <div className="flex items-center justify-center gap-1.5">
-                                                   <button
-                                                       onClick={() => adjustGold(user.supabase_id, -50)}
-                                                       className="w-6 h-6 rounded bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-black flex items-center justify-center transition-all border border-gray-700"
-                                                       title="-50 Gold"
-                                                   >−</button>
-                                                   <span className="text-xs font-mono font-bold text-yellow-400 min-w-[42px] text-center">{user.gold ?? 0}</span>
-                                                   <button
-                                                       onClick={() => adjustGold(user.supabase_id, 50)}
-                                                       className="w-6 h-6 rounded bg-yellow-900/40 hover:bg-yellow-900/70 text-yellow-400 text-xs font-black flex items-center justify-center transition-all border border-yellow-800/50"
-                                                       title="+50 Gold"
-                                                   >+</button>
+                                           {/* Gold column with custom input */}
+                                           <td className="p-3 text-center">
+                                               <div className="flex flex-col items-center gap-1">
+                                                   <span className="text-xs font-mono font-bold text-yellow-400">{user.gold ?? 0}</span>
+                                                   <div className="flex items-center gap-1">
+                                                       <button onClick={() => adjustGold(user.supabase_id, -100)} className="w-5 h-5 rounded bg-gray-800 hover:bg-gray-700 text-gray-300 text-[9px] font-black flex items-center justify-center border border-gray-700" title="-100">−</button>
+                                                       <input
+                                                           type="number"
+                                                           value={goldInput[user.supabase_id] ?? ''}
+                                                           onChange={e => setGoldInput(prev => ({ ...prev, [user.supabase_id]: e.target.value }))}
+                                                           onKeyDown={e => { if (e.key === 'Enter') { const v = parseInt(goldInput[user.supabase_id]); if (!isNaN(v)) { adjustGold(user.supabase_id, v); setGoldInput(prev => ({ ...prev, [user.supabase_id]: '' })); } } }}
+                                                           placeholder="±"
+                                                           className="w-14 bg-black border border-gray-700 rounded px-1 py-0.5 text-[10px] text-yellow-400 text-center outline-none focus:border-yellow-500 font-mono"
+                                                       />
+                                                       <button onClick={() => adjustGold(user.supabase_id, 100)} className="w-5 h-5 rounded bg-yellow-900/40 hover:bg-yellow-900/70 text-yellow-400 text-[9px] font-black flex items-center justify-center border border-yellow-800/50" title="+100">+</button>
+                                                   </div>
                                                </div>
                                            </td>
-                                           {/* Keys column */}
-                                           <td className="p-4 text-center">
-                                               <div className="flex items-center justify-center gap-1.5">
-                                                   <button
-                                                       onClick={() => adjustKeys(user.supabase_id, -1)}
-                                                       className="w-6 h-6 rounded bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-black flex items-center justify-center transition-all border border-gray-700"
-                                                       title="-1 Key"
-                                                   >−</button>
-                                                   <span className="text-xs font-mono font-bold text-purple-400 min-w-[28px] text-center">{user.keys ?? 0}</span>
-                                                   <button
-                                                       onClick={() => adjustKeys(user.supabase_id, 1)}
-                                                       className="w-6 h-6 rounded bg-purple-900/40 hover:bg-purple-900/70 text-purple-400 text-xs font-black flex items-center justify-center transition-all border border-purple-800/50"
-                                                       title="+1 Key"
-                                                   >+</button>
+                                           {/* Keys column with custom input */}
+                                           <td className="p-3 text-center">
+                                               <div className="flex flex-col items-center gap-1">
+                                                   <span className="text-xs font-mono font-bold text-purple-400">{user.keys ?? 0}</span>
+                                                   <div className="flex items-center gap-1">
+                                                       <button onClick={() => adjustKeys(user.supabase_id, -1)} className="w-5 h-5 rounded bg-gray-800 hover:bg-gray-700 text-gray-300 text-[9px] font-black flex items-center justify-center border border-gray-700" title="-1">−</button>
+                                                       <input
+                                                           type="number"
+                                                           value={keysInput[user.supabase_id] ?? ''}
+                                                           onChange={e => setKeysInput(prev => ({ ...prev, [user.supabase_id]: e.target.value }))}
+                                                           onKeyDown={e => { if (e.key === 'Enter') { const v = parseInt(keysInput[user.supabase_id]); if (!isNaN(v)) { adjustKeys(user.supabase_id, v); setKeysInput(prev => ({ ...prev, [user.supabase_id]: '' })); } } }}
+                                                           placeholder="±"
+                                                           className="w-14 bg-black border border-gray-700 rounded px-1 py-0.5 text-[10px] text-purple-400 text-center outline-none focus:border-purple-500 font-mono"
+                                                       />
+                                                       <button onClick={() => adjustKeys(user.supabase_id, 1)} className="w-5 h-5 rounded bg-purple-900/40 hover:bg-purple-900/70 text-purple-400 text-[9px] font-black flex items-center justify-center border border-purple-800/50" title="+1">+</button>
+                                                   </div>
                                                </div>
                                            </td>
-                                           {/* Strike control — both buttons always visible */}
-                                           <td className="p-4 text-right">
-                                               <div className="flex items-center justify-end gap-2">
+                                           {/* Strikes */}
+                                           <td className="p-3 text-center">
+                                               <div className="flex items-center justify-center gap-1">
+                                                   {Array.from({ length: 5 }).map((_, i) => (
+                                                       <div key={i} className={`w-2 h-2 rounded-full ${i < (user.cheat_strikes || 0) ? 'bg-red-500' : 'bg-gray-800'}`} />
+                                                   ))}
+                                                   <span className="text-[9px] text-gray-600 ml-1 font-mono">{user.cheat_strikes || 0}/5</span>
+                                               </div>
+                                               <div className="flex items-center justify-center gap-1 mt-1">
                                                    <button
-                                                       onClick={() => unbanUser(user.supabase_id)}
+                                                       onClick={() => adjustStrikes(user.supabase_id, -1)}
                                                        disabled={(user.cheat_strikes ?? 0) <= 0}
-                                                       className="text-[10px] bg-green-900/30 hover:bg-green-900/60 border border-green-800/60 text-green-400 px-2.5 py-1.5 rounded font-black tracking-widest uppercase transition-all disabled:opacity-25 disabled:cursor-not-allowed"
-                                                       title="Remove 1 strike"
-                                                   >
-                                                       −1 ◈
-                                                   </button>
+                                                       className="text-[8px] bg-green-900/30 hover:bg-green-900/60 border border-green-800/60 text-green-400 px-1.5 py-0.5 rounded font-black uppercase transition-all disabled:opacity-25 disabled:cursor-not-allowed"
+                                                   >−1</button>
                                                    <button
-                                                       onClick={() => banUser(user.supabase_id)}
+                                                       onClick={() => adjustStrikes(user.supabase_id, 1)}
                                                        disabled={(user.cheat_strikes ?? 0) >= 5}
-                                                       className="text-[10px] bg-red-950/40 hover:bg-red-950/80 border border-red-900/60 text-red-400 px-2.5 py-1.5 rounded font-black tracking-widest uppercase transition-all disabled:opacity-25 disabled:cursor-not-allowed"
-                                                       title="Add 1 strike"
+                                                       className="text-[8px] bg-red-950/40 hover:bg-red-950/80 border border-red-900/60 text-red-400 px-1.5 py-0.5 rounded font-black uppercase transition-all disabled:opacity-25 disabled:cursor-not-allowed"
+                                                   >+1</button>
+                                               </div>
+                                           </td>
+                                           {/* Actions: View Data, Delete */}
+                                           <td className="p-3 text-right">
+                                               <div className="flex flex-col items-end gap-1">
+                                                   <button
+                                                       onClick={() => fetchUserData(user.supabase_id)}
+                                                       disabled={viewUserLoading}
+                                                       className="text-[9px] bg-blue-950/40 hover:bg-blue-900/60 border border-blue-800/50 text-blue-400 px-2 py-1 rounded font-bold tracking-widest uppercase transition-all"
                                                    >
-                                                       +1 ◈
+                                                       {viewUserLoading ? '...' : 'VIEW DATA'}
                                                    </button>
+                                                   {confirmDeleteUserId === user.supabase_id ? (
+                                                       <div className="flex gap-1">
+                                                           <button onClick={() => deleteUser(user.supabase_id)} className="text-[8px] px-2 py-1 bg-red-600 hover:bg-red-500 text-white rounded font-black uppercase">CONFIRM</button>
+                                                           <button onClick={() => setConfirmDeleteUserId(null)} className="text-[8px] px-2 py-1 bg-gray-700 text-gray-300 rounded font-bold">NO</button>
+                                                       </div>
+                                                   ) : (
+                                                       <button
+                                                           onClick={() => setConfirmDeleteUserId(user.supabase_id)}
+                                                           className="text-[9px] bg-red-950/40 hover:bg-red-900/60 border border-red-800/50 text-red-400 px-2 py-1 rounded font-bold tracking-widest uppercase transition-all"
+                                                       >
+                                                           DELETE
+                                                       </button>
+                                                   )}
                                                </div>
                                            </td>
                                        </tr>
                                    ))}
+                                   {users.length === 0 && (
+                                       <tr><td colSpan={7} className="p-8 text-center text-gray-600 text-xs font-mono">No users found</td></tr>
+                                   )}
                                </tbody>
                            </table>
                        </div>

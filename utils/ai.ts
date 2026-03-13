@@ -25,6 +25,7 @@ export const analyzeQuest = async (
   const res = await fetch('/api/forge-guard/analyze-quest', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify({ title, userStats, healthProfile: userProfile, context })
   });
   if (!res.ok) {
@@ -42,6 +43,7 @@ export const verifyProof = async (
   const res = await fetch('/api/forge-guard/verify-proof', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify({ imageBase64, reason, context })
   });
   if (!res.ok) {

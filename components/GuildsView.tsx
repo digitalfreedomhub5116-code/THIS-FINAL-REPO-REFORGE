@@ -438,7 +438,7 @@ const GuildsView: React.FC<GuildsViewProps> = ({ player, onJoin, onLeave }) => {
 
             {/* RIGHT COLUMN: Main Feed / Content */}
             <div className="flex-1 glass-panel rounded-xl flex flex-col overflow-hidden relative shadow-2xl">
-                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-5 pointer-events-none" />
+                <div className="absolute inset-0 bg-[url('/images/ui/noise.svg')] opacity-5 pointer-events-none" />
                 
                 {/* --- CONTENT AREA --- */}
                 <div className="flex-1 overflow-y-auto relative custom-scrollbar">

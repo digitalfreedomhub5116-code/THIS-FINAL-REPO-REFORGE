@@ -3,12 +3,21 @@ import { supabaseServer } from '../lib/supabase.js';
 
 const router = Router();
 
-const ADMIN_SECRET = process.env.ADMIN_SECRET || 'system_admin_2025';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || process.env.ADMIN_SECRET || 'system_admin_2025';
 const USD_TO_INR = 83.5;
+
+// IP-based lockout: 3 failures → blocked 30 minutes
+const failedAttempts = new Map<string, { count: number; blockedUntil: number }>();
+const MAX_ATTEMPTS = 3;
+const BLOCK_DURATION_MS = 30 * 60 * 1000;
+
+function getClientIp(req: Request): string {
+  return (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.ip || 'unknown';
+}
 
 function requireAdmin(req: Request, res: Response): boolean {
   const auth = req.headers['x-admin-token'];
-  if (auth !== ADMIN_SECRET) {
+  if (auth !== ADMIN_PASSWORD) {
     res.status(401).json({ error: 'Unauthorized' });
     return false;
   }
@@ -16,11 +25,32 @@ function requireAdmin(req: Request, res: Response): boolean {
 }
 
 router.post('/verify', (req: Request, res: Response) => {
+  const ip = getClientIp(req);
+  const record = failedAttempts.get(ip);
+
+  // Check if IP is currently blocked
+  if (record && record.blockedUntil > Date.now()) {
+    const remainMin = Math.ceil((record.blockedUntil - Date.now()) / 60000);
+    return res.status(429).json({ authorized: false, error: `IP blocked. Try again in ${remainMin} minute(s).`, blocked: true });
+  }
+
   const { password } = req.body;
-  if (password === ADMIN_SECRET) {
+  if (password === ADMIN_PASSWORD) {
+    failedAttempts.delete(ip);
     return res.json({ authorized: true });
   }
-  return res.status(401).json({ authorized: false, error: 'Invalid credentials' });
+
+  // Track failure
+  const current = failedAttempts.get(ip) || { count: 0, blockedUntil: 0 };
+  current.count += 1;
+  if (current.count >= MAX_ATTEMPTS) {
+    current.blockedUntil = Date.now() + BLOCK_DURATION_MS;
+    failedAttempts.set(ip, current);
+    return res.status(429).json({ authorized: false, error: 'Too many failed attempts. IP blocked for 30 minutes.', blocked: true });
+  }
+  failedAttempts.set(ip, current);
+  const remaining = MAX_ATTEMPTS - current.count;
+  return res.status(401).json({ authorized: false, error: `ACCESS DENIED. ${remaining} attempt(s) remaining.` });
 });
 
 router.get('/users', async (req: Request, res: Response) => {
@@ -136,6 +166,224 @@ router.post('/users/:id/givekeys', async (req: Request, res: Response) => {
     return res.json({ success: true, keys: updatedData?.keys });
   } catch (err) {
     console.error('[Admin give keys]', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.delete('/users/:id', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+  const { id } = req.params;
+  try {
+    const { error } = await (supabaseServer() as any)
+      .from('players')
+      .delete()
+      .eq('supabase_id', id);
+    if (error) throw error;
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('[Admin delete user]', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.get('/users/:id/data', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+  const { id } = req.params;
+  try {
+    const { data, error } = await (supabaseServer() as any)
+      .from('players')
+      .select('*')
+      .eq('supabase_id', id)
+      .single();
+    if (error) throw error;
+    return res.json(data);
+  } catch (err) {
+    console.error('[Admin user data]', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.post('/users/:id/adjust-strikes', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+  const { id } = req.params;
+  const { delta } = req.body; // +1 or -1
+  if (delta !== 1 && delta !== -1) return res.status(400).json({ error: 'delta must be 1 or -1' });
+  try {
+    const { data: current, error: fetchError } = await (supabaseServer() as any)
+      .from('players')
+      .select('cheat_strikes, is_banned')
+      .eq('supabase_id', id)
+      .single();
+    if (fetchError) throw fetchError;
+
+    const newStrikes = Math.max(0, Math.min(5, (current?.cheat_strikes || 0) + delta));
+    const isBanned = newStrikes >= 5;
+
+    const { data, error } = await (supabaseServer() as any)
+      .from('players')
+      .update({ cheat_strikes: newStrikes, is_banned: isBanned })
+      .eq('supabase_id', id)
+      .select('supabase_id, cheat_strikes, is_banned')
+      .single();
+    if (error) throw error;
+    return res.json({ success: true, cheat_strikes: data.cheat_strikes, is_banned: data.is_banned });
+  } catch (err) {
+    console.error('[Admin adjust-strikes]', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.post('/users/:id/unban', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+  const { id } = req.params;
+  try {
+    const { data, error } = await (supabaseServer() as any)
+      .from('players')
+      .update({ is_banned: false, cheat_strikes: 0 })
+      .eq('supabase_id', id)
+      .select('supabase_id, username, is_banned, cheat_strikes')
+      .single();
+    if (error) throw error;
+    return res.json({ success: true, user: data });
+  } catch (err) {
+    console.error('[Admin unban]', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.post('/users/:id/adjust-gold', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+  const { id } = req.params;
+  const { amount } = req.body;
+  if (amount === undefined || isNaN(amount)) return res.status(400).json({ error: 'Invalid amount' });
+  try {
+    const { data, error } = await (supabaseServer() as any)
+      .from('players')
+      .select('gold')
+      .eq('supabase_id', id)
+      .single();
+    if (error) throw error;
+    const newGold = Math.max(0, (data?.gold || 0) + parseInt(amount));
+    const { data: updated, error: updateError } = await (supabaseServer() as any)
+      .from('players')
+      .update({ gold: newGold })
+      .eq('supabase_id', id)
+      .select('gold')
+      .single();
+    if (updateError) throw updateError;
+    return res.json({ success: true, gold: updated?.gold });
+  } catch (err) {
+    console.error('[Admin adjust-gold]', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.post('/users/:id/adjust-keys', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+  const { id } = req.params;
+  const { amount } = req.body;
+  if (amount === undefined || isNaN(amount)) return res.status(400).json({ error: 'Invalid amount' });
+  try {
+    const { data, error } = await (supabaseServer() as any)
+      .from('players')
+      .select('keys')
+      .eq('supabase_id', id)
+      .single();
+    if (error) throw error;
+    const newKeys = Math.max(0, (data?.keys || 0) + parseInt(amount));
+    const { data: updated, error: updateError } = await (supabaseServer() as any)
+      .from('players')
+      .update({ keys: newKeys })
+      .eq('supabase_id', id)
+      .select('keys')
+      .single();
+    if (updateError) throw updateError;
+    return res.json({ success: true, keys: updated?.keys });
+  } catch (err) {
+    console.error('[Admin adjust-keys]', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.get('/usage', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+  const period = (req.query.period as string) || 'month';
+
+  try {
+    // Date filter based on period
+    let dateFilter: string | null = null;
+    const now = new Date();
+    if (period === 'today') {
+      dateFilter = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+    } else if (period === 'week') {
+      dateFilter = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    } else if (period === 'month') {
+      dateFilter = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    }
+
+    let query = (supabaseServer() as any)
+      .from('api_usage_logs')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(10000);
+    if (dateFilter) query = query.gte('created_at', dateFilter);
+
+    const { data: logs, error } = await query;
+    if (error) throw error;
+    const allLogs: any[] = logs || [];
+
+    // Aggregates
+    const totalCostUsd = allLogs.reduce((s: number, l: any) => s + (Number(l.cost_usd) || 0), 0);
+    const totalCostInr = totalCostUsd * USD_TO_INR;
+    const totalCalls = allLogs.length;
+    const totalTokens = allLogs.reduce((s: number, l: any) => s + (Number(l.input_tokens) || 0) + (Number(l.output_tokens) || 0), 0);
+    const uniqueUsers = new Set(allLogs.filter((l: any) => l.user_id).map((l: any) => l.user_id)).size;
+
+    // By Model
+    const modelMap: Record<string, { calls: number; input_tokens: number; output_tokens: number; cost_usd: number }> = {};
+    allLogs.forEach((l: any) => {
+      const m = l.model || 'unknown';
+      if (!modelMap[m]) modelMap[m] = { calls: 0, input_tokens: 0, output_tokens: 0, cost_usd: 0 };
+      modelMap[m].calls++;
+      modelMap[m].input_tokens += Number(l.input_tokens) || 0;
+      modelMap[m].output_tokens += Number(l.output_tokens) || 0;
+      modelMap[m].cost_usd += Number(l.cost_usd) || 0;
+    });
+    const byModel = Object.entries(modelMap).map(([model, s]) => ({
+      model, ...s, cost_inr: s.cost_usd * USD_TO_INR,
+    })).sort((a, b) => b.cost_usd - a.cost_usd);
+
+    // By Route
+    const routeMap: Record<string, { calls: number; cost_usd: number }> = {};
+    allLogs.forEach((l: any) => {
+      const r = l.route || 'unknown';
+      if (!routeMap[r]) routeMap[r] = { calls: 0, cost_usd: 0 };
+      routeMap[r].calls++;
+      routeMap[r].cost_usd += Number(l.cost_usd) || 0;
+    });
+    const byRoute = Object.entries(routeMap).map(([route, s]) => ({
+      route, ...s, cost_inr: s.cost_usd * USD_TO_INR,
+    })).sort((a, b) => b.cost_usd - a.cost_usd);
+
+    // Time Series (daily)
+    const dayMap: Record<string, number> = {};
+    allLogs.forEach((l: any) => {
+      const day = new Date(l.created_at).toISOString().split('T')[0];
+      dayMap[day] = (dayMap[day] || 0) + (Number(l.cost_usd) || 0);
+    });
+    const timeSeries = Object.entries(dayMap)
+      .map(([date, cost_usd]) => ({ date, cost_usd, cost_inr: cost_usd * USD_TO_INR }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    // Recent Logs (last 50)
+    const recentLogs = allLogs.slice(0, 50);
+
+    return res.json({
+      totalCostUsd, totalCostInr, totalCalls, totalTokens, uniqueUsers,
+      byModel, byRoute, timeSeries, recentLogs,
+    });
+  } catch (err) {
+    console.error('[Admin usage]', err);
     return res.status(500).json({ error: 'Internal server error' });
   }
 });

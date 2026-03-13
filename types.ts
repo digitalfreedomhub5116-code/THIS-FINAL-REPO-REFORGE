@@ -143,6 +143,9 @@ export interface Quest {
   verificationRequired?: boolean;
   minDurationMinutes?: number;
   lastResetAt?: number;
+  hasPact?: boolean;
+  pactAmount?: number;
+  pactStatus?: 'none' | 'active' | 'honored' | 'burned' | 'partial';
 }
 
 export interface ShopItem {

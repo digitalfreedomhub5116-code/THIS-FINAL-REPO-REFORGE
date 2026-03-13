@@ -5,18 +5,19 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { existsSync } from 'fs';
 import dotenv from 'dotenv';
+import rateLimit from 'express-rate-limit';
 
 // Import session using createRequire for ES modules
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const session = require('express-session');
+const pgSession = require('connect-pg-simple')(session);
+const { Pool } = require('pg');
 
 // Load environment variables
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 dotenv.config({ path: join(__dirname, '..', '.env') });
-console.log('[Debug] SUPABASE_URL:', process.env.SUPABASE_URL);
-console.log('[Debug] VITE_SUPABASE_URL:', process.env.VITE_SUPABASE_URL);
 
 // Note: Migrations are now handled by Supabase directly
 // No need for PostgreSQL migrations since we're using Supabase
@@ -36,26 +37,47 @@ async function startServer() {
   const storeRouter = await import('./routes/store.js');
   const globalConfigRouter = await import('./routes/globalConfig_supabase.js');
   const workoutRouter = await import('./routes/workout.js');
+  const systemPactRouter = await import('./routes/systemPact.js');
 
   const app = express();
   const PORT = process.env.PORT ? parseInt(process.env.PORT) : 8001;
 
   // Middleware
+  const allowedOrigins = [
+    'http://localhost:5000',
+    'http://localhost:3000',
+    'http://localhost',
+    'capacitor://localhost',
+    'https://localhost',
+  ];
+  if (process.env.DEPLOYED_URL) allowedOrigins.push(process.env.DEPLOYED_URL);
+
   app.use(cors({
-    origin: process.env.NODE_ENV === 'production' ? false : ['http://localhost:5000', 'http://localhost:3000'],
+    origin: (origin, cb) => {
+      if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+      cb(null, true); // allow all for now — tighten post-launch if needed
+    },
     credentials: true
   }));
   app.use(json({ limit: '50mb' }));
-  app.use(session({
+  const sessionOptions: Record<string, unknown> = {
     secret: process.env.SESSION_SECRET || 'your-session-secret-here',
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: false, // Set to true if using HTTPS
+      secure: false,
       httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     }
-  }));
+  };
+  if (process.env.DATABASE_URL) {
+    const pgPool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
+    sessionOptions.store = new pgSession({ pool: pgPool, tableName: 'session', createTableIfMissing: false });
+    console.log('[Server] Session store: PostgreSQL (connect-pg-simple)');
+  } else {
+    console.warn('[Server] SESSION WARNING: Using MemoryStore — sessions will not survive restarts. Set DATABASE_URL to enable persistent sessions.');
+  }
+  app.use(session(sessionOptions));
 
   // Health check
   app.get('/health', (req, res) => {
@@ -63,21 +85,8 @@ async function startServer() {
   });
 
   // Test endpoint
-  app.get('/api/test', (req, res) => {
-    console.log('[Test] Request received from frontend');
+  app.get('/api/test', (_req, res) => {
     res.json({ message: 'Frontend-backend connection working!' });
-  });
-
-  // Debug endpoint for auth testing
-  app.get('/api/auth/debug', (req, res) => {
-    console.log('[Auth Debug] Request received');
-    console.log('[Auth Debug] Session:', req.session);
-    console.log('[Auth Debug] Headers:', req.headers);
-    res.json({ 
-      message: 'Debug endpoint working',
-      session: req.session,
-      timestamp: new Date().toISOString()
-    });
   });
 
   // Auth routes
@@ -89,51 +98,28 @@ async function startServer() {
     res.json({ callbackURL });
   });
 
-  // Global auth routes
-  app.get('/api/auth/whoami', async (req, res) => {
-    console.log('[Auth Whoami] Request received');
-    console.log('[Auth Whoami] Session data:', req.session);
-    console.log('[Auth Whoami] UserId:', (req.session as any).userId);
-    
-    try {
-      if (!(req.session as any).userId) {
-        console.log('[Auth Whoami] No userId in session');
-        return res.status(401).json({ error: 'Not authenticated' });
-      }
-      
-      const { supabaseServer } = await import('./lib/supabase.js');
-      
-      const { data: user, error } = await (supabaseServer() as any)
-        .from('players')
-        .select('supabase_id, username, name, email, level, gold, keys')
-        .eq('supabase_id', (req.session as any).userId)
-        .single();
-
-      if (error || !user) {
-        console.log('[Auth Whoami] User not found in database');
-        return res.status(401).json({ error: 'User not found' });
-      }
-
-      console.log('[Auth Whoami] User found:', user);
-      return res.json({ user });
-    } catch (err) {
-      console.error('[Auth Whoami]', err);
-      return res.status(500).json({ error: 'Failed to get user info' });
-    }
+  // Rate limiter for AI routes — 10 requests per minute per IP
+  const aiRateLimit = rateLimit({
+    windowMs: 60 * 1000,
+    max: 10,
+    message: { error: 'Too many requests — please wait a moment before trying again.' },
+    standardHeaders: true,
+    legacyHeaders: false,
   });
 
   // API routes
-  app.use('/api/forge-guard', forgeGuardRouter.default);
-  app.use('/api/avatar', avatarRouter.default);
-  app.use('/api/dusk', duskRouter.default);
+  app.use('/api/forge-guard', aiRateLimit, forgeGuardRouter.default);
+  app.use('/api/avatar', aiRateLimit, avatarRouter.default);
+  app.use('/api/dusk', aiRateLimit, duskRouter.default);
   app.use('/api/player', playerRouter.default);
   app.use('/api/leaderboard', leaderboardRouter.default);
   app.use('/api/videos', videosRouter.default);
   app.use('/api/admin', adminRouter.default);
-  app.use('/api/nutrition', nutritionRouter.default);
+  app.use('/api/nutrition', aiRateLimit, nutritionRouter.default);
   app.use('/api/store', storeRouter.default);
   app.use('/api/global-config', globalConfigRouter.default);
   app.use('/api/workout', workoutRouter.default);
+  app.use('/api/system-pact', systemPactRouter.default);
   app.use('/api/auth/local', localAuthRouter.default);
 
   // Google OAuth setup
@@ -153,8 +139,8 @@ async function startServer() {
   }
 
   // Start server
-  app.listen(PORT, 'localhost', () => {
-    console.log(`[Server] REFORGE API running on http://localhost:${PORT}`);
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`[Server] REFORGE API running on http://0.0.0.0:${PORT}`);
   });
 }
 

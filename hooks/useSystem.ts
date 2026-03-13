@@ -107,7 +107,7 @@ function migratePlayerData(raw: Partial<PlayerData>): PlayerData {
   if (!merged.unlockedLooks) merged.unlockedLooks = [];
   if (!merged.activeLookId) merged.activeLookId = '';
   if (!merged.consumables) merged.consumables = { healthPotions: 0, shadowScrolls: 0, ultOrbs: 0 };
-  merged.tutorialComplete = (data as any)?.tutorialComplete ?? false;
+  merged.tutorialComplete = (raw as any)?.tutorialComplete ?? false;
   return merged;
 }
 
@@ -202,11 +202,12 @@ export const useSystem = () => {
   }, []);
 
   const syncToCloud = useCallback(async (data: PlayerData) => {
-    if (!data.userId || data.userId.startsWith('local-')) return;
+    if (!data.userId || data.userId.startsWith('local-') || data.userId.startsWith('local_')) return;
     try {
       await fetch(`/api/player/${data.userId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(data)
       });
     } catch (e) {
@@ -314,7 +315,7 @@ export const useSystem = () => {
     return () => clearTimeout(timer);
   }, [processDailyReset]);
 
-  const registerUser = (profile: { id?: string; name?: string; keys?: number; raw_data?: Partial<PlayerData>; replitUser?: ReplitUser }) => {
+  const registerUser = (profile: { id?: string; name?: string; username?: string; keys?: number; raw_data?: Partial<PlayerData>; replitUser?: ReplitUser }) => {
     setPlayer(prev => {
       const cloudData = (profile.raw_data || {}) as Partial<PlayerData>;
       const currentKeys = profile.keys !== undefined ? profile.keys : (cloudData.keys ?? prev.keys);
@@ -342,10 +343,10 @@ export const useSystem = () => {
             id: `init_q2_${now}`,
             title: 'Take the 1st Step to Change',
             description: 'Discipline is built one step at a time. Show up. Begin.',
-            rank: 'E',
+            rank: 'D',
             priority: 'HIGH',
             category: 'discipline',
-            xpReward: 20,
+            xpReward: 35,
             isCompleted: false,
             createdAt: now,
             expiresAt: now + oneDay * 7,
@@ -356,10 +357,10 @@ export const useSystem = () => {
             id: `init_q3_${now}`,
             title: 'Register One Quest',
             description: 'You have already forged your first quest. That makes you a Hunter. Own it.',
-            rank: 'E',
+            rank: 'C',
             priority: 'MEDIUM',
             category: 'social',
-            xpReward: 20,
+            xpReward: 50,
             isCompleted: false,
             createdAt: now,
             expiresAt: now + oneDay * 7,
@@ -375,6 +376,7 @@ export const useSystem = () => {
         ...cloudData,
         userId: (profile.id as string) || prev.userId,
         name: (profile.name as string) || (cloudData.name as string) || prev.name,
+        username: (profile.username as string) || (cloudData.username as string) || prev.username,
         keys: currentKeys,
         quests: currentQuests,
         isConfigured: true,
@@ -392,14 +394,17 @@ export const useSystem = () => {
 
   const logout = async () => {
     try {
-      if (player.userId && !player.userId.startsWith('local-')) {
+      if (player.userId && !player.userId.startsWith('local-') && !player.userId.startsWith('local_')) {
         await syncToCloud(player);
       }
     } catch (err) {
       console.error('Pre-logout sync error:', err);
     }
+    try {
+      await fetch('/api/auth/local/logout', { method: 'POST', credentials: 'include' });
+    } catch { /* ignore */ }
     localStorage.removeItem('reforge_player_v2');
-    window.location.href = '/api/logout';
+    window.location.reload();
   };
 
   const consumeKey = async (amount: number = 1): Promise<boolean> => {
@@ -557,30 +562,12 @@ export const useSystem = () => {
     });
   };
 
-  const updateFocusVideos = async (videos: Record<string, string>) => {
+  const updateFocusVideos = (videos: Record<string, string>) => {
     setPlayer(prev => ({ ...prev, focusVideos: { ...prev.focusVideos, ...videos } }));
-    try {
-      await fetch('/api/videos', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(videos)
-      });
-    } catch (err) {
-      console.error('Failed to sync videos:', err);
-    }
   };
 
-  const updateCustomProtocols = async (protocols: Record<string, WorkoutDay[]>) => {
+  const updateCustomProtocols = (protocols: Record<string, WorkoutDay[]>) => {
     setPlayer(prev => ({ ...prev, customProtocols: protocols }));
-    try {
-      await fetch('/api/global-config/customProtocols', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'x-admin-token': 'system_admin_2025' },
-        body: JSON.stringify(protocols),
-      });
-    } catch (err) {
-      console.error('Failed to save customProtocols globally:', err);
-    }
   };
 
   const addXp = (amount: number, source: string) => {
@@ -624,6 +611,11 @@ export const useSystem = () => {
   };
 
   const completeQuest = (id: string, asMini: boolean = false, noRewards: boolean = false) => {
+    // Read pact data before state update for post-update animations
+    const preQuest = player.quests.find(q => q.id === id);
+    const prePact = preQuest?.hasPact && preQuest?.pactStatus === 'active';
+    const prePactAmount = preQuest?.pactAmount || 0;
+
     setPlayer(prev => {
       const quests = [...prev.quests];
       const qIndex = quests.findIndex(q => q.id === id);
@@ -632,16 +624,47 @@ export const useSystem = () => {
       const quest = quests[qIndex];
       if (quest.isCompleted || quest.failed) return prev;
 
-      quests[qIndex] = { ...quest, isCompleted: true, completedAsMini: asMini };
+      const hasPact = quest.hasPact && quest.pactStatus === 'active';
+      const pactAmount = quest.pactAmount || 0;
+      const MANDATORY_PACT_RANKS = new Set(['B', 'A', 'S']);
+      const isOptionalPact = hasPact && !MANDATORY_PACT_RANKS.has(quest.rank);
 
+      // ── CHEAT / ANOMALY VERDICT ──
       if (noRewards) {
+        // Burn pact Gold — it does NOT return
+        quests[qIndex] = { ...quest, isCompleted: true, completedAsMini: asMini, pactStatus: hasPact ? 'burned' : quest.pactStatus };
         playSystemSoundEffect('DANGER');
-        const newLogs = [createLog(`Quest closed (Anomaly): ${quest.title} — 0 XP, 0 Gold`, 'WARNING'), ...prev.logs];
+        const newLogs = [createLog(`Quest closed (Anomaly): ${quest.title} — 0 XP, 0 Gold${hasPact ? ` — ${pactAmount}G BURNED` : ''}`, 'WARNING'), ...prev.logs];
+
+        // Fire-and-forget: log burned Gold to integrity_pool
+        if (hasPact && pactAmount > 0 && prev.userId) {
+          const weekStart = new Date();
+          weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+          fetch('/api/system-pact/burn', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+              quest_id: quest.id,
+              amount: pactAmount,
+              week_start: weekStart.toISOString().split('T')[0],
+            }),
+          }).catch(() => {});
+        }
+
         return { ...prev, quests, logs: newLogs };
       }
 
-      const reward = asMini ? Math.floor(quest.xpReward * 0.1) : quest.xpReward;
-      const goldReward = asMini ? 5 : 20;
+      // ── HONEST COMPLETION ──
+      quests[qIndex] = { ...quest, isCompleted: true, completedAsMini: asMini, pactStatus: hasPact ? 'honored' : quest.pactStatus };
+
+      const RANK_GOLD: Record<string, number> = { E: 10, D: 20, C: 40, B: 80, A: 150, S: 300 };
+      const baseXpReward = asMini ? Math.floor(quest.xpReward * 0.1) : quest.xpReward;
+      // 1.25x XP bonus for optional-rank pacts (E, D, C) that were honored
+      const reward = (isOptionalPact && !asMini) ? Math.floor(baseXpReward * 1.25) : baseXpReward;
+      const goldReward = asMini ? 5 : (RANK_GOLD[quest.rank] || 20);
+      // Return pledged Gold on honest completion
+      const pactReturn = hasPact ? pactAmount : 0;
 
       const stats = { ...prev.stats };
       const dailyStats = { ...prev.dailyStats };
@@ -663,7 +686,9 @@ export const useSystem = () => {
         leveledUp = true;
       }
 
-      const newLogs = [createLog(`Completed Quest: ${quest.title} (+${reward} XP)`, 'XP'), ...prev.logs];
+      const pactBonusTag = isOptionalPact && !asMini ? ' [PACT 1.25x]' : '';
+      const pactReturnTag = pactReturn > 0 ? ` (+${pactReturn}G Pledge Returned)` : '';
+      const newLogs = [createLog(`Completed Quest: ${quest.title} (+${reward} XP${pactBonusTag})${pactReturnTag}`, 'XP'), ...prev.logs];
       if (leveledUp) {
         newLogs.unshift(createLog(`LEVEL UP! REACHED LEVEL ${level}`, 'LEVEL_UP'));
         playSystemSoundEffect('LEVEL_UP');
@@ -671,10 +696,20 @@ export const useSystem = () => {
         playSystemSoundEffect('SUCCESS');
       }
 
+      // Fire-and-forget: mark pact as honored on server
+      if (hasPact && prev.userId) {
+        fetch('/api/system-pact/resolve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ quest_id: quest.id, status: 'honored' }),
+        }).catch(() => {});
+      }
+
       return {
         ...prev,
         quests,
-        gold: prev.gold + goldReward,
+        gold: prev.gold + goldReward + pactReturn,
         stats,
         dailyStats,
         currentXp,
@@ -686,27 +721,76 @@ export const useSystem = () => {
         ...(leveledUp ? { hp: prev.maxHp, mp: prev.maxMp } : {})
       };
     });
+
+    // Post-state-update: dispatch coin-lost animation for burned pacts (cheat path)
+    if (noRewards && prePact && prePactAmount > 0) {
+      const el = document.getElementById(`quest-card-${id}`);
+      const sourceRect = el?.getBoundingClientRect() || null;
+      window.dispatchEvent(new CustomEvent('reforge:coin-lost', {
+        detail: { amount: prePactAmount, sourceRect }
+      }));
+      addNotification(`PACT VIOLATED. ${prePactAmount}G Burned to Integrity Pool.`, 'DANGER');
+    }
   };
 
   const failQuest = (id: string) => {
+    // Read quest data before state update for animations
+    const quest = player.quests.find(q => q.id === id);
+    const hasPact = quest?.hasPact && quest?.pactStatus === 'active';
+    const pactAmount = quest?.pactAmount || 0;
+
     setPlayer(prev => {
       const quests = [...prev.quests];
       const qIndex = quests.findIndex(q => q.id === id);
       if (qIndex === -1) return prev;
 
-      quests[qIndex] = { ...quests[qIndex], failed: true };
+      const q = quests[qIndex];
+      const qHasPact = q.hasPact && q.pactStatus === 'active';
+      const qPactAmount = q.pactAmount || 0;
+
+      quests[qIndex] = {
+        ...q,
+        failed: true,
+        pactStatus: qHasPact ? 'burned' : q.pactStatus,
+      };
       const penaltyAmount = 50;
       const currentXp = Math.max(0, prev.currentXp - penaltyAmount);
 
-      return {
-        ...prev,
-        quests,
-        currentXp,
-        logs: [createLog(`Failed Quest: ${quests[qIndex].title} (-${penaltyAmount} XP)`, 'PENALTY'), ...prev.logs]
-      };
+      const pactLog = qHasPact ? ` — ${qPactAmount}G Shadow Pledge BURNED` : '';
+      const logs = [createLog(`Failed Quest: ${q.title} (-${penaltyAmount} XP${pactLog})`, 'PENALTY'), ...prev.logs];
+
+      // Fire-and-forget: log burned Gold to integrity_pool
+      if (qHasPact && qPactAmount > 0 && prev.userId) {
+        const weekStart = new Date();
+        weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+        fetch('/api/system-pact/burn', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            quest_id: q.id,
+            amount: qPactAmount,
+            week_start: weekStart.toISOString().split('T')[0],
+          }),
+        }).catch(() => {});
+      }
+
+      return { ...prev, quests, currentXp, logs };
     });
+
     playSystemSoundEffect('DANGER');
-    addNotification('Quest Failed. Penalty Applied.', 'DANGER');
+
+    // Dispatch coin-lost animation for pact quests
+    if (hasPact && pactAmount > 0) {
+      const el = document.getElementById(`quest-card-${id}`);
+      const sourceRect = el?.getBoundingClientRect() || null;
+      window.dispatchEvent(new CustomEvent('reforge:coin-lost', {
+        detail: { amount: pactAmount, sourceRect }
+      }));
+      addNotification(`Quest Failed. Shadow Pledge Forfeited: ${pactAmount}G Lost.`, 'DANGER');
+    } else {
+      addNotification('Quest Failed. Penalty Applied.', 'DANGER');
+    }
   };
 
   const failFlaggedQuest = (id: string) => {
@@ -907,6 +991,19 @@ export const useSystem = () => {
       };
     });
     addNotification(`Workout Complete! +${exercisesCompleted * 50} XP`, 'SUCCESS');
+    // Persist to workouts table (fire-and-forget)
+    if (player.userId && !player.userId.startsWith('local-') && !player.userId.startsWith('local_')) {
+      fetch('/api/workout/log-complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          exercises_completed: exercisesCompleted,
+          total_exercises: totalExercises,
+          xp_gained: exercisesCompleted * 50 + (intensityModifier ? 100 : 0),
+        }),
+      }).catch(() => {});
+    }
   };
 
   const failWorkout = () => {
@@ -924,6 +1021,10 @@ export const useSystem = () => {
 
   const resetTutorial = () => {
     setPlayer(prev => ({ ...prev, tutorialStep: 1, tutorialComplete: false }));
+  };
+
+  const resetPlayer = () => {
+    setPlayer(DEFAULT_PLAYER);
   };
 
   const recordStrike = useCallback(() => {
@@ -951,7 +1052,8 @@ export const useSystem = () => {
         playSystemSoundEffect('DANGER');
       }
       addNotification(`Anomaly Strike ${strikes}/5 — ${5 - strikes} remaining`, 'DANGER');
-      return { ...prev, cheatStrikes: strikes, currentXp: Math.max(0, currentXp), level, logs };
+      const trustScore = Math.max(0, (prev.trustScore ?? 100) - 15);
+      return { ...prev, cheatStrikes: strikes, trustScore, currentXp: Math.max(0, currentXp), level, logs };
     });
   }, [addNotification]);
 
@@ -978,6 +1080,7 @@ export const useSystem = () => {
       const res = await fetch('/api/forge-guard/verify-proof', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ imageBase64: proof, reason, context: originalSelfie })
       });
       const data = await res.json();
@@ -1080,6 +1183,7 @@ export const useSystem = () => {
     advanceTutorial,
     completeTutorial,
     resetTutorial,
+    resetPlayer,
     resolvePenalty,
     reducePenalty,
     claimTournamentReward,

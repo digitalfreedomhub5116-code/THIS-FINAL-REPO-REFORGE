@@ -1,4 +1,4 @@
-import React, { useRef, useMemo } from 'react';
+import React, { Component, useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Environment } from '@react-three/drei';
 import * as THREE from 'three';
@@ -125,4 +125,28 @@ const ThreeHologram: React.FC<{ activeMuscle: string }> = ({ activeMuscle }) => 
     </div>
 );
 
-export default ThreeHologram;
+class WebGLErrorBoundary extends Component<{ children: React.ReactNode }, { hasError: boolean }> {
+  state = { hasError: false };
+  static getDerivedStateFromError() { return { hasError: true }; }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="w-full h-full flex items-center justify-center bg-black/50 rounded-xl border border-gray-800">
+          <div className="text-center p-4">
+            <div className="text-2xl mb-2">⚡</div>
+            <div className="text-[10px] text-gray-500 font-mono uppercase tracking-widest">3D Engine Unavailable</div>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+export default function SafeThreeHologram(props: { activeMuscle: string }) {
+  return (
+    <WebGLErrorBoundary>
+      <ThreeHologram {...props} />
+    </WebGLErrorBoundary>
+  );
+}

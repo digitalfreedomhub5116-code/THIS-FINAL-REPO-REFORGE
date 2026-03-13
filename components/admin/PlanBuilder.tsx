@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Edit3, Trash2, Save, X, ChevronDown, ChevronUp, Dumbbell } from 'lucide-react';
 import { WorkoutExercise, WorkoutPlan, WorkoutDay } from '../../types';
 
-const ADMIN_SECRET = 'system_admin_2025';
 const DIFFICULTY_OPTIONS = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED'];
 const EQUIPMENT_OPTIONS = ['GYM', 'HOME_DUMBBELLS', 'BODYWEIGHT'];
 const FOCUS_OPTIONS = ['PUSH', 'PULL', 'LEGS', 'PUSH 2', 'PULL 2', 'UPPER BODY', 'LOWER BODY', 'FULL BODY', 'CORE', 'CARDIO', 'REST'];
@@ -139,7 +138,7 @@ const DayEditor: React.FC<DayEditorProps> = ({ day, dayIndex, exercises, onChang
   );
 };
 
-const PlanBuilder: React.FC = () => {
+const PlanBuilder: React.FC<{ adminToken: string }> = ({ adminToken }) => {
   const [plans, setPlans] = useState<WorkoutPlan[]>([]);
   const [exercises, setExercises] = useState<WorkoutExercise[]>([]);
   const [loading, setLoading] = useState(false);
@@ -155,8 +154,8 @@ const PlanBuilder: React.FC = () => {
     setLoading(true);
     try {
       const [plansRes, exRes] = await Promise.all([
-        fetch('/api/admin/plans', { headers: { 'x-admin-token': ADMIN_SECRET } }),
-        fetch('/api/admin/exercises', { headers: { 'x-admin-token': ADMIN_SECRET } }),
+        fetch('/api/admin/plans', { headers: { 'x-admin-token': adminToken } }),
+        fetch('/api/admin/exercises', { headers: { 'x-admin-token': adminToken } }),
       ]);
       const plansData = await plansRes.json();
       const exData = await exRes.json();
@@ -200,7 +199,7 @@ const PlanBuilder: React.FC = () => {
     try {
       const url = editing ? `/api/admin/plans/${editing.id}` : '/api/admin/plans';
       const method = editing ? 'PUT' : 'POST';
-      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json', 'x-admin-token': ADMIN_SECRET }, body: JSON.stringify(form) });
+      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json', 'x-admin-token': adminToken }, body: JSON.stringify(form) });
       if (!res.ok) throw new Error('Save failed');
       setMsg({ type: 'success', text: editing ? 'Plan updated' : 'Plan created' });
       setShowForm(false);
@@ -211,7 +210,7 @@ const PlanBuilder: React.FC = () => {
 
   const deletePlan = async (id: number) => {
     try {
-      await fetch(`/api/admin/plans/${id}`, { method: 'DELETE', headers: { 'x-admin-token': ADMIN_SECRET } });
+      await fetch(`/api/admin/plans/${id}`, { method: 'DELETE', headers: { 'x-admin-token': adminToken } });
       setPlans(prev => prev.filter(p => p.id !== id));
       setConfirmDelete(null);
       setMsg({ type: 'success', text: 'Plan deleted' });
