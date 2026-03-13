@@ -3,7 +3,7 @@ import cors from 'cors';
 import { json } from 'express';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { existsSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
 
@@ -74,7 +74,7 @@ async function startServer() {
   };
   if (process.env.DATABASE_URL) {
     const pgPool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
-    sessionOptions.store = new pgSession({ pool: pgPool, tableName: 'session', createTableIfMissing: false });
+    sessionOptions.store = new pgSession({ pool: pgPool, tableName: 'session', createTableIfMissing: true });
     console.log('[Server] Session store: PostgreSQL (connect-pg-simple)');
   } else {
     console.warn('[Server] SESSION WARNING: Using MemoryStore — sessions will not survive restarts. Set DATABASE_URL to enable persistent sessions.');
@@ -132,7 +132,23 @@ async function startServer() {
   if (existsSync(distPath)) {
     app.use(express.static(distPath));
     app.get(/.*/, (_req, res) => {
-      res.sendFile(join(distPath, 'index.html'));
+      try {
+        let html = readFileSync(join(distPath, 'index.html'), 'utf-8');
+        // Inject runtime config so VITE_ vars work even if not baked in at build time
+        const runtimeConfig = JSON.stringify({
+          googleClientId: process.env.VITE_GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID || '',
+          supabaseUrl: process.env.VITE_SUPABASE_URL || '',
+          supabaseAnonKey: process.env.VITE_SUPABASE_ANON_KEY || '',
+        });
+        html = html.replace(
+          '</head>',
+          `<script>window.__REFORGE_CONFIG__=${runtimeConfig};</script></head>`
+        );
+        res.setHeader('Content-Type', 'text/html');
+        res.send(html);
+      } catch {
+        res.sendFile(join(distPath, 'index.html'));
+      }
     });
   } else {
     app.use((_req, res) => {

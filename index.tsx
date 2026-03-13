@@ -4,7 +4,11 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import './index.css';
 import App from './App';
 
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+const runtimeConfig = (window as any).__REFORGE_CONFIG__ || {};
+const GOOGLE_CLIENT_ID =
+  runtimeConfig.googleClientId ||
+  import.meta.env.VITE_GOOGLE_CLIENT_ID ||
+  '';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {

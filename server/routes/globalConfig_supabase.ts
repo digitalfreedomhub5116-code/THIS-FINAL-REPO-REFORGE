@@ -11,10 +11,10 @@ router.get('/:key', async (req: Request, res: Response) => {
       .select('value')
       .eq('key', key)
       .single();
-    if (error && error.code === 'PGRST116') return res.json({});
+    if (error && (error.code === 'PGRST116' || error.code === '42P01')) return res.json({});
     if (error) {
       console.error('[GlobalConfig GET]', error);
-      return res.status(500).json({ error: 'Internal server error' });
+      return res.json({}); // Return empty rather than 500 for missing tables
     }
     if (!data) return res.json({});
     try {

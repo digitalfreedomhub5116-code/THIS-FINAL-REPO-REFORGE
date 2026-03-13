@@ -12,7 +12,7 @@ router.get('/', async (_req: Request, res: Response) => {
       .order('key');
     if (error) {
       console.error('[Videos GET]', error);
-      return res.status(500).json({ error: 'Internal server error' });
+      return res.json({}); // Return empty map rather than 500 for missing tables
     }
     const videoMap: Record<string, string> = {};
     if (data) data.forEach((row: { key: string; url: string }) => { videoMap[row.key] = row.url; });
