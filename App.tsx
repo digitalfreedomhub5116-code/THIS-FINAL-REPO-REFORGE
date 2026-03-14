@@ -150,9 +150,15 @@ const App: React.FC = () => {
 
   // ── Sync from DB — callable ref for immediate triggers + 2s polling ──
   const syncFromDbRef = useRef<() => Promise<void>>();
+  // Track last known DB values so we only overwrite local gold/keys when admin changes them
+  const lastKnownDbGold = useRef<number | null>(null);
+  const lastKnownDbKeys = useRef<number | null>(null);
   useEffect(() => {
     if (!player.userId || player.userId.startsWith('local')) return;
     banReversalShownRef.current = false;
+    // Reset tracking refs on user change
+    lastKnownDbGold.current = null;
+    lastKnownDbKeys.current = null;
     const syncFromDb = async () => {
       try {
         const res = await fetch(`/api/player/${player.userId}`, { credentials: 'include', headers: { ...getPlayerAuthHeaders() } });
@@ -165,6 +171,16 @@ const App: React.FC = () => {
         const dbGold    = rawData.gold           ?? 0;
         const dbKeys    = rawData.keys           ?? 0;
         const dbTotalStrikes = rawData.totalStrikesEver ?? 0;
+
+        // Determine if gold/keys changed in DB since our last poll.
+        // If DB value changed → admin or server modified it → apply to local state.
+        // If DB value is same as last poll → keep local values (user has pending changes).
+        const goldChangedInDb = lastKnownDbGold.current !== null && dbGold !== lastKnownDbGold.current;
+        const keysChangedInDb = lastKnownDbKeys.current !== null && dbKeys !== lastKnownDbKeys.current;
+        const isFirstPoll = lastKnownDbGold.current === null;
+        lastKnownDbGold.current = dbGold;
+        lastKnownDbKeys.current = dbKeys;
+
         setPlayer(prev => {
           const updates: Partial<PlayerData> = {};
           if (dbBanned !== prev.isBanned) {
@@ -175,9 +191,18 @@ const App: React.FC = () => {
             }
           }
           if (dbStrikes !== prev.cheatStrikes)           updates.cheatStrikes    = dbStrikes;
-          if (dbGold    !== prev.gold)                   updates.gold            = dbGold;
-          if (dbKeys    !== prev.keys)                   updates.keys            = dbKeys;
           if (dbTotalStrikes !== prev.totalStrikesEver)  updates.totalStrikesEver = dbTotalStrikes;
+
+          // Gold/Keys: Only overwrite local if DB value changed (admin adjustment)
+          // or on first poll (initial load from server)
+          if (isFirstPoll) {
+            if (dbGold !== prev.gold) updates.gold = dbGold;
+            if (dbKeys !== prev.keys) updates.keys = dbKeys;
+          } else {
+            if (goldChangedInDb && dbGold !== prev.gold) updates.gold = dbGold;
+            if (keysChangedInDb && dbKeys !== prev.keys) updates.keys = dbKeys;
+          }
+
           return Object.keys(updates).length > 0 ? { ...prev, ...updates } : prev;
         });
 

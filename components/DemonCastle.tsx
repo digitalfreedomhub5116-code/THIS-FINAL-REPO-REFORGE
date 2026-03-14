@@ -1172,7 +1172,7 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
           ];
 
           // Create particles from both sides
-          const particleCount = 180;
+          const particleCount = 100;
           for (let i = 0; i < particleCount; i++) {
             const fromLeft = i < particleCount / 2;
             particlesRef.current.push({
@@ -1229,7 +1229,7 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
             ctx.restore();
           };
 
-          const animate = () => {
+          const animateLoop = () => {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
             particlesRef.current.forEach((p) => {
@@ -1251,15 +1251,14 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
             particlesRef.current = particlesRef.current.filter(p => p.opacity > 0);
 
             if (particlesRef.current.length > 0) {
-              animRef.current = requestAnimationFrame(animate);
+              animRef.current = requestAnimationFrame(animateLoop);
             }
           };
 
           // Trigger confetti burst sound
-          playSystemSoundEffect('PURCHASE');
-          setTimeout(() => playSystemSoundEffect('LEVEL_UP'), 200);
+          playSystemSoundEffect('LEVEL_UP');
 
-          animate();
+          animateLoop();
 
           return () => {
             cancelAnimationFrame(animRef.current);
@@ -1271,7 +1270,7 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
       };
 
       /* ── Enhanced CountUp with sound and sparkles ── */
-      const CountUpValue: React.FC<{ target: number; delay: number; color: string; label: string }> = ({ target, delay, color }) => {
+      const CountUpValue: React.FC<{ target: number; delay: number; color: string; label?: string }> = ({ target, delay, color }) => {
         const nodeRef = useRef<HTMLSpanElement>(null);
         const [showSparkles, setShowSparkles] = useState(false);
         
@@ -1280,25 +1279,32 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
           if (!node) return;
           node.textContent = '0';
           
+          // If target is 0, skip animation
+          if (target <= 0) {
+            node.textContent = '0';
+            return;
+          }
+          
           const timeout = setTimeout(() => {
-            let lastPlayed = 0;
+            let soundMilestone = 0;
             const controls = animate(0, target, {
-              duration: 2.5,
+              duration: 2,
               ease: [0.22, 1, 0.36, 1],
               onUpdate: (v) => {
                 if (node) {
-                  const rounded = Math.round(v);
-                  node.textContent = String(rounded);
+                  node.textContent = String(Math.round(v));
                   
-                  // Tick sound every 5% progress
+                  // Sound at 25%, 50%, 75% only (3 ticks max)
                   const progress = v / target;
-                  if (Math.floor(progress * 20) > lastPlayed) {
-                    lastPlayed = Math.floor(progress * 20);
+                  const milestone = Math.floor(progress * 4);
+                  if (milestone > soundMilestone && milestone < 4) {
+                    soundMilestone = milestone;
                     playSystemSoundEffect('CLICK');
                   }
                 }
               },
               onComplete: () => {
+                if (node) node.textContent = String(target);
                 setShowSparkles(true);
                 playSystemSoundEffect('COIN');
                 setTimeout(() => setShowSparkles(false), 800);
