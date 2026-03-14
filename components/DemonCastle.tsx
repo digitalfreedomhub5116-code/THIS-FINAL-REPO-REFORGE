@@ -1094,7 +1094,7 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
       );
   }
 
-  // GAMEOVER / VICTORY Screens (Updated High Fidelity)
+  // GAMEOVER / VICTORY Screens (Enhanced)
   if (mode === 'GAMEOVER' || mode === 'VICTORY') {
       const isVictory = mode === 'VICTORY';
       const themeColor = isVictory ? 'text-yellow-500' : 'text-red-600';
@@ -1122,48 +1122,245 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
         </svg>
       );
 
-      /* ── CountUp reward value component ── */
-      const CountUpValue: React.FC<{ target: number; delay: number; color: string }> = ({ target, delay, color }) => {
+      /* ── Confetti Burst Component ── */
+      const ConfettiBurst: React.FC<{ active: boolean }> = ({ active }) => {
+        const canvasRef = useRef<HTMLCanvasElement>(null);
+        const animRef = useRef<number>(0);
+        const particlesRef = useRef<any[]>([]);
+
+        useEffect(() => {
+          if (!active) return;
+          const canvas = canvasRef.current;
+          if (!canvas) return;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) return;
+
+          canvas.width = window.innerWidth;
+          canvas.height = window.innerHeight;
+
+          // Confetti particle shapes
+          const shapes = ['diamond', 'triangle', 'hexagon', 'rect'];
+          const colors = [
+            'rgba(59, 130, 246, 0.9)',   // blue-500
+            'rgba(147, 51, 234, 0.9)',   // purple-600
+            'rgba(99, 102, 241, 0.9)',   // indigo-500
+            'rgba(168, 85, 247, 0.9)',   // purple-500
+            'rgba(37, 99, 235, 0.9)',    // blue-600
+            'rgba(124, 58, 237, 0.9)',   // violet-600
+            'rgba(251, 191, 36, 0.7)',   // gold accent
+          ];
+
+          // Create particles from both sides
+          const particleCount = 180;
+          for (let i = 0; i < particleCount; i++) {
+            const fromLeft = i < particleCount / 2;
+            particlesRef.current.push({
+              x: fromLeft ? -20 : canvas.width + 20,
+              y: Math.random() * canvas.height * 0.6 + canvas.height * 0.2,
+              vx: (fromLeft ? 1 : -1) * (8 + Math.random() * 12),
+              vy: -8 - Math.random() * 8,
+              rotation: Math.random() * Math.PI * 2,
+              rotationSpeed: (Math.random() - 0.5) * 0.3,
+              size: 6 + Math.random() * 10,
+              shape: shapes[Math.floor(Math.random() * shapes.length)],
+              color: colors[Math.floor(Math.random() * colors.length)],
+              gravity: 0.4 + Math.random() * 0.3,
+              opacity: 1,
+            });
+          }
+
+          const drawShape = (p: any) => {
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rotation);
+            ctx.globalAlpha = p.opacity;
+            ctx.fillStyle = p.color;
+
+            if (p.shape === 'diamond') {
+              ctx.beginPath();
+              ctx.moveTo(0, -p.size);
+              ctx.lineTo(p.size, 0);
+              ctx.lineTo(0, p.size);
+              ctx.lineTo(-p.size, 0);
+              ctx.closePath();
+              ctx.fill();
+            } else if (p.shape === 'triangle') {
+              ctx.beginPath();
+              ctx.moveTo(0, -p.size);
+              ctx.lineTo(p.size * 0.866, p.size * 0.5);
+              ctx.lineTo(-p.size * 0.866, p.size * 0.5);
+              ctx.closePath();
+              ctx.fill();
+            } else if (p.shape === 'hexagon') {
+              ctx.beginPath();
+              for (let i = 0; i < 6; i++) {
+                const angle = (Math.PI / 3) * i;
+                const x = p.size * Math.cos(angle);
+                const y = p.size * Math.sin(angle);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+              }
+              ctx.closePath();
+              ctx.fill();
+            } else {
+              ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+            }
+            ctx.restore();
+          };
+
+          const animate = () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            particlesRef.current.forEach((p) => {
+              p.vy += p.gravity;
+              p.x += p.vx;
+              p.y += p.vy;
+              p.rotation += p.rotationSpeed;
+              p.vx *= 0.99;
+
+              if (p.y > canvas.height + 50) {
+                p.opacity -= 0.02;
+              }
+
+              if (p.opacity > 0) {
+                drawShape(p);
+              }
+            });
+
+            particlesRef.current = particlesRef.current.filter(p => p.opacity > 0);
+
+            if (particlesRef.current.length > 0) {
+              animRef.current = requestAnimationFrame(animate);
+            }
+          };
+
+          // Trigger confetti burst sound
+          playSystemSoundEffect('PURCHASE');
+          setTimeout(() => playSystemSoundEffect('LEVEL_UP'), 200);
+
+          animate();
+
+          return () => {
+            cancelAnimationFrame(animRef.current);
+            particlesRef.current = [];
+          };
+        }, [active]);
+
+        return <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none z-50" />;
+      };
+
+      /* ── Enhanced CountUp with sound and sparkles ── */
+      const CountUpValue: React.FC<{ target: number; delay: number; color: string; label: string }> = ({ target, delay, color }) => {
         const nodeRef = useRef<HTMLSpanElement>(null);
+        const [showSparkles, setShowSparkles] = useState(false);
+        
         useEffect(() => {
           const node = nodeRef.current;
           if (!node) return;
           node.textContent = '0';
+          
           const timeout = setTimeout(() => {
+            let lastPlayed = 0;
             const controls = animate(0, target, {
-              duration: 1,
-              ease: 'easeOut',
-              onUpdate: (v) => { if (node) node.textContent = String(Math.round(v)); },
+              duration: 2.5,
+              ease: [0.22, 1, 0.36, 1],
+              onUpdate: (v) => {
+                if (node) {
+                  const rounded = Math.round(v);
+                  node.textContent = String(rounded);
+                  
+                  // Tick sound every 5% progress
+                  const progress = v / target;
+                  if (Math.floor(progress * 20) > lastPlayed) {
+                    lastPlayed = Math.floor(progress * 20);
+                    playSystemSoundEffect('CLICK');
+                  }
+                }
+              },
+              onComplete: () => {
+                setShowSparkles(true);
+                playSystemSoundEffect('COIN');
+                setTimeout(() => setShowSparkles(false), 800);
+              }
             });
             return () => controls.stop();
           }, delay * 1000);
+          
           return () => clearTimeout(timeout);
         }, [target, delay]);
-        return <span ref={nodeRef} className={`text-lg font-bold font-mono ${color}`}>0</span>;
+
+        return (
+          <div className="relative">
+            <span ref={nodeRef} className={`text-2xl font-black font-mono ${color} drop-shadow-[0_0_8px_currentColor]`}>0</span>
+            {showSparkles && (
+              <>
+                {[...Array(6)].map((_, i) => (
+                  <motion.div
+                    key={i}
+                    className="absolute top-1/2 left-1/2 w-1 h-1 rounded-full bg-yellow-400"
+                    initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
+                    animate={{
+                      x: Math.cos((i / 6) * Math.PI * 2) * 30,
+                      y: Math.sin((i / 6) * Math.PI * 2) * 30,
+                      opacity: 0,
+                      scale: 0,
+                    }}
+                    transition={{ duration: 0.6, ease: 'easeOut' }}
+                  />
+                ))}
+              </>
+            )}
+          </div>
+        );
       };
 
+      /* ── Victory state management ── */
+      const [confettiActive, setConfettiActive] = useState(false);
+      const [screenShake, setScreenShake] = useState(false);
+
+      useEffect(() => {
+        if (isVictory) {
+          // Trigger confetti when keys count-up is about to finish (at 3.5s)
+          const confettiTimer = setTimeout(() => {
+            setConfettiActive(true);
+            setScreenShake(true);
+            setTimeout(() => setScreenShake(false), 600);
+          }, 3500);
+          
+          return () => clearTimeout(confettiTimer);
+        }
+      }, [isVictory]);
+
       /* ── Gold light rays for victory ── */
-      const goldRays = isVictory ? Array.from({ length: 12 }, (_, i) => i * 30) : [];
+      const goldRays = isVictory ? Array.from({ length: 16 }, (_, i) => i * 22.5) : [];
       
       return (
-          <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center p-6 text-center bg-black/95 backdrop-blur-xl overflow-hidden">
+          <motion.div 
+            className="fixed inset-0 z-[200] flex flex-col items-center justify-center p-6 text-center bg-black/95 backdrop-blur-xl overflow-hidden"
+            animate={screenShake ? { x: [0, -4, 4, -4, 4, 0], y: [0, -2, 2, -2, 2, 0] } : {}}
+            transition={{ duration: 0.5 }}
+          >
+              {/* Confetti Burst */}
+              {isVictory && <ConfettiBurst active={confettiActive} />}
               
-              {/* Animated Background Overlay */}
-              <div className={`absolute inset-0 opacity-20 pointer-events-none ${isVictory ? 'bg-[radial-gradient(circle_at_center,rgba(234,179,8,0.2),transparent_70%)]' : 'bg-[radial-gradient(circle_at_center,rgba(220,38,38,0.2),transparent_70%)]'}`} />
+              {/* Enhanced Background Overlay for Victory */}
+              <div className={`absolute inset-0 opacity-25 pointer-events-none ${isVictory ? 'bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.3)_0%,rgba(147,51,234,0.2)_40%,transparent_70%)]' : 'bg-[radial-gradient(circle_at_center,rgba(220,38,38,0.2),transparent_70%)]'}`} />
 
-              {/* VICTORY: Gold light rays fanning outward behind the card */}
+              {/* VICTORY: Enhanced light rays with blue/purple tint */}
               {isVictory && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                   {goldRays.map((deg) => (
                     <motion.div
                       key={deg}
                       initial={{ opacity: 0, scaleY: 0 }}
-                      animate={{ opacity: [0, 0.12, 0.06, 0.12], scaleY: 1 }}
+                      animate={{ opacity: [0, 0.15, 0.08, 0.15], scaleY: 1 }}
                       transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut', delay: (deg / 360) * 2 }}
                       className="absolute w-[2px] origin-bottom"
                       style={{
-                        height: '45vh',
-                        background: 'linear-gradient(to top, rgba(234,179,8,0.25), transparent)',
+                        height: '50vh',
+                        background: deg % 2 === 0 
+                          ? 'linear-gradient(to top, rgba(99,102,241,0.3), transparent)'
+                          : 'linear-gradient(to top, rgba(147,51,234,0.25), transparent)',
                         transform: `rotate(${deg}deg)`,
                         transformOrigin: 'bottom center',
                       }}
@@ -1197,7 +1394,7 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
                   initial={{ scale: 0.8, opacity: 0, y: 20 }}
                   animate={{ scale: 1, opacity: 1, y: 0 }}
                   transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                  className={`w-full max-w-sm relative bg-[#0a0a0a] border-2 rounded-3xl p-8 overflow-hidden shadow-2xl ${borderColor} ${isVictory ? 'shadow-[0_0_60px_rgba(234,179,8,0.25)]' : 'shadow-[0_0_50px_rgba(220,38,38,0.3)]'}`}
+                  className={`w-full max-w-sm relative bg-[#0a0a0a] border-2 rounded-3xl p-8 overflow-hidden shadow-2xl ${borderColor} ${isVictory ? 'shadow-[0_0_80px_rgba(99,102,241,0.3)]' : 'shadow-[0_0_50px_rgba(220,38,38,0.3)]'}`}
               >
                   {/* Top Scanline */}
                   <motion.div 
@@ -1234,20 +1431,27 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
                       <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 rounded-full border opacity-50 animate-ping ${borderColor}`} />
                   </div>
                   
-                  {/* Text Content */}
+                  {/* Text Content with Celebratory Animations */}
                   <div className="space-y-2 mb-8">
                       <motion.h1 
                           initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.4 }}
+                          animate={isVictory ? { 
+                            opacity: 1, 
+                            y: 0,
+                            textShadow: ['0 0 0px rgba(234,179,8,0)', '0 0 20px rgba(234,179,8,0.8)', '0 0 10px rgba(234,179,8,0.5)']
+                          } : { opacity: 1, y: 0 }}
+                          transition={isVictory ? { delay: 0.4, textShadow: { duration: 2, repeat: Infinity, ease: 'easeInOut' } } : { delay: 0.4 }}
                           className={`text-4xl font-black font-serif uppercase tracking-tighter ${themeColor} drop-shadow-md`}
                       >
                           {isVictory ? 'ESCAPED' : 'DEFEATED'}
                       </motion.h1>
                       <motion.p 
                           initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          transition={{ delay: 0.5 }}
+                          animate={isVictory ? {
+                            opacity: [1, 0.7, 1],
+                            scale: [1, 1.02, 1]
+                          } : { opacity: 1 }}
+                          transition={isVictory ? { delay: 0.5, duration: 2, repeat: Infinity, ease: 'easeInOut' } : { delay: 0.5 }}
                           className="text-[10px] text-gray-500 font-mono tracking-[0.3em] uppercase"
                       >
                           {isVictory ? 'DUNGEON CLEARED' : 'SYSTEM CRITICAL FAILURE'}
@@ -1265,15 +1469,15 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
                       {isVictory ? (
                         <>
                           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8, duration: 0.4 }} className="flex flex-col items-center">
-                              <CountUpValue target={lootBag.gold} delay={0.8} color="text-yellow-500" />
+                              <CountUpValue target={lootBag.gold} delay={0.8} color="text-yellow-500" label="GOLD" />
                               <span className="text-[8px] text-gray-600 font-bold uppercase tracking-wider mt-1">GOLD</span>
                           </motion.div>
                           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.0, duration: 0.4 }} className="flex flex-col items-center border-x border-gray-800 px-2">
-                              <CountUpValue target={lootBag.xp} delay={1.0} color="text-blue-400" />
+                              <CountUpValue target={lootBag.xp} delay={1.0} color="text-blue-400" label="XP" />
                               <span className="text-[8px] text-gray-600 font-bold uppercase tracking-wider mt-1">XP</span>
                           </motion.div>
                           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.2, duration: 0.4 }} className="flex flex-col items-center">
-                              <CountUpValue target={lootBag.keys} delay={1.2} color="text-purple-500" />
+                              <CountUpValue target={lootBag.keys} delay={1.2} color="text-purple-500" label="KEYS" />
                               <span className="text-[8px] text-gray-600 font-bold uppercase tracking-wider mt-1">KEYS</span>
                           </motion.div>
                         </>
@@ -1309,7 +1513,7 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
                       RETURN TO LOBBY
                   </motion.button>
               </motion.div>
-          </div>
+          </motion.div>
       );
   }
 
