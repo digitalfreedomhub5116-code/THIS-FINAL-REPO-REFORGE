@@ -10,8 +10,16 @@ import SignInPage from './components/SignInPage';
 import CreateAccountPage from './components/CreateAccountPage';
 import LogoutChoiceScreen from './components/LogoutChoiceScreen';
 import SystemMessage from './components/SystemMessage';
-import ShadowLoading from './components/ShadowLoading';
 import ErrorBoundary from './components/ErrorBoundary';
+import {
+  SkeletonStatsChart, SkeletonStatBoxes, SkeletonLevelProgress,
+  SkeletonWardrobePreview, SkeletonRankProgression, SkeletonUpcomingQuests,
+  SkeletonDashboardWidgets, SkeletonForgeGuard,
+  SkeletonQuestsPage, SkeletonShopPage, SkeletonCastlePage,
+  SkeletonAlliancePage, SkeletonGrowthPage, SkeletonHealthPage,
+  SkeletonRankingPage, SkeletonProfilePage, SkeletonAdminPage,
+  SkeletonOnboardingPage, SkeletonGenericPage,
+} from './components/SkeletonLoaders';
 
 import { useSystem } from './hooks/useSystem';
 import { Tab, CoreStats, HealthProfile, Outfit, DbOutfit, TierLevel, PlayerData, Quest } from './types';
@@ -89,11 +97,6 @@ interface XpCollectionState {
 }
 
 
-const TabLoader = () => (
-  <div className="flex items-center justify-center min-h-[200px]">
-    <ShadowLoading />
-  </div>
-);
 
 const App: React.FC = () => {
   const {
@@ -539,7 +542,7 @@ const App: React.FC = () => {
   // ── Admin ──
   if (showAdminLogin) {
     return (
-      <Suspense fallback={<TabLoader />}>
+      <Suspense fallback={<SkeletonAdminPage />}>
         <ErrorBoundary fallbackLabel="Admin login failed to load">
           <AdminLogin
             onLoginSuccess={(token: string) => { setAdminToken(token); setShowAdminLogin(false); setIsAdmin(true); }}
@@ -552,7 +555,7 @@ const App: React.FC = () => {
 
   if (isAdmin) {
     return (
-      <Suspense fallback={<TabLoader />}>
+      <Suspense fallback={<SkeletonAdminPage />}>
         <ErrorBoundary fallbackLabel="Admin dashboard failed to load">
           <AdminDashboard adminToken={adminToken} onLogout={() => { setIsAdmin(false); setAdminToken(''); window.history.replaceState({}, '', '/'); }} />
         </ErrorBoundary>
@@ -563,7 +566,7 @@ const App: React.FC = () => {
   // ── Ban Screen ──
   if (player.isBanned) {
     return (
-      <Suspense fallback={<TabLoader />}>
+      <Suspense fallback={<SkeletonGenericPage />}>
         <ErrorBoundary fallbackLabel="Ban screen failed">
           <BanScreen
             userId={player.userId}
@@ -581,21 +584,21 @@ const App: React.FC = () => {
   if (onboardingPhase !== 'APP') {
     if (onboardingPhase === 'SPLASH') {
       return (
-        <Suspense fallback={<TabLoader />}>
+        <Suspense fallback={<SkeletonOnboardingPage />}>
           <SplashScreen onComplete={() => setOnboardingPhase('WELCOME')} />
         </Suspense>
       );
     }
     if (onboardingPhase === 'WELCOME') {
       return (
-        <Suspense fallback={<TabLoader />}>
+        <Suspense fallback={<SkeletonOnboardingPage />}>
           <DuskWelcomeScreen onComplete={() => setOnboardingPhase('AGREEMENT')} />
         </Suspense>
       );
     }
     if (onboardingPhase === 'AGREEMENT') {
       return (
-        <Suspense fallback={<TabLoader />}>
+        <Suspense fallback={<SkeletonOnboardingPage />}>
           <ErrorBoundary fallbackLabel="Agreement failed">
             <SystemAgreement onComplete={() => setOnboardingPhase('NAMING')} />
           </ErrorBoundary>
@@ -604,7 +607,7 @@ const App: React.FC = () => {
     }
     if (onboardingPhase === 'NAMING') {
       return (
-        <Suspense fallback={<TabLoader />}>
+        <Suspense fallback={<SkeletonOnboardingPage />}>
           <ErrorBoundary fallbackLabel="Naming failed">
             <NameOnboarding
               onComplete={(country: string, tz: string) => {
@@ -620,7 +623,7 @@ const App: React.FC = () => {
     }
     if (onboardingPhase === 'CALIBRATION') {
       return (
-        <Suspense fallback={<TabLoader />}>
+        <Suspense fallback={<SkeletonOnboardingPage />}>
           <ErrorBoundary fallbackLabel="Calibration failed">
             <CalibrationFlow
               onComplete={(profile: HealthProfile, stats: CoreStats) => {
@@ -709,7 +712,7 @@ const App: React.FC = () => {
     }
     if (onboardingPhase === 'AVATAR') {
       return (
-        <Suspense fallback={<TabLoader />}>
+        <Suspense fallback={<SkeletonOnboardingPage />}>
           <ErrorBoundary fallbackLabel="Avatar generator failed">
             <AvatarGenerator
               playerId={player.userId ?? ''}
@@ -729,7 +732,7 @@ const App: React.FC = () => {
   // ── Welcome Intro (for users who logged in via old flow) ──
   if (showWelcome) {
     return (
-      <Suspense fallback={<TabLoader />}>
+      <Suspense fallback={<SkeletonOnboardingPage />}>
         <WelcomeIntro onComplete={() => setShowWelcome(false)} />
       </Suspense>
     );
@@ -738,7 +741,7 @@ const App: React.FC = () => {
   // ── Penalty Zone ──
   if (isPenalty) {
     return (
-      <Suspense fallback={<TabLoader />}>
+      <Suspense fallback={<SkeletonGenericPage />}>
         <ErrorBoundary fallbackLabel="Penalty zone failed to load">
           <PenaltyZone
             endTime={player.penaltyEndTime}
@@ -936,7 +939,7 @@ const App: React.FC = () => {
               className="space-y-6"
             >
               {/* Stats Line Chart — hero element */}
-              <Suspense fallback={<TabLoader />}>
+              <Suspense fallback={<SkeletonStatsChart />}>
                 <ErrorBoundary fallbackLabel="Stats chart failed">
                   <StatsLineChart
                     dailyXp={player.dailyXp}
@@ -952,7 +955,7 @@ const App: React.FC = () => {
 
               {/* Stat Pillars */}
               <div id="tut-stats">
-                <Suspense fallback={<TabLoader />}>
+                <Suspense fallback={<SkeletonStatBoxes />}>
                   <ErrorBoundary fallbackLabel="Stat boxes failed">
                     <StatBoxes
                       stats={player.stats}
@@ -964,7 +967,7 @@ const App: React.FC = () => {
               </div>
 
               {/* XP Level Progress */}
-              <Suspense fallback={<TabLoader />}>
+              <Suspense fallback={<SkeletonLevelProgress />}>
                 <ErrorBoundary fallbackLabel="Level progress failed">
                   <LevelProgressCard
                     level={player.level}
@@ -975,7 +978,7 @@ const App: React.FC = () => {
               </Suspense>
 
               {/* ForgeGuard Integrity — Strike Counter */}
-              <Suspense fallback={null}>
+              <Suspense fallback={<SkeletonForgeGuard />}>
                 <ForgeGuardWidget
                   cheatStrikes={player.cheatStrikes}
                   totalStrikesEver={player.totalStrikesEver}
@@ -983,7 +986,7 @@ const App: React.FC = () => {
               </Suspense>
 
               {/* Monarch's Wardrobe Preview */}
-              <Suspense fallback={<TabLoader />}>
+              <Suspense fallback={<SkeletonWardrobePreview />}>
                 <ErrorBoundary fallbackLabel="Wardrobe preview failed">
                   <WardrobePreviewCard
                     gold={player.gold}
@@ -998,14 +1001,14 @@ const App: React.FC = () => {
               </Suspense>
 
               {/* Rank Progression */}
-              <Suspense fallback={<TabLoader />}>
+              <Suspense fallback={<SkeletonRankProgression />}>
                 <ErrorBoundary fallbackLabel="Rank progression failed">
                   <RankProgressionCard level={player.level} rank={player.rank} />
                 </ErrorBoundary>
               </Suspense>
 
               {/* Upcoming Active Quests */}
-              <Suspense fallback={<TabLoader />}>
+              <Suspense fallback={<SkeletonUpcomingQuests />}>
                 <ErrorBoundary fallbackLabel="Upcoming quests failed">
                   <UpcomingQuests
                     quests={player.quests}
@@ -1015,7 +1018,7 @@ const App: React.FC = () => {
               </Suspense>
 
               {/* Dashboard Widgets (clan chests + Dusk) */}
-              <Suspense fallback={<TabLoader />}>
+              <Suspense fallback={<SkeletonDashboardWidgets />}>
                 <ErrorBoundary fallbackLabel="Dashboard widgets failed">
                   <DashboardWidgets
                     player={player}
@@ -1032,7 +1035,7 @@ const App: React.FC = () => {
           {/* ── CASTLE ── */}
           {activeTab === 'CASTLE' && (
             <motion.div key="castle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <Suspense fallback={<TabLoader />}>
+              <Suspense fallback={<SkeletonCastlePage />}>
                 <ErrorBoundary fallbackLabel="Demon Castle failed to load">
                   <DemonCastle
                     gold={player.gold}
@@ -1057,7 +1060,7 @@ const App: React.FC = () => {
           {/* ── QUESTS ── */}
           {activeTab === 'QUESTS' && (
             <motion.div key="quests" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <Suspense fallback={<TabLoader />}>
+              <Suspense fallback={<SkeletonQuestsPage />}>
                 <ErrorBoundary fallbackLabel="Quests failed to load">
                   <QuestsView
                     quests={player.quests}
@@ -1082,7 +1085,7 @@ const App: React.FC = () => {
           {/* ── STORE ── */}
           {(activeTab === 'STORE' || activeTab === 'ARMORY') && (
             <motion.div key="store" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <Suspense fallback={<TabLoader />}>
+              <Suspense fallback={<SkeletonShopPage />}>
                 <ErrorBoundary fallbackLabel="Store failed to load">
                   <ShopView
                     gold={player.gold}
@@ -1106,7 +1109,7 @@ const App: React.FC = () => {
           {/* ── ALLIANCE ── */}
           {activeTab === 'ALLIANCE' && (
             <motion.div key="alliance" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <Suspense fallback={<TabLoader />}>
+              <Suspense fallback={<SkeletonAlliancePage />}>
                 <ErrorBoundary fallbackLabel="Alliance failed to load">
                   <GuildsView
                     player={player}
@@ -1121,7 +1124,7 @@ const App: React.FC = () => {
           {/* ── REWARDS ── */}
           {activeTab === 'REWARDS' && (
             <motion.div key="rewards" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <Suspense fallback={<TabLoader />}>
+              <Suspense fallback={<SkeletonShopPage />}>
                 <ErrorBoundary fallbackLabel="Shop failed to load">
                   <ShopView
                     gold={player.gold}
@@ -1143,7 +1146,7 @@ const App: React.FC = () => {
           {/* ── GROWTH ── */}
           {activeTab === 'GROWTH' && (
             <motion.div key="growth" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <Suspense fallback={<TabLoader />}>
+              <Suspense fallback={<SkeletonGrowthPage />}>
                 <ErrorBoundary fallbackLabel="Growth view failed to load">
                   <GrowthView
                     player={player}
@@ -1157,7 +1160,7 @@ const App: React.FC = () => {
           {/* ── HEALTH ── */}
           {activeTab === 'HEALTH' && (
             <motion.div key="health" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <Suspense fallback={<TabLoader />}>
+              <Suspense fallback={<SkeletonHealthPage />}>
                 <ErrorBoundary fallbackLabel="Health view failed to load">
                   <HealthView
                     healthProfile={player.healthProfile}
@@ -1180,7 +1183,7 @@ const App: React.FC = () => {
           {/* ── RANKING ── */}
           {activeTab === 'RANKING' && (
             <motion.div key="ranking" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <Suspense fallback={<TabLoader />}>
+              <Suspense fallback={<SkeletonRankingPage />}>
                 <ErrorBoundary fallbackLabel="Ranking failed to load">
                   <RankingView currentPlayer={player} />
                 </ErrorBoundary>
@@ -1191,7 +1194,7 @@ const App: React.FC = () => {
           {/* ── PROFILE ── */}
           {activeTab === 'PROFILE' && (
             <motion.div key="profile" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <Suspense fallback={<TabLoader />}>
+              <Suspense fallback={<SkeletonProfilePage />}>
                 <ErrorBoundary fallbackLabel="Profile failed to load">
                   <ProfileView
                     player={player}
