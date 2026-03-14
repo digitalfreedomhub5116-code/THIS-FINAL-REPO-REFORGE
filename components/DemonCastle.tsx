@@ -433,6 +433,298 @@ const FlyingLoot: React.FC<{ lootType: 'GOLD' | 'KEY'; startRect: DOMRect | null
     );
 };
 
+// --- SUB-COMPONENT: IMPACT CONFETTI ---
+const ImpactConfetti: React.FC<{ active: boolean }> = ({ active }) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    if (!active) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const particles: any[] = [];
+    const colors = ['#60a5fa', '#a855f7', '#fbbf24', '#34d399', '#f472b6'];
+
+    // Create particles from left and right
+    for (let i = 0; i < 150; i++) {
+      const isLeft = i % 2 === 0;
+      particles.push({
+        x: isLeft ? 0 : canvas.width,
+        y: canvas.height * 0.5,
+        vx: (isLeft ? 1 : -1) * (Math.random() * 15 + 10),
+        vy: (Math.random() - 0.5) * 20,
+        gravity: 0.5,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        size: Math.random() * 8 + 4,
+        rotation: Math.random() * Math.PI * 2,
+        rotationSpeed: (Math.random() - 0.5) * 0.2,
+        opacity: 1,
+        decay: Math.random() * 0.02 + 0.01
+      });
+    }
+
+    let animationFrame: number;
+    const animate = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      let alive = false;
+      particles.forEach(p => {
+        if (p.opacity <= 0) return;
+        alive = true;
+        
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += p.gravity;
+        p.vx *= 0.95; // Drag
+        p.rotation += p.rotationSpeed;
+        p.opacity -= p.decay;
+
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rotation);
+        ctx.globalAlpha = p.opacity;
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+        ctx.restore();
+      });
+
+      if (alive) {
+        animationFrame = requestAnimationFrame(animate);
+      }
+    };
+
+    animate();
+
+    return () => cancelAnimationFrame(animationFrame);
+  }, [active]);
+
+  return <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none z-[300]" />;
+};
+
+// --- SUB-COMPONENT: SEQUENTIAL REWARD ---
+const SequentialReward: React.FC<{ 
+  value: number; 
+  label: string; 
+  icon: React.ReactNode; 
+  delay: number; 
+  color: string;
+  onComplete?: () => void;
+  start: boolean;
+}> = ({ value, label, icon, delay, color, onComplete, start }) => {
+  const [displayValue, setDisplayValue] = useState(0);
+  const hasRun = useRef(false);
+
+  useEffect(() => {
+    if (!start || hasRun.current) return;
+    
+    // Zero handling: if 0, just show it dimmed immediately (or after delay)
+    if (value <= 0) {
+       const t = setTimeout(() => {
+         setDisplayValue(0);
+         hasRun.current = true;
+         onComplete?.();
+       }, delay * 1000);
+       return () => clearTimeout(t);
+    }
+
+    const t = setTimeout(() => {
+      let startTime: number;
+      const duration = 1500; // 1.5s spin up
+      let lastSoundTime = 0;
+      
+      const animate = (timestamp: number) => {
+        if (!startTime) startTime = timestamp;
+        const progress = Math.min((timestamp - startTime) / duration, 1);
+        const ease = 1 - Math.pow(1 - progress, 3); // EaseOutCubic
+        
+        const current = Math.floor(ease * value);
+        setDisplayValue(current);
+
+        // Sound clicks (throttled)
+        if (progress < 1 && timestamp - lastSoundTime > 100) {
+           if (Math.random() > 0.5) playSystemSoundEffect('CLICK');
+           lastSoundTime = timestamp;
+        }
+
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          setDisplayValue(value);
+          hasRun.current = true;
+          playSystemSoundEffect('COIN');
+          onComplete?.();
+        }
+      };
+      
+      requestAnimationFrame(animate);
+    }, delay * 1000);
+
+    return () => clearTimeout(t);
+  }, [start, value, delay, onComplete]);
+
+  // Determine styles based on color prop
+  const colorStyles = {
+    'yellow-500': { text: 'text-yellow-500', border: 'border-yellow-500/30', bg: 'bg-yellow-500/5' },
+    'blue-500': { text: 'text-blue-500', border: 'border-blue-500/30', bg: 'bg-blue-500/5' },
+    'purple-500': { text: 'text-purple-500', border: 'border-purple-500/30', bg: 'bg-purple-500/5' },
+  }[color] || { text: 'text-gray-500', border: 'border-gray-500', bg: 'bg-gray-500/5' };
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: start ? (value > 0 ? 1 : 0.5) : 0, y: start ? 0 : 20 }}
+      className={`flex flex-col items-center p-4 rounded-xl border ${value > 0 ? `${colorStyles.border} ${colorStyles.bg}` : 'border-gray-800 bg-black/40'}`}
+    >
+      <div className={`mb-2 ${value > 0 ? colorStyles.text : 'text-gray-600'}`}>
+        {icon}
+      </div>
+      <div className={`text-2xl font-black font-mono ${value > 0 ? colorStyles.text : 'text-gray-600'}`}>
+        {displayValue}
+      </div>
+      <div className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mt-1">
+        {label}
+      </div>
+    </motion.div>
+  );
+};
+
+// --- SUB-COMPONENT: VICTORY SCREEN (PREMIUM) ---
+const VictoryScreen: React.FC<{ 
+  loot: { gold: number; xp: number; keys: number };
+  onClose: () => void;
+}> = ({ loot, onClose }) => {
+  const [stage, setStage] = useState<'intro' | 'rewards' | 'done'>('intro');
+  const [rewardStage, setRewardStage] = useState(0); // 0: Gold, 1: XP, 2: Keys
+  const [showConfetti, setShowConfetti] = useState(false);
+
+  useEffect(() => {
+    // Start rewards after intro
+    const t = setTimeout(() => setStage('rewards'), 1000);
+    return () => clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
+    if (stage === 'rewards' && rewardStage === 3) {
+      setTimeout(() => {
+        setStage('done');
+        if (loot.gold > 0 || loot.xp > 0 || loot.keys > 0) {
+            setShowConfetti(true);
+            playSystemSoundEffect('LEVEL_UP'); 
+        }
+      }, 500);
+    }
+  }, [rewardStage, stage, loot]);
+
+  // Gold Rays Calculation
+  const goldRays = Array.from({ length: 16 }, (_, i) => i * 22.5);
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/95 backdrop-blur-xl">
+      <ImpactConfetti active={showConfetti} />
+      
+      {/* Background Rays */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
+        {goldRays.map((deg) => (
+        <motion.div
+            key={deg}
+            initial={{ opacity: 0, scaleY: 0 }}
+            animate={{ opacity: [0, 0.15, 0.08, 0.15], scaleY: 1 }}
+            transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut', delay: (deg / 360) * 2 }}
+            className="absolute w-[2px] origin-bottom"
+            style={{
+            height: '60vh',
+            background: deg % 2 === 0 
+                ? 'linear-gradient(to top, rgba(59,130,246,0.3), transparent)'
+                : 'linear-gradient(to top, rgba(147,51,234,0.25), transparent)',
+            transform: `rotate(${deg}deg)`,
+            transformOrigin: 'bottom center',
+            }}
+        />
+        ))}
+      </div>
+
+      <motion.div 
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        className="w-full max-w-md bg-[#0a0a0f] border border-blue-900/50 rounded-3xl p-8 relative overflow-hidden shadow-[0_0_50px_rgba(59,130,246,0.2)]"
+      >
+        {/* Header */}
+        <div className="text-center mb-10 relative z-10">
+          <motion.h1 
+            initial={{ y: -20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="text-4xl font-black italic text-transparent bg-clip-text bg-gradient-to-b from-blue-400 to-blue-600 drop-shadow-[0_0_10px_rgba(59,130,246,0.5)]"
+          >
+            DUNGEON CLEARED
+          </motion.h1>
+          <motion.div 
+            initial={{ width: 0 }}
+            animate={{ width: "100px" }}
+            transition={{ delay: 0.5, duration: 0.8 }}
+            className="h-1 bg-blue-500 mx-auto mt-4 rounded-full shadow-[0_0_10px_rgba(59,130,246,0.8)]" 
+          />
+        </div>
+
+        {/* Rewards Grid */}
+        <div className="grid grid-cols-3 gap-4 mb-10 relative z-10">
+           <SequentialReward 
+             start={stage === 'rewards' || stage === 'done'}
+             value={loot.gold} 
+             label="Gold" 
+             icon={<Coins size={24} />} 
+             delay={0}
+             color="yellow-500"
+             onComplete={() => setRewardStage(prev => Math.max(prev, 1))}
+           />
+           <SequentialReward 
+             start={rewardStage >= 1}
+             value={loot.xp} 
+             label="XP" 
+             icon={<ArrowUpCircle size={24} />} 
+             delay={0.2} 
+             color="blue-500"
+             onComplete={() => setRewardStage(prev => Math.max(prev, 2))}
+           />
+           <SequentialReward 
+             start={rewardStage >= 2}
+             value={loot.keys} 
+             label="Keys" 
+             icon={<Key size={24} />} 
+             delay={0.2} 
+             color="purple-500"
+             onComplete={() => setRewardStage(prev => Math.max(prev, 3))}
+           />
+        </div>
+
+        {/* Footer Button */}
+        <div className="h-14 relative z-10">
+            <AnimatePresence>
+            {stage === 'done' && (
+                <motion.button
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={onClose}
+                className="w-full py-4 bg-blue-900/20 border border-blue-500/50 text-blue-400 font-bold tracking-widest rounded-xl hover:bg-blue-500/20 transition-all shadow-[0_0_20px_rgba(59,130,246,0.15)]"
+                >
+                CONFIRM
+                </motion.button>
+            )}
+            </AnimatePresence>
+        </div>
+
+      </motion.div>
+    </div>
+  );
+};
+
 // --- MAIN COMPONENT ---
 
 const DemonCastle: React.FC<DemonCastleProps> = ({ 
@@ -1116,10 +1408,14 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
   }
 
   // GAMEOVER / VICTORY Screens (Enhanced)
-  if (mode === 'GAMEOVER' || mode === 'VICTORY') {
-      const isVictory = mode === 'VICTORY';
-      const themeColor = isVictory ? 'text-yellow-500' : 'text-red-600';
-      const borderColor = isVictory ? 'border-yellow-500' : 'border-red-600';
+  if (mode === 'VICTORY') {
+      return <VictoryScreen loot={lootBag} onClose={resetToLobby} />;
+  }
+
+  if (mode === 'GAMEOVER') {
+      const isVictory = false;
+      const themeColor = 'text-red-600';
+      const borderColor = 'border-red-600';
 
       /* ── SVG Fractured Diamond (DEFEATED icon) ── */
       const FracturedDiamond = () => (
@@ -1134,270 +1430,17 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
         </svg>
       );
 
-      /* ── SVG Angular Burst (ESCAPED icon) ── */
-      const AngularBurst = () => (
-        <svg viewBox="0 0 64 64" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M32 4 L38 24 L56 16 L44 32 L56 48 L38 40 L32 60 L26 40 L8 48 L20 32 L8 16 L26 24 Z" stroke="currentColor" strokeWidth="2" fill="currentColor" fillOpacity="0.15" />
-          <path d="M32 14 L36 28 L32 22 L28 28 Z" fill="currentColor" opacity="0.6" />
-          <circle cx="32" cy="32" r="6" stroke="currentColor" strokeWidth="1.5" fill="currentColor" fillOpacity="0.3" />
-        </svg>
-      );
-
-      /* ── Confetti Burst Component ── */
-      const ConfettiBurst: React.FC<{ active: boolean }> = ({ active }) => {
-        const canvasRef = useRef<HTMLCanvasElement>(null);
-        const animRef = useRef<number>(0);
-        const particlesRef = useRef<any[]>([]);
-
-        useEffect(() => {
-          if (!active) return;
-          const canvas = canvasRef.current;
-          if (!canvas) return;
-          const ctx = canvas.getContext('2d');
-          if (!ctx) return;
-
-          canvas.width = window.innerWidth;
-          canvas.height = window.innerHeight;
-
-          // Confetti particle shapes
-          const shapes = ['diamond', 'triangle', 'hexagon', 'rect'];
-          const colors = [
-            'rgba(59, 130, 246, 0.9)',   // blue-500
-            'rgba(147, 51, 234, 0.9)',   // purple-600
-            'rgba(99, 102, 241, 0.9)',   // indigo-500
-            'rgba(168, 85, 247, 0.9)',   // purple-500
-            'rgba(37, 99, 235, 0.9)',    // blue-600
-            'rgba(124, 58, 237, 0.9)',   // violet-600
-            'rgba(251, 191, 36, 0.7)',   // gold accent
-          ];
-
-          // Create particles from both sides
-          const particleCount = 100;
-          for (let i = 0; i < particleCount; i++) {
-            const fromLeft = i < particleCount / 2;
-            particlesRef.current.push({
-              x: fromLeft ? -20 : canvas.width + 20,
-              y: Math.random() * canvas.height * 0.6 + canvas.height * 0.2,
-              vx: (fromLeft ? 1 : -1) * (8 + Math.random() * 12),
-              vy: -8 - Math.random() * 8,
-              rotation: Math.random() * Math.PI * 2,
-              rotationSpeed: (Math.random() - 0.5) * 0.3,
-              size: 6 + Math.random() * 10,
-              shape: shapes[Math.floor(Math.random() * shapes.length)],
-              color: colors[Math.floor(Math.random() * colors.length)],
-              gravity: 0.4 + Math.random() * 0.3,
-              opacity: 1,
-            });
-          }
-
-          const drawShape = (p: any) => {
-            ctx.save();
-            ctx.translate(p.x, p.y);
-            ctx.rotate(p.rotation);
-            ctx.globalAlpha = p.opacity;
-            ctx.fillStyle = p.color;
-
-            if (p.shape === 'diamond') {
-              ctx.beginPath();
-              ctx.moveTo(0, -p.size);
-              ctx.lineTo(p.size, 0);
-              ctx.lineTo(0, p.size);
-              ctx.lineTo(-p.size, 0);
-              ctx.closePath();
-              ctx.fill();
-            } else if (p.shape === 'triangle') {
-              ctx.beginPath();
-              ctx.moveTo(0, -p.size);
-              ctx.lineTo(p.size * 0.866, p.size * 0.5);
-              ctx.lineTo(-p.size * 0.866, p.size * 0.5);
-              ctx.closePath();
-              ctx.fill();
-            } else if (p.shape === 'hexagon') {
-              ctx.beginPath();
-              for (let i = 0; i < 6; i++) {
-                const angle = (Math.PI / 3) * i;
-                const x = p.size * Math.cos(angle);
-                const y = p.size * Math.sin(angle);
-                if (i === 0) ctx.moveTo(x, y);
-                else ctx.lineTo(x, y);
-              }
-              ctx.closePath();
-              ctx.fill();
-            } else {
-              ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
-            }
-            ctx.restore();
-          };
-
-          const animateLoop = () => {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            particlesRef.current.forEach((p) => {
-              p.vy += p.gravity;
-              p.x += p.vx;
-              p.y += p.vy;
-              p.rotation += p.rotationSpeed;
-              p.vx *= 0.99;
-
-              if (p.y > canvas.height + 50) {
-                p.opacity -= 0.02;
-              }
-
-              if (p.opacity > 0) {
-                drawShape(p);
-              }
-            });
-
-            particlesRef.current = particlesRef.current.filter(p => p.opacity > 0);
-
-            if (particlesRef.current.length > 0) {
-              animRef.current = requestAnimationFrame(animateLoop);
-            }
-          };
-
-          // Trigger confetti burst sound
-          playSystemSoundEffect('LEVEL_UP');
-
-          animateLoop();
-
-          return () => {
-            cancelAnimationFrame(animRef.current);
-            particlesRef.current = [];
-          };
-        }, [active]);
-
-        return <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none z-50" />;
-      };
-
-      /* ── Enhanced CountUp with sound and sparkles ── */
-      const CountUpValue: React.FC<{ target: number; delay: number; color: string; label?: string }> = ({ target, delay, color }) => {
-        const nodeRef = useRef<HTMLSpanElement>(null);
-        const [showSparkles, setShowSparkles] = useState(false);
-        const hasRunRef = useRef(false);
-        
-        useEffect(() => {
-          if (hasRunRef.current) return;
-          const node = nodeRef.current;
-          if (!node) return;
-          
-          if (target <= 0) {
-            node.textContent = '0';
-            hasRunRef.current = true;
-            return;
-          }
-          
-          let animationFrame: number;
-          let startTime: number;
-          const DURATION = 2000; // 2 seconds
-          let soundMilestone = 0;
-          
-          const timeout = setTimeout(() => {
-            hasRunRef.current = true;
-            
-            const step = (timestamp: number) => {
-              if (!startTime) startTime = timestamp;
-              const progress = Math.min((timestamp - startTime) / DURATION, 1);
-              
-              // Easing function (easeOutExpo)
-              const easeProgress = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
-              const currentValue = Math.floor(easeProgress * target);
-              
-              if (node) {
-                node.textContent = String(currentValue);
-                
-                // Sound logic: 3 ticks total
-                const milestone = Math.floor(easeProgress * 4);
-                if (milestone > soundMilestone && milestone < 4) {
-                  soundMilestone = milestone;
-                  playSystemSoundEffect('CLICK');
-                }
-              }
-              
-              if (progress < 1) {
-                animationFrame = requestAnimationFrame(step);
-              } else {
-                if (node) node.textContent = String(target);
-                setShowSparkles(true);
-                playSystemSoundEffect('COIN');
-                setTimeout(() => setShowSparkles(false), 800);
-              }
-            };
-            
-            animationFrame = requestAnimationFrame(step);
-          }, delay * 1000);
-          
-          return () => {
-            clearTimeout(timeout);
-            if (animationFrame) cancelAnimationFrame(animationFrame);
-          };
-        }, [target, delay]);
-
-        return (
-          <div className="relative">
-            <span ref={nodeRef} className={`text-2xl font-black font-mono ${color} drop-shadow-[0_0_8px_currentColor]`}>0</span>
-            {showSparkles && (
-              <>
-                {[...Array(6)].map((_, i) => (
-                  <motion.div
-                    key={i}
-                    className="absolute top-1/2 left-1/2 w-1 h-1 rounded-full bg-yellow-400"
-                    initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
-                    animate={{
-                      x: Math.cos((i / 6) * Math.PI * 2) * 30,
-                      y: Math.sin((i / 6) * Math.PI * 2) * 30,
-                      opacity: 0,
-                      scale: 0,
-                    }}
-                    transition={{ duration: 0.6, ease: 'easeOut' }}
-                  />
-                ))}
-              </>
-            )}
-          </div>
-        );
-      };
-
-      /* ── Gold light rays for victory ── */
-      const goldRays = isVictory ? Array.from({ length: 16 }, (_, i) => i * 22.5) : [];
-      
       return (
           <motion.div 
             className="fixed inset-0 z-[200] flex flex-col items-center justify-center p-6 text-center bg-black/95 backdrop-blur-xl overflow-hidden"
             animate={screenShake ? { x: [0, -4, 4, -4, 4, 0], y: [0, -2, 2, -2, 2, 0] } : {}}
             transition={{ duration: 0.5 }}
           >
-              {/* Confetti Burst */}
-              {isVictory && <ConfettiBurst active={confettiActive} />}
-              
-              {/* Enhanced Background Overlay for Victory */}
-              <div className={`absolute inset-0 opacity-25 pointer-events-none ${isVictory ? 'bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.3)_0%,rgba(147,51,234,0.2)_40%,transparent_70%)]' : 'bg-[radial-gradient(circle_at_center,rgba(220,38,38,0.2),transparent_70%)]'}`} />
-
-              {/* VICTORY: Enhanced light rays with blue/purple tint */}
-              {isVictory && (
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  {goldRays.map((deg) => (
-                    <motion.div
-                      key={deg}
-                      initial={{ opacity: 0, scaleY: 0 }}
-                      animate={{ opacity: [0, 0.15, 0.08, 0.15], scaleY: 1 }}
-                      transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut', delay: (deg / 360) * 2 }}
-                      className="absolute w-[2px] origin-bottom"
-                      style={{
-                        height: '50vh',
-                        background: deg % 2 === 0 
-                          ? 'linear-gradient(to top, rgba(99,102,241,0.3), transparent)'
-                          : 'linear-gradient(to top, rgba(147,51,234,0.25), transparent)',
-                        transform: `rotate(${deg}deg)`,
-                        transformOrigin: 'bottom center',
-                      }}
-                    />
-                  ))}
-                </div>
-              )}
+              {/* Enhanced Background Overlay for GameOver */}
+              <div className="absolute inset-0 opacity-25 pointer-events-none bg-[radial-gradient(circle_at_center,rgba(220,38,38,0.2),transparent_70%)]" />
 
               {/* DEFEATED: Red scan line animation — horizontal lines drifting downward */}
-              {!isVictory && (
-                <>
+              <>
                   <div
                     className="absolute inset-0 pointer-events-none opacity-[0.04]"
                     style={{
@@ -1413,21 +1456,20 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
                       height: '200%',
                     }}
                   />
-                </>
-              )}
+              </>
               
               <motion.div 
                   initial={{ scale: 0.8, opacity: 0, y: 20 }}
                   animate={{ scale: 1, opacity: 1, y: 0 }}
                   transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                  className={`w-full max-w-sm relative bg-[#0a0a0a] border-2 rounded-3xl p-8 overflow-hidden shadow-2xl ${borderColor} ${isVictory ? 'shadow-[0_0_80px_rgba(99,102,241,0.3)]' : 'shadow-[0_0_50px_rgba(220,38,38,0.3)]'}`}
+                  className={`w-full max-w-sm relative bg-[#0a0a0a] border-2 rounded-3xl p-8 overflow-hidden shadow-2xl ${borderColor} shadow-[0_0_50px_rgba(220,38,38,0.3)]`}
               >
                   {/* Top Scanline */}
                   <motion.div 
                     initial={{ width: 0 }}
                     animate={{ width: "100%" }}
                     transition={{ duration: 1, delay: 0.5 }}
-                    className={`absolute top-0 left-0 h-1 ${isVictory ? 'bg-yellow-500' : 'bg-red-600'} shadow-[0_0_15px_currentColor]`}
+                    className="absolute top-0 left-0 h-1 bg-red-600 shadow-[0_0_15px_currentColor]"
                   />
 
                   {/* Icon Area */}
@@ -1438,53 +1480,35 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
                           transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
                           className={`w-24 h-24 mx-auto rounded-full border-4 flex items-center justify-center bg-black/50 backdrop-blur-sm relative z-10 ${borderColor}`}
                       >
-                          {isVictory ? (
-                              <motion.div
-                                animate={{ scale: [1, 1.08, 1] }}
-                                transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-                                className="text-yellow-500"
-                                style={{ filter: 'drop-shadow(0 0 18px rgba(234,179,8,0.7))' }}
-                              >
-                                <AngularBurst />
-                              </motion.div>
-                          ) : (
-                              <div className="text-red-600" style={{ filter: 'drop-shadow(0 0 15px rgba(220,38,38,0.8))' }}>
-                                <FracturedDiamond />
-                              </div>
-                          )}
+                          <div className="text-red-600" style={{ filter: 'drop-shadow(0 0 15px rgba(220,38,38,0.8))' }}>
+                            <FracturedDiamond />
+                          </div>
                       </motion.div>
                       {/* Icon Pulse Ring */}
                       <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 rounded-full border opacity-50 animate-ping ${borderColor}`} />
                   </div>
                   
-                  {/* Text Content with Celebratory Animations */}
+                  {/* Text Content */}
                   <div className="space-y-2 mb-8">
                       <motion.h1 
                           initial={{ opacity: 0, y: 10 }}
-                          animate={isVictory ? { 
-                            opacity: 1, 
-                            y: 0,
-                            textShadow: ['0 0 0px rgba(234,179,8,0)', '0 0 20px rgba(234,179,8,0.8)', '0 0 10px rgba(234,179,8,0.5)']
-                          } : { opacity: 1, y: 0 }}
-                          transition={isVictory ? { delay: 0.4, textShadow: { duration: 2, repeat: Infinity, ease: 'easeInOut' } } : { delay: 0.4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.4 }}
                           className={`text-4xl font-black font-serif uppercase tracking-tighter ${themeColor} drop-shadow-md`}
                       >
-                          {isVictory ? 'ESCAPED' : 'DEFEATED'}
+                          DEFEATED
                       </motion.h1>
                       <motion.p 
                           initial={{ opacity: 0 }}
-                          animate={isVictory ? {
-                            opacity: [1, 0.7, 1],
-                            scale: [1, 1.02, 1]
-                          } : { opacity: 1 }}
-                          transition={isVictory ? { delay: 0.5, duration: 2, repeat: Infinity, ease: 'easeInOut' } : { delay: 0.5 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ delay: 0.5 }}
                           className="text-[10px] text-gray-500 font-mono tracking-[0.3em] uppercase"
                       >
-                          {isVictory ? 'DUNGEON CLEARED' : 'SYSTEM CRITICAL FAILURE'}
+                          SYSTEM CRITICAL FAILURE
                       </motion.p>
                   </div>
                   
-                  {/* Rewards Grid */}
+                  {/* Rewards Grid (Zeroed out) */}
                   <div className="bg-black/40 border border-gray-800 rounded-xl p-4 grid grid-cols-3 gap-2 mb-8 relative">
                       {/* Corner Brackets */}
                       <div className={`absolute top-0 left-0 w-2 h-2 border-t border-l ${borderColor}`} />
@@ -1492,49 +1516,25 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
                       <div className={`absolute bottom-0 left-0 w-2 h-2 border-b border-l ${borderColor}`} />
                       <div className={`absolute bottom-0 right-0 w-2 h-2 border-b border-r ${borderColor}`} />
 
-                      {isVictory ? (
-                        <>
-                          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8, duration: 0.4 }} className="flex flex-col items-center">
-                              <CountUpValue target={lootBag.gold} delay={0.8} color="text-yellow-500" label="GOLD" />
-                              <span className="text-[8px] text-gray-600 font-bold uppercase tracking-wider mt-1">GOLD</span>
-                          </motion.div>
-                          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.0, duration: 0.4 }} className="flex flex-col items-center border-x border-gray-800 px-2">
-                              <CountUpValue target={lootBag.xp} delay={1.0} color="text-blue-400" label="XP" />
-                              <span className="text-[8px] text-gray-600 font-bold uppercase tracking-wider mt-1">XP</span>
-                          </motion.div>
-                          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.2, duration: 0.4 }} className="flex flex-col items-center">
-                              <CountUpValue target={lootBag.keys} delay={1.2} color="text-purple-500" label="KEYS" />
-                              <span className="text-[8px] text-gray-600 font-bold uppercase tracking-wider mt-1">KEYS</span>
-                          </motion.div>
-                        </>
-                      ) : (
-                        <>
-                          <div className="flex flex-col items-center">
-                              <span className="text-lg font-bold font-mono text-gray-700 line-through opacity-50">0</span>
-                              <span className="text-[8px] font-bold uppercase tracking-wider mt-1 text-gray-700/50">GOLD</span>
-                          </div>
-                          <div className="flex flex-col items-center border-x border-gray-800 px-2">
-                              <span className="text-lg font-bold font-mono text-gray-700 line-through opacity-50">0</span>
-                              <span className="text-[8px] font-bold uppercase tracking-wider mt-1 text-gray-700/50">XP</span>
-                          </div>
-                          <div className="flex flex-col items-center">
-                              <span className="text-lg font-bold font-mono text-gray-700 line-through opacity-50">0</span>
-                              <span className="text-[8px] font-bold uppercase tracking-wider mt-1 text-gray-700/50">KEYS</span>
-                          </div>
-                        </>
-                      )}
+                      <div className="flex flex-col items-center">
+                          <span className="text-lg font-bold font-mono text-gray-700 line-through opacity-50">0</span>
+                          <span className="text-[8px] font-bold uppercase tracking-wider mt-1 text-gray-700/50">GOLD</span>
+                      </div>
+                      <div className="flex flex-col items-center border-x border-gray-800 px-2">
+                          <span className="text-lg font-bold font-mono text-gray-700 line-through opacity-50">0</span>
+                          <span className="text-[8px] font-bold uppercase tracking-wider mt-1 text-gray-700/50">XP</span>
+                      </div>
+                      <div className="flex flex-col items-center">
+                          <span className="text-lg font-bold font-mono text-gray-700 line-through opacity-50">0</span>
+                          <span className="text-[8px] font-bold uppercase tracking-wider mt-1 text-gray-700/50">KEYS</span>
+                      </div>
                   </div>
                   
                   <motion.button 
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={resetToLobby} 
-                      className={`w-full py-4 font-black font-mono rounded-xl uppercase tracking-widest text-xs flex items-center justify-center gap-2 shadow-lg transition-all
-                          ${isVictory 
-                              ? 'bg-[#0d0a00] text-yellow-400 border border-yellow-600/50 hover:bg-yellow-950/40 shadow-[0_0_20px_rgba(234,179,8,0.15)]' 
-                              : 'bg-[#1a0505] text-red-400 border border-red-900/70 hover:bg-red-950/60 shadow-[0_0_15px_rgba(220,38,38,0.15)]'
-                          }
-                      `}
+                      className="w-full py-4 font-black font-mono rounded-xl uppercase tracking-widest text-xs flex items-center justify-center gap-2 shadow-lg transition-all bg-[#1a0505] text-red-400 border border-red-900/70 hover:bg-red-950/60 shadow-[0_0_15px_rgba(220,38,38,0.15)]"
                   >
                       RETURN TO LOBBY
                   </motion.button>
