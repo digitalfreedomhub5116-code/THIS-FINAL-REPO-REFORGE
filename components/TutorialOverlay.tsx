@@ -146,8 +146,7 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({ currentStep, onNext, 
           buttonText: "Complete to Continue",
           targetId: 'quest-list-container',
           waitForAction: true,
-          allowInteraction: true,
-          forcePosition: 'bottom'
+          allowInteraction: true
       },
       14: {
           title: "Welcome Quest 2 of 3 — Discipline",
@@ -155,8 +154,7 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({ currentStep, onNext, 
           buttonText: "Complete to Continue",
           targetId: 'quest-list-container',
           waitForAction: true,
-          allowInteraction: true,
-          forcePosition: 'bottom'
+          allowInteraction: true
       },
       15: {
           title: "Welcome Quest 3 of 3 — Social",
@@ -164,8 +162,7 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({ currentStep, onNext, 
           buttonText: "Complete to Continue",
           targetId: 'quest-list-container',
           waitForAction: true,
-          allowInteraction: true,
-          forcePosition: 'bottom'
+          allowInteraction: true
       },
       16: {
           title: "The System Pact",
@@ -204,6 +201,9 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({ currentStep, onNext, 
     if (currentStep === 12 && dynamicTargetId) {
       data.targetId = dynamicTargetId;
       data.body = "Your quest is now live. Do NOT tap Complete unless you have actually done the task — the System will penalize you.";
+    }
+    if (currentStep >= 13 && currentStep <= 15 && dynamicTargetId) {
+      data.targetId = dynamicTargetId;
     }
     if (analysisFailed && currentStep === 8) {
       data.targetId = 'tut-quest-title';

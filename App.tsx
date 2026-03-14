@@ -404,6 +404,15 @@ const App: React.FC = () => {
     if (!player.tutorialComplete) {
       if (player.tutorialStep === 12 && player.quests.length > 0) {
         setTutorialTarget(`quest-card-${player.quests[0].id}`);
+      } else if (player.tutorialStep === 13) {
+        const q = player.quests.find(q => q.id.includes('init_q1'));
+        if (q) setTutorialTarget(`quest-card-${q.id}`);
+      } else if (player.tutorialStep === 14) {
+        const q = player.quests.find(q => q.id.includes('init_q2'));
+        if (q) setTutorialTarget(`quest-card-${q.id}`);
+      } else if (player.tutorialStep === 15) {
+        const q = player.quests.find(q => q.id.includes('init_q3'));
+        if (q) setTutorialTarget(`quest-card-${q.id}`);
       } else {
         setTutorialTarget(null);
       }
