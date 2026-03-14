@@ -809,7 +809,7 @@ const GameOverScreen: React.FC<{
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.3 }}
-                    className="text-5xl font-black font-serif uppercase tracking-tighter text-red-600 drop-shadow-[0_0_10px_rgba(220,38,38,0.6)] w-full text-center"
+                    className="text-4xl font-black font-serif uppercase tracking-tighter text-red-600 drop-shadow-[0_0_10px_rgba(220,38,38,0.6)] w-full text-center"
                 >
                     DEFEATED
                 </motion.h1>
