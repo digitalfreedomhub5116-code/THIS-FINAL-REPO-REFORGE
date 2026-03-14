@@ -117,6 +117,7 @@ const App: React.FC = () => {
 
   const [dbOutfits, setDbOutfits] = useState<Outfit[]>([]);
   const [dailyReward, setDailyReward] = useState<DailyReward | null>(null);
+  const [showDailyLogin, setShowDailyLogin] = useState(false);
 
   // Persist onboarding phase so auth pages survive page reload
   const savedPhase = sessionStorage.getItem('reforge_onboarding_phase') as OnboardingPhase | null;
@@ -355,6 +356,7 @@ const App: React.FC = () => {
     const reward = checkDailyLogin();
     if (reward) {
       setDailyReward(reward);
+      setShowDailyLogin(true);
     }
   }, [player.isConfigured, checkDailyLogin]);
 
@@ -781,9 +783,15 @@ const App: React.FC = () => {
       {/* ── Overlays ── */}
       <Suspense fallback={null}>
         <AnimatePresence>
-          {dailyReward && (
+          {showDailyLogin && (
             <ErrorBoundary>
-              <DailyLoginModal reward={dailyReward} onClose={() => setDailyReward(null)} />
+              <DailyLoginModal 
+                reward={dailyReward} 
+                onClose={() => {
+                  setShowDailyLogin(false);
+                  setDailyReward(null);
+                }} 
+              />
             </ErrorBoundary>
           )}
           {showLevelUp && (
@@ -1041,6 +1049,7 @@ const App: React.FC = () => {
                     onOpenDuskChat={() => setShowDuskChat(true)}
                     unreadCount={player.duskUnreadCount}
                     onAddRewards={addRewards}
+                    onOpenDailyCalendar={() => setShowDailyLogin(true)}
                   />
                 </ErrorBoundary>
               </Suspense>
@@ -1231,11 +1240,14 @@ const App: React.FC = () => {
             gold={player.gold}
             keys={player.keys}
             lastDungeonEntry={player.lastDungeonEntry ?? 0}
-            onEnterDungeon={enterDungeon}
-            onNavigateToDungeon={() => { setActiveTab('STORE'); setHighlightDungeon(true); }}
             onConsumeKey={consumeKey}
+            onEnterDungeon={handleStartDungeon}
+            onNavigateToDungeon={() => setActiveTab('CASTLE')}
             onAddRewards={addRewards}
-            onAddNotification={addNotification}
+            onAddNotification={(msg, type) => addNotification(msg, type)}
+            streak={player.streak}
+            hasClaimedDaily={player.lastLoginDate === new Date().toISOString().split('T')[0]}
+            onOpenDailyCalendar={() => setShowDailyLogin(true)}
           />
         )}
 

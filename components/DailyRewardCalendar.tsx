@@ -7,7 +7,7 @@ import { Coins, Zap, Key, Ghost, Heart, Scroll, Star, X, Check } from 'lucide-re
 interface DailyRewardCalendarProps {
   streak: number; 
   hasClaimedToday: boolean;
-  onClaim: () => void;
+  onClaim: (rect: DOMRect | null) => void;
   onClose: () => void;
 }
 
@@ -33,12 +33,14 @@ const DailyRewardCalendar: React.FC<DailyRewardCalendarProps> = ({
 }) => {
   const [isClaiming, setIsClaiming] = useState(false);
   
-  const handleClaim = () => {
+  const handleClaim = (e: React.MouseEvent) => {
     setIsClaiming(true);
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    
     // Play sound?
     // Dispatch animation event?
     setTimeout(() => {
-        onClaim();
+        onClaim(rect);
         // Close after a delay or let parent handle?
         // Let's wait for animation then close.
         setTimeout(onClose, 1500); 

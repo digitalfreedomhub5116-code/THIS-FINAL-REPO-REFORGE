@@ -17,6 +17,9 @@ interface MobileFloatingMenuProps {
   onConsumeKey: (amount: number) => Promise<boolean>;
   onAddRewards: (gold: number, xp: number, keys: number) => void;
   onAddNotification: (msg: string, type: any) => void;
+  streak?: number;
+  hasClaimedDaily?: boolean;
+  onOpenDailyCalendar?: () => void;
 }
 
 type ChestType = 'DAILY' | 'LEGENDARY' | 'ALLIANCE';
@@ -29,28 +32,22 @@ interface RewardCard {
   color: string;
 }
 
-const DAILY_KEY  = 'daily_chest_next_claim';
-const DAILY_CD_MS = 30 * 60 * 1000;
+// Removed old DAILY_KEY and DAILY_CD_MS as we use the new system now
 
 const CHEST_CFG = {
   DAILY: {
-    label: 'Daily Chest',
-    subtitle: 'Resets every 30 minutes',
+    label: 'Daily Reward',
+    subtitle: 'Log in daily to build your streak',
     color: '#00d4ff',
     borderColor: 'rgba(0,212,255,0.6)',
     glowColor: 'rgba(0,212,255,0.25)',
     bg: 'linear-gradient(135deg, #001a22 0%, #002233 100%)',
-    rewards: [
-      { type: 'GOLD' as const, amount: 200,  label: 'GOLD',   color: '#eab308' },
-      { type: 'XP'   as const, amount: 100,  label: 'EXP',    color: '#3b82f6' },
-      { type: 'KEYS' as const, amount: 1,    label: 'KEY',    color: '#a855f7' },
-      { type: 'ITEM' as const, amount: 1,    label: 'POTION', color: '#ef4444' },
-    ],
+    rewards: [], // Handled by Calendar now
     contents: [
-      { icon: '🪙', text: '200 Gold' },
-      { icon: '⚡', text: '100 EXP' },
-      { icon: '🗝️', text: '1 Key' },
-      { icon: '🧪', text: '1 Potion' },
+      { icon: '📅', text: '30-Day Cycle' },
+      { icon: '🔥', text: 'Streak Bonus' },
+      { icon: '🗝️', text: 'Milestones' },
+      { icon: '👑', text: 'Legendary' },
     ],
     cost: 'FREE',
     costType: 'timer' as const,
@@ -189,13 +186,22 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
   const isDungeonReady = now >= (lastDungeonEntry + DUNGEON_CD);
 
   const isLocked = (t: ChestType) => {
-    if (t === 'DAILY')     return !isDailyReady;
+    if (t === 'DAILY')     return false; // Always allow opening calendar
     if (t === 'LEGENDARY') return keys < 7;
     return keys < 36;
   };
 
   const handleClaim = async (type: ChestType) => {
     if (isLocked(type)) return;
+    
+    if (type === 'DAILY') {
+      if (onOpenDailyCalendar) {
+        setActiveModal('NONE');
+        onOpenDailyCalendar();
+      }
+      return;
+    }
+
     if (type === 'LEGENDARY') {
       const ok = await onConsumeKey(7);
       if (!ok) { onAddNotification('Need 7 Keys', 'WARNING'); return; }

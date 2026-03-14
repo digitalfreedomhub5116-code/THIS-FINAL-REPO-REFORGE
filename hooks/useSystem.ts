@@ -461,8 +461,8 @@ export const useSystem = () => {
         nextStreak = (player.streak || 0) + 1;
       }
     } else {
-        // First time login ever
-        return { type: 'WELCOME_KEYS', amount: 3, message: 'Welcome Bonus: 3 Keys Acquired' };
+        // First time login ever starts at Day 1
+        nextStreak = 1;
     }
 
     const rewardIndex = (nextStreak - 1) % 30;

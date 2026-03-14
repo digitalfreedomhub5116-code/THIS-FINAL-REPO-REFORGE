@@ -4,29 +4,31 @@ import { useSystem } from '../hooks/useSystem';
 import { DailyReward } from '../types';
 
 interface DailyLoginModalProps {
-  reward: DailyReward;
+  reward?: DailyReward | null;
   onClose: () => void;
 }
 
 const DailyLoginModal: React.FC<DailyLoginModalProps> = ({ reward, onClose }) => {
   const { player, claimDailyReward } = useSystem();
 
-  const handleClaim = () => {
+  const handleClaim = (rect: DOMRect | null) => {
+    if (!reward) return;
     claimDailyReward(reward);
     
     // Dispatch HUD animation events based on reward type
     if (reward.type === 'GOLD') {
-      window.dispatchEvent(new CustomEvent('reforge:coin-earned', { detail: { goldGained: reward.amount, startRect: null } }));
+      window.dispatchEvent(new CustomEvent('reforge:coin-earned', { detail: { goldGained: reward.amount, startRect: rect } }));
+    } else if (reward.type === 'KEYS' || reward.type === 'WELCOME_KEYS') {
+      window.dispatchEvent(new CustomEvent('reforge:key-earned', { detail: { amount: reward.amount, startRect: rect } }));
+    } else if (reward.type === 'HEALTH_POTION') {
+      window.dispatchEvent(new CustomEvent('reforge:consumable-earned', { detail: { type: 'POTION', amount: reward.amount, startRect: rect } }));
+    } else if (reward.type === 'SHADOW_SCROLL') {
+      window.dispatchEvent(new CustomEvent('reforge:consumable-earned', { detail: { type: 'SCROLL', amount: reward.amount, startRect: rect } }));
+    } else if (reward.type === 'ULT_ORB') {
+      window.dispatchEvent(new CustomEvent('reforge:consumable-earned', { detail: { type: 'ORB', amount: reward.amount, startRect: rect } }));
     }
-    // Note: We can add other events for keys/xp if the HUD supports them, or just rely on the logs/toasts from useSystem.
     
-    // Close modal after short delay (Calendar handles the immediate "Claiming..." state)
-    // The Calendar component calls onClaim then waits 1.5s before calling onClose? 
-    // No, Calendar calls onClaim inside its timeout.
-    // Actually Calendar calls onClaim immediately after animation delay?
-    // Let's check Calendar: setTimeout(() => { onClaim(); setTimeout(onClose, 1500); }, 500);
-    // So onClaim runs, then 1.5s later onClose.
-    // This is fine.
+    // Close modal after short delay is handled by Calendar calling onClose
   };
 
   // Calculate display streak

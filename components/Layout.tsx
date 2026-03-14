@@ -191,6 +191,95 @@ const Layout: React.FC<LayoutProps> = ({
     };
     window.addEventListener('reforge:coin-earned', handleCoinEarned);
 
+    const KEY_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 14 14"><circle cx="5" cy="5.5" r="3" fill="none" stroke="#a78bfa" stroke-width="1.4"/><line x1="7.5" y1="7" x2="12" y2="11.5" stroke="#a78bfa" stroke-width="1.4" stroke-linecap="round"/><line x1="9.5" y1="9" x2="9.5" y2="11" stroke="#a78bfa" stroke-width="1.4" stroke-linecap="round"/></svg>`;
+    const handleKeyEarned = (e: Event) => {
+      const { startRect } = (e as CustomEvent).detail as { amount: number; startRect: DOMRect | null };
+      setHeaderVisible(true);
+      if (!startRect) return;
+      const destEl = document.getElementById('user-keys-balance');
+      if (!destEl) return;
+      const destRect = destEl.getBoundingClientRect();
+      const startX = startRect.left + startRect.width / 2;
+      const startY = startRect.top + startRect.height / 2;
+      const endX = destRect.left + destRect.width / 2;
+      const endY = destRect.top + destRect.height / 2;
+      const ITEM_COUNT = 5;
+      for (let i = 0; i < ITEM_COUNT; i++) {
+        setTimeout(() => {
+          const item = document.createElement('div');
+          item.style.cssText = `position:fixed;width:18px;height:18px;left:${startX - 9}px;top:${startY - 9}px;z-index:9999;pointer-events:none;`;
+          item.innerHTML = KEY_SVG;
+          document.body.appendChild(item);
+          const scatterX = (Math.random() - 0.5) * 60;
+          const scatterY = (Math.random() - 0.5) * 60;
+          const midX = (startX + endX) / 2 - startX + (Math.random() - 0.5) * 60;
+          const midY = Math.min(startY, endY) - 80 - Math.random() * 60 - startY;
+          item.animate([
+            { transform: 'translate(0,0) scale(0.5)', opacity: 0 },
+            { transform: `translate(${scatterX}px,${scatterY}px) scale(1)`, opacity: 1, offset: 0.12 },
+            { transform: `translate(${midX}px,${midY}px) scale(1.1)`, offset: 0.5 },
+            { transform: `translate(${endX - startX}px,${endY - startY}px) scale(0.5)`, opacity: 0 },
+          ], {
+            duration: 900 + Math.random() * 300,
+            easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
+            fill: 'forwards',
+          }).onfinish = () => item.remove();
+        }, i * 60);
+      }
+    };
+    window.addEventListener('reforge:key-earned', handleKeyEarned);
+
+    const handleConsumableEarned = (e: Event) => {
+      const { type, amount, startRect } = (e as CustomEvent).detail as { type: 'POTION' | 'SCROLL' | 'ORB'; amount: number; startRect: DOMRect | null };
+      setHeaderVisible(true);
+      if (!startRect) return;
+
+      let targetId = '';
+      let icon = '';
+      let color = '';
+
+      switch (type) {
+        case 'POTION': targetId = 'user-potion-balance'; icon = '🧪'; color = '#f87171'; break;
+        case 'SCROLL': targetId = 'user-scroll-balance'; icon = '📜'; color = '#22d3ee'; break;
+        case 'ORB': targetId = 'user-orb-balance'; icon = '⚡'; color = '#c084fc'; break;
+      }
+
+      const destEl = document.getElementById(targetId);
+      if (!destEl) return;
+      const destRect = destEl.getBoundingClientRect();
+      const startX = startRect.left + startRect.width / 2;
+      const startY = startRect.top + startRect.height / 2;
+      const endX = destRect.left + destRect.width / 2;
+      const endY = destRect.top + destRect.height / 2;
+      const ITEM_COUNT = 3; // Fewer items for consumables
+
+      for (let i = 0; i < ITEM_COUNT; i++) {
+        setTimeout(() => {
+          const item = document.createElement('div');
+          item.style.cssText = `position:fixed;font-size:16px;left:${startX - 8}px;top:${startY - 8}px;z-index:9999;pointer-events:none;`;
+          item.textContent = icon;
+          document.body.appendChild(item);
+          
+          const scatterX = (Math.random() - 0.5) * 40;
+          const scatterY = (Math.random() - 0.5) * 40;
+          const midX = (startX + endX) / 2 - startX + (Math.random() - 0.5) * 40;
+          const midY = Math.min(startY, endY) - 50 - Math.random() * 40 - startY;
+          
+          item.animate([
+            { transform: 'translate(0,0) scale(0.5)', opacity: 0 },
+            { transform: `translate(${scatterX}px,${scatterY}px) scale(1)`, opacity: 1, offset: 0.15 },
+            { transform: `translate(${midX}px,${midY}px) scale(1.1)`, offset: 0.5 },
+            { transform: `translate(${endX - startX}px,${endY - startY}px) scale(0.5)`, opacity: 0 },
+          ], {
+            duration: 800 + Math.random() * 300,
+            easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
+            fill: 'forwards',
+          }).onfinish = () => item.remove();
+        }, i * 80);
+      }
+    };
+    window.addEventListener('reforge:consumable-earned', handleConsumableEarned);
+
     const COIN_LOST_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="none" stroke="#ef4444" stroke-width="1.5"/><text x="7" y="10.5" text-anchor="middle" font-size="6" font-weight="900" fill="#ef4444" font-family="monospace">◈</text></svg>`;
     const handleCoinLost = (e: Event) => {
       const detail = (e as CustomEvent).detail as { amount: number; sourceRect: DOMRect | null };
@@ -251,6 +340,8 @@ const Layout: React.FC<LayoutProps> = ({
 
     return () => {
       window.removeEventListener('reforge:coin-earned', handleCoinEarned);
+      window.removeEventListener('reforge:key-earned', handleKeyEarned);
+      window.removeEventListener('reforge:consumable-earned', handleConsumableEarned);
       window.removeEventListener('reforge:coin-lost', handleCoinLost);
     };
   }, []);
@@ -401,15 +492,15 @@ const Layout: React.FC<LayoutProps> = ({
                 {/* Consumable item counts — desktop only */}
                 {consumables && (
                   <div className="hidden sm:flex items-center gap-1">
-                    <div className="flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
+                    <div id="user-potion-balance" className="flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
                       <span style={{ fontSize: 11 }}>🧪</span>
                       <span className="font-mono text-[11px] font-bold text-red-300">{consumables.healthPotions}</span>
                     </div>
-                    <div className="flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(0,210,255,0.08)', border: '1px solid rgba(0,210,255,0.2)' }}>
+                    <div id="user-scroll-balance" className="flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(0,210,255,0.08)', border: '1px solid rgba(0,210,255,0.2)' }}>
                       <span style={{ fontSize: 11 }}>📜</span>
                       <span className="font-mono text-[11px] font-bold text-cyan-300">{consumables.shadowScrolls}</span>
                     </div>
-                    <div className="flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.2)' }}>
+                    <div id="user-orb-balance" className="flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.2)' }}>
                       <span style={{ fontSize: 11 }}>⚡</span>
                       <span className="font-mono text-[11px] font-bold text-purple-300">{consumables.ultOrbs}</span>
                     </div>
@@ -418,6 +509,7 @@ const Layout: React.FC<LayoutProps> = ({
 
                 {/* Keys pill */}
                 <div
+                  id="user-keys-balance"
                   className="flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl"
                   style={{
                     background: 'linear-gradient(180deg, rgba(139,92,246,0.12) 0%, rgba(6,4,18,0.80) 100%)',
