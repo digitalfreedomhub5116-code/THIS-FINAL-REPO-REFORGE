@@ -783,7 +783,7 @@ const GameOverScreen: React.FC<{
             />
 
             {/* Icon Circle */}
-            <div className="mb-8 relative flex justify-center">
+            <div className="mb-8 relative flex justify-center items-center h-28">
                 <motion.div
                     initial={{ scale: 0, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
@@ -796,19 +796,20 @@ const GameOverScreen: React.FC<{
                 </motion.div>
                 {/* Outer Pulse Ring */}
                 <motion.div 
-                    animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0, 0.5] }}
+                    initial={{ x: "-50%", y: "-50%", scale: 1, opacity: 0.5 }}
+                    animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0, 0.5] }}
                     transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-28 h-28 rounded-full border border-red-600/50" 
+                    className="absolute top-1/2 left-1/2 w-28 h-28 rounded-full border border-red-600/50" 
                 />
             </div>
             
             {/* Typography */}
-            <div className="space-y-3 mb-10">
+            <div className="space-y-3 mb-10 w-full text-center">
                 <motion.h1 
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.3 }}
-                    className="text-5xl font-black font-serif uppercase tracking-tighter text-red-600 drop-shadow-[0_0_10px_rgba(220,38,38,0.6)]"
+                    className="text-5xl font-black font-serif uppercase tracking-tighter text-red-600 drop-shadow-[0_0_10px_rgba(220,38,38,0.6)] w-full text-center"
                 >
                     DEFEATED
                 </motion.h1>
