@@ -475,6 +475,27 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
   const [flyingLoot, setFlyingLoot] = useState<{ lootType: 'GOLD' | 'KEY'; rect: DOMRect } | null>(null);
   const [isScreenShaking, setIsScreenShaking] = useState(false);
 
+  // Victory celebration FX
+  const [confettiActive, setConfettiActive] = useState(false);
+  const [screenShake, setScreenShake] = useState(false);
+
+  // Trigger confetti burst when victory screen shows
+  useEffect(() => {
+    if (mode === 'VICTORY') {
+      setConfettiActive(false);
+      setScreenShake(false);
+      const confettiTimer = setTimeout(() => {
+        setConfettiActive(true);
+        setScreenShake(true);
+        setTimeout(() => setScreenShake(false), 600);
+      }, 3500);
+      return () => clearTimeout(confettiTimer);
+    } else {
+      setConfettiActive(false);
+      setScreenShake(false);
+    }
+  }, [mode]);
+
   const PAID_ENTRY_COST = 3;
 
   useEffect(() => {
@@ -1313,23 +1334,6 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
           </div>
         );
       };
-
-      /* ── Victory state management ── */
-      const [confettiActive, setConfettiActive] = useState(false);
-      const [screenShake, setScreenShake] = useState(false);
-
-      useEffect(() => {
-        if (isVictory) {
-          // Trigger confetti when keys count-up is about to finish (at 3.5s)
-          const confettiTimer = setTimeout(() => {
-            setConfettiActive(true);
-            setScreenShake(true);
-            setTimeout(() => setScreenShake(false), 600);
-          }, 3500);
-          
-          return () => clearTimeout(confettiTimer);
-        }
-      }, [isVictory]);
 
       /* ── Gold light rays for victory ── */
       const goldRays = isVictory ? Array.from({ length: 16 }, (_, i) => i * 22.5) : [];
