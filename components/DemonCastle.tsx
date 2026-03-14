@@ -725,6 +725,146 @@ const VictoryScreen: React.FC<{
   );
 };
 
+// --- SUB-COMPONENT: GAME OVER SCREEN (PREMIUM) ---
+const GameOverScreen: React.FC<{ 
+  onClose: () => void;
+}> = ({ onClose }) => {
+  const [screenShake, setScreenShake] = useState(true);
+
+  useEffect(() => {
+    // Initial impact shake
+    const t = setTimeout(() => setScreenShake(false), 500);
+    playSystemSoundEffect('GAME_OVER'); // Assume this exists or fallback
+    return () => clearTimeout(t);
+  }, []);
+
+  /* ── SVG Fractured Diamond (DEFEATED icon) ── */
+  const FracturedDiamond = () => (
+    <svg viewBox="0 0 64 64" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M32 4 L58 32 L32 60 L6 32 Z" stroke="currentColor" strokeWidth="2.5" fill="none" />
+      <line x1="18" y1="18" x2="46" y2="46" stroke="currentColor" strokeWidth="1.5" opacity="0.6" />
+      <line x1="46" y1="18" x2="18" y2="46" stroke="currentColor" strokeWidth="1.5" opacity="0.6" />
+      <line x1="32" y1="4" x2="32" y2="60" stroke="currentColor" strokeWidth="1" opacity="0.3" />
+      <line x1="6" y1="32" x2="58" y2="32" stroke="currentColor" strokeWidth="1" opacity="0.3" />
+      <path d="M24 28 L20 32 L26 36" stroke="currentColor" strokeWidth="2" fill="none" opacity="0.8" strokeLinecap="round" />
+      <path d="M40 28 L44 32 L38 36" stroke="currentColor" strokeWidth="2" fill="none" opacity="0.8" strokeLinecap="round" />
+    </svg>
+  );
+
+  return (
+    <motion.div 
+      className="fixed inset-0 z-[200] flex flex-col items-center justify-center p-6 text-center bg-black/95 backdrop-blur-xl overflow-hidden"
+      animate={screenShake ? { x: [0, -4, 4, -4, 4, 0], y: [0, -2, 2, -2, 2, 0] } : {}}
+      transition={{ duration: 0.4 }}
+    >
+        {/* Background Overlay */}
+        <div className="absolute inset-0 opacity-20 pointer-events-none bg-[radial-gradient(circle_at_center,rgba(220,38,38,0.3),transparent_70%)]" />
+
+        {/* Scanlines */}
+        <div
+            className="absolute inset-0 pointer-events-none opacity-[0.05]"
+            style={{
+                backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 3px, #ef4444 3px, #ef4444 4px)',
+            }}
+        />
+
+        <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="w-full max-w-md bg-[#0a0505] border-2 border-red-600/50 rounded-3xl p-8 relative overflow-hidden shadow-[0_0_60px_rgba(220,38,38,0.25)]"
+        >
+            {/* Top Glow Line */}
+            <motion.div 
+                initial={{ width: 0 }}
+                animate={{ width: "100%" }}
+                transition={{ duration: 1.5, delay: 0.2 }}
+                className="absolute top-0 left-0 h-[2px] bg-red-600 shadow-[0_0_15px_#ef4444]"
+            />
+
+            {/* Icon Circle */}
+            <div className="mb-8 relative flex justify-center">
+                <motion.div
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
+                    className="w-28 h-28 rounded-full border-4 border-red-600/30 flex items-center justify-center bg-black/50 backdrop-blur-sm relative z-10"
+                >
+                    <div className="text-red-600 drop-shadow-[0_0_15px_rgba(220,38,38,0.8)]">
+                        <FracturedDiamond />
+                    </div>
+                </motion.div>
+                {/* Outer Pulse Ring */}
+                <motion.div 
+                    animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0, 0.5] }}
+                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-28 h-28 rounded-full border border-red-600/50" 
+                />
+            </div>
+            
+            {/* Typography */}
+            <div className="space-y-3 mb-10">
+                <motion.h1 
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.3 }}
+                    className="text-5xl font-black font-serif uppercase tracking-tighter text-red-600 drop-shadow-[0_0_10px_rgba(220,38,38,0.6)]"
+                >
+                    DEFEATED
+                </motion.h1>
+                <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.6 }}
+                    className="flex items-center justify-center gap-2"
+                >
+                    <div className="h-px w-8 bg-red-900/50" />
+                    <p className="text-[10px] text-red-500/60 font-mono tracking-[0.3em] uppercase">
+                        SYSTEM CRITICAL FAILURE
+                    </p>
+                    <div className="h-px w-8 bg-red-900/50" />
+                </motion.div>
+            </div>
+            
+            {/* Zeroed Rewards */}
+            <div className="bg-black/40 border border-red-900/30 rounded-xl p-5 grid grid-cols-3 gap-4 mb-10 relative">
+                {/* Corner Accents */}
+                <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-red-600/50" />
+                <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-red-600/50" />
+                <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-red-600/50" />
+                <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-red-600/50" />
+
+                <div className="flex flex-col items-center gap-2 opacity-50 grayscale">
+                    <Coins size={20} className="text-gray-600" />
+                    <div className="text-xs font-bold text-gray-700 font-mono">0</div>
+                    <div className="text-[8px] font-bold uppercase tracking-wider text-gray-800">GOLD</div>
+                </div>
+                <div className="flex flex-col items-center gap-2 opacity-50 grayscale border-x border-red-900/20 px-2">
+                    <ArrowUpCircle size={20} className="text-gray-600" />
+                    <div className="text-xs font-bold text-gray-700 font-mono">0</div>
+                    <div className="text-[8px] font-bold uppercase tracking-wider text-gray-800">XP</div>
+                </div>
+                <div className="flex flex-col items-center gap-2 opacity-50 grayscale">
+                    <Key size={20} className="text-gray-600" />
+                    <div className="text-xs font-bold text-gray-700 font-mono">0</div>
+                    <div className="text-[8px] font-bold uppercase tracking-wider text-gray-800">KEYS</div>
+                </div>
+            </div>
+            
+            {/* Action Button */}
+            <motion.button 
+                whileHover={{ scale: 1.02, backgroundColor: "rgba(220, 38, 38, 0.1)" }}
+                whileTap={{ scale: 0.98 }}
+                onClick={onClose} 
+                className="w-full py-4 border border-red-600/50 bg-[#1a0505] text-red-500 font-bold font-mono rounded-xl uppercase tracking-widest text-xs shadow-[0_0_20px_rgba(220,38,38,0.1)] hover:shadow-[0_0_30px_rgba(220,38,38,0.2)] hover:text-red-400 transition-all"
+            >
+                RETURN TO LOBBY
+            </motion.button>
+        </motion.div>
+    </motion.div>
+  );
+};
+
 // --- MAIN COMPONENT ---
 
 const DemonCastle: React.FC<DemonCastleProps> = ({ 
@@ -766,27 +906,6 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
   // FX
   const [flyingLoot, setFlyingLoot] = useState<{ lootType: 'GOLD' | 'KEY'; rect: DOMRect } | null>(null);
   const [isScreenShaking, setIsScreenShaking] = useState(false);
-
-  // Victory celebration FX
-  const [confettiActive, setConfettiActive] = useState(false);
-  const [screenShake, setScreenShake] = useState(false);
-
-  // Trigger confetti burst when victory screen shows
-  useEffect(() => {
-    if (mode === 'VICTORY') {
-      setConfettiActive(false);
-      setScreenShake(false);
-      const confettiTimer = setTimeout(() => {
-        setConfettiActive(true);
-        setScreenShake(true);
-        setTimeout(() => setScreenShake(false), 600);
-      }, 3500);
-      return () => clearTimeout(confettiTimer);
-    } else {
-      setConfettiActive(false);
-      setScreenShake(false);
-    }
-  }, [mode]);
 
   const PAID_ENTRY_COST = 3;
 
@@ -1413,134 +1532,7 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
   }
 
   if (mode === 'GAMEOVER') {
-      const isVictory = false;
-      const themeColor = 'text-red-600';
-      const borderColor = 'border-red-600';
-
-      /* ── SVG Fractured Diamond (DEFEATED icon) ── */
-      const FracturedDiamond = () => (
-        <svg viewBox="0 0 64 64" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M32 4 L58 32 L32 60 L6 32 Z" stroke="currentColor" strokeWidth="2.5" fill="none" />
-          <line x1="18" y1="18" x2="46" y2="46" stroke="currentColor" strokeWidth="1.5" opacity="0.6" />
-          <line x1="46" y1="18" x2="18" y2="46" stroke="currentColor" strokeWidth="1.5" opacity="0.6" />
-          <line x1="32" y1="4" x2="32" y2="60" stroke="currentColor" strokeWidth="1" opacity="0.3" />
-          <line x1="6" y1="32" x2="58" y2="32" stroke="currentColor" strokeWidth="1" opacity="0.3" />
-          <path d="M24 28 L20 32 L26 36" stroke="currentColor" strokeWidth="2" fill="none" opacity="0.8" strokeLinecap="round" />
-          <path d="M40 28 L44 32 L38 36" stroke="currentColor" strokeWidth="2" fill="none" opacity="0.8" strokeLinecap="round" />
-        </svg>
-      );
-
-      return (
-          <motion.div 
-            className="fixed inset-0 z-[200] flex flex-col items-center justify-center p-6 text-center bg-black/95 backdrop-blur-xl overflow-hidden"
-            animate={screenShake ? { x: [0, -4, 4, -4, 4, 0], y: [0, -2, 2, -2, 2, 0] } : {}}
-            transition={{ duration: 0.5 }}
-          >
-              {/* Enhanced Background Overlay for GameOver */}
-              <div className="absolute inset-0 opacity-25 pointer-events-none bg-[radial-gradient(circle_at_center,rgba(220,38,38,0.2),transparent_70%)]" />
-
-              {/* DEFEATED: Red scan line animation — horizontal lines drifting downward */}
-              <>
-                  <div
-                    className="absolute inset-0 pointer-events-none opacity-[0.04]"
-                    style={{
-                      backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(220,38,38,0.3) 3px, rgba(220,38,38,0.3) 4px)',
-                    }}
-                  />
-                  <motion.div
-                    className="absolute inset-0 pointer-events-none"
-                    animate={{ y: ['0%', '100%'] }}
-                    transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
-                    style={{
-                      backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 6px, rgba(220,38,38,0.06) 6px, rgba(220,38,38,0.06) 7px)',
-                      height: '200%',
-                    }}
-                  />
-              </>
-              
-              <motion.div 
-                  initial={{ scale: 0.8, opacity: 0, y: 20 }}
-                  animate={{ scale: 1, opacity: 1, y: 0 }}
-                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                  className={`w-full max-w-sm relative bg-[#0a0a0a] border-2 rounded-3xl p-8 overflow-hidden shadow-2xl ${borderColor} shadow-[0_0_50px_rgba(220,38,38,0.3)]`}
-              >
-                  {/* Top Scanline */}
-                  <motion.div 
-                    initial={{ width: 0 }}
-                    animate={{ width: "100%" }}
-                    transition={{ duration: 1, delay: 0.5 }}
-                    className="absolute top-0 left-0 h-1 bg-red-600 shadow-[0_0_15px_currentColor]"
-                  />
-
-                  {/* Icon Area */}
-                  <div className="mb-6 relative">
-                      <motion.div
-                          initial={{ scale: 0, rotate: -45 }}
-                          animate={{ scale: 1, rotate: 0 }}
-                          transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
-                          className={`w-24 h-24 mx-auto rounded-full border-4 flex items-center justify-center bg-black/50 backdrop-blur-sm relative z-10 ${borderColor}`}
-                      >
-                          <div className="text-red-600" style={{ filter: 'drop-shadow(0 0 15px rgba(220,38,38,0.8))' }}>
-                            <FracturedDiamond />
-                          </div>
-                      </motion.div>
-                      {/* Icon Pulse Ring */}
-                      <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 rounded-full border opacity-50 animate-ping ${borderColor}`} />
-                  </div>
-                  
-                  {/* Text Content */}
-                  <div className="space-y-2 mb-8">
-                      <motion.h1 
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.4 }}
-                          className={`text-4xl font-black font-serif uppercase tracking-tighter ${themeColor} drop-shadow-md`}
-                      >
-                          DEFEATED
-                      </motion.h1>
-                      <motion.p 
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          transition={{ delay: 0.5 }}
-                          className="text-[10px] text-gray-500 font-mono tracking-[0.3em] uppercase"
-                      >
-                          SYSTEM CRITICAL FAILURE
-                      </motion.p>
-                  </div>
-                  
-                  {/* Rewards Grid (Zeroed out) */}
-                  <div className="bg-black/40 border border-gray-800 rounded-xl p-4 grid grid-cols-3 gap-2 mb-8 relative">
-                      {/* Corner Brackets */}
-                      <div className={`absolute top-0 left-0 w-2 h-2 border-t border-l ${borderColor}`} />
-                      <div className={`absolute top-0 right-0 w-2 h-2 border-t border-r ${borderColor}`} />
-                      <div className={`absolute bottom-0 left-0 w-2 h-2 border-b border-l ${borderColor}`} />
-                      <div className={`absolute bottom-0 right-0 w-2 h-2 border-b border-r ${borderColor}`} />
-
-                      <div className="flex flex-col items-center">
-                          <span className="text-lg font-bold font-mono text-gray-700 line-through opacity-50">0</span>
-                          <span className="text-[8px] font-bold uppercase tracking-wider mt-1 text-gray-700/50">GOLD</span>
-                      </div>
-                      <div className="flex flex-col items-center border-x border-gray-800 px-2">
-                          <span className="text-lg font-bold font-mono text-gray-700 line-through opacity-50">0</span>
-                          <span className="text-[8px] font-bold uppercase tracking-wider mt-1 text-gray-700/50">XP</span>
-                      </div>
-                      <div className="flex flex-col items-center">
-                          <span className="text-lg font-bold font-mono text-gray-700 line-through opacity-50">0</span>
-                          <span className="text-[8px] font-bold uppercase tracking-wider mt-1 text-gray-700/50">KEYS</span>
-                      </div>
-                  </div>
-                  
-                  <motion.button 
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={resetToLobby} 
-                      className="w-full py-4 font-black font-mono rounded-xl uppercase tracking-widest text-xs flex items-center justify-center gap-2 shadow-lg transition-all bg-[#1a0505] text-red-400 border border-red-900/70 hover:bg-red-950/60 shadow-[0_0_15px_rgba(220,38,38,0.15)]"
-                  >
-                      RETURN TO LOBBY
-                  </motion.button>
-              </motion.div>
-          </motion.div>
-      );
+      return <GameOverScreen onClose={resetToLobby} />;
   }
 
   return null;
