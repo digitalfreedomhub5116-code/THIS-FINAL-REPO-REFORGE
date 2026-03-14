@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, animate } from 'framer-motion';
-import { Ghost, Key, Coins, Skull, LogOut, DoorOpen, Timer, AlertOctagon, Sparkles, Crown, ArrowUpCircle, XCircle } from 'lucide-react';
+import { Ghost, Key, Coins, Skull, LogOut, Timer, AlertOctagon, Sparkles, Crown, ArrowUpCircle } from 'lucide-react';
 import { playSystemSoundEffect } from '../utils/soundEngine';
 import { useCoinReward } from '../hooks/useCoinReward';
 
@@ -1099,18 +1099,105 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
       const isVictory = mode === 'VICTORY';
       const themeColor = isVictory ? 'text-yellow-500' : 'text-red-600';
       const borderColor = isVictory ? 'border-yellow-500' : 'border-red-600';
+
+      /* ── SVG Fractured Diamond (DEFEATED icon) ── */
+      const FracturedDiamond = () => (
+        <svg viewBox="0 0 64 64" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M32 4 L58 32 L32 60 L6 32 Z" stroke="currentColor" strokeWidth="2.5" fill="none" />
+          <line x1="18" y1="18" x2="46" y2="46" stroke="currentColor" strokeWidth="1.5" opacity="0.6" />
+          <line x1="46" y1="18" x2="18" y2="46" stroke="currentColor" strokeWidth="1.5" opacity="0.6" />
+          <line x1="32" y1="4" x2="32" y2="60" stroke="currentColor" strokeWidth="1" opacity="0.3" />
+          <line x1="6" y1="32" x2="58" y2="32" stroke="currentColor" strokeWidth="1" opacity="0.3" />
+          <path d="M24 28 L20 32 L26 36" stroke="currentColor" strokeWidth="2" fill="none" opacity="0.8" strokeLinecap="round" />
+          <path d="M40 28 L44 32 L38 36" stroke="currentColor" strokeWidth="2" fill="none" opacity="0.8" strokeLinecap="round" />
+        </svg>
+      );
+
+      /* ── SVG Angular Burst (ESCAPED icon) ── */
+      const AngularBurst = () => (
+        <svg viewBox="0 0 64 64" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M32 4 L38 24 L56 16 L44 32 L56 48 L38 40 L32 60 L26 40 L8 48 L20 32 L8 16 L26 24 Z" stroke="currentColor" strokeWidth="2" fill="currentColor" fillOpacity="0.15" />
+          <path d="M32 14 L36 28 L32 22 L28 28 Z" fill="currentColor" opacity="0.6" />
+          <circle cx="32" cy="32" r="6" stroke="currentColor" strokeWidth="1.5" fill="currentColor" fillOpacity="0.3" />
+        </svg>
+      );
+
+      /* ── CountUp reward value component ── */
+      const CountUpValue: React.FC<{ target: number; delay: number; color: string }> = ({ target, delay, color }) => {
+        const nodeRef = useRef<HTMLSpanElement>(null);
+        useEffect(() => {
+          const node = nodeRef.current;
+          if (!node) return;
+          node.textContent = '0';
+          const timeout = setTimeout(() => {
+            const controls = animate(0, target, {
+              duration: 1,
+              ease: 'easeOut',
+              onUpdate: (v) => { if (node) node.textContent = String(Math.round(v)); },
+            });
+            return () => controls.stop();
+          }, delay * 1000);
+          return () => clearTimeout(timeout);
+        }, [target, delay]);
+        return <span ref={nodeRef} className={`text-lg font-bold font-mono ${color}`}>0</span>;
+      };
+
+      /* ── Gold light rays for victory ── */
+      const goldRays = isVictory ? Array.from({ length: 12 }, (_, i) => i * 30) : [];
       
       return (
-          <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center p-6 text-center bg-black/95 backdrop-blur-xl">
+          <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center p-6 text-center bg-black/95 backdrop-blur-xl overflow-hidden">
               
               {/* Animated Background Overlay */}
               <div className={`absolute inset-0 opacity-20 pointer-events-none ${isVictory ? 'bg-[radial-gradient(circle_at_center,rgba(234,179,8,0.2),transparent_70%)]' : 'bg-[radial-gradient(circle_at_center,rgba(220,38,38,0.2),transparent_70%)]'}`} />
+
+              {/* VICTORY: Gold light rays fanning outward behind the card */}
+              {isVictory && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  {goldRays.map((deg) => (
+                    <motion.div
+                      key={deg}
+                      initial={{ opacity: 0, scaleY: 0 }}
+                      animate={{ opacity: [0, 0.12, 0.06, 0.12], scaleY: 1 }}
+                      transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut', delay: (deg / 360) * 2 }}
+                      className="absolute w-[2px] origin-bottom"
+                      style={{
+                        height: '45vh',
+                        background: 'linear-gradient(to top, rgba(234,179,8,0.25), transparent)',
+                        transform: `rotate(${deg}deg)`,
+                        transformOrigin: 'bottom center',
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {/* DEFEATED: Red scan line animation — horizontal lines drifting downward */}
+              {!isVictory && (
+                <>
+                  <div
+                    className="absolute inset-0 pointer-events-none opacity-[0.04]"
+                    style={{
+                      backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(220,38,38,0.3) 3px, rgba(220,38,38,0.3) 4px)',
+                    }}
+                  />
+                  <motion.div
+                    className="absolute inset-0 pointer-events-none"
+                    animate={{ y: ['0%', '100%'] }}
+                    transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
+                    style={{
+                      backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 6px, rgba(220,38,38,0.06) 6px, rgba(220,38,38,0.06) 7px)',
+                      height: '200%',
+                    }}
+                  />
+                </>
+              )}
               
               <motion.div 
                   initial={{ scale: 0.8, opacity: 0, y: 20 }}
                   animate={{ scale: 1, opacity: 1, y: 0 }}
                   transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                  className={`w-full max-w-sm relative bg-[#0a0a0a] border-2 rounded-3xl p-8 overflow-hidden shadow-2xl ${borderColor} ${isVictory ? 'shadow-[0_0_50px_rgba(234,179,8,0.2)]' : 'shadow-[0_0_50px_rgba(220,38,38,0.3)]'}`}
+                  className={`w-full max-w-sm relative bg-[#0a0a0a] border-2 rounded-3xl p-8 overflow-hidden shadow-2xl ${borderColor} ${isVictory ? 'shadow-[0_0_60px_rgba(234,179,8,0.25)]' : 'shadow-[0_0_50px_rgba(220,38,38,0.3)]'}`}
               >
                   {/* Top Scanline */}
                   <motion.div 
@@ -1129,9 +1216,18 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
                           className={`w-24 h-24 mx-auto rounded-full border-4 flex items-center justify-center bg-black/50 backdrop-blur-sm relative z-10 ${borderColor}`}
                       >
                           {isVictory ? (
-                              <DoorOpen size={48} className="text-yellow-500 drop-shadow-[0_0_15px_rgba(234,179,8,0.8)]" />
+                              <motion.div
+                                animate={{ scale: [1, 1.08, 1] }}
+                                transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                                className="text-yellow-500"
+                                style={{ filter: 'drop-shadow(0 0 18px rgba(234,179,8,0.7))' }}
+                              >
+                                <AngularBurst />
+                              </motion.div>
                           ) : (
-                              <Skull size={48} className="text-red-600 drop-shadow-[0_0_15px_rgba(220,38,38,0.8)]" />
+                              <div className="text-red-600" style={{ filter: 'drop-shadow(0 0 15px rgba(220,38,38,0.8))' }}>
+                                <FracturedDiamond />
+                              </div>
                           )}
                       </motion.div>
                       {/* Icon Pulse Ring */}
@@ -1166,18 +1262,37 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
                       <div className={`absolute bottom-0 left-0 w-2 h-2 border-b border-l ${borderColor}`} />
                       <div className={`absolute bottom-0 right-0 w-2 h-2 border-b border-r ${borderColor}`} />
 
-                      <div className="flex flex-col items-center">
-                          <span className={`text-lg font-bold font-mono ${isVictory ? 'text-yellow-500' : 'text-gray-600'}`}>{isVictory ? lootBag.gold : 0}</span>
-                          <span className="text-[8px] text-gray-600 font-bold uppercase tracking-wider mt-1">GOLD</span>
-                      </div>
-                      <div className="flex flex-col items-center border-x border-gray-800 px-2">
-                          <span className={`text-lg font-bold font-mono ${isVictory ? 'text-blue-400' : 'text-gray-600'}`}>{isVictory ? lootBag.xp : 0}</span>
-                          <span className="text-[8px] text-gray-600 font-bold uppercase tracking-wider mt-1">XP</span>
-                      </div>
-                      <div className="flex flex-col items-center">
-                          <span className={`text-lg font-bold font-mono ${isVictory ? 'text-purple-500' : 'text-gray-600'}`}>{isVictory ? lootBag.keys : 0}</span>
-                          <span className="text-[8px] text-gray-600 font-bold uppercase tracking-wider mt-1">KEYS</span>
-                      </div>
+                      {isVictory ? (
+                        <>
+                          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8, duration: 0.4 }} className="flex flex-col items-center">
+                              <CountUpValue target={lootBag.gold} delay={0.8} color="text-yellow-500" />
+                              <span className="text-[8px] text-gray-600 font-bold uppercase tracking-wider mt-1">GOLD</span>
+                          </motion.div>
+                          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.0, duration: 0.4 }} className="flex flex-col items-center border-x border-gray-800 px-2">
+                              <CountUpValue target={lootBag.xp} delay={1.0} color="text-blue-400" />
+                              <span className="text-[8px] text-gray-600 font-bold uppercase tracking-wider mt-1">XP</span>
+                          </motion.div>
+                          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.2, duration: 0.4 }} className="flex flex-col items-center">
+                              <CountUpValue target={lootBag.keys} delay={1.2} color="text-purple-500" />
+                              <span className="text-[8px] text-gray-600 font-bold uppercase tracking-wider mt-1">KEYS</span>
+                          </motion.div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="flex flex-col items-center">
+                              <span className="text-lg font-bold font-mono text-gray-700 line-through opacity-50">0</span>
+                              <span className="text-[8px] font-bold uppercase tracking-wider mt-1 text-gray-700/50">GOLD</span>
+                          </div>
+                          <div className="flex flex-col items-center border-x border-gray-800 px-2">
+                              <span className="text-lg font-bold font-mono text-gray-700 line-through opacity-50">0</span>
+                              <span className="text-[8px] font-bold uppercase tracking-wider mt-1 text-gray-700/50">XP</span>
+                          </div>
+                          <div className="flex flex-col items-center">
+                              <span className="text-lg font-bold font-mono text-gray-700 line-through opacity-50">0</span>
+                              <span className="text-[8px] font-bold uppercase tracking-wider mt-1 text-gray-700/50">KEYS</span>
+                          </div>
+                        </>
+                      )}
                   </div>
                   
                   <motion.button 
@@ -1186,12 +1301,11 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
                       onClick={resetToLobby} 
                       className={`w-full py-4 font-black font-mono rounded-xl uppercase tracking-widest text-xs flex items-center justify-center gap-2 shadow-lg transition-all
                           ${isVictory 
-                              ? 'bg-white text-black hover:bg-gray-200 shadow-[0_0_20px_rgba(255,255,255,0.4)]' 
-                              : 'bg-red-900/20 text-red-500 border border-red-900 hover:bg-red-900/40'
+                              ? 'bg-[#0d0a00] text-yellow-400 border border-yellow-600/50 hover:bg-yellow-950/40 shadow-[0_0_20px_rgba(234,179,8,0.15)]' 
+                              : 'bg-[#1a0505] text-red-400 border border-red-900/70 hover:bg-red-950/60 shadow-[0_0_15px_rgba(220,38,38,0.15)]'
                           }
                       `}
                   >
-                      {isVictory ? <LogOut size={14} /> : <XCircle size={14} />}
                       RETURN TO LOBBY
                   </motion.button>
               </motion.div>

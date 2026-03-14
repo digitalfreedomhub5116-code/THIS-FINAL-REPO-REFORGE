@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, Coins, Swords } from 'lucide-react';
+import { Coins } from 'lucide-react';
 import { Rank } from '../types';
 import { playSystemSoundEffect } from '../utils/soundEngine';
 
@@ -59,10 +59,10 @@ const ParticleField: React.FC<{ rankColor: { r: number; g: number; b: number } }
     const particles: P[] = Array.from({ length: 70 }, () => ({
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
-      speed: 0.12 + Math.random() * 0.4,
+      speed: 0.08 + Math.random() * 0.28,
       opacity: 0.06 + Math.random() * 0.22,
       size: 0.8 + Math.random() * 2,
-      isGold: Math.random() < 0.35,
+      isGold: Math.random() < 0.45,
     }));
 
     const draw = () => {
@@ -158,52 +158,89 @@ const SlotMachineNumber: React.FC<{ amount: number; onComplete: () => void }> = 
   );
 };
 
+/* ── SVG Seal Icon ── */
+const SealIcon: React.FC<{ color: string }> = ({ color }) => (
+  <svg viewBox="0 0 48 48" width="36" height="36" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="24" cy="24" r="18" stroke={color} strokeWidth="1.5" fill="none" />
+    <circle cx="24" cy="24" r="12" stroke={color} strokeWidth="1" fill="none" opacity="0.5" />
+    <path d="M24 8 L26.5 18 L24 15 L21.5 18 Z" fill={color} opacity="0.7" />
+    <path d="M24 40 L21.5 30 L24 33 L26.5 30 Z" fill={color} opacity="0.7" />
+    <path d="M8 24 L18 21.5 L15 24 L18 26.5 Z" fill={color} opacity="0.7" />
+    <path d="M40 24 L30 26.5 L33 24 L30 21.5 Z" fill={color} opacity="0.7" />
+    <circle cx="24" cy="24" r="5" fill={color} fillOpacity="0.2" stroke={color} strokeWidth="1" />
+  </svg>
+);
+
 /* ── Rotating Seal ── */
 const PactSeal: React.FC<{ flare: boolean; rankColor: { r: number; g: number; b: number } }> = ({ flare, rankColor }) => {
   const rc = `${rankColor.r}, ${rankColor.g}, ${rankColor.b}`;
   return (
-    <div className="relative flex items-center justify-center" style={{ width: 160, height: 160 }}>
-      {/* Outer pulse ring */}
+    <div className="relative flex items-center justify-center" style={{ width: 170, height: 170 }}>
+      {/* Outer ring — rotates clockwise slowly */}
       <motion.div
         className="absolute rounded-full"
         style={{
-          width: 160, height: 160,
-          border: `1px solid rgba(${rc}, 0.15)`,
-          boxShadow: `0 0 40px rgba(${rc}, 0.08)`,
+          width: 170, height: 170,
+          border: `1.5px solid rgba(251,191,36,0.2)`,
+          boxShadow: `0 0 30px rgba(251,191,36,0.06)`,
         }}
-        animate={{
-          scale: [1, 1.2, 1],
-          opacity: [0.2, 0.5, 0.2],
-        }}
-        transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+        animate={{ rotate: 360 }}
+        transition={{ duration: 30, repeat: Infinity, ease: 'linear' }}
       />
-      {/* Middle ring — counter-rotate */}
+      {/* Outer ring tick marks */}
+      <motion.div
+        className="absolute"
+        style={{ width: 170, height: 170 }}
+        animate={{ rotate: 360 }}
+        transition={{ duration: 30, repeat: Infinity, ease: 'linear' }}
+      >
+        {[0, 45, 90, 135, 180, 225, 270, 315].map((deg) => (
+          <div
+            key={deg}
+            className="absolute top-0 left-1/2 -translate-x-1/2 w-[1px] h-[6px]"
+            style={{
+              background: `rgba(251,191,36,0.3)`,
+              transformOrigin: '50% 85px',
+              transform: `rotate(${deg}deg)`,
+            }}
+          />
+        ))}
+      </motion.div>
+      {/* Inner ring — rotates counter-clockwise */}
       <motion.div
         className="absolute rounded-full"
         style={{
-          width: 130, height: 130,
-          border: `1px dashed rgba(${rc}, 0.2)`,
+          width: 140, height: 140,
+          border: `1px solid rgba(251,191,36,0.15)`,
         }}
         animate={{ rotate: -360 }}
-        transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+        transition={{ duration: 22, repeat: Infinity, ease: 'linear' }}
       />
-      {/* Inner rotating circle */}
+      {/* Pulse ring */}
+      <motion.div
+        className="absolute rounded-full"
+        style={{
+          width: 150, height: 150,
+          border: `1px solid rgba(${rc}, 0.1)`,
+        }}
+        animate={{
+          scale: [1, 1.15, 1],
+          opacity: [0.15, 0.4, 0.15],
+        }}
+        transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+      />
+      {/* Center circle with SVG seal */}
       <motion.div
         className="relative w-[100px] h-[100px] rounded-full flex items-center justify-center"
         style={{
-          border: `2px solid rgba(${rc}, 0.5)`,
-          background: `radial-gradient(circle, rgba(${rc}, 0.1) 0%, transparent 70%)`,
+          border: `2px solid rgba(251,191,36,0.45)`,
+          background: `radial-gradient(circle, rgba(251,191,36,0.08) 0%, transparent 70%)`,
           boxShadow: flare
-            ? `0 0 80px rgba(${rc}, 0.9), 0 0 160px rgba(251,191,36,0.3)`
-            : `0 0 25px rgba(${rc}, 0.25)`,
+            ? `0 0 80px rgba(251,191,36,0.9), 0 0 160px rgba(251,191,36,0.3)`
+            : `0 0 25px rgba(251,191,36,0.2)`,
         }}
-        animate={{ rotate: 360 }}
-        transition={{ duration: 12, repeat: Infinity, ease: 'linear' }}
       >
-        <div className="relative">
-          <Shield size={32} style={{ color: `rgb(${rc})` }} strokeWidth={1.5} />
-          <Swords size={18} className="absolute -bottom-1 -right-1 text-amber-400/70" strokeWidth={2} />
-        </div>
+        <SealIcon color="rgb(251,191,36)" />
       </motion.div>
     </div>
   );
@@ -363,7 +400,9 @@ const SystemPactScreen: React.FC<SystemPactScreenProps> = ({
                         }}
                       />
                     </div>
-                    <span className="text-[8px] text-gray-600 font-mono">{pledgePct}% of your wealth</span>
+                    <span className={`text-[8px] font-mono font-bold ${
+                      pledgePct > 70 ? 'text-red-400' : pledgePct > 40 ? 'text-amber-400' : 'text-emerald-400'
+                    }`}>{pledgePct}% of your wealth</span>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -409,7 +448,7 @@ const SystemPactScreen: React.FC<SystemPactScreenProps> = ({
                   <motion.button
                     onClick={handleAccept}
                     disabled={playerGold < pledgeAmount}
-                    className="w-full py-4 rounded-2xl text-sm font-black uppercase tracking-[0.2em] transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
+                    className="w-full py-4 rounded-2xl text-sm font-black uppercase tracking-[0.2em] transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed relative overflow-hidden"
                     style={{
                       background: 'linear-gradient(135deg, rgba(251,191,36,0.18) 0%, rgba(217,119,6,0.12) 100%)',
                       border: '1px solid rgba(251,191,36,0.5)',
@@ -421,7 +460,16 @@ const SystemPactScreen: React.FC<SystemPactScreenProps> = ({
                     } : {}}
                     transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
                   >
-                    Enter The Pact
+                    {/* Shimmer sweep */}
+                    <motion.div
+                      className="absolute inset-0 pointer-events-none"
+                      style={{
+                        background: 'linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.15) 50%, transparent 60%)',
+                      }}
+                      animate={{ x: ['-100%', '200%'] }}
+                      transition={{ duration: 1.2, repeat: Infinity, repeatDelay: 3, ease: 'easeInOut' }}
+                    />
+                    <span className="relative z-10">Enter The Pact</span>
                   </motion.button>
 
                   <p className="text-[9px] text-emerald-400/70 font-mono text-center font-bold">
@@ -430,11 +478,11 @@ const SystemPactScreen: React.FC<SystemPactScreenProps> = ({
 
                   <button
                     onClick={handleDecline}
-                    className="w-full py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all active:scale-95"
+                    className="w-[80%] py-2.5 rounded-xl text-[10px] font-medium uppercase tracking-widest transition-all active:scale-95 opacity-40 hover:opacity-60"
                     style={{
-                      background: 'rgba(255,255,255,0.03)',
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      color: '#6b7280',
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#4b5563',
                     }}
                   >
                     Begin Without Pledge
