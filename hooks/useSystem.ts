@@ -6,6 +6,7 @@ import {
 } from '../types';
 import { playSystemSoundEffect } from '../utils/soundEngine';
 import { getPlayerAuthHeaders } from '../lib/playerApi';
+import { REWARD_SCHEDULE } from '../lib/rewards';
 
 export const isEmbed = (url: string) => {
   return url.includes('youtube.com/embed') || url.includes('player.vimeo.com');
@@ -434,36 +435,70 @@ export const useSystem = () => {
     return false;
   };
 
-  const CHEST_COOLDOWN_MS = 30 * 60 * 1000;
-  const CHEST_LS_KEY = 'reforge_login_chest_last';
+  // --- DAILY REWARDS SYSTEM (30-Day Cycle) ---
+  // REWARD_SCHEDULE imported from lib/rewards
 
   const getDailyReward = (): DailyReward | null => {
-    const last = parseInt(localStorage.getItem(CHEST_LS_KEY) || '0', 10);
-    if (last && Date.now() - last < CHEST_COOLDOWN_MS) return null;
+    const today = new Date().toISOString().split('T')[0];
+    const lastLogin = player.lastLoginDate;
 
-    if (!last) {
-      return { type: 'WELCOME_KEYS', amount: 3, message: 'Welcome Bonus: 3 Keys Acquired' };
+    // If already logged in today, no reward
+    if (lastLogin === today) return null;
+
+    // Determine streak
+    let nextStreak = 1;
+    if (lastLogin) {
+      const lastDate = new Date(lastLogin);
+      const currentDate = new Date();
+      // Normalize to midnight for accurate diff
+      lastDate.setHours(0,0,0,0);
+      currentDate.setHours(0,0,0,0);
+      
+      const diffTime = Math.abs(currentDate.getTime() - lastDate.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+
+      if (diffDays === 1) {
+        nextStreak = (player.streak || 0) + 1;
+      }
+    } else {
+        // First time login ever
+        return { type: 'WELCOME_KEYS', amount: 3, message: 'Welcome Bonus: 3 Keys Acquired' };
     }
 
-    const rand = Math.random();
-    if (rand < 0.4) return { type: 'GOLD', amount: 100, message: 'Daily Stipend: 100 Gold' };
-    if (rand < 0.7) return { type: 'XP', amount: 100, message: 'Experience Boost: 100 XP' };
-    if (rand < 0.9) return { type: 'KEYS', amount: 1, message: 'Dungeon Key Found' };
-    return { type: 'DUNGEON_PASS', amount: 3, message: 'Dungeon Pass (3 Keys)' };
+    const rewardIndex = (nextStreak - 1) % 30;
+    return REWARD_SCHEDULE[rewardIndex];
   };
 
-  const applyDailyReward = (reward: DailyReward) => {
-    localStorage.setItem(CHEST_LS_KEY, String(Date.now()));
+  const claimDailyReward = (reward: DailyReward) => {
     const today = new Date().toISOString().split('T')[0];
+    
     setPlayer(prev => {
-      let { currentXp, requiredXp, level, totalXp, dailyXp, gold, keys } = prev;
+      // Recalculate streak to be safe
+      let nextStreak = 1;
+      if (prev.lastLoginDate) {
+          const lastDate = new Date(prev.lastLoginDate);
+          const currentDate = new Date();
+          lastDate.setHours(0,0,0,0);
+          currentDate.setHours(0,0,0,0);
+          const diffDays = Math.ceil(Math.abs(currentDate.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
+          if (diffDays === 1) nextStreak = (prev.streak || 0) + 1;
+      }
+
+      let { currentXp, requiredXp, level, totalXp, dailyXp, gold, keys, consumables } = prev;
+      
+      const safeConsumables = consumables || { healthPotions: 0, shadowScrolls: 0, ultOrbs: 0 };
+
       if (reward.type === 'GOLD') gold += reward.amount;
-      if (reward.type === 'WELCOME_KEYS' || reward.type === 'KEYS' || reward.type === 'DUNGEON_PASS') keys += reward.amount;
       if (reward.type === 'XP') {
         currentXp += reward.amount;
         totalXp += reward.amount;
         dailyXp += reward.amount;
       }
+      if (reward.type === 'WELCOME_KEYS' || reward.type === 'KEYS' || reward.type === 'DUNGEON_PASS') keys += reward.amount;
+      
+      if (reward.type === 'HEALTH_POTION') safeConsumables.healthPotions += reward.amount;
+      if (reward.type === 'SHADOW_SCROLL') safeConsumables.shadowScrolls += reward.amount;
+      if (reward.type === 'ULT_ORB') safeConsumables.ultOrbs += reward.amount;
 
       let leveledUp = false;
       if (reward.type === 'XP') {
@@ -475,7 +510,7 @@ export const useSystem = () => {
         }
       }
 
-      const logs = [createLog(`Daily Reward: ${reward.message}`, 'SYSTEM'), ...prev.logs];
+      const logs = [createLog(`Daily Reward (Day ${nextStreak}): ${reward.message}`, 'SYSTEM'), ...prev.logs];
       if (leveledUp) {
         logs.unshift(createLog(`LEVEL UP! REACHED LEVEL ${level}`, 'LEVEL_UP'));
         playSystemSoundEffect('LEVEL_UP');
@@ -484,6 +519,7 @@ export const useSystem = () => {
       return {
         ...prev,
         lastLoginDate: today,
+        streak: nextStreak,
         gold,
         keys,
         currentXp,
@@ -491,6 +527,7 @@ export const useSystem = () => {
         level,
         totalXp,
         dailyXp: reward.type === 'XP' ? reward.amount : 0,
+        consumables: safeConsumables,
         yesterdayStats: { ...prev.dailyStats },
         dailyStats: { strength: 0, intelligence: 0, discipline: 0, social: 0 },
         logs,
@@ -500,9 +537,7 @@ export const useSystem = () => {
   };
 
   const checkDailyLogin = (): DailyReward | null => {
-    const reward = getDailyReward();
-    if (reward) applyDailyReward(reward);
-    return reward;
+    return getDailyReward();
   };
 
   const deductGold = (amount: number): boolean => {
@@ -1218,6 +1253,7 @@ export const useSystem = () => {
     addXp,
     consumeKey,
     checkDailyLogin,
+    claimDailyReward,
     deductGold,
     addRewards,
     enterDungeon,

@@ -22,11 +22,12 @@ import {
 } from './components/SkeletonLoaders';
 
 import { useSystem } from './hooks/useSystem';
-import { Tab, CoreStats, HealthProfile, Outfit, DbOutfit, TierLevel, PlayerData, Quest } from './types';
+import { Tab, CoreStats, HealthProfile, Outfit, DbOutfit, TierLevel, PlayerData, Quest, DailyReward } from './types';
 import { OUTFITS } from './utils/gameData';
 import { getPlayerAuthHeaders } from './lib/playerApi';
 
 // ── Existing lazy imports ──
+const DailyLoginModal = lazy(() => import('./components/DailyLoginModal'));
 const AdminLogin = lazy(() => import('./components/AdminLogin'));
 const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
 const QuestsView = lazy(() => import('./components/QuestsView'));
@@ -111,9 +112,11 @@ const App: React.FC = () => {
     deductGold, enterDungeon, addRewards,
     recordStrike, removeStrike, markDuskMessagesRead,
     verifyTicket, purchaseOutfit, equipOutfit,
+    checkDailyLogin,
   } = useSystem();
 
   const [dbOutfits, setDbOutfits] = useState<Outfit[]>([]);
+  const [dailyReward, setDailyReward] = useState<DailyReward | null>(null);
 
   // Persist onboarding phase so auth pages survive page reload
   const savedPhase = sessionStorage.getItem('reforge_onboarding_phase') as OnboardingPhase | null;
@@ -346,6 +349,14 @@ const App: React.FC = () => {
     window.addEventListener('focus', onFocus);
     return () => window.removeEventListener('focus', onFocus);
   }, [fetchDbOutfits]);
+
+  useEffect(() => {
+    if (!player.isConfigured) return;
+    const reward = checkDailyLogin();
+    if (reward) {
+      setDailyReward(reward);
+    }
+  }, [player.isConfigured, checkDailyLogin]);
 
   useEffect(() => {
     if (player.logs.length > 0 && player.logs[0].type === 'LEVEL_UP') {
@@ -770,6 +781,11 @@ const App: React.FC = () => {
       {/* ── Overlays ── */}
       <Suspense fallback={null}>
         <AnimatePresence>
+          {dailyReward && (
+            <ErrorBoundary>
+              <DailyLoginModal reward={dailyReward} onClose={() => setDailyReward(null)} />
+            </ErrorBoundary>
+          )}
           {showLevelUp && (
             <ErrorBoundary>
               <LevelUpCinematic level={player.level} onComplete={() => setShowLevelUp(false)} />

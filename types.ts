@@ -22,7 +22,7 @@ export type Priority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 export type Rarity = 'COMMON' | 'RARE' | 'EPIC' | 'LEGENDARY' | 'MYTHIC';
 
 // --- DAILY REWARDS ---
-export type DailyRewardType = 'WELCOME_KEYS' | 'GOLD' | 'XP' | 'KEYS' | 'DUNGEON_PASS';
+export type DailyRewardType = 'WELCOME_KEYS' | 'GOLD' | 'XP' | 'KEYS' | 'DUNGEON_PASS' | 'HEALTH_POTION' | 'SHADOW_SCROLL' | 'ULT_ORB';
 
 export interface DailyReward {
   type: DailyRewardType;
