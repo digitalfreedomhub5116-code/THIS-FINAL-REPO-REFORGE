@@ -1,18 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { supabaseServer } from '../lib/supabase.js';
+import { requireAdmin } from '../lib/adminAuth.js';
 
 const router = Router();
-const ADMIN_SECRET = process.env.ADMIN_SECRET || 'system_admin_2025';
-
-function isAdmin(req: Request, res: Response): boolean {
-  const raw = req.headers['x-admin-token'];
-  const token = Array.isArray(raw) ? raw[0] : raw;
-  if (token !== ADMIN_SECRET) {
-    res.status(401).json({ error: 'Unauthorized' });
-    return false;
-  }
-  return true;
-}
 
 // GET /api/store/outfits — public
 router.get('/outfits', async (_req: Request, res: Response) => {
@@ -32,7 +22,7 @@ router.get('/outfits', async (_req: Request, res: Response) => {
 
 // POST /api/store/outfits — admin
 router.post('/outfits', async (req: Request, res: Response) => {
-  if (!isAdmin(req, res)) return;
+  if (!requireAdmin(req, res)) return;
   const {
     outfit_key, name, description = '', tier = 'E', cost = 0,
     accent_color = '#9ca3af', image_url = '', intro_video_url = '', loop_video_url = '',
@@ -63,7 +53,7 @@ router.post('/outfits', async (req: Request, res: Response) => {
 
 // PUT /api/store/outfits/:id — admin
 router.put('/outfits/:id', async (req: Request, res: Response) => {
-  if (!isAdmin(req, res)) return;
+  if (!requireAdmin(req, res)) return;
   const { id } = req.params;
   const {
     name, description, tier, cost, accent_color, image_url,
@@ -106,7 +96,7 @@ router.put('/outfits/:id', async (req: Request, res: Response) => {
 
 // DELETE /api/store/outfits/:id — admin
 router.delete('/outfits/:id', async (req: Request, res: Response) => {
-  if (!isAdmin(req, res)) return;
+  if (!requireAdmin(req, res)) return;
   const { id } = req.params;
   try {
     const { data: check, error: checkErr } = await (supabaseServer() as any)
@@ -131,7 +121,7 @@ router.delete('/outfits/:id', async (req: Request, res: Response) => {
 
 // POST /api/store/outfits/:id/set-default — admin
 router.post('/outfits/:id/set-default', async (req: Request, res: Response) => {
-  if (!isAdmin(req, res)) return;
+  if (!requireAdmin(req, res)) return;
   const { id } = req.params;
   try {
     await (supabaseServer() as any)

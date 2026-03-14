@@ -1,55 +1,82 @@
 import { Router, Request, Response } from 'express';
 import { supabaseServer } from '../lib/supabase.js';
+import { generateAdminToken, requireAdmin } from '../lib/adminAuth.js';
 
 const router = Router();
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || process.env.ADMIN_SECRET || 'system_admin_2025';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD!;
 const USD_TO_INR = 83.5;
 
-// IP-based lockout: 3 failures → blocked 30 minutes
-const failedAttempts = new Map<string, { count: number; blockedUntil: number }>();
 const MAX_ATTEMPTS = 3;
-const BLOCK_DURATION_MS = 30 * 60 * 1000;
+const BLOCK_DURATION_MS = 30 * 60 * 1000; // 30 minutes
 
 function getClientIp(req: Request): string {
   return (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.ip || 'unknown';
 }
 
-function requireAdmin(req: Request, res: Response): boolean {
-  const auth = req.headers['x-admin-token'];
-  if (auth !== ADMIN_PASSWORD) {
-    res.status(401).json({ error: 'Unauthorized' });
-    return false;
+// ── FIX 3: Audit log helper ────────────────────────────────
+async function logAdminAction(
+  action: string,
+  req: Request,
+  opts: { targetUser?: string | string[]; oldValue?: any; newValue?: any } = {}
+) {
+  try {
+    await (supabaseServer() as any).from('admin_audit_log').insert({
+      admin_id: 'admin',
+      action,
+      target_user: opts.targetUser || null,
+      old_value: opts.oldValue || null,
+      new_value: opts.newValue || null,
+      ip_address: getClientIp(req),
+    });
+  } catch (err) {
+    console.error('[AuditLog] Failed to write:', err);
   }
-  return true;
 }
 
-router.post('/verify', (req: Request, res: Response) => {
+// ── FIX 4: Supabase-persisted IP lockout ───────────────────
+router.post('/verify', async (req: Request, res: Response) => {
   const ip = getClientIp(req);
-  const record = failedAttempts.get(ip);
+  const sb = supabaseServer() as any;
 
-  // Check if IP is currently blocked
-  if (record && record.blockedUntil > Date.now()) {
-    const remainMin = Math.ceil((record.blockedUntil - Date.now()) / 60000);
+  // Check if IP is currently blocked (persisted in Supabase)
+  const { data: record } = await sb
+    .from('admin_failed_logins')
+    .select('attempt_count, blocked_until')
+    .eq('ip_address', ip)
+    .single();
+
+  if (record?.blocked_until && new Date(record.blocked_until) > new Date()) {
+    const remainMin = Math.ceil((new Date(record.blocked_until).getTime() - Date.now()) / 60000);
     return res.status(429).json({ authorized: false, error: `IP blocked. Try again in ${remainMin} minute(s).`, blocked: true });
   }
 
   const { password } = req.body;
   if (password === ADMIN_PASSWORD) {
-    failedAttempts.delete(ip);
-    return res.json({ authorized: true });
+    // Success — clear any failed attempt record
+    await sb.from('admin_failed_logins').delete().eq('ip_address', ip);
+    const token = generateAdminToken();
+    await logAdminAction('admin_login', req);
+    return res.json({ authorized: true, token });
   }
 
-  // Track failure
-  const current = failedAttempts.get(ip) || { count: 0, blockedUntil: 0 };
-  current.count += 1;
-  if (current.count >= MAX_ATTEMPTS) {
-    current.blockedUntil = Date.now() + BLOCK_DURATION_MS;
-    failedAttempts.set(ip, current);
+  // Track failure in Supabase
+  const currentCount = (record?.attempt_count || 0) + 1;
+  const blocked = currentCount >= MAX_ATTEMPTS
+    ? new Date(Date.now() + BLOCK_DURATION_MS).toISOString()
+    : null;
+
+  await sb.from('admin_failed_logins').upsert({
+    ip_address: ip,
+    attempt_count: currentCount,
+    blocked_until: blocked,
+    last_attempt: new Date().toISOString(),
+  });
+
+  if (currentCount >= MAX_ATTEMPTS) {
     return res.status(429).json({ authorized: false, error: 'Too many failed attempts. IP blocked for 30 minutes.', blocked: true });
   }
-  failedAttempts.set(ip, current);
-  const remaining = MAX_ATTEMPTS - current.count;
+  const remaining = MAX_ATTEMPTS - currentCount;
   return res.status(401).json({ authorized: false, error: `ACCESS DENIED. ${remaining} attempt(s) remaining.` });
 });
 
@@ -101,6 +128,7 @@ router.post('/users/:id/ban', async (req: Request, res: Response) => {
       .single();
     
     if (error) throw error;
+    await logAdminAction('ban_user', req, { targetUser: id, oldValue: { cheat_strikes: userData?.cheat_strikes || 0 }, newValue: { cheat_strikes: newStrikes, is_banned: isBanned } });
     return res.json(data);
   } catch (err) {
     console.error('[Admin ban user]', err);
@@ -132,6 +160,7 @@ router.post('/users/:id/givegold', async (req: Request, res: Response) => {
       .single();
     
     if (updateError) throw updateError;
+    await logAdminAction('give_gold', req, { targetUser: id, oldValue: { gold: data?.gold || 0 }, newValue: { gold: newGold } });
     return res.json({ success: true, gold: updatedData?.gold });
   } catch (err) {
     console.error('[Admin give gold]', err);
@@ -163,6 +192,7 @@ router.post('/users/:id/givekeys', async (req: Request, res: Response) => {
       .single();
     
     if (updateError) throw updateError;
+    await logAdminAction('give_keys', req, { targetUser: id, oldValue: { keys: data?.keys || 0 }, newValue: { keys: newKeys } });
     return res.json({ success: true, keys: updatedData?.keys });
   } catch (err) {
     console.error('[Admin give keys]', err);
@@ -179,6 +209,7 @@ router.delete('/users/:id', async (req: Request, res: Response) => {
       .delete()
       .eq('supabase_id', id);
     if (error) throw error;
+    await logAdminAction('delete_user', req, { targetUser: id });
     return res.json({ success: true });
   } catch (err) {
     console.error('[Admin delete user]', err);
@@ -226,6 +257,7 @@ router.post('/users/:id/adjust-strikes', async (req: Request, res: Response) => 
       .select('supabase_id, cheat_strikes, is_banned')
       .single();
     if (error) throw error;
+    await logAdminAction('adjust_strikes', req, { targetUser: id, oldValue: { cheat_strikes: current?.cheat_strikes || 0, is_banned: current?.is_banned }, newValue: { cheat_strikes: newStrikes, is_banned: isBanned, delta } });
     return res.json({ success: true, cheat_strikes: data.cheat_strikes, is_banned: data.is_banned });
   } catch (err) {
     console.error('[Admin adjust-strikes]', err);
@@ -244,6 +276,7 @@ router.post('/users/:id/unban', async (req: Request, res: Response) => {
       .select('supabase_id, username, is_banned, cheat_strikes')
       .single();
     if (error) throw error;
+    await logAdminAction('unban_user', req, { targetUser: id, newValue: { is_banned: false, cheat_strikes: 0 } });
     return res.json({ success: true, user: data });
   } catch (err) {
     console.error('[Admin unban]', err);
@@ -271,6 +304,7 @@ router.post('/users/:id/adjust-gold', async (req: Request, res: Response) => {
       .select('gold')
       .single();
     if (updateError) throw updateError;
+    await logAdminAction('adjust_gold', req, { targetUser: id, oldValue: { gold: data?.gold || 0 }, newValue: { gold: newGold } });
     return res.json({ success: true, gold: updated?.gold });
   } catch (err) {
     console.error('[Admin adjust-gold]', err);
@@ -298,6 +332,7 @@ router.post('/users/:id/adjust-keys', async (req: Request, res: Response) => {
       .select('keys')
       .single();
     if (updateError) throw updateError;
+    await logAdminAction('adjust_keys', req, { targetUser: id, oldValue: { keys: data?.keys || 0 }, newValue: { keys: newKeys } });
     return res.json({ success: true, keys: updated?.keys });
   } catch (err) {
     console.error('[Admin adjust-keys]', err);
@@ -417,6 +452,7 @@ router.post('/store/outfits', async (req: Request, res: Response) => {
       .single();
     
     if (error) throw error;
+    await logAdminAction('create_outfit', req, { newValue: { id: data?.id, name: outfit.name } });
     return res.json(data);
   } catch (err) {
     console.error('[Admin create outfit]', err);
@@ -437,6 +473,7 @@ router.put('/store/outfits/:id', async (req: Request, res: Response) => {
       .single();
     
     if (error) throw error;
+    await logAdminAction('update_outfit', req, { targetUser: id, newValue: { name: outfit.name } });
     return res.json(data);
   } catch (err) {
     console.error('[Admin update outfit]', err);
@@ -454,6 +491,7 @@ router.delete('/store/outfits/:id', async (req: Request, res: Response) => {
       .eq('id', id);
     
     if (error) throw error;
+    await logAdminAction('delete_outfit', req, { targetUser: id });
     return res.json({ success: true });
   } catch (err) {
     console.error('[Admin delete outfit]', err);
@@ -490,6 +528,7 @@ router.post('/exercises', async (req: Request, res: Response) => {
       .single();
     
     if (error) throw error;
+    await logAdminAction('create_exercise', req, { newValue: { id: data?.id, name: exercise.name } });
     return res.json(data);
   } catch (err) {
     console.error('[Admin create exercise]', err);
@@ -510,6 +549,7 @@ router.put('/exercises/:id', async (req: Request, res: Response) => {
       .single();
     
     if (error) throw error;
+    await logAdminAction('update_exercise', req, { targetUser: id, newValue: { name: exercise.name } });
     return res.json(data);
   } catch (err) {
     console.error('[Admin update exercise]', err);
@@ -527,6 +567,7 @@ router.delete('/exercises/:id', async (req: Request, res: Response) => {
       .eq('id', id);
     
     if (error) throw error;
+    await logAdminAction('delete_exercise', req, { targetUser: id });
     return res.json({ success: true });
   } catch (err) {
     console.error('[Admin delete exercise]', err);

@@ -1,8 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { supabaseServer } from '../lib/supabase.js';
+import { requireAdmin } from '../lib/adminAuth.js';
 
 const router = Router();
-const ADMIN_SECRET = process.env.ADMIN_PASSWORD || 'system_admin_2025';
 
 router.get('/', async (_req: Request, res: Response) => {
   try {
@@ -24,11 +24,7 @@ router.get('/', async (_req: Request, res: Response) => {
 });
 
 router.put('/', async (req: Request, res: Response) => {
-  const raw = req.headers['x-admin-token'];
-  const token = Array.isArray(raw) ? raw[0] : raw;
-  if (token !== ADMIN_SECRET) {
-    return res.status(403).json({ error: 'Forbidden' });
-  }
+  if (!requireAdmin(req, res)) return;
   try {
     const videos = req.body;
     if (!videos || typeof videos !== 'object') {

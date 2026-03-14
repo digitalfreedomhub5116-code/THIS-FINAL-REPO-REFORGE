@@ -25,8 +25,8 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onBack }) => {
         body: JSON.stringify({ password }),
       });
       const data = await res.json();
-      if (data.authorized) {
-        onLoginSuccess(password);
+      if (data.authorized && data.token) {
+        onLoginSuccess(data.token);
       } else {
         setError(data.error || 'ACCESS DENIED.');
         setIsLoading(false);

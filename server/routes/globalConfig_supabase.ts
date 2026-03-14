@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { supabaseServer } from '../lib/supabase.js';
+import { requireAdmin } from '../lib/adminAuth.js';
 
 const router = Router();
 
@@ -29,12 +30,8 @@ router.get('/:key', async (req: Request, res: Response) => {
 });
 
 router.put('/:key', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
   const { key } = req.params;
-  const adminToken = req.headers['x-admin-token'];
-  const ADMIN_SECRET = process.env.ADMIN_PASSWORD || 'system_admin_2025';
-  if (adminToken !== ADMIN_SECRET) {
-    return res.status(403).json({ error: 'Forbidden' });
-  }
   try {
     const { value } = req.body;
     const { error } = await (supabaseServer() as any)

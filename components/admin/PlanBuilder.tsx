@@ -154,8 +154,8 @@ const PlanBuilder: React.FC<{ adminToken: string }> = ({ adminToken }) => {
     setLoading(true);
     try {
       const [plansRes, exRes] = await Promise.all([
-        fetch('/api/admin/plans', { headers: { 'x-admin-token': adminToken } }),
-        fetch('/api/admin/exercises', { headers: { 'x-admin-token': adminToken } }),
+        fetch('/api/admin/plans', { headers: { 'Authorization': `Bearer ${adminToken}` } }),
+        fetch('/api/admin/exercises', { headers: { 'Authorization': `Bearer ${adminToken}` } }),
       ]);
       const plansData = await plansRes.json();
       const exData = await exRes.json();
@@ -199,7 +199,7 @@ const PlanBuilder: React.FC<{ adminToken: string }> = ({ adminToken }) => {
     try {
       const url = editing ? `/api/admin/plans/${editing.id}` : '/api/admin/plans';
       const method = editing ? 'PUT' : 'POST';
-      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json', 'x-admin-token': adminToken }, body: JSON.stringify(form) });
+      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminToken}` }, body: JSON.stringify(form) });
       if (!res.ok) throw new Error('Save failed');
       setMsg({ type: 'success', text: editing ? 'Plan updated' : 'Plan created' });
       setShowForm(false);
@@ -210,7 +210,7 @@ const PlanBuilder: React.FC<{ adminToken: string }> = ({ adminToken }) => {
 
   const deletePlan = async (id: number) => {
     try {
-      await fetch(`/api/admin/plans/${id}`, { method: 'DELETE', headers: { 'x-admin-token': adminToken } });
+      await fetch(`/api/admin/plans/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${adminToken}` } });
       setPlans(prev => prev.filter(p => p.id !== id));
       setConfirmDelete(null);
       setMsg({ type: 'success', text: 'Plan deleted' });

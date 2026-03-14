@@ -117,7 +117,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
   const fetchUsers = async () => {
       try {
           const res = await fetch('/api/admin/users', {
-              headers: { 'x-admin-token': adminToken }
+              headers: { 'Authorization': `Bearer ${adminToken}` }
           });
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const data = await res.json();
@@ -131,7 +131,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
       try {
           const res = await fetch(`/api/admin/users/${id}/ban`, {
               method: 'POST',
-              headers: { 'x-admin-token': adminToken },
+              headers: { 'Authorization': `Bearer ${adminToken}` },
           });
           const data = await res.json();
           if (data.success) {
@@ -150,7 +150,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
       try {
           const res = await fetch(`/api/admin/users/${id}/unban`, {
               method: 'POST',
-              headers: { 'x-admin-token': adminToken },
+              headers: { 'Authorization': `Bearer ${adminToken}` },
           });
           const data = await res.json();
           if (data.success) {
@@ -170,7 +170,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
       try {
           const res = await fetch(`/api/admin/users/${id}/adjust-gold`, {
               method: 'POST',
-              headers: { 'x-admin-token': adminToken, 'Content-Type': 'application/json' },
+              headers: { 'Authorization': `Bearer ${adminToken}`, 'Content-Type': 'application/json' },
               body: JSON.stringify({ amount: delta }),
           });
           const data = await res.json();
@@ -186,7 +186,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
       try {
           const res = await fetch(`/api/admin/users/${id}/adjust-keys`, {
               method: 'POST',
-              headers: { 'x-admin-token': adminToken, 'Content-Type': 'application/json' },
+              headers: { 'Authorization': `Bearer ${adminToken}`, 'Content-Type': 'application/json' },
               body: JSON.stringify({ amount: delta }),
           });
           const data = await res.json();
@@ -202,7 +202,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
       try {
           const res = await fetch(`/api/admin/users/${id}/adjust-strikes`, {
               method: 'POST',
-              headers: { 'x-admin-token': adminToken, 'Content-Type': 'application/json' },
+              headers: { 'Authorization': `Bearer ${adminToken}`, 'Content-Type': 'application/json' },
               body: JSON.stringify({ delta }),
           });
           const data = await res.json();
@@ -222,7 +222,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
       try {
           const res = await fetch(`/api/admin/users/${id}`, {
               method: 'DELETE',
-              headers: { 'x-admin-token': adminToken },
+              headers: { 'Authorization': `Bearer ${adminToken}` },
           });
           const data = await res.json();
           if (data.success) {
@@ -238,7 +238,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
       setViewUserLoading(true);
       try {
           const res = await fetch(`/api/admin/users/${id}/data`, {
-              headers: { 'x-admin-token': adminToken },
+              headers: { 'Authorization': `Bearer ${adminToken}` },
           });
           const data = await res.json();
           setViewUserData(data);
@@ -252,7 +252,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
   const fetchUsage = async (period = usagePeriod) => {
       setUsageLoading(true);
       try {
-          const res = await fetch(`/api/admin/usage?period=${period}`, { headers: { 'x-admin-token': adminToken } });
+          const res = await fetch(`/api/admin/usage?period=${period}`, { headers: { 'Authorization': `Bearer ${adminToken}` } });
           if (res.ok) setUsageData(await res.json());
       } catch (err) { console.error('Usage fetch error:', err); }
       finally { setUsageLoading(false); }
@@ -285,7 +285,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
   const fetchStoreOutfits = async () => {
       setStoreLoading(true);
       try {
-          const res = await fetch('/api/store/outfits', { headers: { 'x-admin-token': adminToken } });
+          const res = await fetch('/api/store/outfits', { headers: { 'Authorization': `Bearer ${adminToken}` } });
           const data = await res.json();
           setStoreOutfits(data || []);
       } catch { setStoreMsg({ type: 'error', text: 'Failed to load outfits' }); }
@@ -327,7 +327,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
           const method = editingOutfit ? 'PUT' : 'POST';
           const res = await fetch(url, {
               method,
-              headers: { 'Content-Type': 'application/json', 'x-admin-token': adminToken },
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminToken}` },
               body: JSON.stringify(outfitForm),
           });
           if (!res.ok) { const e = await res.json(); throw new Error(e.error || 'Save failed'); }
@@ -344,7 +344,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
       try {
           const res = await fetch(`/api/store/outfits/${id}`, {
               method: 'DELETE',
-              headers: { 'x-admin-token': adminToken },
+              headers: { 'Authorization': `Bearer ${adminToken}` },
           });
           if (!res.ok) { const e = await res.json(); throw new Error(e.error || 'Delete failed'); }
           setStoreMsg({ type: 'success', text: 'Outfit removed.' });
@@ -360,7 +360,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
       try {
           await fetch(`/api/store/outfits/${id}/set-default`, {
               method: 'POST',
-              headers: { 'x-admin-token': adminToken },
+              headers: { 'Authorization': `Bearer ${adminToken}` },
           });
           setStoreMsg({ type: 'success', text: 'Default outfit updated globally!' });
           fetchStoreOutfits();

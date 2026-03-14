@@ -35,7 +35,7 @@ const ExerciseLibrary: React.FC<{ adminToken: string }> = ({ adminToken }) => {
   const fetchExercises = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/exercises', { headers: { 'x-admin-token': adminToken } });
+      const res = await fetch('/api/admin/exercises', { headers: { 'Authorization': `Bearer ${adminToken}` } });
       const data = await res.json();
       setExercises(Array.isArray(data) ? data : []);
     } catch { setMsg({ type: 'error', text: 'Failed to load exercises' }); }
@@ -57,7 +57,7 @@ const ExerciseLibrary: React.FC<{ adminToken: string }> = ({ adminToken }) => {
     try {
       const url = editing ? `/api/admin/exercises/${editing.id}` : '/api/admin/exercises';
       const method = editing ? 'PUT' : 'POST';
-      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json', 'x-admin-token': adminToken }, body: JSON.stringify(form) });
+      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminToken}` }, body: JSON.stringify(form) });
       if (!res.ok) throw new Error('Save failed');
       setMsg({ type: 'success', text: editing ? 'Exercise updated' : 'Exercise created' });
       setShowForm(false);
@@ -68,7 +68,7 @@ const ExerciseLibrary: React.FC<{ adminToken: string }> = ({ adminToken }) => {
 
   const deleteExercise = async (id: number) => {
     try {
-      await fetch(`/api/admin/exercises/${id}`, { method: 'DELETE', headers: { 'x-admin-token': adminToken } });
+      await fetch(`/api/admin/exercises/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${adminToken}` } });
       setExercises(prev => prev.filter(e => e.id !== id));
       setConfirmDelete(null);
       setMsg({ type: 'success', text: 'Exercise deleted' });

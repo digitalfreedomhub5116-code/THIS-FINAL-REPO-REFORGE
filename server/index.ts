@@ -23,6 +23,15 @@ dotenv.config({ path: join(__dirname, '..', '.env') });
 // No need for PostgreSQL migrations since we're using Supabase
 
 async function startServer() {
+  // ── Required environment variables — refuse to start if missing ──
+  const requiredEnvVars = ['ADMIN_PASSWORD', 'JWT_SECRET'];
+  for (const key of requiredEnvVars) {
+    if (!process.env[key]) {
+      console.error(`\n[FATAL] ${key} environment variable is required. Server cannot start without it.\n`);
+      process.exit(1);
+    }
+  }
+
   // Import routes
   const { setupGoogleAuth } = await import('./auth/googleAuth.js');
   const localAuthRouter = await import('./auth/localAuth_supabase_fixed.js');

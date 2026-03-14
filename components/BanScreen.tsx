@@ -24,14 +24,14 @@ const BanScreen: React.FC<BanScreenProps> = ({ userId, onAdminUnban }) => {
         body: JSON.stringify({ password }),
       });
       const verifyData = await verifyRes.json();
-      if (!verifyData.authorized) {
+      if (!verifyData.authorized || !verifyData.token) {
         setStatus('error');
         setTimeout(() => setStatus('idle'), 2000);
         return;
       }
       const res = await fetch(`/api/admin/users/${userId}/unban`, {
         method: 'POST',
-        headers: { 'x-admin-token': password },
+        headers: { 'Authorization': `Bearer ${verifyData.token}` },
       });
       if (!res.ok) throw new Error('API error');
       setStatus('success');

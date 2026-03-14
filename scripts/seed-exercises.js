@@ -1,20 +1,22 @@
 const http = require('http');
 
-const ADMIN_TOKEN = 'system_admin_2025';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+if (!ADMIN_PASSWORD) { console.error('ERROR: ADMIN_PASSWORD environment variable is required'); process.exit(1); }
 const BASE_URL = 'http://localhost:8000';
+
+let bearerToken = null;
 
 function request(method, path, body) {
   return new Promise((resolve, reject) => {
     const data = body ? JSON.stringify(body) : null;
+    const headers = { 'Content-Type': 'application/json' };
+    if (bearerToken) headers['Authorization'] = `Bearer ${bearerToken}`;
     const opts = {
       hostname: 'localhost',
       port: 8000,
       path,
       method,
-      headers: {
-        'x-admin-token': ADMIN_TOKEN,
-        'Content-Type': 'application/json',
-      },
+      headers,
     };
     const req = http.request(opts, (res) => {
       let raw = '';
@@ -28,6 +30,17 @@ function request(method, path, body) {
     if (data) req.write(data);
     req.end();
   });
+}
+
+async function authenticate() {
+  console.log('🔐 Authenticating with admin password...');
+  const res = await request('POST', '/api/admin/verify', { password: ADMIN_PASSWORD });
+  if (!res.body.authorized || !res.body.token) {
+    console.error('Authentication failed:', res.body);
+    process.exit(1);
+  }
+  bearerToken = res.body.token;
+  console.log('✅ Authenticated — JWT token received\n');
 }
 
 // ─── Exercise definition helpers ────────────────────────────────────────────
@@ -296,6 +309,7 @@ for (const e of ALL_EXERCISES) {
 }
 
 async function run() {
+  await authenticate();
   console.log('\n🔍 Fetching existing exercises from database...');
   const res = await request('GET', '/api/admin/exercises');
   if (!Array.isArray(res.body)) {
