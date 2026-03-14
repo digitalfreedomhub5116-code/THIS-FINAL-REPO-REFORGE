@@ -5,6 +5,7 @@ import {
   ReplitUser
 } from '../types';
 import { playSystemSoundEffect } from '../utils/soundEngine';
+import { getPlayerAuthHeaders } from '../lib/playerApi';
 
 export const isEmbed = (url: string) => {
   return url.includes('youtube.com/embed') || url.includes('player.vimeo.com');
@@ -63,6 +64,7 @@ const DEFAULT_PLAYER: PlayerData = {
   country: 'United States',
   timezone: 'UTC',
   cheatStrikes: 0,
+  totalStrikesEver: 0,
   isBanned: false,
   trustScore: 100,
   duskUnreadCount: 1,
@@ -206,7 +208,7 @@ export const useSystem = () => {
     try {
       await fetch(`/api/player/${data.userId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
         credentials: 'include',
         body: JSON.stringify(data)
       });
@@ -1028,7 +1030,9 @@ export const useSystem = () => {
   };
 
   const recordStrike = useCallback(() => {
+    let capturedUserId: string | undefined;
     setPlayer(prev => {
+      capturedUserId = prev.userId;
       const strikes = (prev.cheatStrikes || 0) + 1;
       let { currentXp, level } = prev;
       let logs = [...prev.logs];
@@ -1055,6 +1059,28 @@ export const useSystem = () => {
       const trustScore = Math.max(0, (prev.trustScore ?? 100) - 15);
       return { ...prev, cheatStrikes: strikes, trustScore, currentXp: Math.max(0, currentXp), level, logs };
     });
+
+    // Persist strike to DB via dedicated endpoint (fire-and-forget, outside state updater)
+    setTimeout(() => {
+      if (capturedUserId && !capturedUserId.startsWith('local')) {
+        fetch(`/api/player/${capturedUserId}/record-strike`, {
+          method: 'POST',
+          headers: { ...getPlayerAuthHeaders() },
+          credentials: 'include',
+        }).then(res => {
+          if (!res.ok) {
+            console.error(`[ForgeGuard] Strike sync failed: ${res.status} ${res.statusText}`);
+            addNotification('Strike sync failed — contact support.', 'SYSTEM');
+          } else {
+            // Trigger immediate DB sync so homepage + admin panel update in real-time
+            window.dispatchEvent(new Event('reforge:sync-needed'));
+          }
+        }).catch(err => {
+          console.error('[ForgeGuard] Strike sync network error:', err);
+          addNotification('Strike sync failed — contact support.', 'SYSTEM');
+        });
+      }
+    }, 0);
   }, [addNotification]);
 
   const removeStrike = useCallback(() => {

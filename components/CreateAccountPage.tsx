@@ -37,6 +37,7 @@ const CreateAccountPage: React.FC<CreateAccountPageProps> = ({ onLogin, onNaviga
         const res = await fetch('/api/auth/local/whoami', { credentials: 'include' });
         if (res.ok) {
           const json = await res.json();
+          if (json.playerToken) localStorage.setItem('reforge_player_token', json.playerToken);
           const user: ReplitUser = json.user || json;
           if (user?.id || (user as any)?.supabase_id) {
             await loginWithUser(user);
@@ -55,7 +56,8 @@ const CreateAccountPage: React.FC<CreateAccountPageProps> = ({ onLogin, onNaviga
   const loginWithUser = async (user: ReplitUser) => {
     let playerData: Partial<PlayerData> = {};
     try {
-      const playerRes = await fetch(`/api/player/${user.id}`, { credentials: 'include' });
+      const token = localStorage.getItem('reforge_player_token');
+      const playerRes = await fetch(`/api/player/${user.id}`, { credentials: 'include', headers: token ? { Authorization: `Bearer ${token}` } : {} });
       if (playerRes.ok) {
         const row = await playerRes.json();
         if (row?.raw_data) playerData = row.raw_data as Partial<PlayerData>;
@@ -117,6 +119,7 @@ const CreateAccountPage: React.FC<CreateAccountPageProps> = ({ onLogin, onNaviga
         setError(data.error || 'Registration failed');
         return;
       }
+      if (data.playerToken) localStorage.setItem('reforge_player_token', data.playerToken);
       await loginWithUser(data.user || data);
     } catch {
       setError('Connection error — please try again');
@@ -144,6 +147,7 @@ const CreateAccountPage: React.FC<CreateAccountPageProps> = ({ onLogin, onNaviga
         setError(data.error || 'Google sign-up failed');
         return;
       }
+      if (data.playerToken) localStorage.setItem('reforge_player_token', data.playerToken);
       // Map Google user data to ReplitUser format
       const googleUser = data.user || data;
       const replitUser: ReplitUser = {

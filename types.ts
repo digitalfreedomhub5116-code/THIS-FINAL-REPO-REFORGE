@@ -432,6 +432,7 @@ export interface PlayerData {
 
   // Anti-cheat
   cheatStrikes: number;
+  totalStrikesEver: number;
   isBanned: boolean;
 
   // Dusk AI

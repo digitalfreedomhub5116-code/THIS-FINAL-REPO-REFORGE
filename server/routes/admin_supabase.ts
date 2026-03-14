@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { supabaseServer } from '../lib/supabase.js';
 import { generateAdminToken, requireAdmin } from '../lib/adminAuth.js';
+import { adminAdjustLocks } from './player_supabase.js';
 
 const router = Router();
 
@@ -85,7 +86,7 @@ router.get('/users', async (req: Request, res: Response) => {
   try {
     const { data, error } = await (supabaseServer() as any)
       .from('players')
-      .select('supabase_id, username, name, level, total_xp, rank, gold, keys, streak, is_banned, cheat_strikes, updated_at')
+      .select('supabase_id, username, name, level, total_xp, rank, gold, keys, streak, is_banned, cheat_strikes, total_strikes_ever, updated_at')
       .order('updated_at', { ascending: false })
       .limit(200);
     
@@ -101,10 +102,10 @@ router.post('/users/:id/ban', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
   const { id } = req.params;
   try {
-    // First get current user data
+    // First get current user data including raw_data to merge safely
     const { data: userData, error: fetchError } = await (supabaseServer() as any)
       .from('players')
-      .select('cheat_strikes')
+      .select('cheat_strikes, total_strikes_ever, raw_data')
       .eq('supabase_id', id)
       .single();
     
@@ -112,16 +113,16 @@ router.post('/users/:id/ban', async (req: Request, res: Response) => {
     
     const newStrikes = (userData?.cheat_strikes || 0) + 1;
     const isBanned = newStrikes >= 5;
+    const newTotalEver = (userData?.total_strikes_ever || 0) + 1;
+    const updatedRawData = { ...(userData?.raw_data || {}), cheatStrikes: newStrikes, isBanned };
     
     const { data, error } = await (supabaseServer() as any)
       .from('players')
       .update({
         cheat_strikes: newStrikes,
         is_banned: isBanned,
-        raw_data: {
-          cheatStrikes: newStrikes,
-          isBanned: isBanned
-        }
+        total_strikes_ever: newTotalEver,
+        raw_data: updatedRawData
       })
       .eq('supabase_id', id)
       .select()
@@ -144,22 +145,27 @@ router.post('/users/:id/givegold', async (req: Request, res: Response) => {
   try {
     const { data, error } = await (supabaseServer() as any)
       .from('players')
-      .select('gold')
+      .select('gold, raw_data')
       .eq('supabase_id', id)
       .single();
     
     if (error) throw error;
     
     const newGold = Math.max(0, (data?.gold || 0) + parseInt(amount));
+    const updatedRawData = { ...(data?.raw_data || {}), gold: newGold };
     
     const { data: updatedData, error: updateError } = await (supabaseServer() as any)
       .from('players')
-      .update({ gold: newGold })
+      .update({ gold: newGold, raw_data: updatedRawData })
       .eq('supabase_id', id)
       .select('gold')
       .single();
     
     if (updateError) throw updateError;
+    // Lock gold column for 5s so stale client syncToCloud doesn't overwrite
+    const goldLock = adminAdjustLocks.get(id as string) || {};
+    goldLock.gold = Date.now();
+    adminAdjustLocks.set(id as string, goldLock);
     await logAdminAction('give_gold', req, { targetUser: id, oldValue: { gold: data?.gold || 0 }, newValue: { gold: newGold } });
     return res.json({ success: true, gold: updatedData?.gold });
   } catch (err) {
@@ -176,22 +182,27 @@ router.post('/users/:id/givekeys', async (req: Request, res: Response) => {
   try {
     const { data, error } = await (supabaseServer() as any)
       .from('players')
-      .select('keys')
+      .select('keys, raw_data')
       .eq('supabase_id', id)
       .single();
     
     if (error) throw error;
     
     const newKeys = Math.max(0, (data?.keys || 0) + parseInt(amount));
+    const updatedRawData = { ...(data?.raw_data || {}), keys: newKeys };
     
     const { data: updatedData, error: updateError } = await (supabaseServer() as any)
       .from('players')
-      .update({ keys: newKeys })
+      .update({ keys: newKeys, raw_data: updatedRawData })
       .eq('supabase_id', id)
       .select('keys')
       .single();
     
     if (updateError) throw updateError;
+    // Lock keys column for 5s so stale client syncToCloud doesn't overwrite
+    const keysLock = adminAdjustLocks.get(id as string) || {};
+    keysLock.keys = Date.now();
+    adminAdjustLocks.set(id as string, keysLock);
     await logAdminAction('give_keys', req, { targetUser: id, oldValue: { keys: data?.keys || 0 }, newValue: { keys: newKeys } });
     return res.json({ success: true, keys: updatedData?.keys });
   } catch (err) {
@@ -242,17 +253,26 @@ router.post('/users/:id/adjust-strikes', async (req: Request, res: Response) => 
   try {
     const { data: current, error: fetchError } = await (supabaseServer() as any)
       .from('players')
-      .select('cheat_strikes, is_banned')
+      .select('cheat_strikes, is_banned, total_strikes_ever, raw_data, pending_notifications')
       .eq('supabase_id', id)
       .single();
     if (fetchError) throw fetchError;
 
     const newStrikes = Math.max(0, Math.min(5, (current?.cheat_strikes || 0) + delta));
     const isBanned = newStrikes >= 5;
+    const updatedRawData = { ...(current?.raw_data || {}), cheatStrikes: newStrikes, isBanned };
+    // Only increment lifetime counter when adding a strike, never on removal
+    const newTotalEver = delta === 1 ? (current?.total_strikes_ever || 0) + 1 : (current?.total_strikes_ever || 0);
+
+    // When reducing a strike, push a pending notification for the user
+    const pendingNotifs = Array.isArray(current?.pending_notifications) ? [...current.pending_notifications] : [];
+    if (delta === -1) {
+      pendingNotifs.push({ id: `strike_lifted_${Date.now()}`, type: 'strike_lifted', timestamp: new Date().toISOString() });
+    }
 
     const { data, error } = await (supabaseServer() as any)
       .from('players')
-      .update({ cheat_strikes: newStrikes, is_banned: isBanned })
+      .update({ cheat_strikes: newStrikes, is_banned: isBanned, total_strikes_ever: newTotalEver, raw_data: updatedRawData, pending_notifications: pendingNotifs })
       .eq('supabase_id', id)
       .select('supabase_id, cheat_strikes, is_banned')
       .single();
@@ -269,9 +289,18 @@ router.post('/users/:id/unban', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
   const { id } = req.params;
   try {
+    // Read current raw_data to merge safely
+    const { data: current, error: fetchError } = await (supabaseServer() as any)
+      .from('players')
+      .select('raw_data')
+      .eq('supabase_id', id)
+      .single();
+    if (fetchError) throw fetchError;
+    const updatedRawData = { ...(current?.raw_data || {}), cheatStrikes: 0, isBanned: false };
+
     const { data, error } = await (supabaseServer() as any)
       .from('players')
-      .update({ is_banned: false, cheat_strikes: 0 })
+      .update({ is_banned: false, cheat_strikes: 0, raw_data: updatedRawData })
       .eq('supabase_id', id)
       .select('supabase_id, username, is_banned, cheat_strikes')
       .single();
@@ -292,18 +321,23 @@ router.post('/users/:id/adjust-gold', async (req: Request, res: Response) => {
   try {
     const { data, error } = await (supabaseServer() as any)
       .from('players')
-      .select('gold')
+      .select('gold, raw_data')
       .eq('supabase_id', id)
       .single();
     if (error) throw error;
     const newGold = Math.max(0, (data?.gold || 0) + parseInt(amount));
+    const updatedRawData = { ...(data?.raw_data || {}), gold: newGold };
     const { data: updated, error: updateError } = await (supabaseServer() as any)
       .from('players')
-      .update({ gold: newGold })
+      .update({ gold: newGold, raw_data: updatedRawData })
       .eq('supabase_id', id)
       .select('gold')
       .single();
     if (updateError) throw updateError;
+    // Lock gold column for 5s so stale client syncToCloud doesn't overwrite
+    const lock = adminAdjustLocks.get(id as string) || {};
+    lock.gold = Date.now();
+    adminAdjustLocks.set(id as string, lock);
     await logAdminAction('adjust_gold', req, { targetUser: id, oldValue: { gold: data?.gold || 0 }, newValue: { gold: newGold } });
     return res.json({ success: true, gold: updated?.gold });
   } catch (err) {
@@ -320,18 +354,23 @@ router.post('/users/:id/adjust-keys', async (req: Request, res: Response) => {
   try {
     const { data, error } = await (supabaseServer() as any)
       .from('players')
-      .select('keys')
+      .select('keys, raw_data')
       .eq('supabase_id', id)
       .single();
     if (error) throw error;
     const newKeys = Math.max(0, (data?.keys || 0) + parseInt(amount));
+    const updatedRawData = { ...(data?.raw_data || {}), keys: newKeys };
     const { data: updated, error: updateError } = await (supabaseServer() as any)
       .from('players')
-      .update({ keys: newKeys })
+      .update({ keys: newKeys, raw_data: updatedRawData })
       .eq('supabase_id', id)
       .select('keys')
       .single();
     if (updateError) throw updateError;
+    // Lock keys column for 5s so stale client syncToCloud doesn't overwrite
+    const lock = adminAdjustLocks.get(id as string) || {};
+    lock.keys = Date.now();
+    adminAdjustLocks.set(id as string, lock);
     await logAdminAction('adjust_keys', req, { targetUser: id, oldValue: { keys: data?.keys || 0 }, newValue: { keys: newKeys } });
     return res.json({ success: true, keys: updated?.keys });
   } catch (err) {

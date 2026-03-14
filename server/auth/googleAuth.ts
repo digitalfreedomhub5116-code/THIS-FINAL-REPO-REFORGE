@@ -1,6 +1,7 @@
 import type { Express, RequestHandler } from 'express';
 import crypto from 'crypto';
 import { supabaseServer } from '../lib/supabase.js';
+import { generatePlayerToken } from '../lib/playerAuth.js';
 
 // Google token info endpoint — verifies ID tokens without needing a client library
 const GOOGLE_TOKEN_INFO_URL = 'https://oauth2.googleapis.com/tokeninfo';
@@ -131,9 +132,11 @@ export async function setupGoogleAuth(app: Express) {
       // Set session — non-fatal if session store fails
       (req as any).session.userId = userId;
       (req as any).session.authType = 'google';
+      const playerToken = generatePlayerToken(userId);
       const googlePayload = {
         message: 'Google login successful',
         user: { id: userId, username, name, email, avatar_url: picture },
+        playerToken,
       };
       (req as any).session.save((saveErr: any) => {
         if (saveErr) console.error('[Auth Google] Session save error (non-fatal):', saveErr);

@@ -1,7 +1,23 @@
 import { Router, Request, Response } from 'express';
 import { supabaseServer } from '../lib/supabase.js';
+import { getAuthenticatedUserId } from '../lib/playerAuth.js';
 
 const router = Router();
+
+// ── Admin adjustment lock: prevents stale client syncToCloud from overwriting recent admin changes ──
+// Key: playerId, Value: { gold?: timestamp, keys?: timestamp }
+export const adminAdjustLocks = new Map<string, { gold?: number; keys?: number }>();
+const ADMIN_LOCK_TTL_MS = 5000; // 5 seconds
+
+function isAdminLocked(playerId: string, field: 'gold' | 'keys'): boolean {
+  const lock = adminAdjustLocks.get(playerId);
+  if (!lock || !lock[field]) return false;
+  if (Date.now() - lock[field]! < ADMIN_LOCK_TTL_MS) return true;
+  // Expired — clean up
+  delete lock[field];
+  if (!lock.gold && !lock.keys) adminAdjustLocks.delete(playerId);
+  return false;
+}
 
 router.get('/codename/check', async (req: Request, res: Response) => {
   const name = ((req.query.name as string) || '').trim();
@@ -43,6 +59,7 @@ router.get('/:id', async (req: Request, res: Response) => {
       keys: row.keys,
       isBanned: row.is_banned,
       cheatStrikes: row.cheat_strikes,
+      totalStrikesEver: row.total_strikes_ever ?? 0,
     };
     return res.json({ ...row, raw_data: mergedRawData });
   } catch (err) {
@@ -53,8 +70,11 @@ router.get('/:id', async (req: Request, res: Response) => {
 
 router.put('/:id', async (req: Request, res: Response) => {
   const { id } = req.params;
-  const sessionUserId = (req.session as any)?.userId;
-  if (sessionUserId && sessionUserId !== id) {
+  const authUserId = getAuthenticatedUserId(req);
+  if (!authUserId) {
+    return res.status(401).json({ error: 'Unauthorized — no valid token or session' });
+  }
+  if (authUserId !== id) {
     return res.status(403).json({ error: 'Forbidden' });
   }
   const data = req.body;
@@ -63,28 +83,27 @@ router.put('/:id', async (req: Request, res: Response) => {
   }
 
   try {
-    // Fetch current DB gold/keys to prevent client sync from overwriting admin grants
-    const { data: current } = await (supabaseServer() as any)
-      .from('players')
-      .select('gold, keys')
-      .eq('supabase_id', id)
-      .single();
-
-    const safeGold = Math.max(data.gold || 0, current?.gold || 0);
-    const safeKeys = Math.max(data.keys || 0, current?.keys || 0);
+    // Strip cheatStrikes and isBanned from client data — only admin routes and /record-strike may write these
+    const { cheatStrikes: _strippedStrikes, isBanned: _strippedBan, ...cleanData } = data;
 
     // NEVER overwrite auth fields (email, password_hash, auth_type) from frontend sync
-    const playerData = {
-      username: data.username || data.name || ('u_' + id.slice(-8)),
-      name: data.name || 'Hunter',
-      level: data.level || 1,
-      current_xp: data.currentXp || 0,
-      required_xp: data.requiredXp || 100,
-      total_xp: data.totalXp || 0,
-      daily_xp: data.dailyXp || 0,
-      rank: data.rank || 'E',
-      gold: safeGold,
-      keys: safeKeys,
+    const goldLocked = isAdminLocked(id, 'gold');
+    const keysLocked = isAdminLocked(id, 'keys');
+
+    // Strip stale gold/keys from raw_data when admin recently adjusted them
+    const safeRawData = { ...cleanData };
+    if (goldLocked) delete safeRawData.gold;
+    if (keysLocked) delete safeRawData.keys;
+
+    const playerData: Record<string, any> = {
+      username: cleanData.username || cleanData.name || ('u_' + id.slice(-8)),
+      name: cleanData.name || 'Hunter',
+      level: cleanData.level || 1,
+      current_xp: cleanData.currentXp || 0,
+      required_xp: cleanData.requiredXp || 100,
+      total_xp: cleanData.totalXp || 0,
+      daily_xp: cleanData.dailyXp || 0,
+      rank: cleanData.rank || 'E',
       streak: data.streak || 0,
       hp: data.hp || 100,
       max_hp: data.maxHp || 100,
@@ -102,9 +121,12 @@ router.put('/:id', async (req: Request, res: Response) => {
       last_weekly_reset: data.lastWeeklyReset || null,
       last_monthly_reset: data.lastMonthlyReset || null,
       identity: data.identity || null,
-      raw_data: data,
+      raw_data: safeRawData,
       updated_at: new Date().toISOString()
     };
+    // Only write gold/keys columns if admin hasn't recently adjusted them
+    if (!goldLocked) playerData.gold = cleanData.gold || 0;
+    if (!keysLocked) playerData.keys = cleanData.keys || 0;
 
     // Use update (not upsert) to prevent creating duplicate rows
     const { data: result, error } = await (supabaseServer() as any)
@@ -135,6 +157,87 @@ router.put('/:id', async (req: Request, res: Response) => {
     return res.json(result);
   } catch (err) {
     console.error('[Player PUT]', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ── FIX 5: Clear a pending notification after user acknowledges it ──
+router.delete('/:id/notification/:notificationId', async (req: Request, res: Response) => {
+  const { id, notificationId } = req.params;
+  const authUserId = getAuthenticatedUserId(req);
+  if (!authUserId) {
+    return res.status(401).json({ error: 'Unauthorized — no valid token or session' });
+  }
+  if (authUserId !== id) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  try {
+    const { data: current, error: fetchError } = await (supabaseServer() as any)
+      .from('players')
+      .select('pending_notifications')
+      .eq('supabase_id', id)
+      .single();
+    if (fetchError) throw fetchError;
+
+    const notifications = Array.isArray(current?.pending_notifications) ? current.pending_notifications : [];
+    const filtered = notifications.filter((n: any) => n.id !== notificationId);
+
+    const { error } = await (supabaseServer() as any)
+      .from('players')
+      .update({ pending_notifications: filtered })
+      .eq('supabase_id', id);
+    if (error) throw error;
+
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('[Player clear notification]', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ── FIX 3: Dedicated strike endpoint for client-side ForgeGuard ──
+// Authenticated via user session (not admin). Increments cheat_strikes,
+// total_strikes_ever, sets is_banned at 5, merges raw_data.
+router.post('/:id/record-strike', async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const authUserId = getAuthenticatedUserId(req);
+  if (!authUserId) {
+    return res.status(401).json({ error: 'Unauthorized — no valid token or session' });
+  }
+  if (authUserId !== id) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  try {
+    const { data: current, error: fetchError } = await (supabaseServer() as any)
+      .from('players')
+      .select('cheat_strikes, total_strikes_ever, raw_data')
+      .eq('supabase_id', id)
+      .single();
+    if (fetchError) throw fetchError;
+
+    const newStrikes = Math.min(5, (current?.cheat_strikes || 0) + 1);
+    const isBanned = newStrikes >= 5;
+    const newTotalEver = (current?.total_strikes_ever || 0) + 1;
+    const updatedRawData = { ...(current?.raw_data || {}), cheatStrikes: newStrikes, isBanned };
+
+    const { data, error } = await (supabaseServer() as any)
+      .from('players')
+      .update({
+        cheat_strikes: newStrikes,
+        is_banned: isBanned,
+        total_strikes_ever: newTotalEver,
+        raw_data: updatedRawData
+      })
+      .eq('supabase_id', id)
+      .select('cheat_strikes, is_banned')
+      .single();
+    if (error) throw error;
+
+    return res.json({ success: true, cheat_strikes: data.cheat_strikes, is_banned: data.is_banned });
+  } catch (err) {
+    console.error('[Player record-strike]', err);
     return res.status(500).json({ error: 'Internal server error' });
   }
 });

@@ -16,6 +16,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { useSystem } from './hooks/useSystem';
 import { Tab, CoreStats, HealthProfile, Outfit, DbOutfit, TierLevel, PlayerData, Quest } from './types';
 import { OUTFITS } from './utils/gameData';
+import { getPlayerAuthHeaders } from './lib/playerApi';
 
 // ── Existing lazy imports ──
 const AdminLogin = lazy(() => import('./components/AdminLogin'));
@@ -58,6 +59,8 @@ const ProfileView = lazy(() => import('./components/ProfileView'));
 const RankUpCinematic = lazy(() => import('./components/RankUpCinematic'));
 const SystemPactScreen = lazy(() => import('./components/SystemPactScreen'));
 const ConfettiOverlay = lazy(() => import('./components/ConfettiOverlay'));
+const StrikeLiftedModal = lazy(() => import('./components/StrikeLiftedModal'));
+const ForgeGuardWidget = lazy(() => import('./components/ForgeGuardWidget'));
 
 // ── Types ──
 type OnboardingPhase = 'SPLASH' | 'WELCOME' | 'AGREEMENT' | 'NAMING' | 'CALIBRATION' | 'AUTH' | 'AUTH_SIGN_IN_PAGE' | 'AUTH_CREATE_PAGE' | 'AVATAR' | 'APP' | 'LOGOUT_CHOICE';
@@ -143,22 +146,25 @@ const App: React.FC = () => {
   const [tutorialAnalysisFailed, setTutorialAnalysisFailed] = useState(false);
   const [showDuskChat, setShowDuskChat] = useState(false);
   const [showBanReversalNotice, setShowBanReversalNotice] = useState(false);
+  const [strikeLiftedNotifId, setStrikeLiftedNotifId] = useState<string | null>(null);
 
-  // ── Real-time admin sync: poll DB every 8s for admin-driven changes ──
+  // ── Sync from DB — callable ref for immediate triggers + 2s polling ──
+  const syncFromDbRef = useRef<() => Promise<void>>();
   useEffect(() => {
     if (!player.userId || player.userId.startsWith('local')) return;
     banReversalShownRef.current = false;
     const syncFromDb = async () => {
       try {
-        const res = await fetch(`/api/player/${player.userId}`, { credentials: 'include' });
+        const res = await fetch(`/api/player/${player.userId}`, { credentials: 'include', headers: { ...getPlayerAuthHeaders() } });
         if (!res.ok) return;
         const row = await res.json();
         const rawData = row.raw_data as Partial<PlayerData> | null;
         if (!rawData) return;
-        const dbBanned  = rawData.isBanned   ?? false;
-        const dbStrikes = rawData.cheatStrikes ?? 0;
-        const dbGold    = rawData.gold        ?? 0;
-        const dbKeys    = rawData.keys        ?? 0;
+        const dbBanned  = rawData.isBanned       ?? false;
+        const dbStrikes = rawData.cheatStrikes   ?? 0;
+        const dbGold    = rawData.gold           ?? 0;
+        const dbKeys    = rawData.keys           ?? 0;
+        const dbTotalStrikes = rawData.totalStrikesEver ?? 0;
         setPlayer(prev => {
           const updates: Partial<PlayerData> = {};
           if (dbBanned !== prev.isBanned) {
@@ -168,16 +174,28 @@ const App: React.FC = () => {
               setTimeout(() => setShowBanReversalNotice(true), 50);
             }
           }
-          if (dbStrikes !== prev.cheatStrikes) updates.cheatStrikes = dbStrikes;
-          if (dbGold    >  prev.gold)          updates.gold         = dbGold;
-          if (dbKeys    >  prev.keys)          updates.keys         = dbKeys;
+          if (dbStrikes !== prev.cheatStrikes)           updates.cheatStrikes    = dbStrikes;
+          if (dbGold    !== prev.gold)                   updates.gold            = dbGold;
+          if (dbKeys    !== prev.keys)                   updates.keys            = dbKeys;
+          if (dbTotalStrikes !== prev.totalStrikesEver)  updates.totalStrikesEver = dbTotalStrikes;
           return Object.keys(updates).length > 0 ? { ...prev, ...updates } : prev;
         });
+
+        // Check for pending strike_lifted notifications
+        const pendingNotifs = Array.isArray(row.pending_notifications) ? row.pending_notifications : [];
+        const strikeLiftedNotif = pendingNotifs.find((n: any) => n.type === 'strike_lifted');
+        if (strikeLiftedNotif && !strikeLiftedNotifId) {
+          setStrikeLiftedNotifId(strikeLiftedNotif.id);
+        }
       } catch { /* ignore */ }
     };
+    syncFromDbRef.current = syncFromDb;
     syncFromDb();
-    const interval = setInterval(syncFromDb, 8000);
-    return () => clearInterval(interval);
+    const interval = setInterval(syncFromDb, 2000);
+    // Listen for immediate sync triggers (e.g. after recordStrike server success)
+    const onSyncNeeded = () => syncFromDb();
+    window.addEventListener('reforge:sync-needed', onSyncNeeded);
+    return () => { clearInterval(interval); window.removeEventListener('reforge:sync-needed', onSyncNeeded); };
   }, [player.userId]); // eslint-disable-line react-hooks/exhaustive-deps
   const [showCheatWarning, setShowCheatWarning] = useState(false);
   const [xpCollection, setXpCollection] = useState<XpCollectionState | null>(null);
@@ -215,19 +233,22 @@ const App: React.FC = () => {
       try {
         const res = await fetch('/api/auth/whoami', { credentials: 'include' });
         if (!res.ok) return;
-        const user = await res.json();
-        if (!user?.id) return;
+        const whoamiData = await res.json();
+        const user = whoamiData?.user || whoamiData;
+        if (!user?.id && !user?.supabase_id) return;
+        const uid = user.id || user.supabase_id;
+        if (whoamiData.playerToken) localStorage.setItem('reforge_player_token', whoamiData.playerToken);
 
         // Returning user — try to load their full player record from the DB.
         // This handles localStorage being cleared (mobile, new device, private mode, etc.)
         // while the Google session cookie is still valid.
         try {
-          const playerRes = await fetch(`/api/player/${user.id}`, { credentials: 'include' });
+          const playerRes = await fetch(`/api/player/${uid}`, { credentials: 'include', headers: { ...getPlayerAuthHeaders() } });
           if (playerRes.ok) {
             const row = await playerRes.json();
             const rawData = row.raw_data as Partial<PlayerData> | null;
             if (rawData?.isConfigured || rawData?.avatarUrl) {
-              registerUser({ id: user.id, name: user.firstName || rawData.name, raw_data: rawData });
+              registerUser({ id: uid, name: user.firstName || user.name || rawData.name, raw_data: rawData });
               return;
             }
           }
@@ -243,7 +264,7 @@ const App: React.FC = () => {
         if (savedUser || savedHealth || savedStats) {
           setPlayer(prev => ({
             ...prev,
-            userId: user.id || prev.userId,
+            userId: uid || prev.userId,
             ...(savedUser ? { country: savedUser.country, timezone: savedUser.tz } : {}),
             ...(savedHealth ? { healthProfile: savedHealth } : {}),
             ...(savedStats ? { stats: savedStats } : {}),
@@ -773,6 +794,25 @@ const App: React.FC = () => {
               </ErrorBoundary>
             </Suspense>
           )}
+          {strikeLiftedNotifId && (
+            <Suspense fallback={null}>
+              <StrikeLiftedModal
+                visible={true}
+                onAcknowledge={async () => {
+                  if (player.userId && strikeLiftedNotifId) {
+                    try {
+                      await fetch(`/api/player/${player.userId}/notification/${strikeLiftedNotifId}`, {
+                        method: 'DELETE',
+                        headers: { ...getPlayerAuthHeaders() },
+                        credentials: 'include',
+                      });
+                    } catch { /* ignore */ }
+                  }
+                  setStrikeLiftedNotifId(null);
+                }}
+              />
+            </Suspense>
+          )}
           {showCheatWarning && (
             <ErrorBoundary>
               <CheatWarningModal
@@ -907,6 +947,14 @@ const App: React.FC = () => {
                     maxXP={player.requiredXp}
                   />
                 </ErrorBoundary>
+              </Suspense>
+
+              {/* ForgeGuard Integrity — Strike Counter */}
+              <Suspense fallback={null}>
+                <ForgeGuardWidget
+                  cheatStrikes={player.cheatStrikes}
+                  totalStrikesEver={player.totalStrikesEver}
+                />
               </Suspense>
 
               {/* Monarch's Wardrobe Preview */}
@@ -1157,7 +1205,7 @@ const App: React.FC = () => {
                 if (player.userId && !player.userId.startsWith('local-') && !player.userId.startsWith('local_')) {
                   await fetch(`/api/player/${player.userId}`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
                     credentials: 'include',
                     body: JSON.stringify(player),
                   });
@@ -1169,6 +1217,7 @@ const App: React.FC = () => {
               } catch { /* ignore */ }
               // 3. Clear local storage and reset player state
               localStorage.removeItem('reforge_player_v2');
+              localStorage.removeItem('reforge_player_token');
               resetPlayer();
               // 4. Navigate directly to the chosen destination
               setOnboardingPhase(dest);

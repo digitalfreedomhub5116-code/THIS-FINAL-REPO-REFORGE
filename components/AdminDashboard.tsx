@@ -140,6 +140,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
                       ? { ...u, is_banned: data.is_banned, cheat_strikes: data.cheat_strikes }
                       : u
               ));
+              fetchUsers();
           }
       } catch (err) {
           console.error('Ban error:', err);
@@ -160,6 +161,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
                       ? { ...u, is_banned: updated.is_banned ?? false, cheat_strikes: updated.cheat_strikes ?? 0 }
                       : u
               ));
+              fetchUsers();
           }
       } catch (err) {
           console.error('Unban error:', err);
@@ -176,6 +178,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
           const data = await res.json();
           if (data.success) {
               setUsers(prev => prev.map(u => u.supabase_id === id ? { ...u, gold: data.gold } : u));
+              fetchUsers();
           }
       } catch (err) {
           console.error('Adjust gold error:', err);
@@ -192,6 +195,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
           const data = await res.json();
           if (data.success) {
               setUsers(prev => prev.map(u => u.supabase_id === id ? { ...u, keys: data.keys } : u));
+              fetchUsers();
           }
       } catch (err) {
           console.error('Adjust keys error:', err);
@@ -212,6 +216,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
                       ? { ...u, cheat_strikes: data.cheat_strikes, is_banned: data.is_banned }
                       : u
               ));
+              fetchUsers();
           }
       } catch (err) {
           console.error('Adjust strikes error:', err);
@@ -274,10 +279,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
       return () => clearInterval(interval);
   }, [activeTab, usagePeriod]);
 
-  // Real-time sync: poll every 5s on USERS tab to reflect player-side changes
+  // Real-time sync: poll every 2s on USERS tab to reflect player-side changes
   useEffect(() => {
       if (activeTab !== 'USERS') return;
-      const interval = setInterval(() => fetchUsers(), 5000);
+      const interval = setInterval(() => fetchUsers(), 2000);
       return () => clearInterval(interval);
   }, [activeTab]);
 
@@ -657,6 +662,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
                                                        className="text-[8px] bg-red-950/40 hover:bg-red-950/80 border border-red-900/60 text-red-400 px-1.5 py-0.5 rounded font-black uppercase transition-all disabled:opacity-25 disabled:cursor-not-allowed"
                                                    >+1</button>
                                                </div>
+                                               <div className="text-[8px] text-gray-600 font-mono mt-0.5">lifetime: {user.total_strikes_ever || 0} strikes</div>
                                            </td>
                                            {/* Actions: View Data, Delete */}
                                            <td className="p-3 text-right">

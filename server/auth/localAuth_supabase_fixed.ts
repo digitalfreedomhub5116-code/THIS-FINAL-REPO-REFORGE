@@ -2,6 +2,7 @@ import express from 'express';
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 import { supabaseServer } from '../lib/supabase.js';
+import { generatePlayerToken } from '../lib/playerAuth.js';
 
 const router = express.Router();
 
@@ -110,9 +111,11 @@ router.post('/register', async (req, res) => {
     // Set session — non-fatal if session store fails
     (req.session as any).userId = userId;
     (req.session as any).authType = 'local';
+    const playerToken = generatePlayerToken(userId);
     const successPayload = {
       message: 'Account created successfully',
-      user: { id: userId, username, name: username, email, level: 1, gold: 100, keys: 3 }
+      user: { id: userId, username, name: username, email, level: 1, gold: 100, keys: 3 },
+      playerToken,
     };
     req.session.save((saveErr) => {
       if (saveErr) console.error('[Auth Register] Session save error (non-fatal):', saveErr);
@@ -186,6 +189,7 @@ router.post('/login', async (req, res) => {
     // Set session — non-fatal if session store fails
     (req.session as any).userId = userData.supabase_id;
     (req.session as any).authType = 'local';
+    const playerToken = generatePlayerToken(userData.supabase_id);
     const loginPayload = {
       message: 'Login successful',
       user: {
@@ -196,7 +200,8 @@ router.post('/login', async (req, res) => {
         level: userData.level,
         gold: userData.gold,
         keys: userData.keys
-      }
+      },
+      playerToken,
     };
     req.session.save((saveErr) => {
       if (saveErr) console.error('[Auth Login] Session save error (non-fatal):', saveErr);
@@ -256,7 +261,8 @@ router.get('/whoami', async (req, res) => {
       return res.status(401).json({ error: 'User not found' });
     }
 
-    return res.json({ user });
+    const playerToken = generatePlayerToken(user.supabase_id);
+    return res.json({ user, playerToken });
   } catch (err) {
     console.error('[Local Auth Whoami]', err);
     return res.status(500).json({ error: 'Failed to get user info' });
