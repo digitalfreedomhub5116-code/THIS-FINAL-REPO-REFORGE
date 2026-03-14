@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Castle, X, HelpCircle, Check, Lock, Clock, ChevronDown, ChevronUp, Coins } from 'lucide-react';
+import { Castle, X, HelpCircle, Check, Lock, ChevronDown, ChevronUp, Coins } from 'lucide-react';
 import { DailyChestAnim, LegendaryChestAnim, AllianceChestAnim, ChestOpeningAnim } from './ChestAnimations';
 import { SystemCoin } from './icons/SystemCoin';
 import { SystemKey } from './icons/SystemKey';
@@ -31,8 +31,6 @@ interface RewardCard {
   label: string;
   color: string;
 }
-
-// Removed old DAILY_KEY and DAILY_CD_MS as we use the new system now
 
 const CHEST_CFG = {
   DAILY: {
@@ -100,13 +98,6 @@ const CHEST_CFG = {
 
 const CHEST_TYPES: ChestType[] = ['DAILY', 'LEGENDARY', 'ALLIANCE'];
 
-function formatMs(ms: number): string {
-  if (ms <= 0) return '';
-  const m = Math.floor(ms / 60000);
-  const s = Math.floor((ms % 60000) / 1000);
-  return m > 0 ? `${m}m ${s}s` : `${s}s`;
-}
-
 const getRewardIcon = (type: RewardCard['type']) => {
   switch (type) {
     case 'GOLD': return <SystemCoin size={26} />;
@@ -132,6 +123,9 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
   onConsumeKey,
   onAddRewards,
   onAddNotification,
+  streak,
+  hasClaimedDaily,
+  onOpenDailyCalendar,
 }) => {
   const [activeModal, setActiveModal] = useState<'NONE' | 'REWARDS' | 'DUNGEON'>('NONE');
   const [isChestLoaded, setIsChestLoaded] = useState(false);
@@ -144,9 +138,7 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
   const [activeTab, setActiveTab]           = useState<ChestType>('DAILY');
   const [expandedDropdown, setExpanded]     = useState<ChestType | null>(null);
 
-  const [nextDailyTime, setNextDailyTime] = useState<number>(0);
   const [now, setNow]                     = useState(Date.now());
-
 
   const carouselRef  = useRef<HTMLDivElement>(null);
   const cardRefs     = useRef<Record<ChestType, HTMLDivElement | null>>({ DAILY: null, LEGENDARY: null, ALLIANCE: null });
@@ -154,11 +146,6 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
   useEffect(() => {
     const iv = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(iv);
-  }, []);
-
-  useEffect(() => {
-    const saved = localStorage.getItem(DAILY_KEY);
-    if (saved) setNextDailyTime(parseInt(saved, 10));
   }, []);
 
   useEffect(() => {
@@ -180,8 +167,7 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
     }
   }, []);
 
-  const dailyMs        = Math.max(0, nextDailyTime - now);
-  const isDailyReady   = dailyMs <= 0;
+  const isDailyReady   = !hasClaimedDaily;
   const DUNGEON_CD     = 24 * 60 * 60 * 1000;
   const isDungeonReady = now >= (lastDungeonEntry + DUNGEON_CD);
 
@@ -233,11 +219,7 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
       card.type === 'XP'   ? card.amount : 0,
       card.type === 'KEYS' ? card.amount : 0,
     );
-    if (activeChest === 'DAILY') {
-      const next = Date.now() + DAILY_CD_MS;
-      setNextDailyTime(next);
-      localStorage.setItem(DAILY_KEY, next.toString());
-    }
+    // Daily chest is handled by Calendar now
     playSystemSoundEffect('LEVEL_UP');
     setActiveModal('NONE');
   };
@@ -252,7 +234,7 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
     const costBadge = type === 'DAILY'
       ? (isDailyReady
           ? <span className="flex items-center gap-1 text-[10px] font-black text-emerald-400"><Check size={10}/> READY</span>
-          : <span className="flex items-center gap-1 text-[10px] font-bold" style={{ color: cfg.color }}><Clock size={10}/> {formatMs(dailyMs)}</span>)
+          : <span className="flex items-center gap-1 text-[10px] font-bold" style={{ color: cfg.color }}><Check size={10}/> CLAIMED</span>)
       : <span className="flex items-center gap-1 text-[10px] font-bold text-purple-300"><SystemKey size={10}/> {cfg.cost}</span>;
 
     return (
@@ -361,8 +343,8 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
               }}
             >
               {locked
-                ? (type === 'DAILY' ? `${formatMs(dailyMs)} remaining` : `${cfg.cost} required`)
-                : 'CLAIM CHEST'}
+                ? (type === 'DAILY' ? 'ALREADY CLAIMED' : `${cfg.cost} required`)
+                : (type === 'DAILY' ? (isDailyReady ? 'CLAIM CHEST' : 'VIEW CALENDAR') : 'CLAIM CHEST')}
             </button>
           </div>
         </motion.div>
