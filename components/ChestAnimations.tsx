@@ -551,8 +551,12 @@ export const ChestOpeningAnim: React.FC<OpeningAnimProps> = ({ color, glowColor,
 
         {/* LID — animated upward; carries all three 3D faces */}
         <motion.g
-          animate={{ y: lidY }}
+          animate={{ 
+            y: lidY,
+            rotateX: phase === 'opening' || phase === 'burst' ? 15 : 0 
+          }}
           transition={{ duration: 0.55, ease: 'easeOut' }}
+          style={{ transformOrigin: 'top center' }}
         >
           <polygon points={LID_TOP}  fill={topFill}  stroke={color} strokeWidth={1.2} opacity={0.9} />
           <polygon points={LID_SIDE} fill={sideFill} stroke={color} strokeWidth={1.2} opacity={0.9} />

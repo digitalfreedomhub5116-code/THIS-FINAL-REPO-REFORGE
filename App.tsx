@@ -352,7 +352,11 @@ const App: React.FC = () => {
   const dailyCheckRef = useRef(false);
 
   useEffect(() => {
-    if (!player.isConfigured || dailyCheckRef.current) return;
+    if (!player.isConfigured) {
+      dailyCheckRef.current = false;
+      return;
+    }
+    if (dailyCheckRef.current) return;
     const reward = checkDailyLogin();
     if (reward) {
       setDailyReward(reward);
@@ -1133,6 +1137,7 @@ const App: React.FC = () => {
                     buyConsumable={buyConsumable}
                     streak={player.streak}
                     lastLoginDate={player.lastLoginDate}
+                    onOpenDailyCalendar={() => setShowDailyLogin(true)}
                     highlightDungeon={highlightDungeon}
                     onHighlightConsumed={() => setHighlightDungeon(false)}
                   />

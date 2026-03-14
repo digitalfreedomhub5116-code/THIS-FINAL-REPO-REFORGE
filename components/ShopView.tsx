@@ -23,6 +23,7 @@ interface ShopViewProps {
   buyConsumable?: (type: 'healthPotion' | 'shadowScroll' | 'ultOrb') => void;
   streak?: number;
   lastLoginDate?: string;
+  onOpenDailyCalendar?: () => void;
   highlightDungeon?: boolean;
   onHighlightConsumed?: () => void;
 }
@@ -99,6 +100,7 @@ const ShopView: React.FC<ShopViewProps> = ({
   buyConsumable,
   streak = 0,
   lastLoginDate = '',
+  onOpenDailyCalendar,
   highlightDungeon = false,
   onHighlightConsumed,
 }) => {
@@ -150,8 +152,6 @@ const ShopView: React.FC<ShopViewProps> = ({
   const todayStr = new Date().toISOString().split('T')[0];
   const claimedToday = lastLoginDate === todayStr;
   const currentStreakDay = Math.max(1, ((streak - 1) % 14) + 1);
-  const displayStart = Math.max(1, Math.min(currentStreakDay - 3, LOGIN_REWARDS.length - 6));
-  const visibleRewards = LOGIN_REWARDS.slice(displayStart - 1, displayStart + 6);
 
   return (
     <div id="tut-store" className="space-y-5 pb-10">
@@ -285,9 +285,13 @@ const ShopView: React.FC<ShopViewProps> = ({
             </div>
           </div>
 
-          {/* 7-day reward track */}
-          <div className="grid grid-cols-7 gap-1.5">
-            {visibleRewards.map((reward) => {
+          {/* 7-day reward track (Scrollable) */}
+          <div 
+             className="flex gap-1.5 overflow-x-auto pb-2 snap-x cursor-pointer" 
+             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+             onClick={onOpenDailyCalendar}
+          >
+            {LOGIN_REWARDS.map((reward) => {
               const dayNum   = reward.day;
               const isCurrent = dayNum === currentStreakDay;
               const isClaimed = claimedToday ? dayNum <= currentStreakDay : dayNum < currentStreakDay;
@@ -297,7 +301,7 @@ const ShopView: React.FC<ShopViewProps> = ({
               return (
                 <div
                   key={dayNum}
-                  className="flex flex-col items-center gap-1 rounded-xl p-1.5 relative"
+                  className="flex flex-col items-center gap-1 rounded-xl p-1.5 relative shrink-0 snap-start w-12"
                   style={{
                     background: isClaimed
                       ? 'rgba(34,197,94,0.08)'

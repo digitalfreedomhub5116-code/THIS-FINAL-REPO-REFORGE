@@ -365,12 +365,12 @@ const DemonCard: React.FC<DemonCardProps> = ({ data, isFlipped, isDimmed, onClic
                 style={{ transformStyle: "preserve-3d" }}
             >
                 {/* FRONT (HIDDEN INITIALLY) */}
-                <div className="absolute inset-0 backface-hidden shadow-xl rounded-xl" style={{ backfaceVisibility: 'hidden' }}>
+                <div className="absolute inset-0 shadow-xl rounded-xl" style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}>
                     <VintageCardBack />
                 </div>
 
                 {/* BACK (REVEALED) */}
-                <div className="absolute inset-0 backface-hidden shadow-xl rounded-xl" style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>
+                <div className="absolute inset-0 shadow-xl rounded-xl" style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>
                     <VintageCardFront data={data} />
                 </div>
             </motion.div>

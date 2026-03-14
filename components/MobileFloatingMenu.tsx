@@ -35,17 +35,22 @@ interface RewardCard {
 const CHEST_CFG = {
   DAILY: {
     label: 'Daily Reward',
-    subtitle: 'Log in daily to build your streak',
+    subtitle: 'Free daily loot crate',
     color: '#00d4ff',
     borderColor: 'rgba(0,212,255,0.6)',
     glowColor: 'rgba(0,212,255,0.25)',
     bg: 'linear-gradient(135deg, #001a22 0%, #002233 100%)',
-    rewards: [], // Handled by Calendar now
+    rewards: [
+      { type: 'GOLD' as const, amount: 200,  label: 'GOLD',   color: '#eab308' },
+      { type: 'XP'   as const, amount: 100,  label: 'EXP',    color: '#3b82f6' },
+      { type: 'KEYS' as const, amount: 1,    label: 'KEYS',   color: '#a855f7' },
+      { type: 'ITEM' as const, amount: 1,    label: 'POTION', color: '#ef4444' },
+    ],
     contents: [
-      { icon: '📅', text: '30-Day Cycle' },
-      { icon: '🔥', text: 'Streak Bonus' },
-      { icon: '🗝️', text: 'Milestones' },
-      { icon: '👑', text: 'Legendary' },
+      { icon: '🪙', text: '200 Gold' },
+      { icon: '⚡', text: '100 EXP' },
+      { icon: '🗝️', text: '1 Key' },
+      { icon: '🧪', text: '1 Potion' },
     ],
     cost: 'FREE',
     costType: 'timer' as const,
@@ -114,6 +119,9 @@ const CARD_POSITIONS = [
   { x:  72, y:  48 },
 ];
 
+const DAILY_CHEST_KEY = 'reforge_daily_chest_time';
+const DAILY_CHEST_CD = 24 * 60 * 60 * 1000;
+
 const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
   onEnterDungeon,
   onNavigateToDungeon,
@@ -139,11 +147,15 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
   const [expandedDropdown, setExpanded]     = useState<ChestType | null>(null);
 
   const [now, setNow]                     = useState(Date.now());
+  const [lastDailyChest, setLastDailyChest] = useState<number>(0);
 
   const carouselRef  = useRef<HTMLDivElement>(null);
   const cardRefs     = useRef<Record<ChestType, HTMLDivElement | null>>({ DAILY: null, LEGENDARY: null, ALLIANCE: null });
 
   useEffect(() => {
+    const stored = localStorage.getItem(DAILY_CHEST_KEY);
+    if (stored) setLastDailyChest(parseInt(stored, 10));
+
     const iv = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(iv);
   }, []);
@@ -167,12 +179,12 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
     }
   }, []);
 
-  const isDailyReady   = !hasClaimedDaily;
+  const isDailyReady   = now >= lastDailyChest + DAILY_CHEST_CD;
   const DUNGEON_CD     = 24 * 60 * 60 * 1000;
   const isDungeonReady = now >= (lastDungeonEntry + DUNGEON_CD);
 
   const isLocked = (t: ChestType) => {
-    if (t === 'DAILY')     return false; // Always allow opening calendar
+    if (t === 'DAILY')     return !isDailyReady;
     if (t === 'LEGENDARY') return keys < 7;
     return keys < 36;
   };
@@ -181,14 +193,9 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
     if (isLocked(type)) return;
     
     if (type === 'DAILY') {
-      if (onOpenDailyCalendar) {
-        setActiveModal('NONE');
-        onOpenDailyCalendar();
-      }
-      return;
-    }
-
-    if (type === 'LEGENDARY') {
+      localStorage.setItem(DAILY_CHEST_KEY, Date.now().toString());
+      setLastDailyChest(Date.now());
+    } else if (type === 'LEGENDARY') {
       const ok = await onConsumeKey(7);
       if (!ok) { onAddNotification('Need 7 Keys', 'WARNING'); return; }
     } else if (type === 'ALLIANCE') {
