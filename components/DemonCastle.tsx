@@ -448,23 +448,26 @@ const ImpactConfetti: React.FC<{ active: boolean }> = ({ active }) => {
     canvas.height = window.innerHeight;
 
     const particles: any[] = [];
-    const colors = ['#60a5fa', '#a855f7', '#fbbf24', '#34d399', '#f472b6'];
+    const colors = ['#60a5fa', '#a855f7', '#fbbf24', '#34d399', '#f472b6', '#ffffff', '#000000'];
+    const shapes = ['square', 'triangle', 'diamond'];
 
     // Create particles from left and right
-    for (let i = 0; i < 150; i++) {
+    for (let i = 0; i < 200; i++) {
       const isLeft = i % 2 === 0;
       particles.push({
-        x: isLeft ? 0 : canvas.width,
-        y: canvas.height * 0.5,
-        vx: (isLeft ? 1 : -1) * (Math.random() * 15 + 10),
-        vy: (Math.random() - 0.5) * 20,
-        gravity: 0.5,
+        x: isLeft ? -20 : canvas.width + 20,
+        y: canvas.height * (0.3 + Math.random() * 0.4),
+        vx: (isLeft ? 1 : -1) * (Math.random() * 25 + 15),
+        vy: (Math.random() - 0.5) * 35,
+        gravity: 0.6,
         color: colors[Math.floor(Math.random() * colors.length)],
-        size: Math.random() * 8 + 4,
+        shape: shapes[Math.floor(Math.random() * shapes.length)],
+        size: Math.random() * 10 + 5,
         rotation: Math.random() * Math.PI * 2,
-        rotationSpeed: (Math.random() - 0.5) * 0.2,
+        rotationSpeed: (Math.random() - 0.5) * 0.3,
         opacity: 1,
-        decay: Math.random() * 0.02 + 0.01
+        decay: Math.random() * 0.015 + 0.005,
+        drag: 0.94
       });
     }
 
@@ -480,7 +483,7 @@ const ImpactConfetti: React.FC<{ active: boolean }> = ({ active }) => {
         p.x += p.vx;
         p.y += p.vy;
         p.vy += p.gravity;
-        p.vx *= 0.95; // Drag
+        p.vx *= p.drag;
         p.rotation += p.rotationSpeed;
         p.opacity -= p.decay;
 
@@ -489,7 +492,26 @@ const ImpactConfetti: React.FC<{ active: boolean }> = ({ active }) => {
         ctx.rotate(p.rotation);
         ctx.globalAlpha = p.opacity;
         ctx.fillStyle = p.color;
-        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+
+        if (p.shape === 'square') {
+            ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+        } else if (p.shape === 'triangle') {
+            ctx.beginPath();
+            ctx.moveTo(0, -p.size / 2);
+            ctx.lineTo(p.size / 2, p.size / 2);
+            ctx.lineTo(-p.size / 2, p.size / 2);
+            ctx.closePath();
+            ctx.fill();
+        } else if (p.shape === 'diamond') {
+            ctx.beginPath();
+            ctx.moveTo(0, -p.size / 2);
+            ctx.lineTo(p.size / 2, 0);
+            ctx.lineTo(0, p.size / 2);
+            ctx.lineTo(-p.size / 2, 0);
+            ctx.closePath();
+            ctx.fill();
+        }
+        
         ctx.restore();
       });
 
@@ -522,7 +544,6 @@ const SequentialReward: React.FC<{
   useEffect(() => {
     if (!start || hasRun.current) return;
     
-    // Zero handling: if 0, just show it dimmed immediately (or after delay)
     if (value <= 0) {
        const t = setTimeout(() => {
          setDisplayValue(0);
@@ -534,20 +555,22 @@ const SequentialReward: React.FC<{
 
     const t = setTimeout(() => {
       let startTime: number;
-      const duration = 1500; // 1.5s spin up
+      const duration = 2500; // Slower, dramatic count up (2.5s)
       let lastSoundTime = 0;
       
       const animate = (timestamp: number) => {
         if (!startTime) startTime = timestamp;
         const progress = Math.min((timestamp - startTime) / duration, 1);
-        const ease = 1 - Math.pow(1 - progress, 3); // EaseOutCubic
+        // Quartic easing for dramatic slow down at end
+        const ease = 1 - Math.pow(1 - progress, 4); 
         
         const current = Math.floor(ease * value);
         setDisplayValue(current);
 
-        // Sound clicks (throttled)
-        if (progress < 1 && timestamp - lastSoundTime > 100) {
-           if (Math.random() > 0.5) playSystemSoundEffect('CLICK');
+        // Sound clicks (throttled) - faster at start, slower at end
+        const soundInterval = 50 + (progress * 150);
+        if (progress < 1 && timestamp - lastSoundTime > soundInterval) {
+           playSystemSoundEffect('TICK'); 
            lastSoundTime = timestamp;
         }
 
@@ -556,7 +579,9 @@ const SequentialReward: React.FC<{
         } else {
           setDisplayValue(value);
           hasRun.current = true;
-          playSystemSoundEffect('COIN');
+          // Only play COIN/finish sound if it's not the very last item (handled by victory screen)
+          // actually, individual completion sound is good
+          playSystemSoundEffect('COIN'); 
           onComplete?.();
         }
       };
@@ -569,21 +594,21 @@ const SequentialReward: React.FC<{
 
   // Determine styles based on color prop
   const colorStyles = {
-    'yellow-500': { text: 'text-yellow-500', border: 'border-yellow-500/30', bg: 'bg-yellow-500/5' },
-    'blue-500': { text: 'text-blue-500', border: 'border-blue-500/30', bg: 'bg-blue-500/5' },
-    'purple-500': { text: 'text-purple-500', border: 'border-purple-500/30', bg: 'bg-purple-500/5' },
-  }[color] || { text: 'text-gray-500', border: 'border-gray-500', bg: 'bg-gray-500/5' };
+    'yellow-500': { text: 'text-yellow-500', border: 'border-yellow-500/30', bg: 'bg-yellow-500/5', shadow: 'shadow-[0_0_15px_rgba(234,179,8,0.2)]' },
+    'blue-500': { text: 'text-blue-500', border: 'border-blue-500/30', bg: 'bg-blue-500/5', shadow: 'shadow-[0_0_15px_rgba(59,130,246,0.2)]' },
+    'purple-500': { text: 'text-purple-500', border: 'border-purple-500/30', bg: 'bg-purple-500/5', shadow: 'shadow-[0_0_15px_rgba(168,85,247,0.2)]' },
+  }[color] || { text: 'text-gray-500', border: 'border-gray-500', bg: 'bg-gray-500/5', shadow: '' };
 
   return (
     <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: start ? (value > 0 ? 1 : 0.5) : 0, y: start ? 0 : 20 }}
-      className={`flex flex-col items-center p-4 rounded-xl border ${value > 0 ? `${colorStyles.border} ${colorStyles.bg}` : 'border-gray-800 bg-black/40'}`}
+      initial={{ opacity: 0, y: 20, scale: 0.9 }}
+      animate={{ opacity: start ? (value > 0 ? 1 : 0.5) : 0, y: start ? 0 : 20, scale: start ? 1 : 0.9 }}
+      className={`flex flex-col items-center p-4 rounded-xl border transition-all duration-500 ${value > 0 ? `${colorStyles.border} ${colorStyles.bg} ${colorStyles.shadow}` : 'border-gray-800 bg-black/40'}`}
     >
-      <div className={`mb-2 ${value > 0 ? colorStyles.text : 'text-gray-600'}`}>
+      <div className={`mb-2 ${value > 0 ? colorStyles.text : 'text-gray-600'} drop-shadow-md`}>
         {icon}
       </div>
-      <div className={`text-2xl font-black font-mono ${value > 0 ? colorStyles.text : 'text-gray-600'}`}>
+      <div className={`text-2xl font-black font-mono ${value > 0 ? colorStyles.text : 'text-gray-600'} drop-shadow-sm`}>
         {displayValue}
       </div>
       <div className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mt-1">
@@ -601,10 +626,11 @@ const VictoryScreen: React.FC<{
   const [stage, setStage] = useState<'intro' | 'rewards' | 'done'>('intro');
   const [rewardStage, setRewardStage] = useState(0); // 0: Gold, 1: XP, 2: Keys
   const [showConfetti, setShowConfetti] = useState(false);
+  const [shake, setShake] = useState(false);
 
   useEffect(() => {
     // Start rewards after intro
-    const t = setTimeout(() => setStage('rewards'), 1000);
+    const t = setTimeout(() => setStage('rewards'), 800);
     return () => clearTimeout(t);
   }, []);
 
@@ -614,9 +640,11 @@ const VictoryScreen: React.FC<{
         setStage('done');
         if (loot.gold > 0 || loot.xp > 0 || loot.keys > 0) {
             setShowConfetti(true);
-            playSystemSoundEffect('LEVEL_UP'); 
+            setShake(true);
+            playSystemSoundEffect('VICTORY_BURST'); 
+            setTimeout(() => setShake(false), 600);
         }
-      }, 500);
+      }, 300);
     }
   }, [rewardStage, stage, loot]);
 
@@ -624,23 +652,29 @@ const VictoryScreen: React.FC<{
   const goldRays = Array.from({ length: 16 }, (_, i) => i * 22.5);
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/95 backdrop-blur-xl">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/95 backdrop-blur-xl overflow-hidden">
       <ImpactConfetti active={showConfetti} />
       
       {/* Background Rays */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
+        <motion.div 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: showConfetti ? 1 : 0 }}
+            transition={{ duration: 1 }}
+            className="absolute inset-0 bg-gradient-to-t from-blue-900/20 via-purple-900/10 to-black pointer-events-none"
+        />
         {goldRays.map((deg) => (
         <motion.div
             key={deg}
             initial={{ opacity: 0, scaleY: 0 }}
-            animate={{ opacity: [0, 0.15, 0.08, 0.15], scaleY: 1 }}
+            animate={{ opacity: [0, 0.25, 0.1, 0.25], scaleY: 1 }}
             transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut', delay: (deg / 360) * 2 }}
             className="absolute w-[2px] origin-bottom"
             style={{
-            height: '60vh',
+            height: '70vh',
             background: deg % 2 === 0 
-                ? 'linear-gradient(to top, rgba(59,130,246,0.3), transparent)'
-                : 'linear-gradient(to top, rgba(147,51,234,0.25), transparent)',
+                ? 'linear-gradient(to top, rgba(96,165,250,0.4), transparent)'
+                : 'linear-gradient(to top, rgba(168,85,247,0.3), transparent)',
             transform: `rotate(${deg}deg)`,
             transformOrigin: 'bottom center',
             }}
@@ -650,24 +684,51 @@ const VictoryScreen: React.FC<{
 
       <motion.div 
         initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        className="w-full max-w-md bg-[#0a0a0f] border border-blue-900/50 rounded-3xl p-8 relative overflow-hidden shadow-[0_0_50px_rgba(59,130,246,0.2)]"
+        animate={{ 
+            scale: 1, 
+            opacity: 1,
+            y: shake ? [0, -5, 5, -5, 5, 0] : 0 
+        }}
+        transition={{ 
+            scale: { duration: 0.5, ease: "easeOut" },
+            y: { duration: 0.4 } 
+        }}
+        className="w-full max-w-md bg-[#0a0a0f] border border-blue-900/50 rounded-3xl p-8 relative overflow-hidden shadow-[0_0_80px_rgba(59,130,246,0.25)]"
       >
         {/* Header */}
         <div className="text-center mb-10 relative z-10">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="inline-block mb-2"
+          >
+             <Crown size={40} className="text-yellow-400 drop-shadow-[0_0_15px_rgba(250,204,21,0.6)]" fill="currentColor" strokeWidth={1} />
+          </motion.div>
           <motion.h1 
             initial={{ y: -20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.2 }}
-            className="text-4xl font-black italic text-transparent bg-clip-text bg-gradient-to-b from-blue-400 to-blue-600 drop-shadow-[0_0_10px_rgba(59,130,246,0.5)]"
+            className="text-4xl font-black italic text-white drop-shadow-[0_0_15px_rgba(59,130,246,0.8)] tracking-tight"
           >
-            DUNGEON CLEARED
+            DUNGEON <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">CLEARED</span>
           </motion.h1>
+          {stage === 'done' && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-2"
+              >
+                  <span className="text-sm font-black font-mono tracking-[0.5em] text-blue-300/80 uppercase animate-pulse">
+                      Escaped
+                  </span>
+              </motion.div>
+          )}
           <motion.div 
             initial={{ width: 0 }}
-            animate={{ width: "100px" }}
+            animate={{ width: "120px" }}
             transition={{ delay: 0.5, duration: 0.8 }}
-            className="h-1 bg-blue-500 mx-auto mt-4 rounded-full shadow-[0_0_10px_rgba(59,130,246,0.8)]" 
+            className="h-1 bg-gradient-to-r from-blue-500 to-purple-500 mx-auto mt-4 rounded-full shadow-[0_0_15px_rgba(139,92,246,0.8)]" 
           />
         </div>
 
@@ -709,12 +770,13 @@ const VictoryScreen: React.FC<{
                 <motion.button
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                whileHover={{ scale: 1.05 }}
+                whileHover={{ scale: 1.05, boxShadow: "0 0 30px rgba(59,130,246,0.4)" }}
                 whileTap={{ scale: 0.95 }}
                 onClick={onClose}
-                className="w-full py-4 bg-blue-900/20 border border-blue-500/50 text-blue-400 font-bold tracking-widest rounded-xl hover:bg-blue-500/20 transition-all shadow-[0_0_20px_rgba(59,130,246,0.15)]"
+                className="w-full py-4 bg-gradient-to-r from-blue-900/40 to-purple-900/40 border border-blue-500/50 text-white font-black font-mono tracking-widest rounded-xl hover:border-blue-400 transition-all shadow-[0_0_20px_rgba(59,130,246,0.15)] group relative overflow-hidden"
                 >
-                CONFIRM
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+                CLAIM BOUNTY
                 </motion.button>
             )}
             </AnimatePresence>

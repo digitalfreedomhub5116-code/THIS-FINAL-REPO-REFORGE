@@ -141,6 +141,87 @@ export const playSystemSoundEffect = (type: string) => {
                 break;
             }
 
+            case 'CLICK':
+                // UI Click: Very short, crisp blip
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(1200, now);
+                gain.gain.setValueAtTime(0.02, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+                osc.start(now);
+                osc.stop(now + 0.03);
+                break;
+
+            case 'COIN':
+                // Single Coin: High pitched ting
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(1500, now);
+                osc.frequency.setValueAtTime(2000, now + 0.05); // slight pitch bend up
+                
+                gain.gain.setValueAtTime(0.05, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+                
+                osc.start(now);
+                osc.stop(now + 0.3);
+                break;
+
+            case 'GAME_OVER':
+                // Defeat: Descending dissonant tone
+                const tri = ctx.createOscillator();
+                const triGain = ctx.createGain();
+                tri.type = 'triangle';
+                tri.connect(triGain);
+                triGain.connect(ctx.destination);
+                
+                tri.frequency.setValueAtTime(300, now);
+                tri.frequency.linearRampToValueAtTime(50, now + 1.5); // Slow slide down
+                
+                triGain.gain.setValueAtTime(0.2, now);
+                triGain.gain.linearRampToValueAtTime(0, now + 1.5);
+                
+                tri.start(now);
+                tri.stop(now + 1.5);
+                
+                // Rumble
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(50, now);
+                osc.frequency.linearRampToValueAtTime(20, now + 1.5);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.linearRampToValueAtTime(0, now + 1.5);
+                osc.start(now);
+                osc.stop(now + 1.5);
+                break;
+
+            case 'VICTORY_BURST':
+                // Explosion/Burst: Low end impact with high sparkle
+                const burstOsc = ctx.createOscillator();
+                const burstGain = ctx.createGain();
+                burstOsc.type = 'sawtooth';
+                burstOsc.frequency.setValueAtTime(60, now);
+                burstOsc.frequency.exponentialRampToValueAtTime(10, now + 0.6);
+                
+                burstGain.gain.setValueAtTime(0.3, now);
+                burstGain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+                
+                burstOsc.connect(burstGain);
+                burstGain.connect(ctx.destination);
+                burstOsc.start(now);
+                burstOsc.stop(now + 0.6);
+                
+                // Sparkle sweep
+                const sparkleOsc = ctx.createOscillator();
+                const sparkleGain = ctx.createGain();
+                sparkleOsc.type = 'triangle';
+                sparkleOsc.frequency.setValueAtTime(300, now);
+                sparkleOsc.frequency.linearRampToValueAtTime(1500, now + 0.4);
+                sparkleGain.gain.setValueAtTime(0.1, now);
+                sparkleGain.gain.linearRampToValueAtTime(0, now + 0.4);
+                
+                sparkleOsc.connect(sparkleGain);
+                sparkleGain.connect(ctx.destination);
+                sparkleOsc.start(now);
+                sparkleOsc.stop(now + 0.4);
+                break;
+
             case 'WARNING': 
                 // Decay/Warning: Low descending buzz
                 osc.type = 'sawtooth';
