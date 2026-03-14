@@ -97,8 +97,6 @@ interface XpCollectionState {
   level: number;
 }
 
-
-
 const App: React.FC = () => {
   const {
     player, setPlayer, notifications,
@@ -107,7 +105,7 @@ const App: React.FC = () => {
     purchaseItem, buyConsumable, addNotification,
     removeNotification, saveHealthProfile, updateProfile,
     logMeal, deleteMeal, completeWorkoutSession, failWorkout,
-    logout, advanceTutorial, completeTutorial, resetTutorial, resetPlayer, resolvePenalty, reducePenalty,
+    advanceTutorial, completeTutorial, resetTutorial, resetPlayer, resolvePenalty, reducePenalty,
     claimTournamentReward, consumeKey,
     deductGold, enterDungeon, addRewards,
     recordStrike, removeStrike, markDuskMessagesRead,
@@ -351,13 +349,16 @@ const App: React.FC = () => {
     return () => window.removeEventListener('focus', onFocus);
   }, [fetchDbOutfits]);
 
+  const dailyCheckRef = useRef(false);
+
   useEffect(() => {
-    if (!player.isConfigured) return;
+    if (!player.isConfigured || dailyCheckRef.current) return;
     const reward = checkDailyLogin();
     if (reward) {
       setDailyReward(reward);
       setShowDailyLogin(true);
     }
+    dailyCheckRef.current = true;
   }, [player.isConfigured, checkDailyLogin]);
 
   useEffect(() => {
@@ -1244,7 +1245,7 @@ const App: React.FC = () => {
             onEnterDungeon={handleStartDungeon}
             onNavigateToDungeon={() => setActiveTab('CASTLE')}
             onAddRewards={addRewards}
-            onAddNotification={(msg, type) => addNotification(msg, type)}
+            onAddNotification={(msg: string, type: any) => addNotification(msg, type)}
             streak={player.streak}
             hasClaimedDaily={player.lastLoginDate === new Date().toISOString().split('T')[0]}
             onOpenDailyCalendar={() => setShowDailyLogin(true)}

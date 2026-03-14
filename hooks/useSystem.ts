@@ -438,7 +438,7 @@ export const useSystem = () => {
   // --- DAILY REWARDS SYSTEM (30-Day Cycle) ---
   // REWARD_SCHEDULE imported from lib/rewards
 
-  const getDailyReward = (): DailyReward | null => {
+  const getDailyReward = useCallback((): DailyReward | null => {
     const today = new Date().toISOString().split('T')[0];
     const lastLogin = player.lastLoginDate;
 
@@ -467,7 +467,7 @@ export const useSystem = () => {
 
     const rewardIndex = (nextStreak - 1) % 30;
     return REWARD_SCHEDULE[rewardIndex];
-  };
+  }, [player.lastLoginDate, player.streak]);
 
   const claimDailyReward = (reward: DailyReward) => {
     const today = new Date().toISOString().split('T')[0];
@@ -536,9 +536,9 @@ export const useSystem = () => {
     });
   };
 
-  const checkDailyLogin = (): DailyReward | null => {
+  const checkDailyLogin = useCallback((): DailyReward | null => {
     return getDailyReward();
-  };
+  }, [player.lastLoginDate, player.streak]);
 
   const deductGold = (amount: number): boolean => {
     if (player.gold >= amount) {
