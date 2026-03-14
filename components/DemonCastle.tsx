@@ -1273,47 +1273,63 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
       const CountUpValue: React.FC<{ target: number; delay: number; color: string; label?: string }> = ({ target, delay, color }) => {
         const nodeRef = useRef<HTMLSpanElement>(null);
         const [showSparkles, setShowSparkles] = useState(false);
+        const hasRunRef = useRef(false);
         
         useEffect(() => {
+          if (hasRunRef.current) return;
           const node = nodeRef.current;
           if (!node) return;
-          node.textContent = '0';
           
-          // If target is 0, skip animation
           if (target <= 0) {
             node.textContent = '0';
+            hasRunRef.current = true;
             return;
           }
           
+          let animationFrame: number;
+          let startTime: number;
+          const DURATION = 2000; // 2 seconds
+          let soundMilestone = 0;
+          
           const timeout = setTimeout(() => {
-            let soundMilestone = 0;
-            const controls = animate(0, target, {
-              duration: 2,
-              ease: [0.22, 1, 0.36, 1],
-              onUpdate: (v) => {
-                if (node) {
-                  node.textContent = String(Math.round(v));
-                  
-                  // Sound at 25%, 50%, 75% only (3 ticks max)
-                  const progress = v / target;
-                  const milestone = Math.floor(progress * 4);
-                  if (milestone > soundMilestone && milestone < 4) {
-                    soundMilestone = milestone;
-                    playSystemSoundEffect('CLICK');
-                  }
+            hasRunRef.current = true;
+            
+            const step = (timestamp: number) => {
+              if (!startTime) startTime = timestamp;
+              const progress = Math.min((timestamp - startTime) / DURATION, 1);
+              
+              // Easing function (easeOutExpo)
+              const easeProgress = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+              const currentValue = Math.floor(easeProgress * target);
+              
+              if (node) {
+                node.textContent = String(currentValue);
+                
+                // Sound logic: 3 ticks total
+                const milestone = Math.floor(easeProgress * 4);
+                if (milestone > soundMilestone && milestone < 4) {
+                  soundMilestone = milestone;
+                  playSystemSoundEffect('CLICK');
                 }
-              },
-              onComplete: () => {
+              }
+              
+              if (progress < 1) {
+                animationFrame = requestAnimationFrame(step);
+              } else {
                 if (node) node.textContent = String(target);
                 setShowSparkles(true);
                 playSystemSoundEffect('COIN');
                 setTimeout(() => setShowSparkles(false), 800);
               }
-            });
-            return () => controls.stop();
+            };
+            
+            animationFrame = requestAnimationFrame(step);
           }, delay * 1000);
           
-          return () => clearTimeout(timeout);
+          return () => {
+            clearTimeout(timeout);
+            if (animationFrame) cancelAnimationFrame(animationFrame);
+          };
         }, [target, delay]);
 
         return (
