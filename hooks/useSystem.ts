@@ -207,11 +207,17 @@ export const useSystem = () => {
   const syncToCloud = useCallback(async (data: PlayerData) => {
     if (!data.userId || data.userId.startsWith('local-') || data.userId.startsWith('local_')) return;
     try {
+      // Ensure consumables are present before sync
+      const syncData = {
+        ...data,
+        consumables: data.consumables || { healthPotions: 0, shadowScrolls: 0, ultOrbs: 0 }
+      };
+      
       await fetch(`/api/player/${data.userId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
         credentials: 'include',
-        body: JSON.stringify(data)
+        body: JSON.stringify(syncData)
       });
     } catch (e) {
       console.error('Cloud Sync Error', e);
@@ -295,6 +301,7 @@ export const useSystem = () => {
       return {
         ...prev,
         quests: updatedQuests,
+        nutritionLogs: [], // Clear nutrition logs at midnight
         lastDailyReset: now,
         logs: [...newLogs, ...prev.logs].slice(0, 60),
       };

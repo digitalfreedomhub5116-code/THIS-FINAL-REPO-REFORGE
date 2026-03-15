@@ -287,9 +287,9 @@ const ShopView: React.FC<ShopViewProps> = ({
 
           {/* 7-day reward track (Scrollable) */}
           <div 
-             className="flex gap-1.5 overflow-x-auto pb-2 snap-x cursor-pointer" 
+             className={`flex gap-1.5 overflow-x-auto pb-2 snap-x ${!claimedToday ? 'cursor-pointer' : ''}`} 
              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-             onClick={onOpenDailyCalendar}
+             onClick={!claimedToday ? onOpenDailyCalendar : undefined}
           >
             {LOGIN_REWARDS.map((reward) => {
               const dayNum   = reward.day;

@@ -17,9 +17,6 @@ interface MobileFloatingMenuProps {
   onConsumeKey: (amount: number) => Promise<boolean>;
   onAddRewards: (gold: number, xp: number, keys: number) => void;
   onAddNotification: (msg: string, type: any) => void;
-  streak?: number;
-  hasClaimedDaily?: boolean;
-  onOpenDailyCalendar?: () => void;
 }
 
 type ChestType = 'DAILY' | 'LEGENDARY' | 'ALLIANCE';
@@ -131,9 +128,6 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
   onConsumeKey,
   onAddRewards,
   onAddNotification,
-  streak,
-  hasClaimedDaily,
-  onOpenDailyCalendar,
 }) => {
   const [activeModal, setActiveModal] = useState<'NONE' | 'REWARDS' | 'DUNGEON'>('NONE');
   const [isChestLoaded, setIsChestLoaded] = useState(false);
@@ -404,7 +398,7 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
               style={{ transformStyle: 'preserve-3d', top: '50%', left: '50%', marginLeft: -40, marginTop: -56 }}
             >
               <div className="absolute inset-0 rounded-xl flex items-center justify-center"
-                style={{ background: '#080914', border: '1px solid rgba(255,255,255,0.08)', backfaceVisibility: 'hidden' }}>
+                style={{ background: '#080914', border: '1px solid rgba(255,255,255,0.08)', backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}>
                 <div className="absolute inset-0 rounded-xl opacity-15"
                   style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px)', backgroundSize: '8px 8px' }} />
                 <div className="w-9 h-9 rounded-full border border-white/15 flex items-center justify-center relative z-10">
@@ -412,7 +406,7 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
                 </div>
               </div>
               <div className="absolute inset-0 rounded-xl flex flex-col items-center justify-center gap-1.5 border-2"
-                style={{ background: '#080914', backfaceVisibility: 'hidden', transform: 'rotateY(180deg)', borderColor: card.color, boxShadow: `0 0 20px ${card.color}50` }}>
+                style={{ background: '#080914', backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', transform: 'rotateY(180deg)', borderColor: card.color, boxShadow: `0 0 20px ${card.color}50` }}>
                 <div className="absolute inset-0 rounded-xl"
                   style={{ background: `radial-gradient(ellipse at center, ${card.color}20 0%, transparent 65%)` }} />
                 <div className="relative z-10 flex flex-col items-center gap-1">
