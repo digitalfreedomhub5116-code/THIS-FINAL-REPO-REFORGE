@@ -31,8 +31,8 @@ interface RewardCard {
 
 const CHEST_CFG = {
   DAILY: {
-    label: 'Daily Reward',
-    subtitle: 'Free daily loot crate',
+    label: 'Free Chest',
+    subtitle: 'Free loot crate (30m cooldown)',
     color: '#00d4ff',
     borderColor: 'rgba(0,212,255,0.6)',
     glowColor: 'rgba(0,212,255,0.25)',
@@ -117,7 +117,7 @@ const CARD_POSITIONS = [
 ];
 
 const DAILY_CHEST_KEY = 'reforge_daily_chest_time';
-const DAILY_CHEST_CD = 24 * 60 * 60 * 1000;
+const DAILY_CHEST_CD = 30 * 60 * 1000; // 30 minutes
 
 const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
   onEnterDungeon,
@@ -332,20 +332,16 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
             <button
               onClick={() => handleClaim(type)}
               disabled={locked}
-              className="w-full py-3 rounded-xl font-black uppercase tracking-widest text-sm transition-all active:scale-95 disabled:cursor-not-allowed"
-              style={ready ? {
-                background: `linear-gradient(135deg, ${cfg.color}, ${cfg.color}cc)`,
-                color: '#000',
-                boxShadow: `0 0 20px ${cfg.glowColor}`,
-              } : {
-                background: 'rgba(255,255,255,0.05)',
-                color: '#4b5563',
-                border: '1px solid rgba(255,255,255,0.08)',
+              className="w-full py-2.5 rounded-xl text-xs font-black tracking-widest uppercase font-mono transition-all"
+              style={{
+                background: ready ? cfg.color : 'rgba(255,255,255,0.05)',
+                color: ready ? '#000' : 'rgba(255,255,255,0.3)',
+                boxShadow: ready ? `0 0 20px ${cfg.glowColor}` : 'none'
               }}
             >
               {locked
-                ? (type === 'DAILY' ? 'ALREADY CLAIMED' : `${cfg.cost} required`)
-                : (type === 'DAILY' ? (isDailyReady ? 'CLAIM CHEST' : 'VIEW CALENDAR') : 'CLAIM CHEST')}
+                ? (type === 'DAILY' ? 'ON COOLDOWN' : `${cfg.cost} required`)
+                : 'CLAIM CHEST'}
             </button>
           </div>
         </motion.div>
@@ -457,8 +453,8 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
           </button>
           {isDailyReady && (
             <span className="pointer-events-none absolute -top-0.5 -right-0.5 flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: '#00d4ff' }} />
-              <span className="relative inline-flex rounded-full h-3 w-3" style={{ background: '#00d4ff', boxShadow: '0 0 6px #00d4ff' }} />
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 bg-red-500" />
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.8)]" />
             </span>
           )}
         </motion.div>
@@ -567,7 +563,7 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
                                     color: '#4b5563',
                                   }}
                                 >
-                                  {t === 'DAILY' ? 'Daily' : t === 'LEGENDARY' ? 'Legend' : 'Alliance'}
+                                  {t === 'DAILY' ? 'Free' : t === 'LEGENDARY' ? 'Legend' : 'Alliance'}
                                 </button>
                               );
                             })}
