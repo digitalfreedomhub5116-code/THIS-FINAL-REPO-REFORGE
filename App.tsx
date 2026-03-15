@@ -38,7 +38,7 @@ const HealthView = lazy(() =>
   import('./components/HealthView').then(m => ({ default: m.HealthView }))
 );
 const RankingView = lazy(() => import('./components/RankingView'));
-const StatsLineChart = lazy(() => import('./components/StatsLineChart'));
+const HunterGrowthTerminal = lazy(() => import('./components/HunterGrowthTerminal'));
 const StatBoxes = lazy(() => import('./components/StatBoxes'));
 const LevelUpCinematic = lazy(() => import('./components/LevelUpCinematic'));
 const WelcomeIntro = lazy(() => import('./components/WelcomeIntro'));
@@ -977,17 +977,17 @@ const App: React.FC = () => {
               exit={{ opacity: 0 }}
               className="space-y-6"
             >
-              {/* Stats Line Chart — hero element */}
+              {/* Hunter Growth Terminal — hero element */}
               <Suspense fallback={<SkeletonStatsChart />}>
-                <ErrorBoundary fallbackLabel="Stats chart failed">
-                  <StatsLineChart
+                <ErrorBoundary fallbackLabel="Growth terminal failed">
+                  <HunterGrowthTerminal
                     dailyXp={player.dailyXp}
                     dailyStats={player.dailyStats}
-                    yesterdayStats={player.yesterdayStats}
                     weeklyStats={player.weeklyStats}
-                    monthlyStats={player.monthlyStats}
+                    history={player.history || []}
+                    streak={player.streak}
                     playerLevel={player.level}
-                    rank={player.rank}
+                    quests={player.quests}
                   />
                 </ErrorBoundary>
               </Suspense>

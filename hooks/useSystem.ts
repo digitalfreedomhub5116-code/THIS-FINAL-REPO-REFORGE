@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   PlayerData, Quest, ShopItem, SystemNotification, NotificationType,
   ActivityLog, HealthProfile, ProgressPhoto, MealLog, WorkoutDay, AdminExercise, DailyReward,
-  ReplitUser
+  ReplitUser, HistoryEntry
 } from '../types';
 import { playSystemSoundEffect } from '../utils/soundEngine';
 import { getPlayerAuthHeaders } from '../lib/playerApi';
@@ -274,6 +274,28 @@ export const useSystem = () => {
       const todayStart = new Date().setHours(0, 0, 0, 0);
       if ((prev.lastDailyReset || 0) >= todayStart) return prev;
 
+      // ── Snapshot yesterday's stats into history ──
+      const yesterday = new Date(todayStart);
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = yesterday.toISOString().split('T')[0];
+      const completedCount = prev.quests.filter(q => q.isCompleted).length;
+      const historyEntry: HistoryEntry = {
+        date: yesterdayStr,
+        stats: { ...prev.stats },
+        totalXp: prev.totalXp,
+        dailyXp: prev.dailyXp,
+        questCompletion: completedCount,
+      };
+      const existingIdx = (prev.history || []).findIndex(h => h.date === yesterdayStr);
+      const updatedHistory = [...(prev.history || [])];
+      if (existingIdx >= 0) {
+        updatedHistory[existingIdx] = historyEntry;
+      } else {
+        updatedHistory.push(historyEntry);
+      }
+      // Keep last 90 days of history
+      while (updatedHistory.length > 90) updatedHistory.shift();
+
       const newLogs: ActivityLog[] = [];
       const updatedQuests: Quest[] = [];
 
@@ -303,6 +325,10 @@ export const useSystem = () => {
         quests: updatedQuests,
         nutritionLogs: [], // Clear nutrition logs at midnight
         lastDailyReset: now,
+        yesterdayStats: { ...prev.dailyStats },
+        dailyStats: { strength: 0, intelligence: 0, discipline: 0, social: 0 },
+        dailyXp: 0,
+        history: updatedHistory,
         logs: [...newLogs, ...prev.logs].slice(0, 60),
       };
     });
