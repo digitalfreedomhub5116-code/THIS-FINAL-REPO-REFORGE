@@ -223,7 +223,7 @@ OUTPUT: High-quality portrait artwork in manhwa illustration style. The characte
       try {
         const model = ai.getGenerativeModel({
           model: modelName,
-          generationConfig: { responseModalities: ['IMAGE', 'TEXT'] as any }
+          generationConfig: { responseModalities: ['IMAGE', 'TEXT'] } as any
         });
 
         const result = await model.generateContent({

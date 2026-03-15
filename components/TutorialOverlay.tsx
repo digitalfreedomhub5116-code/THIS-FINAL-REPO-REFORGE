@@ -110,16 +110,16 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({ currentStep, onNext, 
       },
       9: {
           title: "ForgeGuard Verdict",
-          body: "ForgeGuard assigned a Rank, XP reward, and stat. This verdict is locked.",
+          body: "ForgeGuard assigned a Rank, XP reward, and pillar stats to your quest. This analysis guarantees balanced progression.",
           buttonText: "Next",
           targetId: 'tut-quest-category',
           allowInteraction: true,
           forcePosition: 'bottom'
       },
       10: {
-          title: "Schedule It",
-          body: "Set a time for your quest. Tap 'Schedule for Now' or pick a specific time.\nQuests not completed by midnight disappear.",
-          buttonText: "Next",
+          title: "Mandatory: Schedule It",
+          body: "You MUST set a time. Tap 'NOW' for immediate action or pick a specific time.\nUnscheduled quests cannot be confirmed. Uncompleted quests vanish at midnight.",
+          buttonText: "Understood",
           targetId: 'tut-schedule',
           allowInteraction: true,
           forcePosition: 'top'

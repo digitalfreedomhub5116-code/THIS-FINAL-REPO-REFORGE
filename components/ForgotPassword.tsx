@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
-import { ShieldAlert, Mail, ArrowRight, X, CheckCircle, AlertTriangle } from 'lucide-react';
+import { ShieldAlert, Mail, ArrowRight, X, CheckCircle, AlertTriangle, Loader2 } from 'lucide-react';
 
 interface ForgotPasswordProps {
   onCancel: () => void;

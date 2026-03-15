@@ -252,9 +252,9 @@ const EvaluationMatrix: React.FC<EvaluationMatrixProps> = ({ stats, compact = fa
           data: [
             { subject: 'STRENGTH', value: safeStats.strength || 0, fullMark: domain },
             { subject: 'INTEL', value: safeStats.intelligence || 0, fullMark: domain },
-            { subject: 'FOCUS', value: safeStats.focus || 0, fullMark: domain },
-            { subject: 'DISCIPLINE', value: safeStats.discipline || 0, fullMark: domain },
-            { subject: 'WILL', value: safeStats.willpower || 0, fullMark: domain },
+            { subject: 'FOCUS', value: (safeStats as any).focus || 0, fullMark: domain },
+            { subject: 'SENSE', value: safeStats.social || 0, fullMark: domain },
+            { subject: 'WILL', value: (safeStats as any).willpower || 0, fullMark: domain },
             { subject: 'SOCIAL', value: safeStats.social || 0, fullMark: domain },
           ],
           domain,

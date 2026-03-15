@@ -139,15 +139,15 @@ const HunterCommandDeck: React.FC<HunterCommandDeckProps> = ({ player, triggerAc
                     fillOpacity={0.4}
                     isAnimationActive={true}
                     // Glowing Dots
-                    dot={(props: any) => {
+                    dot={((props: any) => {
                         const { cx, cy } = props;
-                        if (!Number.isFinite(cx) || !Number.isFinite(cy)) return null;
+                        if (!Number.isFinite(cx) || !Number.isFinite(cy)) return <g></g>;
                         return (
                             <svg x={cx - 3} y={cy - 3} width={6} height={6} className="overflow-visible">
                                 <circle cx="3" cy="3" r="3" fill="#fff" className="drop-shadow-[0_0_5px_rgba(192,132,252,1)]" />
                             </svg>
                         );
-                    }}
+                    }) as any}
                   />
                 </RadarChart>
               </ResponsiveContainer>

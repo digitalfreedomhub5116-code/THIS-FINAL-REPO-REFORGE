@@ -696,7 +696,7 @@ const AwakeningOverlay: React.FC<{ profile: Partial<HealthProfile>; onComplete: 
                         {statConfig.map(({ key, label, Icon, color, dataKey }) => {
                             const current = animatedStats[key];
                             const delta = current - baseStats[key];
-                            const visibleVals = visibleData.map(d => (d as Record<string, number>)[dataKey]);
+                            const visibleVals = visibleData.map(d => (d as any)[dataKey]);
                             const peakVal = Math.max(...visibleVals);
                             const isAtPeak = current >= peakVal - 1;
                             const isInDip = current < baseStats[key] - 1;
