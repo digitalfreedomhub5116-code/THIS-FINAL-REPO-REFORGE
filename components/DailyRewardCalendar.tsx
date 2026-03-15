@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DailyRewardType } from '../types';
 import { REWARD_SCHEDULE } from '../lib/rewards';
-import { Coins, Zap, Key, Ghost, Heart, Scroll, Star, X, Check, Gift } from 'lucide-react';
-import { format, addDays, startOfMonth } from 'date-fns';
+import { Coins, Zap, Key, Ghost, Heart, Scroll, Star, X, Check, Gift, Lock } from 'lucide-react';
 
 interface DailyRewardCalendarProps {
   streak: number; 
@@ -17,7 +16,7 @@ const RewardIcon = ({ type, size = 24 }: { type: DailyRewardType; size?: number 
     case 'GOLD': return <Coins size={size} className="text-yellow-400" />;
     case 'XP': return <Zap size={size} className="text-blue-400" />;
     case 'KEYS':
-    case 'WELCOME_KEYS': return <Key size={size} className="text-purple-400" />;
+    case 'WELCOME_KEYS': return <Key size={size} className="text-purple-300" />;
     case 'DUNGEON_PASS': return <Ghost size={size} className="text-red-500" />;
     case 'HEALTH_POTION': return <Heart size={size} className="text-red-400" />;
     case 'SHADOW_SCROLL': return <Scroll size={size} className="text-indigo-400" />;
@@ -33,6 +32,7 @@ const DailyRewardCalendar: React.FC<DailyRewardCalendarProps> = ({
   onClose 
 }) => {
   const [isClaiming, setIsClaiming] = useState(false);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
   
   const handleClaim = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -45,16 +45,28 @@ const DailyRewardCalendar: React.FC<DailyRewardCalendarProps> = ({
     }, 500);
   };
 
+  const showToast = (msg: string) => {
+    setToastMsg(msg);
+    setTimeout(() => setToastMsg(null), 2000);
+  };
+
   // Calculate current day in the 30-day cycle (1-indexed)
   const currentCycleDay = ((streak - 1) % 30) + 1;
   
   // Determine if there's a claimable reward today
   const canClaimToday = !hasClaimedToday;
   const todayReward = canClaimToday ? REWARD_SCHEDULE[currentCycleDay - 1] : null;
+  // If claimed, show the reward that was claimed
+  const claimedReward = hasClaimedToday ? REWARD_SCHEDULE[currentCycleDay - 1] : null;
 
-  // Generate date labels for display
-  const today = new Date();
-  const monthStart = startOfMonth(today);
+  const handleDayClick = (_dayNum: number, status: 'CLAIMED' | 'CURRENT' | 'LOCKED') => {
+    if (status === 'CLAIMED') {
+      showToast('Reward already claimed!');
+    } else if (status === 'LOCKED') {
+      showToast('Login tomorrow to collect this reward');
+    }
+    // CURRENT day: do nothing here, use the bottom claim button
+  };
 
   return (
     <motion.div 
@@ -68,66 +80,99 @@ const DailyRewardCalendar: React.FC<DailyRewardCalendarProps> = ({
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
-        className="w-full max-w-md bg-gradient-to-b from-[#1a1a2e] to-[#0f0f1e] rounded-3xl overflow-hidden shadow-2xl relative flex flex-col max-h-[90vh]"
+        className="w-full max-w-md rounded-3xl overflow-hidden shadow-2xl relative flex flex-col max-h-[90vh]"
+        style={{
+          background: 'linear-gradient(180deg, #0d0d1a 0%, #080810 50%, #050508 100%)',
+          border: '1px solid rgba(139,92,246,0.15)',
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}
         <button 
           onClick={onClose}
-          className="absolute top-4 left-4 z-50 p-2 bg-white/10 backdrop-blur-sm rounded-full hover:bg-white/20 transition-colors text-white"
+          className="absolute top-4 right-4 z-50 p-2 bg-white/5 backdrop-blur-sm rounded-full hover:bg-white/10 transition-colors text-gray-400 hover:text-white"
           aria-label="Close"
         >
           <X size={18} />
         </button>
 
-        {/* Header Card - Purple Gradient */}
-        <div className="relative px-6 pt-16 pb-6">
-          <div className="bg-gradient-to-br from-purple-600 via-purple-500 to-indigo-600 rounded-2xl p-5 shadow-[0_8px_30px_rgba(139,92,246,0.4)] relative overflow-hidden">
+        {/* Header Card - Dark Purple Gradient */}
+        <div className="relative px-5 pt-5 pb-4">
+          <div 
+            className="rounded-2xl p-5 relative overflow-hidden"
+            style={{
+              background: 'linear-gradient(135deg, rgba(88,28,135,0.6) 0%, rgba(49,10,101,0.7) 50%, rgba(30,10,60,0.8) 100%)',
+              border: '1px solid rgba(139,92,246,0.2)',
+              boxShadow: '0 8px 30px rgba(88,28,135,0.3), inset 0 1px 0 rgba(255,255,255,0.05)',
+            }}
+          >
             {/* Decorative elements */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl" />
-            <div className="absolute bottom-0 left-0 w-24 h-24 bg-indigo-400/20 rounded-full blur-2xl" />
+            <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl" />
+            <div className="absolute bottom-0 left-0 w-24 h-24 bg-indigo-500/10 rounded-full blur-2xl" />
             
             <div className="relative z-10 flex items-start justify-between">
               <div className="flex-1">
                 <h2 className="text-white text-lg font-black mb-1 flex items-center gap-2">
-                  <Gift size={20} className="text-yellow-300" />
+                  <Gift size={20} className="text-purple-300" />
                   Daily Reward
                 </h2>
-                <p className="text-purple-100 text-xs leading-relaxed mb-3">
-                  Claim your daily reward<br />and collect bonus coins
+                <p className="text-purple-300/70 text-xs leading-relaxed mb-3">
+                  Day {currentCycleDay} of 30 · Streak: {streak}
                 </p>
-                <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-full">
-                  <span className="text-white font-black text-sm">{todayReward?.amount || 0}</span>
-                  <span className="text-purple-100 text-xs font-bold">Reward Point</span>
+                <div className="inline-flex items-center gap-2 bg-black/30 backdrop-blur-sm px-3 py-1.5 rounded-full border border-purple-500/20">
+                  <span className="text-white font-black text-sm">{todayReward?.amount || claimedReward?.amount || 0}</span>
+                  <span className="text-purple-300/60 text-xs font-bold">
+                    {todayReward?.type.replace(/_/g, ' ') || claimedReward?.type.replace(/_/g, ' ') || 'REWARD'}
+                  </span>
                 </div>
               </div>
               
               {/* Reward Icon */}
-              {todayReward && (
-                <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-4 shadow-lg">
-                  <RewardIcon type={todayReward.type} size={40} />
-                </div>
-              )}
+              <div 
+                className="rounded-2xl p-4"
+                style={{
+                  background: 'rgba(0,0,0,0.3)',
+                  border: '1px solid rgba(139,92,246,0.2)',
+                }}
+              >
+                <RewardIcon type={todayReward?.type || claimedReward?.type || 'GOLD'} size={36} />
+              </div>
             </div>
           </div>
         </div>
 
+        {/* Toast Message */}
+        <AnimatePresence>
+          {toastMsg && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="mx-5 mb-2 px-4 py-2.5 rounded-xl text-center text-xs font-mono font-bold"
+              style={{
+                background: 'rgba(139,92,246,0.15)',
+                border: '1px solid rgba(139,92,246,0.3)',
+                color: '#c4b5fd',
+              }}
+            >
+              {toastMsg}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Calendar Grid - 3 columns */}
-        <div className="px-6 pb-6 overflow-y-auto flex-1 custom-scrollbar">
-          <div className="grid grid-cols-3 gap-3">
+        <div className="px-5 pb-4 overflow-y-auto flex-1 custom-scrollbar">
+          <div className="grid grid-cols-3 gap-2.5">
             {REWARD_SCHEDULE.slice(0, 12).map((reward, idx) => {
               const dayNum = idx + 1;
-              const dateLabel = format(addDays(monthStart, idx), 'd MMM');
               
               // Determine status
               let status: 'CLAIMED' | 'CURRENT' | 'LOCKED' = 'LOCKED';
               
               if (hasClaimedToday) {
-                // If already claimed today, all days up to and including current are claimed
                 if (dayNum <= currentCycleDay) status = 'CLAIMED';
                 else status = 'LOCKED';
               } else {
-                // If not claimed yet
                 if (dayNum < currentCycleDay) status = 'CLAIMED';
                 else if (dayNum === currentCycleDay) status = 'CURRENT';
                 else status = 'LOCKED';
@@ -135,67 +180,92 @@ const DailyRewardCalendar: React.FC<DailyRewardCalendarProps> = ({
 
               const isCurrent = status === 'CURRENT';
               const isClaimed = status === 'CLAIMED';
+              const isLocked = status === 'LOCKED';
 
               return (
-                <motion.div 
+                <motion.button
                   key={idx}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: idx * 0.03 }}
+                  onClick={() => handleDayClick(dayNum, status)}
                   className={`
-                    relative rounded-2xl p-3 flex flex-col items-center justify-between gap-2 transition-all duration-300
-                    ${isCurrent ? 'bg-gradient-to-br from-purple-600/40 to-indigo-600/40 border-2 border-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.4)] scale-105' : ''}
-                    ${isClaimed ? 'bg-white/5 border border-white/10 opacity-60' : ''}
-                    ${status === 'LOCKED' ? 'bg-white/[0.02] border border-white/5' : ''}
+                    relative rounded-xl p-3 flex flex-col items-center justify-between gap-1.5 transition-all duration-300 cursor-pointer
+                    ${isCurrent ? 'scale-[1.03]' : ''}
                   `}
                   style={{
-                    backdropFilter: 'blur(10px)',
-                    minHeight: '110px'
+                    background: isCurrent
+                      ? 'linear-gradient(135deg, rgba(88,28,135,0.4) 0%, rgba(49,10,101,0.5) 100%)'
+                      : isClaimed
+                      ? 'rgba(255,255,255,0.03)'
+                      : 'rgba(255,255,255,0.015)',
+                    border: isCurrent
+                      ? '1.5px solid rgba(139,92,246,0.5)'
+                      : isClaimed
+                      ? '1px solid rgba(34,197,94,0.15)'
+                      : '1px solid rgba(255,255,255,0.04)',
+                    boxShadow: isCurrent ? '0 0 20px rgba(88,28,135,0.3)' : 'none',
+                    minHeight: '100px',
+                    opacity: isClaimed ? 0.55 : 1,
                   }}
                 >
                   {/* Day label */}
-                  <div className="text-[10px] font-mono font-bold text-gray-400 uppercase tracking-wider">
+                  <div className={`text-[10px] font-mono font-bold uppercase tracking-wider ${isCurrent ? 'text-purple-300' : 'text-gray-500'}`}>
                     Day {dayNum}
-                  </div>
-                  
-                  {/* Date */}
-                  <div className={`text-[9px] font-mono ${isCurrent ? 'text-purple-300' : 'text-gray-500'}`}>
-                    {dateLabel}
                   </div>
 
                   {/* Reward Icon */}
-                  <div className={`${status === 'LOCKED' ? 'opacity-30 grayscale' : ''} ${isCurrent ? 'scale-110' : ''} transition-all`}>
-                    <RewardIcon type={reward.type} size={28} />
+                  <div className={`${isLocked ? 'opacity-25 grayscale' : ''} ${isCurrent ? 'scale-110' : ''} transition-all`}>
+                    {isLocked ? (
+                      <Lock size={22} className="text-gray-600" />
+                    ) : (
+                      <RewardIcon type={reward.type} size={26} />
+                    )}
                   </div>
 
                   {/* Amount */}
-                  <div className={`text-sm font-black ${isCurrent ? 'text-yellow-400' : isClaimed ? 'text-gray-500' : 'text-gray-600'}`}>
-                    {reward.amount}
+                  <div className={`text-xs font-black ${isCurrent ? 'text-purple-200' : isClaimed ? 'text-gray-500' : 'text-gray-600'}`}>
+                    ×{reward.amount}
                   </div>
 
                   {/* Claimed Checkmark */}
                   {isClaimed && (
-                    <div className="absolute top-2 right-2 bg-green-500 rounded-full p-0.5">
-                      <Check size={10} className="text-white" strokeWidth={3} />
+                    <div className="absolute top-1.5 right-1.5 bg-green-500/80 rounded-full p-0.5">
+                      <Check size={9} className="text-white" strokeWidth={3} />
                     </div>
                   )}
 
-                  {/* Current day pulse */}
+                  {/* Current day indicator */}
                   {isCurrent && !isClaiming && (
                     <motion.div
-                      className="absolute inset-0 rounded-2xl border-2 border-purple-400"
-                      animate={{ opacity: [0.5, 1, 0.5] }}
+                      className="absolute inset-0 rounded-xl"
+                      style={{ border: '1.5px solid rgba(139,92,246,0.4)' }}
+                      animate={{ opacity: [0.4, 0.8, 0.4] }}
                       transition={{ duration: 2, repeat: Infinity }}
                     />
                   )}
-                </motion.div>
+
+                  {/* TODAY label */}
+                  {isCurrent && (
+                    <div 
+                      className="absolute -top-1.5 left-1/2 -translate-x-1/2 text-[7px] font-black font-mono uppercase tracking-wider px-2 py-0.5 rounded-full"
+                      style={{
+                        background: 'rgba(88,28,135,0.8)',
+                        border: '1px solid rgba(139,92,246,0.4)',
+                        color: '#c4b5fd',
+                      }}
+                    >
+                      TODAY
+                    </div>
+                  )}
+                </motion.button>
               );
             })}
           </div>
         </div>
 
         {/* Bottom Claim Button */}
-        <div className="px-6 pb-6 pt-2">
+        <div className="px-5 pb-5 pt-2">
           <AnimatePresence mode="wait">
             {canClaimToday && !isClaiming && (
               <motion.button
@@ -206,9 +276,14 @@ const DailyRewardCalendar: React.FC<DailyRewardCalendarProps> = ({
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={handleClaim}
-                className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black text-base py-4 rounded-2xl shadow-[0_8px_30px_rgba(139,92,246,0.5)] hover:shadow-[0_8px_40px_rgba(139,92,246,0.7)] transition-all"
+                className="w-full text-white font-black text-base py-4 rounded-2xl transition-all"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(88,28,135,0.9) 0%, rgba(67,20,110,0.95) 50%, rgba(49,10,101,0.9) 100%)',
+                  border: '1px solid rgba(139,92,246,0.3)',
+                  boxShadow: '0 8px 30px rgba(88,28,135,0.4), inset 0 1px 0 rgba(255,255,255,0.1)',
+                }}
               >
-                Claim
+                Claim Day {currentCycleDay} Reward
               </motion.button>
             )}
             
@@ -217,7 +292,12 @@ const DailyRewardCalendar: React.FC<DailyRewardCalendarProps> = ({
                 key="claiming"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="w-full bg-gradient-to-r from-purple-600/50 to-indigo-600/50 text-purple-200 font-black text-base py-4 rounded-2xl text-center"
+                className="w-full font-black text-base py-4 rounded-2xl text-center"
+                style={{
+                  background: 'rgba(88,28,135,0.3)',
+                  border: '1px solid rgba(139,92,246,0.2)',
+                  color: '#a78bfa',
+                }}
               >
                 Claiming...
               </motion.div>
@@ -228,10 +308,15 @@ const DailyRewardCalendar: React.FC<DailyRewardCalendarProps> = ({
                 key="claimed"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="w-full bg-green-600/20 border-2 border-green-500/30 text-green-400 font-black text-base py-4 rounded-2xl text-center flex items-center justify-center gap-2"
+                className="w-full font-black text-sm py-4 rounded-2xl text-center flex items-center justify-center gap-2"
+                style={{
+                  background: 'rgba(34,197,94,0.08)',
+                  border: '1px solid rgba(34,197,94,0.2)',
+                  color: '#4ade80',
+                }}
               >
-                <Check size={20} strokeWidth={3} />
-                Claimed Today
+                <Check size={18} strokeWidth={3} />
+                Day {currentCycleDay} Claimed · Come back tomorrow!
               </motion.div>
             )}
           </AnimatePresence>

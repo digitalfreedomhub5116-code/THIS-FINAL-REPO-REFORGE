@@ -18,8 +18,8 @@ const DashboardWidgets: React.FC<DashboardWidgetsProps> = ({
     <div className="grid grid-cols-1 gap-4 mb-6">
       {/* Daily Login Widget */}
       <button
-        onClick={!isClaimed ? onOpenDailyCalendar : undefined}
-        className={`w-full relative rounded-2xl overflow-hidden h-[90px] flex items-center gap-4 px-5 text-left group transition-all duration-300 ${isClaimed ? 'cursor-default' : ''}`}
+        onClick={onOpenDailyCalendar}
+        className={`w-full relative rounded-2xl overflow-hidden h-[90px] flex items-center gap-4 px-5 text-left group transition-all duration-300 cursor-pointer`}
         style={{
           border: isClaimed ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(234,179,8,0.4)',
           background: isClaimed ? 'rgba(255,255,255,0.03)' : 'rgba(234,179,8,0.08)',

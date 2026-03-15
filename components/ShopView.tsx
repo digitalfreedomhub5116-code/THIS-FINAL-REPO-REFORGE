@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Coins, Timer, Key, CheckCircle2, Lock } from 'lucide-react';
 import { ShopItem } from '../types';
 
@@ -147,6 +147,27 @@ const ShopView: React.FC<ShopViewProps> = ({
   const claimedToday = lastLoginDate === todayStr;
   // Use 7-day cycle for preview display
   const currentStreakDay = Math.max(1, ((streak - 1) % 7) + 1);
+  const [loginToast, setLoginToast] = useState<string | null>(null);
+
+  const showLoginToast = (msg: string) => {
+    setLoginToast(msg);
+    setTimeout(() => setLoginToast(null), 2000);
+  };
+
+  const handleDayClick = (dayNum: number) => {
+    const isCurrent = dayNum === currentStreakDay;
+    const isClaimed = claimedToday ? dayNum <= currentStreakDay : dayNum < currentStreakDay;
+    const isFuture = dayNum > currentStreakDay;
+
+    if (isClaimed) {
+      showLoginToast('Reward already claimed!');
+    } else if (isFuture) {
+      showLoginToast('Login tomorrow to collect this reward');
+    } else if (isCurrent) {
+      // Today's day — open the popup
+      onOpenDailyCalendar?.();
+    }
+  };
 
   return (
     <div id="tut-store" className="space-y-5 pb-10">
@@ -259,8 +280,7 @@ const ShopView: React.FC<ShopViewProps> = ({
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05 }}
-        onClick={!claimedToday ? onOpenDailyCalendar : undefined}
-        className={`relative w-full rounded-2xl overflow-hidden ${!claimedToday ? 'cursor-pointer hover:border-purple-400/40' : ''} transition-all`}
+        className="relative w-full rounded-2xl overflow-hidden transition-all"
         style={{ background: 'linear-gradient(135deg, #0a0a1a 0%, #0d0d25 50%, #0a0a1a 100%)', border: '1px solid rgba(139,92,246,0.2)' }}
       >
         {/* Background glow */}
@@ -268,8 +288,11 @@ const ShopView: React.FC<ShopViewProps> = ({
         <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(139,92,246,0.5), rgba(0,210,255,0.5), transparent)' }} />
 
         <div className="relative p-4">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-3">
+          {/* Header - clickable to open calendar */}
+          <div 
+            className="flex items-center justify-between mb-3 cursor-pointer"
+            onClick={() => onOpenDailyCalendar?.()}
+          >
             <div>
               <div className="text-[9px] font-mono font-bold tracking-[0.3em] uppercase text-purple-400 mb-0.5">DAILY LOGIN</div>
               <h3 className="text-sm font-black text-white font-mono uppercase tracking-wide">Streak Rewards</h3>
@@ -280,6 +303,25 @@ const ShopView: React.FC<ShopViewProps> = ({
               {claimedToday ? <><CheckCircle2 size={11} /> Claimed</> : <><span className="text-[10px]">Day</span> {streak || 1}</>}
             </div>
           </div>
+
+          {/* Toast message */}
+          <AnimatePresence>
+            {loginToast && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                className="mb-2 px-3 py-2 rounded-lg text-center text-[10px] font-mono font-bold"
+                style={{
+                  background: 'rgba(139,92,246,0.15)',
+                  border: '1px solid rgba(139,92,246,0.3)',
+                  color: '#c4b5fd',
+                }}
+              >
+                {loginToast}
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* 7-day reward track */}
           <div className="flex gap-2 justify-between">
@@ -293,7 +335,8 @@ const ShopView: React.FC<ShopViewProps> = ({
               return (
                 <div
                   key={dayNum}
-                  className="flex flex-col items-center gap-1.5 rounded-xl p-2 relative flex-1 min-w-0"
+                  onClick={(e) => { e.stopPropagation(); handleDayClick(dayNum); }}
+                  className="flex flex-col items-center gap-1.5 rounded-xl p-2 relative flex-1 min-w-0 cursor-pointer"
                   style={{
                     background: isClaimed
                       ? 'rgba(34,197,94,0.08)'
@@ -342,16 +385,13 @@ const ShopView: React.FC<ShopViewProps> = ({
             })}
           </div>
 
-          {!claimedToday && (
-            <div className="mt-3 text-center text-[10px] font-mono text-purple-400/60">
-              Click to view full 30-day calendar →
-            </div>
-          )}
-          {claimedToday && (
-            <div className="mt-3 text-center text-[10px] font-mono text-green-400/60">
-              Come back tomorrow for your next reward!
-            </div>
-          )}
+          <div 
+            className="mt-3 text-center text-[10px] font-mono cursor-pointer"
+            style={{ color: claimedToday ? 'rgba(74,222,128,0.6)' : 'rgba(167,139,250,0.6)' }}
+            onClick={() => onOpenDailyCalendar?.()}
+          >
+            {claimedToday ? 'Claimed today · Tap to view calendar' : 'Click to view full 30-day calendar →'}
+          </div>
         </div>
       </motion.div>
 

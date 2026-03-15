@@ -367,13 +367,17 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
     if (!activeChest) return null;
     return (
       <div className="relative flex items-center justify-center" style={{ height: 300 }}>
-        <div className="w-28 h-28 rounded-2xl overflow-hidden opacity-30"
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 0.3, scale: 1 }}
+          transition={{ duration: 0.5 }}
+          className="w-28 h-28 rounded-2xl overflow-hidden opacity-30"
           style={{ background: CHEST_CFG[activeChest].bg, border: `1px solid ${CHEST_CFG[activeChest].borderColor}` }}
         >
           {activeChest === 'DAILY'     && <DailyChestAnim     isLocked={false} size={112} />}
           {activeChest === 'LEGENDARY' && <LegendaryChestAnim isLocked={false} size={112} />}
           {activeChest === 'ALLIANCE'  && <AllianceChestAnim  isLocked={false} size={112} />}
-        </div>
+        </motion.div>
         {cards.map((card, i) => {
           const pos      = CARD_POSITIONS[i];
           const isChosen = selectedCard === i;
@@ -388,7 +392,7 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
                 : isChosen
                 ? { scale: 1.25, x: 0, y: -16, opacity: 1, rotateY: 180 }
                 : { scale: 1, x: pos.x, y: pos.y, opacity: 1, rotateY: 0 }}
-              transition={{ type: 'spring', stiffness: 240, damping: 22, delay: fadeOut ? 0 : i * 0.08 + 0.05 }}
+              transition={{ type: 'spring', stiffness: 240, damping: 22, delay: fadeOut ? 0 : i * 0.08 + 0.3 }}
               onClick={!anySel ? () => handleCardSelect(i) : undefined}
               className="absolute w-20 h-28 cursor-pointer select-none"
               style={{ transformStyle: 'preserve-3d', top: '50%', left: '50%', marginLeft: -40, marginTop: -56 }}

@@ -81,7 +81,8 @@ const DEFAULT_PLAYER: PlayerData = {
 function migratePlayerData(raw: Partial<PlayerData>): PlayerData {
   const merged = { ...DEFAULT_PLAYER, ...raw };
   // Migrate old 5-stat shape to 4-stat shape
-  const migrateStats = (s: Record<string, number> | undefined) => {
+  // Base stats default to 10, but daily/weekly/monthly counters default to 0
+  const migrateBaseStats = (s: Record<string, number> | undefined) => {
     if (!s) return { ...DEFAULT_PLAYER.stats };
     return {
       strength: s.strength ?? 10,
@@ -90,12 +91,21 @@ function migratePlayerData(raw: Partial<PlayerData>): PlayerData {
       social: s.social ?? 10,
     };
   };
-  merged.stats = migrateStats(raw.stats as Record<string, number> | undefined);
-  merged.dailyStats = migrateStats(raw.dailyStats as Record<string, number> | undefined);
-  merged.yesterdayStats = migrateStats(raw.yesterdayStats as Record<string, number> | undefined);
-  merged.weeklyStats = migrateStats(raw.weeklyStats as Record<string, number> | undefined);
-  merged.monthlyStats = migrateStats(raw.monthlyStats as Record<string, number> | undefined);
-  merged.lastStatUpdate = migrateStats(raw.lastStatUpdate as Record<string, number> | undefined);
+  const migrateCounterStats = (s: Record<string, number> | undefined) => {
+    if (!s) return { strength: 0, intelligence: 0, discipline: 0, social: 0 };
+    return {
+      strength: s.strength ?? 0,
+      intelligence: s.intelligence ?? 0,
+      discipline: s.discipline ?? s.willpower ?? s.focus ?? 0,
+      social: s.social ?? 0,
+    };
+  };
+  merged.stats = migrateBaseStats(raw.stats as Record<string, number> | undefined);
+  merged.dailyStats = migrateCounterStats(raw.dailyStats as Record<string, number> | undefined);
+  merged.yesterdayStats = migrateCounterStats(raw.yesterdayStats as Record<string, number> | undefined);
+  merged.weeklyStats = migrateCounterStats(raw.weeklyStats as Record<string, number> | undefined);
+  merged.monthlyStats = migrateCounterStats(raw.monthlyStats as Record<string, number> | undefined);
+  merged.lastStatUpdate = migrateCounterStats(raw.lastStatUpdate as Record<string, number> | undefined);
   if (!merged.ownedOutfits) merged.ownedOutfits = ['default'];
   if (!merged.activeOutfit) merged.activeOutfit = 'default';
   if (!merged.unlockedOutfits) merged.unlockedOutfits = ['outfit_starter'];
@@ -573,10 +583,8 @@ export const useSystem = () => {
         requiredXp,
         level,
         totalXp,
-        dailyXp: reward.type === 'XP' ? reward.amount : 0,
+        dailyXp,
         consumables: safeConsumables,
-        yesterdayStats: { ...prev.dailyStats },
-        dailyStats: { strength: 0, intelligence: 0, discipline: 0, social: 0 },
         logs,
         ...(leveledUp ? { hp: prev.maxHp, mp: prev.maxMp } : {})
       };
