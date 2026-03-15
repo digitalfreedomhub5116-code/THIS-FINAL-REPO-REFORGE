@@ -81,7 +81,7 @@ router.post('/analyze-quest', async (req: Request, res: Response) => {
     if (isGibberish(title)) {
       return res.json({
         isSpam: true,
-        rank: 'E', xp: 0, category: 'discipline',
+        rank: 'E', xp: 0, categories: ['discipline'],
         reasoning: 'ForgeGuard has flagged this objective as unverifiable. The System only accepts real-world tasks. Dusk is watching.',
         estimatedDuration: 0, minDurationMinutes: 0, autoDetectedTime: null,
       });
@@ -114,7 +114,7 @@ Current Hunter Stats:
 - Social: ${userStats.social || 10}/100
 ` : '';
 
-    const prompt = `You are ForgeGuard, an elite AI quest judge for a solo-leveling RPG fitness app called Bio-Sync OS.
+    const prompt = `You are ForgeGuard, an elite AI quest judge for a solo-leveling RPG fitness app called Bio-Sync OS. Dusk is the System's male overseer — refer to him with he/his pronouns.
 
 ${tzContext}
 ${calibrationContext}
@@ -131,6 +131,7 @@ Reject ANY quest that:
    - No duration, distance, quantity, repetition count, or clear endpoint
    - Examples of SPAM: "run", "exercise", "study", "read", "eat", "clean", "work", "meditate", "walk" (alone with no target)
    - Examples of VALID: "run 5km", "exercise for 30 minutes", "read 20 pages", "meditate for 10 minutes", "walk 3km", "clean my room for 45 minutes"
+   - HOWEVER: If the task is inherently clear and self-contained (e.g. "do laundry", "wash dishes", "make bed", "cook lunch"), accept it — these have obvious endpoints even without explicit targets.
 3. Contains nonsense, keyboard mashing, random letters, or gibberish:
    - Examples: "rinmfpr", "asdfghjk", "qwerty", "lkjhg", "zxcvbn", "aaaaaa", "test123", "abc", "xyz"
    - If it cannot be parsed as a real-world activity in any language, isSpam = true
@@ -140,8 +141,10 @@ Reject ANY quest that:
    - Space travel, climbing to the moon, flying unaided, teleportation, time travel, breathing underwater without equipment, lifting a building, running faster than the speed of light, visiting another planet, talking to aliens, becoming immortal, etc.
    - CRITICAL: Do NOT rationalize impossible quests as metaphors. Take the LITERAL meaning. "Climb to the moon" = physically impossible = isSpam true. "Fly to New York" (on a plane) = possible = valid. "Fly unaided to New York" = impossible = isSpam true.
    - If no human being can complete this task under the laws of real-world physics and biology, isSpam = true.
+7. Is harmful, dangerous, illegal, or self-destructive:
+   - Any quest that promotes self-harm, illegal activity, substance abuse, or endangers others = isSpam true.
 
-The GOLDEN RULE: A valid quest MUST be physically possible for a human, AND have a measurable target that allows estimating completion time. If either condition fails, isSpam = true.
+The GOLDEN RULE: A valid quest MUST be physically possible for a human, AND have a measurable target or obvious endpoint that allows estimating completion time. If either condition fails, isSpam = true.
 
 === ANALYSIS RULES (for valid quests only) ===
 
@@ -149,23 +152,36 @@ The GOLDEN RULE: A valid quest MUST be physically possible for a human, AND have
    E = trivial (5-15 min), D = easy (15-30 min), C = moderate (30-60 min),
    B = hard (60-120 min), A = very hard (2-4 hrs), S = elite (4+ hrs)
 2. XP: E=10-30, D=30-75, C=75-150, B=150-250, A=250-400, S=400-600 (scale within range by effort)
-3. Category: strength, intelligence, discipline, social
+3. categories: An array of 1-2 pillars from: "strength", "intelligence", "discipline", "social"
+   - Assign COMBINED pillars when the quest genuinely engages multiple areas:
+     * Physical exercise/health activities → ["strength", "discipline"] (physical effort + willpower)
+     * Study/learning with deep focus → ["intelligence", "discipline"] (mental effort + sustained focus)
+     * Team sports / group workouts → ["strength", "social"] (physical + social engagement)
+     * Teaching / tutoring / mentoring → ["intelligence", "social"]
+     * Chores / self-care / cleaning → ["discipline"] (single pillar is fine)
+     * Solo intellectual tasks → ["intelligence"] (single pillar)
+     * Networking / calling friends → ["social"] (single pillar)
+   - Use 1 pillar for simple/focused tasks. Use 2 pillars when the quest clearly spans two areas.
+   - NEVER assign more than 2 pillars. NEVER assign all 4.
 4. estimatedDuration: realistic total time in minutes for THIS user
 5. minDurationMinutes: the MINIMUM possible time a human could complete this task — strict anti-cheat floor:
    - Physical tasks: use realistic minimum human pace (e.g. 5km run = 18 min absolute minimum even for elite athletes)
    - Study/read tasks: use words-per-page × minimum reading speed
-   - Never below 5 minutes for any non-trivial task
+   - Never below 3 minutes for any non-trivial task
    - For tasks measured in time (e.g. "meditate 10 minutes") = exactly that duration
 6. autoDetectedTime: if the quest title contains a specific clock time or time-of-day indicator, extract it in HH:MM (24h) format:
    - "Cook dinner at 9 pm" → "21:00"
    - "Morning jog 6am" → "06:00"
    - If no time mentioned → null
 7. Calibration adjustments:
-   - DRAINED/BURNOUT: increase difficulty one rank, reduce minDurationMinutes by 10%
+   - If user stats are LOW in a pillar (<25), quests targeting that pillar should be ranked slightly harder (user is a beginner)
+   - If user stats are HIGH in a pillar (>70), quests targeting that pillar can be ranked slightly easier (user is experienced)
+   - DRAINED/BURNOUT energy: increase difficulty one rank, reduce minDurationMinutes by 10%
    - Energy HIGH/PEAK: may reduce perceived rank
+8. reasoning: Write a SHORT, punchy 1-2 sentence analysis. Be direct and motivational. Avoid generic filler.
 
 Respond with ONLY valid JSON, no markdown:
-{"rank":"C","xp":100,"category":"strength","reasoning":"Running 5km is moderate effort for your fitness baseline.","estimatedDuration":35,"minDurationMinutes":18,"autoDetectedTime":null,"isSpam":false}`;
+{"rank":"C","xp":100,"categories":["strength","discipline"],"reasoning":"Running 10km demands serious endurance and mental fortitude at your current fitness level.","estimatedDuration":70,"minDurationMinutes":36,"autoDetectedTime":null,"isSpam":false}`;
 
     let modelResult: ModelResult | null = null;
     const models = ['gemini-2.0-flash', 'gemini-1.5-flash'];
@@ -192,6 +208,12 @@ Respond with ONLY valid JSON, no markdown:
 
     const cleaned = stripMarkdown(modelResult.text);
     const parsed = JSON.parse(cleaned);
+    // Normalize: AI now returns categories array, ensure backward compat
+    if (parsed.categories && !parsed.category) {
+      parsed.category = parsed.categories[0];
+    } else if (parsed.category && !parsed.categories) {
+      parsed.categories = [parsed.category];
+    }
     return res.json(parsed);
   } catch (err: any) {
     console.error('[ForgeGuard analyze-quest]', err);

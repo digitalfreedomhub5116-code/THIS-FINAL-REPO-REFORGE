@@ -127,6 +127,7 @@ export interface Quest {
   rank: Rank;
   priority: Priority;
   category: keyof CoreStats;
+  categories?: (keyof CoreStats)[];
   xpReward: number;
   isCompleted: boolean;
   failed?: boolean;

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, CalendarDays, ChevronLeft, ChevronRight, Check, XCircle, Skull, AlertTriangle, BrainCircuit, Loader2, CheckCircle, X, Clock, Lock, ShieldCheck, Globe, Repeat, Zap } from 'lucide-react';
+import { Plus, CalendarDays, ChevronLeft, ChevronRight, Check, XCircle, Skull, AlertTriangle, BrainCircuit, Loader2, CheckCircle, X, Clock, ShieldCheck, Globe, Repeat, Zap, Dumbbell, Brain, Shield, Users } from 'lucide-react';
 import { Quest, CoreStats, Rank, Priority, PlayerData } from '../types';
 import RankBadge from './RankBadge';
 import type { RankType } from './RankBadge';
@@ -13,6 +13,7 @@ interface ForgeGuardResult {
   rank: Rank;
   xp: number;
   category: keyof CoreStats;
+  categories?: (keyof CoreStats)[];
   reasoning: string;
   estimatedDuration: number;
   minDurationMinutes?: number;
@@ -334,7 +335,7 @@ const QuestsView: React.FC<QuestsViewProps> = ({
       const data: ForgeGuardResult = await res.json();
       if (data.isSpam) {
         setForgeError(
-          'ForgeGuard has rejected this objective. The System cannot verify this as a real-world task. Dusk is watching — do not waste her time.'
+          'ForgeGuard has rejected this objective. The System cannot verify this as a real-world task. Dusk is watching — do not waste his time.'
         );
         playSystemSoundEffect('WARNING');
         if (tutorialStep === 8 && onTutorialAnalysisFail) {
@@ -396,6 +397,7 @@ const QuestsView: React.FC<QuestsViewProps> = ({
       rank: forgeResult.rank,
       priority: 'MEDIUM' as Priority,
       category: forgeResult.category,
+      categories: forgeResult.categories || [forgeResult.category],
       xpReward: forgeResult.xp,
       isCompleted: false,
       failed: false,
@@ -540,38 +542,41 @@ const QuestsView: React.FC<QuestsViewProps> = ({
       {/* Create Quest Modal */}
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/90 backdrop-blur-sm overflow-hidden">
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/90 backdrop-blur-sm overflow-hidden">
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="w-full max-w-lg rounded-2xl overflow-hidden max-h-[92vh] m-auto relative flex flex-col"
-              style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(8,8,20,0.92) 10%, rgba(4,4,14,0.97) 100%)', backdropFilter: 'blur(32px) saturate(200%)', WebkitBackdropFilter: 'blur(32px) saturate(200%)', borderTop: '1px solid rgba(255,255,255,0.14)', borderLeft: '1px solid rgba(255,255,255,0.08)', borderRight: '1px solid rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.03)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -1px 0 rgba(0,0,0,0.4), 0 24px 60px rgba(0,0,0,0.7)' }}
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 40 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              className="w-full max-w-lg rounded-t-2xl sm:rounded-2xl overflow-hidden max-h-[94vh] sm:max-h-[88vh] sm:m-4 relative flex flex-col"
+              style={{ background: '#08081a', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 -8px 40px rgba(0,0,0,0.6), 0 0 80px rgba(0,210,255,0.03)' }}
             >
-              {/* Modal Header */}
-              <div className="p-4 sm:p-5 border-b border-white/[0.08] flex justify-between items-center z-10 shrink-0" style={{ background: 'rgba(4,4,14,0.6)' }}>
-                <div className="flex items-center gap-2">
-                  <ShieldCheck size={15} className="text-cyan-400" />
-                  <h3 className="text-sm font-black text-white font-mono tracking-widest">FORGE NEW QUEST</h3>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-1 text-[9px] text-gray-600 font-mono">
-                    <Globe size={9} />
-                    {userTimezone}
+              {/* Modal Header — minimal */}
+              <div className="px-5 pt-5 pb-3 flex justify-between items-center z-10 shrink-0">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(0,210,255,0.08)', border: '1px solid rgba(0,210,255,0.2)' }}>
+                    <ShieldCheck size={13} className="text-cyan-400" />
                   </div>
-                  <button onClick={resetForm} className="text-gray-500 hover:text-white transition-colors">
-                    <X size={17} />
-                  </button>
+                  <div>
+                    <h3 className="text-xs font-black text-white font-mono tracking-[0.2em]">NEW QUEST</h3>
+                    <span className="text-[8px] text-gray-600 font-mono flex items-center gap-1"><Globe size={7} />{userTimezone}</span>
+                  </div>
                 </div>
+                <button onClick={resetForm} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-600 hover:text-white hover:bg-white/5 transition-all">
+                  <X size={16} />
+                </button>
               </div>
 
-              <div className="p-4 sm:p-5 space-y-4 overflow-y-auto flex-1 custom-scrollbar">
+              {/* Subtle divider */}
+              <div className="mx-5 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent)' }} />
+
+              <div className="px-5 py-4 space-y-4 overflow-y-auto flex-1 custom-scrollbar">
 
                 {/* Error Banner */}
                 <AnimatePresence>
                   {error && (
                     <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
-                      className="bg-red-900/20 border border-red-900/50 p-3 rounded-xl text-[10px] text-red-400 font-mono flex items-center gap-2"
+                      className="bg-red-900/15 border border-red-900/40 p-3 rounded-xl text-[10px] text-red-400 font-mono flex items-center gap-2"
                     >
                       <AlertTriangle size={11} className="shrink-0" /> {error}
                     </motion.div>
@@ -580,7 +585,7 @@ const QuestsView: React.FC<QuestsViewProps> = ({
 
                 {/* Title Input */}
                 <div>
-                  <label className="block text-[10px] text-gray-500 mb-2 font-mono uppercase tracking-widest">What is the quest?</label>
+                  <label className="block text-[10px] text-gray-500 mb-2 font-mono uppercase tracking-widest">Describe your quest</label>
                   <input
                     id="tut-quest-title"
                     value={title}
@@ -590,41 +595,42 @@ const QuestsView: React.FC<QuestsViewProps> = ({
                       if (forgeResult) { setForgeResult(null); setScheduleTime(''); setAutoScheduled(false); } 
                     }}
                     onKeyDown={e => { const wc = title.trim().split(/\s+/).filter(w=>w.length>0).length; if (e.key === 'Enter' && wc >= 2 && !isAnalyzing && !forgeResult) handleForgeAnalyze(); }}
-                    placeholder="e.g. Run 5km at 7am, Read 30 pages by evening"
+                    placeholder="e.g. Run 5km, Read 30 pages, Cook dinner at 7pm"
                     maxLength={120}
-                    className="w-full bg-system-bg border border-system-border rounded-xl p-3 text-white text-sm focus:border-system-neon focus:outline-none transition-colors placeholder:text-gray-700"
+                    className="w-full rounded-xl p-3.5 text-white text-sm focus:outline-none transition-all placeholder:text-gray-700 font-mono"
+                    style={{ background: 'rgba(255,255,255,0.03)', border: forgeResult ? '1px solid rgba(34,197,94,0.25)' : '1px solid rgba(255,255,255,0.08)', boxShadow: 'inset 0 1px 4px rgba(0,0,0,0.3)' }}
                     autoFocus
                   />
-                  <div className="flex justify-between mt-1.5">
-                    <span className="text-[9px] font-mono" style={{ color: title.trim().split(/\s+/).filter(w=>w.length>0).length >= 2 ? 'rgba(0,210,255,0.45)' : 'rgba(156,163,175,0.5)' }}>
-                      {title.trim().split(/\s+/).filter(w=>w.length>0).length >= 2 ? 'Quest approved — ready to analyze.' : 'Describe in at least 2 words to unlock analysis.'}
+                  <div className="flex justify-between mt-1.5 px-0.5">
+                    <span className="text-[9px] font-mono" style={{ color: title.trim().split(/\s+/).filter(w=>w.length>0).length >= 2 ? 'rgba(0,210,255,0.4)' : 'rgba(156,163,175,0.4)' }}>
+                      {title.trim().split(/\s+/).filter(w=>w.length>0).length >= 2 ? 'Ready to analyze' : 'Min 2 words'}
                     </span>
-                    <span className="text-[9px] text-gray-700">{title.length}/120</span>
+                    <span className="text-[9px] text-gray-700 font-mono">{title.length}/120</span>
                   </div>
                 </div>
 
-                {/* ForgeGuard Analyze Button */}
-                {(() => { const hasWords = title.trim().split(/\s+/).filter(w=>w.length>0).length >= 2; return (
+                {/* ForgeGuard Analyze Button — hidden after result */}
+                {!forgeResult && (() => { const hasWords = title.trim().split(/\s+/).filter(w=>w.length>0).length >= 2; return (
                 <button
                   id="tut-quest-analyze"
                   onClick={handleForgeAnalyze}
-                  disabled={isAnalyzing || !hasWords || !!forgeResult}
-                  className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all border ${
-                    forgeResult
-                      ? 'bg-green-900/20 border-green-800/50 text-green-500 cursor-default'
-                      : isAnalyzing
-                      ? 'bg-cyan-900/30 border-cyan-800 text-cyan-500 cursor-wait'
+                  disabled={isAnalyzing || !hasWords}
+                  className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+                    isAnalyzing
+                      ? 'text-cyan-500 cursor-wait'
                       : hasWords
-                      ? 'bg-cyan-500/10 border-cyan-500/40 text-cyan-400 hover:bg-cyan-500/20 hover:border-cyan-400 shadow-[0_0_15px_rgba(0,210,255,0.08)]'
-                      : 'bg-gray-900/50 border-gray-800 text-gray-600 cursor-not-allowed'
+                      ? 'text-cyan-400 hover:bg-cyan-500/8'
+                      : 'text-gray-600 cursor-not-allowed'
                   }`}
+                  style={{
+                    background: isAnalyzing ? 'rgba(0,210,255,0.06)' : hasWords ? 'rgba(0,210,255,0.04)' : 'rgba(255,255,255,0.02)',
+                    border: isAnalyzing ? '1px solid rgba(0,210,255,0.3)' : hasWords ? '1px solid rgba(0,210,255,0.15)' : '1px solid rgba(255,255,255,0.05)',
+                  }}
                 >
                   {isAnalyzing ? (
-                    <><Loader2 size={14} className="animate-spin" /> FORGEGUARD ANALYZING...</>
-                  ) : forgeResult ? (
-                    <><CheckCircle size={14} /> VERDICT LOCKED</>
+                    <><Loader2 size={14} className="animate-spin" /> ANALYZING...</>
                   ) : (
-                    <><BrainCircuit size={14} /> ANALYZE WITH FORGEGUARD</>
+                    <><BrainCircuit size={14} /> ANALYZE QUEST</>
                   )}
                 </button>
                 );})()}
@@ -633,7 +639,7 @@ const QuestsView: React.FC<QuestsViewProps> = ({
                 <AnimatePresence>
                   {forgeError && (
                     <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                      className="bg-red-950/40 border border-red-800/50 rounded-xl p-3 flex items-start gap-2"
+                      className="bg-red-950/30 border border-red-800/40 rounded-xl p-3 flex items-start gap-2"
                     >
                       <AlertTriangle size={12} className="text-red-400 mt-0.5 shrink-0" />
                       <p className="text-[11px] text-red-400 font-mono leading-relaxed">{forgeError}</p>
@@ -641,39 +647,60 @@ const QuestsView: React.FC<QuestsViewProps> = ({
                   )}
                 </AnimatePresence>
 
-                {/* ForgeGuard Result Card — RANK + REASON ONLY */}
+                {/* ForgeGuard Result Card — Redesigned */}
                 <AnimatePresence>
                   {forgeResult && rk && (
                     <motion.div
                       id="tut-quest-category"
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
+                      initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0 }}
+                      transition={{ type: 'spring', stiffness: 300, damping: 25 }}
                       className="rounded-2xl overflow-hidden"
-                      style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(6,6,18,0.90) 12%, rgba(3,3,10,0.96) 100%)', backdropFilter: 'blur(20px) saturate(160%)', WebkitBackdropFilter: 'blur(20px) saturate(160%)', borderTop: '1px solid rgba(255,255,255,0.11)', borderLeft: '1px solid rgba(255,255,255,0.06)', borderRight: '1px solid rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.03)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.07), 0 6px 24px rgba(0,0,0,0.5)' }}
+                      style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}
                     >
-                      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-white/[0.07]" style={{ background: 'rgba(0,0,0,0.35)' }}>
-                        <Lock size={9} className="text-cyan-500" />
-                        <span className="text-[9px] text-cyan-500/80 font-black tracking-widest">FORGEGUARD VERDICT — IMMUTABLE</span>
-                      </div>
                       <div className="p-4 space-y-3">
-                        {/* Rank badge */}
+                        {/* Top row: Rank + XP + Duration */}
                         <div className="flex items-center gap-3">
-                          <RankBadge rank={forgeResult.rank as RankType} size={44} animated />
-                          <div className="text-[9px] text-gray-600 font-mono">
-                            +{forgeResult.xp} XP · {forgeResult.estimatedDuration}min estimated
+                          <RankBadge rank={forgeResult.rank as RankType} size={48} animated />
+                          <div className="flex-1">
+                            <div className="flex items-baseline gap-2">
+                              <span className="text-lg font-black text-white font-mono">+{forgeResult.xp}</span>
+                              <span className="text-[10px] text-gray-500 font-mono">XP</span>
+                            </div>
+                            <span className="text-[9px] text-gray-600 font-mono">~{forgeResult.estimatedDuration} min</span>
+                          </div>
+                          <div className="flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)' }}>
+                            <CheckCircle size={10} className="text-green-400" />
+                            <span className="text-[9px] text-green-400 font-black font-mono">READY</span>
                           </div>
                         </div>
-                        {/* Reasoning only */}
-                        <p className="text-[11px] text-gray-300 font-mono leading-relaxed border-l-2 border-cyan-900/60 pl-3">
+
+                        {/* Pillar badges */}
+                        <div className="flex items-center gap-2">
+                          {(forgeResult.categories || [forgeResult.category]).map((cat) => {
+                            const pillarConfig: Record<string, { icon: React.ReactNode; color: string; bg: string }> = {
+                              strength:     { icon: <Dumbbell size={11} />, color: '#f97066', bg: 'rgba(249,112,102,0.1)' },
+                              intelligence: { icon: <Brain size={11} />,    color: '#818cf8', bg: 'rgba(129,140,248,0.1)' },
+                              discipline:   { icon: <Shield size={11} />,   color: '#c084fc', bg: 'rgba(192,132,252,0.1)' },
+                              social:       { icon: <Users size={11} />,    color: '#fbbf24', bg: 'rgba(251,191,36,0.1)' },
+                            };
+                            const cfg = pillarConfig[cat];
+                            if (!cfg) return null;
+                            return (
+                              <span key={cat} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-black font-mono uppercase tracking-wide"
+                                style={{ color: cfg.color, background: cfg.bg, border: `1px solid ${cfg.color}25` }}>
+                                {cfg.icon}
+                                {cat}
+                              </span>
+                            );
+                          })}
+                        </div>
+
+                        {/* AI Reasoning */}
+                        <p className="text-[11px] text-gray-400 font-mono leading-relaxed">
                           {forgeResult.reasoning}
                         </p>
-                        {forgeResult.minDurationMinutes && (
-                          <div className="flex items-center gap-1.5 text-[9px] text-amber-600/60 font-mono pt-1">
-                            <Lock size={8} />
-                            TIME LOCK: Minimum {forgeResult.minDurationMinutes} min before completion is accepted
-                          </div>
-                        )}
                       </div>
                     </motion.div>
                   )}
@@ -690,54 +717,55 @@ const QuestsView: React.FC<QuestsViewProps> = ({
                       className="space-y-3"
                     >
                       <div className="flex items-center gap-2">
-                        <Clock size={13} className={scheduleReady ? 'text-purple-400' : 'text-amber-400'} />
-                        <span className="text-[10px] font-black uppercase tracking-widest font-mono text-gray-300">
-                          What time today?
+                        <Clock size={12} className={scheduleReady ? 'text-cyan-400' : 'text-gray-500'} />
+                        <span className="text-[10px] font-black uppercase tracking-widest font-mono text-gray-400">
+                          Schedule
                         </span>
                         {!scheduleReady && (
-                          <span className="text-[9px] text-amber-500 font-mono ml-auto">REQUIRED</span>
+                          <span className="text-[9px] text-amber-500/70 font-mono ml-auto">REQUIRED</span>
                         )}
                         {scheduleReady && autoScheduled && (
-                          <span className="text-[9px] text-purple-400 font-mono ml-auto">AUTO-DETECTED</span>
+                          <span className="text-[9px] text-cyan-400/60 font-mono ml-auto">AUTO-DETECTED</span>
                         )}
                       </div>
-                      <input
-                        type="time"
-                        value={scheduleTime}
-                        onChange={e => { setScheduleTime(e.target.value); setAutoScheduled(false); }}
-                        className="w-full bg-system-bg border border-system-border rounded-xl p-2.5 text-white text-xs focus:border-purple-500 focus:outline-none transition-colors"
-                      />
-                      <button
-                        onClick={setCurrentTime}
-                        className="w-full flex items-center justify-center gap-2 py-2.5 bg-gray-900/80 border border-amber-900/40 rounded-xl text-[10px] font-black text-amber-400 hover:text-amber-300 hover:border-amber-700/60 hover:bg-amber-950/30 transition-all uppercase tracking-widest"
-                      >
-                        <Zap size={11} className="shrink-0" />
-                        SCHEDULE FOR NOW
-                      </button>
-                      {!scheduleReady && (
-                        <p className="text-[9px] text-amber-600/70 font-mono">
-                          Set a time to activate the protocol. Quests not completed by midnight will be removed.
-                        </p>
-                      )}
+                      <div className="flex gap-2">
+                        <input
+                          type="time"
+                          value={scheduleTime}
+                          onChange={e => { setScheduleTime(e.target.value); setAutoScheduled(false); }}
+                          className="flex-1 rounded-xl p-2.5 text-white text-xs focus:outline-none transition-all font-mono"
+                          style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}
+                        />
+                        <button
+                          onClick={setCurrentTime}
+                          className="px-4 rounded-xl text-[10px] font-black font-mono uppercase tracking-wider transition-all flex items-center gap-1.5"
+                          style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', color: '#9ca3af' }}
+                        >
+                          <Zap size={10} />
+                          NOW
+                        </button>
+                      </div>
+
                       {/* Loop Daily toggle */}
                       <button
                         onClick={() => setIsDaily(!isDaily)}
-                        className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${
-                          isDaily ? 'text-cyan-400' : 'text-gray-500 hover:text-gray-400'
-                        }`}
-                        style={isDaily ? { background: 'linear-gradient(180deg, rgba(0,210,255,0.06) 0%, rgba(0,160,200,0.04) 100%)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderTop: '1px solid rgba(0,210,255,0.25)', borderLeft: '1px solid rgba(0,210,255,0.12)', borderRight: '1px solid rgba(0,210,255,0.06)', borderBottom: '1px solid rgba(0,210,255,0.04)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06), 0 3px 12px rgba(0,0,0,0.3)' } : { background: 'linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(6,6,16,0.6) 100%)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderTop: '1px solid rgba(255,255,255,0.07)', borderLeft: '1px solid rgba(255,255,255,0.04)', borderRight: '1px solid rgba(255,255,255,0.02)', borderBottom: '1px solid rgba(255,255,255,0.02)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 3px 10px rgba(0,0,0,0.3)' }}
+                        className="w-full flex items-center gap-3 p-3 rounded-xl transition-all"
+                        style={{
+                          background: isDaily ? 'rgba(0,210,255,0.04)' : 'rgba(255,255,255,0.02)',
+                          border: isDaily ? '1px solid rgba(0,210,255,0.15)' : '1px solid rgba(255,255,255,0.05)',
+                        }}
                       >
                         <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-colors ${
-                          isDaily ? 'bg-system-neon border-system-neon' : 'bg-transparent border-gray-600'
+                          isDaily ? 'bg-cyan-500 border-cyan-500' : 'bg-transparent border-gray-700'
                         }`}>
-                          {isDaily && <Repeat size={10} className="text-black" />}
+                          {isDaily && <Repeat size={9} className="text-black" />}
                         </div>
                         <div className="text-left">
-                          <p className="text-[10px] font-black uppercase tracking-widest">Loop Daily (24h)</p>
-                          <p className="text-[9px] opacity-60 font-mono">
-                            {isDaily
-                              ? 'Quest resets at midnight — repeats every day'
-                              : 'Quest is removed after completion or at midnight'}
+                          <p className={`text-[10px] font-black uppercase tracking-widest font-mono ${isDaily ? 'text-cyan-400' : 'text-gray-500'}`}>
+                            Repeat Daily
+                          </p>
+                          <p className="text-[9px] text-gray-600 font-mono">
+                            {isDaily ? 'Resets at midnight every day' : 'One-time quest'}
                           </p>
                         </div>
                       </button>
@@ -747,16 +775,21 @@ const QuestsView: React.FC<QuestsViewProps> = ({
 
               </div>
 
-              {/* Modal Footer */}
-              <div className="p-3 sm:p-4 border-t border-white/[0.08] flex justify-end gap-3 z-10 shrink-0" style={{ background: 'rgba(4,4,14,0.6)' }}>
-                <button onClick={resetForm} className="px-4 py-2 text-xs font-mono text-gray-500 hover:text-white transition-colors">
+              {/* Modal Footer — fixed at bottom */}
+              <div className="px-5 py-4 border-t border-white/[0.05] flex justify-end gap-3 z-10 shrink-0" style={{ background: 'rgba(4,4,14,0.8)' }}>
+                <button onClick={resetForm} className="px-5 py-2.5 text-xs font-mono font-bold text-gray-600 hover:text-white transition-colors rounded-xl hover:bg-white/5">
                   CANCEL
                 </button>
                 <button
                   id="tut-confirm-quest"
                   onClick={handleCreate}
                   disabled={!forgeResult || !title.trim() || !scheduleReady}
-                  className="px-6 py-2.5 bg-system-neon text-black font-black rounded-xl text-xs font-mono hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-[0_0_15px_rgba(0,210,255,0.15)]"
+                  className="px-6 py-2.5 font-black rounded-xl text-xs font-mono transition-all disabled:opacity-20 disabled:cursor-not-allowed"
+                  style={{
+                    background: (!forgeResult || !scheduleReady) ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg, #00d4ff 0%, #0099cc 100%)',
+                    color: (!forgeResult || !scheduleReady) ? '#4b5563' : '#000',
+                    boxShadow: (!forgeResult || !scheduleReady) ? 'none' : '0 0 20px rgba(0,210,255,0.2)',
+                  }}
                 >
                   CONFIRM PROTOCOL
                 </button>

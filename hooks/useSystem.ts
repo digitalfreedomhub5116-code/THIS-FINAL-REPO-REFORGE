@@ -760,9 +760,11 @@ export const useSystem = () => {
 
       const stats = { ...prev.stats };
       const dailyStats = { ...prev.dailyStats };
-      if (quest.category) {
-        stats[quest.category] = (stats[quest.category] || 0) + (asMini ? 0.2 : 1);
-        dailyStats[quest.category] = (dailyStats[quest.category] || 0) + (asMini ? 0.2 : 1);
+      const questCategories = quest.categories || (quest.category ? [quest.category] : []);
+      const statGain = asMini ? 0.2 : 1;
+      for (const cat of questCategories) {
+        stats[cat] = (stats[cat] || 0) + statGain;
+        dailyStats[cat] = (dailyStats[cat] || 0) + statGain;
       }
 
       let { currentXp, requiredXp, level, totalXp, dailyXp } = prev;

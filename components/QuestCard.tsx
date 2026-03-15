@@ -55,8 +55,7 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
 
   const rankColor  = RANK_BAR[quest.rank];
   const rankBg     = RANK_LABEL[quest.rank];
-  const catColor   = quest.category ? CAT_COLOR[quest.category] : '#6b7280';
-  const catIcon    = quest.category ? CAT_ICON[quest.category] : null;
+  // catColor/catIcon now read directly from maps in JSX for combined pillars
   const displayXp  = isMiniActive ? Math.floor(quest.xpReward * 0.1) : quest.xpReward;
 
   const handleComplete = () => {
@@ -153,14 +152,14 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
               {isMiniActive ? (quest.miniQuest || 'Activation: Just Start.') : quest.title}
             </h3>
 
-            {/* Meta row: category + daily badge */}
+            {/* Meta row: category pillars + daily badge */}
             <div className="flex items-center gap-2 mt-1 flex-wrap">
-              {quest.category && (
-                <span className="flex items-center gap-1 text-[9px] font-mono font-bold uppercase tracking-wide" style={{ color: catColor }}>
-                  {catIcon}
-                  {quest.category}
+              {(quest.categories || (quest.category ? [quest.category] : [])).map((cat) => (
+                <span key={cat} className="flex items-center gap-1 text-[9px] font-mono font-bold uppercase tracking-wide" style={{ color: CAT_COLOR[cat] }}>
+                  {CAT_ICON[cat]}
+                  {cat}
                 </span>
-              )}
+              ))}
               {quest.isDaily && (
                 <span
                   className="text-[8px] font-black font-mono tracking-widest px-1.5 py-0.5 rounded"
