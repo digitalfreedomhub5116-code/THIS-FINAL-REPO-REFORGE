@@ -72,21 +72,15 @@ const CONSUMABLE_ITEMS = [
   },
 ];
 
+// Simplified 7-day preview for Store page (full 30-day calendar in modal)
 const LOGIN_REWARDS = [
   { day: 1, emoji: '🪙', label: '100 G',   rarity: 'COMMON'    },
-  { day: 2, emoji: '🧪', label: '×1',      rarity: 'COMMON'    },
+  { day: 2, emoji: '🧪', label: 'Potion',  rarity: 'COMMON'    },
   { day: 3, emoji: '🪙', label: '200 G',   rarity: 'COMMON'    },
-  { day: 4, emoji: '📜', label: '×1',      rarity: 'RARE'      },
-  { day: 5, emoji: '🧪', label: '×2',      rarity: 'COMMON'    },
-  { day: 6, emoji: '🪙', label: '400 G',   rarity: 'COMMON'    },
-  { day: 7, emoji: '🗝️', label: '×1 KEY',  rarity: 'RARE'      },
-  { day: 8, emoji: '🧪', label: '×1',      rarity: 'COMMON'    },
-  { day: 9, emoji: '🪙', label: '300 G',   rarity: 'COMMON'    },
-  { day: 10, emoji: '📜', label: '×2',     rarity: 'RARE'      },
-  { day: 11, emoji: '🪙', label: '500 G',  rarity: 'COMMON'    },
-  { day: 12, emoji: '🗝️', label: '×2 KEYS', rarity: 'RARE'     },
-  { day: 13, emoji: '🧪', label: '×3',     rarity: 'RARE'      },
-  { day: 14, emoji: '⚡', label: '×1 ORB', rarity: 'LEGENDARY' },
+  { day: 4, emoji: '📜', label: 'Scroll',  rarity: 'RARE'      },
+  { day: 5, emoji: '', label: '300 G',   rarity: 'COMMON'    },
+  { day: 6, emoji: '🧪', label: '×2',      rarity: 'COMMON'    },
+  { day: 7, emoji: '🗝️', label: 'Key',     rarity: 'RARE'      },
 ];
 
 const ShopView: React.FC<ShopViewProps> = ({
@@ -151,7 +145,8 @@ const ShopView: React.FC<ShopViewProps> = ({
 
   const todayStr = new Date().toISOString().split('T')[0];
   const claimedToday = lastLoginDate === todayStr;
-  const currentStreakDay = Math.max(1, ((streak - 1) % 14) + 1);
+  // Use 7-day cycle for preview display
+  const currentStreakDay = Math.max(1, ((streak - 1) % 7) + 1);
 
   return (
     <div id="tut-store" className="space-y-5 pb-10">
@@ -264,7 +259,8 @@ const ShopView: React.FC<ShopViewProps> = ({
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05 }}
-        className="relative w-full rounded-2xl overflow-hidden"
+        onClick={!claimedToday ? onOpenDailyCalendar : undefined}
+        className={`relative w-full rounded-2xl overflow-hidden ${!claimedToday ? 'cursor-pointer hover:border-purple-400/40' : ''} transition-all`}
         style={{ background: 'linear-gradient(135deg, #0a0a1a 0%, #0d0d25 50%, #0a0a1a 100%)', border: '1px solid rgba(139,92,246,0.2)' }}
       >
         {/* Background glow */}
@@ -273,10 +269,10 @@ const ShopView: React.FC<ShopViewProps> = ({
 
         <div className="relative p-4">
           {/* Header */}
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-3">
             <div>
-              <div className="text-[9px] font-mono font-bold tracking-[0.3em] uppercase text-purple-400 mb-0.5">STREAK REWARD</div>
-              <h3 className="text-base font-black text-white font-mono uppercase tracking-wide">Login Rewards</h3>
+              <div className="text-[9px] font-mono font-bold tracking-[0.3em] uppercase text-purple-400 mb-0.5">DAILY LOGIN</div>
+              <h3 className="text-sm font-black text-white font-mono uppercase tracking-wide">Streak Rewards</h3>
             </div>
             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full font-mono text-xs font-bold"
               style={{ background: claimedToday ? 'rgba(34,197,94,0.1)' : 'rgba(139,92,246,0.15)', border: claimedToday ? '1px solid rgba(34,197,94,0.3)' : '1px solid rgba(139,92,246,0.3)', color: claimedToday ? '#4ade80' : '#c4b5fd' }}
@@ -285,12 +281,8 @@ const ShopView: React.FC<ShopViewProps> = ({
             </div>
           </div>
 
-          {/* 7-day reward track (Scrollable) */}
-          <div 
-             className={`flex gap-1.5 overflow-x-auto pb-2 snap-x ${!claimedToday ? 'cursor-pointer' : ''}`} 
-             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-             onClick={!claimedToday ? onOpenDailyCalendar : undefined}
-          >
+          {/* 7-day reward track */}
+          <div className="flex gap-2 justify-between">
             {LOGIN_REWARDS.map((reward) => {
               const dayNum   = reward.day;
               const isCurrent = dayNum === currentStreakDay;
@@ -301,7 +293,7 @@ const ShopView: React.FC<ShopViewProps> = ({
               return (
                 <div
                   key={dayNum}
-                  className="flex flex-col items-center gap-1 rounded-xl p-1.5 relative shrink-0 snap-start w-12"
+                  className="flex flex-col items-center gap-1.5 rounded-xl p-2 relative flex-1 min-w-0"
                   style={{
                     background: isClaimed
                       ? 'rgba(34,197,94,0.08)'
@@ -325,13 +317,13 @@ const ShopView: React.FC<ShopViewProps> = ({
                     />
                   )}
 
-                  <div className="relative">
+                  <div className="relative text-lg">
                     {isClaimed ? (
-                      <div className="text-base leading-none opacity-50">{reward.emoji}</div>
+                      <div className="opacity-50">{reward.emoji}</div>
                     ) : isFuture ? (
-                      <Lock size={14} className="text-gray-600 my-0.5" />
+                      <Lock size={16} className="text-gray-600" />
                     ) : (
-                      <div className="text-base leading-none">{reward.emoji}</div>
+                      <div>{reward.emoji}</div>
                     )}
                     {isClaimed && (
                       <div className="absolute -top-1 -right-1">
@@ -340,31 +332,26 @@ const ShopView: React.FC<ShopViewProps> = ({
                     )}
                   </div>
 
-                  <div className="font-mono text-[8px] font-bold text-center leading-tight"
+                  <div className="font-mono text-[9px] font-bold text-center leading-tight truncate w-full"
                     style={{ color: isClaimed ? '#4ade80' : isCurrent ? rStyle.text : '#6b7280' }}
                   >
                     {reward.label}
                   </div>
-
-                  <div className="font-mono text-[7px] tracking-widest uppercase"
-                    style={{ color: isClaimed ? 'rgba(74,222,128,0.5)' : isFuture ? '#374151' : '#6b7280' }}
-                  >
-                    D{dayNum}
-                  </div>
-
-                  {isCurrent && !claimedToday && (
-                    <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 bg-purple-500 text-[7px] font-black font-mono text-white px-1.5 py-0.5 rounded-full uppercase tracking-wide whitespace-nowrap">
-                      TODAY
-                    </div>
-                  )}
                 </div>
               );
             })}
           </div>
 
-          <div className="mt-3 text-center text-[10px] font-mono text-gray-600">
-            Log in daily to advance your streak — rare rewards await at day 7, 12 &amp; 14
-          </div>
+          {!claimedToday && (
+            <div className="mt-3 text-center text-[10px] font-mono text-purple-400/60">
+              Click to view full 30-day calendar →
+            </div>
+          )}
+          {claimedToday && (
+            <div className="mt-3 text-center text-[10px] font-mono text-green-400/60">
+              Come back tomorrow for your next reward!
+            </div>
+          )}
         </div>
       </motion.div>
 
