@@ -8,6 +8,7 @@ interface ProfileViewProps {
   onUpdate: (data: { name: string; username: string; job: string; title: string; healthProfile?: HealthProfile }) => void;
   onLogout: () => void;
   onBack?: () => void;
+  onNavigate?: (tab: 'STORE' | 'DASHBOARD' | 'QUESTS' | 'HEALTH' | 'ALLIANCE' | 'PROFILE') => void;
   onRetakeTutorial?: () => void;
 }
 

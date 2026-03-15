@@ -548,9 +548,9 @@ export const DashboardSections: React.FC<DashboardSectionsProps> = ({
 
           <button
             onClick={() => { onNavigate('STORE'); }}
-            className={`flex-shrink-0 px-4 py-3 rounded-xl font-mono font-black text-xs tracking-widest flex flex-col items-center gap-1 transition-all bg-red-600 text-white border border-red-500 hover:bg-red-500 shadow-[0_0_20px_rgba(239,68,68,0.4)] hover:shadow-[0_0_30px_rgba(239,68,68,0.6)] active:scale-95`}
+            className={`flex-shrink-0 px-4 py-3 rounded-xl font-mono font-black text-xs tracking-widest flex flex-col items-center gap-1 transition-all ${isDungeonReady ? 'bg-red-600 text-white border border-red-500 hover:bg-red-500 shadow-[0_0_20px_rgba(239,68,68,0.4)] hover:shadow-[0_0_30px_rgba(239,68,68,0.6)] active:scale-95' : 'bg-gray-800/50 text-gray-500 border border-gray-700/50 cursor-not-allowed'}`}
           >
-            <Sword size={16} className="text-white" />
+            <Sword size={16} className={isDungeonReady ? 'text-white' : 'text-gray-600'} />
             <span>ENTER</span>
           </button>
         </div>
