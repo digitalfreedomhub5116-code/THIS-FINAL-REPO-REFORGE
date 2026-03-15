@@ -392,11 +392,12 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
                 : isChosen
                 ? { scale: 1.25, x: 0, y: -16, opacity: 1, rotateY: 180 }
                 : { scale: 1, x: pos.x, y: pos.y, opacity: 1, rotateY: 0 }}
-              transition={{ type: 'spring', stiffness: 240, damping: 22, delay: fadeOut ? 0 : i * 0.08 + 0.3 }}
+              transition={{ type: 'spring', stiffness: 240, damping: 22, delay: fadeOut ? 0 : i * 0.08 + 0.5 }}
               onClick={!anySel ? () => handleCardSelect(i) : undefined}
               className="absolute w-20 h-28 cursor-pointer select-none"
               style={{ transformStyle: 'preserve-3d', top: '50%', left: '50%', marginLeft: -40, marginTop: -56 }}
             >
+              {/* Front face (question mark) */}
               <div className="absolute inset-0 rounded-xl flex items-center justify-center"
                 style={{ background: '#080914', border: '1px solid rgba(255,255,255,0.08)', backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}>
                 <div className="absolute inset-0 rounded-xl opacity-15"
@@ -405,16 +406,25 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
                   <HelpCircle size={16} className="text-white/30" />
                 </div>
               </div>
-              <div className="absolute inset-0 rounded-xl flex flex-col items-center justify-center gap-1.5 border-2"
-                style={{ background: '#080914', backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', transform: 'rotateY(180deg)', borderColor: card.color, boxShadow: `0 0 20px ${card.color}50` }}>
-                <div className="absolute inset-0 rounded-xl"
-                  style={{ background: `radial-gradient(ellipse at center, ${card.color}20 0%, transparent 65%)` }} />
-                <div className="relative z-10 flex flex-col items-center gap-1">
-                  {getRewardIcon(card.type)}
-                  <div className="text-base font-black text-white font-mono">+{card.amount}</div>
-                  <div className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
-                    style={{ background: `${card.color}20`, color: card.color }}>{card.label}</div>
-                </div>
+              {/* Back face (reward) - transformStyle:flat prevents child 3D animations from leaking through backface */}
+              <div className="absolute inset-0 rounded-xl flex flex-col items-center justify-center gap-1.5 border-2 overflow-hidden"
+                style={{ background: '#080914', backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', transform: 'rotateY(180deg)', transformStyle: 'flat', borderColor: card.color, boxShadow: `0 0 20px ${card.color}50` }}>
+                {isChosen ? (
+                  <>
+                    <div className="absolute inset-0 rounded-xl"
+                      style={{ background: `radial-gradient(ellipse at center, ${card.color}20 0%, transparent 65%)` }} />
+                    <div className="relative z-10 flex flex-col items-center gap-1">
+                      {getRewardIcon(card.type)}
+                      <div className="text-base font-black text-white font-mono">+{card.amount}</div>
+                      <div className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
+                        style={{ background: `${card.color}20`, color: card.color }}>{card.label}</div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: `${card.color}15`, border: `1px solid ${card.color}30` }}>
+                    <span className="text-lg">?</span>
+                  </div>
+                )}
               </div>
             </motion.div>
           );
