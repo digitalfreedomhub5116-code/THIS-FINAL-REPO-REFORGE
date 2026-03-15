@@ -327,7 +327,10 @@ const QuestsView: React.FC<QuestsViewProps> = ({
           'ForgeGuard has rejected this objective. The System cannot verify this as a real-world task. Dusk is watching — do not waste her time.'
         );
         playSystemSoundEffect('WARNING');
-        if (tutorialStep === 8 && onTutorialAnalysisFail) onTutorialAnalysisFail();
+        if (tutorialStep === 8 && onTutorialAnalysisFail) {
+          setTitle(''); // Clear title so they have to type again
+          onTutorialAnalysisFail();
+        }
       } else {
         setForgeResult(data);
         if (data.autoDetectedTime) {
@@ -339,7 +342,10 @@ const QuestsView: React.FC<QuestsViewProps> = ({
       }
     } catch {
       setForgeError('ForgeGuard is offline. Quest creation requires AI analysis — please try again.');
-      if (tutorialStep === 8 && onTutorialAnalysisFail) onTutorialAnalysisFail();
+      if (tutorialStep === 8 && onTutorialAnalysisFail) {
+        setTitle(''); // Clear title on offline error too, to avoid getting stuck
+        onTutorialAnalysisFail();
+      }
     } finally {
       setIsAnalyzing(false);
     }
@@ -568,7 +574,11 @@ const QuestsView: React.FC<QuestsViewProps> = ({
                   <input
                     id="tut-quest-title"
                     value={title}
-                    onChange={e => { setTitle(e.target.value); if (forgeResult) { setForgeResult(null); setScheduleTime(''); setAutoScheduled(false); } }}
+                    onChange={e => { 
+                      setTitle(e.target.value); 
+                      if (forgeError) setForgeError(null);
+                      if (forgeResult) { setForgeResult(null); setScheduleTime(''); setAutoScheduled(false); } 
+                    }}
                     onKeyDown={e => { const wc = title.trim().split(/\s+/).filter(w=>w.length>0).length; if (e.key === 'Enter' && wc >= 2 && !isAnalyzing && !forgeResult) handleForgeAnalyze(); }}
                     placeholder="e.g. Run 5km at 7am, Read 30 pages by evening"
                     maxLength={120}
