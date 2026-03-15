@@ -297,7 +297,17 @@ const QuestsView: React.FC<QuestsViewProps> = ({
   const timelineQuests = [...quests].sort((a, b) => b.createdAt - a.createdAt);
   const activeCount = quests.filter(q => !q.isCompleted && !q.failed).length;
 
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const questsAddedToday = quests.filter(q => q.createdAt >= startOfToday).length;
+  const MAX_QUESTS_PER_DAY = 10;
+  const canAddMoreQuests = questsAddedToday < MAX_QUESTS_PER_DAY;
+
   const handleForgeAnalyze = async () => {
+    if (!canAddMoreQuests) {
+      setForgeError(`SYSTEM LIMIT REACHED: You have already forged ${MAX_QUESTS_PER_DAY} quests today. The body must rest.`);
+      return;
+    }
     if (!title.trim() || title.trim().length < 5) {
       setForgeError('Describe the quest clearly. Be specific about what you will actually do.');
       return;

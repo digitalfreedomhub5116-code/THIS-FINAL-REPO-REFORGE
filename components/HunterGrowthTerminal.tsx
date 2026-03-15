@@ -1,7 +1,8 @@
-
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Dumbbell, Brain, Users, Shield, AlertTriangle, TrendingUp, TrendingDown, Flame, Zap } from 'lucide-react';
+import { 
+  Dumbbell, Brain, Users, Shield, AlertTriangle, TrendingUp, TrendingDown, Flame, Zap, Target
+} from 'lucide-react';
 import { CoreStats, HistoryEntry, Quest } from '../types';
 
 interface HunterGrowthTerminalProps {
@@ -298,29 +299,12 @@ const HunterGrowthTerminal: React.FC<HunterGrowthTerminalProps> = ({
           </div>
 
           {/* XP info */}
-          <div className="flex-1 flex items-center justify-between">
+          <div className="flex-1 flex justify-between items-center">
             <div>
-              <div className="flex items-baseline gap-1.5">
-                <Zap size={10} className="text-[#8b5cf6]" />
-                <span className="text-white font-mono text-lg font-black leading-none">{dailyXp.toLocaleString()}</span>
-                <span className="text-gray-600 font-mono text-[9px] font-bold">XP</span>
+              <div className="flex items-center gap-1.5 text-white font-mono text-[10px] font-black">
+                <Target size={11} className="text-system-neon" /> TODAY
               </div>
-              <div className="flex items-center gap-1 mt-1">
-                {xpChange !== 0 ? (
-                  <>
-                    {xpChange > 0 ? (
-                      <TrendingUp size={10} className="text-[#00d2ff]" />
-                    ) : (
-                      <TrendingDown size={10} className="text-red-400" />
-                    )}
-                    <span className={`text-[9px] font-mono font-bold ${xpChange > 0 ? 'text-[#00d2ff]' : 'text-red-400'}`}>
-                      {xpChange > 0 ? '+' : ''}{xpChange.toFixed(0)}% vs yesterday
-                    </span>
-                  </>
-                ) : (
-                  <span className="text-[9px] font-mono text-gray-600">today&apos;s progress</span>
-                )}
-              </div>
+              <div className="text-[9px] text-gray-500 font-mono mt-0.5">{Math.floor(dailyXp)} XP Gained</div>
             </div>
 
             <div className="text-right">
