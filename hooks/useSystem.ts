@@ -426,20 +426,34 @@ export const useSystem = () => {
   };
 
   const enterDungeon = async (isFree: boolean): Promise<boolean> => {
+    let newState: PlayerData | null = null;
     if (isFree) {
-      setPlayer(prev => ({ ...prev, lastDungeonEntry: Date.now() }));
-      return true;
+      setPlayer(prev => {
+        newState = { ...prev, lastDungeonEntry: Date.now() };
+        return newState;
+      });
+    } else {
+      const COST = 3;
+      if (player.keys >= COST) {
+        setPlayer(prev => {
+          newState = {
+            ...prev,
+            keys: prev.keys - COST,
+            logs: [createLog(`Dungeon Access Purchased (-${COST} Keys)`, 'PURCHASE'), ...prev.logs]
+          };
+          return newState;
+        });
+      } else {
+        return false;
+      }
     }
-    const COST = 3;
-    if (player.keys >= COST) {
-      setPlayer(prev => ({
-        ...prev,
-        keys: prev.keys - COST,
-        logs: [createLog(`Dungeon Access Purchased (-${COST} Keys)`, 'PURCHASE'), ...prev.logs]
-      }));
-      return true;
+    
+    // Force immediate sync to prevent refresh reset
+    if (newState) {
+      await syncToCloud(newState);
     }
-    return false;
+    
+    return true;
   };
 
   // --- DAILY REWARDS SYSTEM (30-Day Cycle) ---
