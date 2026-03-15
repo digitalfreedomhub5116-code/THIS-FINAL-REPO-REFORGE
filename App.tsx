@@ -352,11 +352,16 @@ const App: React.FC = () => {
 
   const dailyCheckRef = useRef(false);
 
+  // Deferred daily login check
   useEffect(() => {
+    // Wait until configured and tutorial is complete before showing daily login
     if (!player.isConfigured) {
       dailyCheckRef.current = false;
       return;
     }
+    // If it's a new user and the tutorial isn't done yet, wait.
+    if (isNewUserOnboarding && !player.tutorialComplete) return;
+
     if (dailyCheckRef.current) return;
     const reward = checkDailyLogin();
     if (reward) {
@@ -364,7 +369,7 @@ const App: React.FC = () => {
       setShowDailyLogin(true);
     }
     dailyCheckRef.current = true;
-  }, [player.isConfigured, checkDailyLogin]);
+  }, [player.isConfigured, player.tutorialComplete, isNewUserOnboarding, checkDailyLogin]);
 
   useEffect(() => {
     if (player.logs.length > 0 && player.logs[0].type === 'LEVEL_UP') {
