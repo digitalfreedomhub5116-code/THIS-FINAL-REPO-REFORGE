@@ -533,7 +533,13 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({ currentStep, onNext, 
                 id="tutorial-dialog"
                 layout 
                 initial={{ opacity: 0, scale: 0.9, y: 10 }}
-                animate={isError ? { x: [-10, 10, -10, 10, 0], scale: [1, 1.05, 1] } : analysisFailed ? { x: [-8, 8, -8, 8, 0], scale: [1, 1.03, 1] } : { opacity: 1, scale: 1, y: 0 }}
+                animate={
+                    isError 
+                        ? { opacity: 1, y: 0, x: [-10, 10, -10, 10, 0], scale: [1, 1.05, 1] } 
+                        : analysisFailed 
+                            ? { opacity: 1, y: 0, x: [-8, 8, -8, 8, 0], scale: [1, 1.03, 1] } 
+                            : { opacity: 1, scale: 1, y: 0, x: 0 }
+                }
                 transition={{ type: "spring", stiffness: 200, damping: 25 }}
                 className={`absolute left-4 right-4 md:left-auto md:right-auto md:w-[400px] pointer-events-auto ${positionClasses[dialogPosition]}`}
             >
