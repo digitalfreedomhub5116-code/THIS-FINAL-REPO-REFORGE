@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface MentorMessage {
@@ -9,49 +9,90 @@ interface MentorMessage {
 interface MentorThoughtBoxProps {
   messages: MentorMessage[];
   onDismiss: (id: string) => void;
+  position?: 'top' | 'bottom';
 }
 
-const MentorThoughtBox: React.FC<MentorThoughtBoxProps> = ({ messages, onDismiss }) => {
-  // We only show the latest message to avoid cluttering the screen
+// Typewriter text component with glitch flicker
+const TypewriterText: React.FC<{ text: string }> = ({ text }) => {
+  const [displayed, setDisplayed] = useState('');
+  const [glitch, setGlitch] = useState(false);
+
+  useEffect(() => {
+    setDisplayed('');
+    let i = 0;
+    const interval = setInterval(() => {
+      if (i < text.length) {
+        setDisplayed(text.slice(0, i + 1));
+        i++;
+        // Random glitch flicker
+        if (Math.random() < 0.15) {
+          setGlitch(true);
+          setTimeout(() => setGlitch(false), 80);
+        }
+      } else {
+        clearInterval(interval);
+      }
+    }, 35);
+    return () => clearInterval(interval);
+  }, [text]);
+
+  return (
+    <span style={{ 
+      opacity: glitch ? 0.4 : 1, 
+      textShadow: glitch ? '2px 0 #00d2ff, -2px 0 #ff0040' : 'none',
+      transition: 'all 0.05s'
+    }}>
+      {displayed}
+      <span className="animate-pulse text-[#00d2ff]">_</span>
+    </span>
+  );
+};
+
+const MentorThoughtBox: React.FC<MentorThoughtBoxProps> = ({ messages, onDismiss, position = 'bottom' }) => {
   const currentMessage = messages.length > 0 ? messages[messages.length - 1] : null;
 
   useEffect(() => {
     if (currentMessage) {
       const timer = setTimeout(() => {
         onDismiss(currentMessage.id);
-      }, 8000); // Auto-dismiss after 8 seconds
+      }, 7000);
       return () => clearTimeout(timer);
     }
   }, [currentMessage, onDismiss]);
 
+  const posClass = position === 'top' 
+    ? 'top-3 right-3' 
+    : 'bottom-16 right-3';
+
   return (
-    <div className="absolute top-4 right-4 z-50 pointer-events-none flex flex-col gap-2 items-end max-w-[200px]">
+    <div className={`absolute ${posClass} z-50 pointer-events-none flex flex-col gap-2 items-end max-w-[180px]`}>
       <AnimatePresence>
         {currentMessage && (
           <motion.div
             key={currentMessage.id}
-            initial={{ opacity: 0, scale: 0.8, x: 20 }}
-            animate={{ opacity: 1, scale: 1, x: 0 }}
-            exit={{ opacity: 0, scale: 0.8, x: 20 }}
-            transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+            initial={{ opacity: 0, scaleY: 0, scaleX: 0.5 }}
+            animate={{ opacity: 1, scaleY: 1, scaleX: 1 }}
+            exit={{ 
+              scaleY: 0, 
+              scaleX: 0.02, 
+              opacity: 0,
+              transition: { duration: 0.3, ease: [0.4, 0, 1, 1] }
+            }}
+            transition={{ type: 'spring', damping: 18, stiffness: 300 }}
+            style={{ originY: position === 'top' ? 0 : 1 }}
             className="pointer-events-auto cursor-pointer"
             onClick={() => onDismiss(currentMessage.id)}
           >
             <div className="relative">
-              {/* Box */}
-              <div 
-                className="bg-black/80 border border-[#00d2ff]/40 p-3 rounded-xl rounded-tr-sm shadow-[0_0_15px_rgba(0,210,255,0.2)] backdrop-blur-md"
-              >
-                <div className="text-[10px] text-[#00d2ff] font-black font-mono tracking-widest uppercase mb-1 flex items-center gap-1">
-                  <div className="w-1.5 h-1.5 bg-[#00d2ff] rounded-full animate-pulse shadow-[0_0_5px_#00d2ff]" />
+              <div className="bg-[#0A0A0F]/90 border border-[#00d2ff]/30 px-3 py-2 rounded-lg shadow-[0_0_20px_rgba(0,210,255,0.15)] backdrop-blur-md">
+                <div className="text-[8px] text-[#00d2ff]/80 font-black font-mono tracking-[0.3em] uppercase mb-1 flex items-center gap-1">
+                  <div className="w-1 h-1 bg-[#00d2ff] rounded-full animate-pulse shadow-[0_0_4px_#00d2ff]" />
                   DUSK
                 </div>
-                <div className="text-xs text-white font-mono leading-relaxed">
-                  "{currentMessage.text}"
+                <div className="text-[10px] text-white/90 font-mono leading-relaxed">
+                  <TypewriterText text={currentMessage.text} />
                 </div>
               </div>
-              {/* Tail pointing right */}
-              <div className="absolute -right-2 top-0 w-4 h-4 bg-black/80 border-t border-r border-[#00d2ff]/40 transform rotate-45 translate-y-2 -translate-x-1 backdrop-blur-md -z-10" />
             </div>
           </motion.div>
         )}
