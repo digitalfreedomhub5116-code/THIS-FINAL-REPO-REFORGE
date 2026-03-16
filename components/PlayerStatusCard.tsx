@@ -32,6 +32,7 @@ interface PlayerStatusCardProps {
   mentorMessages: { id: string; text: string }[];
   onDismissMentorMessage: (id: string) => void;
   history: HistoryEntry[];
+  onOpenDuskChat: () => void;
 }
 
 const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({ 
@@ -39,7 +40,8 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
   equippedOutfit,
   mentorMessages,
   onDismissMentorMessage,
-  history
+  history,
+  onOpenDuskChat
 }) => {
   const [selectedDateIndex, setSelectedDateIndex] = useState<number>(0);
   const [weekOffset, setWeekOffset] = useState(0);
@@ -227,8 +229,16 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
   return (
     <div className="w-full relative rounded-2xl overflow-hidden flex flex-col group border border-white/[0.06] shadow-[0_20px_60px_rgba(0,0,0,0.7)] bg-[#0A0A0F]">
 
+      {/* --- TOP HEADER --- */}
+      <div className="w-full flex items-center justify-between px-4 py-2 bg-gradient-to-b from-[#0A0A0F] to-transparent z-30 absolute top-0 left-0 right-0 pointer-events-none">
+        <div className="flex items-center gap-2">
+          <div className="w-1 h-3.5 bg-system-neon rounded-full shadow-[0_0_8px_#00d2ff]" />
+          <h2 className="text-[10px] font-black tracking-[0.2em] text-white uppercase opacity-90 font-mono">Growth Terminal</h2>
+        </div>
+      </div>
+
       {/* --- TOP HEXAGONAL CALENDAR --- */}
-      <div className="w-full border-b border-white/5 bg-[#0A0A0F] z-20 shrink-0 px-2 py-2">
+      <div className="w-full border-b border-white/5 bg-[#0A0A0F] z-20 shrink-0 px-2 py-2 pt-9">
         {/* Month nav */}
         <div className="flex items-center justify-between px-1 pb-2">
           <button
@@ -276,16 +286,23 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
                   className="relative flex items-center justify-center transition-all duration-200"
                   style={{
                     width: 36, height: 40,
-                    clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
-                    background: isSelected ? 'rgba(0,210,255,0.15)' : 'rgba(8,8,18,0.9)',
                   }}
                 >
-                  {/* Inner hex border via a slightly smaller hex */}
+                  {/* Outer border hex */}
                   <div
-                    className="absolute inset-[1.5px] flex items-center justify-center"
+                    className="absolute inset-0"
                     style={{
                       clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
-                      background: isSelected ? 'rgba(0,210,255,0.12)' : 'rgba(10,10,15,0.95)',
+                      background: borderColor,
+                    }}
+                  />
+                  {/* Inner hex to create the stroke effect */}
+                  <div
+                    className="absolute flex items-center justify-center"
+                    style={{
+                      inset: '1.5px',
+                      clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
+                      background: isSelected ? 'rgba(0,210,255,0.12)' : 'rgba(8,8,18,1)',
                       boxShadow: glowShadow,
                     }}
                   >
@@ -296,15 +313,6 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
                       {day.getDate()}
                     </span>
                   </div>
-                  {/* Outer border effect */}
-                  <div
-                    className="absolute inset-0"
-                    style={{
-                      clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
-                      background: borderColor,
-                      zIndex: -1,
-                    }}
-                  />
                 </div>
                 {/* Day label */}
                 <span
@@ -418,6 +426,62 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
         </div>
 
       </div>
+
+      {/* --- BOTTOM SECTION: TALK TO DUSK BUTTON --- */}
+      <div className="w-full p-3 bg-[#0A0A0F] border-t border-white/5 z-20 relative shrink-0">
+        <button
+          onClick={onOpenDuskChat}
+          className="w-full relative rounded-xl overflow-hidden h-[48px] flex items-center justify-center gap-3 px-4 group transition-all duration-300"
+          style={{
+            background: 'linear-gradient(90deg, rgba(8,8,18,0.95), rgba(15,20,35,0.95))',
+            border: '1px solid rgba(0,210,255,0.15)',
+            boxShadow: 'inset 0 0 20px rgba(0,210,255,0.05), 0 4px 15px rgba(0,0,0,0.4)',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.borderColor = 'rgba(0,210,255,0.4)';
+            e.currentTarget.style.boxShadow = 'inset 0 0 20px rgba(0,210,255,0.1), 0 4px 20px rgba(0,210,255,0.15)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.borderColor = 'rgba(0,210,255,0.15)';
+            e.currentTarget.style.boxShadow = 'inset 0 0 20px rgba(0,210,255,0.05), 0 4px 15px rgba(0,0,0,0.4)';
+          }}
+        >
+          {/* Animated background glow */}
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#00d2ff]/20 via-transparent to-transparent" />
+          
+          <div className="relative z-10 flex items-center justify-center gap-3 w-full">
+            <div className="flex items-center justify-center w-6 h-6 rounded-md bg-[#00d2ff]/10 border border-[#00d2ff]/30 text-[#00d2ff] group-hover:scale-110 group-hover:bg-[#00d2ff]/20 transition-all duration-300">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                <polyline points="9 22 9 12 15 12 15 22"/>
+              </svg>
+            </div>
+            
+            <div className="flex flex-col items-start justify-center pt-0.5">
+              <span className="text-[11px] font-black text-white uppercase tracking-[0.15em] leading-none group-hover:text-system-neon transition-colors duration-300">
+                TALK TO DUSK
+              </span>
+              <span className="text-[8px] text-[#00d2ff]/60 font-mono tracking-widest mt-1 uppercase">
+                System AI Link
+              </span>
+            </div>
+
+            {(player.duskUnreadCount ?? 0) > 0 && (
+              <div className="ml-auto w-5 h-5 rounded-full bg-red-500/90 border border-red-400 flex items-center justify-center text-[9px] font-black text-white shadow-[0_0_12px_rgba(239,68,68,0.8)] animate-pulse">
+                {player.duskUnreadCount}
+              </div>
+            )}
+          </div>
+          
+          {/* Scanning line effect on hover */}
+          <motion.div 
+            className="absolute left-0 right-0 h-[1px] bg-[#00d2ff]/40 shadow-[0_0_8px_#00d2ff] opacity-0 group-hover:opacity-100"
+            animate={{ top: ['0%', '100%', '0%'] }}
+            transition={{ duration: 2, ease: "linear", repeat: Infinity }}
+          />
+        </button>
+      </div>
+
     </div>
   );
 };
