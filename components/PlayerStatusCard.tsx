@@ -100,13 +100,13 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
   const progressPct = Math.min(100, Math.max(0, (player.currentXp / player.requiredXp) * 100));
 
   return (
-    <div className="w-full relative rounded-3xl overflow-hidden flex flex-col md:flex-row group border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-xl bg-[#08080c]">
+    <div className="w-full relative rounded-3xl overflow-hidden flex flex-row group border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-xl bg-[#08080c]">
       
       {/* Background Ambient Glows */}
       <div className="absolute top-[-20%] left-[-10%] w-[400px] h-[400px] bg-[#00d2ff]/10 rounded-full blur-[80px] pointer-events-none" />
       
       {/* --- LEFT CONTAINER (DATA) --- */}
-      <div className="w-full md:w-[45%] flex flex-col relative z-10 shrink-0 p-6 md:p-8">
+      <div className="w-[50%] md:w-[45%] flex flex-col relative z-10 shrink-0 p-4 md:p-8">
           
         {/* Radar Chart Container */}
         <div className="w-full aspect-square relative z-10 flex items-center justify-center -mt-4 mb-2 max-w-[280px] mx-auto">
@@ -156,8 +156,8 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
         </div>
 
         {/* Rank & Title */}
-        <div className="mb-6 border-b border-white/10 pb-4">
-          <div className="text-4xl font-black italic tracking-tighter text-white mb-1 drop-shadow-md">
+        <div className="mb-4 md:mb-6 border-b border-white/10 pb-3 md:pb-4">
+          <div className="text-3xl md:text-4xl font-black italic tracking-tighter text-white mb-1 drop-shadow-md">
             {player.rank}
           </div>
           <div className="flex flex-col gap-1">
@@ -173,11 +173,11 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
         </div>
 
         {/* Stat List */}
-        <div className="flex flex-col gap-2 mb-8 flex-1">
+        <div className="flex flex-col gap-1.5 md:gap-2 mb-6 md:mb-8 flex-1">
           {statList.map((stat, i) => (
-            <div key={stat.label} className="flex justify-between items-center border-b border-white/5 pb-1.5">
-              <span className="text-gray-500 font-mono text-[11px] font-bold tracking-widest">{stat.label}</span>
-              <span className="text-[#00d2ff] font-mono text-[11px] font-black drop-shadow-[0_0_8px_rgba(0,210,255,0.4)]">
+            <div key={stat.label} className="flex justify-between items-center border-b border-white/5 pb-1 md:pb-1.5">
+              <span className="text-gray-500 font-mono text-[9px] md:text-[11px] font-bold tracking-widest">{stat.label}</span>
+              <span className="text-[#00d2ff] font-mono text-[9px] md:text-[11px] font-black drop-shadow-[0_0_8px_rgba(0,210,255,0.4)]">
                 {Math.floor(stat.value)}
               </span>
             </div>
@@ -208,7 +208,7 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
 
       {/* --- RIGHT CONTAINER (VIDEO / MENTOR) --- */}
       {/* Notice there is no explicit border-left or partition here, blending seamlessly */}
-      <div className="w-full md:w-[55%] relative bg-black overflow-hidden shrink-0 min-h-[300px] md:min-h-0 flex items-center justify-center">
+      <div className="w-[50%] md:w-[55%] relative bg-black overflow-hidden shrink-0 min-h-[300px] md:min-h-0 flex items-center justify-center">
          
          {/* Video Feed */}
          <div className="absolute inset-0 w-full h-full mix-blend-screen scale-[1.02] origin-center opacity-80 group-hover:opacity-100 transition-opacity duration-700">
