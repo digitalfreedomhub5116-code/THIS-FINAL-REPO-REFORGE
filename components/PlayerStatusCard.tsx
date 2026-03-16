@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer, PolarRadiusAxis 
 } from 'recharts';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Terminal, Zap } from 'lucide-react';
 import { PlayerData, CoreStats, Outfit, HistoryEntry } from '../types';
 import MentorThoughtBox from './MentorThoughtBox';
 
@@ -43,8 +43,14 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
   history,
   onOpenDuskChat
 }) => {
-  const [selectedDateIndex, setSelectedDateIndex] = useState<number>(0);
+  const [selectedDateIndex, setSelectedDateIndex] = useState<number>(3);
   const [weekOffset, setWeekOffset] = useState(0);
+
+  useEffect(() => {
+    if (weekOffset === 0) {
+      setSelectedDateIndex(3);
+    }
+  }, [weekOffset]);
 
   // ── Radar animation state (dots → lines → fill) ──
   const [radarPhase, setRadarPhase] = useState<'dots' | 'lines' | 'fill' | 'complete'>('dots');
@@ -158,21 +164,120 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
 
   const selectedDate = calendarDays[selectedDateIndex] || todayDate;
 
+  // ── Historical Comparison Ghosting ──
+  const todayStats: CoreStats = useMemo(() => {
+    const dateStr = todayDate.toISOString().split('T')[0];
+    return historyMap[dateStr]?.stats || player.stats;
+  }, [historyMap, todayDate, player.stats]);
+
   const activeStats: CoreStats = useMemo(() => {
     const dateStr = selectedDate.toISOString().split('T')[0];
     return historyMap[dateStr]?.stats || player.stats;
   }, [historyMap, selectedDate, player.stats]);
   
-  const chartData = useMemo(() => [
-    { subject: 'STR', A: activeStats.strength, fullMark: 200 },
-    { subject: 'INT', A: activeStats.intelligence, fullMark: 200 },
-    { subject: 'FOC', A: activeStats.focus, fullMark: 200 },
-    { subject: 'DIS', A: activeStats.discipline, fullMark: 200 },
-    { subject: 'WIL', A: activeStats.willpower, fullMark: 200 },
-    { subject: 'SOC', A: activeStats.social, fullMark: 200 },
-  ], [activeStats]);
+  const isViewingPast = selectedDate < todayDate;
 
-  // ── Video handling ──
+  // Calculate dynamic maximum for the radar chart to prevent overflow
+  const dynamicMax = useMemo(() => {
+    const allStats = [
+      activeStats.strength, activeStats.intelligence, activeStats.focus,
+      activeStats.discipline, activeStats.willpower, activeStats.social,
+      todayStats.strength, todayStats.intelligence, todayStats.focus,
+      todayStats.discipline, todayStats.willpower, todayStats.social,
+    ];
+    const maxVal = Math.max(...allStats);
+    // Base minimum of 200, otherwise scale up with a 15% buffer, rounded to nearest 50
+    return Math.max(200, Math.ceil((maxVal * 1.15) / 50) * 50);
+  }, [activeStats, todayStats]);
+
+  const chartData = useMemo(() => {
+    return [
+      { subject: 'STR', A: activeStats.strength, Today: todayStats.strength, fullMark: dynamicMax },
+      { subject: 'INT', A: activeStats.intelligence, Today: todayStats.intelligence, fullMark: dynamicMax },
+      { subject: 'FOC', A: activeStats.focus, Today: todayStats.focus, fullMark: dynamicMax },
+      { subject: 'DIS', A: activeStats.discipline, Today: todayStats.discipline, fullMark: dynamicMax },
+      { subject: 'WIL', A: activeStats.willpower, Today: todayStats.willpower, fullMark: dynamicMax },
+      { subject: 'SOC', A: activeStats.social, Today: todayStats.social, fullMark: dynamicMax },
+    ];
+  }, [activeStats, todayStats, dynamicMax]);
+
+  // ── Dusk Contextual Voice ──
+  const duskContextVoice = useMemo(() => {
+    const stats = [
+      { name: 'strength', val: player.stats.strength },
+      { name: 'intelligence', val: player.stats.intelligence },
+      { name: 'focus', val: player.stats.focus },
+      { name: 'discipline', val: player.stats.discipline },
+      { name: 'willpower', val: player.stats.willpower },
+      { name: 'social', val: player.stats.social },
+    ];
+    stats.sort((a, b) => a.val - b.val);
+    const lowest = stats[0];
+    const highest = stats[5];
+
+    const messages = [
+      `Your ${lowest.name} is lacking today, Hunter.`,
+      `I see you've been prioritizing ${highest.name}. Don't neglect the rest.`,
+      `The System requires balance. Focus on ${lowest.name}.`,
+      `You are growing. But is it fast enough?`,
+      `I am waiting for your next command.`,
+    ];
+    
+    // Pick one deterministically based on today's date so it doesn't flicker constantly
+    const daySeed = new Date().getDate();
+    return messages[daySeed % messages.length];
+  }, [player.stats]);
+  const dailyInsight = useMemo(() => {
+    if (!historyMap) return "System initialized. Awaiting commands.";
+    
+    // Check if viewing today
+    if (!isViewingPast) {
+      // Find highest stat today
+      const stats = [
+        { name: 'STR', val: player.stats.strength },
+        { name: 'INT', val: player.stats.intelligence },
+        { name: 'FOC', val: player.stats.focus },
+        { name: 'DIS', val: player.stats.discipline },
+        { name: 'WIL', val: player.stats.willpower },
+        { name: 'SOC', val: player.stats.social },
+      ];
+      stats.sort((a, b) => b.val - a.val);
+      const highest = stats[0];
+      const lowest = stats[5];
+      
+      if (player.dailyXp > 500) return `Peak performance detected. Daily XP at ${player.dailyXp}.`;
+      if (lowest.val < 15) return `Low ${lowest.name} detected. Recommend targeting ${lowest.name} protocols.`;
+      return `Current focus: ${highest.name}. Maintain momentum.`;
+    }
+
+    // Viewing past day
+    const prevDate = new Date(selectedDate);
+    prevDate.setDate(prevDate.getDate() - 1);
+    const prevDateStr = prevDate.toISOString().split('T')[0];
+    const prevStats = historyMap[prevDateStr]?.stats;
+
+    if (!prevStats) {
+      const xp = historyMap[selectedDate.toISOString().split('T')[0]]?.dailyXp || 0;
+      return xp > 0 ? `Historical record: ${xp} XP gained.` : `Historical record analyzed.`;
+    }
+
+    // Compare selected date with day before it to find what grew the most
+    const diffs = [
+      { name: 'STR', diff: activeStats.strength - prevStats.strength },
+      { name: 'INT', diff: activeStats.intelligence - prevStats.intelligence },
+      { name: 'FOC', diff: activeStats.focus - prevStats.focus },
+      { name: 'DIS', diff: activeStats.discipline - prevStats.discipline },
+      { name: 'WIL', diff: activeStats.willpower - prevStats.willpower },
+      { name: 'SOC', diff: activeStats.social - prevStats.social },
+    ];
+    diffs.sort((a, b) => b.diff - a.diff);
+    const bestGrowth = diffs[0];
+
+    if (bestGrowth.diff > 0) {
+      return `${bestGrowth.name} +${bestGrowth.diff} on this day. Growth was accelerating.`;
+    }
+    return `Maintenance phase recorded on this day.`;
+  }, [activeStats, historyMap, isViewingPast, player.stats, player.dailyXp, selectedDate]);
   const introRef = useRef<HTMLVideoElement>(null);
   const loopRef = useRef<HTMLVideoElement>(null);
   const [videoPhase, setVideoPhase] = useState<'intro' | 'loop' | 'image'>('image');
@@ -238,7 +343,17 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
       </div>
 
       {/* --- TOP HEXAGONAL CALENDAR --- */}
-      <div className="w-full border-b border-white/5 bg-[#0A0A0F] z-20 shrink-0 px-2 py-2 pt-9">
+      <div className="w-full border-b border-white/5 bg-[#0A0A0F] z-20 shrink-0 px-2 py-2 pt-9 relative">
+        {/* Cybernetic Background grid behind calendar */}
+        <div 
+          className="absolute inset-0 pointer-events-none opacity-20"
+          style={{
+            backgroundImage: `linear-gradient(rgba(0, 210, 255, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 210, 255, 0.1) 1px, transparent 1px)`,
+            backgroundSize: '20px 20px',
+            maskImage: 'linear-gradient(to bottom, black, transparent)',
+            WebkitMaskImage: 'linear-gradient(to bottom, black, transparent)',
+          }}
+        />
         {/* Month nav */}
         <div className="flex items-center justify-between px-1 pb-2">
           <button
@@ -259,8 +374,11 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
             <ChevronRight size={11} className="text-gray-400" />
           </button>
         </div>
-        {/* Hexagonal day strip */}
-        <div className="flex justify-center gap-1.5">
+        {/* Hexagonal day strip with smooth scroll on hover/drag */}
+        <div 
+          className="flex gap-1.5 overflow-x-auto pb-2 scrollbar-hide snap-x snap-mandatory"
+          style={{ scrollBehavior: 'smooth', WebkitOverflowScrolling: 'touch' }}
+        >
           {calendarDays.map((day, idx) => {
             const isToday = day.toDateString() === todayDate.toDateString();
             const isSelected = selectedDateIndex === idx;
@@ -279,7 +397,7 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
               <button
                 key={idx}
                 onClick={() => setSelectedDateIndex(idx)}
-                className="flex flex-col items-center gap-0.5 transition-all duration-200"
+                className="flex flex-col items-center gap-0.5 transition-all duration-200 snap-center min-w-[36px]"
               >
                 {/* Hexagon */}
                 <div
@@ -302,13 +420,13 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
                     style={{
                       inset: '1.5px',
                       clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
-                      background: isSelected ? 'rgba(0,210,255,0.12)' : 'rgba(8,8,18,1)',
+                      background: isSelected ? 'rgba(0,210,255,0.25)' : 'rgba(8,8,18,1)',
                       boxShadow: glowShadow,
                     }}
                   >
                     <span
                       className="font-mono font-black text-xs leading-none"
-                      style={{ color: isSelected ? '#00d2ff' : isToday ? '#00d2ff' : hasData && isPast ? '#4ade80' : '#4b5563' }}
+                      style={{ color: isSelected ? '#ffffff' : isToday ? '#00d2ff' : hasData && isPast ? '#4ade80' : '#4b5563' }}
                     >
                       {day.getDate()}
                     </span>
@@ -327,11 +445,42 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
         </div>
       </div>
       
+      {/* --- DAILY INSIGHTS BANNER --- */}
+      <div className="w-full bg-[#0A0A0F]/80 border-b border-white/[0.02] flex items-center px-3 py-1.5 z-20 shrink-0 shadow-[0_4px_10px_rgba(0,0,0,0.2)]">
+        <div className="flex items-center gap-2 w-full">
+          <Zap size={10} className="text-[#00d2ff]" />
+          <span className="text-[8px] font-mono text-[#00d2ff] uppercase font-bold tracking-widest shrink-0">SYS_LOG:</span>
+          <motion.div 
+            key={selectedDateIndex}
+            initial={{ opacity: 0, x: 5 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="text-[9px] text-gray-400 font-mono truncate overflow-hidden"
+          >
+            {dailyInsight}
+          </motion.div>
+        </div>
+      </div>
+
       {/* --- MAIN CONTENT (side by side) --- */}
       <div className="flex flex-row w-full relative flex-1 min-h-[350px] md:min-h-[400px]">
         
         {/* ── LEFT CONTAINER: RADAR CHART ── */}
         <div className="w-[45%] md:w-[42%] relative z-30 flex items-center justify-center shrink-0">
+          
+          {/* Pulsing Cybernetic Background */}
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-30 mix-blend-screen overflow-hidden">
+            <motion.div 
+              key={`grid-${selectedDateIndex}`}
+              className="w-[120%] aspect-square rounded-full border border-system-neon/20"
+              initial={{ rotate: 0, scale: 0.8, opacity: 0 }}
+              animate={{ rotate: 90, scale: 1, opacity: 1 }}
+              transition={{ duration: 20, ease: "linear", repeat: Infinity }}
+              style={{
+                background: 'repeating-conic-gradient(from 0deg, transparent 0deg, transparent 10deg, rgba(0,210,255,0.05) 10deg, rgba(0,210,255,0.05) 20deg)',
+              }}
+            />
+          </div>
+
           {/* Chart oversized with left offset so labels stay on-screen, overlaps into video */}
           <div className="w-[145%] md:w-[135%] aspect-square absolute left-[2px] md:left-[4px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -339,24 +488,42 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
                 <PolarGrid stroke="rgba(255,255,255,0.06)" strokeWidth={1} gridType="polygon" radialLines={false} />
                 <PolarAngleAxis 
                   dataKey="subject" 
-                  tick={{ fill: '#00d2ff', fontSize: 11, fontWeight: '900', fontFamily: 'monospace', letterSpacing: '0.5px' }} 
+                  tick={{ fill: '#00d2ff', fontSize: 10, fontWeight: 900, fontFamily: 'monospace' }} 
                 />
-                <PolarRadiusAxis angle={30} domain={[0, 200]} tick={false} axisLine={false} />
-                <Radar
-                  name="Stats"
-                  dataKey="A"
-                  stroke="#00d2ff"
-                  strokeWidth={2.5}
-                  fill="url(#radarGradientV2)"
-                  fillOpacity={radarPhase === 'fill' || radarPhase === 'complete' ? 1 : 0}
-                  strokeOpacity={radarPhase === 'lines' || radarPhase === 'fill' || radarPhase === 'complete' ? 1 : 0}
+                <PolarRadiusAxis 
+                  domain={[0, dynamicMax]} 
+                  tick={false} 
+                  axisLine={false} 
+                />
+                
+                {/* Historical Ghost Shape (Today's Stats) - Only visible when viewing past days */}
+                {isViewingPast && (
+                  <Radar
+                    name="Today"
+                    dataKey="Today"
+                    stroke="rgba(255,255,255,0.3)"
+                    strokeWidth={1}
+                    fill="transparent"
+                    strokeDasharray="3 3"
+                    isAnimationActive={false}
+                  />
+                )}
+
+                {/* Main Stats Shape */}
+                <Radar 
+                  name="Stats" 
+                  dataKey="A" 
+                  stroke={radarPhase === 'dots' ? 'transparent' : '#00d2ff'} 
+                  strokeWidth={2} 
+                  fill={radarPhase === 'complete' ? '#00d2ff' : 'transparent'} 
+                  fillOpacity={radarPhase === 'complete' ? 0.2 : 0} 
                   isAnimationActive={false}
                   dot={((props: any) => {
                     const { cx, cy, index } = props;
-                    if (!Number.isFinite(cx) || !Number.isFinite(cy)) return <g></g>;
-                    const isVisible = (index as number) < visibleDots;
+                    const isVisible = index < visibleDots || radarPhase !== 'dots';
+                    if (!cx || !cy) return null;
                     return (
-                      <svg x={cx - 5} y={cy - 5} width={10} height={10} className="overflow-visible">
+                      <svg x={cx - 5} y={cy - 5} width={10} height={10} className="overflow-visible" key={`dot-${index}`}>
                         <circle cx="5" cy="5" r="3" fill="#fff" opacity={isVisible ? 0.95 : 0}>
                           {isVisible && <animate attributeName="opacity" values="0;0.95" dur="0.2s" fill="freeze" />}
                         </circle>
@@ -461,8 +628,8 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
               <span className="text-[11px] font-black text-white uppercase tracking-[0.15em] leading-none group-hover:text-system-neon transition-colors duration-300">
                 TALK TO DUSK
               </span>
-              <span className="text-[8px] text-[#00d2ff]/60 font-mono tracking-widest mt-1 uppercase">
-                System AI Link
+              <span className="text-[8px] text-[#00d2ff]/60 font-mono tracking-wide mt-1 group-hover:text-[#00d2ff]/90 transition-colors duration-300 truncate max-w-[200px] md:max-w-[250px]">
+                {duskContextVoice}
               </span>
             </div>
 
