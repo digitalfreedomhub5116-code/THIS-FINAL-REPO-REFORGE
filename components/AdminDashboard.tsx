@@ -931,6 +931,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
                                                       )}
                                                   </div>
                                                   <div className="text-[10px] text-gray-500 mb-2 font-mono">{o.outfit_key} · {o.cost.toLocaleString()} G</div>
+                                                  
+                                                  {/* Media Status Indicators */}
+                                                  <div className="flex gap-2 mb-3">
+                                                      <div className={`text-[8px] font-mono px-1.5 py-0.5 rounded border ${o.image_url ? 'bg-blue-500/10 border-blue-500/30 text-blue-400' : 'bg-red-500/10 border-red-500/30 text-red-400'}`}>
+                                                          IMG: {o.image_url ? 'YES' : 'NO'}
+                                                      </div>
+                                                      <div className={`text-[8px] font-mono px-1.5 py-0.5 rounded border ${o.intro_video_url ? 'bg-green-500/10 border-green-500/30 text-green-400' : 'bg-red-500/10 border-red-500/30 text-red-400'}`}>
+                                                          INTRO: {o.intro_video_url ? 'YES' : 'NO'}
+                                                      </div>
+                                                      <div className={`text-[8px] font-mono px-1.5 py-0.5 rounded border ${o.loop_video_url ? 'bg-purple-500/10 border-purple-500/30 text-purple-400' : 'bg-red-500/10 border-red-500/30 text-red-400'}`}>
+                                                          LOOP: {o.loop_video_url ? 'YES' : 'NO'}
+                                                      </div>
+                                                  </div>
 
                                                   {/* Mini stat bars */}
                                                   <div className="grid grid-cols-4 gap-1">
