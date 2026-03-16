@@ -4,7 +4,7 @@ import {
   Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer, PolarRadiusAxis 
 } from 'recharts';
 import { ScanLine, Activity, Shield } from 'lucide-react';
-import { PlayerData, CoreStats, Outfit } from '../types';
+import { PlayerData, CoreStats, Outfit, HistoryEntry } from '../types';
 import MentorThoughtBox from './MentorThoughtBox';
 
 interface PlayerStatusCardProps {
@@ -12,33 +12,60 @@ interface PlayerStatusCardProps {
   equippedOutfit?: Outfit | null;
   mentorMessages: { id: string; text: string }[];
   onDismissMentorMessage: (id: string) => void;
+  history: HistoryEntry[];
 }
 
 const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({ 
   player, 
   equippedOutfit,
   mentorMessages,
-  onDismissMentorMessage
+  onDismissMentorMessage,
+  history
 }) => {
-  const stats: CoreStats = player.stats;
+  const [selectedDateIndex, setSelectedDateIndex] = useState<number>(0);
+  
+  // Combine today's stats with history for navigation
+  const allHistory = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
+    const todayEntry: HistoryEntry = {
+      date: today,
+      stats: player.stats,
+      totalXp: player.totalXp,
+      dailyXp: player.dailyXp,
+      questCompletion: 0 // Mock or calculate if needed
+    };
+    
+    // Sort history by date descending, remove duplicates of today
+    const pastHistory = [...history]
+      .filter(h => h.date !== today)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      
+    // Return max 7 days for the top bar
+    return [todayEntry, ...pastHistory].slice(0, 7);
+  }, [player.stats, player.totalXp, player.dailyXp, history]);
+
+  // Selected stats based on timeline
+  const activeStats: CoreStats = useMemo(() => {
+    return allHistory[selectedDateIndex]?.stats || player.stats;
+  }, [allHistory, selectedDateIndex, player.stats]);
   
   const chartData = useMemo(() => [
-    { subject: 'STRENGTH', A: stats.strength, fullMark: 100 },
-    { subject: 'INTEL', A: stats.intelligence, fullMark: 100 },
-    { subject: 'FOCUS', A: stats.focus, fullMark: 100 },
-    { subject: 'DISCIPLINE', A: stats.discipline, fullMark: 100 },
-    { subject: 'WILL', A: stats.willpower, fullMark: 100 },
-    { subject: 'SOCIAL', A: stats.social, fullMark: 100 },
-  ], [stats]);
+    { subject: 'STRENGTH', A: activeStats.strength, fullMark: 200 },
+    { subject: 'INTEL', A: activeStats.intelligence, fullMark: 200 },
+    { subject: 'FOCUS', A: activeStats.focus, fullMark: 200 },
+    { subject: 'DISCIPLINE', A: activeStats.discipline, fullMark: 200 },
+    { subject: 'WILL', A: activeStats.willpower, fullMark: 200 },
+    { subject: 'SOCIAL', A: activeStats.social, fullMark: 200 },
+  ], [activeStats]);
 
   const statList = useMemo(() => [
-    { label: 'STR', value: stats.strength },
-    { label: 'SOC', value: stats.social },
-    { label: 'INT', value: stats.intelligence },
-    { label: 'WIL', value: stats.willpower },
-    { label: 'FOC', value: stats.focus },
-    { label: 'DIS', value: stats.discipline },
-  ], [stats]);
+    { label: 'STR', value: activeStats.strength },
+    { label: 'SOC', value: activeStats.social },
+    { label: 'INT', value: activeStats.intelligence },
+    { label: 'WIL', value: activeStats.willpower },
+    { label: 'FOC', value: activeStats.focus },
+    { label: 'DIS', value: activeStats.discipline },
+  ], [activeStats]);
 
   // Video loop handling
   const introRef = useRef<HTMLVideoElement>(null);
@@ -100,30 +127,75 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
   const progressPct = Math.min(100, Math.max(0, (player.currentXp / player.requiredXp) * 100));
 
   return (
-    <div className="w-full relative rounded-3xl overflow-hidden flex flex-row group border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-xl bg-[#08080c]">
+    <div className="w-full relative rounded-3xl overflow-hidden flex flex-col group border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-xl bg-[#0A0A0F]">
       
       {/* Background Ambient Glows */}
       <div className="absolute top-[-20%] left-[-10%] w-[400px] h-[400px] bg-[#00d2ff]/10 rounded-full blur-[80px] pointer-events-none" />
+
+      {/* --- TOP DATE NAVIGATION --- */}
+      <div className="w-full border-b border-white/5 bg-[#0A0A0F]/80 backdrop-blur-md z-20 flex overflow-x-auto hide-scrollbar px-4 py-3 gap-2 shrink-0">
+        {allHistory.map((entry, idx) => {
+          const dateObj = new Date(entry.date + 'T12:00:00Z'); // force midday to avoid timezone shift issues
+          let label = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          if (idx === 0) label = "TODAY";
+          if (idx === 1 && allHistory.length > 1) {
+             const today = new Date();
+             const yesterday = new Date(today);
+             yesterday.setDate(yesterday.getDate() - 1);
+             if (dateObj.toDateString() === yesterday.toDateString()) {
+                label = "YESTERDAY";
+             }
+          }
+          
+          const isSelected = selectedDateIndex === idx;
+          
+          return (
+            <button
+              key={entry.date}
+              onClick={() => {
+                setSelectedDateIndex(idx);
+                // Simple sound effect mock if we had a global sound function, 
+                // but we can trigger a visual effect instead via state if needed
+              }}
+              className={`relative px-4 py-1.5 rounded-full whitespace-nowrap text-xs font-mono font-bold tracking-widest transition-all duration-300 ${
+                isSelected 
+                  ? 'text-[#00d2ff] bg-[#00d2ff]/10 border border-[#00d2ff]/30 shadow-[0_0_15px_rgba(0,210,255,0.2)]' 
+                  : 'text-gray-500 hover:text-gray-300 border border-transparent'
+              }`}
+            >
+              {label}
+              {isSelected && (
+                <motion.div 
+                  layoutId="dateIndicator" 
+                  className="absolute inset-0 rounded-full border border-[#00d2ff] shadow-[0_0_10px_rgba(0,210,255,0.4)] pointer-events-none" 
+                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                />
+              )}
+            </button>
+          );
+        })}
+      </div>
       
-      {/* --- LEFT CONTAINER (DATA) --- */}
-      <div className="w-[50%] md:w-[45%] flex flex-col relative z-10 shrink-0 p-4 md:p-8">
+      <div className="flex flex-row w-full relative z-10 flex-1">
+        {/* --- LEFT CONTAINER (DATA) --- */}
+        <div className="w-[50%] md:w-[45%] flex flex-col relative z-10 shrink-0 p-4 md:p-8">
           
         {/* Radar Chart Container */}
-        <div className="w-full aspect-square relative z-10 flex items-center justify-center -mt-4 mb-2 max-w-[280px] mx-auto">
+        <div className="w-full aspect-square relative z-10 flex items-center justify-center -mt-4 mb-2 max-w-[320px] mx-auto scale-110">
             {/* Radar Glow Underlay */}
-            <div className="absolute w-[150px] h-[150px] bg-[#00d2ff]/10 rounded-full blur-3xl" />
+            <div className="absolute w-[180px] h-[180px] bg-[#00d2ff]/10 rounded-full blur-3xl" />
             
             <ResponsiveContainer width="100%" height="100%">
-              <RadarChart cx="50%" cy="50%" outerRadius="60%" data={chartData}>
+              <RadarChart cx="50%" cy="50%" outerRadius="65%" data={chartData}>
                 {/* Hexagonal grid */}
-                <PolarGrid stroke="rgba(255,255,255,0.08)" strokeWidth={1} gridType="polygon" radialLines={false} />
+                <PolarGrid stroke="rgba(255,255,255,0.05)" strokeWidth={1} gridType="polygon" radialLines={false} />
                 
                 {/* Axes labels */}
                 <PolarAngleAxis 
                   dataKey="subject" 
-                  tick={{ fill: '#00d2ff', fontSize: 9, fontWeight: '900', fontFamily: 'monospace', letterSpacing: '1px' }} 
+                  tick={{ fill: '#00d2ff', fontSize: 10, fontWeight: '900', fontFamily: 'monospace', letterSpacing: '1px' }} 
                 />
-                <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+                <PolarRadiusAxis angle={30} domain={[0, 200]} tick={false} axisLine={false} />
 
                 {/* Player Stats Radar */}
                 <Radar
@@ -177,9 +249,14 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
           {statList.map((stat, i) => (
             <div key={stat.label} className="flex justify-between items-center border-b border-white/5 pb-1 md:pb-1.5">
               <span className="text-gray-500 font-mono text-[9px] md:text-[11px] font-bold tracking-widest">{stat.label}</span>
-              <span className="text-[#00d2ff] font-mono text-[9px] md:text-[11px] font-black drop-shadow-[0_0_8px_rgba(0,210,255,0.4)]">
+              <motion.span 
+                key={`${stat.label}-${selectedDateIndex}`}
+                initial={{ opacity: 0.5, y: -5 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-[#00d2ff] font-mono text-[9px] md:text-[11px] font-black drop-shadow-[0_0_8px_rgba(0,210,255,0.4)]"
+              >
                 {Math.floor(stat.value)}
-              </span>
+              </motion.span>
             </div>
           ))}
         </div>
@@ -208,10 +285,10 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
 
       {/* --- RIGHT CONTAINER (VIDEO / MENTOR) --- */}
       {/* Notice there is no explicit border-left or partition here, blending seamlessly */}
-      <div className="w-[50%] md:w-[55%] relative bg-black overflow-hidden shrink-0 min-h-[300px] md:min-h-0 flex items-center justify-center">
+      <div className="w-[50%] md:w-[55%] relative bg-black overflow-hidden shrink-0 min-h-[300px] md:min-h-0 flex items-center justify-center shadow-[inset_20px_0_50px_rgba(10,10,15,1)]">
          
          {/* Video Feed */}
-         <div className="absolute inset-0 w-full h-full mix-blend-screen scale-[1.02] origin-center opacity-80 group-hover:opacity-100 transition-opacity duration-700">
+         <div className="absolute inset-0 w-full h-full mix-blend-screen scale-[1.05] origin-center opacity-80 group-hover:opacity-100 transition-opacity duration-700">
            <video
               ref={introRef}
               muted playsInline preload="auto"
@@ -238,7 +315,10 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
          </div>
 
          {/* Gradient blend on left edge to fade into stats */}
-         <div className="absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-[#08080c] to-transparent z-10 pointer-events-none" />
+         <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-[#0A0A0F] via-[#0A0A0F]/80 to-transparent z-10 pointer-events-none" />
+         <div className="absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-[#0A0A0F] to-transparent z-10 pointer-events-none" />
+         <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#0A0A0F] to-transparent z-10 pointer-events-none" />
+         <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-[#0A0A0F] to-transparent z-10 pointer-events-none" />
          
          {/* Holographic Overlays */}
          <div className="absolute inset-0 bg-[linear-gradient(rgba(0,210,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(0,210,255,0.03)_1px,transparent_1px)] bg-[size:10px_10px] pointer-events-none z-10" />
@@ -273,6 +353,7 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
                  <span className="text-[8px] font-mono font-bold text-white tracking-widest uppercase">SYS.LINK</span>
              </div>
          </div>
+      </div>
       </div>
 
     </div>
