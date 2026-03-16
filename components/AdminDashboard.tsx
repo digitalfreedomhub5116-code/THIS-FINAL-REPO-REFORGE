@@ -919,7 +919,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
                                           <div className="flex items-start justify-between gap-3">
                                               <div className="flex-1 min-w-0">
                                                   <div className="flex items-center gap-2 mb-1">
-                                                      <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: o.accent_color, boxShadow: `0 0 6px ${o.accent_color}` }} />
+                                                      {o.image_url ? (
+                                                          <img src={o.image_url} alt="outfit" className="w-6 h-6 rounded-md object-cover border border-gray-600 flex-shrink-0" />
+                                                      ) : (
+                                                          <div className="w-6 h-6 rounded-md flex-shrink-0 border border-gray-700 flex items-center justify-center text-[8px] text-gray-500 font-black" style={{ background: o.accent_color, boxShadow: `0 0 6px ${o.accent_color}40` }}>
+                                                            {o.name[0]}
+                                                          </div>
+                                                      )}
                                                       <span className="text-sm font-black text-white truncate">{o.name}</span>
                                                       <span className="text-[8px] font-black tracking-widest px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: `${o.accent_color}22`, border: `1px solid ${o.accent_color}55`, color: o.accent_color }}>
                                                           {o.tier}-RANK
