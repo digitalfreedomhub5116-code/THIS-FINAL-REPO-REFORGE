@@ -210,13 +210,14 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
       </div>
       
       {/* --- MAIN CONTENT (side by side) --- */}
-      <div className="flex flex-row w-full relative flex-1 min-h-[380px] md:min-h-[420px]">
+      <div className="flex flex-row w-full relative flex-1 min-h-[350px] md:min-h-[400px]">
         
-        {/* ── RADAR CHART (overlaps into video) ── */}
-        <div className="absolute inset-0 z-30 pointer-events-none flex items-start justify-start">
-          <div className="w-[65%] md:w-[55%] aspect-square relative mt-2">
+        {/* ── LEFT CONTAINER: RADAR CHART ── */}
+        <div className="w-[50%] md:w-[45%] relative z-30 flex items-center justify-center shrink-0">
+          {/* We make the chart slightly larger than its container to create the overlap effect */}
+          <div className="w-[140%] md:w-[130%] aspect-square absolute right-[-20%] md:right-[-15%]">
             <ResponsiveContainer width="100%" height="100%">
-              <RadarChart cx="50%" cy="50%" outerRadius="72%" data={chartData}>
+              <RadarChart cx="50%" cy="50%" outerRadius="70%" data={chartData}>
                 <PolarGrid stroke="rgba(255,255,255,0.06)" strokeWidth={1} gridType="polygon" radialLines={false} />
                 <PolarAngleAxis 
                   dataKey="subject" 
@@ -258,47 +259,46 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
           </div>
         </div>
 
-        {/* ── VIDEO (right side, full height) ── */}
-        <div className="absolute inset-0 z-10">
+        {/* ── RIGHT CONTAINER: VIDEO ── */}
+        <div className="w-[50%] md:w-[55%] relative z-10 shrink-0 bg-[#0A0A0F]">
           <div className="absolute inset-0 w-full h-full">
             <video
               ref={introRef}
               muted playsInline preload="auto"
-              className="absolute inset-0 w-full h-full object-cover object-right"
+              className="absolute inset-0 w-full h-full object-cover object-center"
               style={{ display: videoPhase === 'intro' ? 'block' : 'none' }}
             />
             <video
               ref={loopRef}
               muted playsInline loop preload="auto"
-              className="absolute inset-0 w-full h-full object-cover object-right"
+              className="absolute inset-0 w-full h-full object-cover object-center"
               style={{ display: videoPhase === 'loop' ? 'block' : 'none' }}
             />
             {videoPhase === 'image' && equippedOutfit?.image && (
-              <img src={equippedOutfit.image} alt={equippedOutfit.name} className="absolute inset-0 w-full h-full object-cover object-right brightness-75" />
+              <img src={equippedOutfit.image} alt={equippedOutfit.name} className="absolute inset-0 w-full h-full object-cover object-center brightness-75" />
             )}
             {videoPhase === 'image' && !equippedOutfit?.image && (
               <video 
                 autoPlay loop muted playsInline
                 src="https://res.cloudinary.com/dcnqnbvp0/video/upload/v1769167952/Subject_animestyle_shadow_202601231701_vl45_ayicwk.mp4"
-                className="absolute inset-0 w-full h-full object-cover object-right"
+                className="absolute inset-0 w-full h-full object-cover object-center"
               />
             )}
           </div>
 
-          {/* Edge gradients for blending — no blue tint, pure dark */}
-          <div className="absolute inset-y-0 left-0 w-[55%] bg-gradient-to-r from-[#0A0A0F] via-[#0A0A0F]/90 to-transparent z-10 pointer-events-none" />
-          <div className="absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-[#0A0A0F]/60 to-transparent z-10 pointer-events-none" />
-          <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-[#0A0A0F] to-transparent z-10 pointer-events-none" />
+          {/* Edge gradients for blending into left area */}
+          <div className="absolute inset-y-0 left-0 w-24 md:w-32 bg-gradient-to-r from-[#0A0A0F] via-[#0A0A0F]/80 to-transparent z-10 pointer-events-none" />
+          <div className="absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-[#0A0A0F]/50 to-transparent z-10 pointer-events-none" />
+          <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#0A0A0F] to-transparent z-10 pointer-events-none" />
           <div className="absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-[#0A0A0F] to-transparent z-10 pointer-events-none" />
-        </div>
 
-        {/* ── Floating Thought Boxes (positioned to avoid face center and radar) ── */}
-        <div className="absolute inset-0 z-40 pointer-events-none">
-          <MentorThoughtBox 
-            messages={activeMessages} 
-            onDismiss={activeDismiss} 
-            position={thoughtPosition as 'top' | 'bottom'}
-          />
+          {/* ── Floating Thought Boxes (Strictly contained in right area, avoiding face center) ── */}
+          <div className="absolute inset-0 z-40 pointer-events-none">
+            <MentorThoughtBox 
+              messages={activeMessages} 
+              onDismiss={activeDismiss} 
+            />
+          </div>
         </div>
 
       </div>

@@ -9,7 +9,6 @@ interface MentorMessage {
 interface MentorThoughtBoxProps {
   messages: MentorMessage[];
   onDismiss: (id: string) => void;
-  position?: 'top' | 'bottom';
 }
 
 // Typewriter text component with glitch flicker
@@ -48,7 +47,7 @@ const TypewriterText: React.FC<{ text: string }> = ({ text }) => {
   );
 };
 
-const MentorThoughtBox: React.FC<MentorThoughtBoxProps> = ({ messages, onDismiss, position = 'bottom' }) => {
+const MentorThoughtBox: React.FC<MentorThoughtBoxProps> = ({ messages, onDismiss }) => {
   const currentMessage = messages.length > 0 ? messages[messages.length - 1] : null;
 
   useEffect(() => {
@@ -60,12 +59,8 @@ const MentorThoughtBox: React.FC<MentorThoughtBoxProps> = ({ messages, onDismiss
     }
   }, [currentMessage, onDismiss]);
 
-  const posClass = position === 'top' 
-    ? 'top-3 right-3' 
-    : 'bottom-16 right-3';
-
   return (
-    <div className={`absolute ${posClass} z-50 pointer-events-none flex flex-col gap-2 items-end max-w-[180px]`}>
+    <div className="absolute bottom-8 right-4 z-50 pointer-events-none flex flex-col gap-2 items-end max-w-[180px]">
       <AnimatePresence>
         {currentMessage && (
           <motion.div
@@ -79,7 +74,7 @@ const MentorThoughtBox: React.FC<MentorThoughtBoxProps> = ({ messages, onDismiss
               transition: { duration: 0.3, ease: [0.4, 0, 1, 1] }
             }}
             transition={{ type: 'spring', damping: 18, stiffness: 300 }}
-            style={{ originY: position === 'top' ? 0 : 1 }}
+            style={{ originY: 1 }}
             className="pointer-events-auto cursor-pointer"
             onClick={() => onDismiss(currentMessage.id)}
           >
@@ -93,6 +88,8 @@ const MentorThoughtBox: React.FC<MentorThoughtBoxProps> = ({ messages, onDismiss
                   <TypewriterText text={currentMessage.text} />
                 </div>
               </div>
+              {/* Tail pointing left towards the character */}
+              <div className="absolute -left-2 bottom-4 w-4 h-4 bg-[#0A0A0F]/90 border-b border-l border-[#00d2ff]/30 transform rotate-45 backdrop-blur-md -z-10" />
             </div>
           </motion.div>
         )}
