@@ -142,12 +142,19 @@ const SystemPersonalizationScreen: React.FC<SystemPersonalizationScreenProps> = 
         </AnimatePresence>
         
         {/* Progress Line */}
-        <div className="w-48 h-0.5 bg-gray-900 rounded-full mt-4 overflow-hidden">
+        <div className="w-48 h-0.5 bg-gray-900 rounded-full mt-4 overflow-hidden relative">
+            {/* Base track */}
+            <div className="absolute inset-0 bg-purple-900/20" />
+            
             <motion.div 
-                className="h-full bg-gradient-to-r from-cyan-500 to-purple-500"
-                initial={{ width: 0 }}
-                animate={{ width: "100%" }}
-                transition={{ duration: 4, ease: "easeInOut" }} 
+                className="absolute inset-y-0 left-0 bg-gradient-to-r from-cyan-500 to-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.5)]"
+                initial={{ width: "0%" }}
+                animate={{ width: ["0%", "30%", "45%", "85%", "100%"] }}
+                transition={{ 
+                    duration: 4, 
+                    times: [0, 0.25, 0.5, 0.8, 1],
+                    ease: "easeInOut" 
+                }} 
             />
         </div>
       </div>

@@ -891,8 +891,24 @@ export const HealthView: React.FC<HealthViewProps> = ({
           <div className="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center font-mono">
               <Sparkles className="text-system-neon mb-8 animate-pulse" size={48} />
               <div className="text-2xl text-white font-black uppercase text-center tracking-[0.3em]">{finalizingLog}</div>
-              <div className="mt-8 w-64 h-1 bg-gray-900 rounded-full overflow-hidden">
-                  <motion.div initial={{ width: 0 }} animate={{ width: "100%" }} transition={{ duration: 6 }} className="h-full bg-system-neon shadow-[0_0_15px_#00d2ff]" />
+              <div className="mt-8 w-64 h-1 bg-gray-900 rounded-full overflow-hidden relative">
+                  {/* Base track */}
+                  <div className="absolute inset-0 bg-blue-900/20" />
+                  
+                  {/* Dramatic progress fill */}
+                  <motion.div 
+                      className="absolute inset-y-0 left-0 bg-system-neon shadow-[0_0_15px_#00d2ff]"
+                      initial={{ width: "0%" }}
+                      animate={{ width: ["0%", "45%", "55%", "92%", "100%"] }}
+                      transition={{ 
+                          duration: 4, 
+                          times: [0, 0.35, 0.65, 0.85, 1],
+                          ease: "easeInOut" 
+                      }}
+                  />
+                  
+                  {/* Highlight sheen */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent w-[200%] animate-[slideRight_2s_ease-in-out_infinite]" />
               </div>
           </div>
       );

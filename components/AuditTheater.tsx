@@ -166,8 +166,12 @@ const AuditTheater: React.FC<AuditTheaterProps> = ({
                             <motion.div 
                                 className="h-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.8)]"
                                 initial={{ width: "0%" }}
-                                animate={{ width: "100%" }}
-                                transition={{ duration: 3, ease: "linear" }}
+                                animate={{ width: ["0%", "60%", "65%", "95%", "100%"] }}
+                                transition={{ 
+                                    duration: 3, 
+                                    times: [0, 0.4, 0.7, 0.9, 1],
+                                    ease: "easeInOut"
+                                }}
                             />
                         </div>
                     </motion.div>
