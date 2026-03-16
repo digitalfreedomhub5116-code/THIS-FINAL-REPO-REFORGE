@@ -47,6 +47,7 @@ async function startServer() {
   const globalConfigRouter = await import('./routes/globalConfig_supabase.js');
   const workoutRouter = await import('./routes/workout.js');
   const systemPactRouter = await import('./routes/systemPact.js');
+  const auditRouter = await import('./routes/audit.js');
 
   const app = express();
   const PORT = process.env.PORT ? parseInt(process.env.PORT) : 8001;
@@ -140,16 +141,17 @@ async function startServer() {
   // API routes
   app.use('/api/forge-guard', aiRateLimit, forgeGuardRouter.default);
   app.use('/api/avatar', aiRateLimit, avatarRouter.default);
-  app.use('/api/dusk', aiRateLimit, duskRouter.default);
   app.use('/api/player', playerRouter.default);
   app.use('/api/leaderboard', leaderboardRouter.default);
   app.use('/api/videos', videosRouter.default);
   app.use('/api/admin', adminRouter.default);
   app.use('/api/nutrition', aiRateLimit, nutritionRouter.default);
+  app.use('/api/dusk', duskRouter.default);
   app.use('/api/store', storeRouter.default);
   app.use('/api/global-config', globalConfigRouter.default);
   app.use('/api/workout', workoutRouter.default);
   app.use('/api/system-pact', systemPactRouter.default);
+  app.use('/api/audit', auditRouter.default);
   app.use('/api/auth/local', localAuthRouter.default);
 
   // Google OAuth setup

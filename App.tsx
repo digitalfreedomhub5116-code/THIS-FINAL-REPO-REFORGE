@@ -64,6 +64,7 @@ const WardrobePreviewCard = lazy(() => import('./components/WardrobePreviewCard'
 const RankProgressionCard = lazy(() => import('./components/RankProgressionCard'));
 const DashboardWidgets = lazy(() => import('./components/DashboardWidgets'));
 const EarlyCompletionPenalty = lazy(() => import('./components/EarlyCompletionPenalty'));
+const AuditTheater = lazy(() => import('./components/AuditTheater'));
 const DuskWelcomeScreen = lazy(() => import('./components/DuskWelcomeScreen'));
 const ProfileView = lazy(() => import('./components/ProfileView'));
 const RankUpCinematic = lazy(() => import('./components/RankUpCinematic'));
@@ -236,6 +237,14 @@ const App: React.FC = () => {
   const [pendingPenalty, setPendingPenalty] = useState<{
     questId: string; questTitle: string; asMini: boolean;
     rect?: DOMRect; elapsedMinutes: number; minDurationMinutes: number;
+    xpGained: number; xpBefore: number; requiredXp: number; level: number; goldGained: number;
+  } | null>(null);
+
+  // -- Audit Theater State --
+  const [showAuditTheater, setShowAuditTheater] = useState(false);
+  const [auditOutcome, setAuditOutcome] = useState<'verified' | 'flagged'>('verified');
+  const [pendingAuditQuest, setPendingAuditQuest] = useState<{
+    id: string; title: string; rank: string; asMini: boolean; rect?: DOMRect;
     xpGained: number; xpBefore: number; requiredXp: number; level: number; goldGained: number;
   } | null>(null);
 
@@ -470,6 +479,7 @@ const App: React.FC = () => {
     const xpGained = asMini ? Math.floor((quest.xpReward || 50) * 0.1) : (quest.xpReward || 50);
     const goldGained = asMini ? 5 : 20;
 
+    // Time Gate Check (EarlyCompletionPenalty)
     if (quest.minDurationMinutes && quest.minDurationMinutes > 0) {
       const startTime = quest.createdAt;
       const elapsedMinutes = (Date.now() - startTime) / 60000;
@@ -484,6 +494,49 @@ const App: React.FC = () => {
       }
     }
 
+    // -- Audit Theater Interception --
+    const isTutorialQuest = quest.id.startsWith('init_');
+    const rank = quest.rank;
+    const isHighRank = rank === 'A' || rank === 'S';
+    
+    let triggerAudit = false;
+    if (!isTutorialQuest) {
+      if (isHighRank) {
+        triggerAudit = true;
+      } else if (Math.random() < 0.4) {
+        triggerAudit = true;
+      }
+    }
+
+    if (triggerAudit) {
+      // Pre-calculate outcome
+      const todayString = new Date().toDateString();
+      const todayHighRankCompletions = player.quests.filter(q => 
+        (q.rank === 'A' || q.rank === 'S') && 
+        q.isCompleted && 
+        new Date(q.lastCompletedAt || 0).toDateString() === todayString
+      ).length;
+
+      const isFirstS = rank === 'S' && !player.quests.some(q => q.rank === 'S' && q.isCompleted);
+      
+      const hasCheatStrikes = player.cheatStrikes >= 2;
+      const tooManyHighRanksToday = isHighRank && todayHighRankCompletions >= 3;
+
+      let outcome: 'verified' | 'flagged' = 'verified';
+      if (hasCheatStrikes || tooManyHighRanksToday || isFirstS) {
+        outcome = 'flagged';
+      }
+
+      setAuditOutcome(outcome);
+      setPendingAuditQuest({
+        id, title: quest.title, rank, asMini, rect,
+        xpGained, xpBefore, requiredXp: requiredXpBefore, level: levelBefore, goldGained
+      });
+      setShowAuditTheater(true);
+      return; // Stop here, AuditTheater will call finishQuestComplete when dismissed
+    }
+
+    // Default flow if no interception
     finishQuestComplete(id, asMini, rect, xpGained, xpBefore, requiredXpBefore, levelBefore, goldGained);
   };
 
@@ -516,6 +569,36 @@ const App: React.FC = () => {
     setPendingPenalty(null);
     recordStrike();
     failFlaggedQuest(questId);
+  };
+
+  const handleAuditVerified = () => {
+    if (!pendingAuditQuest) return;
+    const q = pendingAuditQuest;
+    setShowAuditTheater(false);
+    setPendingAuditQuest(null);
+    finishQuestComplete(q.id, q.asMini, q.rect, q.xpGained, q.xpBefore, q.requiredXp, q.level, q.goldGained);
+  };
+
+  const handleAuditFlagged = () => {
+    if (!pendingAuditQuest) return;
+    const q = pendingAuditQuest;
+    
+    // Silent background fetch to log the audit
+    fetch('/api/audit/log', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        questId: q.id,
+        questRank: q.rank,
+        outcome: 'flagged',
+        timestamp: new Date().toISOString()
+      }),
+      credentials: 'include'
+    }).catch(() => {});
+
+    setShowAuditTheater(false);
+    setPendingAuditQuest(null);
+    finishQuestComplete(q.id, q.asMini, q.rect, q.xpGained, q.xpBefore, q.requiredXp, q.level, q.goldGained);
   };
 
   // ── System Pact handlers ──
@@ -896,6 +979,20 @@ const App: React.FC = () => {
               />
             </ErrorBoundary>
           )}
+          {showAuditTheater && pendingAuditQuest && (
+            <Suspense fallback={null}>
+              <ErrorBoundary>
+                <AuditTheater
+                  questTitle={pendingAuditQuest.title}
+                  questRank={pendingAuditQuest.rank}
+                  outcome={auditOutcome}
+                  onVerified={handleAuditVerified}
+                  onFlagged={handleAuditFlagged}
+                />
+              </ErrorBoundary>
+            </Suspense>
+          )}
+
           {pendingPenalty && (
             <Suspense fallback={null}>
               <ErrorBoundary>
