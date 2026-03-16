@@ -26,12 +26,12 @@ const DEFAULT_PLAYER: PlayerData = {
   gold: 0,
   keys: 0,
   streak: 0,
-  stats: { strength: 10, intelligence: 10, discipline: 10, social: 10 },
-  dailyStats: { strength: 0, intelligence: 0, discipline: 0, social: 0 },
-  yesterdayStats: { strength: 0, intelligence: 0, discipline: 0, social: 0 },
-  weeklyStats: { strength: 0, intelligence: 0, discipline: 0, social: 0 },
-  monthlyStats: { strength: 0, intelligence: 0, discipline: 0, social: 0 },
-  lastStatUpdate: { strength: 0, intelligence: 0, discipline: 0, social: 0 },
+  stats: { strength: 10, intelligence: 10, discipline: 10, social: 10, focus: 10, willpower: 10 },
+  dailyStats: { strength: 0, intelligence: 0, discipline: 0, social: 0, focus: 0, willpower: 0 },
+  yesterdayStats: { strength: 0, intelligence: 0, discipline: 0, social: 0, focus: 0, willpower: 0 },
+  weeklyStats: { strength: 0, intelligence: 0, discipline: 0, social: 0, focus: 0, willpower: 0 },
+  monthlyStats: { strength: 0, intelligence: 0, discipline: 0, social: 0, focus: 0, willpower: 0 },
+  lastStatUpdate: { strength: 0, intelligence: 0, discipline: 0, social: 0, focus: 0, willpower: 0 },
   lastDailyReset: Date.now(),
   lastWeeklyReset: Date.now(),
   lastMonthlyReset: Date.now(),
@@ -89,15 +89,19 @@ function migratePlayerData(raw: Partial<PlayerData>): PlayerData {
       intelligence: s.intelligence ?? 10,
       discipline: s.discipline ?? s.willpower ?? s.focus ?? 10,
       social: s.social ?? 10,
+      focus: s.focus ?? 10,
+      willpower: s.willpower ?? 10,
     };
   };
   const migrateCounterStats = (s: Record<string, number> | undefined) => {
-    if (!s) return { strength: 0, intelligence: 0, discipline: 0, social: 0 };
+    if (!s) return { strength: 0, intelligence: 0, discipline: 0, social: 0, focus: 0, willpower: 0 };
     return {
       strength: s.strength ?? 0,
       intelligence: s.intelligence ?? 0,
       discipline: s.discipline ?? s.willpower ?? s.focus ?? 0,
       social: s.social ?? 0,
+      focus: s.focus ?? 0,
+      willpower: s.willpower ?? 0,
     };
   };
   merged.stats = migrateBaseStats(raw.stats as Record<string, number> | undefined);
@@ -336,7 +340,7 @@ export const useSystem = () => {
         nutritionLogs: [], // Clear nutrition logs at midnight
         lastDailyReset: now,
         yesterdayStats: { ...prev.dailyStats },
-        dailyStats: { strength: 0, intelligence: 0, discipline: 0, social: 0 },
+        dailyStats: { strength: 0, intelligence: 0, discipline: 0, social: 0, focus: 0, willpower: 0 },
         dailyXp: 0,
         history: updatedHistory,
         logs: [...newLogs, ...prev.logs].slice(0, 60),
@@ -760,11 +764,15 @@ export const useSystem = () => {
 
       const stats = { ...prev.stats };
       const dailyStats = { ...prev.dailyStats };
+      const weeklyStats = { ...prev.weeklyStats };
+      const monthlyStats = { ...prev.monthlyStats };
       const questCategories = quest.categories || (quest.category ? [quest.category] : []);
       const statGain = asMini ? 0.2 : 1;
       for (const cat of questCategories) {
         stats[cat] = (stats[cat] || 0) + statGain;
         dailyStats[cat] = (dailyStats[cat] || 0) + statGain;
+        weeklyStats[cat] = (weeklyStats[cat] || 0) + statGain;
+        monthlyStats[cat] = (monthlyStats[cat] || 0) + statGain;
       }
 
       let { currentXp, requiredXp, level, totalXp, dailyXp } = prev;
@@ -786,9 +794,14 @@ export const useSystem = () => {
       if (leveledUp) {
         newLogs.unshift(createLog(`LEVEL UP! REACHED LEVEL ${level}`, 'LEVEL_UP'));
         playSystemSoundEffect('LEVEL_UP');
+        // Dispatch level up event
+        window.dispatchEvent(new CustomEvent('player:levelup', { detail: { level } }));
       } else {
         playSystemSoundEffect('SUCCESS');
       }
+
+      // Dispatch quest complete event
+      window.dispatchEvent(new CustomEvent('quest:completed', { detail: { id, title: quest.title } }));
 
       // Fire-and-forget: mark pact as honored on server
       if (hasPact && prev.userId) {
@@ -806,6 +819,8 @@ export const useSystem = () => {
         gold: prev.gold + goldReward + pactReturn,
         stats,
         dailyStats,
+        weeklyStats,
+        monthlyStats,
         currentXp,
         requiredXp,
         level,
@@ -873,6 +888,9 @@ export const useSystem = () => {
     });
 
     playSystemSoundEffect('DANGER');
+
+    // Dispatch quest failed event
+    window.dispatchEvent(new CustomEvent('quest:failed', { detail: { id, title: quest?.title } }));
 
     // Dispatch coin-lost animation for pact quests
     if (hasPact && pactAmount > 0) {

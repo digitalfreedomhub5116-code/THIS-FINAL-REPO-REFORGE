@@ -62,6 +62,7 @@ const GuildsView = lazy(() => import('./components/GuildsView'));
 const LevelProgressCard = lazy(() => import('./components/LevelProgressCard'));
 const WardrobePreviewCard = lazy(() => import('./components/WardrobePreviewCard'));
 const RankProgressionCard = lazy(() => import('./components/RankProgressionCard'));
+const PlayerStatusCard = lazy(() => import('./components/PlayerStatusCard'));
 const DashboardWidgets = lazy(() => import('./components/DashboardWidgets'));
 const EarlyCompletionPenalty = lazy(() => import('./components/EarlyCompletionPenalty'));
 const AuditTheater = lazy(() => import('./components/AuditTheater'));
@@ -154,6 +155,8 @@ const App: React.FC = () => {
   const [showDuskChat, setShowDuskChat] = useState(false);
   const [showBanReversalNotice, setShowBanReversalNotice] = useState(false);
   const [strikeLiftedNotifId, setStrikeLiftedNotifId] = useState<string | null>(null);
+
+  const [mentorMessages, setMentorMessages] = useState<{id: string, text: string}[]>([]);
 
   // ── Sync from DB — callable ref for immediate triggers + 2s polling ──
   const syncFromDbRef = useRef<() => Promise<void>>();
@@ -1079,6 +1082,18 @@ const App: React.FC = () => {
               exit={{ opacity: 0 }}
               className="space-y-6"
             >
+              {/* Player Status Card (replaces HunterCommandDeck) */}
+              <Suspense fallback={<SkeletonStatsChart />}>
+                <ErrorBoundary fallbackLabel="Status card failed">
+                  <PlayerStatusCard
+                    player={player}
+                    equippedOutfit={dbOutfits.find(o => o.id === player.equippedOutfitId) || OUTFITS.find(o => o.id === player.equippedOutfitId)}
+                    mentorMessages={mentorMessages}
+                    onDismissMentorMessage={(id) => setMentorMessages(prev => prev.filter(m => m.id !== id))}
+                  />
+                </ErrorBoundary>
+              </Suspense>
+
               {/* Hunter Growth Terminal — hero element */}
               <Suspense fallback={<SkeletonStatsChart />}>
                 <ErrorBoundary fallbackLabel="Growth terminal failed">

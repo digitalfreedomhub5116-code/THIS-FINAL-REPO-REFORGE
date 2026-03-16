@@ -98,12 +98,14 @@ export interface DuskLook {
   cssFilter?: string;
 }
 
-// --- CORE STATS (4-stat system) ---
+// --- CORE STATS (6-stat system) ---
 export interface CoreStats {
   strength: number;
   intelligence: number;
   discipline: number;
   social: number;
+  focus: number;
+  willpower: number;
 }
 
 export interface StatTimestamps {
@@ -111,6 +113,8 @@ export interface StatTimestamps {
   intelligence: number;
   discipline: number;
   social: number;
+  focus: number;
+  willpower: number;
 }
 
 export interface ActivityLog {

@@ -152,17 +152,18 @@ The GOLDEN RULE: A valid quest MUST be physically possible for a human, AND have
    E = trivial (5-15 min), D = easy (15-30 min), C = moderate (30-60 min),
    B = hard (60-120 min), A = very hard (2-4 hrs), S = elite (4+ hrs)
 2. XP: E=10-30, D=30-75, C=75-150, B=150-250, A=250-400, S=400-600 (scale within range by effort)
-3. categories: An array of 1-2 pillars from: "strength", "intelligence", "discipline", "social"
+3. categories: An array of 1-2 pillars from: "strength", "intelligence", "discipline", "social", "focus", "willpower"
    - Assign COMBINED pillars when the quest genuinely engages multiple areas:
-     * Physical exercise/health activities → ["strength", "discipline"] (physical effort + willpower)
-     * Study/learning with deep focus → ["intelligence", "discipline"] (mental effort + sustained focus)
+     * Physical exercise/health activities → ["strength", "willpower"] (physical effort + mental push)
+     * Study/learning with deep focus → ["intelligence", "focus"] (mental effort + sustained attention)
      * Team sports / group workouts → ["strength", "social"] (physical + social engagement)
      * Teaching / tutoring / mentoring → ["intelligence", "social"]
      * Chores / self-care / cleaning → ["discipline"] (single pillar is fine)
+     * Meditation / Mindfulness → ["focus", "willpower"]
      * Solo intellectual tasks → ["intelligence"] (single pillar)
      * Networking / calling friends → ["social"] (single pillar)
    - Use 1 pillar for simple/focused tasks. Use 2 pillars when the quest clearly spans two areas.
-   - NEVER assign more than 2 pillars. NEVER assign all 4.
+   - NEVER assign more than 2 pillars. NEVER assign all 6.
 4. estimatedDuration: realistic total time in minutes for THIS user
 5. minDurationMinutes: the MINIMUM possible time a human could complete this task — strict anti-cheat floor:
    - Physical tasks: use realistic minimum human pace (e.g. 5km run = 18 min absolute minimum even for elite athletes)

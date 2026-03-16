@@ -29,6 +29,8 @@ const PILLAR_CONFIG: {
   { key: 'intelligence', label: 'INTELLIGENCE', shortLabel: 'INT', icon: <Brain size={12} />,    color: '#818cf8', rgb: '129,140,248' },
   { key: 'social',       label: 'SOCIAL',       shortLabel: 'SOC', icon: <Users size={12} />,    color: '#fbbf24', rgb: '251,191,36' },
   { key: 'discipline',   label: 'DISCIPLINE',   shortLabel: 'DIS', icon: <Shield size={12} />,   color: '#c084fc', rgb: '192,132,252' },
+  { key: 'focus',        label: 'FOCUS',        shortLabel: 'FOC', icon: <Target size={12} />,   color: '#22d3ee', rgb: '6,182,212' },
+  { key: 'willpower',    label: 'WILLPOWER',    shortLabel: 'WIL', icon: <Zap size={12} />,      color: '#f472b6', rgb: '236,72,153' },
 ];
 
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -426,7 +428,7 @@ const HunterGrowthTerminal: React.FC<HunterGrowthTerminalProps> = ({
         </div>
 
         {/* Bottom liquid accent */}
-        <div className="h-[3px] relative z-20" style={{ background: 'linear-gradient(90deg, #f97066, #818cf8, #fbbf24, #c084fc)', boxShadow: '0 -2px 10px rgba(192,132,252,0.4)' }} />
+        <div className="h-[3px] relative z-20" style={{ background: 'linear-gradient(90deg, #f97066, #818cf8, #fbbf24, #c084fc, #22d3ee, #f472b6)', boxShadow: '0 -2px 10px rgba(192,132,252,0.4)' }} />
       </div>
 
       {/* Level badge (Floating glass element) */}
