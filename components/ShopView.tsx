@@ -1,8 +1,10 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Coins, Timer, Key, CheckCircle2, Lock } from 'lucide-react';
-import { ShopItem } from '../types';
+import { ShopItem, Outfit } from '../types';
+import ErrorBoundary from './ErrorBoundary';
+const WardrobePreviewCard = lazy(() => import('./WardrobePreviewCard'));
 
 interface Consumables {
   healthPotions: number;
@@ -26,6 +28,13 @@ interface ShopViewProps {
   onOpenDailyCalendar?: () => void;
   highlightDungeon?: boolean;
   onHighlightConsumed?: () => void;
+  // Wardrobe props (moved from home page)
+  wardrobeGold?: number;
+  wardrobeUnlockedOutfits?: string[];
+  wardrobeEquippedOutfitId?: string;
+  wardrobeOutfits?: Outfit[];
+  wardrobeOnPurchase?: (outfit: Outfit) => void;
+  wardrobeOnEquip?: (id: string) => void;
 }
 
 const DUNGEON_BANNER = 'https://res.cloudinary.com/dcnqnbvp0/image/upload/v1771066637/Image_202602141625_tlkmvf.jpg';
@@ -97,6 +106,12 @@ const ShopView: React.FC<ShopViewProps> = ({
   onOpenDailyCalendar,
   highlightDungeon = false,
   onHighlightConsumed,
+  wardrobeGold,
+  wardrobeUnlockedOutfits,
+  wardrobeEquippedOutfitId,
+  wardrobeOutfits,
+  wardrobeOnPurchase,
+  wardrobeOnEquip,
 }) => {
   const [timeUntilFree, setTimeUntilFree] = useState<number>(0);
   const [buyingItem, setBuyingItem] = useState<string | null>(null);
@@ -394,6 +409,23 @@ const ShopView: React.FC<ShopViewProps> = ({
           </div>
         </div>
       </motion.div>
+
+      {/* ── MONARCH'S WARDROBE (moved from home page) ── */}
+      {wardrobeOnEquip && (
+        <Suspense fallback={<div className="h-[400px] rounded-2xl bg-[#0A0A0F] animate-pulse" />}>
+          <ErrorBoundary fallbackLabel="Wardrobe preview failed">
+            <WardrobePreviewCard
+              gold={wardrobeGold ?? gold}
+              unlockedOutfits={wardrobeUnlockedOutfits || ['outfit_starter']}
+              equippedOutfitId={wardrobeEquippedOutfitId || 'outfit_starter'}
+              outfits={wardrobeOutfits}
+              onPurchase={wardrobeOnPurchase}
+              onEquip={wardrobeOnEquip}
+              onOpenWardrobe={() => {}}
+            />
+          </ErrorBoundary>
+        </Suspense>
+      )}
 
       {/* ── ITEMS LABEL ── */}
       <div className="flex items-center gap-3">

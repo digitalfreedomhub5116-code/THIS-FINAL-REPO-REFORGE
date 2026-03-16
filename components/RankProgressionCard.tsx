@@ -327,20 +327,30 @@ const RankProgressionCard: React.FC<RankProgressionCardProps> = ({ level, rank }
                 borderRadius: 999,
               }}
             >
-              {/* T003 — liquid-glass scroll-driven fill */}
+              {/* T003 — liquid-glass scroll-driven fill with enhanced animation */}
               <motion.div
                 className="absolute bottom-0 left-0 right-0"
                 animate={{ height: `${scrollFill * 100}%` }}
-                transition={{ duration: 0.22, ease: 'easeOut' }}
+                transition={{ duration: 0.45, ease: [0.25, 0.46, 0.45, 0.94] }}
                 style={{
-                  background: 'linear-gradient(0deg, rgba(139,92,246,0.60) 0%, rgba(59,130,246,0.55) 55%, rgba(6,182,212,0.55) 100%)',
+                  background: 'linear-gradient(0deg, rgba(139,92,246,0.70) 0%, rgba(59,130,246,0.60) 55%, rgba(6,182,212,0.60) 100%)',
                   backdropFilter: 'blur(6px)',
                   WebkitBackdropFilter: 'blur(6px)',
                   borderRadius: 999,
-                  borderTop: '1px solid rgba(255,255,255,0.28)',
-                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.22), 0 0 12px rgba(139,92,246,0.50)',
+                  borderTop: '1px solid rgba(255,255,255,0.35)',
+                  boxShadow: `inset 0 1px 0 rgba(255,255,255,0.28), 0 0 ${8 + scrollFill * 16}px rgba(139,92,246,${0.35 + scrollFill * 0.4})`,
                 }}
-              />
+              >
+                {/* Animated shimmer at the fill top edge */}
+                <motion.div
+                  className="absolute top-0 left-0 right-0 h-[3px] rounded-full"
+                  animate={{ opacity: [0.4, 0.9, 0.4] }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+                  style={{
+                    background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent)',
+                  }}
+                />
+              </motion.div>
 
               {/* T004 — white checkpoint dots on the bar (middle 3) */}
               {middleCps.map((cp, i) => {

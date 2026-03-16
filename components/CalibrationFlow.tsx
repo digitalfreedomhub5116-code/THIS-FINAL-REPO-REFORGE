@@ -274,47 +274,47 @@ const AwakeningOverlay: React.FC<{ profile: Partial<HealthProfile>; onComplete: 
     }, [profile]);
 
     const baseStats = useMemo(() => {
-        let str = 25, int = 40, dis = 20, soc = 30;
-        if (profile.activityLevel === 'SEDENTARY') { str = 15; dis = 15; }
-        if (profile.activityLevel === 'LIGHT') { str = 30; dis = 25; }
-        if (profile.activityLevel === 'MODERATE') { str = 45; dis = 40; }
-        if (profile.activityLevel === 'VERY_ACTIVE') { str = 60; dis = 55; }
-        return [str, int, dis, soc];
+        let str = 25, int = 40, dis = 20, soc = 30, foc = 25, wil = 20;
+        if (profile.activityLevel === 'SEDENTARY') { str = 15; dis = 15; foc = 20; wil = 15; }
+        if (profile.activityLevel === 'LIGHT') { str = 30; dis = 25; foc = 28; wil = 22; }
+        if (profile.activityLevel === 'MODERATE') { str = 45; dis = 40; foc = 35; wil = 35; }
+        if (profile.activityLevel === 'VERY_ACTIVE') { str = 60; dis = 55; foc = 42; wil = 45; }
+        return [str, int, dis, soc, foc, wil];
     }, [profile]);
 
     const targetStats = useMemo(() => {
         const gap = (v: number, max: number) => Math.round(v + (max - v) * 0.88);
-        if (profile.goal === 'LOSE_WEIGHT') return [gap(baseStats[0], 78), gap(baseStats[1], 75), gap(baseStats[2], 82), gap(baseStats[3], 72)];
-        if (profile.goal === 'BUILD_MUSCLE') return [gap(baseStats[0], 85), gap(baseStats[1], 70), gap(baseStats[2], 80), gap(baseStats[3], 68)];
-        return [gap(baseStats[0], 75), gap(baseStats[1], 80), gap(baseStats[2], 78), gap(baseStats[3], 76)];
+        if (profile.goal === 'LOSE_WEIGHT') return [gap(baseStats[0], 78), gap(baseStats[1], 75), gap(baseStats[2], 82), gap(baseStats[3], 72), gap(baseStats[4], 74), gap(baseStats[5], 80)];
+        if (profile.goal === 'BUILD_MUSCLE') return [gap(baseStats[0], 85), gap(baseStats[1], 70), gap(baseStats[2], 80), gap(baseStats[3], 68), gap(baseStats[4], 72), gap(baseStats[5], 85)];
+        return [gap(baseStats[0], 75), gap(baseStats[1], 80), gap(baseStats[2], 78), gap(baseStats[3], 76), gap(baseStats[4], 78), gap(baseStats[5], 76)];
     }, [baseStats, profile]);
 
     // 16-point time-series — dramatic per-stat curves that tell a story
     const timelineData = useMemo(() => {
         const clamp = (v: number) => Math.min(100, Math.max(5, Math.round(v)));
         // Multipliers: fraction of (target - base) to add; negative = dips below base
-        // [strMult, intMult, disMult, socMult]
+        // [strMult, intMult, disMult, socMult, focMult, wilMult]
         const curves: number[][] = [
             // Stage 0 — Baseline (slow warmup noise)
-            [0.00,  0.00,  0.00,  0.00],
-            [0.05,  0.01,  0.04,  0.01],
-            [0.09,  0.03,  0.07,  0.02],
+            [0.00,  0.00,  0.00,  0.00,  0.00,  0.00],
+            [0.05,  0.01,  0.04,  0.01,  0.02,  0.03],
+            [0.09,  0.03,  0.07,  0.02,  0.05,  0.06],
             // Stage 1 — Phase I: body wakes up, social life takes the hit
-            [0.47,  0.01,  0.58, -0.16],   // STR/DIS surge, SOC drops
-            [0.65, -0.07,  0.74, -0.30],   // STR peaks, INT dips, SOC bottoms out
-            [0.53,  0.11,  0.30, -0.22],   // DIS crashes hard (burnout)
-            [0.57,  0.19,  0.18, -0.12],   // DIS lowest point
-            [0.61,  0.25,  0.47, -0.03],   // Phase I ends — INT picks up, SOC recovering
+            [0.47,  0.01,  0.58, -0.16,  0.20,  0.42],
+            [0.65, -0.07,  0.74, -0.30,  0.15,  0.55],
+            [0.53,  0.11,  0.30, -0.22,  0.28,  0.38],
+            [0.57,  0.19,  0.18, -0.12,  0.32,  0.30],
+            [0.61,  0.25,  0.47, -0.03,  0.40,  0.48],
             // Stage 2 — Phase II: the compound effect kicks in
-            [0.63,  0.46,  0.36,  0.30],   // SOC surges from silence
-            [0.65,  0.60,  0.54,  0.55],   // INT acceleration
-            [0.59,  0.70,  0.39,  0.70],   // DIS dips again, SOC exploding past baseline
-            [0.69,  0.74,  0.67,  0.77],   // everything climbing
-            [0.75,  0.78,  0.74,  0.81],   // convergence
+            [0.63,  0.46,  0.36,  0.30,  0.52,  0.55],
+            [0.65,  0.60,  0.54,  0.55,  0.62,  0.60],
+            [0.59,  0.70,  0.39,  0.70,  0.68,  0.58],
+            [0.69,  0.74,  0.67,  0.77,  0.74,  0.70],
+            [0.75,  0.78,  0.74,  0.81,  0.78,  0.76],
             // Stage 3 — Final form
-            [0.81,  0.83,  0.81,  0.84],
-            [0.85,  0.86,  0.85,  0.87],
-            [0.88,  0.88,  0.88,  0.88],
+            [0.81,  0.83,  0.81,  0.84,  0.82,  0.82],
+            [0.85,  0.86,  0.85,  0.87,  0.86,  0.86],
+            [0.88,  0.88,  0.88,  0.88,  0.88,  0.88],
         ];
         const weekStep = totalWeeks / 15;
         return curves.map((mults, i) => ({
@@ -325,13 +325,15 @@ const AwakeningOverlay: React.FC<{ profile: Partial<HealthProfile>; onComplete: 
             int:  clamp(baseStats[1] + (targetStats[1] - baseStats[1]) * mults[1]),
             dis:  clamp(baseStats[2] + (targetStats[2] - baseStats[2]) * mults[2]),
             soc:  clamp(baseStats[3] + (targetStats[3] - baseStats[3]) * mults[3]),
+            foc:  clamp(baseStats[4] + (targetStats[4] - baseStats[4]) * mults[4]),
+            wil:  clamp(baseStats[5] + (targetStats[5] - baseStats[5]) * mults[5]),
             phase: i < 3 ? 0 : i < 8 ? 1 : i < 13 ? 2 : 3,
         }));
     }, [baseStats, targetStats, totalWeeks]);
 
     const stageStats = useMemo(() => {
-        const phase1 = [0.50, 0.22, 0.58, 0.18];
-        const phase2 = [0.62, 0.75, 0.60, 0.80];
+        const phase1 = [0.50, 0.22, 0.58, 0.18, 0.30, 0.45];
+        const phase2 = [0.62, 0.75, 0.60, 0.80, 0.70, 0.65];
         return [
             baseStats,
             baseStats.map((b, i) => Math.round(b + (targetStats[i] - b) * phase1[i])),
@@ -407,6 +409,8 @@ const AwakeningOverlay: React.FC<{ profile: Partial<HealthProfile>; onComplete: 
             intelligence: baseStats[1],
             discipline: baseStats[2],
             social: baseStats[3],
+            focus: baseStats[4],
+            willpower: baseStats[5],
         };
         onComplete(statsObj);
     };

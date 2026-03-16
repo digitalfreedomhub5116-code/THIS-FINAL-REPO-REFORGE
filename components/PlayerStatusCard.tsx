@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer, PolarRadiusAxis 
 } from 'recharts';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { PlayerData, CoreStats, Outfit, HistoryEntry } from '../types';
 import MentorThoughtBox from './MentorThoughtBox';
 
@@ -41,7 +42,44 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
   history
 }) => {
   const [selectedDateIndex, setSelectedDateIndex] = useState<number>(0);
-  
+  const [weekOffset, setWeekOffset] = useState(0);
+
+  // ── Radar animation state (dots → lines → fill) ──
+  const [radarPhase, setRadarPhase] = useState<'dots' | 'lines' | 'fill' | 'complete'>('dots');
+  const [visibleDots, setVisibleDots] = useState(0);
+  const animKeyRef = useRef(0);
+
+  useEffect(() => {
+    animKeyRef.current++;
+    const key = animKeyRef.current;
+    setRadarPhase('dots');
+    setVisibleDots(0);
+    // Sequential dot reveal: 6 dots, 180ms apart
+    const dotTimers: ReturnType<typeof setTimeout>[] = [];
+    for (let i = 1; i <= 6; i++) {
+      dotTimers.push(setTimeout(() => {
+        if (animKeyRef.current !== key) return;
+        setVisibleDots(i);
+      }, i * 180));
+    }
+    // After all dots, show lines
+    dotTimers.push(setTimeout(() => {
+      if (animKeyRef.current !== key) return;
+      setRadarPhase('lines');
+    }, 6 * 180 + 200));
+    // After lines draw, show fill
+    dotTimers.push(setTimeout(() => {
+      if (animKeyRef.current !== key) return;
+      setRadarPhase('fill');
+    }, 6 * 180 + 700));
+    // Mark complete
+    dotTimers.push(setTimeout(() => {
+      if (animKeyRef.current !== key) return;
+      setRadarPhase('complete');
+    }, 6 * 180 + 1200));
+    return () => dotTimers.forEach(clearTimeout);
+  }, [selectedDateIndex]);
+
   // ── Ambient thought box spawning ──
   const [ambientMessages, setAmbientMessages] = useState<{id: string; text: string}[]>([]);
   const ambientTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -87,25 +125,41 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
     return thoughtIndexRef.current % 2 === 0 ? 'bottom' : 'top';
   }, [ambientMessages]);
 
-  // ── History timeline ──
-  const allHistory = useMemo(() => {
+  // ── History timeline (indexed by date string for calendar lookup) ──
+  const historyMap = useMemo(() => {
+    const map: Record<string, HistoryEntry> = {};
     const today = new Date().toISOString().split('T')[0];
-    const todayEntry: HistoryEntry = {
+    map[today] = {
       date: today,
       stats: player.stats,
       totalXp: player.totalXp,
       dailyXp: player.dailyXp,
       questCompletion: 0
     };
-    const pastHistory = [...history]
-      .filter(h => h.date !== today)
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    return [todayEntry, ...pastHistory].slice(0, 7);
+    for (const h of history) {
+      if (!map[h.date]) map[h.date] = h;
+    }
+    return map;
   }, [player.stats, player.totalXp, player.dailyXp, history]);
 
+  // Calendar days (7-day window based on weekOffset)
+  const todayDate = useMemo(() => {
+    const d = new Date(); d.setHours(0, 0, 0, 0); return d;
+  }, []);
+  const calendarDays = useMemo(() => {
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(todayDate);
+      d.setDate(todayDate.getDate() + weekOffset * 7 - 3 + i);
+      return d;
+    });
+  }, [todayDate, weekOffset]);
+
+  const selectedDate = calendarDays[selectedDateIndex] || todayDate;
+
   const activeStats: CoreStats = useMemo(() => {
-    return allHistory[selectedDateIndex]?.stats || player.stats;
-  }, [allHistory, selectedDateIndex, player.stats]);
+    const dateStr = selectedDate.toISOString().split('T')[0];
+    return historyMap[dateStr]?.stats || player.stats;
+  }, [historyMap, selectedDate, player.stats]);
   
   const chartData = useMemo(() => [
     { subject: 'STR', A: activeStats.strength, fullMark: 200 },
@@ -173,49 +227,105 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
   return (
     <div className="w-full relative rounded-2xl overflow-hidden flex flex-col group border border-white/[0.06] shadow-[0_20px_60px_rgba(0,0,0,0.7)] bg-[#0A0A0F]">
 
-      {/* --- TOP DATE NAVIGATION --- */}
-      <div className="w-full border-b border-white/5 bg-[#0A0A0F] z-20 flex overflow-x-auto hide-scrollbar px-3 py-2.5 gap-1.5 shrink-0">
-        {allHistory.map((entry, idx) => {
-          const dateObj = new Date(entry.date + 'T12:00:00Z');
-          let label = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-          if (idx === 0) label = "TODAY";
-          if (idx === 1 && allHistory.length > 1) {
-            const today = new Date();
-            const yesterday = new Date(today);
-            yesterday.setDate(yesterday.getDate() - 1);
-            if (dateObj.toDateString() === yesterday.toDateString()) label = "YTD";
-          }
-          const isSelected = selectedDateIndex === idx;
-          return (
-            <button
-              key={entry.date}
-              onClick={() => setSelectedDateIndex(idx)}
-              className={`relative px-3 py-1 rounded-full whitespace-nowrap text-[10px] font-mono font-bold tracking-widest transition-all duration-300 ${
-                isSelected 
-                  ? 'text-[#00d2ff] bg-[#00d2ff]/10 border border-[#00d2ff]/30' 
-                  : 'text-gray-600 hover:text-gray-400 border border-transparent'
-              }`}
-            >
-              {label}
-              {isSelected && (
-                <motion.div 
-                  layoutId="dateIndicator" 
-                  className="absolute inset-0 rounded-full border border-[#00d2ff]/50 shadow-[0_0_12px_rgba(0,210,255,0.25)] pointer-events-none" 
-                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                />
-              )}
-            </button>
-          );
-        })}
+      {/* --- TOP HEXAGONAL CALENDAR --- */}
+      <div className="w-full border-b border-white/5 bg-[#0A0A0F] z-20 shrink-0 px-2 py-2">
+        {/* Month nav */}
+        <div className="flex items-center justify-between px-1 pb-2">
+          <button
+            onClick={() => { setWeekOffset(o => o - 1); setSelectedDateIndex(3); }}
+            className="w-6 h-6 rounded-full flex items-center justify-center active:scale-90 transition-all"
+            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+          >
+            <ChevronLeft size={11} className="text-gray-400" />
+          </button>
+          <span className="text-[10px] font-black text-white font-mono tracking-[0.2em] uppercase">
+            {calendarDays[3]?.toLocaleDateString('en-US', { month: 'long' })} {calendarDays[3]?.getFullYear()}
+          </span>
+          <button
+            onClick={() => { setWeekOffset(o => o + 1); setSelectedDateIndex(3); }}
+            className="w-6 h-6 rounded-full flex items-center justify-center active:scale-90 transition-all"
+            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+          >
+            <ChevronRight size={11} className="text-gray-400" />
+          </button>
+        </div>
+        {/* Hexagonal day strip */}
+        <div className="flex justify-center gap-1.5">
+          {calendarDays.map((day, idx) => {
+            const isToday = day.toDateString() === todayDate.toDateString();
+            const isSelected = selectedDateIndex === idx;
+            const dateStr = day.toISOString().split('T')[0];
+            const hasData = !!historyMap[dateStr];
+            const isPast = day < todayDate;
+            const dayLabel = ['SUN','MON','TUE','WED','THU','FRI','SAT'][day.getDay()];
+
+            let borderColor = 'rgba(255,255,255,0.08)';
+            let glowShadow = 'none';
+            if (isSelected) { borderColor = '#00d2ff'; glowShadow = '0 0 10px rgba(0,210,255,0.4)'; }
+            else if (isToday) { borderColor = 'rgba(0,210,255,0.4)'; }
+            else if (hasData && isPast) { borderColor = 'rgba(34,197,94,0.3)'; }
+
+            return (
+              <button
+                key={idx}
+                onClick={() => setSelectedDateIndex(idx)}
+                className="flex flex-col items-center gap-0.5 transition-all duration-200"
+              >
+                {/* Hexagon */}
+                <div
+                  className="relative flex items-center justify-center transition-all duration-200"
+                  style={{
+                    width: 36, height: 40,
+                    clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
+                    background: isSelected ? 'rgba(0,210,255,0.15)' : 'rgba(8,8,18,0.9)',
+                  }}
+                >
+                  {/* Inner hex border via a slightly smaller hex */}
+                  <div
+                    className="absolute inset-[1.5px] flex items-center justify-center"
+                    style={{
+                      clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
+                      background: isSelected ? 'rgba(0,210,255,0.12)' : 'rgba(10,10,15,0.95)',
+                      boxShadow: glowShadow,
+                    }}
+                  >
+                    <span
+                      className="font-mono font-black text-xs leading-none"
+                      style={{ color: isSelected ? '#00d2ff' : isToday ? '#00d2ff' : hasData && isPast ? '#4ade80' : '#4b5563' }}
+                    >
+                      {day.getDate()}
+                    </span>
+                  </div>
+                  {/* Outer border effect */}
+                  <div
+                    className="absolute inset-0"
+                    style={{
+                      clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
+                      background: borderColor,
+                      zIndex: -1,
+                    }}
+                  />
+                </div>
+                {/* Day label */}
+                <span
+                  className="text-[7px] font-mono font-bold tracking-wider"
+                  style={{ color: isSelected ? '#00d2ff' : isToday ? 'rgba(0,210,255,0.6)' : '#374151' }}
+                >
+                  {isToday ? 'TODAY' : dayLabel}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
       
       {/* --- MAIN CONTENT (side by side) --- */}
       <div className="flex flex-row w-full relative flex-1 min-h-[350px] md:min-h-[400px]">
         
         {/* ── LEFT CONTAINER: RADAR CHART ── */}
-        <div className="w-[50%] md:w-[45%] relative z-30 flex items-center justify-center shrink-0">
-          {/* We make the chart slightly larger than its container to create the overlap effect */}
-          <div className="w-[140%] md:w-[130%] aspect-square absolute right-[-20%] md:right-[-15%]">
+        <div className="w-[45%] md:w-[42%] relative z-30 flex items-center justify-center shrink-0">
+          {/* Chart oversized with left offset so labels stay on-screen, overlaps into video */}
+          <div className="w-[145%] md:w-[135%] aspect-square absolute left-[2px] md:left-[4px]">
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart cx="50%" cy="50%" outerRadius="70%" data={chartData}>
                 <PolarGrid stroke="rgba(255,255,255,0.06)" strokeWidth={1} gridType="polygon" radialLines={false} />
@@ -230,19 +340,25 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
                   stroke="#00d2ff"
                   strokeWidth={2.5}
                   fill="url(#radarGradientV2)"
-                  fillOpacity={1}
-                  isAnimationActive={true}
-                  animationDuration={800}
-                  animationEasing="ease-out"
+                  fillOpacity={radarPhase === 'fill' || radarPhase === 'complete' ? 1 : 0}
+                  strokeOpacity={radarPhase === 'lines' || radarPhase === 'fill' || radarPhase === 'complete' ? 1 : 0}
+                  isAnimationActive={false}
                   dot={((props: any) => {
-                    const { cx, cy } = props;
+                    const { cx, cy, index } = props;
                     if (!Number.isFinite(cx) || !Number.isFinite(cy)) return <g></g>;
+                    const isVisible = (index as number) < visibleDots;
                     return (
-                      <svg x={cx - 4} y={cy - 4} width={8} height={8} className="overflow-visible">
-                        <circle cx="4" cy="4" r="2.5" fill="#fff" opacity={0.9} />
-                        <circle cx="4" cy="4" r="4" fill="none" stroke="#00d2ff" strokeWidth="1" opacity={0.5}>
-                          <animate attributeName="r" values="4;7;4" dur="2s" repeatCount="indefinite" />
-                          <animate attributeName="opacity" values="0.5;0.1;0.5" dur="2s" repeatCount="indefinite" />
+                      <svg x={cx - 5} y={cy - 5} width={10} height={10} className="overflow-visible">
+                        <circle cx="5" cy="5" r="3" fill="#fff" opacity={isVisible ? 0.95 : 0}>
+                          {isVisible && <animate attributeName="opacity" values="0;0.95" dur="0.2s" fill="freeze" />}
+                        </circle>
+                        <circle cx="5" cy="5" r="5" fill="none" stroke="#00d2ff" strokeWidth="1" opacity={isVisible ? 0.5 : 0}>
+                          {isVisible && (
+                            <>
+                              <animate attributeName="r" values="5;8;5" dur="2s" repeatCount="indefinite" />
+                              <animate attributeName="opacity" values="0.5;0.15;0.5" dur="2s" repeatCount="indefinite" />
+                            </>
+                          )}
                         </circle>
                       </svg>
                     );
@@ -260,7 +376,7 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
         </div>
 
         {/* ── RIGHT CONTAINER: VIDEO ── */}
-        <div className="w-[50%] md:w-[55%] relative z-10 shrink-0 bg-[#0A0A0F]">
+        <div className="w-[55%] md:w-[58%] relative z-10 shrink-0 bg-[#0A0A0F]">
           <div className="absolute inset-0 w-full h-full">
             <video
               ref={introRef}
@@ -286,11 +402,11 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
             )}
           </div>
 
-          {/* Edge gradients for blending into left area */}
+          {/* Edge gradients for blending — stronger top/bottom shadows */}
           <div className="absolute inset-y-0 left-0 w-24 md:w-32 bg-gradient-to-r from-[#0A0A0F] via-[#0A0A0F]/80 to-transparent z-10 pointer-events-none" />
-          <div className="absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-[#0A0A0F]/50 to-transparent z-10 pointer-events-none" />
-          <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#0A0A0F] to-transparent z-10 pointer-events-none" />
-          <div className="absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-[#0A0A0F] to-transparent z-10 pointer-events-none" />
+          <div className="absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-[#0A0A0F]/70 to-transparent z-10 pointer-events-none" />
+          <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-[#0A0A0F] via-[#0A0A0F]/60 to-transparent z-10 pointer-events-none" />
+          <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-[#0A0A0F] via-[#0A0A0F]/50 to-transparent z-10 pointer-events-none" />
 
           {/* ── Floating Thought Boxes (Strictly contained in right area, avoiding face center) ── */}
           <div className="absolute inset-0 z-40 pointer-events-none">

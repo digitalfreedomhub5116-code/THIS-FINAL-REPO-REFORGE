@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, X, Dumbbell, Brain, Shield, Users, Zap, Trash2, ZapOff, Lock, Coins, Flame } from 'lucide-react';
+import { Check, X, Dumbbell, Brain, Shield, Users, Zap, Trash2, ZapOff, Lock, Coins, Flame, Eye } from 'lucide-react';
 import { Quest, CoreStats, Rank } from '../types';
 
 interface QuestCardProps {
@@ -35,6 +35,8 @@ const CAT_ICON: Record<keyof CoreStats, React.ReactNode> = {
   intelligence: <Brain size={10} />,
   discipline:   <Shield size={10} />,
   social:       <Users size={10} />,
+  focus:        <Eye size={10} />,
+  willpower:    <Flame size={10} />,
 };
 
 const CAT_COLOR: Record<keyof CoreStats, string> = {
@@ -42,6 +44,8 @@ const CAT_COLOR: Record<keyof CoreStats, string> = {
   intelligence: '#818cf8',
   discipline:   '#c084fc',
   social:       '#fbbf24',
+  focus:        '#34d399',
+  willpower:    '#fb923c',
 };
 
 const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDelete, isLocked }) => {

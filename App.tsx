@@ -59,7 +59,7 @@ const BanScreen = lazy(() => import('./components/BanScreen'));
 const BanReversalNotice = lazy(() => import('./components/BanReversalNotice'));
 const GuildsView = lazy(() => import('./components/GuildsView'));
 const LevelProgressCard = lazy(() => import('./components/LevelProgressCard'));
-const WardrobePreviewCard = lazy(() => import('./components/WardrobePreviewCard'));
+// WardrobePreviewCard moved to ShopView — no longer needed here
 const RankProgressionCard = lazy(() => import('./components/RankProgressionCard'));
 const PlayerStatusCard = lazy(() => import('./components/PlayerStatusCard'));
 const DashboardWidgets = lazy(() => import('./components/DashboardWidgets'));
@@ -1126,21 +1126,6 @@ const App: React.FC = () => {
                 />
               </Suspense>
 
-              {/* Monarch's Wardrobe Preview */}
-              <Suspense fallback={<SkeletonWardrobePreview />}>
-                <ErrorBoundary fallbackLabel="Wardrobe preview failed">
-                  <WardrobePreviewCard
-                    gold={player.gold}
-                    unlockedOutfits={player.unlockedOutfits || ['outfit_starter']}
-                    equippedOutfitId={player.equippedOutfitId || 'outfit_starter'}
-                    outfits={dbOutfits.length > 0 ? dbOutfits : OUTFITS}
-                    onPurchase={purchaseOutfit}
-                    onEquip={equipOutfit}
-                    onOpenWardrobe={() => setActiveTab('STORE')}
-                  />
-                </ErrorBoundary>
-              </Suspense>
-
               {/* Rank Progression */}
               <Suspense fallback={<SkeletonRankProgression />}>
                 <ErrorBoundary fallbackLabel="Rank progression failed">
@@ -1277,6 +1262,12 @@ const App: React.FC = () => {
                     onOpenDailyCalendar={() => setShowDailyLogin(true)}
                     highlightDungeon={highlightDungeon}
                     onHighlightConsumed={() => setHighlightDungeon(false)}
+                    wardrobeGold={player.gold}
+                    wardrobeUnlockedOutfits={player.unlockedOutfits || ['outfit_starter']}
+                    wardrobeEquippedOutfitId={player.equippedOutfitId || 'outfit_starter'}
+                    wardrobeOutfits={dbOutfits.length > 0 ? dbOutfits : OUTFITS}
+                    wardrobeOnPurchase={purchaseOutfit}
+                    wardrobeOnEquip={equipOutfit}
                   />
                 </ErrorBoundary>
               </Suspense>
