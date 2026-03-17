@@ -48,7 +48,14 @@ export async function setupGoogleAuth(app: Express) {
       if (!verifyRes.ok) {
         const errText = await verifyRes.text().catch(() => '');
         console.error('[Auth Google] Token verification failed:', verifyRes.status, errText);
-        return res.status(401).json({ error: 'Invalid Google token' });
+        let errorMsg = 'Invalid Google token';
+        try {
+           const parsedErr = JSON.parse(errText);
+           if (parsedErr.error_description) {
+               errorMsg = `Google Token Error: ${parsedErr.error_description}`;
+           }
+        } catch(e) {}
+        return res.status(401).json({ error: errorMsg });
       }
 
       const payload: GoogleTokenPayload = await verifyRes.json();

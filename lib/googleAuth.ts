@@ -5,10 +5,12 @@
  * - On web (browser): Falls through to the existing @react-oauth/google <GoogleLogin> component
  */
 
-const isCapacitor = typeof (window as any)?.Capacitor !== 'undefined'
-  && (window as any)?.Capacitor?.isNativePlatform?.();
+import { Capacitor } from '@capacitor/core';
+import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 
-let GoogleAuth: any = null;
+const isCapacitor = Capacitor.isNativePlatform();
+
+let GoogleAuthInstance: any = null;
 
 /**
  * Initialize Google Auth for Capacitor native platform.
@@ -17,10 +19,9 @@ let GoogleAuth: any = null;
 export async function initGoogleAuth() {
   if (!isCapacitor) return;
   try {
-    const mod = await import('@codetrix-studio/capacitor-google-auth');
-    GoogleAuth = mod.GoogleAuth;
-    GoogleAuth.initialize({
-      clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+    GoogleAuthInstance = GoogleAuth;
+    GoogleAuthInstance.initialize({
+      clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID || '20910572316-81krg6ag9ajbnvde8pu862rrc6pglp45.apps.googleusercontent.com',
       scopes: ['profile', 'email'],
       grantOfflineAccess: false,
     });
@@ -34,11 +35,20 @@ export async function initGoogleAuth() {
  * Returns { idToken } on success, or { error } on failure.
  */
 export async function nativeGoogleSignIn(): Promise<{ idToken?: string; error?: string }> {
-  if (!isCapacitor || !GoogleAuth) {
+  if (!isCapacitor || !GoogleAuthInstance) {
     return { error: 'Google Auth not initialized — restart the app' };
   }
   try {
-    const user = await GoogleAuth.signIn();
+    // Force sign out first to clear any stale, expired cached tokens.
+    // If we don't do this, Capacitor might return a token that is >1 hour old
+    // which the backend will reject with "Invalid Google token".
+    try {
+      await GoogleAuthInstance.signOut();
+    } catch (e) {
+      // ignore sign out errors
+    }
+
+    const user = await GoogleAuthInstance.signIn();
     console.log('[GoogleAuth] signIn raw response:', JSON.stringify(user));
     // The Java plugin puts idToken in two places:
     // 1. user.authentication.idToken
