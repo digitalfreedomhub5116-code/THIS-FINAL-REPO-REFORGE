@@ -11,6 +11,7 @@ import PlanSelector from './PlanSelector';
 import CustomPlanBuilder from './CustomPlanBuilder';
 import { generateSystemProtocol, calculateTimeEstimate } from '../utils/workoutGenerator';
 import { playSystemSoundEffect } from '../utils/soundEngine';
+import { API_BASE } from '../lib/apiConfig';
 
 interface HealthViewProps {
   healthProfile?: HealthProfile;
@@ -508,7 +509,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
 
   // Fetch premade plans for the workout tab
   useEffect(() => {
-      fetch('/api/workout/plans')
+      fetch(`${API_BASE}/api/workout/plans`)
           .then(r => r.json())
           .then(data => setPremadePlans(Array.isArray(data) ? data : []))
           .catch(() => {});
@@ -517,7 +518,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
   // Fetch user custom plans (manual + AI saved)
   useEffect(() => {
       if (!playerData.userId || playerData.userId.startsWith('local-') || playerData.userId.startsWith('local_')) return;
-      fetch('/api/workout/custom-plans', { credentials: 'include' })
+      fetch(`${API_BASE}/api/workout/custom-plans`, { credentials: 'include' })
           .then(r => r.ok ? r.json() : [])
           .then(data => setCustomPlans(Array.isArray(data) ? data : []))
           .catch(() => {});
@@ -611,7 +612,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
       setShowAIConfirm(false);
       try {
           const profile = healthProfile || formData;
-          const res = await fetch('/api/workout/generate-ai', {
+          const res = await fetch(`${API_BASE}/api/workout/generate-ai`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               credentials: 'include',
@@ -661,7 +662,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
           onSaveProfile(updated, updated.category || 'Hunter');
           // Persist to user_custom_plans table (won't be erased on plan switches)
           try {
-              const saved = await fetch('/api/workout/custom-plans', {
+              const saved = await fetch(`${API_BASE}/api/workout/custom-plans`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   credentials: 'include',
@@ -720,7 +721,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
               base64Reader.readAsDataURL(file);
           });
 
-          const response = await fetch('/api/nutrition/analyze', {
+          const response = await fetch(`${API_BASE}/api/nutrition/analyze`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               credentials: 'include',
@@ -2205,7 +2206,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
                 onClose={() => {
                     setShowCustomPlanBuilder(false);
                     onToggleNav?.(true);
-                    fetch('/api/workout/custom-plans', { credentials: 'include' })
+                    fetch(`${API_BASE}/api/workout/custom-plans`, { credentials: 'include' })
                         .then(r => r.ok ? r.json() : [])
                         .then(data => setCustomPlans(Array.isArray(data) ? data : []))
                         .catch(() => {});
@@ -2213,7 +2214,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
                 onStartWorkout={(day) => {
                     setShowCustomPlanBuilder(false);
                     onToggleNav?.(true);
-                    fetch('/api/workout/custom-plans', { credentials: 'include' })
+                    fetch(`${API_BASE}/api/workout/custom-plans`, { credentials: 'include' })
                         .then(r => r.ok ? r.json() : [])
                         .then(data => setCustomPlans(Array.isArray(data) ? data : []))
                         .catch(() => {});

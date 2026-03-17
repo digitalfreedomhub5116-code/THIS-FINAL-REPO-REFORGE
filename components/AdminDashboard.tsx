@@ -4,6 +4,7 @@ import { LogOut, Save, RefreshCw, Video, Link, Search, Activity, Plus, Edit3, Tr
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { WorkoutDay } from '../types';
 import { useSystem, isEmbed } from '../hooks/useSystem';
+import { API_BASE } from '../lib/apiConfig';
 import { MASTER_PROTOCOL_REGISTRY } from '../utils/workoutGenerator';
 import ExerciseLibrary from './admin/ExerciseLibrary';
 import PlanBuilder from './admin/PlanBuilder';
@@ -116,7 +117,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
   // --- DATA LOADING ---
   const fetchUsers = async () => {
       try {
-          const res = await fetch('/api/admin/users', {
+          const res = await fetch(`${API_BASE}/api/admin/users`, {
               headers: { 'Authorization': `Bearer ${adminToken}` }
           });
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -129,7 +130,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
 
   const banUser = async (id: string) => {
       try {
-          const res = await fetch(`/api/admin/users/${id}/ban`, {
+          const res = await fetch(`${API_BASE}/api/admin/users/${id}/ban`, {
               method: 'POST',
               headers: { 'Authorization': `Bearer ${adminToken}` },
           });
@@ -149,7 +150,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
 
   const unbanUser = async (id: string) => {
       try {
-          const res = await fetch(`/api/admin/users/${id}/unban`, {
+          const res = await fetch(`${API_BASE}/api/admin/users/${id}/unban`, {
               method: 'POST',
               headers: { 'Authorization': `Bearer ${adminToken}` },
           });
@@ -170,7 +171,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
 
   const adjustGold = async (id: string, delta: number) => {
       try {
-          const res = await fetch(`/api/admin/users/${id}/adjust-gold`, {
+          const res = await fetch(`${API_BASE}/api/admin/users/${id}/adjust-gold`, {
               method: 'POST',
               headers: { 'Authorization': `Bearer ${adminToken}`, 'Content-Type': 'application/json' },
               body: JSON.stringify({ amount: delta }),
@@ -187,7 +188,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
 
   const adjustKeys = async (id: string, delta: number) => {
       try {
-          const res = await fetch(`/api/admin/users/${id}/adjust-keys`, {
+          const res = await fetch(`${API_BASE}/api/admin/users/${id}/adjust-keys`, {
               method: 'POST',
               headers: { 'Authorization': `Bearer ${adminToken}`, 'Content-Type': 'application/json' },
               body: JSON.stringify({ amount: delta }),
@@ -204,7 +205,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
 
   const adjustStrikes = async (id: string, delta: 1 | -1) => {
       try {
-          const res = await fetch(`/api/admin/users/${id}/adjust-strikes`, {
+          const res = await fetch(`${API_BASE}/api/admin/users/${id}/adjust-strikes`, {
               method: 'POST',
               headers: { 'Authorization': `Bearer ${adminToken}`, 'Content-Type': 'application/json' },
               body: JSON.stringify({ delta }),
@@ -225,7 +226,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
 
   const deleteUser = async (id: string) => {
       try {
-          const res = await fetch(`/api/admin/users/${id}`, {
+          const res = await fetch(`${API_BASE}/api/admin/users/${id}`, {
               method: 'DELETE',
               headers: { 'Authorization': `Bearer ${adminToken}` },
           });
@@ -242,7 +243,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
   const fetchUserData = async (id: string) => {
       setViewUserLoading(true);
       try {
-          const res = await fetch(`/api/admin/users/${id}/data`, {
+          const res = await fetch(`${API_BASE}/api/admin/users/${id}/data`, {
               headers: { 'Authorization': `Bearer ${adminToken}` },
           });
           const data = await res.json();
@@ -257,7 +258,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
   const fetchUsage = async (period = usagePeriod) => {
       setUsageLoading(true);
       try {
-          const res = await fetch(`/api/admin/usage?period=${period}`, { headers: { 'Authorization': `Bearer ${adminToken}` } });
+          const res = await fetch(`${API_BASE}/api/admin/usage?period=${period}`, { headers: { 'Authorization': `Bearer ${adminToken}` } });
           if (res.ok) setUsageData(await res.json());
       } catch (err) { console.error('Usage fetch error:', err); }
       finally { setUsageLoading(false); }
@@ -290,7 +291,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
   const fetchStoreOutfits = async () => {
       setStoreLoading(true);
       try {
-          const res = await fetch('/api/store/outfits', { headers: { 'Authorization': `Bearer ${adminToken}` } });
+          const res = await fetch(`${API_BASE}/api/store/outfits`, { headers: { 'Authorization': `Bearer ${adminToken}` } });
           const data = await res.json();
           setStoreOutfits(data || []);
       } catch { setStoreMsg({ type: 'error', text: 'Failed to load outfits' }); }
@@ -328,7 +329,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
       setStoreLoading(true);
       setStoreMsg(null);
       try {
-          const url = editingOutfit ? `/api/store/outfits/${editingOutfit.id}` : '/api/store/outfits';
+          const url = editingOutfit ? `${API_BASE}/api/store/outfits/${editingOutfit.id}` : `${API_BASE}/api/store/outfits`;
           const method = editingOutfit ? 'PUT' : 'POST';
           const res = await fetch(url, {
               method,
@@ -347,7 +348,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
   const deleteOutfit = async (id: number) => {
       setStoreLoading(true);
       try {
-          const res = await fetch(`/api/store/outfits/${id}`, {
+          const res = await fetch(`${API_BASE}/api/store/outfits/${id}`, {
               method: 'DELETE',
               headers: { 'Authorization': `Bearer ${adminToken}` },
           });
@@ -363,7 +364,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
   const setDefaultOutfit = async (id: number) => {
       setStoreLoading(true);
       try {
-          await fetch(`/api/store/outfits/${id}/set-default`, {
+          await fetch(`${API_BASE}/api/store/outfits/${id}/set-default`, {
               method: 'POST',
               headers: { 'Authorization': `Bearer ${adminToken}` },
           });

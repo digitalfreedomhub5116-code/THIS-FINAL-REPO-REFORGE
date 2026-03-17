@@ -1,4 +1,5 @@
 import { CoreStats, HealthProfile } from "../types";
+import { API_BASE } from '../lib/apiConfig';
 
 export interface QuestAnalysis {
   rank: 'E' | 'D' | 'C' | 'B' | 'A' | 'S';
@@ -22,7 +23,7 @@ export const analyzeQuest = async (
   userStats: CoreStats,
   context?: any
 ): Promise<QuestAnalysis> => {
-  const res = await fetch('/api/forge-guard/analyze-quest', {
+  const res = await fetch(`${API_BASE}/api/forge-guard/analyze-quest`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
@@ -40,7 +41,7 @@ export const verifyProof = async (
   reason: string,
   context?: string
 ): Promise<VerificationResult> => {
-  const res = await fetch('/api/forge-guard/verify-proof', {
+  const res = await fetch(`${API_BASE}/api/forge-guard/verify-proof`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',

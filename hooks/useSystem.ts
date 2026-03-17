@@ -7,6 +7,7 @@ import {
 import { playSystemSoundEffect } from '../utils/soundEngine';
 import { getPlayerAuthHeaders } from '../lib/playerApi';
 import { REWARD_SCHEDULE } from '../lib/rewards';
+import { API_BASE } from '../lib/apiConfig';
 
 export const isEmbed = (url: string) => {
   return url.includes('youtube.com/embed') || url.includes('player.vimeo.com');
@@ -183,8 +184,8 @@ export const useSystem = () => {
     const fetchGlobalAssets = async () => {
       try {
         const [videosRes, protocolsRes] = await Promise.all([
-          fetch('/api/videos'),
-          fetch('/api/global-config/customProtocols'),
+          fetch(`${API_BASE}/api/videos`),
+          fetch(`${API_BASE}/api/global-config/customProtocols`),
         ]);
 
         if (videosRes.ok) {
@@ -227,7 +228,7 @@ export const useSystem = () => {
         consumables: data.consumables || { healthPotions: 0, shadowScrolls: 0, ultOrbs: 0 }
       };
       
-      await fetch(`/api/player/${data.userId}`, {
+      await fetch(`${API_BASE}/api/player/${data.userId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
         credentials: 'include',
@@ -451,7 +452,7 @@ export const useSystem = () => {
       console.error('Pre-logout sync error:', err);
     }
     try {
-      await fetch('/api/auth/local/logout', { method: 'POST', credentials: 'include' });
+      await fetch(`${API_BASE}/api/auth/local/logout`, { method: 'POST', credentials: 'include' });
     } catch { /* ignore */ }
     localStorage.removeItem('reforge_player_v2');
     window.location.reload();
@@ -736,7 +737,7 @@ export const useSystem = () => {
         if (hasPact && pactAmount > 0 && prev.userId) {
           const weekStart = new Date();
           weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-          fetch('/api/system-pact/burn', {
+          fetch(`${API_BASE}/api/system-pact/burn`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
@@ -805,7 +806,7 @@ export const useSystem = () => {
 
       // Fire-and-forget: mark pact as honored on server
       if (hasPact && prev.userId) {
-        fetch('/api/system-pact/resolve', {
+        fetch(`${API_BASE}/api/system-pact/resolve`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
@@ -872,7 +873,7 @@ export const useSystem = () => {
       if (qHasPact && qPactAmount > 0 && prev.userId) {
         const weekStart = new Date();
         weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-        fetch('/api/system-pact/burn', {
+        fetch(`${API_BASE}/api/system-pact/burn`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
@@ -1105,7 +1106,7 @@ export const useSystem = () => {
     addNotification(`Workout Complete! +${exercisesCompleted * 50} XP`, 'SUCCESS');
     // Persist to workouts table (fire-and-forget)
     if (player.userId && !player.userId.startsWith('local-') && !player.userId.startsWith('local_')) {
-      fetch('/api/workout/log-complete', {
+      fetch(`${API_BASE}/api/workout/log-complete`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -1173,7 +1174,7 @@ export const useSystem = () => {
     // Persist strike to DB via dedicated endpoint (fire-and-forget, outside state updater)
     setTimeout(() => {
       if (capturedUserId && !capturedUserId.startsWith('local')) {
-        fetch(`/api/player/${capturedUserId}/record-strike`, {
+        fetch(`${API_BASE}/api/player/${capturedUserId}/record-strike`, {
           method: 'POST',
           headers: { ...getPlayerAuthHeaders() },
           credentials: 'include',
@@ -1213,7 +1214,7 @@ export const useSystem = () => {
 
   const verifyTicket = useCallback(async (proof: string, reason: string, originalSelfie?: string) => {
     try {
-      const res = await fetch('/api/forge-guard/verify-proof', {
+      const res = await fetch(`${API_BASE}/api/forge-guard/verify-proof`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

@@ -26,6 +26,7 @@ import { Tab, CoreStats, HealthProfile, Outfit, DbOutfit, TierLevel, PlayerData,
 import { OUTFITS } from './utils/gameData';
 import { getPlayerAuthHeaders } from './lib/playerApi';
 import { Terminal } from 'lucide-react';
+import { API_BASE } from './lib/apiConfig';
 
 // ── Existing lazy imports ──
 const DailyLoginModal = lazy(() => import('./components/DailyLoginModal'));
@@ -170,7 +171,7 @@ const App: React.FC = () => {
     lastKnownDbKeys.current = null;
     const syncFromDb = async () => {
       try {
-        const res = await fetch(`/api/player/${player.userId}`, { credentials: 'include', headers: { ...getPlayerAuthHeaders() } });
+        const res = await fetch(`${API_BASE}/api/player/${player.userId}`, { credentials: 'include', headers: { ...getPlayerAuthHeaders() } });
         if (!res.ok) return;
         const row = await res.json();
         const rawData = row.raw_data as Partial<PlayerData> | null;
@@ -273,7 +274,7 @@ const App: React.FC = () => {
     if (logoutFlowRef.current) return;
     const restoreAfterAuth = async () => {
       try {
-        const res = await fetch('/api/auth/whoami', { credentials: 'include' });
+        const res = await fetch(`${API_BASE}/api/auth/whoami`, { credentials: 'include' });
         if (!res.ok) return;
         const whoamiData = await res.json();
         const user = whoamiData?.user || whoamiData;
@@ -285,7 +286,7 @@ const App: React.FC = () => {
         // This handles localStorage being cleared (mobile, new device, private mode, etc.)
         // while the Google session cookie is still valid.
         try {
-          const playerRes = await fetch(`/api/player/${uid}`, { credentials: 'include', headers: { ...getPlayerAuthHeaders() } });
+          const playerRes = await fetch(`${API_BASE}/api/player/${uid}`, { credentials: 'include', headers: { ...getPlayerAuthHeaders() } });
           if (playerRes.ok) {
             const row = await playerRes.json();
             const rawData = row.raw_data as Partial<PlayerData> | null;
@@ -331,7 +332,7 @@ const App: React.FC = () => {
   // so changes saved in the admin panel are always reflected without a hard reload
   const fetchDbOutfits = useCallback(() => {
     if (!player.isConfigured) return;
-    fetch('/api/store/outfits')
+    fetch(`${API_BASE}/api/store/outfits`)
       .then(r => r.json())
       .then((rows: DbOutfit[]) => {
         if (!Array.isArray(rows) || rows.length === 0) return;
@@ -586,7 +587,7 @@ const App: React.FC = () => {
     const q = pendingAuditQuest;
     
     // Silent background fetch to log the audit
-    fetch('/api/audit/log', {
+    fetch(`${API_BASE}/api/audit/log`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -621,7 +622,7 @@ const App: React.FC = () => {
     };
     addQuest(questWithPact);
     addNotification(`Shadow Pledge Sealed: ${pledgeAmount}G Locked`, 'SYSTEM');
-    fetch('/api/system-pact/create', {
+    fetch(`${API_BASE}/api/system-pact/create`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -958,7 +959,7 @@ const App: React.FC = () => {
                 onAcknowledge={async () => {
                   if (player.userId && strikeLiftedNotifId) {
                     try {
-                      await fetch(`/api/player/${player.userId}/notification/${strikeLiftedNotifId}`, {
+                      await fetch(`${API_BASE}/api/player/${player.userId}/notification/${strikeLiftedNotifId}`, {
                         method: 'DELETE',
                         headers: { ...getPlayerAuthHeaders() },
                         credentials: 'include',
@@ -1372,7 +1373,7 @@ const App: React.FC = () => {
               // 1. Sync data to cloud before logout
               try {
                 if (player.userId && !player.userId.startsWith('local-') && !player.userId.startsWith('local_')) {
-                  await fetch(`/api/player/${player.userId}`, {
+                  await fetch(`${API_BASE}/api/player/${player.userId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
                     credentials: 'include',
@@ -1382,7 +1383,7 @@ const App: React.FC = () => {
               } catch { /* ignore sync errors */ }
               // 2. Destroy server session
               try {
-                await fetch('/api/auth/local/logout', { method: 'POST', credentials: 'include' });
+                await fetch(`${API_BASE}/api/auth/local/logout`, { method: 'POST', credentials: 'include' });
               } catch { /* ignore */ }
               // 3. Clear local storage and reset player state
               localStorage.removeItem('reforge_player_v2');

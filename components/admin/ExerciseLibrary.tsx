@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit3, Trash2, Search, Save, X, Video } from 'lucide-react';
 import { WorkoutExercise } from '../../types';
+import { API_BASE } from '../../lib/apiConfig';
 
 const TYPES = ['COMPOUND', 'ISOLATION', 'CARDIO', 'ACCESSORY', 'STRETCH'];
 const EQUIPMENT_OPTIONS = ['GYM', 'BODYWEIGHT', 'HOME_DUMBBELLS', 'ANY'];
@@ -35,7 +36,7 @@ const ExerciseLibrary: React.FC<{ adminToken: string }> = ({ adminToken }) => {
   const fetchExercises = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/exercises', { headers: { 'Authorization': `Bearer ${adminToken}` } });
+      const res = await fetch(`${API_BASE}/api/admin/exercises`, { headers: { 'Authorization': `Bearer ${adminToken}` } });
       const data = await res.json();
       setExercises(Array.isArray(data) ? data : []);
     } catch { setMsg({ type: 'error', text: 'Failed to load exercises' }); }
@@ -55,7 +56,7 @@ const ExerciseLibrary: React.FC<{ adminToken: string }> = ({ adminToken }) => {
     if (!form.name.trim()) return setMsg({ type: 'error', text: 'Name is required' });
     setSaving(true);
     try {
-      const url = editing ? `/api/admin/exercises/${editing.id}` : '/api/admin/exercises';
+      const url = editing ? `${API_BASE}/api/admin/exercises/${editing.id}` : `${API_BASE}/api/admin/exercises`;
       const method = editing ? 'PUT' : 'POST';
       const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminToken}` }, body: JSON.stringify(form) });
       if (!res.ok) throw new Error('Save failed');
@@ -68,7 +69,7 @@ const ExerciseLibrary: React.FC<{ adminToken: string }> = ({ adminToken }) => {
 
   const deleteExercise = async (id: number) => {
     try {
-      await fetch(`/api/admin/exercises/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${adminToken}` } });
+      await fetch(`${API_BASE}/api/admin/exercises/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${adminToken}` } });
       setExercises(prev => prev.filter(e => e.id !== id));
       setConfirmDelete(null);
       setMsg({ type: 'success', text: 'Exercise deleted' });

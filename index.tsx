@@ -3,6 +3,10 @@ import ReactDOM from 'react-dom/client';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import './index.css';
 import App from './App';
+import { initGoogleAuth } from './lib/googleAuth';
+
+// Initialize native Google Sign-In for Capacitor (no-op on web)
+initGoogleAuth();
 
 const runtimeConfig = (window as any).__REFORGE_CONFIG__ || {};
 const GOOGLE_CLIENT_ID =

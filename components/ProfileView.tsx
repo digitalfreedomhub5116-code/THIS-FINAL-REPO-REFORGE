@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Save, User, Briefcase, Award, Shield, Terminal, Activity, Settings, LogOut, Lock, ArrowLeft, CheckCircle, XCircle, RotateCcw } from 'lucide-react';
 import { PlayerData, HealthProfile } from '../types';
+import { API_BASE } from '../lib/apiConfig';
 
 interface ProfileViewProps {
   player: PlayerData;
@@ -59,7 +60,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onLogout, o
     if (usernameDebounce.current) clearTimeout(usernameDebounce.current);
     usernameDebounce.current = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/player/codename/check?name=${encodeURIComponent(trimmed)}`);
+        const res = await fetch(`${API_BASE}/api/player/codename/check?name=${encodeURIComponent(trimmed)}`);
         const data = await res.json();
         setUsernameStatus(data.available ? 'available' : 'taken');
       } catch {

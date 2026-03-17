@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, X, Plus, Minus, CheckCircle, Play, Dumbbell, ChevronDown, ArrowLeft, Save } from 'lucide-react';
 import { WorkoutDay, WorkoutExercise } from '../types';
+import { API_BASE } from '../lib/apiConfig';
 
 interface SelectedExercise {
   exercise: WorkoutExercise;
@@ -36,7 +37,7 @@ const CustomPlanBuilder: React.FC<CustomPlanBuilderProps> = ({ onClose, onStartW
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    fetch('/api/workout/exercises')
+    fetch(`${API_BASE}/api/workout/exercises`)
       .then(r => r.json())
       .then(data => setExercises(Array.isArray(data) ? data : []))
       .catch(() => setExercises([]))
@@ -107,7 +108,7 @@ const CustomPlanBuilder: React.FC<CustomPlanBuilderProps> = ({ onClose, onStartW
           duration: 0,
         })),
       };
-      await fetch('/api/workout/custom-plans', {
+      await fetch(`${API_BASE}/api/workout/custom-plans`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: planName, days: [day] }),

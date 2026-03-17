@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Shield, Lock, ShieldAlert, Eye, EyeOff, ChevronDown } from 'lucide-react';
+import { API_BASE } from '../lib/apiConfig';
 
 interface BanScreenProps {
   userId?: string;
@@ -18,7 +19,7 @@ const BanScreen: React.FC<BanScreenProps> = ({ userId, onAdminUnban }) => {
     if (!password) return;
     setStatus('loading');
     try {
-      const verifyRes = await fetch('/api/admin/verify', {
+      const verifyRes = await fetch(`${API_BASE}/api/admin/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password }),
@@ -29,7 +30,7 @@ const BanScreen: React.FC<BanScreenProps> = ({ userId, onAdminUnban }) => {
         setTimeout(() => setStatus('idle'), 2000);
         return;
       }
-      const res = await fetch(`/api/admin/users/${userId}/unban`, {
+      const res = await fetch(`${API_BASE}/api/admin/users/${userId}/unban`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${verifyData.token}` },
       });

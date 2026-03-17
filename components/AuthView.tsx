@@ -4,6 +4,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import { PlayerData, ReplitUser } from '../types';
+import { API_BASE } from '../lib/apiConfig';
+import { isNativePlatform } from '../lib/googleAuth';
+import NativeGoogleButton from './NativeGoogleButton';
 
 interface AuthViewProps {
   onLogin: (profile: Partial<PlayerData> & { replitUser?: ReplitUser }) => void;
@@ -40,7 +43,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode }) => {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        const res = await fetch('/api/auth/local/whoami', { credentials: 'include' });
+        const res = await fetch(`${API_BASE}/api/auth/local/whoami`, { credentials: 'include' });
         if (res.ok) {
           const json = await res.json();
           const user: ReplitUser = json.user || json;
@@ -58,7 +61,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode }) => {
   const loginWithUser = async (user: ReplitUser) => {
     let playerData: Partial<PlayerData> = {};
     try {
-      const playerRes = await fetch(`/api/player/${user.id}`, { credentials: 'include' });
+      const playerRes = await fetch(`${API_BASE}/api/player/${user.id}`, { credentials: 'include' });
       if (playerRes.ok) {
         const row = await playerRes.json();
         if (row?.raw_data) playerData = row.raw_data as Partial<PlayerData>;
@@ -80,7 +83,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode }) => {
     if (!identifier.trim() || !password) { setError('Fill in all fields'); return; }
     setLoading(true);
     try {
-      const res = await fetch('/api/auth/local/login', {
+      const res = await fetch(`${API_BASE}/api/auth/local/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -104,7 +107,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode }) => {
     if (password.length < 6) { setError('Password must be at least 6 characters'); return; }
     setLoading(true);
     try {
-      const res = await fetch('/api/auth/local/register', {
+      const res = await fetch(`${API_BASE}/api/auth/local/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -120,19 +123,15 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode }) => {
     }
   };
 
-  const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
-    if (!credentialResponse.credential) {
-      setError('Google sign-in failed — no credential received');
-      return;
-    }
+  const handleGoogleIdToken = async (credential: string) => {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('/api/auth/google/token', {
+      const res = await fetch(`${API_BASE}/api/auth/google/token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ credential: credentialResponse.credential }),
+        body: JSON.stringify({ credential }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -145,6 +144,14 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
+    if (!credentialResponse.credential) {
+      setError('Google sign-in failed — no credential received');
+      return;
+    }
+    await handleGoogleIdToken(credentialResponse.credential);
   };
 
   const switchMode = (m: Mode) => {
@@ -303,15 +310,23 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode }) => {
                 </div>
 
                 <div className="flex justify-center mb-4">
-                  <GoogleLogin
-                    onSuccess={handleGoogleSuccess}
-                    onError={() => setError('Google sign-in was cancelled')}
-                    theme="filled_black"
-                    shape="pill"
-                    size="large"
-                    text="signin_with"
-                    width="320"
-                  />
+                  {isNativePlatform ? (
+                    <NativeGoogleButton
+                      text="signin_with"
+                      onIdToken={handleGoogleIdToken}
+                      onError={(msg) => setError(msg)}
+                    />
+                  ) : (
+                    <GoogleLogin
+                      onSuccess={handleGoogleSuccess}
+                      onError={() => setError('Google sign-in was cancelled')}
+                      theme="filled_black"
+                      shape="pill"
+                      size="large"
+                      text="signin_with"
+                      width="320"
+                    />
+                  )}
                 </div>
 
                 <div className="flex items-center gap-3 my-4">
@@ -460,15 +475,23 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode }) => {
                 </div>
 
                 <div className="flex justify-center mb-4">
-                  <GoogleLogin
-                    onSuccess={handleGoogleSuccess}
-                    onError={() => setError('Google sign-up was cancelled')}
-                    theme="filled_black"
-                    shape="pill"
-                    size="large"
-                    text="signup_with"
-                    width="320"
-                  />
+                  {isNativePlatform ? (
+                    <NativeGoogleButton
+                      text="signup_with"
+                      onIdToken={handleGoogleIdToken}
+                      onError={(msg) => setError(msg)}
+                    />
+                  ) : (
+                    <GoogleLogin
+                      onSuccess={handleGoogleSuccess}
+                      onError={() => setError('Google sign-up was cancelled')}
+                      theme="filled_black"
+                      shape="pill"
+                      size="large"
+                      text="signup_with"
+                      width="320"
+                    />
+                  )}
                 </div>
 
                 <p className="text-center text-white/25 text-xs mt-4">

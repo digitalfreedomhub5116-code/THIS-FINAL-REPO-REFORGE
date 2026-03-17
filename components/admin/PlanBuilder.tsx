@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit3, Trash2, Save, X, ChevronDown, ChevronUp, Dumbbell } from 'lucide-react';
 import { WorkoutExercise, WorkoutPlan, WorkoutDay } from '../../types';
+import { API_BASE } from '../../lib/apiConfig';
 
 const DIFFICULTY_OPTIONS = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED'];
 const EQUIPMENT_OPTIONS = ['GYM', 'HOME_DUMBBELLS', 'BODYWEIGHT'];
@@ -154,8 +155,8 @@ const PlanBuilder: React.FC<{ adminToken: string }> = ({ adminToken }) => {
     setLoading(true);
     try {
       const [plansRes, exRes] = await Promise.all([
-        fetch('/api/admin/plans', { headers: { 'Authorization': `Bearer ${adminToken}` } }),
-        fetch('/api/admin/exercises', { headers: { 'Authorization': `Bearer ${adminToken}` } }),
+        fetch(`${API_BASE}/api/admin/plans`, { headers: { 'Authorization': `Bearer ${adminToken}` } }),
+        fetch(`${API_BASE}/api/admin/exercises`, { headers: { 'Authorization': `Bearer ${adminToken}` } }),
       ]);
       const plansData = await plansRes.json();
       const exData = await exRes.json();
@@ -197,7 +198,7 @@ const PlanBuilder: React.FC<{ adminToken: string }> = ({ adminToken }) => {
     if (!form.name.trim()) return setMsg({ type: 'error', text: 'Plan name is required' });
     setSaving(true);
     try {
-      const url = editing ? `/api/admin/plans/${editing.id}` : '/api/admin/plans';
+      const url = editing ? `${API_BASE}/api/admin/plans/${editing.id}` : `${API_BASE}/api/admin/plans`;
       const method = editing ? 'PUT' : 'POST';
       const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminToken}` }, body: JSON.stringify(form) });
       if (!res.ok) throw new Error('Save failed');
@@ -210,7 +211,7 @@ const PlanBuilder: React.FC<{ adminToken: string }> = ({ adminToken }) => {
 
   const deletePlan = async (id: number) => {
     try {
-      await fetch(`/api/admin/plans/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${adminToken}` } });
+      await fetch(`${API_BASE}/api/admin/plans/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${adminToken}` } });
       setPlans(prev => prev.filter(p => p.id !== id));
       setConfirmDelete(null);
       setMsg({ type: 'success', text: 'Plan deleted' });

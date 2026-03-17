@@ -8,6 +8,7 @@ import type { RankType } from './RankBadge';
 import QuestCard from './QuestCard';
 import { PLEDGE_AMOUNTS, MANDATORY_RANKS } from './SystemPactScreen';
 import { playSystemSoundEffect } from '../utils/soundEngine';
+import { API_BASE } from '../lib/apiConfig';
 
 interface ForgeGuardResult {
   rank: Rank;
@@ -320,7 +321,7 @@ const QuestsView: React.FC<QuestsViewProps> = ({
     setScheduleTime('');
     playSystemSoundEffect('SYSTEM');
     try {
-      const res = await fetch('/api/forge-guard/analyze-quest', {
+      const res = await fetch(`${API_BASE}/api/forge-guard/analyze-quest`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

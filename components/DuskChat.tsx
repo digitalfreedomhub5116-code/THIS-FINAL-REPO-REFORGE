@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Send, Terminal, AlertTriangle, Shield, RefreshCw } from 'lucide-react';
 import { PlayerData } from '../types';
+import { API_BASE } from '../lib/apiConfig';
 
 interface DuskChatProps {
   player: PlayerData;
@@ -72,7 +73,7 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, onClose, onMarkRead }) => {
         const failedQuests = player.quests.filter(q => q.failed).map(q => q.title).join(', ');
         const activeQuests = player.quests.filter(q => !q.isCompleted && !q.failed).map(q => q.title).join(', ');
 
-        const res = await fetch('/api/dusk/chat', {
+        const res = await fetch(`${API_BASE}/api/dusk/chat`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Dumbbell, Zap, Clock, Calendar, ChevronRight, Sparkles, ArrowLeft } from 'lucide-react';
 import { WorkoutPlan, HealthProfile } from '../types';
+import { API_BASE } from '../lib/apiConfig';
 
 interface PlanSelectorProps {
   healthProfile?: Partial<HealthProfile>;
@@ -30,7 +31,7 @@ const PlanSelector: React.FC<PlanSelectorProps> = ({ healthProfile, onSelectPlan
   const [hoveredId, setHoveredId] = useState<number | null>(null);
 
   useEffect(() => {
-    fetch('/api/workout/plans')
+    fetch(`${API_BASE}/api/workout/plans`)
       .then(r => r.json())
       .then(data => setPlans(Array.isArray(data) ? data : []))
       .catch(() => setPlans([]))

@@ -3,6 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import { PlayerData, ReplitUser } from '../types';
+import { API_BASE } from '../lib/apiConfig';
+import { isNativePlatform } from '../lib/googleAuth';
+import NativeGoogleButton from './NativeGoogleButton';
 
 interface CreateAccountPageProps {
   onLogin: (profile: Partial<PlayerData> & { replitUser?: ReplitUser }) => void;
@@ -34,7 +37,7 @@ const CreateAccountPage: React.FC<CreateAccountPageProps> = ({ onLogin, onNaviga
   useEffect(() => {
     const checkSession = async () => {
       try {
-        const res = await fetch('/api/auth/local/whoami', { credentials: 'include' });
+        const res = await fetch(`${API_BASE}/api/auth/local/whoami`, { credentials: 'include' });
         if (res.ok) {
           const json = await res.json();
           if (json.playerToken) localStorage.setItem('reforge_player_token', json.playerToken);
@@ -57,7 +60,7 @@ const CreateAccountPage: React.FC<CreateAccountPageProps> = ({ onLogin, onNaviga
     let playerData: Partial<PlayerData> = {};
     try {
       const token = localStorage.getItem('reforge_player_token');
-      const playerRes = await fetch(`/api/player/${user.id}`, { credentials: 'include', headers: token ? { Authorization: `Bearer ${token}` } : {} });
+      const playerRes = await fetch(`${API_BASE}/api/player/${user.id}`, { credentials: 'include', headers: token ? { Authorization: `Bearer ${token}` } : {} });
       if (playerRes.ok) {
         const row = await playerRes.json();
         if (row?.raw_data) playerData = row.raw_data as Partial<PlayerData>;
@@ -104,7 +107,7 @@ const CreateAccountPage: React.FC<CreateAccountPageProps> = ({ onLogin, onNaviga
 
     setLoading(true);
     try {
-      const res = await fetch('/api/auth/local/register', {
+      const res = await fetch(`${API_BASE}/api/auth/local/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -128,19 +131,15 @@ const CreateAccountPage: React.FC<CreateAccountPageProps> = ({ onLogin, onNaviga
     }
   };
 
-  const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
-    if (!credentialResponse.credential) {
-      setError('Google sign-up failed — no credential received');
-      return;
-    }
+  const handleGoogleIdToken = async (credential: string) => {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('/api/auth/google/token', {
+      const res = await fetch(`${API_BASE}/api/auth/google/token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ credential: credentialResponse.credential }),
+        body: JSON.stringify({ credential }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -148,7 +147,6 @@ const CreateAccountPage: React.FC<CreateAccountPageProps> = ({ onLogin, onNaviga
         return;
       }
       if (data.playerToken) localStorage.setItem('reforge_player_token', data.playerToken);
-      // Map Google user data to ReplitUser format
       const googleUser = data.user || data;
       const replitUser: ReplitUser = {
         id: googleUser.id,
@@ -163,6 +161,14 @@ const CreateAccountPage: React.FC<CreateAccountPageProps> = ({ onLogin, onNaviga
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
+    if (!credentialResponse.credential) {
+      setError('Google sign-up failed — no credential received');
+      return;
+    }
+    await handleGoogleIdToken(credentialResponse.credential);
   };
 
   const inputStyle: React.CSSProperties = {
@@ -326,15 +332,23 @@ const CreateAccountPage: React.FC<CreateAccountPageProps> = ({ onLogin, onNaviga
 
         {/* Google Sign Up */}
         <div className="flex justify-center mb-6">
-          <GoogleLogin
-            onSuccess={handleGoogleSuccess}
-            onError={() => setError('Google sign-up was cancelled')}
-            theme="filled_black"
-            shape="pill"
-            size="large"
-            text="signup_with"
-            width="320"
-          />
+          {isNativePlatform ? (
+            <NativeGoogleButton
+              text="signup_with"
+              onIdToken={handleGoogleIdToken}
+              onError={(msg) => setError(msg)}
+            />
+          ) : (
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => setError('Google sign-up was cancelled')}
+              theme="filled_black"
+              shape="pill"
+              size="large"
+              text="signup_with"
+              width="320"
+            />
+          )}
         </div>
 
         {/* Sign In Link */}

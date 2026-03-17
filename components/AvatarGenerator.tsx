@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { API_BASE } from '../lib/apiConfig';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Camera, ScanFace, ShieldCheck, AlertTriangle,
@@ -115,7 +116,7 @@ const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({ playerId, gender, onC
       const compressed = await compressImage(selfie, 512, 0.82);
 
       // Step 1: Validate
-      const valRes = await fetch('/api/avatar/validate', {
+      const valRes = await fetch(`${API_BASE}/api/avatar/validate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -154,7 +155,7 @@ const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({ playerId, gender, onC
       setForgeStep('active');
 
       // Step 2: Generate avatar — pass detected gender from the photo alongside profile gender
-      const genRes = await fetch('/api/avatar/generate', {
+      const genRes = await fetch(`${API_BASE}/api/avatar/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -194,7 +195,7 @@ const AvatarGenerator: React.FC<AvatarGeneratorProps> = ({ playerId, gender, onC
     try {
       const compOriginal = await compressImage(selfie, 300, 0.65);
       if (playerId && !playerId.startsWith('local-')) {
-        await fetch('/api/avatar/save', {
+        await fetch(`${API_BASE}/api/avatar/save`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',

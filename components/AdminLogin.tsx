@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldAlert, Lock, Terminal, ArrowLeft, Key } from 'lucide-react';
+import { API_BASE } from '../lib/apiConfig';
 
 interface AdminLoginProps {
   onLoginSuccess: (token: string) => void;
@@ -19,7 +20,7 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onBack }) => {
     setError(null);
     setIsLoading(true);
     try {
-      const res = await fetch('/api/admin/verify', {
+      const res = await fetch(`${API_BASE}/api/admin/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password }),
