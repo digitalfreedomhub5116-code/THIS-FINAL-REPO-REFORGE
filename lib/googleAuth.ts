@@ -49,16 +49,25 @@ export async function nativeGoogleSignIn(): Promise<{ idToken?: string; error?: 
     }
     return { idToken };
   } catch (err: any) {
-    const msg = err?.message || String(err);
-    console.error('[GoogleAuth] Native sign-in error:', msg, err);
-    // Surface the actual error for debugging
-    if (msg.includes('12501') || msg.includes('canceled')) {
+    const msg = err?.message || '';
+    const code = err?.code || err?.statusCode || '';
+    const fullErr = `${msg} [code: ${code}]`;
+    console.error('[GoogleAuth] Native sign-in error:', fullErr, JSON.stringify(err));
+    // Capacitor plugin puts status code in err.code
+    const codeStr = String(code);
+    if (codeStr === '12501' || msg.includes('canceled') || msg.includes('cancelled')) {
       return { error: 'Sign-in was cancelled' };
     }
-    if (msg.includes('10') || msg.includes('DEVELOPER_ERROR')) {
-      return { error: 'Config error (code 10): SHA-1 or package name mismatch in Google Cloud Console' };
+    if (codeStr === '10' || msg.includes('DEVELOPER_ERROR')) {
+      return { error: 'SHA-1 fingerprint mismatch (error 10). Verify your SHA-1 and package name in Google Cloud Console match your debug keystore.' };
     }
-    return { error: msg };
+    if (codeStr === '12500') {
+      return { error: 'Google Sign-In failed (error 12500). Check Google Play Services on your device.' };
+    }
+    if (codeStr === '7') {
+      return { error: 'Network error (code 7). Check your internet connection.' };
+    }
+    return { error: fullErr || 'Unknown Google sign-in error' };
   }
 }
 
