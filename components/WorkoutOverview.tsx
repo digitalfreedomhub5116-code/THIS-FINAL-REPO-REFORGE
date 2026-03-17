@@ -84,7 +84,8 @@ const HolographicBody: React.FC<{ focus: string; isCardio: boolean; videos: Reco
           ) : (
              <video 
                 key={videoUrl} // Critical: Forces React to re-mount video element when URL changes
-                className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-500"
+                poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+                className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-500 bg-transparent"
                 autoPlay
                 loop
                 muted // Critical: Browsers block autoplay if not muted

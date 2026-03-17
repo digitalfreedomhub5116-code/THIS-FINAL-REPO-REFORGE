@@ -417,7 +417,8 @@ const WardrobePreviewCard: React.FC<WardrobePreviewCardProps> = ({
             ref={introRef}
             muted
             playsInline
-            className="absolute inset-0 w-full h-full"
+            poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+            className="absolute inset-0 w-full h-full bg-transparent"
             style={{ objectFit: 'cover', objectPosition: 'center top', display: videoPhase === 'intro' ? 'block' : 'none' }}
           />
 
@@ -427,7 +428,8 @@ const WardrobePreviewCard: React.FC<WardrobePreviewCardProps> = ({
             muted
             playsInline
             loop
-            className="absolute inset-0 w-full h-full"
+            poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+            className="absolute inset-0 w-full h-full bg-transparent"
             style={{ objectFit: 'cover', objectPosition: 'center top', display: videoPhase === 'loop' ? 'block' : 'none' }}
           />
 

@@ -287,7 +287,8 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
                         <video 
                             key={videoSource} // Force reload on change
                             src={videoSource} 
-                            className="w-full h-full object-cover opacity-80" 
+                            poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+                            className="w-full h-full object-cover opacity-80 bg-transparent" 
                             autoPlay 
                             loop 
                             muted 

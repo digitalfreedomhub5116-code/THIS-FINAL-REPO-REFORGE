@@ -556,13 +556,15 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
             <video
               ref={introRef}
               muted playsInline preload="auto"
-              className="absolute inset-0 w-full h-full object-cover object-center"
+              poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+              className="absolute inset-0 w-full h-full object-cover object-center bg-transparent"
               style={{ display: videoPhase === 'intro' ? 'block' : 'none' }}
             />
             <video
               ref={loopRef}
               muted playsInline loop preload="auto"
-              className="absolute inset-0 w-full h-full object-cover object-center"
+              poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+              className="absolute inset-0 w-full h-full object-cover object-center bg-transparent"
               style={{ display: videoPhase === 'loop' ? 'block' : 'none' }}
             />
             {videoPhase === 'image' && equippedOutfit?.image && (
@@ -571,8 +573,9 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
             {videoPhase === 'image' && !equippedOutfit?.image && (
               <video 
                 autoPlay loop muted playsInline
+                poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
                 src="https://res.cloudinary.com/dcnqnbvp0/video/upload/v1769167952/Subject_animestyle_shadow_202601231701_vl45_ayicwk.mp4"
-                className="absolute inset-0 w-full h-full object-cover object-center"
+                className="absolute inset-0 w-full h-full object-cover object-center bg-transparent"
               />
             )}
           </div>
