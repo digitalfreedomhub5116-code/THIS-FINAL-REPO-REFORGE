@@ -1,6 +1,6 @@
 import type { Express, RequestHandler } from 'express';
 import crypto from 'crypto';
-import { supabaseServer } from '../lib/supabase.js';
+import { supabaseServer, isSupabaseDown } from '../lib/supabase.js';
 import { generatePlayerToken } from '../lib/playerAuth.js';
 
 // Google token info endpoint — verifies ID tokens without needing a client library
@@ -76,13 +76,21 @@ export async function setupGoogleAuth(app: Express) {
       // 1. Check if a player already exists with this email
       let existingPlayer = null;
       if (email) {
-        const { data } = await sb.from('players').select('*').eq('email', email).single();
+        const { data, error: emailErr } = await sb.from('players').select('*').eq('email', email).single();
+        if (emailErr && isSupabaseDown(emailErr)) {
+          console.error('[Auth Google] Supabase is down (email lookup):', emailErr.message?.substring(0, 120));
+          return res.status(503).json({ error: 'Database temporarily unavailable — please try again in a minute' });
+        }
         existingPlayer = data;
       }
 
       // 2. If not found by email, check by supabase_id (Google ID from previous sign-in)
       if (!existingPlayer) {
-        const { data } = await sb.from('players').select('*').eq('supabase_id', googleId).single();
+        const { data, error: idErr } = await sb.from('players').select('*').eq('supabase_id', googleId).single();
+        if (idErr && isSupabaseDown(idErr)) {
+          console.error('[Auth Google] Supabase is down (id lookup):', idErr.message?.substring(0, 120));
+          return res.status(503).json({ error: 'Database temporarily unavailable — please try again in a minute' });
+        }
         existingPlayer = data;
       }
 
@@ -140,7 +148,10 @@ export async function setupGoogleAuth(app: Express) {
 
         if (insertError) {
           console.error('[Auth Google] Insert error:', insertError);
-          return res.status(500).json({ error: 'Failed to create account' });
+          if (isSupabaseDown(insertError)) {
+            return res.status(503).json({ error: 'Database temporarily unavailable — please try again in a minute' });
+          }
+          return res.status(500).json({ error: `Failed to create account: ${insertError.message || insertError.code || 'database error'}` });
         }
       }
 

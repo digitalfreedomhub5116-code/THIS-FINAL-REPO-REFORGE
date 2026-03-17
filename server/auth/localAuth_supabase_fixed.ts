@@ -1,7 +1,7 @@
 import express from 'express';
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
-import { supabaseServer } from '../lib/supabase.js';
+import { supabaseServer, isSupabaseDown } from '../lib/supabase.js';
 import { generatePlayerToken } from '../lib/playerAuth.js';
 
 const router = express.Router();
@@ -105,6 +105,9 @@ router.post('/register', async (req, res) => {
 
     if (insertResult.error) {
       console.error('[Auth Register] Supabase insert error:', JSON.stringify(insertResult.error));
+      if (isSupabaseDown(insertResult.error)) {
+        return res.status(503).json({ error: 'Database temporarily unavailable — please try again in a minute' });
+      }
       return res.status(500).json({ error: `Registration failed: ${insertResult.error.message || insertResult.error.code || 'database error'}` });
     }
 

@@ -26,4 +26,34 @@ function getSupabaseClient() {
   return supabaseServer
 }
 
-export { getSupabaseClient as supabaseServer }
+/**
+ * Detect if a Supabase error is actually a Cloudflare HTML error page
+ * (happens when Supabase is paused, down, or unreachable).
+ */
+function isSupabaseDown(error: any): boolean {
+  if (!error) return false;
+  const msg = typeof error === 'string' ? error : error?.message || '';
+  return msg.includes('<!DOCTYPE html') || msg.includes('522') || msg.includes('502') || msg.includes('Connection timed out');
+}
+
+/**
+ * Ping Supabase to keep the free-tier project alive (prevents auto-pausing after 7 days).
+ * Call this on a schedule (e.g. every 4 days).
+ */
+async function pingSupabase(): Promise<boolean> {
+  try {
+    const sb = getSupabaseClient() as any;
+    const { error } = await sb.from('players').select('supabase_id').limit(1);
+    if (error && isSupabaseDown(error)) {
+      console.error('[Supabase Ping] Supabase appears to be down:', error.message?.substring(0, 100));
+      return false;
+    }
+    console.log('[Supabase Ping] OK');
+    return true;
+  } catch (err: any) {
+    console.error('[Supabase Ping] Failed:', err?.message?.substring(0, 100));
+    return false;
+  }
+}
+
+export { getSupabaseClient as supabaseServer, isSupabaseDown, pingSupabase }

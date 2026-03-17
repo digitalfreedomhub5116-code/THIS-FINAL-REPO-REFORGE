@@ -187,8 +187,23 @@ async function startServer() {
   }
 
   // Start server
-  app.listen(PORT, '0.0.0.0', () => {
+  app.listen(PORT, '0.0.0.0', async () => {
     console.log(`[Server] REFORGE API running on http://0.0.0.0:${PORT}`);
+
+    // ── Supabase keep-alive ping ──
+    // Free-tier Supabase projects auto-pause after 7 days of inactivity.
+    // Ping every 4 days to prevent this.
+    const PING_INTERVAL_MS = 4 * 24 * 60 * 60 * 1000; // 4 days
+    try {
+      const { pingSupabase } = await import('./lib/supabase.js');
+      // Initial ping on startup
+      pingSupabase();
+      // Schedule periodic pings
+      setInterval(() => pingSupabase(), PING_INTERVAL_MS);
+      console.log('[Server] Supabase keep-alive ping scheduled (every 4 days)');
+    } catch (err) {
+      console.warn('[Server] Could not set up Supabase keep-alive:', err);
+    }
   });
 }
 
