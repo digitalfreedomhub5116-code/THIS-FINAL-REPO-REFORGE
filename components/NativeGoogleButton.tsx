@@ -17,14 +17,14 @@ const NativeGoogleButton: React.FC<NativeGoogleButtonProps> = ({ text = 'signin_
   const handlePress = async () => {
     setLoading(true);
     try {
-      const idToken = await nativeGoogleSignIn();
-      if (idToken) {
-        onIdToken(idToken);
+      const result = await nativeGoogleSignIn();
+      if (result.idToken) {
+        onIdToken(result.idToken);
       } else {
-        onError('Google sign-in was cancelled or failed');
+        onError(result.error || 'Google sign-in failed');
       }
-    } catch (err) {
-      onError('Google sign-in failed — please try again');
+    } catch (err: any) {
+      onError(err?.message || 'Google sign-in failed — please try again');
     } finally {
       setLoading(false);
     }

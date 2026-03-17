@@ -151,7 +151,8 @@ const Card: React.FC<CardProps> = ({
                     loop 
                     muted 
                     playsInline 
-                    className="w-full h-full object-cover opacity-80"
+                    poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+                    className="w-full h-full object-cover opacity-80 bg-transparent"
                 />
             ) : (
                 <img 

@@ -55,7 +55,8 @@ const DuskWelcomeScreen: React.FC<DuskWelcomeScreenProps> = ({ onComplete }) => 
       <video
         ref={loopRef}
         src={LOOP_VIDEO}
-        className="absolute inset-0 w-full h-full"
+        poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+        className="absolute inset-0 w-full h-full bg-transparent"
         style={{ objectFit: 'cover', zIndex: 0 }}
         loop
         muted
@@ -68,7 +69,8 @@ const DuskWelcomeScreen: React.FC<DuskWelcomeScreenProps> = ({ onComplete }) => 
       <motion.video
         ref={introRef}
         src={INTRO_VIDEO}
-        className="absolute inset-0 w-full h-full"
+        poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+        className="absolute inset-0 w-full h-full bg-transparent"
         style={{ objectFit: 'cover', zIndex: 1 }}
         autoPlay
         muted

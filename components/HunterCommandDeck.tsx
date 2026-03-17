@@ -178,7 +178,8 @@ const HunterCommandDeck: React.FC<HunterCommandDeckProps> = ({ player, triggerAc
             loop 
             muted 
             playsInline
-            className="absolute inset-0 w-full h-full object-cover opacity-60 scale-110 origin-center mix-blend-screen grayscale contrast-125 group-hover:opacity-80 transition-opacity duration-700"
+            poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+            className="absolute inset-0 w-full h-full object-cover opacity-60 scale-110 origin-center mix-blend-screen grayscale contrast-125 group-hover:opacity-80 transition-opacity duration-700 bg-transparent"
          >
              <source src={currentVideo} type="video/mp4" />
          </video>

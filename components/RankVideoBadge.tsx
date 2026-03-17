@@ -71,7 +71,8 @@ const RankVideoBadge: React.FC<RankVideoBadgeProps> = ({ rank, className }) => {
             loop
             muted
             playsInline
-            className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none"
+            poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+            className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none bg-transparent"
             style={{ 
                 filter: 'drop-shadow(0 0 15px rgba(0,0,0,0.5))' 
             }}

@@ -18,17 +18,24 @@ interface GoogleTokenPayload {
 }
 
 export async function setupGoogleAuth(app: Express) {
-  const clientId = process.env.VITE_GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID;
+  const webClientId = process.env.VITE_GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID;
+  const androidClientId = process.env.GOOGLE_ANDROID_CLIENT_ID || '20910572316-5ofu2hcterdiov6q9f1h2373ddkqnpbg.apps.googleusercontent.com';
 
-  if (!clientId) {
-    console.error('[Auth] No Google Client ID found (VITE_GOOGLE_CLIENT_ID or GOOGLE_CLIENT_ID)');
+  if (!webClientId) {
+    console.error('[Auth] No Google Client ID found (VITE_GOOGLE_CLIENT_ID or GOOGLE_CLIENT_ID). Google auth disabled.');
+    // Still register endpoint but return helpful error
+    app.post('/api/auth/google/token', (_req, res) => {
+      res.status(503).json({ error: 'Google auth not configured on server — missing VITE_GOOGLE_CLIENT_ID env var' });
+    });
     return;
   }
 
-  console.log('[Auth] Google GIS token endpoint registered');
+  // Accept tokens from both web and android client IDs
+  const allowedAudiences = new Set([webClientId, androidClientId]);
+  console.log('[Auth] Google GIS token endpoint registered. Allowed audiences:', [...allowedAudiences]);
 
   // ── POST /api/auth/google/token ──
-  // Receives { credential } from the frontend Google popup / One-Tap
+  // Receives { credential } from the frontend Google popup / One-Tap / Native Android
   app.post('/api/auth/google/token', async (req, res) => {
     try {
       const { credential } = req.body;
@@ -39,16 +46,17 @@ export async function setupGoogleAuth(app: Express) {
       // Verify the ID token with Google
       const verifyRes = await fetch(`${GOOGLE_TOKEN_INFO_URL}?id_token=${encodeURIComponent(credential)}`);
       if (!verifyRes.ok) {
-        console.error('[Auth Google] Token verification failed:', verifyRes.status);
+        const errText = await verifyRes.text().catch(() => '');
+        console.error('[Auth Google] Token verification failed:', verifyRes.status, errText);
         return res.status(401).json({ error: 'Invalid Google token' });
       }
 
       const payload: GoogleTokenPayload = await verifyRes.json();
 
-      // Verify audience matches our client ID
-      if (payload.aud !== clientId) {
-        console.error('[Auth Google] Token audience mismatch:', payload.aud);
-        return res.status(401).json({ error: 'Token audience mismatch' });
+      // Verify audience matches one of our client IDs (web or android)
+      if (!payload.aud || !allowedAudiences.has(payload.aud)) {
+        console.error('[Auth Google] Token audience mismatch. Got:', payload.aud, 'Allowed:', [...allowedAudiences]);
+        return res.status(401).json({ error: `Token audience mismatch: ${payload.aud}` });
       }
 
       const googleId = payload.sub;

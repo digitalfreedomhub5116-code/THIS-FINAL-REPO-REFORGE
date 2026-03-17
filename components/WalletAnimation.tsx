@@ -21,7 +21,8 @@ const WalletAnimation: React.FC<WalletAnimationProps> = ({ size = 24, className 
         loop
         muted
         playsInline
-        className="w-full h-full object-cover pointer-events-none"
+        poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+        className="w-full h-full object-cover pointer-events-none bg-transparent"
       />
     </div>
   );
