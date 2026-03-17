@@ -34,19 +34,24 @@ export async function initGoogleAuth() {
  * Returns the Google ID token (credential) string, or null on failure.
  */
 export async function nativeGoogleSignIn(): Promise<string | null> {
-  if (!isCapacitor || !GoogleAuth) return null;
+  if (!isCapacitor || !GoogleAuth) {
+    console.error('[GoogleAuth] Not on native platform or GoogleAuth not initialized');
+    return null;
+  }
   try {
     const user = await GoogleAuth.signIn();
-    // The plugin returns authentication.idToken which is the same credential
-    // that @react-oauth/google returns via credentialResponse.credential
-    const idToken = user?.authentication?.idToken;
+    console.log('[GoogleAuth] signIn response keys:', user ? Object.keys(user) : 'null');
+    // The Java plugin puts idToken in two places:
+    // 1. user.authentication.idToken
+    // 2. user.idToken (top-level)
+    const idToken = user?.authentication?.idToken || user?.idToken;
     if (!idToken) {
-      console.error('[GoogleAuth] No idToken in native sign-in response:', user);
+      console.error('[GoogleAuth] No idToken found. Full response:', JSON.stringify(user));
       return null;
     }
     return idToken;
-  } catch (err) {
-    console.error('[GoogleAuth] Native sign-in error:', err);
+  } catch (err: any) {
+    console.error('[GoogleAuth] Native sign-in error:', err?.message || err);
     return null;
   }
 }
