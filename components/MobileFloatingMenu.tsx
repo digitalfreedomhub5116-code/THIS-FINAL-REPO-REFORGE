@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Castle, X, HelpCircle, Check, Lock, ChevronDown, ChevronUp, Coins } from 'lucide-react';
+import { Castle, X, HelpCircle, Check, Lock, Info, Coins } from 'lucide-react';
 import { DailyChestAnim, LegendaryChestAnim, AllianceChestAnim, ChestOpeningAnim } from './ChestAnimations';
 import { SystemCoin } from './icons/SystemCoin';
 import { SystemKey } from './icons/SystemKey';
@@ -99,10 +99,10 @@ const CHEST_CFG = {
       { type: 'ITEM' as const, amount: 1,    label: 'POTION', color: '#ef4444' },
     ],
     contents: [
-      { icon: '🪙', text: '200 Gold' },
-      { icon: '⚡', text: '100 EXP' },
-      { icon: '🗝️', text: '1 Key' },
-      { icon: '🧪', text: '1 Potion' },
+      { icon: '🪙', text: 'Gold — Low' },
+      { icon: '⚡', text: 'XP — Low' },
+      { icon: '🗝️', text: 'Key — Rare' },
+      { icon: '🧪', text: 'Potion' },
     ],
     cost: 'FREE',
     costType: 'timer' as const,
@@ -121,10 +121,10 @@ const CHEST_CFG = {
       { type: 'ITEM' as const, amount: 1,    label: 'SCROLL', color: '#00d2ff' },
     ],
     contents: [
-      { icon: '🪙', text: '1000 Gold' },
-      { icon: '⚡', text: '500 EXP' },
-      { icon: '🗝️', text: '3 Keys' },
-      { icon: '📜', text: '1 Scroll' },
+      { icon: '🪙', text: 'Gold — High' },
+      { icon: '⚡', text: 'XP — High' },
+      { icon: '🗝️', text: 'Keys — 2–4' },
+      { icon: '🧪', text: 'Potion / Scroll / Orb' },
     ],
     cost: '7 Keys',
     costType: 'keys' as const,
@@ -143,10 +143,10 @@ const CHEST_CFG = {
       { type: 'ITEM' as const, amount: 1,    label: 'ORB',    color: '#bf5eff' },
     ],
     contents: [
-      { icon: '🪙', text: '800 Gold' },
-      { icon: '⚡', text: '300 EXP' },
-      { icon: '🗝️', text: '5 Keys' },
-      { icon: '🔮', text: '1 Orb' },
+      { icon: '🪙', text: 'Gold — Very High' },
+      { icon: '⚡', text: 'XP — Very High' },
+      { icon: '🗝️', text: 'Keys — 4–6' },
+      { icon: '🧪', text: 'Potions / Scrolls / Orbs' },
     ],
     cost: '36 Keys',
     costType: 'keys' as const,
@@ -335,58 +335,54 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
 
           {/* Card body */}
           <div className="p-4 space-y-3">
-            {/* Name + cost */}
+            {/* Name + cost + info */}
             <div className="flex items-start justify-between">
-              <div>
-                <h3 className="text-base font-black uppercase tracking-tight font-mono" style={{ color: cfg.color }}>
-                  {cfg.label}
-                </h3>
-                <p className="text-[10px] text-gray-500 font-mono mt-0.5">{cfg.subtitle}</p>
+              <div className="flex items-start gap-2">
+                <div>
+                  <h3 className="text-base font-black uppercase tracking-tight font-mono" style={{ color: cfg.color }}>
+                    {cfg.label}
+                  </h3>
+                  <p className="text-[10px] text-gray-500 font-mono mt-0.5">{cfg.subtitle}</p>
+                </div>
+                {/* Small "i" info button */}
+                <div className="relative mt-1">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setExpanded(isOpen ? null : type); }}
+                    className="w-5 h-5 rounded-full flex items-center justify-center transition-all shrink-0"
+                    style={{
+                      background: isOpen ? `${cfg.color}25` : 'rgba(255,255,255,0.06)',
+                      border: `1px solid ${isOpen ? cfg.borderColor : 'rgba(255,255,255,0.12)'}`,
+                      color: isOpen ? cfg.color : '#555',
+                    }}
+                  >
+                    <Info size={10} />
+                  </button>
+                  <AnimatePresence>
+                    {isOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.92, y: 4 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.92, y: 4 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute top-full left-0 mt-2 z-40 w-44 rounded-xl p-2.5"
+                        style={{ background: '#0a0a18', border: `1px solid ${cfg.borderColor}`, boxShadow: `0 8px 28px rgba(0,0,0,0.85), 0 0 12px ${cfg.glowColor}` }}
+                      >
+                        <div className="text-[8px] font-mono font-bold uppercase tracking-widest mb-1.5" style={{ color: cfg.color }}>Possible Rewards</div>
+                        {cfg.contents.map((item, i) => (
+                          <div key={i} className="flex items-center gap-1.5 py-0.5 text-[9px] font-mono text-gray-300">
+                            <span className="text-[11px] leading-none">{item.icon}</span>
+                            <span>{item.text}</span>
+                          </div>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               </div>
               <div className="shrink-0 ml-2 px-2.5 py-1 rounded-lg text-[10px]"
                 style={{ background: 'rgba(0,0,0,0.5)', border: `1px solid ${cfg.borderColor}` }}>
                 {costBadge}
               </div>
-            </div>
-
-            {/* Contents dropdown */}
-            <div>
-              <button
-                onClick={() => setExpanded(isOpen ? null : type)}
-                className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-[10px] font-mono font-bold uppercase tracking-widest transition-colors"
-                style={{
-                  background: isOpen ? `${cfg.color}15` : 'rgba(255,255,255,0.04)',
-                  border: `1px solid ${isOpen ? cfg.borderColor : 'rgba(255,255,255,0.08)'}`,
-                  color: isOpen ? cfg.color : '#6b7280',
-                }}
-              >
-                <span>Possible Rewards</span>
-                {isOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-              </button>
-              <AnimatePresence>
-                {isOpen && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="overflow-hidden"
-                  >
-                    <div className="mt-2 grid grid-cols-2 gap-1.5 px-0.5">
-                      {cfg.contents.map((item, i) => (
-                        <div
-                          key={i}
-                          className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[10px] font-mono"
-                          style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.06)' }}
-                        >
-                          <span className="text-sm">{item.icon}</span>
-                          <span className="text-gray-300 font-bold">{item.text}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
             </div>
 
             {/* Claim button */}

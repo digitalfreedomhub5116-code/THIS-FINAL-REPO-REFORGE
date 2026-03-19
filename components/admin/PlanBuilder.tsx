@@ -181,7 +181,7 @@ const PlanBuilder: React.FC<{ adminToken: string }> = ({ adminToken }) => {
 
   const openEdit = (p: WorkoutPlan) => {
     setEditing(p);
-    setForm({ name: p.name, description: p.description, difficulty: p.difficulty, equipment: p.equipment, duration_weeks: p.duration_weeks, days_per_week: p.days_per_week, is_active: p.is_active, display_order: p.display_order, image_url: p.image_url || '', days: Array.isArray(p.days) ? p.days : [] });
+    setForm({ name: p.name, description: p.description, difficulty: p.difficulty, equipment: p.equipment, duration_weeks: p.duration_weeks, days_per_week: p.days_per_week, is_active: p.is_active, display_order: p.display_order, image_url: (p as any).image_url || '', days: Array.isArray(p.days) ? p.days : [] });
     setShowForm(true);
   };
 

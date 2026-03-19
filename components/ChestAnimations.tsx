@@ -40,16 +40,32 @@ interface Body3DProps {
 }
 const Body3D: React.FC<Body3DProps> = ({ color, fillId, sideId, op = 0.38 }) => (
   <>
+    {/* Bottom edge face for grounding */}
+    <polygon points={`35,166 ${35+DX},${166-DY} ${165+DX},${166-DY} 165,166`}
+      fill="#020206" stroke={color} strokeWidth={0.8} opacity={0.6} />
     <polygon points={BODY_SIDE}
       fill={`url(#${sideId})`} stroke={color} strokeWidth={1.2} opacity={0.92} />
     <rect x={35} y={104} width={130} height={62} rx={4}
       fill={`url(#${fillId})`} stroke={color} strokeWidth={2.2} />
+    {/* Inner shadow at top of body */}
+    <rect x={36} y={105} width={128} height={14} rx={3}
+      fill="#000" opacity={0.22} />
+    {/* Metallic bands */}
     <rect x={35} y={120} width={130} height={5}  fill={color} opacity={op} />
     <rect x={35} y={143} width={130} height={5}  fill={color} opacity={op} />
+    {/* Rim highlight on top edge */}
+    <line x1={36} y1={104} x2={164} y2={104} stroke="#fff" strokeWidth={0.7} opacity={0.14} />
+    {/* Corner rivets with highlight */}
     <circle cx={44}  cy={114} r={3.5} fill={color} opacity={0.72} />
+    <circle cx={44}  cy={114} r={1.5} fill="#fff" opacity={0.18} />
     <circle cx={156} cy={114} r={3.5} fill={color} opacity={0.72} />
+    <circle cx={156} cy={114} r={1.5} fill="#fff" opacity={0.18} />
     <circle cx={44}  cy={160} r={3.5} fill={color} opacity={0.72} />
+    <circle cx={44}  cy={160} r={1.5} fill="#fff" opacity={0.18} />
     <circle cx={156} cy={160} r={3.5} fill={color} opacity={0.72} />
+    <circle cx={156} cy={160} r={1.5} fill="#fff" opacity={0.18} />
+    {/* Bottom edge highlight */}
+    <line x1={36} y1={166} x2={164} y2={166} stroke={color} strokeWidth={0.6} opacity={0.25} />
   </>
 );
 
@@ -71,13 +87,25 @@ const Lid3D: React.FC<Lid3DProps> = ({ color, fillId, topId, sideId, op = 0.38 }
       fill={`url(#${sideId})`} stroke={color} strokeWidth={1.2} opacity={0.9} />
     <rect x={30} y={52} width={140} height={52} rx={6}
       fill={`url(#${fillId})`} stroke={color} strokeWidth={2.2} />
+    {/* Inner shadow at bottom of lid */}
+    <rect x={31} y={92} width={138} height={11} rx={3}
+      fill="#000" opacity={0.18} />
+    {/* Center band with subtle gradient */}
     <rect x={30} y={71} width={140} height={6}  fill={color} opacity={op} />
+    {/* Corner rivets with highlight */}
     <circle cx={44}  cy={62}  r={3.5} fill={color} opacity={0.72} />
+    <circle cx={44}  cy={62}  r={1.5} fill="#fff" opacity={0.15} />
     <circle cx={156} cy={62}  r={3.5} fill={color} opacity={0.72} />
+    <circle cx={156} cy={62}  r={1.5} fill="#fff" opacity={0.15} />
     <circle cx={44}  cy={100} r={3.5} fill={color} opacity={0.72} />
+    <circle cx={44}  cy={100} r={1.5} fill="#fff" opacity={0.15} />
     <circle cx={156} cy={100} r={3.5} fill={color} opacity={0.72} />
-    {/* Rim highlight along the front-top edge of the lid */}
+    <circle cx={156} cy={100} r={1.5} fill="#fff" opacity={0.15} />
+    {/* Rim highlight along the front-top edge */}
     <line x1={30} y1={52} x2={170} y2={52} stroke="#fff" strokeWidth={0.9} opacity={0.18} />
+    {/* Subtle specular gloss band near top */}
+    <rect x={40} y={55} width={120} height={8} rx={4}
+      fill="#fff" opacity={0.04} />
   </>
 );
 
@@ -325,6 +353,29 @@ export const LegendaryChestAnim: React.FC<ChestAnimProps> = ({ isLocked, size = 
 
         <Lid3D color={C} fillId="leg-gfront" topId="leg-gtop" sideId="leg-gside" op={0.28} />
 
+        {/* Crown ornament on lid top */}
+        <polygon points="88,50 100,36 112,50" fill="none" stroke={C} strokeWidth={1.6} opacity={0.7} />
+        <polygon points="92,50 100,40 108,50" fill={C} opacity={0.25} />
+        <circle cx={100} cy={42} r={3} fill="#fde68a" stroke={C} strokeWidth={0.8} opacity={0.9} />
+        <circle cx={92} cy={49} r={1.8} fill="#fde68a" opacity={0.7} />
+        <circle cx={108} cy={49} r={1.8} fill="#fde68a" opacity={0.7} />
+
+        {/* Decorative corner gems on lid */}
+        <motion.circle cx={80} cy={74} r={2.5} fill="#fde68a" opacity={0.85}
+          animate={{ opacity: [0.85, 0.4, 0.85] }}
+          transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+        />
+        <motion.circle cx={120} cy={74} r={2.5} fill="#fde68a" opacity={0.85}
+          animate={{ opacity: [0.85, 0.4, 0.85] }}
+          transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut', delay: 0.9 }}
+        />
+
+        {/* Gold filigree lines on body */}
+        <path d="M 50 112 Q 70 108 80 115" fill="none" stroke={C} strokeWidth={0.7} opacity={0.3} />
+        <path d="M 150 112 Q 130 108 120 115" fill="none" stroke={C} strokeWidth={0.7} opacity={0.3} />
+        <path d="M 50 155 Q 70 151 80 158" fill="none" stroke={C} strokeWidth={0.7} opacity={0.25} />
+        <path d="M 150 155 Q 130 151 120 158" fill="none" stroke={C} strokeWidth={0.7} opacity={0.25} />
+
         {/* Gold sheen sweep */}
         <motion.rect x={30} y={52} width={140} height={52} rx={6}
           fill="url(#leg-inner)" opacity={0}
@@ -483,7 +534,7 @@ export const AllianceChestAnim: React.FC<ChestAnimProps> = ({ isLocked, size = 1
 };
 
 /* ─────────────────────────────────────────────────────────────────────────
-   CHEST OPENING ANIMATION — 3D version
+   CHEST OPENING ANIMATION — Hinge-tilt version
 ──────────────────────────────────────────────────────────────────────────── */
 export const ChestOpeningAnim: React.FC<OpeningAnimProps> = ({ color, glowColor, onComplete }) => {
   const [phase, setPhase] = useState<'shaking' | 'opening' | 'burst'>('shaking');
@@ -495,18 +546,18 @@ export const ChestOpeningAnim: React.FC<OpeningAnimProps> = ({ color, glowColor,
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const lidY      = phase === 'opening' || phase === 'burst' ? -44 : 0;
+  const isOpen    = phase === 'opening' || phase === 'burst';
   const glowOp    = phase === 'burst' ? 1 : phase === 'opening' ? 0.65 : 0.15;
   const glowScale = phase === 'burst' ? 2.2 : phase === 'opening' ? 1.3 : 0.7;
 
   const darkFill = '#0a0a14';
   const sideFill = '#060610';
-  const topFill  = color + '1a'; /* colour at ~10% opacity — subtle lit top face */
+  const topFill  = color + '1a';
 
-  const particles = Array.from({ length: 14 }, (_, i) => {
-    const a = (i * (360 / 14) * Math.PI) / 180;
-    const dist = 65 + (i % 3) * 15;
-    return { tx: Math.cos(a) * dist, ty: Math.sin(a) * dist };
+  const particles = Array.from({ length: 18 }, (_, i) => {
+    const a = (i * (360 / 18) * Math.PI) / 180;
+    const dist = 55 + (i % 3) * 20;
+    return { tx: Math.cos(a) * dist, ty: Math.sin(a) * dist - 15 };
   });
 
   return (
@@ -522,25 +573,54 @@ export const ChestOpeningAnim: React.FC<OpeningAnimProps> = ({ color, glowColor,
       <motion.svg
         width={180} height={180} viewBox="0 0 200 200"
         style={{ overflow: 'visible', position: 'relative', zIndex: 2 }}
-        animate={phase === 'shaking' ? { x: [-5, 5, -5, 5, -3, 3, 0] } : { x: 0 }}
+        animate={phase === 'shaking' ? { x: [-4, 4, -6, 6, -3, 3, -1, 0], y: [0, -1, 0, -2, 0, -1, 0] } : { x: 0 }}
         transition={{ duration: 0.7, ease: 'easeOut' }}
       >
-        {/* Inner light beam at the seam */}
-        <motion.rect x={36} y={104} width={128} height={4} fill={color}
-          animate={{ opacity: phase === 'opening' || phase === 'burst' ? 0.9 : 0 }}
-          transition={{ duration: 0.3 }}
+        <defs>
+          <radialGradient id="open-inner-glow" cx="50%" cy="40%" r="55%">
+            <stop offset="0%" stopColor="#fff" stopOpacity="0.7" />
+            <stop offset="40%" stopColor={color} stopOpacity="0.5" />
+            <stop offset="100%" stopColor={color} stopOpacity="0" />
+          </radialGradient>
+        </defs>
+
+        {/* Inner treasure glow visible through the gap */}
+        <motion.ellipse cx={100} cy={98} rx={55} ry={18}
+          fill="url(#open-inner-glow)"
+          animate={{ opacity: isOpen ? 0.9 : 0, scaleY: phase === 'burst' ? 2 : 1, scaleX: phase === 'burst' ? 1.3 : 1 }}
+          transition={{ duration: 0.35 }}
+          style={{ transformOrigin: '100px 98px' }}
         />
+
+        {/* Upward light rays from opening */}
+        {isOpen && [60, 75, 90, 100, 110, 125, 140].map((x, i) => (
+          <motion.line key={`ray-${i}`}
+            x1={x} y1={104}
+            x2={x + (x < 100 ? -(100 - x) * 0.3 : (x - 100) * 0.3)} y2={15 - i * 2}
+            stroke={color} strokeWidth={i === 3 ? 3.5 : 1.5 + (i % 2) * 0.5}
+            strokeLinecap="round"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: phase === 'burst' ? [0.7, 0] : [0, 0.2 + (i === 3 ? 0.15 : 0), 0.12] }}
+            transition={{ duration: phase === 'burst' ? 0.5 : 0.7, delay: i * 0.04 }}
+          />
+        ))}
 
         {/* BODY — 3D: side then front */}
         <polygon points={BODY_SIDE} fill={sideFill} stroke={color} strokeWidth={1.5} opacity={0.9} />
         <rect x={35} y={104} width={130} height={62} rx={4}
           fill={darkFill} stroke={color} strokeWidth={2.5} />
+        {/* Metallic bands */}
         <rect x={35} y={120} width={130} height={5} fill={color} opacity={0.35} />
         <rect x={35} y={143} width={130} height={5} fill={color} opacity={0.35} />
+        {/* Rim highlight on body top edge */}
+        <line x1={36} y1={104} x2={164} y2={104} stroke="#fff" strokeWidth={0.8} opacity={0.12} />
+        {/* Corner rivets */}
         <circle cx={44}  cy={114} r={3.5} fill={color} opacity={0.8} />
         <circle cx={156} cy={114} r={3.5} fill={color} opacity={0.8} />
         <circle cx={44}  cy={160} r={3.5} fill={color} opacity={0.8} />
         <circle cx={156} cy={160} r={3.5} fill={color} opacity={0.8} />
+        {/* Inner shadow gradient on body */}
+        <rect x={36} y={105} width={128} height={20} fill="url(#open-inner-glow)" opacity={isOpen ? 0.4 : 0} rx={2} />
 
         {/* Lock */}
         <circle cx={100} cy={132} r={12} fill={darkFill} stroke={color} strokeWidth={2} />
@@ -549,14 +629,15 @@ export const ChestOpeningAnim: React.FC<OpeningAnimProps> = ({ color, glowColor,
           transition={{ duration: 0.4 }}
         />
 
-        {/* LID — animated upward; carries all three 3D faces */}
+        {/* LID — floats up and tilts backward to simulate hinge opening */}
         <motion.g
-          animate={{ 
-            y: lidY,
-            rotateX: phase === 'opening' || phase === 'burst' ? 15 : 0 
+          animate={{
+            y: phase === 'burst' ? -48 : phase === 'opening' ? -36 : 0,
+            scaleY: phase === 'burst' ? 0.55 : phase === 'opening' ? 0.7 : 1,
+            rotate: phase === 'burst' ? -8 : phase === 'opening' ? -5 : 0,
           }}
-          transition={{ duration: 0.55, ease: 'easeOut' }}
-          style={{ transformOrigin: 'top center' }}
+          transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+          style={{ transformOrigin: '100px 104px' }}
         >
           <polygon points={LID_TOP}  fill={topFill}  stroke={color} strokeWidth={1.2} opacity={0.9} />
           <polygon points={LID_SIDE} fill={sideFill} stroke={color} strokeWidth={1.2} opacity={0.9} />
@@ -570,14 +651,14 @@ export const ChestOpeningAnim: React.FC<OpeningAnimProps> = ({ color, glowColor,
           <line x1={30} y1={52} x2={170} y2={52} stroke="#fff" strokeWidth={1} opacity={0.15} />
         </motion.g>
 
-        {/* Burst particles */}
+        {/* Burst particles — shoot outward and upward */}
         <AnimatePresence>
           {phase === 'burst' && particles.map((p, i) => (
-            <motion.circle key={i} cx={100} cy={105}
-              r={i % 3 === 0 ? 4 : 2.5} fill={color}
+            <motion.circle key={i} cx={100} cy={100}
+              r={i % 4 === 0 ? 5 : i % 3 === 0 ? 3.5 : 2} fill={i % 5 === 0 ? '#fff' : color}
               initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
-              animate={{ x: p.tx, y: p.ty, opacity: 0, scale: 0 }}
-              transition={{ duration: 0.85, delay: i * 0.04, ease: 'easeOut' }}
+              animate={{ x: p.tx, y: p.ty, opacity: 0, scale: 0.2 }}
+              transition={{ duration: 0.9, delay: i * 0.03, ease: 'easeOut' }}
             />
           ))}
         </AnimatePresence>
