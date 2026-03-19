@@ -335,14 +335,121 @@ export const useSystem = () => {
         }
       }
 
+      // Keep nutrition logs for 7 days, delete older ones
+      const sevenDaysAgo = now - (7 * 24 * 60 * 60 * 1000);
+      const retainedNutritionLogs = (prev.nutritionLogs || []).filter(log => log.timestamp >= sevenDaysAgo);
+
+      // --- MISSED WORKOUT PENALTY: STAT REDUCTION ---
+      const updatedStats = { ...prev.stats };
+      let xpPenalty = 0;
+
+      // Check if user has a workout plan and if yesterday was a missed workout day
+      // Day 0 (signup day) = no penalty. Only penalize from day 1 onwards.
+      const userStartDate = prev.startDate || now;
+      const daysSinceStart = Math.floor((todayStart - new Date(userStartDate).setHours(0,0,0,0)) / (24*60*60*1000));
+
+      if (daysSinceStart > 0 && prev.healthProfile?.workoutPlan) {
+        const lastWorkout = prev.lastWorkoutDate || '';
+        const yesterdayDate = new Date(todayStart);
+        yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+        const yesterdayStr = yesterdayDate.toISOString().split('T')[0];
+
+        if (lastWorkout !== yesterdayStr) {
+          const completedDays = (prev as any).workoutCompletedDays || 0;
+          const plan = prev.healthProfile.workoutPlan;
+
+          if (plan.length > 0) {
+            const dayIndex = completedDays % plan.length;
+            const scheduledDay = plan[dayIndex];
+            if (scheduledDay && !scheduledDay.isRecovery) {
+              // Missed a required workout — reduce stats directly
+              updatedStats.discipline = Math.max(0, updatedStats.discipline - 10);
+              updatedStats.willpower = Math.max(0, updatedStats.willpower - 10);
+              updatedStats.strength = Math.max(0, updatedStats.strength - 5);
+              newLogs.unshift({
+                id: Math.random().toString(36).substring(2, 9),
+                message: "STAT PENALTY: Missed Workout. Discipline -10, Willpower -10, Strength -5.",
+                timestamp: now,
+                type: 'WARNING'
+              });
+            }
+          }
+        }
+      }
+
+      // --- WEEKLY AUDIT: >2 SKIPS = EXTRA PENALTY ---
+      // Track missed workouts this week
+      const weekStart = new Date(todayStart);
+      weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // Sunday
+      const weekStartMs = weekStart.getTime();
+      const weeklyMissedKey = `weeklyMissed_${weekStart.toISOString().split('T')[0]}`;
+      const weeklyMissed = ((prev as any).weeklyWorkoutMisses || 0);
+
+      // If it's a new week (Monday reset), check last week's misses
+      if (weekStart.getDay() === 0 && daysSinceStart > 7) {
+        const lastWeekMisses = ((prev as any).weeklyWorkoutMisses || 0);
+        if (lastWeekMisses > 2) {
+          // Extra penalty for skipping more than 2 workouts in a week
+          xpPenalty = 50;
+          updatedStats.discipline = Math.max(0, updatedStats.discipline - 10);
+          updatedStats.willpower = Math.max(0, updatedStats.willpower - 10);
+          updatedStats.strength = Math.max(0, updatedStats.strength - 5);
+          newLogs.unshift({
+            id: Math.random().toString(36).substring(2, 9),
+            message: `WEEKLY AUDIT FAILED: ${lastWeekMisses} workouts missed (max 2). XP -${xpPenalty}, Discipline -10, Willpower -10, Strength -5.`,
+            timestamp: now,
+            type: 'WARNING'
+          });
+        }
+      }
+
+      // --- NUTRITION AUDIT: EXCEEDED CALORIES/MACROS ---
+      const yesterdayNutritionStart = todayStart - (24*60*60*1000);
+      const yesterdayLogs = retainedNutritionLogs.filter(l => l.timestamp >= yesterdayNutritionStart && l.timestamp < todayStart);
+      if (yesterdayLogs.length > 0 && prev.healthProfile) {
+        const macros = prev.healthProfile.macros;
+        const totalCals = yesterdayLogs.reduce((s, l) => s + l.totalCalories, 0);
+        const totalProtein = yesterdayLogs.reduce((s, l) => s + l.totalProtein, 0);
+        const totalCarbs = yesterdayLogs.reduce((s, l) => s + l.totalCarbs, 0);
+        const totalFats = yesterdayLogs.reduce((s, l) => s + l.totalFats, 0);
+
+        if (macros && totalCals > macros.calories * 1.1) {
+          // Exceeded calorie target by >10%
+          updatedStats.discipline = Math.max(0, updatedStats.discipline - 5);
+          newLogs.unshift({
+            id: Math.random().toString(36).substring(2, 9),
+            message: `NUTRITION PENALTY: Exceeded calorie target (${totalCals}/${macros.calories} kcal). Discipline -5.`,
+            timestamp: now,
+            type: 'WARNING'
+          });
+        } else {
+          // Check individual macro overages
+          let macroExceeded = false;
+          if (macros.protein > 0 && totalProtein > macros.protein * 1.15) macroExceeded = true;
+          if (macros.carbs > 0 && totalCarbs > macros.carbs * 1.15) macroExceeded = true;
+          if (macros.fats > 0 && totalFats > macros.fats * 1.15) macroExceeded = true;
+          if (macroExceeded) {
+            updatedStats.discipline = Math.max(0, updatedStats.discipline - 2);
+            newLogs.unshift({
+              id: Math.random().toString(36).substring(2, 9),
+              message: "NUTRITION PENALTY: Exceeded macro targets. Discipline -2.",
+              timestamp: now,
+              type: 'WARNING'
+            });
+          }
+        }
+      }
+
       return {
         ...prev,
         quests: updatedQuests,
-        nutritionLogs: [], // Clear nutrition logs at midnight
+        nutritionLogs: retainedNutritionLogs,
         lastDailyReset: now,
         yesterdayStats: { ...prev.dailyStats },
         dailyStats: { strength: 0, intelligence: 0, discipline: 0, social: 0, focus: 0, willpower: 0 },
-        dailyXp: 0,
+        dailyXp: Math.max(0, prev.dailyXp - xpPenalty),
+        totalXp: Math.max(0, prev.totalXp - xpPenalty),
+        stats: updatedStats,
         history: updatedHistory,
         logs: [...newLogs, ...prev.logs].slice(0, 60),
       };
@@ -621,7 +728,7 @@ export const useSystem = () => {
     setPlayer(prev => ({ ...prev, activeOutfit: outfitId }));
   };
 
-  const addRewards = (gold: number, xp: number, keys: number = 0) => {
+  const addRewards = (gold: number, xp: number, keys: number = 0, bonusItems?: { potions?: number; scrolls?: number; orbs?: number }) => {
     setPlayer(prev => {
       let { currentXp, requiredXp, level, totalXp, dailyXp } = prev;
       currentXp += xp;
@@ -644,10 +751,18 @@ export const useSystem = () => {
         playSystemSoundEffect('LEVEL_UP');
       }
 
+      const updatedConsumables = { ...prev.consumables };
+      if (bonusItems) {
+        if (bonusItems.potions) updatedConsumables.healthPotions = (updatedConsumables.healthPotions ?? 0) + bonusItems.potions;
+        if (bonusItems.scrolls) updatedConsumables.shadowScrolls = (updatedConsumables.shadowScrolls ?? 0) + bonusItems.scrolls;
+        if (bonusItems.orbs) updatedConsumables.ultOrbs = (updatedConsumables.ultOrbs ?? 0) + bonusItems.orbs;
+      }
+
       return {
         ...prev,
         gold: prev.gold + gold,
         keys: prev.keys + keys,
+        consumables: updatedConsumables,
         currentXp,
         requiredXp,
         level,
@@ -752,8 +867,43 @@ export const useSystem = () => {
         return { ...prev, quests, logs: newLogs };
       }
 
+      // ── SENSOR ANTI-CHEAT CHECK ──
+      if (quest.sensorRequirements && !asMini) {
+        const sr = quest.sensorRequirements;
+        const sd = quest.sensorData;
+        const flags: string[] = [];
+
+        if (sr.steps && (!sd?.stepsRecorded || sd.stepsRecorded < sr.steps * 0.8)) {
+          flags.push(`Steps: ${sd?.stepsRecorded ?? 0}/${sr.steps}`);
+        }
+        if (sr.distanceKm && (!sd?.distanceRecorded || sd.distanceRecorded < sr.distanceKm * 0.8)) {
+          flags.push(`Distance: ${(sd?.distanceRecorded ?? 0).toFixed(2)}/${sr.distanceKm}km`);
+        }
+        if (sr.activeMinutes && (!sd?.activeMinutesRecorded || sd.activeMinutesRecorded < sr.activeMinutes * 0.7)) {
+          flags.push(`Active: ${sd?.activeMinutesRecorded ?? 0}/${sr.activeMinutes}min`);
+        }
+        if ((sr.steps || sr.distanceKm) && sd?.maxSpeedKmh && sd.maxSpeedKmh > 50) {
+          flags.push(`Speed anomaly: ${sd.maxSpeedKmh}km/h`);
+        }
+        if (sd?.stepsRecorded && sd.stepsRecorded > 0 && quest.createdAt) {
+          const durationSec = (Date.now() - quest.createdAt) / 1000;
+          if (durationSec > 0 && sd.stepsRecorded / durationSec > 4) {
+            flags.push(`Cadence anomaly: ${(sd.stepsRecorded / durationSec).toFixed(1)} steps/sec`);
+          }
+        }
+
+        if (flags.length > 0) {
+          // Treat as anomaly — burn pact, no rewards, record strike
+          quests[qIndex] = { ...quest, isCompleted: true, completedAsMini: asMini, pactStatus: hasPact ? 'burned' : quest.pactStatus, sensorTracking: false };
+          playSystemSoundEffect('DANGER');
+          const flagStr = flags.join(', ');
+          const newLogs = [createLog(`Sensor Anomaly: ${quest.title} — ${flagStr}${hasPact ? ` — ${pactAmount}G BURNED` : ''}`, 'WARNING'), ...prev.logs];
+          return { ...prev, quests, logs: newLogs, cheatStrikes: (prev.cheatStrikes || 0) + 1 };
+        }
+      }
+
       // ── HONEST COMPLETION ──
-      quests[qIndex] = { ...quest, isCompleted: true, completedAsMini: asMini, pactStatus: hasPact ? 'honored' : quest.pactStatus };
+      quests[qIndex] = { ...quest, isCompleted: true, completedAsMini: asMini, pactStatus: hasPact ? 'honored' : quest.pactStatus, sensorTracking: false };
 
       const RANK_GOLD: Record<string, number> = { E: 10, D: 20, C: 40, B: 80, A: 150, S: 300 };
       const baseXpReward = asMini ? Math.floor(quest.xpReward * 0.1) : quest.xpReward;
@@ -803,6 +953,9 @@ export const useSystem = () => {
 
       // Dispatch quest complete event
       window.dispatchEvent(new CustomEvent('quest:completed', { detail: { id, title: quest.title } }));
+
+      // Trigger autonomous Dusk reaction
+      triggerDuskMessage(`Quest Completed: "${quest.title}" (+${reward} XP)`);
 
       // Fire-and-forget: mark pact as honored on server
       if (hasPact && prev.userId) {
@@ -892,6 +1045,9 @@ export const useSystem = () => {
 
     // Dispatch quest failed event
     window.dispatchEvent(new CustomEvent('quest:failed', { detail: { id, title: quest?.title } }));
+
+    // Trigger autonomous Dusk reaction
+    triggerDuskMessage(`Quest Failed/Aborted: "${quest?.title || 'Unknown Quest'}"`);
 
     // Dispatch coin-lost animation for pact quests
     if (hasPact && pactAmount > 0) {
@@ -1033,17 +1189,88 @@ export const useSystem = () => {
     setPlayer(prev => ({ ...prev, nutritionLogs: prev.nutritionLogs.filter(m => m.id !== id) }));
   };
 
+  // Reward type definition for workout session rewards
+  type WorkoutRewardType = 'XP' | 'GOLD' | 'KEYS' | 'HEALTH_POTION' | 'SHADOW_SCROLL' | 'ULT_ORB';
+  interface WorkoutReward { type: WorkoutRewardType; amount: number; label: string; }
+
+  const generateWorkoutRewards = (anomalyPoints: number = 0): WorkoutReward[] => {
+    const pool: { type: WorkoutRewardType; weight: number; min: number; max: number; label: string }[] = [
+      { type: 'XP', weight: 30, min: 50, max: 150, label: 'XP' },
+      { type: 'GOLD', weight: 30, min: 20, max: 80, label: 'Gold' },
+      { type: 'KEYS', weight: 15, min: 1, max: 2, label: 'Keys' },
+      { type: 'HEALTH_POTION', weight: 10, min: 1, max: 1, label: 'Health Potion' },
+      { type: 'SHADOW_SCROLL', weight: 10, min: 1, max: 1, label: 'Shadow Scroll' },
+      { type: 'ULT_ORB', weight: 5, min: 1, max: 1, label: 'Ult Orb' },
+    ];
+
+    const picked: WorkoutReward[] = [];
+    const usedTypes = new Set<WorkoutRewardType>();
+    const penalized = anomalyPoints > 5;
+
+    while (picked.length < 3) {
+      const available = pool.filter(p => !usedTypes.has(p.type));
+      if (available.length === 0) break;
+      const totalWeight = available.reduce((s, p) => s + p.weight, 0);
+      let roll = Math.random() * totalWeight;
+      for (const item of available) {
+        roll -= item.weight;
+        if (roll <= 0) {
+          let amount = Math.floor(Math.random() * (item.max - item.min + 1)) + item.min;
+          if (penalized) amount = Math.max(1, Math.floor(amount * 0.5));
+          picked.push({ type: item.type, amount, label: item.label });
+          usedTypes.add(item.type);
+          break;
+        }
+      }
+    }
+    return picked;
+  };
+
   const completeWorkoutSession = (
     exercisesCompleted: number,
     totalExercises: number,
     results: Record<string, number>,
-    intensityModifier: boolean
-  ) => {
+    intensityModifier: boolean,
+    anomalyPoints: number = 0
+  ): WorkoutReward[] => {
+    const penaltyExceeded = anomalyPoints > 5;
+    const rewards = penaltyExceeded ? [] : generateWorkoutRewards(anomalyPoints);
+
     setPlayer(prev => {
+      // If anomaly threshold exceeded, grant nothing
+      if (penaltyExceeded) {
+        const newLogs = [
+          createLog(`Workout VOIDED: ${anomalyPoints} anomaly violations detected — NO REWARDS GRANTED`, 'WORKOUT'),
+          ...prev.logs
+        ];
+        const today = new Date().toISOString().split('T')[0];
+        return { ...prev, logs: newLogs, lastWorkoutDate: today };
+      }
+
+      // Sum up XP and Gold from rewards
+      let xpReward = 0;
+      let goldReward = 0;
+      let keyReward = 0;
+      let potionReward = 0;
+      let scrollReward = 0;
+      let orbReward = 0;
+
+      for (const r of rewards) {
+        switch (r.type) {
+          case 'XP': xpReward += r.amount; break;
+          case 'GOLD': goldReward += r.amount; break;
+          case 'KEYS': keyReward += r.amount; break;
+          case 'HEALTH_POTION': potionReward += r.amount; break;
+          case 'SHADOW_SCROLL': scrollReward += r.amount; break;
+          case 'ULT_ORB': orbReward += r.amount; break;
+        }
+      }
+
+      // Base XP from exercises still applies
       const baseXp = exercisesCompleted * 50;
       const bonusXp = intensityModifier ? 100 : 0;
-      const totalReward = baseXp + bonusXp;
-      const goldReward = Math.floor(totalReward / 10);
+      const totalXpGain = baseXp + bonusXp + xpReward;
+      const totalGoldGain = Math.floor((baseXp + bonusXp) / 10) + goldReward;
 
       const stats = { ...prev.stats };
       stats.strength += 2;
@@ -1056,9 +1283,9 @@ export const useSystem = () => {
       });
 
       let { currentXp, requiredXp, level, totalXp, dailyXp } = prev;
-      currentXp += totalReward;
-      totalXp += totalReward;
-      dailyXp += totalReward;
+      currentXp += totalXpGain;
+      totalXp += totalXpGain;
+      dailyXp += totalXpGain;
 
       let leveledUp = false;
       while (currentXp >= requiredXp) {
@@ -1068,8 +1295,9 @@ export const useSystem = () => {
         leveledUp = true;
       }
 
+      const penaltyTag = '';
       const newLogs = [
-        createLog(`Workout Completed: ${exercisesCompleted}/${totalExercises} Exercises (+${totalReward} XP)`, 'WORKOUT'),
+        createLog(`Workout Completed: ${exercisesCompleted}/${totalExercises} Exercises (+${totalXpGain} XP, +${totalGoldGain} Gold)${penaltyTag}`, 'WORKOUT'),
         ...prev.logs
       ];
       if (leveledUp) {
@@ -1087,6 +1315,11 @@ export const useSystem = () => {
         newStreak = prevDate === yesterday ? prev.streak + 1 : 1;
       }
 
+      const consumables = { ...prev.consumables };
+      consumables.healthPotions += potionReward;
+      consumables.shadowScrolls += scrollReward;
+      consumables.ultOrbs += orbReward;
+
       return {
         ...prev,
         currentXp,
@@ -1096,14 +1329,25 @@ export const useSystem = () => {
         dailyXp,
         stats,
         personalBests: newPBs,
-        gold: prev.gold + goldReward,
+        gold: prev.gold + totalGoldGain,
+        keys: prev.keys + keyReward,
+        consumables,
         logs: newLogs,
         streak: newStreak,
         lastWorkoutDate: today,
         ...(leveledUp ? { hp: prev.maxHp, mp: prev.maxMp } : {})
       };
     });
-    addNotification(`Workout Complete! +${exercisesCompleted * 50} XP`, 'SUCCESS');
+
+    if (penaltyExceeded) {
+      addNotification('Workout Voided — Too many anomalies detected. No rewards granted.', 'WARNING');
+      triggerDuskMessage(`Workout VOIDED: ${exercisesCompleted}/${totalExercises} exercises attempted but ${anomalyPoints} anomaly violations detected. No rewards granted — the hunter tried to cheat the system.`);
+    } else {
+      const rewardSummary = rewards.map(r => `${r.amount} ${r.label}`).join(', ');
+      addNotification(`Workout Complete! Rewards: ${rewardSummary}`, 'SUCCESS');
+      triggerDuskMessage(`Workout Completed: ${exercisesCompleted}/${totalExercises} exercises done. Intensity: ${intensityModifier ? 'HIGH' : 'NORMAL'}. Rewards: ${rewardSummary}.`);
+    }
+
     // Persist to workouts table (fire-and-forget)
     if (player.userId && !player.userId.startsWith('local-') && !player.userId.startsWith('local_')) {
       fetch(`${API_BASE}/api/workout/log-complete`, {
@@ -1117,6 +1361,8 @@ export const useSystem = () => {
         }),
       }).catch(() => {});
     }
+
+    return rewards;
   };
 
   const failWorkout = () => {
@@ -1212,6 +1458,66 @@ export const useSystem = () => {
     sessionStorage.setItem('dashboard_trigger', type);
   }, []);
 
+  const triggerDuskMessage = useCallback(async (eventText: string) => {
+    if (!player.userId) return;
+    
+    // Read current history from local storage
+    const storageKey = `dusk_chat_history_${player.userId || 'local'}`;
+    const savedHistory = localStorage.getItem(storageKey);
+    let history: { id: string; sender: 'user'|'dusk'; text: string; timestamp: number }[] = [];
+    if (savedHistory) {
+      try { history = JSON.parse(savedHistory); } catch(e){}
+    }
+
+    try {
+      const failedQuests = player.quests.filter(q => q.failed).map(q => q.title).join(', ');
+      const activeQuests = player.quests.filter(q => !q.isCompleted && !q.failed).map(q => q.title).join(', ');
+
+      const res = await fetch(`${API_BASE}/api/dusk/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          message: `[SYSTEM_EVENT] ${eventText}`,
+          history: history.slice(-8),
+          playerContext: {
+            name: player.name,
+            level: player.level,
+            rank: player.rank,
+            streak: player.streak,
+            stats: player.stats,
+            failedQuests: failedQuests || 'None',
+            activeQuests: activeQuests || 'None',
+            recentAction: eventText
+          }
+        })
+      });
+
+      const data = await res.json();
+      if (data.text) {
+        const newMsg = {
+          id: Date.now().toString(),
+          sender: 'dusk' as const,
+          text: data.text,
+          timestamp: Date.now()
+        };
+        history.push(newMsg);
+        localStorage.setItem(storageKey, JSON.stringify(history));
+        
+        // Notify UI to show unread dot
+        setPlayer(prev => ({ ...prev, duskUnreadCount: (prev.duskUnreadCount || 0) + 1 }));
+        
+        // Push notification
+        addNotification('DUSK: New Message', 'SYSTEM');
+        
+        // Fire event so DuskChat can update if it is currently open
+        window.dispatchEvent(new CustomEvent('dusk:new_message', { detail: newMsg }));
+      }
+    } catch (err) {
+      console.error('Autonomous Dusk Error:', err);
+    }
+  }, [player, addNotification]);
+
   const verifyTicket = useCallback(async (proof: string, reason: string, originalSelfie?: string) => {
     try {
       const res = await fetch(`${API_BASE}/api/forge-guard/verify-proof`, {
@@ -1272,6 +1578,45 @@ export const useSystem = () => {
         return { ...prev, isPenaltyActive: false, penaltyEndTime: undefined, penaltyTask: undefined };
       }
       return { ...prev, penaltyEndTime: newEndTime };
+    });
+  };
+
+  const startSensorTracking = (questId: string) => {
+    setPlayer(prev => {
+      const quests = prev.quests.map(q =>
+        q.id === questId ? { ...q, sensorTracking: true } : q
+      );
+      return { ...prev, quests };
+    });
+  };
+
+  const stopSensorTracking = (questId: string, sensorData?: {
+    stepsRecorded?: number;
+    distanceRecorded?: number;
+    activeMinutesRecorded?: number;
+    locationPath?: [number, number][];
+    maxSpeedKmh?: number;
+  }) => {
+    setPlayer(prev => {
+      const quests = prev.quests.map(q =>
+        q.id === questId ? { ...q, sensorTracking: false, sensorData: sensorData || q.sensorData } : q
+      );
+      return { ...prev, quests };
+    });
+  };
+
+  const updateQuestSensorData = (questId: string, sensorData: {
+    stepsRecorded?: number;
+    distanceRecorded?: number;
+    activeMinutesRecorded?: number;
+    locationPath?: [number, number][];
+    maxSpeedKmh?: number;
+  }) => {
+    setPlayer(prev => {
+      const quests = prev.quests.map(q =>
+        q.id === questId ? { ...q, sensorData } : q
+      );
+      return { ...prev, quests };
     });
   };
 
@@ -1337,6 +1682,9 @@ export const useSystem = () => {
     setActiveOutfit,
     recordStrike,
     removeStrike,
+    startSensorTracking,
+    stopSensorTracking,
+    updateQuestSensorData,
     markDuskMessagesRead,
     setDashboardTrigger,
     verifyTicket,

@@ -58,7 +58,7 @@ const HolographicBody: React.FC<{ focus: string; isCardio: boolean; videos: Reco
   }, [videoUrl]);
 
   return (
-    <div className="relative w-full h-[380px] flex items-center justify-center overflow-hidden bg-black/80 rounded-lg perspective-1000 group border border-gray-800">
+    <div className="relative w-full h-[280px] sm:h-[340px] md:h-[380px] flex items-center justify-center overflow-hidden bg-black/80 rounded-lg perspective-1000 group border border-gray-800">
       
       {/* Background Grid */}
       <div className="absolute inset-0 bg-[linear-gradient(rgba(0,210,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(0,210,255,0.05)_1px,transparent_1px)] bg-[size:30px_30px] opacity-20 pointer-events-none z-10" />

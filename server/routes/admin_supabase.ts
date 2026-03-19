@@ -538,6 +538,78 @@ router.delete('/store/outfits/:id', async (req: Request, res: Response) => {
   }
 });
 
+// ── Event Banners Management ─────────────────────────────
+router.get('/banners', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+  try {
+    const { data, error } = await (supabaseServer() as any)
+      .from('event_banners')
+      .select('*')
+      .order('display_order', { ascending: true })
+      .order('id', { ascending: true });
+    if (error) throw error;
+    return res.json(data || []);
+  } catch (err) {
+    console.error('[Admin banners]', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.post('/banners', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+  const banner = req.body;
+  try {
+    const { data, error } = await (supabaseServer() as any)
+      .from('event_banners')
+      .insert(banner)
+      .select()
+      .single();
+    if (error) throw error;
+    await logAdminAction('create_banner', req, { newValue: { id: data?.id, title: banner.title } });
+    return res.json(data);
+  } catch (err) {
+    console.error('[Admin create banner]', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.put('/banners/:id', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+  const { id } = req.params;
+  const banner = req.body;
+  try {
+    const { data, error } = await (supabaseServer() as any)
+      .from('event_banners')
+      .update(banner)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    await logAdminAction('update_banner', req, { targetUser: id, newValue: { title: banner.title } });
+    return res.json(data);
+  } catch (err) {
+    console.error('[Admin update banner]', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.delete('/banners/:id', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+  const { id } = req.params;
+  try {
+    const { error } = await (supabaseServer() as any)
+      .from('event_banners')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+    await logAdminAction('delete_banner', req, { targetUser: id });
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('[Admin delete banner]', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Workout exercises management
 router.get('/exercises', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;

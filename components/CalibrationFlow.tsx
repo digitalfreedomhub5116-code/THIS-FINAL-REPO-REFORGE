@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence, Variants, animate } from 'framer-motion';
-import { User, Activity, Ruler, Weight, Target, ChevronLeft, ChevronRight, Zap, Clock, TrendingUp, ShieldCheck, Dumbbell, Brain, Shield, Users, Hourglass, Sparkles, AlertTriangle, Eye, BookOpen, Moon } from 'lucide-react';
+import { User, Activity, Ruler, Weight, Target, ChevronLeft, ChevronRight, Zap, Clock, TrendingUp, ShieldCheck, Dumbbell, Brain, Shield, Users, Hourglass, Sparkles, AlertTriangle, Eye, BookOpen, Moon, Heart } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { HealthProfile, CoreStats, BaselineStats } from '../types';
 import SystemPersonalizationScreen from './SystemPersonalizationScreen';
@@ -98,19 +98,25 @@ const CalibrationReport: React.FC<{ profile: HealthProfile, onContinue: () => vo
     // 2. Estimate Body Fat (Navy Method approx using BMI/Age/Gender as fallback)
     const bodyFat = (1.20 * bmi) + (0.23 * profile.age) - (profile.gender === 'MALE' ? 16.2 : 5.4);
 
-    // 3. Calculate Timeline
-    let weeks = 0;
+    // 3. Calculate Timeline — show ranges for safety (no exact predictions)
+    let weeksLow = 0;
+    let weeksHigh = 0;
     let message = "";
     const diff = Math.abs((profile.targetWeight || profile.weight) - profile.weight);
     
     if (profile.goal === 'LOSE_WEIGHT' || (profile.targetWeight || 0) < profile.weight) {
-        weeks = Math.ceil(diff / 0.75);
-        message = `To reach ${profile.targetWeight}kg`;
+        const raw = Math.ceil(diff / 0.75);
+        weeksLow = Math.max(3, Math.floor(raw / 3) * 3);
+        weeksHigh = weeksLow + 3;
+        message = `Estimated range to reach ~${profile.targetWeight}kg`;
     } else if (profile.goal === 'BUILD_MUSCLE' || (profile.targetWeight || 0) > profile.weight) {
-        weeks = Math.ceil(diff / 0.3);
-        message = `To reach ${profile.targetWeight}kg`;
+        const raw = Math.ceil(diff / 0.3);
+        weeksLow = Math.max(3, Math.floor(raw / 3) * 3);
+        weeksHigh = weeksLow + 3;
+        message = `Estimated range to reach ~${profile.targetWeight}kg`;
     } else {
-        weeks = 8; // Standard Recomp Cycle
+        weeksLow = 6;
+        weeksHigh = 9;
         message = "Body Recomposition Cycle";
     }
 
@@ -197,7 +203,7 @@ const CalibrationReport: React.FC<{ profile: HealthProfile, onContinue: () => vo
                                     </div>
                                     <span className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Projected Timeline</span>
                                 </div>
-                                <div className="text-2xl font-black text-white font-mono">{weeks} WEEKS</div>
+                                <div className="text-2xl font-black text-white font-mono">{weeksLow}–{weeksHigh} WEEKS</div>
                                 <div className="text-[10px] text-gray-400 mt-1 font-mono">{message}</div>
                             </div>
                             <div className="w-20 flex justify-center">
@@ -420,28 +426,33 @@ const AwakeningOverlay: React.FC<{ profile: Partial<HealthProfile>; onComplete: 
         { key: 1, label: 'INT', Icon: Brain,    color: '#60a5fa', dataKey: 'int' },
         { key: 2, label: 'DIS', Icon: Shield,   color: '#c084fc', dataKey: 'dis' },
         { key: 3, label: 'SOC', Icon: Users,    color: '#facc15', dataKey: 'soc' },
+        { key: 4, label: 'FOC', Icon: Eye,       color: '#34d399', dataKey: 'foc' },
+        { key: 5, label: 'WIL', Icon: Sparkles,  color: '#fb923c', dataKey: 'wil' },
     ];
 
     const stageLabels = ['CURRENT', 'PHASE I', 'PHASE II', 'POTENTIAL'];
+    const wkLow = Math.max(3, Math.floor(totalWeeks / 3 / 3) * 3);
+    const wkMid = wkLow + 3;
+    const wkHigh = wkMid + 3;
     const stageWeekLabels = [
         'W0',
-        `W${Math.floor(totalWeeks / 3)}`,
-        `W${Math.floor(totalWeeks * 2 / 3)}`,
-        `W${totalWeeks}`,
+        `W${wkLow}–${wkMid}`,
+        `W${wkMid}–${wkHigh}`,
+        `W${wkHigh}+`,
     ];
     const stageTitles = ['CURRENT REALITY', 'OPTIMIZATION PHASE I', 'OPTIMIZATION PHASE II', 'FULL POTENTIAL'];
     const stageSubtexts = [
         'BASELINE ASSESSMENT',
-        `YOU AFTER ${Math.floor(totalWeeks / 3)} WEEKS`,
-        `YOU AFTER ${Math.floor(totalWeeks * 2 / 3)} WEEKS`,
-        'YOUR FINAL FORM',
+        `AFTER ${wkLow}–${wkMid} WEEKS`,
+        `AFTER ${wkMid}–${wkHigh} WEEKS`,
+        'YOUR FULL POTENTIAL',
     ];
 
     const getButtonText = () => {
         switch (stage) {
             case 0: return 'INITIATE AWAKENING';
-            case 1: return `PHASE II — WEEK ${Math.floor(totalWeeks * 2 / 3)}`;
-            case 2: return `FINAL PHASE — WEEK ${totalWeeks}`;
+            case 1: return `PHASE II — W${wkMid}–${wkHigh}`;
+            case 2: return `FINAL PHASE — W${wkHigh}+`;
             case 3: return 'ENTER THE SYSTEM';
             default: return 'CONTINUE';
         }
@@ -695,8 +706,8 @@ const AwakeningOverlay: React.FC<{ profile: Partial<HealthProfile>; onComplete: 
                         </ResponsiveContainer>
                     </div>
 
-                    {/* Stat cards */}
-                    <div className="grid grid-cols-4 gap-2 w-full">
+                    {/* Stat cards — 2 rows of 3 */}
+                    <div className="grid grid-cols-3 gap-2 w-full">
                         {statConfig.map(({ key, label, Icon, color, dataKey }) => {
                             const current = animatedStats[key];
                             const delta = current - baseStats[key];
@@ -773,8 +784,11 @@ const AwakeningOverlay: React.FC<{ profile: Partial<HealthProfile>; onComplete: 
                                     ? '0 0 40px #00d2ff55'
                                     : !isTransitioning && stage === 0
                                     ? '0 0 30px rgba(255,255,255,0.18)'
+                                    : !isTransitioning && stage > 0 && stage < 3
+                                    ? `0 0 18px ${stageColor}30`
                                     : 'none',
                                 cursor: isTransitioning ? 'not-allowed' : 'pointer',
+                                animation: !isTransitioning && stage > 0 && stage < 3 ? 'ctaPulse 2s ease-in-out infinite' : 'none',
                             }}
                         >
                             {isTransitioning ? (
@@ -892,11 +906,11 @@ const AssessmentOverlay: React.FC<{ onComplete: () => void }> = ({ onComplete })
 const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
   const [step, setStep] = useState(1);
   const [viewState, setViewState] = useState<'FORM' | 'ASSESSMENT' | 'REPORT' | 'AWAKENING'>('FORM');
-  const TOTAL_STEPS = 8;
+  const TOTAL_STEPS = 9;
   
   const [formData, setFormData] = useState<Partial<HealthProfile>>({
       gender: 'MALE', activityLevel: 'MODERATE', goal: 'RECOMP', equipment: 'GYM', workoutSplit: 'CLASSIC', age: 25, height: 175, weight: 70, targetWeight: 70,
-      energyLevel: 'MODERATE', stressLevel: 'MODERATE',
+      energyLevel: 'MODERATE', stressLevel: 'MODERATE', injuries: [],
   });
   
   const [baselines, setBaselines] = useState<BaselineStats>({
@@ -940,7 +954,7 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
           bmr: 1600,
           macros: { protein: 150, carbs: 200, fats: 60, calories: 2000 },
           workoutPlan: [],
-          injuries: [],
+          injuries: formData.injuries || [],
           category: 'Hunter',
           startingWeight: formData.weight,
           baselines: baselines // SAVE BASELINES
@@ -1219,8 +1233,57 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                       </motion.div>
                   )}
 
-                  {/* ── STEP 6: Energy & Activity ────────────────────────── */}
+                  {/* ── STEP 6: Health Issues & Injuries ─────────────────── */}
                   {step === 6 && (
+                      <motion.div key="s6" variants={setupContainerVariants} initial="hidden" animate="visible" exit="exit" className="space-y-5">
+                          <motion.div variants={setupItemVariants}>
+                              <div className="flex items-center gap-2 mb-1">
+                                  <Heart className="text-red-400" size={18} />
+                                  <span className="text-xs text-gray-500 uppercase tracking-widest font-bold">Health & Injuries</span>
+                              </div>
+                              <p className="text-gray-600 text-[11px]">Any current injuries or health issues? This helps us customize your workout plan safely. 🏥</p>
+                          </motion.div>
+
+                          <motion.div variants={setupItemVariants} className="space-y-3">
+                              <p className="text-[10px] text-gray-500 uppercase font-bold mb-2 tracking-widest">📝 Describe any issues (max 10 words)</p>
+                              <input
+                                  type="text"
+                                  value={formData.injuries?.[0] || ''}
+                                  onChange={(e) => {
+                                      const words = e.target.value.trim().split(/\s+/);
+                                      if (words.length <= 10 || e.target.value === '') {
+                                          setFormData({ ...formData, injuries: e.target.value ? [e.target.value] : [] });
+                                      }
+                                  }}
+                                  placeholder="e.g., Lower back pain, knee discomfort..."
+                                  className="w-full px-4 py-3 bg-gray-900/50 border border-gray-800 rounded-xl text-white text-sm placeholder:text-gray-600 focus:outline-none focus:border-cyan-500/50 transition-colors"
+                              />
+                              <p className="text-[9px] text-gray-600">
+                                  {formData.injuries?.[0] ? `${formData.injuries[0].trim().split(/\s+/).length}/10 words` : '0/10 words'}
+                              </p>
+                          </motion.div>
+
+                          <motion.div variants={setupItemVariants} className="flex gap-2">
+                              <button
+                                  onClick={() => {
+                                      setFormData({ ...formData, injuries: [] });
+                                      setStep(7);
+                                  }}
+                                  className="flex-1 py-3 px-4 border border-gray-800 rounded-xl font-bold text-sm text-gray-300 hover:bg-white hover:text-black transition-all"
+                              >
+                                  ✅ No Issues / Skip
+                              </button>
+                          </motion.div>
+
+                          <motion.div variants={setupItemVariants} className="sticky bottom-0 bg-[#0a0a0a] pt-3 pb-1 flex justify-between mt-4">
+                              <button onClick={() => setStep(5)} className="text-gray-600 hover:text-white flex items-center gap-1 font-bold text-xs uppercase"><ChevronLeft size={14} /> BACK</button>
+                              <button onClick={() => setStep(7)} className="bg-system-neon text-black px-10 py-3 rounded-full font-black text-xs shadow-[0_0_15px_#00d2ff] hover:bg-white transition-all uppercase flex items-center gap-2">NEXT <ChevronRight size={14} /></button>
+                          </motion.div>
+                      </motion.div>
+                  )}
+
+                  {/* ── STEP 7: Energy & Activity ────────────────────────── */}
+                  {step === 7 && (
                       <motion.div key="s6" variants={setupContainerVariants} initial="hidden" animate="visible" exit="exit" className="space-y-5">
                           <motion.div variants={setupItemVariants}>
                               <div className="flex items-center gap-2 mb-1">
@@ -1298,14 +1361,14 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                           </motion.div>
 
                           <motion.div variants={setupItemVariants} className="sticky bottom-0 bg-[#0a0a0a] pt-3 pb-1 flex justify-between mt-4">
-                              <button onClick={() => setStep(5)} className="text-gray-600 hover:text-white flex items-center gap-1 font-bold text-xs uppercase"><ChevronLeft size={14} /> BACK</button>
-                              <button onClick={() => setStep(7)} className="bg-system-neon text-black px-10 py-3 rounded-full font-black text-xs shadow-[0_0_15px_#00d2ff] hover:bg-white transition-all uppercase flex items-center gap-2">NEXT <ChevronRight size={14} /></button>
+                              <button onClick={() => setStep(6)} className="text-gray-600 hover:text-white flex items-center gap-1 font-bold text-xs uppercase"><ChevronLeft size={14} /> BACK</button>
+                              <button onClick={() => setStep(8)} className="bg-system-neon text-black px-10 py-3 rounded-full font-black text-xs shadow-[0_0_15px_#00d2ff] hover:bg-white transition-all uppercase flex items-center gap-2">NEXT <ChevronRight size={14} /></button>
                           </motion.div>
                       </motion.div>
                   )}
 
-                  {/* ── STEP 7: Capability Scan ──────────────────────────── */}
-                  {step === 7 && (
+                  {/* ── STEP 8: Capability Scan ──────────────────────────── */}
+                  {step === 8 && (
                       <motion.div key="s7" variants={setupContainerVariants} initial="hidden" animate="visible" exit="exit" className="space-y-5">
                           <motion.div variants={setupItemVariants}>
                               <div className="flex items-center gap-2 mb-1">
@@ -1374,12 +1437,12 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                           </motion.div>
 
                           <motion.div variants={setupItemVariants} className="sticky bottom-0 bg-[#0a0a0a] pt-3 pb-1 flex justify-between mt-4">
-                              <button onClick={() => setStep(6)} className="text-gray-600 hover:text-white flex items-center gap-1 font-bold text-xs uppercase"><ChevronLeft size={14} /> BACK</button>
+                              <button onClick={() => setStep(7)} className="text-gray-600 hover:text-white flex items-center gap-1 font-bold text-xs uppercase"><ChevronLeft size={14} /> BACK</button>
                               <button 
                                   onClick={() => {
                                       // Check if all three selections are made (not default values)
                                       if (baselines.pushups !== 0 && baselines.focusDuration !== 0 && baselines.sleepAvg !== 0) {
-                                          setStep(8);
+                                          setStep(9);
                                       }
                                   }}
                                   disabled={baselines.pushups === 0 || baselines.focusDuration === 0 || baselines.sleepAvg === 0}
@@ -1395,8 +1458,8 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                       </motion.div>
                   )}
 
-                  {/* ── STEP 8: Confirmation ─────────────────────────────── */}
-                  {step === 8 && (
+                  {/* ── STEP 9: Confirmation ─────────────────────────────── */}
+                  {step === 9 && (
                       <motion.div key="s8" variants={setupContainerVariants} initial="hidden" animate="visible" exit="exit" className="space-y-6 text-center">
                           <motion.div variants={setupItemVariants}>
                               <h3 className="text-xl text-white font-black">✅ Confirm Configuration</h3>
@@ -1416,6 +1479,7 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                               </div>
                               <div className="flex justify-between"><span className="text-gray-500">🎯 Goal</span><span className="text-white">{formData.goal === 'RECOMP' ? 'Recomp' : formData.goal?.replace('_', ' ')}</span></div>
                               <div className="flex justify-between"><span className="text-gray-500">🏋️ Equipment</span><span className="text-white">{formData.equipment?.replace('_', ' ')}</span></div>
+                              <div className="flex justify-between"><span className="text-gray-500">🩹 Injuries</span><span className="text-white">{formData.injuries?.length ? formData.injuries.join(', ') : 'None'}</span></div>
                               <div className="flex justify-between"><span className="text-gray-500">🏃 Activity</span><span className="text-white">{formData.activityLevel}</span></div>
                               <div className="flex justify-between"><span className="text-gray-500">⚡ Energy</span><span className="text-white">{formData.energyLevel}</span></div>
                               <div className="flex justify-between"><span className="text-gray-500">🧠 Stress</span><span className="text-white">{formData.stressLevel}</span></div>
@@ -1429,7 +1493,7 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                           >
                               🚀 Upload Biometrics
                           </motion.button>
-                          <motion.button variants={setupItemVariants} onClick={() => setStep(7)} className="text-gray-600 hover:text-white flex items-center gap-1 font-bold text-xs uppercase mx-auto"><ChevronLeft size={14} /> BACK</motion.button>
+                          <motion.button variants={setupItemVariants} onClick={() => setStep(8)} className="text-gray-600 hover:text-white flex items-center gap-1 font-bold text-xs uppercase mx-auto"><ChevronLeft size={14} /> BACK</motion.button>
                       </motion.div>
                   )}
 

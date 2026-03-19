@@ -10,14 +10,65 @@ import { useSystem, isEmbed } from '../hooks/useSystem';
 
 interface ActiveWorkoutPlayerProps {
   plan: WorkoutDay;
-  onComplete: (exercisesCompleted: number, totalExercises: number, results: Record<string, number>) => void;
+  onComplete: (exercisesCompleted: number, totalExercises: number, results: Record<string, number>, anomalyPoints?: number) => void;
   onFail: () => void;
   streak: number;
+  savedSession?: SavedWorkoutSession | null;
+}
+
+export interface SavedWorkoutSession {
+  currentIdx: number;
+  currentSet: number;
+  timeLeft: number;
+  phase: 'WORK' | 'REST';
+  results: Record<string, number>;
+  anomalyPoints: number;
+  planDay: string;
+  timestamp: number;
 }
 
 const SET_DURATION = 45; 
-const INTRA_SET_REST = 5;      // Rest between sets of same exercise
-const INTER_EXERCISE_REST = 10; // Rest between different exercises
+
+// Dynamic rest duration based on exercise type & intensity
+const getIntraSetRest = (type: string, isSupplementary?: boolean): number => {
+  if (isSupplementary) return 15;
+  switch (type) {
+    case 'COMPOUND': return 45;
+    case 'ACCESSORY': return 30;
+    case 'CARDIO': return 20;
+    case 'STRETCH': return 15;
+    default: return 30;
+  }
+};
+
+const getInterExerciseRest = (prevType: string, nextIsSupplementary?: boolean, prevIsSupplementary?: boolean): number => {
+  if (nextIsSupplementary || prevIsSupplementary) return 15;
+  switch (prevType) {
+    case 'COMPOUND': return 60;
+    case 'ACCESSORY': return 45;
+    case 'CARDIO': return 30;
+    case 'STRETCH': return 15;
+    default: return 45;
+  }
+};
+
+const WORKOUT_SESSION_KEY = 'reforge_active_workout';
+
+export const saveWorkoutSession = (session: SavedWorkoutSession) => {
+  try { localStorage.setItem(WORKOUT_SESSION_KEY, JSON.stringify(session)); } catch(e) {}
+};
+
+export const loadWorkoutSession = (): SavedWorkoutSession | null => {
+  try {
+    const raw = localStorage.getItem(WORKOUT_SESSION_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch(e) { return null; }
+};
+
+export const clearWorkoutSession = () => {
+  try { localStorage.removeItem(WORKOUT_SESSION_KEY); } catch(e) {}
+};
 
 // Helper to parse duration from reps string (e.g., "5 min" -> 300, "30s" -> 30)
 const getExerciseDuration = (reps: string): number => {
@@ -39,22 +90,27 @@ const getExerciseDuration = (reps: string): number => {
   return SET_DURATION; 
 };
 
-const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onComplete, onFail }) => {
+const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onComplete, onFail, savedSession }) => {
   const { player } = useSystem();
   
   // --- STATE ---
-  const [currentIdx, setCurrentIdx] = useState(0);
-  const [currentSet, setCurrentSet] = useState(1);
+  const [currentIdx, setCurrentIdx] = useState(savedSession?.currentIdx ?? 0);
+  const [currentSet, setCurrentSet] = useState(savedSession?.currentSet ?? 1);
   
-  // Initialize timer based on first exercise
-  const [timeLeft, setTimeLeft] = useState(() => 
-      plan.exercises.length > 0 ? getExerciseDuration(plan.exercises[0].reps) : SET_DURATION
-  );
+  // Initialize timer based on first exercise or saved session
+  const [timeLeft, setTimeLeft] = useState(() => {
+      if (savedSession) return savedSession.timeLeft;
+      return plan.exercises.length > 0 ? getExerciseDuration(plan.exercises[0].reps) : SET_DURATION;
+  });
 
-  const [phase, setPhase] = useState<'WORK' | 'REST'>('WORK');
+  const [phase, setPhase] = useState<'WORK' | 'REST'>(savedSession?.phase ?? 'WORK');
   const [isPaused, setIsPaused] = useState(false);
   const [showQuitConfirm, setShowQuitConfirm] = useState(false);
-  const [results, setResults] = useState<Record<string, number>>({});
+  const [results, setResults] = useState<Record<string, number>>(savedSession?.results ?? {});
+
+  // --- ANTI-CHEAT ---
+  const [anomalyPoints, setAnomalyPoints] = useState(savedSession?.anomalyPoints ?? 0);
+  const [phaseStartTime, setPhaseStartTime] = useState(Date.now());
 
   // Derived Data
   const exercise = plan.exercises[currentIdx] || plan.exercises[0]; // Fallback to avoid undefined crash
@@ -99,6 +155,7 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
       const nextSet = currentSet + 1;
       
       setPhase('WORK');
+      setPhaseStartTime(Date.now());
       setCurrentSet(nextSet);
       
       // Dynamic Duration Calculation based on current exercise
@@ -119,37 +176,57 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
   const handleExerciseComplete = useCallback(() => {
     if (currentIdx < totalExercises - 1) {
       // Transition to Next Exercise
+      const prevEx = plan.exercises[currentIdx];
+      const nextEx = plan.exercises[currentIdx + 1];
+      const restDuration = getInterExerciseRest(prevEx.type, nextEx?.isSupplementary, prevEx?.isSupplementary);
       
       // Announce Rest immediately
-      SpeechService.announceRest(INTER_EXERCISE_REST);
+      SpeechService.announceRest(restDuration);
       
       setPhase('REST');
-      setTimeLeft(INTER_EXERCISE_REST);
+      setPhaseStartTime(Date.now());
+      setTimeLeft(restDuration);
       
       // Advance Index immediately so "Up Next" shows correct info
       setCurrentIdx(prev => prev + 1);
       // Reset set count to 0 so we know we are between exercises
       setCurrentSet(0); 
     } else {
+      clearWorkoutSession();
       SpeechService.announceVictory();
       playSystemSoundEffect('LEVEL_UP');
-      onComplete(totalExercises, totalExercises, results);
+      onComplete(totalExercises, totalExercises, results, anomalyPoints);
     }
-  }, [currentIdx, totalExercises, onComplete, results]);
+  }, [currentIdx, totalExercises, onComplete, results, anomalyPoints, plan.exercises]);
 
   const completeSet = useCallback(() => {
       playSystemSoundEffect('SUCCESS');
+      
+      // --- ANTI-CHEAT: Check if set was completed too fast (before 70% of duration) ---
+      if (!exercise.isSupplementary) {
+        const totalDuration = getExerciseDuration(exercise.reps);
+        const elapsedMs = Date.now() - phaseStartTime;
+        const elapsedSec = elapsedMs / 1000;
+        const threshold = totalDuration * 0.7;
+        
+        if (elapsedSec < threshold && totalDuration > 10) {
+          setAnomalyPoints(prev => prev + 1);
+        }
+      }
+      
       setResults(prev => ({...prev, [`${exercise.name}_set${currentSet}`]: 1 }));
       
       if (currentSet < exercise.sets) {
         // Transition to Next Set (Same Exercise)
+        const restDuration = getIntraSetRest(exercise.type, exercise.isSupplementary);
         setPhase('REST');
-        setTimeLeft(INTRA_SET_REST);
-        SpeechService.announceRest(INTRA_SET_REST);
+        setPhaseStartTime(Date.now());
+        setTimeLeft(restDuration);
+        SpeechService.announceRest(restDuration);
       } else {
         handleExerciseComplete();
       }
-  }, [currentSet, exercise?.sets, exercise?.name, handleExerciseComplete]);
+  }, [currentSet, exercise?.sets, exercise?.name, exercise?.reps, exercise?.type, exercise?.isSupplementary, handleExerciseComplete, phaseStartTime]);
 
   const handleTimerComplete = useCallback(() => {
     if (phase === 'WORK') {
@@ -166,7 +243,8 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
         setTimeLeft((prev) => {
           const next = prev - 1;
           // Calculate max duration for halfway point based on current exercise
-          const maxDuration = phase === 'WORK' ? getExerciseDuration(plan.exercises[currentIdx].reps) : INTER_EXERCISE_REST;
+          const curEx = plan.exercises[currentIdx];
+          const maxDuration = phase === 'WORK' ? getExerciseDuration(curEx.reps) : getInterExerciseRest(curEx.type, curEx.isSupplementary);
           if (phase === 'WORK' && next === Math.floor(maxDuration / 2)) SpeechService.announceHalfway();
           if (next <= 3 && next > 0) playSystemSoundEffect('TICK');
           return next;
@@ -178,9 +256,38 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
     return () => clearInterval(interval);
   }, [timeLeft, isPaused, phase, handleTimerComplete, currentIdx, plan.exercises]);
 
-  const confirmQuit = () => { SpeechService.announceFailure(); onFail(); };
+  // --- SESSION PERSISTENCE: Save state whenever key values change ---
+  useEffect(() => {
+    saveWorkoutSession({
+      currentIdx,
+      currentSet,
+      timeLeft,
+      phase,
+      results,
+      anomalyPoints,
+      planDay: plan.day,
+      timestamp: Date.now(),
+    });
+  }, [currentIdx, currentSet, timeLeft, phase, results, anomalyPoints, plan.day]);
+
+  const confirmQuit = () => {
+    // Save session so user can resume later instead of losing progress
+    saveWorkoutSession({
+      currentIdx,
+      currentSet,
+      timeLeft,
+      phase,
+      results,
+      anomalyPoints,
+      planDay: plan.day,
+      timestamp: Date.now(),
+    });
+    SpeechService.announceFailure();
+    onFail();
+  };
 
   // --- UI CONSTANTS ---
+  const isSupplementaryExercise = exercise?.isSupplementary;
   const progressPercent = totalExercises > 0 ? (currentIdx / totalExercises) * 100 : 0;
   
   // FIXED: Ultra-Strict safe calculation for array generation to prevent RangeError
@@ -203,6 +310,16 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
                 <div className="bg-black/50 backdrop-blur border border-white/10 px-3 py-1 rounded-full text-xs font-mono font-bold text-gray-300">
                     <span className="text-system-neon">{currentIdx + 1}</span> / {totalExercises}
                 </div>
+                {isSupplementaryExercise && (
+                    <div className="bg-yellow-500/10 backdrop-blur border border-yellow-500/30 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold text-yellow-400">
+                        OPTIONAL
+                    </div>
+                )}
+                {anomalyPoints > 0 && (
+                    <div className="bg-red-500/10 backdrop-blur border border-red-500/30 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold text-red-400 flex items-center gap-1">
+                        <AlertOctagon size={10} /> {anomalyPoints}
+                    </div>
+                )}
             </div>
             
             <button 
@@ -384,16 +501,26 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
                     </button>
 
                     {phase === 'WORK' ? (
-                        <button 
-                            onClick={completeSet}
-                            className="col-span-3 h-14 md:h-16 bg-system-neon text-black font-black text-lg rounded-xl flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(0,210,255,0.4)] hover:bg-white transition-all active:scale-95 group"
-                        >
-                            <Check size={24} strokeWidth={3} />
-                            <span>COMPLETE SET</span>
-                        </button>
+                        <>
+                            <button 
+                                onClick={completeSet}
+                                className="col-span-3 h-14 md:h-16 bg-system-neon text-black font-black text-lg rounded-xl flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(0,210,255,0.4)] hover:bg-white transition-all active:scale-95 group"
+                            >
+                                <Check size={24} strokeWidth={3} />
+                                <span>COMPLETE SET</span>
+                            </button>
+                            {isSupplementaryExercise && (
+                                <button
+                                    onClick={handleExerciseComplete}
+                                    className="col-span-4 h-10 bg-transparent border border-yellow-500/30 text-yellow-400 font-bold text-xs rounded-xl flex items-center justify-center gap-2 hover:bg-yellow-500/10 transition-all active:scale-95"
+                                >
+                                    <ChevronRight size={16} /> SKIP (OPTIONAL)
+                                </button>
+                            )}
+                        </>
                     ) : (
                         <button 
-                            onClick={() => setTimeLeft(0)}
+                            onClick={() => { setPhaseStartTime(Date.now()); setTimeLeft(0); }}
                             className="col-span-3 h-14 md:h-16 bg-system-success text-black font-black text-lg rounded-xl flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:bg-white transition-all active:scale-95 group"
                         >
                             <span>START NEXT</span>

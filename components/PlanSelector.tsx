@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Dumbbell, Zap, Clock, Calendar, ChevronRight, Sparkles, ArrowLeft } from 'lucide-react';
 import { WorkoutPlan, HealthProfile } from '../types';
 import { API_BASE } from '../lib/apiConfig';
+import { DEFAULT_PLANS, getRecommendedPlan } from '../lib/defaultPlans';
 
 interface PlanSelectorProps {
   healthProfile?: Partial<HealthProfile>;
@@ -33,15 +34,29 @@ const PlanSelector: React.FC<PlanSelectorProps> = ({ healthProfile, onSelectPlan
   useEffect(() => {
     fetch(`${API_BASE}/api/workout/plans`)
       .then(r => r.json())
-      .then(data => setPlans(Array.isArray(data) ? data : []))
-      .catch(() => setPlans([]))
+      .then(data => {
+        const apiPlans = Array.isArray(data) ? data : [];
+        // Merge: API plans first, then default plans that aren't duplicated
+        const apiIds = new Set(apiPlans.map((p: WorkoutPlan) => p.id));
+        const merged = [...apiPlans, ...DEFAULT_PLANS.filter(dp => !apiIds.has(dp.id))];
+        setPlans(merged);
+      })
+      .catch(() => setPlans(DEFAULT_PLANS))
       .finally(() => setLoading(false));
   }, []);
 
-  const filtered = plans.filter(p => {
-    if (!healthProfile?.equipment) return true;
-    return p.equipment === healthProfile.equipment || true;
+  // Sort: matching equipment first, then others
+  const filtered = plans.filter(p => p.is_active !== false).sort((a, b) => {
+    if (!healthProfile?.equipment) return 0;
+    const aMatch = a.equipment === healthProfile.equipment ? 0 : 1;
+    const bMatch = b.equipment === healthProfile.equipment ? 0 : 1;
+    return aMatch - bMatch;
   });
+
+  // Recommended plan based on user equipment + split
+  const recommended = healthProfile?.equipment
+    ? getRecommendedPlan(healthProfile.equipment as any, healthProfile.workoutSplit as any)
+    : null;
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
@@ -81,6 +96,7 @@ const PlanSelector: React.FC<PlanSelectorProps> = ({ healthProfile, onSelectPlan
                 <AnimatePresence>
                   {filtered.map((plan, idx) => {
                     const dc = difficultyColor(plan.difficulty);
+                    const isRecommended = recommended && plan.id === recommended.id;
                     return (
                       <motion.button
                         key={plan.id}
@@ -90,8 +106,11 @@ const PlanSelector: React.FC<PlanSelectorProps> = ({ healthProfile, onSelectPlan
                         onClick={() => onSelectPlan(plan)}
                         onMouseEnter={() => setHoveredId(plan.id)}
                         onMouseLeave={() => setHoveredId(null)}
-                        className={`w-full text-left ${dc.bg} border ${hoveredId === plan.id ? 'border-system-neon/60 shadow-[0_0_20px_rgba(0,210,255,0.1)]' : dc.border} rounded-2xl p-5 transition-all duration-300 group`}
+                        className={`w-full text-left ${dc.bg} border ${isRecommended ? 'border-system-neon/70 ring-1 ring-system-neon/30' : hoveredId === plan.id ? 'border-system-neon/60 shadow-[0_0_20px_rgba(0,210,255,0.1)]' : dc.border} rounded-2xl p-5 transition-all duration-300 group relative`}
                       >
+                        {isRecommended && (
+                          <div className="absolute -top-2 left-4 bg-system-neon text-black text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">Recommended</div>
+                        )}
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-2 flex-wrap">
@@ -150,7 +169,7 @@ const PlanSelector: React.FC<PlanSelectorProps> = ({ healthProfile, onSelectPlan
                 transition={{ delay: filtered.length * 0.07 + 0.1 }}
                 onClick={onGenerateAI}
                 disabled={isGenerating}
-                className="w-full text-left bg-gradient-to-br from-purple-900/30 to-indigo-900/20 border border-purple-700/40 hover:border-purple-500/60 rounded-2xl p-5 transition-all duration-300 group disabled:opacity-60 disabled:cursor-not-allowed shadow-[0_0_30px_rgba(139,92,246,0.05)]"
+                className="w-full text-left bg-gradient-to-br from-purple-900/20 to-indigo-900/10 border border-purple-800/30 hover:border-purple-600/50 rounded-2xl p-5 transition-all duration-300 group disabled:opacity-60 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(139,92,246,0.03)]"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1">

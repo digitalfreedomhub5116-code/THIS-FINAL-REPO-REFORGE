@@ -119,6 +119,22 @@ router.delete('/outfits/:id', async (req: Request, res: Response) => {
   }
 });
 
+// GET /api/store/banners — public (active banners only)
+router.get('/banners', async (_req: Request, res: Response) => {
+  try {
+    const { data, error } = await (supabaseServer() as any)
+      .from('event_banners')
+      .select('*')
+      .eq('is_active', true)
+      .order('display_order', { ascending: true });
+    if (error) throw error;
+    return res.json(data || []);
+  } catch (err) {
+    console.error('[Store] GET banners error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // POST /api/store/outfits/:id/set-default — admin
 router.post('/outfits/:id/set-default', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, X, Dumbbell, Brain, Shield, Users, Zap, Trash2, ZapOff, Lock, Coins, Flame, Eye } from 'lucide-react';
+import { Check, X, Dumbbell, Brain, Shield, Users, Zap, Trash2, ZapOff, Lock, Coins, Flame, Eye, MapPin, Activity, Play, Square } from 'lucide-react';
 import { Quest, CoreStats, Rank } from '../types';
 
 interface QuestCardProps {
@@ -10,6 +10,8 @@ interface QuestCardProps {
   onReset: (id: string) => void;
   onDelete: (id: string) => void;
   isLocked?: boolean;
+  onStartTracking?: (id: string) => void;
+  onStopTracking?: (id: string) => void;
 }
 
 const RANK_BAR: Record<Rank, string> = {
@@ -48,7 +50,34 @@ const CAT_COLOR: Record<keyof CoreStats, string> = {
   willpower:    '#fb923c',
 };
 
-const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDelete, isLocked }) => {
+const SensorBar: React.FC<{
+  icon: React.ReactNode;
+  label: string;
+  current: number;
+  target: number;
+  unit?: string;
+  decimals?: number;
+  color: string;
+}> = ({ icon, label, current, target, unit = '', decimals = 0, color }) => {
+  const pct = Math.min(100, (current / target) * 100);
+  const done = current >= target;
+  return (
+    <div className="flex items-center gap-2">
+      <span style={{ color: done ? '#4ade80' : color }}>{icon}</span>
+      <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+        <div
+          className="h-full rounded-full transition-all duration-500"
+          style={{ width: `${pct}%`, background: done ? '#22c55e' : color, boxShadow: done ? '0 0 6px rgba(34,197,94,0.5)' : `0 0 4px ${color}60` }}
+        />
+      </div>
+      <span className="text-[8px] font-mono font-bold shrink-0" style={{ color: done ? '#4ade80' : '#9ca3af' }}>
+        {decimals > 0 ? current.toFixed(decimals) : current}/{target}{unit ? ` ${unit}` : ''}
+      </span>
+    </div>
+  );
+};
+
+const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDelete, isLocked, onStartTracking, onStopTracking }) => {
   const [isMiniView, setIsMiniView] = useState(false);
 
   const isExpired = quest.expiresAt ? Date.now() > quest.expiresAt : false;
@@ -220,6 +249,42 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
                 IF: {quest.trigger}
               </p>
             )}
+
+            {/* Sensor tracking progress */}
+            {isActive && quest.sensorRequirements && (
+              <div className="mt-2 space-y-1.5">
+                {quest.sensorRequirements.steps && (
+                  <SensorBar
+                    icon={<Activity size={9} />}
+                    label="Steps"
+                    current={quest.sensorData?.stepsRecorded || 0}
+                    target={quest.sensorRequirements.steps}
+                    color="#a78bfa"
+                  />
+                )}
+                {quest.sensorRequirements.distanceKm && (
+                  <SensorBar
+                    icon={<MapPin size={9} />}
+                    label="Distance"
+                    current={quest.sensorData?.distanceRecorded || 0}
+                    target={quest.sensorRequirements.distanceKm}
+                    unit="km"
+                    decimals={2}
+                    color="#34d399"
+                  />
+                )}
+                {quest.sensorRequirements.activeMinutes && (
+                  <SensorBar
+                    icon={<Zap size={9} />}
+                    label="Active"
+                    current={quest.sensorData?.activeMinutesRecorded || 0}
+                    target={quest.sensorRequirements.activeMinutes}
+                    unit="min"
+                    color="#fbbf24"
+                  />
+                )}
+              </div>
+            )}
           </div>
 
           {/* XP + Gold pills */}
@@ -244,6 +309,29 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
         {/* ── ACTIVE: action buttons ── */}
         {isActive && (
           <div className="flex items-center gap-2 mt-3">
+            {/* Sensor tracking toggle */}
+            {quest.sensorRequirements && onStartTracking && onStopTracking && (
+              quest.sensorTracking ? (
+                <button
+                  onClick={() => onStopTracking(quest.id)}
+                  className="flex items-center justify-center gap-1 h-9 px-3 rounded-xl text-[10px] font-black font-mono uppercase tracking-wide transition-all active:scale-95"
+                  style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)', color: '#f87171' }}
+                >
+                  <Square size={10} fill="currentColor" />
+                  Stop
+                </button>
+              ) : (
+                <button
+                  onClick={() => onStartTracking(quest.id)}
+                  className="flex items-center justify-center gap-1 h-9 px-3 rounded-xl text-[10px] font-black font-mono uppercase tracking-wide transition-all active:scale-95"
+                  style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.3)', color: '#4ade80' }}
+                >
+                  <Play size={10} fill="currentColor" />
+                  Track
+                </button>
+              )
+            )}
+
             {/* Mini quest toggle */}
             {quest.miniQuest && !isMiniActive && (
               <button

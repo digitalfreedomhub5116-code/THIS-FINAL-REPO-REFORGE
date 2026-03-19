@@ -17,6 +17,8 @@
     "@capacitor/android": "^8.2.0",
     "@capacitor/cli": "^8.2.0",
     "@capacitor/core": "^8.2.0",
+    "@capacitor/geolocation": "^8.1.0",
+    "@capacitor/motion": "^8.0.0",
     "@codetrix-studio/capacitor-google-auth": "^3.4.0-rc.4",
     "@google/generative-ai": "^0.24.1",
     "@react-oauth/google": "^0.13.4",

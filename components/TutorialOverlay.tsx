@@ -146,7 +146,8 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({ currentStep, onNext, 
           buttonText: "Complete to Continue",
           targetId: 'quest-list-container',
           waitForAction: true,
-          allowInteraction: true
+          allowInteraction: true,
+          forcePosition: 'top'
       },
       14: {
           title: "Welcome Quest 2 of 3 — Discipline",
@@ -154,7 +155,8 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({ currentStep, onNext, 
           buttonText: "Complete to Continue",
           targetId: 'quest-list-container',
           waitForAction: true,
-          allowInteraction: true
+          allowInteraction: true,
+          forcePosition: 'top'
       },
       15: {
           title: "Welcome Quest 3 of 3 — Social",
@@ -162,7 +164,8 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({ currentStep, onNext, 
           buttonText: "Complete to Continue",
           targetId: 'quest-list-container',
           waitForAction: true,
-          allowInteraction: true
+          allowInteraction: true,
+          forcePosition: 'top'
       },
       16: {
           title: "The System Pact",
@@ -277,6 +280,9 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({ currentStep, onNext, 
               // Smart Dialog Positioning — picks whichever side doesn't overlap the spotlight
               const resolvePosition = (force?: 'top' | 'bottom' | 'center') => {
                   if (force === 'center') return 'center';
+                  // If user must interact with the target, ALWAYS respect forced position
+                  // so the dialog never covers the interactive element
+                  if (force && stepData.allowInteraction) return force;
                   const vh = window.innerHeight;
                   const isMobile = window.innerWidth < 768;
                   const dialogH = 150; // approx compact dialog height

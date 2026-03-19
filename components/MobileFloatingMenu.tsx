@@ -15,7 +15,7 @@ interface MobileFloatingMenuProps {
   keys: number;
   lastDungeonEntry: number;
   onConsumeKey: (amount: number) => Promise<boolean>;
-  onAddRewards: (gold: number, xp: number, keys: number) => void;
+  onAddRewards: (gold: number, xp: number, keys: number, bonusItems?: { potions?: number; scrolls?: number; orbs?: number }) => void;
   onAddNotification: (msg: string, type: any) => void;
 }
 
@@ -28,6 +28,61 @@ interface RewardCard {
   label: string;
   color: string;
 }
+
+interface WeightedReward {
+  reward: RewardCard;
+  weight: number;
+}
+
+const pickWeightedRandom = (pool: WeightedReward[], count: number): RewardCard[] => {
+  const result: RewardCard[] = [];
+  const remaining = [...pool];
+  for (let i = 0; i < count && remaining.length > 0; i++) {
+    const totalW = remaining.reduce((s, r) => s + r.weight, 0);
+    let roll = Math.random() * totalW;
+    let picked = remaining[0];
+    for (const entry of remaining) {
+      roll -= entry.weight;
+      if (roll <= 0) { picked = entry; break; }
+    }
+    const amt = picked.reward.amount;
+    const variance = Math.round(amt * (0.85 + Math.random() * 0.3));
+    result.push({ ...picked.reward, amount: Math.max(1, variance) });
+    remaining.splice(remaining.indexOf(picked), 1);
+  }
+  return result;
+};
+
+const REWARD_POOLS: Record<'DAILY' | 'LEGENDARY' | 'ALLIANCE', WeightedReward[]> = {
+  DAILY: [
+    { reward: { type: 'GOLD', amount: 150,  label: 'GOLD',    color: '#eab308' }, weight: 30 },
+    { reward: { type: 'GOLD', amount: 300,  label: 'GOLD',    color: '#eab308' }, weight: 15 },
+    { reward: { type: 'XP',   amount: 80,   label: 'EXP',     color: '#3b82f6' }, weight: 30 },
+    { reward: { type: 'XP',   amount: 200,  label: 'EXP',     color: '#3b82f6' }, weight: 10 },
+    { reward: { type: 'ITEM', amount: 1,     label: 'POTION',  color: '#ef4444' }, weight: 20 },
+    { reward: { type: 'KEYS', amount: 1,     label: 'KEY',     color: '#a855f7' }, weight: 5 },
+  ],
+  LEGENDARY: [
+    { reward: { type: 'GOLD', amount: 800,  label: 'GOLD',    color: '#eab308' }, weight: 25 },
+    { reward: { type: 'GOLD', amount: 1500, label: 'GOLD',    color: '#eab308' }, weight: 10 },
+    { reward: { type: 'XP',   amount: 400,  label: 'EXP',     color: '#3b82f6' }, weight: 25 },
+    { reward: { type: 'XP',   amount: 800,  label: 'EXP',     color: '#3b82f6' }, weight: 8 },
+    { reward: { type: 'ITEM', amount: 1,     label: 'SCROLL',  color: '#00d2ff' }, weight: 15 },
+    { reward: { type: 'KEYS', amount: 3,     label: 'KEYS',    color: '#a855f7' }, weight: 8 },
+    { reward: { type: 'ITEM', amount: 1,     label: 'ORB',     color: '#bf5eff' }, weight: 3 },
+    { reward: { type: 'ITEM', amount: 1,     label: 'POTION',  color: '#ef4444' }, weight: 12 },
+  ],
+  ALLIANCE: [
+    { reward: { type: 'GOLD', amount: 600,  label: 'GOLD',    color: '#eab308' }, weight: 20 },
+    { reward: { type: 'GOLD', amount: 1200, label: 'GOLD',    color: '#eab308' }, weight: 10 },
+    { reward: { type: 'XP',   amount: 250,  label: 'EXP',     color: '#3b82f6' }, weight: 20 },
+    { reward: { type: 'XP',   amount: 600,  label: 'EXP',     color: '#3b82f6' }, weight: 8 },
+    { reward: { type: 'KEYS', amount: 5,     label: 'KEYS',    color: '#a855f7' }, weight: 10 },
+    { reward: { type: 'ITEM', amount: 1,     label: 'SCROLL',  color: '#00d2ff' }, weight: 12 },
+    { reward: { type: 'ITEM', amount: 1,     label: 'ORB',     color: '#bf5eff' }, weight: 8 },
+    { reward: { type: 'ITEM', amount: 2,     label: 'POTION',  color: '#ef4444' }, weight: 15 },
+  ],
+};
 
 const CHEST_CFG = {
   DAILY: {
@@ -197,7 +252,7 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
       if (!ok) { onAddNotification('Need 36 Keys', 'WARNING'); return; }
     }
     playSystemSoundEffect('PURCHASE');
-    const pool = [...CHEST_CFG[type].rewards].sort(() => Math.random() - 0.5);
+    const pool = pickWeightedRandom(REWARD_POOLS[type], 4);
     setCards(pool);
     setActiveChest(type);
     setPhase('OPENING');
@@ -215,12 +270,18 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
   const handleCollect = () => {
     if (selectedCard === null || !activeChest) return;
     const card = cards[selectedCard];
+    const bonusItems: { potions?: number; scrolls?: number; orbs?: number } = {};
+    if (card.type === 'ITEM') {
+      if (card.label === 'POTION') bonusItems.potions = card.amount;
+      else if (card.label === 'SCROLL') bonusItems.scrolls = card.amount;
+      else if (card.label === 'ORB') bonusItems.orbs = card.amount;
+    }
     onAddRewards(
       card.type === 'GOLD' ? card.amount : 0,
       card.type === 'XP'   ? card.amount : 0,
       card.type === 'KEYS' ? card.amount : 0,
+      Object.keys(bonusItems).length > 0 ? bonusItems : undefined,
     );
-    // Daily chest is handled by Calendar now
     playSystemSoundEffect('LEVEL_UP');
     setActiveModal('NONE');
   };

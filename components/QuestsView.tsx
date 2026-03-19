@@ -9,6 +9,7 @@ import QuestCard from './QuestCard';
 import { PLEDGE_AMOUNTS, MANDATORY_RANKS } from './SystemPactScreen';
 import { playSystemSoundEffect } from '../utils/soundEngine';
 import { API_BASE } from '../lib/apiConfig';
+import OnboardingNotice from './OnboardingNotice';
 
 interface ForgeGuardResult {
   rank: Rank;
@@ -21,6 +22,11 @@ interface ForgeGuardResult {
   suggestedTime?: string;
   autoDetectedTime?: string | null;
   isSpam: boolean;
+  sensorRequirements?: {
+    steps?: number;
+    distanceKm?: number;
+    activeMinutes?: number;
+  } | null;
 }
 
 interface QuestsViewProps {
@@ -37,6 +43,8 @@ interface QuestsViewProps {
   onToggleNav?: (visible: boolean) => void;
   recordStrike?: () => void;
   onShowPact?: (quest: Quest) => void;
+  onStartTracking?: (id: string) => void;
+  onStopTracking?: (id: string) => void;
 }
 
 const RANK_COLORS: Record<Rank, { bg: string; text: string; border: string; glow: string }> = {
@@ -267,7 +275,8 @@ const FuturisticCalendar: React.FC<{ quests: Quest[] }> = ({ quests }) => {
 
 const QuestsView: React.FC<QuestsViewProps> = ({
   quests, addQuest, completeQuest, failQuest, resetQuest, deleteQuest,
-  tutorialStep, onTutorialAction, onTutorialAnalysisFail, playerData, onToggleNav, onShowPact
+  tutorialStep, onTutorialAction, onTutorialAnalysisFail, playerData, onToggleNav, onShowPact,
+  onStartTracking, onStopTracking
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [title, setTitle] = useState('');
@@ -408,6 +417,7 @@ const QuestsView: React.FC<QuestsViewProps> = ({
       minDurationMinutes: forgeResult.minDurationMinutes,
       aiReasoning: forgeResult.reasoning,
       scheduledTime: scheduledTimestamp,
+      ...(forgeResult.sensorRequirements ? { sensorRequirements: forgeResult.sensorRequirements } : {}),
     };
 
     // During tutorial, skip pact (user has 0 gold, learns about pact at step 16)
@@ -447,6 +457,7 @@ const QuestsView: React.FC<QuestsViewProps> = ({
 
   return (
     <div className="space-y-4">
+      <OnboardingNotice page="QUEST" />
       {/* ── Futuristic Calendar Header ── */}
       <div
         className="sticky top-0 z-20 space-y-3 pt-2 pb-3 px-0"
@@ -521,6 +532,8 @@ const QuestsView: React.FC<QuestsViewProps> = ({
                 onReset={resetQuest}
                 onDelete={deleteQuest}
                 isLocked={isLocked}
+                onStartTracking={onStartTracking}
+                onStopTracking={onStopTracking}
               />
             </motion.div>
             );

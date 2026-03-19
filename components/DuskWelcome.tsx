@@ -196,7 +196,7 @@ const DuskWelcome: React.FC<DuskWelcomeProps> = ({
             ref={loopVideoRef}
             src={loopVideoUrl}
             poster={PLACEHOLDER_IMG}
-            className="absolute inset-0 w-full h-full object-cover opacity-90 z-0"
+            className="absolute inset-0 w-full h-full object-contain sm:object-cover opacity-90 z-0"
             loop 
             muted 
             playsInline 
@@ -209,7 +209,7 @@ const DuskWelcome: React.FC<DuskWelcomeProps> = ({
             ref={entranceVideoRef}
             src={entranceVideoUrl}
             poster={PLACEHOLDER_IMG}
-            className="absolute inset-0 w-full h-full object-cover z-10"
+            className="absolute inset-0 w-full h-full object-contain sm:object-cover z-10"
             autoPlay 
             muted 
             playsInline 

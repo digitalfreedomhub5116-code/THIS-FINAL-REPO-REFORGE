@@ -272,7 +272,7 @@ const OutfitPurchaseModal: React.FC<Props> = ({
             playsInline
             preload="auto"
             poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
-            className="absolute inset-0 w-full h-full object-cover bg-transparent"
+            className="absolute inset-0 w-full h-full object-contain bg-transparent"
             style={{ display: videoPhase === 'intro' ? 'block' : 'none' }}
           />
 
@@ -285,7 +285,7 @@ const OutfitPurchaseModal: React.FC<Props> = ({
             loop
             preload="auto"
             poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
-            className="absolute inset-0 w-full h-full object-cover bg-transparent"
+            className="absolute inset-0 w-full h-full object-contain bg-transparent"
             style={{ display: videoPhase === 'loop' ? 'block' : 'none' }}
           />
 
@@ -294,7 +294,7 @@ const OutfitPurchaseModal: React.FC<Props> = ({
             <img
               src={outfit.image}
               alt={outfit.name}
-              className="absolute inset-0 w-full h-full object-cover"
+              className="absolute inset-0 w-full h-full object-contain"
             />
           )}
 

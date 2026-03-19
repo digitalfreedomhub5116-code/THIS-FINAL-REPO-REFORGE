@@ -71,6 +71,7 @@ interface LayoutProps {
   onClearNotificationHistory?: () => void;
   hideHeader?: boolean;
   headerDisabled?: boolean;
+  forceHeaderVisible?: boolean;
 }
 
 const glassDropdown = {
@@ -101,7 +102,8 @@ const Layout: React.FC<LayoutProps> = ({
   onMarkNotificationsRead,
   onClearNotificationHistory,
   hideHeader = false,
-  headerDisabled = false
+  headerDisabled = false,
+  forceHeaderVisible = false
 }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -135,6 +137,7 @@ const Layout: React.FC<LayoutProps> = ({
 
   useEffect(() => {
     const handleScroll = () => {
+      if (forceHeaderVisible) return; // Don't hide during tutorial
       const currentY = window.scrollY;
       if (currentY > lastScrollY.current + 8) {
         setHeaderVisible(false);
@@ -147,7 +150,12 @@ const Layout: React.FC<LayoutProps> = ({
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [forceHeaderVisible]);
+
+  // Force header visible when tutorial requires it
+  useEffect(() => {
+    if (forceHeaderVisible) setHeaderVisible(true);
+  }, [forceHeaderVisible]);
 
   const coinForceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
@@ -406,10 +414,10 @@ const Layout: React.FC<LayoutProps> = ({
             <div className="absolute top-0 left-0 right-0 h-px pointer-events-none" style={{ background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.18) 30%, rgba(0,210,255,0.12) 55%, rgba(139,92,246,0.10) 75%, transparent 100%)' }} />
             <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(135deg, rgba(0,210,255,0.02) 0%, transparent 50%, rgba(139,92,246,0.02) 100%)' }} />
 
-            <div className="flex items-center justify-between px-4 py-3 sm:px-6 sm:py-3.5 max-w-7xl mx-auto relative z-10">
+            <div className="flex items-center justify-between px-3 py-2.5 sm:px-6 sm:py-3.5 max-w-7xl mx-auto relative z-10">
 
               {/* LEFT: Avatar + Greeting + Username */}
-              <div className="flex items-center gap-3" ref={profileMenuRef}>
+              <div className="flex items-center gap-2 sm:gap-3" ref={profileMenuRef}>
                 <div className="relative">
                   <button
                     onClick={() => { setShowProfileMenu(v => !v); setShowNotifications(false); }}
@@ -420,10 +428,10 @@ const Layout: React.FC<LayoutProps> = ({
                       <img
                         src={avatarUrl}
                         alt={displayName}
-                        className="w-10 h-10 sm:w-11 sm:h-11 rounded-full object-cover border-2 border-[#00d2ff]/40 shadow-[0_0_16px_rgba(0,210,255,0.25)] group-hover:border-[#00d2ff]/70 transition-all"
+                        className="w-8 h-8 sm:w-11 sm:h-11 rounded-full object-cover border-2 border-[#00d2ff]/40 shadow-[0_0_16px_rgba(0,210,255,0.25)] group-hover:border-[#00d2ff]/70 transition-all"
                       />
                     ) : (
-                      <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-gradient-to-br from-[#8b5cf6] to-[#00d2ff] flex items-center justify-center text-white text-base font-black shadow-[0_0_16px_rgba(0,210,255,0.25)] group-hover:shadow-[0_0_20px_rgba(0,210,255,0.4)] transition-all">
+                      <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-full bg-gradient-to-br from-[#8b5cf6] to-[#00d2ff] flex items-center justify-center text-white text-sm sm:text-base font-black shadow-[0_0_16px_rgba(0,210,255,0.25)] group-hover:shadow-[0_0_20px_rgba(0,210,255,0.4)] transition-all">
                         {initial}
                       </div>
                     )}
@@ -473,21 +481,23 @@ const Layout: React.FC<LayoutProps> = ({
                 </div>
 
                 <div className="min-w-0">
-                  <div className="text-[10px] text-gray-500 font-mono tracking-widest leading-none mb-0.5 uppercase">Hello</div>
-                  <div className="text-white font-black text-base sm:text-lg leading-none tracking-tight truncate max-w-[100px] sm:max-w-[160px] uppercase">
-                    {displayName}
-                  </div>
-                  {streak > 0 && (
-                    <div className="flex items-center gap-1 mt-0.5">
-                      <Flame size={9} className="fill-orange-400 text-orange-400" />
-                      <span className="font-mono text-[9px] font-bold text-orange-400">{streak}d streak</span>
+                  <div className="hidden sm:block text-[10px] text-gray-500 font-mono tracking-widest leading-none mb-0.5 uppercase">Hello</div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="text-white font-black text-sm sm:text-lg leading-none tracking-tight truncate max-w-[72px] sm:max-w-[160px] uppercase">
+                      {displayName}
                     </div>
-                  )}
+                    {streak > 0 && (
+                      <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(251,146,60,0.1)', border: '1px solid rgba(251,146,60,0.2)' }}>
+                        <Flame size={8} className="fill-orange-400 text-orange-400" />
+                        <span className="font-mono text-[8px] sm:text-[9px] font-bold text-orange-400">{streak}d</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
               {/* RIGHT: Gold + Keys + Bell */}
-              <div id="tut-gold-display" className="flex items-center gap-2 sm:gap-2.5">
+              <div id="tut-gold-display" className="flex items-center gap-1.5 sm:gap-2.5">
 
                 {/* Consumable item counts — desktop only */}
                 {consumables && (
@@ -510,15 +520,15 @@ const Layout: React.FC<LayoutProps> = ({
                 {/* Keys pill */}
                 <div
                   id="user-keys-balance"
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl"
+                  className="flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-2 rounded-xl"
                   style={{
                     background: 'linear-gradient(180deg, rgba(139,92,246,0.12) 0%, rgba(6,4,18,0.80) 100%)',
                     border: '1px solid rgba(139,92,246,0.25)',
                     boxShadow: 'inset 0 1px 0 rgba(139,92,246,0.15)',
                   }}
                 >
-                  <AnimatedKeyIcon size={15} />
-                  <span className="font-mono text-xs sm:text-sm font-bold text-purple-300"><AnimatedCounter value={keys} /></span>
+                  <AnimatedKeyIcon size={13} />
+                  <span className="font-mono text-[11px] sm:text-sm font-bold text-purple-300"><AnimatedCounter value={keys} /></span>
                 </div>
 
                 {/* Gold pill */}
@@ -526,22 +536,22 @@ const Layout: React.FC<LayoutProps> = ({
                   id="gold-header-btn"
                   onClick={!headerDisabled ? onGoldClick : undefined}
                   disabled={headerDisabled}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl transition-all active:scale-95"
+                  className="flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-2 rounded-xl transition-all active:scale-95"
                   style={{
                     background: 'linear-gradient(180deg, rgba(234,179,8,0.12) 0%, rgba(10,7,0,0.80) 100%)',
                     border: '1px solid rgba(234,179,8,0.28)',
                     boxShadow: 'inset 0 1px 0 rgba(234,179,8,0.15)',
                   }}
                 >
-                  <AnimatedCoinIcon size={15} />
-                  <span id="user-wallet-balance" className="font-mono text-xs sm:text-sm font-bold text-yellow-300"><AnimatedCounter value={gold} /></span>
+                  <AnimatedCoinIcon size={13} />
+                  <span id="user-wallet-balance" className="font-mono text-[11px] sm:text-sm font-bold text-yellow-300"><AnimatedCounter value={gold} /></span>
                 </button>
 
                 {/* Bell */}
                 <div className="relative" ref={notifRef}>
                   <button
                     onClick={handleOpenNotifications}
-                    className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition-all duration-200 border ${
+                    className={`w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition-all duration-200 border ${
                       showNotifications
                         ? 'bg-[#00d2ff]/15 border-[#00d2ff]/40 text-[#00d2ff]'
                         : 'bg-white/[0.05] border-white/[0.08] text-gray-400 hover:text-white hover:bg-white/10'

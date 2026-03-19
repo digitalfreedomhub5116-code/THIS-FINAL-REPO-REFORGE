@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { LogOut, Save, RefreshCw, Video, Link, Search, Activity, Plus, Edit3, Trash2, Star, Dumbbell, BookOpen } from 'lucide-react';
+import { LogOut, Save, RefreshCw, Video, Link, Search, Activity, Plus, Edit3, Trash2, Star, Dumbbell, BookOpen, Image, ToggleLeft, ToggleRight } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { WorkoutDay } from '../types';
 import { useSystem, isEmbed } from '../hooks/useSystem';
@@ -95,7 +95,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
 
   // Store State
   const [storeOutfits, setStoreOutfits] = useState<StoreOutfit[]>([]);
-  const [storeSubTab, setStoreSubTab] = useState<'OUTFITS' | 'ITEMS' | 'SHADOWS'>('OUTFITS');
+  const [storeSubTab, setStoreSubTab] = useState<'OUTFITS' | 'BANNERS' | 'ITEMS' | 'SHADOWS'>('OUTFITS');
+
+  // Banner State
+  const [banners, setBanners] = useState<any[]>([]);
+  const [bannerLoading, setBannerLoading] = useState(false);
+  const [showBannerForm, setShowBannerForm] = useState(false);
+  const [editingBanner, setEditingBanner] = useState<any>(null);
+  const [bannerForm, setBannerForm] = useState({ title: '', subtitle: '', image_url: '', link_url: '', is_active: true, display_order: 0 });
+  const [confirmDeleteBannerId, setConfirmDeleteBannerId] = useState<number | null>(null);
   const [showOutfitForm, setShowOutfitForm] = useState(false);
   const [editingOutfit, setEditingOutfit] = useState<StoreOutfit | null>(null);
   const [outfitForm, setOutfitForm] = useState(emptyForm());
@@ -264,9 +272,56 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
       finally { setUsageLoading(false); }
   };
 
+  // Banner CRUD
+  const fetchBanners = async () => {
+      setBannerLoading(true);
+      try {
+          const res = await fetch(`${API_BASE}/api/admin/banners`, { headers: { 'Authorization': `Bearer ${adminToken}` } });
+          const data = await res.json();
+          setBanners(data || []);
+      } catch { setStoreMsg({ type: 'error', text: 'Failed to load banners' }); }
+      finally { setBannerLoading(false); }
+  };
+
+  const saveBanner = async () => {
+      setBannerLoading(true);
+      setStoreMsg(null);
+      try {
+          const url = editingBanner ? `${API_BASE}/api/admin/banners/${editingBanner.id}` : `${API_BASE}/api/admin/banners`;
+          const method = editingBanner ? 'PUT' : 'POST';
+          const res = await fetch(url, {
+              method,
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminToken}` },
+              body: JSON.stringify(bannerForm),
+          });
+          if (!res.ok) { const e = await res.json(); throw new Error(e.error || 'Save failed'); }
+          setStoreMsg({ type: 'success', text: editingBanner ? 'Banner updated!' : 'Banner created!' });
+          setShowBannerForm(false);
+          fetchBanners();
+      } catch (err: any) {
+          setStoreMsg({ type: 'error', text: err.message });
+      } finally { setBannerLoading(false); }
+  };
+
+  const deleteBanner = async (id: number) => {
+      setBannerLoading(true);
+      try {
+          const res = await fetch(`${API_BASE}/api/admin/banners/${id}`, {
+              method: 'DELETE',
+              headers: { 'Authorization': `Bearer ${adminToken}` },
+          });
+          if (!res.ok) throw new Error('Delete failed');
+          setStoreMsg({ type: 'success', text: 'Banner removed.' });
+          setConfirmDeleteBannerId(null);
+          fetchBanners();
+      } catch (err: any) {
+          setStoreMsg({ type: 'error', text: err.message });
+      } finally { setBannerLoading(false); }
+  };
+
   useEffect(() => { 
       if (activeTab === 'USERS') fetchUsers();
-      if (activeTab === 'STORE') fetchStoreOutfits();
+      if (activeTab === 'STORE') { fetchStoreOutfits(); fetchBanners(); }
       if (activeTab === 'USAGE') fetchUsage(usagePeriod);
   }, [activeTab]);
 
@@ -713,8 +768,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
                   )}
 
                   {/* Sub-tabs */}
-                  <div className="flex gap-2">
-                      {(['OUTFITS', 'ITEMS', 'SHADOWS'] as const).map(tab => (
+                  <div className="flex gap-2 flex-wrap">
+                      {(['OUTFITS', 'BANNERS', 'ITEMS', 'SHADOWS'] as const).map(tab => (
                           <button
                               key={tab}
                               onClick={() => setStoreSubTab(tab)}
@@ -995,6 +1050,106 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
                                                           onClick={() => setConfirmDeleteId(o.id)}
                                                           className="flex items-center gap-1 px-2.5 py-1.5 bg-gray-800 hover:bg-red-900/40 text-gray-300 hover:text-red-400 rounded text-[9px] font-bold tracking-widest uppercase transition-all"
                                                       >
+                                                          <Trash2 size={10} /> REMOVE
+                                                      </button>
+                                                  )}
+                                              </div>
+                                          </div>
+                                      </div>
+                                  ))}
+                              </div>
+                          )}
+                      </div>
+                  )}
+
+                  {/* ── BANNERS SUB-TAB ── */}
+                  {storeSubTab === 'BANNERS' && (
+                      <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                              <h3 className="text-sm font-black text-white uppercase tracking-widest">Event Banners</h3>
+                              <button
+                                  onClick={() => { setEditingBanner(null); setBannerForm({ title: '', subtitle: '', image_url: '', link_url: '', is_active: true, display_order: 0 }); setShowBannerForm(true); }}
+                                  className="flex items-center gap-1.5 px-3 py-2 bg-yellow-400 hover:bg-yellow-300 text-black rounded-lg text-xs font-black tracking-widest uppercase transition-all"
+                              >
+                                  <Plus size={12} /> ADD BANNER
+                              </button>
+                          </div>
+
+                          {showBannerForm && (
+                              <div className="bg-gray-900/80 border border-yellow-400/30 rounded-xl p-5 space-y-4">
+                                  <h4 className="text-yellow-400 font-black text-xs tracking-widest uppercase">
+                                      {editingBanner ? `EDITING: ${editingBanner.title}` : 'CREATE NEW BANNER'}
+                                  </h4>
+                                  <div className="grid grid-cols-2 gap-3">
+                                      <div>
+                                          <label className="text-[9px] text-gray-500 uppercase tracking-widest font-bold block mb-1">Title</label>
+                                          <input value={bannerForm.title} onChange={e => setBannerForm(f => ({ ...f, title: e.target.value }))} placeholder="Event Title" className="w-full bg-black border border-gray-700 rounded px-3 py-2 text-xs text-white outline-none focus:border-yellow-400" />
+                                      </div>
+                                      <div>
+                                          <label className="text-[9px] text-gray-500 uppercase tracking-widest font-bold block mb-1">Display Order</label>
+                                          <input type="number" value={bannerForm.display_order} onChange={e => setBannerForm(f => ({ ...f, display_order: parseInt(e.target.value) || 0 }))} className="w-full bg-black border border-gray-700 rounded px-3 py-2 text-xs text-white outline-none focus:border-yellow-400" />
+                                      </div>
+                                      <div className="col-span-2">
+                                          <label className="text-[9px] text-gray-500 uppercase tracking-widest font-bold block mb-1">Subtitle / Featured Text</label>
+                                          <input value={bannerForm.subtitle} onChange={e => setBannerForm(f => ({ ...f, subtitle: e.target.value }))} placeholder="Short description..." className="w-full bg-black border border-gray-700 rounded px-3 py-2 text-xs text-white outline-none focus:border-yellow-400" />
+                                      </div>
+                                      <div className="col-span-2">
+                                          <label className="text-[9px] text-gray-500 uppercase tracking-widest font-bold block mb-1">Image URL</label>
+                                          <div className="flex gap-2 items-center">
+                                              <input value={bannerForm.image_url} onChange={e => setBannerForm(f => ({ ...f, image_url: e.target.value }))} placeholder="https://..." className="flex-1 bg-black border border-gray-700 rounded px-3 py-2 text-xs text-white outline-none focus:border-yellow-400" />
+                                              {bannerForm.image_url && <img src={bannerForm.image_url} alt="preview" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} onLoad={e => { (e.target as HTMLImageElement).style.display = 'block'; }} className="w-16 h-10 object-cover rounded border border-gray-600 flex-shrink-0" />}
+                                          </div>
+                                      </div>
+                                      <div>
+                                          <label className="text-[9px] text-gray-500 uppercase tracking-widest font-bold block mb-1">Link URL (optional)</label>
+                                          <input value={bannerForm.link_url} onChange={e => setBannerForm(f => ({ ...f, link_url: e.target.value }))} placeholder="https://..." className="w-full bg-black border border-gray-700 rounded px-3 py-2 text-xs text-white outline-none focus:border-yellow-400" />
+                                      </div>
+                                      <div className="flex items-center gap-3">
+                                          <label className="text-[9px] text-gray-500 uppercase tracking-widest font-bold">Active</label>
+                                          <button onClick={() => setBannerForm(f => ({ ...f, is_active: !f.is_active }))} className="text-yellow-400">
+                                              {bannerForm.is_active ? <ToggleRight size={24} /> : <ToggleLeft size={24} className="text-gray-600" />}
+                                          </button>
+                                      </div>
+                                  </div>
+                                  <div className="flex gap-2 pt-2">
+                                      <button onClick={saveBanner} disabled={bannerLoading || !bannerForm.title || !bannerForm.image_url} className="flex-1 py-2.5 bg-yellow-400 hover:bg-yellow-300 text-black rounded-lg text-xs font-black tracking-widest uppercase transition-all disabled:opacity-50">
+                                          {bannerLoading ? 'SAVING...' : editingBanner ? 'UPDATE BANNER' : 'CREATE BANNER'}
+                                      </button>
+                                      <button onClick={() => setShowBannerForm(false)} className="px-4 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg text-xs font-bold uppercase transition-all">CANCEL</button>
+                                  </div>
+                              </div>
+                          )}
+
+                          {bannerLoading && !showBannerForm ? (
+                              <div className="text-center py-8 text-gray-600 text-xs font-mono">LOADING BANNERS...</div>
+                          ) : (
+                              <div className="space-y-2">
+                                  {banners.length === 0 && <div className="text-center py-8 text-gray-600 text-xs font-mono">No banners yet. Add one above.</div>}
+                                  {banners.map(b => (
+                                      <div key={b.id} className="bg-gray-900/60 border border-gray-800 rounded-xl p-4 hover:border-gray-700 transition-all">
+                                          <div className="flex items-start gap-3">
+                                              {b.image_url && <img src={b.image_url} alt={b.title} className="w-24 h-14 object-cover rounded-lg border border-gray-700 flex-shrink-0" />}
+                                              <div className="flex-1 min-w-0">
+                                                  <div className="flex items-center gap-2 mb-1">
+                                                      <span className="text-sm font-black text-white truncate">{b.title}</span>
+                                                      <span className={`text-[8px] font-black tracking-widest px-1.5 py-0.5 rounded-full ${b.is_active ? 'bg-green-500/20 border border-green-500/50 text-green-400' : 'bg-red-500/20 border border-red-500/50 text-red-400'}`}>
+                                                          {b.is_active ? 'ACTIVE' : 'INACTIVE'}
+                                                      </span>
+                                                  </div>
+                                                  {b.subtitle && <div className="text-[10px] text-gray-500 font-mono truncate">{b.subtitle}</div>}
+                                                  <div className="text-[9px] text-gray-600 font-mono mt-1">Order: {b.display_order}</div>
+                                              </div>
+                                              <div className="flex flex-col gap-1 flex-shrink-0">
+                                                  <button onClick={() => { setEditingBanner(b); setBannerForm({ title: b.title, subtitle: b.subtitle || '', image_url: b.image_url, link_url: b.link_url || '', is_active: b.is_active, display_order: b.display_order }); setShowBannerForm(true); }} className="flex items-center gap-1 px-2.5 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded text-[9px] font-bold tracking-widest uppercase transition-all">
+                                                      <Edit3 size={10} /> EDIT
+                                                  </button>
+                                                  {confirmDeleteBannerId === b.id ? (
+                                                      <div className="flex gap-1">
+                                                          <button onClick={() => deleteBanner(b.id)} className="flex-1 px-2 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded text-[8px] font-black uppercase">CONFIRM</button>
+                                                          <button onClick={() => setConfirmDeleteBannerId(null)} className="flex-1 px-2 py-1.5 bg-gray-700 text-gray-300 rounded text-[8px] font-bold">NO</button>
+                                                      </div>
+                                                  ) : (
+                                                      <button onClick={() => setConfirmDeleteBannerId(b.id)} className="flex items-center gap-1 px-2.5 py-1.5 bg-gray-800 hover:bg-red-900/40 text-gray-300 hover:text-red-400 rounded text-[9px] font-bold tracking-widest uppercase transition-all">
                                                           <Trash2 size={10} /> REMOVE
                                                       </button>
                                                   )}

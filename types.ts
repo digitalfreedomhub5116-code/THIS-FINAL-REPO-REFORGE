@@ -151,6 +151,19 @@ export interface Quest {
   hasPact?: boolean;
   pactAmount?: number;
   pactStatus?: 'none' | 'active' | 'honored' | 'burned' | 'partial';
+  sensorRequirements?: {
+    steps?: number;
+    distanceKm?: number;
+    activeMinutes?: number;
+  };
+  sensorData?: {
+    stepsRecorded?: number;
+    distanceRecorded?: number;
+    activeMinutesRecorded?: number;
+    locationPath?: [number, number][];
+    maxSpeedKmh?: number;
+  };
+  sensorTracking?: boolean;
 }
 
 export interface ShopItem {
@@ -247,6 +260,7 @@ export interface Exercise {
   notes?: string;
   videoUrl?: string;
   imageUrl?: string;
+  isSupplementary?: boolean;
 }
 
 export interface WorkoutDay {
@@ -349,6 +363,8 @@ export interface HealthProfile {
   aiPlanUsed?: boolean;
   aiGeneratedPlan?: WorkoutDay[];
   aiGeneratedPlanName?: string;
+  planChangedAtDay?: number;
+  prevPlanName?: string;
 }
 
 export interface WorkoutExercise {

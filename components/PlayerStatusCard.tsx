@@ -466,20 +466,6 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
         
         {/* ── LEFT CONTAINER: RADAR CHART ── */}
         <div className="w-[45%] md:w-[42%] relative z-30 flex items-center justify-center shrink-0">
-          
-          {/* Pulsing Cybernetic Background */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-30 mix-blend-screen overflow-hidden">
-            <motion.div 
-              key={`grid-${selectedDateIndex}`}
-              className="w-[120%] aspect-square rounded-full border border-system-neon/20"
-              initial={{ rotate: 0, scale: 0.8, opacity: 0 }}
-              animate={{ rotate: 90, scale: 1, opacity: 1 }}
-              transition={{ duration: 20, ease: "linear", repeat: Infinity }}
-              style={{
-                background: 'repeating-conic-gradient(from 0deg, transparent 0deg, transparent 10deg, rgba(0,210,255,0.05) 10deg, rgba(0,210,255,0.05) 20deg)',
-              }}
-            />
-          </div>
 
           {/* Chart oversized with left offset so labels stay on-screen, overlaps into video */}
           <div className="w-[145%] md:w-[135%] aspect-square absolute left-[2px] md:left-[4px]">

@@ -520,6 +520,11 @@ video {
   animation: xpFloat 1.2s ease-out forwards;
 }
 
+@keyframes ctaPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.04); }
+}
+
 /* Hide navbars when outfit purchase modal is open */
 .reforge-modal-open #reforge-top-nav,
 .reforge-modal-open #reforge-mobile-nav {

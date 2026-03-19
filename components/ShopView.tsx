@@ -1,10 +1,21 @@
 
-import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Coins, Timer, Key, CheckCircle2, Lock } from 'lucide-react';
+import { Coins, Timer, Key, CheckCircle2, Lock, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ShopItem, Outfit } from '../types';
+import { API_BASE } from '../lib/apiConfig';
 import ErrorBoundary from './ErrorBoundary';
+import OnboardingNotice from './OnboardingNotice';
 const WardrobePreviewCard = lazy(() => import('./WardrobePreviewCard'));
+
+interface EventBanner {
+  id: number;
+  title: string;
+  subtitle: string | null;
+  image_url: string;
+  link_url: string | null;
+  display_order: number;
+}
 
 interface Consumables {
   healthPotions: number;
@@ -118,6 +129,30 @@ const ShopView: React.FC<ShopViewProps> = ({
   const [dungeonHighlightActive, setDungeonHighlightActive] = useState(false);
   const dungeonRef = useRef<HTMLDivElement>(null);
 
+  // Event Banner Carousel
+  const [banners, setBanners] = useState<EventBanner[]>([]);
+  const [bannerIdx, setBannerIdx] = useState(0);
+  const bannerTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/store/banners`)
+      .then(r => r.ok ? r.json() : [])
+      .then(data => { if (Array.isArray(data) && data.length > 0) setBanners(data); })
+      .catch(() => {});
+  }, []);
+
+  const resetBannerTimer = useCallback(() => {
+    if (bannerTimer.current) clearInterval(bannerTimer.current);
+    if (banners.length > 1) {
+      bannerTimer.current = setInterval(() => setBannerIdx(p => (p + 1) % banners.length), 5000);
+    }
+  }, [banners.length]);
+
+  useEffect(() => {
+    resetBannerTimer();
+    return () => { if (bannerTimer.current) clearInterval(bannerTimer.current); };
+  }, [resetBannerTimer]);
+
   useEffect(() => {
     if (!highlightDungeon) return;
     setDungeonHighlightActive(true);
@@ -186,6 +221,7 @@ const ShopView: React.FC<ShopViewProps> = ({
 
   return (
     <div id="tut-store" className="space-y-5 pb-10">
+      <OnboardingNotice page="STORE" />
 
       {/* ── INVENTORY COUNTERS ── */}
       <div className="grid grid-cols-3 gap-3 pt-2">
@@ -214,6 +250,72 @@ const ShopView: React.FC<ShopViewProps> = ({
         <div className="text-[10px] font-mono font-bold tracking-[0.3em] uppercase text-gray-400">EVENTS</div>
         <div className="flex-1 h-px bg-system-border" />
       </div>
+
+      {/* ── EVENT BANNER CAROUSEL ── */}
+      {banners.length > 0 && (
+        <div className="relative w-full rounded-2xl overflow-hidden" style={{ minHeight: 200 }}>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={banners[bannerIdx % banners.length]?.id}
+              initial={{ opacity: 0, x: 40 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -40 }}
+              transition={{ duration: 0.35 }}
+              className="relative w-full"
+              style={{ minHeight: 200 }}
+            >
+              <img
+                src={banners[bannerIdx % banners.length]?.image_url}
+                alt={banners[bannerIdx % banners.length]?.title}
+                className="w-full h-full object-cover rounded-2xl"
+                style={{ minHeight: 200, maxHeight: 220 }}
+              />
+              <div className="absolute inset-0 rounded-2xl" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 50%, transparent 100%)' }} />
+              <div className="absolute bottom-0 left-0 right-0 p-4">
+                <h3 className="text-base font-black text-white uppercase tracking-tight font-mono drop-shadow-lg">
+                  {banners[bannerIdx % banners.length]?.title}
+                </h3>
+                {banners[bannerIdx % banners.length]?.subtitle && (
+                  <p className="text-[11px] text-gray-300 font-mono mt-0.5 drop-shadow">
+                    {banners[bannerIdx % banners.length]?.subtitle}
+                  </p>
+                )}
+              </div>
+            </motion.div>
+          </AnimatePresence>
+
+          {/* Carousel nav arrows */}
+          {banners.length > 1 && (
+            <>
+              <button
+                onClick={() => { setBannerIdx(p => (p - 1 + banners.length) % banners.length); resetBannerTimer(); }}
+                className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white/70 hover:text-white transition-colors z-10"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <button
+                onClick={() => { setBannerIdx(p => (p + 1) % banners.length); resetBannerTimer(); }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white/70 hover:text-white transition-colors z-10"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </>
+          )}
+
+          {/* Dots indicator */}
+          {banners.length > 1 && (
+            <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+              {banners.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => { setBannerIdx(i); resetBannerTimer(); }}
+                  className={`rounded-full transition-all ${i === bannerIdx % banners.length ? 'w-5 h-1.5 bg-white' : 'w-1.5 h-1.5 bg-white/40'}`}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── DUNGEON TOWER BANNER ── */}
       {onStartDungeon && (

@@ -99,23 +99,29 @@ router.post('/generate-ai', async (req: Request, res: Response) => {
     const totalPerWeek = 7;
 
     const mainExCount = duration <= 30 ? '3-4' : duration <= 45 ? '4-5' : '5-6';
+    const injuryList = Array.isArray(injuries) && injuries.length > 0 ? injuries.filter(Boolean).join(', ') : 'None';
     const prompt = `You are an expert fitness coach. Create ONE WEEK template (${totalPerWeek} days) of a personalized workout plan.
 
 USER: Goal=${goal || 'RECOMP'}, Equipment=${equipment || 'GYM'}, Level=${fitnessLevel || 'INTERMEDIATE'}, ${days} workout days/week, ${duration} min/session, Weight=${weight || 70}kg, Age=${age || 25}, Gender=${gender || 'MALE'}
+INJURIES/CONDITIONS: ${injuryList}
+${injuryList !== 'None' ? `IMPORTANT: The user has reported the above injuries/medical conditions. You MUST avoid exercises that stress or aggravate these areas. Substitute with safe alternatives from the exercise library. Prioritize injury-safe movements. If an injury affects a major muscle group, reduce volume for that group and redistribute to unaffected areas.` : ''}
 
 EXERCISE LIBRARY (use ONLY these, exact names):
 ${exerciseList}
 
 Create exactly ${totalPerWeek} day entries: ${days} workout days + ${restDays} rest day(s).
 
-Each workout day MUST follow this exact 4-phase structure:
-1. Warm-up: 1 CARDIO exercise (~5 min)
-2. Stretching: 2 STRETCH exercises for the target muscle group
-3. Main: ${mainExCount} COMPOUND/ACCESSORY exercises
-4. Cooldown: 1 STRETCH exercise (~3 min)
+Each workout day MUST follow this exact 5-phase structure:
+1. Warm-up Cardio: 1 CARDIO exercise (~3 min, "isSupplementary":true) — e.g. Brisk Walk / Light Jog
+2. Warm-up Stretching: 1-2 STRETCH exercises (~2 min each, "isSupplementary":true) — dynamic stretches for target muscles
+3. Main Workout: ${mainExCount} COMPOUND/ACCESSORY exercises (these are the core exercises, "isSupplementary":false or omit the field)
+4. Cool-down Walk: 1 CARDIO exercise (~3 min, "isSupplementary":true) — e.g. Slow Walk
+5. Cool-down Stretch: 1 STRETCH exercise (~3 min, "isSupplementary":true) — static stretching
+
+IMPORTANT: Warm-up and cool-down exercises MUST have "isSupplementary":true. Main exercises must NOT have isSupplementary or set it to false.
 
 Respond ONLY with valid compact JSON (no markdown, no extra whitespace):
-{"planName":"string","days":[{"day":"DAY 1","focus":"PUSH","isRecovery":false,"totalDuration":${duration},"exercises":[{"name":"exact name","sets":3,"reps":"12,10,8","type":"COMPOUND","notes":"","videoUrl":"","completed":false,"duration":0}]},{"day":"DAY 2","focus":"REST","isRecovery":true,"totalDuration":0,"exercises":[]}]}
+{"planName":"string","days":[{"day":"DAY 1","focus":"PUSH","isRecovery":false,"totalDuration":${duration},"exercises":[{"name":"exact name","sets":3,"reps":"12,10,8","type":"COMPOUND","notes":"","videoUrl":"","completed":false,"duration":0,"isSupplementary":false}]},{"day":"DAY 2","focus":"REST","isRecovery":true,"totalDuration":0,"exercises":[]}]}
 
 Rules: use only library exercises, BULK=heavy reps like "12,10,8", CUT=more cardio, STRENGTH="5,5,5", output exactly ${totalPerWeek} days`;
 

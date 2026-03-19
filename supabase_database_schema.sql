@@ -202,6 +202,26 @@ $$ language 'plpgsql';
 CREATE TRIGGER update_players_updated_at BEFORE UPDATE ON players
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+-- Event banners for store page carousel
+CREATE TABLE IF NOT EXISTS event_banners (
+  id SERIAL PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  subtitle TEXT,
+  image_url TEXT NOT NULL,
+  link_url TEXT,
+  is_active BOOLEAN DEFAULT TRUE,
+  display_order INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE event_banners ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anyone can view active event banners" ON event_banners
+  FOR SELECT USING (is_active = true);
+
+CREATE INDEX IF NOT EXISTS idx_event_banners_active ON event_banners(is_active, display_order);
+
 -- Insert default store outfits
 INSERT INTO store_outfits (outfit_key, name, description, tier, cost, accent_color, is_default, display_order) VALUES
   ('default_outfit', 'Default Hunter Gear', 'Basic hunter outfit for beginners', 'E', 0, '#9ca3af', true, 1),

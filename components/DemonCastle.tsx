@@ -11,8 +11,58 @@ type CardType = 'SAFE' | 'TRAP' | 'JACKPOT';
 interface FloorCardData {
   id: string;
   type: CardType;
-  reward: { gold: number; xp: number; keys: number };
+  reward: { gold: number; xp: number; keys: number; bonusItem?: 'POTION' | 'SCROLL' | 'ORB' };
 }
+
+const rollWeighted = (table: { value: number; weight: number }[]): number => {
+  const total = table.reduce((s, r) => s + r.weight, 0);
+  let roll = Math.random() * total;
+  for (const entry of table) {
+    roll -= entry.weight;
+    if (roll <= 0) return entry.value;
+  }
+  return table[table.length - 1].value;
+};
+
+const rollBonusItem = (floor: number): 'POTION' | 'SCROLL' | 'ORB' | undefined => {
+  const orbChance = floor >= 15 ? Math.min(0.04 + (floor - 15) * 0.002, 0.10) : 0;
+  const scrollChance = floor >= 5 ? 0.08 : 0;
+  const potionChance = 0.12;
+  const roll = Math.random();
+  if (roll < orbChance) return 'ORB';
+  if (roll < orbChance + scrollChance) return 'SCROLL';
+  if (roll < orbChance + scrollChance + potionChance) return 'POTION';
+  return undefined;
+};
+
+const rollGold = (floor: number): number => {
+  const base = 10 + floor * 5;
+  const variance = rollWeighted([
+    { value: 0,  weight: 10 },
+    { value: 10, weight: 30 },
+    { value: 25, weight: 25 },
+    { value: 50, weight: 15 },
+    { value: 80, weight: 8 },
+  ]);
+  return base + variance;
+};
+
+const rollXp = (floor: number): number => {
+  const base = 20 + floor * 5;
+  const variance = rollWeighted([
+    { value: 0,  weight: 15 },
+    { value: 10, weight: 35 },
+    { value: 30, weight: 20 },
+    { value: 60, weight: 10 },
+  ]);
+  return base + variance;
+};
+
+const rollKeyChance = (floor: number, isJackpotFloor: boolean): boolean => {
+  if (isJackpotFloor) return true;
+  const chance = Math.min(0.10 + floor * 0.008, 0.30);
+  return Math.random() < chance;
+};
 
 interface DemonCastleProps {
   gold: number;
@@ -21,7 +71,7 @@ interface DemonCastleProps {
   onDeductGold: (amount: number) => boolean;
   onConsumeKey: (amount?: number) => Promise<boolean>;
   onEnterDungeon: (isFree: boolean) => Promise<boolean>;
-  onAddRewards: (gold: number, xp: number, keys?: number) => void;
+  onAddRewards: (gold: number, xp: number, keys?: number, bonusItems?: { potions?: number; scrolls?: number; orbs?: number }) => void;
   onPlayStateChange: (isPlaying: boolean) => void; 
   initialMode?: 'LOBBY' | 'PLAYING';
   onExit?: () => void;
@@ -325,6 +375,19 @@ const VintageCardFront = ({ data }: { data: FloorCardData }) => {
                <div className="font-black text-[#5c4033] uppercase tracking-widest text-xl font-serif relative z-10 drop-shadow-sm">{data.reward.gold}</div>
                <div className="text-[8px] text-[#854d0e] font-bold uppercase tracking-widest relative z-10">GOLD COINS</div>
             </>
+        )}
+
+        {/* Bonus Item Badge */}
+        {!isTrap && data.reward.bonusItem && (
+          <div className="mt-1.5 px-2 py-0.5 rounded-full text-[7px] font-black tracking-widest uppercase relative z-10"
+            style={{
+              background: data.reward.bonusItem === 'ORB' ? 'rgba(168,85,247,0.25)' : data.reward.bonusItem === 'SCROLL' ? 'rgba(0,210,255,0.2)' : 'rgba(239,68,68,0.2)',
+              color: data.reward.bonusItem === 'ORB' ? '#c084fc' : data.reward.bonusItem === 'SCROLL' ? '#67e8f9' : '#fca5a5',
+              border: `1px solid ${data.reward.bonusItem === 'ORB' ? 'rgba(168,85,247,0.4)' : data.reward.bonusItem === 'SCROLL' ? 'rgba(0,210,255,0.3)' : 'rgba(239,68,68,0.3)'}`,
+            }}
+          >
+            {data.reward.bonusItem === 'ORB' ? '⚡ ULT ORB' : data.reward.bonusItem === 'SCROLL' ? '📜 SCROLL' : '🧪 POTION'}
+          </div>
         )}
       </motion.div>
     </div>
@@ -955,7 +1018,7 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
 
   // Data
   const [floor, setFloor] = useState(1);
-  const [lootBag, setLootBag] = useState({ gold: 0, xp: 0, keys: 0 });
+  const [lootBag, setLootBag] = useState({ gold: 0, xp: 0, keys: 0, potions: 0, scrolls: 0, orbs: 0 });
   const [cards, setCards] = useState<FloorCardData[]>([]);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   
@@ -1007,25 +1070,25 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
       
       for (let i = 0; i < safeSlots; i++) {
           const isJackpotCard = isJackpotFloor && i === 0; 
-          
-          let hasKey = false;
-          if (isJackpotFloor) {
-              hasKey = true; 
-          } else {
-              hasKey = Math.random() < 0.25;
-          }
 
-          // Use the helper to determine key count if a key is present
+          const hasKey = rollKeyChance(floorNum, isJackpotFloor);
           const keyRewardCount = hasKey ? getKeyReward(floorNum) : 0;
 
           if (isJackpotCard) {
+              const jackpotGold = rollWeighted([
+                  { value: 100 + floorNum * 10, weight: 40 },
+                  { value: 150 + floorNum * 15, weight: 30 },
+                  { value: 200 + floorNum * 20, weight: 15 },
+                  { value: 300 + floorNum * 25, weight: 5 },
+              ]);
               newCards.push({
                   id: `jackpot-${floorNum}-${ts}`,
                   type: 'JACKPOT',
                   reward: { 
-                      gold: 100 + floorNum * 10, 
+                      gold: jackpotGold, 
                       xp: 200 + floorNum * 20, 
-                      keys: Math.max(1, getKeyReward(floorNum)) // Jackpot usually guarantees good loot
+                      keys: Math.max(1, getKeyReward(floorNum)),
+                      bonusItem: rollBonusItem(floorNum),
                   }
               });
           } else {
@@ -1033,9 +1096,10 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
                   id: `safe-${i}-${floorNum}-${ts}`,
                   type: 'SAFE',
                   reward: { 
-                      gold: 10 + (floorNum * 5) + Math.floor(Math.random() * 20), 
-                      xp: 20 + (floorNum * 5), 
-                      keys: keyRewardCount
+                      gold: rollGold(floorNum), 
+                      xp: rollXp(floorNum), 
+                      keys: keyRewardCount,
+                      bonusItem: rollBonusItem(floorNum),
                   }
               });
           }
@@ -1049,7 +1113,7 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
       if (initialMode === 'PLAYING') {
           // Initialize game state logic that normally happens in handleStartRun
           setFloor(1);
-          setLootBag({ gold: 0, xp: 0, keys: 0 });
+          setLootBag({ gold: 0, xp: 0, keys: 0, potions: 0, scrolls: 0, orbs: 0 });
           setCards(generateFloor(1));
           setTurnState('IDLE');
           setSelectedCardId(null);
@@ -1104,7 +1168,7 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
           onPlayStateChange(true); // Lock Navigation
           setMode('PLAYING');
           setFloor(1);
-          setLootBag({ gold: 0, xp: 0, keys: 0 });
+          setLootBag({ gold: 0, xp: 0, keys: 0, potions: 0, scrolls: 0, orbs: 0 });
           setCards(generateFloor(1));
           setTurnState('IDLE');
           setSelectedCardId(null);
@@ -1178,7 +1242,10 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
                   setLootBag(prev => ({
                       gold: prev.gold + card.reward.gold,
                       xp: prev.xp + card.reward.xp,
-                      keys: prev.keys + card.reward.keys
+                      keys: prev.keys + card.reward.keys,
+                      potions: prev.potions + (card.reward.bonusItem === 'POTION' ? 1 : 0),
+                      scrolls: prev.scrolls + (card.reward.bonusItem === 'SCROLL' ? 1 : 0),
+                      orbs: prev.orbs + (card.reward.bonusItem === 'ORB' ? 1 : 0),
                   }));
 
                   // 4. "NEAR MISS" REVEAL SEQUENCE (Reduced to 700ms)
@@ -1281,12 +1348,15 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
   const handleAbandon = () => {
       setIsTrapped(false);
       setMode('GAMEOVER');
-      setLootBag({ gold: 0, xp: 0, keys: 0 });
+      setLootBag({ gold: 0, xp: 0, keys: 0, potions: 0, scrolls: 0, orbs: 0 });
       playSystemSoundEffect('DANGER');
   };
 
   const handleCashOut = () => {
-      onAddRewards(lootBag.gold, lootBag.xp, lootBag.keys);
+      const bonusItems = (lootBag.potions || lootBag.scrolls || lootBag.orbs)
+          ? { potions: lootBag.potions, scrolls: lootBag.scrolls, orbs: lootBag.orbs }
+          : undefined;
+      onAddRewards(lootBag.gold, lootBag.xp, lootBag.keys, bonusItems);
       setMode('VICTORY');
       playSystemSoundEffect('LEVEL_UP');
   };

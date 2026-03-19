@@ -180,9 +180,20 @@ The GOLDEN RULE: A valid quest MUST be physically possible for a human, AND have
    - DRAINED/BURNOUT energy: increase difficulty one rank, reduce minDurationMinutes by 10%
    - Energy HIGH/PEAK: may reduce perceived rank
 8. reasoning: Write a SHORT, punchy 1-2 sentence analysis. Be direct and motivational. Avoid generic filler.
+9. sensorRequirements: For physical/outdoor quests, provide an object specifying what device sensors should verify:
+   - "steps": number of steps expected (e.g. "Walk 10000 steps" → 10000, "Run 5km" → ~6500)
+   - "distanceKm": distance in km (e.g. "Run 5km" → 5, "Cycle 20km" → 20)
+   - "activeMinutes": active movement minutes (e.g. "Exercise 30 min" → 30, "Jog for 1 hour" → 60)
+   - Only include fields that are relevant. For non-physical quests (reading, studying, cooking), set sensorRequirements to null.
+   - Examples:
+     * "Run 5km" → {"steps":6500,"distanceKm":5,"activeMinutes":25}
+     * "Walk 10000 steps" → {"steps":10000,"distanceKm":7}
+     * "Gym workout 45 min" → {"activeMinutes":45}
+     * "Read 30 pages" → null
+     * "Meditate 20 min" → null
 
 Respond with ONLY valid JSON, no markdown:
-{"rank":"C","xp":100,"categories":["strength","discipline"],"reasoning":"Running 10km demands serious endurance and mental fortitude at your current fitness level.","estimatedDuration":70,"minDurationMinutes":36,"autoDetectedTime":null,"isSpam":false}`;
+{"rank":"C","xp":100,"categories":["strength","discipline"],"reasoning":"Running 10km demands serious endurance and mental fortitude at your current fitness level.","estimatedDuration":70,"minDurationMinutes":36,"autoDetectedTime":null,"isSpam":false,"sensorRequirements":{"steps":13000,"distanceKm":10,"activeMinutes":50}}`;
 
     let modelResult: ModelResult | null = null;
     const models = ['gemini-2.0-flash', 'gemini-1.5-flash'];

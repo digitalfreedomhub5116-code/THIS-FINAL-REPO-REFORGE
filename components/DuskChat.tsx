@@ -67,6 +67,20 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, onClose, onMarkRead }) => {
     }
   }, [messages, player.userId]);
 
+  // Listen for autonomous messages triggered outside the component
+  useEffect(() => {
+    const handleNewMessage = (e: Event) => {
+        const msg = (e as CustomEvent).detail as Message;
+        setMessages(prev => {
+            // Prevent duplicates
+            if (prev.find(m => m.id === msg.id)) return prev;
+            return [...prev, msg];
+        });
+    };
+    window.addEventListener('dusk:new_message', handleNewMessage);
+    return () => window.removeEventListener('dusk:new_message', handleNewMessage);
+  }, []);
+
   const generateResponse = async (userMessage: string) => {
     setIsLoading(true);
     try {

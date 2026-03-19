@@ -12,11 +12,15 @@ const MODELS_TO_TRY = [
   'gemini-pro-vision',
 ];
 
-const NUTRITION_PROMPT = `You are a professional nutritionist and food scientist. Analyze the food in this image and return ONLY a valid JSON object (no markdown, no explanation, no code fences) with the following structure:
+const NUTRITION_PROMPT = `You are a strict, professional nutritionist AI.
 
+CRITICAL FIRST STEP: Look at the image. If the image does NOT contain food, meals, ingredients, or drinks (e.g., if it's a screenshot, a person, a landscape, a blank screen, etc.), you MUST return exactly this JSON:
+{ "error": "NOT_FOOD" }
+
+If and ONLY IF the image clearly contains food/drink, analyze it and return ONLY a valid JSON object (no markdown, no code fences) with this exact structure:
 {
   "name": "Full descriptive name of the meal/food",
-  "serving_size": "Estimated serving size (e.g. '1 plate ~350g')",
+  "serving_size": "Exact visual quantity (e.g. '1 slice', 'half a bowl ~150g', '2 whole eggs')",
   "calories": 450,
   "protein_g": 32.5,
   "carbs_g": 48.0,
@@ -36,11 +40,12 @@ const NUTRITION_PROMPT = `You are a professional nutritionist and food scientist
 }
 
 Rules:
-- All numeric values must be numbers, not strings
-- confidence must be exactly "High", "Medium", or "Low"
-- Daily value percentages (fields ending in _dv) are integers 0-100
-- If you cannot identify the food clearly, set confidence to "Low" and provide best estimates
-- Return ONLY the JSON object, nothing else`;
+- If NOT food, return { "error": "NOT_FOOD" } and nothing else.
+- PORTION AWARENESS (CRITICAL): You MUST estimate calories and macros based ONLY on the exact visual quantity shown in the image. If you see 1 slice of pizza, provide macros for 1 slice, NOT the whole pizza. If you see half a bowl of rice, calculate for half a bowl.
+- All numeric values must be numbers, not strings.
+- confidence must be exactly "High", "Medium", or "Low".
+- Daily value percentages (fields ending in _dv) are integers 0-100.
+- Return ONLY raw JSON, no markdown formatting (\`\`\`json ... \`\`\`), no conversational text.`;
 
 router.post('/analyze', async (req: Request, res: Response) => {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -84,6 +89,11 @@ router.post('/analyze', async (req: Request, res: Response) => {
         console.error(`[Nutrition] ${modelName} returned non-JSON:`, text.substring(0, 200));
         lastError = 'Could not parse AI response. Try a clearer food photo.';
         continue;
+      }
+
+      if (nutrition.error === "NOT_FOOD") {
+        console.log(`[Nutrition] Image rejected as non-food by ${modelName}`);
+        return res.status(400).json({ error: "No food detected. Please scan a clear image of a meal or ingredients." });
       }
 
       console.log(`[Nutrition] Success with model: ${modelName}`);

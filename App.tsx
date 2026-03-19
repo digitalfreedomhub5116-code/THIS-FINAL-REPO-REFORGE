@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Layout from './components/Layout';
 import Navigation from './components/Navigation';
 import MobileFloatingMenu from './components/MobileFloatingMenu';
-import SplashScreen from './components/SplashScreen';
+import SystemPersonalizationScreen from './components/SystemPersonalizationScreen';
 import AuthView from './components/AuthView';
 import SignInPage from './components/SignInPage';
 import CreateAccountPage from './components/CreateAccountPage';
@@ -22,6 +22,7 @@ import {
 } from './components/SkeletonLoaders';
 
 import { useSystem } from './hooks/useSystem';
+import { useSensors } from './hooks/useSensors';
 import { Tab, CoreStats, HealthProfile, Outfit, DbOutfit, TierLevel, PlayerData, Quest, DailyReward } from './types';
 import { OUTFITS } from './utils/gameData';
 import { getPlayerAuthHeaders } from './lib/playerApi';
@@ -51,7 +52,7 @@ const UpcomingQuests = lazy(() => import('./components/UpcomingQuests'));
 const SystemAgreement = lazy(() => import('./components/SystemAgreement'));
 const CalibrationFlow = lazy(() => import('./components/CalibrationFlow'));
 const NameOnboarding = lazy(() => import('./components/NameOnboarding'));
-const AvatarGenerator = lazy(() => import('./components/AvatarGenerator'));
+// AvatarGenerator removed — no longer needed
 const DuskChat = lazy(() => import('./components/DuskChat'));
 const XpCollectionOverlay = lazy(() => import('./components/XpCollectionOverlay'));
 const CheatWarningModal = lazy(() => import('./components/CheatWarningModal'));
@@ -75,7 +76,7 @@ const StrikeLiftedModal = lazy(() => import('./components/StrikeLiftedModal'));
 const ForgeGuardWidget = lazy(() => import('./components/ForgeGuardWidget'));
 
 // ── Types ──
-type OnboardingPhase = 'SPLASH' | 'WELCOME' | 'AGREEMENT' | 'NAMING' | 'CALIBRATION' | 'AUTH' | 'AUTH_SIGN_IN_PAGE' | 'AUTH_CREATE_PAGE' | 'AVATAR' | 'APP' | 'LOGOUT_CHOICE';
+type OnboardingPhase = 'SPLASH' | 'WELCOME' | 'AGREEMENT' | 'NAMING' | 'CALIBRATION' | 'AUTH' | 'AUTH_SIGN_IN_PAGE' | 'AUTH_CREATE_PAGE' | 'APP' | 'LOGOUT_CHOICE';
 
 // ── SessionStorage helpers ──
 const SS_USER = 'reforge_temp_user';
@@ -112,9 +113,59 @@ const App: React.FC = () => {
     claimTournamentReward, consumeKey,
     deductGold, enterDungeon, addRewards,
     recordStrike, removeStrike, markDuskMessagesRead,
+    startSensorTracking, stopSensorTracking, updateQuestSensorData,
     verifyTicket, purchaseOutfit, equipOutfit,
     checkDailyLogin,
   } = useSystem();
+
+  const sensors = useSensors();
+
+  // ── Sensor tracking handlers ──
+  const handleStartTracking = useCallback(async (questId: string) => {
+    const perms = await sensors.requestPermissions();
+    if (!perms.location && !perms.motion) {
+      addNotification('Sensor permissions denied. Enable Location & Motion in device settings.', 'WARNING');
+      return;
+    }
+    const started = await sensors.startTracking(questId);
+    if (started) {
+      startSensorTracking(questId);
+      addNotification('Tracking started — GPS & step counter active.', 'SUCCESS');
+    }
+  }, [sensors, startSensorTracking, addNotification]);
+
+  const handleStopTracking = useCallback((questId: string) => {
+    const snap = sensors.stopTracking();
+    if (snap) {
+      stopSensorTracking(questId, {
+        stepsRecorded: snap.stepsRecorded,
+        distanceRecorded: snap.distanceRecorded,
+        activeMinutesRecorded: snap.activeMinutesRecorded,
+        locationPath: snap.locationPath,
+        maxSpeedKmh: snap.maxSpeedKmh,
+      });
+      sensors.finalizeTracking(questId);
+    } else {
+      stopSensorTracking(questId);
+    }
+  }, [sensors, stopSensorTracking]);
+
+  // Sync sensor snapshot → quest sensorData every 5s while tracking
+  useEffect(() => {
+    if (!sensors.tracking || !sensors.activeQuestId || !sensors.snapshot) return;
+    const interval = setInterval(() => {
+      if (sensors.snapshot && sensors.activeQuestId) {
+        updateQuestSensorData(sensors.activeQuestId, {
+          stepsRecorded: sensors.snapshot.stepsRecorded,
+          distanceRecorded: sensors.snapshot.distanceRecorded,
+          activeMinutesRecorded: sensors.snapshot.activeMinutesRecorded,
+          locationPath: sensors.snapshot.locationPath,
+          maxSpeedKmh: sensors.snapshot.maxSpeedKmh,
+        });
+      }
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [sensors.tracking, sensors.activeQuestId, sensors.snapshot, updateQuestSensorData]);
 
   const [dbOutfits, setDbOutfits] = useState<Outfit[]>([]);
   const [dailyReward, setDailyReward] = useState<DailyReward | null>(null);
@@ -314,7 +365,7 @@ const App: React.FC = () => {
           }));
         }
         if (savedHealth && savedStats) {
-          setOnboardingPhase('AVATAR');
+          setOnboardingPhase('AUTH');
         } else if (savedUser) {
           setOnboardingPhase('CALIBRATION');
         }
@@ -653,9 +704,9 @@ const App: React.FC = () => {
     if (player.tutorialStep === 11) advanceTutorial(12);
   }, [pendingPactQuest, addQuest, addNotification, player.tutorialStep, advanceTutorial]);
 
-  // ── Loading Screen ──
+  // ── Loading Screen — black sword loader ──
   if (loading) {
-    return <SplashScreen onComplete={() => setLoading(false)} />;
+    return <SystemPersonalizationScreen onComplete={() => setLoading(false)} />;
   }
 
   // ── Admin ──
@@ -702,11 +753,7 @@ const App: React.FC = () => {
   // ── New User Onboarding ──
   if (onboardingPhase !== 'APP') {
     if (onboardingPhase === 'SPLASH') {
-      return (
-        <Suspense fallback={<SkeletonOnboardingPage />}>
-          <SplashScreen onComplete={() => setOnboardingPhase('WELCOME')} />
-        </Suspense>
-      );
+      return <SystemPersonalizationScreen onComplete={() => setOnboardingPhase('WELCOME')} />;
     }
     if (onboardingPhase === 'WELCOME') {
       return (
@@ -773,10 +820,9 @@ const App: React.FC = () => {
               ...(tempStats ? { stats: tempStats } : {}),
             };
             registerUser(merged);
-            setPlayer(prev => ({ ...prev, ...merged, startDate: Date.now() }));
-            const existingUser = !!(merged.isConfigured || merged.avatarUrl);
-            setIsNewUserOnboarding(!existingUser);
-            setOnboardingPhase(existingUser ? 'APP' : 'AVATAR');
+            setPlayer(prev => ({ ...prev, ...merged, isConfigured: true, startDate: Date.now() }));
+            ssClear();
+            setOnboardingPhase('APP');
           }}
         />
       );
@@ -796,10 +842,9 @@ const App: React.FC = () => {
               ...(tempStats ? { stats: tempStats } : {}),
             };
             registerUser(merged);
-            setPlayer(prev => ({ ...prev, ...merged, startDate: Date.now() }));
-            const existingUser = !!(merged.isConfigured || merged.avatarUrl);
-            setIsNewUserOnboarding(!existingUser);
-            setOnboardingPhase(existingUser ? 'APP' : 'AVATAR');
+            setPlayer(prev => ({ ...prev, ...merged, isConfigured: true, startDate: Date.now() }));
+            ssClear();
+            setOnboardingPhase('APP');
           }}
           onNavigate={(dest) => setOnboardingPhase(dest)}
         />
@@ -820,30 +865,12 @@ const App: React.FC = () => {
               ...(tempStats ? { stats: tempStats } : {}),
             };
             registerUser(merged);
-            setPlayer(prev => ({ ...prev, ...merged, startDate: Date.now() }));
-            const existingUser = !!(merged.isConfigured || merged.avatarUrl);
-            setIsNewUserOnboarding(!existingUser);
-            setOnboardingPhase(existingUser ? 'APP' : 'AVATAR');
+            setPlayer(prev => ({ ...prev, ...merged, isConfigured: true, startDate: Date.now() }));
+            ssClear();
+            setOnboardingPhase('APP');
           }}
           onNavigate={(dest) => setOnboardingPhase(dest)}
         />
-      );
-    }
-    if (onboardingPhase === 'AVATAR') {
-      return (
-        <Suspense fallback={<SkeletonOnboardingPage />}>
-          <ErrorBoundary fallbackLabel="Avatar generator failed">
-            <AvatarGenerator
-              playerId={player.userId ?? ''}
-              gender={tempHealthProfile?.gender}
-              onComplete={(avatarUrl: string, originalUrl: string) => {
-                setPlayer(prev => ({ ...prev, avatarUrl, originalSelfieUrl: originalUrl, isConfigured: true }));
-                ssClear();
-                setOnboardingPhase('APP');
-              }}
-            />
-          </ErrorBoundary>
-        </Suspense>
       );
     }
   }
@@ -1067,6 +1094,7 @@ const App: React.FC = () => {
         onMarkNotificationsRead={markNotificationsRead}
         onClearNotificationHistory={clearNotificationHistory}
         headerDisabled={isDungeonMode}
+        forceHeaderVisible={!player.tutorialComplete && isNewUserOnboarding && (player.tutorialStep === 3 || player.tutorialStep === 16)}
         onGoldClick={!isDungeonMode ? () => setActiveTab('STORE') : undefined}
         onLogout={() => setShowLogoutChoice(true)}
         onEditProfile={() => setActiveTab('PROFILE')}
@@ -1202,6 +1230,8 @@ const App: React.FC = () => {
                     onToggleNav={handleToggleNav}
                     recordStrike={recordStrike}
                     onShowPact={handleShowPact}
+                    onStartTracking={handleStartTracking}
+                    onStopTracking={handleStopTracking}
                   />
                 </ErrorBoundary>
               </Suspense>

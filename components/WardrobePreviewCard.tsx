@@ -300,7 +300,7 @@ const WardrobePreviewCard: React.FC<WardrobePreviewCardProps> = ({
       </div>
 
       {/* ── MAIN 40/60 SPLIT — no visible divider ── */}
-      <div className="flex" style={{ height: 360 }}>
+      <div className="flex" style={{ height: 'clamp(260px, 50vw, 360px)' }}>
 
         {/* LEFT 40% — 4 stat rings in a vertical column */}
         <div
@@ -367,7 +367,7 @@ const WardrobePreviewCard: React.FC<WardrobePreviewCardProps> = ({
         {/* RIGHT 60% — video / image, no visible left border */}
         <div
           className="relative overflow-hidden"
-          style={{ width: '60%', height: 360 }}
+          style={{ width: '60%', height: '100%' }}
         >
           {/* Ambient fallback */}
           <AnimatePresence>
@@ -419,7 +419,7 @@ const WardrobePreviewCard: React.FC<WardrobePreviewCardProps> = ({
             playsInline
             poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
             className="absolute inset-0 w-full h-full bg-transparent"
-            style={{ objectFit: 'cover', objectPosition: 'center top', display: videoPhase === 'intro' ? 'block' : 'none' }}
+            style={{ objectFit: 'contain', objectPosition: 'center top', display: videoPhase === 'intro' ? 'block' : 'none' }}
           />
 
           {/* Loop video */}
@@ -430,7 +430,7 @@ const WardrobePreviewCard: React.FC<WardrobePreviewCardProps> = ({
             loop
             poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
             className="absolute inset-0 w-full h-full bg-transparent"
-            style={{ objectFit: 'cover', objectPosition: 'center top', display: videoPhase === 'loop' ? 'block' : 'none' }}
+            style={{ objectFit: 'contain', objectPosition: 'center top', display: videoPhase === 'loop' ? 'block' : 'none' }}
           />
 
           {/* LEFT fade */}

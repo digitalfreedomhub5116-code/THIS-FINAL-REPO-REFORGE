@@ -56,23 +56,23 @@ const createEx = (
     reps: string, 
     type: 'COMPOUND' | 'ACCESSORY' | 'CARDIO' | 'STRETCH', 
     notes?: string,
-    videoUrl?: string
+    videoUrl?: string,
+    isSupplementary?: boolean
 ): Exercise => ({
-    name, sets, reps, type, completed: false, duration: 0, notes, videoUrl
+    name, sets, reps, type, completed: false, duration: 0, notes, videoUrl, isSupplementary
 });
 
 const UNIVERSAL_WARMUP = [
-    createEx('Treadmill/Brisk Walk Warmup', 1, '5 min', 'STRETCH', 'Wake up the system (30-45 cal)'),
-    createEx('Mobility: Ankle Rotations', 1, '10 reps/side', 'STRETCH'),
-    createEx('Mobility: Quad Stretches', 1, '10s/side', 'STRETCH'),
-    createEx('Mobility: Cat & Cow', 1, '10 reps', 'STRETCH'),
-    createEx('Mobility: Shoulder & Wrist Rotations', 1, '10 reps/side', 'STRETCH'),
+    createEx('Brisk Walk / Light Jog', 1, '3 min', 'CARDIO', 'Get heart rate up', undefined, true),
+    createEx('Arm Circles & Torso Twists', 1, '1 min', 'STRETCH', 'Dynamic upper body warm-up', undefined, true),
+    createEx('Leg Swings & Hip Circles', 1, '1 min', 'STRETCH', 'Dynamic lower body warm-up', undefined, true),
+    createEx('Cat & Cow Stretch', 1, '1 min', 'STRETCH', 'Spinal mobility', undefined, true),
 ];
 
 const UNIVERSAL_COOLDOWN = [
-    createEx('Cooldown: Child Pose', 1, '1 min', 'STRETCH'),
-    createEx('Cooldown: Shavasana', 1, '2 min', 'STRETCH'),
-    createEx('Full Body Stretch', 1, '5 min', 'STRETCH')
+    createEx('Slow Walk', 1, '3 min', 'CARDIO', 'Gradually lower heart rate', undefined, true),
+    createEx('Full Body Static Stretch', 1, '3 min', 'STRETCH', 'Hold each stretch 20-30s', undefined, true),
+    createEx('Deep Breathing & Shavasana', 1, '2 min', 'STRETCH', 'Recovery breathing', undefined, true),
 ];
 
 // --- PPL GYM MASTER DATA ---

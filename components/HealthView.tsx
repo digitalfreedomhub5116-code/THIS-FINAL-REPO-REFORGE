@@ -1,22 +1,26 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
-import { Activity, Ruler, Fingerprint, Flame, Target, Check, Sparkles, User, Weight, ChevronRight, ChevronLeft, ShieldCheck, ArrowRight, Clock, TrendingUp, Trash2, Utensils, Camera, Loader2, Save, Droplets, Wheat, Beef, SkipForward, Lock, Key, Cpu, Plus } from 'lucide-react';
+import { Activity, Ruler, Fingerprint, Flame, Target, Check, Sparkles, User, Weight, ChevronRight, ChevronLeft, ShieldCheck, ArrowRight, Clock, TrendingUp, Trash2, Utensils, Camera, Loader2, Save, Droplets, Wheat, Beef, SkipForward, Lock, Key, Cpu, Plus, X, Settings } from 'lucide-react';
 import { HealthProfile, WorkoutDay, WorkoutPlan, PlayerData, ProgressPhoto, MealLog, FoodItem, MealType } from '../types';
-import ActiveWorkoutPlayer from './ActiveWorkoutPlayer';
+import ActiveWorkoutPlayer, { SavedWorkoutSession, loadWorkoutSession, clearWorkoutSession } from './ActiveWorkoutPlayer';
+import WorkoutRewardModal, { WorkoutReward } from './WorkoutRewardModal';
 import WorkoutMap from './WorkoutMap';
 import WorkoutOverview from './WorkoutOverview';
 import ProtocolMonthView from './ProtocolMonthView';
 import PlanSelector from './PlanSelector';
 import CustomPlanBuilder from './CustomPlanBuilder';
+import PlanCustomizer from './PlanCustomizer';
 import { generateSystemProtocol, calculateTimeEstimate } from '../utils/workoutGenerator';
 import { playSystemSoundEffect } from '../utils/soundEngine';
 import { API_BASE } from '../lib/apiConfig';
+import { DEFAULT_PLANS, getRecommendedPlan } from '../lib/defaultPlans';
+import OnboardingNotice from './OnboardingNotice';
 
 interface HealthViewProps {
   healthProfile?: HealthProfile;
   onSaveProfile: (profile: HealthProfile, identity: string) => void;
-  onCompleteWorkout: (exercisesCompleted: number, totalExercises: number, results: Record<string, number>, intensityModifier: boolean) => void;
+  onCompleteWorkout: (exercisesCompleted: number, totalExercises: number, results: Record<string, number>, intensityModifier: boolean, anomalyPoints?: number) => WorkoutReward[] | void;
   onFailWorkout: () => void;
   onAddPhoto?: (photo: ProgressPhoto) => void;
   onDeletePhoto?: (id: string) => void;
@@ -389,6 +393,73 @@ const lerpColor = (a: string, b: string, amount: number) => {
 const setupContainerVariants: Variants = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.1, delayChildren: 0.2 } }, exit: { opacity: 0, x: -20, transition: { duration: 0.2 } } };
 const setupItemVariants: Variants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } } };
 
+// --- AI GENERATING LOADER (Irregular progress) ---
+const AI_LOADER_MESSAGES = [
+  "Analyzing your biometrics...",
+  "Selecting optimal exercises...",
+  "Calibrating volume & intensity...",
+  "Building periodization model...",
+  "Optimizing rest intervals...",
+  "Finalizing your protocol...",
+];
+
+const AIGeneratingLoader: React.FC = () => {
+  const [progress, setProgress] = useState(0);
+  const [msgIdx, setMsgIdx] = useState(0);
+
+  useEffect(() => {
+    let frame: ReturnType<typeof setTimeout>;
+    let current = 0;
+    const tick = () => {
+      // Irregular increments: sometimes fast, sometimes stalls
+      const rand = Math.random();
+      let increment = 0;
+      if (rand < 0.3) increment = 0; // stall 30% of the time
+      else if (rand < 0.7) increment = Math.random() * 1.5 + 0.3;
+      else increment = Math.random() * 3 + 1;
+
+      current = Math.min(current + increment, 92); // never reaches 100 on its own
+      setProgress(current);
+      frame = setTimeout(tick, 200 + Math.random() * 400);
+    };
+    frame = setTimeout(tick, 300);
+    return () => clearTimeout(frame);
+  }, []);
+
+  useEffect(() => {
+    const t = setInterval(() => setMsgIdx(p => (p + 1) % AI_LOADER_MESSAGES.length), 3000);
+    return () => clearInterval(t);
+  }, []);
+
+  return (
+    <div className="flex flex-col items-center py-5 gap-3">
+      <div className="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden">
+        <motion.div
+          className="h-full rounded-full"
+          style={{ background: 'linear-gradient(90deg, #7c3aed, #a855f7, #7c3aed)' }}
+          animate={{ width: `${progress}%` }}
+          transition={{ duration: 0.3, ease: 'easeOut' }}
+        />
+      </div>
+      <div className="flex items-center gap-2">
+        <Loader2 size={12} className="text-purple-400 animate-spin" />
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={msgIdx}
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            className="text-[10px] text-purple-400/80 font-mono"
+          >
+            {AI_LOADER_MESSAGES[msgIdx]}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+      <div className="text-[9px] text-gray-600 font-mono">{Math.floor(progress)}% — Do not close this screen</div>
+    </div>
+  );
+};
+
 // --- MAIN EXPORTED COMPONENT ---
 
 const GeneratingMessage: React.FC<{ messages: string[] }> = ({ messages }) => {
@@ -421,6 +492,9 @@ export const HealthView: React.FC<HealthViewProps> = ({
   const [aiPlanError, setAiPlanError] = useState<string | null>(null);
   const [planCompleteData, setPlanCompleteData] = useState<{ name: string; dayCount: number } | null>(null);
   const [showCustomPlanBuilder, setShowCustomPlanBuilder] = useState(false);
+  const [showPlanCustomizer, setShowPlanCustomizer] = useState(false);
+  const [customizerPlanData, setCustomizerPlanData] = useState<{ name: string; days: WorkoutDay[] } | null>(null);
+  const [planSwitchLoading, setPlanSwitchLoading] = useState(false);
   const [premadePlans, setPremadePlans] = useState<WorkoutPlan[]>([]);
   const [customPlans, setCustomPlans] = useState<any[]>([]);
   const [aiConfirmStep, setAiConfirmStep] = useState<0 | 1 | 2>(0);
@@ -457,12 +531,38 @@ export const HealthView: React.FC<HealthViewProps> = ({
   const [scanItems, setScanItems] = useState<any[]>([]);
   const [scanError, setScanError] = useState<string | null>(null);
   const [selectedMealType, setSelectedMealType] = useState<MealType>('LUNCH');
+  const [selectedMealLog, setSelectedMealLog] = useState<MealLog | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [loadingMessage, setLoadingMessage] = useState("ANALYSING IMAGE...");
   const [showMicros, setShowMicros] = useState(false);
   
   // Keys Alert State
   const [showKeyAlert, setShowKeyAlert] = useState(false);
+
+  // Workout Reward Modal State
+  const [workoutRewards, setWorkoutRewards] = useState<WorkoutReward[] | null>(null);
+  const [workoutAnomalyPoints, setWorkoutAnomalyPoints] = useState(0);
+
+  // Session Resume State
+  const [savedSession, setSavedSession] = useState<SavedWorkoutSession | null>(null);
+  const [showResumePrompt, setShowResumePrompt] = useState(false);
+
+  // Check for saved workout session on mount
+  useEffect(() => {
+    const session = loadWorkoutSession();
+    if (session) {
+      // Check if session is from today (before daily reset)
+      const sessionDate = new Date(session.timestamp).toISOString().split('T')[0];
+      const today = new Date().toISOString().split('T')[0];
+      if (sessionDate === today) {
+        setSavedSession(session);
+        setShowResumePrompt(true);
+      } else {
+        // Session is from a previous day — mark as failed and clear
+        clearWorkoutSession();
+      }
+    }
+  }, []);
 
   const projectedIncrease = useMemo(() => {
       if (playerData.username) {
@@ -481,6 +581,43 @@ export const HealthView: React.FC<HealthViewProps> = ({
         .filter(log => log.timestamp >= todayStart.getTime())
         .reduce((acc, log) => ({ calories: acc.calories + log.totalCalories, protein: acc.protein + log.totalProtein, carbs: acc.carbs + log.totalCarbs, fats: acc.fats + log.totalFats }), { calories: 0, protein: 0, carbs: 0, fats: 0 });
   }, [playerData.nutritionLogs]);
+
+  // Calculate personalized daily targets based on health profile
+  const dailyTargets = useMemo(() => {
+      if (!healthProfile) return null;
+      
+      // Use existing macros if available, otherwise calculate from BMR
+      if (healthProfile.macros?.calories) {
+          return {
+              calories: healthProfile.macros.calories,
+              protein: healthProfile.macros.protein,
+              carbs: healthProfile.macros.carbs,
+              fats: healthProfile.macros.fats,
+          };
+      }
+
+      // Fallback: calculate from BMR if macros not set
+      const bmr = healthProfile.bmr || 1800;
+      const activityMultipliers = { SEDENTARY: 1.2, LIGHT: 1.375, MODERATE: 1.55, VERY_ACTIVE: 1.725 };
+      const tdee = Math.round(bmr * (activityMultipliers[healthProfile.activityLevel] || 1.55));
+      
+      // Adjust for goal
+      let targetCalories = tdee;
+      if (healthProfile.goal === 'LOSE_WEIGHT') targetCalories = Math.round(tdee * 0.85);
+      else if (healthProfile.goal === 'BUILD_MUSCLE') targetCalories = Math.round(tdee * 1.1);
+      
+      // Macro split based on goal
+      let proteinRatio = 0.3, carbsRatio = 0.4, fatsRatio = 0.3;
+      if (healthProfile.goal === 'BUILD_MUSCLE') { proteinRatio = 0.35; carbsRatio = 0.45; fatsRatio = 0.2; }
+      else if (healthProfile.goal === 'LOSE_WEIGHT') { proteinRatio = 0.4; carbsRatio = 0.3; fatsRatio = 0.3; }
+      
+      return {
+          calories: targetCalories,
+          protein: Math.round((targetCalories * proteinRatio) / 4),
+          carbs: Math.round((targetCalories * carbsRatio) / 4),
+          fats: Math.round((targetCalories * fatsRatio) / 9),
+      };
+  }, [healthProfile]);
 
   useEffect(() => {
       if (onToggleNav) {
@@ -507,12 +644,9 @@ export const HealthView: React.FC<HealthViewProps> = ({
       return () => { if (interval) clearInterval(interval); };
   }, [scanState]);
 
-  // Fetch premade plans for the workout tab
+  // Use only built-in DEFAULT_PLANS for the premade carousel (API plans were duplicating)
   useEffect(() => {
-      fetch(`${API_BASE}/api/workout/plans`)
-          .then(r => r.json())
-          .then(data => setPremadePlans(Array.isArray(data) ? data : []))
-          .catch(() => {});
+      setPremadePlans([...DEFAULT_PLANS]);
   }, []);
 
   // Fetch user custom plans (manual + AI saved)
@@ -570,7 +704,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
           else {
               clearInterval(finalizingIntervalRef.current!); finalizingIntervalRef.current = null;
               setTimeout(() => {
-                const fullProfile = { ...formData, bmi: parseFloat(currentBMI), bmr: nutritionInfo.bmr, macros: nutritionInfo.macros, injuries: [], category: 'Hunter', startingWeight: formData.weight } as HealthProfile;
+                const fullProfile = { ...formData, bmi: parseFloat(currentBMI), bmr: nutritionInfo.bmr, macros: nutritionInfo.macros, injuries: formData.injuries || [], category: 'Hunter', startingWeight: formData.weight } as HealthProfile;
                 onSaveProfile(fullProfile, "Shadow Vessel");
                 setViewMode('PLAN_SELECT');
               }, 2000);
@@ -626,6 +760,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
                   weight: profile.weight || 70,
                   age: profile.age || 25,
                   gender: profile.gender || 'MALE',
+                  injuries: profile.injuries || [],
               }),
           });
           if (!res.ok) {
@@ -660,7 +795,10 @@ export const HealthView: React.FC<HealthViewProps> = ({
               aiGeneratedPlanName: planName,
           } as HealthProfile;
           onSaveProfile(updated, updated.category || 'Hunter');
-          // Persist to user_custom_plans table (won't be erased on plan switches)
+          // Persist to user_custom_plans table (max 10 plans enforced)
+          if (customPlans.length >= 10) {
+              console.warn('Max 10 plans reached. Oldest custom plan will not be replaced automatically.');
+          }
           try {
               const saved = await fetch(`${API_BASE}/api/workout/custom-plans`, {
                   method: 'POST',
@@ -1043,23 +1181,26 @@ export const HealthView: React.FC<HealthViewProps> = ({
                 animate={{ opacity: 1, scale: 1 }}
                 className="max-w-md w-full bg-system-card border border-system-border rounded-3xl p-8 shadow-2xl relative overflow-hidden"
               >
-                  <div className="absolute top-0 left-0 w-full h-1 bg-gray-800">
+                  {/* Minimal progress indicator */}
+                  <div className="absolute top-0 left-0 w-full h-[2px] bg-gray-900">
                     <motion.div 
                         initial={{ width: 0 }}
-                        animate={{ width: `${(step/TOTAL_STEPS)*100}%` }} 
-                        className="h-full bg-system-neon shadow-[0_0_15px_#00d2ff]" 
+                        animate={{ width: `${(step/TOTAL_STEPS)*100}%` }}
+                        transition={{ type: 'spring', stiffness: 120, damping: 20 }}
+                        className="h-full bg-system-neon/80" 
                     />
                   </div>
                   
-                  <div className="flex justify-between items-center mb-10">
-                    <h2 className="text-xl font-bold text-white tracking-widest uppercase">Calibration Phase {step}/{TOTAL_STEPS}</h2>
-                    <motion.span 
-                        animate={{ opacity: [1, 0.3, 1] }}
-                        transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-                        className="text-[10px] text-system-neon font-black bg-system-neon/10 px-2 py-0.5 rounded border border-system-neon/30"
-                    >
-                        SYNCING...
-                    </motion.span>
+                  <div className="flex justify-between items-center mb-8">
+                    <div>
+                      <div className="text-[9px] text-gray-600 font-mono tracking-widest uppercase">Calibration</div>
+                      <div className="text-sm font-bold text-white tracking-wide mt-0.5">Step {step} <span className="text-gray-600 font-normal">of {TOTAL_STEPS}</span></div>
+                    </div>
+                    <div className="flex gap-1">
+                      {Array.from({ length: TOTAL_STEPS }, (_, i) => (
+                        <div key={i} className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${i < step ? 'bg-system-neon' : 'bg-gray-800'}`} />
+                      ))}
+                    </div>
                   </div>
 
                   <AnimatePresence mode="wait">
@@ -1269,10 +1410,45 @@ export const HealthView: React.FC<HealthViewProps> = ({
   }
 
   if (viewMode === 'OVERVIEW' && activePlan) return <WorkoutOverview plan={activePlan} focusVideos={playerData.focusVideos} onStart={(p) => { setActivePlan(p); setViewMode('ACTIVE'); }} onCancel={() => setViewMode('MAP')} userWeight={healthProfile?.weight} />;
-  if (viewMode === 'ACTIVE' && activePlan) return <ActiveWorkoutPlayer plan={activePlan} onComplete={(c, t, r) => { onCompleteWorkout(c, t, r, false); setViewMode('MAP'); }} onFail={() => { onFailWorkout(); setViewMode('MAP'); }} streak={playerData.streak} />;
+  if (viewMode === 'ACTIVE' && activePlan) return (
+    <>
+      <ActiveWorkoutPlayer
+        plan={activePlan}
+        onComplete={(c, t, r, anomaly) => {
+          const rewards = onCompleteWorkout(c, t, r, false, anomaly);
+          clearWorkoutSession();
+          setSavedSession(null);
+          if (rewards && Array.isArray(rewards) && rewards.length > 0) {
+            setWorkoutRewards(rewards);
+            setWorkoutAnomalyPoints(anomaly ?? 0);
+          } else {
+            setViewMode('MAP');
+          }
+        }}
+        onFail={() => {
+          onFailWorkout();
+          setViewMode('MAP');
+        }}
+        streak={playerData.streak}
+        savedSession={savedSession}
+      />
+      {workoutRewards && (
+        <WorkoutRewardModal
+          rewards={workoutRewards}
+          anomalyPoints={workoutAnomalyPoints}
+          onClose={() => {
+            setWorkoutRewards(null);
+            setWorkoutAnomalyPoints(0);
+            setViewMode('MAP');
+          }}
+        />
+      )}
+    </>
+  );
 
   return (
     <>
+        <OnboardingNotice page="HEALTH" />
         <AnimatePresence>
             {showKeyAlert && (
                 <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/90 backdrop-blur-md">
@@ -1307,6 +1483,66 @@ export const HealthView: React.FC<HealthViewProps> = ({
             )}
         </AnimatePresence>
 
+        {/* Resume Workout Prompt */}
+        <AnimatePresence>
+            {showResumePrompt && savedSession && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/90 backdrop-blur-md">
+                    <motion.div
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.8, opacity: 0 }}
+                        className="bg-[#0a0a0a] border border-yellow-500/50 w-full max-w-sm rounded-2xl p-8 text-center shadow-[0_0_50px_rgba(234,179,8,0.2)] relative overflow-hidden"
+                    >
+                        <div className="relative z-10 flex flex-col items-center">
+                            <div className="w-16 h-16 rounded-full bg-black border border-yellow-500 flex items-center justify-center mb-6 shadow-[0_0_20px_rgba(234,179,8,0.5)]">
+                                <Activity size={32} className="text-yellow-500" />
+                            </div>
+                            <h2 className="text-xl font-black text-white font-mono uppercase tracking-tighter mb-2">PAUSED SESSION</h2>
+                            <p className="text-xs text-yellow-300 font-mono mb-2 leading-relaxed">
+                                You have an incomplete workout from earlier today.
+                            </p>
+                            <p className="text-[10px] text-gray-500 font-mono mb-6">
+                                Day: {savedSession.planDay} &bull; Exercise {savedSession.currentIdx + 1} &bull; Set {savedSession.currentSet}
+                            </p>
+                            <div className="flex flex-col gap-3 w-full">
+                                <button
+                                    onClick={() => {
+                                        setShowResumePrompt(false);
+                                        // Find the matching plan day and launch active mode
+                                        const days = playerData.healthProfile?.workoutPlan;
+                                        if (days && days.length > 0) {
+                                            const matchDay = days.find((d: WorkoutDay) => d.day === savedSession.planDay);
+                                            if (matchDay) {
+                                                setActivePlan(matchDay);
+                                                setViewMode('ACTIVE');
+                                                return;
+                                            }
+                                        }
+                                        // If no match found, clear session
+                                        clearWorkoutSession();
+                                        setSavedSession(null);
+                                    }}
+                                    className="w-full py-4 bg-yellow-600 text-black font-black rounded-xl hover:bg-yellow-500 transition-colors uppercase tracking-widest text-xs font-mono shadow-lg"
+                                >
+                                    RESUME WORKOUT
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setShowResumePrompt(false);
+                                        clearWorkoutSession();
+                                        setSavedSession(null);
+                                    }}
+                                    className="w-full py-3 bg-transparent border border-gray-700 text-gray-400 font-bold rounded-xl hover:bg-gray-900 transition-colors uppercase tracking-widest text-[10px] font-mono"
+                                >
+                                    DISCARD & START FRESH
+                                </button>
+                            </div>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
+        </AnimatePresence>
+
         <div id="tut-health" className="h-full flex flex-col gap-6 font-mono">
             <div className="flex gap-2 sticky top-20 z-30 pt-1 pb-2 bg-transparent">
                 {['WORKOUT', 'NUTRITION', 'BODY'].map(t => (
@@ -1329,6 +1565,14 @@ export const HealthView: React.FC<HealthViewProps> = ({
                 <AnimatePresence mode="wait">
                     {activeTab === 'WORKOUT' && (() => {
                         const completedWorkouts = playerData.logs.filter(l => l.type === 'WORKOUT').length;
+                        // Compute missed days from WARNING logs about missed workouts
+                        const missedDayIndices: number[] = [];
+                        const warningLogs = playerData.logs.filter(l => l.type === 'WARNING' && l.message.includes('Missed Workout'));
+                        warningLogs.forEach((_, i) => {
+                            // Map each missed workout warning to the day index it corresponds to
+                            const missedIdx = completedWorkouts + i;
+                            if (missedIdx < calculatedPlan.length) missedDayIndices.push(missedIdx);
+                        });
                         const activePremadePlan = premadePlans.find(p => p.id === (healthProfile as any)?.selectedPlanId);
                         const daysPerWeek = activePremadePlan?.days_per_week || (calculatedPlan.length > 0 ? Math.min(calculatedPlan.length, 5) : 3);
                         const totalWeeks = activePremadePlan
@@ -1461,10 +1705,23 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                                     whileTap={{ scale: 0.95 }}
                                                     whileHover={{ scale: 1.02 }}
                                                     onClick={() => {
-                                                        const aiDays = (healthProfile as any)?.aiGeneratedPlan || (isAiActive ? healthProfile?.workoutPlan : null);
+                                                        if (isAiActive) return;
+                                                        const aiDays = (healthProfile as any)?.aiGeneratedPlan || healthProfile?.workoutPlan;
                                                         if (aiDays && Array.isArray(aiDays)) {
-                                                            const updated = { ...(healthProfile as HealthProfile), workoutPlan: aiDays, selectedPlanId: undefined, selectedPlanName: aiPlanName } as HealthProfile;
-                                                            onSaveProfile(updated, updated.category || 'Hunter');
+                                                            const prevName = healthProfile?.selectedPlanName || 'None';
+                                                            setPlanSwitchLoading(true);
+                                                            setTimeout(() => {
+                                                                const updated = {
+                                                                    ...(healthProfile as HealthProfile),
+                                                                    workoutPlan: aiDays,
+                                                                    selectedPlanId: undefined,
+                                                                    selectedPlanName: aiPlanName,
+                                                                    planChangedAtDay: completedWorkouts,
+                                                                    prevPlanName: prevName,
+                                                                } as HealthProfile;
+                                                                onSaveProfile(updated, updated.category || 'Hunter');
+                                                                setPlanSwitchLoading(false);
+                                                            }, 800);
                                                         }
                                                     }}
                                                     className="relative shrink-0 w-44 h-56 rounded-2xl overflow-hidden transition-all"
@@ -1501,73 +1758,146 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                             ? { badge: 'bg-yellow-900/80 text-yellow-300', glow: 'rgba(250,204,21,0.18)', border: 'rgba(250,204,21,0.3)' }
                                             : { badge: 'bg-red-900/80 text-red-300', glow: 'rgba(239,68,68,0.18)', border: 'rgba(239,68,68,0.3)' };
                                         return (
-                                            <motion.button
-                                                key={plan.id}
-                                                whileTap={{ scale: 0.95 }}
-                                                whileHover={{ scale: 1.02 }}
-                                                onClick={() => {
-                                                    const days = Array.isArray(plan.days) ? plan.days : [];
-                                                    const updated = { ...(healthProfile || formData as HealthProfile), workoutPlan: days, selectedPlanId: plan.id, selectedPlanName: plan.name } as HealthProfile;
-                                                    onSaveProfile(updated, updated.category || 'Hunter');
-                                                }}
-                                                className="relative shrink-0 w-44 h-56 rounded-2xl overflow-hidden transition-all"
-                                                style={{ border: `1px solid ${isActive ? dc.border : 'rgba(255,255,255,0.08)'}`, boxShadow: isActive ? `0 0 24px ${dc.glow}, 0 0 8px ${dc.glow}` : `0 4px 20px rgba(0,0,0,0.4)` }}
-                                            >
-                                                {plan.image_url ? (
-                                                    <img src={plan.image_url} alt={plan.name} className="absolute inset-0 w-full h-full object-cover" onError={e => { (e.target as any).style.display = 'none'; }} />
-                                                ) : (
-                                                    <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, #0d0d0d 0%, #1a1a1a 100%)' }} />
-                                                )}
-                                                <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.55) 45%, rgba(0,0,0,0.1) 100%)' }} />
-                                                <div className="absolute inset-0 p-3.5 flex flex-col justify-between">
-                                                    <div className="flex items-start justify-between">
-                                                        <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${dc.badge}`}>{plan.difficulty}</span>
-                                                        {isActive && <span className="text-[8px] font-black text-system-neon bg-black/60 px-1.5 py-0.5 rounded-full border border-system-neon/30">ACTIVE</span>}
-                                                    </div>
-                                                    <div>
-                                                        <div className="text-sm font-black text-white leading-tight mb-1.5">{plan.name}</div>
-                                                        <div className="flex gap-2 text-[9px] text-gray-400 font-mono">
-                                                            <span>{plan.duration_weeks}w</span>
-                                                            <span>·</span>
-                                                            <span>{plan.days_per_week}d/wk</span>
+                                            <div key={plan.id} className="relative shrink-0">
+                                                <motion.button
+                                                    whileTap={{ scale: 0.95 }}
+                                                    whileHover={{ scale: 1.02 }}
+                                                    onClick={() => {
+                                                        if (isActive) return;
+                                                        const prevName = healthProfile?.selectedPlanName || 'None';
+                                                        setPlanSwitchLoading(true);
+                                                        setTimeout(() => {
+                                                            const days = Array.isArray(plan.days) ? plan.days : [];
+                                                            const updated = {
+                                                                ...(healthProfile || formData as HealthProfile),
+                                                                workoutPlan: days,
+                                                                selectedPlanId: plan.id,
+                                                                selectedPlanName: plan.name,
+                                                                planChangedAtDay: completedWorkouts,
+                                                                prevPlanName: prevName,
+                                                            } as HealthProfile;
+                                                            onSaveProfile(updated, updated.category || 'Hunter');
+                                                            setPlanSwitchLoading(false);
+                                                        }, 800);
+                                                    }}
+                                                    className="relative w-44 h-56 rounded-2xl overflow-hidden transition-all"
+                                                    style={{ border: `1px solid ${isActive ? dc.border : 'rgba(255,255,255,0.08)'}`, boxShadow: isActive ? `0 0 24px ${dc.glow}, 0 0 8px ${dc.glow}` : `0 4px 20px rgba(0,0,0,0.4)` }}
+                                                >
+                                                    {plan.image_url ? (
+                                                        <img src={plan.image_url} alt={plan.name} className="absolute inset-0 w-full h-full object-cover" onError={e => { (e.target as any).style.display = 'none'; }} />
+                                                    ) : (
+                                                        <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, #0d0d0d 0%, #1a1a1a 100%)' }} />
+                                                    )}
+                                                    <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.55) 45%, rgba(0,0,0,0.1) 100%)' }} />
+                                                    <div className="absolute inset-0 p-3.5 flex flex-col justify-between">
+                                                        <div className="flex items-start justify-between">
+                                                            <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${dc.badge}`}>{plan.difficulty}</span>
+                                                            {isActive && <span className="text-[8px] font-black text-system-neon bg-black/60 px-1.5 py-0.5 rounded-full border border-system-neon/30">ACTIVE</span>}
                                                         </div>
-                                                        {plan.description && <div className="text-[9px] text-gray-500 mt-1.5 leading-snug line-clamp-2">{plan.description}</div>}
+                                                        <div>
+                                                            <div className="text-sm font-black text-white leading-tight mb-1.5">{plan.name}</div>
+                                                            <div className="flex gap-2 text-[9px] text-gray-400 font-mono">
+                                                                <span>{plan.duration_weeks}w</span>
+                                                                <span>·</span>
+                                                                <span>{plan.days_per_week}d/wk</span>
+                                                            </div>
+                                                            {plan.description && <div className="text-[9px] text-gray-500 mt-1.5 leading-snug line-clamp-2">{plan.description}</div>}
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            </motion.button>
+                                                </motion.button>
+                                                {/* Gear button — only on active, non-AI plan */}
+                                                {isActive && (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            const planDays = Array.isArray(plan.days) ? plan.days : [];
+                                                            setCustomizerPlanData({ name: plan.name, days: planDays });
+                                                            setShowPlanCustomizer(true);
+                                                            onToggleNav?.(false);
+                                                        }}
+                                                        className="absolute top-2 right-2 z-10 w-6 h-6 bg-black/70 border border-gray-700 rounded-full flex items-center justify-center text-gray-400 hover:text-system-neon hover:border-system-neon/40 transition-all"
+                                                        title="Customize Plan"
+                                                    >
+                                                        <Settings size={11} />
+                                                    </button>
+                                                )}
+                                            </div>
                                         );
                                     })}
 
-                                    {/* Custom / Manual plans */}
-                                    {customPlans.filter(cp => cp.plan_type !== 'AI').map(cp => {
+                                    {/* Custom / Manual plans — max 10 total */}
+                                    {customPlans.filter(cp => cp.plan_type !== 'AI').slice(0, 10).map(cp => {
                                         const isActive = (healthProfile as any)?.selectedPlanId === `custom-${cp.id}`;
                                         const cpDays = Array.isArray(cp.days) ? cp.days : (typeof cp.days === 'string' ? JSON.parse(cp.days) : []);
                                         return (
-                                            <motion.button
-                                                key={cp.id}
-                                                whileTap={{ scale: 0.95 }}
-                                                whileHover={{ scale: 1.02 }}
-                                                onClick={() => {
-                                                    const updated = { ...(healthProfile as HealthProfile), workoutPlan: cpDays, selectedPlanId: `custom-${cp.id}`, selectedPlanName: cp.name } as HealthProfile;
-                                                    onSaveProfile(updated, updated.category || 'Hunter');
-                                                }}
-                                                className="relative shrink-0 w-44 h-56 rounded-2xl overflow-hidden transition-all"
-                                                style={{ border: isActive ? '1px solid rgba(0,210,255,0.6)' : '1px solid rgba(255,255,255,0.08)', boxShadow: isActive ? '0 0 24px rgba(0,210,255,0.25)' : '0 4px 20px rgba(0,0,0,0.4)' }}
-                                            >
-                                                <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, #001a1f 0%, #003040 40%, #000d14 100%)' }} />
-                                                <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(0,210,255,0.2) 0%, transparent 65%)' }} />
-                                                <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.1) 100%)' }} />
-                                                <div className="absolute inset-0 p-3.5 flex flex-col justify-between">
-                                                    <div className="flex items-start justify-between">
-                                                        <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-cyan-900/80 text-cyan-300">CUSTOM</span>
-                                                        {isActive && <span className="text-[8px] font-black text-system-neon bg-black/60 px-1.5 py-0.5 rounded-full border border-system-neon/30">ACTIVE</span>}
+                                            <div key={cp.id} className="relative shrink-0">
+                                                <motion.button
+                                                    whileTap={{ scale: 0.95 }}
+                                                    whileHover={{ scale: 1.02 }}
+                                                    onClick={() => {
+                                                        if (isActive) return;
+                                                        const prevName = healthProfile?.selectedPlanName || 'None';
+                                                        setPlanSwitchLoading(true);
+                                                        setTimeout(() => {
+                                                            const updated = {
+                                                                ...(healthProfile as HealthProfile),
+                                                                workoutPlan: cpDays,
+                                                                selectedPlanId: `custom-${cp.id}`,
+                                                                selectedPlanName: cp.name,
+                                                                planChangedAtDay: completedWorkouts,
+                                                                prevPlanName: prevName,
+                                                            } as HealthProfile;
+                                                            onSaveProfile(updated, updated.category || 'Hunter');
+                                                            setPlanSwitchLoading(false);
+                                                        }, 800);
+                                                    }}
+                                                    className="relative w-44 h-56 rounded-2xl overflow-hidden transition-all"
+                                                    style={{ border: isActive ? '1px solid rgba(0,210,255,0.6)' : '1px solid rgba(255,255,255,0.08)', boxShadow: isActive ? '0 0 24px rgba(0,210,255,0.25)' : '0 4px 20px rgba(0,0,0,0.4)' }}
+                                                >
+                                                    <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, #001a1f 0%, #003040 40%, #000d14 100%)' }} />
+                                                    <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(0,210,255,0.2) 0%, transparent 65%)' }} />
+                                                    <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.1) 100%)' }} />
+                                                    <div className="absolute inset-0 p-3.5 flex flex-col justify-between">
+                                                        <div className="flex items-start justify-between">
+                                                            <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-cyan-900/80 text-cyan-300">CUSTOM</span>
+                                                            {isActive && <span className="text-[8px] font-black text-system-neon bg-black/60 px-1.5 py-0.5 rounded-full border border-system-neon/30">ACTIVE</span>}
+                                                        </div>
+                                                        <div>
+                                                            <div className="text-sm font-black text-white leading-tight mb-1.5">{cp.name}</div>
+                                                            <div className="text-[9px] text-cyan-300/70 font-mono">{cpDays.length} days</div>
+                                                        </div>
                                                     </div>
-                                                    <div>
-                                                        <div className="text-sm font-black text-white leading-tight mb-1.5">{cp.name}</div>
-                                                        <div className="text-[9px] text-cyan-300/70 font-mono">{cpDays.length} days</div>
-                                                    </div>
-                                                </div>
-                                            </motion.button>
+                                                </motion.button>
+                                                {/* Gear button — only on active custom plan */}
+                                                {isActive && (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setCustomizerPlanData({ name: cp.name, days: cpDays });
+                                                            setShowPlanCustomizer(true);
+                                                            onToggleNav?.(false);
+                                                        }}
+                                                        className="absolute top-2 left-2 z-10 w-6 h-6 bg-black/70 border border-gray-700 rounded-full flex items-center justify-center text-gray-400 hover:text-system-neon hover:border-system-neon/40 transition-all"
+                                                        title="Customize Plan"
+                                                    >
+                                                        <Settings size={11} />
+                                                    </button>
+                                                )}
+                                                {/* Delete button for custom plans */}
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        if (!confirm('Delete this custom plan?')) return;
+                                                        fetch(`${API_BASE}/api/workout/custom-plans/${cp.id}`, { method: 'DELETE', credentials: 'include' })
+                                                            .then(() => setCustomPlans(prev => prev.filter(p => p.id !== cp.id)))
+                                                            .catch(() => {});
+                                                    }}
+                                                    className="absolute -top-1.5 -right-1.5 z-10 w-5 h-5 bg-red-600 hover:bg-red-500 rounded-full flex items-center justify-center text-white shadow-lg transition-colors"
+                                                    title="Delete Plan"
+                                                >
+                                                    <X size={10} />
+                                                </button>
+                                            </div>
                                         );
                                     })}
 
@@ -1693,14 +2023,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                                     <div className="mb-3 px-3 py-2 rounded-xl bg-red-900/30 border border-red-700/40 text-[10px] text-red-400">{aiPlanError}</div>
                                                 )}
                                                 {isGeneratingPlan ? (
-                                                    <div className="flex flex-col items-center py-4 gap-3">
-                                                        <div className="flex gap-1.5">
-                                                            {[0,1,2].map(i => (
-                                                                <div key={i} className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
-                                                            ))}
-                                                        </div>
-                                                        <div className="text-[10px] text-purple-400/70 font-mono">ForgeGuard is crafting your protocol...</div>
-                                                    </div>
+                                                    <AIGeneratingLoader />
                                                 ) : (
                                                     <div className="flex gap-3">
                                                         <button onClick={() => setAiConfirmStep(1)} className="flex-1 py-3 rounded-xl text-[11px] font-bold text-gray-500 border border-gray-800">← Back</button>
@@ -1730,8 +2053,30 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                             <span className="text-gray-700">Default System Protocol</span>
                                         )}
                                     </div>
+                                    <div className="flex items-center gap-2">
+                                        {/* Gear button — opens PlanCustomizer for non-AI plans */}
+                                        {healthProfile?.selectedPlanId && !(healthProfile as any)?.aiPlanUsed && (
+                                            <button
+                                                onClick={() => {
+                                                    setCustomizerPlanData({ name: healthProfile?.selectedPlanName || 'Plan', days: calculatedPlan });
+                                                    setShowPlanCustomizer(true);
+                                                    onToggleNav?.(false);
+                                                }}
+                                                className="text-gray-500 hover:text-system-neon transition-colors p-1 rounded-lg hover:bg-white/5"
+                                                title="Customize Plan"
+                                            >
+                                                <Settings size={14} />
+                                            </button>
+                                        )}
+                                        <button
+                                            onClick={() => setViewMode('PLAN_SELECT')}
+                                            className="text-[9px] text-gray-600 hover:text-system-neon font-mono transition-colors"
+                                        >
+                                            Switch Plan
+                                        </button>
+                                    </div>
                                 </div>
-                                <WorkoutMap currentWeight={healthProfile?.weight || 0} targetWeight={healthProfile?.targetWeight || 0} workoutPlan={calculatedPlan} completedDays={completedWorkouts} onStartDay={(idx) => { setActivePlan(calculatedPlan[idx % calculatedPlan.length]); setViewMode('OVERVIEW'); }} />
+                                <WorkoutMap currentWeight={healthProfile?.weight || 0} targetWeight={healthProfile?.targetWeight || 0} workoutPlan={calculatedPlan} completedDays={completedWorkouts} missedDays={missedDayIndices} streak={playerData.streak} planChangedAtDay={(healthProfile as any)?.planChangedAtDay} planChangeLabel={(healthProfile as any)?.prevPlanName && healthProfile?.selectedPlanName ? `${(healthProfile as any).prevPlanName} → ${healthProfile.selectedPlanName}` : undefined} onStartDay={(idx) => { setActivePlan(calculatedPlan[idx % calculatedPlan.length]); setViewMode('OVERVIEW'); }} />
                             </div>
 
                             {/* ── PROTOCOL CALENDAR ── */}
@@ -1786,24 +2131,24 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                     </div>
                                     <div className="text-right">
                                         <div className="text-[10px] text-gray-500 uppercase font-bold">Target</div>
-                                        <div className="text-2xl font-black text-gray-400">{nutritionInfo.macros.calories}</div>
+                                        <div className="text-2xl font-black text-gray-400">{dailyTargets?.calories || nutritionInfo.macros.calories}</div>
                                     </div>
                                 </div>
                                 
                                 {/* Calorie Progress Bar */}
                                 <div className="h-2 bg-gray-800 rounded-full overflow-hidden mb-6">
                                     <motion.div 
-                                        className={`h-full ${dailyIntake.calories > nutritionInfo.macros.calories ? 'bg-red-500' : 'bg-system-neon'}`}
+                                        className={`h-full ${dailyIntake.calories > (dailyTargets?.calories || nutritionInfo.macros.calories) ? 'bg-red-500' : 'bg-system-neon'}`}
                                         initial={{ width: 0 }}
-                                        animate={{ width: `${Math.min((dailyIntake.calories / nutritionInfo.macros.calories) * 100, 100)}%` }}
+                                        animate={{ width: `${Math.min((dailyIntake.calories / (dailyTargets?.calories || nutritionInfo.macros.calories)) * 100, 100)}%` }}
                                     />
                                 </div>
 
                                 {/* Remaining Budget Display */}
                                 <div className="rounded-xl p-4 text-center mb-6" style={{ background: 'rgba(0,0,0,0.35)', border: '1px solid rgba(255,255,255,0.06)' }}>
                                     <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">Remaining Calories Budget</div>
-                                    <div className={`text-3xl font-black ${nutritionInfo.macros.calories - dailyIntake.calories < 0 ? 'text-red-500' : 'text-system-success'}`}>
-                                        {Math.max(0, nutritionInfo.macros.calories - dailyIntake.calories)} <span className="text-xs font-normal text-gray-600">KCAL</span>
+                                    <div className={`text-3xl font-black ${(dailyTargets?.calories || nutritionInfo.macros.calories) - dailyIntake.calories < 0 ? 'text-red-500' : 'text-system-success'}`}>
+                                        {Math.max(0, (dailyTargets?.calories || nutritionInfo.macros.calories) - dailyIntake.calories)} <span className="text-xs font-normal text-gray-600">KCAL</span>
                                     </div>
                                 </div>
 
@@ -1811,18 +2156,18 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                 <div className="grid grid-cols-3 gap-2">
                                     <div className="text-center">
                                         <div className="text-[9px] text-gray-500 uppercase font-bold mb-1 flex justify-center items-center gap-1"><Beef size={10} /> PRO</div>
-                                        <div className="text-xs font-bold text-blue-400">{dailyIntake.protein} / {nutritionInfo.macros.protein}g</div>
-                                        <div className="h-1 bg-gray-800 mt-1 rounded-full"><div style={{ width: `${Math.min((dailyIntake.protein / nutritionInfo.macros.protein)*100, 100)}%` }} className="h-full bg-blue-500" /></div>
+                                        <div className="text-xs font-bold text-blue-400">{dailyIntake.protein} / {dailyTargets?.protein || nutritionInfo.macros.protein}g</div>
+                                        <div className="h-1 bg-gray-800 mt-1 rounded-full"><div style={{ width: `${Math.min((dailyIntake.protein / (dailyTargets?.protein || nutritionInfo.macros.protein))*100, 100)}%` }} className="h-full bg-blue-500" /></div>
                                     </div>
                                     <div className="text-center">
                                         <div className="text-[9px] text-gray-500 uppercase font-bold mb-1 flex justify-center items-center gap-1"><Wheat size={10} /> CARB</div>
-                                        <div className="text-xs font-bold text-green-400">{dailyIntake.carbs} / {nutritionInfo.macros.carbs}g</div>
-                                        <div className="h-1 bg-gray-800 mt-1 rounded-full"><div style={{ width: `${Math.min((dailyIntake.carbs / nutritionInfo.macros.carbs)*100, 100)}%` }} className="h-full bg-green-500" /></div>
+                                        <div className="text-xs font-bold text-green-400">{dailyIntake.carbs} / {dailyTargets?.carbs || nutritionInfo.macros.carbs}g</div>
+                                        <div className="h-1 bg-gray-800 mt-1 rounded-full"><div style={{ width: `${Math.min((dailyIntake.carbs / (dailyTargets?.carbs || nutritionInfo.macros.carbs))*100, 100)}%` }} className="h-full bg-green-500" /></div>
                                     </div>
                                     <div className="text-center">
                                         <div className="text-[9px] text-gray-500 uppercase font-bold mb-1 flex justify-center items-center gap-1"><Droplets size={10} /> FAT</div>
-                                        <div className="text-xs font-bold text-yellow-400">{dailyIntake.fats} / {nutritionInfo.macros.fats}g</div>
-                                        <div className="h-1 bg-gray-800 mt-1 rounded-full"><div style={{ width: `${Math.min((dailyIntake.fats / nutritionInfo.macros.fats)*100, 100)}%` }} className="h-full bg-yellow-500" /></div>
+                                        <div className="text-xs font-bold text-yellow-400">{dailyIntake.fats} / {dailyTargets?.fats || nutritionInfo.macros.fats}g</div>
+                                        <div className="h-1 bg-gray-800 mt-1 rounded-full"><div style={{ width: `${Math.min((dailyIntake.fats / (dailyTargets?.fats || nutritionInfo.macros.fats))*100, 100)}%` }} className="h-full bg-yellow-500" /></div>
                                     </div>
                                 </div>
                             </motion.div>
@@ -1867,7 +2212,8 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                         
                                         <div>
                                             <h3 className="text-lg font-bold text-white font-mono tracking-tight">LOG MEAL</h3>
-                                            <p className="text-[9px] text-gray-500 font-mono tracking-widest uppercase mt-1 flex items-center justify-center gap-1">
+                                            <p className="text-[10px] text-gray-400 font-mono mt-1 tracking-wider uppercase opacity-80">CLICK TO SCAN</p>
+                                            <p className="text-[9px] text-gray-500 font-mono tracking-widest uppercase mt-2 flex items-center justify-center gap-1">
                                                 <Key size={10} className="text-purple-500" /> 1 KEY REQUIRED
                                             </p>
                                         </div>
@@ -2128,7 +2474,9 @@ export const HealthView: React.FC<HealthViewProps> = ({
                     {/* ── 4-SECTION FOOD LOG ── */}
                     {activeTab === 'NUTRITION' && (() => {
                         const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+                        const yesterdayStart = new Date(todayStart); yesterdayStart.setDate(yesterdayStart.getDate() - 1);
                         const todayLogs = (playerData.nutritionLogs || []).filter(l => l.timestamp >= todayStart.getTime());
+                        const yesterdayLogs = (playerData.nutritionLogs || []).filter(l => l.timestamp >= yesterdayStart.getTime() && l.timestamp < todayStart.getTime());
                         const MEAL_SECTIONS: { type: MealType; label: string; icon: string; accent: string }[] = [
                             { type: 'BREAKFAST', label: 'Breakfast', icon: '🌅', accent: '#f59e0b' },
                             { type: 'LUNCH', label: 'Lunch', icon: '☀️', accent: '#00d2ff' },
@@ -2136,7 +2484,8 @@ export const HealthView: React.FC<HealthViewProps> = ({
                             { type: 'DINNER', label: 'Dinner', icon: '🌙', accent: '#8b5cf6' },
                         ];
                         const totalLogged = todayLogs.length;
-                        if (totalLogged === 0) return null;
+                        const yesterdayTotal = yesterdayLogs.reduce((sum, log) => sum + log.totalCalories, 0);
+                        if (totalLogged === 0 && yesterdayLogs.length === 0) return null;
                         return (
                             <motion.div
                                 key="foodlog"
@@ -2144,7 +2493,22 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                 animate={{ opacity: 1 }}
                                 className="w-full max-w-sm px-0 space-y-3 pb-4"
                             >
-                                <div className="text-[10px] font-mono font-bold text-gray-500 uppercase tracking-widest text-center pt-2">Today's Meal Log</div>
+                                {/* Yesterday's Summary */}
+                                {yesterdayLogs.length > 0 && (
+                                    <div className="bg-gray-900/30 border border-gray-800/50 rounded-xl px-4 py-3 mt-8">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-[10px] font-mono font-bold text-gray-500 uppercase tracking-widest">Yesterday</span>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-[10px] font-mono text-gray-600">{yesterdayLogs.length} meals</span>
+                                                <span className="text-xs font-black font-mono text-gray-400">{yesterdayTotal} kcal</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {totalLogged > 0 && <div className="text-[10px] font-mono font-bold text-gray-500 uppercase tracking-widest text-center pt-2 mt-4">Today's Meal Log</div>}
                                 {MEAL_SECTIONS.map(section => {
                                     const sectionLogs = todayLogs.filter(l => (l.mealType || 'LUNCH') === section.type);
                                     const sectionCals = sectionLogs.reduce((s, l) => s + l.totalCalories, 0);
@@ -2162,7 +2526,14 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                             </div>
                                             <div className="divide-y divide-white/[0.03]">
                                                 {sectionLogs.map(log => (
-                                                    <div key={log.id} className="flex items-center gap-3 px-4 py-2.5">
+                                                    <div 
+                                                        key={log.id} 
+                                                        onClick={() => {
+                                                            setSelectedMealLog(log);
+                                                            onToggleNav?.(false);
+                                                        }}
+                                                        className="flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-white/[0.02] transition-colors"
+                                                    >
                                                         {log.imageUrl && (
                                                             <img src={log.imageUrl} alt="" className="w-9 h-9 rounded-lg object-cover flex-shrink-0 opacity-80" />
                                                         )}
@@ -2223,6 +2594,203 @@ export const HealthView: React.FC<HealthViewProps> = ({
                 }}
             />
         )}
+
+        {/* ── Plan Customizer Fullscreen Overlay ── */}
+        {showPlanCustomizer && customizerPlanData && (
+            <PlanCustomizer
+                planName={customizerPlanData.name}
+                days={customizerPlanData.days}
+                onClose={() => {
+                    setShowPlanCustomizer(false);
+                    setCustomizerPlanData(null);
+                    onToggleNav?.(true);
+                }}
+                onSave={(name, days) => {
+                    // Save as custom plan
+                    const updated = {
+                        ...(healthProfile as HealthProfile),
+                        workoutPlan: days,
+                        selectedPlanName: name + ' (Custom)',
+                    } as HealthProfile;
+                    onSaveProfile(updated, updated.category || 'Hunter');
+                    // Persist to custom-plans API
+                    fetch(`${API_BASE}/api/workout/custom-plans`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({ name: name + ' (Custom)', days, plan_type: 'MANUAL' }),
+                    })
+                        .then(r => r.ok ? r.json() : null)
+                        .then(saved => {
+                            if (saved) {
+                                setCustomPlans(prev => {
+                                    const merged = [saved, ...prev.filter(p => p.id !== saved.id)];
+                                    return merged.slice(0, 10);
+                                });
+                                // Set the new custom plan as active
+                                const u2 = {
+                                    ...(healthProfile as HealthProfile),
+                                    workoutPlan: days,
+                                    selectedPlanId: `custom-${saved.id}`,
+                                    selectedPlanName: name + ' (Custom)',
+                                } as HealthProfile;
+                                onSaveProfile(u2, u2.category || 'Hunter');
+                            }
+                        })
+                        .catch(() => {});
+                    setShowPlanCustomizer(false);
+                    setCustomizerPlanData(null);
+                    onToggleNav?.(true);
+                }}
+            />
+        )}
+
+        {/* ── Plan Switch Loading Overlay ── */}
+        <AnimatePresence>
+            {planSwitchLoading && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center gap-4"
+                >
+                    <div className="w-8 h-8 border-2 border-system-neon/30 border-t-system-neon rounded-full animate-spin" />
+                    <div className="text-xs font-mono text-system-neon/70 tracking-widest uppercase">Switching Protocol...</div>
+                </motion.div>
+            )}
+        </AnimatePresence>
+
+        {/* ── Meal Log Details Modal ── */}
+        <AnimatePresence>
+            {selectedMealLog && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md pb-20"
+                    onClick={() => {
+                        setSelectedMealLog(null);
+                        onToggleNav?.(true);
+                    }}
+                >
+                    <motion.div
+                        initial={{ scale: 0.95, y: 20 }}
+                        animate={{ scale: 1, y: 0 }}
+                        exit={{ scale: 0.95, y: 20 }}
+                        className="w-full max-w-sm bg-[#0a0a0a] border border-white/[0.1] rounded-[2rem] overflow-hidden relative shadow-2xl max-h-[90vh] overflow-y-auto"
+                        onClick={e => e.stopPropagation()}
+                    >
+                        {selectedMealLog.imageUrl && (
+                            <div className="h-40 w-full relative">
+                                <img src={selectedMealLog.imageUrl} alt="" className="w-full h-full object-cover" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] to-transparent" />
+                                <button 
+                                    onClick={() => {
+                                        setSelectedMealLog(null);
+                                        onToggleNav?.(true);
+                                    }}
+                                    className="absolute top-4 right-4 p-2 bg-black/50 hover:bg-black/80 rounded-full text-white/50 hover:text-white transition-colors"
+                                >
+                                    <X size={16} />
+                                </button>
+                            </div>
+                        )}
+                        <div className={`p-6 ${!selectedMealLog.imageUrl ? 'pt-8' : ''}`}>
+                            {!selectedMealLog.imageUrl && (
+                                <button 
+                                    onClick={() => {
+                                        setSelectedMealLog(null);
+                                        onToggleNav?.(true);
+                                    }}
+                                    className="absolute top-4 right-4 p-2 text-white/50 hover:text-white transition-colors"
+                                >
+                                    <X size={16} />
+                                </button>
+                            )}
+                            <div className="text-[10px] text-cyan-500 font-mono tracking-widest uppercase mb-1">
+                                {new Date(selectedMealLog.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                            <h3 className="text-xl font-bold text-white mb-6 leading-tight">{selectedMealLog.label}</h3>
+
+                            <div className="grid grid-cols-4 gap-2 mb-6">
+                                <div className="bg-gray-900/50 rounded-xl p-3 text-center border border-white/[0.02]">
+                                    <div className="text-[10px] text-gray-500 font-bold mb-1">KCAL</div>
+                                    <div className="text-lg font-black text-white">{selectedMealLog.totalCalories}</div>
+                                </div>
+                                <div className="bg-gray-900/50 rounded-xl p-3 text-center border border-white/[0.02]">
+                                    <div className="text-[10px] text-blue-500/70 font-bold mb-1">PRO</div>
+                                    <div className="text-sm font-bold text-blue-400">{selectedMealLog.totalProtein}g</div>
+                                </div>
+                                <div className="bg-gray-900/50 rounded-xl p-3 text-center border border-white/[0.02]">
+                                    <div className="text-[10px] text-green-500/70 font-bold mb-1">CARB</div>
+                                    <div className="text-sm font-bold text-green-400">{selectedMealLog.totalCarbs}g</div>
+                                </div>
+                                <div className="bg-gray-900/50 rounded-xl p-3 text-center border border-white/[0.02]">
+                                    <div className="text-[10px] text-yellow-500/70 font-bold mb-1">FAT</div>
+                                    <div className="text-sm font-bold text-yellow-400">{selectedMealLog.totalFats}g</div>
+                                </div>
+                            </div>
+
+                            {selectedMealLog.items?.[0] && (
+                                <div className="space-y-4">
+                                    <div className="text-[10px] font-mono text-gray-500 uppercase tracking-widest border-b border-white/[0.05] pb-2">Micronutrients & Details</div>
+                                    <div className="grid grid-cols-2 gap-y-3 gap-x-4 text-xs">
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-500">Serving</span>
+                                            <span className="text-gray-300">{selectedMealLog.items[0].servingSize || 'N/A'}</span>
+                                        </div>
+                                        {selectedMealLog.items[0].fiber !== undefined && (
+                                            <div className="flex justify-between">
+                                                <span className="text-gray-500">Fiber</span>
+                                                <span className="text-gray-300">{selectedMealLog.items[0].fiber}g</span>
+                                            </div>
+                                        )}
+                                        {selectedMealLog.items[0].sugar !== undefined && (
+                                            <div className="flex justify-between">
+                                                <span className="text-gray-500">Sugar</span>
+                                                <span className="text-gray-300">{selectedMealLog.items[0].sugar}g</span>
+                                            </div>
+                                        )}
+                                        {selectedMealLog.items[0].sodium !== undefined && (
+                                            <div className="flex justify-between">
+                                                <span className="text-gray-500">Sodium</span>
+                                                <span className="text-gray-300">{selectedMealLog.items[0].sodium}mg</span>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {selectedMealLog.items[0].ingredients && selectedMealLog.items[0].ingredients.length > 0 && (
+                                        <div className="mt-4">
+                                            <div className="text-[10px] text-gray-500 mb-2 font-bold uppercase tracking-widest">Ingredients Detected</div>
+                                            <div className="flex flex-wrap gap-2">
+                                                {selectedMealLog.items[0].ingredients.map((ing, i) => (
+                                                    <span key={i} className="px-2.5 py-1 rounded-full bg-gray-900 border border-white/[0.05] text-[10px] text-gray-400">
+                                                        {ing}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            <button
+                                onClick={() => {
+                                    if (window.confirm("Delete this log?")) {
+                                        _onDeleteMeal?.(selectedMealLog.id);
+                                        setSelectedMealLog(null);
+                                        onToggleNav?.(true);
+                                    }
+                                }}
+                                className="w-full mt-6 py-3 rounded-xl border border-red-900/50 text-red-500 hover:bg-red-500/10 font-bold text-xs transition-colors"
+                            >
+                                DELETE LOG
+                            </button>
+                        </div>
+                    </motion.div>
+                </motion.div>
+            )}
+        </AnimatePresence>
     </>
   );
 };
