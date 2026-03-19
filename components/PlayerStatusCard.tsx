@@ -7,6 +7,20 @@ import { ChevronLeft, ChevronRight, Terminal, Zap } from 'lucide-react';
 import { PlayerData, CoreStats, Outfit, HistoryEntry } from '../types';
 import MentorThoughtBox from './MentorThoughtBox';
 
+// ── Tiered Scaling System ──
+const TIER_SIZE = 40;
+const MAX_TIERS = 5;
+const TIER_NAMES = ['I', 'II', 'III', 'IV', 'V'];
+const TIER_COLORS = ['#6b7280', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444'];
+
+function getTierInfo(value: number) {
+  const clamped = Math.max(0, Math.min(value, 200));
+  if (clamped >= 200) return { tier: 5, progress: TIER_SIZE, tierName: 'V', pct: 1 };
+  const tier = Math.min(MAX_TIERS, Math.floor(clamped / TIER_SIZE) + 1);
+  const progress = clamped % TIER_SIZE;
+  return { tier, progress, tierName: TIER_NAMES[tier - 1], pct: progress / TIER_SIZE };
+}
+
 // ── Dusk thought pool for ambient floating messages ──
 const DUSK_THOUGHTS = [
   "Your discipline defines you.",
@@ -87,6 +101,44 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
     }, 6 * 180 + 1200));
     return () => dotTimers.forEach(clearTimeout);
   }, [selectedDateIndex]);
+
+  // ── Tier transition & point gain detection ──
+  const prevStatsRef = useRef<CoreStats | null>(null);
+  const [tierUpStats, setTierUpStats] = useState<Set<string>>(new Set());
+  const [pointGainStats, setPointGainStats] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const prev = prevStatsRef.current;
+    if (prev) {
+      const statKeys: (keyof CoreStats)[] = ['strength', 'intelligence', 'focus', 'discipline', 'willpower', 'social'];
+      const keyToLabel: Record<string, string> = { strength: 'STR', intelligence: 'INT', focus: 'FOC', discipline: 'DIS', willpower: 'WIL', social: 'SOC' };
+      const newTierUps = new Set<string>();
+      const newPointGains = new Set<string>();
+
+      for (const key of statKeys) {
+        const prevVal = prev[key] || 0;
+        const curVal = player.stats[key] || 0;
+        if (curVal > prevVal) {
+          newPointGains.add(keyToLabel[key]);
+          const prevTier = getTierInfo(prevVal).tier;
+          const curTier = getTierInfo(curVal).tier;
+          if (curTier > prevTier) {
+            newTierUps.add(keyToLabel[key]);
+          }
+        }
+      }
+
+      if (newTierUps.size > 0) {
+        setTierUpStats(newTierUps);
+        setTimeout(() => setTierUpStats(new Set()), 3000);
+      }
+      if (newPointGains.size > 0) {
+        setPointGainStats(newPointGains);
+        setTimeout(() => setPointGainStats(new Set()), 1500);
+      }
+    }
+    prevStatsRef.current = { ...player.stats };
+  }, [player.stats]);
 
   // ── Ambient thought box spawning ──
   const [ambientMessages, setAmbientMessages] = useState<{id: string; text: string}[]>([]);
@@ -177,62 +229,70 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
   
   const isViewingPast = selectedDate < todayDate;
 
-  // Calculate dynamic maximum for the radar chart to prevent overflow
-  const dynamicMax = useMemo(() => {
-    const allStats = [
-      activeStats.strength, activeStats.intelligence, activeStats.focus,
-      activeStats.discipline, activeStats.willpower, activeStats.social,
-      todayStats.strength, todayStats.intelligence, todayStats.focus,
-      todayStats.discipline, todayStats.willpower, todayStats.social,
+  // Tiered radar domain: chart shows 0–TIER_SIZE (40) within-tier progress
+  const chartData = useMemo(() => {
+    const raw = [
+      { subject: 'STR', active: activeStats.strength, today: todayStats.strength },
+      { subject: 'INT', active: activeStats.intelligence, today: todayStats.intelligence },
+      { subject: 'FOC', active: activeStats.focus, today: todayStats.focus },
+      { subject: 'DIS', active: activeStats.discipline, today: todayStats.discipline },
+      { subject: 'WIL', active: activeStats.willpower, today: todayStats.willpower },
+      { subject: 'SOC', active: activeStats.social, today: todayStats.social },
     ];
-    const maxVal = Math.max(...allStats);
-    // Base minimum of 200, otherwise scale up with a 15% buffer, rounded to nearest 50
-    return Math.max(200, Math.ceil((maxVal * 1.15) / 50) * 50);
+    return raw.map(s => {
+      const info = getTierInfo(s.active);
+      const todayInfo = getTierInfo(s.today);
+      return {
+        subject: s.subject,
+        A: info.progress,
+        Today: todayInfo.progress,
+        fullMark: TIER_SIZE,
+        tier: info.tier,
+        tierName: info.tierName,
+        rawValue: s.active,
+        todayTier: todayInfo.tier,
+      };
+    });
   }, [activeStats, todayStats]);
 
-  const chartData = useMemo(() => {
-    return [
-      { subject: 'STR', A: activeStats.strength, Today: todayStats.strength, fullMark: dynamicMax },
-      { subject: 'INT', A: activeStats.intelligence, Today: todayStats.intelligence, fullMark: dynamicMax },
-      { subject: 'FOC', A: activeStats.focus, Today: todayStats.focus, fullMark: dynamicMax },
-      { subject: 'DIS', A: activeStats.discipline, Today: todayStats.discipline, fullMark: dynamicMax },
-      { subject: 'WIL', A: activeStats.willpower, Today: todayStats.willpower, fullMark: dynamicMax },
-      { subject: 'SOC', A: activeStats.social, Today: todayStats.social, fullMark: dynamicMax },
-    ];
-  }, [activeStats, todayStats, dynamicMax]);
-
-  // ── Dusk Contextual Voice ──
+  // ── Dusk Contextual Voice (Tier-Aware) ──
   const duskContextVoice = useMemo(() => {
     const stats = [
-      { name: 'strength', val: player.stats.strength },
-      { name: 'intelligence', val: player.stats.intelligence },
-      { name: 'focus', val: player.stats.focus },
-      { name: 'discipline', val: player.stats.discipline },
-      { name: 'willpower', val: player.stats.willpower },
-      { name: 'social', val: player.stats.social },
+      { name: 'strength', label: 'STR', val: player.stats.strength },
+      { name: 'intelligence', label: 'INT', val: player.stats.intelligence },
+      { name: 'focus', label: 'FOC', val: player.stats.focus },
+      { name: 'discipline', label: 'DIS', val: player.stats.discipline },
+      { name: 'willpower', label: 'WIL', val: player.stats.willpower },
+      { name: 'social', label: 'SOC', val: player.stats.social },
     ];
     stats.sort((a, b) => a.val - b.val);
     const lowest = stats[0];
     const highest = stats[5];
+    const lowestTier = getTierInfo(lowest.val);
+    const highestTier = getTierInfo(highest.val);
+
+    const nearBreak = stats.find(s => {
+      const info = getTierInfo(s.val);
+      return info.tier < MAX_TIERS && (TIER_SIZE - info.progress) <= 5;
+    });
 
     const messages = [
-      `Your ${lowest.name} is lacking today, Hunter.`,
-      `I see you've been prioritizing ${highest.name}. Don't neglect the rest.`,
+      `Your ${lowest.name} is stuck at Tier ${lowestTier.tierName}. Break through.`,
+      nearBreak
+        ? `${nearBreak.label} is ${TIER_SIZE - getTierInfo(nearBreak.val).progress} points from the next Tier.`
+        : `I see you've been building ${highest.name}. Don't neglect the rest.`,
       `The System requires balance. Focus on ${lowest.name}.`,
-      `You are growing. But is it fast enough?`,
+      `${highest.label} leads at Tier ${highestTier.tierName}. But ${lowest.label} falls behind.`,
       `I am waiting for your next command.`,
     ];
-    
-    // Pick one deterministically based on today's date so it doesn't flicker constantly
+
     const daySeed = new Date().getDate();
     return messages[daySeed % messages.length];
   }, [player.stats]);
   const dailyInsight = useMemo(() => {
     if (!historyMap) return "System initialized. Awaiting commands.";
-    
-    // Check if viewing today
+
     if (!isViewingPast) {
-      // Find highest stat today
       const stats = [
         { name: 'STR', val: player.stats.strength },
         { name: 'INT', val: player.stats.intelligence },
@@ -241,13 +301,33 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
         { name: 'WIL', val: player.stats.willpower },
         { name: 'SOC', val: player.stats.social },
       ];
+
+      // Tier breach events (highest priority)
+      for (const s of stats) {
+        if (tierUpStats.has(s.name)) {
+          const info = getTierInfo(s.val);
+          return `TIER BREACH: ${s.name} has reached Tier ${info.tierName}. New power unlocked.`;
+        }
+      }
+
+      // Near-breakthrough warning (within 3 points)
+      const nearBreak = stats.find(s => {
+        const info = getTierInfo(s.val);
+        return info.tier < MAX_TIERS && (TIER_SIZE - info.progress) <= 3;
+      });
+      if (nearBreak) {
+        const info = getTierInfo(nearBreak.val);
+        const remaining = TIER_SIZE - info.progress;
+        return `${nearBreak.name} approaching Tier ${TIER_NAMES[info.tier]} boundary. ${remaining} point${remaining !== 1 ? 's' : ''} to breakthrough.`;
+      }
+
       stats.sort((a, b) => b.val - a.val);
       const highest = stats[0];
       const lowest = stats[5];
-      
+
       if (player.dailyXp > 500) return `Peak performance detected. Daily XP at ${player.dailyXp}.`;
       if (lowest.val < 15) return `Low ${lowest.name} detected. Recommend targeting ${lowest.name} protocols.`;
-      return `Current focus: ${highest.name}. Maintain momentum.`;
+      return `Current focus: ${highest.name} [Tier ${getTierInfo(highest.val).tierName}]. Maintain momentum.`;
     }
 
     // Viewing past day
@@ -261,7 +341,6 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
       return xp > 0 ? `Historical record: ${xp} XP gained.` : `Historical record analyzed.`;
     }
 
-    // Compare selected date with day before it to find what grew the most
     const diffs = [
       { name: 'STR', diff: activeStats.strength - prevStats.strength },
       { name: 'INT', diff: activeStats.intelligence - prevStats.intelligence },
@@ -277,7 +356,7 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
       return `${bestGrowth.name} +${bestGrowth.diff} on this day. Growth was accelerating.`;
     }
     return `Maintenance phase recorded on this day.`;
-  }, [activeStats, historyMap, isViewingPast, player.stats, player.dailyXp, selectedDate]);
+  }, [activeStats, historyMap, isViewingPast, player.stats, player.dailyXp, selectedDate, tierUpStats]);
   const introRef = useRef<HTMLVideoElement>(null);
   const loopRef = useRef<HTMLVideoElement>(null);
   const [videoPhase, setVideoPhase] = useState<'intro' | 'loop' | 'image'>('image');
@@ -474,10 +553,26 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
                 <PolarGrid stroke="rgba(255,255,255,0.06)" strokeWidth={1} gridType="polygon" radialLines={false} />
                 <PolarAngleAxis 
                   dataKey="subject" 
-                  tick={{ fill: '#00d2ff', fontSize: 10, fontWeight: 900, fontFamily: 'monospace' }} 
+                  tick={(props: any) => {
+                    const { x, y, payload } = props;
+                    const item = chartData.find((d: any) => d.subject === payload.value);
+                    const tier = item?.tier || 1;
+                    const tierName = item?.tierName || 'I';
+                    const tierColor = TIER_COLORS[tier - 1];
+                    return (
+                      <g>
+                        <text x={x} y={y - 4} textAnchor="middle" dominantBaseline="middle" fill="#00d2ff" fontSize={10} fontWeight={900} fontFamily="monospace">
+                          {payload.value}
+                        </text>
+                        <text x={x} y={y + 9} textAnchor="middle" dominantBaseline="middle" fill={tierColor} fontSize={7} fontWeight={700} fontFamily="monospace" opacity={0.9}>
+                          T{tierName}
+                        </text>
+                      </g>
+                    );
+                  }}
                 />
                 <PolarRadiusAxis 
-                  domain={[0, dynamicMax]} 
+                  domain={[0, TIER_SIZE]} 
                   tick={false} 
                   axisLine={false} 
                 />
@@ -508,12 +603,42 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
                     const { cx, cy, index } = props;
                     const isVisible = index < visibleDots || radarPhase !== 'dots';
                     if (!cx || !cy) return null;
+                    const subject = chartData[index]?.subject;
+                    const hasTierUp = tierUpStats.has(subject);
+                    const hasPointGain = pointGainStats.has(subject);
+                    const ctr = 15;
                     return (
-                      <svg x={cx - 5} y={cy - 5} width={10} height={10} className="overflow-visible" key={`dot-${index}`}>
-                        <circle cx="5" cy="5" r="3" fill="#fff" opacity={isVisible ? 0.95 : 0}>
+                      <svg x={cx - ctr} y={cy - ctr} width={ctr * 2} height={ctr * 2} className="overflow-visible" key={`dot-${index}`}>
+                        {/* Tier-up burst rings */}
+                        {hasTierUp && isVisible && (
+                          <>
+                            <circle cx={ctr} cy={ctr} r="4" fill="none" stroke="#f59e0b" strokeWidth="2">
+                              <animate attributeName="r" values="4;20;24" dur="1.5s" fill="freeze" />
+                              <animate attributeName="opacity" values="1;0.5;0" dur="1.5s" fill="freeze" />
+                              <animate attributeName="stroke-width" values="2;1;0" dur="1.5s" fill="freeze" />
+                            </circle>
+                            <circle cx={ctr} cy={ctr} r="4" fill="none" stroke="#fbbf24" strokeWidth="1.5">
+                              <animate attributeName="r" values="4;14;18" dur="1.2s" fill="freeze" />
+                              <animate attributeName="opacity" values="0.8;0.3;0" dur="1.2s" fill="freeze" />
+                            </circle>
+                            <circle cx={ctr} cy={ctr} r="3" fill="#f59e0b" opacity="0">
+                              <animate attributeName="opacity" values="0;0.8;0" dur="0.6s" fill="freeze" />
+                            </circle>
+                          </>
+                        )}
+                        {/* Point gain pulse */}
+                        {hasPointGain && !hasTierUp && isVisible && (
+                          <circle cx={ctr} cy={ctr} r="4" fill="none" stroke="#00d2ff" strokeWidth="1.5">
+                            <animate attributeName="r" values="4;12;4" dur="0.8s" repeatCount="2" />
+                            <animate attributeName="opacity" values="0.8;0.15;0.8" dur="0.8s" repeatCount="2" />
+                          </circle>
+                        )}
+                        {/* Base dot */}
+                        <circle cx={ctr} cy={ctr} r="3" fill={hasTierUp ? '#f59e0b' : '#fff'} opacity={isVisible ? 0.95 : 0}>
                           {isVisible && <animate attributeName="opacity" values="0;0.95" dur="0.2s" fill="freeze" />}
                         </circle>
-                        <circle cx="5" cy="5" r="5" fill="none" stroke="#00d2ff" strokeWidth="1" opacity={isVisible ? 0.5 : 0}>
+                        {/* Ambient pulse ring */}
+                        <circle cx={ctr} cy={ctr} r="5" fill="none" stroke={hasTierUp ? '#f59e0b' : '#00d2ff'} strokeWidth="1" opacity={isVisible ? 0.5 : 0}>
                           {isVisible && (
                             <>
                               <animate attributeName="r" values="5;8;5" dur="2s" repeatCount="indefinite" />
