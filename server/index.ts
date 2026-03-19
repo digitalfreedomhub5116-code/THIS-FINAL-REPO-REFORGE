@@ -41,7 +41,6 @@ async function startServer() {
   const adminRouter = await import('./routes/admin_supabase.js');
   const nutritionRouter = await import('./routes/nutrition.js');
   const forgeGuardRouter = await import('./routes/forgeguard.js');
-  const avatarRouter = await import('./routes/avatar.js');
   const duskRouter = await import('./routes/dusk.js');
   const storeRouter = await import('./routes/store.js');
   const globalConfigRouter = await import('./routes/globalConfig_supabase.js');
@@ -140,7 +139,6 @@ async function startServer() {
 
   // API routes
   app.use('/api/forge-guard', aiRateLimit, forgeGuardRouter.default);
-  app.use('/api/avatar', aiRateLimit, avatarRouter.default);
   app.use('/api/player', playerRouter.default);
   app.use('/api/leaderboard', leaderboardRouter.default);
   app.use('/api/videos', videosRouter.default);
