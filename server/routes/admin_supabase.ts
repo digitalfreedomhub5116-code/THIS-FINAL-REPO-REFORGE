@@ -611,6 +611,101 @@ router.delete('/banners/:id', async (req: Request, res: Response) => {
 });
 
 // Workout exercises management
+router.get('/plans', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+  try {
+    const { data, error } = await (supabaseServer() as any)
+      .from('workout_plans')
+      .select('*')
+      .order('display_order', { ascending: true })
+      .order('id', { ascending: true });
+    
+    if (error) throw error;
+    return res.json(data || []);
+  } catch (err) {
+    console.error('[Admin plans]', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.post('/plans', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+  const plan = req.body;
+  try {
+    // Make sure we don't insert a default ID
+    if (plan.id && plan.id < 0) {
+      delete plan.id;
+    }
+    const { data, error } = await (supabaseServer() as any)
+      .from('workout_plans')
+      .insert(plan)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    await logAdminAction('create_plan', req, { newValue: { id: data?.id, name: plan.name } });
+    return res.json(data);
+  } catch (err) {
+    console.error('[Admin create plan]', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.put('/plans/:id', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+  const idStr = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = idStr as string;
+  const plan = req.body;
+  try {
+    // If ID is negative, it's a default plan that hasn't been saved to DB yet, so insert it instead
+    if (parseInt(id) < 0) {
+      if (plan.id) delete plan.id;
+      const { data, error } = await (supabaseServer() as any)
+        .from('workout_plans')
+        .insert(plan)
+        .select()
+        .single();
+      if (error) throw error;
+      await logAdminAction('create_plan', req, { newValue: { id: data?.id, name: plan.name } });
+      return res.json(data);
+    } else {
+      const { data, error } = await (supabaseServer() as any)
+        .from('workout_plans')
+        .update(plan)
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      await logAdminAction('update_plan', req, { targetUser: id, newValue: { name: plan.name } });
+      return res.json(data);
+    }
+  } catch (err) {
+    console.error('[Admin update plan]', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.delete('/plans/:id', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+  const idStr = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = idStr as string;
+  try {
+    if (parseInt(id) < 0) return res.status(400).json({ error: 'Cannot delete built-in default plans' });
+    const { error } = await (supabaseServer() as any)
+      .from('workout_plans')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
+    await logAdminAction('delete_plan', req, { targetUser: id });
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('[Admin delete plan]', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Workout exercises management
 router.get('/exercises', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
   try {

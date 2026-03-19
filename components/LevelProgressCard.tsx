@@ -6,9 +6,10 @@ interface LevelProgressCardProps {
   level: number;
   currentXP: number;
   maxXP: number;
+  xpBuff?: number;
 }
 
-const LevelProgressCard: React.FC<LevelProgressCardProps> = ({ level, currentXP, maxXP }) => {
+const LevelProgressCard: React.FC<LevelProgressCardProps> = ({ level, currentXP, maxXP, xpBuff = 0 }) => {
   const fillPercent = Math.min(100, (currentXP / Math.max(1, maxXP)) * 100);
   const xpRemaining = Math.max(0, maxXP - currentXP);
 
@@ -42,6 +43,19 @@ const LevelProgressCard: React.FC<LevelProgressCardProps> = ({ level, currentXP,
             <span className="text-white font-bold">{currentXP.toLocaleString()}</span>
             <span className="text-gray-600"> / {maxXP.toLocaleString()} XP</span>
           </span>
+          {xpBuff > 0 && (
+            <span
+              className="font-mono text-[9px] font-black px-1.5 py-0.5 rounded-full animate-pulse"
+              style={{
+                background: 'rgba(34,197,94,0.15)',
+                border: '1px solid rgba(34,197,94,0.3)',
+                color: '#4ade80',
+                textShadow: '0 0 6px rgba(34,197,94,0.5)',
+              }}
+            >
+              +{xpBuff}% BUFF
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
@@ -88,7 +102,9 @@ const LevelProgressCard: React.FC<LevelProgressCardProps> = ({ level, currentXP,
         </span>
         <div className="flex items-center gap-1">
           <div className="w-1 h-1 rounded-full bg-[#8b5cf6] animate-pulse" />
-          <span className="font-mono text-[9px] text-gray-600">EXP ACCUMULATING</span>
+          <span className="font-mono text-[9px] text-gray-600">
+            {xpBuff > 0 ? `RADAR BUFF +${xpBuff}% ACTIVE` : 'EXP ACCUMULATING'}
+          </span>
         </div>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, useRef, lazy, Suspense, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import Layout from './components/Layout';
@@ -1144,6 +1144,15 @@ const App: React.FC = () => {
                     level={player.level}
                     currentXP={player.currentXp}
                     maxXP={player.requiredXp}
+                    xpBuff={(() => {
+                      const TIER_SIZE = 40;
+                      const vals = [player.stats.strength, player.stats.intelligence, player.stats.focus, player.stats.discipline, player.stats.willpower, player.stats.social];
+                      const minTier = Math.min(...vals.map(v => {
+                        const c = Math.max(0, Math.min(v || 0, 200));
+                        return c >= 200 ? 5 : Math.min(5, Math.floor(c / TIER_SIZE) + 1);
+                      }));
+                      return ({ 1: 0, 2: 10, 3: 30, 4: 50, 5: 100 } as Record<number,number>)[minTier] || 0;
+                    })()}
                   />
                 </ErrorBoundary>
               </Suspense>

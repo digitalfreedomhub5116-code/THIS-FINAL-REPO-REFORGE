@@ -12,6 +12,7 @@ const TIER_SIZE = 40;
 const MAX_TIERS = 5;
 const TIER_NAMES = ['I', 'II', 'III', 'IV', 'V'];
 const TIER_COLORS = ['#6b7280', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444'];
+const XP_BUFF_MAP: Record<number, number> = { 1: 0, 2: 10, 3: 30, 4: 50, 5: 100 };
 
 function getTierInfo(value: number) {
   const safeValue = typeof value === 'number' && !isNaN(value) ? value : 0;
@@ -61,6 +62,14 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
   const [selectedDateIndex, setSelectedDateIndex] = useState<number>(3);
   const [showAllLevels, setShowAllLevels] = useState(false);
   const [weekOffset, setWeekOffset] = useState(0);
+
+  // ── Chart Level-Up System ──
+  const [displayedChartLevel, setDisplayedChartLevel] = useState<number | null>(null);
+  const [pendingLevelUp, setPendingLevelUp] = useState(false);
+  const [isLevelingUp, setIsLevelingUp] = useState(false);
+  const [animMultiplier, setAnimMultiplier] = useState(1);
+  const [levelUpParticles, setLevelUpParticles] = useState<{id: number; x: number; y: number; delay: number}[]>([]);
+  const levelUpAnimRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (weekOffset === 0) {
@@ -246,7 +255,7 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
       const todayInfo = getTierInfo(s.today);
       return {
         subject: s.subject,
-        A: info.progress,
+        A: info.progress * animMultiplier,
         Today: todayInfo.progress,
         fullMark: TIER_SIZE,
         tier: info.tier,
@@ -255,7 +264,7 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
         todayTier: todayInfo.tier,
       };
     });
-  }, [activeStats, todayStats]);
+  }, [activeStats, todayStats, animMultiplier]);
 
   // ── Overall Radar Level & Stat Details ──
   const statTierDetails = useMemo(() => {
@@ -270,10 +279,69 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
     return stats.map(s => ({ ...s, ...getTierInfo(s.val) }));
   }, [activeStats]);
 
-  const overallRadarLevel = useMemo(() => {
-    const avgTier = statTierDetails.reduce((sum, s) => sum + s.tier, 0) / statTierDetails.length;
-    return Math.floor(avgTier);
+  const computedChartLevel = useMemo(() => {
+    return Math.min(...statTierDetails.map(s => s.tier));
   }, [statTierDetails]);
+
+  // Initialize displayed chart level on first render; detect level-up thereafter
+  useEffect(() => {
+    if (displayedChartLevel === null) {
+      setDisplayedChartLevel(computedChartLevel);
+    } else if (computedChartLevel > displayedChartLevel && !isLevelingUp) {
+      setPendingLevelUp(true);
+    }
+  }, [computedChartLevel, displayedChartLevel, isLevelingUp]);
+
+  const effectiveChartLevel = displayedChartLevel ?? computedChartLevel;
+  const xpBuffPercent = XP_BUFF_MAP[effectiveChartLevel] || 0;
+
+  const handleLevelUp = useCallback(() => {
+    if (!pendingLevelUp || isLevelingUp) return;
+    setIsLevelingUp(true);
+    setPendingLevelUp(false);
+
+    const particles = Array.from({ length: 24 }, (_, i) => ({
+      id: i,
+      x: 15 + Math.random() * 70,
+      y: 15 + Math.random() * 70,
+      delay: Math.random() * 0.6,
+    }));
+    setLevelUpParticles(particles);
+
+    const startTime = performance.now();
+    const SHRINK = 800, PAUSE = 600, EXPAND = 800;
+    let levelUpdated = false;
+
+    const tick = (now: number) => {
+      const elapsed = now - startTime;
+      if (elapsed < SHRINK) {
+        const t = elapsed / SHRINK;
+        setAnimMultiplier(1 - t * t);
+      } else if (elapsed < SHRINK + PAUSE) {
+        setAnimMultiplier(0);
+        if (!levelUpdated) {
+          setDisplayedChartLevel(computedChartLevel);
+          levelUpdated = true;
+        }
+      } else if (elapsed < SHRINK + PAUSE + EXPAND) {
+        const t = (elapsed - SHRINK - PAUSE) / EXPAND;
+        setAnimMultiplier(1 - Math.pow(1 - t, 3));
+      } else {
+        setAnimMultiplier(1);
+        setIsLevelingUp(false);
+        setTimeout(() => setLevelUpParticles([]), 300);
+        return;
+      }
+      levelUpAnimRef.current = requestAnimationFrame(tick);
+    };
+    levelUpAnimRef.current = requestAnimationFrame(tick);
+  }, [pendingLevelUp, isLevelingUp, computedChartLevel]);
+
+  useEffect(() => {
+    return () => { if (levelUpAnimRef.current) cancelAnimationFrame(levelUpAnimRef.current); };
+  }, []);
+
+  const overallRadarLevel = effectiveChartLevel;
 
   // ── Dusk Contextual Voice (Tier-Aware) ──
   const duskContextVoice = useMemo(() => {
@@ -680,6 +748,67 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
               </RadarChart>
             </ResponsiveContainer>
           </div>
+
+          {/* Level Up Button Overlay */}
+          <AnimatePresence>
+            {pendingLevelUp && !isLevelingUp && (
+              <motion.div
+                className="absolute inset-0 z-40 flex items-center justify-center"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.5 }}
+              >
+                <motion.button
+                  onClick={handleLevelUp}
+                  className="px-5 py-2.5 rounded-xl font-black font-mono text-sm uppercase tracking-wider border-2 cursor-pointer"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(34,197,94,0.9), rgba(22,163,74,0.9))',
+                    color: '#fff',
+                    borderColor: 'rgba(74,222,128,0.6)',
+                    boxShadow: '0 0 30px rgba(34,197,94,0.5), 0 0 60px rgba(34,197,94,0.2)',
+                    textShadow: '0 0 10px rgba(255,255,255,0.5)',
+                  }}
+                  animate={{ scale: [1, 1.05, 1], boxShadow: ['0 0 30px rgba(34,197,94,0.5)', '0 0 50px rgba(34,197,94,0.8)', '0 0 30px rgba(34,197,94,0.5)'] }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+                >
+                  ⬆ CHART LEVEL UP
+                </motion.button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Level Up Particles */}
+          <AnimatePresence>
+            {isLevelingUp && levelUpParticles.length > 0 && (
+              <motion.div
+                className="absolute inset-0 z-50 pointer-events-none overflow-hidden"
+                initial={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                {levelUpParticles.map(p => (
+                  <motion.span
+                    key={p.id}
+                    className="absolute font-black font-mono text-green-400 text-sm drop-shadow-[0_0_8px_rgba(34,197,94,0.8)]"
+                    style={{ left: `${p.x}%`, top: `${p.y}%` }}
+                    initial={{ opacity: 0, y: 10, scale: 0.3 }}
+                    animate={{ opacity: [0, 1, 1, 0], y: -50, scale: [0.3, 1.3, 1, 0.6] }}
+                    transition={{ duration: 2, delay: p.delay, ease: 'easeOut' }}
+                  >
+                    +1
+                  </motion.span>
+                ))}
+                {/* Central flash */}
+                <motion.div
+                  className="absolute inset-0 flex items-center justify-center"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: [0, 0.8, 0] }}
+                  transition={{ duration: 1.2, delay: 0.4 }}
+                >
+                  <div className="w-20 h-20 rounded-full bg-green-400/30 blur-xl" />
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* ── RIGHT CONTAINER: VIDEO ── */}
@@ -730,36 +859,64 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
       </div>
 
       {/* --- RADAR LEVEL INDICATOR BAR --- */}
-      <div className="w-full bg-[#0A0A0F]/90 border-t border-white/[0.03] flex items-center justify-between px-3 py-1.5 z-20 shrink-0">
-        <div className="flex items-center gap-2">
-          <div
-            className="flex items-center justify-center w-5 h-5 rounded"
-            style={{ background: `${TIER_COLORS[overallRadarLevel - 1]}20`, border: `1px solid ${TIER_COLORS[overallRadarLevel - 1]}40` }}
-          >
-            <Layers size={10} style={{ color: TIER_COLORS[overallRadarLevel - 1] }} />
+      <div className="w-full bg-[#0A0A0F]/90 border-t border-white/[0.03] px-3 py-1.5 z-20 shrink-0">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div
+              className="flex items-center justify-center w-5 h-5 rounded"
+              style={{ background: `${TIER_COLORS[overallRadarLevel - 1]}20`, border: `1px solid ${TIER_COLORS[overallRadarLevel - 1]}40` }}
+            >
+              <Layers size={10} style={{ color: TIER_COLORS[overallRadarLevel - 1] }} />
+            </div>
+            <span className="text-[9px] font-mono font-bold text-gray-400 uppercase tracking-widest">RADAR LVL:</span>
+            <span
+              className="text-[11px] font-black font-mono tracking-wider"
+              style={{ color: TIER_COLORS[overallRadarLevel - 1] }}
+            >
+              TIER {TIER_NAMES[overallRadarLevel - 1]}
+            </span>
+            {xpBuffPercent > 0 && (
+              <span
+                className="text-[8px] font-black font-mono px-1.5 py-0.5 rounded-full animate-pulse"
+                style={{
+                  background: 'rgba(34,197,94,0.15)',
+                  border: '1px solid rgba(34,197,94,0.3)',
+                  color: '#4ade80',
+                }}
+              >
+                +{xpBuffPercent}% XP
+              </span>
+            )}
           </div>
-          <span className="text-[9px] font-mono font-bold text-gray-400 uppercase tracking-widest">RADAR LEVEL:</span>
-          <span
-            className="text-[11px] font-black font-mono tracking-wider"
-            style={{ color: TIER_COLORS[overallRadarLevel - 1] }}
+          <button
+            onClick={() => setShowAllLevels(true)}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[8px] font-black font-mono uppercase tracking-widest transition-all duration-200"
+            style={{
+              background: 'rgba(0,210,255,0.08)',
+              border: '1px solid rgba(0,210,255,0.2)',
+              color: '#00d2ff',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,210,255,0.15)'; e.currentTarget.style.borderColor = 'rgba(0,210,255,0.4)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,210,255,0.08)'; e.currentTarget.style.borderColor = 'rgba(0,210,255,0.2)'; }}
           >
-            TIER {TIER_NAMES[overallRadarLevel - 1]}
-          </span>
-          <span className="text-[8px] font-mono text-gray-600">({statTierDetails.reduce((s, d) => s + d.val, 0)} / 1200 total)</span>
+            ALL LEVELS
+          </button>
         </div>
-        <button
-          onClick={() => setShowAllLevels(true)}
-          className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[8px] font-black font-mono uppercase tracking-widest transition-all duration-200"
-          style={{
-            background: 'rgba(0,210,255,0.08)',
-            border: '1px solid rgba(0,210,255,0.2)',
-            color: '#00d2ff',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,210,255,0.15)'; e.currentTarget.style.borderColor = 'rgba(0,210,255,0.4)'; }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,210,255,0.08)'; e.currentTarget.style.borderColor = 'rgba(0,210,255,0.2)'; }}
-        >
-          ALL LEVELS
-        </button>
+        {/* XP Buff Tier Progress */}
+        <div className="flex items-center gap-3 mt-1.5">
+          <div className="flex-1 flex items-center gap-1">
+            {TIER_NAMES.map((name, i) => (
+              <div
+                key={name}
+                className="flex-1 h-1 rounded-full transition-all duration-500"
+                style={{ background: i < overallRadarLevel ? TIER_COLORS[i] : 'rgba(255,255,255,0.05)' }}
+              />
+            ))}
+          </div>
+          <span className="text-[7px] font-mono text-gray-600 shrink-0">
+            {xpBuffPercent > 0 ? `${xpBuffPercent}% XP BUFF ACTIVE` : 'NO XP BUFF'}
+          </span>
+        </div>
       </div>
 
       {/* --- ALL LEVELS POPUP --- */}
@@ -808,6 +965,29 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
                     <div className="h-full rounded-full transition-all duration-500" style={{ width: `${(statTierDetails.reduce((s, d) => s + d.val, 0) / 1200) * 100}%`, background: `linear-gradient(90deg, ${TIER_COLORS[0]}, ${TIER_COLORS[overallRadarLevel - 1]})` }} />
                   </div>
                   <span className="text-[8px] font-mono text-gray-500">{statTierDetails.reduce((s, d) => s + d.val, 0)}/1200</span>
+                </div>
+              </div>
+
+              {/* XP Buff Info */}
+              <div className="mx-4 mb-3 px-3 py-2 rounded-lg" style={{ background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.15)' }}>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[9px] font-mono font-bold text-gray-400 uppercase tracking-widest">XP Buff from Radar Level</span>
+                  <span className="text-[11px] font-black font-mono" style={{ color: xpBuffPercent > 0 ? '#4ade80' : '#6b7280' }}>
+                    {xpBuffPercent > 0 ? `+${xpBuffPercent}%` : 'NONE'}
+                  </span>
+                </div>
+                <div className="grid grid-cols-5 gap-1">
+                  {TIER_NAMES.map((name, i) => {
+                    const buff = XP_BUFF_MAP[i + 1] || 0;
+                    const isActive = (i + 1) <= overallRadarLevel;
+                    const isCurrent = (i + 1) === overallRadarLevel;
+                    return (
+                      <div key={name} className="flex flex-col items-center gap-0.5 py-1 rounded" style={{ background: isCurrent ? 'rgba(34,197,94,0.12)' : 'transparent', border: isCurrent ? '1px solid rgba(34,197,94,0.25)' : '1px solid transparent' }}>
+                        <span className="text-[8px] font-mono font-bold" style={{ color: isActive ? TIER_COLORS[i] : '#374151' }}>T{name}</span>
+                        <span className="text-[7px] font-mono" style={{ color: isActive ? '#4ade80' : '#4b5563' }}>+{buff}%</span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 

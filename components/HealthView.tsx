@@ -668,9 +668,18 @@ export const HealthView: React.FC<HealthViewProps> = ({
       return () => { if (interval) clearInterval(interval); };
   }, [scanState]);
 
-  // Use only built-in DEFAULT_PLANS for the premade carousel (API plans were duplicating)
+  // Fetch premade plans (API merged with default)
   useEffect(() => {
-      setPremadePlans([...DEFAULT_PLANS]);
+    fetch(`${API_BASE}/api/workout/plans`)
+      .then(r => r.json())
+      .then(data => {
+        const apiPlans = Array.isArray(data) ? data : [];
+        // Merge API plans with DEFAULT_PLANS (excluding defaults that were customized and saved to DB with negative IDs)
+        const apiIds = new Set(apiPlans.map((p: WorkoutPlan) => p.id));
+        const merged = [...apiPlans, ...DEFAULT_PLANS.filter(dp => !apiIds.has(dp.id))];
+        setPremadePlans(merged);
+      })
+      .catch(() => setPremadePlans([...DEFAULT_PLANS]));
   }, []);
 
   // Fetch user custom plans (manual + AI saved)

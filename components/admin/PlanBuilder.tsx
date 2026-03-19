@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit3, Trash2, Save, X, ChevronDown, ChevronUp, Dumbbell } from 'lucide-react';
 import { WorkoutExercise, WorkoutPlan, WorkoutDay } from '../../types';
+import { DEFAULT_PLANS } from '../../lib/defaultPlans';
 import { API_BASE } from '../../lib/apiConfig';
 
 const DIFFICULTY_OPTIONS = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED'];
@@ -160,7 +161,11 @@ const PlanBuilder: React.FC<{ adminToken: string }> = ({ adminToken }) => {
       ]);
       const plansData = await plansRes.json();
       const exData = await exRes.json();
-      setPlans(Array.isArray(plansData) ? plansData : []);
+      const apiPlans = Array.isArray(plansData) ? plansData : [];
+      // Merge API plans with DEFAULT_PLANS (excluding those with the same ID)
+      const apiIds = new Set(apiPlans.map((p: WorkoutPlan) => p.id));
+      const mergedPlans = [...apiPlans, ...DEFAULT_PLANS.filter(dp => !apiIds.has(dp.id))];
+      setPlans(mergedPlans);
       setExercises(Array.isArray(exData) ? exData : []);
     } catch { setMsg({ type: 'error', text: 'Failed to load data' }); }
     finally { setLoading(false); }
@@ -198,11 +203,13 @@ const PlanBuilder: React.FC<{ adminToken: string }> = ({ adminToken }) => {
     if (!form.name.trim()) return setMsg({ type: 'error', text: 'Plan name is required' });
     setSaving(true);
     try {
-      const url = editing ? `${API_BASE}/api/admin/plans/${editing.id}` : `${API_BASE}/api/admin/plans`;
-      const method = editing ? 'PUT' : 'POST';
+      // If editing a default plan (negative ID), create it as a new DB plan instead
+      const isDefault = editing && editing.id < 0;
+      const url = (editing && !isDefault) ? `${API_BASE}/api/admin/plans/${editing.id}` : `${API_BASE}/api/admin/plans`;
+      const method = (editing && !isDefault) ? 'PUT' : 'POST';
       const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminToken}` }, body: JSON.stringify(form) });
       if (!res.ok) throw new Error('Save failed');
-      setMsg({ type: 'success', text: editing ? 'Plan updated' : 'Plan created' });
+      setMsg({ type: 'success', text: (editing && !isDefault) ? 'Plan updated' : 'Plan created' });
       setShowForm(false);
       fetchAll();
     } catch { setMsg({ type: 'error', text: 'Failed to save plan' }); }
@@ -210,6 +217,7 @@ const PlanBuilder: React.FC<{ adminToken: string }> = ({ adminToken }) => {
   };
 
   const deletePlan = async (id: number) => {
+    if (id < 0) return setMsg({ type: 'error', text: 'Cannot delete built-in default plans' });
     try {
       await fetch(`${API_BASE}/api/admin/plans/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${adminToken}` } });
       setPlans(prev => prev.filter(p => p.id !== id));
