@@ -14,7 +14,8 @@ const TIER_NAMES = ['I', 'II', 'III', 'IV', 'V'];
 const TIER_COLORS = ['#6b7280', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444'];
 
 function getTierInfo(value: number) {
-  const clamped = Math.max(0, Math.min(value, 200));
+  const safeValue = typeof value === 'number' && !isNaN(value) ? value : 0;
+  const clamped = Math.max(0, Math.min(safeValue, 200));
   if (clamped >= 200) return { tier: 5, progress: TIER_SIZE, tierName: 'V', pct: 1 };
   const tier = Math.min(MAX_TIERS, Math.floor(clamped / TIER_SIZE) + 1);
   const progress = clamped % TIER_SIZE;
@@ -618,6 +619,7 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
                   fill={radarPhase === 'complete' ? '#00d2ff' : 'transparent'} 
                   fillOpacity={radarPhase === 'complete' ? 0.2 : 0} 
                   isAnimationActive={false}
+                  activeDot={false}
                   dot={((props: any) => {
                     const { cx, cy, index } = props;
                     const isVisible = index < visibleDots || radarPhase !== 'dots';

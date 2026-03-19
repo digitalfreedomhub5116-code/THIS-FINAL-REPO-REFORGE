@@ -586,36 +586,60 @@ export const HealthView: React.FC<HealthViewProps> = ({
   const dailyTargets = useMemo(() => {
       if (!healthProfile) return null;
       
-      // Use existing macros if available, otherwise calculate from BMR
-      if (healthProfile.macros?.calories) {
-          return {
-              calories: healthProfile.macros.calories,
-              protein: healthProfile.macros.protein,
-              carbs: healthProfile.macros.carbs,
-              fats: healthProfile.macros.fats,
-          };
+      // Calculate BMR using Mifflin-St Jeor Equation
+      // Men: (10 × weight in kg) + (6.25 × height in cm) - (5 × age in years) + 5
+      // Women: (10 × weight in kg) + (6.25 × height in cm) - (5 × age in years) - 161
+      let bmr = 0;
+      if (healthProfile.weight && healthProfile.height && healthProfile.age) {
+          if (healthProfile.gender === 'MALE') {
+              bmr = (10 * healthProfile.weight) + (6.25 * healthProfile.height) - (5 * healthProfile.age) + 5;
+          } else {
+              bmr = (10 * healthProfile.weight) + (6.25 * healthProfile.height) - (5 * healthProfile.age) - 161;
+          }
+      } else {
+          bmr = healthProfile.bmr || 1800; // Fallback
       }
 
-      // Fallback: calculate from BMR if macros not set
-      const bmr = healthProfile.bmr || 1800;
+      // Calculate TDEE (Total Daily Energy Expenditure) based on activity level
       const activityMultipliers = { SEDENTARY: 1.2, LIGHT: 1.375, MODERATE: 1.55, VERY_ACTIVE: 1.725 };
       const tdee = Math.round(bmr * (activityMultipliers[healthProfile.activityLevel] || 1.55));
       
-      // Adjust for goal
+      // Adjust target calories based on goal
+      // For weight loss: 500 calorie deficit (roughly 0.5kg/1lb per week)
+      // For weight gain: 300-500 calorie surplus
       let targetCalories = tdee;
-      if (healthProfile.goal === 'LOSE_WEIGHT') targetCalories = Math.round(tdee * 0.85);
-      else if (healthProfile.goal === 'BUILD_MUSCLE') targetCalories = Math.round(tdee * 1.1);
+      if (healthProfile.goal === 'LOSE_WEIGHT') {
+          targetCalories = Math.max(1200, tdee - 500); // Minimum 1200 for safety
+      } else if (healthProfile.goal === 'BUILD_MUSCLE') {
+          targetCalories = tdee + 300; // Lean bulk
+      }
       
-      // Macro split based on goal
-      let proteinRatio = 0.3, carbsRatio = 0.4, fatsRatio = 0.3;
-      if (healthProfile.goal === 'BUILD_MUSCLE') { proteinRatio = 0.35; carbsRatio = 0.45; fatsRatio = 0.2; }
-      else if (healthProfile.goal === 'LOSE_WEIGHT') { proteinRatio = 0.4; carbsRatio = 0.3; fatsRatio = 0.3; }
+      // Macro split calculation based on goal and weight
+      // Protein: typically 1.6-2.2g per kg of body weight for active individuals
+      let proteinGrams = 0;
+      let fatGrams = 0;
+      let carbGrams = 0;
+
+      if (healthProfile.goal === 'BUILD_MUSCLE') {
+          proteinGrams = Math.round(healthProfile.weight * 2.2); // High protein for muscle
+          fatGrams = Math.round((targetCalories * 0.25) / 9); // 25% fats
+          carbGrams = Math.round((targetCalories - (proteinGrams * 4) - (fatGrams * 9)) / 4); // Rest is carbs
+      } else if (healthProfile.goal === 'LOSE_WEIGHT') {
+          proteinGrams = Math.round(healthProfile.weight * 2.0); // Preserve muscle during deficit
+          fatGrams = Math.round((targetCalories * 0.30) / 9); // 30% fats for hormones
+          carbGrams = Math.round((targetCalories - (proteinGrams * 4) - (fatGrams * 9)) / 4); // Rest is carbs
+      } else {
+          // Maintenance / Recomp
+          proteinGrams = Math.round(healthProfile.weight * 1.8);
+          fatGrams = Math.round((targetCalories * 0.25) / 9);
+          carbGrams = Math.round((targetCalories - (proteinGrams * 4) - (fatGrams * 9)) / 4);
+      }
       
       return {
           calories: targetCalories,
-          protein: Math.round((targetCalories * proteinRatio) / 4),
-          carbs: Math.round((targetCalories * carbsRatio) / 4),
-          fats: Math.round((targetCalories * fatsRatio) / 9),
+          protein: Math.max(0, proteinGrams),
+          carbs: Math.max(0, carbGrams),
+          fats: Math.max(0, fatGrams),
       };
   }, [healthProfile]);
 
