@@ -79,20 +79,15 @@ async function startServer() {
   }));
   app.use(json({ limit: '50mb' }));
   const isProduction = process.env.NODE_ENV === 'production';
-  const sessionOptions: Record<string, unknown> = {
-    secret: process.env.SESSION_SECRET || 'your-session-secret-here',
+  const sessionOptions: any = {
+    secret: process.env.JWT_SECRET!,
     resave: false,
     saveUninitialized: false,
-    cookie: {
-      secure: isProduction, // true for HTTPS (Railway), false for HTTP (localhost)
-      httpOnly: true,
-      sameSite: isProduction ? 'none' : 'lax', // 'none' required for cross-origin on HTTPS
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-    }
+    cookie: { secure: false, maxAge: 7 * 24 * 60 * 60 * 1000 }, // 7 days
   };
+
   if (process.env.DATABASE_URL) {
-    const pgPool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
-    // Pre-create session table directly — PgBouncer (Supabase pooler) blocks createTableIfMissing DDL
+    const pgPool = new Pool({ connectionString: process.env.DATABASE_URL });
     pgPool.query(`
       CREATE TABLE IF NOT EXISTS session (
         sid varchar NOT NULL COLLATE "default",
