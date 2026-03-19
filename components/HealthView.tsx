@@ -868,26 +868,49 @@ export const HealthView: React.FC<HealthViewProps> = ({
       setShowMicros(false);
       setScanState('SCANNING');
 
-      const dataUrlReader = new FileReader();
-      dataUrlReader.onload = (event) => { setScannedImage(event.target?.result as string); };
-      dataUrlReader.readAsDataURL(file);
+      // --- CLIENT-SIDE IMAGE COMPRESSION ---
+      const compressImage = async (imageFile: File, maxWidth = 800): Promise<string> => {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(imageFile);
+          reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target?.result as string;
+            img.onload = () => {
+              const canvas = document.createElement('canvas');
+              let width = img.width;
+              let height = img.height;
+              
+              if (width > maxWidth) {
+                height = Math.round((height * maxWidth) / width);
+                width = maxWidth;
+              }
+              
+              canvas.width = width;
+              canvas.height = height;
+              const ctx = canvas.getContext('2d');
+              ctx?.drawImage(img, 0, 0, width, height);
+              // Compress to 0.7 quality JPEG
+              const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+              resolve(dataUrl);
+            };
+            img.onerror = reject;
+          };
+          reader.onerror = reject;
+        });
+      };
 
       try {
-          const base64Reader = new FileReader();
-          const imageBase64 = await new Promise<string>((resolve, reject) => {
-              base64Reader.onload = (ev) => {
-                  const result = ev.target?.result as string;
-                  resolve(result.split(',')[1]);
-              };
-              base64Reader.onerror = reject;
-              base64Reader.readAsDataURL(file);
-          });
+          const compressedDataUrl = await compressImage(file);
+          setScannedImage(compressedDataUrl);
+          
+          const imageBase64 = compressedDataUrl.split(',')[1];
 
           const response = await fetch(`${API_BASE}/api/nutrition/analyze`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               credentials: 'include',
-              body: JSON.stringify({ imageBase64, mimeType: file.type }),
+              body: JSON.stringify({ imageBase64, mimeType: 'image/jpeg' }),
           });
 
           if (!response.ok) {

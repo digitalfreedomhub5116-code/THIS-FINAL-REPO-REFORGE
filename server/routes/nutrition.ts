@@ -5,11 +5,9 @@ import { logUsage } from '../utils/logUsage.js';
 const router = Router();
 
 const MODELS_TO_TRY = [
+  'gemini-2.5-flash',
   'gemini-2.0-flash',
   'gemini-1.5-flash',
-  'gemini-1.5-flash-latest',
-  'gemini-1.5-pro',
-  'gemini-pro-vision',
 ];
 
 const NUTRITION_PROMPT = `You are a strict, professional nutritionist AI.
