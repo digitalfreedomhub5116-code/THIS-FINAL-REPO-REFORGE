@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer, PolarRadiusAxis 
 } from 'recharts';
-import { ChevronLeft, ChevronRight, Terminal, Zap } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Terminal, Zap, X, Layers } from 'lucide-react';
 import { PlayerData, CoreStats, Outfit, HistoryEntry } from '../types';
 import MentorThoughtBox from './MentorThoughtBox';
 
@@ -58,6 +58,7 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
   onOpenDuskChat
 }) => {
   const [selectedDateIndex, setSelectedDateIndex] = useState<number>(3);
+  const [showAllLevels, setShowAllLevels] = useState(false);
   const [weekOffset, setWeekOffset] = useState(0);
 
   useEffect(() => {
@@ -254,6 +255,24 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
       };
     });
   }, [activeStats, todayStats]);
+
+  // ── Overall Radar Level & Stat Details ──
+  const statTierDetails = useMemo(() => {
+    const stats = [
+      { key: 'STR', label: 'Strength', val: activeStats.strength },
+      { key: 'INT', label: 'Intelligence', val: activeStats.intelligence },
+      { key: 'FOC', label: 'Focus', val: activeStats.focus },
+      { key: 'DIS', label: 'Discipline', val: activeStats.discipline },
+      { key: 'WIL', label: 'Willpower', val: activeStats.willpower },
+      { key: 'SOC', label: 'Social', val: activeStats.social },
+    ];
+    return stats.map(s => ({ ...s, ...getTierInfo(s.val) }));
+  }, [activeStats]);
+
+  const overallRadarLevel = useMemo(() => {
+    const avgTier = statTierDetails.reduce((sum, s) => sum + s.tier, 0) / statTierDetails.length;
+    return Math.floor(avgTier);
+  }, [statTierDetails]);
 
   // ── Dusk Contextual Voice (Tier-Aware) ──
   const duskContextVoice = useMemo(() => {
@@ -707,6 +726,137 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
         </div>
 
       </div>
+
+      {/* --- RADAR LEVEL INDICATOR BAR --- */}
+      <div className="w-full bg-[#0A0A0F]/90 border-t border-white/[0.03] flex items-center justify-between px-3 py-1.5 z-20 shrink-0">
+        <div className="flex items-center gap-2">
+          <div
+            className="flex items-center justify-center w-5 h-5 rounded"
+            style={{ background: `${TIER_COLORS[overallRadarLevel - 1]}20`, border: `1px solid ${TIER_COLORS[overallRadarLevel - 1]}40` }}
+          >
+            <Layers size={10} style={{ color: TIER_COLORS[overallRadarLevel - 1] }} />
+          </div>
+          <span className="text-[9px] font-mono font-bold text-gray-400 uppercase tracking-widest">RADAR LEVEL:</span>
+          <span
+            className="text-[11px] font-black font-mono tracking-wider"
+            style={{ color: TIER_COLORS[overallRadarLevel - 1] }}
+          >
+            TIER {TIER_NAMES[overallRadarLevel - 1]}
+          </span>
+          <span className="text-[8px] font-mono text-gray-600">({statTierDetails.reduce((s, d) => s + d.val, 0)} / 1200 total)</span>
+        </div>
+        <button
+          onClick={() => setShowAllLevels(true)}
+          className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[8px] font-black font-mono uppercase tracking-widest transition-all duration-200"
+          style={{
+            background: 'rgba(0,210,255,0.08)',
+            border: '1px solid rgba(0,210,255,0.2)',
+            color: '#00d2ff',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,210,255,0.15)'; e.currentTarget.style.borderColor = 'rgba(0,210,255,0.4)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,210,255,0.08)'; e.currentTarget.style.borderColor = 'rgba(0,210,255,0.2)'; }}
+        >
+          ALL LEVELS
+        </button>
+      </div>
+
+      {/* --- ALL LEVELS POPUP --- */}
+      <AnimatePresence>
+        {showAllLevels && (
+          <motion.div
+            className="absolute inset-0 z-[100] flex items-center justify-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            {/* Backdrop */}
+            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowAllLevels(false)} />
+
+            {/* Panel */}
+            <motion.div
+              className="relative w-[92%] max-w-[380px] max-h-[85%] overflow-y-auto rounded-2xl"
+              style={{
+                background: 'linear-gradient(180deg, #0d0d1a 0%, #080812 100%)',
+                border: '1px solid rgba(0,210,255,0.15)',
+                boxShadow: '0 0 40px rgba(0,210,255,0.08), 0 20px 60px rgba(0,0,0,0.6)',
+              }}
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-4 pt-4 pb-2">
+                <div className="flex items-center gap-2">
+                  <Layers size={14} className="text-[#00d2ff]" />
+                  <span className="text-[11px] font-black text-white uppercase tracking-[0.2em] font-mono">STAT TIER BREAKDOWN</span>
+                </div>
+                <button onClick={() => setShowAllLevels(false)} className="w-6 h-6 flex items-center justify-center rounded-md bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
+                  <X size={12} />
+                </button>
+              </div>
+
+              {/* Overall Level */}
+              <div className="mx-4 mb-3 px-3 py-2 rounded-lg" style={{ background: `${TIER_COLORS[overallRadarLevel - 1]}10`, border: `1px solid ${TIER_COLORS[overallRadarLevel - 1]}25` }}>
+                <div className="flex items-center justify-between">
+                  <span className="text-[9px] font-mono font-bold text-gray-400 uppercase tracking-widest">Overall Radar Level</span>
+                  <span className="text-[13px] font-black font-mono" style={{ color: TIER_COLORS[overallRadarLevel - 1] }}>TIER {TIER_NAMES[overallRadarLevel - 1]}</span>
+                </div>
+                <div className="flex items-center gap-2 mt-1.5">
+                  <div className="flex-1 h-1 rounded-full bg-white/5 overflow-hidden">
+                    <div className="h-full rounded-full transition-all duration-500" style={{ width: `${(statTierDetails.reduce((s, d) => s + d.val, 0) / 1200) * 100}%`, background: `linear-gradient(90deg, ${TIER_COLORS[0]}, ${TIER_COLORS[overallRadarLevel - 1]})` }} />
+                  </div>
+                  <span className="text-[8px] font-mono text-gray-500">{statTierDetails.reduce((s, d) => s + d.val, 0)}/1200</span>
+                </div>
+              </div>
+
+              {/* Individual Stats */}
+              <div className="px-4 space-y-2 pb-3">
+                {statTierDetails.map(stat => (
+                  <div key={stat.key} className="rounded-lg px-3 py-2.5" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-black font-mono text-[#00d2ff] tracking-wider">{stat.key}</span>
+                        <span className="text-[8px] font-mono text-gray-500">{stat.label}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-black font-mono" style={{ color: TIER_COLORS[stat.tier - 1] }}>T{stat.tierName}</span>
+                        <span className="text-[8px] font-mono text-gray-600">{stat.val}/200</span>
+                      </div>
+                    </div>
+                    {/* Progress within current tier */}
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-1.5 rounded-full bg-white/5 overflow-hidden">
+                        <motion.div
+                          className="h-full rounded-full"
+                          style={{ background: TIER_COLORS[stat.tier - 1] }}
+                          initial={{ width: 0 }}
+                          animate={{ width: `${(stat.progress / TIER_SIZE) * 100}%` }}
+                          transition={{ duration: 0.6, ease: 'easeOut' }}
+                        />
+                      </div>
+                      <span className="text-[7px] font-mono text-gray-500 w-8 text-right">{stat.progress}/{TIER_SIZE}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Tier Legend */}
+              <div className="mx-4 mb-4 px-3 py-2.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.03)' }}>
+                <span className="text-[8px] font-mono font-bold text-gray-500 uppercase tracking-widest block mb-2">Tier Scale</span>
+                <div className="grid grid-cols-5 gap-1">
+                  {TIER_NAMES.map((name, i) => (
+                    <div key={name} className="flex flex-col items-center gap-0.5">
+                      <div className="w-full h-1 rounded-full" style={{ background: TIER_COLORS[i], opacity: i < overallRadarLevel ? 1 : 0.3 }} />
+                      <span className="text-[7px] font-mono font-bold" style={{ color: TIER_COLORS[i], opacity: i < overallRadarLevel ? 1 : 0.4 }}>T{name}</span>
+                      <span className="text-[6px] font-mono text-gray-600">{i * TIER_SIZE}-{(i + 1) * TIER_SIZE === 200 ? 200 : (i + 1) * TIER_SIZE - 1}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* --- BOTTOM SECTION: TALK TO DUSK BUTTON --- */}
       <div className="w-full p-3 bg-[#0A0A0F] border-t border-white/5 z-20 relative shrink-0">
