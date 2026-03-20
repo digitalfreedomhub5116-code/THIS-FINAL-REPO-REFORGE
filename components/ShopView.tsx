@@ -49,7 +49,7 @@ interface ShopViewProps {
   wardrobeOnEquip?: (id: string) => void;
 }
 
-const DUNGEON_BANNER = 'https://res.cloudinary.com/dcnqnbvp0/image/upload/v1771066637/Image_202602141625_tlkmvf.jpg';
+const DUNGEON_BANNER = 'https://i.postimg.cc/zDwVQ9bN/Image-202602141625-tlkmvf.jpg';
 
 const RARITY_STYLES: Record<string, { label: string; bg: string; text: string; border: string }> = {
   COMMON:    { label: 'COMMON',    bg: 'rgba(107,114,128,0.2)', text: '#9ca3af', border: 'rgba(107,114,128,0.3)' },
