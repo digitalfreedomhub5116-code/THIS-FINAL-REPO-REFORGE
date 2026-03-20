@@ -676,7 +676,11 @@ export const HealthView: React.FC<HealthViewProps> = ({
         const apiPlans = Array.isArray(data) ? data : [];
         // Merge API plans with DEFAULT_PLANS (excluding defaults that were customized and saved to DB with negative IDs)
         const apiIds = new Set(apiPlans.map((p: WorkoutPlan) => p.id));
-        const merged = [...apiPlans, ...DEFAULT_PLANS.filter(dp => !apiIds.has(dp.id))];
+        const deletedIds = new Set(apiPlans.filter((p: any) => p.name === 'DELETED_DEFAULT').map((p: any) => p.id));
+        const merged = [
+          ...apiPlans.filter((p: any) => p.name !== 'DELETED_DEFAULT'), 
+          ...DEFAULT_PLANS.filter(dp => !apiIds.has(dp.id) && !deletedIds.has(dp.id))
+        ];
         setPremadePlans(merged);
       })
       .catch(() => setPremadePlans([...DEFAULT_PLANS]));

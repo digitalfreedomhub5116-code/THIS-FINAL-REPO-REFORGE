@@ -43,6 +43,7 @@ router.get('/plans', async (_req: Request, res: Response) => {
       .from('workout_plans')
       .select('id, name, description, difficulty, equipment, duration_weeks, days_per_week, days, display_order, image_url')
       .eq('is_active', true)
+      .neq('name', 'DELETED_DEFAULT') // Make sure to exclude deleted default plan tombstones
       .order('display_order', { ascending: true })
       .order('id', { ascending: true });
     if (error) throw error;

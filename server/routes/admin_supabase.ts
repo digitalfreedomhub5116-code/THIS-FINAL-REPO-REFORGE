@@ -654,19 +654,19 @@ router.post('/plans', async (req: Request, res: Response) => {
 router.put('/plans/:id', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
   const idStr = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-  const id = idStr as string;
+  const id = parseInt(idStr as string);
   const plan = req.body;
   try {
-    // If ID is negative, it's a default plan that hasn't been saved to DB yet, so insert it instead
-    if (parseInt(id) < 0) {
-      if (plan.id) delete plan.id;
+    // If ID is negative, it's a default plan that needs to be overridden globally
+    if (id < 0) {
+      plan.id = id;
       const { data, error } = await (supabaseServer() as any)
         .from('workout_plans')
-        .insert(plan)
+        .upsert(plan)
         .select()
         .single();
       if (error) throw error;
-      await logAdminAction('create_plan', req, { newValue: { id: data?.id, name: plan.name } });
+      await logAdminAction('update_plan', req, { targetUser: idStr, newValue: { name: plan.name } });
       return res.json(data);
     } else {
       const { data, error } = await (supabaseServer() as any)
@@ -676,7 +676,7 @@ router.put('/plans/:id', async (req: Request, res: Response) => {
         .select()
         .single();
       if (error) throw error;
-      await logAdminAction('update_plan', req, { targetUser: id, newValue: { name: plan.name } });
+      await logAdminAction('update_plan', req, { targetUser: idStr, newValue: { name: plan.name } });
       return res.json(data);
     }
   } catch (err) {
@@ -688,16 +688,34 @@ router.put('/plans/:id', async (req: Request, res: Response) => {
 router.delete('/plans/:id', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
   const idStr = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-  const id = idStr as string;
+  const id = parseInt(idStr as string);
   try {
-    if (parseInt(id) < 0) return res.status(400).json({ error: 'Cannot delete built-in default plans' });
-    const { error } = await (supabaseServer() as any)
-      .from('workout_plans')
-      .delete()
-      .eq('id', id);
-    
-    if (error) throw error;
-    await logAdminAction('delete_plan', req, { targetUser: id });
+    if (id < 0) {
+      // Create a tombstone to hide this default plan globally
+      const { error } = await (supabaseServer() as any)
+        .from('workout_plans')
+        .upsert({ 
+          id: id, 
+          name: 'DELETED_DEFAULT', 
+          description: '', 
+          difficulty: 'BEGINNER', 
+          equipment: 'GYM', 
+          duration_weeks: 1, 
+          days_per_week: 1, 
+          days: [], 
+          is_active: false, 
+          display_order: -9999 
+        });
+      if (error) throw error;
+    } else {
+      const { error } = await (supabaseServer() as any)
+        .from('workout_plans')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+    }
+    await logAdminAction('delete_plan', req, { targetUser: idStr });
     return res.json({ success: true });
   } catch (err) {
     console.error('[Admin delete plan]', err);

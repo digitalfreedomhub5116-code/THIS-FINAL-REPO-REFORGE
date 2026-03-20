@@ -201,6 +201,7 @@ const App: React.FC = () => {
   const banReversalShownRef = useRef(false);
 
   const [isDungeonMode, setIsDungeonMode] = useState(false);
+  const [dungeonSession, setDungeonSession] = useState(0);
   const [tutorialTarget, setTutorialTarget] = useState<string | null>(null);
   const [tutorialAnalysisFailed, setTutorialAnalysisFailed] = useState(false);
   const [showDuskChat, setShowDuskChat] = useState(false);
@@ -519,6 +520,7 @@ const App: React.FC = () => {
   const handleStartDungeon = async (isFree: boolean) => {
     const allowed = await enterDungeon(isFree);
     if (allowed) {
+      setDungeonSession(prev => prev + 1);
       setIsDungeonMode(true);
       setActiveTab('CASTLE');
     }
@@ -919,7 +921,6 @@ const App: React.FC = () => {
           {showDailyLogin && (
             <ErrorBoundary>
               <DailyLoginModal 
-                reward={dailyReward} 
                 onClose={() => {
                   setShowDailyLogin(false);
                   setDailyReward(null);
@@ -1201,6 +1202,7 @@ const App: React.FC = () => {
               <Suspense fallback={<SkeletonCastlePage />}>
                 <ErrorBoundary fallbackLabel="Demon Castle failed to load">
                   <DemonCastle
+                    key={`dungeon-${dungeonSession}`}
                     gold={player.gold}
                     keys={player.keys}
                     lastDungeonEntry={player.lastDungeonEntry ?? 0}

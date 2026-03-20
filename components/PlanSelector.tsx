@@ -36,9 +36,13 @@ const PlanSelector: React.FC<PlanSelectorProps> = ({ healthProfile, onSelectPlan
       .then(r => r.json())
       .then(data => {
         const apiPlans = Array.isArray(data) ? data : [];
-        // Merge: API plans first, then default plans that aren't duplicated
+        // Merge: API plans first, then default plans that aren't duplicated or tombstones
         const apiIds = new Set(apiPlans.map((p: WorkoutPlan) => p.id));
-        const merged = [...apiPlans, ...DEFAULT_PLANS.filter(dp => !apiIds.has(dp.id))];
+        const deletedIds = new Set(apiPlans.filter((p: any) => p.name === 'DELETED_DEFAULT').map((p: any) => p.id));
+        const merged = [
+          ...apiPlans.filter((p: any) => p.name !== 'DELETED_DEFAULT'), 
+          ...DEFAULT_PLANS.filter(dp => !apiIds.has(dp.id) && !deletedIds.has(dp.id))
+        ];
         setPlans(merged);
       })
       .catch(() => setPlans(DEFAULT_PLANS))

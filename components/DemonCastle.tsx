@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, animate } from 'framer-motion';
-import { Ghost, Key, Coins, Skull, LogOut, Timer, AlertOctagon, Sparkles, Crown, ArrowUpCircle } from 'lucide-react';
+import { Ghost, Key, Coins, Skull, LogOut, Timer, AlertOctagon, Sparkles, Crown, ArrowUpCircle, Heart, Scroll, Star } from 'lucide-react';
 import { playSystemSoundEffect } from '../utils/soundEngine';
 import { useCoinReward } from '../hooks/useCoinReward';
 
@@ -25,9 +25,9 @@ const rollWeighted = (table: { value: number; weight: number }[]): number => {
 };
 
 const rollBonusItem = (floor: number): 'POTION' | 'SCROLL' | 'ORB' | undefined => {
-  const orbChance = floor >= 15 ? Math.min(0.04 + (floor - 15) * 0.002, 0.10) : 0;
-  const scrollChance = floor >= 5 ? 0.08 : 0;
-  const potionChance = 0.12;
+  const orbChance = floor >= 8 ? Math.min(0.08 + (floor - 8) * 0.005, 0.18) : 0;
+  const scrollChance = floor >= 3 ? Math.min(0.15 + floor * 0.005, 0.25) : 0.05;
+  const potionChance = 0.30;
   const roll = Math.random();
   if (roll < orbChance) return 'ORB';
   if (roll < orbChance + scrollChance) return 'SCROLL';
@@ -660,6 +660,9 @@ const SequentialReward: React.FC<{
     'yellow-500': { text: 'text-yellow-500', border: 'border-yellow-500/30', bg: 'bg-yellow-500/5', shadow: 'shadow-[0_0_15px_rgba(234,179,8,0.2)]' },
     'blue-500': { text: 'text-blue-500', border: 'border-blue-500/30', bg: 'bg-blue-500/5', shadow: 'shadow-[0_0_15px_rgba(59,130,246,0.2)]' },
     'purple-500': { text: 'text-purple-500', border: 'border-purple-500/30', bg: 'bg-purple-500/5', shadow: 'shadow-[0_0_15px_rgba(168,85,247,0.2)]' },
+    'red-500': { text: 'text-red-500', border: 'border-red-500/30', bg: 'bg-red-500/5', shadow: 'shadow-[0_0_15px_rgba(239,68,68,0.2)]' },
+    'indigo-500': { text: 'text-indigo-500', border: 'border-indigo-500/30', bg: 'bg-indigo-500/5', shadow: 'shadow-[0_0_15px_rgba(99,102,241,0.2)]' },
+    'orange-500': { text: 'text-orange-500', border: 'border-orange-500/30', bg: 'bg-orange-500/5', shadow: 'shadow-[0_0_15px_rgba(249,115,22,0.2)]' },
   }[color] || { text: 'text-gray-500', border: 'border-gray-500', bg: 'bg-gray-500/5', shadow: '' };
 
   return (
@@ -683,13 +686,15 @@ const SequentialReward: React.FC<{
 
 // --- SUB-COMPONENT: VICTORY SCREEN (PREMIUM) ---
 const VictoryScreen: React.FC<{ 
-  loot: { gold: number; xp: number; keys: number };
+  loot: { gold: number; xp: number; keys: number; potions: number; scrolls: number; orbs: number };
   onClose: () => void;
 }> = ({ loot, onClose }) => {
   const [stage, setStage] = useState<'intro' | 'rewards' | 'done'>('intro');
-  const [rewardStage, setRewardStage] = useState(0); // 0: Gold, 1: XP, 2: Keys
+  const [rewardStage, setRewardStage] = useState(0); // 0-5: Gold, XP, Keys, Potions, Scrolls, Orbs
   const [showConfetti, setShowConfetti] = useState(false);
   const [shake, setShake] = useState(false);
+
+  const totalStages = 6; // gold, xp, keys, potions, scrolls, orbs
 
   useEffect(() => {
     // Start rewards after intro
@@ -698,10 +703,10 @@ const VictoryScreen: React.FC<{
   }, []);
 
   useEffect(() => {
-    if (stage === 'rewards' && rewardStage === 3) {
+    if (stage === 'rewards' && rewardStage === totalStages) {
       setTimeout(() => {
         setStage('done');
-        if (loot.gold > 0 || loot.xp > 0 || loot.keys > 0) {
+        if (loot.gold > 0 || loot.xp > 0 || loot.keys > 0 || loot.potions > 0 || loot.scrolls > 0 || loot.orbs > 0) {
             setShowConfetti(true);
             setShake(true);
             playSystemSoundEffect('VICTORY_BURST'); 
@@ -796,12 +801,12 @@ const VictoryScreen: React.FC<{
         </div>
 
         {/* Rewards Grid */}
-        <div className="grid grid-cols-3 gap-4 mb-10 relative z-10">
+        <div className="grid grid-cols-3 gap-3 mb-6 relative z-10">
            <SequentialReward 
              start={stage === 'rewards' || stage === 'done'}
              value={loot.gold} 
              label="Gold" 
-             icon={<Coins size={24} />} 
+             icon={<Coins size={22} />} 
              delay={0}
              color="yellow-500"
              onComplete={() => setRewardStage(prev => Math.max(prev, 1))}
@@ -810,8 +815,8 @@ const VictoryScreen: React.FC<{
              start={rewardStage >= 1}
              value={loot.xp} 
              label="XP" 
-             icon={<ArrowUpCircle size={24} />} 
-             delay={0.2} 
+             icon={<ArrowUpCircle size={22} />} 
+             delay={0.15} 
              color="blue-500"
              onComplete={() => setRewardStage(prev => Math.max(prev, 2))}
            />
@@ -819,10 +824,39 @@ const VictoryScreen: React.FC<{
              start={rewardStage >= 2}
              value={loot.keys} 
              label="Keys" 
-             icon={<Key size={24} />} 
-             delay={0.2} 
+             icon={<Key size={22} />} 
+             delay={0.15} 
              color="purple-500"
              onComplete={() => setRewardStage(prev => Math.max(prev, 3))}
+           />
+        </div>
+        <div className="grid grid-cols-3 gap-3 mb-10 relative z-10">
+           <SequentialReward 
+             start={rewardStage >= 3}
+             value={loot.potions} 
+             label="Potions" 
+             icon={<Heart size={22} />} 
+             delay={0.15} 
+             color="red-500"
+             onComplete={() => setRewardStage(prev => Math.max(prev, 4))}
+           />
+           <SequentialReward 
+             start={rewardStage >= 4}
+             value={loot.scrolls} 
+             label="Scrolls" 
+             icon={<Scroll size={22} />} 
+             delay={0.15} 
+             color="indigo-500"
+             onComplete={() => setRewardStage(prev => Math.max(prev, 5))}
+           />
+           <SequentialReward 
+             start={rewardStage >= 5}
+             value={loot.orbs} 
+             label="Orbs" 
+             icon={<Star size={22} />} 
+             delay={0.15} 
+             color="orange-500"
+             onComplete={() => setRewardStage(prev => Math.max(prev, 6))}
            />
         </div>
 
@@ -852,8 +886,9 @@ const VictoryScreen: React.FC<{
 
 // --- SUB-COMPONENT: GAME OVER SCREEN (PREMIUM) ---
 const GameOverScreen: React.FC<{ 
+  lostLoot: { gold: number; xp: number; keys: number; potions: number; scrolls: number; orbs: number };
   onClose: () => void;
-}> = ({ onClose }) => {
+}> = ({ lostLoot, onClose }) => {
   const [screenShake, setScreenShake] = useState(true);
 
   useEffect(() => {
@@ -952,28 +987,45 @@ const GameOverScreen: React.FC<{
                 </motion.div>
             </div>
             
-            {/* Zeroed Rewards */}
-            <div className="bg-black/40 border border-red-900/30 rounded-xl p-5 grid grid-cols-3 gap-4 mb-10 relative">
+            {/* Lost Rewards */}
+            <div className="bg-black/40 border border-red-900/30 rounded-xl p-4 grid grid-cols-3 gap-3 mb-4 relative">
                 {/* Corner Accents */}
                 <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-red-600/50" />
                 <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-red-600/50" />
                 <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-red-600/50" />
                 <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-red-600/50" />
 
-                <div className="flex flex-col items-center gap-2 opacity-50 grayscale">
-                    <Coins size={20} className="text-gray-600" />
-                    <div className="text-xs font-bold text-gray-700 font-mono">0</div>
+                <div className="flex flex-col items-center gap-1.5 opacity-50 grayscale">
+                    <Coins size={18} className="text-gray-600" />
+                    <div className="text-xs font-bold text-red-800 font-mono line-through">{lostLoot.gold}</div>
                     <div className="text-[8px] font-bold uppercase tracking-wider text-gray-800">GOLD</div>
                 </div>
-                <div className="flex flex-col items-center gap-2 opacity-50 grayscale border-x border-red-900/20 px-2">
-                    <ArrowUpCircle size={20} className="text-gray-600" />
-                    <div className="text-xs font-bold text-gray-700 font-mono">0</div>
+                <div className="flex flex-col items-center gap-1.5 opacity-50 grayscale">
+                    <ArrowUpCircle size={18} className="text-gray-600" />
+                    <div className="text-xs font-bold text-red-800 font-mono line-through">{lostLoot.xp}</div>
                     <div className="text-[8px] font-bold uppercase tracking-wider text-gray-800">XP</div>
                 </div>
-                <div className="flex flex-col items-center gap-2 opacity-50 grayscale">
-                    <Key size={20} className="text-gray-600" />
-                    <div className="text-xs font-bold text-gray-700 font-mono">0</div>
+                <div className="flex flex-col items-center gap-1.5 opacity-50 grayscale">
+                    <Key size={18} className="text-gray-600" />
+                    <div className="text-xs font-bold text-red-800 font-mono line-through">{lostLoot.keys}</div>
                     <div className="text-[8px] font-bold uppercase tracking-wider text-gray-800">KEYS</div>
+                </div>
+            </div>
+            <div className="bg-black/40 border border-red-900/30 rounded-xl p-4 grid grid-cols-3 gap-3 mb-10 relative">
+                <div className="flex flex-col items-center gap-1.5 opacity-50 grayscale">
+                    <Heart size={18} className="text-gray-600" />
+                    <div className="text-xs font-bold text-red-800 font-mono line-through">{lostLoot.potions}</div>
+                    <div className="text-[8px] font-bold uppercase tracking-wider text-gray-800">POTIONS</div>
+                </div>
+                <div className="flex flex-col items-center gap-1.5 opacity-50 grayscale">
+                    <Scroll size={18} className="text-gray-600" />
+                    <div className="text-xs font-bold text-red-800 font-mono line-through">{lostLoot.scrolls}</div>
+                    <div className="text-[8px] font-bold uppercase tracking-wider text-gray-800">SCROLLS</div>
+                </div>
+                <div className="flex flex-col items-center gap-1.5 opacity-50 grayscale">
+                    <Star size={18} className="text-gray-600" />
+                    <div className="text-xs font-bold text-red-800 font-mono line-through">{lostLoot.orbs}</div>
+                    <div className="text-[8px] font-bold uppercase tracking-wider text-gray-800">ORBS</div>
                 </div>
             </div>
             
@@ -1032,6 +1084,9 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
   // FX
   const [flyingLoot, setFlyingLoot] = useState<{ lootType: 'GOLD' | 'KEY'; rect: DOMRect } | null>(null);
   const [isScreenShaking, setIsScreenShaking] = useState(false);
+
+  // Track lost loot for game over display
+  const [lostLoot, setLostLoot] = useState({ gold: 0, xp: 0, keys: 0, potions: 0, scrolls: 0, orbs: 0 });
 
   const PAID_ENTRY_COST = 3;
 
@@ -1347,6 +1402,7 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
 
   const handleAbandon = () => {
       setIsTrapped(false);
+      setLostLoot({ ...lootBag }); // Save what was lost before zeroing
       setMode('GAMEOVER');
       setLootBag({ gold: 0, xp: 0, keys: 0, potions: 0, scrolls: 0, orbs: 0 });
       playSystemSoundEffect('DANGER');
@@ -1665,7 +1721,7 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
   }
 
   if (mode === 'GAMEOVER') {
-      return <GameOverScreen onClose={resetToLobby} />;
+      return <GameOverScreen lostLoot={lostLoot} onClose={resetToLobby} />;
   }
 
   return null;

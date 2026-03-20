@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect, useRef, lazy, Suspense, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Coins, Timer, Key, CheckCircle2, Lock, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Coins, Timer, Key, CheckCircle2, Lock, ChevronLeft, ChevronRight, Heart, Scroll, Star, Zap, Ghost } from 'lucide-react';
+import { REWARD_SCHEDULE } from '../lib/rewards';
 import { ShopItem, Outfit } from '../types';
 import { API_BASE } from '../lib/apiConfig';
 import ErrorBoundary from './ErrorBoundary';
@@ -92,16 +93,22 @@ const CONSUMABLE_ITEMS = [
   },
 ];
 
-// Simplified 7-day preview for Store page (full 30-day calendar in modal)
-const LOGIN_REWARDS = [
-  { day: 1, emoji: '🪙', label: '100 G',   rarity: 'COMMON'    },
-  { day: 2, emoji: '🧪', label: 'Potion',  rarity: 'COMMON'    },
-  { day: 3, emoji: '🪙', label: '200 G',   rarity: 'COMMON'    },
-  { day: 4, emoji: '📜', label: 'Scroll',  rarity: 'RARE'      },
-  { day: 5, emoji: '', label: '300 G',   rarity: 'COMMON'    },
-  { day: 6, emoji: '🧪', label: '×2',      rarity: 'COMMON'    },
-  { day: 7, emoji: '🗝️', label: 'Key',     rarity: 'RARE'      },
-];
+// Build 7-day login preview from the real REWARD_SCHEDULE so store stays synced with the popup
+const REWARD_EMOJI: Record<string, string> = {
+  GOLD: '🪙', XP: '⚡', KEYS: '🗝️', WELCOME_KEYS: '🗝️', DUNGEON_PASS: '👻',
+  HEALTH_POTION: '🧪', SHADOW_SCROLL: '📜', ULT_ORB: '🔮',
+};
+const REWARD_RARITY: Record<string, string> = {
+  GOLD: 'COMMON', XP: 'COMMON', KEYS: 'RARE', WELCOME_KEYS: 'RARE', DUNGEON_PASS: 'RARE',
+  HEALTH_POTION: 'COMMON', SHADOW_SCROLL: 'RARE', ULT_ORB: 'LEGENDARY',
+};
+const REWARD_SHORT: Record<string, (a: number) => string> = {
+  GOLD: a => `${a} G`, XP: a => `${a} XP`, KEYS: a => a === 1 ? 'Key' : `${a} Keys`,
+  WELCOME_KEYS: a => `${a} Keys`, DUNGEON_PASS: a => `${a} Pass`,
+  HEALTH_POTION: a => a === 1 ? 'Potion' : `×${a}`,
+  SHADOW_SCROLL: a => a === 1 ? 'Scroll' : `×${a}`,
+  ULT_ORB: a => a === 1 ? 'Orb' : `×${a}`,
+};
 
 const ShopView: React.FC<ShopViewProps> = ({
   gold,
@@ -195,8 +202,16 @@ const ShopView: React.FC<ShopViewProps> = ({
 
   const todayStr = new Date().toISOString().split('T')[0];
   const claimedToday = lastLoginDate === todayStr;
-  // Use 7-day cycle for preview display
-  const currentStreakDay = Math.max(1, ((streak - 1) % 7) + 1);
+  // Use 30-day cycle matching the popup calendar
+  const currentCycleDay30 = Math.max(1, ((streak - 1) % 30) + 1);
+  // For the 7-day preview, show a sliding window of 7 days starting from the current position
+  const previewStartIdx = Math.max(0, currentCycleDay30 - 1); // 0-indexed
+  const previewDays = Array.from({ length: 7 }, (_, i) => {
+    const idx = (previewStartIdx + i) % 30;
+    const r = REWARD_SCHEDULE[idx];
+    return { day: i + 1, actualCycleDay: idx + 1, emoji: REWARD_EMOJI[r.type] || '🎁', label: (REWARD_SHORT[r.type] || (() => '?'))(r.amount), rarity: REWARD_RARITY[r.type] || 'COMMON' };
+  });
+  const currentStreakDay = 1; // The first item in the sliding window is always "today"
   const [loginToast, setLoginToast] = useState<string | null>(null);
 
   const showLoginToast = (msg: string) => {
@@ -442,7 +457,7 @@ const ShopView: React.FC<ShopViewProps> = ({
 
           {/* 7-day reward track */}
           <div className="flex gap-2 justify-between">
-            {LOGIN_REWARDS.map((reward) => {
+            {previewDays.map((reward) => {
               const dayNum   = reward.day;
               const isCurrent = dayNum === currentStreakDay;
               const isClaimed = claimedToday ? dayNum <= currentStreakDay : dayNum < currentStreakDay;
