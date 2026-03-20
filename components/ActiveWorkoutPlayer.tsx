@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Pause, X, AlertOctagon, Check, Activity, Film, Timer as TimerIcon, ChevronRight, Zap } from 'lucide-react';
-import { EXERCISE_VIDEOS } from '../lib/defaultPlans';
+import { EXERCISE_VIDEOS, getExerciseVideoUrl } from '../lib/exerciseVideos';
 import { WorkoutDay } from '../types';
 import { SpeechService } from '../utils/speechService';
 import { playSystemSoundEffect } from '../utils/soundEngine';
@@ -121,17 +121,21 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
   const videoSource = React.useMemo(() => {
       if (!exercise) return null;
       
+      // 1. Direct videoUrl on exercise object
       if (exercise.videoUrl && exercise.videoUrl.trim() !== '') return exercise.videoUrl;
 
-      if (EXERCISE_VIDEOS[exercise.name]) return EXERCISE_VIDEOS[exercise.name];
+      // 2. Dedicated video map (case-insensitive)
+      const mapUrl = getExerciseVideoUrl(exercise.name);
+      if (mapUrl) return mapUrl;
       
+      // 3. Focus videos from player state
       const name = exercise.name;
       if (player.focusVideos[name]) return player.focusVideos[name];
-      
       const lowerName = name.toLowerCase();
       const looseKey = Object.keys(player.focusVideos).find(k => k.toLowerCase() === lowerName);
       if (looseKey) return player.focusVideos[looseKey];
 
+      // 4. Exercise database from backend
       const dbEntry = player.exerciseDatabase.find(e => e.name === name || e.name.toLowerCase() === lowerName);
       if (dbEntry?.videoUrl) return dbEntry.videoUrl;
 
@@ -432,7 +436,7 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
                             key={videoSource} // Force reload on change
                             src={videoSource} 
                             poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
-                            className="w-full h-full object-contain bg-black" 
+                            className="w-full h-full object-cover" 
                             style={{ filter: 'invert(1) hue-rotate(180deg)', opacity: 0.85 }}
                             autoPlay 
                             loop 

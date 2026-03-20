@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { Clock, Flame, Dumbbell, Activity, HeartPulse, Fingerprint, ScanLine, Video, AlertTriangle, ChevronRight, CheckCircle2 } from 'lucide-react';
 import { WorkoutDay, Exercise } from '../types';
 import { isEmbed } from '../hooks/useSystem';
-import { EXERCISE_VIDEOS } from '../lib/defaultPlans';
+import { EXERCISE_VIDEOS } from '../lib/exerciseVideos';
 import { calculateExerciseCalories } from '../utils/workoutGenerator';
 
 interface WorkoutOverviewProps {

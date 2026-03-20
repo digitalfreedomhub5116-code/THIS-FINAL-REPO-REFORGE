@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Edit3, Trash2, Search, Save, X, Video, CheckCircle2, Film, ExternalLink } from 'lucide-react';
 import { WorkoutExercise } from '../../types';
 import { API_BASE } from '../../lib/apiConfig';
-import { EXERCISE_VIDEOS } from '../../lib/defaultPlans';
+import { EXERCISE_VIDEOS } from '../../lib/exerciseVideos';
 
 const TYPES = ['COMPOUND', 'ISOLATION', 'CARDIO', 'ACCESSORY', 'STRETCH'];
 const EQUIPMENT_OPTIONS = ['GYM', 'BODYWEIGHT', 'HOME_DUMBBELLS', 'ANY'];
