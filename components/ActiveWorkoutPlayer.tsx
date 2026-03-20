@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Pause, X, AlertOctagon, Check, Activity, Film, Timer as TimerIcon, ChevronRight, Zap } from 'lucide-react';
+import { EXERCISE_VIDEOS } from '../lib/defaultPlans';
 import { WorkoutDay } from '../types';
 import { SpeechService } from '../utils/speechService';
 import { playSystemSoundEffect } from '../utils/soundEngine';
@@ -137,6 +138,30 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
 
   // Check if we are in the "Up Next" preview window (last 5 seconds of rest)
   const isUpNextPreview = phase === 'REST' && timeLeft <= 5 && timeLeft > 0;
+
+  // ── Background preload next exercise video ──────────────────────────────────
+  const nextVideoSource = React.useMemo(() => {
+    const nextIdx = currentIdx + 1;
+    if (nextIdx >= totalExercises) return null;
+    const nextEx = plan.exercises[nextIdx];
+    if (!nextEx) return null;
+    if (nextEx.videoUrl && nextEx.videoUrl.trim() !== '') return nextEx.videoUrl;
+    if (EXERCISE_VIDEOS[nextEx.name]) return EXERCISE_VIDEOS[nextEx.name];
+    const dbEntry = player.exerciseDatabase.find(e => e.name.toLowerCase() === nextEx.name.toLowerCase());
+    if (dbEntry?.videoUrl) return dbEntry.videoUrl;
+    return null;
+  }, [currentIdx, totalExercises, plan.exercises, player.exerciseDatabase]);
+
+  useEffect(() => {
+    if (!nextVideoSource) return;
+    const link = document.createElement('link');
+    link.rel = 'preload';
+    link.as = 'video';
+    link.href = nextVideoSource;
+    link.type = 'video/mp4';
+    document.head.appendChild(link);
+    return () => { document.head.removeChild(link); };
+  }, [nextVideoSource]);
 
   // --- LOGIC ---
 
@@ -405,7 +430,8 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
                             key={videoSource} // Force reload on change
                             src={videoSource} 
                             poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
-                            className="w-full h-full object-cover opacity-80 bg-transparent" 
+                            className="w-full h-full object-contain bg-black" 
+                            style={{ filter: 'invert(1) hue-rotate(180deg)', opacity: 0.85 }}
                             autoPlay 
                             loop 
                             muted 
