@@ -2623,7 +2623,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
                             className="flex flex-col items-center justify-center text-gray-600 pt-20"
                         >
                             <Utensils size={48} className="mb-4 opacity-50" />
-                            <div className="text-xs font-mono tracking-widest uppercase">Biometric Gallery Offline</div>
+                            <div className="text-xs font-mono tracking-widest uppercase">Coming Soon</div>
                             <div className="text-[10px] mt-2">Feature pending next system update.</div>
                         </motion.div>
                     )}

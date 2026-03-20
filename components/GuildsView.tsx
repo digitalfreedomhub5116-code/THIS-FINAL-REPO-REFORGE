@@ -144,7 +144,7 @@ const GuildsView: React.FC<GuildsViewProps> = ({ player, onJoin, onLeave }) => {
     // --- INITIALIZATION ---
     useEffect(() => {
         // 1. Check Level Lock
-        if (player.level < 10) {
+        if (player.level < 50) {
             setViewMode('LOCKED');
             return;
         }
@@ -266,7 +266,7 @@ const GuildsView: React.FC<GuildsViewProps> = ({ player, onJoin, onLeave }) => {
             <div className="flex flex-col items-center justify-center h-[60vh] text-center p-6 border border-white/10 rounded-2xl glass-panel">
                 <Lock size={64} className="text-gray-600 mb-6" />
                 <h2 className="text-2xl font-black text-white uppercase tracking-tighter">ALLIANCE SYSTEM LOCKED</h2>
-                <p className="text-gray-500 font-mono text-xs mt-2">REQUIRED LEVEL: 10</p>
+                <p className="text-gray-500 font-mono text-xs mt-2">REQUIRED LEVEL: 50</p>
                 <p className="text-system-neon font-mono text-sm mt-4">Current Level: {player.level}</p>
             </div>
         );
