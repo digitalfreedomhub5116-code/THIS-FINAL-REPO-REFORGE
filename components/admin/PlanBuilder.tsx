@@ -162,9 +162,13 @@ const PlanBuilder: React.FC<{ adminToken: string }> = ({ adminToken }) => {
       const plansData = await plansRes.json();
       const exData = await exRes.json();
       const apiPlans = Array.isArray(plansData) ? plansData : [];
-      // Merge API plans with DEFAULT_PLANS (excluding those with the same ID)
+      // Merge API plans with DEFAULT_PLANS (excluding those with the same ID, and those marked as DELETED_DEFAULT)
       const apiIds = new Set(apiPlans.map((p: WorkoutPlan) => p.id));
-      const mergedPlans = [...apiPlans, ...DEFAULT_PLANS.filter(dp => !apiIds.has(dp.id))];
+      const deletedIds = new Set(apiPlans.filter((p: any) => p.name === 'DELETED_DEFAULT').map((p: any) => p.id));
+      const mergedPlans = [
+        ...apiPlans.filter((p: any) => p.name !== 'DELETED_DEFAULT'), 
+        ...DEFAULT_PLANS.filter(dp => !apiIds.has(dp.id) && !deletedIds.has(dp.id))
+      ];
       setPlans(mergedPlans);
       setExercises(Array.isArray(exData) ? exData : []);
     } catch { setMsg({ type: 'error', text: 'Failed to load data' }); }
@@ -217,7 +221,6 @@ const PlanBuilder: React.FC<{ adminToken: string }> = ({ adminToken }) => {
   };
 
   const deletePlan = async (id: number) => {
-    if (id < 0) return setMsg({ type: 'error', text: 'Cannot delete built-in default plans' });
     try {
       await fetch(`${API_BASE}/api/admin/plans/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${adminToken}` } });
       setPlans(prev => prev.filter(p => p.id !== id));
