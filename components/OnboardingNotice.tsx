@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, CheckSquare, Square, Info } from 'lucide-react';
+import { useSystem } from '../hooks/useSystem';
 
 type PageKey = 'STORE' | 'QUEST' | 'HEALTH';
 
@@ -48,8 +49,11 @@ const PAGE_CONTENT: Record<PageKey, { title: string; sections: { icon: string; h
 const OnboardingNotice: React.FC<OnboardingNoticeProps> = ({ page }) => {
   const [visible, setVisible] = useState(false);
   const [dontShowAgain, setDontShowAgain] = useState(false);
+  const { player } = useSystem();
 
   useEffect(() => {
+    if (!player.tutorialComplete) return; // Block popups during tutorial
+
     const dismissed = localStorage.getItem(`${LS_PREFIX}${page}_dismissed`);
     if (dismissed === 'true') return;
 
