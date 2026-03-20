@@ -2,9 +2,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
-import { Clock, Flame, Dumbbell, Activity, HeartPulse, Fingerprint, ScanLine, Video, AlertTriangle, ChevronRight } from 'lucide-react';
+import { Clock, Flame, Dumbbell, Activity, HeartPulse, Fingerprint, ScanLine, Video, AlertTriangle, ChevronRight, CheckCircle2 } from 'lucide-react';
 import { WorkoutDay, Exercise } from '../types';
 import { isEmbed } from '../hooks/useSystem';
+import { EXERCISE_VIDEOS } from '../lib/defaultPlans';
 import { calculateExerciseCalories } from '../utils/workoutGenerator';
 
 interface WorkoutOverviewProps {
@@ -146,31 +147,48 @@ const HolographicBody: React.FC<{ focus: string; isCardio: boolean; videos: Reco
 };
 
 // --- EXERCISE ROW ---
-const ExerciseRow: React.FC<{ exercise: Exercise; calories: number }> = ({ exercise, calories }) => (
-    <motion.div 
-        initial={{ x: -20, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        className="flex items-center gap-4 p-3 bg-gray-900/50 border border-gray-800 rounded-lg group hover:border-system-neon/30 transition-colors"
-    >
-        <div className="w-12 h-12 bg-black border border-gray-700 rounded flex items-center justify-center relative overflow-hidden shrink-0">
-            <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(0,210,255,0.1)_50%,transparent_75%)] bg-[length:250%_250%] animate-[shimmer_2s_infinite]" />
-            {exercise.type === 'CARDIO' ? <HeartPulse size={18} className="text-system-accent" /> : <Dumbbell size={18} className="text-system-neon" />}
-        </div>
-        <div className="flex-1 min-w-0">
-            <h4 className="text-sm font-bold text-white font-mono group-hover:text-system-neon transition-colors truncate pr-2">{exercise.name}</h4>
-            <div className="flex items-center gap-3">
-                <span className="text-[10px] text-gray-500 font-mono tracking-wider">{exercise.type} CLASS</span>
-                <span className="text-[10px] text-orange-500/80 font-mono flex items-center gap-1">
-                    <Flame size={10} /> ~{calories} kcal
-                </span>
+const ExerciseRow: React.FC<{ exercise: Exercise; calories: number }> = ({ exercise, calories }) => {
+    const hasVideo = !!(exercise.videoUrl && exercise.videoUrl.trim() !== '') || !!EXERCISE_VIDEOS[exercise.name];
+    const videoUrl = exercise.videoUrl || EXERCISE_VIDEOS[exercise.name] || '';
+
+    return (
+        <motion.div 
+            initial={{ x: -20, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            className="flex items-center gap-4 p-3 bg-gray-900/50 border border-gray-800 rounded-lg group hover:border-system-neon/30 transition-colors"
+        >
+            <div className="w-12 h-12 bg-black border border-gray-700 rounded flex items-center justify-center relative overflow-hidden shrink-0">
+                {hasVideo ? (
+                    <>
+                        <video src={videoUrl} muted playsInline className="w-full h-full object-cover" style={{ filter: 'invert(1) hue-rotate(180deg)', opacity: 0.7 }} />
+                        <div className="absolute top-0 right-0"><CheckCircle2 size={10} className="text-green-500 drop-shadow-[0_0_4px_rgba(34,197,94,0.8)]" fill="rgba(34,197,94,0.3)" /></div>
+                    </>
+                ) : (
+                    <>
+                        <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(0,210,255,0.1)_50%,transparent_75%)] bg-[length:250%_250%] animate-[shimmer_2s_infinite]" />
+                        {exercise.type === 'CARDIO' ? <HeartPulse size={18} className="text-system-accent" /> : <Dumbbell size={18} className="text-system-neon" />}
+                    </>
+                )}
             </div>
-        </div>
-        <div className="text-right font-mono shrink-0">
-            <div className="text-xs font-bold text-white">{exercise.sets} SETS</div>
-            <div className="text-[10px] text-system-neon">{exercise.reps}</div>
-        </div>
-    </motion.div>
-);
+            <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                    <h4 className="text-sm font-bold text-white font-mono group-hover:text-system-neon transition-colors truncate pr-1">{exercise.name}</h4>
+                    {hasVideo && <CheckCircle2 size={12} className="text-green-500 shrink-0" />}
+                </div>
+                <div className="flex items-center gap-3">
+                    <span className="text-[10px] text-gray-500 font-mono tracking-wider">{exercise.type} CLASS</span>
+                    <span className="text-[10px] text-orange-500/80 font-mono flex items-center gap-1">
+                        <Flame size={10} /> ~{calories} kcal
+                    </span>
+                </div>
+            </div>
+            <div className="text-right font-mono shrink-0">
+                <div className="text-xs font-bold text-white">{exercise.sets} SETS</div>
+                <div className="text-[10px] text-system-neon">{exercise.reps}</div>
+            </div>
+        </motion.div>
+    );
+};
 
 const WorkoutOverview: React.FC<WorkoutOverviewProps> = ({ plan, focusVideos, onStart, onCancel, userWeight = 70 }) => {
   const [isCardio, setIsCardio] = useState(false);

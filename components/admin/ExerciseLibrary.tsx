@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit3, Trash2, Search, Save, X, Video } from 'lucide-react';
+import { Plus, Edit3, Trash2, Search, Save, X, Video, CheckCircle2, Film, ExternalLink } from 'lucide-react';
 import { WorkoutExercise } from '../../types';
 import { API_BASE } from '../../lib/apiConfig';
+import { EXERCISE_VIDEOS } from '../../lib/defaultPlans';
 
 const TYPES = ['COMPOUND', 'ISOLATION', 'CARDIO', 'ACCESSORY', 'STRETCH'];
 const EQUIPMENT_OPTIONS = ['GYM', 'BODYWEIGHT', 'HOME_DUMBBELLS', 'ANY'];
@@ -45,10 +46,18 @@ const ExerciseLibrary: React.FC<{ adminToken: string }> = ({ adminToken }) => {
 
   useEffect(() => { fetchExercises(); }, []);
 
+  const getVideoUrl = (name: string, dbUrl?: string) => {
+    if (dbUrl && dbUrl.trim() !== '') return dbUrl;
+    return EXERCISE_VIDEOS[name] || '';
+  };
+
+  const videoCount = exercises.filter(e => getVideoUrl(e.name, e.video_url)).length;
+
   const openCreate = () => { setEditing(null); setForm(emptyForm()); setShowForm(true); };
   const openEdit = (ex: WorkoutExercise) => {
     setEditing(ex);
-    setForm({ name: ex.name, type: ex.type, muscle_group: ex.muscle_group, default_sets: ex.default_sets, default_reps: ex.default_reps, video_url: ex.video_url, notes: ex.notes, equipment: ex.equipment, display_order: ex.display_order, is_active: ex.is_active });
+    const resolvedUrl = getVideoUrl(ex.name, ex.video_url);
+    setForm({ name: ex.name, type: ex.type, muscle_group: ex.muscle_group, default_sets: ex.default_sets, default_reps: ex.default_reps, video_url: resolvedUrl, notes: ex.notes, equipment: ex.equipment, display_order: ex.display_order, is_active: ex.is_active });
     setShowForm(true);
   };
 
@@ -120,7 +129,14 @@ const ExerciseLibrary: React.FC<{ adminToken: string }> = ({ adminToken }) => {
         </button>
       </div>
 
-      <div className="text-[10px] text-gray-600 font-mono">{filtered.length} of {exercises.length} exercises</div>
+      <div className="flex items-center gap-4">
+        <span className="text-[10px] text-gray-600 font-mono">{filtered.length} of {exercises.length} exercises</span>
+        <span className="text-[10px] font-mono flex items-center gap-1">
+          <Film size={10} className="text-green-500" />
+          <span className="text-green-500 font-bold">{videoCount}</span>
+          <span className="text-gray-600">with videos</span>
+        </span>
+      </div>
 
       {showForm && (
         <div className="bg-gray-900/80 border border-system-neon/30 rounded-xl p-5 space-y-4">
@@ -200,10 +216,25 @@ const ExerciseLibrary: React.FC<{ adminToken: string }> = ({ adminToken }) => {
         <div className="space-y-2">
           {filtered.map(ex => (
             <div key={ex.id} className={`bg-gray-900/40 border rounded-xl p-4 flex items-center gap-4 transition-all hover:border-gray-600 ${ex.is_active ? 'border-gray-800' : 'border-gray-900 opacity-50'}`}>
+              {/* Video thumbnail */}
+              {(() => {
+                const vUrl = getVideoUrl(ex.name, ex.video_url);
+                return vUrl ? (
+                  <div className="relative w-14 h-14 rounded-lg overflow-hidden border border-green-900/50 bg-black shrink-0 group/vid">
+                    <video src={vUrl} muted loop playsInline className="w-full h-full object-cover" style={{ filter: 'invert(1) hue-rotate(180deg)', opacity: 0.8 }} onMouseOver={e => (e.target as HTMLVideoElement).play()} onMouseOut={e => { (e.target as HTMLVideoElement).pause(); (e.target as HTMLVideoElement).currentTime = 0; }} />
+                    <div className="absolute top-0.5 right-0.5"><CheckCircle2 size={10} className="text-green-500 drop-shadow-[0_0_4px_rgba(34,197,94,0.8)]" fill="rgba(34,197,94,0.3)" /></div>
+                  </div>
+                ) : (
+                  <div className="w-14 h-14 rounded-lg border border-gray-800 bg-black/50 flex items-center justify-center shrink-0">
+                    <Film size={16} className="text-gray-700" />
+                  </div>
+                );
+              })()}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${typeColor(ex.type)}`}>{ex.type}</span>
                   <span className="text-sm font-bold text-white truncate">{ex.name}</span>
+                  {getVideoUrl(ex.name, ex.video_url) && <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-green-900/40 text-green-400 border border-green-900">VIDEO</span>}
                   {ex.muscle_group && <span className="text-[9px] text-gray-500 font-mono">{ex.muscle_group}</span>}
                 </div>
                 <div className="flex gap-4 mt-1">
@@ -211,9 +242,15 @@ const ExerciseLibrary: React.FC<{ adminToken: string }> = ({ adminToken }) => {
                   <span className="text-[10px] text-gray-600 font-mono">{ex.equipment}</span>
                   {ex.notes && <span className="text-[10px] text-gray-600 italic truncate max-w-[200px]">{ex.notes}</span>}
                 </div>
+                {getVideoUrl(ex.name, ex.video_url) && (
+                  <div className="mt-1 flex items-center gap-1.5">
+                    <Video size={9} className="text-green-600" />
+                    <span className="text-[8px] text-green-700 font-mono truncate max-w-[280px]">{getVideoUrl(ex.name, ex.video_url).split('/').pop()}</span>
+                  </div>
+                )}
               </div>
               <div className="flex gap-2 shrink-0">
-                {ex.video_url && <a href={ex.video_url} target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-system-neon transition-colors"><Video size={14} /></a>}
+                {getVideoUrl(ex.name, ex.video_url) && <a href={getVideoUrl(ex.name, ex.video_url)} target="_blank" rel="noopener noreferrer" className="text-green-700 hover:text-green-400 transition-colors"><ExternalLink size={14} /></a>}
                 <button onClick={() => openEdit(ex)} className="text-gray-600 hover:text-white transition-colors"><Edit3 size={14} /></button>
                 {confirmDelete === ex.id ? (
                   <div className="flex gap-1 items-center">

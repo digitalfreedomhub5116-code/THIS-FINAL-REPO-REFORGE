@@ -117,11 +117,13 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
   const exercise = plan.exercises[currentIdx] || plan.exercises[0]; // Fallback to avoid undefined crash
   const totalExercises = plan.exercises.length;
   
-  // Robust Video Lookup Strategy
+  // Robust Video Lookup Strategy (checks exercise.videoUrl → EXERCISE_VIDEOS map → focusVideos → DB)
   const videoSource = React.useMemo(() => {
       if (!exercise) return null;
       
       if (exercise.videoUrl && exercise.videoUrl.trim() !== '') return exercise.videoUrl;
+
+      if (EXERCISE_VIDEOS[exercise.name]) return EXERCISE_VIDEOS[exercise.name];
       
       const name = exercise.name;
       if (player.focusVideos[name]) return player.focusVideos[name];
