@@ -823,6 +823,7 @@ const App: React.FC = () => {
             };
             registerUser(merged);
             setPlayer(prev => ({ ...prev, ...merged, isConfigured: true, startDate: Date.now() }));
+            if (!merged.tutorialComplete) setIsNewUserOnboarding(true);
             ssClear();
             setOnboardingPhase('APP');
           }}
@@ -845,6 +846,7 @@ const App: React.FC = () => {
             };
             registerUser(merged);
             setPlayer(prev => ({ ...prev, ...merged, isConfigured: true, startDate: Date.now() }));
+            if (!merged.tutorialComplete) setIsNewUserOnboarding(true);
             ssClear();
             setOnboardingPhase('APP');
           }}
@@ -868,6 +870,7 @@ const App: React.FC = () => {
             };
             registerUser(merged);
             setPlayer(prev => ({ ...prev, ...merged, isConfigured: true, startDate: Date.now() }));
+            if (!merged.tutorialComplete) setIsNewUserOnboarding(true);
             ssClear();
             setOnboardingPhase('APP');
           }}

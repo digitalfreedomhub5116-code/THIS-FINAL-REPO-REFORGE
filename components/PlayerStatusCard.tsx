@@ -240,7 +240,7 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
   
   const isViewingPast = selectedDate < todayDate;
 
-  // Tiered radar domain: chart shows 0–TIER_SIZE (40) within-tier progress
+  // Cumulative radar domain: chart shows 0–200 absolute stat values (tier labels still shown)
   const chartData = useMemo(() => {
     const raw = [
       { subject: 'STR', active: activeStats.strength, today: todayStats.strength },
@@ -255,9 +255,9 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
       const todayInfo = getTierInfo(s.today);
       return {
         subject: s.subject,
-        A: info.progress * animMultiplier,
-        Today: todayInfo.progress,
-        fullMark: TIER_SIZE,
+        A: Math.max(0, Math.min(s.active, 200)) * animMultiplier,
+        Today: Math.max(0, Math.min(s.today, 200)),
+        fullMark: 200,
         tier: info.tier,
         tierName: info.tierName,
         rawValue: s.active,
@@ -660,7 +660,7 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
                   }}
                 />
                 <PolarRadiusAxis 
-                  domain={[0, TIER_SIZE]} 
+                  domain={[0, 200]} 
                   tick={false} 
                   axisLine={false} 
                 />
