@@ -20,7 +20,7 @@ import OnboardingNotice from './OnboardingNotice';
 interface HealthViewProps {
   healthProfile?: HealthProfile;
   onSaveProfile: (profile: HealthProfile, identity: string) => void;
-  onCompleteWorkout: (exercisesCompleted: number, totalExercises: number, results: Record<string, number>, intensityModifier: boolean, anomalyPoints?: number) => WorkoutReward[] | void;
+  onCompleteWorkout: (exercisesCompleted: number, totalExercises: number, results: Record<string, number>, intensityModifier: boolean, anomalyPoints?: number, isCustomWorkout?: boolean) => WorkoutReward[] | void;
   onFailWorkout: () => void;
   onAddPhoto?: (photo: ProgressPhoto) => void;
   onDeletePhoto?: (id: string) => void;
@@ -1475,7 +1475,8 @@ export const HealthView: React.FC<HealthViewProps> = ({
       <ActiveWorkoutPlayer
         plan={activePlan}
         onComplete={(c, t, r, anomaly) => {
-          const rewards = onCompleteWorkout(c, t, r, false, anomaly);
+          const isCustomWorkout = activePlan.day === 'CUSTOM' || activePlan.day.includes('Custom');
+          const rewards = onCompleteWorkout(c, t, r, false, anomaly, isCustomWorkout);
           clearWorkoutSession();
           setSavedSession(null);
           if (rewards && Array.isArray(rewards) && rewards.length > 0) {

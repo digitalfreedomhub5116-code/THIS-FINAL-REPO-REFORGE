@@ -1231,10 +1231,27 @@ export const useSystem = () => {
     totalExercises: number,
     results: Record<string, number>,
     intensityModifier: boolean,
-    anomalyPoints: number = 0
+    anomalyPoints: number = 0,
+    isCustomWorkout: boolean = false
   ): WorkoutReward[] => {
     const penaltyExceeded = anomalyPoints > 5;
-    const rewards = penaltyExceeded ? [] : generateWorkoutRewards(anomalyPoints);
+    
+    let rewards: WorkoutReward[] = [];
+    if (penaltyExceeded) {
+      rewards = [];
+    } else if (isCustomWorkout) {
+      rewards = [
+        { type: 'XP', amount: Math.floor(Math.random() * 101) + 100, label: 'XP' },
+        { type: 'GOLD', amount: Math.floor(Math.random() * 101) + 100, label: 'Gold' },
+      ];
+      if (Math.random() > 0.5) {
+        rewards.push({ type: 'HEALTH_POTION', amount: 1, label: 'Health Potion' });
+      } else {
+        rewards.push({ type: 'SHADOW_SCROLL', amount: 1, label: 'Shadow Scroll' });
+      }
+    } else {
+      rewards = generateWorkoutRewards(anomalyPoints);
+    }
 
     setPlayer(prev => {
       // If anomaly threshold exceeded, grant nothing
@@ -1266,11 +1283,19 @@ export const useSystem = () => {
         }
       }
 
-      // Base XP from exercises still applies
-      const baseXp = exercisesCompleted * 50;
-      const bonusXp = intensityModifier ? 100 : 0;
-      const totalXpGain = baseXp + bonusXp + xpReward;
-      const totalGoldGain = Math.floor((baseXp + bonusXp) / 10) + goldReward;
+      // Base XP from exercises still applies (unless custom workout)
+      let totalXpGain = 0;
+      let totalGoldGain = 0;
+
+      if (isCustomWorkout) {
+        totalXpGain = xpReward;
+        totalGoldGain = goldReward;
+      } else {
+        const baseXp = exercisesCompleted * 50;
+        const bonusXp = intensityModifier ? 100 : 0;
+        totalXpGain = baseXp + bonusXp + xpReward;
+        totalGoldGain = Math.floor((baseXp + bonusXp) / 10) + goldReward;
+      }
 
       const stats = { ...prev.stats };
       stats.strength += 2;
