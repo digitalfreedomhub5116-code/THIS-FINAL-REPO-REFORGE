@@ -36,6 +36,11 @@ const CreateAccountPage: React.FC<CreateAccountPageProps> = ({ onLogin, onNaviga
 
   useEffect(() => {
     const checkSession = async () => {
+      // Skip auto-login if user just logged out (session may still be alive briefly)
+      if (sessionStorage.getItem('reforge_logout_pending')) {
+        setChecking(false);
+        return;
+      }
       try {
         const res = await fetch(`${API_BASE}/api/auth/local/whoami`, { credentials: 'include' });
         if (res.ok) {

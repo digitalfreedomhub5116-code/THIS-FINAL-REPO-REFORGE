@@ -1408,31 +1408,36 @@ const App: React.FC = () => {
 
         {showLogoutChoice && (
           <LogoutChoiceScreen
-            onSelect={async (dest) => {
+            onSelect={(dest) => {
               logoutFlowRef.current = true;
               setShowLogoutChoice(false);
-              // 1. Sync data to cloud before logout
-              try {
-                if (player.userId && !player.userId.startsWith('local-') && !player.userId.startsWith('local_')) {
-                  await fetch(`${API_BASE}/api/player/${player.userId}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
-                    credentials: 'include',
-                    body: JSON.stringify(player),
-                  });
-                }
-              } catch { /* ignore sync errors */ }
-              // 2. Destroy server session
-              try {
-                await fetch(`${API_BASE}/api/auth/local/logout`, { method: 'POST', credentials: 'include' });
-              } catch { /* ignore */ }
-              // 3. Clear local storage and reset player state
+              // 1. Clear local storage and reset player state IMMEDIATELY
+              const prevUserId = player.userId;
+              const prevPlayer = { ...player };
               localStorage.removeItem('reforge_player_v2');
               localStorage.removeItem('reforge_player_token');
+              sessionStorage.setItem('reforge_logout_pending', '1');
               resetPlayer();
-              // 4. Navigate directly to the chosen destination
+              // 2. Navigate directly to the chosen destination — instant
               setOnboardingPhase(dest);
               setLoading(false);
+              // 3. Fire-and-forget: sync data & destroy session in background
+              (async () => {
+                try {
+                  if (prevUserId && !prevUserId.startsWith('local-') && !prevUserId.startsWith('local_')) {
+                    await fetch(`${API_BASE}/api/player/${prevUserId}`, {
+                      method: 'PUT',
+                      headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
+                      credentials: 'include',
+                      body: JSON.stringify(prevPlayer),
+                    });
+                  }
+                } catch { /* ignore sync errors */ }
+                try {
+                  await fetch(`${API_BASE}/api/auth/local/logout`, { method: 'POST', credentials: 'include' });
+                } catch { /* ignore */ }
+                sessionStorage.removeItem('reforge_logout_pending');
+              })();
             }}
             onCancel={() => setShowLogoutChoice(false)}
           />
