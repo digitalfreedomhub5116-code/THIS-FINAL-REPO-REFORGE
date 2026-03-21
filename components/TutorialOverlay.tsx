@@ -97,7 +97,7 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({ currentStep, onNext, 
           targetId: 'tut-quest-title',
           allowInteraction: true,
           requireInput: true,
-          forcePosition: 'bottom'
+          forcePosition: 'top'
       },
       8: {
           title: "Analyze",
