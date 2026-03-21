@@ -94,11 +94,13 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode }) => {
         credentials: 'include',
         body: JSON.stringify({ identifier: identifier.trim(), password }),
       });
-      const data = await res.json();
-      if (!res.ok) { setError(data.error || 'Login failed'); return; }
+      const text = await res.text();
+      let data: any;
+      try { data = JSON.parse(text); } catch { data = { error: `Server error (${res.status})` }; }
+      if (!res.ok) { setError(data.error || `Login failed (${res.status})`); return; }
       await loginWithUser(data.user || data);
-    } catch {
-      setError('Connection error — please try again');
+    } catch (err: any) {
+      setError(`Connection error — ${err?.message || 'Unknown'}. Try again.`);
     } finally {
       setLoading(false);
     }
@@ -118,11 +120,13 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode }) => {
         credentials: 'include',
         body: JSON.stringify({ username: username.trim(), email: email.trim(), password }),
       });
-      const data = await res.json();
-      if (!res.ok) { setError(data.error || 'Registration failed'); return; }
+      const text = await res.text();
+      let data: any;
+      try { data = JSON.parse(text); } catch { data = { error: `Server error (${res.status})` }; }
+      if (!res.ok) { setError(data.error || `Registration failed (${res.status})`); return; }
       await loginWithUser(data.user || data);
-    } catch {
-      setError('Connection error — please try again');
+    } catch (err: any) {
+      setError(`Connection error — ${err?.message || 'Unknown'}. Try again.`);
     } finally {
       setLoading(false);
     }
@@ -138,14 +142,16 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode }) => {
         credentials: 'include',
         body: JSON.stringify({ credential }),
       });
-      const data = await res.json();
+      const text = await res.text();
+      let data: any;
+      try { data = JSON.parse(text); } catch { data = { error: `Server error (${res.status})` }; }
       if (!res.ok) {
-        setError(data.error || 'Google sign-in failed');
+        setError(data.error || `Google sign-in failed (${res.status})`);
         return;
       }
       await loginWithUser(data.user || data);
-    } catch {
-      setError('Connection error — please try again');
+    } catch (err: any) {
+      setError(`Connection error — ${err?.message || 'Unknown'}. Try again.`);
     } finally {
       setLoading(false);
     }

@@ -122,15 +122,18 @@ const CreateAccountPage: React.FC<CreateAccountPageProps> = ({ onLogin, onNaviga
           password,
         }),
       });
-      const data = await res.json();
+      const text = await res.text();
+      let data: any;
+      try { data = JSON.parse(text); } catch { data = { error: `Server error (${res.status})` }; }
       if (!res.ok) {
-        setError(data.error || 'Registration failed');
+        setError(data.error || `Registration failed (${res.status})`);
         return;
       }
       if (data.playerToken) localStorage.setItem('reforge_player_token', data.playerToken);
       await loginWithUser(data.user || data);
-    } catch {
-      setError('Connection error — please try again');
+    } catch (err: any) {
+      const msg = err?.message || 'Unknown error';
+      setError(`Connection error — ${msg}. Check your network and try again.`);
     } finally {
       setLoading(false);
     }

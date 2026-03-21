@@ -93,15 +93,17 @@ const SignInPage: React.FC<SignInPageProps> = ({ onLogin, onNavigate }) => {
         credentials: 'include',
         body: JSON.stringify({ identifier: identifier.trim(), password }),
       });
-      const data = await res.json();
+      const text = await res.text();
+      let data: any;
+      try { data = JSON.parse(text); } catch { data = { error: `Server error (${res.status})` }; }
       if (!res.ok) {
-        setError(data.error || 'Sign in failed');
+        setError(data.error || `Sign in failed (${res.status})`);
         return;
       }
       if (data.playerToken) localStorage.setItem('reforge_player_token', data.playerToken);
       await loginWithUser(data.user || data);
-    } catch {
-      setError('Connection error — please try again');
+    } catch (err: any) {
+      setError(`Connection error — ${err?.message || 'Unknown'}. Try again.`);
     } finally {
       setLoading(false);
     }
@@ -117,9 +119,11 @@ const SignInPage: React.FC<SignInPageProps> = ({ onLogin, onNavigate }) => {
         credentials: 'include',
         body: JSON.stringify({ credential }),
       });
-      const data = await res.json();
+      const text = await res.text();
+      let data: any;
+      try { data = JSON.parse(text); } catch { data = { error: `Server error (${res.status})` }; }
       if (!res.ok) {
-        setError(data.error || 'Google sign-in failed');
+        setError(data.error || `Google sign-in failed (${res.status})`);
         return;
       }
       if (data.playerToken) localStorage.setItem('reforge_player_token', data.playerToken);
@@ -132,8 +136,8 @@ const SignInPage: React.FC<SignInPageProps> = ({ onLogin, onNavigate }) => {
         profileImageUrl: googleUser.avatar_url,
       };
       await loginWithUser(replitUser);
-    } catch {
-      setError('Connection error — please try again');
+    } catch (err: any) {
+      setError(`Connection error — ${err?.message || 'Unknown'}. Try again.`);
     } finally {
       setLoading(false);
     }
