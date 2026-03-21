@@ -745,6 +745,19 @@ router.post('/exercises', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
   const exercise = req.body;
   try {
+    // Duplicate prevention: check if exercise with same name already exists
+    const trimmedName = (exercise.name || '').trim();
+    if (trimmedName) {
+      const { data: existing } = await (supabaseServer() as any)
+        .from('workout_exercises')
+        .select('id, name')
+        .ilike('name', trimmedName)
+        .limit(1);
+      if (existing && existing.length > 0) {
+        return res.status(409).json({ error: `Exercise "${trimmedName}" already exists (id: ${existing[0].id})` });
+      }
+      exercise.name = trimmedName;
+    }
     const { data, error } = await (supabaseServer() as any)
       .from('workout_exercises')
       .insert(exercise)
@@ -757,6 +770,143 @@ router.post('/exercises', async (req: Request, res: Response) => {
   } catch (err) {
     console.error('[Admin create exercise]', err);
     return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// One-time dedup endpoint: removes duplicate exercises, keeps the best copy per name
+router.post('/exercises/dedup', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+  try {
+    const sb = supabaseServer() as any;
+    const { data: all, error } = await sb.from('workout_exercises').select('*').order('id', { ascending: true });
+    if (error) throw error;
+
+    // Group by normalized name
+    const groups: Record<string, any[]> = {};
+    for (const ex of (all || [])) {
+      const key = (ex.name || '').trim().toLowerCase();
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(ex);
+    }
+
+    const toDelete: number[] = [];
+    const fixes: string[] = [];
+
+    for (const [key, entries] of Object.entries(groups)) {
+      if (entries.length <= 1) continue;
+      // Pick the best entry: prefer one with video_url, then prefer id in 101-275 range, then lowest id
+      const sorted = [...entries].sort((a, b) => {
+        const aHasVideo = a.video_url && a.video_url.includes('cloudinary') ? 1 : 0;
+        const bHasVideo = b.video_url && b.video_url.includes('cloudinary') ? 1 : 0;
+        if (bHasVideo !== aHasVideo) return bHasVideo - aHasVideo;
+        const aInMain = (a.id >= 101 && a.id <= 275) ? 1 : 0;
+        const bInMain = (b.id >= 101 && b.id <= 275) ? 1 : 0;
+        if (bInMain !== aInMain) return bInMain - aInMain;
+        return a.id - b.id;
+      });
+      const keep = sorted[0];
+      for (let i = 1; i < sorted.length; i++) {
+        toDelete.push(sorted[i].id);
+      }
+      if (entries.length > 2) {
+        fixes.push(`"${keep.name}" (keep id ${keep.id}, delete ${sorted.slice(1).map((e: any) => e.id).join(',')})`);
+      }
+    }
+
+    // Also fix leading/trailing whitespace in names
+    const { data: allExercises } = await sb.from('workout_exercises').select('id, name');
+    for (const ex of (allExercises || [])) {
+      const trimmed = (ex.name || '').trim();
+      if (trimmed !== ex.name && !toDelete.includes(ex.id)) {
+        await sb.from('workout_exercises').update({ name: trimmed }).eq('id', ex.id);
+        fixes.push(`Trimmed whitespace: "${ex.name}" → "${trimmed}" (id ${ex.id})`);
+      }
+    }
+
+    // Fix Russian Twists (id 193): video URL stuck in notes field
+    const { data: rt193 } = await sb.from('workout_exercises').select('*').eq('id', 193).single();
+    if (rt193 && rt193.notes && rt193.notes.includes('cloudinary') && !rt193.video_url) {
+      await sb.from('workout_exercises').update({ video_url: rt193.notes, notes: '' }).eq('id', 193);
+      fixes.push(`Fixed Russian Twists (193): moved video URL from notes to video_url`);
+    }
+
+    // Delete duplicates
+    if (toDelete.length > 0) {
+      const { error: delErr } = await sb.from('workout_exercises').delete().in('id', toDelete);
+      if (delErr) throw delErr;
+    }
+
+    await logAdminAction('dedup_exercises', req, { newValue: { deleted: toDelete.length, fixes: fixes.length } });
+    return res.json({ deleted: toDelete.length, deletedIds: toDelete, fixes, kept: (all || []).length - toDelete.length });
+  } catch (err) {
+    console.error('[Admin dedup exercises]', err);
+    return res.status(500).json({ error: 'Dedup failed' });
+  }
+});
+
+// Seed missing exercises: adds exercises used by plans but not in the DB
+router.post('/exercises/seed-missing', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+  try {
+    const sb = supabaseServer() as any;
+    const { data: existing } = await sb.from('workout_exercises').select('name');
+    const existingNames = new Set((existing || []).map((e: any) => (e.name || '').trim().toLowerCase()));
+
+    // All exercises referenced by defaultPlans.ts and workoutGenerator.ts
+    const needed: Array<{ name: string; type: string; muscle_group: string; equipment: string; default_sets: number; default_reps: string }> = [
+      { name: 'Close Grip Bench Press', type: 'COMPOUND', muscle_group: 'TRICEPS', equipment: 'GYM', default_sets: 3, default_reps: '8-10' },
+      { name: 'Walking Lunges', type: 'COMPOUND', muscle_group: 'QUADS', equipment: 'ANY', default_sets: 3, default_reps: '12 each' },
+      { name: 'Deep Squat Hold', type: 'STRETCH', muscle_group: 'MOBILITY', equipment: 'BODYWEIGHT', default_sets: 3, default_reps: '30s' },
+      { name: 'Seated Cable Row', type: 'COMPOUND', muscle_group: 'BACK', equipment: 'GYM', default_sets: 3, default_reps: '10-12' },
+      { name: 'Dumbbell Fly', type: 'ACCESSORY', muscle_group: 'CHEST', equipment: 'HOME_DUMBBELLS', default_sets: 3, default_reps: '12' },
+      { name: 'Rope Triceps Pushdown', type: 'ACCESSORY', muscle_group: 'TRICEPS', equipment: 'GYM', default_sets: 3, default_reps: '12-15' },
+      { name: 'Ab Wheel Rollout', type: 'ACCESSORY', muscle_group: 'CORE', equipment: 'GYM', default_sets: 3, default_reps: '10-12' },
+      { name: 'Skipping', type: 'CARDIO', muscle_group: 'CARDIO', equipment: 'ANY', default_sets: 3, default_reps: '2 min' },
+      { name: 'Cable Rear Delt Fly', type: 'ACCESSORY', muscle_group: 'REAR DELT', equipment: 'GYM', default_sets: 3, default_reps: '12-15' },
+      { name: 'Glute Bridge', type: 'ACCESSORY', muscle_group: 'GLUTES', equipment: 'BODYWEIGHT', default_sets: 3, default_reps: '15' },
+      { name: 'Hanging Leg Raise', type: 'ACCESSORY', muscle_group: 'CORE', equipment: 'GYM', default_sets: 3, default_reps: '12-15' },
+      { name: 'Bicycle Crunch', type: 'ACCESSORY', muscle_group: 'CORE', equipment: 'BODYWEIGHT', default_sets: 3, default_reps: '20' },
+      { name: 'Cable Lateral Raise', type: 'ACCESSORY', muscle_group: 'SHOULDERS', equipment: 'GYM', default_sets: 3, default_reps: '12-15' },
+      { name: 'Cross Body Mountain Climbers', type: 'CARDIO', muscle_group: 'CORE', equipment: 'BODYWEIGHT', default_sets: 3, default_reps: '15' },
+      { name: 'Single Arm Dumbbell Row', type: 'COMPOUND', muscle_group: 'BACK', equipment: 'HOME_DUMBBELLS', default_sets: 3, default_reps: '10-12' },
+      { name: 'Cable Front Raise', type: 'ACCESSORY', muscle_group: 'SHOULDERS', equipment: 'GYM', default_sets: 3, default_reps: '12-15' },
+      { name: 'Dumbbell Triceps Extension', type: 'ACCESSORY', muscle_group: 'TRICEPS', equipment: 'HOME_DUMBBELLS', default_sets: 3, default_reps: '12-15' },
+      { name: 'Wide Grip Seated Row', type: 'COMPOUND', muscle_group: 'BACK', equipment: 'GYM', default_sets: 3, default_reps: '10-12' },
+      { name: 'Bent Over Row', type: 'COMPOUND', muscle_group: 'BACK', equipment: 'GYM', default_sets: 3, default_reps: '8-10' },
+      { name: 'Parallel Bar Dips', type: 'COMPOUND', muscle_group: 'CHEST', equipment: 'GYM', default_sets: 3, default_reps: '8-12' },
+      { name: 'Floor Press', type: 'COMPOUND', muscle_group: 'CHEST', equipment: 'HOME_DUMBBELLS', default_sets: 3, default_reps: '10-12' },
+      { name: 'Lateral Lunge', type: 'COMPOUND', muscle_group: 'QUADS', equipment: 'BODYWEIGHT', default_sets: 3, default_reps: '10 each' },
+      { name: 'Single Leg Glute Bridge', type: 'COMPOUND', muscle_group: 'GLUTES', equipment: 'BODYWEIGHT', default_sets: 3, default_reps: '12 each' },
+      { name: 'Cossack Squat', type: 'COMPOUND', muscle_group: 'QUADS', equipment: 'BODYWEIGHT', default_sets: 3, default_reps: '8 each' },
+      { name: 'Brisk Walk', type: 'CARDIO', muscle_group: 'CARDIO', equipment: 'ANY', default_sets: 1, default_reps: '5 min' },
+      { name: 'Arm Circles', type: 'STRETCH', muscle_group: 'MOBILITY', equipment: 'BODYWEIGHT', default_sets: 1, default_reps: '1 min' },
+      { name: 'Leg Swings', type: 'STRETCH', muscle_group: 'MOBILITY', equipment: 'BODYWEIGHT', default_sets: 1, default_reps: '1 min' },
+      { name: 'Hip Circles', type: 'STRETCH', muscle_group: 'MOBILITY', equipment: 'BODYWEIGHT', default_sets: 1, default_reps: '1 min' },
+      { name: 'Shoulder Rolls', type: 'STRETCH', muscle_group: 'MOBILITY', equipment: 'BODYWEIGHT', default_sets: 1, default_reps: '1 min' },
+      { name: 'Shoulder CARs', type: 'STRETCH', muscle_group: 'MOBILITY', equipment: 'BODYWEIGHT', default_sets: 1, default_reps: '10 reps' },
+      { name: 'Cross Body Arm Stretch', type: 'STRETCH', muscle_group: 'MOBILITY', equipment: 'BODYWEIGHT', default_sets: 1, default_reps: '1 min' },
+      { name: 'Overhead Triceps Stretch', type: 'STRETCH', muscle_group: 'MOBILITY', equipment: 'BODYWEIGHT', default_sets: 1, default_reps: '1 min' },
+      { name: 'Standing Biceps Stretch', type: 'STRETCH', muscle_group: 'MOBILITY', equipment: 'BODYWEIGHT', default_sets: 1, default_reps: '1 min' },
+      { name: 'Wall Biceps Stretch', type: 'STRETCH', muscle_group: 'MOBILITY', equipment: 'BODYWEIGHT', default_sets: 1, default_reps: '1 min' },
+      { name: 'Standing Quadriceps Stretch', type: 'STRETCH', muscle_group: 'MOBILITY', equipment: 'BODYWEIGHT', default_sets: 1, default_reps: '1 min' },
+      { name: 'Pigeon Pose Stretch', type: 'STRETCH', muscle_group: 'MOBILITY', equipment: 'BODYWEIGHT', default_sets: 1, default_reps: '1 min' },
+      { name: 'Downward Dog', type: 'STRETCH', muscle_group: 'MOBILITY', equipment: 'BODYWEIGHT', default_sets: 1, default_reps: '1 min' },
+      { name: 'Deep Squat Hold', type: 'STRETCH', muscle_group: 'MOBILITY', equipment: 'BODYWEIGHT', default_sets: 3, default_reps: '30s' },
+    ];
+
+    const added: string[] = [];
+    for (const ex of needed) {
+      if (!existingNames.has(ex.name.trim().toLowerCase())) {
+        const { error } = await sb.from('workout_exercises').insert({ ...ex, is_active: true, display_order: 0 });
+        if (!error) added.push(ex.name);
+      }
+    }
+
+    await logAdminAction('seed_missing_exercises', req, { newValue: { added: added.length } });
+    return res.json({ added: added.length, exercises: added, alreadyExisted: needed.length - added.length });
+  } catch (err) {
+    console.error('[Admin seed missing]', err);
+    return res.status(500).json({ error: 'Seed failed' });
   }
 });
 

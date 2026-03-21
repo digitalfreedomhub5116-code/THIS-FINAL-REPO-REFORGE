@@ -63,16 +63,16 @@ const createEx = (
 });
 
 const UNIVERSAL_WARMUP = [
-    createEx('Brisk Walk / Light Jog', 1, '3 min', 'CARDIO', 'Get heart rate up', undefined, true),
-    createEx('Arm Circles & Torso Twists', 1, '1 min', 'STRETCH', 'Dynamic upper body warm-up', undefined, true),
-    createEx('Leg Swings & Hip Circles', 1, '1 min', 'STRETCH', 'Dynamic lower body warm-up', undefined, true),
-    createEx('Cat & Cow Stretch', 1, '1 min', 'STRETCH', 'Spinal mobility', undefined, true),
+    createEx('Brisk Walk', 1, '3 min', 'CARDIO', 'Get heart rate up', undefined, true),
+    createEx('Arm Circles', 1, '1 min', 'STRETCH', 'Dynamic upper body warm-up', undefined, true),
+    createEx('Leg Swings', 1, '1 min', 'STRETCH', 'Dynamic lower body warm-up', undefined, true),
+    createEx('Hip Circles', 1, '1 min', 'STRETCH', 'Spinal mobility', undefined, true),
 ];
 
 const UNIVERSAL_COOLDOWN = [
-    createEx('Slow Walk', 1, '3 min', 'CARDIO', 'Gradually lower heart rate', undefined, true),
-    createEx('Full Body Static Stretch', 1, '3 min', 'STRETCH', 'Hold each stretch 20-30s', undefined, true),
-    createEx('Deep Breathing & Shavasana', 1, '2 min', 'STRETCH', 'Recovery breathing', undefined, true),
+    createEx('Brisk Walk', 1, '3 min', 'CARDIO', 'Gradually lower heart rate', undefined, true),
+    createEx('Hamstring Stretch', 1, '3 min', 'STRETCH', 'Hold each stretch 20-30s', undefined, true),
+    createEx('Shoulder Stretch', 1, '2 min', 'STRETCH', 'Recovery breathing', undefined, true),
 ];
 
 // --- PPL GYM MASTER DATA ---
@@ -96,11 +96,11 @@ const generateGymPpl = (): WorkoutDay[] => {
             totalDuration: 60,
             exercises: [
                 ...UNIVERSAL_WARMUP,
-                createEx('Dumbbell Bench Press', 3, reps, 'COMPOUND', 'Increase weight each set'),
+                createEx('Dumbbell Press', 3, reps, 'COMPOUND', 'Increase weight each set'),
                 createEx('Dumbbell Shoulder Press', 3, reps, 'COMPOUND'),
-                createEx('Incline Dumbbell Flyes', 3, reps, 'ACCESSORY'),
-                createEx('Tricep Pushdown (Rope)', 3, reps, 'ACCESSORY'),
-                createEx('Ab Wheel Rollouts', 3, reps, 'ACCESSORY'),
+                createEx('Dumbbell Fly', 3, reps, 'ACCESSORY'),
+                createEx('Rope Triceps Pushdown', 3, reps, 'ACCESSORY'),
+                createEx('Ab Wheel Rollout', 3, reps, 'ACCESSORY'),
                 createEx('Skipping', 3, '2 min', 'CARDIO', '30s rest between rounds'),
                 ...UNIVERSAL_COOLDOWN
             ]
@@ -113,11 +113,11 @@ const generateGymPpl = (): WorkoutDay[] => {
             totalDuration: 60,
             exercises: [
                 ...UNIVERSAL_WARMUP,
-                createEx('Pull Ups', 3, reps, 'COMPOUND', 'Assisted if needed'),
-                createEx('Cable Seated Wide Grip Row', 3, reps, 'COMPOUND'),
-                createEx('Rear Delt Flyes', 3, reps, 'ACCESSORY'),
-                createEx('Barbell Bicep Curls', 3, reps, 'ACCESSORY'),
-                createEx('Incline Dumbbell Curls', 3, reps, 'ACCESSORY'),
+                createEx('Pull-Ups', 3, reps, 'COMPOUND', 'Assisted if needed'),
+                createEx('Wide Grip Seated Row', 3, reps, 'COMPOUND'),
+                createEx('Cable Rear Delt Fly', 3, reps, 'ACCESSORY'),
+                createEx('Barbell Curl', 3, reps, 'ACCESSORY'),
+                createEx('Incline Dumbbell Curl', 3, reps, 'ACCESSORY'),
                 createEx('Burpees', 3, '15 reps', 'CARDIO', '30s rest'),
                 ...UNIVERSAL_COOLDOWN
             ]
@@ -130,12 +130,12 @@ const generateGymPpl = (): WorkoutDay[] => {
             totalDuration: 70,
             exercises: [
                 ...UNIVERSAL_WARMUP,
-                createEx('Dumbbell Romanian Deadlift', 3, reps, 'COMPOUND'),
+                createEx('Romanian Deadlift', 3, reps, 'COMPOUND'),
                 createEx('Leg Press', 3, reps, 'COMPOUND'),
-                createEx('Glute Bridges', 3, reps, 'ACCESSORY'),
-                createEx('Hanging Leg Raises', 3, reps, 'ACCESSORY'),
-                createEx('Standing Calf Raises', 3, reps, 'ACCESSORY'),
-                createEx('Bicycle Crunches', 3, '15 reps', 'ACCESSORY'),
+                createEx('Glute Bridge', 3, reps, 'ACCESSORY'),
+                createEx('Hanging Leg Raise', 3, reps, 'ACCESSORY'),
+                createEx('Calf Raises', 3, reps, 'ACCESSORY'),
+                createEx('Bicycle Crunch', 3, '15 reps', 'ACCESSORY'),
                 createEx('Rowing Machine', 3, '3 min', 'CARDIO'),
                 ...UNIVERSAL_COOLDOWN
             ]
@@ -147,7 +147,7 @@ const generateGymPpl = (): WorkoutDay[] => {
             focus: 'REST',
             totalDuration: 0,
             isRecovery: true,
-            exercises: [createEx('Active Recovery Walk', 1, '20 min', 'STRETCH', 'Light movement only')]
+            exercises: [createEx('Brisk Walk', 1, '20 min', 'STRETCH', 'Light movement only')]
         });
 
         // Day 5
@@ -157,13 +157,13 @@ const generateGymPpl = (): WorkoutDay[] => {
             totalDuration: 60,
             exercises: [
                 ...UNIVERSAL_WARMUP,
-                createEx('Smith Machine Shoulder Press', 3, reps, 'COMPOUND'),
-                createEx('Incline Barbell Bench Press', 3, reps, 'COMPOUND'),
-                createEx('Lever Leg Extensions', 3, reps, 'ACCESSORY', 'Surprise leg integration'),
-                createEx('Cable Lateral Raises', 3, reps, 'ACCESSORY'),
-                createEx('Tricep Dips', 3, reps, 'ACCESSORY'),
+                createEx('Machine Shoulder Press', 3, reps, 'COMPOUND'),
+                createEx('Incline Dumbbell Press', 3, reps, 'COMPOUND'),
+                createEx('Leg Extension', 3, reps, 'ACCESSORY', 'Surprise leg integration'),
+                createEx('Cable Lateral Raise', 3, reps, 'ACCESSORY'),
+                createEx('Dips', 3, reps, 'ACCESSORY'),
                 createEx('Leg Raises', 3, '15 reps', 'ACCESSORY'),
-                createEx('Spin Bike', 1, '10 min', 'CARDIO'),
+                createEx('Cycling', 1, '10 min', 'CARDIO'),
                 ...UNIVERSAL_COOLDOWN
             ]
         });
@@ -175,11 +175,11 @@ const generateGymPpl = (): WorkoutDay[] => {
             totalDuration: 65,
             exercises: [
                 ...UNIVERSAL_WARMUP,
-                createEx('Cable Bent Over Row (Kneeling)', 3, reps, 'COMPOUND'),
-                createEx('Lever Lying Leg Curls', 3, reps, 'ACCESSORY', 'Hamstring focus'),
-                createEx('Hyperextensions', 3, reps, 'ACCESSORY'),
-                createEx('Single Leg Romanian Deadlift', 3, reps, 'ACCESSORY'),
-                createEx('Dumbbell Hammer Curls', 3, reps, 'ACCESSORY'),
+                createEx('Cable Row', 3, reps, 'COMPOUND'),
+                createEx('Leg Curl', 3, reps, 'ACCESSORY', 'Hamstring focus'),
+                createEx('Romanian Deadlift', 3, reps, 'ACCESSORY'),
+                createEx('Glute Bridge', 3, reps, 'ACCESSORY', 'Single leg variation'),
+                createEx('Hammer Curl', 3, reps, 'ACCESSORY'),
                 createEx('Cross Body Mountain Climbers', 3, '15 reps', 'CARDIO'),
                 createEx('Brisk Walk', 1, '10 min', 'CARDIO'),
                 ...UNIVERSAL_COOLDOWN
@@ -192,7 +192,7 @@ const generateGymPpl = (): WorkoutDay[] => {
             focus: 'REST',
             totalDuration: 0,
             isRecovery: true,
-            exercises: [createEx('Deep Recovery', 1, '30 min', 'STRETCH', 'Prepare for next week')]
+            exercises: [createEx('Brisk Walk', 1, '30 min', 'STRETCH', 'Prepare for next week')]
         });
     });
 
@@ -219,15 +219,15 @@ const generateGymClassic = (): WorkoutDay[] => {
             focus: 'CHEST',
             totalDuration: 60,
             exercises: [
-                createEx('Treadmill Warmup', 1, '5 min', 'STRETCH'),
-                createEx('Upper Body Mobility', 1, 'Full', 'STRETCH', 'Arm Circles & Torso Twists'),
+                createEx('Brisk Walk', 1, '5 min', 'CARDIO'),
+                createEx('Arm Circles', 1, 'Full', 'STRETCH', 'Dynamic upper body warm-up'),
                 createEx('Barbell Bench Press', 3, reps, 'COMPOUND', 'Power builder'),
                 createEx('Incline Dumbbell Press', 3, reps, 'COMPOUND', '30-degree incline'),
-                createEx('Chest Dips', 3, reps === '3 x 8' ? '8' : 'Failure', 'COMPOUND', 'Lean forward for pecs'),
-                createEx('Pec Deck Machine', 3, reps, 'ACCESSORY', 'Hard squeeze at center'),
+                createEx('Parallel Bar Dips', 3, reps === '3 x 8' ? '8' : 'Failure', 'COMPOUND', 'Lean forward for pecs'),
+                createEx('Cable Fly', 3, reps, 'ACCESSORY', 'Hard squeeze at center'),
                 createEx('Push-Ups', 2, 'Failure', 'ACCESSORY', 'Empty the tank'),
-                createEx('Doorway Pec Stretch', 1, '1 min', 'STRETCH'),
-                createEx('Overhead Tricep Stretch', 1, '1 min', 'STRETCH')
+                createEx('Cross Body Arm Stretch', 1, '1 min', 'STRETCH'),
+                createEx('Overhead Triceps Stretch', 1, '1 min', 'STRETCH')
             ]
         });
 
@@ -237,15 +237,15 @@ const generateGymClassic = (): WorkoutDay[] => {
             focus: 'BACK',
             totalDuration: 60,
             exercises: [
-                createEx('Treadmill Warmup', 1, '5 min', 'STRETCH'),
-                createEx('Shoulder/Arm Rotations', 1, 'Full', 'STRETCH'),
-                createEx('Wide Grip Pull-Ups', 3, reps === '3 x 8' ? '8' : 'Failure', 'COMPOUND', 'Assisted if needed'),
-                createEx('Bent Over Barbell Rows', 3, reps, 'COMPOUND', 'Pull to stomach'),
-                createEx('Lat Pulldown (Neutral/Close)', 3, reps, 'COMPOUND', 'V-handle attachment'),
-                createEx('Single Arm Dumbbell Rows', 3, reps, 'COMPOUND', 'Pull to hip pocket'),
-                createEx('Hyperextensions', 3, reps, 'ACCESSORY', 'Lower back focus'),
-                createEx('Lat Hang', 1, '1 min', 'STRETCH'),
-                createEx('Child\'s Pose', 1, '1 min', 'STRETCH')
+                createEx('Brisk Walk', 1, '5 min', 'CARDIO'),
+                createEx('Shoulder Rolls', 1, 'Full', 'STRETCH'),
+                createEx('Pull-Ups', 3, reps === '3 x 8' ? '8' : 'Failure', 'COMPOUND', 'Assisted if needed'),
+                createEx('Barbell Row', 3, reps, 'COMPOUND', 'Pull to stomach'),
+                createEx('Lat Pulldown', 3, reps, 'COMPOUND', 'V-handle attachment'),
+                createEx('Single Arm Dumbbell Row', 3, reps, 'COMPOUND', 'Pull to hip pocket'),
+                createEx('Romanian Deadlift', 3, reps, 'ACCESSORY', 'Lower back focus'),
+                createEx('Hamstring Stretch', 1, '1 min', 'STRETCH'),
+                createEx('Downward Dog', 1, '1 min', 'STRETCH')
             ]
         });
 
@@ -255,15 +255,15 @@ const generateGymClassic = (): WorkoutDay[] => {
             focus: 'SHOULDERS',
             totalDuration: 60,
             exercises: [
-                createEx('Treadmill Warmup', 1, '5 min', 'STRETCH'),
-                createEx('Shoulder Dislocations', 1, '10 reps', 'STRETCH', 'Use stick or band'),
-                createEx('Seated Dumbbell Overhead Press', 3, reps, 'COMPOUND'),
-                createEx('Dumbbell Lateral Raises', 3, reps, 'ACCESSORY', 'Lead with elbows'),
+                createEx('Brisk Walk', 1, '5 min', 'CARDIO'),
+                createEx('Shoulder CARs', 1, '10 reps', 'STRETCH', 'Use stick or band'),
+                createEx('Dumbbell Shoulder Press', 3, reps, 'COMPOUND'),
+                createEx('Dumbbell Lateral Raise', 3, reps, 'ACCESSORY', 'Lead with elbows'),
                 createEx('Face Pulls', 3, reps, 'ACCESSORY', 'Rope attachment'),
-                createEx('Dumbbell Front Raises', 3, reps, 'ACCESSORY', 'Controlled drop'),
-                createEx('Dumbbell Shrugs', 3, reps, 'ACCESSORY', 'Trap builder'),
-                createEx('Cross-Body Shoulder Stretch', 1, '1 min', 'STRETCH'),
-                createEx('Neck Tilts', 1, '1 min', 'STRETCH')
+                createEx('Cable Front Raise', 3, reps, 'ACCESSORY', 'Controlled drop'),
+                createEx('Shrugs', 3, reps, 'ACCESSORY', 'Trap builder'),
+                createEx('Cross Body Arm Stretch', 1, '1 min', 'STRETCH'),
+                createEx('Shoulder Rolls', 1, '1 min', 'STRETCH')
             ]
         });
 
@@ -273,16 +273,16 @@ const generateGymClassic = (): WorkoutDay[] => {
             focus: 'ARMS',
             totalDuration: 60,
             exercises: [
-                createEx('Treadmill Warmup', 1, '5 min', 'STRETCH'),
+                createEx('Brisk Walk', 1, '5 min', 'CARDIO'),
                 createEx('Arm Circles', 1, '1 min', 'STRETCH'),
                 createEx('Close Grip Bench Press', 3, reps, 'COMPOUND', 'Tucked elbows'),
-                createEx('Barbell Bicep Curl', 3, reps, 'COMPOUND', 'Strict form'),
-                createEx('Overhead Cable Extension', 3, reps, 'ACCESSORY', 'Rope'),
+                createEx('Barbell Curl', 3, reps, 'COMPOUND', 'Strict form'),
+                createEx('Cable Overhead Triceps Extension', 3, reps, 'ACCESSORY', 'Rope'),
                 createEx('Incline Dumbbell Curl', 3, reps, 'ACCESSORY', 'Deep stretch focus'),
-                createEx('Tricep Pushdowns', 3, reps, 'ACCESSORY', 'Bar or Rope'),
-                createEx('Hammer Curls', 3, reps, 'ACCESSORY', 'Forearm & width builder'),
-                createEx('Wrist/Forearm Stretches', 1, '1 min', 'STRETCH'),
-                createEx('Bicep Wall Stretch', 1, '1 min', 'STRETCH')
+                createEx('Tricep Pushdown', 3, reps, 'ACCESSORY', 'Bar or Rope'),
+                createEx('Hammer Curl', 3, reps, 'ACCESSORY', 'Forearm & width builder'),
+                createEx('Standing Biceps Stretch', 1, '1 min', 'STRETCH'),
+                createEx('Wall Biceps Stretch', 1, '1 min', 'STRETCH')
             ]
         });
 
@@ -292,7 +292,7 @@ const generateGymClassic = (): WorkoutDay[] => {
             focus: 'REST',
             totalDuration: 0,
             isRecovery: true,
-            exercises: [createEx('Active Recovery Walk', 1, '30 min', 'STRETCH', 'Flush out lactic acid')]
+            exercises: [createEx('Brisk Walk', 1, '30 min', 'STRETCH', 'Flush out lactic acid')]
         });
 
         // Saturday
@@ -301,16 +301,16 @@ const generateGymClassic = (): WorkoutDay[] => {
             focus: 'LEGS',
             totalDuration: 70,
             exercises: [
-                createEx('Treadmill Warmup', 1, '5 min', 'STRETCH'),
+                createEx('Brisk Walk', 1, '5 min', 'CARDIO'),
                 createEx('Leg Swings', 1, 'Full', 'STRETCH', 'Front/Back & Side/Side'),
-                createEx('Barbell Squats', 3, reps, 'COMPOUND', 'The foundation lift'),
-                createEx('Romanian Deadlifts', 3, reps, 'COMPOUND', 'Hamstring stretch'),
+                createEx('Barbell Squat', 3, reps, 'COMPOUND', 'The foundation lift'),
+                createEx('Romanian Deadlift', 3, reps, 'COMPOUND', 'Hamstring stretch'),
                 createEx('Leg Press', 3, reps, 'COMPOUND', 'Load up the plates'),
-                createEx('Leg Extensions', 3, reps, 'ACCESSORY', 'Quad focus'),
-                createEx('Lying Leg Curls', 3, reps, 'ACCESSORY', 'Hamstring focus'),
-                createEx('Standing Calf Raises', 3, reps, 'ACCESSORY', 'Deep stretch at bottom'),
-                createEx('Lying Quad Stretch', 1, '1 min', 'STRETCH'),
-                createEx('Pigeon Pose', 1, '1 min', 'STRETCH')
+                createEx('Leg Extension', 3, reps, 'ACCESSORY', 'Quad focus'),
+                createEx('Leg Curl', 3, reps, 'ACCESSORY', 'Hamstring focus'),
+                createEx('Calf Raises', 3, reps, 'ACCESSORY', 'Deep stretch at bottom'),
+                createEx('Standing Quadriceps Stretch', 1, '1 min', 'STRETCH'),
+                createEx('Pigeon Pose Stretch', 1, '1 min', 'STRETCH')
             ]
         });
 
@@ -320,7 +320,7 @@ const generateGymClassic = (): WorkoutDay[] => {
             focus: 'REST',
             totalDuration: 0,
             isRecovery: true,
-            exercises: [createEx('Full Recovery', 1, 'Full Day', 'STRETCH', 'Sleep and eat well')]
+            exercises: [createEx('Brisk Walk', 1, 'Full Day', 'STRETCH', 'Sleep and eat well')]
         });
     });
 
@@ -349,9 +349,9 @@ const generateBodyweightRegular = (): WorkoutDay[] => {
             totalDuration: 30,
             exercises: [
                 ...UNIVERSAL_WARMUP,
-                createEx(useKneeVars ? 'Knee Pushups' : 'Standard Pushups', 3, reps, 'COMPOUND', 'Focus on full range of motion'),
-                createEx(useKneeVars ? 'Wide Grip Knee Pushups' : 'Wide Grip Pushups', 3, reps, 'COMPOUND'),
-                createEx('Stepper Push-ups', 3, reps, 'ACCESSORY', 'One hand on step/book'),
+                createEx('Push-Ups', 3, reps, 'COMPOUND', 'Focus on full range of motion'),
+                createEx('Push-Ups', 3, reps, 'COMPOUND', 'Wide grip variation'),
+                createEx('Push-Ups', 3, reps, 'ACCESSORY', 'One hand on step/book'),
                 createEx(useKneeVars ? 'Reverse Crunch' : 'Crunches', 3, reps, 'ACCESSORY'),
                 ...UNIVERSAL_COOLDOWN
             ]
@@ -365,8 +365,8 @@ const generateBodyweightRegular = (): WorkoutDay[] => {
                 focus: i % 2 === 0 ? 'REST' : 'FULL BODY',
                 totalDuration: 30,
                 exercises: i % 2 === 0 
-                    ? [createEx('Recovery Walk', 1, '20 min', 'STRETCH')] 
-                    : [...UNIVERSAL_WARMUP, createEx('Bodyweight Squats', 3, reps, 'COMPOUND'), createEx('Lunges', 3, reps, 'COMPOUND'), ...UNIVERSAL_COOLDOWN]
+                    ? [createEx('Brisk Walk', 1, '20 min', 'STRETCH')] 
+                    : [...UNIVERSAL_WARMUP, createEx('Jump Squat', 3, reps, 'COMPOUND'), createEx('Lunges', 3, reps, 'COMPOUND'), ...UNIVERSAL_COOLDOWN]
             });
         }
     });

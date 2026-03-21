@@ -33,6 +33,9 @@ const ExerciseLibrary: React.FC<{ adminToken: string }> = ({ adminToken }) => {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
+  const [deduping, setDeduping] = useState(false);
+  const [dedupResult, setDedupResult] = useState<{ deleted: number; fixes: string[] } | null>(null);
+  const [seeding, setSeeding] = useState(false);
 
   const fetchExercises = async () => {
     setLoading(true);
@@ -68,6 +71,7 @@ const ExerciseLibrary: React.FC<{ adminToken: string }> = ({ adminToken }) => {
       const url = editing ? `${API_BASE}/api/admin/exercises/${editing.id}` : `${API_BASE}/api/admin/exercises`;
       const method = editing ? 'PUT' : 'POST';
       const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminToken}` }, body: JSON.stringify(form) });
+      if (res.status === 409) { const d = await res.json(); setMsg({ type: 'error', text: d.error || 'Exercise already exists' }); setSaving(false); return; }
       if (!res.ok) throw new Error('Save failed');
       setMsg({ type: 'success', text: editing ? 'Exercise updated' : 'Exercise created' });
       setShowForm(false);
@@ -83,6 +87,31 @@ const ExerciseLibrary: React.FC<{ adminToken: string }> = ({ adminToken }) => {
       setConfirmDelete(null);
       setMsg({ type: 'success', text: 'Exercise deleted' });
     } catch { setMsg({ type: 'error', text: 'Delete failed' }); }
+  };
+
+  const runDedup = async () => {
+    setDeduping(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/exercises/dedup`, { method: 'POST', headers: { 'Authorization': `Bearer ${adminToken}` } });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Dedup failed');
+      setDedupResult({ deleted: data.deleted, fixes: data.fixes || [] });
+      setMsg({ type: 'success', text: `Removed ${data.deleted} duplicates. ${data.kept} unique exercises remain.` });
+      fetchExercises();
+    } catch (err: any) { setMsg({ type: 'error', text: err.message || 'Dedup failed' }); }
+    finally { setDeduping(false); }
+  };
+
+  const seedMissing = async () => {
+    setSeeding(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/exercises/seed-missing`, { method: 'POST', headers: { 'Authorization': `Bearer ${adminToken}` } });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Seed failed');
+      setMsg({ type: 'success', text: `Added ${data.added} missing exercises. ${data.alreadyExisted} already existed.` });
+      fetchExercises();
+    } catch (err: any) { setMsg({ type: 'error', text: err.message || 'Seed failed' }); }
+    finally { setSeeding(false); }
   };
 
   const filtered = exercises.filter(e => {
@@ -124,9 +153,17 @@ const ExerciseLibrary: React.FC<{ adminToken: string }> = ({ adminToken }) => {
             {EQUIPMENT_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
         </div>
-        <button onClick={openCreate} className="flex items-center gap-1.5 px-4 py-2 bg-system-neon text-black rounded-lg text-xs font-black tracking-widest uppercase hover:bg-white transition-all shrink-0">
-          <Plus size={12} /> ADD EXERCISE
-        </button>
+        <div className="flex gap-2 shrink-0">
+          <button onClick={runDedup} disabled={deduping} className="flex items-center gap-1.5 px-3 py-2 bg-red-900/50 border border-red-700 text-red-400 rounded-lg text-[10px] font-bold uppercase hover:bg-red-900 transition-all">
+            {deduping ? 'CLEANING...' : 'DEDUP'}
+          </button>
+          <button onClick={seedMissing} disabled={seeding} className="flex items-center gap-1.5 px-3 py-2 bg-blue-900/50 border border-blue-700 text-blue-400 rounded-lg text-[10px] font-bold uppercase hover:bg-blue-900 transition-all">
+            {seeding ? 'SEEDING...' : 'SEED MISSING'}
+          </button>
+          <button onClick={openCreate} className="flex items-center gap-1.5 px-4 py-2 bg-system-neon text-black rounded-lg text-xs font-black tracking-widest uppercase hover:bg-white transition-all">
+            <Plus size={12} /> ADD EXERCISE
+          </button>
+        </div>
       </div>
 
       <div className="flex items-center gap-4">
