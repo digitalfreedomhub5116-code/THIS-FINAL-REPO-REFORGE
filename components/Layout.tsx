@@ -403,6 +403,7 @@ const Layout: React.FC<LayoutProps> = ({
             transition={{ duration: 0.25, ease: 'easeInOut' }}
             className={`fixed top-0 right-0 z-40 ${navigation ? 'left-0 md:left-64' : 'left-0'}`}
             style={{
+              paddingTop: 'env(safe-area-inset-top, 0px)',
               background: 'linear-gradient(180deg, rgba(255,255,255,0.055) 0%, rgba(8,8,18,0.88) 18%, rgba(4,4,12,0.96) 100%)',
               backdropFilter: 'blur(28px) saturate(180%)',
               WebkitBackdropFilter: 'blur(28px) saturate(180%)',
@@ -414,7 +415,7 @@ const Layout: React.FC<LayoutProps> = ({
             <div className="absolute top-0 left-0 right-0 h-px pointer-events-none" style={{ background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.18) 30%, rgba(0,210,255,0.12) 55%, rgba(139,92,246,0.10) 75%, transparent 100%)' }} />
             <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(135deg, rgba(0,210,255,0.02) 0%, transparent 50%, rgba(139,92,246,0.02) 100%)' }} />
 
-            <div className="flex items-center justify-between px-3 py-2.5 sm:px-6 sm:py-3.5 max-w-7xl mx-auto relative z-10">
+            <div className="flex items-center justify-between px-3 py-3 sm:px-6 sm:py-3.5 max-w-7xl mx-auto relative z-10">
 
               {/* LEFT: Avatar + Greeting + Username */}
               <div className="flex items-center gap-2 sm:gap-3" ref={profileMenuRef}>
@@ -483,7 +484,7 @@ const Layout: React.FC<LayoutProps> = ({
                 <div className="min-w-0">
                   <div className="hidden sm:block text-[10px] text-gray-500 font-mono tracking-widest leading-none mb-0.5 uppercase">Hello</div>
                   <div className="flex items-center gap-1.5">
-                    <div className="text-white font-black text-sm sm:text-lg leading-none tracking-tight truncate max-w-[72px] sm:max-w-[160px] uppercase">
+                    <div className="text-white font-black text-base sm:text-lg leading-none tracking-tight truncate max-w-[100px] sm:max-w-[160px] uppercase">
                       {displayName}
                     </div>
                     {streak > 0 && (
@@ -624,7 +625,7 @@ const Layout: React.FC<LayoutProps> = ({
           </motion.header>
         )}
 
-        <main className={`max-w-7xl mx-auto flex flex-col min-h-screen ${!hideHeader ? 'pt-[68px] sm:pt-[72px]' : ''}`}>
+        <main className={`max-w-7xl mx-auto flex flex-col min-h-screen ${!hideHeader ? 'pt-[72px] sm:pt-[76px]' : ''}`} style={!hideHeader ? { paddingTop: 'calc(72px + env(safe-area-inset-top, 0px))' } : undefined}>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

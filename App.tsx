@@ -414,25 +414,23 @@ const App: React.FC = () => {
     return () => window.removeEventListener('focus', onFocus);
   }, [fetchDbOutfits]);
 
-  const dailyCheckRef = useRef(false);
-
-  // Deferred daily login check
+  // Deferred daily login check — persistent guard via localStorage
   useEffect(() => {
     // Wait until configured and tutorial is complete before showing daily login
-    if (!player.isConfigured) {
-      dailyCheckRef.current = false;
-      return;
-    }
-    // If it's a new user and the tutorial isn't done yet, wait.
+    if (!player.isConfigured) return;
     if (isNewUserOnboarding && !player.tutorialComplete) return;
 
-    if (dailyCheckRef.current) return;
+    // Persistent guard: only show the modal once per calendar day
+    const today = new Date().toISOString().split('T')[0];
+    const shownDate = localStorage.getItem('reforge_daily_modal_shown');
+    if (shownDate === today) return;
+
     const reward = checkDailyLogin();
     if (reward) {
+      localStorage.setItem('reforge_daily_modal_shown', today);
       setDailyReward(reward);
       setShowDailyLogin(true);
     }
-    dailyCheckRef.current = true;
   }, [player.isConfigured, player.tutorialComplete, isNewUserOnboarding, checkDailyLogin]);
 
   useEffect(() => {

@@ -90,7 +90,8 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, badges 
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5, ease: 'easeOut' }}
         id="tut-nav-mobile"
-        className="md:hidden fixed bottom-5 left-4 right-4 z-40"
+        className="md:hidden fixed left-4 right-4 z-40"
+        style={{ bottom: 'calc(12px + env(safe-area-inset-bottom, 0px))' }}
       >
         <div
           className="relative flex items-center justify-around rounded-full px-2 py-2 overflow-hidden"
