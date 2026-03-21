@@ -796,8 +796,8 @@ router.post('/exercises/dedup', async (req: Request, res: Response) => {
       if (entries.length <= 1) continue;
       // Pick the best entry: prefer one with video_url, then prefer id in 101-275 range, then lowest id
       const sorted = [...entries].sort((a, b) => {
-        const aHasVideo = a.video_url && a.video_url.includes('cloudinary') ? 1 : 0;
-        const bHasVideo = b.video_url && b.video_url.includes('cloudinary') ? 1 : 0;
+        const aHasVideo = a.video_url && a.video_url.trim() !== '' ? 1 : 0;
+        const bHasVideo = b.video_url && b.video_url.trim() !== '' ? 1 : 0;
         if (bHasVideo !== aHasVideo) return bHasVideo - aHasVideo;
         const aInMain = (a.id >= 101 && a.id <= 275) ? 1 : 0;
         const bInMain = (b.id >= 101 && b.id <= 275) ? 1 : 0;
@@ -825,7 +825,7 @@ router.post('/exercises/dedup', async (req: Request, res: Response) => {
 
     // Fix Russian Twists (id 193): video URL stuck in notes field
     const { data: rt193 } = await sb.from('workout_exercises').select('*').eq('id', 193).single();
-    if (rt193 && rt193.notes && rt193.notes.includes('cloudinary') && !rt193.video_url) {
+    if (rt193 && rt193.notes && rt193.notes.trim().startsWith('http') && !rt193.video_url) {
       await sb.from('workout_exercises').update({ video_url: rt193.notes, notes: '' }).eq('id', 193);
       fixes.push(`Fixed Russian Twists (193): moved video URL from notes to video_url`);
     }
