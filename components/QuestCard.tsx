@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Check, X, Dumbbell, Brain, Shield, Users, Zap, Trash2, ZapOff, Lock, Coins, Flame, Eye, MapPin, Activity, Play, Square } from 'lucide-react';
 import { Quest, CoreStats, Rank } from '../types';
@@ -79,6 +79,7 @@ const SensorBar: React.FC<{
 
 const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDelete, isLocked, onStartTracking, onStopTracking }) => {
   const [isMiniView, setIsMiniView] = useState(false);
+  const completingRef = useRef(false);
 
   const isExpired = quest.expiresAt ? Date.now() > quest.expiresAt : false;
   const isFailed  = quest.failed || (isExpired && !quest.isCompleted);
@@ -92,7 +93,10 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
   const displayXp  = isMiniActive ? Math.floor(quest.xpReward * 0.1) : quest.xpReward;
 
   const handleComplete = () => {
+    if (completingRef.current) return; // Debounce rapid taps
+    completingRef.current = true;
     onComplete(quest.id, isMiniActive);
+    setTimeout(() => { completingRef.current = false; }, 1500);
   };
 
   const handleFail = () => onFail(quest.id);

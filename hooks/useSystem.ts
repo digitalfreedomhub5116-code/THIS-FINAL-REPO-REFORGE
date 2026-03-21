@@ -155,12 +155,31 @@ const loadUnread = (): boolean => {
   try { return localStorage.getItem('reforge_notif_unread') === 'true'; } catch { return false; }
 };
 
+// Safe level-up helper: caps iterations and ensures requiredXp always grows
+function safeLevelUp(currentXp: number, requiredXp: number, level: number): { currentXp: number; requiredXp: number; level: number; leveledUp: boolean } {
+  // Floor requiredXp to prevent runaway loops from corrupted data
+  if (!requiredXp || requiredXp < 50) requiredXp = 100;
+  let leveledUp = false;
+  let iterations = 0;
+  const MAX_LEVELUPS = 10; // Hard cap per single XP grant
+  while (currentXp >= requiredXp && iterations < MAX_LEVELUPS) {
+    currentXp -= requiredXp;
+    level++;
+    const next = Math.floor(requiredXp * 1.2);
+    requiredXp = next > requiredXp ? next : requiredXp + 1; // Guarantee growth
+    leveledUp = true;
+    iterations++;
+  }
+  return { currentXp, requiredXp, level, leveledUp };
+}
+
 export const useSystem = () => {
   const [player, setPlayer] = useState<PlayerData>(loadFromStorage);
   const [notifications, setNotifications] = useState<SystemNotification[]>([]);
   const [notificationHistory, setNotificationHistory] = useState<StoredNotification[]>(loadNotifHistory);
   const [hasUnreadNotifications, setHasUnreadNotifications] = useState<boolean>(loadUnread);
   const notificationTimers = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+  const workoutCompletingRef = useRef(false);
 
   useEffect(() => {
     localStorage.setItem('reforge_player_v2', JSON.stringify(player));
@@ -671,12 +690,8 @@ export const useSystem = () => {
 
       let leveledUp = false;
       if (reward.type === 'XP') {
-        while (currentXp >= requiredXp) {
-          currentXp -= requiredXp;
-          level++;
-          requiredXp = Math.floor(requiredXp * 1.2);
-          leveledUp = true;
-        }
+        const lu = safeLevelUp(currentXp, requiredXp, level);
+        currentXp = lu.currentXp; requiredXp = lu.requiredXp; level = lu.level; leveledUp = lu.leveledUp;
       }
 
       const logs = [createLog(`Daily Reward (Day ${nextStreak}): ${reward.message}`, 'SYSTEM'), ...prev.logs];
@@ -735,13 +750,9 @@ export const useSystem = () => {
       totalXp += xp;
       dailyXp += xp;
 
-      let leveledUp = false;
-      while (currentXp >= requiredXp) {
-        currentXp -= requiredXp;
-        level++;
-        requiredXp = Math.floor(requiredXp * 1.2);
-        leveledUp = true;
-      }
+      const lu = safeLevelUp(currentXp, requiredXp, level);
+      currentXp = lu.currentXp; requiredXp = lu.requiredXp; level = lu.level;
+      const leveledUp = lu.leveledUp;
 
       const newLogs = [...prev.logs];
       if (gold > 0 || keys > 0) newLogs.unshift(createLog(`Loot Acquired: ${gold} G, ${keys} Keys, ${xp} XP`, 'LOOT'));
@@ -789,13 +800,9 @@ export const useSystem = () => {
       totalXp += amount;
       dailyXp += amount;
 
-      let leveledUp = false;
-      while (currentXp >= requiredXp) {
-        currentXp -= requiredXp;
-        level++;
-        requiredXp = Math.floor(requiredXp * 1.2);
-        leveledUp = true;
-      }
+      const lu = safeLevelUp(currentXp, requiredXp, level);
+      currentXp = lu.currentXp; requiredXp = lu.requiredXp; level = lu.level;
+      const leveledUp = lu.leveledUp;
 
       const newLogs = [createLog(`Gained ${amount} XP (${source})`, 'XP'), ...prev.logs];
       if (leveledUp) {
@@ -931,13 +938,9 @@ export const useSystem = () => {
       totalXp += reward;
       dailyXp += reward;
 
-      let leveledUp = false;
-      while (currentXp >= requiredXp) {
-        currentXp -= requiredXp;
-        level++;
-        requiredXp = Math.floor(requiredXp * 1.2);
-        leveledUp = true;
-      }
+      const lu = safeLevelUp(currentXp, requiredXp, level);
+      currentXp = lu.currentXp; requiredXp = lu.requiredXp; level = lu.level;
+      const leveledUp = lu.leveledUp;
 
       const pactBonusTag = isOptionalPact && !asMini ? ' [PACT 1.25x]' : '';
       const pactReturnTag = pactReturn > 0 ? ` (+${pactReturn}G Pledge Returned)` : '';
@@ -1234,6 +1237,11 @@ export const useSystem = () => {
     anomalyPoints: number = 0,
     isCustomWorkout: boolean = false
   ): WorkoutReward[] => {
+    // Guard against duplicate rapid calls
+    if (workoutCompletingRef.current) return [];
+    workoutCompletingRef.current = true;
+    setTimeout(() => { workoutCompletingRef.current = false; }, 2000);
+
     const penaltyExceeded = anomalyPoints > 5;
     
     let rewards: WorkoutReward[] = [];
@@ -1312,13 +1320,9 @@ export const useSystem = () => {
       totalXp += totalXpGain;
       dailyXp += totalXpGain;
 
-      let leveledUp = false;
-      while (currentXp >= requiredXp) {
-        currentXp -= requiredXp;
-        level++;
-        requiredXp = Math.floor(requiredXp * 1.2);
-        leveledUp = true;
-      }
+      const lu = safeLevelUp(currentXp, requiredXp, level);
+      currentXp = lu.currentXp; requiredXp = lu.requiredXp; level = lu.level;
+      const leveledUp = lu.leveledUp;
 
       const penaltyTag = '';
       const newLogs = [

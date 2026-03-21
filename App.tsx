@@ -526,7 +526,7 @@ const App: React.FC = () => {
 
   const handleQuestComplete = (id: string, asMini: boolean = false, rect?: DOMRect) => {
     const quest = player.quests.find(q => q.id === id);
-    if (!quest) return;
+    if (!quest || quest.isCompleted || quest.failed) return;
     const xpBefore = player.currentXp;
     const levelBefore = player.level;
     const requiredXpBefore = player.requiredXp;
