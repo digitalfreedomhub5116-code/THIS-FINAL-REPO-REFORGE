@@ -31,11 +31,12 @@ interface DayEditorProps {
   day: WorkoutDay;
   dayIndex: number;
   exercises: WorkoutExercise[];
+  adminToken: string;
   onChange: (updated: WorkoutDay) => void;
   onDelete: () => void;
 }
 
-const DayEditor: React.FC<DayEditorProps> = ({ day, dayIndex, exercises, onChange, onDelete }) => {
+const DayEditor: React.FC<DayEditorProps> = ({ day, dayIndex, exercises, adminToken, onChange, onDelete }) => {
   const [expanded, setExpanded] = useState(false);
   const [selectedExId, setSelectedExId] = useState('');
 
@@ -64,6 +65,27 @@ const DayEditor: React.FC<DayEditorProps> = ({ day, dayIndex, exercises, onChang
     const updated = [...day.exercises];
     (updated[idx] as any)[field] = value;
     onChange({ ...day, exercises: updated });
+  };
+
+  const updateExerciseVideoUrl = async (idx: number, videoUrl: string, adminToken: string) => {
+    const updated = [...day.exercises];
+    updated[idx].videoUrl = videoUrl;
+    onChange({ ...day, exercises: updated });
+
+    // Sync back to the database to keep real-time parity for all users
+    try {
+      const exName = updated[idx].name;
+      const matchingDbEx = exercises.find(e => e.name.toLowerCase() === exName.toLowerCase());
+      if (matchingDbEx && matchingDbEx.id) {
+        await fetch(`${API_BASE}/api/admin/exercises/${matchingDbEx.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminToken}` },
+          body: JSON.stringify({ video_url: videoUrl })
+        });
+      }
+    } catch (err) {
+      console.error('Failed to sync video URL to exercise DB', err);
+    }
   };
 
   return (
@@ -108,15 +130,27 @@ const DayEditor: React.FC<DayEditorProps> = ({ day, dayIndex, exercises, onChang
             <>
               <div className="space-y-2">
                 {(day.exercises || []).map((ex, idx) => (
-                  <div key={idx} className="flex items-center gap-2 bg-gray-900/50 border border-gray-800 rounded-lg p-2">
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xs font-bold text-white truncate">{ex.name}</div>
-                      <div className="flex gap-3">
-                        <input value={ex.sets} onChange={e => updateExercise(idx, 'sets', parseInt(e.target.value) || 3)} type="number" min={1} className="w-12 bg-black border border-gray-800 rounded px-1 py-0.5 text-[10px] text-white outline-none" placeholder="sets" />
-                        <input value={ex.reps} onChange={e => updateExercise(idx, 'reps', e.target.value)} className="w-20 bg-black border border-gray-800 rounded px-1 py-0.5 text-[10px] text-white outline-none" placeholder="reps" />
+                  <div key={idx} className="flex flex-col gap-2 bg-gray-900/50 border border-gray-800 rounded-lg p-2">
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-bold text-white truncate">{ex.name}</div>
+                        <div className="flex gap-3 mt-1">
+                          <input value={ex.sets} onChange={e => updateExercise(idx, 'sets', parseInt(e.target.value) || 3)} type="number" min={1} className="w-12 bg-black border border-gray-800 rounded px-1 py-0.5 text-[10px] text-white outline-none" placeholder="sets" />
+                          <input value={ex.reps} onChange={e => updateExercise(idx, 'reps', e.target.value)} className="w-20 bg-black border border-gray-800 rounded px-1 py-0.5 text-[10px] text-white outline-none" placeholder="reps" />
+                        </div>
                       </div>
+                      <button onClick={() => removeExercise(idx)} className="text-gray-700 hover:text-red-500 transition-colors shrink-0"><X size={12} /></button>
                     </div>
-                    <button onClick={() => removeExercise(idx)} className="text-gray-700 hover:text-red-500 transition-colors shrink-0"><X size={12} /></button>
+                    <div className="flex items-center gap-2 mt-1 border-t border-gray-800/50 pt-2">
+                      <span className="text-[10px] text-gray-500 uppercase tracking-widest shrink-0 w-16">Video URL</span>
+                      <input 
+                        value={ex.videoUrl || ''} 
+                        onChange={e => updateExercise(idx, 'videoUrl', e.target.value)}
+                        onBlur={e => updateExerciseVideoUrl(idx, e.target.value, adminToken)}
+                        className="flex-1 bg-black border border-gray-800 rounded px-2 py-1 text-[10px] text-cyan-400 outline-none placeholder:text-gray-700" 
+                        placeholder="https://youtube.com/..." 
+                      />
+                    </div>
                   </div>
                 ))}
               </div>
@@ -299,7 +333,7 @@ const PlanBuilder: React.FC<{ adminToken: string }> = ({ adminToken }) => {
             ) : (
               <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
                 {form.days.map((day, idx) => (
-                  <DayEditor key={idx} day={day} dayIndex={idx} exercises={exercises} onChange={updated => updateDay(idx, updated)} onDelete={() => deleteDay(idx)} />
+                  <DayEditor key={idx} day={day} dayIndex={idx} exercises={exercises} adminToken={adminToken} onChange={d => updateDay(idx, d)} onDelete={() => deleteDay(idx)} />
                 ))}
               </div>
             )}
