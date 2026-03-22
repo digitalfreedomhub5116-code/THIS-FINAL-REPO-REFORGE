@@ -910,6 +910,46 @@ router.post('/exercises/seed-missing', async (req: Request, res: Response) => {
   }
 });
 
+// Mass-update video URLs in database based on our hardcoded mappings
+router.post('/exercises/sync-videos', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+  try {
+    // Dynamically import to ensure we have the latest mappings
+    const { EXERCISE_VIDEOS } = await import('../../lib/exerciseVideos.js');
+    const sb = supabaseServer() as any;
+    
+    // Fetch all exercises from DB
+    const { data: allExercises, error: fetchErr } = await sb.from('workout_exercises').select('id, name, video_url');
+    if (fetchErr) throw fetchErr;
+
+    let updatedCount = 0;
+    const updates = [];
+
+    // Loop through DB exercises and see if we have a matching URL in the map
+    for (const ex of allExercises || []) {
+      const name = ex.name.trim();
+      let matchedUrl = EXERCISE_VIDEOS[name];
+      if (!matchedUrl) {
+        const lowerName = name.toLowerCase();
+        const foundKey = Object.keys(EXERCISE_VIDEOS).find(k => k.toLowerCase() === lowerName);
+        if (foundKey) matchedUrl = EXERCISE_VIDEOS[foundKey];
+      }
+
+      if (matchedUrl && ex.video_url !== matchedUrl) {
+        await sb.from('workout_exercises').update({ video_url: matchedUrl }).eq('id', ex.id);
+        updates.push({ name: ex.name, oldUrl: ex.video_url, newUrl: matchedUrl });
+        updatedCount++;
+      }
+    }
+
+    await logAdminAction('sync_exercise_videos', req, { newValue: { count: updatedCount } });
+    return res.json({ updatedCount, updates });
+  } catch (err) {
+    console.error('[Admin sync exercise videos]', err);
+    return res.status(500).json({ error: 'Video sync failed' });
+  }
+});
+
 router.put('/exercises/:id', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
   const { id } = req.params;
