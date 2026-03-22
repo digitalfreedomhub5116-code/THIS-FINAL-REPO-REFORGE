@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, EyeOff, UserPlus } from 'lucide-react';
 import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import { PlayerData, ReplitUser } from '../types';
-import { API_BASE } from '../lib/apiConfig';
+import { API_BASE, fetchWithRetry, checkServerHealth } from '../lib/apiConfig';
 import { isNativePlatform } from '../lib/googleAuth';
 import NativeGoogleButton from './NativeGoogleButton';
 
@@ -14,6 +14,7 @@ interface SignInPageProps {
 
 const SignInPage: React.FC<SignInPageProps> = ({ onLogin, onNavigate }) => {
   const [checking, setChecking] = useState(true);
+  const [serverWaking, setServerWaking] = useState(false);
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
@@ -38,8 +39,18 @@ const SignInPage: React.FC<SignInPageProps> = ({ onLogin, onNavigate }) => {
         setChecking(false);
         return;
       }
+      // Pre-check server reachability
+      const healthy = await checkServerHealth();
+      if (!healthy) {
+        setServerWaking(true);
+        for (let i = 0; i < 3; i++) {
+          await new Promise(r => setTimeout(r, 2000));
+          if (await checkServerHealth()) { setServerWaking(false); break; }
+        }
+        setServerWaking(false);
+      }
       try {
-        const res = await fetch(`${API_BASE}/api/auth/local/whoami`, { credentials: 'include' });
+        const res = await fetchWithRetry(`${API_BASE}/api/auth/local/whoami`, { credentials: 'include' });
         if (res.ok) {
           const json = await res.json();
           if (json.playerToken) localStorage.setItem('reforge_player_token', json.playerToken);
@@ -62,7 +73,7 @@ const SignInPage: React.FC<SignInPageProps> = ({ onLogin, onNavigate }) => {
     let playerData: Partial<PlayerData> = {};
     try {
       const token = localStorage.getItem('reforge_player_token');
-      const playerRes = await fetch(`${API_BASE}/api/player/${user.id}`, { credentials: 'include', headers: token ? { Authorization: `Bearer ${token}` } : {} });
+      const playerRes = await fetchWithRetry(`${API_BASE}/api/player/${user.id}`, { credentials: 'include', headers: token ? { Authorization: `Bearer ${token}` } : {} });
       if (playerRes.ok) {
         const row = await playerRes.json();
         if (row?.raw_data) playerData = row.raw_data as Partial<PlayerData>;
@@ -87,7 +98,7 @@ const SignInPage: React.FC<SignInPageProps> = ({ onLogin, onNavigate }) => {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`${API_BASE}/api/auth/local/login`, {
+      const res = await fetchWithRetry(`${API_BASE}/api/auth/local/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -103,7 +114,7 @@ const SignInPage: React.FC<SignInPageProps> = ({ onLogin, onNavigate }) => {
       if (data.playerToken) localStorage.setItem('reforge_player_token', data.playerToken);
       await loginWithUser(data.user || data);
     } catch (err: any) {
-      setError(`Connection error — ${err?.message || 'Unknown'}. Try again.`);
+      setError(`Connection error — server may be restarting. Please wait 30 seconds and try again.`);
     } finally {
       setLoading(false);
     }
@@ -113,7 +124,7 @@ const SignInPage: React.FC<SignInPageProps> = ({ onLogin, onNavigate }) => {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`${API_BASE}/api/auth/google/token`, {
+      const res = await fetchWithRetry(`${API_BASE}/api/auth/google/token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -137,7 +148,7 @@ const SignInPage: React.FC<SignInPageProps> = ({ onLogin, onNavigate }) => {
       };
       await loginWithUser(replitUser);
     } catch (err: any) {
-      setError(`Connection error — ${err?.message || 'Unknown'}. Try again.`);
+      setError(`Connection error — server may be restarting. Please wait 30 seconds and try again.`);
     } finally {
       setLoading(false);
     }

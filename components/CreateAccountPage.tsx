@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import { PlayerData, ReplitUser } from '../types';
-import { API_BASE } from '../lib/apiConfig';
+import { API_BASE, fetchWithRetry, checkServerHealth } from '../lib/apiConfig';
 import { isNativePlatform } from '../lib/googleAuth';
 import NativeGoogleButton from './NativeGoogleButton';
 
@@ -14,6 +14,7 @@ interface CreateAccountPageProps {
 
 const CreateAccountPage: React.FC<CreateAccountPageProps> = ({ onLogin, onNavigate }) => {
   const [checking, setChecking] = useState(true);
+  const [serverWaking, setServerWaking] = useState(false);
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -41,8 +42,18 @@ const CreateAccountPage: React.FC<CreateAccountPageProps> = ({ onLogin, onNaviga
         setChecking(false);
         return;
       }
+      // Pre-check server reachability
+      const healthy = await checkServerHealth();
+      if (!healthy) {
+        setServerWaking(true);
+        for (let i = 0; i < 3; i++) {
+          await new Promise(r => setTimeout(r, 2000));
+          if (await checkServerHealth()) { setServerWaking(false); break; }
+        }
+        setServerWaking(false);
+      }
       try {
-        const res = await fetch(`${API_BASE}/api/auth/local/whoami`, { credentials: 'include' });
+        const res = await fetchWithRetry(`${API_BASE}/api/auth/local/whoami`, { credentials: 'include' });
         if (res.ok) {
           const json = await res.json();
           if (json.playerToken) localStorage.setItem('reforge_player_token', json.playerToken);
@@ -65,7 +76,7 @@ const CreateAccountPage: React.FC<CreateAccountPageProps> = ({ onLogin, onNaviga
     let playerData: Partial<PlayerData> = {};
     try {
       const token = localStorage.getItem('reforge_player_token');
-      const playerRes = await fetch(`${API_BASE}/api/player/${user.id}`, { credentials: 'include', headers: token ? { Authorization: `Bearer ${token}` } : {} });
+      const playerRes = await fetchWithRetry(`${API_BASE}/api/player/${user.id}`, { credentials: 'include', headers: token ? { Authorization: `Bearer ${token}` } : {} });
       if (playerRes.ok) {
         const row = await playerRes.json();
         if (row?.raw_data) playerData = row.raw_data as Partial<PlayerData>;
@@ -112,7 +123,7 @@ const CreateAccountPage: React.FC<CreateAccountPageProps> = ({ onLogin, onNaviga
 
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/auth/local/register`, {
+      const res = await fetchWithRetry(`${API_BASE}/api/auth/local/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -132,8 +143,7 @@ const CreateAccountPage: React.FC<CreateAccountPageProps> = ({ onLogin, onNaviga
       if (data.playerToken) localStorage.setItem('reforge_player_token', data.playerToken);
       await loginWithUser(data.user || data);
     } catch (err: any) {
-      const msg = err?.message || 'Unknown error';
-      setError(`Connection error — ${msg}. Check your network and try again.`);
+      setError(`Connection error — server may be restarting. Please wait 30 seconds and try again.`);
     } finally {
       setLoading(false);
     }
@@ -143,7 +153,7 @@ const CreateAccountPage: React.FC<CreateAccountPageProps> = ({ onLogin, onNaviga
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`${API_BASE}/api/auth/google/token`, {
+      const res = await fetchWithRetry(`${API_BASE}/api/auth/google/token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -165,7 +175,7 @@ const CreateAccountPage: React.FC<CreateAccountPageProps> = ({ onLogin, onNaviga
       };
       await loginWithUser(replitUser);
     } catch {
-      setError('Connection error — please try again');
+      setError('Connection error — server may be restarting. Please wait 30 seconds and try again.');
     } finally {
       setLoading(false);
     }

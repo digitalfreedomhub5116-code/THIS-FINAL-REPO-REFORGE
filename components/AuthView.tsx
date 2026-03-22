@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import { PlayerData, ReplitUser } from '../types';
-import { API_BASE } from '../lib/apiConfig';
+import { API_BASE, fetchWithRetry, checkServerHealth } from '../lib/apiConfig';
 import { isNativePlatform } from '../lib/googleAuth';
 import NativeGoogleButton from './NativeGoogleButton';
 
@@ -17,6 +17,7 @@ type Mode = 'SIGN_IN' | 'CREATE';
 
 const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode }) => {
   const [checking, setChecking] = useState(true);
+  const [serverWaking, setServerWaking] = useState(false);
   const [mode, setMode] = useState<Mode>(initialMode ?? 'SIGN_IN');
 
   const [identifier, setIdentifier] = useState('');
@@ -47,8 +48,19 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode }) => {
         setChecking(false);
         return;
       }
+      // Pre-check server reachability — wake up Railway/Supabase if needed
+      const healthy = await checkServerHealth();
+      if (!healthy) {
+        setServerWaking(true);
+        // Retry up to 3 times with 2s gap
+        for (let i = 0; i < 3; i++) {
+          await new Promise(r => setTimeout(r, 2000));
+          if (await checkServerHealth()) { setServerWaking(false); break; }
+        }
+        setServerWaking(false);
+      }
       try {
-        const res = await fetch(`${API_BASE}/api/auth/local/whoami`, { credentials: 'include' });
+        const res = await fetchWithRetry(`${API_BASE}/api/auth/local/whoami`, { credentials: 'include' });
         if (res.ok) {
           const json = await res.json();
           const user: ReplitUser = json.user || json;
@@ -66,7 +78,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode }) => {
   const loginWithUser = async (user: ReplitUser) => {
     let playerData: Partial<PlayerData> = {};
     try {
-      const playerRes = await fetch(`${API_BASE}/api/player/${user.id}`, { credentials: 'include' });
+      const playerRes = await fetchWithRetry(`${API_BASE}/api/player/${user.id}`, { credentials: 'include' });
       if (playerRes.ok) {
         const row = await playerRes.json();
         if (row?.raw_data) playerData = row.raw_data as Partial<PlayerData>;
@@ -88,7 +100,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode }) => {
     if (!identifier.trim() || !password) { setError('Fill in all fields'); return; }
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/auth/local/login`, {
+      const res = await fetchWithRetry(`${API_BASE}/api/auth/local/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -100,7 +112,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode }) => {
       if (!res.ok) { setError(data.error || `Login failed (${res.status})`); return; }
       await loginWithUser(data.user || data);
     } catch (err: any) {
-      setError(`Connection error — ${err?.message || 'Unknown'}. Try again.`);
+      setError(`Connection error — server may be restarting. Please wait 30 seconds and try again.`);
     } finally {
       setLoading(false);
     }
@@ -114,7 +126,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode }) => {
     if (password.length < 6) { setError('Password must be at least 6 characters'); return; }
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/auth/local/register`, {
+      const res = await fetchWithRetry(`${API_BASE}/api/auth/local/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -126,7 +138,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode }) => {
       if (!res.ok) { setError(data.error || `Registration failed (${res.status})`); return; }
       await loginWithUser(data.user || data);
     } catch (err: any) {
-      setError(`Connection error — ${err?.message || 'Unknown'}. Try again.`);
+      setError(`Connection error — server may be restarting. Please wait 30 seconds and try again.`);
     } finally {
       setLoading(false);
     }
@@ -136,7 +148,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode }) => {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`${API_BASE}/api/auth/google/token`, {
+      const res = await fetchWithRetry(`${API_BASE}/api/auth/google/token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -151,7 +163,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode }) => {
       }
       await loginWithUser(data.user || data);
     } catch (err: any) {
-      setError(`Connection error — ${err?.message || 'Unknown'}. Try again.`);
+      setError(`Connection error — server may be restarting. Please wait 30 seconds and try again.`);
     } finally {
       setLoading(false);
     }

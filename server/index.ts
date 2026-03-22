@@ -186,14 +186,14 @@ async function startServer() {
     // ── Supabase keep-alive ping ──
     // Free-tier Supabase projects auto-pause after 7 days of inactivity.
     // Ping every 4 days to prevent this.
-    const PING_INTERVAL_MS = 4 * 24 * 60 * 60 * 1000; // 4 days
+    const PING_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6 hours — prevent free-tier Supabase auto-pause
     try {
       const { pingSupabase } = await import('./lib/supabase.js');
       // Initial ping on startup
       pingSupabase();
       // Schedule periodic pings
       setInterval(() => pingSupabase(), PING_INTERVAL_MS);
-      console.log('[Server] Supabase keep-alive ping scheduled (every 4 days)');
+      console.log('[Server] Supabase keep-alive ping scheduled (every 6 hours)');
     } catch (err) {
       console.warn('[Server] Could not set up Supabase keep-alive:', err);
     }
