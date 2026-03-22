@@ -28,7 +28,7 @@ const inputClass = "w-full bg-black/60 border border-white/10 rounded-lg px-3 py
 const labelClass = "block text-[10px] text-gray-500 mb-1.5 font-mono tracking-widest uppercase";
 
 const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onLogout, onBack, onRetakeTutorial }) => {
-  const [activeTab, setActiveTab] = useState<'STATS' | 'LOGS' | 'CONFIG'>('CONFIG');
+  const [activeTab, setActiveTab] = useState<'LOGS' | 'CONFIG'>('LOGS');
 
   const [name, setName] = useState(player.name || '');
   const [username, setUsername] = useState(player.username || '');
@@ -163,7 +163,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onLogout, o
       {/* Tabs */}
       <div className="w-full rounded-2xl overflow-hidden" style={glassPanel}>
         <div className="flex border-b border-white/[0.06]">
-          {(['STATS', 'LOGS', 'CONFIG'] as const).map(t => (
+          {(['LOGS', 'CONFIG'] as const).map(t => (
             <button
               key={t}
               onClick={() => setActiveTab(t)}
@@ -171,7 +171,6 @@ const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onLogout, o
                 activeTab === t ? 'text-[#00d2ff] border-b-2 border-[#00d2ff]' : 'text-gray-600 hover:text-gray-300'
               }`}
             >
-              {t === 'STATS' && <Activity size={13} />}
               {t === 'LOGS' && <Terminal size={13} />}
               {t === 'CONFIG' && <Settings size={13} />}
               {t}
@@ -181,41 +180,6 @@ const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onLogout, o
 
         <div className="p-5 min-h-[320px]">
           <AnimatePresence mode="wait">
-
-            {/* STATS */}
-            {activeTab === 'STATS' && (
-              <motion.div key="stats" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} transition={{ duration: 0.2 }} className="space-y-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-black/40 p-3 rounded-lg border border-white/[0.06]">
-                    <div className="text-[10px] text-gray-500 font-mono mb-1">HP</div>
-                    <div className="text-xl text-red-400 font-mono font-bold">{player.hp} / {player.maxHp}</div>
-                    <div className="h-1 bg-gray-800 mt-2 rounded-full overflow-hidden">
-                      <div className="h-full bg-red-600" style={{ width: `${(player.hp / player.maxHp) * 100}%` }} />
-                    </div>
-                  </div>
-                  <div className="bg-black/40 p-3 rounded-lg border border-white/[0.06]">
-                    <div className="text-[10px] text-gray-500 font-mono mb-1">MP</div>
-                    <div className="text-xl text-blue-400 font-mono font-bold">{player.mp} / {player.maxMp}</div>
-                    <div className="h-1 bg-gray-800 mt-2 rounded-full overflow-hidden">
-                      <div className="h-full bg-blue-600" style={{ width: `${(player.mp / player.maxMp) * 100}%` }} />
-                    </div>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3 text-xs font-mono">
-                  {[
-                    { label: 'STRENGTH', value: player.stats?.strength ?? 0, color: 'text-red-400' },
-                    { label: 'INTELLIGENCE', value: player.stats?.intelligence ?? 0, color: 'text-blue-400' },
-                    { label: 'DISCIPLINE', value: player.stats?.discipline ?? 0, color: 'text-yellow-400' },
-                    { label: 'SOCIAL', value: player.stats?.social ?? 0, color: 'text-green-400' },
-                  ].map(s => (
-                    <div key={s.label} className="bg-black/40 p-3 rounded-lg border border-white/[0.06]">
-                      <div className="text-[10px] text-gray-600 mb-1">{s.label}</div>
-                      <div className={`text-lg font-bold ${s.color}`}>{s.value}</div>
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-            )}
 
             {/* LOGS */}
             {activeTab === 'LOGS' && (
