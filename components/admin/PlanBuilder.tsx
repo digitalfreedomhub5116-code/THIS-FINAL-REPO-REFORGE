@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Edit3, Trash2, Save, X, ChevronDown, ChevronUp, Dumbbell } from 'lucide-react';
 import { WorkoutExercise, WorkoutPlan, WorkoutDay } from '../../types';
 import { DEFAULT_PLANS } from '../../lib/defaultPlans';
+import { getExerciseVideoUrl } from '../../lib/exerciseVideos';
 import { API_BASE } from '../../lib/apiConfig';
 
 const DIFFICULTY_OPTIONS = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED'];
@@ -49,7 +50,7 @@ const DayEditor: React.FC<DayEditorProps> = ({ day, dayIndex, exercises, adminTo
       reps: ex.default_reps,
       type: ex.type,
       notes: ex.notes || '',
-      videoUrl: ex.video_url || '',
+      videoUrl: ex.video_url || getExerciseVideoUrl(ex.name) || '',
       completed: false,
       duration: 0,
     };
@@ -219,7 +220,15 @@ const PlanBuilder: React.FC<{ adminToken: string }> = ({ adminToken }) => {
 
   const openEdit = (p: WorkoutPlan) => {
     setEditing(p);
-    setForm({ name: p.name, description: p.description, difficulty: p.difficulty, equipment: p.equipment, duration_weeks: p.duration_weeks, days_per_week: p.days_per_week, is_active: p.is_active, display_order: p.display_order, image_url: (p as any).image_url || '', days: Array.isArray(p.days) ? p.days : [] });
+    // Auto-populate empty videoUrls from the global EXERCISE_VIDEOS map
+    const enrichedDays = (Array.isArray(p.days) ? p.days : []).map(day => ({
+      ...day,
+      exercises: (day.exercises || []).map(ex => ({
+        ...ex,
+        videoUrl: ex.videoUrl || getExerciseVideoUrl(ex.name) || '',
+      })),
+    }));
+    setForm({ name: p.name, description: p.description, difficulty: p.difficulty, equipment: p.equipment, duration_weeks: p.duration_weeks, days_per_week: p.days_per_week, is_active: p.is_active, display_order: p.display_order, image_url: (p as any).image_url || '', days: enrichedDays });
     setShowForm(true);
   };
 
