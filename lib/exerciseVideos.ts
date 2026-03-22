@@ -30,7 +30,9 @@ const V = {
   cableFlyes:        'https://res.cloudinary.com/dkygyxsdw/video/upload/v1774029197/cableflyes_zdrwy2.mp4',
   arnoldPress:       'https://res.cloudinary.com/dkygyxsdw/video/upload/v1774029197/arnoldpress_inkrme.mp4',
   closeGripBench:    'https://res.cloudinary.com/dkygyxsdw/video/upload/v1774029197/closegripbenchpress_hkdgyb.mp4',
-  dips:              'https://res.cloudinary.com/dkygyxsdw/video/upload/v1774029197/chair_dip_onqvke.mp4',
+  dips:              'https://res.cloudinary.com/dkygyxsdw/video/upload/v1774029201/chair_dip_abp4bc.mp4',
+  uprightRow:        'https://res.cloudinary.com/dkygyxsdw/video/upload/v1774029203/barbell_upright_row_bs7kau.mp4',
+  pushUps:           'https://res.cloudinary.com/dkygyxsdw/video/upload/v1774029198/pushup_plus_n3k2wh.mp4',
   deadlift:          'https://res.cloudinary.com/dkygyxsdw/image/upload/v1774029197/deadlifts_ljzuek.gif',
   latPulldown:       'https://res.cloudinary.com/dkygyxsdw/video/upload/v1774029197/latpulldown_ongnqr.mp4',
   dbRows:            'https://res.cloudinary.com/dkygyxsdw/video/upload/v1774029197/dumbbell_rows_nkdbqa.mp4',
@@ -79,11 +81,11 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   'Dumbbell Triceps Extension':      V.overheadTricep,
   'Dumbbell Tricep Kickback':        V.overheadTricep,
 
-  'Push-Ups':                        V.barbellBench,
-  'Diamond Push-Ups':                V.barbellBench,
+  'Push-Ups':                        V.pushUps,
+  'Diamond Push-Ups':                V.pushUps,
   'Pike Push-Ups':                   V.overheadPress,
-  'Archer Pushups':                  V.barbellBench,
-  'Clap Push-Up':                    V.barbellBench,
+  'Archer Pushups':                  V.pushUps,
+  'Clap Push-Up':                    V.pushUps,
 
   // ══════════════════════════════════════════════
   // ── Pull (Back / Biceps) ──
@@ -98,7 +100,7 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   'Barbell Rows':                    V.barbellRows,
   'Barbell Row':                     V.barbellRows,
   'Bent Over Row':                   V.barbellRows,
-  'Upright Row':                     V.barbellRows,
+  'Upright Row':                     V.uprightRow,
   'Dumbbell Rows':                   V.dbRows,
   'Dumbbell Row':                    V.dbRows,
   'Single Arm Dumbbell Row':         V.dbRows,
