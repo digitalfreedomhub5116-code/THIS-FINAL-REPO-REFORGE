@@ -59,6 +59,7 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   'Dumbbell Fly':                    V.cableFlyes,
   'Cable Flyes':                     V.cableFlyes,
   'Cable Fly':                       V.cableFlyes,
+  'Dip':                             V.dips,
   'Dips':                            V.dips,
   'Parallel Bar Dips':               V.dips,
   'Chair Dips':                      V.dips,
@@ -81,7 +82,10 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   'Dumbbell Triceps Extension':      V.overheadTricep,
   'Dumbbell Tricep Kickback':        V.overheadTricep,
 
+  'Push-Up':                         V.pushUps,
   'Push-Ups':                        V.pushUps,
+  'Pushup':                          V.pushUps,
+  'Pushups':                         V.pushUps,
   'Diamond Push-Ups':                V.pushUps,
   'Pike Push-Ups':                   V.overheadPress,
   'Archer Pushups':                  V.pushUps,
@@ -101,6 +105,7 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   'Barbell Row':                     V.barbellRows,
   'Bent Over Row':                   V.barbellRows,
   'Upright Row':                     V.uprightRow,
+  'Upright Rows':                    V.uprightRow,
   'Dumbbell Rows':                   V.dbRows,
   'Dumbbell Row':                    V.dbRows,
   'Single Arm Dumbbell Row':         V.dbRows,
@@ -210,9 +215,36 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   'Wall Biceps Stretch':             V.staticStretching,
 };
 
-// Helper: lookup video URL by exercise name (case-insensitive)
+// Helper: lookup video URL by exercise name
+// Handles: exact match, case-insensitive, parenthetical suffixes like "(Chest)",
+// singular/plural, and prefix matching
 export function getExerciseVideoUrl(name: string): string {
+  if (!name) return '';
+  // 1. Exact match
   if (EXERCISE_VIDEOS[name]) return EXERCISE_VIDEOS[name];
-  const key = Object.keys(EXERCISE_VIDEOS).find(k => k.toLowerCase() === name.toLowerCase());
-  return key ? EXERCISE_VIDEOS[key] : '';
+
+  const lower = name.toLowerCase().trim();
+  const keys = Object.keys(EXERCISE_VIDEOS);
+
+  // 2. Case-insensitive exact
+  const ciKey = keys.find(k => k.toLowerCase() === lower);
+  if (ciKey) return EXERCISE_VIDEOS[ciKey];
+
+  // 3. Strip parenthetical suffix: "Dips (Chest)" → "Dips"
+  const stripped = lower.replace(/\s*\([^)]*\)\s*$/, '').trim();
+  if (stripped !== lower) {
+    const sKey = keys.find(k => k.toLowerCase() === stripped);
+    if (sKey) return EXERCISE_VIDEOS[sKey];
+  }
+
+  // 4. Try adding/removing trailing 's': "Upright Row" ↔ "Upright Rows"
+  const withS = stripped.endsWith('s') ? stripped.slice(0, -1) : stripped + 's';
+  const sKey2 = keys.find(k => k.toLowerCase() === withS);
+  if (sKey2) return EXERCISE_VIDEOS[sKey2];
+
+  // 5. Prefix match: "Dips (Chest)" base "Dips" matches key "Dips"
+  const prefixKey = keys.find(k => stripped.startsWith(k.toLowerCase()) || k.toLowerCase().startsWith(stripped));
+  if (prefixKey) return EXERCISE_VIDEOS[prefixKey];
+
+  return '';
 }
