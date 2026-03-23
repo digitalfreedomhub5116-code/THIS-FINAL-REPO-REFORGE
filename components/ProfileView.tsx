@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Save, User, Briefcase, Award, Shield, Terminal, Activity, Settings, LogOut, Lock, ArrowLeft, CheckCircle, XCircle, RotateCcw, AlertTriangle } from 'lucide-react';
+import { Save, User, Briefcase, Award, Shield, Terminal, Activity, Settings, LogOut, Lock, ArrowLeft, CheckCircle, XCircle, RotateCcw, AlertTriangle, Camera, Loader2 } from 'lucide-react';
 import { PlayerData, HealthProfile } from '../types';
 import { API_BASE } from '../lib/apiConfig';
+import { getPlayerAuthHeaders } from '../lib/playerApi';
 
 interface ProfileViewProps {
   player: PlayerData;
   onUpdate: (data: { name: string; username: string; job: string; title: string; healthProfile?: HealthProfile }) => void;
+  onAvatarChange?: (newUrl: string) => void;
   onLogout: () => void;
   onBack?: () => void;
   onNavigate?: (tab: 'STORE' | 'DASHBOARD' | 'QUESTS' | 'HEALTH' | 'ALLIANCE' | 'PROFILE') => void;
@@ -28,7 +30,32 @@ const glassPanel = {
 const inputClass = "w-full bg-black/60 border border-white/10 rounded-lg px-3 py-2.5 text-sm font-mono text-white focus:border-[#00d2ff]/50 focus:outline-none focus:ring-1 focus:ring-[#00d2ff]/20 transition-all placeholder-gray-700";
 const labelClass = "block text-[10px] text-gray-500 mb-1.5 font-mono tracking-widest uppercase";
 
-const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onLogout, onBack, onRetakeTutorial, onResetProgress }) => {
+// Compress & resize image to max 512x512 webp, returns base64 data URL
+function compressImage(file: File, maxSize = 512): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let w = img.width, h = img.height;
+        if (w > h) { if (w > maxSize) { h = Math.round(h * maxSize / w); w = maxSize; } }
+        else { if (h > maxSize) { w = Math.round(w * maxSize / h); h = maxSize; } }
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d')!;
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/webp', 0.82));
+      };
+      img.onerror = reject;
+      img.src = reader.result as string;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onAvatarChange, onLogout, onBack, onRetakeTutorial, onResetProgress }) => {
   const [activeTab, setActiveTab] = useState<'LOGS' | 'CONFIG'>('LOGS');
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [resetStep, setResetStep] = useState<0 | 1 | 2>(0); // 0=initial, 1=confirmed once, 2=resetting
@@ -42,6 +69,41 @@ const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onLogout, o
   const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
   const usernameDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
   const originalUsername = useRef(player.username || '');
+
+  // Avatar upload state
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarError, setAvatarError] = useState('');
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  const handleAvatarPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { setAvatarError('Please select an image file'); return; }
+    if (file.size > 10 * 1024 * 1024) { setAvatarError('Image must be under 10 MB'); return; }
+
+    setAvatarError('');
+    setAvatarUploading(true);
+    try {
+      const compressed = await compressImage(file);
+      const res = await fetch(`${API_BASE}/api/player/${player.userId}/avatar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
+        credentials: 'include',
+        body: JSON.stringify({ imageBase64: compressed }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Upload failed' }));
+        throw new Error(err.error || 'Upload failed');
+      }
+      const { avatarUrl } = await res.json();
+      if (onAvatarChange) onAvatarChange(avatarUrl);
+    } catch (err: any) {
+      setAvatarError(err.message || 'Upload failed');
+    } finally {
+      setAvatarUploading(false);
+      if (avatarInputRef.current) avatarInputRef.current.value = '';
+    }
+  };
 
   const hp = player.healthProfile;
   const [age, setAge] = useState(hp?.age?.toString() || '');
@@ -124,13 +186,34 @@ const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onLogout, o
           <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-20 z-20 pointer-events-none" />
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-system-neon via-system-accent to-system-neon opacity-80" />
           <div className="w-1/3 bg-gray-900/50 border-r border-gray-800 relative flex flex-col items-center justify-center p-2">
-            <div className="w-20 h-20 rounded-full border-2 border-system-neon/50 flex items-center justify-center bg-black/50 mb-2">
+            <button
+              onClick={() => avatarInputRef.current?.click()}
+              disabled={avatarUploading}
+              className="relative w-20 h-20 rounded-full border-2 border-system-neon/50 flex items-center justify-center bg-black/50 mb-2 group/avatar cursor-pointer overflow-hidden"
+              title="Change avatar"
+            >
               {(player.avatarUrl || player.replitUser?.profileImageUrl) ? (
                 <img src={player.avatarUrl || player.replitUser!.profileImageUrl!} alt={name} className="w-full h-full rounded-full object-cover" />
               ) : (
                 <User size={32} className="text-gray-400" />
               )}
-            </div>
+              {/* Hover overlay */}
+              <div className="absolute inset-0 rounded-full bg-black/60 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity">
+                {avatarUploading ? (
+                  <Loader2 size={20} className="text-system-neon animate-spin" />
+                ) : (
+                  <Camera size={18} className="text-white" />
+                )}
+              </div>
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarPick}
+              />
+            </button>
+            {avatarError && <div className="text-[8px] text-red-400 text-center font-mono mt-0.5 max-w-[100px] truncate">{avatarError}</div>}
             <div className="text-[10px] font-mono text-system-neon tracking-widest bg-system-neon/10 px-2 py-0.5 rounded border border-system-neon/20">
               RANK: {player.rank}
             </div>

@@ -313,4 +313,60 @@ router.post('/:id/reset-progress', async (req: Request, res: Response) => {
   }
 });
 
+// ── Avatar Upload: accept base64 image, store in Supabase Storage, update avatar_url ──
+router.post('/:id/avatar', async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const authUserId = getAuthenticatedUserId(req);
+  if (!authUserId) return res.status(401).json({ error: 'Unauthorized' });
+  if (authUserId !== id) return res.status(403).json({ error: 'Forbidden' });
+
+  const { imageBase64 } = req.body;
+  if (!imageBase64 || typeof imageBase64 !== 'string') {
+    return res.status(400).json({ error: 'imageBase64 is required' });
+  }
+
+  try {
+    const sb = supabaseServer() as any;
+
+    // Strip data-URL prefix if present
+    const raw = imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64;
+    const buffer = Buffer.from(raw, 'base64');
+
+    // Limit to 2 MB
+    if (buffer.length > 2 * 1024 * 1024) {
+      return res.status(400).json({ error: 'Image too large (max 2 MB)' });
+    }
+
+    const filePath = `avatars/${id}.webp`;
+
+    // Upload (upsert) to Supabase Storage bucket "avatars"
+    const { error: uploadErr } = await sb.storage
+      .from('avatars')
+      .upload(filePath, buffer, {
+        contentType: 'image/webp',
+        upsert: true,
+        cacheControl: '3600',
+      });
+
+    if (uploadErr) {
+      console.error('[Avatar Upload] Storage error:', uploadErr);
+      return res.status(500).json({ error: 'Failed to upload avatar' });
+    }
+
+    // Get the public URL
+    const { data: urlData } = sb.storage.from('avatars').getPublicUrl(filePath);
+    // Append cache-buster so the browser picks up new uploads
+    const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+
+    // Update avatar_url column in players table
+    await sb.from('players').update({ avatar_url: publicUrl, updated_at: new Date().toISOString() }).eq('supabase_id', id);
+
+    console.log(`[Avatar Upload] Updated avatar for ${id}`);
+    return res.json({ success: true, avatarUrl: publicUrl });
+  } catch (err) {
+    console.error('[Avatar Upload]', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 export default router;

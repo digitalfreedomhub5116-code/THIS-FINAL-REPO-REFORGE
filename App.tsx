@@ -1384,6 +1384,7 @@ const App: React.FC = () => {
                   <ProfileView
                     player={player}
                     onUpdate={updateProfile}
+                    onAvatarChange={(newUrl) => setPlayer(prev => ({ ...prev, avatarUrl: newUrl }))}
                     onLogout={() => setShowLogoutChoice(true)}
                     onBack={() => setActiveTab('DASHBOARD')}
                     onNavigate={(tab) => {
