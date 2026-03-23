@@ -245,4 +245,72 @@ router.post('/:id/record-strike', async (req: Request, res: Response) => {
   }
 });
 
+// ── Reset Progress: wipe XP, level, rank, streak, quests, nutrition, health — keep gold & keys ──
+router.post('/:id/reset-progress', async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const authUserId = getAuthenticatedUserId(req);
+  if (!authUserId) {
+    return res.status(401).json({ error: 'Unauthorized — no valid token or session' });
+  }
+  if (authUserId !== id) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  try {
+    // Fetch current gold & keys so we can preserve them
+    const { data: current, error: fetchErr } = await (supabaseServer() as any)
+      .from('players')
+      .select('gold, keys, username, name, email, auth_type, avatar_url')
+      .eq('supabase_id', id)
+      .single();
+    if (fetchErr) throw fetchErr;
+
+    const freshRawData = {
+      gold: current.gold,
+      keys: current.keys,
+      name: current.name,
+      username: current.username,
+    };
+
+    const { error } = await (supabaseServer() as any)
+      .from('players')
+      .update({
+        level: 1,
+        current_xp: 0,
+        required_xp: 100,
+        total_xp: 0,
+        daily_xp: 0,
+        rank: 'E',
+        streak: 0,
+        hp: 100,
+        max_hp: 100,
+        mp: 50,
+        max_mp: 50,
+        is_configured: false,
+        is_penalty_active: false,
+        penalty_end_time: null,
+        tutorial_step: 0,
+        tutorial_complete: false,
+        daily_quest_complete: false,
+        last_daily_reset: null,
+        last_weekly_reset: null,
+        last_monthly_reset: null,
+        last_login_date: null,
+        last_dungeon_entry: null,
+        identity: null,
+        raw_data: freshRawData,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('supabase_id', id);
+
+    if (error) throw error;
+
+    console.log(`[Player Reset] Progress reset for ${id} — gold(${current.gold}) & keys(${current.keys}) preserved`);
+    return res.json({ success: true, message: 'Progress reset. Coins and keys preserved.' });
+  } catch (err) {
+    console.error('[Player Reset]', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 export default router;

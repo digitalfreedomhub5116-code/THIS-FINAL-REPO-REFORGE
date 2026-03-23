@@ -1383,6 +1383,25 @@ const App: React.FC = () => {
                       setActiveTab(tab);
                     }}
                     onRetakeTutorial={() => { resetTutorial(); setIsNewUserOnboarding(true); setActiveTab('DASHBOARD'); }}
+                    onResetProgress={async () => {
+                      if (!player.userId || player.userId.startsWith('local')) return;
+                      const res = await fetch(`${API_BASE}/api/player/${player.userId}/reset-progress`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
+                        credentials: 'include',
+                      });
+                      if (!res.ok) throw new Error('Reset failed');
+                      // Reload fresh player data from DB
+                      const freshRes = await fetch(`${API_BASE}/api/player/${player.userId}`, { credentials: 'include', headers: { ...getPlayerAuthHeaders() } });
+                      if (freshRes.ok) {
+                        const row = await freshRes.json();
+                        const rawData = row.raw_data as Partial<PlayerData> | null;
+                        if (rawData) {
+                          Object.assign(rawData, { gold: row.gold, keys: row.keys, isBanned: row.is_banned, cheatStrikes: row.cheat_strikes });
+                          setPlayer(prev => ({ ...prev, ...rawData as Partial<PlayerData> }));
+                        }
+                      }
+                    }}
                   />
                 </ErrorBoundary>
               </Suspense>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Save, User, Briefcase, Award, Shield, Terminal, Activity, Settings, LogOut, Lock, ArrowLeft, CheckCircle, XCircle, RotateCcw } from 'lucide-react';
+import { Save, User, Briefcase, Award, Shield, Terminal, Activity, Settings, LogOut, Lock, ArrowLeft, CheckCircle, XCircle, RotateCcw, AlertTriangle } from 'lucide-react';
 import { PlayerData, HealthProfile } from '../types';
 import { API_BASE } from '../lib/apiConfig';
 
@@ -11,6 +11,7 @@ interface ProfileViewProps {
   onBack?: () => void;
   onNavigate?: (tab: 'STORE' | 'DASHBOARD' | 'QUESTS' | 'HEALTH' | 'ALLIANCE' | 'PROFILE') => void;
   onRetakeTutorial?: () => void;
+  onResetProgress?: () => Promise<void>;
 }
 
 const glassPanel = {
@@ -27,8 +28,11 @@ const glassPanel = {
 const inputClass = "w-full bg-black/60 border border-white/10 rounded-lg px-3 py-2.5 text-sm font-mono text-white focus:border-[#00d2ff]/50 focus:outline-none focus:ring-1 focus:ring-[#00d2ff]/20 transition-all placeholder-gray-700";
 const labelClass = "block text-[10px] text-gray-500 mb-1.5 font-mono tracking-widest uppercase";
 
-const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onLogout, onBack, onRetakeTutorial }) => {
+const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onLogout, onBack, onRetakeTutorial, onResetProgress }) => {
   const [activeTab, setActiveTab] = useState<'LOGS' | 'CONFIG'>('LOGS');
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [resetStep, setResetStep] = useState<0 | 1 | 2>(0); // 0=initial, 1=confirmed once, 2=resetting
+  const [resetDone, setResetDone] = useState(false);
 
   const [name, setName] = useState(player.name || '');
   const [username, setUsername] = useState(player.username || '');
@@ -361,6 +365,16 @@ const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onLogout, o
                     <RotateCcw size={12} /> RETAKE TUTORIAL
                   </button>
                 )}
+                {/* Reset Progress */}
+                {onResetProgress && (
+                  <button
+                    onClick={() => { setShowResetConfirm(true); setResetStep(0); setResetDone(false); }}
+                    className="w-full border border-orange-900/40 text-orange-500 py-2.5 rounded-lg flex items-center justify-center gap-2 hover:border-orange-500/50 hover:text-orange-400 hover:bg-orange-900/10 transition-all text-xs font-mono font-bold tracking-widest"
+                  >
+                    <AlertTriangle size={12} /> RESET PROGRESS
+                  </button>
+                )}
+
                 <div className="pt-3 border-t border-white/[0.06] flex gap-3">
                   <button
                     onClick={onLogout}
@@ -375,7 +389,131 @@ const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onLogout, o
           </AnimatePresence>
         </div>
       </div>
+
+      {/* Reset Progress Confirmation Modal */}
+      <AnimatePresence>
+        {showResetConfirm && onResetProgress && (
+          <ResetConfirmModal
+            show={showResetConfirm}
+            step={resetStep}
+            done={resetDone}
+            onStep={setResetStep}
+            onDone={setResetDone}
+            onClose={() => setShowResetConfirm(false)}
+            onReset={onResetProgress}
+            playerGold={player.gold ?? 0}
+            playerKeys={(player as any).keys ?? 0}
+          />
+        )}
+      </AnimatePresence>
     </div>
+  );
+};
+
+// Reset Confirmation Modal (rendered as portal-like overlay)
+const ResetConfirmModal: React.FC<{
+  show: boolean;
+  step: 0 | 1 | 2;
+  done: boolean;
+  onStep: (s: 0 | 1 | 2) => void;
+  onDone: (d: boolean) => void;
+  onClose: () => void;
+  onReset: () => Promise<void>;
+  playerGold: number;
+  playerKeys: number;
+}> = ({ show, step, done, onStep, onDone, onClose, onReset, playerGold, playerKeys }) => {
+  if (!show) return null;
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[800] bg-black/90 flex items-center justify-center p-6 font-mono"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        onClick={e => e.stopPropagation()}
+        className="w-full max-w-sm bg-[#0a0a14] border border-orange-900/40 rounded-2xl p-6 space-y-4"
+      >
+        {done ? (
+          <>
+            <div className="text-center">
+              <div className="text-4xl mb-3">✅</div>
+              <h3 className="text-lg font-black text-white">Progress Reset Complete</h3>
+              <p className="text-[11px] text-gray-400 mt-2">Your XP, quests, and stats have been reset. Coins and keys were preserved.</p>
+            </div>
+            <button onClick={onClose} className="w-full py-3 rounded-xl bg-white text-black font-bold text-xs tracking-widest">
+              OK
+            </button>
+          </>
+        ) : step === 2 ? (
+          <div className="text-center py-4">
+            <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+            <div className="text-xs text-gray-400 tracking-widest">RESETTING...</div>
+          </div>
+        ) : step === 1 ? (
+          <>
+            <div className="text-center">
+              <AlertTriangle size={32} className="text-red-500 mx-auto mb-2" />
+              <h3 className="text-lg font-black text-red-400">ARE YOU SURE?</h3>
+              <p className="text-[11px] text-gray-400 mt-2">This will <span className="text-red-400 font-bold">permanently delete</span> all your XP, level, rank, streak, quests, workout history, nutrition logs, and health data.</p>
+              <div className="mt-3 bg-green-900/20 border border-green-900/40 rounded-lg p-2">
+                <p className="text-[10px] text-green-400 font-bold">✓ Coins ({playerGold}) and Keys ({playerKeys}) will be KEPT</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <button onClick={onClose} className="py-3 rounded-xl border border-gray-700 text-gray-400 font-bold text-xs tracking-widest hover:text-white transition-colors">
+                CANCEL
+              </button>
+              <button
+                onClick={async () => {
+                  onStep(2);
+                  try {
+                    await onReset();
+                    onDone(true);
+                  } catch {
+                    onClose();
+                  }
+                }}
+                className="py-3 rounded-xl bg-red-600 text-white font-bold text-xs tracking-widest hover:bg-red-500 transition-colors"
+              >
+                RESET NOW
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="text-center">
+              <AlertTriangle size={32} className="text-orange-500 mx-auto mb-2" />
+              <h3 className="text-lg font-black text-white">Reset All Progress?</h3>
+              <p className="text-[11px] text-gray-400 mt-2 leading-relaxed">This will reset your account to a fresh start:</p>
+              <ul className="text-[10px] text-gray-500 mt-3 space-y-1 text-left px-4">
+                <li className="flex items-center gap-2"><span className="text-red-400">✕</span> XP, Level, Rank → Reset to 0 / E</li>
+                <li className="flex items-center gap-2"><span className="text-red-400">✕</span> Streak → Reset to 0</li>
+                <li className="flex items-center gap-2"><span className="text-red-400">✕</span> All quests → Reset</li>
+                <li className="flex items-center gap-2"><span className="text-red-400">✕</span> Workout history → Cleared</li>
+                <li className="flex items-center gap-2"><span className="text-red-400">✕</span> Nutrition logs → Cleared</li>
+                <li className="flex items-center gap-2"><span className="text-red-400">✕</span> Health profile → Reset</li>
+                <li className="flex items-center gap-2 text-green-400 font-bold"><span>✓</span> Coins & Keys → KEPT</li>
+              </ul>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <button onClick={onClose} className="py-3 rounded-xl border border-gray-700 text-gray-400 font-bold text-xs tracking-widest hover:text-white transition-colors">
+                CANCEL
+              </button>
+              <button
+                onClick={() => onStep(1)}
+                className="py-3 rounded-xl bg-orange-600 text-white font-bold text-xs tracking-widest hover:bg-orange-500 transition-colors"
+              >
+                CONTINUE
+              </button>
+            </div>
+          </>
+        )}
+      </motion.div>
+    </motion.div>
   );
 };
 

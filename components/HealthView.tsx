@@ -16,6 +16,7 @@ import { playSystemSoundEffect } from '../utils/soundEngine';
 import { API_BASE } from '../lib/apiConfig';
 import { DEFAULT_PLANS, getRecommendedPlan } from '../lib/defaultPlans';
 import OnboardingNotice from './OnboardingNotice';
+import FoodLibrary from './FoodLibrary';
 
 interface HealthViewProps {
   healthProfile?: HealthProfile;
@@ -535,6 +536,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [loadingMessage, setLoadingMessage] = useState("ANALYSING IMAGE...");
   const [showMicros, setShowMicros] = useState(false);
+  const [showFoodLibrary, setShowFoodLibrary] = useState(false);
   
   // Keys Alert State
   const [showKeyAlert, setShowKeyAlert] = useState(false);
@@ -2187,33 +2189,73 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                 </h3>
                                 
                                 {/* Calories Comparison */}
+                                {(() => {
+                                    const target = dailyTargets?.calories || nutritionInfo.macros.calories;
+                                    const consumed = dailyIntake.calories;
+                                    const isOver = consumed > target;
+                                    const overflow = isOver ? consumed - target : 0;
+                                    const capped = isOver ? target : consumed;
+                                    const remaining = Math.max(0, target - consumed);
+                                    return (<>
                                 <div className="flex justify-between items-end mb-2">
                                     <div>
                                         <div className="text-[10px] text-gray-500 uppercase font-bold">Consumed</div>
-                                        <div className="text-2xl font-black text-white">{dailyIntake.calories}</div>
+                                        <div className="text-2xl font-black text-white">{capped} <span className="text-xs font-normal text-gray-600">/ {target}</span></div>
                                     </div>
+                                    {isOver ? (
+                                    <div className="text-right">
+                                        <div className="text-[10px] text-red-400 uppercase font-bold tracking-widest flex items-center justify-end gap-1">⚠ OVER</div>
+                                        <div className="text-2xl font-black text-red-500">+{overflow} <span className="text-xs font-normal text-red-400/60">KCAL</span></div>
+                                    </div>
+                                    ) : (
                                     <div className="text-right">
                                         <div className="text-[10px] text-gray-500 uppercase font-bold">Target</div>
-                                        <div className="text-2xl font-black text-gray-400">{dailyTargets?.calories || nutritionInfo.macros.calories}</div>
+                                        <div className="text-2xl font-black text-gray-400">{target}</div>
                                     </div>
+                                    )}
                                 </div>
                                 
                                 {/* Calorie Progress Bar */}
-                                <div className="h-2 bg-gray-800 rounded-full overflow-hidden mb-6">
+                                <div className="h-2 bg-gray-800 rounded-full overflow-hidden mb-1">
                                     <motion.div 
-                                        className={`h-full ${dailyIntake.calories > (dailyTargets?.calories || nutritionInfo.macros.calories) ? 'bg-red-500' : 'bg-system-neon'}`}
+                                        className={`h-full ${isOver ? 'bg-red-500' : 'bg-system-neon'}`}
                                         initial={{ width: 0 }}
-                                        animate={{ width: `${Math.min((dailyIntake.calories / (dailyTargets?.calories || nutritionInfo.macros.calories)) * 100, 100)}%` }}
+                                        animate={{ width: `${Math.min((consumed / target) * 100, 100)}%` }}
                                     />
                                 </div>
-
-                                {/* Remaining Budget Display */}
-                                <div className="rounded-xl p-4 text-center mb-6" style={{ background: 'rgba(0,0,0,0.35)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                                    <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">Remaining Calories Budget</div>
-                                    <div className={`text-3xl font-black ${(dailyTargets?.calories || nutritionInfo.macros.calories) - dailyIntake.calories < 0 ? 'text-red-500' : 'text-system-success'}`}>
-                                        {Math.max(0, (dailyTargets?.calories || nutritionInfo.macros.calories) - dailyIntake.calories)} <span className="text-xs font-normal text-gray-600">KCAL</span>
+                                {/* Overflow Bar (only shows when over limit) */}
+                                {isOver && (
+                                    <div className="h-1.5 bg-gray-800/50 rounded-full overflow-hidden mb-1">
+                                        <motion.div 
+                                            className="h-full bg-gradient-to-r from-red-500 to-red-400"
+                                            initial={{ width: 0 }}
+                                            animate={{ width: `${Math.min((overflow / target) * 100, 100)}%` }}
+                                        />
                                     </div>
+                                )}
+                                <div className="mb-6" />
+
+                                {/* Remaining / Overflow Budget Display */}
+                                <div className="rounded-xl p-4 text-center mb-6" style={{ background: isOver ? 'rgba(220,38,38,0.08)' : 'rgba(0,0,0,0.35)', border: isOver ? '1px solid rgba(220,38,38,0.2)' : '1px solid rgba(255,255,255,0.06)' }}>
+                                    {isOver ? (
+                                        <>
+                                            <div className="text-[10px] text-red-400/80 font-bold uppercase tracking-widest mb-1">Excess Calories</div>
+                                            <div className="text-3xl font-black text-red-500">
+                                                +{overflow} <span className="text-xs font-normal text-red-400/60">KCAL OVER</span>
+                                            </div>
+                                            <div className="text-[9px] text-gray-600 mt-1">Total consumed: {consumed} kcal</div>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">Remaining Calories Budget</div>
+                                            <div className="text-3xl font-black text-system-success">
+                                                {remaining} <span className="text-xs font-normal text-gray-600">KCAL</span>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
+                                    </>);
+                                })()}
 
                                 {/* Macro Breakdown */}
                                 <div className="grid grid-cols-3 gap-2">
@@ -2290,6 +2332,16 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
                                         />
                                     </div>
+
+                                    {/* Manual Food Log Button */}
+                                    <button
+                                        onClick={() => setShowFoodLibrary(true)}
+                                        className="w-full py-3.5 rounded-xl border border-purple-500/30 bg-purple-500/5 hover:bg-purple-500/10 hover:border-purple-500/50 transition-all flex items-center justify-center gap-2"
+                                    >
+                                        <Utensils size={16} className="text-purple-400" />
+                                        <span className="text-xs font-mono font-bold text-purple-400 tracking-widest">MANUAL FOOD LOG</span>
+                                        <span className="text-[9px] text-gray-500 font-mono ml-1">FREE</span>
+                                    </button>
                                 </motion.div>
                             )}
 
@@ -2852,6 +2904,17 @@ export const HealthView: React.FC<HealthViewProps> = ({
                         </div>
                     </motion.div>
                 </motion.div>
+            )}
+        </AnimatePresence>
+
+        {/* Food Library Modal */}
+        <AnimatePresence>
+            {showFoodLibrary && onLogMeal && (
+                <FoodLibrary
+                    onClose={() => setShowFoodLibrary(false)}
+                    onLogFood={(meal) => { onLogMeal(meal); setShowFoodLibrary(false); }}
+                    selectedMealType={selectedMealType}
+                />
             )}
         </AnimatePresence>
     </>
