@@ -76,20 +76,21 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode }) => {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loginWithUser = async (user: ReplitUser) => {
-    let playerData: Partial<PlayerData> = {};
+    let playerData: Partial<PlayerData> | null = null;
     try {
-      const playerRes = await fetchWithRetry(`${API_BASE}/api/player/${user.id}`, { credentials: 'include' });
+      const token = localStorage.getItem('reforge_player_token');
+      const playerRes = await fetchWithRetry(`${API_BASE}/api/player/${user.id}`, { credentials: 'include', headers: token ? { Authorization: `Bearer ${token}` } : {} });
       if (playerRes.ok) {
         const row = await playerRes.json();
         if (row?.raw_data) playerData = row.raw_data as Partial<PlayerData>;
       }
     } catch { /* no cloud data yet */ }
     onLogin({
-      ...playerData,
-      userId: user.id,
-      name: playerData.name || user.firstName || 'Hunter',
-      username: (user as any).username || playerData.username,
-      email: (user as any).email || (playerData as any).email,
+      id: user.id,
+      name: playerData?.name || user.firstName || 'Hunter',
+      username: (user as any).username || playerData?.username,
+      keys: playerData?.keys,
+      raw_data: playerData || undefined,
       replitUser: user,
     } as any);
   };

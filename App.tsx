@@ -343,7 +343,7 @@ const App: React.FC = () => {
             const row = await playerRes.json();
             const rawData = row.raw_data as Partial<PlayerData> | null;
             if (rawData?.isConfigured || rawData?.avatarUrl) {
-              registerUser({ id: uid, name: user.firstName || user.name || rawData.name, raw_data: rawData });
+              registerUser({ id: uid, name: user.firstName || user.name || rawData.name, username: rawData.username, keys: rawData.keys, raw_data: rawData });
               return;
             }
           }
@@ -810,6 +810,7 @@ const App: React.FC = () => {
         <AuthView
           initialMode={authInitialMode}
           onLogin={(profile) => {
+            const cloudData = (profile as any).raw_data as Partial<PlayerData> | undefined;
             const merged = {
               ...profile,
               ...(tempUserData ? {
@@ -820,8 +821,11 @@ const App: React.FC = () => {
               ...(tempStats ? { stats: tempStats } : {}),
             };
             registerUser(merged);
-            setPlayer(prev => ({ ...prev, ...merged, isConfigured: true, startDate: Date.now() }));
-            if (!merged.tutorialComplete) setIsNewUserOnboarding(true);
+            // Only force startDate for truly new users (no cloud data)
+            if (!cloudData?.startDate) {
+              setPlayer(prev => ({ ...prev, startDate: prev.startDate || Date.now() }));
+            }
+            if (!(cloudData?.tutorialComplete ?? (merged as any).tutorialComplete)) setIsNewUserOnboarding(true);
             ssClear();
             setOnboardingPhase('APP');
           }}
@@ -833,6 +837,7 @@ const App: React.FC = () => {
         <SignInPage
           onLogin={(profile) => {
             logoutFlowRef.current = false;
+            const cloudData = (profile as any).raw_data as Partial<PlayerData> | undefined;
             const merged = {
               ...profile,
               ...(tempUserData ? {
@@ -843,8 +848,10 @@ const App: React.FC = () => {
               ...(tempStats ? { stats: tempStats } : {}),
             };
             registerUser(merged);
-            setPlayer(prev => ({ ...prev, ...merged, isConfigured: true, startDate: Date.now() }));
-            if (!merged.tutorialComplete) setIsNewUserOnboarding(true);
+            if (!cloudData?.startDate) {
+              setPlayer(prev => ({ ...prev, startDate: prev.startDate || Date.now() }));
+            }
+            if (!(cloudData?.tutorialComplete ?? (merged as any).tutorialComplete)) setIsNewUserOnboarding(true);
             ssClear();
             setOnboardingPhase('APP');
           }}
@@ -857,6 +864,7 @@ const App: React.FC = () => {
         <CreateAccountPage
           onLogin={(profile) => {
             logoutFlowRef.current = false;
+            const cloudData = (profile as any).raw_data as Partial<PlayerData> | undefined;
             const merged = {
               ...profile,
               ...(tempUserData ? {
@@ -867,8 +875,10 @@ const App: React.FC = () => {
               ...(tempStats ? { stats: tempStats } : {}),
             };
             registerUser(merged);
-            setPlayer(prev => ({ ...prev, ...merged, isConfigured: true, startDate: Date.now() }));
-            if (!merged.tutorialComplete) setIsNewUserOnboarding(true);
+            if (!cloudData?.startDate) {
+              setPlayer(prev => ({ ...prev, startDate: prev.startDate || Date.now() }));
+            }
+            if (!(cloudData?.tutorialComplete ?? (merged as any).tutorialComplete)) setIsNewUserOnboarding(true);
             ssClear();
             setOnboardingPhase('APP');
           }}
