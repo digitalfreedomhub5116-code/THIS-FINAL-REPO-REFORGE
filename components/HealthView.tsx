@@ -1005,7 +1005,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
 
   if (viewMode === 'PROCESSING') {
       return (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center font-mono p-12 overflow-hidden">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center font-mono p-6 sm:p-12 overflow-hidden" style={{ paddingTop: 'env(safe-area-inset-top, 0px)', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
               <div className="relative mb-24 scale-125"><CircularCalibration percent={processingPercent} /></div>
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="text-center space-y-8">
                 <div className="text-[9px] text-gray-500 font-mono tracking-widest uppercase mb-4 flex gap-4 justify-center"><span>Load_Buffer_0x692</span><span>Async_Success</span></div>
@@ -1044,7 +1044,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
       const currentStats = lowStats.map((stat, i) => ({ subject: stat.subject, value: lerp(stat.value, highStatsData[i].value, transformProgress), fullMark: 100 }));
       const currentColor = lerpColor("#ef4444", "#10b981", transformProgress);
       return (
-          <div className="fixed inset-0 z-50 bg-black flex flex-col items-center justify-between p-6 font-mono overflow-hidden h-[100dvh]">
+          <div className="fixed inset-0 z-50 bg-black flex flex-col items-center justify-between p-4 sm:p-6 font-mono overflow-y-auto h-[100dvh]" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)' }}>
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(16,185,129,0.05)_0%,transparent_70%)]" />
               <div className="flex-1 w-full flex flex-col items-center justify-center min-h-0 relative z-10">
                   <div className="absolute top-4 left-4 opacity-30 text-[10px] space-y-4 hidden lg:block">

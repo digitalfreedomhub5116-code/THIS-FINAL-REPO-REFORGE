@@ -207,7 +207,8 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode }) => {
   }
 
   return (
-    <div className="fixed inset-0 bg-[#07070f] flex items-center justify-center overflow-hidden">
+    <div className="fixed inset-0 bg-[#07070f] flex items-center justify-center overflow-y-auto"
+         style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)' }}>
       {/* Particles */}
       <div className="absolute inset-0 pointer-events-none">
         {particles.map(p => (

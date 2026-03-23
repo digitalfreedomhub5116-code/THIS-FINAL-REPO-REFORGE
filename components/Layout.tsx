@@ -393,7 +393,7 @@ const Layout: React.FC<LayoutProps> = ({
       {navigation}
 
       {/* Main content */}
-      <div className={`relative z-10 transition-all duration-300 ${navigation ? 'md:pl-64 pb-24 md:pb-0' : ''}`}>
+      <div className={`relative z-10 transition-all duration-300 ${navigation ? 'md:pl-64 md:pb-0' : ''}`} style={navigation ? { paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))' } : undefined}>
 
         {/* TOP BAR */}
         {!hideHeader && (
@@ -625,12 +625,12 @@ const Layout: React.FC<LayoutProps> = ({
           </motion.header>
         )}
 
-        <main className={`max-w-7xl mx-auto flex flex-col min-h-screen ${!hideHeader ? 'pt-[72px] sm:pt-[76px]' : ''}`} style={!hideHeader ? { paddingTop: 'calc(72px + env(safe-area-inset-top, 0px))' } : undefined}>
+        <main className={`max-w-7xl mx-auto flex flex-col min-h-screen-safe ${!hideHeader ? 'pt-[72px] sm:pt-[76px]' : ''}`} style={!hideHeader ? { paddingTop: 'calc(72px + env(safe-area-inset-top, 0px))' } : undefined}>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="flex-1 p-4 md:p-6"
+            className="flex-1 p-4 md:p-6 tablet-container md:!max-w-none"
           >
             {children}
           </motion.div>

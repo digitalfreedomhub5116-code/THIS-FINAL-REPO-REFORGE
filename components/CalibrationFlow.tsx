@@ -128,9 +128,10 @@ const CalibrationReport: React.FC<{ profile: HealthProfile, onContinue: () => vo
         <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="fixed inset-0 z-[150] bg-black flex flex-col items-center justify-center p-6 font-mono overflow-y-auto"
+            className="fixed inset-0 z-[150] bg-black flex flex-col items-center p-4 sm:p-6 font-mono overflow-y-auto"
+            style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 32px)' }}
         >
-            <div className="w-full max-w-2xl space-y-8">
+            <div className="w-full max-w-lg md:max-w-2xl space-y-6 sm:space-y-8 my-auto">
                 <div className="text-center space-y-2">
                     <motion.div 
                         initial={{ scale: 0.9, opacity: 0 }} 
@@ -975,7 +976,8 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
   if (viewState === 'AWAKENING') return <AwakeningOverlay profile={formData} onComplete={finalizeCalibration} />;
 
   return (
-      <div className="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center p-4 font-mono">
+      <div className="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center p-3 sm:p-4 font-mono"
+           style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)' }}>
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}

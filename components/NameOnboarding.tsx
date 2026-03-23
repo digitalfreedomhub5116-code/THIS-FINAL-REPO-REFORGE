@@ -60,7 +60,8 @@ const NameOnboarding: React.FC<NameOnboardingProps> = ({ onComplete }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center p-6 font-mono overflow-hidden">
+    <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center p-4 sm:p-6 font-mono overflow-y-auto"
+         style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)' }}>
       <div className="absolute inset-0 bg-[linear-gradient(rgba(0,210,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(0,210,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none" />
 
       <motion.div

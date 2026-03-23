@@ -530,3 +530,45 @@ video {
 .reforge-modal-open #reforge-mobile-nav {
   display: none !important;
 }
+
+/* ============================================================
+   RESPONSIVE / SAFE-AREA UTILITIES
+   ============================================================ */
+
+/* Use dynamic viewport height where supported (avoids mobile browser chrome) */
+.h-screen-safe {
+  height: 100vh;
+  height: 100dvh;
+}
+.min-h-screen-safe {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* Bottom safe-area padding — accounts for nav bar + device safe area */
+.pb-safe-nav {
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+}
+
+/* Full-screen overlay that scrolls properly on all devices */
+.overlay-scroll {
+  position: fixed;
+  inset: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Tablet container constraint */
+@media (min-width: 768px) {
+  .tablet-container {
+    max-width: 640px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+@media (min-width: 1024px) {
+  .tablet-container {
+    max-width: 768px;
+  }
+}

@@ -198,7 +198,8 @@ const SignInPage: React.FC<SignInPageProps> = ({ onLogin, onNavigate }) => {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.3 }}
-      className="fixed inset-0 z-[500] bg-black flex items-center justify-center p-6 font-mono overflow-hidden"
+      className="fixed inset-0 z-[500] bg-black flex items-center justify-center p-4 sm:p-6 font-mono overflow-y-auto"
+      style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)' }}
     >
       {/* Particles Background */}
       {particles.map((p) => (
