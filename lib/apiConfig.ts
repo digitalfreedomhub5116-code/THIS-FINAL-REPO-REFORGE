@@ -23,8 +23,8 @@ export const API_BASE = isNativePlatform
 export async function fetchWithRetry(
   input: RequestInfo | URL,
   init?: RequestInit,
-  retries: number = 2,
-  delayMs: number = 1500
+  retries: number = 3,
+  delayMs: number = 2000
 ): Promise<Response> {
   let lastError: any;
   for (let attempt = 0; attempt <= retries; attempt++) {
@@ -47,7 +47,7 @@ export async function fetchWithRetry(
 export async function checkServerHealth(): Promise<boolean> {
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
+    const timeout = setTimeout(() => controller.abort(), 15000);
     const res = await fetch(`${API_BASE}/health`, { signal: controller.signal });
     clearTimeout(timeout);
     return res.ok;

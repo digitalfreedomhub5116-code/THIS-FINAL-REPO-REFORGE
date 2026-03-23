@@ -39,15 +39,17 @@ const SignInPage: React.FC<SignInPageProps> = ({ onLogin, onNavigate }) => {
         setChecking(false);
         return;
       }
-      // Pre-check server reachability
+      // Pre-check server reachability (Railway cold starts can take 15-30s)
       const healthy = await checkServerHealth();
       if (!healthy) {
         setServerWaking(true);
-        for (let i = 0; i < 3; i++) {
-          await new Promise(r => setTimeout(r, 2000));
-          if (await checkServerHealth()) { setServerWaking(false); break; }
+        let woke = false;
+        for (let i = 0; i < 6; i++) {
+          await new Promise(r => setTimeout(r, 3000));
+          if (await checkServerHealth()) { woke = true; break; }
         }
         setServerWaking(false);
+        if (!woke) { setChecking(false); return; }
       }
       try {
         const res = await fetchWithRetry(`${API_BASE}/api/auth/local/whoami`, { credentials: 'include' });
@@ -174,8 +176,18 @@ const SignInPage: React.FC<SignInPageProps> = ({ onLogin, onNavigate }) => {
 
   if (checking) {
     return (
-      <div className="fixed inset-0 z-[500] bg-black flex items-center justify-center font-mono">
-        <div className="text-white text-sm">Checking session...</div>
+      <div className="fixed inset-0 z-[500] bg-black flex flex-col items-center justify-center font-mono gap-4">
+        <motion.div animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 2, repeat: Infinity }} className="text-system-neon text-lg font-black tracking-widest">
+          REFORGE
+        </motion.div>
+        <div className="text-gray-500 text-xs">
+          {serverWaking ? 'Connecting to server — please wait...' : 'Checking session...'}
+        </div>
+        {serverWaking && (
+          <div className="w-48 h-1 bg-gray-800 rounded-full overflow-hidden mt-2">
+            <motion.div className="h-full bg-system-neon/60 rounded-full" animate={{ x: ['-100%', '100%'] }} transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }} style={{ width: '40%' }} />
+          </div>
+        )}
       </div>
     );
   }
