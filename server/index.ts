@@ -109,6 +109,36 @@ async function startServer() {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
   });
 
+  // Deep health check — verifies Supabase DB connectivity
+  app.get('/health/deep', async (_req, res) => {
+    const results: Record<string, any> = {
+      server: 'ok',
+      timestamp: new Date().toISOString(),
+      env: {
+        hasSupabaseUrl: !!(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL),
+        hasSupabaseKey: !!(process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY),
+        hasJwtSecret: !!process.env.JWT_SECRET,
+        hasDatabaseUrl: !!process.env.DATABASE_URL,
+      },
+    };
+    try {
+      const { supabaseServer } = await import('./lib/supabase.js');
+      const { data, error } = await (supabaseServer() as any).from('players').select('supabase_id').limit(1);
+      if (error) {
+        results.supabase = 'error';
+        results.supabaseError = error.message?.substring(0, 200) || String(error);
+      } else {
+        results.supabase = 'ok';
+        results.playerCount = data?.length ?? 0;
+      }
+    } catch (err: any) {
+      results.supabase = 'unreachable';
+      results.supabaseError = err?.message?.substring(0, 200) || 'Unknown error';
+    }
+    const allOk = results.supabase === 'ok' && results.env.hasSupabaseUrl && results.env.hasSupabaseKey;
+    res.status(allOk ? 200 : 503).json(results);
+  });
+
   // Test endpoint
   app.get('/api/test', (_req, res) => {
     res.json({ message: 'Frontend-backend connection working!' });

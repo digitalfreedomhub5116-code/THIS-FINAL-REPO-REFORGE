@@ -51,6 +51,20 @@ router.post('/register', async (req, res) => {
       return res.status(409).json({ error: 'Codename already taken' });
     }
 
+    // Check if email is already registered
+    try {
+      const { data: emailExists } = await (supabaseServer() as any)
+        .from('players')
+        .select('email')
+        .eq('email', email.trim().toLowerCase())
+        .limit(1);
+      if (emailExists && emailExists.length > 0) {
+        return res.status(409).json({ error: 'An account with this email already exists. Try signing in instead.' });
+      }
+    } catch (emailCheckErr) {
+      console.error('[Auth Register] Email check error:', emailCheckErr);
+    }
+
     // Hash password
     let hashedPassword;
     try {

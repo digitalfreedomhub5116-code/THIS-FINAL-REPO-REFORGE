@@ -116,7 +116,15 @@ const SignInPage: React.FC<SignInPageProps> = ({ onLogin, onNavigate }) => {
       if (data.playerToken) localStorage.setItem('reforge_player_token', data.playerToken);
       await loginWithUser(data.user || data);
     } catch (err: any) {
-      setError(`Connection error — server may be restarting. Please wait 30 seconds and try again.`);
+      console.error('[SignIn] Login network error:', err);
+      const msg = err?.message || String(err) || 'Unknown network error';
+      if (msg.includes('Failed to fetch') || msg.includes('NetworkError') || msg.includes('ERR_CONNECTION')) {
+        setError('Server unreachable — it may be sleeping or restarting. Please wait 30 seconds and try again.');
+      } else if (msg.includes('timeout') || msg.includes('AbortError')) {
+        setError('Request timed out — server may be overloaded. Please try again.');
+      } else {
+        setError(`Connection error: ${msg}`);
+      }
     } finally {
       setLoading(false);
     }
@@ -150,7 +158,13 @@ const SignInPage: React.FC<SignInPageProps> = ({ onLogin, onNavigate }) => {
       };
       await loginWithUser(replitUser);
     } catch (err: any) {
-      setError(`Connection error — server may be restarting. Please wait 30 seconds and try again.`);
+      console.error('[SignIn] Google auth network error:', err);
+      const msg = err?.message || String(err) || 'Unknown network error';
+      if (msg.includes('Failed to fetch') || msg.includes('NetworkError') || msg.includes('ERR_CONNECTION')) {
+        setError('Server unreachable — it may be sleeping or restarting. Please wait 30 seconds and try again.');
+      } else {
+        setError(`Google sign-in connection error: ${msg}`);
+      }
     } finally {
       setLoading(false);
     }
