@@ -191,7 +191,7 @@ const FoodLibrary: React.FC<FoodLibraryProps> = ({ onClose, onLogFood, selectedM
               exit={{ y: 300 }}
               transition={{ type: 'spring', damping: 25 }}
               onClick={e => e.stopPropagation()}
-              className="w-full max-w-md bg-[#0a0a14] border-t border-white/10 rounded-t-3xl p-5 space-y-4"
+              className="w-full max-w-md bg-[#0a0a14] border-t border-white/10 rounded-t-3xl p-5 pb-24 space-y-4"
             >
               {/* Item Header */}
               <div className="flex items-start justify-between">
