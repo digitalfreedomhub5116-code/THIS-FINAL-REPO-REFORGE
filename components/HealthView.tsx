@@ -2143,7 +2143,8 @@ export const HealthView: React.FC<HealthViewProps> = ({
                             {/* ── PROTOCOL CALENDAR ── */}
                             <ProtocolMonthView plan={calculatedPlan} />
 
-                            {/* ── FAB: Custom Plan Builder ── */}
+                            {/* ── FAB: Custom Plan Builder (hidden — set to true to re-enable) ── */}
+                            {false && (
                             <div className="fixed bottom-24 right-4 z-40">
                                 <motion.button
                                     onClick={() => { setShowCustomPlanBuilder(true); onToggleNav?.(false); }}
@@ -2153,6 +2154,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                     <Plus size={24} strokeWidth={3} />
                                 </motion.button>
                             </div>
+                            )}
                         </motion.div>
                         );
                     })()}
