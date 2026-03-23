@@ -252,6 +252,9 @@ router.post('/log-complete', async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id || (req.session as any)?.userId;
     if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+    // Validate that userId is a valid UUID before inserting into a UUID column
+    const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId);
+    if (!isValidUUID) return res.status(400).json({ error: 'Invalid player ID format' });
     const { exercises_completed, total_exercises, xp_gained } = req.body;
     const { error } = await (supabaseServer() as any)
       .from('workouts')
