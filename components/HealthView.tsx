@@ -2326,7 +2326,6 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                         <input 
                                             type="file" 
                                             accept="image/*" 
-                                            capture="environment" 
                                             ref={fileInputRef}
                                             onChange={handleFileUpload}
                                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
