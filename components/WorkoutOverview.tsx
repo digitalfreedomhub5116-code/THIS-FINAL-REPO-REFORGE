@@ -59,7 +59,7 @@ const HolographicBody: React.FC<{ focus: string; isCardio: boolean; videos: Reco
   }, [videoUrl]);
 
   return (
-    <div className="relative w-full h-[280px] sm:h-[340px] md:h-[380px] flex items-center justify-center overflow-hidden bg-black/80 rounded-lg perspective-1000 group border border-gray-800">
+    <div className="relative w-full h-[400px] sm:h-[440px] md:h-[480px] flex items-center justify-center overflow-hidden bg-black rounded-lg perspective-1000 group border border-gray-800">
       
       {/* Background Grid */}
       <div className="absolute inset-0 bg-[linear-gradient(rgba(0,210,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(0,210,255,0.05)_1px,transparent_1px)] bg-[size:30px_30px] opacity-20 pointer-events-none z-10" />
@@ -86,7 +86,7 @@ const HolographicBody: React.FC<{ focus: string; isCardio: boolean; videos: Reco
              <video 
                 key={videoUrl} // Critical: Forces React to re-mount video element when URL changes
                 poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
-                className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-500 bg-transparent"
+                className="w-full h-full object-cover object-top opacity-80 group-hover:opacity-100 transition-opacity duration-500 bg-transparent"
                 autoPlay
                 loop
                 muted // Critical: Browsers block autoplay if not muted
@@ -234,12 +234,12 @@ const WorkoutOverview: React.FC<WorkoutOverviewProps> = ({ plan, focusVideos, on
             animate={{ scale: 1, opacity: 1, y: 0 }}
             className="w-full max-w-4xl bg-[#050505] border border-system-border rounded-xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.8)] flex flex-col max-h-[90vh] relative z-10"
         >
-            <div className="p-6 border-b border-gray-800 bg-gray-900/20 flex justify-between items-start shrink-0">
+            <div className="p-6 border-b border-gray-800 bg-gray-900/20 flex justify-between items-center shrink-0">
                 <div>
                     <div className="text-[10px] text-system-neon font-mono tracking-[0.3em] uppercase mb-1">Dungeon Gate</div>
                     <h2 className="text-2xl md:text-3xl font-black italic text-white tracking-tighter uppercase">{plan.focus} INSTANCE</h2>
                 </div>
-                <button onClick={onCancel} className="text-gray-500 hover:text-white font-mono text-xs">[ ESCAPE ]</button>
+                <button onClick={onCancel} className="text-gray-500 hover:text-white font-mono text-xs border border-gray-700 hover:border-gray-500 px-3 py-1.5 rounded transition-all">[ ESCAPE ]</button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 scrollbar-hide">
