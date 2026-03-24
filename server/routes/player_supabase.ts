@@ -139,9 +139,8 @@ router.put('/:id', async (req: Request, res: Response) => {
     if (error) throw error;
 
     // Fire-and-forget leaderboard cache sync
-    // Only include player_id if id is a valid UUID (Google Profile IDs are numeric strings, not UUIDs)
-    const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
     const lbData: Record<string, any> = {
+      player_id: id,
       username: playerData.username,
       name: playerData.name,
       level: playerData.level,
@@ -149,7 +148,6 @@ router.put('/:id', async (req: Request, res: Response) => {
       total_xp: playerData.total_xp,
       updated_at: new Date().toISOString()
     };
-    if (isValidUUID) lbData.player_id = id;
     (supabaseServer() as any)
       .from('leaderboard_cache')
       .upsert(lbData, { onConflict: 'username' })
