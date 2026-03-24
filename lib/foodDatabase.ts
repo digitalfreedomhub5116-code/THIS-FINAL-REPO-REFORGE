@@ -2,7 +2,7 @@
 // Categories: Indian Dishes, Protein Shakes, Fruits, Vegetables, Snacks, Dairy, Grains, Non-Veg
 // All values per standard serving size. Macros in grams, calories in kcal.
 
-export type FoodCategory = 'INDIAN_MEALS' | 'PROTEIN_SHAKES' | 'FRUITS' | 'VEGETABLES' | 'SNACKS' | 'DAIRY' | 'GRAINS' | 'NON_VEG' | 'BEVERAGES';
+export type FoodCategory = 'INDIAN_MEALS' | 'PROTEIN_SHAKES' | 'FRUITS' | 'VEGETABLES' | 'SNACKS' | 'DAIRY' | 'GRAINS' | 'NON_VEG' | 'BEVERAGES' | 'RAW_INGREDIENTS';
 
 export interface FoodDBItem {
   id: string;
@@ -27,6 +27,7 @@ export const FOOD_CATEGORIES: { key: FoodCategory; label: string; emoji: string 
   { key: 'GRAINS', label: 'Grains & Bread', emoji: '🍞' },
   { key: 'NON_VEG', label: 'Non-Veg', emoji: '🍗' },
   { key: 'BEVERAGES', label: 'Beverages', emoji: '☕' },
+  { key: 'RAW_INGREDIENTS', label: 'Raw Ingredients', emoji: '🧂' },
 ];
 
 let _id = 0;
@@ -261,4 +262,93 @@ export const FOOD_DATABASE: FoodDBItem[] = [
   f('Banana Shake', 'BEVERAGES', 200, 6, 32, 5, 2, '1 glass (300ml)'),
   f('Jaljeera', 'BEVERAGES', 30, 0.5, 7, 0.2, 0.5, '1 glass (200ml)'),
   f('Aam Panna', 'BEVERAGES', 70, 0.5, 18, 0.1, 0.5, '1 glass (200ml)'),
+
+  // ══════════════════════════════════════════════
+  // ── Raw Ingredients ──
+  // ══════════════════════════════════════════════
+  // Flours & Grains (Raw)
+  f('Wheat Flour (Atta)', 'RAW_INGREDIENTS', 340, 12, 68, 2, 11, '100g'),
+  f('Maida (Refined Flour)', 'RAW_INGREDIENTS', 350, 10, 74, 1, 2.7, '100g'),
+  f('Besan (Gram Flour)', 'RAW_INGREDIENTS', 356, 22, 58, 5, 10, '100g'),
+  f('Rice Flour', 'RAW_INGREDIENTS', 366, 6, 80, 1, 2.4, '100g'),
+  f('Ragi Flour (Finger Millet)', 'RAW_INGREDIENTS', 328, 7, 72, 1.3, 11, '100g'),
+  f('Bajra Flour (Pearl Millet)', 'RAW_INGREDIENTS', 361, 12, 67, 5, 1.2, '100g'),
+  f('Jowar Flour (Sorghum)', 'RAW_INGREDIENTS', 349, 11, 73, 3, 6.3, '100g'),
+  f('Corn Flour (Makki Atta)', 'RAW_INGREDIENTS', 361, 7, 76, 3.4, 7.3, '100g'),
+  f('Oats (Raw)', 'RAW_INGREDIENTS', 389, 17, 66, 7, 11, '100g'),
+  f('Semolina (Suji/Rava)', 'RAW_INGREDIENTS', 360, 13, 73, 1, 3.9, '100g'),
+  f('Poha (Flattened Rice, Raw)', 'RAW_INGREDIENTS', 356, 6.6, 77, 2.7, 1.3, '100g'),
+  f('Quinoa (Raw)', 'RAW_INGREDIENTS', 368, 14, 64, 6, 7, '100g'),
+  f('Sattu (Roasted Gram Flour)', 'RAW_INGREDIENTS', 406, 20, 65, 7, 10, '100g'),
+
+  // Proteins & Supplements (Raw)
+  f('Whey Protein (Powder)', 'RAW_INGREDIENTS', 120, 24, 3, 1.5, 0, '1 scoop (30g)'),
+  f('Isolate Protein (Powder)', 'RAW_INGREDIENTS', 110, 27, 1, 0.5, 0, '1 scoop (30g)'),
+  f('Casein Protein (Powder)', 'RAW_INGREDIENTS', 120, 24, 3, 1, 0, '1 scoop (33g)'),
+  f('Plant Protein (Powder)', 'RAW_INGREDIENTS', 110, 20, 5, 2, 2, '1 scoop (30g)'),
+  f('Soy Protein (Powder)', 'RAW_INGREDIENTS', 115, 25, 2, 1, 1, '1 scoop (30g)'),
+  f('Peanut Butter', 'RAW_INGREDIENTS', 188, 8, 6, 16, 2, '2 tbsp (32g)'),
+  f('Almond Butter', 'RAW_INGREDIENTS', 196, 7, 6, 18, 3, '2 tbsp (32g)'),
+  f('Creatine Monohydrate', 'RAW_INGREDIENTS', 0, 0, 0, 0, 0, '1 scoop (5g)'),
+
+  // Eggs & Egg Products
+  f('Whole Egg (Raw)', 'RAW_INGREDIENTS', 72, 6.3, 0.4, 5, 0, '1 large (50g)', false),
+  f('Egg White (Raw)', 'RAW_INGREDIENTS', 17, 3.6, 0.2, 0.1, 0, '1 large (33g)', false),
+  f('Egg Yolk (Raw)', 'RAW_INGREDIENTS', 55, 2.7, 0.6, 4.5, 0, '1 large (17g)', false),
+
+  // Oils & Fats
+  f('Olive Oil', 'RAW_INGREDIENTS', 119, 0, 0, 13.5, 0, '1 tbsp (15ml)'),
+  f('Coconut Oil', 'RAW_INGREDIENTS', 121, 0, 0, 13.5, 0, '1 tbsp (15ml)'),
+  f('Mustard Oil', 'RAW_INGREDIENTS', 124, 0, 0, 14, 0, '1 tbsp (15ml)'),
+  f('Sunflower Oil', 'RAW_INGREDIENTS', 120, 0, 0, 13.6, 0, '1 tbsp (15ml)'),
+  f('Ghee (Clarified Butter)', 'RAW_INGREDIENTS', 112, 0, 0, 12.7, 0, '1 tbsp (14g)'),
+  f('Butter (Unsalted)', 'RAW_INGREDIENTS', 102, 0.1, 0, 11.5, 0, '1 tbsp (14g)'),
+
+  // Lentils & Legumes (Raw/Dry)
+  f('Moong Dal (Raw)', 'RAW_INGREDIENTS', 347, 24, 60, 1.2, 16, '100g'),
+  f('Toor Dal (Raw)', 'RAW_INGREDIENTS', 343, 22, 63, 1.5, 15, '100g'),
+  f('Chana Dal (Raw)', 'RAW_INGREDIENTS', 360, 20, 60, 5, 12, '100g'),
+  f('Masoor Dal (Raw)', 'RAW_INGREDIENTS', 352, 25, 60, 1, 11, '100g'),
+  f('Urad Dal (Raw)', 'RAW_INGREDIENTS', 341, 25, 59, 1.4, 18, '100g'),
+  f('Rajma (Raw Kidney Beans)', 'RAW_INGREDIENTS', 333, 24, 60, 0.8, 25, '100g'),
+  f('Chickpeas (Kabuli Chana, Raw)', 'RAW_INGREDIENTS', 364, 19, 61, 6, 17, '100g'),
+  f('Soybeans (Raw)', 'RAW_INGREDIENTS', 446, 36, 30, 20, 9, '100g'),
+
+  // Seeds & Nuts (Raw)
+  f('Flax Seeds (Alsi)', 'RAW_INGREDIENTS', 55, 1.9, 3, 4.3, 2.8, '1 tbsp (10g)'),
+  f('Chia Seeds', 'RAW_INGREDIENTS', 58, 2, 5, 3.7, 4.1, '1 tbsp (12g)'),
+  f('Sunflower Seeds', 'RAW_INGREDIENTS', 165, 5.5, 7, 14, 2.4, '1/4 cup (28g)'),
+  f('Pumpkin Seeds', 'RAW_INGREDIENTS', 153, 7, 5, 13, 1.7, '1/4 cup (28g)'),
+  f('Sesame Seeds (Til)', 'RAW_INGREDIENTS', 52, 1.6, 2.1, 4.5, 1, '1 tbsp (9g)'),
+
+  // Omega-3 & Supplements
+  f('Omega-3 Fish Oil Capsule', 'RAW_INGREDIENTS', 10, 0, 0, 1, 0, '1 capsule (1g)', false),
+  f('Cod Liver Oil', 'RAW_INGREDIENTS', 41, 0, 0, 4.5, 0, '1 tsp (5ml)', false),
+  f('Flaxseed Oil', 'RAW_INGREDIENTS', 120, 0, 0, 14, 0, '1 tbsp (15ml)'),
+
+  // Sweeteners & Misc
+  f('Sugar (White)', 'RAW_INGREDIENTS', 48, 0, 12.5, 0, 0, '1 tbsp (12.5g)'),
+  f('Jaggery (Gur)', 'RAW_INGREDIENTS', 38, 0.1, 9.7, 0, 0, '1 tbsp (10g)'),
+  f('Honey', 'RAW_INGREDIENTS', 64, 0.1, 17, 0, 0, '1 tbsp (21g)'),
+  f('Salt', 'RAW_INGREDIENTS', 0, 0, 0, 0, 0, '1 tsp (6g)'),
+  f('Turmeric (Haldi)', 'RAW_INGREDIENTS', 9, 0.3, 1.4, 0.3, 0.7, '1 tsp (3g)'),
+  f('Cinnamon (Dalchini)', 'RAW_INGREDIENTS', 6, 0.1, 2.1, 0, 1.4, '1 tsp (2.6g)'),
+
+  // Dairy Ingredients (Raw)
+  f('Milk Powder (Full Cream)', 'RAW_INGREDIENTS', 496, 26, 38, 27, 0, '100g'),
+  f('Skimmed Milk Powder', 'RAW_INGREDIENTS', 362, 36, 52, 1, 0, '100g'),
+  f('Cream (Fresh)', 'RAW_INGREDIENTS', 51, 0.4, 0.5, 5.4, 0, '1 tbsp (15g)'),
+  f('Curd / Dahi (Set)', 'RAW_INGREDIENTS', 60, 3.1, 4.9, 3.3, 0, '100g'),
+
+  // Meat (Raw)
+  f('Chicken Breast (Raw)', 'RAW_INGREDIENTS', 120, 23, 0, 2.6, 0, '100g', false),
+  f('Chicken Thigh (Raw)', 'RAW_INGREDIENTS', 177, 20, 0, 10.5, 0, '100g', false),
+  f('Minced Chicken (Raw)', 'RAW_INGREDIENTS', 143, 17, 0, 8, 0, '100g', false),
+  f('Mutton (Raw)', 'RAW_INGREDIENTS', 234, 19, 0, 17, 0, '100g', false),
+  f('Fish Fillet (Rohu, Raw)', 'RAW_INGREDIENTS', 97, 17, 0, 3, 0, '100g', false),
+  f('Prawns (Raw)', 'RAW_INGREDIENTS', 85, 20, 0.2, 0.5, 0, '100g', false),
+  f('Salmon (Raw)', 'RAW_INGREDIENTS', 208, 20, 0, 13, 0, '100g', false),
+  f('Tuna (Canned)', 'RAW_INGREDIENTS', 116, 26, 0, 0.8, 0, '100g (drained)', false),
+  f('Paneer (Raw Block)', 'RAW_INGREDIENTS', 265, 18, 4, 20, 0, '100g'),
+  f('Tofu', 'RAW_INGREDIENTS', 76, 8, 1.9, 4.8, 0.3, '100g'),
 ];
