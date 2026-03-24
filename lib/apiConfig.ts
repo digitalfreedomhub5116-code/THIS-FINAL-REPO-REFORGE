@@ -19,17 +19,22 @@ export const API_BASE = isNativePlatform
 /**
  * Fetch with automatic retry for transient failures (Railway restarts, Supabase wake-ups).
  * Retries up to `retries` times with `delayMs` between attempts.
+ * Each attempt has a `timeoutMs` (default 65s) to handle Railway cold starts.
  */
 export async function fetchWithRetry(
   input: RequestInfo | URL,
   init?: RequestInit,
   retries: number = 3,
-  delayMs: number = 2000
+  delayMs: number = 2000,
+  timeoutMs: number = 65000
 ): Promise<Response> {
   let lastError: any;
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      const res = await fetch(input, init);
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      const res = await fetch(input, { ...init, signal: controller.signal });
+      clearTimeout(timer);
       return res;
     } catch (err) {
       lastError = err;
@@ -42,12 +47,13 @@ export async function fetchWithRetry(
 }
 
 /**
- * Quick server reachability check. Returns true if /health responds within 5s.
+ * Server reachability check. Returns true if /health responds within 30s.
+ * Generous timeout to accommodate Railway cold starts (can take 30-40s).
  */
 export async function checkServerHealth(): Promise<boolean> {
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
+    const timeout = setTimeout(() => controller.abort(), 30000);
     const res = await fetch(`${API_BASE}/health`, { signal: controller.signal });
     clearTimeout(timeout);
     return res.ok;

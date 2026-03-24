@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
@@ -6,6 +6,7 @@ import { PlayerData, ReplitUser } from '../types';
 import { API_BASE, fetchWithRetry, checkServerHealth } from '../lib/apiConfig';
 import { isNativePlatform } from '../lib/googleAuth';
 import NativeGoogleButton from './NativeGoogleButton';
+import { shuffleFacts } from '../lib/funFacts';
 
 interface CreateAccountPageProps {
   onLogin: (profile: Partial<PlayerData> & { replitUser?: ReplitUser }) => void;
@@ -23,6 +24,17 @@ const CreateAccountPage: React.FC<CreateAccountPageProps> = ({ onLogin, onNaviga
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Fun facts cycling
+  const shuffledFacts = useRef(shuffleFacts());
+  const [factIndex, setFactIndex] = useState(0);
+  useEffect(() => {
+    if (!serverWaking && !loading) return;
+    const interval = setInterval(() => {
+      setFactIndex(i => (i + 1) % shuffledFacts.current.length);
+    }, 4500);
+    return () => clearInterval(interval);
+  }, [serverWaking, loading]);
 
   const [particles] = useState(() =>
     Array.from({ length: 18 }, (_, i) => ({
@@ -217,17 +229,31 @@ const CreateAccountPage: React.FC<CreateAccountPageProps> = ({ onLogin, onNaviga
 
   if (checking) {
     return (
-      <div className="fixed inset-0 z-[500] bg-black flex flex-col items-center justify-center font-mono gap-4">
+      <div className="fixed inset-0 z-[500] bg-black flex flex-col items-center justify-center font-mono gap-4 px-6">
         <motion.div animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 2, repeat: Infinity }} className="text-system-neon text-lg font-black tracking-widest">
           REFORGE
         </motion.div>
-        <div className="text-gray-500 text-xs">
-          {serverWaking ? 'Connecting to server — please wait...' : 'Checking session...'}
+        <div className="text-gray-400 text-xs text-center">
+          {serverWaking ? 'Waking up the server... this might take a few seconds' : 'Checking session...'}
         </div>
         {serverWaking && (
-          <div className="w-48 h-1 bg-gray-800 rounded-full overflow-hidden mt-2">
-            <motion.div className="h-full bg-system-neon/60 rounded-full" animate={{ x: ['-100%', '100%'] }} transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }} style={{ width: '40%' }} />
-          </div>
+          <>
+            <div className="w-48 h-1 bg-gray-800 rounded-full overflow-hidden mt-1">
+              <motion.div className="h-full bg-system-neon/60 rounded-full" animate={{ x: ['-100%', '100%'] }} transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }} style={{ width: '40%' }} />
+            </div>
+            <AnimatePresence mode="wait">
+              <motion.p
+                key={factIndex}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.4 }}
+                className="text-gray-500 text-[11px] text-center max-w-xs leading-relaxed mt-3 italic"
+              >
+                {shuffledFacts.current[factIndex]}
+              </motion.p>
+            </AnimatePresence>
+          </>
         )}
       </div>
     );
@@ -242,6 +268,38 @@ const CreateAccountPage: React.FC<CreateAccountPageProps> = ({ onLogin, onNaviga
       className="fixed inset-0 z-[500] bg-black flex items-center justify-center p-4 sm:p-6 font-mono overflow-y-auto"
       style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)' }}
     >
+      {/* Loading overlay with fun facts */}
+      <AnimatePresence>
+        {loading && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-50 bg-black/90 flex flex-col items-center justify-center gap-4 px-6"
+          >
+            <motion.div animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 2, repeat: Infinity }} className="text-system-neon text-lg font-black tracking-widest">
+              REFORGE
+            </motion.div>
+            <div className="text-gray-400 text-xs text-center">Waking up the server... this might take a few seconds</div>
+            <div className="w-48 h-1 bg-gray-800 rounded-full overflow-hidden">
+              <motion.div className="h-full bg-system-neon/60 rounded-full" animate={{ x: ['-100%', '100%'] }} transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }} style={{ width: '40%' }} />
+            </div>
+            <AnimatePresence mode="wait">
+              <motion.p
+                key={factIndex}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.4 }}
+                className="text-gray-500 text-[11px] text-center max-w-xs leading-relaxed mt-2 italic"
+              >
+                {shuffledFacts.current[factIndex]}
+              </motion.p>
+            </AnimatePresence>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Particles Background */}
       {particles.map((p) => (
         <motion.div
@@ -364,7 +422,7 @@ const CreateAccountPage: React.FC<CreateAccountPageProps> = ({ onLogin, onNaviga
             className="w-full py-3.5 rounded-xl font-bold text-sm text-white transition-all duration-200 active:scale-[0.97] disabled:opacity-50"
             style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
           >
-            {loading ? 'Creating...' : 'Create Account'}
+            {loading ? 'Creating account...' : 'Create Account'}
           </button>
         </form>
 
