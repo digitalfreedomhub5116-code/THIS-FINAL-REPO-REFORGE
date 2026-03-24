@@ -1,7 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { supabaseServer } from '../lib/supabase.js';
 import { generateAdminToken, requireAdmin } from '../lib/adminAuth.js';
-import { adminAdjustLocks } from './player_supabase.js';
 
 const router = Router();
 
@@ -162,10 +161,6 @@ router.post('/users/:id/givegold', async (req: Request, res: Response) => {
       .single();
     
     if (updateError) throw updateError;
-    // Lock gold column for 5s so stale client syncToCloud doesn't overwrite
-    const goldLock = adminAdjustLocks.get(id as string) || {};
-    goldLock.gold = Date.now();
-    adminAdjustLocks.set(id as string, goldLock);
     await logAdminAction('give_gold', req, { targetUser: id, oldValue: { gold: data?.gold || 0 }, newValue: { gold: newGold } });
     return res.json({ success: true, gold: updatedData?.gold });
   } catch (err) {
@@ -199,10 +194,6 @@ router.post('/users/:id/givekeys', async (req: Request, res: Response) => {
       .single();
     
     if (updateError) throw updateError;
-    // Lock keys column for 5s so stale client syncToCloud doesn't overwrite
-    const keysLock = adminAdjustLocks.get(id as string) || {};
-    keysLock.keys = Date.now();
-    adminAdjustLocks.set(id as string, keysLock);
     await logAdminAction('give_keys', req, { targetUser: id, oldValue: { keys: data?.keys || 0 }, newValue: { keys: newKeys } });
     return res.json({ success: true, keys: updatedData?.keys });
   } catch (err) {
@@ -334,10 +325,6 @@ router.post('/users/:id/adjust-gold', async (req: Request, res: Response) => {
       .select('gold')
       .single();
     if (updateError) throw updateError;
-    // Lock gold column for 5s so stale client syncToCloud doesn't overwrite
-    const lock = adminAdjustLocks.get(id as string) || {};
-    lock.gold = Date.now();
-    adminAdjustLocks.set(id as string, lock);
     await logAdminAction('adjust_gold', req, { targetUser: id, oldValue: { gold: data?.gold || 0 }, newValue: { gold: newGold } });
     return res.json({ success: true, gold: updated?.gold });
   } catch (err) {
@@ -367,10 +354,6 @@ router.post('/users/:id/adjust-keys', async (req: Request, res: Response) => {
       .select('keys')
       .single();
     if (updateError) throw updateError;
-    // Lock keys column for 5s so stale client syncToCloud doesn't overwrite
-    const lock = adminAdjustLocks.get(id as string) || {};
-    lock.keys = Date.now();
-    adminAdjustLocks.set(id as string, lock);
     await logAdminAction('adjust_keys', req, { targetUser: id, oldValue: { keys: data?.keys || 0 }, newValue: { keys: newKeys } });
     return res.json({ success: true, keys: updated?.keys });
   } catch (err) {

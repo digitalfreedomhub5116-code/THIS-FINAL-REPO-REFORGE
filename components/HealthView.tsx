@@ -541,6 +541,10 @@ export const HealthView: React.FC<HealthViewProps> = ({
   // Keys Alert State
   const [showKeyAlert, setShowKeyAlert] = useState(false);
 
+  // Custom Calorie Limit State
+  const [showCalorieEditor, setShowCalorieEditor] = useState(false);
+  const [calorieLimitInput, setCalorieLimitInput] = useState('');
+
   // Workout Reward Modal State
   const [workoutRewards, setWorkoutRewards] = useState<WorkoutReward[] | null>(null);
   const [workoutAnomalyPoints, setWorkoutAnomalyPoints] = useState(0);
@@ -614,6 +618,11 @@ export const HealthView: React.FC<HealthViewProps> = ({
           targetCalories = Math.max(1200, tdee - 500); // Minimum 1200 for safety
       } else if (healthProfile.goal === 'BUILD_MUSCLE') {
           targetCalories = tdee + 300; // Lean bulk
+      }
+
+      // Override with custom calorie limit if user has set one
+      if (healthProfile.customCalorieLimit && healthProfile.customCalorieLimit > 0) {
+          targetCalories = healthProfile.customCalorieLimit;
       }
       
       // Macro split calculation based on goal and weight
@@ -2184,9 +2193,91 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                   boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.07), 0 8px 32px rgba(0,0,0,0.45)',
                                 }}
                             >
-                                <h3 className="text-xs font-bold text-gray-400 mb-4 tracking-widest flex items-center gap-2 uppercase">
-                                    <Clock size={14} className="text-system-neon" /> Daily Fuel Status
-                                </h3>
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="text-xs font-bold text-gray-400 tracking-widest flex items-center gap-2 uppercase">
+                                        <Clock size={14} className="text-system-neon" /> Daily Fuel Status
+                                    </h3>
+                                    <button
+                                        onClick={() => { setCalorieLimitInput(healthProfile?.customCalorieLimit?.toString() || ''); setShowCalorieEditor(prev => !prev); }}
+                                        className="flex items-center gap-1 px-2 py-1 rounded-lg bg-gray-800/60 hover:bg-gray-700/60 border border-gray-700/50 text-[9px] text-gray-400 hover:text-purple-400 transition-all uppercase font-bold tracking-wider"
+                                        title="Set custom calorie limit"
+                                    >
+                                        <Settings size={10} /> Limit
+                                    </button>
+                                </div>
+
+                                {/* Custom Calorie Limit Editor */}
+                                <AnimatePresence>
+                                {showCalorieEditor && (
+                                    <motion.div
+                                        initial={{ height: 0, opacity: 0 }}
+                                        animate={{ height: 'auto', opacity: 1 }}
+                                        exit={{ height: 0, opacity: 0 }}
+                                        className="overflow-hidden mb-4"
+                                    >
+                                        <div className="rounded-xl p-3 border border-purple-900/30 bg-purple-950/20">
+                                            <div className="text-[9px] text-purple-400 font-bold uppercase tracking-widest mb-2">Custom Calorie Limit</div>
+                                            <div className="flex items-center gap-2">
+                                                <input
+                                                    type="number"
+                                                    value={calorieLimitInput}
+                                                    onChange={e => setCalorieLimitInput(e.target.value)}
+                                                    placeholder={`${dailyTargets?.calories || nutritionInfo.macros.calories}`}
+                                                    className="flex-1 bg-black/50 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-purple-500 font-mono"
+                                                    min={800}
+                                                    max={10000}
+                                                />
+                                                <button
+                                                    onClick={async () => {
+                                                        const val = parseInt(calorieLimitInput);
+                                                        if (!val || val < 800 || val > 10000) return;
+                                                        if (!healthProfile) return;
+                                                        const consumed = await onConsumeKey(5);
+                                                        if (!consumed) { setShowKeyAlert(true); return; }
+                                                        const updated = { ...healthProfile, customCalorieLimit: val };
+                                                        onSaveProfile(updated, updated.category || 'Hunter');
+                                                        setShowCalorieEditor(false);
+                                                        playSystemSoundEffect('SYSTEM');
+                                                    }}
+                                                    className="px-3 py-2 rounded-lg bg-purple-900/40 hover:bg-purple-900/70 border border-purple-700/50 text-purple-300 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 whitespace-nowrap"
+                                                >
+                                                    <Key size={10} /> 5 Keys
+                                                </button>
+                                            </div>
+                                            {healthProfile?.customCalorieLimit && (
+                                                <button
+                                                    onClick={async () => {
+                                                        if (!healthProfile) return;
+                                                        const consumed = await onConsumeKey(5);
+                                                        if (!consumed) { setShowKeyAlert(true); return; }
+                                                        const updated = { ...healthProfile, customCalorieLimit: undefined };
+                                                        onSaveProfile(updated, updated.category || 'Hunter');
+                                                        setShowCalorieEditor(false);
+                                                        playSystemSoundEffect('SYSTEM');
+                                                    }}
+                                                    className="mt-2 w-full text-center py-1.5 rounded-lg bg-gray-800/40 hover:bg-gray-800/70 border border-gray-700/50 text-[9px] text-gray-500 hover:text-red-400 font-bold uppercase tracking-wider transition-all"
+                                                >
+                                                    Reset to Auto ({(() => {
+                                                        if (!healthProfile) return nutritionInfo.macros.calories;
+                                                        let bmr = 0;
+                                                        if (healthProfile.weight && healthProfile.height && healthProfile.age) {
+                                                            bmr = healthProfile.gender === 'MALE'
+                                                                ? (10 * healthProfile.weight) + (6.25 * healthProfile.height) - (5 * healthProfile.age) + 5
+                                                                : (10 * healthProfile.weight) + (6.25 * healthProfile.height) - (5 * healthProfile.age) - 161;
+                                                        } else { bmr = healthProfile.bmr || 1800; }
+                                                        const mult: Record<string, number> = { SEDENTARY: 1.2, LIGHT: 1.375, MODERATE: 1.55, VERY_ACTIVE: 1.725 };
+                                                        let cal = Math.round(bmr * (mult[healthProfile.activityLevel] || 1.55));
+                                                        if (healthProfile.goal === 'LOSE_WEIGHT') cal = Math.max(1200, cal - 500);
+                                                        else if (healthProfile.goal === 'BUILD_MUSCLE') cal += 300;
+                                                        return cal;
+                                                    })()} kcal) · 5 Keys
+                                                </button>
+                                            )}
+                                            <div className="text-[8px] text-gray-600 mt-2">Min 800 · Max 10,000 kcal</div>
+                                        </div>
+                                    </motion.div>
+                                )}
+                                </AnimatePresence>
                                 
                                 {/* Calories Comparison */}
                                 {(() => {

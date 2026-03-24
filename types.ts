@@ -352,6 +352,7 @@ export interface HealthProfile {
   category: string;
   workoutPlan: WorkoutDay[];
   macros: { protein: number; carbs: number; fats: number; calories: number };
+  customCalorieLimit?: number;
   lastWorkoutDate?: string;
   progressPhotos?: ProgressPhoto[];
   baselines?: BaselineStats;

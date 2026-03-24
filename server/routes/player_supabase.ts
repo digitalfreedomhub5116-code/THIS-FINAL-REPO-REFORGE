@@ -4,20 +4,9 @@ import { getAuthenticatedUserId } from '../lib/playerAuth.js';
 
 const router = Router();
 
-// ── Admin adjustment lock: prevents stale client syncToCloud from overwriting recent admin changes ──
-// Key: playerId, Value: { gold?: timestamp, keys?: timestamp }
-export const adminAdjustLocks = new Map<string, { gold?: number; keys?: number }>();
-const ADMIN_LOCK_TTL_MS = 5000; // 5 seconds
-
-function isAdminLocked(playerId: string, field: 'gold' | 'keys'): boolean {
-  const lock = adminAdjustLocks.get(playerId);
-  if (!lock || !lock[field]) return false;
-  if (Date.now() - lock[field]! < ADMIN_LOCK_TTL_MS) return true;
-  // Expired — clean up
-  delete lock[field];
-  if (!lock.gold && !lock.keys) adminAdjustLocks.delete(playerId);
-  return false;
-}
+// ── Delta-based merge for gold/keys ──
+// Instead of locking, the PUT endpoint reads the current DB values and applies
+// only the DELTA (what the client actually changed) so admin adjustments are never overwritten.
 
 router.get('/codename/check', async (req: Request, res: Response) => {
   const name = ((req.query.name as string) || '').trim();
@@ -84,16 +73,36 @@ router.put('/:id', async (req: Request, res: Response) => {
 
   try {
     // Strip cheatStrikes and isBanned from client data — only admin routes and /record-strike may write these
-    const { cheatStrikes: _strippedStrikes, isBanned: _strippedBan, ...cleanData } = data;
+    // Also extract _serverGold/_serverKeys (client's last-known server values for delta calculation)
+    const { cheatStrikes: _strippedStrikes, isBanned: _strippedBan, _serverGold, _serverKeys, ...cleanData } = data;
 
-    // NEVER overwrite auth fields (email, password_hash, auth_type) from frontend sync
-    const goldLocked = isAdminLocked(id, 'gold');
-    const keysLocked = isAdminLocked(id, 'keys');
+    // ── Delta-based gold/keys merge ──
+    // Read current DB state so we can apply only the CLIENT's delta
+    const { data: currentRow, error: readError } = await (supabaseServer() as any)
+      .from('players')
+      .select('gold, keys')
+      .eq('supabase_id', id)
+      .single();
+    if (readError) throw readError;
 
-    // Strip stale gold/keys from raw_data when admin recently adjusted them
-    const safeRawData = { ...cleanData };
-    if (goldLocked) delete safeRawData.gold;
-    if (keysLocked) delete safeRawData.keys;
+    const dbGold = currentRow?.gold ?? 0;
+    const dbKeys = currentRow?.keys ?? 0;
+
+    // The client sends its current gold/keys AND what it believes the server had (_serverGold/_serverKeys).
+    // Delta = what the client changed locally. We apply that delta to the CURRENT DB value.
+    const clientGold = cleanData.gold ?? 0;
+    const clientKeys = cleanData.keys ?? 0;
+    const baseGold = (typeof _serverGold === 'number') ? _serverGold : dbGold;
+    const baseKeys = (typeof _serverKeys === 'number') ? _serverKeys : dbKeys;
+
+    const goldDelta = clientGold - baseGold;
+    const keysDelta = clientKeys - baseKeys;
+
+    const newGold = Math.max(0, dbGold + goldDelta);
+    const newKeys = Math.max(0, dbKeys + keysDelta);
+
+    // Build safe raw_data with corrected gold/keys
+    const safeRawData = { ...cleanData, gold: newGold, keys: newKeys };
 
     const playerData: Record<string, any> = {
       username: cleanData.username || cleanData.name || ('u_' + id.slice(-8)),
@@ -121,12 +130,11 @@ router.put('/:id', async (req: Request, res: Response) => {
       last_weekly_reset: data.lastWeeklyReset || null,
       last_monthly_reset: data.lastMonthlyReset || null,
       identity: data.identity || null,
+      gold: newGold,
+      keys: newKeys,
       raw_data: safeRawData,
       updated_at: new Date().toISOString()
     };
-    // Only write gold/keys columns if admin hasn't recently adjusted them
-    if (!goldLocked) playerData.gold = cleanData.gold || 0;
-    if (!keysLocked) playerData.keys = cleanData.keys || 0;
 
     // Use update (not upsert) to prevent creating duplicate rows
     const { data: result, error } = await (supabaseServer() as any)
@@ -155,7 +163,7 @@ router.put('/:id', async (req: Request, res: Response) => {
         if (lbErr) console.error('[Leaderboard cache upsert]', lbErr);
       });
 
-    return res.json(result);
+    return res.json({ ...result, _serverGold: newGold, _serverKeys: newKeys });
   } catch (err) {
     console.error('[Player PUT]', err);
     return res.status(500).json({ error: 'Internal server error' });

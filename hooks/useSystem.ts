@@ -181,6 +181,10 @@ export const useSystem = () => {
   const notificationTimers = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
   const workoutCompletingRef = useRef(false);
 
+  // Track server-authoritative gold/keys for delta-based sync
+  const serverGoldRef = useRef(player.gold);
+  const serverKeysRef = useRef(player.keys);
+
   useEffect(() => {
     localStorage.setItem('reforge_player_v2', JSON.stringify(player));
   }, [player]);
@@ -241,18 +245,38 @@ export const useSystem = () => {
   const syncToCloud = useCallback(async (data: PlayerData) => {
     if (!data.userId || data.userId.startsWith('local-') || data.userId.startsWith('local_')) return;
     try {
-      // Ensure consumables are present before sync
+      // Include last-known server gold/keys so server can compute delta
       const syncData = {
         ...data,
+        _serverGold: serverGoldRef.current,
+        _serverKeys: serverKeysRef.current,
         consumables: data.consumables || { healthPotions: 0, shadowScrolls: 0, ultOrbs: 0 }
       };
       
-      await fetch(`${API_BASE}/api/player/${data.userId}`, {
+      const res = await fetch(`${API_BASE}/api/player/${data.userId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
         credentials: 'include',
         body: JSON.stringify(syncData)
       });
+      if (res.ok) {
+        try {
+          const result = await res.json();
+          const sGold = result._serverGold as number | undefined;
+          const sKeys = result._serverKeys as number | undefined;
+          // Update refs to what the server now has
+          if (typeof sGold === 'number') serverGoldRef.current = sGold;
+          if (typeof sKeys === 'number') serverKeysRef.current = sKeys;
+          // If server values differ from what we sent (admin changed), update local state
+          if ((typeof sGold === 'number' && sGold !== data.gold) || (typeof sKeys === 'number' && sKeys !== data.keys)) {
+            setPlayer(prev => ({
+              ...prev,
+              gold: typeof sGold === 'number' ? sGold : prev.gold,
+              keys: typeof sKeys === 'number' ? sKeys : prev.keys,
+            }));
+          }
+        } catch { /* response parse error, non-critical */ }
+      }
     } catch (e) {
       console.error('Cloud Sync Error', e);
     }
@@ -547,6 +571,8 @@ export const useSystem = () => {
         ];
       }
 
+      const currentGold = cloudData.gold ?? prev.gold;
+
       const updated: PlayerData = {
         ...DEFAULT_PLAYER,
         ...prev,
@@ -554,6 +580,7 @@ export const useSystem = () => {
         userId: (profile.id as string) || prev.userId,
         name: (profile.name as string) || (cloudData.name as string) || prev.name,
         username: (profile.username as string) || (cloudData.username as string) || prev.username,
+        gold: currentGold,
         keys: currentKeys,
         quests: currentQuests,
         isConfigured: true,
@@ -564,6 +591,11 @@ export const useSystem = () => {
           ? prev.customProtocols
           : (cloudData.customProtocols || {}),
       };
+
+      // Set server refs to the authoritative values from the server
+      serverGoldRef.current = currentGold;
+      serverKeysRef.current = currentKeys;
+
       return updated;
     });
     playSystemSoundEffect('SYSTEM');
