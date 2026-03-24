@@ -51,7 +51,7 @@ const HolographicBody: React.FC<{ focus: string; isCardio: boolean; videos: Reco
       return 'REST';
   }, [focus, isCardio, videos]);
 
-  const videoUrl = videos[videoKey];
+  const videoUrl = videos[videoKey] || '/videos/body-scan.mp4';
 
   // Reset error state when video source changes
   useEffect(() => {
@@ -157,18 +157,14 @@ const ExerciseRow: React.FC<{ exercise: Exercise; calories: number }> = ({ exerc
             animate={{ x: 0, opacity: 1 }}
             className="flex items-center gap-4 p-3 bg-gray-900/50 border border-gray-800 rounded-lg group hover:border-system-neon/30 transition-colors"
         >
-            <div className="w-12 h-12 bg-black border border-gray-700 rounded flex items-center justify-center relative overflow-hidden shrink-0">
-                {hasVideo ? (
-                    <>
-                        <video src={videoUrl} muted playsInline className="w-full h-full object-cover" style={{ filter: 'invert(1) hue-rotate(180deg)', opacity: 0.7 }} />
-                        <div className="absolute top-0 right-0"><CheckCircle2 size={10} className="text-green-500 drop-shadow-[0_0_4px_rgba(34,197,94,0.8)]" fill="rgba(34,197,94,0.3)" /></div>
-                    </>
+            <div className={`w-12 h-12 rounded flex items-center justify-center relative overflow-hidden shrink-0 ${hasVideo ? 'bg-gradient-to-br from-system-neon/20 to-black border border-system-neon/30' : 'bg-black border border-gray-700'}`}>
+                <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(0,210,255,0.08)_50%,transparent_75%)] bg-[length:250%_250%] animate-[shimmer_2s_infinite]" />
+                {exercise.type === 'CARDIO' || exercise.type === 'STRETCH' ? (
+                    <HeartPulse size={18} className={hasVideo ? 'text-system-neon' : 'text-system-accent'} />
                 ) : (
-                    <>
-                        <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(0,210,255,0.1)_50%,transparent_75%)] bg-[length:250%_250%] animate-[shimmer_2s_infinite]" />
-                        {exercise.type === 'CARDIO' ? <HeartPulse size={18} className="text-system-accent" /> : <Dumbbell size={18} className="text-system-neon" />}
-                    </>
+                    <Dumbbell size={18} className={hasVideo ? 'text-system-neon' : 'text-gray-500'} />
                 )}
+                {hasVideo && <div className="absolute top-0 right-0"><CheckCircle2 size={10} className="text-green-500 drop-shadow-[0_0_4px_rgba(34,197,94,0.8)]" fill="rgba(34,197,94,0.3)" /></div>}
             </div>
             <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
