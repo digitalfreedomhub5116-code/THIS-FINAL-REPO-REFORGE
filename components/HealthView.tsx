@@ -17,6 +17,7 @@ import { API_BASE } from '../lib/apiConfig';
 import { DEFAULT_PLANS, getRecommendedPlan } from '../lib/defaultPlans';
 import OnboardingNotice from './OnboardingNotice';
 import FoodLibrary from './FoodLibrary';
+import SkillsView from './SkillsView';
 
 interface HealthViewProps {
   healthProfile?: HealthProfile;
@@ -33,6 +34,7 @@ interface HealthViewProps {
   onToggleNav?: (visible: boolean) => void;
   onConsumeKey: (amount?: number) => Promise<boolean>;
   onAddRewards?: (gold: number, xp: number, keys?: number) => void;
+  onUpdateSkillProgress?: (progress: import('../types').SkillProgress[]) => void;
 }
 
 // --- OPTIMIZATION SEQUENCE COMPONENT ---
@@ -485,7 +487,7 @@ const GeneratingMessage: React.FC<{ messages: string[] }> = ({ messages }) => {
 };
 
 export const HealthView: React.FC<HealthViewProps> = ({ 
-  healthProfile, onSaveProfile, onCompleteWorkout, onFailWorkout, onLogMeal, onDeleteMeal: _onDeleteMeal, playerData, onToggleNav, onConsumeKey, onAddRewards
+  healthProfile, onSaveProfile, onCompleteWorkout, onFailWorkout, onLogMeal, onDeleteMeal: _onDeleteMeal, playerData, onToggleNav, onConsumeKey, onAddRewards, onUpdateSkillProgress
 }) => {
   const [viewMode, setViewMode] = useState<'MAP' | 'OVERVIEW' | 'ACTIVE' | 'SETUP' | 'PROCESSING' | 'DIAGNOSIS' | 'PROJECTION' | 'FINALIZING' | 'PLAN_SELECT'>('MAP');
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
@@ -503,7 +505,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
   const [aiSessionDuration, setAiSessionDuration] = useState(45);
   const [streakAnimKey, setStreakAnimKey] = useState(0);
   const prevStreakRef = useRef(playerData.streak);
-  const [activeTab, setActiveTab] = useState<'WORKOUT' | 'NUTRITION' | 'BODY'>('WORKOUT');
+  const [activeTab, setActiveTab] = useState<'WORKOUT' | 'NUTRITION' | 'SKILLS'>('WORKOUT');
   
   // Track if user skipped setup
   const [skippedSetup, setSkippedSetup] = useState(false);
@@ -1617,7 +1619,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
 
         <div id="tut-health" className="h-full flex flex-col gap-6 font-mono">
             <div className="flex gap-2 sticky top-20 z-30 pt-1 pb-2 bg-transparent">
-                {['WORKOUT', 'NUTRITION', 'BODY'].map(t => (
+                {['WORKOUT', 'NUTRITION', 'SKILLS'].map(t => (
                     <button
                         key={t}
                         id={t === 'NUTRITION' ? 'tut-health-nutrition-tab' : undefined}
@@ -2759,17 +2761,17 @@ export const HealthView: React.FC<HealthViewProps> = ({
                         );
                     })()}
                     
-                    {activeTab === 'BODY' && (
+                    {activeTab === 'SKILLS' && (
                         <motion.div 
-                            key="body" 
+                            key="skills" 
                             initial={{ opacity: 0 }} 
                             animate={{ opacity: 1 }} 
-                            exit={{ opacity: 0 }} 
-                            className="flex flex-col items-center justify-center text-gray-600 pt-20"
+                            exit={{ opacity: 0 }}
                         >
-                            <Utensils size={48} className="mb-4 opacity-50" />
-                            <div className="text-xs font-mono tracking-widest uppercase">Coming Soon</div>
-                            <div className="text-[10px] mt-2">Feature pending next system update.</div>
+                            <SkillsView
+                                skillProgress={playerData.skillProgress || []}
+                                onUpdateProgress={(p) => onUpdateSkillProgress?.(p)}
+                            />
                         </motion.div>
                     )}
                 </AnimatePresence>

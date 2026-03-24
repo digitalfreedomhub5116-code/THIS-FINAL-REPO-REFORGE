@@ -1681,6 +1681,10 @@ export const useSystem = () => {
     });
   };
 
+  const updateSkillProgress = (progress: import('../types').SkillProgress[]) => {
+    setPlayer(prev => ({ ...prev, skillProgress: progress }));
+  };
+
   const claimTournamentReward = () => {
     setPlayer(prev => {
       const reward = prev.tournament?.pendingReward;
@@ -1752,6 +1756,7 @@ export const useSystem = () => {
     purchaseOutfit,
     equipOutfit,
     addNotification,
+    updateSkillProgress,
   };
 };
 

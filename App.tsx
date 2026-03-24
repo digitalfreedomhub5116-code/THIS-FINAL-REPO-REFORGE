@@ -115,7 +115,7 @@ const App: React.FC = () => {
     recordStrike, removeStrike, markDuskMessagesRead,
     startSensorTracking, stopSensorTracking, updateQuestSensorData,
     verifyTicket, purchaseOutfit, equipOutfit,
-    checkDailyLogin,
+    checkDailyLogin, updateSkillProgress,
   } = useSystem();
 
   const sensors = useSensors();
@@ -1359,6 +1359,7 @@ const App: React.FC = () => {
                     tutorialStep={player.tutorialStep}
                     onToggleNav={handleToggleNav}
                     onConsumeKey={consumeKey}
+                    onUpdateSkillProgress={updateSkillProgress}
                   />
                 </ErrorBoundary>
               </Suspense>

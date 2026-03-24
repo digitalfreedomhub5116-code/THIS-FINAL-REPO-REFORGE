@@ -329,6 +329,15 @@ export interface BaselineStats {
   sleepAvg: number;
 }
 
+// --- SKILLS TYPES ---
+export interface SkillProgress {
+  skillId: string;
+  completedLessons: string[];
+  currentLevel: number;
+  startedAt: number;
+  lastPracticedAt?: number;
+}
+
 export interface HealthProfile {
   gender: 'MALE' | 'FEMALE';
   age: number;
@@ -520,6 +529,9 @@ export interface PlayerData {
   unlockedOutfits: string[];
   equippedShadows: (Shadow | null)[];
   combatStats: CombatStats;
+
+  // Skills
+  skillProgress?: SkillProgress[];
 
   // Custom Protocols
   customProtocols?: Record<string, WorkoutDay[]>;
