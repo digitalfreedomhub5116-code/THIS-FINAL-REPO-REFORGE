@@ -25,6 +25,7 @@ import { useSystem } from './hooks/useSystem';
 import { useSensors } from './hooks/useSensors';
 import { Tab, CoreStats, HealthProfile, Outfit, DbOutfit, TierLevel, PlayerData, Quest, DailyReward } from './types';
 import { OUTFITS } from './utils/gameData';
+import { DAILY_REWARDS_ENABLED } from './lib/rewards';
 import { getPlayerAuthHeaders } from './lib/playerApi';
 import { Terminal } from 'lucide-react';
 import { API_BASE } from './lib/apiConfig';
@@ -416,6 +417,7 @@ const App: React.FC = () => {
 
   // Deferred daily login check — persistent guard via localStorage
   useEffect(() => {
+    if (!DAILY_REWARDS_ENABLED) return;
     // Wait until configured and tutorial is complete before showing daily login
     if (!player.isConfigured) return;
     if (isNewUserOnboarding && !player.tutorialComplete) return;
@@ -929,7 +931,7 @@ const App: React.FC = () => {
       {/* ── Overlays ── */}
       <Suspense fallback={null}>
         <AnimatePresence>
-          {showDailyLogin && (
+          {DAILY_REWARDS_ENABLED && showDailyLogin && (
             <ErrorBoundary>
               <DailyLoginModal 
                 onClose={() => {
@@ -1199,7 +1201,7 @@ const App: React.FC = () => {
                 <ErrorBoundary fallbackLabel="Dashboard widgets failed">
                   <DashboardWidgets
                     player={player}
-                    onOpenDailyCalendar={() => setShowDailyLogin(true)}
+                    onOpenDailyCalendar={DAILY_REWARDS_ENABLED ? () => setShowDailyLogin(true) : undefined}
                   />
                 </ErrorBoundary>
               </Suspense>
@@ -1276,7 +1278,7 @@ const App: React.FC = () => {
                     buyConsumable={buyConsumable}
                     streak={player.streak}
                     lastLoginDate={player.lastLoginDate}
-                    onOpenDailyCalendar={() => setShowDailyLogin(true)}
+                    onOpenDailyCalendar={DAILY_REWARDS_ENABLED ? () => setShowDailyLogin(true) : undefined}
                     highlightDungeon={highlightDungeon}
                     onHighlightConsumed={() => setHighlightDungeon(false)}
                     wardrobeGold={player.gold}

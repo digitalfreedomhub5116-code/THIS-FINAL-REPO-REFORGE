@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, lazy, Suspense, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Coins, Timer, Key, CheckCircle2, Lock, ChevronLeft, ChevronRight, Heart, Scroll, Star, Zap, Ghost } from 'lucide-react';
-import { REWARD_SCHEDULE } from '../lib/rewards';
+import { REWARD_SCHEDULE, DAILY_REWARDS_ENABLED } from '../lib/rewards';
 import { ShopItem, Outfit } from '../types';
 import { API_BASE } from '../lib/apiConfig';
 import ErrorBoundary from './ErrorBoundary';
@@ -408,7 +408,7 @@ const ShopView: React.FC<ShopViewProps> = ({
       )}
 
       {/* ── LOGIN REWARDS BANNER ── */}
-      <motion.div
+      {DAILY_REWARDS_ENABLED && <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05 }}
@@ -525,7 +525,7 @@ const ShopView: React.FC<ShopViewProps> = ({
             {claimedToday ? 'Claimed today · Tap to view calendar' : 'Click to view full 30-day calendar →'}
           </div>
         </div>
-      </motion.div>
+      </motion.div>}
 
       {/* ── MONARCH'S WARDROBE (moved from home page) ── */}
       {wardrobeOnEquip && (

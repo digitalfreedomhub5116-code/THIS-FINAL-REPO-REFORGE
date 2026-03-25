@@ -1,5 +1,7 @@
 import { DailyReward } from '../types';
 
+export const DAILY_REWARDS_ENABLED = false;
+
 export const REWARD_SCHEDULE: DailyReward[] = [
   { type: 'GOLD', amount: 100, message: 'Day 1: 100 Gold' },
   { type: 'XP', amount: 150, message: 'Day 2: 150 XP' },
