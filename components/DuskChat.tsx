@@ -39,12 +39,12 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, onClose, onMarkRead }) => {
     } else {
         // Initial greeting if no history
         const failures = player.quests.filter(q => q.failed);
-        let initialText = `System Link Established. Greetings, Hunter ${player.name}.`;
+        let initialText = `Hey! I'm Dusk, your fitness buddy.`;
         
         if (failures.length > 0) {
-            initialText += ` I detect ${failures.length} failed protocols recently. Explain yourself. Why did you fail "${failures[0].title}"?`;
+            initialText += ` I noticed you missed ${failures.length} task${failures.length > 1 ? 's' : ''} recently. What happened with "${failures[0].title}"? Let's talk about it.`;
         } else {
-            initialText += " How can I assist your evolution today?";
+            initialText += ` How can I help you today?`;
         }
 
         setMessages([{
@@ -107,7 +107,7 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, onClose, onMarkRead }) => {
         });
 
         const data = await res.json();
-        const text = data.text || 'Signal lost. Try again.';
+        const text = data.text || 'Something went wrong. Try again.';
 
         setMessages(prev => [...prev, {
             id: Date.now().toString(),
@@ -120,7 +120,7 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, onClose, onMarkRead }) => {
         setMessages(prev => [...prev, {
             id: Date.now().toString(),
             sender: 'dusk',
-            text: 'Connection to the Monarch is unstable. Try again later.',
+            text: 'Oops, something went wrong. Try again in a bit.',
             timestamp: Date.now()
         }]);
     } finally {
@@ -160,7 +160,7 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, onClose, onMarkRead }) => {
                     </div>
                     <div>
                         <h3 className="text-white font-bold font-mono tracking-wider">DUSK AI</h3>
-                        <p className="text-[10px] text-system-neon font-mono tracking-widest uppercase">Accountability Protocol Active</p>
+                        <p className="text-[10px] text-system-neon font-mono tracking-widest uppercase">Your Fitness Buddy</p>
                     </div>
                 </div>
                 <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors text-gray-400 hover:text-white">
@@ -209,7 +209,7 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, onClose, onMarkRead }) => {
                         value={inputValue}
                         onChange={(e) => setInputValue(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                        placeholder="Report status or ask for guidance..."
+                        placeholder="Ask me anything about fitness, habits, or goals..."
                         className="w-full bg-gray-900 border border-gray-700 rounded-lg py-3 pl-4 pr-12 text-white font-mono text-xs md:text-sm focus:outline-none focus:border-system-neon focus:shadow-[0_0_15px_rgba(0,210,255,0.15)] transition-all placeholder:text-gray-600"
                         autoFocus
                     />
@@ -222,7 +222,7 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, onClose, onMarkRead }) => {
                     </button>
                 </div>
                 <div className="mt-2 text-[9px] text-gray-600 text-center font-mono">
-                    Dusk analyzes failures to optimize your growth. Be honest.
+                    Dusk is here to help you stay on track. Be honest with yourself.
                 </div>
             </div>
         </motion.div>

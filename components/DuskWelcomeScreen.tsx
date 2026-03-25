@@ -6,7 +6,7 @@ interface DuskWelcomeScreenProps {
   onComplete: () => void;
 }
 
-const DUSK_MESSAGE = "I am Dusk, your Accountability Partner.\n\nCreated by The Architect to guide your journey and ensure fairness. I monitor progress, enforce discipline, and prevent cheating.\n\nEvery achievement must be earned.\n\nYour journey begins now.";
+const DUSK_MESSAGE = "Hey, I'm Dusk — your fitness buddy.\n\nI'm here to help you stay consistent, track your progress, and push you when you're slacking.\n\nNo shortcuts. You put in the work, you get the results.\n\nLet's get started.";
 
 // ── Ambient floating particles ──
 const AmbientParticles: React.FC = () => {
