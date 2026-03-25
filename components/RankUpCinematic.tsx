@@ -3,6 +3,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import RankBadge, { RANK_META } from './RankBadge';
 import type { RankType } from './RankBadge';
+import { playSystemSoundEffect } from '../utils/soundEngine';
 
 interface RankUpCinematicProps {
   oldRank: RankType;
@@ -134,7 +135,7 @@ const RankUpCinematic: React.FC<RankUpCinematicProps> = ({ oldRank, newRank, onC
 
   useEffect(() => {
     const t1 = setTimeout(() => setPhase('crack'),     900);
-    const t2 = setTimeout(() => setPhase('shatter'),  1500);
+    const t2 = setTimeout(() => { setPhase('shatter'); playSystemSoundEffect('RANK_UP'); }, 1500);
     const t3 = setTimeout(() => setPhase('void'),     2100);
     const t4 = setTimeout(() => setPhase('emerge'),   2500);
     const t5 = setTimeout(() => setPhase('celebrate'),2900);

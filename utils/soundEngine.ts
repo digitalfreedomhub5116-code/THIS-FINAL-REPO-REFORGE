@@ -222,6 +222,79 @@ export const playSystemSoundEffect = (type: string) => {
                 sparkleOsc.stop(now + 0.4);
                 break;
 
+            case 'RANK_UP': {
+                // Epic Rank Up Fanfare: deep impact → ascending power chord → triumphant shimmer
+                osc.disconnect();
+                gain.disconnect();
+
+                // Phase 1: Deep shatter impact (0ms)
+                const impactOsc = ctx.createOscillator();
+                const impactGain = ctx.createGain();
+                impactOsc.type = 'sawtooth';
+                impactOsc.frequency.setValueAtTime(80, now);
+                impactOsc.frequency.exponentialRampToValueAtTime(20, now + 0.5);
+                impactGain.gain.setValueAtTime(0.25, now);
+                impactGain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+                impactOsc.connect(impactGain);
+                impactGain.connect(ctx.destination);
+                impactOsc.start(now);
+                impactOsc.stop(now + 0.5);
+
+                // Phase 2: Ascending power chord (300ms) — C4 → E4 → G4 → C5 → E5
+                const fanfareTones = [
+                    { freq: 261.63, delay: 0.3 },   // C4
+                    { freq: 329.63, delay: 0.45 },  // E4
+                    { freq: 392.00, delay: 0.60 },  // G4
+                    { freq: 523.25, delay: 0.75 },  // C5
+                    { freq: 659.25, delay: 0.90 },  // E5
+                ];
+                fanfareTones.forEach(({ freq, delay }) => {
+                    const t = ctx.createOscillator();
+                    const g = ctx.createGain();
+                    t.type = 'sine';
+                    t.connect(g);
+                    g.connect(ctx.destination);
+                    t.frequency.setValueAtTime(freq, now + delay);
+                    g.gain.setValueAtTime(0, now + delay);
+                    g.gain.linearRampToValueAtTime(0.09, now + delay + 0.02);
+                    g.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.7);
+                    t.start(now + delay);
+                    t.stop(now + delay + 0.75);
+                });
+
+                // Phase 3: Triumphant shimmer (1.1s) — high sparkle sweep
+                const shimmer = ctx.createOscillator();
+                const shimmerGain = ctx.createGain();
+                shimmer.type = 'triangle';
+                shimmer.frequency.setValueAtTime(800, now + 1.1);
+                shimmer.frequency.linearRampToValueAtTime(2400, now + 1.6);
+                shimmer.frequency.linearRampToValueAtTime(1600, now + 2.0);
+                shimmerGain.gain.setValueAtTime(0, now + 1.1);
+                shimmerGain.gain.linearRampToValueAtTime(0.06, now + 1.15);
+                shimmerGain.gain.exponentialRampToValueAtTime(0.001, now + 2.2);
+                shimmer.connect(shimmerGain);
+                shimmerGain.connect(ctx.destination);
+                shimmer.start(now + 1.1);
+                shimmer.stop(now + 2.2);
+
+                // Phase 4: Sustained power chord (1.0s) — warm C major hold
+                const holdTones = [261.63, 329.63, 392.00, 523.25];
+                holdTones.forEach(freq => {
+                    const h = ctx.createOscillator();
+                    const hg = ctx.createGain();
+                    h.type = 'sine';
+                    h.connect(hg);
+                    hg.connect(ctx.destination);
+                    h.frequency.setValueAtTime(freq, now + 1.0);
+                    hg.gain.setValueAtTime(0, now + 1.0);
+                    hg.gain.linearRampToValueAtTime(0.04, now + 1.05);
+                    hg.gain.exponentialRampToValueAtTime(0.001, now + 2.5);
+                    h.start(now + 1.0);
+                    h.stop(now + 2.6);
+                });
+                break;
+            }
+
             case 'WARNING': 
                 // Decay/Warning: Low descending buzz
                 osc.type = 'sawtooth';
