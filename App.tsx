@@ -389,20 +389,24 @@ const App: React.FC = () => {
       .then(r => r.json())
       .then((rows: DbOutfit[]) => {
         if (!Array.isArray(rows) || rows.length === 0) return;
-        const converted: Outfit[] = rows.map(o => ({
-          id: o.outfit_key,
-          name: o.name,
-          description: o.description,
-          tier: o.tier as TierLevel,
-          image: o.image_url || '',
-          baseStats: { attack: o.attack, boost: o.boost, extraction: o.extraction, ultimate: o.ultimate },
-          cost: o.cost,
-          accentColor: o.accent_color,
-          introVideoUrl: o.intro_video_url,
-          loopVideoUrl: o.loop_video_url,
-          isDefault: o.is_default,
-          buffs: [],
-        }));
+        const converted: Outfit[] = rows.map(o => {
+          // Fallback: if DB has empty image/video URLs, try static OUTFITS
+          const staticMatch = OUTFITS.find(s => s.id === o.outfit_key);
+          return {
+            id: o.outfit_key,
+            name: o.name,
+            description: o.description,
+            tier: o.tier as TierLevel,
+            image: o.image_url || staticMatch?.image || '',
+            baseStats: { attack: o.attack, boost: o.boost, extraction: o.extraction, ultimate: o.ultimate },
+            cost: o.cost,
+            accentColor: o.accent_color,
+            introVideoUrl: o.intro_video_url || staticMatch?.introVideoUrl || '',
+            loopVideoUrl: o.loop_video_url || staticMatch?.loopVideoUrl || '',
+            isDefault: o.is_default,
+            buffs: staticMatch?.buffs || [],
+          };
+        });
         setDbOutfits(converted);
       })
       .catch(() => { /* silently fall back to static OUTFITS */ });
