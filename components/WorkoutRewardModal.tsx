@@ -15,67 +15,54 @@ interface WorkoutRewardModalProps {
   onClose: () => void;
 }
 
-const REWARD_CONFIG: Record<string, { icon: React.ReactNode; color: string; glow: string; bg: string }> = {
+const REWARD_CONFIG: Record<string, { icon: React.ReactNode; accent: string; accentRgb: string }> = {
   XP: {
-    icon: <Zap size={40} fill="currentColor" />,
-    color: 'text-cyan-400',
-    glow: 'shadow-[0_0_60px_rgba(0,210,255,0.6)]',
-    bg: 'from-cyan-500/20 to-cyan-900/10',
+    icon: <Zap size={28} fill="currentColor" />,
+    accent: 'text-white',
+    accentRgb: '255,255,255',
   },
   GOLD: {
-    icon: <Coins size={40} fill="currentColor" />,
-    color: 'text-yellow-400',
-    glow: 'shadow-[0_0_60px_rgba(234,179,8,0.6)]',
-    bg: 'from-yellow-500/20 to-yellow-900/10',
+    icon: <Coins size={28} fill="currentColor" />,
+    accent: 'text-amber-200',
+    accentRgb: '253,230,138',
   },
   KEYS: {
-    icon: <Key size={40} />,
-    color: 'text-amber-300',
-    glow: 'shadow-[0_0_60px_rgba(251,191,36,0.6)]',
-    bg: 'from-amber-500/20 to-amber-900/10',
+    icon: <Key size={28} />,
+    accent: 'text-gray-300',
+    accentRgb: '209,213,219',
   },
   HEALTH_POTION: {
-    icon: <Heart size={40} fill="currentColor" />,
-    color: 'text-rose-400',
-    glow: 'shadow-[0_0_60px_rgba(244,63,94,0.6)]',
-    bg: 'from-rose-500/20 to-rose-900/10',
+    icon: <Heart size={28} fill="currentColor" />,
+    accent: 'text-gray-300',
+    accentRgb: '209,213,219',
   },
   SHADOW_SCROLL: {
-    icon: <ScrollText size={40} />,
-    color: 'text-purple-400',
-    glow: 'shadow-[0_0_60px_rgba(168,85,247,0.6)]',
-    bg: 'from-purple-500/20 to-purple-900/10',
+    icon: <ScrollText size={28} />,
+    accent: 'text-gray-300',
+    accentRgb: '209,213,219',
   },
   ULT_ORB: {
-    icon: <Sparkles size={40} fill="currentColor" />,
-    color: 'text-emerald-300',
-    glow: 'shadow-[0_0_80px_rgba(52,211,153,0.8)]',
-    bg: 'from-emerald-500/30 to-emerald-900/10',
+    icon: <Sparkles size={28} fill="currentColor" />,
+    accent: 'text-white',
+    accentRgb: '255,255,255',
   },
 };
 
-// Particle burst component for each reward reveal
-const ParticleBurst: React.FC<{ color: string }> = ({ color }) => {
-  const particles = Array.from({ length: 12 });
+// Subtle line burst on reveal
+const LineBurst: React.FC = () => {
+  const lines = Array.from({ length: 8 });
   return (
-    <div className="absolute inset-0 pointer-events-none">
-      {particles.map((_, i) => {
-        const angle = (i / 12) * 360;
-        const rad = (angle * Math.PI) / 180;
-        const dist = 60 + Math.random() * 40;
+    <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+      {lines.map((_, i) => {
+        const angle = (i / 8) * 360;
         return (
           <motion.div
             key={i}
-            className={`absolute w-1.5 h-1.5 rounded-full ${color}`}
-            style={{ left: '50%', top: '50%' }}
-            initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
-            animate={{
-              x: Math.cos(rad) * dist,
-              y: Math.sin(rad) * dist,
-              opacity: 0,
-              scale: 0,
-            }}
-            transition={{ duration: 0.8, ease: 'easeOut', delay: Math.random() * 0.2 }}
+            className="absolute w-px bg-white/30"
+            style={{ height: 20, transformOrigin: 'center bottom', rotate: `${angle}deg` }}
+            initial={{ scaleY: 0, opacity: 0.8 }}
+            animate={{ scaleY: 1, opacity: 0 }}
+            transition={{ duration: 0.6, ease: 'easeOut', delay: i * 0.03 }}
           />
         );
       })}
@@ -212,65 +199,79 @@ const WorkoutRewardModal: React.FC<WorkoutRewardModalProps> = ({ rewards, anomal
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[150] bg-black/95 backdrop-blur-md flex flex-col items-center justify-center p-6"
+      className="fixed inset-0 z-[150] bg-black flex flex-col items-center justify-center p-6"
     >
+      {/* Subtle radial vignette */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(255,255,255,0.03)_0%,_transparent_60%)] pointer-events-none" />
+
       {/* Title */}
       <motion.div
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.2 }}
-        className="mb-10 text-center"
+        className="mb-8 text-center"
       >
-        <h1 className="text-3xl font-black italic text-white tracking-tight uppercase">
-          Session Complete
+        <p className="text-[10px] font-mono font-bold tracking-[0.4em] uppercase text-gray-600 mb-2">SESSION COMPLETE</p>
+        <h1 className="text-2xl font-black text-white tracking-tight uppercase font-mono">
+          REWARDS
         </h1>
-        <p className="text-xs font-mono text-gray-500 mt-1 tracking-widest">LOOT ACQUIRED</p>
+        <motion.div
+          initial={{ width: 0 }}
+          animate={{ width: 60 }}
+          transition={{ delay: 0.5, duration: 0.6 }}
+          className="h-px bg-gradient-to-r from-transparent via-white/40 to-transparent mx-auto mt-3"
+        />
       </motion.div>
 
       {/* Reward Slots */}
-      <div className="flex flex-col gap-6 w-full max-w-sm">
+      <div className="flex flex-col gap-3 w-full max-w-sm">
         {rewards.map((reward, idx) => {
           const config = REWARD_CONFIG[reward.type] || REWARD_CONFIG.XP;
           const isRevealed = idx < revealedCount;
 
           return (
-            <div key={idx} className="relative h-24 w-full">
+            <div key={idx} className="relative h-[72px] w-full">
               <AnimatePresence mode="wait">
                 {!isRevealed ? (
-                  // Unrevealed slot — mystery card
                   <motion.div
                     key="mystery"
-                    initial={{ opacity: 0, scale: 0.8 }}
+                    initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 1.2, rotateY: 90 }}
-                    transition={{ duration: 0.3 }}
-                    className="absolute inset-0 bg-gray-900/80 border border-gray-700/50 rounded-2xl flex items-center justify-center backdrop-blur"
+                    exit={{ opacity: 0, scale: 1.05 }}
+                    transition={{ duration: 0.25 }}
+                    className="absolute inset-0 rounded-xl flex items-center justify-center"
+                    style={{ background: '#0a0a0f', border: '1px solid rgba(255,255,255,0.06)' }}
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gray-800 border border-gray-600 animate-pulse" />
+                      <div className="w-8 h-8 rounded-lg bg-white/[0.03] border border-white/[0.06] animate-pulse" />
                       <div className="space-y-1.5">
-                        <div className="w-24 h-3 bg-gray-800 rounded animate-pulse" />
-                        <div className="w-16 h-2 bg-gray-800/60 rounded animate-pulse" />
+                        <div className="w-20 h-2.5 bg-white/[0.04] rounded animate-pulse" />
+                        <div className="w-14 h-2 bg-white/[0.03] rounded animate-pulse" />
                       </div>
                     </div>
                   </motion.div>
                 ) : (
-                  // Revealed reward — with particles and glow
                   <motion.div
                     key="revealed"
-                    initial={{ opacity: 0, scale: 0.3, rotateY: -90 }}
-                    animate={{ opacity: 1, scale: 1, rotateY: 0 }}
-                    transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-                    className={`absolute inset-0 bg-gradient-to-r ${config.bg} border border-white/10 rounded-2xl flex items-center px-6 ${config.glow} backdrop-blur`}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 22 }}
+                    className="absolute inset-0 rounded-xl flex items-center px-5"
+                    style={{
+                      background: '#0a0a0f',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      boxShadow: `0 0 20px rgba(${config.accentRgb},0.06)`,
+                    }}
                   >
-                    <ParticleBurst color={config.color.replace('text-', 'bg-')} />
-                    
+                    <LineBurst />
+
                     {/* Icon */}
                     <motion.div
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
-                      transition={{ type: 'spring', stiffness: 300, damping: 10, delay: 0.15 }}
-                      className={`w-14 h-14 rounded-xl bg-black/40 border border-white/10 flex items-center justify-center ${config.color} flex-shrink-0`}
+                      transition={{ type: 'spring', stiffness: 300, damping: 12, delay: 0.1 }}
+                      className={`w-11 h-11 rounded-lg flex items-center justify-center ${config.accent} flex-shrink-0`}
+                      style={{ background: `rgba(${config.accentRgb},0.06)`, border: `1px solid rgba(${config.accentRgb},0.1)` }}
                     >
                       {config.icon}
                     </motion.div>
@@ -278,30 +279,31 @@ const WorkoutRewardModal: React.FC<WorkoutRewardModalProps> = ({ rewards, anomal
                     {/* Info */}
                     <div className="ml-4 flex-1 min-w-0">
                       <motion.p
-                        initial={{ x: -20, opacity: 0 }}
+                        initial={{ x: -12, opacity: 0 }}
                         animate={{ x: 0, opacity: 1 }}
-                        transition={{ delay: 0.2 }}
-                        className="text-white font-black text-2xl leading-none"
+                        transition={{ delay: 0.15 }}
+                        className="text-white font-black text-xl leading-none font-mono"
                       >
                         +{reward.amount}
                       </motion.p>
                       <motion.p
-                        initial={{ x: -20, opacity: 0 }}
+                        initial={{ x: -12, opacity: 0 }}
                         animate={{ x: 0, opacity: 1 }}
-                        transition={{ delay: 0.3 }}
-                        className={`text-xs font-mono font-bold tracking-wider uppercase mt-1 ${config.color}`}
+                        transition={{ delay: 0.25 }}
+                        className="text-[10px] font-mono font-bold tracking-widest uppercase mt-1 text-gray-500"
                       >
                         {reward.label}
                       </motion.p>
                     </div>
 
-                    {/* Rarity indicator for rare items */}
+                    {/* Rarity tag */}
                     {reward.type === 'ULT_ORB' && (
                       <motion.div
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
-                        transition={{ delay: 0.4, type: 'spring' }}
-                        className="absolute -top-2 -right-2 bg-emerald-500 text-black text-[9px] font-black px-2 py-0.5 rounded-full shadow-lg"
+                        transition={{ delay: 0.3, type: 'spring' }}
+                        className="text-[8px] font-black font-mono px-2 py-0.5 rounded tracking-widest"
+                        style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.6)', border: '1px solid rgba(255,255,255,0.1)' }}
                       >
                         RARE
                       </motion.div>
@@ -310,8 +312,9 @@ const WorkoutRewardModal: React.FC<WorkoutRewardModalProps> = ({ rewards, anomal
                       <motion.div
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
-                        transition={{ delay: 0.4, type: 'spring' }}
-                        className="absolute -top-2 -right-2 bg-purple-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-lg"
+                        transition={{ delay: 0.3, type: 'spring' }}
+                        className="text-[8px] font-black font-mono px-2 py-0.5 rounded tracking-widest"
+                        style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.08)' }}
                       >
                         EPIC
                       </motion.div>
@@ -328,13 +331,18 @@ const WorkoutRewardModal: React.FC<WorkoutRewardModalProps> = ({ rewards, anomal
       <AnimatePresence>
         {allRevealed && (
           <motion.button
-            initial={{ y: 30, opacity: 0 }}
+            initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.2 }}
             onClick={onClose}
-            className="mt-10 px-8 py-4 bg-white text-black font-black text-sm rounded-xl flex items-center gap-2 shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:bg-gray-200 transition-all active:scale-95 tracking-wider"
+            className="mt-8 w-full max-w-sm py-3.5 rounded-xl font-black text-sm tracking-widest uppercase font-mono flex items-center justify-center gap-2 transition-all active:scale-95"
+            style={{
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              color: 'rgba(255,255,255,0.8)',
+            }}
           >
-            CONTINUE <ChevronRight size={18} strokeWidth={3} />
+            CONTINUE <ChevronRight size={16} strokeWidth={3} />
           </motion.button>
         )}
       </AnimatePresence>
@@ -343,12 +351,12 @@ const WorkoutRewardModal: React.FC<WorkoutRewardModalProps> = ({ rewards, anomal
       {!allRevealed && revealedCount > 0 && (
         <motion.button
           initial={{ opacity: 0 }}
-          animate={{ opacity: 0.4 }}
+          animate={{ opacity: 0.3 }}
           onClick={() => {
             setRevealedCount(rewards.length);
             setTimeout(() => setAllRevealed(true), 300);
           }}
-          className="mt-8 text-[10px] font-mono text-gray-600 tracking-widest hover:text-gray-400 transition-colors"
+          className="mt-6 text-[9px] font-mono text-gray-600 tracking-widest hover:text-gray-400 transition-colors"
         >
           TAP TO REVEAL ALL
         </motion.button>

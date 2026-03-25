@@ -47,15 +47,8 @@ const rollGold = (floor: number): number => {
   return base + variance;
 };
 
-const rollXp = (floor: number): number => {
-  const base = 20 + floor * 5;
-  const variance = rollWeighted([
-    { value: 0,  weight: 15 },
-    { value: 10, weight: 35 },
-    { value: 30, weight: 20 },
-    { value: 60, weight: 10 },
-  ]);
-  return base + variance;
+const rollXp = (_floor: number): number => {
+  return 0;
 };
 
 const rollKeyChance = (floor: number, isJackpotFloor: boolean): boolean => {
@@ -690,11 +683,11 @@ const VictoryScreen: React.FC<{
   onClose: () => void;
 }> = ({ loot, onClose }) => {
   const [stage, setStage] = useState<'intro' | 'rewards' | 'done'>('intro');
-  const [rewardStage, setRewardStage] = useState(0); // 0-5: Gold, XP, Keys, Potions, Scrolls, Orbs
+  const [rewardStage, setRewardStage] = useState(0); // 0-4: Gold, Keys, Potions, Scrolls, Orbs
   const [showConfetti, setShowConfetti] = useState(false);
   const [shake, setShake] = useState(false);
 
-  const totalStages = 6; // gold, xp, keys, potions, scrolls, orbs
+  const totalStages = 5; // gold, keys, potions, scrolls, orbs
 
   useEffect(() => {
     // Start rewards after intro
@@ -706,7 +699,7 @@ const VictoryScreen: React.FC<{
     if (stage === 'rewards' && rewardStage === totalStages) {
       setTimeout(() => {
         setStage('done');
-        if (loot.gold > 0 || loot.xp > 0 || loot.keys > 0 || loot.potions > 0 || loot.scrolls > 0 || loot.orbs > 0) {
+        if (loot.gold > 0 || loot.keys > 0 || loot.potions > 0 || loot.scrolls > 0 || loot.orbs > 0) {
             setShowConfetti(true);
             setShake(true);
             playSystemSoundEffect('VICTORY_BURST'); 
@@ -813,50 +806,41 @@ const VictoryScreen: React.FC<{
            />
            <SequentialReward 
              start={rewardStage >= 1}
-             value={loot.xp} 
-             label="XP" 
-             icon={<ArrowUpCircle size={22} />} 
-             delay={0.15} 
-             color="blue-500"
-             onComplete={() => setRewardStage(prev => Math.max(prev, 2))}
-           />
-           <SequentialReward 
-             start={rewardStage >= 2}
              value={loot.keys} 
              label="Keys" 
              icon={<Key size={22} />} 
              delay={0.15} 
              color="purple-500"
+             onComplete={() => setRewardStage(prev => Math.max(prev, 2))}
+           />
+           <SequentialReward 
+             start={rewardStage >= 2}
+             value={loot.potions} 
+             label="Potions" 
+             icon={<Heart size={22} />} 
+             delay={0.15} 
+             color="red-500"
              onComplete={() => setRewardStage(prev => Math.max(prev, 3))}
            />
         </div>
         <div className="grid grid-cols-3 gap-3 mb-10 relative z-10">
            <SequentialReward 
              start={rewardStage >= 3}
-             value={loot.potions} 
-             label="Potions" 
-             icon={<Heart size={22} />} 
-             delay={0.15} 
-             color="red-500"
-             onComplete={() => setRewardStage(prev => Math.max(prev, 4))}
-           />
-           <SequentialReward 
-             start={rewardStage >= 4}
              value={loot.scrolls} 
              label="Scrolls" 
              icon={<Scroll size={22} />} 
              delay={0.15} 
              color="indigo-500"
-             onComplete={() => setRewardStage(prev => Math.max(prev, 5))}
+             onComplete={() => setRewardStage(prev => Math.max(prev, 4))}
            />
            <SequentialReward 
-             start={rewardStage >= 5}
+             start={rewardStage >= 4}
              value={loot.orbs} 
              label="Orbs" 
              icon={<Star size={22} />} 
              delay={0.15} 
              color="orange-500"
-             onComplete={() => setRewardStage(prev => Math.max(prev, 6))}
+             onComplete={() => setRewardStage(prev => Math.max(prev, 5))}
            />
         </div>
 
@@ -1001,11 +985,6 @@ const GameOverScreen: React.FC<{
                     <div className="text-[8px] font-bold uppercase tracking-wider text-gray-800">GOLD</div>
                 </div>
                 <div className="flex flex-col items-center gap-1.5 opacity-50 grayscale">
-                    <ArrowUpCircle size={18} className="text-gray-600" />
-                    <div className="text-xs font-bold text-red-800 font-mono line-through">{lostLoot.xp}</div>
-                    <div className="text-[8px] font-bold uppercase tracking-wider text-gray-800">XP</div>
-                </div>
-                <div className="flex flex-col items-center gap-1.5 opacity-50 grayscale">
                     <Key size={18} className="text-gray-600" />
                     <div className="text-xs font-bold text-red-800 font-mono line-through">{lostLoot.keys}</div>
                     <div className="text-[8px] font-bold uppercase tracking-wider text-gray-800">KEYS</div>
@@ -1141,7 +1120,7 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
                   type: 'JACKPOT',
                   reward: { 
                       gold: jackpotGold, 
-                      xp: 200 + floorNum * 20, 
+                      xp: 0, 
                       keys: Math.max(1, getKeyReward(floorNum)),
                       bonusItem: rollBonusItem(floorNum),
                   }
@@ -1675,7 +1654,6 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
                                           <span className="text-[9px] text-red-400 font-bold uppercase tracking-widest">Risk of Loss</span>
                                           <div className="flex gap-3 mt-1">
                                               <span className="text-yellow-500 font-bold text-sm flex items-center gap-1"><Coins size={12} /> {lootBag.gold}</span>
-                                              <span className="text-blue-400 font-bold text-sm flex items-center gap-1"><ArrowUpCircle size={12} /> {lootBag.xp}</span>
                                           </div>
                                       </div>
                                       <div className="relative z-10">

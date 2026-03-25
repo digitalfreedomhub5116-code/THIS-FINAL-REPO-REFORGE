@@ -55,32 +55,26 @@ const pickWeightedRandom = (pool: WeightedReward[], count: number): RewardCard[]
 
 const REWARD_POOLS: Record<'DAILY' | 'LEGENDARY' | 'ALLIANCE', WeightedReward[]> = {
   DAILY: [
-    { reward: { type: 'GOLD', amount: 150,  label: 'GOLD',    color: '#eab308' }, weight: 30 },
-    { reward: { type: 'GOLD', amount: 300,  label: 'GOLD',    color: '#eab308' }, weight: 15 },
-    { reward: { type: 'XP',   amount: 80,   label: 'EXP',     color: '#3b82f6' }, weight: 30 },
-    { reward: { type: 'XP',   amount: 200,  label: 'EXP',     color: '#3b82f6' }, weight: 10 },
-    { reward: { type: 'ITEM', amount: 1,     label: 'POTION',  color: '#ef4444' }, weight: 20 },
-    { reward: { type: 'KEYS', amount: 1,     label: 'KEY',     color: '#a855f7' }, weight: 5 },
+    { reward: { type: 'GOLD', amount: 150,  label: 'GOLD',    color: '#eab308' }, weight: 35 },
+    { reward: { type: 'GOLD', amount: 300,  label: 'GOLD',    color: '#eab308' }, weight: 20 },
+    { reward: { type: 'ITEM', amount: 1,     label: 'POTION',  color: '#ef4444' }, weight: 30 },
+    { reward: { type: 'KEYS', amount: 1,     label: 'KEY',     color: '#a855f7' }, weight: 15 },
   ],
   LEGENDARY: [
-    { reward: { type: 'GOLD', amount: 800,  label: 'GOLD',    color: '#eab308' }, weight: 25 },
-    { reward: { type: 'GOLD', amount: 1500, label: 'GOLD',    color: '#eab308' }, weight: 10 },
-    { reward: { type: 'XP',   amount: 400,  label: 'EXP',     color: '#3b82f6' }, weight: 25 },
-    { reward: { type: 'XP',   amount: 800,  label: 'EXP',     color: '#3b82f6' }, weight: 8 },
-    { reward: { type: 'ITEM', amount: 1,     label: 'SCROLL',  color: '#00d2ff' }, weight: 15 },
-    { reward: { type: 'KEYS', amount: 3,     label: 'KEYS',    color: '#a855f7' }, weight: 8 },
-    { reward: { type: 'ITEM', amount: 1,     label: 'ORB',     color: '#bf5eff' }, weight: 3 },
+    { reward: { type: 'GOLD', amount: 800,  label: 'GOLD',    color: '#eab308' }, weight: 30 },
+    { reward: { type: 'GOLD', amount: 1500, label: 'GOLD',    color: '#eab308' }, weight: 15 },
+    { reward: { type: 'ITEM', amount: 1,     label: 'SCROLL',  color: '#00d2ff' }, weight: 20 },
+    { reward: { type: 'KEYS', amount: 3,     label: 'KEYS',    color: '#a855f7' }, weight: 15 },
+    { reward: { type: 'ITEM', amount: 1,     label: 'ORB',     color: '#bf5eff' }, weight: 8 },
     { reward: { type: 'ITEM', amount: 1,     label: 'POTION',  color: '#ef4444' }, weight: 12 },
   ],
   ALLIANCE: [
-    { reward: { type: 'GOLD', amount: 600,  label: 'GOLD',    color: '#eab308' }, weight: 20 },
-    { reward: { type: 'GOLD', amount: 1200, label: 'GOLD',    color: '#eab308' }, weight: 10 },
-    { reward: { type: 'XP',   amount: 250,  label: 'EXP',     color: '#3b82f6' }, weight: 20 },
-    { reward: { type: 'XP',   amount: 600,  label: 'EXP',     color: '#3b82f6' }, weight: 8 },
-    { reward: { type: 'KEYS', amount: 5,     label: 'KEYS',    color: '#a855f7' }, weight: 10 },
-    { reward: { type: 'ITEM', amount: 1,     label: 'SCROLL',  color: '#00d2ff' }, weight: 12 },
-    { reward: { type: 'ITEM', amount: 1,     label: 'ORB',     color: '#bf5eff' }, weight: 8 },
-    { reward: { type: 'ITEM', amount: 2,     label: 'POTION',  color: '#ef4444' }, weight: 15 },
+    { reward: { type: 'GOLD', amount: 600,  label: 'GOLD',    color: '#eab308' }, weight: 25 },
+    { reward: { type: 'GOLD', amount: 1200, label: 'GOLD',    color: '#eab308' }, weight: 15 },
+    { reward: { type: 'KEYS', amount: 5,     label: 'KEYS',    color: '#a855f7' }, weight: 15 },
+    { reward: { type: 'ITEM', amount: 1,     label: 'SCROLL',  color: '#00d2ff' }, weight: 15 },
+    { reward: { type: 'ITEM', amount: 1,     label: 'ORB',     color: '#bf5eff' }, weight: 12 },
+    { reward: { type: 'ITEM', amount: 2,     label: 'POTION',  color: '#ef4444' }, weight: 18 },
   ],
 };
 
@@ -94,13 +88,11 @@ const CHEST_CFG = {
     bg: 'linear-gradient(135deg, #001a22 0%, #002233 100%)',
     rewards: [
       { type: 'GOLD' as const, amount: 200,  label: 'GOLD',   color: '#eab308' },
-      { type: 'XP'   as const, amount: 100,  label: 'EXP',    color: '#3b82f6' },
       { type: 'KEYS' as const, amount: 1,    label: 'KEYS',   color: '#a855f7' },
       { type: 'ITEM' as const, amount: 1,    label: 'POTION', color: '#ef4444' },
     ],
     contents: [
       { icon: '🪙', text: 'Gold — Low' },
-      { icon: '⚡', text: 'XP — Low' },
       { icon: '🗝️', text: 'Key — Rare' },
       { icon: '🧪', text: 'Potion' },
     ],
@@ -116,13 +108,11 @@ const CHEST_CFG = {
     bg: 'linear-gradient(135deg, #1a1200 0%, #2a1e00 100%)',
     rewards: [
       { type: 'GOLD' as const, amount: 1000, label: 'GOLD',   color: '#eab308' },
-      { type: 'XP'   as const, amount: 500,  label: 'EXP',    color: '#3b82f6' },
       { type: 'KEYS' as const, amount: 3,    label: 'KEYS',   color: '#a855f7' },
       { type: 'ITEM' as const, amount: 1,    label: 'SCROLL', color: '#00d2ff' },
     ],
     contents: [
       { icon: '🪙', text: 'Gold — High' },
-      { icon: '⚡', text: 'XP — High' },
       { icon: '🗝️', text: 'Keys — 2–4' },
       { icon: '🧪', text: 'Potion / Scroll / Orb' },
     ],
@@ -138,13 +128,11 @@ const CHEST_CFG = {
     bg: 'linear-gradient(135deg, #0e0018 0%, #180028 100%)',
     rewards: [
       { type: 'GOLD' as const, amount: 800,  label: 'GOLD',   color: '#eab308' },
-      { type: 'XP'   as const, amount: 300,  label: 'EXP',    color: '#3b82f6' },
       { type: 'KEYS' as const, amount: 5,    label: 'KEYS',   color: '#a855f7' },
       { type: 'ITEM' as const, amount: 1,    label: 'ORB',    color: '#bf5eff' },
     ],
     contents: [
       { icon: '🪙', text: 'Gold — Very High' },
-      { icon: '⚡', text: 'XP — Very High' },
       { icon: '🗝️', text: 'Keys — 4–6' },
       { icon: '🧪', text: 'Potions / Scrolls / Orbs' },
     ],
@@ -357,26 +345,6 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
                   >
                     <Info size={10} />
                   </button>
-                  <AnimatePresence>
-                    {isOpen && (
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.92, y: 4 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.92, y: 4 }}
-                        transition={{ duration: 0.15 }}
-                        className="absolute top-full left-0 mt-2 z-40 w-44 rounded-xl p-2.5"
-                        style={{ background: '#0a0a18', border: `1px solid ${cfg.borderColor}`, boxShadow: `0 8px 28px rgba(0,0,0,0.85), 0 0 12px ${cfg.glowColor}` }}
-                      >
-                        <div className="text-[8px] font-mono font-bold uppercase tracking-widest mb-1.5" style={{ color: cfg.color }}>Possible Rewards</div>
-                        {cfg.contents.map((item, i) => (
-                          <div key={i} className="flex items-center gap-1.5 py-0.5 text-[9px] font-mono text-gray-300">
-                            <span className="text-[11px] leading-none">{item.icon}</span>
-                            <span>{item.text}</span>
-                          </div>
-                        ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
                 </div>
               </div>
               <div className="shrink-0 ml-2 px-2.5 py-1 rounded-lg text-[10px]"
@@ -661,6 +629,38 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
                           >
                             {CHEST_TYPES.map(t => renderChestCard(t))}
                           </div>
+
+                          {/* Info panel — rendered outside carousel to avoid overflow clipping */}
+                          <AnimatePresence>
+                            {expandedDropdown && (
+                              <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                transition={{ duration: 0.2 }}
+                                className="mx-4 mb-3 overflow-hidden"
+                              >
+                                <div
+                                  className="rounded-xl p-3"
+                                  style={{
+                                    background: '#0a0a18',
+                                    border: `1px solid ${CHEST_CFG[expandedDropdown].borderColor}`,
+                                    boxShadow: `0 8px 28px rgba(0,0,0,0.85), 0 0 12px ${CHEST_CFG[expandedDropdown].glowColor}`,
+                                  }}
+                                >
+                                  <div className="text-[9px] font-mono font-bold uppercase tracking-widest mb-2" style={{ color: CHEST_CFG[expandedDropdown].color }}>
+                                    {CHEST_CFG[expandedDropdown].label} — Possible Rewards
+                                  </div>
+                                  {CHEST_CFG[expandedDropdown].contents.map((item: any, i: number) => (
+                                    <div key={i} className="flex items-center gap-2 py-0.5 text-[10px] font-mono text-gray-300">
+                                      <span className="text-[12px] leading-none">{item.icon}</span>
+                                      <span>{item.text}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         </>
                       )}
 

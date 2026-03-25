@@ -1251,7 +1251,7 @@ export const useSystem = () => {
 
   const generateWorkoutRewards = (anomalyPoints: number = 0): WorkoutReward[] => {
     const pool: { type: WorkoutRewardType; weight: number; min: number; max: number; label: string }[] = [
-      { type: 'XP', weight: 30, min: 50, max: 150, label: 'XP' },
+      { type: 'XP', weight: 30, min: 150, max: 350, label: 'XP' },
       { type: 'GOLD', weight: 30, min: 20, max: 80, label: 'Gold' },
       { type: 'KEYS', weight: 15, min: 1, max: 2, label: 'Keys' },
       { type: 'HEALTH_POTION', weight: 10, min: 1, max: 1, label: 'Health Potion' },
@@ -1302,7 +1302,7 @@ export const useSystem = () => {
       rewards = [];
     } else if (isCustomWorkout) {
       rewards = [
-        { type: 'XP', amount: Math.floor(Math.random() * 101) + 100, label: 'XP' },
+        { type: 'XP', amount: Math.floor(Math.random() * 201) + 200, label: 'XP' },
         { type: 'GOLD', amount: Math.floor(Math.random() * 101) + 100, label: 'Gold' },
       ];
       if (Math.random() > 0.5) {
@@ -1352,8 +1352,8 @@ export const useSystem = () => {
         totalXpGain = xpReward;
         totalGoldGain = goldReward;
       } else {
-        const baseXp = exercisesCompleted * 50;
-        const bonusXp = intensityModifier ? 100 : 0;
+        const baseXp = exercisesCompleted * 120;
+        const bonusXp = intensityModifier ? 250 : 0;
         totalXpGain = baseXp + bonusXp + xpReward;
         totalGoldGain = Math.floor((baseXp + bonusXp) / 10) + goldReward;
       }
