@@ -928,6 +928,21 @@ const App: React.FC = () => {
     <>
       <SystemMessage notifications={notifications} removeNotification={removeNotification} />
 
+      {/* ── TEMP: Secret Rank-Up Test Button (remove later) ── */}
+      <button
+        onClick={() => {
+          const ranks: ('E'|'D'|'C'|'B'|'A'|'S')[] = ['E','D','C','B','A','S'];
+          const curIdx = ranks.indexOf(player.rank as any);
+          const oldR = ranks[curIdx] || 'E';
+          const newR = ranks[Math.min(curIdx + 1, ranks.length - 1)] || 'D';
+          if (oldR !== newR) setRankUpData({ oldRank: oldR, newRank: newR });
+        }}
+        className="fixed bottom-2 left-2 z-[9999] w-8 h-8 rounded-full bg-red-500/20 border border-red-500/30 text-[8px] text-red-400 font-mono opacity-30 hover:opacity-100 transition-opacity"
+      >
+        RU
+      </button>
+      {/* ── END TEMP ── */}
+
       {/* ── Overlays ── */}
       <Suspense fallback={null}>
         <AnimatePresence>

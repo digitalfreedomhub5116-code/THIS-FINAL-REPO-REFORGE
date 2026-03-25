@@ -17,6 +17,7 @@ const RANKS = [
   { id: 'A', label: 'A RANK', color: '#f59e0b', glow: 'rgba(245,158,11,0.5)',  levelRequired: 55 },
   { id: 'S', label: 'S RANK', color: '#ef4444', glow: 'rgba(239,68,68,0.5)',   levelRequired: 80 },
 ];
+// NOTE: These thresholds must match RANK_THRESHOLDS in hooks/useSystem.ts
 
 // Solid gradient for modal mini-bar only
 const BAR_GRADIENT = 'linear-gradient(0deg, #8b5cf6 0%, #3b82f6 55%, #06b6d4 100%)';

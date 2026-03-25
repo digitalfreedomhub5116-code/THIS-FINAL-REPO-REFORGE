@@ -9,13 +9,14 @@ interface RankProgressionProps {
   player: PlayerData;
 }
 
+// NOTE: These thresholds must match RANK_THRESHOLDS in hooks/useSystem.ts
 const RANK_CONFIG: { id: Rank; label: string; minLevel: number; color: string }[] = [
-    { id: 'E', label: 'Awakened', minLevel: 0, color: '#78716c' },
-    { id: 'D', label: 'Rookie', minLevel: 10, color: '#c2410c' },
-    { id: 'C', label: 'Soldier', minLevel: 30, color: '#60a5fa' },
-    { id: 'B', label: 'Elite', minLevel: 55, color: '#06b6d4' },
-    { id: 'A', label: 'Sovereign', minLevel: 70, color: '#eab308' },
-    { id: 'S', label: 'Shadow Monarch', minLevel: 100, color: '#a855f7' },
+    { id: 'E', label: 'Awakened', minLevel: 1, color: '#78716c' },
+    { id: 'D', label: 'Rookie', minLevel: 11, color: '#c2410c' },
+    { id: 'C', label: 'Soldier', minLevel: 27, color: '#60a5fa' },
+    { id: 'B', label: 'Elite', minLevel: 39, color: '#06b6d4' },
+    { id: 'A', label: 'Sovereign', minLevel: 55, color: '#eab308' },
+    { id: 'S', label: 'Shadow Monarch', minLevel: 80, color: '#a855f7' },
 ];
 
 const RankProgression: React.FC<RankProgressionProps> = ({ player }) => {

@@ -155,8 +155,25 @@ const loadUnread = (): boolean => {
   try { return localStorage.getItem('reforge_notif_unread') === 'true'; } catch { return false; }
 };
 
+// Canonical rank thresholds — single source of truth
+const RANK_THRESHOLDS: { rank: 'E' | 'D' | 'C' | 'B' | 'A' | 'S'; minLevel: number }[] = [
+  { rank: 'S', minLevel: 80 },
+  { rank: 'A', minLevel: 55 },
+  { rank: 'B', minLevel: 39 },
+  { rank: 'C', minLevel: 27 },
+  { rank: 'D', minLevel: 11 },
+  { rank: 'E', minLevel: 1 },
+];
+
+function computeRank(level: number): 'E' | 'D' | 'C' | 'B' | 'A' | 'S' {
+  for (const t of RANK_THRESHOLDS) {
+    if (level >= t.minLevel) return t.rank;
+  }
+  return 'E';
+}
+
 // Safe level-up helper: caps iterations and ensures requiredXp always grows
-function safeLevelUp(currentXp: number, requiredXp: number, level: number): { currentXp: number; requiredXp: number; level: number; leveledUp: boolean } {
+function safeLevelUp(currentXp: number, requiredXp: number, level: number): { currentXp: number; requiredXp: number; level: number; leveledUp: boolean; rank: 'E' | 'D' | 'C' | 'B' | 'A' | 'S' } {
   // Floor requiredXp to prevent runaway loops from corrupted data
   if (!requiredXp || requiredXp < 50) requiredXp = 100;
   let leveledUp = false;
@@ -170,7 +187,7 @@ function safeLevelUp(currentXp: number, requiredXp: number, level: number): { cu
     leveledUp = true;
     iterations++;
   }
-  return { currentXp, requiredXp, level, leveledUp };
+  return { currentXp, requiredXp, level, leveledUp, rank: computeRank(level) };
 }
 
 export const useSystem = () => {
@@ -741,6 +758,7 @@ export const useSystem = () => {
         currentXp,
         requiredXp,
         level,
+        rank: computeRank(level),
         totalXp,
         dailyXp,
         consumables: safeConsumables,
@@ -809,6 +827,7 @@ export const useSystem = () => {
         currentXp,
         requiredXp,
         level,
+        rank: lu.rank,
         totalXp,
         dailyXp,
         logs: newLogs,
@@ -848,6 +867,7 @@ export const useSystem = () => {
         currentXp,
         requiredXp,
         level,
+        rank: lu.rank,
         totalXp,
         dailyXp,
         logs: newLogs,
@@ -1013,6 +1033,7 @@ export const useSystem = () => {
         currentXp,
         requiredXp,
         level,
+        rank: lu.rank,
         totalXp,
         dailyXp,
         logs: newLogs,
@@ -1386,6 +1407,7 @@ export const useSystem = () => {
         currentXp,
         requiredXp,
         level,
+        rank: lu.rank,
         totalXp,
         dailyXp,
         stats,
