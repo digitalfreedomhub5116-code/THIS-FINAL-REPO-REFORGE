@@ -74,6 +74,22 @@ export const OUTFITS: Outfit[] = [
     ],
   },
   {
+    id: 'outfit_jupiter',
+    name: 'Jupiter',
+    tier: 'A',
+    description: 'Celestial armor channeling the storm king\'s fury. Unmatched offensive power.',
+    image: '/assets/outfits/jupiterimg.png',
+    baseStats: { attack: 1100, boost: 600, ultimate: 900, extraction: 500 },
+    cost: 15000,
+    accentColor: '#f59e0b',
+    introVideoUrl: '/assets/outfits/jupiterintro.mp4',
+    loopVideoUrl: '/assets/outfits/jupiterloop.mp4',
+    buffs: [
+      { label: 'Coin Frenzy',        color: '#facc15' },
+      { label: 'XP Boost',           color: '#4ade80' },
+    ],
+  },
+  {
     id: 'outfit_monarch',
     name: "Monarch's Raiment",
     tier: 'S',
