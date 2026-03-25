@@ -92,14 +92,14 @@ export const OUTFITS: Outfit[] = [
   {
     id: 'outfit_mars',
     name: 'Mars',
-    tier: 'A',
+    tier: 'B',
     description: 'War-forged battle armor emanating the wrath of the god of war. Dominate every battlefield.',
-    image: '/videos/outfit/marsimg.jpeg',
+    image: '/videos/outfit/jupiterimg.jpeg',
     baseStats: { attack: 1200, boost: 550, ultimate: 950, extraction: 450 },
     cost: 15000,
     accentColor: '#ef4444',
-    introVideoUrl: '/videos/outfit/marsintro.mp4',
-    loopVideoUrl: '/videos/outfit/marsloop.mp4',
+    introVideoUrl: '/videos/outfit/jupiterintro.mp4',
+    loopVideoUrl: '/videos/outfit/jupiterloop.mp4',
     buffs: [
       { label: 'Coin Frenzy',        color: '#facc15' },
       { label: 'Shadow Extraction',  color: '#c084fc' },
