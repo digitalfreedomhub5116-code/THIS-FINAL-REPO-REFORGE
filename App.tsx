@@ -401,8 +401,8 @@ const App: React.FC = () => {
             baseStats: { attack: o.attack, boost: o.boost, extraction: o.extraction, ultimate: o.ultimate },
             cost: o.cost,
             accentColor: o.accent_color,
-            introVideoUrl: o.intro_video_url || staticMatch?.introVideoUrl || '',
-            loopVideoUrl: o.loop_video_url || staticMatch?.loopVideoUrl || '',
+            introVideoUrl: staticMatch?.introVideoUrl || o.intro_video_url || '',
+            loopVideoUrl: staticMatch?.loopVideoUrl || o.loop_video_url || '',
             isDefault: o.is_default,
             buffs: staticMatch?.buffs || [],
           };
