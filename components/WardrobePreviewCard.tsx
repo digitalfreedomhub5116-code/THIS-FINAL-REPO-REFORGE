@@ -292,11 +292,35 @@ const WardrobePreviewCard: React.FC<WardrobePreviewCardProps> = ({
       }}
     >
       {/* ── HEADER ── */}
-      <div className="px-4 pt-3 pb-2">
-        <div className="text-[7.5px] font-mono tracking-[0.3em] uppercase" style={{ color: accent + 'aa' }}>// System Store</div>
-        <h2 className="text-[14px] font-black uppercase tracking-tight text-white leading-none mt-0.5">
-          Monarch's Wardrobe
-        </h2>
+      <div className="px-4 pt-3 pb-2 flex items-start justify-between">
+        <div>
+          <div className="text-[7.5px] font-mono tracking-[0.3em] uppercase" style={{ color: accent + 'aa' }}>// System Store</div>
+          <h2 className="text-[14px] font-black uppercase tracking-tight text-white leading-none mt-0.5">
+            Monarch's Wardrobe
+          </h2>
+        </div>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={`price-${outfit.id}`}
+            initial={{ opacity: 0, scale: 0.85 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.85 }}
+            transition={{ duration: 0.15 }}
+            className="flex items-center gap-1 px-2 py-1 rounded-lg shrink-0"
+            style={{
+              background: outfit.cost === 0 ? 'rgba(74,222,128,0.12)' : 'rgba(250,204,21,0.12)',
+              border: `1px solid ${outfit.cost === 0 ? 'rgba(74,222,128,0.3)' : 'rgba(250,204,21,0.3)'}`,
+            }}
+          >
+            <span className="text-[10px]">{outfit.cost === 0 ? '✓' : '🪙'}</span>
+            <span
+              className="text-[9px] font-black font-mono tracking-wide"
+              style={{ color: outfit.cost === 0 ? '#4ade80' : '#facc15' }}
+            >
+              {outfit.cost === 0 ? 'FREE' : `${outfit.cost.toLocaleString()} G`}
+            </span>
+          </motion.div>
+        </AnimatePresence>
       </div>
 
       {/* ── MAIN 40/60 SPLIT — no visible divider ── */}
