@@ -418,7 +418,7 @@ const Layout: React.FC<LayoutProps> = ({
             <div className="flex items-center justify-between px-3 py-3 sm:px-6 sm:py-3.5 max-w-7xl mx-auto relative z-10">
 
               {/* LEFT: Avatar + Greeting + Username */}
-              <div className="flex items-center gap-2 sm:gap-3" ref={profileMenuRef}>
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1" ref={profileMenuRef}>
                 <div className="relative">
                   <button
                     onClick={() => { setShowProfileMenu(v => !v); setShowNotifications(false); }}
@@ -484,7 +484,7 @@ const Layout: React.FC<LayoutProps> = ({
                 <div className="min-w-0">
                   <div className="hidden sm:block text-[10px] text-gray-500 font-mono tracking-widest leading-none mb-0.5 uppercase">Hello</div>
                   <div className="flex items-center gap-1.5">
-                    <div className="text-white font-black text-base sm:text-lg leading-none tracking-tight truncate max-w-[100px] sm:max-w-[160px] uppercase">
+                    <div className="text-white font-black text-base sm:text-lg leading-none tracking-tight truncate max-w-[80px] sm:max-w-[160px] uppercase">
                       {displayName}
                     </div>
                     {streak > 0 && (
@@ -498,7 +498,7 @@ const Layout: React.FC<LayoutProps> = ({
               </div>
 
               {/* RIGHT: Gold + Keys + Bell */}
-              <div id="tut-gold-display" className="flex items-center gap-1.5 sm:gap-2.5">
+              <div id="tut-gold-display" className="flex items-center gap-1.5 sm:gap-2.5 flex-shrink-0">
 
                 {/* Consumable item counts — desktop only */}
                 {consumables && (
@@ -529,7 +529,7 @@ const Layout: React.FC<LayoutProps> = ({
                   }}
                 >
                   <AnimatedKeyIcon size={13} />
-                  <span className="font-mono text-[11px] sm:text-sm font-bold text-purple-300"><AnimatedCounter value={keys} /></span>
+                  <span className="font-mono text-[11px] sm:text-sm font-bold text-purple-300 whitespace-nowrap"><AnimatedCounter value={keys} /></span>
                 </div>
 
                 {/* Gold pill */}
@@ -545,7 +545,7 @@ const Layout: React.FC<LayoutProps> = ({
                   }}
                 >
                   <AnimatedCoinIcon size={13} />
-                  <span id="user-wallet-balance" className="font-mono text-[11px] sm:text-sm font-bold text-yellow-300"><AnimatedCounter value={gold} /></span>
+                  <span id="user-wallet-balance" className="font-mono text-[11px] sm:text-sm font-bold text-yellow-300 whitespace-nowrap"><AnimatedCounter value={gold} /></span>
                 </button>
 
                 {/* Bell */}
