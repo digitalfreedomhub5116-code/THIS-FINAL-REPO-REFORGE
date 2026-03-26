@@ -353,13 +353,29 @@ const QuestsView: React.FC<QuestsViewProps> = ({
           onTutorialAnalysisFail();
         }
       } else {
-        setForgeResult(data);
-        if (data.autoDetectedTime) {
-          setScheduleTime(data.autoDetectedTime);
-          setAutoScheduled(true);
+        // Client-side safety net: if the AI approved a physical/exercise quest
+        // but the title has NO number (time, distance, reps), reject it
+        const hasNumber = /\d/.test(title.trim());
+        const cats = (data.categories || []) as string[];
+        const isPhysical = !!data.sensorRequirements || ['strength', 'willpower'].every(c => cats.includes(c));
+        if (isPhysical && !hasNumber && data.estimatedDuration && data.estimatedDuration > 0) {
+          setForgeError(
+            'Quest rejected — you must specify a time, distance, or rep count for physical tasks. Example: "Run 10 mins", "50 pushups", "Cycle 5km".'
+          );
+          playSystemSoundEffect('WARNING');
+          if (tutorialStep === 8 && onTutorialAnalysisFail) {
+            setTitle('');
+            onTutorialAnalysisFail();
+          }
+        } else {
+          setForgeResult(data);
+          if (data.autoDetectedTime) {
+            setScheduleTime(data.autoDetectedTime);
+            setAutoScheduled(true);
+          }
+          playSystemSoundEffect('PURCHASE');
+          if (tutorialStep === 8 && onTutorialAction) onTutorialAction(9);
         }
-        playSystemSoundEffect('PURCHASE');
-        if (tutorialStep === 8 && onTutorialAction) onTutorialAction(9);
       }
     } catch {
       setForgeError('ForgeGuard is offline. Quest creation requires AI analysis — please try again.');

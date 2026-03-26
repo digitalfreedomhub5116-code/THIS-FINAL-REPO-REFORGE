@@ -19,6 +19,7 @@ import OnboardingNotice from './OnboardingNotice';
 import FoodLibrary from './FoodLibrary';
 import SkillsView from './SkillsView';
 import { SKILLS_ENABLED } from '../lib/rewards';
+import { Camera as CapCamera, CameraResultType, CameraSource } from '@capacitor/camera';
 
 interface HealthViewProps {
   healthProfile?: HealthProfile;
@@ -872,6 +873,95 @@ export const HealthView: React.FC<HealthViewProps> = ({
           setShowAIConfirm(true);
       } finally {
           setIsGeneratingPlan(false);
+      }
+  };
+
+  // ── Native Camera/Gallery picker (Capacitor) ──
+  const handleNativePick = async () => {
+      if (playerData.keys <= 0) {
+          setShowKeyAlert(true);
+          return;
+      }
+
+      try {
+          const photo = await CapCamera.getPhoto({
+              quality: 80,
+              allowEditing: false,
+              resultType: CameraResultType.DataUrl,
+              source: CameraSource.Prompt, // Shows "Camera or Gallery" native dialog
+              width: 800,
+              promptLabelHeader: 'Log Meal',
+              promptLabelPhoto: 'Take Photo',
+              promptLabelPicture: 'Choose from Gallery',
+              promptLabelCancel: 'Cancel',
+          });
+
+          if (!photo.dataUrl) return;
+
+          const keyConsumed = await onConsumeKey();
+          if (!keyConsumed) {
+              setShowKeyAlert(true);
+              return;
+          }
+
+          setScanError(null);
+          setShowMicros(false);
+          setScanState('SCANNING');
+          setScannedImage(photo.dataUrl);
+
+          const imageBase64 = photo.dataUrl.split(',')[1];
+          const response = await fetch(`${API_BASE}/api/nutrition/analyze`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify({ imageBase64, mimeType: 'image/jpeg' }),
+          });
+
+          if (!response.ok) {
+              const errData = await response.json().catch(() => ({ error: 'Analysis failed' }));
+              throw new Error(errData.error || `Server error ${response.status}`);
+          }
+
+          const { data } = await response.json();
+          const mappedResult: FoodItem = {
+              id: 'scan_' + Date.now(),
+              name: data.name || 'Analyzed Meal',
+              calories: Math.round(data.calories || 0),
+              protein: Math.round(data.protein_g || 0),
+              carbs: Math.round(data.carbs_g || 0),
+              fats: Math.round(data.fats_g || 0),
+              servingSize: data.serving_size || '1 meal',
+              fiber: data.fiber_g != null ? Math.round(data.fiber_g * 10) / 10 : undefined,
+              sugar: data.sugar_g != null ? Math.round(data.sugar_g * 10) / 10 : undefined,
+              sodium: data.sodium_mg != null ? Math.round(data.sodium_mg) : undefined,
+              vitaminA: data.vitamin_a_dv != null ? Math.round(data.vitamin_a_dv) : undefined,
+              vitaminC: data.vitamin_c_dv != null ? Math.round(data.vitamin_c_dv) : undefined,
+              vitaminD: data.vitamin_d_dv != null ? Math.round(data.vitamin_d_dv) : undefined,
+              vitaminB12: data.vitamin_b12_dv != null ? Math.round(data.vitamin_b12_dv) : undefined,
+              calcium: data.calcium_dv != null ? Math.round(data.calcium_dv) : undefined,
+              iron: data.iron_dv != null ? Math.round(data.iron_dv) : undefined,
+              potassium: data.potassium_mg != null ? Math.round(data.potassium_mg) : undefined,
+              ingredients: Array.isArray(data.ingredients) ? data.ingredients : [],
+              aiConfidence: data.confidence || 'Medium',
+          };
+          setScanResult(mappedResult);
+          setScanItems([]);
+          setScanState('RESULT');
+      } catch (error: any) {
+          // If Camera plugin isn't available (web), fall back to file input
+          if (error?.message?.includes('not implemented') || error?.message?.includes('not available') || error?.code === 'UNIMPLEMENTED') {
+              fileInputRef.current?.click();
+              return;
+          }
+          // User cancelled — not an error
+          if (error?.message?.includes('cancelled') || error?.message?.includes('canceled') || error?.message === 'User cancelled photos app') {
+              return;
+          }
+          const msg = error instanceof Error ? error.message : 'Analysis failed';
+          console.error('[Nutrition Scanner]', msg);
+          setScanError(msg);
+          setScanState('ERROR');
+          onAddRewards?.(0, 0, 1);
       }
   };
 
@@ -2402,7 +2492,10 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                             })}
                                         </div>
                                     </div>
-                                    <div className="bg-gray-900/40 border-2 border-dashed border-gray-800 rounded-2xl p-8 flex flex-col items-center justify-center text-center gap-4 hover:border-system-neon/50 hover:bg-gray-900/60 transition-all cursor-pointer relative overflow-hidden group h-[200px]">
+                                    <div
+                                        onClick={handleNativePick}
+                                        className="bg-gray-900/40 border-2 border-dashed border-gray-800 rounded-2xl p-8 flex flex-col items-center justify-center text-center gap-4 hover:border-system-neon/50 hover:bg-gray-900/60 transition-all cursor-pointer relative overflow-hidden group h-[200px]"
+                                    >
                                         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-system-neon/5 to-transparent translate-y-[-100%] group-hover:translate-y-[100%] transition-transform duration-1000 ease-in-out pointer-events-none" />
                                         
                                         <div className="w-16 h-16 rounded-full bg-black border border-system-neon/30 flex items-center justify-center relative shadow-[0_0_30px_rgba(0,210,255,0.1)] group-hover:shadow-[0_0_50px_rgba(0,210,255,0.2)] transition-shadow">
@@ -2412,18 +2505,19 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                         
                                         <div>
                                             <h3 className="text-lg font-bold text-white font-mono tracking-tight">LOG MEAL</h3>
-                                            <p className="text-[10px] text-gray-400 font-mono mt-1 tracking-wider uppercase opacity-80">CLICK TO SCAN</p>
+                                            <p className="text-[10px] text-gray-400 font-mono mt-1 tracking-wider uppercase opacity-80">TAP TO SCAN · CAMERA OR GALLERY</p>
                                             <p className="text-[9px] text-gray-500 font-mono tracking-widest uppercase mt-2 flex items-center justify-center gap-1">
                                                 <Key size={10} className="text-purple-500" /> 1 KEY REQUIRED
                                             </p>
                                         </div>
 
+                                        {/* Hidden fallback for web (triggered by handleNativePick on web) */}
                                         <input 
                                             type="file" 
                                             accept="image/*" 
                                             ref={fileInputRef}
                                             onChange={handleFileUpload}
-                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
+                                            className="hidden"
                                         />
                                     </div>
 

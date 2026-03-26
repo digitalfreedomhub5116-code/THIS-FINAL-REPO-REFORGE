@@ -129,9 +129,10 @@ Reject ANY quest that:
    - Breathing, blinking, existing, living, being alive, waking up (alone), heartbeat, digesting, ageing, speaking/talking (without specific target), hearing, seeing, thinking (vaguely)
 2. Is too vague to estimate time:
    - No duration, distance, quantity, repetition count, or clear endpoint
-   - Examples of SPAM: "run", "exercise", "study", "read", "eat", "clean", "work", "meditate", "walk" (alone with no target)
-   - Examples of VALID: "run 5km", "exercise for 30 minutes", "read 20 pages", "meditate for 10 minutes", "walk 3km", "clean my room for 45 minutes"
-   - HOWEVER: If the task is inherently clear and self-contained (e.g. "do laundry", "wash dishes", "make bed", "cook lunch"), accept it — these have obvious endpoints even without explicit targets.
+   - Examples of SPAM: "run", "exercise", "study", "read", "eat", "clean", "work", "meditate", "walk", "cycling", "static cycling", "jogging", "swimming", "pushups", "gym", "workout", "cardio", "yoga", "stretching", "plank" (alone with no specific target/duration)
+   - ANY physical exercise, workout, or sport activity MUST include an explicit time duration (e.g. "30 minutes"), distance (e.g. "5km"), or rep count (e.g. "100 pushups"). Without one of these, isSpam = true. No exceptions.
+   - Examples of VALID: "run 5km", "exercise for 30 minutes", "read 20 pages", "meditate for 10 minutes", "walk 3km", "clean my room for 45 minutes", "static cycling 20 mins", "100 pushups", "swim 1km"
+   - HOWEVER: If a NON-exercise task is inherently clear and self-contained (e.g. "do laundry", "wash dishes", "make bed", "cook lunch"), accept it — these have obvious endpoints even without explicit targets. This exception does NOT apply to exercise/workout/sport tasks.
 3. Contains nonsense, keyboard mashing, random letters, or gibberish:
    - Examples: "rinmfpr", "asdfghjk", "qwerty", "lkjhg", "zxcvbn", "aaaaaa", "test123", "abc", "xyz"
    - If it cannot be parsed as a real-world activity in any language, isSpam = true
