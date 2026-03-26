@@ -18,6 +18,7 @@ import { DEFAULT_PLANS, getRecommendedPlan } from '../lib/defaultPlans';
 import OnboardingNotice from './OnboardingNotice';
 import FoodLibrary from './FoodLibrary';
 import SkillsView from './SkillsView';
+import { SKILLS_ENABLED } from '../lib/rewards';
 
 interface HealthViewProps {
   healthProfile?: HealthProfile;
@@ -506,6 +507,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
   const [streakAnimKey, setStreakAnimKey] = useState(0);
   const prevStreakRef = useRef(playerData.streak);
   const [activeTab, setActiveTab] = useState<'WORKOUT' | 'NUTRITION' | 'SKILLS'>('WORKOUT');
+  const visibleTabs = SKILLS_ENABLED ? ['WORKOUT', 'NUTRITION', 'SKILLS'] : ['WORKOUT', 'NUTRITION'];
   
   // Track if user skipped setup
   const [skippedSetup, setSkippedSetup] = useState(false);
@@ -1619,7 +1621,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
 
         <div id="tut-health" className="h-full flex flex-col gap-6 font-mono">
             <div className="flex gap-2 sticky top-20 z-30 pt-1 pb-2 bg-transparent">
-                {['WORKOUT', 'NUTRITION', 'SKILLS'].map(t => (
+                {visibleTabs.map(t => (
                     <button
                         key={t}
                         id={t === 'NUTRITION' ? 'tut-health-nutrition-tab' : undefined}
@@ -2156,8 +2158,8 @@ export const HealthView: React.FC<HealthViewProps> = ({
                             {/* ── PROTOCOL CALENDAR ── */}
                             <ProtocolMonthView plan={calculatedPlan} />
 
-                            {/* ── FAB: Custom Plan Builder (hidden — set to true to re-enable) ── */}
-                            {false && (
+                            {/* ── FAB: Custom Plan Builder ── */}
+                            {(
                             <div className="fixed bottom-24 right-4 z-40">
                                 <motion.button
                                     onClick={() => { setShowCustomPlanBuilder(true); onToggleNav?.(false); }}
@@ -2761,7 +2763,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
                         );
                     })()}
                     
-                    {activeTab === 'SKILLS' && (
+                    {SKILLS_ENABLED && activeTab === 'SKILLS' && (
                         <motion.div 
                             key="skills" 
                             initial={{ opacity: 0 }} 

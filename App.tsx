@@ -1414,10 +1414,46 @@ const App: React.FC = () => {
                       if (freshRes.ok) {
                         const row = await freshRes.json();
                         const rawData = row.raw_data as Partial<PlayerData> | null;
-                        if (rawData) {
-                          Object.assign(rawData, { gold: row.gold, keys: row.keys, isBanned: row.is_banned, cheatStrikes: row.cheat_strikes });
-                          setPlayer(prev => ({ ...prev, ...rawData as Partial<PlayerData> }));
-                        }
+                        // After reset, server wipes XP/level/streak etc. We must reset local state
+                        // to match, otherwise the 2s sync will write stale data back to DB.
+                        setPlayer(prev => ({
+                          ...prev,
+                          level: 1,
+                          currentXp: 0,
+                          requiredXp: 100,
+                          totalXp: 0,
+                          dailyXp: 0,
+                          rank: 'E',
+                          streak: 0,
+                          hp: 100,
+                          maxHp: 100,
+                          mp: 50,
+                          maxMp: 50,
+                          isPenaltyActive: false,
+                          penaltyEndTime: undefined,
+                          penaltyTask: undefined,
+                          dailyQuestComplete: false,
+                          tutorialStep: 0,
+                          tutorialComplete: false,
+                          lastDungeonEntry: undefined,
+                          logs: [],
+                          quests: [],
+                          history: [],
+                          nutritionLogs: [],
+                          personalBests: {},
+                          skillProgress: [],
+                          consumables: { healthPotions: 0, shadowScrolls: 0, ultOrbs: 0 },
+                          stats: { strength: 10, intelligence: 10, discipline: 10, social: 10, focus: 10, willpower: 10 },
+                          dailyStats: { strength: 0, intelligence: 0, discipline: 0, social: 0, focus: 0, willpower: 0 },
+                          weeklyStats: { strength: 0, intelligence: 0, discipline: 0, social: 0, focus: 0, willpower: 0 },
+                          monthlyStats: { strength: 0, intelligence: 0, discipline: 0, social: 0, focus: 0, willpower: 0 },
+                          isConfigured: false,
+                          // Preserve identity fields from DB
+                          gold: rawData?.gold ?? row.gold ?? prev.gold,
+                          keys: rawData?.keys ?? row.keys ?? prev.keys,
+                          name: rawData?.name ?? prev.name,
+                          username: rawData?.username ?? prev.username,
+                        }));
                       }
                     }}
                   />
