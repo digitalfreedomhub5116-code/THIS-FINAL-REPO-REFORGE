@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
@@ -7,6 +7,7 @@ import { PlayerData, ReplitUser } from '../types';
 import { API_BASE, fetchWithRetry, checkServerHealth } from '../lib/apiConfig';
 import { isNativePlatform } from '../lib/googleAuth';
 import NativeGoogleButton from './NativeGoogleButton';
+import { shuffleFacts } from '../lib/funFacts';
 
 interface AuthViewProps {
   onLogin: (profile: Partial<PlayerData> & { replitUser?: ReplitUser }) => void;
@@ -30,6 +31,17 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode }) => {
   const [loading, setLoading]       = useState(false);
   const [error, setError]           = useState('');
 
+  // Fun facts cycling
+  const shuffledFacts = useRef(shuffleFacts());
+  const [factIndex, setFactIndex] = useState(0);
+  useEffect(() => {
+    if (!serverWaking && !loading) return;
+    const interval = setInterval(() => {
+      setFactIndex(i => (i + 1) % shuffledFacts.current.length);
+    }, 4500);
+    return () => clearInterval(interval);
+  }, [serverWaking, loading]);
+
   const [particles] = useState(() =>
     Array.from({ length: 18 }, (_, i) => ({
       id: i,
@@ -48,16 +60,17 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode }) => {
         setChecking(false);
         return;
       }
-      // Pre-check server reachability — wake up Railway/Supabase if needed
+      // Pre-check server reachability (Railway cold starts can take 15-30s)
       const healthy = await checkServerHealth();
       if (!healthy) {
         setServerWaking(true);
-        // Retry up to 3 times with 2s gap
-        for (let i = 0; i < 3; i++) {
-          await new Promise(r => setTimeout(r, 2000));
-          if (await checkServerHealth()) { setServerWaking(false); break; }
+        let woke = false;
+        for (let i = 0; i < 6; i++) {
+          await new Promise(r => setTimeout(r, 3000));
+          if (await checkServerHealth()) { woke = true; break; }
         }
         setServerWaking(false);
+        if (!woke) { setChecking(false); return; }
       }
       try {
         const res = await fetchWithRetry(`${API_BASE}/api/auth/local/whoami`, { credentials: 'include' });
@@ -197,11 +210,32 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode }) => {
 
   if (checking) {
     return (
-      <div className="fixed inset-0 bg-[#07070f] flex items-center justify-center z-50">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-2 border-[#6366f1]/30 border-t-[#6366f1] rounded-full animate-spin" />
-          <p className="text-[#6366f1] font-mono text-xs tracking-widest animate-pulse">VERIFYING...</p>
+      <div className="fixed inset-0 z-[500] bg-black flex flex-col items-center justify-center font-mono gap-4 px-6">
+        <motion.div animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 2, repeat: Infinity }} className="text-system-neon text-lg font-black tracking-widest">
+          REFORGE
+        </motion.div>
+        <div className="text-gray-400 text-xs text-center">
+          {serverWaking ? 'Waking up the server... this might take a few seconds' : 'Checking session...'}
         </div>
+        {serverWaking && (
+          <>
+            <div className="w-48 h-1 bg-gray-800 rounded-full overflow-hidden mt-1">
+              <motion.div className="h-full bg-system-neon/60 rounded-full" animate={{ x: ['-100%', '100%'] }} transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }} style={{ width: '40%' }} />
+            </div>
+            <AnimatePresence mode="wait">
+              <motion.p
+                key={factIndex}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.4 }}
+                className="text-gray-500 text-[11px] text-center max-w-xs leading-relaxed mt-3 italic"
+              >
+                {shuffledFacts.current[factIndex]}
+              </motion.p>
+            </AnimatePresence>
+          </>
+        )}
       </div>
     );
   }
@@ -209,6 +243,38 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode }) => {
   return (
     <div className="fixed inset-0 bg-[#07070f] flex items-center justify-center overflow-y-auto"
          style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)' }}>
+      {/* Loading overlay with fun facts */}
+      <AnimatePresence>
+        {loading && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-50 bg-black/90 flex flex-col items-center justify-center gap-4 px-6"
+          >
+            <motion.div animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 2, repeat: Infinity }} className="text-system-neon text-lg font-black tracking-widest">
+              REFORGE
+            </motion.div>
+            <div className="text-gray-400 text-xs text-center">Waking up the server... this might take a few seconds</div>
+            <div className="w-48 h-1 bg-gray-800 rounded-full overflow-hidden">
+              <motion.div className="h-full bg-system-neon/60 rounded-full" animate={{ x: ['-100%', '100%'] }} transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }} style={{ width: '40%' }} />
+            </div>
+            <AnimatePresence mode="wait">
+              <motion.p
+                key={factIndex}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.4 }}
+                className="text-gray-500 text-[11px] text-center max-w-xs leading-relaxed mt-2 italic"
+              >
+                {shuffledFacts.current[factIndex]}
+              </motion.p>
+            </AnimatePresence>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Particles */}
       <div className="absolute inset-0 pointer-events-none">
         {particles.map(p => (
