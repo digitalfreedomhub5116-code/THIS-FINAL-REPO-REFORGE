@@ -355,6 +355,24 @@ export const useSystem = () => {
     setPlayer(prev => {
       const now = Date.now();
       const todayStart = new Date().setHours(0, 0, 0, 0);
+
+      // ── One-time cleanup: remove false "Missed Workout" WARNING logs from timezone bug ──
+      if (!(prev as any)._missedWorkoutCleanupDone) {
+        const cleanedLogs = prev.logs.filter(
+          l => !(l.type === 'WARNING' && l.message.includes('Missed Workout'))
+        );
+        if (cleanedLogs.length !== prev.logs.length) {
+          // Logs were cleaned — persist the fix even if daily reset isn't due yet
+          if ((prev.lastDailyReset || 0) >= todayStart) {
+            return { ...prev, logs: cleanedLogs, _missedWorkoutCleanupDone: true } as any;
+          }
+          // Otherwise fall through to the normal daily reset with cleaned logs
+          prev = { ...prev, logs: cleanedLogs, _missedWorkoutCleanupDone: true } as any;
+        } else {
+          prev = { ...prev, _missedWorkoutCleanupDone: true } as any;
+        }
+      }
+
       if ((prev.lastDailyReset || 0) >= todayStart) return prev;
 
       // ── Snapshot yesterday's stats into history ──
