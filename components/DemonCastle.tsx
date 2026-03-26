@@ -2,59 +2,37 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, animate } from 'framer-motion';
-import { Ghost, Key, Coins, Skull, LogOut, Timer, AlertOctagon, Sparkles, Crown, ArrowUpCircle, Heart, Scroll, Star } from 'lucide-react';
+import { Ghost, Key, Coins, Skull, LogOut, Timer, AlertOctagon, Sparkles, Crown, Heart, Scroll, Star } from 'lucide-react';
 import { playSystemSoundEffect } from '../utils/soundEngine';
 import { useCoinReward } from '../hooks/useCoinReward';
 
 type CardType = 'SAFE' | 'TRAP' | 'JACKPOT';
+type RewardType = 'GOLD' | 'POTION' | 'SCROLL' | 'ORB' | 'KEY';
 
 interface FloorCardData {
   id: string;
   type: CardType;
+  rewardType?: RewardType;
   reward: { gold: number; xp: number; keys: number; bonusItem?: 'POTION' | 'SCROLL' | 'ORB' };
 }
 
-const rollWeighted = (table: { value: number; weight: number }[]): number => {
-  const total = table.reduce((s, r) => s + r.weight, 0);
+/** Pick a single reward type from weighted pool */
+const rollRewardType = (): RewardType => {
+  // Common: GOLD 30%, POTION 25%, SCROLL 25%  |  Rare: KEY 10%, ORB 10%
+  const pool: { type: RewardType; weight: number }[] = [
+    { type: 'GOLD', weight: 30 },
+    { type: 'POTION', weight: 25 },
+    { type: 'SCROLL', weight: 25 },
+    { type: 'KEY', weight: 10 },
+    { type: 'ORB', weight: 10 },
+  ];
+  const total = pool.reduce((s, r) => s + r.weight, 0);
   let roll = Math.random() * total;
-  for (const entry of table) {
+  for (const entry of pool) {
     roll -= entry.weight;
-    if (roll <= 0) return entry.value;
+    if (roll <= 0) return entry.type;
   }
-  return table[table.length - 1].value;
-};
-
-const rollBonusItem = (floor: number): 'POTION' | 'SCROLL' | 'ORB' | undefined => {
-  const orbChance = floor >= 8 ? Math.min(0.08 + (floor - 8) * 0.005, 0.18) : 0;
-  const scrollChance = floor >= 3 ? Math.min(0.15 + floor * 0.005, 0.25) : 0.05;
-  const potionChance = 0.30;
-  const roll = Math.random();
-  if (roll < orbChance) return 'ORB';
-  if (roll < orbChance + scrollChance) return 'SCROLL';
-  if (roll < orbChance + scrollChance + potionChance) return 'POTION';
-  return undefined;
-};
-
-const rollGold = (floor: number): number => {
-  const base = 10 + floor * 5;
-  const variance = rollWeighted([
-    { value: 0,  weight: 10 },
-    { value: 10, weight: 30 },
-    { value: 25, weight: 25 },
-    { value: 50, weight: 15 },
-    { value: 80, weight: 8 },
-  ]);
-  return base + variance;
-};
-
-const rollXp = (_floor: number): number => {
-  return 0;
-};
-
-const rollKeyChance = (floor: number, isJackpotFloor: boolean): boolean => {
-  if (isJackpotFloor) return true;
-  const chance = Math.min(0.10 + floor * 0.008, 0.30);
-  return Math.random() < chance;
+  return 'GOLD';
 };
 
 interface DemonCastleProps {
@@ -107,16 +85,6 @@ const getReviveCost = (floor: number): number => {
   return 46; // Cap at 46 for very high floors, or extend if needed
 };
 
-const getKeyReward = (floor: number): number => {
-  if (floor <= 10) return 1;
-  if (floor <= 20) return 3;
-  if (floor <= 30) return 5;
-  if (floor <= 40) return 8;
-  if (floor <= 50) return 11;
-  // 51+ adds 3 every 10 floors (14, 17, 20...)
-  const extraTiers = Math.floor((floor - 51) / 10);
-  return 14 + (Math.max(0, extraTiers) * 3);
-};
 
 // --- SUB-COMPONENT: VINTAGE ELEVATOR GAUGE ---
 const ElevatorGauge: React.FC<{ floor: number }> = ({ floor }) => {
@@ -229,39 +197,42 @@ const VintageCardBack = () => (
 
 const VintageCardFront = ({ data }: { data: FloorCardData }) => {
   const isTrap = data.type === 'TRAP';
-  const isJackpot = data.type === 'JACKPOT';
-  const hasKey = data.reward.keys > 0;
+  const isRare = data.type === 'JACKPOT';
+  const rt = data.rewardType || 'GOLD';
 
   // Memoize random particle values
-  const jackpotParticles = useMemo(() => Array.from({ length: 6 }).map(() => ({
+  const sparkleParticles = useMemo(() => Array.from({ length: 6 }).map(() => ({
       x: (Math.random() - 0.5) * 60,
       y: (Math.random() - 0.5) * 60,
       delay: Math.random()
   })), []);
 
-  const goldParticles = useMemo(() => Array.from({ length: 4 }).map(() => ({
+  const floatParticles = useMemo(() => Array.from({ length: 4 }).map(() => ({
       marginLeft: (Math.random() - 0.5) * 50,
       delay: Math.random() * 0.7
   })), []);
 
-  // Base Styles based on Type
-  const bgClass = isTrap 
-    ? "bg-[#0f0f0f] border-red-900"
-    : isJackpot 
-      ? "bg-[#1a0b2e] border-purple-500"
-      : "bg-[#f5e6ca] border-[#c2a168]"; // Parchment
+  // Theme config per reward type
+  const theme = isTrap
+    ? { bg: "bg-[#0f0f0f] border-red-900", corner: '', cornerColor: '' }
+    : isRare
+      ? { bg: "bg-[#1a0b2e] border-purple-500", corner: 'border-current', cornerColor: '#a855f7' }
+      : rt === 'POTION'
+        ? { bg: "bg-[#1a0808] border-red-800", corner: 'border-current', cornerColor: '#dc2626' }
+        : rt === 'SCROLL'
+          ? { bg: "bg-[#081218] border-cyan-700", corner: 'border-current', cornerColor: '#0891b2' }
+          : { bg: "bg-[#f5e6ca] border-[#c2a168]", corner: 'border-current', cornerColor: '#854d0e' };
 
   return (
-    <div className={`w-full h-full rounded-xl border-[4px] relative overflow-hidden flex flex-col items-center justify-center shadow-[inset_0_0_30px_rgba(0,0,0,0.2)] ${bgClass}`}>
+    <div className={`w-full h-full rounded-xl border-[4px] relative overflow-hidden flex flex-col items-center justify-center shadow-[inset_0_0_30px_rgba(0,0,0,0.2)] ${theme.bg}`}>
       
       {/* Texture Overlays */}
       <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/paper-fibers.png")' }} />
       
       {/* Corner Decorations */}
-      <div className={`absolute top-1 left-1 w-4 h-4 border-t-2 border-l-2 rounded-tl-sm opacity-50 ${isTrap ? 'border-red-700' : 'border-current'}`} style={{ color: isTrap ? '' : isJackpot ? '#a855f7' : '#854d0e' }} />
-      <div className={`absolute top-1 right-1 w-4 h-4 border-t-2 border-r-2 rounded-tr-sm opacity-50 ${isTrap ? 'border-red-700' : 'border-current'}`} style={{ color: isTrap ? '' : isJackpot ? '#a855f7' : '#854d0e' }} />
-      <div className={`absolute bottom-1 left-1 w-4 h-4 border-b-2 border-l-2 rounded-bl-sm opacity-50 ${isTrap ? 'border-red-700' : 'border-current'}`} style={{ color: isTrap ? '' : isJackpot ? '#a855f7' : '#854d0e' }} />
-      <div className={`absolute bottom-1 right-1 w-4 h-4 border-b-2 border-r-2 rounded-br-sm opacity-50 ${isTrap ? 'border-red-700' : 'border-current'}`} style={{ color: isTrap ? '' : isJackpot ? '#a855f7' : '#854d0e' }} />
+      {['top-1 left-1 border-t-2 border-l-2 rounded-tl-sm', 'top-1 right-1 border-t-2 border-r-2 rounded-tr-sm', 'bottom-1 left-1 border-b-2 border-l-2 rounded-bl-sm', 'bottom-1 right-1 border-b-2 border-r-2 rounded-br-sm'].map((pos, i) => (
+        <div key={i} className={`absolute w-4 h-4 opacity-50 ${pos} ${isTrap ? 'border-red-700' : theme.corner}`} style={{ color: isTrap ? '' : theme.cornerColor }} />
+      ))}
 
       {/* Floating Content Wrapper */}
       <motion.div 
@@ -286,101 +257,87 @@ const VintageCardFront = ({ data }: { data: FloorCardData }) => {
                <div className="h-px w-8 bg-red-800/50 mt-1 mb-1" />
                <div className="text-[8px] text-red-500/70 font-mono tracking-widest">SYSTEM LOCK</div>
             </>
-        ) : isJackpot ? (
-            <>
-               <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                  {jackpotParticles.map((p, i) => (
-                      <motion.div
-                        key={i}
-                        initial={{ opacity: 0, scale: 0 }}
-                        animate={{ opacity: [0, 1, 0], scale: [0, 1, 0], x: p.x, y: p.y }}
-                        transition={{ duration: 2, repeat: Infinity, delay: p.delay }}
-                        className="absolute top-1/2 left-1/2"
-                      >
-                          <Sparkles size={8} className="text-yellow-200" />
-                      </motion.div>
-                  ))}
-               </div>
 
-               <motion.div 
-                 animate={{ rotateY: 360 }}
-                 transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
-                 className="text-purple-400 drop-shadow-[0_0_15px_rgba(168,85,247,0.6)] mb-2 relative z-10"
-               >
-                   <Crown size={48} strokeWidth={1.5} />
-               </motion.div>
-               <div className="font-black text-purple-300 uppercase tracking-widest text-base font-serif relative z-10">JACKPOT</div>
-               <div className="text-[8px] text-purple-400/70 font-mono tracking-widest mt-1 flex items-center gap-1 justify-center">
-                   <Key size={8} /> +{data.reward.keys}
-               </div>
-            </>
-        ) : hasKey ? (
+        ) : rt === 'KEY' ? (
             <>
                <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                  {jackpotParticles.map((p, i) => (
-                      <motion.div
-                        key={i}
-                        initial={{ opacity: 0, scale: 0 }}
-                        animate={{ opacity: [0, 1, 0], scale: [0, 1, 0], x: p.x, y: p.y }}
-                        transition={{ duration: 2, repeat: Infinity, delay: p.delay }}
-                        className="absolute top-1/2 left-1/2"
-                      >
+                  {sparkleParticles.map((p, i) => (
+                      <motion.div key={i} initial={{ opacity: 0, scale: 0 }} animate={{ opacity: [0, 1, 0], scale: [0, 1, 0], x: p.x, y: p.y }} transition={{ duration: 2, repeat: Infinity, delay: p.delay }} className="absolute top-1/2 left-1/2">
                           <Sparkles size={8} className="text-purple-200" />
                       </motion.div>
                   ))}
                </div>
-
-               <motion.div 
-                 animate={{ rotateY: 360 }}
-                 transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
-                 className="text-purple-600 drop-shadow-[0_0_15px_rgba(147,51,234,0.4)] mb-2 relative z-10"
-               >
+               <motion.div animate={{ rotateY: 360 }} transition={{ duration: 5, repeat: Infinity, ease: "linear" }} className="text-purple-600 drop-shadow-[0_0_15px_rgba(147,51,234,0.4)] mb-2 relative z-10">
                    <Key size={48} strokeWidth={1.5} fill="#a855f7" className="text-purple-800" />
                </motion.div>
-               <div className="font-black text-purple-800 uppercase tracking-widest text-xl font-serif relative z-10 drop-shadow-sm">+{data.reward.keys} KEY</div>
-               <div className="text-[8px] text-purple-700 font-bold uppercase tracking-widest relative z-10">DUNGEON ITEM</div>
+               <div className="font-black text-purple-300 uppercase tracking-widest text-xl font-serif relative z-10 drop-shadow-sm">+1 KEY</div>
+               <div className="text-[8px] text-purple-400/70 font-bold uppercase tracking-widest relative z-10">RARE DROP</div>
             </>
+
+        ) : rt === 'ORB' ? (
+            <>
+               <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                  {sparkleParticles.map((p, i) => (
+                      <motion.div key={i} initial={{ opacity: 0, scale: 0 }} animate={{ opacity: [0, 1, 0], scale: [0, 1, 0], x: p.x, y: p.y }} transition={{ duration: 2, repeat: Infinity, delay: p.delay }} className="absolute top-1/2 left-1/2">
+                          <Sparkles size={8} className="text-orange-200" />
+                      </motion.div>
+                  ))}
+               </div>
+               <motion.div animate={{ rotateY: 360 }} transition={{ duration: 5, repeat: Infinity, ease: "linear" }} className="text-orange-400 drop-shadow-[0_0_15px_rgba(249,115,22,0.5)] mb-2 relative z-10">
+                   <Star size={48} strokeWidth={1.5} fill="#f97316" className="text-orange-600" />
+               </motion.div>
+               <div className="font-black text-orange-300 uppercase tracking-widest text-lg font-serif relative z-10 drop-shadow-sm">ULT ORB</div>
+               <div className="text-[8px] text-orange-400/70 font-bold uppercase tracking-widest relative z-10">RARE DROP</div>
+            </>
+
+        ) : rt === 'POTION' ? (
+            <>
+               <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                  {floatParticles.map((p, i) => (
+                      <motion.div key={i} initial={{ y: 60, opacity: 0 }} animate={{ y: -60, opacity: [0, 1, 0] }} transition={{ duration: 2.5, repeat: Infinity, delay: i * 0.7, ease: "easeOut" }} className="absolute left-1/2 text-red-400/20" style={{ marginLeft: p.marginLeft }}>
+                          <Heart size={10} fill="currentColor" />
+                      </motion.div>
+                  ))}
+               </div>
+               <motion.div animate={{ rotateY: 360 }} transition={{ duration: 6, repeat: Infinity, ease: "linear" }} className="text-red-400 drop-shadow-[0_0_10px_rgba(239,68,68,0.4)] mb-2 relative z-10">
+                   <Heart size={48} strokeWidth={1.5} fill="#ef4444" className="text-red-600" />
+               </motion.div>
+               <div className="font-black text-red-300 uppercase tracking-widest text-lg font-serif relative z-10 drop-shadow-sm">POTION</div>
+               <div className="text-[8px] text-red-400/70 font-bold uppercase tracking-widest relative z-10">+1 HEALTH</div>
+            </>
+
+        ) : rt === 'SCROLL' ? (
+            <>
+               <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                  {floatParticles.map((p, i) => (
+                      <motion.div key={i} initial={{ y: 60, opacity: 0 }} animate={{ y: -60, opacity: [0, 1, 0] }} transition={{ duration: 2.5, repeat: Infinity, delay: i * 0.7, ease: "easeOut" }} className="absolute left-1/2 text-cyan-400/20" style={{ marginLeft: p.marginLeft }}>
+                          <Scroll size={10} fill="currentColor" />
+                      </motion.div>
+                  ))}
+               </div>
+               <motion.div animate={{ rotateY: 360 }} transition={{ duration: 6, repeat: Infinity, ease: "linear" }} className="text-cyan-400 drop-shadow-[0_0_10px_rgba(0,210,255,0.4)] mb-2 relative z-10">
+                   <Scroll size={48} strokeWidth={1.5} className="text-cyan-400" />
+               </motion.div>
+               <div className="font-black text-cyan-300 uppercase tracking-widest text-lg font-serif relative z-10 drop-shadow-sm">SCROLL</div>
+               <div className="text-[8px] text-cyan-400/70 font-bold uppercase tracking-widest relative z-10">+1 SHADOW</div>
+            </>
+
         ) : (
             <>
                {/* Gold Particles */}
                <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                  {goldParticles.map((p, i) => (
-                      <motion.div
-                        key={i}
-                        initial={{ y: 60, opacity: 0 }}
-                        animate={{ y: -60, opacity: [0, 1, 0] }}
-                        transition={{ duration: 2.5, repeat: Infinity, delay: i * 0.7, ease: "easeOut" }}
-                        className="absolute left-1/2 text-[#b08d55]/20"
-                        style={{ marginLeft: p.marginLeft }}
-                      >
+                  {floatParticles.map((p, i) => (
+                      <motion.div key={i} initial={{ y: 60, opacity: 0 }} animate={{ y: -60, opacity: [0, 1, 0] }} transition={{ duration: 2.5, repeat: Infinity, delay: i * 0.7, ease: "easeOut" }} className="absolute left-1/2 text-[#b08d55]/20" style={{ marginLeft: p.marginLeft }}>
                           <Coins size={10} fill="currentColor" />
                       </motion.div>
                   ))}
                </div>
-
-               <motion.div 
-                 animate={{ rotateY: 360 }}
-                 transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
-                 className="text-[#b08d55] drop-shadow-sm mb-2 relative z-10"
-               >
+               <motion.div animate={{ rotateY: 360 }} transition={{ duration: 6, repeat: Infinity, ease: "linear" }} className="text-[#b08d55] drop-shadow-sm mb-2 relative z-10">
                    <Coins size={48} strokeWidth={1.5} fill="#eab308" className="text-yellow-700" />
                </motion.div>
                <div className="font-black text-[#5c4033] uppercase tracking-widest text-xl font-serif relative z-10 drop-shadow-sm">{data.reward.gold}</div>
                <div className="text-[8px] text-[#854d0e] font-bold uppercase tracking-widest relative z-10">GOLD COINS</div>
             </>
-        )}
-
-        {/* Bonus Item Badge */}
-        {!isTrap && data.reward.bonusItem && (
-          <div className="mt-1.5 px-2 py-0.5 rounded-full text-[7px] font-black tracking-widest uppercase relative z-10"
-            style={{
-              background: data.reward.bonusItem === 'ORB' ? 'rgba(168,85,247,0.25)' : data.reward.bonusItem === 'SCROLL' ? 'rgba(0,210,255,0.2)' : 'rgba(239,68,68,0.2)',
-              color: data.reward.bonusItem === 'ORB' ? '#c084fc' : data.reward.bonusItem === 'SCROLL' ? '#67e8f9' : '#fca5a5',
-              border: `1px solid ${data.reward.bonusItem === 'ORB' ? 'rgba(168,85,247,0.4)' : data.reward.bonusItem === 'SCROLL' ? 'rgba(0,210,255,0.3)' : 'rgba(239,68,68,0.3)'}`,
-            }}
-          >
-            {data.reward.bonusItem === 'ORB' ? '⚡ ULT ORB' : data.reward.bonusItem === 'SCROLL' ? '📜 SCROLL' : '🧪 POTION'}
-          </div>
         )}
       </motion.div>
     </div>
@@ -455,13 +412,17 @@ const FloatingCardWrapper: React.FC<{ children: React.ReactNode, index: number }
 };
 
 // --- LOOT FLYING ANIMATION ---
-const FlyingLoot: React.FC<{ lootType: 'GOLD' | 'KEY'; startRect: DOMRect | null }> = ({ lootType, startRect }) => {
+const FlyingLoot: React.FC<{ lootType: RewardType; startRect: DOMRect | null }> = ({ lootType, startRect }) => {
     if (!startRect) return null;
 
-    // Calculate different destinations based on type
-    // Gold goes to "loot-bag-balance" (top right, upper)
-    // Key goes to "loot-bag-keys" (top right, lower)
-    const endTop = lootType === 'GOLD' ? 40 : 65; 
+    const config: Record<RewardType, { bg: string; icon: React.ReactNode }> = {
+        GOLD:   { bg: 'bg-yellow-400 border-white', icon: <Coins size={20} color="white" fill="currentColor" /> },
+        KEY:    { bg: 'bg-purple-500 border-white', icon: <Key size={20} color="white" fill="currentColor" /> },
+        POTION: { bg: 'bg-red-500 border-white',    icon: <Heart size={20} color="white" fill="currentColor" /> },
+        SCROLL: { bg: 'bg-cyan-500 border-white',   icon: <Scroll size={20} color="white" /> },
+        ORB:    { bg: 'bg-orange-500 border-white',  icon: <Star size={20} color="white" fill="currentColor" /> },
+    };
+    const { bg, icon } = config[lootType] || config.GOLD;
 
     return (
         <motion.div
@@ -474,16 +435,16 @@ const FlyingLoot: React.FC<{ lootType: 'GOLD' | 'KEY'; startRect: DOMRect | null
                 zIndex: 100 
             }}
             animate={{ 
-                top: endTop, 
-                left: window.innerWidth - 60, // Approximate right align
+                top: lootType === 'GOLD' ? 40 : 65, 
+                left: window.innerWidth - 60,
                 scale: [1, 1.5, 0.5],
                 opacity: [1, 1, 0]
             }}
             transition={{ duration: 0.6, ease: "easeInOut" }} 
             className="pointer-events-none"
         >
-            <div className={`p-2 rounded-full border-2 shadow-[0_0_20px_rgba(255,255,255,0.8)] ${lootType === 'KEY' ? 'bg-purple-500 border-white' : 'bg-yellow-400 border-white'}`}>
-                {lootType === 'KEY' ? <Key size={20} color="white" fill="currentColor" /> : <Coins size={20} color="white" fill="currentColor" />}
+            <div className={`p-2 rounded-full border-2 shadow-[0_0_20px_rgba(255,255,255,0.8)] ${bg}`}>
+                {icon}
             </div>
         </motion.div>
     );
@@ -1061,7 +1022,7 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
   const [zoomFlipped, setZoomFlipped] = useState(false);
 
   // FX
-  const [flyingLoot, setFlyingLoot] = useState<{ lootType: 'GOLD' | 'KEY'; rect: DOMRect } | null>(null);
+  const [flyingLoot, setFlyingLoot] = useState<{ lootType: RewardType; rect: DOMRect } | null>(null);
   const [isScreenShaking, setIsScreenShaking] = useState(false);
 
   // Track lost loot for game over display
@@ -1083,58 +1044,67 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
 
   const generateFloor = (floorNum: number) => {
       const ts = Date.now();
-      const isJackpotFloor = floorNum % 5 === 0;
-      
-      let trapCount = 1;
-      if (floorNum === 1) trapCount = 0;
-      else if (isJackpotFloor) trapCount = 0; // Guaranteed win floor
-      else if (floorNum >= 8) trapCount = 2;
-
+      const isLootFloor = floorNum % 5 === 0;
       const newCards: FloorCardData[] = [];
 
-      for (let i = 0; i < trapCount; i++) {
-          newCards.push({ 
-              id: `trap-${i}-${floorNum}-${ts}`, 
-              type: 'TRAP', 
-              reward: { gold: 0, xp: 0, keys: 0 } 
-          });
-      }
-
-      const safeSlots = 4 - trapCount;
-      
-      for (let i = 0; i < safeSlots; i++) {
-          const isJackpotCard = isJackpotFloor && i === 0; 
-
-          const hasKey = rollKeyChance(floorNum, isJackpotFloor);
-          const keyRewardCount = hasKey ? getKeyReward(floorNum) : 0;
-
-          if (isJackpotCard) {
-              const jackpotGold = rollWeighted([
-                  { value: 100 + floorNum * 10, weight: 40 },
-                  { value: 150 + floorNum * 15, weight: 30 },
-                  { value: 200 + floorNum * 20, weight: 15 },
-                  { value: 300 + floorNum * 25, weight: 5 },
-              ]);
+      if (isLootFloor) {
+          // Loot floors: 2 key cards + 2 ult orb cards (50-50 split)
+          for (let i = 0; i < 2; i++) {
               newCards.push({
-                  id: `jackpot-${floorNum}-${ts}`,
+                  id: `key-${i}-${floorNum}-${ts}`,
                   type: 'JACKPOT',
-                  reward: { 
-                      gold: jackpotGold, 
-                      xp: 0, 
-                      keys: Math.max(1, getKeyReward(floorNum)),
-                      bonusItem: rollBonusItem(floorNum),
-                  }
+                  rewardType: 'KEY',
+                  reward: { gold: 0, xp: 0, keys: 1 }
               });
-          } else {
+          }
+          for (let i = 0; i < 2; i++) {
+              newCards.push({
+                  id: `orb-${i}-${floorNum}-${ts}`,
+                  type: 'JACKPOT',
+                  rewardType: 'ORB',
+                  reward: { gold: 0, xp: 0, keys: 0, bonusItem: 'ORB' }
+              });
+          }
+      } else {
+          // Normal floors: 1 mandatory skull (except floor 1) + remaining single-item cards
+          const hasTrap = floorNum > 1;
+          if (hasTrap) {
+              newCards.push({
+                  id: `trap-0-${floorNum}-${ts}`,
+                  type: 'TRAP',
+                  reward: { gold: 0, xp: 0, keys: 0 }
+              });
+          }
+
+          const safeSlots = 4 - (hasTrap ? 1 : 0);
+          for (let i = 0; i < safeSlots; i++) {
+              const rt = rollRewardType();
+              const isRare = rt === 'KEY' || rt === 'ORB';
+
+              let reward: FloorCardData['reward'];
+              switch (rt) {
+                  case 'GOLD':
+                      reward = { gold: 10 + Math.floor(Math.random() * 21), xp: 0, keys: 0 };
+                      break;
+                  case 'POTION':
+                      reward = { gold: 0, xp: 0, keys: 0, bonusItem: 'POTION' };
+                      break;
+                  case 'SCROLL':
+                      reward = { gold: 0, xp: 0, keys: 0, bonusItem: 'SCROLL' };
+                      break;
+                  case 'KEY':
+                      reward = { gold: 0, xp: 0, keys: 1 };
+                      break;
+                  case 'ORB':
+                      reward = { gold: 0, xp: 0, keys: 0, bonusItem: 'ORB' };
+                      break;
+              }
+
               newCards.push({
                   id: `safe-${i}-${floorNum}-${ts}`,
-                  type: 'SAFE',
-                  reward: { 
-                      gold: rollGold(floorNum), 
-                      xp: rollXp(floorNum), 
-                      keys: keyRewardCount,
-                      bonusItem: rollBonusItem(floorNum),
-                  }
+                  type: isRare ? 'JACKPOT' : 'SAFE',
+                  rewardType: rt,
+                  reward,
               });
           }
       }
@@ -1252,21 +1222,15 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
                   // Construct center rect since card is now centered
                   const centerRect = new DOMRect(window.innerWidth / 2, window.innerHeight / 2, 0, 0);
 
-                  // Decide Loot Type Animation
-                  const isKeyReward = card.reward.keys > 0;
+                  const rt = card.rewardType || 'GOLD';
                   
-                  // Trigger Coin Animation (DOM particles) if gold present
-                  if (card.reward.gold > 0 && !isKeyReward) {
+                  // Trigger Coin Animation (DOM particles) if gold
+                  if (rt === 'GOLD') {
                       triggerCoinReward(centerRect, 'loot-bag-balance');
                   }
                   
-                  // Flying Loot Animation (React Motion)
-                  if (isKeyReward) {
-                      // Prioritize Key animation if keys are present
-                      setFlyingLoot({ lootType: 'KEY', rect: centerRect });
-                  } else if (card.reward.gold > 0) {
-                      setFlyingLoot({ lootType: 'GOLD', rect: centerRect });
-                  }
+                  // Flying Loot Animation for all reward types
+                  setFlyingLoot({ lootType: rt, rect: centerRect });
 
                   // Clear flying loot after animation
                   setTimeout(() => {
@@ -1286,20 +1250,20 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
                   setTimeout(() => {
                       if (!isMounted.current) return;
                       
-                      // Calculate "Near Miss" display probability based on current difficulty
-                      // Higher floors = More traps visible in reveal = Scarier
-                      // Jackpot floor = NO TRAPS visible
-                      const isJackpotFloor = floor % 5 === 0;
+                      // Near-miss: show what the other cards "were"
+                      const isLootFloor = floor % 5 === 0;
                       let trapProbability = floor >= 8 ? 0.6 : 0.3;
-                      if (isJackpotFloor) trapProbability = 0;
+                      if (isLootFloor) trapProbability = 0;
 
+                      const fakeTypes: RewardType[] = ['GOLD', 'POTION', 'SCROLL', 'KEY', 'ORB'];
                       setCards(prevCards => prevCards.map(c => {
-                          if (c.id === card.id) return c; // Keep selected safe
+                          if (c.id === card.id) return c; // Keep selected card
                           
                           const r = Math.random();
-                          if (r < trapProbability) return { ...c, type: 'TRAP' }; 
-                          if (r < trapProbability + 0.2) return { ...c, type: 'JACKPOT', reward: { ...c.reward, gold: 100, keys: getKeyReward(floor) } };
-                          return { ...c, type: 'SAFE', reward: { ...c.reward, gold: 5 } };
+                          if (r < trapProbability) return { ...c, type: 'TRAP', rewardType: undefined };
+                          const fakeRt = fakeTypes[Math.floor(Math.random() * fakeTypes.length)];
+                          const isRareFake = fakeRt === 'KEY' || fakeRt === 'ORB';
+                          return { ...c, type: isRareFake ? 'JACKPOT' : 'SAFE', rewardType: fakeRt, reward: fakeRt === 'GOLD' ? { gold: 10 + Math.floor(Math.random() * 21), xp: 0, keys: 0 } : fakeRt === 'KEY' ? { gold: 0, xp: 0, keys: 1 } : { gold: 0, xp: 0, keys: 0, bonusItem: fakeRt === 'POTION' ? 'POTION' : fakeRt === 'SCROLL' ? 'SCROLL' : 'ORB' } };
                       }));
 
                       // Trigger the flip for all cards in the grid
@@ -1506,11 +1470,22 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
                   </div>
                   <div className="text-right">
                       <div className="text-[10px] text-gray-500 font-bold tracking-widest uppercase">Loot Bag</div>
-                      <div id="loot-bag-balance" className="flex items-center justify-end gap-2 text-xl font-bold text-yellow-500 font-serif">
-                          <Coins size={18} fill="currentColor" /> <CountingNumber value={lootBag.gold} />
+                      <div id="loot-bag-balance" className="flex items-center justify-end gap-2 text-lg font-bold text-yellow-500 font-serif">
+                          <Coins size={16} fill="currentColor" /> <CountingNumber value={lootBag.gold} />
                       </div>
-                      <div id="loot-bag-keys" className="flex items-center justify-end gap-2 text-sm font-bold text-purple-400 font-serif mt-0.5">
-                          <Key size={14} className="text-purple-500" /> <CountingNumber value={lootBag.keys} />
+                      <div className="flex items-center justify-end gap-3 mt-0.5">
+                          <div id="loot-bag-keys" className="flex items-center gap-1 text-xs font-bold text-purple-400 font-mono">
+                              <Key size={11} className="text-purple-500" /> <CountingNumber value={lootBag.keys} />
+                          </div>
+                          <div className="flex items-center gap-1 text-xs font-bold text-red-400 font-mono">
+                              <Heart size={11} className="text-red-500" /> <CountingNumber value={lootBag.potions} />
+                          </div>
+                          <div className="flex items-center gap-1 text-xs font-bold text-cyan-400 font-mono">
+                              <Scroll size={11} className="text-cyan-500" /> <CountingNumber value={lootBag.scrolls} />
+                          </div>
+                          <div className="flex items-center gap-1 text-xs font-bold text-orange-400 font-mono">
+                              <Star size={11} className="text-orange-500" /> <CountingNumber value={lootBag.orbs} />
+                          </div>
                       </div>
                   </div>
               </div>
