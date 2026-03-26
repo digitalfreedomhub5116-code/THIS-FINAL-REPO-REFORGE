@@ -436,7 +436,7 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
                             key={videoSource} // Force reload on change
                             src={videoSource} 
                             poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
-                            className="w-full h-full object-cover" 
+                            className="w-full h-full object-cover object-top" 
                             style={{ filter: 'invert(1) hue-rotate(180deg)', opacity: 0.85 }}
                             autoPlay 
                             loop 
@@ -454,7 +454,7 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
             </div>
             
             {/* Bottom Gradient for smooth transition to controls */}
-            <div className="absolute bottom-0 left-0 w-full h-24 bg-gradient-to-t from-[#050505] to-transparent z-10" />
+            <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-[#050505] to-transparent z-10" />
         </div>
 
         {/* --- COMMAND DECK (Bottom Half) --- */}

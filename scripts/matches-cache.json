@@ -1,0 +1,1082 @@
+[
+  {
+    "my_name": "Barbell Bench Press",
+    "matched_name": "Barbell Bench Press",
+    "confidence": 100
+  },
+  {
+    "my_name": "Incline Dumbbell Press",
+    "matched_name": "Dumbbell Incline Bench Press",
+    "confidence": 95
+  },
+  {
+    "my_name": "Cable Fly",
+    "matched_name": "Cable Pec Fly",
+    "confidence": 90
+  },
+  {
+    "my_name": "Dumbbell Press",
+    "matched_name": "Dumbbell Bench Press",
+    "confidence": 95
+  },
+  {
+    "my_name": "Overhead Barbell Press",
+    "matched_name": "Barbell Overhead Press",
+    "confidence": 100
+  },
+  {
+    "my_name": "Lateral Raises",
+    "matched_name": "Dumbbell Lateral Raise",
+    "confidence": 95
+  },
+  {
+    "my_name": "Dumbbell Shoulder Press",
+    "matched_name": "Dumbbell Seated Overhead Press",
+    "confidence": 90
+  },
+  {
+    "my_name": "Tricep Pushdown",
+    "matched_name": "Machine Cable V Bar Push Downs",
+    "confidence": 85
+  },
+  {
+    "my_name": "Diamond Push-Ups",
+    "matched_name": "Diamond Push Ups",
+    "confidence": 100
+  },
+  {
+    "my_name": "Dips",
+    "matched_name": "Box Dips",
+    "confidence": 90
+  },
+  {
+    "my_name": "Barbell Row",
+    "matched_name": "Barbell Bent Over Row",
+    "confidence": 95
+  },
+  {
+    "my_name": "Pull-Ups",
+    "matched_name": "Pull Ups",
+    "confidence": 100
+  },
+  {
+    "my_name": "Lat Pulldown",
+    "matched_name": "Machine Pulldown",
+    "confidence": 95
+  },
+  {
+    "my_name": "Cable Row",
+    "matched_name": "Machine Seated Cable Row",
+    "confidence": 90
+  },
+  {
+    "my_name": "Deadlift",
+    "matched_name": "Barbell Deadlift",
+    "confidence": 100
+  },
+  {
+    "my_name": "Romanian Deadlift",
+    "matched_name": "Barbell Romanian Deadlift",
+    "confidence": 95
+  },
+  {
+    "my_name": "Dumbbell Row",
+    "matched_name": "Dumbbell Row Bilateral",
+    "confidence": 90
+  },
+  {
+    "my_name": "Barbell Curl",
+    "matched_name": "Barbell Curl",
+    "confidence": 100
+  },
+  {
+    "my_name": "Chin-Ups",
+    "matched_name": "Chin Ups",
+    "confidence": 100
+  },
+  {
+    "my_name": "Barbell Squat",
+    "matched_name": "Barbell Squat",
+    "confidence": 100
+  },
+  {
+    "my_name": "Leg Press",
+    "matched_name": "Machine Leg Press",
+    "confidence": 95
+  },
+  {
+    "my_name": "Leg Curl",
+    "matched_name": "Machine Hamstring Curl",
+    "confidence": 95
+  },
+  {
+    "my_name": "Calf Raises",
+    "matched_name": "Calf Raises",
+    "confidence": 100
+  },
+  {
+    "my_name": "Dumbbell Lunges",
+    "matched_name": "Dumbbell Forward Lunge",
+    "confidence": 85
+  },
+  {
+    "my_name": "Goblet Squat",
+    "matched_name": "Dumbbell Goblet Squat",
+    "confidence": 90
+  },
+  {
+    "my_name": "Jump Squats",
+    "matched_name": "Jump Squats",
+    "confidence": 100
+  },
+  {
+    "my_name": "Plank",
+    "matched_name": "Forearm Plank",
+    "confidence": 90
+  },
+  {
+    "my_name": "Crunches",
+    "matched_name": "Crunches",
+    "confidence": 100
+  },
+  {
+    "my_name": "Leg Raises",
+    "matched_name": "Laying Leg Raises",
+    "confidence": 95
+  },
+  {
+    "my_name": "Russian Twist",
+    "matched_name": "Dumbbell Russian Twist",
+    "confidence": 90
+  },
+  {
+    "my_name": "Mountain Climbers",
+    "matched_name": "Mountain Climber",
+    "confidence": 95
+  },
+  {
+    "my_name": "Push-Ups",
+    "matched_name": "Push Up",
+    "confidence": 95
+  },
+  {
+    "my_name": "Pike Push-Ups",
+    "matched_name": "Elevated Pike Press",
+    "confidence": 85
+  },
+  {
+    "my_name": "Burpees",
+    "matched_name": "Burpee",
+    "confidence": 95
+  },
+  {
+    "my_name": "Jumping Jacks",
+    "matched_name": "Cardio Jumping Jacks",
+    "confidence": 90
+  },
+  {
+    "my_name": "Dumbbell Tricep Kickback",
+    "matched_name": "Dumbbell Tricep Kickback",
+    "confidence": 95
+  },
+  {
+    "my_name": "Treadmill Run",
+    "matched_name": "Treadmill Sprint",
+    "confidence": 80
+  },
+  {
+    "my_name": "Rowing Machine",
+    "matched_name": "Cardio Row Erg Rower",
+    "confidence": 90
+  },
+  {
+    "my_name": "Stair Climber",
+    "matched_name": "",
+    "confidence": 0
+  },
+  {
+    "my_name": "Hip Thrust",
+    "matched_name": "Barbell Hip Thrust",
+    "confidence": 90
+  },
+  {
+    "my_name": "Dumbbell Fly",
+    "matched_name": "Dumbbell Chest Fly",
+    "confidence": 95
+  },
+  {
+    "my_name": "Cable Lateral Raise",
+    "matched_name": "Cable Low Bilateral Lateral Raise",
+    "confidence": 80
+  },
+  {
+    "my_name": "Dumbbell Lateral Raise",
+    "matched_name": "Dumbbell Lateral Raise",
+    "confidence": 95
+  },
+  {
+    "my_name": "Cable Front Raise",
+    "matched_name": "Cable Bar Front Raise",
+    "confidence": 85
+  },
+  {
+    "my_name": "Upright Row",
+    "matched_name": "Barbell Upright Row",
+    "confidence": 80
+  },
+  {
+    "my_name": "Shrugs",
+    "matched_name": "Dumbbell Shrug",
+    "confidence": 90
+  },
+  {
+    "my_name": "External Rotation",
+    "matched_name": "Dumbbell Shoulder External Rotation",
+    "confidence": 85
+  },
+  {
+    "my_name": "Cross Body Mountain Climbers",
+    "matched_name": "Mountain Climber",
+    "confidence": 80
+  },
+  {
+    "my_name": "Overhead Triceps and Shoulder Stretch",
+    "matched_name": "Triceps Stretch Variation One",
+    "confidence": 60
+  },
+  {
+    "my_name": "Shoulder Stretch",
+    "matched_name": "Shoulders Stretch Variation One",
+    "confidence": 75
+  },
+  {
+    "my_name": "Arm Circles",
+    "matched_name": "Forward Arm Circle",
+    "confidence": 70
+  },
+  {
+    "my_name": "Shoulder Rolls",
+    "matched_name": "",
+    "confidence": 20
+  },
+  {
+    "my_name": "Thread the Needle Stretch",
+    "matched_name": "Thread The Needle Hip Over Knees",
+    "confidence": 90
+  },
+  {
+    "my_name": "Wall Shoulder Stretch",
+    "matched_name": "Shoulder Flexion Wall Stretch",
+    "confidence": 65
+  },
+  {
+    "my_name": "Hammer Curl",
+    "matched_name": "Dumbbell Hammer Curl",
+    "confidence": 95
+  },
+  {
+    "my_name": "Preacher Curl",
+    "matched_name": "Kettlebell Preacher Curl",
+    "confidence": 75
+  },
+  {
+    "my_name": "Concentration Curl",
+    "matched_name": "Dumbbell Concentration Curl",
+    "confidence": 95
+  },
+  {
+    "my_name": "Incline Dumbbell Curl",
+    "matched_name": "Dumbbell Incline Hammer Curl",
+    "confidence": 80
+  },
+  {
+    "my_name": "Spider Curl",
+    "matched_name": "Dumbbell Spider Curl",
+    "confidence": 90
+  },
+  {
+    "my_name": "EZ Bar Curl",
+    "matched_name": "Barbell Curl",
+    "confidence": 80
+  },
+  {
+    "my_name": "Reverse Fly",
+    "matched_name": "Dumbbell Rear Delt Fly",
+    "confidence": 85
+  },
+  {
+    "my_name": "Zottman Curl",
+    "matched_name": "Dumbbell Incline Zottman Curl",
+    "confidence": 90
+  },
+  {
+    "my_name": "Battle Rope Alternating Waves",
+    "matched_name": "",
+    "confidence": 0
+  },
+  {
+    "my_name": "Jump Rope",
+    "matched_name": "Jump Rope",
+    "confidence": 100
+  },
+  {
+    "my_name": "Standing Biceps Stretch",
+    "matched_name": "Biceps Stretch Variation One",
+    "confidence": 75
+  },
+  {
+    "my_name": "Wall Biceps Stretch",
+    "matched_name": "Biceps Stretch Variation One",
+    "confidence": 65
+  },
+  {
+    "my_name": "Doorway Biceps Stretch",
+    "matched_name": "Biceps Stretch Variation One",
+    "confidence": 65
+  },
+  {
+    "my_name": "Seated Biceps Stretch",
+    "matched_name": "Biceps Stretch Variation One",
+    "confidence": 65
+  },
+  {
+    "my_name": "Archer Pushups",
+    "matched_name": "Push Up",
+    "confidence": 60
+  },
+  {
+    "my_name": "Behind the Back Biceps Stretch",
+    "matched_name": "Biceps Stretch Variation One",
+    "confidence": 65
+  },
+  {
+    "my_name": "Close Grip Bench Press",
+    "matched_name": "Barbell Close Grip Bench Press",
+    "confidence": 95
+  },
+  {
+    "my_name": "Parallel Bar Dips",
+    "matched_name": "Parallel Bar Dips",
+    "confidence": 100
+  },
+  {
+    "my_name": "Chair Dips",
+    "matched_name": "Bench Dips",
+    "confidence": 90
+  },
+  {
+    "my_name": "Clap Push-Up",
+    "matched_name": "Clap Push Up",
+    "confidence": 100
+  },
+  {
+    "my_name": "Floor Press",
+    "matched_name": "Barbell Floor Press",
+    "confidence": 90
+  },
+  {
+    "my_name": "Rope Triceps Pushdown",
+    "matched_name": "Cable Rope Pushdown",
+    "confidence": 95
+  },
+  {
+    "my_name": "Dumbbell Triceps Extension",
+    "matched_name": "Dumbbell Seated Overhead Tricep Extension",
+    "confidence": 75
+  },
+  {
+    "my_name": "Skull Crusher",
+    "matched_name": "Barbell Laying Triceps Extensions",
+    "confidence": 85
+  },
+  {
+    "my_name": "Cable Overhead Triceps Extension",
+    "matched_name": "Cable Rope Overhead Tricep Extension",
+    "confidence": 90
+  },
+  {
+    "my_name": "Kickback",
+    "matched_name": "Cable Tricep Kickback",
+    "confidence": 80
+  },
+  {
+    "my_name": "EZ Bar Skull Crusher",
+    "matched_name": "Barbell Skullcrusher",
+    "confidence": 70
+  },
+  {
+    "my_name": "Single Arm Cable Pushdown",
+    "matched_name": "Cable Single Arm Pushdown",
+    "confidence": 90
+  },
+  {
+    "my_name": "Reverse Grip Triceps Pushdown",
+    "matched_name": "Cable Bar Reverse Grip Pushdown",
+    "confidence": 85
+  },
+  {
+    "my_name": "Overhead Triceps Stretch",
+    "matched_name": "Triceps Stretch Variation One",
+    "confidence": 75
+  },
+  {
+    "my_name": "Cross Body Arm Stretch",
+    "matched_name": "",
+    "confidence": 0
+  },
+  {
+    "my_name": "Behind the Head Triceps Stretch",
+    "matched_name": "Triceps Stretch Variation One",
+    "confidence": 70
+  },
+  {
+    "my_name": "Wall Triceps Stretch",
+    "matched_name": "Triceps Stretch Variation One",
+    "confidence": 65
+  },
+  {
+    "my_name": "Standing Triceps Stretch",
+    "matched_name": "Triceps Stretch Variation One",
+    "confidence": 70
+  },
+  {
+    "my_name": "Front Squat",
+    "matched_name": "Barbell Front Squat Olympic",
+    "confidence": 85
+  },
+  {
+    "my_name": "Sumo Squat",
+    "matched_name": "Barbell Sumo Deadlift",
+    "confidence": 60
+  },
+  {
+    "my_name": "Lunges",
+    "matched_name": "Forward Lunges",
+    "confidence": 95
+  },
+  {
+    "my_name": "Walking Lunges",
+    "matched_name": "Walking Lunge",
+    "confidence": 90
+  },
+  {
+    "my_name": "Bulgarian Split Squat",
+    "matched_name": "Bulgarian Split Squat",
+    "confidence": 100
+  },
+  {
+    "my_name": "Step Up",
+    "matched_name": "Step Up",
+    "confidence": 90
+  },
+  {
+    "my_name": "Hack Squat",
+    "matched_name": "Landmine Hack Squat",
+    "confidence": 75
+  },
+  {
+    "my_name": "Running",
+    "matched_name": "",
+    "confidence": 0
+  },
+  {
+    "my_name": "Cycling",
+    "matched_name": "",
+    "confidence": 0
+  },
+  {
+    "my_name": "Jump Squat",
+    "matched_name": "Jump Squats",
+    "confidence": 95
+  },
+  {
+    "my_name": "High Knees",
+    "matched_name": "",
+    "confidence": 0
+  },
+  {
+    "my_name": "Box Jumps",
+    "matched_name": "Box Jump",
+    "confidence": 95
+  },
+  {
+    "my_name": "Stair Climbing",
+    "matched_name": "",
+    "confidence": 0
+  },
+  {
+    "my_name": "Leg Extension",
+    "matched_name": "Machine Leg Extension",
+    "confidence": 95
+  },
+  {
+    "my_name": "Seated Leg Curl",
+    "matched_name": "Machine Seated Leg Curl",
+    "confidence": 95
+  },
+  {
+    "my_name": "Standing Leg Curl",
+    "matched_name": "Machine Hamstring Curl",
+    "confidence": 70
+  },
+  {
+    "my_name": "Seated Calf Raise",
+    "matched_name": "Machine Seated Calf Raises",
+    "confidence": 95
+  },
+  {
+    "my_name": "Donkey Calf Raise",
+    "matched_name": "Bodyweight Donkey Calf Raise",
+    "confidence": 95
+  },
+  {
+    "my_name": "Glute Kickback",
+    "matched_name": "Kickbacks",
+    "confidence": 90
+  },
+  {
+    "my_name": "Cable Hip Abduction",
+    "matched_name": "Cable Standing Hip Abduction",
+    "confidence": 95
+  },
+  {
+    "my_name": "Cable Hip Adduction",
+    "matched_name": "Cable Standing Hip Adduction",
+    "confidence": 90
+  },
+  {
+    "my_name": "Standing Quadriceps Stretch",
+    "matched_name": "Quads Stretch Variation One",
+    "confidence": 80
+  },
+  {
+    "my_name": "Hamstring Stretch",
+    "matched_name": "Hamstrings Stretch Variation One",
+    "confidence": 85
+  },
+  {
+    "my_name": "Seated Hamstring Stretch",
+    "matched_name": "Hamstring Stretch Seated Single Leg",
+    "confidence": 80
+  },
+  {
+    "my_name": "Butterfly Stretch",
+    "matched_name": "Bodyweight Butterfly Stretch",
+    "confidence": 95
+  },
+  {
+    "my_name": "Calf Stretch",
+    "matched_name": "Calves Stretch Variation One",
+    "confidence": 85
+  },
+  {
+    "my_name": "Hip Flexor Stretch",
+    "matched_name": "Hip Flexor Stretch Kneeling Lunge 1",
+    "confidence": 80
+  },
+  {
+    "my_name": "Pigeon Pose Stretch",
+    "matched_name": "Pigeon Pose",
+    "confidence": 95
+  },
+  {
+    "my_name": "Side Lunge Stretch",
+    "matched_name": "Side Lunges",
+    "confidence": 80
+  },
+  {
+    "my_name": "Glute Bridge",
+    "matched_name": "Glute Bridge",
+    "confidence": 95
+  },
+  {
+    "my_name": "Kettlebell Swing",
+    "matched_name": "Kettlebell Swing",
+    "confidence": 100
+  },
+  {
+    "my_name": "Cable Glute Kickback",
+    "matched_name": "Cable Standing Straight Leg Glute Kickback",
+    "confidence": 95
+  },
+  {
+    "my_name": "Donkey Kicks",
+    "matched_name": "Kickbacks",
+    "confidence": 80
+  },
+  {
+    "my_name": "Fire Hydrants",
+    "matched_name": "Cable Quadruped Hip Abduction",
+    "confidence": 60
+  },
+  {
+    "my_name": "Hip Abduction Machine",
+    "matched_name": "Machine Hip Abduction",
+    "confidence": 95
+  },
+  {
+    "my_name": "Cable Hip Extension",
+    "matched_name": "Cable Standing Straight Leg Glute Kickback",
+    "confidence": 70
+  },
+  {
+    "my_name": "Glute Kickback Machine",
+    "matched_name": "Machine Glute Kickback",
+    "confidence": 90
+  },
+  {
+    "my_name": "Frog Pumps",
+    "matched_name": "Glute Bridge",
+    "confidence": 65
+  },
+  {
+    "my_name": "Single Leg Glute Bridge",
+    "matched_name": "Single Leg Glute Bridge",
+    "confidence": 100
+  },
+  {
+    "my_name": "Figure Four Stretch",
+    "matched_name": "Glutes Stretch Variation One",
+    "confidence": 50
+  },
+  {
+    "my_name": "Seated Glute Stretch",
+    "matched_name": "Glutes Stretch Variation One",
+    "confidence": 50
+  },
+  {
+    "my_name": "Standing Glute Stretch",
+    "matched_name": "Glutes Stretch Variation One",
+    "confidence": 50
+  },
+  {
+    "my_name": "Lying Piriformis Stretch",
+    "matched_name": "Glutes Stretch Variation One",
+    "confidence": 40
+  },
+  {
+    "my_name": "Face Pulls",
+    "matched_name": "Cable Rope Face Pulls",
+    "confidence": 95
+  },
+  {
+    "my_name": "Turkish Get-Up",
+    "matched_name": "",
+    "confidence": 0
+  },
+  {
+    "my_name": "Russian Twists",
+    "matched_name": "Kettlebell Russian Twist",
+    "confidence": 85
+  },
+  {
+    "my_name": "Plank Jacks",
+    "matched_name": "Bodyweight Plank Jack",
+    "confidence": 90
+  },
+  {
+    "my_name": "Bicycle Crunch",
+    "matched_name": "Bicycle Crunch",
+    "confidence": 100
+  },
+  {
+    "my_name": "Crunch",
+    "matched_name": "Crunches",
+    "confidence": 95
+  },
+  {
+    "my_name": "Sit-Up",
+    "matched_name": "Situp",
+    "confidence": 90
+  },
+  {
+    "my_name": "Hanging Leg Raise",
+    "matched_name": "Hanging Knee Raises",
+    "confidence": 85
+  },
+  {
+    "my_name": "Lying Leg Raise",
+    "matched_name": "Laying Leg Raises",
+    "confidence": 95
+  },
+  {
+    "my_name": "Side Plank",
+    "matched_name": "Hand Side Plank",
+    "confidence": 75
+  },
+  {
+    "my_name": "Ab Wheel Rollout",
+    "matched_name": "Machine Roll Outs",
+    "confidence": 70
+  },
+  {
+    "my_name": "Cable Crunch",
+    "matched_name": "Cable Standing Crunch",
+    "confidence": 80
+  },
+  {
+    "my_name": "V-Up",
+    "matched_name": "",
+    "confidence": 0
+  },
+  {
+    "my_name": "Reverse Crunch",
+    "matched_name": "Reverse Crunch",
+    "confidence": 100
+  },
+  {
+    "my_name": "Flutter Kicks",
+    "matched_name": "",
+    "confidence": 0
+  },
+  {
+    "my_name": "Toe Touches",
+    "matched_name": "",
+    "confidence": 0
+  },
+  {
+    "my_name": "Standing Side Bend Stretch",
+    "matched_name": "",
+    "confidence": 0
+  },
+  {
+    "my_name": "Seated Spinal Twist",
+    "matched_name": "Seated Twist",
+    "confidence": 80
+  },
+  {
+    "my_name": "Bridge Stretch",
+    "matched_name": "Glute Bridge",
+    "confidence": 70
+  },
+  {
+    "my_name": "Bent Over Row",
+    "matched_name": "Barbell Bent Over Row",
+    "confidence": 95
+  },
+  {
+    "my_name": "Seated Cable Row",
+    "matched_name": "Machine Seated Cable Row",
+    "confidence": 90
+  },
+  {
+    "my_name": "Single Arm Dumbbell Row",
+    "matched_name": "Dumbbell Single Arm Row",
+    "confidence": 90
+  },
+  {
+    "my_name": "Wide Grip Lat Pulldown",
+    "matched_name": "Machine Pulldown",
+    "confidence": 85
+  },
+  {
+    "my_name": "Wide Grip Seated Row",
+    "matched_name": "Machine Seated Cable Row",
+    "confidence": 70
+  },
+  {
+    "my_name": "Cable Rear Delt Fly",
+    "matched_name": "Cable High Single Arm Rear Delt Fly",
+    "confidence": 80
+  },
+  {
+    "my_name": "Bent Over Lateral Raise",
+    "matched_name": "Dumbbell Lateral Raise",
+    "confidence": 65
+  },
+  {
+    "my_name": "Resistance Band Pull Apart",
+    "matched_name": "Band Pull Apart",
+    "confidence": 95
+  },
+  {
+    "my_name": "Barbell Back Squat",
+    "matched_name": "Barbell Squat",
+    "confidence": 99
+  },
+  {
+    "my_name": "Snatch",
+    "matched_name": "Barbell Snatch",
+    "confidence": 95
+  },
+  {
+    "my_name": "Thruster",
+    "matched_name": "Barbell Thruster",
+    "confidence": 80
+  },
+  {
+    "my_name": "Man Maker",
+    "matched_name": "",
+    "confidence": 0
+  },
+  {
+    "my_name": "Kettlebell Clean",
+    "matched_name": "Kettlebell Clean And Press",
+    "confidence": 60
+  },
+  {
+    "my_name": "Kettlebell Snatch",
+    "matched_name": "Kettlebell Single Arm Snatch",
+    "confidence": 80
+  },
+  {
+    "my_name": "Landmine Squat to Press",
+    "matched_name": "Landmine Thruster",
+    "confidence": 75
+  },
+  {
+    "my_name": "Wall Sit",
+    "matched_name": "Wall Sit",
+    "confidence": 100
+  },
+  {
+    "my_name": "Overhead Squat",
+    "matched_name": "Barbell Overhead Squat",
+    "confidence": 75
+  },
+  {
+    "my_name": "Cossack Squat",
+    "matched_name": "Curtsy Lunge",
+    "confidence": 60
+  },
+  {
+    "my_name": "Inchworm Walk",
+    "matched_name": "Inchworm",
+    "confidence": 100
+  },
+  {
+    "my_name": "Spiderman Crawl",
+    "matched_name": "",
+    "confidence": 0
+  },
+  {
+    "my_name": "Brisk Walk",
+    "matched_name": "Treadmill Walk",
+    "confidence": 70
+  },
+  {
+    "my_name": "Windmill",
+    "matched_name": "Kettlebell Windmill",
+    "confidence": 90
+  },
+  {
+    "my_name": "Jefferson Curl",
+    "matched_name": "Barbell Jefferson Deadlift",
+    "confidence": 75
+  },
+  {
+    "my_name": "Lunge with Rotation",
+    "matched_name": "Plate Reverse Lunge Twist",
+    "confidence": 65
+  },
+  {
+    "my_name": "Lateral Lunge",
+    "matched_name": "Lateral Lunge",
+    "confidence": 95
+  },
+  {
+    "my_name": "Bear Crawl",
+    "matched_name": "Bear Crawl",
+    "confidence": 100
+  },
+  {
+    "my_name": "Crab Walk",
+    "matched_name": "",
+    "confidence": 0
+  },
+  {
+    "my_name": "Jogging",
+    "matched_name": "Treadmill Jog",
+    "confidence": 90
+  },
+  {
+    "my_name": "Sprint",
+    "matched_name": "Treadmill Sprint",
+    "confidence": 80
+  },
+  {
+    "my_name": "Elliptical Training",
+    "matched_name": "Elliptical",
+    "confidence": 100
+  },
+  {
+    "my_name": "Swimming",
+    "matched_name": "",
+    "confidence": 0
+  },
+  {
+    "my_name": "Skater Jump",
+    "matched_name": "Cardio Skater",
+    "confidence": 90
+  },
+  {
+    "my_name": "Agility Ladder Drills",
+    "matched_name": "",
+    "confidence": 0
+  },
+  {
+    "my_name": "Butt Kicks",
+    "matched_name": "Butt Kick",
+    "confidence": 100
+  },
+  {
+    "my_name": "Skipping",
+    "matched_name": "Jump Rope",
+    "confidence": 90
+  },
+  {
+    "my_name": "Carioca Drill",
+    "matched_name": "Cardio Karaoke",
+    "confidence": 80
+  },
+  {
+    "my_name": "Bounding",
+    "matched_name": "",
+    "confidence": 0
+  },
+  {
+    "my_name": "Jump Lunges",
+    "matched_name": "Bodyweight Alternating Jump Lunge",
+    "confidence": 90
+  },
+  {
+    "my_name": "Dynamic Side Shuffle",
+    "matched_name": "Cardio Lateral Shuffle",
+    "confidence": 85
+  },
+  {
+    "my_name": "Sledgehammer Slams",
+    "matched_name": "Medicine Ball Slam",
+    "confidence": 60
+  },
+  {
+    "my_name": "Sandbag Carry",
+    "matched_name": "Kettlebell Farmers Carry",
+    "confidence": 50
+  },
+  {
+    "my_name": "Sled Push",
+    "matched_name": "",
+    "confidence": 0
+  },
+  {
+    "my_name": "Sled Pull",
+    "matched_name": "",
+    "confidence": 0
+  },
+  {
+    "my_name": "Sun Salutation",
+    "matched_name": "",
+    "confidence": 0
+  },
+  {
+    "my_name": "World's Greatest Stretch",
+    "matched_name": "",
+    "confidence": 0
+  },
+  {
+    "my_name": "Downward Dog",
+    "matched_name": "Downward Dog",
+    "confidence": 100
+  },
+  {
+    "my_name": "Upward Dog",
+    "matched_name": "Cobra Pose",
+    "confidence": 70
+  },
+  {
+    "my_name": "Standing Forward Bend",
+    "matched_name": "Standing Forward Bend",
+    "confidence": 100
+  },
+  {
+    "my_name": "Spiderman Stretch",
+    "matched_name": "",
+    "confidence": 0
+  },
+  {
+    "my_name": "Deep Squat Hold",
+    "matched_name": "Bodyweight Squat",
+    "confidence": 50
+  },
+  {
+    "my_name": "Leg Swings",
+    "matched_name": "",
+    "confidence": 0
+  },
+  {
+    "my_name": "Torso Twists",
+    "matched_name": "Kettlebell Russian Twist",
+    "confidence": 50
+  },
+  {
+    "my_name": "Ankle Mobility Rock",
+    "matched_name": "",
+    "confidence": 0
+  },
+  {
+    "my_name": "Knee Circles",
+    "matched_name": "",
+    "confidence": 0
+  },
+  {
+    "my_name": "Hip Circles",
+    "matched_name": "",
+    "confidence": 0
+  },
+  {
+    "my_name": "Seated Forward Fold",
+    "matched_name": "Seated Forward Bend",
+    "confidence": 90
+  },
+  {
+    "my_name": "Lying Spinal Twist",
+    "matched_name": "Supine Twist Lying",
+    "confidence": 90
+  },
+  {
+    "my_name": "Kneeling Hip Flexor Stretch",
+    "matched_name": "Hip Flexor Stretch Kneeling Lunge 1",
+    "confidence": 80
+  },
+  {
+    "my_name": "Machine Shoulder Press",
+    "matched_name": "Machine Overhand Overhead Press",
+    "confidence": 80
+  },
+  {
+    "my_name": "Scapular Wall Slides",
+    "matched_name": "",
+    "confidence": 0
+  },
+  {
+    "my_name": "Shoulder CARs",
+    "matched_name": "",
+    "confidence": 10
+  },
+  {
+    "my_name": "Thoracic Spine Rotations",
+    "matched_name": "Bodyweight Thoracic Spine Rotation",
+    "confidence": 75
+  },
+  {
+    "my_name": "Scapular Push-Ups",
+    "matched_name": "Push Up",
+    "confidence": 60
+  },
+  {
+    "my_name": "Hip CARs",
+    "matched_name": "",
+    "confidence": 10
+  },
+  {
+    "my_name": "Banded Hip Openers",
+    "matched_name": "Band Hip Abduction",
+    "confidence": 70
+  },
+  {
+    "my_name": "Glute Activation Walk",
+    "matched_name": "Banded Side Walks",
+    "confidence": 80
+  }
+]

@@ -1,0 +1,217 @@
+my_name,matched_name,confidence,cloudinary_url,status
+Barbell Bench Press,Barbell Bench Press,100,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515211/workout_exercises/barbell_bench_press.mp4,COMPLETE
+Incline Dumbbell Press,Dumbbell Incline Bench Press,95,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515217/workout_exercises/incline_dumbbell_press.mp4,COMPLETE
+Cable Fly,Cable Pec Fly,90,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515221/workout_exercises/cable_fly.mp4,COMPLETE
+Dumbbell Press,Dumbbell Bench Press,95,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515226/workout_exercises/dumbbell_press.mp4,COMPLETE
+Overhead Barbell Press,Barbell Overhead Press,100,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515232/workout_exercises/overhead_barbell_press.mp4,COMPLETE
+Lateral Raises,Dumbbell Lateral Raise,95,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515236/workout_exercises/lateral_raises.mp4,COMPLETE
+Dumbbell Shoulder Press,Dumbbell Seated Overhead Press,90,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515240/workout_exercises/dumbbell_shoulder_press.mp4,COMPLETE
+Tricep Pushdown,Machine Cable V Bar Push Downs,85,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515245/workout_exercises/tricep_pushdown.mp4,COMPLETE
+Diamond Push-Ups,Diamond Push Ups,100,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515250/workout_exercises/diamond_push_ups.mp4,COMPLETE
+Dips,Box Dips,90,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515254/workout_exercises/dips.mp4,COMPLETE
+Barbell Row,Barbell Bent Over Row,95,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515258/workout_exercises/barbell_row.mp4,COMPLETE
+Pull-Ups,Pull Ups,100,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515262/workout_exercises/pull_ups.mp4,COMPLETE
+Lat Pulldown,Machine Pulldown,95,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515268/workout_exercises/lat_pulldown.mp4,COMPLETE
+Cable Row,Machine Seated Cable Row,90,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515273/workout_exercises/cable_row.mp4,COMPLETE
+Deadlift,Barbell Deadlift,100,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515278/workout_exercises/deadlift.mp4,COMPLETE
+Romanian Deadlift,Barbell Romanian Deadlift,95,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515282/workout_exercises/romanian_deadlift.mp4,COMPLETE
+Dumbbell Row,Dumbbell Row Bilateral,90,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515285/workout_exercises/dumbbell_row.mp4,COMPLETE
+Barbell Curl,Barbell Curl,100,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515290/workout_exercises/barbell_curl.mp4,COMPLETE
+Chin-Ups,Chin Ups,100,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515295/workout_exercises/chin_ups.mp4,COMPLETE
+Barbell Squat,Barbell Squat,100,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515301/workout_exercises/barbell_squat.mp4,COMPLETE
+Leg Press,Machine Leg Press,95,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515306/workout_exercises/leg_press.mp4,COMPLETE
+Leg Curl,Machine Hamstring Curl,95,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515312/workout_exercises/leg_curl.mp4,COMPLETE
+Calf Raises,Calf Raises,100,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515317/workout_exercises/calf_raises.mp4,COMPLETE
+Dumbbell Lunges,Dumbbell Forward Lunge,85,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515321/workout_exercises/dumbbell_lunges.mp4,COMPLETE
+Goblet Squat,Dumbbell Goblet Squat,90,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515326/workout_exercises/goblet_squat.mp4,COMPLETE
+Jump Squats,Jump Squats,100,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515332/workout_exercises/jump_squats.mp4,COMPLETE
+Plank,Forearm Plank,90,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515345/workout_exercises/plank.mp4,COMPLETE
+Crunches,Crunches,100,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515348/workout_exercises/crunches.mp4,COMPLETE
+Leg Raises,Laying Leg Raises,95,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515353/workout_exercises/leg_raises.mp4,COMPLETE
+Russian Twist,Dumbbell Russian Twist,90,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515357/workout_exercises/russian_twist.mp4,COMPLETE
+Mountain Climbers,Mountain Climber,95,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515363/workout_exercises/mountain_climbers.mp4,COMPLETE
+Push-Ups,Push Up,95,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515371/workout_exercises/push_ups.mp4,COMPLETE
+Pike Push-Ups,Elevated Pike Press,85,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515391/workout_exercises/pike_push_ups.mp4,COMPLETE
+Burpees,Burpee,95,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515396/workout_exercises/burpees.mp4,COMPLETE
+Jumping Jacks,Cardio Jumping Jacks,90,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515403/workout_exercises/jumping_jacks.mp4,COMPLETE
+Dumbbell Tricep Kickback,Dumbbell Tricep Kickback,95,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515407/workout_exercises/dumbbell_tricep_kickback.mp4,COMPLETE
+Treadmill Run,Treadmill Sprint,80,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515412/workout_exercises/treadmill_run.mp4,COMPLETE
+Rowing Machine,Cardio Row Erg Rower,90,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515419/workout_exercises/rowing_machine.mp4,COMPLETE
+Stair Climber,,0,,NO_MATCH
+Hip Thrust,Barbell Hip Thrust,90,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515424/workout_exercises/hip_thrust.mp4,COMPLETE
+Dumbbell Fly,Dumbbell Chest Fly,95,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515429/workout_exercises/dumbbell_fly.mp4,COMPLETE
+Cable Lateral Raise,Cable Low Bilateral Lateral Raise,80,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515433/workout_exercises/cable_lateral_raise.mp4,COMPLETE
+Dumbbell Lateral Raise,Dumbbell Lateral Raise,95,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515437/workout_exercises/dumbbell_lateral_raise.mp4,COMPLETE
+Cable Front Raise,Cable Bar Front Raise,85,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515442/workout_exercises/cable_front_raise.mp4,COMPLETE
+Upright Row,Barbell Upright Row,80,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515446/workout_exercises/upright_row.mp4,COMPLETE
+Shrugs,Dumbbell Shrug,90,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515450/workout_exercises/shrugs.mp4,COMPLETE
+External Rotation,Dumbbell Shoulder External Rotation,85,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515454/workout_exercises/external_rotation.mp4,COMPLETE
+Cross Body Mountain Climbers,Mountain Climber,80,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515460/workout_exercises/cross_body_mountain_climbers.mp4,COMPLETE
+Overhead Triceps and Shoulder Stretch,Triceps Stretch Variation One,60,,NEEDS_REVIEW
+Shoulder Stretch,Shoulders Stretch Variation One,75,,NEEDS_REVIEW
+Arm Circles,Forward Arm Circle,70,,NEEDS_REVIEW
+Shoulder Rolls,,20,,NO_MATCH
+Thread the Needle Stretch,Thread The Needle Hip Over Knees,90,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515477/workout_exercises/thread_the_needle_stretch.mp4,COMPLETE
+Wall Shoulder Stretch,Shoulder Flexion Wall Stretch,65,,NEEDS_REVIEW
+Hammer Curl,Dumbbell Hammer Curl,95,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515488/workout_exercises/hammer_curl.mp4,COMPLETE
+Preacher Curl,Kettlebell Preacher Curl,75,,NEEDS_REVIEW
+Concentration Curl,Dumbbell Concentration Curl,95,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515494/workout_exercises/concentration_curl.mp4,COMPLETE
+Incline Dumbbell Curl,Dumbbell Incline Hammer Curl,80,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515500/workout_exercises/incline_dumbbell_curl.mp4,COMPLETE
+Spider Curl,Dumbbell Spider Curl,90,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515504/workout_exercises/spider_curl.mp4,COMPLETE
+EZ Bar Curl,Barbell Curl,80,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515508/workout_exercises/ez_bar_curl.mp4,COMPLETE
+Reverse Fly,Dumbbell Rear Delt Fly,85,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515511/workout_exercises/reverse_fly.mp4,COMPLETE
+Zottman Curl,Dumbbell Incline Zottman Curl,90,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515516/workout_exercises/zottman_curl.mp4,COMPLETE
+Battle Rope Alternating Waves,,0,,NO_MATCH
+Jump Rope,Jump Rope,100,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515521/workout_exercises/jump_rope.mp4,COMPLETE
+Standing Biceps Stretch,Biceps Stretch Variation One,75,,NEEDS_REVIEW
+Wall Biceps Stretch,Biceps Stretch Variation One,65,,NEEDS_REVIEW
+Doorway Biceps Stretch,Biceps Stretch Variation One,65,,NEEDS_REVIEW
+Seated Biceps Stretch,Biceps Stretch Variation One,65,,NEEDS_REVIEW
+Archer Pushups,Push Up,60,,NEEDS_REVIEW
+Behind the Back Biceps Stretch,Biceps Stretch Variation One,65,,NEEDS_REVIEW
+Close Grip Bench Press,Barbell Close Grip Bench Press,95,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515526/workout_exercises/close_grip_bench_press.mp4,COMPLETE
+Parallel Bar Dips,Parallel Bar Dips,100,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515530/workout_exercises/parallel_bar_dips.mp4,COMPLETE
+Chair Dips,Bench Dips,90,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515533/workout_exercises/chair_dips.mp4,COMPLETE
+Clap Push-Up,Clap Push Up,100,,MAP_MISS
+Floor Press,Barbell Floor Press,90,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515537/workout_exercises/floor_press.mp4,COMPLETE
+Rope Triceps Pushdown,Cable Rope Pushdown,95,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515541/workout_exercises/rope_triceps_pushdown.mp4,COMPLETE
+Dumbbell Triceps Extension,Dumbbell Seated Overhead Tricep Extension,75,,NEEDS_REVIEW
+Skull Crusher,Barbell Laying Triceps Extensions,85,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515545/workout_exercises/skull_crusher.mp4,COMPLETE
+Cable Overhead Triceps Extension,Cable Rope Overhead Tricep Extension,90,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515551/workout_exercises/cable_overhead_triceps_extension.mp4,COMPLETE
+Kickback,Cable Tricep Kickback,80,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515555/workout_exercises/kickback.mp4,COMPLETE
+EZ Bar Skull Crusher,Barbell Skullcrusher,70,,NEEDS_REVIEW
+Single Arm Cable Pushdown,Cable Single Arm Pushdown,90,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515558/workout_exercises/single_arm_cable_pushdown.mp4,COMPLETE
+Reverse Grip Triceps Pushdown,Cable Bar Reverse Grip Pushdown,85,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515562/workout_exercises/reverse_grip_triceps_pushdown.mp4,COMPLETE
+Overhead Triceps Stretch,Triceps Stretch Variation One,75,,NEEDS_REVIEW
+Cross Body Arm Stretch,,0,,NO_MATCH
+Behind the Head Triceps Stretch,Triceps Stretch Variation One,70,,NEEDS_REVIEW
+Wall Triceps Stretch,Triceps Stretch Variation One,65,,NEEDS_REVIEW
+Standing Triceps Stretch,Triceps Stretch Variation One,70,,NEEDS_REVIEW
+Front Squat,Barbell Front Squat Olympic,85,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515567/workout_exercises/front_squat.mp4,COMPLETE
+Sumo Squat,Barbell Sumo Deadlift,60,,NEEDS_REVIEW
+Lunges,Forward Lunges,95,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515570/workout_exercises/lunges.mp4,COMPLETE
+Walking Lunges,Walking Lunge,90,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515575/workout_exercises/walking_lunges.mp4,COMPLETE
+Bulgarian Split Squat,Bulgarian Split Squat,100,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515581/workout_exercises/bulgarian_split_squat.mp4,COMPLETE
+Step Up,Step Up,90,,MAP_MISS
+Hack Squat,Landmine Hack Squat,75,,NEEDS_REVIEW
+Running,,0,,NO_MATCH
+Cycling,,0,,NO_MATCH
+Jump Squat,Jump Squats,95,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515586/workout_exercises/jump_squat.mp4,COMPLETE
+High Knees,,0,,NO_MATCH
+Box Jumps,Box Jump,95,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515592/workout_exercises/box_jumps.mp4,COMPLETE
+Stair Climbing,,0,,NO_MATCH
+Leg Extension,Machine Leg Extension,95,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515598/workout_exercises/leg_extension.mp4,COMPLETE
+Seated Leg Curl,Machine Seated Leg Curl,95,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515607/workout_exercises/seated_leg_curl.mp4,COMPLETE
+Standing Leg Curl,Machine Hamstring Curl,70,,NEEDS_REVIEW
+Seated Calf Raise,Machine Seated Calf Raises,95,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515614/workout_exercises/seated_calf_raise.mp4,COMPLETE
+Donkey Calf Raise,Bodyweight Donkey Calf Raise,95,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515619/workout_exercises/donkey_calf_raise.mp4,COMPLETE
+Glute Kickback,Kickbacks,90,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515622/workout_exercises/glute_kickback.mp4,COMPLETE
+Cable Hip Abduction,Cable Standing Hip Abduction,95,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515626/workout_exercises/cable_hip_abduction.mp4,COMPLETE
+Cable Hip Adduction,Cable Standing Hip Adduction,90,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515630/workout_exercises/cable_hip_adduction.mp4,COMPLETE
+Standing Quadriceps Stretch,Quads Stretch Variation One,80,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515635/workout_exercises/standing_quadriceps_stretch.mp4,COMPLETE
+Hamstring Stretch,Hamstrings Stretch Variation One,85,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515639/workout_exercises/hamstring_stretch.mp4,COMPLETE
+Seated Hamstring Stretch,Hamstring Stretch Seated Single Leg,80,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515644/workout_exercises/seated_hamstring_stretch.mp4,COMPLETE
+Butterfly Stretch,Bodyweight Butterfly Stretch,95,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515649/workout_exercises/butterfly_stretch.mp4,COMPLETE
+Calf Stretch,Calves Stretch Variation One,85,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515653/workout_exercises/calf_stretch.mp4,COMPLETE
+Hip Flexor Stretch,Hip Flexor Stretch Kneeling Lunge 1,80,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515657/workout_exercises/hip_flexor_stretch.mp4,COMPLETE
+Pigeon Pose Stretch,Pigeon Pose,95,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515671/workout_exercises/pigeon_pose_stretch.mp4,COMPLETE
+Side Lunge Stretch,Side Lunges,80,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515684/workout_exercises/side_lunge_stretch.mp4,COMPLETE
+Glute Bridge,Glute Bridge,95,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515688/workout_exercises/glute_bridge.mp4,COMPLETE
+Kettlebell Swing,Kettlebell Swing,100,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515695/workout_exercises/kettlebell_swing.mp4,COMPLETE
+Cable Glute Kickback,Cable Standing Straight Leg Glute Kickback,95,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515711/workout_exercises/cable_glute_kickback.mp4,COMPLETE
+Donkey Kicks,Kickbacks,80,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515715/workout_exercises/donkey_kicks.mp4,COMPLETE
+Fire Hydrants,Cable Quadruped Hip Abduction,60,,NEEDS_REVIEW
+Hip Abduction Machine,Machine Hip Abduction,95,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515718/workout_exercises/hip_abduction_machine.mp4,COMPLETE
+Cable Hip Extension,Cable Standing Straight Leg Glute Kickback,70,,NEEDS_REVIEW
+Glute Kickback Machine,Machine Glute Kickback,90,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515724/workout_exercises/glute_kickback_machine.mp4,COMPLETE
+Frog Pumps,Glute Bridge,65,,NEEDS_REVIEW
+Single Leg Glute Bridge,Single Leg Glute Bridge,100,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515727/workout_exercises/single_leg_glute_bridge.mp4,COMPLETE
+Figure Four Stretch,Glutes Stretch Variation One,50,,NEEDS_REVIEW
+Seated Glute Stretch,Glutes Stretch Variation One,50,,NEEDS_REVIEW
+Standing Glute Stretch,Glutes Stretch Variation One,50,,NEEDS_REVIEW
+Lying Piriformis Stretch,Glutes Stretch Variation One,40,,NO_MATCH
+Face Pulls,Cable Rope Face Pulls,95,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515730/workout_exercises/face_pulls.mp4,COMPLETE
+Turkish Get-Up,,0,,NO_MATCH
+Russian Twists,Kettlebell Russian Twist,85,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515734/workout_exercises/russian_twists.mp4,COMPLETE
+Plank Jacks,Bodyweight Plank Jack,90,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515738/workout_exercises/plank_jacks.mp4,COMPLETE
+Bicycle Crunch,Bicycle Crunch,100,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515744/workout_exercises/bicycle_crunch.mp4,COMPLETE
+Crunch,Crunches,95,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515748/workout_exercises/crunch.mp4,COMPLETE
+Sit-Up,Situp,90,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515753/workout_exercises/sit_up.mp4,COMPLETE
+Hanging Leg Raise,Hanging Knee Raises,85,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515758/workout_exercises/hanging_leg_raise.mp4,COMPLETE
+Lying Leg Raise,Laying Leg Raises,95,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515763/workout_exercises/lying_leg_raise.mp4,COMPLETE
+Side Plank,Hand Side Plank,75,,NEEDS_REVIEW
+Ab Wheel Rollout,Machine Roll Outs,70,,NEEDS_REVIEW
+Cable Crunch,Cable Standing Crunch,80,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515768/workout_exercises/cable_crunch.mp4,COMPLETE
+V-Up,,0,,NO_MATCH
+Reverse Crunch,Reverse Crunch,100,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515773/workout_exercises/reverse_crunch.mp4,COMPLETE
+Flutter Kicks,,0,,NO_MATCH
+Toe Touches,,0,,NO_MATCH
+Standing Side Bend Stretch,,0,,NO_MATCH
+Seated Spinal Twist,Seated Twist,80,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515782/workout_exercises/seated_spinal_twist.mp4,COMPLETE
+Bridge Stretch,Glute Bridge,70,,NEEDS_REVIEW
+Bent Over Row,Barbell Bent Over Row,95,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515792/workout_exercises/bent_over_row.mp4,COMPLETE
+Seated Cable Row,Machine Seated Cable Row,90,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515796/workout_exercises/seated_cable_row.mp4,COMPLETE
+Single Arm Dumbbell Row,Dumbbell Single Arm Row,90,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515801/workout_exercises/single_arm_dumbbell_row.mp4,COMPLETE
+Wide Grip Lat Pulldown,Machine Pulldown,85,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515805/workout_exercises/wide_grip_lat_pulldown.mp4,COMPLETE
+Wide Grip Seated Row,Machine Seated Cable Row,70,,NEEDS_REVIEW
+Cable Rear Delt Fly,Cable High Single Arm Rear Delt Fly,80,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515812/workout_exercises/cable_rear_delt_fly.mp4,COMPLETE
+Bent Over Lateral Raise,Dumbbell Lateral Raise,65,,NEEDS_REVIEW
+Resistance Band Pull Apart,Band Pull Apart,95,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515816/workout_exercises/resistance_band_pull_apart.mp4,COMPLETE
+Barbell Back Squat,Barbell Squat,99,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515820/workout_exercises/barbell_back_squat.mp4,COMPLETE
+Snatch,Barbell Snatch,95,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515825/workout_exercises/snatch.mp4,COMPLETE
+Thruster,Barbell Thruster,80,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515829/workout_exercises/thruster.mp4,COMPLETE
+Man Maker,,0,,NO_MATCH
+Kettlebell Clean,Kettlebell Clean And Press,60,,NEEDS_REVIEW
+Kettlebell Snatch,Kettlebell Single Arm Snatch,80,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515834/workout_exercises/kettlebell_snatch.mp4,COMPLETE
+Landmine Squat to Press,Landmine Thruster,75,,NEEDS_REVIEW
+Wall Sit,Wall Sit,100,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515838/workout_exercises/wall_sit.mp4,COMPLETE
+Overhead Squat,Barbell Overhead Squat,75,,MAP_MISS
+Cossack Squat,Curtsy Lunge,60,,NEEDS_REVIEW
+Inchworm Walk,Inchworm,100,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515842/workout_exercises/inchworm_walk.mp4,COMPLETE
+Spiderman Crawl,,0,,NO_MATCH
+Brisk Walk,Treadmill Walk,70,,NEEDS_REVIEW
+Windmill,Kettlebell Windmill,90,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515847/workout_exercises/windmill.mp4,COMPLETE
+Jefferson Curl,Barbell Jefferson Deadlift,75,,NEEDS_REVIEW
+Lunge with Rotation,Plate Reverse Lunge Twist,65,,NEEDS_REVIEW
+Lateral Lunge,Lateral Lunge,95,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515851/workout_exercises/lateral_lunge.mp4,COMPLETE
+Bear Crawl,Bear Crawl,100,,MAP_MISS
+Crab Walk,,0,,NO_MATCH
+Jogging,Treadmill Jog,90,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515856/workout_exercises/jogging.mp4,COMPLETE
+Sprint,Treadmill Sprint,80,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515860/workout_exercises/sprint.mp4,COMPLETE
+Elliptical Training,Elliptical,100,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515865/workout_exercises/elliptical_training.mp4,COMPLETE
+Swimming,,0,,NO_MATCH
+Skater Jump,Cardio Skater,90,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515871/workout_exercises/skater_jump.mp4,COMPLETE
+Agility Ladder Drills,,0,,NO_MATCH
+Butt Kicks,Butt Kick,100,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515876/workout_exercises/butt_kicks.mp4,COMPLETE
+Skipping,Jump Rope,90,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515881/workout_exercises/skipping.mp4,COMPLETE
+Carioca Drill,Cardio Karaoke,80,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515888/workout_exercises/carioca_drill.mp4,COMPLETE
+Bounding,,0,,NO_MATCH
+Jump Lunges,Bodyweight Alternating Jump Lunge,90,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515894/workout_exercises/jump_lunges.mp4,COMPLETE
+Dynamic Side Shuffle,Cardio Lateral Shuffle,85,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515898/workout_exercises/dynamic_side_shuffle.mp4,COMPLETE
+Sledgehammer Slams,Medicine Ball Slam,60,,NEEDS_REVIEW
+Sandbag Carry,Kettlebell Farmers Carry,50,,NEEDS_REVIEW
+Sled Push,,0,,NO_MATCH
+Sled Pull,,0,,NO_MATCH
+Sun Salutation,,0,,NO_MATCH
+World's Greatest Stretch,,0,,NO_MATCH
+Downward Dog,Downward Dog,100,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515906/workout_exercises/downward_dog.mp4,COMPLETE
+Upward Dog,Cobra Pose,70,,NEEDS_REVIEW
+Standing Forward Bend,Standing Forward Bend,100,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515918/workout_exercises/standing_forward_bend.mp4,COMPLETE
+Spiderman Stretch,,0,,NO_MATCH
+Deep Squat Hold,Bodyweight Squat,50,,NEEDS_REVIEW
+Leg Swings,,0,,NO_MATCH
+Torso Twists,Kettlebell Russian Twist,50,,NEEDS_REVIEW
+Ankle Mobility Rock,,0,,NO_MATCH
+Knee Circles,,0,,NO_MATCH
+Hip Circles,,0,,NO_MATCH
+Seated Forward Fold,Seated Forward Bend,90,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515927/workout_exercises/seated_forward_fold.mp4,COMPLETE
+Lying Spinal Twist,Supine Twist Lying,90,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515944/workout_exercises/lying_spinal_twist.mp4,COMPLETE
+Kneeling Hip Flexor Stretch,Hip Flexor Stretch Kneeling Lunge 1,80,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515955/workout_exercises/kneeling_hip_flexor_stretch.mp4,COMPLETE
+Machine Shoulder Press,Machine Overhand Overhead Press,80,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515959/workout_exercises/machine_shoulder_press.mp4,COMPLETE
+Scapular Wall Slides,,0,,NO_MATCH
+Shoulder CARs,,10,,NO_MATCH
+Thoracic Spine Rotations,Bodyweight Thoracic Spine Rotation,75,,NEEDS_REVIEW
+Scapular Push-Ups,Push Up,60,,NEEDS_REVIEW
+Hip CARs,,10,,NO_MATCH
+Banded Hip Openers,Band Hip Abduction,70,,NEEDS_REVIEW
+Glute Activation Walk,Banded Side Walks,80,https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515964/workout_exercises/glute_activation_walk.mp4,COMPLETE
