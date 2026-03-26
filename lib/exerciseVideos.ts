@@ -202,7 +202,7 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   'Pushups':                         N.pushUps,
   'Diamond Push-Ups':                N.diamondPushUps,
   'Pike Push-Ups':                   N.pikePushUps,
-  'Archer Pushups':                  N.pushUps,
+  'Archer Pushups':                  N.diamondPushUps,
   'Clap Push-Up':                    N.pushUps,
 
   // ══════════════════════════════════════════════

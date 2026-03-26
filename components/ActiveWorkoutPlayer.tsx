@@ -496,7 +496,7 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
                             src={videoSource} 
                             poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
                             className="w-full h-full object-cover object-top" 
-                            style={{ filter: 'invert(1) hue-rotate(180deg)', opacity: 0.85 }}
+                            style={{ opacity: 0.95 }}
                             autoPlay 
                             loop 
                             muted 

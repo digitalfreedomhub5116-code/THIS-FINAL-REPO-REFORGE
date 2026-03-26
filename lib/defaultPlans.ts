@@ -27,14 +27,10 @@ const ex = (
 
 const DEFAULT_WARMUP: Exercise[] = [
   ex('Brisk Walk', 1, '3 min', 'CARDIO', 3, 15, true),
-  ex('Leg Swings', 1, '1 min', 'STRETCH', 1, 15, true),
-  ex('Arm Circles', 1, '1 min', 'STRETCH', 1, 15, true),
 ];
 
 const DEFAULT_COOLDOWN: Exercise[] = [
   ex('Brisk Walk', 1, '3 min', 'CARDIO', 3, 15, true),
-  ex('Hamstring Stretch', 1, '1.5 min', 'STRETCH', 1.5, 15, true),
-  ex('Shoulder Stretch', 1, '1.5 min', 'STRETCH', 1.5, 15, true),
 ];
 
 // ─────────────────────────────────────────────
@@ -116,8 +112,6 @@ const gymPPLDays: WorkoutDay[] = [
   {
     day: 'Day 7', focus: 'Active Recovery', totalDuration: 30, isRecovery: true, exercises: [
       ex('Brisk Walk', 1, '20 min', 'CARDIO', 20),
-      ex('Hip Flexor Stretch', 1, '5 min', 'STRETCH', 5),
-      ex('Hamstring Stretch', 1, '5 min', 'STRETCH', 5),
     ],
   },
 ];
@@ -196,8 +190,6 @@ const gymClassicDays: WorkoutDay[] = [
   {
     day: 'Day 7', focus: 'Active Recovery', totalDuration: 30, isRecovery: true, exercises: [
       ex('Brisk Walk', 1, '20 min', 'CARDIO', 20),
-      ex('Hip Flexor Stretch', 1, '5 min', 'STRETCH', 5),
-      ex('Hamstring Stretch', 1, '5 min', 'STRETCH', 5),
     ],
   },
 ];
@@ -281,8 +273,6 @@ const dumbbellPPLDays: WorkoutDay[] = [
   {
     day: 'Day 7', focus: 'Active Recovery', totalDuration: 30, isRecovery: true, exercises: [
       ex('Brisk Walk', 1, '20 min', 'CARDIO', 20),
-      ex('Hip Flexor Stretch', 1, '5 min', 'STRETCH', 5),
-      ex('Hamstring Stretch', 1, '5 min', 'STRETCH', 5),
     ],
   },
 ];
@@ -347,7 +337,6 @@ const bodyweightClassicDays: WorkoutDay[] = [
       ex('Pike Push-Ups', 3, '10-15', 'COMPOUND', 5),
       ex('Pull-Ups', 3, '6-10', 'COMPOUND', 6),
       ex('Plank', 3, '15-20s', 'ACCESSORY', 3),
-      ex('Arm Circles', 2, '30s each', 'STRETCH', 3),
       ...DEFAULT_COOLDOWN,
     ],
   },
@@ -358,16 +347,12 @@ const bodyweightClassicDays: WorkoutDay[] = [
       ex('Lateral Lunge', 3, '12 each', 'COMPOUND', 6),
       ex('Step Up', 3, '12 each', 'COMPOUND', 6),
       ex('Single Leg Glute Bridge', 3, '12 each', 'COMPOUND', 5),
-      ex('Hip Flexor Stretch', 2, '30s each', 'STRETCH', 3),
-      ex('Deep Squat Hold', 3, '30s', 'STRETCH', 3),
       ...DEFAULT_COOLDOWN,
     ],
   },
   {
     day: 'Day 7', focus: 'Active Recovery', totalDuration: 30, isRecovery: true, exercises: [
       ex('Brisk Walk', 1, '20 min', 'CARDIO', 20),
-      ex('Hip Flexor Stretch', 1, '5 min', 'STRETCH', 5),
-      ex('Hamstring Stretch', 1, '5 min', 'STRETCH', 5),
     ],
   },
 ];
