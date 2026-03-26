@@ -13,6 +13,14 @@ export const isEmbed = (url: string) => {
   return url.includes('youtube.com/embed') || url.includes('player.vimeo.com');
 };
 
+/** Return YYYY-MM-DD in the user's LOCAL timezone (not UTC). */
+const toLocalDateStr = (d: Date = new Date()): string => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+
 const DEFAULT_PLAYER: PlayerData = {
   isConfigured: false,
   tutorialStep: 0,
@@ -352,7 +360,7 @@ export const useSystem = () => {
       // ── Snapshot yesterday's stats into history ──
       const yesterday = new Date(todayStart);
       yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayStr = yesterday.toISOString().split('T')[0];
+      const yesterdayStr = toLocalDateStr(yesterday);
       const completedCount = prev.quests.filter(q => q.isCompleted).length;
       const historyEntry: HistoryEntry = {
         date: yesterdayStr,
@@ -412,9 +420,9 @@ export const useSystem = () => {
         const lastWorkout = prev.lastWorkoutDate || '';
         const yesterdayDate = new Date(todayStart);
         yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-        const yesterdayStr = yesterdayDate.toISOString().split('T')[0];
+        const yesterdayStr2 = toLocalDateStr(yesterdayDate);
 
-        if (lastWorkout !== yesterdayStr) {
+        if (lastWorkout !== yesterdayStr2) {
           const completedDays = (prev as any).workoutCompletedDays || 0;
           const plan = prev.healthProfile.workoutPlan;
 
@@ -676,7 +684,7 @@ export const useSystem = () => {
   // REWARD_SCHEDULE imported from lib/rewards
 
   const getDailyReward = useCallback((): DailyReward | null => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = toLocalDateStr();
     const lastLogin = player.lastLoginDate;
 
     // If already logged in today, no reward
@@ -707,7 +715,7 @@ export const useSystem = () => {
   }, [player.lastLoginDate, player.streak]);
 
   const claimDailyReward = (reward: DailyReward) => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = toLocalDateStr();
     
     setPlayer(prev => {
       // Recalculate streak to be safe
@@ -1321,7 +1329,7 @@ export const useSystem = () => {
           createLog(`Workout VOIDED: ${anomalyPoints} anomaly violations detected — NO REWARDS GRANTED`, 'WORKOUT'),
           ...prev.logs
         ];
-        const today = new Date().toISOString().split('T')[0];
+        const today = toLocalDateStr();
         return { ...prev, logs: newLogs, lastWorkoutDate: today };
       }
 
@@ -1387,13 +1395,15 @@ export const useSystem = () => {
         playSystemSoundEffect('LEVEL_UP');
       }
 
-      const today = new Date().toISOString().split('T')[0];
+      const today = toLocalDateStr();
       const prevDate = prev.lastWorkoutDate || '';
       let newStreak = prev.streak;
       if (prevDate === today) {
         newStreak = prev.streak;
       } else {
-        const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+        const yesterdayD = new Date();
+        yesterdayD.setDate(yesterdayD.getDate() - 1);
+        const yesterday = toLocalDateStr(yesterdayD);
         newStreak = prevDate === yesterday ? prev.streak + 1 : 1;
       }
 
