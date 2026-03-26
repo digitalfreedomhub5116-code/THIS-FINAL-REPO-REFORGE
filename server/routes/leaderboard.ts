@@ -6,7 +6,7 @@ const router = Router();
 router.get('/', async (_req: Request, res: Response) => {
   try {
     const { data, error } = await (supabaseServer() as any)
-      .from('leaderboard_cache')
+      .from('players')
       .select('username, name, total_xp, level, rank')
       .order('total_xp', { ascending: false })
       .limit(100);

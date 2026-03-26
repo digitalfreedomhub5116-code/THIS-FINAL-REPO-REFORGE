@@ -1,15 +1,6 @@
 import { Router, Request, Response } from 'express';
-import crypto from 'crypto';
 import { supabaseServer } from '../lib/supabase.js';
 import { getAuthenticatedUserId } from '../lib/playerAuth.js';
-
-// Convert any string ID to a valid UUID (deterministic).
-// Google auth IDs are numeric strings which aren't valid UUIDs.
-function toSafeUUID(id: string): string {
-  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return id;
-  const h = crypto.createHash('md5').update(id).digest('hex');
-  return `${h.slice(0,8)}-${h.slice(8,12)}-${h.slice(12,16)}-${h.slice(16,20)}-${h.slice(20,32)}`;
-}
 
 const router = Router();
 
@@ -154,23 +145,6 @@ router.put('/:id', async (req: Request, res: Response) => {
       .single();
 
     if (error) throw error;
-
-    // Fire-and-forget leaderboard cache sync
-    const lbData: Record<string, any> = {
-      player_id: toSafeUUID(id),
-      username: playerData.username,
-      name: playerData.name,
-      level: playerData.level,
-      rank: playerData.rank,
-      total_xp: playerData.total_xp,
-      updated_at: new Date().toISOString()
-    };
-    (supabaseServer() as any)
-      .from('leaderboard_cache')
-      .upsert(lbData, { onConflict: 'username' })
-      .then(({ error: lbErr }: { error: unknown }) => {
-        if (lbErr) console.error('[Leaderboard cache upsert]', lbErr);
-      });
 
     return res.json({ ...result, _serverGold: newGold, _serverKeys: newKeys });
   } catch (err) {
