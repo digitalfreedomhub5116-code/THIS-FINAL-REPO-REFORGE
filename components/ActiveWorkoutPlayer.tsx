@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Pause, X, AlertOctagon, Check, Activity, Film, Timer as TimerIcon, ChevronRight, Zap } from 'lucide-react';
+import { Play, Pause, X, AlertOctagon, Check, Activity, Film, Timer as TimerIcon, ChevronRight, Zap, Clock } from 'lucide-react';
 import { EXERCISE_VIDEOS, getExerciseVideoUrl } from '../lib/exerciseVideos';
 import { WorkoutDay } from '../types';
 import { SpeechService } from '../utils/speechService';
@@ -28,28 +28,45 @@ export interface SavedWorkoutSession {
   timestamp: number;
 }
 
-const SET_DURATION = 45; 
+// ── Set Timer Presets (user-selectable) ──
+const SET_TIMER_KEY = 'reforge_set_timer';
+const SET_TIMER_OPTIONS = [45, 60, 90, 120] as const;
+type SetTimerValue = typeof SET_TIMER_OPTIONS[number];
 
-// Dynamic rest duration based on exercise type & intensity
-const getIntraSetRest = (type: string, isSupplementary?: boolean): number => {
+const loadSetTimer = (): SetTimerValue => {
+  try {
+    const v = parseInt(localStorage.getItem(SET_TIMER_KEY) || '', 10);
+    if (SET_TIMER_OPTIONS.includes(v as any)) return v as SetTimerValue;
+  } catch {}
+  return 60; // Default: 60s
+};
+
+const saveSetTimer = (v: SetTimerValue) => {
+  try { localStorage.setItem(SET_TIMER_KEY, String(v)); } catch {}
+};
+
+// Dynamic rest duration based on exercise type, intensity, and user timer preference
+const getIntraSetRest = (type: string, timerSec: number, isSupplementary?: boolean): number => {
   if (isSupplementary) return 15;
+  const scale = timerSec / 60; // 60s = 1.0x baseline
   switch (type) {
-    case 'COMPOUND': return 45;
-    case 'ACCESSORY': return 30;
-    case 'CARDIO': return 20;
+    case 'COMPOUND': return Math.round(60 * scale);
+    case 'ACCESSORY': return Math.round(45 * scale);
+    case 'CARDIO': return Math.round(20 * scale);
     case 'STRETCH': return 15;
-    default: return 30;
+    default: return Math.round(45 * scale);
   }
 };
 
-const getInterExerciseRest = (prevType: string, nextIsSupplementary?: boolean, prevIsSupplementary?: boolean): number => {
+const getInterExerciseRest = (prevType: string, timerSec: number, nextIsSupplementary?: boolean, prevIsSupplementary?: boolean): number => {
   if (nextIsSupplementary || prevIsSupplementary) return 15;
+  const scale = timerSec / 60;
   switch (prevType) {
-    case 'COMPOUND': return 60;
-    case 'ACCESSORY': return 45;
-    case 'CARDIO': return 30;
+    case 'COMPOUND': return Math.round(75 * scale);
+    case 'ACCESSORY': return Math.round(60 * scale);
+    case 'CARDIO': return Math.round(30 * scale);
     case 'STRETCH': return 15;
-    default: return 45;
+    default: return Math.round(60 * scale);
   }
 };
 
@@ -73,7 +90,7 @@ export const clearWorkoutSession = () => {
 
 // Helper to parse duration from reps string (e.g., "5 min" -> 300, "30s" -> 30)
 const getExerciseDuration = (reps: string): number => {
-  if (!reps) return SET_DURATION;
+  if (!reps) return 60;
   const lower = reps.toLowerCase();
   
   // Minutes (e.g., "5 min", "10 mins")
@@ -88,11 +105,15 @@ const getExerciseDuration = (reps: string): number => {
      if (match) return parseInt(match[1], 10);
   }
   
-  return SET_DURATION; 
+  return 60; // fallback default
 };
 
 const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onComplete, onFail, savedSession }) => {
   const { player } = useSystem();
+  
+  // --- SET TIMER PREFERENCE ---
+  const [setTimerSec, setSetTimerSec] = useState<SetTimerValue>(loadSetTimer);
+  const [showTimerPicker, setShowTimerPicker] = useState(false);
   
   // --- STATE ---
   const [currentIdx, setCurrentIdx] = useState(savedSession?.currentIdx ?? 0);
@@ -101,7 +122,7 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
   // Initialize timer based on first exercise or saved session
   const [timeLeft, setTimeLeft] = useState(() => {
       if (savedSession) return savedSession.timeLeft;
-      return plan.exercises.length > 0 ? getExerciseDuration(plan.exercises[0].reps) : SET_DURATION;
+      return plan.exercises.length > 0 ? getExerciseDuration(plan.exercises[0].reps) : setTimerSec;
   });
 
   const [phase, setPhase] = useState<'WORK' | 'REST'>(savedSession?.phase ?? 'WORK');
@@ -209,7 +230,7 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
       // Transition to Next Exercise
       const prevEx = plan.exercises[currentIdx];
       const nextEx = plan.exercises[currentIdx + 1];
-      const restDuration = getInterExerciseRest(prevEx.type, nextEx?.isSupplementary, prevEx?.isSupplementary);
+      const restDuration = getInterExerciseRest(prevEx.type, setTimerSec, nextEx?.isSupplementary, prevEx?.isSupplementary);
       
       // Announce Rest immediately
       SpeechService.announceRest(restDuration);
@@ -249,7 +270,7 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
       
       if (currentSet < exercise.sets) {
         // Transition to Next Set (Same Exercise)
-        const restDuration = getIntraSetRest(exercise.type, exercise.isSupplementary);
+        const restDuration = getIntraSetRest(exercise.type, setTimerSec, exercise.isSupplementary);
         setPhase('REST');
         setPhaseStartTime(Date.now());
         setTimeLeft(restDuration);
@@ -275,7 +296,7 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
           const next = prev - 1;
           // Calculate max duration for halfway point based on current exercise
           const curEx = plan.exercises[currentIdx];
-          const maxDuration = phase === 'WORK' ? getExerciseDuration(curEx.reps) : getInterExerciseRest(curEx.type, curEx.isSupplementary);
+          const maxDuration = phase === 'WORK' ? getExerciseDuration(curEx.reps) : getInterExerciseRest(curEx.type, setTimerSec, curEx.isSupplementary);
           if (phase === 'WORK' && next === Math.floor(maxDuration / 2)) SpeechService.announceHalfway();
           if (next <= 3 && next > 0) playSystemSoundEffect('TICK');
           return next;
@@ -353,13 +374,51 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
                 )}
             </div>
             
-            <button 
-                onClick={() => setShowQuitConfirm(true)} 
-                className="pointer-events-auto w-8 h-8 flex items-center justify-center rounded-full bg-black/50 border border-white/10 text-gray-400 hover:text-red-500 hover:border-red-500/50 transition-colors backdrop-blur"
-            >
-                <X size={16} />
-            </button>
+            <div className="pointer-events-auto flex items-center gap-2">
+                <button
+                    onClick={() => setShowTimerPicker(p => !p)}
+                    className="flex items-center gap-1 bg-black/50 backdrop-blur border border-white/10 px-2.5 py-1 rounded-full text-[10px] font-mono font-bold text-gray-300 hover:border-system-neon/50 hover:text-system-neon transition-colors"
+                >
+                    <Clock size={10} /> {setTimerSec}s
+                </button>
+                <button 
+                    onClick={() => setShowQuitConfirm(true)} 
+                    className="w-8 h-8 flex items-center justify-center rounded-full bg-black/50 border border-white/10 text-gray-400 hover:text-red-500 hover:border-red-500/50 transition-colors backdrop-blur"
+                >
+                    <X size={16} />
+                </button>
+            </div>
         </div>
+
+        {/* --- SET TIMER PICKER --- */}
+        <AnimatePresence>
+            {showTimerPicker && (
+                <motion.div
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    className="absolute top-16 right-4 z-40 bg-[#111] border border-white/10 rounded-xl p-3 shadow-[0_8px_32px_rgba(0,0,0,0.8)] backdrop-blur-lg"
+                >
+                    <p className="text-[10px] text-gray-500 font-mono font-bold tracking-widest mb-2">SET TIMER</p>
+                    <div className="flex gap-2">
+                        {SET_TIMER_OPTIONS.map(opt => (
+                            <button
+                                key={opt}
+                                onClick={() => { setSetTimerSec(opt); saveSetTimer(opt); setShowTimerPicker(false); }}
+                                className={`px-3 py-2 rounded-lg text-xs font-mono font-bold transition-all ${
+                                    setTimerSec === opt
+                                        ? 'bg-system-neon text-black shadow-[0_0_12px_rgba(0,210,255,0.4)]'
+                                        : 'bg-gray-900 text-gray-400 border border-gray-800 hover:border-gray-600'
+                                }`}
+                            >
+                                {opt}s
+                            </button>
+                        ))}
+                    </div>
+                    <p className="text-[9px] text-gray-600 font-mono mt-2">Rest scales with this setting</p>
+                </motion.div>
+            )}
+        </AnimatePresence>
 
         {/* --- MEDIA AREA (Flexible Top Half) --- */}
         <div className="relative flex-1 bg-gray-900 overflow-hidden">

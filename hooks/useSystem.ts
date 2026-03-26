@@ -1327,15 +1327,11 @@ export const useSystem = () => {
     if (penaltyExceeded) {
       rewards = [];
     } else if (isCustomWorkout) {
+      // Custom workouts give minimal rewards to discourage farming
       rewards = [
-        { type: 'XP', amount: Math.floor(Math.random() * 201) + 200, label: 'XP' },
-        { type: 'GOLD', amount: Math.floor(Math.random() * 101) + 100, label: 'Gold' },
+        { type: 'XP', amount: Math.floor(Math.random() * 51) + 30, label: 'XP' },
+        { type: 'GOLD', amount: Math.floor(Math.random() * 21) + 10, label: 'Gold' },
       ];
-      if (Math.random() > 0.5) {
-        rewards.push({ type: 'HEALTH_POTION', amount: 1, label: 'Health Potion' });
-      } else {
-        rewards.push({ type: 'SHADOW_SCROLL', amount: 1, label: 'Shadow Scroll' });
-      }
     } else {
       rewards = generateWorkoutRewards(anomalyPoints);
     }
