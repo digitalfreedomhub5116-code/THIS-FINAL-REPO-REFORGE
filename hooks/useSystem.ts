@@ -953,51 +953,53 @@ export const useSystem = () => {
       }
 
       // ── SENSOR ANTI-CHEAT CHECK ──
-      // Only enforce if sensors actually collected data. If ALL sensor data is
-      // zero/empty it means the device sensors failed to initialize — skip the
-      // check entirely so the user is NOT falsely flagged.
+      // Per-sensor enforcement: only check a specific metric if THAT sensor
+      // actually collected data.  e.g. steps=0 means the accelerometer/step
+      // counter failed → skip the step threshold but still check GPS distance
+      // and active-minutes independently.
       if (quest.sensorRequirements && !asMini) {
         const sr = quest.sensorRequirements;
         const sd = quest.sensorData;
+        const flags: string[] = [];
 
-        const sensorDataExists = sd && (
-          (sd.stepsRecorded ?? 0) > 0 ||
-          (sd.distanceRecorded ?? 0) > 0 ||
-          (sd.activeMinutesRecorded ?? 0) > 0 ||
-          (sd.locationPath && sd.locationPath.length > 0)
-        );
+        // Steps — only enforce if step counter actually recorded something
+        const stepsRecorded = sd?.stepsRecorded ?? 0;
+        if (sr.steps && stepsRecorded > 0 && stepsRecorded < sr.steps * 0.8) {
+          flags.push(`Steps: ${stepsRecorded}/${sr.steps}`);
+        }
 
-        if (sensorDataExists) {
-          const flags: string[] = [];
+        // Distance — only enforce if GPS recorded meaningful distance
+        const distRecorded = sd?.distanceRecorded ?? 0;
+        if (sr.distanceKm && distRecorded > 0 && distRecorded < sr.distanceKm * 0.8) {
+          flags.push(`Distance: ${distRecorded.toFixed(2)}/${sr.distanceKm}km`);
+        }
 
-          if (sr.steps && (!sd?.stepsRecorded || sd.stepsRecorded < sr.steps * 0.8)) {
-            flags.push(`Steps: ${sd?.stepsRecorded ?? 0}/${sr.steps}`);
-          }
-          if (sr.distanceKm && (!sd?.distanceRecorded || sd.distanceRecorded < sr.distanceKm * 0.8)) {
-            flags.push(`Distance: ${(sd?.distanceRecorded ?? 0).toFixed(2)}/${sr.distanceKm}km`);
-          }
-          if (sr.activeMinutes && (!sd?.activeMinutesRecorded || sd.activeMinutesRecorded < sr.activeMinutes * 0.7)) {
-            flags.push(`Active: ${sd?.activeMinutesRecorded ?? 0}/${sr.activeMinutes}min`);
-          }
-          if ((sr.steps || sr.distanceKm) && sd?.maxSpeedKmh && sd.maxSpeedKmh > 50) {
-            flags.push(`Speed anomaly: ${sd.maxSpeedKmh}km/h`);
-          }
-          if (sd?.stepsRecorded && sd.stepsRecorded > 0 && quest.createdAt) {
-            const durationSec = (Date.now() - quest.createdAt) / 1000;
-            if (durationSec > 0 && sd.stepsRecorded / durationSec > 4) {
-              flags.push(`Cadence anomaly: ${(sd.stepsRecorded / durationSec).toFixed(1)} steps/sec`);
-            }
-          }
+        // Active minutes — only enforce if timer recorded minutes
+        const activeMin = sd?.activeMinutesRecorded ?? 0;
+        if (sr.activeMinutes && activeMin > 0 && activeMin < sr.activeMinutes * 0.7) {
+          flags.push(`Active: ${activeMin}/${sr.activeMinutes}min`);
+        }
 
-          if (flags.length > 0) {
-            quests[qIndex] = { ...quest, isCompleted: true, completedAsMini: asMini, pactStatus: hasPact ? 'burned' : quest.pactStatus, sensorTracking: false };
-            playSystemSoundEffect('DANGER');
-            const flagStr = flags.join(', ');
-            const newLogs = [createLog(`Sensor Anomaly: ${quest.title} — ${flagStr}${hasPact ? ` — ${pactAmount}G BURNED` : ''}`, 'WARNING'), ...prev.logs];
-            return { ...prev, quests, logs: newLogs, cheatStrikes: (prev.cheatStrikes || 0) + 1 };
+        // Speed anomaly — only if GPS was working and recorded movement
+        if ((sr.steps || sr.distanceKm) && sd?.maxSpeedKmh && sd.maxSpeedKmh > 50) {
+          flags.push(`Speed anomaly: ${sd.maxSpeedKmh}km/h`);
+        }
+
+        // Cadence anomaly — only if step counter actually counted steps
+        if (stepsRecorded > 0 && quest.createdAt) {
+          const durationSec = (Date.now() - quest.createdAt) / 1000;
+          if (durationSec > 0 && stepsRecorded / durationSec > 4) {
+            flags.push(`Cadence anomaly: ${(stepsRecorded / durationSec).toFixed(1)} steps/sec`);
           }
         }
-        // If sensorDataExists is false (all zeros / sensors failed), skip check — allow honest completion
+
+        if (flags.length > 0) {
+          quests[qIndex] = { ...quest, isCompleted: true, completedAsMini: asMini, pactStatus: hasPact ? 'burned' : quest.pactStatus, sensorTracking: false };
+          playSystemSoundEffect('DANGER');
+          const flagStr = flags.join(', ');
+          const newLogs = [createLog(`Sensor Anomaly: ${quest.title} — ${flagStr}${hasPact ? ` — ${pactAmount}G BURNED` : ''}`, 'WARNING'), ...prev.logs];
+          return { ...prev, quests, logs: newLogs, cheatStrikes: (prev.cheatStrikes || 0) + 1 };
+        }
       }
 
       // ── HONEST COMPLETION ──

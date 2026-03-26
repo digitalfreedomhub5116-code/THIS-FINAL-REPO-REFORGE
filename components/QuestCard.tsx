@@ -95,11 +95,17 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
   const handleComplete = () => {
     if (completingRef.current) return; // Debounce rapid taps
     completingRef.current = true;
+    // Auto-stop sensor tracking before completing
+    if (quest.sensorTracking && onStopTracking) onStopTracking(quest.id);
     onComplete(quest.id, isMiniActive);
     setTimeout(() => { completingRef.current = false; }, 1500);
   };
 
-  const handleFail = () => onFail(quest.id);
+  const handleFail = () => {
+    // Auto-stop sensor tracking before failing
+    if (quest.sensorTracking && onStopTracking) onStopTracking(quest.id);
+    onFail(quest.id);
+  };
 
   return (
     <motion.div
@@ -313,17 +319,16 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
         {/* ── ACTIVE: action buttons ── */}
         {isActive && (
           <div className="flex items-center gap-2 mt-3">
-            {/* Sensor tracking toggle */}
-            {quest.sensorRequirements && onStartTracking && onStopTracking && (
+            {/* Sensor tracking: start button or active indicator (no manual stop) */}
+            {quest.sensorRequirements && onStartTracking && (
               quest.sensorTracking ? (
-                <button
-                  onClick={() => onStopTracking(quest.id)}
-                  className="flex items-center justify-center gap-1 h-9 px-3 rounded-xl text-[10px] font-black font-mono uppercase tracking-wide transition-all active:scale-95"
-                  style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)', color: '#f87171' }}
+                <div
+                  className="flex items-center justify-center gap-1 h-9 px-3 rounded-xl text-[10px] font-black font-mono uppercase tracking-wide"
+                  style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.3)', color: '#4ade80' }}
                 >
-                  <Square size={10} fill="currentColor" />
-                  Stop
-                </button>
+                  <Activity size={10} />
+                  Tracking...
+                </div>
               ) : (
                 <button
                   onClick={() => onStartTracking(quest.id)}
