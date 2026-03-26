@@ -143,15 +143,16 @@ const N = {
   kneelingHipFlexor:     'https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515955/workout_exercises/kneeling_hip_flexor_stretch.mp4',
   machineShoulderPress:  'https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515959/workout_exercises/machine_shoulder_press.mp4',
   gluteActivationWalk:   'https://res.cloudinary.com/dkygyxsdw/video/upload/v1774515964/workout_exercises/glute_activation_walk.mp4',
+  arnoldPress:           'https://res.cloudinary.com/dkygyxsdw/video/upload/v1774519079/workout_exercises/arnold_press.mp4',
+  preacherCurl:          'https://res.cloudinary.com/dkygyxsdw/video/upload/v1774519086/workout_exercises/preacher_curl.mp4',
+  briskWalk:             'https://res.cloudinary.com/dkygyxsdw/video/upload/v1774519096/workout_exercises/brisk_walk.mp4',
+  shoulderStretch:       'https://res.cloudinary.com/dkygyxsdw/video/upload/v1774519102/workout_exercises/shoulder_stretch.mp4',
 };
 
 // ── Fallback URLs for unmatched exercises (old user-provided) ──
 const F = {
   dynamicStretching: 'https://res.cloudinary.com/dkygyxsdw/video/upload/v1774029197/leg_stretching_wfooqj.mp4',
   staticStretching:  'https://res.cloudinary.com/dkygyxsdw/video/upload/v1774029197/stretching_sgedzx.mp4',
-  briskWalk:         'https://res.cloudinary.com/dkygyxsdw/video/upload/v1774029203/brisk_walk_gjazf1.mp4',
-  arnoldPress:       'https://res.cloudinary.com/dkygyxsdw/video/upload/v1774029197/arnoldpress_inkrme.mp4',
-  preacherCurls:     'https://res.cloudinary.com/dkygyxsdw/video/upload/v1774029197/ezbarpreacher_curls_pptp11.mp4',
 };
 
 export const EXERCISE_VIDEOS: Record<string, string> = {
@@ -176,7 +177,7 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   'Overhead Barbell Press':          N.overheadBarbellPress,
   'Dumbbell Shoulder Press':         N.dumbbellShoulderPress,
   'Machine Shoulder Press':          N.machineShoulderPress,
-  'Arnold Press':                    F.arnoldPress,
+  'Arnold Press':                    N.arnoldPress,
   'Lateral Raises':                  N.lateralRaises,
   'Dumbbell Lateral Raise':          N.dumbbellLateralRaise,
   'Cable Lateral Raise':             N.cableLateralRaise,
@@ -241,8 +242,8 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   'Zottman Curl':                    N.zottmanCurl,
   'Hammer Curls':                    N.hammerCurl,
   'Hammer Curl':                     N.hammerCurl,
-  'Preacher Curls':                  F.preacherCurls,
-  'Preacher Curl':                   F.preacherCurls,
+  'Preacher Curls':                  N.preacherCurl,
+  'Preacher Curl':                   N.preacherCurl,
 
   // ══════════════════════════════════════════════
   // ── Legs / Glutes ──
@@ -319,9 +320,9 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   // ══════════════════════════════════════════════
   // ── Cardio ──
   // ══════════════════════════════════════════════
-  'Slow Walk':                       F.briskWalk,
-  'Brisk Walk / Light Jog':          F.briskWalk,
-  'Brisk Walk':                      F.briskWalk,
+  'Slow Walk':                       N.briskWalk,
+  'Brisk Walk / Light Jog':          N.briskWalk,
+  'Brisk Walk':                      N.briskWalk,
   'High Knees':                      N.burpees,
   'Burpees':                         N.burpees,
   'Jumping Jacks':                   N.jumpingJacks,
@@ -351,7 +352,7 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   // ══════════════════════════════════════════════
   'Dynamic Stretching':              F.dynamicStretching,
   'Static Stretching':               F.staticStretching,
-  'Shoulder Stretch':                F.staticStretching,
+  'Shoulder Stretch':                N.shoulderStretch,
   'Hamstring Stretch':               N.hamstringStretch,
   'Seated Hamstring Stretch':        N.seatedHamstringStr,
   'Calf Stretch':                    N.calfStretch,
