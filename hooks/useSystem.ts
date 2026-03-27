@@ -1336,17 +1336,42 @@ export const useSystem = () => {
     workoutCompletingRef.current = true;
     setTimeout(() => { workoutCompletingRef.current = false; }, 2000);
 
-    const penaltyExceeded = anomalyPoints > 5;
+    const penaltyExceeded = anomalyPoints >= 5;
     
     let rewards: WorkoutReward[] = [];
     if (penaltyExceeded) {
       rewards = [];
     } else if (isCustomWorkout) {
-      // Custom workouts give minimal rewards to discourage farming
-      rewards = [
-        { type: 'XP', amount: Math.floor(Math.random() * 51) + 30, label: 'XP' },
-        { type: 'GOLD', amount: Math.floor(Math.random() * 21) + 10, label: 'Gold' },
-      ];
+      // Tiered custom workout rewards based on exercise count
+      if (totalExercises <= 2) {
+        // Too few exercises — no rewards
+        rewards = [];
+      } else if (totalExercises <= 5) {
+        // Tier 2: 3-5 exercises → 150-300 coins, 250-300 XP, common item
+        rewards = [
+          { type: 'XP', amount: Math.floor(Math.random() * 51) + 250, label: 'XP' },
+          { type: 'GOLD', amount: Math.floor(Math.random() * 151) + 150, label: 'Gold' },
+          Math.random() < 0.5
+            ? { type: 'HEALTH_POTION', amount: 1, label: 'Health Potion' }
+            : { type: 'SHADOW_SCROLL', amount: 1, label: 'Shadow Scroll' },
+        ];
+      } else if (totalExercises <= 7) {
+        // Tier 3: 6-7 exercises → 300-450 coins, 350-400 XP, common item
+        rewards = [
+          { type: 'XP', amount: Math.floor(Math.random() * 51) + 350, label: 'XP' },
+          { type: 'GOLD', amount: Math.floor(Math.random() * 151) + 300, label: 'Gold' },
+          Math.random() < 0.5
+            ? { type: 'HEALTH_POTION', amount: 1, label: 'Health Potion' }
+            : { type: 'SHADOW_SCROLL', amount: 1, label: 'Shadow Scroll' },
+        ];
+      } else {
+        // Tier 4: 8+ exercises → 500-600 coins, 450-550 XP, 1 key
+        rewards = [
+          { type: 'XP', amount: Math.floor(Math.random() * 101) + 450, label: 'XP' },
+          { type: 'GOLD', amount: Math.floor(Math.random() * 101) + 500, label: 'Gold' },
+          { type: 'KEYS', amount: 1, label: 'Key' },
+        ];
+      }
     } else {
       rewards = generateWorkoutRewards(anomalyPoints);
     }

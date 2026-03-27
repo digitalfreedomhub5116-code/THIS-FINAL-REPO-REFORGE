@@ -30,7 +30,7 @@ export interface SavedWorkoutSession {
 
 // ── Set Timer Presets (user-selectable) ──
 const SET_TIMER_KEY = 'reforge_set_timer';
-const SET_TIMER_OPTIONS = [45, 60, 90, 120] as const;
+const SET_TIMER_OPTIONS = [45, 60, 75, 90] as const;
 type SetTimerValue = typeof SET_TIMER_OPTIONS[number];
 
 const loadSetTimer = (): SetTimerValue => {
@@ -48,26 +48,16 @@ const saveSetTimer = (v: SetTimerValue) => {
 // Dynamic rest duration based on exercise type, intensity, and user timer preference
 const getIntraSetRest = (type: string, timerSec: number, isSupplementary?: boolean): number => {
   if (isSupplementary) return 15;
-  const scale = timerSec / 60; // 60s = 1.0x baseline
-  switch (type) {
-    case 'COMPOUND': return Math.round(60 * scale);
-    case 'ACCESSORY': return Math.round(45 * scale);
-    case 'CARDIO': return Math.round(20 * scale);
-    case 'STRETCH': return 15;
-    default: return Math.round(45 * scale);
-  }
+  if (type === 'STRETCH') return 15;
+  if (type === 'CARDIO') return 20;
+  return 70; // 70s rest between sets for all main exercises
 };
 
 const getInterExerciseRest = (prevType: string, timerSec: number, nextIsSupplementary?: boolean, prevIsSupplementary?: boolean): number => {
   if (nextIsSupplementary || prevIsSupplementary) return 15;
-  const scale = timerSec / 60;
-  switch (prevType) {
-    case 'COMPOUND': return Math.round(75 * scale);
-    case 'ACCESSORY': return Math.round(60 * scale);
-    case 'CARDIO': return Math.round(30 * scale);
-    case 'STRETCH': return 15;
-    default: return Math.round(60 * scale);
-  }
+  if (prevType === 'STRETCH') return 15;
+  if (prevType === 'CARDIO') return 30;
+  return 90; // 90s rest between exercises for all main exercises
 };
 
 const WORKOUT_SESSION_KEY = 'reforge_active_workout';
@@ -114,6 +104,7 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
   // --- SET TIMER PREFERENCE ---
   const [setTimerSec, setSetTimerSec] = useState<SetTimerValue>(loadSetTimer);
   const [showTimerPicker, setShowTimerPicker] = useState(false);
+  const [pendingTimer, setPendingTimer] = useState<SetTimerValue | null>(null);
   
   // --- STATE ---
   const [currentIdx, setCurrentIdx] = useState(savedSession?.currentIdx ?? 0);
@@ -404,7 +395,7 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
                         {SET_TIMER_OPTIONS.map(opt => (
                             <button
                                 key={opt}
-                                onClick={() => { setSetTimerSec(opt); saveSetTimer(opt); setShowTimerPicker(false); }}
+                                onClick={() => { if (opt !== setTimerSec) { setPendingTimer(opt); } else { setShowTimerPicker(false); } }}
                                 className={`px-3 py-2 rounded-lg text-xs font-mono font-bold transition-all ${
                                     setTimerSec === opt
                                         ? 'bg-system-neon text-black shadow-[0_0_12px_rgba(0,210,255,0.4)]'
@@ -417,6 +408,50 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
                     </div>
                     <p className="text-[9px] text-gray-600 font-mono mt-2">Rest scales with this setting</p>
                 </motion.div>
+            )}
+        </AnimatePresence>
+
+        {/* --- TIMER CHANGE CONFIRMATION --- */}
+        <AnimatePresence>
+            {pendingTimer !== null && (
+                <div className="fixed inset-0 z-[130] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6">
+                    <motion.div
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.9, opacity: 0 }}
+                        className="bg-[#0a0a0a] border border-system-neon/30 w-full max-w-xs rounded-2xl p-6 text-center shadow-[0_0_40px_rgba(0,210,255,0.15)]"
+                    >
+                        <div className="w-12 h-12 bg-system-neon/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-system-neon/30">
+                            <Clock size={24} className="text-system-neon" />
+                        </div>
+                        <h3 className="text-sm font-black text-white mb-1 tracking-tight">CHANGE SET TIMER?</h3>
+                        <p className="text-[11px] text-gray-400 font-mono mb-5">
+                            <span className="text-gray-500">{setTimerSec}s</span>
+                            <span className="text-system-neon mx-2">→</span>
+                            <span className="text-white font-bold">{pendingTimer}s</span>
+                        </p>
+                        <p className="text-[9px] text-gray-600 font-mono mb-5">All rest timers will scale to the new duration. This will be your default for future workouts.</p>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => setPendingTimer(null)}
+                                className="flex-1 py-3 rounded-xl bg-gray-800 text-gray-300 font-bold text-xs hover:bg-gray-700 transition-colors"
+                            >
+                                CANCEL
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setSetTimerSec(pendingTimer!);
+                                    saveSetTimer(pendingTimer!);
+                                    setPendingTimer(null);
+                                    setShowTimerPicker(false);
+                                }}
+                                className="flex-1 py-3 rounded-xl bg-system-neon text-black font-black text-xs hover:bg-white transition-colors"
+                            >
+                                CONFIRM
+                            </button>
+                        </div>
+                    </motion.div>
+                </div>
             )}
         </AnimatePresence>
 

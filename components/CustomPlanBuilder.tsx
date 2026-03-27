@@ -199,28 +199,54 @@ const CustomPlanBuilder: React.FC<CustomPlanBuilderProps> = ({ onClose, onStartW
           <div className="divide-y divide-gray-900/60">
             {filtered.map(ex => {
               const sel = isSelected(ex.id);
+              const selData = selected.find(s => s.exercise.id === ex.id);
               return (
-                <motion.button
-                  key={ex.id}
-                  layout
-                  onClick={() => toggleExercise(ex)}
-                  className={`w-full flex items-center gap-3 px-4 py-3.5 text-left transition-all ${sel ? 'bg-system-neon/5' : 'hover:bg-white/5'}`}
-                >
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all ${sel ? 'bg-system-neon text-black' : 'bg-gray-900 border border-gray-800 text-gray-600'}`}>
-                    {sel ? <CheckCircle size={16} /> : <Plus size={14} />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <span className="text-sm font-bold text-white truncate">{ex.name}</span>
+                <div key={ex.id} className={`transition-all ${sel ? 'bg-system-neon/5' : ''}`}>
+                  <button
+                    onClick={() => toggleExercise(ex)}
+                    className={`w-full flex items-center gap-3 px-4 py-3.5 text-left transition-all ${!sel ? 'hover:bg-white/5' : ''}`}
+                  >
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all ${sel ? 'bg-system-neon text-black' : 'bg-gray-900 border border-gray-800 text-gray-600'}`}>
+                      {sel ? <CheckCircle size={16} /> : <Plus size={14} />}
                     </div>
-                    <div className="flex gap-2 items-center">
-                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${TYPE_COLORS[ex.type] || 'bg-gray-800 text-gray-500 border-gray-700'}`}>{ex.type}</span>
-                      {ex.muscle_group && <span className="text-[10px] text-gray-500 font-mono">{ex.muscle_group}</span>}
-                      <span className="text-[10px] text-gray-700 font-mono">{ex.default_sets}×{ex.default_reps}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className="text-sm font-bold text-white truncate">{ex.name}</span>
+                      </div>
+                      <div className="flex gap-2 items-center">
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${TYPE_COLORS[ex.type] || 'bg-gray-800 text-gray-500 border-gray-700'}`}>{ex.type}</span>
+                        {ex.muscle_group && <span className="text-[10px] text-gray-500 font-mono">{ex.muscle_group}</span>}
+                        {!sel && <span className="text-[10px] text-gray-700 font-mono">{ex.default_sets}×{ex.default_reps}</span>}
+                      </div>
                     </div>
-                  </div>
-                  {sel && <div className="w-1.5 h-8 bg-system-neon rounded-full shrink-0" />}
-                </motion.button>
+                    {sel && <div className="w-1.5 h-8 bg-system-neon rounded-full shrink-0" />}
+                  </button>
+                  {/* Inline sets/reps editor — visible immediately when selected */}
+                  {sel && selData && (
+                    <div className="px-4 pb-3 pt-0 flex items-center gap-3" onClick={e => e.stopPropagation()}>
+                      <div className="w-8 shrink-0" />
+                      <div className="flex-1 flex items-center gap-3 bg-gray-900/80 border border-gray-800 rounded-lg px-3 py-2">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider w-8">Sets</span>
+                          <button onClick={() => updateSelected(ex.id, 'sets', Math.max(1, selData.sets - 1))} className="w-6 h-6 bg-gray-800 hover:bg-gray-700 rounded flex items-center justify-center text-gray-400 transition-colors"><Minus size={10} /></button>
+                          <span className="text-sm text-white font-black w-6 text-center font-mono">{selData.sets}</span>
+                          <button onClick={() => updateSelected(ex.id, 'sets', Math.min(20, selData.sets + 1))} className="w-6 h-6 bg-gray-800 hover:bg-gray-700 rounded flex items-center justify-center text-gray-400 transition-colors"><Plus size={10} /></button>
+                        </div>
+                        <div className="w-px h-5 bg-gray-800" />
+                        <div className="flex items-center gap-1.5 flex-1">
+                          <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider w-8">Reps</span>
+                          <input
+                            value={selData.reps}
+                            onChange={e => updateSelected(ex.id, 'reps', e.target.value)}
+                            className="flex-1 bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-white font-mono outline-none focus:border-system-neon/50 min-w-0"
+                            placeholder="e.g. 12"
+                          />
+                        </div>
+                      </div>
+                      <button onClick={() => removeSelected(ex.id)} className="text-gray-700 hover:text-red-400 transition-colors shrink-0"><X size={14} /></button>
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>

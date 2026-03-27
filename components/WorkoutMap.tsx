@@ -2,7 +2,7 @@
 import React, { useRef, useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, Lock, Swords, Skull, Crown, Flag, Zap, X, Play, Activity, Gift, AlertTriangle, Trophy, Star, KeyRound } from 'lucide-react';
+import { Check, Lock, Swords, Skull, Crown, Flag, Zap, X, Play, Activity, Gift, AlertTriangle, Trophy, Star, KeyRound, AlertCircle } from 'lucide-react';
 import { WorkoutDay } from '../types';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Environment, OrbitControls } from '@react-three/drei';
@@ -58,6 +58,8 @@ interface WorkoutMapProps {
   workoutPlan: WorkoutDay[];
   completedDays: number;
   missedDays?: number[];
+  cheatedDays?: number[];
+  todayCompleted?: boolean;
   streak?: number;
   planChangedAtDay?: number;
   planChangeLabel?: string;
@@ -70,12 +72,15 @@ const WorkoutMap: React.FC<WorkoutMapProps> = ({
   workoutPlan, 
   completedDays, 
   missedDays = [],
+  cheatedDays = [],
+  todayCompleted = false,
   streak = 0,
   planChangedAtDay,
   planChangeLabel,
   onStartDay 
 }) => {
   const missedSet = useMemo(() => new Set(missedDays), [missedDays]);
+  const cheatedSet = useMemo(() => new Set(cheatedDays), [cheatedDays]);
   const [selectedPreview, setSelectedPreview] = useState<number | null>(null);
   const [showReward, setShowReward] = useState<{ id: number, type: string } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -258,8 +263,14 @@ const WorkoutMap: React.FC<WorkoutMapProps> = ({
                     {/* Nodes */}
                     {points.map((point, index) => {
                         const isMissed = missedSet.has(index);
-                        const isCompleted = index < completedDays && !isMissed;
-                        const currentDayIndex = completedDays + missedDays.length;
+                        const isCheated = cheatedSet.has(index);
+                        // If today's workout is completed, stay on today's node (don't advance yet)
+                        // completedDays counts past completed days; todayCompleted means today is done but we stay here until midnight
+                        const pastCompleted = index < completedDays && !isMissed && !isCheated;
+                        const isTodayDone = todayCompleted && index === completedDays;
+                        const isCompleted = pastCompleted || isTodayDone;
+                        // Current day index: if today is completed, we stay on the same node
+                        const currentDayIndex = todayCompleted ? completedDays : completedDays + missedDays.length;
                         const isCurrent = index === currentDayIndex;
                         const isLocked = index > currentDayIndex;
                         const isSelected = selectedPreview === index;
@@ -287,10 +298,11 @@ const WorkoutMap: React.FC<WorkoutMapProps> = ({
                                     className={`
                                         relative flex items-center justify-center rounded-full transition-all duration-300 cursor-pointer border-4
                                         ${point.isBoss ? 'w-16 h-16 md:w-20 md:h-20' : 'w-12 h-12 md:w-14 md:h-14'}
-                                        ${isCompleted ? 'bg-emerald-500 border-emerald-400 text-black shadow-[0_0_20px_rgba(16,185,129,0.6)]' : ''}
-                                        ${isMissed ? 'bg-red-600 border-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.5)]' : ''}
-                                        ${isCurrent ? 'bg-black border-system-neon text-system-neon shadow-[0_0_40px_rgba(0,210,255,0.5)] animate-pulse' : ''}
-                                        ${isLocked && !isMissed ? 'bg-gray-900 border-gray-800 text-gray-600' : ''}
+                                        ${isCheated ? 'bg-amber-600 border-amber-500 text-black shadow-[0_0_20px_rgba(245,158,11,0.6)]' : ''}
+                                        ${isCompleted && !isCheated ? 'bg-emerald-500 border-emerald-400 text-black shadow-[0_0_20px_rgba(16,185,129,0.6)]' : ''}
+                                        ${isMissed && !isCheated ? 'bg-red-600 border-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.5)]' : ''}
+                                        ${isCurrent && !isCompleted && !isCheated ? 'bg-black border-system-neon text-system-neon shadow-[0_0_40px_rgba(0,210,255,0.5)] animate-pulse' : ''}
+                                        ${isLocked && !isMissed && !isCheated ? 'bg-gray-900 border-gray-800 text-gray-600' : ''}
                                         ${isSelected ? 'ring-4 ring-white/50' : ''}
                                         hover:scale-110 active:scale-95
                                     `}
@@ -300,15 +312,15 @@ const WorkoutMap: React.FC<WorkoutMapProps> = ({
                                             setShowReward({ id: index, type: point.isFinal ? 'legendary' : 'epic' });
                                             return;
                                         }
-                                        // Active node has its own card, only show preview modal for others
-                                        if (!isCurrent) setSelectedPreview(index);
+                                        if (!isCurrent || isTodayDone) setSelectedPreview(index);
                                     }}
                                 >
                                     {point.isFinal ? (
                                         <Flag size={24} className="md:w-8 md:h-8" />
                                     ) : point.isBoss ? (
-                                        isCompleted ? <Crown size={32} className="md:w-10 md:h-10" /> : isMissed ? <Skull size={32} className="md:w-10 md:h-10 text-red-200" /> : <Skull size={32} className="md:w-10 md:h-10" />
+                                        isCompleted && !isCheated ? <Crown size={32} className="md:w-10 md:h-10" /> : isMissed ? <Skull size={32} className="md:w-10 md:h-10 text-red-200" /> : isCheated ? <AlertCircle size={32} className="md:w-10 md:h-10 text-amber-200" /> : <Skull size={32} className="md:w-10 md:h-10" />
                                     ) : (
+                                        isCheated ? <AlertCircle size={20} className="md:w-6 md:h-6" /> :
                                         isCompleted ? <Check size={20} className="md:w-6 md:h-6" /> : 
                                         isMissed ? <X size={20} className="md:w-6 md:h-6" /> :
                                         isCurrent ? <Swords size={24} className="md:w-8 md:h-8" /> :
@@ -321,12 +333,17 @@ const WorkoutMap: React.FC<WorkoutMapProps> = ({
                                 </div>
 
                                 {/* Active Node Glow Ring */}
-                                {isCurrent && (
+                                {isCurrent && !isTodayDone && (
                                     <div className="absolute top-0 left-0 w-full h-full -z-10 rounded-full border-2 border-system-neon opacity-50 animate-ping" />
                                 )}
 
-                                {/* --- ACTIVE DAY CARD (Mission Start) --- */}
-                                {isCurrent && (
+                                {/* Today completed glow */}
+                                {isTodayDone && !isCheated && (
+                                    <div className="absolute top-0 left-0 w-full h-full -z-10 rounded-full border-2 border-emerald-400 opacity-40 animate-pulse" />
+                                )}
+
+                                {/* --- ACTIVE DAY CARD (Mission Start) --- only if today NOT yet done */}
+                                {isCurrent && !isTodayDone && (
                                     <motion.div
                                         initial={{ opacity: 0, y: 20, scale: 0.9 }}
                                         animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -354,15 +371,33 @@ const WorkoutMap: React.FC<WorkoutMapProps> = ({
                                     </motion.div>
                                 )}
 
+                                {/* Today completed card */}
+                                {isTodayDone && !isCheated && (
+                                    <div className="absolute top-full mt-3">
+                                        <div className="text-[9px] text-emerald-400 font-mono font-bold bg-emerald-950/80 px-2.5 py-1 rounded border border-emerald-800 flex items-center gap-1">
+                                            <Check size={9} /> COMPLETED
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Completed Replay Tag */}
-                                {isCompleted && !selectedPreview && (
+                                {isCompleted && !isTodayDone && !isCheated && !selectedPreview && (
                                     <div className="absolute top-full mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <div className="text-[9px] text-emerald-400 font-mono bg-black/80 px-2 py-1 rounded border border-emerald-800">REPLAY</div>
                                     </div>
                                 )}
 
+                                {/* Cheated Day Label */}
+                                {isCheated && (
+                                    <div className="absolute top-full mt-2">
+                                        <div className="text-[8px] text-amber-400 font-mono font-bold bg-amber-950/80 px-2 py-0.5 rounded border border-amber-700 flex items-center gap-1">
+                                            <AlertCircle size={8} /> CHEATED
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Missed Day Label */}
-                                {isMissed && (
+                                {isMissed && !isCheated && (
                                     <div className="absolute top-full mt-2">
                                         <div className="text-[8px] text-red-400 font-mono bg-red-950/80 px-2 py-0.5 rounded border border-red-800 flex items-center gap-1">
                                             <AlertTriangle size={8} /> MISSED

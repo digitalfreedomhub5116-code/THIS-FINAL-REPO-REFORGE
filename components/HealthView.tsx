@@ -1739,6 +1739,16 @@ export const HealthView: React.FC<HealthViewProps> = ({
                             const missedIdx = completedWorkouts + i;
                             if (missedIdx < calculatedPlan.length) missedDayIndices.push(missedIdx);
                         });
+                        // Compute cheated days (anomaly >= 5 → voided workouts)
+                        const cheatedDayIndices: number[] = [];
+                        const voidedLogs = playerData.logs.filter(l => l.type === 'WORKOUT' && l.message.includes('VOIDED'));
+                        voidedLogs.forEach((_, i) => {
+                            const cheatedIdx = completedWorkouts + missedDayIndices.length + i;
+                            if (cheatedIdx < calculatedPlan.length) cheatedDayIndices.push(cheatedIdx);
+                        });
+                        // Check if today's workout is already done (stay on current node until midnight)
+                        const todayStr = new Date().toISOString().split('T')[0];
+                        const todayCompleted = playerData.lastWorkoutDate === todayStr;
                         const activePremadePlan = premadePlans.find(p => p.id === (healthProfile as any)?.selectedPlanId);
                         const daysPerWeek = activePremadePlan?.days_per_week || (calculatedPlan.length > 0 ? Math.min(calculatedPlan.length, 5) : 3);
                         const totalWeeks = activePremadePlan
@@ -2242,7 +2252,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                         </button>
                                     </div>
                                 </div>
-                                <WorkoutMap currentWeight={healthProfile?.weight || 0} targetWeight={healthProfile?.targetWeight || 0} workoutPlan={calculatedPlan} completedDays={completedWorkouts} missedDays={missedDayIndices} streak={playerData.streak} planChangedAtDay={(healthProfile as any)?.planChangedAtDay} planChangeLabel={(healthProfile as any)?.prevPlanName && healthProfile?.selectedPlanName ? `${(healthProfile as any).prevPlanName} → ${healthProfile.selectedPlanName}` : undefined} onStartDay={(idx) => { setActivePlan(calculatedPlan[idx % calculatedPlan.length]); setViewMode('OVERVIEW'); }} />
+                                <WorkoutMap currentWeight={healthProfile?.weight || 0} targetWeight={healthProfile?.targetWeight || 0} workoutPlan={calculatedPlan} completedDays={completedWorkouts} missedDays={missedDayIndices} cheatedDays={cheatedDayIndices} todayCompleted={todayCompleted} streak={playerData.streak} planChangedAtDay={(healthProfile as any)?.planChangedAtDay} planChangeLabel={(healthProfile as any)?.prevPlanName && healthProfile?.selectedPlanName ? `${(healthProfile as any).prevPlanName} → ${healthProfile.selectedPlanName}` : undefined} onStartDay={(idx) => { setActivePlan(calculatedPlan[idx % calculatedPlan.length]); setViewMode('OVERVIEW'); }} />
                             </div>
 
                             {/* ── PROTOCOL CALENDAR ── */}
