@@ -1,6 +1,53 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Geolocation, Position, WatchPositionCallback } from '@capacitor/geolocation';
 import { Motion } from '@capacitor/motion';
+import { Capacitor, registerPlugin } from '@capacitor/core';
+
+// ─── Native Plugin Interface ──────────────────────────────────────────────────
+
+interface TrackingPluginInterface {
+  start(options: {
+    questId: string;
+    mode: string;
+    reqSteps?: number;
+    reqDistanceKm?: number;
+    reqActiveMinutes?: number;
+    carrySteps?: number;
+    carryDistance?: number;
+    carryMinutes?: number;
+    carryMaxSpeed?: number;
+    startedAt?: number;
+  }): Promise<{ started: boolean }>;
+  stop(): Promise<{
+    stepsRecorded: number;
+    distanceRecorded: number;
+    activeMinutesRecorded: number;
+    maxSpeedKmh: number;
+    startedAt: number;
+    lastUpdate: number;
+    questId: string;
+  }>;
+  getSnapshot(): Promise<{
+    stepsRecorded: number;
+    distanceRecorded: number;
+    activeMinutesRecorded: number;
+    maxSpeedKmh: number;
+    startedAt: number;
+    lastUpdate: number;
+    questId: string;
+    isRunning: boolean;
+    locationPath: any[];
+  }>;
+  isRunning(): Promise<{ running: boolean }>;
+  clear(): Promise<{ cleared: boolean }>;
+}
+
+// Register the native plugin — only available on Android
+const NativeTracking = Capacitor.isNativePlatform()
+  ? registerPlugin<TrackingPluginInterface>('TrackingPlugin')
+  : null;
+
+const isNative = () => Capacitor.isNativePlatform() && NativeTracking !== null;
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -81,6 +128,7 @@ export function useSensors() {
   const stepState = useRef<StepState>({ lastMag: 0, lastPeakTime: 0, isStepping: false });
   const snapshotRef = useRef<SensorSnapshot | null>(null);
   const activeMinutesTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const nativePollingTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const isMounted = useRef(true);
 
   useEffect(() => {
@@ -145,7 +193,10 @@ export function useSensors() {
 
   // ─── Start Tracking ──────────────────────────────────────────────────────
 
-  const startTracking = useCallback(async (questId: string): Promise<boolean> => {
+  const startTracking = useCallback(async (
+    questId: string,
+    requirements?: SensorRequirements
+  ): Promise<boolean> => {
     if (tracking) return false;
 
     // Try to resume an existing session
@@ -166,13 +217,63 @@ export function useSensors() {
     setActiveQuestId(questId);
     setTracking(true);
 
+    // ─── NATIVE PATH (Android Foreground Service) ───────────────────────
+    if (isNative() && NativeTracking) {
+      try {
+        // Determine mode: FULL if quest needs steps/distance, TIME_ONLY otherwise
+        const needsFullTracking = !!(requirements?.steps || requirements?.distanceKm);
+        const mode = needsFullTracking ? 'FULL' : 'TIME_ONLY';
+
+        await NativeTracking.start({
+          questId,
+          mode,
+          reqSteps: requirements?.steps || 0,
+          reqDistanceKm: requirements?.distanceKm || 0,
+          reqActiveMinutes: requirements?.activeMinutes || 0,
+          carrySteps: initial.stepsRecorded,
+          carryDistance: initial.distanceRecorded,
+          carryMinutes: initial.activeMinutesRecorded,
+          carryMaxSpeed: initial.maxSpeedKmh,
+          startedAt: initial.startedAt,
+        });
+
+        // Poll native service for updates every 3 seconds
+        nativePollingTimer.current = setInterval(async () => {
+          if (!isMounted.current || !NativeTracking) return;
+          try {
+            const snap = await NativeTracking.getSnapshot();
+            const updated: SensorSnapshot = {
+              stepsRecorded: snap.stepsRecorded || 0,
+              distanceRecorded: Math.round((snap.distanceRecorded || 0) * 1000) / 1000,
+              activeMinutesRecorded: snap.activeMinutesRecorded || 0,
+              locationPath: [], // Native doesn't store full path in SharedPrefs
+              maxSpeedKmh: Math.round((snap.maxSpeedKmh || 0) * 10) / 10,
+              startedAt: snap.startedAt || initial.startedAt,
+              lastUpdate: snap.lastUpdate || Date.now(),
+            };
+            setSnapshot(updated);
+            snapshotRef.current = updated;
+            saveSession(questId, updated);
+          } catch { /* ignore polling errors */ }
+        }, 3000);
+
+        console.log('[Sensors] Native tracking started — mode:', mode);
+        return true;
+      } catch (e) {
+        console.warn('[Sensors] Native tracking failed, falling back to web:', e);
+        // Fall through to web-based tracking
+      }
+    }
+
+    // ─── WEB FALLBACK PATH ──────────────────────────────────────────────
+
     // GPS watch
     try {
       const id = await Geolocation.watchPosition(
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 },
         (pos: Position | null, err?: any) => {
           if (!pos || !isMounted.current) return;
-          const { latitude, longitude, speed } = pos.coords;
+          const { latitude, longitude, speed, accuracy } = pos.coords;
           const speedKmh = (speed ?? 0) * 3.6;
 
           setSnapshot(prev => {
@@ -181,19 +282,27 @@ export function useSensors() {
             let dist = prev.distanceRecorded;
             let maxSpd = prev.maxSpeedKmh;
 
+            // Filter: reject bad accuracy (>30m)
+            if (accuracy !== null && accuracy > 30) return prev;
+
             if (path.length > 0) {
               const [lastLat, lastLng] = path[path.length - 1];
               const segmentKm = haversineKm(lastLat, lastLng, latitude, longitude);
-              // Ignore GPS jitter (< 3m) and teleports (> 0.5km in one update)
-              if (segmentKm > 0.003 && segmentKm < 0.5) {
-                dist += segmentKm;
+              // Improved filters: 10m min (was 3m), 500m max, speed > 0.5 m/s
+              const segmentM = segmentKm * 1000;
+              if (segmentM >= 10 && segmentM < 500) {
+                // Ignore standing-still drift
+                if (speed !== null && speed >= 0.5) {
+                  dist += segmentKm;
+                } else if (speed === null) {
+                  dist += segmentKm; // No speed data, trust distance
+                }
               }
             }
 
             if (speedKmh > maxSpd) maxSpd = speedKmh;
 
             path.push([latitude, longitude]);
-            // Keep path manageable — max 500 breadcrumbs
             if (path.length > 500) path.splice(0, path.length - 500);
 
             const updated: SensorSnapshot = { ...prev, locationPath: path, distanceRecorded: Math.round(dist * 1000) / 1000, maxSpeedKmh: Math.round(maxSpd * 10) / 10, lastUpdate: Date.now() };
@@ -207,7 +316,7 @@ export function useSensors() {
       console.warn('[Sensors] Geolocation watch failed:', e);
     }
 
-    // Accelerometer for step counting
+    // Accelerometer for step counting (web fallback only)
     try {
       motionListener.current = await Motion.addListener('accel', (event) => {
         if (!isMounted.current) return;
@@ -216,10 +325,8 @@ export function useSensors() {
         const now = Date.now();
         const ss = stepState.current;
 
-        // Simple peak-detection step counter
-        // Threshold: acceleration magnitude spike > 1.2g, min 300ms between steps
-        const THRESHOLD = 11.8; // ~1.2g in m/s²
-        const MIN_STEP_INTERVAL = 300; // ms
+        const THRESHOLD = 11.8;
+        const MIN_STEP_INTERVAL = 300;
 
         if (mag > THRESHOLD && ss.lastMag <= THRESHOLD && now - ss.lastPeakTime > MIN_STEP_INTERVAL) {
           ss.lastPeakTime = now;
@@ -236,7 +343,7 @@ export function useSensors() {
       console.warn('[Sensors] Motion listener failed:', e);
     }
 
-    // Active minutes timer — increment every 60s while tracking
+    // Active minutes timer
     activeMinutesTimer.current = setInterval(() => {
       if (!isMounted.current) return;
       setSnapshot(prev => {
@@ -252,7 +359,35 @@ export function useSensors() {
 
   // ─── Stop Tracking ───────────────────────────────────────────────────────
 
-  const stopTracking = useCallback((): SensorSnapshot | null => {
+  const stopTracking = useCallback(async (): Promise<SensorSnapshot | null> => {
+    // ─── NATIVE PATH ──────────────────────────────────────────────
+    if (isNative() && NativeTracking) {
+      if (nativePollingTimer.current) {
+        clearInterval(nativePollingTimer.current);
+        nativePollingTimer.current = null;
+      }
+      try {
+        const result = await NativeTracking.stop();
+        const finalSnap: SensorSnapshot = {
+          stepsRecorded: result.stepsRecorded || 0,
+          distanceRecorded: Math.round((result.distanceRecorded || 0) * 1000) / 1000,
+          activeMinutesRecorded: result.activeMinutesRecorded || 0,
+          locationPath: [],
+          maxSpeedKmh: Math.round((result.maxSpeedKmh || 0) * 10) / 10,
+          startedAt: result.startedAt || 0,
+          lastUpdate: result.lastUpdate || Date.now(),
+        };
+        setSnapshot(finalSnap);
+        snapshotRef.current = finalSnap;
+        setTracking(false);
+        console.log('[Sensors] Native tracking stopped. Steps:', finalSnap.stepsRecorded, 'Distance:', finalSnap.distanceRecorded);
+        return finalSnap;
+      } catch (e) {
+        console.warn('[Sensors] Native stop failed:', e);
+      }
+    }
+
+    // ─── WEB FALLBACK ─────────────────────────────────────────────
     if (geoWatchId.current) {
       Geolocation.clearWatch({ id: geoWatchId.current }).catch(() => {});
       geoWatchId.current = null;
@@ -273,8 +408,6 @@ export function useSensors() {
 
     const finalSnapshot = snapshotRef.current;
     setTracking(false);
-
-    // Don't clear session yet — let the caller decide
     return finalSnapshot;
   }, []);
 
@@ -349,6 +482,7 @@ export function useSensors() {
       }
       Motion.removeAllListeners().catch(() => {});
       if (activeMinutesTimer.current) clearInterval(activeMinutesTimer.current);
+      if (nativePollingTimer.current) clearInterval(nativePollingTimer.current);
     };
   }, []);
 

@@ -18,6 +18,11 @@ const config: CapacitorConfig = {
       clientId: '20910572316-81krg6ag9ajbnvde8pu862rrc6pglp45.apps.googleusercontent.com',
       forceCodeForRefreshToken: false,
     },
+    LocalNotifications: {
+      smallIcon: 'ic_stat_notification',
+      iconColor: '#00d2ff',
+      sound: 'default',
+    },
   },
 };
 

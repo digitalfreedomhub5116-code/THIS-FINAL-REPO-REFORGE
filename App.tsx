@@ -29,6 +29,7 @@ import { DAILY_REWARDS_ENABLED } from './lib/rewards';
 import { getPlayerAuthHeaders, getOrRefreshPlayerHeaders } from './lib/playerApi';
 import { Terminal } from 'lucide-react';
 import { API_BASE } from './lib/apiConfig';
+import { requestNotificationPermission, scheduleMorningDusk, scheduleStreakReminder } from './hooks/useLocalNotifications';
 
 // ── Existing lazy imports ──
 const DailyLoginModal = lazy(() => import('./components/DailyLoginModal'));
@@ -123,21 +124,21 @@ const App: React.FC = () => {
   const sensors = useSensors();
 
   // ── Sensor tracking handlers ──
-  const handleStartTracking = useCallback(async (questId: string) => {
+  const handleStartTracking = useCallback(async (questId: string, requirements?: { steps?: number; distanceKm?: number; activeMinutes?: number }) => {
     const perms = await sensors.requestPermissions();
     if (!perms.location && !perms.motion) {
       addNotification('Sensor permissions denied. Enable Location & Motion in device settings.', 'WARNING');
       return;
     }
-    const started = await sensors.startTracking(questId);
+    const started = await sensors.startTracking(questId, requirements);
     if (started) {
       startSensorTracking(questId);
       addNotification('Tracking started — GPS & step counter active.', 'SUCCESS');
     }
   }, [sensors, startSensorTracking, addNotification]);
 
-  const handleStopTracking = useCallback((questId: string) => {
-    const snap = sensors.stopTracking();
+  const handleStopTracking = useCallback(async (questId: string) => {
+    const snap = await sensors.stopTracking();
     if (snap) {
       stopSensorTracking(questId, {
         stepsRecorded: snap.stepsRecorded,
@@ -172,6 +173,19 @@ const App: React.FC = () => {
   const [dbOutfits, setDbOutfits] = useState<Outfit[]>([]);
   const [dailyReward, setDailyReward] = useState<DailyReward | null>(null);
   const [showDailyLogin, setShowDailyLogin] = useState(false);
+
+  // ── Schedule local notifications when user is authenticated ──
+  useEffect(() => {
+    if (!player.userId || isLocalUser(player.userId) || !player.isConfigured) return;
+    // Request notification permission and schedule recurring notifications
+    (async () => {
+      await requestNotificationPermission();
+      await scheduleMorningDusk();
+      if (player.streak > 2) {
+        await scheduleStreakReminder(player.streak);
+      }
+    })();
+  }, [player.userId, player.isConfigured]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Persist onboarding phase so auth pages survive page reload
   const savedPhase = sessionStorage.getItem('reforge_onboarding_phase') as OnboardingPhase | null;
