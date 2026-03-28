@@ -143,9 +143,28 @@ function migratePlayerData(raw: Partial<PlayerData>): PlayerData {
   return merged;
 }
 
+const getActiveUserScope = (): string => {
+  try {
+    const token = localStorage.getItem('reforge_player_token');
+    if (!token) return 'local';
+    const parts = token.split('.');
+    if (parts.length === 3) {
+      // Decode JWT payload (handling base64url encoding)
+      const base64Url = parts[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const payload = JSON.parse(decodeURIComponent(atob(base64).split('').map(function(c) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join('')));
+      return payload.userId || payload.supabase_id || payload.id || 'local';
+    }
+  } catch {}
+  return 'local';
+};
+
 function loadFromStorage(): PlayerData {
   try {
-    const saved = localStorage.getItem('reforge_player_v2');
+    const scope = getActiveUserScope();
+    const saved = localStorage.getItem(`reforge_player_v2_${scope}`);
     if (!saved) return DEFAULT_PLAYER;
     const parsed = JSON.parse(saved) as Partial<PlayerData>;
     return migratePlayerData(parsed);
@@ -160,13 +179,17 @@ interface StoredNotification extends SystemNotification {
 
 const loadNotifHistory = (): StoredNotification[] => {
   try {
-    const raw = localStorage.getItem('reforge_notif_history');
+    const scope = getActiveUserScope();
+    const raw = localStorage.getItem(`reforge_notif_history_${scope}`);
     return raw ? JSON.parse(raw) : [];
   } catch { return []; }
 };
 
 const loadUnread = (): boolean => {
-  try { return localStorage.getItem('reforge_notif_unread') === 'true'; } catch { return false; }
+  try { 
+    const scope = getActiveUserScope();
+    return localStorage.getItem(`reforge_notif_unread_${scope}`) === 'true'; 
+  } catch { return false; }
 };
 
 // Canonical rank thresholds — single source of truth
@@ -217,16 +240,16 @@ export const useSystem = () => {
   const serverKeysRef = useRef(player.keys);
 
   useEffect(() => {
-    localStorage.setItem('reforge_player_v2', JSON.stringify(player));
+    localStorage.setItem(`reforge_player_v2_${player.userId || 'local'}`, JSON.stringify(player));
   }, [player]);
 
   useEffect(() => {
-    localStorage.setItem('reforge_notif_history', JSON.stringify(notificationHistory));
-  }, [notificationHistory]);
+    localStorage.setItem(`reforge_notif_history_${player.userId || 'local'}`, JSON.stringify(notificationHistory));
+  }, [notificationHistory, player.userId]);
 
   useEffect(() => {
-    localStorage.setItem('reforge_notif_unread', hasUnreadNotifications ? 'true' : 'false');
-  }, [hasUnreadNotifications]);
+    localStorage.setItem(`reforge_notif_unread_${player.userId || 'local'}`, hasUnreadNotifications ? 'true' : 'false');
+  }, [hasUnreadNotifications, player.userId]);
 
   useEffect(() => {
     return () => {
@@ -669,7 +692,8 @@ export const useSystem = () => {
     try {
       await fetch(`${API_BASE}/api/auth/local/logout`, { method: 'POST', credentials: 'include' });
     } catch { /* ignore */ }
-    localStorage.removeItem('reforge_player_v2');
+    localStorage.removeItem(`reforge_player_v2_${player.userId || 'local'}`);
+    localStorage.removeItem('reforge_player_token'); // Make sure we clear the token too if it's there
     window.location.reload();
   };
 

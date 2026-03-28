@@ -53,11 +53,12 @@ const getHunterClass = (rank: number) => {
 
 const RankingView: React.FC<RankingViewProps> = ({ currentPlayer }) => {
   const username = currentPlayer.username || 'User';
+  const userId = currentPlayer.userId || 'local';
   const todayStr = new Date().toISOString().split('T')[0];
   
   // Storage Keys
-  const CONFIG_KEY = `shadow_arena_config_${username}`; // Persists identities & long-term stats
-  const DAILY_KEY = `shadow_arena_daily_${username}_${todayStr}`; // Persists today's XP
+  const CONFIG_KEY = `shadow_arena_config_${userId}`; // Persists identities & long-term stats
+  const DAILY_KEY = `shadow_arena_daily_${userId}_${todayStr}`; // Persists today's XP
 
   const [roster, setRoster] = useState<LeaderboardEntry[]>([]);
   const [isReady, setIsReady] = useState(false);

@@ -7,6 +7,7 @@ import { DailyChestAnim, LegendaryChestAnim, AllianceChestAnim, ChestOpeningAnim
 import { SystemCoin } from './icons/SystemCoin';
 import { SystemKey } from './icons/SystemKey';
 import { playSystemSoundEffect } from '../utils/soundEngine';
+import { useSystem } from '../hooks/useSystem';
 
 interface MobileFloatingMenuProps {
   onEnterDungeon: (isFree: boolean) => void;
@@ -159,7 +160,6 @@ const CARD_POSITIONS = [
   { x:  72, y:  48 },
 ];
 
-const DAILY_CHEST_KEY = 'reforge_daily_chest_time';
 const DAILY_CHEST_CD = 30 * 60 * 1000; // 30 minutes
 
 const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
@@ -172,6 +172,9 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
   onAddRewards,
   onAddNotification,
 }) => {
+  const { player } = useSystem();
+  const DAILY_CHEST_KEY = `reforge_daily_chest_time_${player.userId || 'local'}`;
+
   const [activeModal, setActiveModal] = useState<'NONE' | 'REWARDS' | 'DUNGEON'>('NONE');
   const [isChestLoaded, setIsChestLoaded] = useState(false);
 
@@ -195,7 +198,7 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
 
     const iv = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(iv);
-  }, []);
+  }, [DAILY_CHEST_KEY]);
 
   useEffect(() => {
     if (activeModal === 'REWARDS') {

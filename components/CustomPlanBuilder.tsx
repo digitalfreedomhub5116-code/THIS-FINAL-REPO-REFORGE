@@ -3,18 +3,19 @@ import { motion } from 'framer-motion';
 import { Search, X, Plus, Minus, CheckCircle, Play, Dumbbell, ArrowLeft, Save, Star } from 'lucide-react';
 import { WorkoutDay, WorkoutExercise } from '../types';
 import { API_BASE } from '../lib/apiConfig';
+import { useSystem } from '../hooks/useSystem';
 
-const STARRED_KEY = 'reforge_starred_exercises';
+const getStarredKey = (userId: string) => `reforge_starred_exercises_${userId || 'local'}`;
 
-const loadStarred = (): Set<number> => {
+const loadStarred = (userId: string): Set<number> => {
   try {
-    const arr = JSON.parse(localStorage.getItem(STARRED_KEY) || '[]');
+    const arr = JSON.parse(localStorage.getItem(getStarredKey(userId)) || '[]');
     return new Set<number>(arr);
   } catch { return new Set<number>(); }
 };
 
-const saveStarred = (ids: Set<number>) => {
-  try { localStorage.setItem(STARRED_KEY, JSON.stringify([...ids])); } catch {}
+const saveStarred = (userId: string, ids: Set<number>) => {
+  try { localStorage.setItem(getStarredKey(userId), JSON.stringify([...ids])); } catch {}
 };
 
 interface SelectedExercise {
@@ -38,6 +39,7 @@ const TYPE_COLORS: Record<string, string> = {
 const MUSCLE_FILTERS = ['ALL', 'Chest', 'Back', 'Shoulders', 'Biceps', 'Triceps', 'Legs', 'Core', 'Glutes', 'Cardio'];
 
 const CustomPlanBuilder: React.FC<CustomPlanBuilderProps> = ({ onClose, onStartWorkout }) => {
+  const { player } = useSystem();
   const [exercises, setExercises] = useState<WorkoutExercise[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -46,7 +48,7 @@ const CustomPlanBuilder: React.FC<CustomPlanBuilderProps> = ({ onClose, onStartW
   const [planName, setPlanName] = useState('');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [starredIds, setStarredIds] = useState<Set<number>>(loadStarred);
+  const [starredIds, setStarredIds] = useState<Set<number>>(() => loadStarred(player.userId || 'local'));
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -63,7 +65,7 @@ const CustomPlanBuilder: React.FC<CustomPlanBuilderProps> = ({ onClose, onStartW
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
-      saveStarred(next);
+      saveStarred(player.userId || 'local', next);
       return next;
     });
   };

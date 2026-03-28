@@ -559,6 +559,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
   const [showResumePrompt, setShowResumePrompt] = useState(false);
 
   // ── Workout Day Map (date-keyed outcome tracking) ──
+  // Keys are scoped per-user so each account has its own workout history
   const _getLocalDateStr = (d: Date = new Date()): string => {
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -566,33 +567,50 @@ export const HealthView: React.FC<HealthViewProps> = ({
     return `${y}-${m}-${dd}`;
   };
   const todayStr = _getLocalDateStr();
-  const [dayMap, setDayMap] = useState<Record<string, 'completed' | 'cheated' | 'missed'>>(() => {
-    try { return JSON.parse(localStorage.getItem('reforge_workout_day_map') || '{}'); }
+
+  // User-scoped localStorage keys
+  const _dayMapKey = `reforge_workout_day_map_${playerData.userId || 'local'}`;
+  const _journeyKey = `reforge_journey_start_${playerData.userId || 'local'}`;
+
+  const _readDayMap = (key: string): Record<string, 'completed' | 'cheated' | 'missed'> => {
+    try { return JSON.parse(localStorage.getItem(key) || '{}'); }
     catch { return {}; }
-  });
-  const [journeyStartDate] = useState<string>(() => {
-    const stored = localStorage.getItem('reforge_journey_start');
+  };
+
+  const _readJourneyStart = (key: string): string => {
+    const stored = localStorage.getItem(key);
     if (stored) return stored;
     const today = _getLocalDateStr();
-    try { localStorage.setItem('reforge_journey_start', today); } catch {}
+    try { localStorage.setItem(key, today); } catch {}
     return today;
-  });
+  };
+
+  const [dayMap, setDayMap] = useState<Record<string, 'completed' | 'cheated' | 'missed'>>(() => _readDayMap(_dayMapKey));
+  const [journeyStartDate, setJourneyStartDate] = useState<string>(() => _readJourneyStart(_journeyKey));
+
+  // Reload dayMap + journeyStartDate when userId changes (account switch)
+  useEffect(() => {
+    setDayMap(_readDayMap(_dayMapKey));
+    setJourneyStartDate(_readJourneyStart(_journeyKey));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playerData.userId]);
+
   const todayDone = !!dayMap[todayStr];
   const [showTodayDoneNotice, setShowTodayDoneNotice] = useState(false);
 
   const _writeDayMap = (next: Record<string, 'completed' | 'cheated' | 'missed'>) => {
     setDayMap(next);
-    try { localStorage.setItem('reforge_workout_day_map', JSON.stringify(next)); } catch {}
+    try { localStorage.setItem(_dayMapKey, JSON.stringify(next)); } catch {}
   };
 
-  // Scan for missed days on mount
+  // Scan for missed days on mount / user change
   useEffect(() => {
     const today = _getLocalDateStr();
     const startD = new Date(journeyStartDate + 'T12:00:00');
     const todayD = new Date(today + 'T12:00:00');
     const daysElapsed = Math.round((todayD.getTime() - startD.getTime()) / 86400000);
     if (daysElapsed <= 0) return;
-    const map = (() => { try { return JSON.parse(localStorage.getItem('reforge_workout_day_map') || '{}'); } catch { return {}; } })();
+    const map = _readDayMap(_dayMapKey);
     let changed = false;
     for (let i = 0; i < daysElapsed; i++) {
       const d = new Date(journeyStartDate + 'T12:00:00');
@@ -602,11 +620,11 @@ export const HealthView: React.FC<HealthViewProps> = ({
     }
     if (changed) _writeDayMap(map);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [journeyStartDate]);
+  }, [journeyStartDate, playerData.userId]);
 
   // Check for saved workout session on mount
   useEffect(() => {
-    const session = loadWorkoutSession();
+    const session = loadWorkoutSession(playerData.userId || 'local');
     if (session) {
       // Check if session is from today (before daily reset)
       const sessionDate = new Date(session.timestamp).toISOString().split('T')[0];
@@ -616,10 +634,10 @@ export const HealthView: React.FC<HealthViewProps> = ({
         setShowResumePrompt(true);
       } else {
         // Session is from a previous day — mark as failed and clear
-        clearWorkoutSession();
+        clearWorkoutSession(playerData.userId || 'local');
       }
     }
-  }, []);
+  }, [playerData.userId]);
 
   const projectedIncrease = useMemo(() => {
       if (playerData.username) {
@@ -1628,7 +1646,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
         onComplete={(c, t, r, anomaly) => {
           const isCustomWorkout = activePlan.day === 'CUSTOM' || activePlan.day.includes('Custom');
           const rewards = onCompleteWorkout(c, t, r, false, anomaly, isCustomWorkout);
-          clearWorkoutSession();
+          clearWorkoutSession(playerData.userId || 'local');
           setSavedSession(null);
           // Write today's outcome to the day map
           const outcome: 'completed' | 'cheated' = (anomaly ?? 0) >= 5 ? 'cheated' : 'completed';
@@ -1734,7 +1752,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                             }
                                         }
                                         // If no match found, clear session
-                                        clearWorkoutSession();
+                                        clearWorkoutSession(playerData.userId || 'local');
                                         setSavedSession(null);
                                     }}
                                     className="w-full py-4 bg-yellow-600 text-black font-black rounded-xl hover:bg-yellow-500 transition-colors uppercase tracking-widest text-xs font-mono shadow-lg"
@@ -1744,7 +1762,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                 <button
                                     onClick={() => {
                                         setShowResumePrompt(false);
-                                        clearWorkoutSession();
+                                        clearWorkoutSession(playerData.userId || 'local');
                                         setSavedSession(null);
                                     }}
                                     className="w-full py-3 bg-transparent border border-gray-700 text-gray-400 font-bold rounded-xl hover:bg-gray-900 transition-colors uppercase tracking-widest text-[10px] font-mono"

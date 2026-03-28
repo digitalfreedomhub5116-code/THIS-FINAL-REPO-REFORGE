@@ -11,8 +11,8 @@ interface OnboardingNoticeProps {
   page: PageKey;
 }
 
-const LS_PREFIX = 'reforge_onboarding_';
-const FIRST_VISIT_KEY = 'reforge_first_visit_date';
+const getDismissedKey = (userId: string | undefined, page: PageKey) => `reforge_onboarding_${userId || 'local'}_${page}_dismissed`;
+const getFirstVisitKey = (userId: string | undefined) => `reforge_first_visit_date_${userId || 'local'}`;
 const ONBOARDING_WINDOW_DAYS = 3;
 
 const PAGE_CONTENT: Record<PageKey, { title: string; sections: { icon: string; heading: string; text: string }[] }> = {
@@ -54,13 +54,13 @@ const OnboardingNotice: React.FC<OnboardingNoticeProps> = ({ page }) => {
   useEffect(() => {
     if (!player.tutorialComplete) return; // Block popups during tutorial
 
-    const dismissed = localStorage.getItem(`${LS_PREFIX}${page}_dismissed`);
+    const dismissed = localStorage.getItem(getDismissedKey(player.userId, page));
     if (dismissed === 'true') return;
 
-    let firstVisit = localStorage.getItem(FIRST_VISIT_KEY);
+    let firstVisit = localStorage.getItem(getFirstVisitKey(player.userId));
     if (!firstVisit) {
       firstVisit = new Date().toISOString();
-      localStorage.setItem(FIRST_VISIT_KEY, firstVisit);
+      localStorage.setItem(getFirstVisitKey(player.userId), firstVisit);
     }
 
     const daysSinceFirst = (Date.now() - new Date(firstVisit).getTime()) / (1000 * 60 * 60 * 24);
@@ -72,7 +72,7 @@ const OnboardingNotice: React.FC<OnboardingNoticeProps> = ({ page }) => {
 
   const handleClose = () => {
     if (dontShowAgain) {
-      localStorage.setItem(`${LS_PREFIX}${page}_dismissed`, 'true');
+      localStorage.setItem(getDismissedKey(player.userId, page), 'true');
     }
     setVisible(false);
   };

@@ -94,30 +94,30 @@ function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): nu
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-function loadSession(questId: string): SensorSnapshot | null {
+function loadSession(questId: string, userId: string): SensorSnapshot | null {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY_PREFIX + questId);
+    const raw = localStorage.getItem(STORAGE_KEY_PREFIX + userId + '_' + questId);
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
   }
 }
 
-function saveSession(questId: string, data: SensorSnapshot) {
+function saveSession(questId: string, userId: string, data: SensorSnapshot) {
   try {
-    localStorage.setItem(STORAGE_KEY_PREFIX + questId, JSON.stringify(data));
+    localStorage.setItem(STORAGE_KEY_PREFIX + userId + '_' + questId, JSON.stringify(data));
   } catch { /* quota exceeded — ignore */ }
 }
 
-function clearSession(questId: string) {
+function clearSession(questId: string, userId: string) {
   try {
-    localStorage.removeItem(STORAGE_KEY_PREFIX + questId);
+    localStorage.removeItem(STORAGE_KEY_PREFIX + userId + '_' + questId);
   } catch { /* ignore */ }
 }
 
 // ─── Hook ────────────────────────────────────────────────────────────────────
 
-export function useSensors() {
+export function useSensors(userId: string = 'local') {
   const [permissions, setPermissions] = useState<SensorPermissions>({ location: false, motion: false });
   const [tracking, setTracking] = useState(false);
   const [activeQuestId, setActiveQuestId] = useState<string | null>(null);
@@ -200,7 +200,7 @@ export function useSensors() {
     if (tracking) return false;
 
     // Try to resume an existing session
-    const existing = loadSession(questId);
+    const existing = loadSession(questId, userId);
     const now = Date.now();
     const initial: SensorSnapshot = existing || {
       stepsRecorded: 0,
@@ -253,7 +253,7 @@ export function useSensors() {
             };
             setSnapshot(updated);
             snapshotRef.current = updated;
-            saveSession(questId, updated);
+            saveSession(questId, userId, updated);
           } catch { /* ignore polling errors */ }
         }, 3000);
 
@@ -306,7 +306,7 @@ export function useSensors() {
             if (path.length > 500) path.splice(0, path.length - 500);
 
             const updated: SensorSnapshot = { ...prev, locationPath: path, distanceRecorded: Math.round(dist * 1000) / 1000, maxSpeedKmh: Math.round(maxSpd * 10) / 10, lastUpdate: Date.now() };
-            saveSession(questId, updated);
+            saveSession(questId, userId, updated);
             return updated;
           });
         }
@@ -333,7 +333,7 @@ export function useSensors() {
           setSnapshot(prev => {
             if (!prev) return prev;
             const updated = { ...prev, stepsRecorded: prev.stepsRecorded + 1, lastUpdate: now };
-            saveSession(questId, updated);
+            saveSession(questId, userId, updated);
             return updated;
           });
         }
@@ -346,10 +346,10 @@ export function useSensors() {
     // Active minutes timer
     activeMinutesTimer.current = setInterval(() => {
       if (!isMounted.current) return;
-      setSnapshot(prev => {
+      setSnapshot((prev: SensorSnapshot | null) => {
         if (!prev) return prev;
         const updated = { ...prev, activeMinutesRecorded: prev.activeMinutesRecorded + 1, lastUpdate: Date.now() };
-        saveSession(questId, updated);
+        saveSession(questId, userId, updated);
         return updated;
       });
     }, 60_000);
@@ -414,7 +414,7 @@ export function useSensors() {
   // ─── Finalize (clear stored session) ─────────────────────────────────────
 
   const finalizeTracking = useCallback((questId: string) => {
-    clearSession(questId);
+    clearSession(questId, userId);
     setActiveQuestId(null);
     setSnapshot(null);
     snapshotRef.current = null;

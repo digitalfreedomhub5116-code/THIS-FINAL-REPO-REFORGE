@@ -29,20 +29,22 @@ export interface SavedWorkoutSession {
 }
 
 // ── Set Timer Presets (user-selectable) ──
-const SET_TIMER_KEY = 'reforge_set_timer';
 const SET_TIMER_OPTIONS = [45, 60, 75, 90] as const;
 type SetTimerValue = typeof SET_TIMER_OPTIONS[number];
 
-const loadSetTimer = (): SetTimerValue => {
+const getSetTimerKey = (userId: string) => `reforge_set_timer_${userId || 'local'}`;
+const getWorkoutSessionKey = (userId: string) => `reforge_active_workout_${userId || 'local'}`;
+
+const loadSetTimer = (userId: string): SetTimerValue => {
   try {
-    const v = parseInt(localStorage.getItem(SET_TIMER_KEY) || '', 10);
+    const v = parseInt(localStorage.getItem(getSetTimerKey(userId)) || '', 10);
     if (SET_TIMER_OPTIONS.includes(v as any)) return v as SetTimerValue;
   } catch {}
   return 60; // Default: 60s
 };
 
-const saveSetTimer = (v: SetTimerValue) => {
-  try { localStorage.setItem(SET_TIMER_KEY, String(v)); } catch {}
+const saveSetTimer = (v: SetTimerValue, userId: string) => {
+  try { localStorage.setItem(getSetTimerKey(userId), String(v)); } catch {}
 };
 
 // Dynamic rest duration based on exercise type, intensity, and user timer preference
@@ -60,22 +62,20 @@ const getInterExerciseRest = (prevType: string, timerSec: number, nextIsSuppleme
   return 90; // 90s rest between exercises for all main exercises
 };
 
-const WORKOUT_SESSION_KEY = 'reforge_active_workout';
-
-export const saveWorkoutSession = (session: SavedWorkoutSession) => {
-  try { localStorage.setItem(WORKOUT_SESSION_KEY, JSON.stringify(session)); } catch(e) {}
+export const saveWorkoutSession = (session: SavedWorkoutSession, userId: string) => {
+  try { localStorage.setItem(getWorkoutSessionKey(userId), JSON.stringify(session)); } catch(e) {}
 };
 
-export const loadWorkoutSession = (): SavedWorkoutSession | null => {
+export const loadWorkoutSession = (userId: string): SavedWorkoutSession | null => {
   try {
-    const raw = localStorage.getItem(WORKOUT_SESSION_KEY);
+    const raw = localStorage.getItem(getWorkoutSessionKey(userId));
     if (!raw) return null;
     return JSON.parse(raw);
   } catch(e) { return null; }
 };
 
-export const clearWorkoutSession = () => {
-  try { localStorage.removeItem(WORKOUT_SESSION_KEY); } catch(e) {}
+export const clearWorkoutSession = (userId: string) => {
+  try { localStorage.removeItem(getWorkoutSessionKey(userId)); } catch(e) {}
 };
 
 // Helper to parse duration from reps string (e.g., "5 min" -> 300, "30s" -> 30)
@@ -102,7 +102,7 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
   const { player } = useSystem();
   
   // --- SET TIMER PREFERENCE ---
-  const [setTimerSec, setSetTimerSec] = useState<SetTimerValue>(loadSetTimer);
+  const [setTimerSec, setSetTimerSec] = useState<SetTimerValue>(() => loadSetTimer(player.userId || 'local'));
   const [showTimerPicker, setShowTimerPicker] = useState(false);
   const [pendingTimer, setPendingTimer] = useState<SetTimerValue | null>(null);
   
@@ -235,7 +235,7 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
       // Reset set count to 0 so we know we are between exercises
       setCurrentSet(0); 
     } else {
-      clearWorkoutSession();
+      clearWorkoutSession(player.userId || 'local');
       SpeechService.announceVictory();
       playSystemSoundEffect('LEVEL_UP');
       onComplete(totalExercises, totalExercises, results, anomalyPoints);
@@ -310,8 +310,8 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
       anomalyPoints,
       planDay: plan.day,
       timestamp: Date.now(),
-    });
-  }, [currentIdx, currentSet, timeLeft, phase, results, anomalyPoints, plan.day]);
+    }, player.userId || 'local');
+  }, [currentIdx, currentSet, timeLeft, phase, results, anomalyPoints, plan.day, player.userId]);
 
   const confirmQuit = () => {
     // Save session so user can resume later instead of losing progress
@@ -324,7 +324,7 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
       anomalyPoints,
       planDay: plan.day,
       timestamp: Date.now(),
-    });
+    }, player.userId || 'local');
     SpeechService.announceFailure();
     onFail();
   };
@@ -441,7 +441,7 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
                             <button
                                 onClick={() => {
                                     setSetTimerSec(pendingTimer!);
-                                    saveSetTimer(pendingTimer!);
+                                    saveSetTimer(pendingTimer!, player.userId || 'local');
                                     setPendingTimer(null);
                                     setShowTimerPicker(false);
                                 }}
