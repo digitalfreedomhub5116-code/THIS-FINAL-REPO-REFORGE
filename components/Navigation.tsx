@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { LayoutGrid, Activity, Swords, Store, Users } from 'lucide-react';
+import { LayoutGrid, Activity, Swords, Store, Trophy } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Tab } from '../types';
 import SystemGlitchBadge from './SystemGlitchBadge';
@@ -16,7 +16,7 @@ const NAV_ITEMS = [
   { id: 'HEALTH' as Tab, label: 'Health', icon: Activity },
   { id: 'QUESTS' as Tab, label: 'Quests', icon: Swords },
   { id: 'STORE' as Tab, label: 'Store', icon: Store },
-  { id: 'ALLIANCE' as Tab, label: 'Alliance', icon: Users },
+  { id: 'LEADERBOARD' as Tab, label: 'Ranks', icon: Trophy },
 ];
 
 const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, badges }) => {

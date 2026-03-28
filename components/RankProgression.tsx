@@ -16,7 +16,7 @@ const RANK_CONFIG: { id: Rank; label: string; minLevel: number; color: string }[
     { id: 'C', label: 'Soldier', minLevel: 27, color: '#60a5fa' },
     { id: 'B', label: 'Elite', minLevel: 39, color: '#06b6d4' },
     { id: 'A', label: 'Sovereign', minLevel: 55, color: '#eab308' },
-    { id: 'S', label: 'Shadow Monarch', minLevel: 80, color: '#a855f7' },
+    { id: 'S', label: 'Overlord', minLevel: 80, color: '#a855f7' },
 ];
 
 const RankProgression: React.FC<RankProgressionProps> = ({ player }) => {

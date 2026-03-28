@@ -79,9 +79,9 @@ export const OUTFITS: Outfit[] = [
   },
   {
     id: 'outfit_monarch',
-    name: "Monarch's Raiment",
+    name: "Overlord's Raiment",
     tier: 'S',
-    description: 'The ceremonial armor of the Shadow Monarch. All limits transcended.',
+    description: 'The ultimate armor of the Overlord. All limits transcended.',
     image: '/images/outfit/outfit-s.jpg',
     baseStats: { attack: 2500, boost: 1500, ultimate: 4000, extraction: 5000 },
     cost: 50000,
@@ -97,8 +97,8 @@ export const OUTFITS: Outfit[] = [
 
 export const SHADOWS: Shadow[] = [
   {
-    id: 'shadow_igris',
-    name: 'Igris',
+    id: 'shadow_vanguard',
+    name: 'Vanguard',
     rank: 'Elite',
     image: '',
     buffs: [{ stat: 'attack', value: 150 }, { stat: 'ultimate', value: 50 }],
@@ -111,8 +111,8 @@ export const SHADOWS: Shadow[] = [
     buffs: [{ stat: 'boost', value: 30 }],
   },
   {
-    id: 'shadow_beru',
-    name: 'Beru',
+    id: 'shadow_apex',
+    name: 'Apex',
     rank: 'Monarch',
     image: '',
     buffs: [{ stat: 'attack', value: 500 }, { stat: 'extraction', value: 200 }],

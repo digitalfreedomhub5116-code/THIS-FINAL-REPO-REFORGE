@@ -1176,7 +1176,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
                       <div className="bg-gray-900/40 border border-gray-800 rounded-xl p-8 text-center">
                           <div className="text-4xl mb-3">👻</div>
                           <div className="text-sm font-black text-white uppercase tracking-widest mb-1">Shadows System</div>
-                          <div className="text-xs text-gray-500 font-mono">Coming Soon — Shadow Army management under development</div>
+                          <div className="text-xs text-gray-500 font-mono">Coming Soon — Phantom Legion management under development</div>
                       </div>
                   )}
               </div>

@@ -150,7 +150,7 @@ const RankUpCinematic: React.FC<RankUpCinematicProps> = ({ oldRank, newRank, onC
     C: 'Knight of the System',
     B: 'Cobalt Sovereign',
     A: 'Crimson Warlord',
-    S: 'Shadow Monarch',
+    S: 'Overlord',
   };
 
   return (

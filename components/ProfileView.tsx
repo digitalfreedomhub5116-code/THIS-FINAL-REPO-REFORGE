@@ -11,7 +11,7 @@ interface ProfileViewProps {
   onAvatarChange?: (newUrl: string) => void;
   onLogout: () => void;
   onBack?: () => void;
-  onNavigate?: (tab: 'STORE' | 'DASHBOARD' | 'QUESTS' | 'HEALTH' | 'ALLIANCE' | 'PROFILE') => void;
+  onNavigate?: (tab: 'STORE' | 'DASHBOARD' | 'QUESTS' | 'HEALTH' | 'LEADERBOARD' | 'PROFILE') => void;
   onRetakeTutorial?: () => void;
   onResetProgress?: () => Promise<void>;
 }

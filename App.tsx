@@ -60,7 +60,7 @@ const CheatWarningModal = lazy(() => import('./components/CheatWarningModal'));
 const LevelDownCinematic = lazy(() => import('./components/LevelDownCinematic'));
 const BanScreen = lazy(() => import('./components/BanScreen'));
 const BanReversalNotice = lazy(() => import('./components/BanReversalNotice'));
-const GuildsView = lazy(() => import('./components/GuildsView'));
+const LeaderboardView = lazy(() => import('./components/LeaderboardView'));
 const LevelProgressCard = lazy(() => import('./components/LevelProgressCard'));
 // WardrobePreviewCard moved to ShopView — no longer needed here
 const RankProgressionCard = lazy(() => import('./components/RankProgressionCard'));
@@ -1306,16 +1306,12 @@ const App: React.FC = () => {
             </motion.div>
           )}
 
-          {/* ── ALLIANCE ── */}
-          {activeTab === 'ALLIANCE' && (
-            <motion.div key="alliance" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+          {/* ── LEADERBOARD ── */}
+          {activeTab === 'LEADERBOARD' && (
+            <motion.div key="leaderboard" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <Suspense fallback={<SkeletonAlliancePage />}>
-                <ErrorBoundary fallbackLabel="Alliance failed to load">
-                  <GuildsView
-                    player={player}
-                    onJoin={(id: string) => setPlayer(p => ({ ...p, allianceId: id }))}
-                    onLeave={() => setPlayer(p => ({ ...p, allianceId: undefined }))}
-                  />
+                <ErrorBoundary fallbackLabel="Leaderboard failed to load">
+                  <LeaderboardView player={player} />
                 </ErrorBoundary>
               </Suspense>
             </motion.div>
