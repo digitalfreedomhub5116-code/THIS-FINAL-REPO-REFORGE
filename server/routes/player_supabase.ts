@@ -71,6 +71,23 @@ router.put('/:id', async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'Invalid body' });
   }
 
+  // ── Server-side validation: reject obviously tampered data ──
+  if (typeof data.level === 'number' && (data.level < 1 || data.level > 200)) {
+    return res.status(400).json({ error: 'Invalid level value' });
+  }
+  if (typeof data.currentXp === 'number' && data.currentXp < 0) {
+    return res.status(400).json({ error: 'Invalid XP value' });
+  }
+  if (typeof data.gold === 'number' && data.gold < 0) {
+    return res.status(400).json({ error: 'Invalid gold value' });
+  }
+  if (typeof data.keys === 'number' && data.keys < 0) {
+    return res.status(400).json({ error: 'Invalid keys value' });
+  }
+  if (typeof data.cheatStrikes === 'number' && data.cheatStrikes < 0) {
+    return res.status(400).json({ error: 'Invalid strikes value' });
+  }
+
   try {
     // Strip cheatStrikes and isBanned from client data — only admin routes and /record-strike may write these
     // Also extract _serverGold/_serverKeys (client's last-known server values for delta calculation)
@@ -276,8 +293,8 @@ router.post('/:id/reset-progress', async (req: Request, res: Response) => {
         streak: 0,
         hp: 100,
         max_hp: 100,
-        mp: 50,
-        max_mp: 50,
+        mp: 100,
+        max_mp: 100,
         is_configured: false,
         is_penalty_active: false,
         penalty_end_time: null,

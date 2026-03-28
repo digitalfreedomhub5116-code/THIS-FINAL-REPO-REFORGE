@@ -21,7 +21,7 @@ import {
   SkeletonOnboardingPage, SkeletonGenericPage,
 } from './components/SkeletonLoaders';
 
-import { useSystem } from './hooks/useSystem';
+import { useSystem, isLocalUser } from './hooks/useSystem';
 import { useSensors } from './hooks/useSensors';
 import { Tab, CoreStats, HealthProfile, Outfit, DbOutfit, TierLevel, PlayerData, Quest, DailyReward } from './types';
 import { OUTFITS } from './utils/gameData';
@@ -117,6 +117,7 @@ const App: React.FC = () => {
     startSensorTracking, stopSensorTracking, updateQuestSensorData,
     verifyTicket, purchaseOutfit, equipOutfit,
     checkDailyLogin, updateSkillProgress,
+    updateServerBaseline,
   } = useSystem();
 
   const sensors = useSensors();
@@ -218,7 +219,7 @@ const App: React.FC = () => {
   const lastKnownDbGold = useRef<number | null>(null);
   const lastKnownDbKeys = useRef<number | null>(null);
   useEffect(() => {
-    if (!player.userId || player.userId.startsWith('local')) return;
+    if (!player.userId || isLocalUser(player.userId)) return;
     banReversalShownRef.current = false;
     // Reset tracking refs on user change
     lastKnownDbGold.current = null;
@@ -244,6 +245,13 @@ const App: React.FC = () => {
         const isFirstPoll = lastKnownDbGold.current === null;
         lastKnownDbGold.current = dbGold;
         lastKnownDbKeys.current = dbKeys;
+
+        // KEY FIX: When admin changes gold/keys in DB, update the server
+        // baseline refs so the debounced sync in useSystem won't compute
+        // a wrong delta and double-count the admin adjustment.
+        if (isFirstPoll || goldChangedInDb || keysChangedInDb) {
+          updateServerBaseline(dbGold, dbKeys);
+        }
 
         setPlayer(prev => {
           const updates: Partial<PlayerData> = {};
@@ -328,7 +336,7 @@ const App: React.FC = () => {
     if (logoutFlowRef.current) return;
     const restoreAfterAuth = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/auth/whoami`, { credentials: 'include' });
+        const res = await fetch(`${API_BASE}/api/auth/local/whoami`, { credentials: 'include' });
         if (!res.ok) return;
         const whoamiData = await res.json();
         const user = whoamiData?.user || whoamiData;
@@ -1504,7 +1512,7 @@ const App: React.FC = () => {
               // 3. Fire-and-forget: sync data & destroy session in background
               (async () => {
                 try {
-                  if (prevUserId && !prevUserId.startsWith('local-') && !prevUserId.startsWith('local_')) {
+                  if (prevUserId && !isLocalUser(prevUserId)) {
                     await fetch(`${API_BASE}/api/player/${prevUserId}`, {
                       method: 'PUT',
                       headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },

@@ -13,6 +13,12 @@ export const isEmbed = (url: string) => {
   return url.includes('youtube.com/embed') || url.includes('player.vimeo.com');
 };
 
+/** Check if a userId is a local/offline user (not synced to server). */
+export const isLocalUser = (userId?: string): boolean => {
+  if (!userId) return true;
+  return userId.startsWith('local-') || userId.startsWith('local_') || userId === 'local';
+};
+
 /** Return YYYY-MM-DD in the user's LOCAL timezone (not UTC). */
 const toLocalDateStr = (d: Date = new Date()): string => {
   const y = d.getFullYear();
@@ -267,8 +273,16 @@ export const useSystem = () => {
     fetchGlobalAssets();
   }, []);
 
+  // Expose a function that lets App.tsx update the server baseline refs
+  // when it detects an admin change via polling. This prevents the sync
+  // from computing a wrong delta and double-counting admin adjustments.
+  const updateServerBaseline = useCallback((gold: number, keys: number) => {
+    serverGoldRef.current = gold;
+    serverKeysRef.current = keys;
+  }, []);
+
   const syncToCloud = useCallback(async (data: PlayerData) => {
-    if (!data.userId || data.userId.startsWith('local-') || data.userId.startsWith('local_')) return;
+    if (!data.userId || isLocalUser(data.userId)) return;
     try {
       // Include last-known server gold/keys so server can compute delta
       const syncData = {
@@ -309,7 +323,7 @@ export const useSystem = () => {
 
   const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
-    if (!player.userId || player.userId.startsWith('local-')) return;
+    if (!player.userId || isLocalUser(player.userId)) return;
     if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
     syncTimerRef.current = setTimeout(() => {
       syncToCloud(player);
@@ -646,7 +660,7 @@ export const useSystem = () => {
 
   const logout = async () => {
     try {
-      if (player.userId && !player.userId.startsWith('local-') && !player.userId.startsWith('local_')) {
+      if (player.userId && !isLocalUser(player.userId)) {
         await syncToCloud(player);
       }
     } catch (err) {
@@ -1496,7 +1510,7 @@ export const useSystem = () => {
     }
 
     // Persist to workouts table (fire-and-forget)
-    if (player.userId && !player.userId.startsWith('local-') && !player.userId.startsWith('local_')) {
+    if (player.userId && !isLocalUser(player.userId)) {
       fetch(`${API_BASE}/api/workout/log-complete`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1566,7 +1580,7 @@ export const useSystem = () => {
 
     // Persist strike to DB via dedicated endpoint (fire-and-forget, outside state updater)
     setTimeout(() => {
-      if (capturedUserId && !capturedUserId.startsWith('local')) {
+      if (capturedUserId && !isLocalUser(capturedUserId)) {
         fetch(`${API_BASE}/api/player/${capturedUserId}/record-strike`, {
           method: 'POST',
           headers: { ...getPlayerAuthHeaders() },
@@ -1843,6 +1857,7 @@ export const useSystem = () => {
     equipOutfit,
     addNotification,
     updateSkillProgress,
+    updateServerBaseline,
   };
 };
 
