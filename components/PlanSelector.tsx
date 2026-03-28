@@ -63,7 +63,7 @@ const PlanSelector: React.FC<PlanSelectorProps> = ({ healthProfile, onSelectPlan
     : null;
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col">
+    <div className="h-full w-full bg-black text-white flex flex-col">
       <div className="sticky top-0 z-10 bg-black/90 backdrop-blur border-b border-gray-900 px-4 py-3 flex items-center gap-3">
         {onBack && (
           <button onClick={onBack} className="text-gray-500 hover:text-white transition-colors">

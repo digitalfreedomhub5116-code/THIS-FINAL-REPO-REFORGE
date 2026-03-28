@@ -1372,7 +1372,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
 
   if (viewMode === 'PLAN_SELECT') {
       return (
-          <div className="fixed inset-0 z-50 bg-black">
+          <div className="fixed inset-0 z-[100] bg-black">
               <PlanSelector
                   healthProfile={healthProfile || formData as HealthProfile}
                   onSelectPlan={handleSelectPlan}

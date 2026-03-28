@@ -424,7 +424,7 @@ const WorkoutMap: React.FC<WorkoutMapProps> = ({
                                 )}
 
                                 {/* Cheated Day Label */}
-                                {isCheated && (
+                                {isCheated && !isCurrent && (
                                     <div className="absolute top-full mt-2">
                                         <div className="text-[8px] text-amber-400 font-mono font-bold bg-amber-950/80 px-2 py-0.5 rounded border border-amber-700 flex items-center gap-1">
                                             <AlertCircle size={8} /> CHEATED
