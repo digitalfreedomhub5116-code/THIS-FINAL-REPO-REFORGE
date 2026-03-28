@@ -86,9 +86,15 @@ const CustomPlanBuilder: React.FC<CustomPlanBuilderProps> = ({ onClose, onStartW
     if (isSelected(ex.id)) {
       setSelected(prev => prev.filter(s => s.exercise.id !== ex.id));
     } else {
-      const defaultRep = ex.default_reps || '12';
       const numSets = ex.default_sets || 3;
-      const repsPerSet = Array.from({ length: numSets }, () => defaultRep);
+      // default_reps may be "12, 12, 10" (per-set) or just "12"
+      const parsed = (ex.default_reps || '12')
+        .split(',')
+        .map(r => r.trim())
+        .filter(Boolean);
+      const repsPerSet = Array.from({ length: numSets }, (_, i) =>
+        parsed[i] ?? parsed[parsed.length - 1] ?? '12'
+      );
       setSelected(prev => [...prev, { exercise: ex, sets: numSets, repsPerSet }]);
     }
   };
