@@ -1,10 +1,12 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, Crown, Medal, ChevronUp, RefreshCw, Search, Flame, Zap, Swords, Shield } from 'lucide-react';
+import { Trophy, ShieldAlert, Crosshair, Skull, Sparkles, RefreshCw, Zap, Flame, Infinity, FlaskConical, ScrollText } from 'lucide-react';
 import { PlayerData } from '../types';
 import { API_BASE } from '../lib/apiConfig';
 import { getPlayerAuthHeaders } from '../lib/playerApi';
+import { useWarfare } from '../hooks/useWarfare';
+import { ShadowExtractionAnim, ShadowExchangeAnim, FortifyShieldAnim } from './WarfareAnimations';
+import { useSystem } from '../hooks/useSystem';
 
 interface LeaderboardEntry {
   username: string;
@@ -27,22 +29,19 @@ const RANK_COLORS: Record<string, string> = {
   S: '#a855f7',
 };
 
-const RANK_GLOW: Record<string, string> = {
-  E: 'rgba(120,113,108,0.3)',
-  D: 'rgba(194,65,12,0.3)',
-  C: 'rgba(96,165,250,0.3)',
-  B: 'rgba(6,182,212,0.3)',
-  A: 'rgba(234,179,8,0.3)',
-  S: 'rgba(168,85,247,0.4)',
-};
-
 const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player }) => {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
   const [myRank, setMyRank] = useState<number | null>(null);
-  const myRowRef = useRef<HTMLDivElement>(null);
+  
+  // Warfare & Consumables
+  const { consumeItem } = useSystem();
+  const warfare = useWarfare(player.userId || 'local');
+  const [activeAnim, setActiveAnim] = useState<'NONE' | 'EXTRACT' | 'EXCHANGE' | 'FORTIFY'>('NONE');
+  
+  // Interaction state
+  const [expandedTarget, setExpandedTarget] = useState<string | null>(null);
 
   const fetchLeaderboard = useCallback(async (showRefresh = false) => {
     if (showRefresh) setRefreshing(true);
@@ -54,14 +53,13 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player }) => {
       if (res.ok) {
         const data: LeaderboardEntry[] = await res.json();
         setEntries(data);
-        // Find current user's rank
         const idx = data.findIndex(
           (e) => e.username === player.username || e.name === player.name
         );
         setMyRank(idx >= 0 ? idx + 1 : null);
       }
     } catch {
-      /* offline — keep stale data */
+      // Offline fallback
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -70,260 +68,247 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player }) => {
 
   useEffect(() => {
     fetchLeaderboard();
-    const interval = setInterval(() => fetchLeaderboard(), 30_000); // refresh every 30s
+    const interval = setInterval(() => fetchLeaderboard(), 30_000);
     return () => clearInterval(interval);
   }, [fetchLeaderboard]);
 
-  const scrollToMe = () => {
-    myRowRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  const getCalculatedDominance = (entry: LeaderboardEntry, isMe: boolean) => {
+    let dominance = entry.total_xp || 0;
+    
+    if (isMe) {
+      // Add local army buffs
+      dominance += dominance * (warfare.armySize * 0.02);
+      // Pvp debuffs on ME are purged by shields, but for now we only process debuffs WE cast on OTHERS.
+    } else {
+      // If we debuffed this target
+      const isDebuffedByMe = warfare.activeDebuffs.some(d => d.id === (entry.username || entry.name));
+      if (isDebuffedByMe) {
+        dominance -= dominance * 0.15; // 15% reduction
+      }
+    }
+    
+    return Math.floor(dominance);
   };
 
-  const filtered = searchQuery.trim()
-    ? entries.filter(
-        (e) =>
-          (e.username || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (e.name || '').toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : entries;
+  // Build simulated leaderboard based on current DOMINANCE (not just raw XP)
+  const simulatedEntries = [...entries].map(e => {
+    const isMe = e.username === player.username || e.name === player.name;
+    return {
+      ...e,
+      isMe,
+      dominance: getCalculatedDominance(e, isMe)
+    };
+  }).sort((a, b) => b.dominance - a.dominance);
+  
+  // Find real-time rank after simulation
+  const myCurrentIndex = simulatedEntries.findIndex(e => e.isMe);
+  const displayRank = myCurrentIndex >= 0 ? myCurrentIndex + 1 : (myRank || 999);
 
-  const getMedalIcon = (pos: number) => {
-    if (pos === 0) return <Crown size={18} className="text-yellow-400" />;
-    if (pos === 1) return <Medal size={18} className="text-gray-300" />;
-    if (pos === 2) return <Medal size={18} className="text-amber-600" />;
-    return null;
+  // Actions
+  const handleFortify = () => {
+    if (warfare.isShielded) return; // Already shielded
+    if (consumeItem('healthPotions', 1)) {
+       warfare.activateShield();
+       setActiveAnim('FORTIFY');
+       setExpandedTarget(null);
+    } else {
+       // Out of potions (handled by generic useSystem if we wanted error popups)
+    }
   };
+
+  const handleExchange = (targetId: string) => {
+    if (consumeItem('shadowScrolls', 1)) {
+       warfare.castDebuff(targetId);
+       setActiveAnim('EXCHANGE');
+       setExpandedTarget(null);
+    }
+  };
+
+  const handleExtract = () => {
+    if (consumeItem('ultOrbs', 1)) {
+       warfare.addShadow();
+       setActiveAnim('EXTRACT');
+       setExpandedTarget(null);
+    }
+  };
+
+  const cons = player.consumables || { healthPotions: 0, shadowScrolls: 0, ultOrbs: 0 };
 
   return (
-    <div className="w-full min-h-screen pb-32 font-mono">
+    <div className="w-full min-h-screen pb-32 font-mono relative bg-[#0a0a0a]">
+      {/* Background Warfare FX */}
+      <div className="fixed inset-0 pointer-events-none opacity-20" style={{ background: 'radial-gradient(circle at 50% 0%, rgba(168,85,247,0.15), transparent 70%)' }} />
+      {warfare.isShielded && (
+         <div className="fixed inset-0 pointer-events-none z-0 border-[8px] border-green-500/20 rounded-xl" style={{ boxShadow: 'inset 0 0 50px rgba(74,222,128,0.1)' }} />
+      )}
+
       {/* Header */}
-      <div className="px-5 pt-6 pb-4">
-        <div className="flex items-center justify-between mb-1">
+      <div className="relative z-10 px-5 pt-8 pb-4">
+        <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center"
-              style={{
-                background: 'rgba(168,85,247,0.12)',
-                border: '1px solid rgba(168,85,247,0.25)',
-              }}
-            >
-              <Trophy size={20} className="text-purple-400" />
-            </div>
-            <div>
-              <h1 className="text-xl font-black text-white uppercase tracking-tighter">
-                Leaderboard
-              </h1>
-              <p className="text-[10px] text-gray-500 tracking-[0.2em] uppercase">
-                Top {entries.length} Hunters
-              </p>
-            </div>
+             <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-purple-500/10 border border-purple-500/30">
+                <Skull size={24} className="text-purple-400" />
+             </div>
+             <div>
+                <h1 className="text-2xl font-black text-white uppercase tracking-tighter drop-shadow-[0_2px_10px_rgba(168,85,247,0.5)]">
+                   Shadow Arena
+                </h1>
+                <p className="text-[10px] text-gray-400 tracking-[0.2em] uppercase">Live Combat Zone</p>
+             </div>
           </div>
           <button
             onClick={() => fetchLeaderboard(true)}
-            className="w-9 h-9 flex items-center justify-center rounded-lg transition-all active:scale-90"
-            style={{
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.08)',
-            }}
+            className="w-10 h-10 flex items-center justify-center rounded-lg bg-white/5 border border-white/10"
           >
-            <RefreshCw
-              size={16}
-              className={`text-gray-400 ${refreshing ? 'animate-spin' : ''}`}
-            />
+            <RefreshCw size={18} className={`text-gray-400 ${refreshing ? 'animate-spin' : ''}`} />
           </button>
         </div>
 
-        {/* My Rank Card */}
-        {myRank && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mt-4 rounded-xl p-4 cursor-pointer active:scale-[0.98] transition-transform"
-            style={{
-              background: 'linear-gradient(135deg, rgba(168,85,247,0.12) 0%, rgba(0,210,255,0.06) 100%)',
-              border: '1px solid rgba(168,85,247,0.2)',
-            }}
-            onClick={scrollToMe}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="text-2xl font-black text-purple-400">#{myRank}</div>
-                <div>
-                  <div className="text-sm font-bold text-white">
-                    {player.username || player.name}
-                  </div>
-                  <div className="text-[10px] text-gray-500">
-                    Level {player.level} • {player.totalXp?.toLocaleString() || 0} XP
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-1 text-[10px] text-purple-400">
-                <ChevronUp size={14} />
-                View
-              </div>
-            </div>
-          </motion.div>
-        )}
+        {/* Tactical Overview */}
+        <div className="grid grid-cols-2 gap-3 mb-4">
+           {/* My Dominance */}
+           <div className="bg-white/5 border border-white/10 rounded-xl p-4 relative overflow-hidden">
+               <div className="absolute top-0 right-0 w-16 h-16 bg-purple-500/10 rounded-full blur-xl translate-x-1/2 -translate-y-1/2" />
+               <div className="text-[10px] text-gray-500 tracking-widest uppercase mb-1">My Dominance</div>
+               <div className="text-2xl font-black text-white tracking-tight flex items-baseline gap-2">
+                 {myCurrentIndex >= 0 ? simulatedEntries[myCurrentIndex].dominance.toLocaleString() : '---'}
+                 <span className="text-xs text-purple-400">Rank #{displayRank}</span>
+               </div>
+           </div>
+           
+           {/* Army Buff */}
+           <div className="bg-white/5 border border-white/10 rounded-xl p-4 relative overflow-hidden">
+               <div className="text-[10px] text-gray-500 tracking-widest uppercase mb-1">Shadow Army</div>
+               <div className="text-2xl font-black text-white tracking-tight flex items-baseline gap-2">
+                  {warfare.armySize}
+                  <span className="text-xs text-blue-400">+{warfare.armySize * 2}%</span>
+               </div>
+           </div>
+        </div>
 
-        {/* Search */}
-        <div className="mt-4 relative">
-          <Search
-            size={14}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
-          />
-          <input
-            type="text"
-            placeholder="Search hunters..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 rounded-lg text-xs text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-purple-500/50 transition-all"
-            style={{
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.06)',
-            }}
-          />
+        {/* Arsenal Status */}
+        <div className="flex justify-between items-center bg-black/40 border border-gray-800 rounded-lg p-2 px-3">
+            <span className="text-[10px] text-gray-500 uppercase tracking-widest">Arsenal</span>
+            <div className="flex gap-4">
+                <div className="flex items-center gap-1.5"><FlaskConical size={12} className="text-green-400" /><span className="text-xs text-white font-bold">{cons.healthPotions}</span></div>
+                <div className="flex items-center gap-1.5"><ScrollText size={12} className="text-cyan-400" /><span className="text-xs text-white font-bold">{cons.shadowScrolls}</span></div>
+                <div className="flex items-center gap-1.5"><Infinity size={12} className="text-purple-400" /><span className="text-xs text-white font-bold">{cons.ultOrbs}</span></div>
+            </div>
         </div>
       </div>
 
-      {/* Loading State */}
-      {loading && (
-        <div className="flex flex-col items-center justify-center py-20 gap-3">
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-          >
-            <Swords size={24} className="text-purple-400" />
-          </motion.div>
-          <span className="text-xs text-gray-500 font-mono tracking-widest">
-            LOADING RANKINGS...
-          </span>
-        </div>
-      )}
+      {/* Target List */}
+      <div className="px-4 relative z-10 space-y-2">
+         <div className="text-[10px] text-gray-500 tracking-widest uppercase ml-2 mb-2 flex items-center justify-between">
+            <span>Target List</span>
+            {warfare.isShielded && <span className="text-green-400 flex items-center gap-1"><ShieldAlert size={10} /> Active</span>}
+         </div>
 
-      {/* No Results */}
-      {!loading && filtered.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-20 gap-3">
-          <Shield size={24} className="text-gray-600" />
-          <span className="text-xs text-gray-500 font-mono tracking-widest">
-            {searchQuery ? 'NO HUNTERS FOUND' : 'LEADERBOARD EMPTY'}
-          </span>
-        </div>
-      )}
+         {loading ? (
+             <div className="text-center text-xs text-gray-600 py-10 tracking-widest">CALCULATING DOMINANCE...</div>
+         ) : (
+             <AnimatePresence>
+                {simulatedEntries.map((entry, index) => {
+                   const rColor = RANK_COLORS[entry.rank] || '#78716c';
+                   const targetId = entry.username || entry.name;
+                   const isExpanded = expandedTarget === targetId;
+                   const isDebuffed = warfare.activeDebuffs.some(d => d.id === targetId);
 
-      {/* Leaderboard List */}
-      {!loading && filtered.length > 0 && (
-        <div className="px-4">
-          <AnimatePresence>
-            {filtered.map((entry, index) => {
-              const isMe =
-                entry.username === player.username || entry.name === player.name;
-              const rankColor = RANK_COLORS[entry.rank] || '#78716c';
-              const rankGlow = RANK_GLOW[entry.rank] || 'rgba(120,113,108,0.2)';
-              const isTop3 = index < 3;
+                   return (
+                     <motion.div
+                       key={targetId}
+                       layout
+                       className={`rounded-xl border transition-all overflow-hidden ${entry.isMe ? 'bg-purple-900/10 border-purple-500/30 ring-1 ring-purple-500/20' : 'bg-black/40 border-gray-800'}`}
+                     >
+                        <div 
+                          className="p-3 flex items-center gap-3 cursor-pointer"
+                          onClick={() => setExpandedTarget(isExpanded ? null : targetId)}
+                        >
+                           {/* Position */}
+                           <div className={`w-6 text-center text-sm font-black ${entry.isMe ? 'text-purple-400' : 'text-gray-500'}`}>
+                             {index + 1}
+                           </div>
 
-              return (
-                <motion.div
-                  key={entry.username || entry.name || index}
-                  ref={isMe ? myRowRef : undefined}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: Math.min(index * 0.03, 0.5) }}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl mb-1.5 transition-all ${
-                    isMe ? 'ring-1 ring-purple-500/40' : ''
-                  }`}
-                  style={{
-                    background: isMe
-                      ? 'rgba(168,85,247,0.08)'
-                      : isTop3
-                      ? 'rgba(255,255,255,0.03)'
-                      : 'transparent',
-                    border: isMe
-                      ? '1px solid rgba(168,85,247,0.15)'
-                      : isTop3
-                      ? '1px solid rgba(255,255,255,0.04)'
-                      : '1px solid transparent',
-                  }}
-                >
-                  {/* Position */}
-                  <div className="w-8 flex items-center justify-center flex-shrink-0">
-                    {getMedalIcon(index) || (
-                      <span
-                        className={`text-xs font-black ${
-                          isMe ? 'text-purple-400' : 'text-gray-500'
-                        }`}
-                      >
-                        {index + 1}
-                      </span>
-                    )}
-                  </div>
+                           {/* Identify */}
+                           <div className="flex-1 min-w-0">
+                               <div className="flex items-center gap-2">
+                                  <span className={`text-sm font-bold truncate ${entry.isMe ? 'text-purple-300' : 'text-gray-200'} ${isDebuffed ? 'line-through text-red-400' : ''}`}>
+                                     {targetId}
+                                  </span>
+                                  {entry.isMe && <span className="text-[9px] bg-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded font-black tracking-widest uppercase">YOU</span>}
+                                  {isDebuffed && <Zap size={10} className="text-red-400" />}
+                               </div>
+                               <div className="text-[10px] text-gray-500 flex items-center gap-2 mt-0.5">
+                                  <span>Lv.{entry.level}</span>
+                                  <span className="flex items-center gap-0.5"><Flame size={9} /> {entry.dominance.toLocaleString()}</span>
+                               </div>
+                           </div>
 
-                  {/* Rank Badge */}
-                  <div
-                    className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-xs font-black"
-                    style={{
-                      background: `${rankColor}18`,
-                      border: `1px solid ${rankColor}40`,
-                      color: rankColor,
-                      boxShadow: isTop3 ? `0 0 12px ${rankGlow}` : 'none',
-                    }}
-                  >
-                    {entry.rank || 'E'}
-                  </div>
+                           {/* Rank Badge */}
+                           <div className="text-xs font-black w-8 h-8 rounded bg-gray-900/50 flex items-center justify-center" style={{ color: rColor }}>
+                               {entry.rank}
+                           </div>
+                        </div>
 
-                  {/* Player Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`text-sm font-bold truncate ${
-                          isMe ? 'text-purple-300' : 'text-white'
-                        }`}
-                      >
-                        {entry.username || entry.name || 'Unknown'}
-                      </span>
-                      {isMe && (
-                        <span className="text-[8px] bg-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider border border-purple-500/20">
-                          You
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-[10px] text-gray-500 flex items-center gap-2">
-                      <span className="flex items-center gap-0.5">
-                        <Zap size={9} /> Lv.{entry.level}
-                      </span>
-                      <span className="flex items-center gap-0.5">
-                        <Flame size={9} />{' '}
-                        {(entry.total_xp || 0).toLocaleString()} XP
-                      </span>
-                    </div>
-                  </div>
+                        {/* Action Drawer */}
+                        <AnimatePresence>
+                           {isExpanded && (
+                               <motion.div
+                                 initial={{ height: 0, opacity: 0 }}
+                                 animate={{ height: 'auto', opacity: 1 }}
+                                 exit={{ height: 0, opacity: 0 }}
+                                 className="border-t border-gray-800/50 bg-white/[0.02]"
+                               >
+                                  <div className="p-3 flex justify-evenly gap-2">
+                                      {entry.isMe ? (
+                                         <button 
+                                           disabled={warfare.isShielded || cons.healthPotions < 1}
+                                           onClick={handleFortify}
+                                           className="flex-1 py-3 rounded-lg flex flex-col items-center justify-center gap-1 transition-colors disabled:opacity-30 disabled:cursor-not-allowed border border-green-500/20 bg-green-500/10 hover:bg-green-500/20 text-green-300"
+                                         >
+                                            <ShieldAlert size={16} />
+                                            <span className="text-[9px] uppercase tracking-widest font-black font-mono">Fortify (1 Potion)</span>
+                                         </button>
+                                      ) : (
+                                        <>
+                                         {/* If Target is above us, we can Exchange/Steal */}
+                                         {index < displayRank - 1 ? (
+                                             <button 
+                                               disabled={isDebuffed || cons.shadowScrolls < 1}
+                                               onClick={() => handleExchange(targetId)}
+                                               className="flex-1 py-3 rounded-lg flex flex-col items-center justify-center gap-1 transition-colors disabled:opacity-30 disabled:cursor-not-allowed border border-cyan-500/20 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300"
+                                             >
+                                                <Crosshair size={16} />
+                                                <span className="text-[9px] uppercase tracking-widest font-black font-mono">Exchange (1 Scroll)</span>
+                                             </button>
+                                         ) : (
+                                             <button 
+                                               disabled={cons.ultOrbs < 1}
+                                               onClick={handleExtract}
+                                               className="flex-1 py-3 rounded-lg flex flex-col items-center justify-center gap-1 transition-colors disabled:opacity-30 disabled:cursor-not-allowed border border-purple-500/20 bg-purple-500/10 hover:bg-purple-500/20 text-purple-300"
+                                             >
+                                                <Sparkles size={16} />
+                                                <span className="text-[9px] uppercase tracking-widest font-black font-mono">Extract (1 Orb)</span>
+                                             </button>
+                                         )}
+                                        </>
+                                      )}
+                                  </div>
+                               </motion.div>
+                           )}
+                        </AnimatePresence>
+                     </motion.div>
+                   )
+                })}
+             </AnimatePresence>
+         )}
+      </div>
 
-                  {/* XP Bar (visual) */}
-                  <div className="w-16 flex-shrink-0">
-                    <div
-                      className="h-1 rounded-full overflow-hidden"
-                      style={{ background: 'rgba(255,255,255,0.06)' }}
-                    >
-                      <motion.div
-                        className="h-full rounded-full"
-                        style={{ background: rankColor }}
-                        initial={{ width: 0 }}
-                        animate={{
-                          width: `${Math.min(
-                            100,
-                            ((entry.total_xp || 0) /
-                              Math.max(entries[0]?.total_xp || 1, 1)) *
-                              100
-                          )}%`,
-                        }}
-                        transition={{ duration: 0.8, delay: Math.min(index * 0.03, 0.5) }}
-                      />
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
-        </div>
-      )}
+      {/* FX Overlays */}
+      {activeAnim === 'EXTRACT' && <ShadowExtractionAnim onComplete={() => setActiveAnim('NONE')} />}
+      {activeAnim === 'EXCHANGE' && <ShadowExchangeAnim onComplete={() => setActiveAnim('NONE')} />}
+      {activeAnim === 'FORTIFY' && <FortifyShieldAnim onComplete={() => setActiveAnim('NONE')} />}
+      
     </div>
   );
 };

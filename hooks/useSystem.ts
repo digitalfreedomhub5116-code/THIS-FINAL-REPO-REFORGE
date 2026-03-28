@@ -1237,6 +1237,20 @@ export const useSystem = () => {
     addNotification(`Acquired: ${item.title}`, 'PURCHASE');
     playSystemSoundEffect('PURCHASE');
   };
+  const consumeItem = (field: keyof PlayerData['consumables'], amount: number = 1): boolean => {
+    const current = player.consumables?.[field] ?? 0;
+    if (current < amount) return false;
+    
+    setPlayer(prev => ({
+      ...prev,
+      consumables: {
+        ...prev.consumables,
+        [field]: Math.max(0, (prev.consumables?.[field] ?? 0) - amount)
+      }
+    }));
+    return true;
+  };
+
 
   const buyConsumable = (type: 'healthPotion' | 'shadowScroll' | 'ultOrb') => {
     const costs: Record<string, { gold?: number; keys?: number; label: string; field: keyof PlayerData['consumables'] }> = {
@@ -1836,6 +1850,7 @@ export const useSystem = () => {
     resetQuest,
     deleteQuest,
     purchaseItem,
+    consumeItem,
     buyConsumable,
     addShopItem,
     removeShopItem,
