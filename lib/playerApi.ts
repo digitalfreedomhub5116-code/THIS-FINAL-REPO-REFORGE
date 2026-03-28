@@ -9,3 +9,32 @@ export function getPlayerAuthHeaders(): Record<string, string> {
   }
   return {};
 }
+
+/**
+ * Tries to return a valid player token.
+ * If none in localStorage, hits both whoami endpoints to get a fresh one.
+ * Returns auth headers with the token, or {} if all attempts fail.
+ */
+export async function getOrRefreshPlayerHeaders(apiBase: string): Promise<Record<string, string>> {
+  const existing = localStorage.getItem('reforge_player_token');
+  if (existing) return { Authorization: `Bearer ${existing}` };
+
+  // Try to refresh from server whoami endpoints
+  const endpoints = [
+    `${apiBase}/api/auth/local/whoami`,
+    `${apiBase}/api/auth/whoami`,
+  ];
+  for (const url of endpoints) {
+    try {
+      const res = await fetch(url, { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json().catch(() => ({}));
+        if (data.playerToken) {
+          localStorage.setItem('reforge_player_token', data.playerToken);
+          return { Authorization: `Bearer ${data.playerToken}` };
+        }
+      }
+    } catch { /* try next */ }
+  }
+  return {};
+}

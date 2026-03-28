@@ -462,7 +462,7 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
   return (
     <>
       {/* FABs */}
-      <div className="fixed right-4 bottom-24 z-[80] flex flex-col gap-4 md:hidden">
+      <div className="fixed right-4 z-[80] flex flex-col gap-4 md:hidden" style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 6.5rem)' }}>
         {/* Chest FAB — notification pip floats with the button */}
         <motion.div
           className="relative"

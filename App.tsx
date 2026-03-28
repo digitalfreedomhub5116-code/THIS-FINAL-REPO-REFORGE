@@ -26,7 +26,7 @@ import { useSensors } from './hooks/useSensors';
 import { Tab, CoreStats, HealthProfile, Outfit, DbOutfit, TierLevel, PlayerData, Quest, DailyReward } from './types';
 import { OUTFITS } from './utils/gameData';
 import { DAILY_REWARDS_ENABLED } from './lib/rewards';
-import { getPlayerAuthHeaders } from './lib/playerApi';
+import { getPlayerAuthHeaders, getOrRefreshPlayerHeaders } from './lib/playerApi';
 import { Terminal } from 'lucide-react';
 import { API_BASE } from './lib/apiConfig';
 
@@ -1403,14 +1403,15 @@ const App: React.FC = () => {
                     onRetakeTutorial={() => { resetTutorial(); setIsNewUserOnboarding(true); setActiveTab('DASHBOARD'); }}
                     onResetProgress={async () => {
                       if (!player.userId || player.userId.startsWith('local')) return;
+                      const authHeaders = await getOrRefreshPlayerHeaders(API_BASE);
                       const res = await fetch(`${API_BASE}/api/player/${player.userId}/reset-progress`, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
+                        headers: { 'Content-Type': 'application/json', ...authHeaders },
                         credentials: 'include',
                       });
                       if (!res.ok) throw new Error('Reset failed');
                       // Reload fresh player data from DB
-                      const freshRes = await fetch(`${API_BASE}/api/player/${player.userId}`, { credentials: 'include', headers: { ...getPlayerAuthHeaders() } });
+                      const freshRes = await fetch(`${API_BASE}/api/player/${player.userId}`, { credentials: 'include', headers: { ...authHeaders } });
                       if (freshRes.ok) {
                         const row = await freshRes.json();
                         const rawData = row.raw_data as Partial<PlayerData> | null;

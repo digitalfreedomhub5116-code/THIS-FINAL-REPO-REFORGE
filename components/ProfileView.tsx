@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Save, User, Briefcase, Award, Shield, Terminal, Activity, Settings, LogOut, Lock, ArrowLeft, CheckCircle, XCircle, RotateCcw, AlertTriangle, Camera, Loader2 } from 'lucide-react';
 import { PlayerData, HealthProfile } from '../types';
 import { API_BASE } from '../lib/apiConfig';
-import { getPlayerAuthHeaders } from '../lib/playerApi';
+import { getPlayerAuthHeaders, getOrRefreshPlayerHeaders } from '../lib/playerApi';
 
 interface ProfileViewProps {
   player: PlayerData;
@@ -85,9 +85,10 @@ const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onAvatarCha
     setAvatarUploading(true);
     try {
       const compressed = await compressImage(file);
+      const authHeaders = await getOrRefreshPlayerHeaders(API_BASE);
       const res = await fetch(`${API_BASE}/api/player/${player.userId}/avatar`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
         credentials: 'include',
         body: JSON.stringify({ imageBase64: compressed }),
       });

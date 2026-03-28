@@ -246,10 +246,10 @@ router.post('/:id/reset-progress', async (req: Request, res: Response) => {
   }
 
   try {
-    // Fetch current gold & keys so we can preserve them
+    // Fetch current gold, keys, and ban/anomaly fields so we can preserve them
     const { data: current, error: fetchErr } = await (supabaseServer() as any)
       .from('players')
-      .select('gold, keys, username, name, email, auth_type, avatar_url')
+      .select('gold, keys, username, name, email, auth_type, avatar_url, is_banned, cheat_strikes, total_strikes_ever, ban_reason')
       .eq('supabase_id', id)
       .single();
     if (fetchErr) throw fetchErr;
@@ -259,6 +259,9 @@ router.post('/:id/reset-progress', async (req: Request, res: Response) => {
       keys: current.keys,
       name: current.name,
       username: current.username,
+      isBanned: current.is_banned,
+      cheatStrikes: current.cheat_strikes ?? 0,
+      totalStrikesEver: current.total_strikes_ever ?? 0,
     };
 
     const { error } = await (supabaseServer() as any)

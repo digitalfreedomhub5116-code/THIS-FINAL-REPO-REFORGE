@@ -937,8 +937,8 @@ export const HealthView: React.FC<HealthViewProps> = ({
               source: CameraSource.Prompt, // Shows "Camera or Gallery" native dialog
               width: 800,
               promptLabelHeader: 'Log Meal',
-              promptLabelPhoto: 'Take Photo',
-              promptLabelPicture: 'Choose from Gallery',
+              promptLabelPhoto: 'Choose from Gallery',
+              promptLabelPicture: 'Take Photo',
               promptLabelCancel: 'Cancel',
           });
 
@@ -2290,7 +2290,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
                             <ProtocolMonthView plan={calculatedPlan} />
 
                             {/* ── FAB: Custom Plan Builder ── */}
-                            <div className="fixed bottom-24 right-4 z-40 flex flex-col items-end gap-2">
+                            <div className="fixed right-4 z-40 flex flex-col items-end gap-2" style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 6.5rem)' }}>
                                 <AnimatePresence>
                                     {showTodayDoneNotice && (
                                         <motion.div
