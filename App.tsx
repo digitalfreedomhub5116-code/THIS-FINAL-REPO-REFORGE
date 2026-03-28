@@ -187,6 +187,7 @@ const App: React.FC = () => {
   const authInitialMode: 'SIGN_IN' | 'CREATE' = 'SIGN_IN';
   const [showLogoutChoice, setShowLogoutChoice] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('DASHBOARD');
+  const [healthViewKey, setHealthViewKey] = useState(0);
   const [showAdminLogin, setShowAdminLogin] = useState(() => window.location.pathname === '/shadow-council');
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminToken, setAdminToken] = useState('');
@@ -1350,7 +1351,7 @@ const App: React.FC = () => {
 
           {/* ── HEALTH ── */}
           {activeTab === 'HEALTH' && (
-            <motion.div key="health" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div key={`health-${healthViewKey}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <Suspense fallback={<SkeletonHealthPage />}>
                 <ErrorBoundary fallbackLabel="Health view failed to load">
                   <HealthView
@@ -1410,6 +1411,10 @@ const App: React.FC = () => {
                         credentials: 'include',
                       });
                       if (!res.ok) throw new Error('Reset failed');
+                      // Clear workout map so WorkoutMap resets to Day 1
+                      localStorage.removeItem('reforge_workout_day_map');
+                      localStorage.removeItem('reforge_journey_start');
+                      setHealthViewKey(k => k + 1);
                       // Reload fresh player data from DB
                       const freshRes = await fetch(`${API_BASE}/api/player/${player.userId}`, { credentials: 'include', headers: { ...authHeaders } });
                       if (freshRes.ok) {
