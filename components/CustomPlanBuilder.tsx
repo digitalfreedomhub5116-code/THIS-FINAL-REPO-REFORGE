@@ -1,13 +1,26 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Search, X, Plus, Minus, CheckCircle, Play, Dumbbell, ChevronDown, ArrowLeft, Save } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Search, X, Plus, Minus, CheckCircle, Play, Dumbbell, ArrowLeft, Save, Star } from 'lucide-react';
 import { WorkoutDay, WorkoutExercise } from '../types';
 import { API_BASE } from '../lib/apiConfig';
+
+const STARRED_KEY = 'reforge_starred_exercises';
+
+const loadStarred = (): Set<number> => {
+  try {
+    const arr = JSON.parse(localStorage.getItem(STARRED_KEY) || '[]');
+    return new Set<number>(arr);
+  } catch { return new Set<number>(); }
+};
+
+const saveStarred = (ids: Set<number>) => {
+  try { localStorage.setItem(STARRED_KEY, JSON.stringify([...ids])); } catch {}
+};
 
 interface SelectedExercise {
   exercise: WorkoutExercise;
   sets: number;
-  reps: string;
+  repsPerSet: string[];
 }
 
 interface CustomPlanBuilderProps {
@@ -30,10 +43,10 @@ const CustomPlanBuilder: React.FC<CustomPlanBuilderProps> = ({ onClose, onStartW
   const [search, setSearch] = useState('');
   const [muscleFilter, setMuscleFilter] = useState('ALL');
   const [selected, setSelected] = useState<SelectedExercise[]>([]);
-  const [showSelected, setShowSelected] = useState(false);
   const [planName, setPlanName] = useState('');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [starredIds, setStarredIds] = useState<Set<number>>(loadStarred);
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -44,12 +57,28 @@ const CustomPlanBuilder: React.FC<CustomPlanBuilderProps> = ({ onClose, onStartW
       .finally(() => setLoading(false));
   }, []);
 
-  const filtered = exercises.filter(ex => {
+  const toggleStar = (id: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setStarredIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      saveStarred(next);
+      return next;
+    });
+  };
+
+  const baseFiltered = exercises.filter(ex => {
     const q = search.toLowerCase();
     const matchSearch = !q || ex.name.toLowerCase().includes(q) || (ex.muscle_group || '').toLowerCase().includes(q) || ex.type.toLowerCase().includes(q);
     const matchMuscle = muscleFilter === 'ALL' || (ex.muscle_group || '').toLowerCase().includes(muscleFilter.toLowerCase());
     return matchSearch && matchMuscle;
   });
+
+  const filtered = [
+    ...baseFiltered.filter(ex => starredIds.has(ex.id)),
+    ...baseFiltered.filter(ex => !starredIds.has(ex.id)),
+  ];
 
   const isSelected = (id: number) => selected.some(s => s.exercise.id === id);
 
@@ -57,15 +86,47 @@ const CustomPlanBuilder: React.FC<CustomPlanBuilderProps> = ({ onClose, onStartW
     if (isSelected(ex.id)) {
       setSelected(prev => prev.filter(s => s.exercise.id !== ex.id));
     } else {
-      setSelected(prev => [...prev, { exercise: ex, sets: ex.default_sets, reps: ex.default_reps }]);
+      const defaultRep = ex.default_reps || '12';
+      const numSets = ex.default_sets || 3;
+      const repsPerSet = Array.from({ length: numSets }, () => defaultRep);
+      setSelected(prev => [...prev, { exercise: ex, sets: numSets, repsPerSet }]);
     }
   };
 
-  const updateSelected = (id: number, field: 'sets' | 'reps', value: string | number) => {
-    setSelected(prev => prev.map(s => s.exercise.id === id ? { ...s, [field]: value } : s));
+  const updateSets = (id: number, newSets: number) => {
+    const clamped = Math.max(1, Math.min(20, newSets));
+    setSelected(prev => prev.map(s => {
+      if (s.exercise.id !== id) return s;
+      let repsPerSet = [...s.repsPerSet];
+      while (repsPerSet.length < clamped) {
+        repsPerSet.push(repsPerSet[repsPerSet.length - 1] || '12');
+      }
+      repsPerSet = repsPerSet.slice(0, clamped);
+      return { ...s, sets: clamped, repsPerSet };
+    }));
+  };
+
+  const updateRep = (id: number, setIdx: number, value: string) => {
+    setSelected(prev => prev.map(s => {
+      if (s.exercise.id !== id) return s;
+      const repsPerSet = [...s.repsPerSet];
+      repsPerSet[setIdx] = value;
+      return { ...s, repsPerSet };
+    }));
   };
 
   const removeSelected = (id: number) => setSelected(prev => prev.filter(s => s.exercise.id !== id));
+
+  const buildExercises = () => selected.map(s => ({
+    name: s.exercise.name,
+    sets: s.sets,
+    reps: s.repsPerSet.join(', '),
+    type: s.exercise.type,
+    notes: s.exercise.notes || '',
+    videoUrl: s.exercise.video_url || '',
+    completed: false,
+    duration: 0,
+  }));
 
   const startWorkout = () => {
     if (selected.length === 0) return;
@@ -74,16 +135,7 @@ const CustomPlanBuilder: React.FC<CustomPlanBuilderProps> = ({ onClose, onStartW
       focus: planName || 'CUSTOM SESSION',
       isRecovery: false,
       totalDuration: selected.length * 5 + 10,
-      exercises: selected.map(s => ({
-        name: s.exercise.name,
-        sets: s.sets,
-        reps: s.reps,
-        type: s.exercise.type,
-        notes: s.exercise.notes || '',
-        videoUrl: s.exercise.video_url || '',
-        completed: false,
-        duration: 0,
-      })),
+      exercises: buildExercises(),
     };
     onStartWorkout(day);
   };
@@ -97,16 +149,7 @@ const CustomPlanBuilder: React.FC<CustomPlanBuilderProps> = ({ onClose, onStartW
         focus: planName,
         isRecovery: false,
         totalDuration: selected.length * 5 + 10,
-        exercises: selected.map(s => ({
-          name: s.exercise.name,
-          sets: s.sets,
-          reps: s.reps,
-          type: s.exercise.type,
-          notes: s.exercise.notes || '',
-          videoUrl: s.exercise.video_url || '',
-          completed: false,
-          duration: 0,
-        })),
+        exercises: buildExercises(),
       };
       await fetch(`${API_BASE}/api/workout/custom-plans`, {
         method: 'POST',
@@ -139,19 +182,12 @@ const CustomPlanBuilder: React.FC<CustomPlanBuilderProps> = ({ onClose, onStartW
             className="bg-transparent text-white text-sm font-bold tracking-tight outline-none placeholder-gray-700 w-full"
           />
         </div>
-        <div className="flex gap-2 shrink-0">
-          {selected.length > 0 && (
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setShowSelected(v => !v)}
-              className="relative flex items-center gap-1.5 px-3 py-1.5 bg-gray-900 border border-gray-800 rounded-full text-[10px] font-bold text-gray-400 hover:text-white transition-all"
-            >
-              <Dumbbell size={11} />
-              <span>{selected.length}</span>
-              <span className="absolute -top-1 -right-1 w-2 h-2 bg-system-neon rounded-full" />
-            </motion.button>
-          )}
-        </div>
+        {selected.length > 0 && (
+          <div className="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 bg-system-neon/10 border border-system-neon/30 rounded-full">
+            <Dumbbell size={11} className="text-system-neon" />
+            <span className="text-[10px] font-bold text-system-neon">{selected.length}</span>
+          </div>
+        )}
       </div>
 
       {/* Search + filter */}
@@ -200,50 +236,80 @@ const CustomPlanBuilder: React.FC<CustomPlanBuilderProps> = ({ onClose, onStartW
             {filtered.map(ex => {
               const sel = isSelected(ex.id);
               const selData = selected.find(s => s.exercise.id === ex.id);
+              const isStarred = starredIds.has(ex.id);
               return (
                 <div key={ex.id} className={`transition-all ${sel ? 'bg-system-neon/5' : ''}`}>
-                  <button
-                    onClick={() => toggleExercise(ex)}
-                    className={`w-full flex items-center gap-3 px-4 py-3.5 text-left transition-all ${!sel ? 'hover:bg-white/5' : ''}`}
-                  >
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all ${sel ? 'bg-system-neon text-black' : 'bg-gray-900 border border-gray-800 text-gray-600'}`}>
-                      {sel ? <CheckCircle size={16} /> : <Plus size={14} />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <span className="text-sm font-bold text-white truncate">{ex.name}</span>
+                  {/* Exercise row */}
+                  <div className="flex items-center gap-2 px-3 py-3">
+                    <button
+                      onClick={e => toggleStar(ex.id, e)}
+                      className={`shrink-0 w-7 h-7 flex items-center justify-center rounded-full transition-all ${isStarred ? 'text-amber-400' : 'text-gray-700 hover:text-amber-500'}`}
+                    >
+                      <Star size={13} fill={isStarred ? 'currentColor' : 'none'} />
+                    </button>
+                    <button
+                      onClick={() => toggleExercise(ex)}
+                      className="flex-1 flex items-center gap-2.5 text-left min-w-0"
+                    >
+                      <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 transition-all ${sel ? 'bg-system-neon text-black' : 'bg-gray-900 border border-gray-800 text-gray-600'}`}>
+                        {sel ? <CheckCircle size={13} /> : <Plus size={12} />}
                       </div>
-                      <div className="flex gap-2 items-center">
-                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${TYPE_COLORS[ex.type] || 'bg-gray-800 text-gray-500 border-gray-700'}`}>{ex.type}</span>
-                        {ex.muscle_group && <span className="text-[10px] text-gray-500 font-mono">{ex.muscle_group}</span>}
-                        {!sel && <span className="text-[10px] text-gray-700 font-mono">{ex.default_sets}×{ex.default_reps}</span>}
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-bold text-white truncate leading-tight">{ex.name}</div>
+                        <div className="flex gap-1.5 items-center mt-0.5">
+                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${TYPE_COLORS[ex.type] || 'bg-gray-800 text-gray-500 border-gray-700'}`}>{ex.type}</span>
+                          {ex.muscle_group && <span className="text-[10px] text-gray-500 font-mono">{ex.muscle_group}</span>}
+                          {!sel && <span className="text-[10px] text-gray-700 font-mono">{ex.default_sets}×{ex.default_reps}</span>}
+                        </div>
                       </div>
-                    </div>
-                    {sel && <div className="w-1.5 h-8 bg-system-neon rounded-full shrink-0" />}
-                  </button>
-                  {/* Inline sets/reps editor — visible immediately when selected */}
+                    </button>
+                    {sel && (
+                      <button onClick={() => removeSelected(ex.id)} className="shrink-0 text-gray-700 hover:text-red-400 transition-colors">
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
+                  {/* Inline sets/reps editor */}
                   {sel && selData && (
-                    <div className="px-4 pb-3 pt-0 flex items-center gap-3" onClick={e => e.stopPropagation()}>
-                      <div className="w-8 shrink-0" />
-                      <div className="flex-1 flex items-center gap-3 bg-gray-900/80 border border-gray-800 rounded-lg px-3 py-2">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider w-8">Sets</span>
-                          <button onClick={() => updateSelected(ex.id, 'sets', Math.max(1, selData.sets - 1))} className="w-6 h-6 bg-gray-800 hover:bg-gray-700 rounded flex items-center justify-center text-gray-400 transition-colors"><Minus size={10} /></button>
-                          <span className="text-sm text-white font-black w-6 text-center font-mono">{selData.sets}</span>
-                          <button onClick={() => updateSelected(ex.id, 'sets', Math.min(20, selData.sets + 1))} className="w-6 h-6 bg-gray-800 hover:bg-gray-700 rounded flex items-center justify-center text-gray-400 transition-colors"><Plus size={10} /></button>
+                    <div className="px-3 pb-4 pt-0" onClick={e => e.stopPropagation()}>
+                      <div className="ml-9 bg-gray-900/80 border border-gray-800 rounded-xl p-3 space-y-3">
+                        {/* Sets row */}
+                        <div className="flex items-center gap-3">
+                          <span className="text-[9px] text-gray-500 font-bold uppercase tracking-widest w-10 shrink-0">Sets</span>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => updateSets(ex.id, selData.sets - 1)}
+                              className="w-7 h-7 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg flex items-center justify-center text-gray-300 transition-colors active:scale-95"
+                            >
+                              <Minus size={12} />
+                            </button>
+                            <span className="text-base text-white font-black w-6 text-center font-mono">{selData.sets}</span>
+                            <button
+                              onClick={() => updateSets(ex.id, selData.sets + 1)}
+                              className="w-7 h-7 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg flex items-center justify-center text-gray-300 transition-colors active:scale-95"
+                            >
+                              <Plus size={12} />
+                            </button>
+                          </div>
                         </div>
-                        <div className="w-px h-5 bg-gray-800" />
-                        <div className="flex items-center gap-1.5 flex-1">
-                          <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider w-8">Reps</span>
-                          <input
-                            value={selData.reps}
-                            onChange={e => updateSelected(ex.id, 'reps', e.target.value)}
-                            className="flex-1 bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-white font-mono outline-none focus:border-system-neon/50 min-w-0"
-                            placeholder="e.g. 12"
-                          />
+                        {/* Per-set reps */}
+                        <div className="space-y-2">
+                          <span className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">Reps per Set</span>
+                          <div className="flex flex-wrap gap-2">
+                            {selData.repsPerSet.map((rep, setIdx) => (
+                              <div key={setIdx} className="flex flex-col items-center gap-0.5">
+                                <span className="text-[8px] text-gray-600 font-mono font-bold">S{setIdx + 1}</span>
+                                <input
+                                  value={rep}
+                                  onChange={e => updateRep(ex.id, setIdx, e.target.value)}
+                                  className="w-12 bg-gray-800 border border-gray-700 rounded-lg px-1 py-1.5 text-xs text-white font-mono text-center outline-none focus:border-system-neon/60 transition-colors"
+                                  placeholder="12"
+                                />
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       </div>
-                      <button onClick={() => removeSelected(ex.id)} className="text-gray-700 hover:text-red-400 transition-colors shrink-0"><X size={14} /></button>
                     </div>
                   )}
                 </div>
@@ -253,51 +319,16 @@ const CustomPlanBuilder: React.FC<CustomPlanBuilderProps> = ({ onClose, onStartW
         )}
       </div>
 
-      {/* Selected exercises panel (slide up) */}
-      <AnimatePresence>
-        {showSelected && selected.length > 0 && (
-          <motion.div
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="absolute inset-x-0 bottom-0 bg-gray-950 border-t border-gray-800 rounded-t-2xl max-h-[70vh] flex flex-col z-10"
-          >
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800">
-              <div className="font-black text-sm text-white tracking-tight">Your Session ({selected.length} exercises)</div>
-              <button onClick={() => setShowSelected(false)}><X size={16} className="text-gray-500" /></button>
-            </div>
-            <div className="overflow-y-auto flex-1 p-3 space-y-2">
-              {selected.map(s => (
-                <div key={s.exercise.id} className="flex items-center gap-3 bg-gray-900 border border-gray-800 rounded-xl p-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="text-xs font-bold text-white truncate mb-1.5">{s.exercise.name}</div>
-                    <div className="flex gap-2">
-                      <div className="flex items-center gap-1">
-                        <button onClick={() => updateSelected(s.exercise.id, 'sets', Math.max(1, s.sets - 1))} className="w-5 h-5 bg-gray-800 rounded flex items-center justify-center text-gray-400"><Minus size={10} /></button>
-                        <span className="text-[11px] text-white font-bold w-6 text-center">{s.sets}</span>
-                        <button onClick={() => updateSelected(s.exercise.id, 'sets', s.sets + 1)} className="w-5 h-5 bg-gray-800 rounded flex items-center justify-center text-gray-400"><Plus size={10} /></button>
-                        <span className="text-[10px] text-gray-600 ml-1">sets</span>
-                      </div>
-                      <input value={s.reps} onChange={e => updateSelected(s.exercise.id, 'reps', e.target.value)} className="bg-gray-800 border border-gray-700 rounded px-2 py-0.5 text-[11px] text-white w-20 outline-none focus:border-system-neon" placeholder="reps" />
-                    </div>
-                  </div>
-                  <button onClick={() => removeSelected(s.exercise.id)} className="text-gray-700 hover:text-red-400 transition-colors"><X size={14} /></button>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* Bottom action bar */}
-      {selected.length > 0 && !showSelected && (
+      {selected.length > 0 && (
         <motion.div
           initial={{ y: 80 }}
           animate={{ y: 0 }}
-          className="px-4 pt-3 pb-24 md:pb-4 bg-black border-t border-gray-900 space-y-2"
+          className="px-4 pt-3 pb-8 md:pb-4 bg-black border-t border-gray-900 space-y-2"
         >
-          <div className="text-[10px] text-gray-600 font-mono text-center">{selected.length} exercises selected · est. {selected.length * 5 + 10} min</div>
+          <div className="text-[10px] text-gray-600 font-mono text-center">
+            {selected.length} exercise{selected.length !== 1 ? 's' : ''} · {selected.reduce((acc, s) => acc + s.sets, 0)} total sets · est. {selected.length * 5 + 10} min
+          </div>
           <div className="flex gap-2">
             {planName.trim() && (
               <motion.button

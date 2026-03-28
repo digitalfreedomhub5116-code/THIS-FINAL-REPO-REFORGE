@@ -558,6 +558,52 @@ export const HealthView: React.FC<HealthViewProps> = ({
   const [savedSession, setSavedSession] = useState<SavedWorkoutSession | null>(null);
   const [showResumePrompt, setShowResumePrompt] = useState(false);
 
+  // ── Workout Day Map (date-keyed outcome tracking) ──
+  const _getLocalDateStr = (d: Date = new Date()): string => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${dd}`;
+  };
+  const todayStr = _getLocalDateStr();
+  const [dayMap, setDayMap] = useState<Record<string, 'completed' | 'cheated' | 'missed'>>(() => {
+    try { return JSON.parse(localStorage.getItem('reforge_workout_day_map') || '{}'); }
+    catch { return {}; }
+  });
+  const [journeyStartDate] = useState<string>(() => {
+    const stored = localStorage.getItem('reforge_journey_start');
+    if (stored) return stored;
+    const today = _getLocalDateStr();
+    try { localStorage.setItem('reforge_journey_start', today); } catch {}
+    return today;
+  });
+  const todayDone = !!dayMap[todayStr];
+  const [showTodayDoneNotice, setShowTodayDoneNotice] = useState(false);
+
+  const _writeDayMap = (next: Record<string, 'completed' | 'cheated' | 'missed'>) => {
+    setDayMap(next);
+    try { localStorage.setItem('reforge_workout_day_map', JSON.stringify(next)); } catch {}
+  };
+
+  // Scan for missed days on mount
+  useEffect(() => {
+    const today = _getLocalDateStr();
+    const startD = new Date(journeyStartDate + 'T12:00:00');
+    const todayD = new Date(today + 'T12:00:00');
+    const daysElapsed = Math.round((todayD.getTime() - startD.getTime()) / 86400000);
+    if (daysElapsed <= 0) return;
+    const map = (() => { try { return JSON.parse(localStorage.getItem('reforge_workout_day_map') || '{}'); } catch { return {}; } })();
+    let changed = false;
+    for (let i = 0; i < daysElapsed; i++) {
+      const d = new Date(journeyStartDate + 'T12:00:00');
+      d.setDate(d.getDate() + i);
+      const ds = _getLocalDateStr(d);
+      if (!map[ds]) { map[ds] = 'missed'; changed = true; }
+    }
+    if (changed) _writeDayMap(map);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [journeyStartDate]);
+
   // Check for saved workout session on mount
   useEffect(() => {
     const session = loadWorkoutSession();
@@ -1584,6 +1630,9 @@ export const HealthView: React.FC<HealthViewProps> = ({
           const rewards = onCompleteWorkout(c, t, r, false, anomaly, isCustomWorkout);
           clearWorkoutSession();
           setSavedSession(null);
+          // Write today's outcome to the day map
+          const outcome: 'completed' | 'cheated' = (anomaly ?? 0) >= 5 ? 'cheated' : 'completed';
+          _writeDayMap({ ...dayMap, [todayStr]: outcome });
           if (rewards && Array.isArray(rewards) && rewards.length > 0) {
             setWorkoutRewards(rewards);
             setWorkoutAnomalyPoints(anomaly ?? 0);
@@ -1730,25 +1779,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
             <div className="flex-1 pb-20">
                 <AnimatePresence mode="wait">
                     {activeTab === 'WORKOUT' && (() => {
-                        const completedWorkouts = playerData.logs.filter(l => l.type === 'WORKOUT').length;
-                        // Compute missed days from WARNING logs about missed workouts
-                        const missedDayIndices: number[] = [];
-                        const warningLogs = playerData.logs.filter(l => l.type === 'WARNING' && l.message.includes('Missed Workout'));
-                        warningLogs.forEach((_, i) => {
-                            // Map each missed workout warning to the day index it corresponds to
-                            const missedIdx = completedWorkouts + i;
-                            if (missedIdx < calculatedPlan.length) missedDayIndices.push(missedIdx);
-                        });
-                        // Compute cheated days (anomaly >= 5 → voided workouts)
-                        const cheatedDayIndices: number[] = [];
-                        const voidedLogs = playerData.logs.filter(l => l.type === 'WORKOUT' && l.message.includes('VOIDED'));
-                        voidedLogs.forEach((_, i) => {
-                            const cheatedIdx = completedWorkouts + missedDayIndices.length + i;
-                            if (cheatedIdx < calculatedPlan.length) cheatedDayIndices.push(cheatedIdx);
-                        });
-                        // Check if today's workout is already done (stay on current node until midnight)
-                        const todayStr = new Date().toISOString().split('T')[0];
-                        const todayCompleted = playerData.lastWorkoutDate === todayStr;
+                        const completedWorkouts = Object.values(dayMap).filter(o => o === 'completed' || o === 'cheated').length;
                         const activePremadePlan = premadePlans.find(p => p.id === (healthProfile as any)?.selectedPlanId);
                         const daysPerWeek = activePremadePlan?.days_per_week || (calculatedPlan.length > 0 ? Math.min(calculatedPlan.length, 5) : 3);
                         const totalWeeks = activePremadePlan
@@ -2252,24 +2283,45 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                         </button>
                                     </div>
                                 </div>
-                                <WorkoutMap currentWeight={healthProfile?.weight || 0} targetWeight={healthProfile?.targetWeight || 0} workoutPlan={calculatedPlan} completedDays={completedWorkouts} missedDays={missedDayIndices} cheatedDays={cheatedDayIndices} todayCompleted={todayCompleted} streak={playerData.streak} planChangedAtDay={(healthProfile as any)?.planChangedAtDay} planChangeLabel={(healthProfile as any)?.prevPlanName && healthProfile?.selectedPlanName ? `${(healthProfile as any).prevPlanName} → ${healthProfile.selectedPlanName}` : undefined} onStartDay={(idx) => { setActivePlan(calculatedPlan[idx % calculatedPlan.length]); setViewMode('OVERVIEW'); }} />
+                                <WorkoutMap currentWeight={healthProfile?.weight || 0} targetWeight={healthProfile?.targetWeight || 0} workoutPlan={calculatedPlan} dayMap={dayMap} todayStr={todayStr} journeyStartDate={journeyStartDate} streak={playerData.streak} planChangedAtDay={(healthProfile as any)?.planChangedAtDay} planChangeLabel={(healthProfile as any)?.prevPlanName && healthProfile?.selectedPlanName ? `${(healthProfile as any).prevPlanName} → ${healthProfile.selectedPlanName}` : undefined} onStartDay={(idx) => { if (todayDone) { setShowTodayDoneNotice(true); setTimeout(() => setShowTodayDoneNotice(false), 3000); return; } setActivePlan(calculatedPlan[idx % calculatedPlan.length]); setViewMode('OVERVIEW'); }} />
                             </div>
 
                             {/* ── PROTOCOL CALENDAR ── */}
                             <ProtocolMonthView plan={calculatedPlan} />
 
                             {/* ── FAB: Custom Plan Builder ── */}
-                            {(
-                            <div className="fixed bottom-24 right-4 z-40">
+                            <div className="fixed bottom-24 right-4 z-40 flex flex-col items-end gap-2">
+                                <AnimatePresence>
+                                    {showTodayDoneNotice && (
+                                        <motion.div
+                                            key="notice"
+                                            initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                            exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                                            className="bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-right shadow-xl max-w-[180px]"
+                                        >
+                                            <div className="text-[10px] font-black text-white mb-0.5">Session Done!</div>
+                                            <div className="text-[9px] text-gray-400 font-mono leading-tight">Come back tomorrow for your next workout.</div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
                                 <motion.button
-                                    onClick={() => { setShowCustomPlanBuilder(true); onToggleNav?.(false); }}
-                                    className="animate-fab-float w-14 h-14 bg-system-neon text-black rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(0,210,255,0.5),0_4px_15px_rgba(0,0,0,0.4)] hover:bg-white transition-all"
+                                    onClick={() => {
+                                        if (todayDone) {
+                                            setShowTodayDoneNotice(true);
+                                            setTimeout(() => setShowTodayDoneNotice(false), 3000);
+                                            return;
+                                        }
+                                        setShowCustomPlanBuilder(true);
+                                        onToggleNav?.(false);
+                                    }}
+                                    className={`w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-[0_4px_15px_rgba(0,0,0,0.4)] ${todayDone ? 'bg-gray-800 text-gray-500 border border-gray-700' : 'bg-system-neon text-black hover:bg-white shadow-[0_0_20px_rgba(0,210,255,0.5),0_4px_15px_rgba(0,0,0,0.4)] animate-fab-float'}`}
                                     whileTap={{ scale: 0.9 }}
                                 >
                                     <Plus size={24} strokeWidth={3} />
                                 </motion.button>
                             </div>
-                            )}
+
                         </motion.div>
                         );
                     })()}

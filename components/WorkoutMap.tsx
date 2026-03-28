@@ -52,14 +52,33 @@ const FloatingRewardGem = ({ color = '#a855f7', scale = 0.6 }: { color?: string;
     );
 };
 
+type DayOutcome = 'completed' | 'cheated' | 'missed';
+
+// Helpers for local-date arithmetic
+const _localDateStr = (d: Date = new Date()): string => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${dd}`;
+};
+const _addDays = (dateStr: string, days: number): string => {
+  const d = new Date(dateStr + 'T12:00:00');
+  d.setDate(d.getDate() + days);
+  return _localDateStr(d);
+};
+const _daysBetween = (startStr: string, endStr: string): number => {
+  const s = new Date(startStr + 'T12:00:00');
+  const e = new Date(endStr + 'T12:00:00');
+  return Math.round((e.getTime() - s.getTime()) / 86400000);
+};
+
 interface WorkoutMapProps {
   currentWeight: number;
   targetWeight: number;
   workoutPlan: WorkoutDay[];
-  completedDays: number;
-  missedDays?: number[];
-  cheatedDays?: number[];
-  todayCompleted?: boolean;
+  dayMap: Record<string, DayOutcome>;
+  todayStr: string;
+  journeyStartDate: string;
   streak?: number;
   planChangedAtDay?: number;
   planChangeLabel?: string;
@@ -70,17 +89,16 @@ const WorkoutMap: React.FC<WorkoutMapProps> = ({
   currentWeight, 
   targetWeight, 
   workoutPlan, 
-  completedDays, 
-  missedDays = [],
-  cheatedDays = [],
-  todayCompleted = false,
+  dayMap,
+  todayStr,
+  journeyStartDate,
   streak = 0,
   planChangedAtDay,
   planChangeLabel,
   onStartDay 
 }) => {
-  const missedSet = useMemo(() => new Set(missedDays), [missedDays]);
-  const cheatedSet = useMemo(() => new Set(cheatedDays), [cheatedDays]);
+  const todayIndex = useMemo(() => Math.max(0, _daysBetween(journeyStartDate, todayStr)), [journeyStartDate, todayStr]);
+  const completedDays = useMemo(() => Object.values(dayMap).filter(o => o === 'completed' || o === 'cheated').length, [dayMap]);
   const [selectedPreview, setSelectedPreview] = useState<number | null>(null);
   const [showReward, setShowReward] = useState<{ id: number, type: string } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -262,17 +280,14 @@ const WorkoutMap: React.FC<WorkoutMapProps> = ({
 
                     {/* Nodes */}
                     {points.map((point, index) => {
-                        const isMissed = missedSet.has(index);
-                        const isCheated = cheatedSet.has(index);
-                        // If today's workout is completed, stay on today's node (don't advance yet)
-                        // completedDays counts past completed days; todayCompleted means today is done but we stay here until midnight
-                        const pastCompleted = index < completedDays && !isMissed && !isCheated;
-                        const isTodayDone = todayCompleted && index === completedDays;
-                        const isCompleted = pastCompleted || isTodayDone;
-                        // Current day index: if today is completed, we stay on the same node
-                        const currentDayIndex = todayCompleted ? completedDays : completedDays + missedDays.length;
-                        const isCurrent = index === currentDayIndex;
-                        const isLocked = index > currentDayIndex;
+                        const nodeDate = _addDays(journeyStartDate, index);
+                        const outcome = dayMap[nodeDate] as DayOutcome | undefined;
+                        const isCompleted = outcome === 'completed';
+                        const isCheated = outcome === 'cheated';
+                        const isMissed = outcome === 'missed';
+                        const isCurrent = index === todayIndex;
+                        const isTodayDone = isCurrent && (isCompleted || isCheated);
+                        const isLocked = index > todayIndex;
                         const isSelected = selectedPreview === index;
                         const isPlanChange = planChangedAtDay === index;
                         
@@ -372,16 +387,37 @@ const WorkoutMap: React.FC<WorkoutMapProps> = ({
                                 )}
 
                                 {/* Today completed card */}
-                                {isTodayDone && !isCheated && (
-                                    <div className="absolute top-full mt-3">
-                                        <div className="text-[9px] text-emerald-400 font-mono font-bold bg-emerald-950/80 px-2.5 py-1 rounded border border-emerald-800 flex items-center gap-1">
-                                            <Check size={9} /> COMPLETED
-                                        </div>
-                                    </div>
+                                {isCurrent && isCompleted && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                        transition={{ delay: 0.2 }}
+                                        className="absolute top-full mt-4 bg-emerald-950/90 backdrop-blur-md border border-emerald-700/60 p-3 rounded-xl w-48 flex flex-col items-center text-center z-50"
+                                    >
+                                        <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-0.5 h-4 bg-emerald-500/50" />
+                                        <Check size={16} className="text-emerald-400 mb-1" />
+                                        <div className="text-[10px] font-black text-emerald-300 uppercase tracking-widest mb-1">WELL DONE!</div>
+                                        <div className="text-[9px] text-emerald-500/80 font-mono leading-tight">Come back tomorrow for your next workout session.</div>
+                                    </motion.div>
                                 )}
 
-                                {/* Completed Replay Tag */}
-                                {isCompleted && !isTodayDone && !isCheated && !selectedPreview && (
+                                {/* Today cheated card */}
+                                {isCurrent && isCheated && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                        transition={{ delay: 0.2 }}
+                                        className="absolute top-full mt-4 bg-amber-950/90 backdrop-blur-md border border-amber-700/60 p-3 rounded-xl w-48 flex flex-col items-center text-center z-50"
+                                    >
+                                        <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-0.5 h-4 bg-amber-500/50" />
+                                        <AlertCircle size={16} className="text-amber-400 mb-1" />
+                                        <div className="text-[10px] font-black text-amber-300 uppercase tracking-widest mb-1">CHEATED</div>
+                                        <div className="text-[9px] text-amber-500/80 font-mono leading-tight">Come back tomorrow to try again.</div>
+                                    </motion.div>
+                                )}
+
+                                {/* Completed Replay Tag (past days only) */}
+                                {isCompleted && !isCurrent && !selectedPreview && (
                                     <div className="absolute top-full mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <div className="text-[9px] text-emerald-400 font-mono bg-black/80 px-2 py-1 rounded border border-emerald-800">REPLAY</div>
                                     </div>
@@ -534,23 +570,30 @@ const WorkoutMap: React.FC<WorkoutMapProps> = ({
                           <X size={20} />
                         </button>
 
+                        {(() => {
+                          const previewDate = selectedPreview !== null ? _addDays(journeyStartDate, selectedPreview) : null;
+                          const previewOutcome = previewDate ? (dayMap[previewDate] as DayOutcome | undefined) : undefined;
+                          const previewDone = previewOutcome === 'completed' || previewOutcome === 'cheated';
+                          const previewLocked = selectedPreview !== null && selectedPreview > todayIndex;
+                          return (
+                          <>
                         <div className="mb-6 relative">
-                            <div className={`w-16 h-16 rounded-full border-2 bg-black flex items-center justify-center relative z-10 ${selectedPreview < completedDays ? 'border-system-success' : 'border-gray-800'}`}>
-                                {selectedPreview < completedDays ? <Check size={28} className="text-system-success" /> : <Lock size={28} className="text-gray-500" />}
+                            <div className={`w-16 h-16 rounded-full border-2 bg-black flex items-center justify-center relative z-10 ${previewOutcome === 'completed' ? 'border-emerald-500' : previewOutcome === 'cheated' ? 'border-amber-500' : previewOutcome === 'missed' ? 'border-red-600' : 'border-gray-800'}`}>
+                                {previewOutcome === 'completed' ? <Check size={28} className="text-emerald-400" /> : previewOutcome === 'cheated' ? <AlertCircle size={28} className="text-amber-400" /> : previewOutcome === 'missed' ? <X size={28} className="text-red-400" /> : <Lock size={28} className="text-gray-500" />}
                             </div>
                         </div>
 
                         <div className="w-full border-t border-gray-800 pt-6 relative">
                             <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#0a0a0a] px-3 text-[10px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
-                                DAY {selectedPreview + 1}
+                                DAY {(selectedPreview ?? 0) + 1}
                             </div>
 
                             <h2 className="text-3xl font-black italic text-white uppercase tracking-tighter mb-6 mt-2">
                                 {selectedDayData?.focus || "REST"}
                             </h2>
 
-                            {/* Conditional Intel Display: Only show exercises if NOT LOCKED */}
-                            {selectedPreview < completedDays ? (
+                            {/* Conditional Intel Display: Only show exercises if node has outcome */}
+                            {previewDone ? (
                                 <div className="w-full bg-gray-900/30 rounded-lg border border-gray-800 p-3 mb-6 text-left max-h-[120px] overflow-y-auto custom-scrollbar">
                                     <div className="text-[9px] text-gray-500 uppercase font-bold mb-2 tracking-wider sticky top-0 bg-[#0d0d0d]/90 backdrop-blur-sm pb-1 border-b border-gray-800">Protocol Intel</div>
                                     <div className="space-y-1.5">
@@ -563,23 +606,22 @@ const WorkoutMap: React.FC<WorkoutMapProps> = ({
                                     </div>
                                 </div>
                             ) : (
-                                // LOCKED STATE PLACEHOLDER
                                 <div className="w-full bg-gray-900/20 rounded-lg border border-dashed border-gray-800 p-6 mb-6 flex flex-col items-center justify-center gap-2">
                                     <Lock size={20} className="text-gray-600" />
-                                    <span className="text-[10px] text-gray-600 font-mono tracking-widest">CLASSIFIED INTEL</span>
+                                    <span className="text-[10px] text-gray-600 font-mono tracking-widest">{previewLocked ? 'CLASSIFIED INTEL' : previewOutcome === 'missed' ? 'SESSION SKIPPED' : 'NOT STARTED'}</span>
                                 </div>
                             )}
 
-                            {selectedPreview <= completedDays ? (
+                            {!previewLocked ? (
                                 <button 
                                     onClick={() => {
-                                        onStartDay(selectedPreview);
+                                        onStartDay(selectedPreview ?? 0);
                                         setSelectedPreview(null);
                                     }}
                                     className="w-full py-4 bg-white text-black font-black text-sm uppercase tracking-widest rounded-lg hover:bg-gray-200 transition-all flex items-center justify-center gap-2 group"
                                 >
                                     <Play size={16} fill="currentColor" />
-                                    REPLAY MISSION
+                                    {previewDone ? 'REPLAY MISSION' : 'START MISSION'}
                                 </button>
                             ) : (
                                 <button disabled className="w-full py-4 bg-gray-900/50 text-gray-600 font-bold text-sm uppercase tracking-widest rounded-lg cursor-not-allowed border border-gray-800 flex items-center justify-center gap-2">
@@ -587,6 +629,9 @@ const WorkoutMap: React.FC<WorkoutMapProps> = ({
                                 </button>
                             )}
                         </div>
+                          </>
+                          );
+                        })()}
                     </motion.div>
                 </div>,
                 document.body
