@@ -7,7 +7,7 @@ export enum SystemState {
   LOCKED = 'LOCKED'
 }
 
-export type Tab = 'DASHBOARD' | 'QUESTS' | 'ARMORY' | 'STORE' | 'LEADERBOARD' | 'REWARDS' | 'GROWTH' | 'HEALTH' | 'RANKING' | 'CASTLE' | 'PROFILE';
+export type Tab = 'DASHBOARD' | 'QUESTS' | 'ARMORY' | 'STORE' | 'LEADERBOARD' | 'REWARDS' | 'GROWTH' | 'HEALTH' | 'CASTLE' | 'PROFILE';
 
 export interface NavItem {
   label: string;
@@ -36,6 +36,66 @@ export interface CombatStats {
   boost: number;
   ultimate: number;
   extraction: number;
+}
+
+// --- SHADOW WARFARE ---
+export interface ShadowSoldier {
+  id: string;
+  name: string;         // "Shadow of Arjun"
+  extractedAt: number;
+  sourceRank: number;
+}
+
+export interface ClashResult {
+  id: string;
+  targetName: string;
+  targetRank: number;
+  won: boolean;
+  timestamp: number;
+  attackerPower: number;
+  defenderPower: number;
+  myOldRank: number;
+  myNewRank: number;
+}
+
+export type KillFeedType = 'CLASH_WIN' | 'CLASH_LOSE' | 'EXTRACTION' | 'EXTRACTION_FAIL' | 'FORTIFY' | 'POWER_SURGE';
+
+export interface KillFeedEntry {
+  id: string;
+  type: KillFeedType;
+  text: string;
+  timestamp: number;
+  highlight?: boolean;  // true = involves the player
+}
+
+export interface WarfareState {
+  // Army
+  shadows: ShadowSoldier[];
+
+  // Combat
+  attackCharges: number;     // 0-3
+  maxCharges: number;        // 3
+  lastChargeReset: string;   // YYYY-MM-DD
+
+  // Clash log
+  clashHistory: ClashResult[];
+  winStreak: number;
+
+  // Defense
+  shieldExpiresAt: number;
+
+  // Debuffs cast on others
+  activeDebuffs: { id: string; expiresAt: number }[];
+
+  // Kill feed
+  killFeed: KillFeedEntry[];
+
+  // Power surge
+  powerSurgeActive: boolean;
+  powerSurgeExpiresAt: number;
+
+  // Daily reward tracking
+  lastMonarchRewardDate: string;
 }
 
 export interface DbOutfit {

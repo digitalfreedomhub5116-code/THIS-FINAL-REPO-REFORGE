@@ -41,7 +41,7 @@ const GrowthView = lazy(() => import('./components/GrowthView'));
 const HealthView = lazy(() =>
   import('./components/HealthView').then(m => ({ default: m.HealthView }))
 );
-const RankingView = lazy(() => import('./components/RankingView'));
+
 const StatBoxes = lazy(() => import('./components/StatBoxes'));
 const LevelUpCinematic = lazy(() => import('./components/LevelUpCinematic'));
 const WelcomeIntro = lazy(() => import('./components/WelcomeIntro'));
@@ -1325,7 +1325,10 @@ const App: React.FC = () => {
             <motion.div key="leaderboard" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <Suspense fallback={<SkeletonAlliancePage />}>
                 <ErrorBoundary fallbackLabel="Leaderboard failed to load">
-                  <LeaderboardView player={player} />
+                  <LeaderboardView 
+                    player={player} 
+                    equippedOutfit={dbOutfits.find(o => o.id === player.equippedOutfitId) || OUTFITS.find(o => o.id === player.equippedOutfitId)}
+                  />
                 </ErrorBoundary>
               </Suspense>
             </motion.div>
@@ -1391,16 +1394,7 @@ const App: React.FC = () => {
             </motion.div>
           )}
 
-          {/* ── RANKING ── */}
-          {activeTab === 'RANKING' && (
-            <motion.div key="ranking" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <Suspense fallback={<SkeletonRankingPage />}>
-                <ErrorBoundary fallbackLabel="Ranking failed to load">
-                  <RankingView currentPlayer={player} />
-                </ErrorBoundary>
-              </Suspense>
-            </motion.div>
-          )}
+
 
           {/* ── PROFILE ── */}
           {activeTab === 'PROFILE' && (
