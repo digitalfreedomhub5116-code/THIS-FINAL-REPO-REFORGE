@@ -242,10 +242,15 @@ export function useSensors(userId: string = 'local') {
           if (!isMounted.current || !NativeTracking) return;
           try {
             const snap = await NativeTracking.getSnapshot();
+            // Compute elapsed minutes from startedAt as a fallback 
+            // (native timer only increments after full 60s)
+            const elapsedMs = Date.now() - (snap.startedAt || initial.startedAt);
+            const elapsedMinutes = Math.floor(elapsedMs / 60_000);
+            const nativeMinutes = snap.activeMinutesRecorded || 0;
             const updated: SensorSnapshot = {
               stepsRecorded: snap.stepsRecorded || 0,
               distanceRecorded: Math.round((snap.distanceRecorded || 0) * 1000) / 1000,
-              activeMinutesRecorded: snap.activeMinutesRecorded || 0,
+              activeMinutesRecorded: Math.max(nativeMinutes, elapsedMinutes),
               locationPath: [], // Native doesn't store full path in SharedPrefs
               maxSpeedKmh: Math.round((snap.maxSpeedKmh || 0) * 10) / 10,
               startedAt: snap.startedAt || initial.startedAt,
@@ -343,16 +348,19 @@ export function useSensors(userId: string = 'local') {
       console.warn('[Sensors] Motion listener failed:', e);
     }
 
-    // Active minutes timer
+    // Active minutes timer — compute from elapsed time every 10s for responsive UI
     activeMinutesTimer.current = setInterval(() => {
       if (!isMounted.current) return;
       setSnapshot((prev: SensorSnapshot | null) => {
         if (!prev) return prev;
-        const updated = { ...prev, activeMinutesRecorded: prev.activeMinutesRecorded + 1, lastUpdate: Date.now() };
+        const elapsedMs = Date.now() - prev.startedAt;
+        const elapsedMinutes = Math.floor(elapsedMs / 60_000);
+        if (elapsedMinutes <= prev.activeMinutesRecorded) return prev;
+        const updated = { ...prev, activeMinutesRecorded: elapsedMinutes, lastUpdate: Date.now() };
         saveSession(questId, userId, updated);
         return updated;
       });
-    }, 60_000);
+    }, 10_000);
 
     return true;
   }, [tracking]);

@@ -43,7 +43,7 @@ interface QuestsViewProps {
   onToggleNav?: (visible: boolean) => void;
   recordStrike?: () => void;
   onShowPact?: (quest: Quest) => void;
-  onStartTracking?: (id: string) => void;
+  onStartTracking?: (id: string, requirements?: { steps?: number; distanceKm?: number; activeMinutes?: number }) => void;
   onStopTracking?: (id: string) => void;
 }
 

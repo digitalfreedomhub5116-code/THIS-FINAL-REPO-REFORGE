@@ -10,7 +10,7 @@ interface QuestCardProps {
   onReset: (id: string) => void;
   onDelete: (id: string) => void;
   isLocked?: boolean;
-  onStartTracking?: (id: string) => void;
+  onStartTracking?: (id: string, requirements?: { steps?: number; distanceKm?: number; activeMinutes?: number }) => void;
   onStopTracking?: (id: string) => void;
 }
 
@@ -331,7 +331,7 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
                 </div>
               ) : (
                 <button
-                  onClick={() => onStartTracking(quest.id)}
+                  onClick={() => onStartTracking(quest.id, quest.sensorRequirements)}
                   className="flex items-center justify-center gap-1 h-9 px-3 rounded-xl text-[10px] font-black font-mono uppercase tracking-wide transition-all active:scale-95"
                   style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.3)', color: '#4ade80' }}
                 >
