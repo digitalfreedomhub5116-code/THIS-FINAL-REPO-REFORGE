@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit3, Trash2, Save, X, ChevronDown, ChevronUp, Dumbbell } from 'lucide-react';
+import { Plus, Edit3, Trash2, Save, X, ChevronDown, ChevronUp, Dumbbell, Copy, ArrowUp, ArrowDown } from 'lucide-react';
 import { WorkoutExercise, WorkoutPlan, WorkoutDay } from '../../types';
 import { DEFAULT_PLANS } from '../../lib/defaultPlans';
 import { getExerciseVideoUrl } from '../../lib/exerciseVideos';
@@ -31,13 +31,17 @@ const emptyPlanForm = () => ({
 interface DayEditorProps {
   day: WorkoutDay;
   dayIndex: number;
+  totalDays: number;
   exercises: WorkoutExercise[];
   adminToken: string;
   onChange: (updated: WorkoutDay) => void;
   onDelete: () => void;
+  onDuplicate: () => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
 }
 
-const DayEditor: React.FC<DayEditorProps> = ({ day, dayIndex, exercises, adminToken, onChange, onDelete }) => {
+const DayEditor: React.FC<DayEditorProps> = ({ day, dayIndex, totalDays, exercises, adminToken, onChange, onDelete, onDuplicate, onMoveUp, onMoveDown }) => {
   const [expanded, setExpanded] = useState(false);
   const [selectedExId, setSelectedExId] = useState('');
 
@@ -100,8 +104,11 @@ const DayEditor: React.FC<DayEditorProps> = ({ day, dayIndex, exercises, adminTo
           </div>
           <div className="text-[10px] text-gray-600">{day.isRecovery ? 'Rest Day' : `${(day.exercises || []).length} exercises · ${day.totalDuration || 60} min`}</div>
         </div>
-        <div className="flex gap-2">
-          <button onClick={e => { e.stopPropagation(); onDelete(); }} className="text-gray-700 hover:text-red-500 transition-colors"><Trash2 size={12} /></button>
+        <div className="flex gap-1.5 items-center">
+          <button onClick={e => { e.stopPropagation(); onMoveUp(); }} disabled={dayIndex === 0} title="Move up" className="text-gray-700 hover:text-white transition-colors disabled:opacity-20 disabled:cursor-not-allowed"><ArrowUp size={12} /></button>
+          <button onClick={e => { e.stopPropagation(); onMoveDown(); }} disabled={dayIndex >= totalDays - 1} title="Move down" className="text-gray-700 hover:text-white transition-colors disabled:opacity-20 disabled:cursor-not-allowed"><ArrowDown size={12} /></button>
+          <button onClick={e => { e.stopPropagation(); onDuplicate(); }} title="Duplicate day" className="text-gray-700 hover:text-cyan-400 transition-colors"><Copy size={12} /></button>
+          <button onClick={e => { e.stopPropagation(); onDelete(); }} title="Delete day" className="text-gray-700 hover:text-red-500 transition-colors"><Trash2 size={12} /></button>
           {expanded ? <ChevronUp size={14} className="text-gray-500" /> : <ChevronDown size={14} className="text-gray-500" />}
         </div>
       </div>
@@ -232,6 +239,10 @@ const PlanBuilder: React.FC<{ adminToken: string }> = ({ adminToken }) => {
     setShowForm(true);
   };
 
+  // Renumber all days: DAY 1, DAY 2, ... (keeps focus/exercises intact)
+  const renumberDays = (days: WorkoutDay[]): WorkoutDay[] =>
+    days.map((d, i) => ({ ...d, day: `DAY ${i + 1}` }));
+
   const addDay = () => {
     const n = form.days.length + 1;
     const newDay: WorkoutDay = { day: `DAY ${n}`, focus: 'PUSH', isRecovery: false, totalDuration: 60, exercises: [] };
@@ -243,7 +254,36 @@ const PlanBuilder: React.FC<{ adminToken: string }> = ({ adminToken }) => {
   };
 
   const deleteDay = (idx: number) => {
-    setForm(f => ({ ...f, days: f.days.filter((_, i) => i !== idx) }));
+    setForm(f => ({ ...f, days: renumberDays(f.days.filter((_, i) => i !== idx)) }));
+  };
+
+  const duplicateDay = (idx: number) => {
+    setForm(f => {
+      const cloned: WorkoutDay = JSON.parse(JSON.stringify(f.days[idx]));
+      // Deep-clone exercises and reset completed status
+      cloned.exercises = (cloned.exercises || []).map(ex => ({ ...ex, completed: false }));
+      const newDays = [...f.days];
+      newDays.splice(idx + 1, 0, cloned); // Insert right after the original
+      return { ...f, days: renumberDays(newDays) };
+    });
+  };
+
+  const moveDayUp = (idx: number) => {
+    if (idx <= 0) return;
+    setForm(f => {
+      const d = [...f.days];
+      [d[idx - 1], d[idx]] = [d[idx], d[idx - 1]];
+      return { ...f, days: renumberDays(d) };
+    });
+  };
+
+  const moveDayDown = (idx: number) => {
+    setForm(f => {
+      if (idx >= f.days.length - 1) return f;
+      const d = [...f.days];
+      [d[idx], d[idx + 1]] = [d[idx + 1], d[idx]];
+      return { ...f, days: renumberDays(d) };
+    });
   };
 
   const savePlan = async () => {
@@ -342,7 +382,7 @@ const PlanBuilder: React.FC<{ adminToken: string }> = ({ adminToken }) => {
             ) : (
               <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
                 {form.days.map((day, idx) => (
-                  <DayEditor key={idx} day={day} dayIndex={idx} exercises={exercises} adminToken={adminToken} onChange={d => updateDay(idx, d)} onDelete={() => deleteDay(idx)} />
+                  <DayEditor key={`day-${idx}-${day.day}`} day={day} dayIndex={idx} totalDays={form.days.length} exercises={exercises} adminToken={adminToken} onChange={d => updateDay(idx, d)} onDelete={() => deleteDay(idx)} onDuplicate={() => duplicateDay(idx)} onMoveUp={() => moveDayUp(idx)} onMoveDown={() => moveDayDown(idx)} />
                 ))}
               </div>
             )}
