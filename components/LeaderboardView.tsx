@@ -273,24 +273,18 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
     }, 1500);
   }, [warfare, player.dailyXp, outfitStats.attack, myRank]);
 
-  // ── After victory → extraction prompt ──
+  // ── After victory → ALWAYS show extraction prompt ──
   const handleVictoryComplete = useCallback(() => {
     const phase = animPhase;
     if (phase.type !== 'CLASH_VICTORY') { setAnimPhase({ type: 'NONE' }); return; }
 
-    const targetEntry = simulatedEntries.find(e =>
-      (e.username || e.name) === phase.targetName
-    );
-    if (targetEntry && cons.shadowScrolls > 0) {
-      setAnimPhase({
-        type: 'EXTRACTION_PROMPT',
-        targetName: phase.targetName,
-        targetRank: phase.newRank,
-      });
-    } else {
-      setAnimPhase({ type: 'NONE' });
-    }
-  }, [animPhase, simulatedEntries, cons.shadowScrolls]);
+    // Always show extraction prompt after victory so the user sees the "EXTRACT" option
+    setAnimPhase({
+      type: 'EXTRACTION_PROMPT',
+      targetName: phase.targetName,
+      targetRank: phase.newRank,
+    });
+  }, [animPhase]);
 
   // ── EXTRACTION HANDLERS ──
   const handleStartExtraction = useCallback((useOrb: boolean) => {
