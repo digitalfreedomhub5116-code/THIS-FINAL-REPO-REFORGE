@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Edit3, Trash2, Save, X, ChevronDown, ChevronUp, Dumbbell, Copy, ArrowUp, ArrowDown } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Plus, Edit3, Trash2, Save, X, ChevronDown, ChevronUp, Dumbbell, Copy, ArrowUp, ArrowDown, Search } from 'lucide-react';
 import { WorkoutExercise, WorkoutPlan, WorkoutDay } from '../../types';
 import { DEFAULT_PLANS } from '../../lib/defaultPlans';
 import { getExerciseVideoUrl } from '../../lib/exerciseVideos';
@@ -43,10 +43,22 @@ interface DayEditorProps {
 
 const DayEditor: React.FC<DayEditorProps> = ({ day, dayIndex, totalDays, exercises, adminToken, onChange, onDelete, onDuplicate, onMoveUp, onMoveDown }) => {
   const [expanded, setExpanded] = useState(false);
-  const [selectedExId, setSelectedExId] = useState('');
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [typeFilter, setTypeFilter] = useState('ALL');
+  const pickerRef = useRef<HTMLDivElement>(null);
 
-  const addExercise = () => {
-    const ex = exercises.find(e => e.id === parseInt(selectedExId));
+  // Close picker on outside click
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) setPickerOpen(false);
+    };
+    if (pickerOpen) document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [pickerOpen]);
+
+  const addExerciseById = (id: number) => {
+    const ex = exercises.find(e => e.id === id);
     if (!ex) return;
     const newExercise = {
       name: ex.name,
@@ -59,7 +71,8 @@ const DayEditor: React.FC<DayEditorProps> = ({ day, dayIndex, totalDays, exercis
       duration: 0,
     };
     onChange({ ...day, exercises: [...(day.exercises || []), newExercise] });
-    setSelectedExId('');
+    setPickerOpen(false);
+    setSearchTerm('');
   };
 
   const removeExercise = (idx: number) => {
@@ -192,16 +205,79 @@ const DayEditor: React.FC<DayEditorProps> = ({ day, dayIndex, totalDays, exercis
                 ))}
               </div>
 
-              <div className="flex gap-2">
-                <select value={selectedExId} onChange={e => setSelectedExId(e.target.value)} className="flex-1 bg-black border border-gray-800 rounded px-2 py-1.5 text-xs text-white outline-none focus:border-system-neon">
-                  <option value="">— Pick exercise from library —</option>
-                  {exercises.filter(e => e.is_active).map(e => (
-                    <option key={e.id} value={e.id}>{e.name} ({e.type})</option>
-                  ))}
-                </select>
-                <button onClick={addExercise} disabled={!selectedExId} className="flex items-center gap-1 px-3 py-1.5 bg-system-neon/20 border border-system-neon/40 text-system-neon rounded text-xs font-bold hover:bg-system-neon/30 transition-all disabled:opacity-40">
-                  <Plus size={12} /> Add
+              <div className="relative" ref={pickerRef}>
+                <button
+                  onClick={() => setPickerOpen(!pickerOpen)}
+                  className="w-full flex items-center gap-2 px-3 py-2 bg-black border border-gray-800 rounded text-xs text-gray-400 hover:border-system-neon/40 transition-all text-left"
+                >
+                  <Plus size={12} className="text-system-neon shrink-0" />
+                  <span>Add exercise from library...</span>
                 </button>
+
+                {pickerOpen && (
+                  <div className="absolute z-50 left-0 right-0 mt-1 bg-gray-950 border border-gray-700 rounded-xl shadow-2xl shadow-black/80 overflow-hidden">
+                    {/* Search bar */}
+                    <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-800">
+                      <Search size={12} className="text-gray-500 shrink-0" />
+                      <input
+                        autoFocus
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                        placeholder="Search exercises..."
+                        className="flex-1 bg-transparent text-xs text-white outline-none placeholder:text-gray-600"
+                      />
+                      {searchTerm && (
+                        <button onClick={() => setSearchTerm('')} className="text-gray-600 hover:text-white"><X size={10} /></button>
+                      )}
+                    </div>
+
+                    {/* Type filter pills */}
+                    <div className="flex gap-1 px-3 py-1.5 border-b border-gray-800 flex-wrap">
+                      {['ALL', 'COMPOUND', 'ISOLATION', 'ACCESSORY', 'STRETCH', 'CARDIO'].map(t => (
+                        <button
+                          key={t}
+                          onClick={() => setTypeFilter(t)}
+                          className={`text-[9px] px-2 py-0.5 rounded-full font-bold tracking-wider transition-all ${
+                            typeFilter === t
+                              ? 'bg-system-neon/20 text-system-neon border border-system-neon/40'
+                              : 'bg-gray-900 text-gray-500 border border-gray-800 hover:text-gray-300'
+                          }`}
+                        >
+                          {t}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Results list */}
+                    <div className="max-h-48 overflow-y-auto">
+                      {exercises
+                        .filter(e => e.is_active)
+                        .filter(e => typeFilter === 'ALL' || e.type?.toUpperCase() === typeFilter)
+                        .filter(e => !searchTerm || e.name.toLowerCase().includes(searchTerm.toLowerCase()))
+                        .sort((a, b) => a.name.localeCompare(b.name))
+                        .map(e => (
+                          <button
+                            key={e.id}
+                            onClick={() => { addExerciseById(e.id); }}
+                            className="w-full flex items-center gap-2 px-3 py-1.5 text-left hover:bg-system-neon/10 transition-colors group"
+                          >
+                            <span className="text-xs text-white group-hover:text-system-neon truncate flex-1">{e.name}</span>
+                            <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                              e.type === 'COMPOUND' ? 'bg-blue-900/40 text-blue-400' :
+                              e.type === 'STRETCH' ? 'bg-purple-900/40 text-purple-400' :
+                              e.type === 'CARDIO' ? 'bg-orange-900/40 text-orange-400' :
+                              'bg-gray-800 text-gray-400'
+                            }`}>{e.type}</span>
+                            <Plus size={10} className="text-gray-700 group-hover:text-system-neon shrink-0" />
+                          </button>
+                        ))
+                      }
+                      {exercises.filter(e => e.is_active).filter(e => typeFilter === 'ALL' || e.type?.toUpperCase() === typeFilter).filter(e => !searchTerm || e.name.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && (
+                        <div className="px-3 py-4 text-center text-[10px] text-gray-600 font-mono">No exercises match your search</div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </>
           )}
