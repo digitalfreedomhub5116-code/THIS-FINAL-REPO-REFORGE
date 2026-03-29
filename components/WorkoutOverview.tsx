@@ -148,8 +148,8 @@ const HolographicBody: React.FC<{ focus: string; isCardio: boolean; videos: Reco
 
 // --- EXERCISE ROW ---
 const ExerciseRow: React.FC<{ exercise: Exercise; calories: number }> = ({ exercise, calories }) => {
-    const hasVideo = !!(exercise.videoUrl && exercise.videoUrl.trim() !== '') || !!EXERCISE_VIDEOS[exercise.name];
-    const videoUrl = exercise.videoUrl || EXERCISE_VIDEOS[exercise.name] || '';
+    const videoUrl = EXERCISE_VIDEOS[exercise.name] || exercise.videoUrl || '';
+    const hasVideo = !!(videoUrl && videoUrl.trim() !== '');
 
     return (
         <motion.div 

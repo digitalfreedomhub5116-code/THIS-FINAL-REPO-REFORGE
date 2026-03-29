@@ -4,14 +4,16 @@ import { EXERCISE_VIDEOS } from './exerciseVideos';
 // Re-export for backward compatibility
 export { EXERCISE_VIDEOS };
 
-// Helper to build exercise entries (auto-looks up video from map)
+// Helper to build exercise entries
+// NOTE: videoUrl is intentionally omitted — the player resolves videos
+// at runtime from EXERCISE_VIDEOS via getExerciseVideoUrl() (single source of truth)
 const ex = (
   name: string,
   sets: number,
   reps: string,
   type: 'COMPOUND' | 'ACCESSORY' | 'CARDIO' | 'STRETCH',
   duration: number = 0,
-  rest: number = 90,
+  rest: number = 60,
   isSupplementary?: boolean
 ): Exercise => ({
   name,
@@ -22,252 +24,128 @@ const ex = (
   rest,
   completed: false,
   isSupplementary,
-  videoUrl: EXERCISE_VIDEOS[name] || '',
 });
 
-const DEFAULT_WARMUP: Exercise[] = [
-  ex('Brisk Walk', 1, '3 min', 'CARDIO', 3, 15, true),
+// ─────────────────────────────────────────────
+// Warmup & Cooldown templates
+// ─────────────────────────────────────────────
+
+const WARMUP_UPPER: Exercise[] = [
+  ex('Jumping Jacks', 1, '2 min', 'CARDIO', 2, 15, true),
+  ex('Inchworm Walk', 1, '5 reps', 'STRETCH', 2, 15, true),
+  ex('Shoulder Stretch', 1, '30s each side', 'STRETCH', 1, 15, true),
 ];
 
-const DEFAULT_COOLDOWN: Exercise[] = [
-  ex('Brisk Walk', 1, '3 min', 'CARDIO', 3, 15, true),
+const WARMUP_LOWER: Exercise[] = [
+  ex('Jumping Jacks', 1, '2 min', 'CARDIO', 2, 15, true),
+  ex('Hip Flexor Stretch', 1, '30s each side', 'STRETCH', 1, 15, true),
 ];
 
-// ─────────────────────────────────────────────
-// PLAN 1: Full Gym — Push/Pull/Legs
-// ─────────────────────────────────────────────
+const WARMUP_FULL: Exercise[] = [
+  ex('Jumping Jacks', 1, '2 min', 'CARDIO', 2, 15, true),
+  ex('Inchworm Walk', 1, '5 reps', 'STRETCH', 2, 15, true),
+];
+
+const COOLDOWN_UPPER: Exercise[] = [
+  ex('Shoulder Stretch', 1, '30s each side', 'STRETCH', 1, 15, true),
+  ex('Standing Forward Bend', 1, '30s', 'STRETCH', 1, 15, true),
+];
+
+const COOLDOWN_UPPER_BACK: Exercise[] = [
+  ex('Hamstring Stretch', 1, '30s each side', 'STRETCH', 1, 15, true),
+  ex('Downward Dog', 1, '30s', 'STRETCH', 1, 15, true),
+];
+
+const COOLDOWN_LOWER: Exercise[] = [
+  ex('Standing Quadriceps Stretch', 1, '30s each side', 'STRETCH', 1, 15, true),
+  ex('Hamstring Stretch', 1, '30s each side', 'STRETCH', 1, 15, true),
+  ex('Calf Stretch', 1, '30s each side', 'STRETCH', 1, 15, true),
+];
+
+const COOLDOWN_LOWER_FULL: Exercise[] = [
+  ex('Standing Quadriceps Stretch', 1, '30s each side', 'STRETCH', 1, 15, true),
+  ex('Butterfly Stretch', 1, '30s', 'STRETCH', 1, 15, true),
+];
+
+const COOLDOWN_GENERAL: Exercise[] = [
+  ex('Downward Dog', 1, '30s', 'STRETCH', 1, 15, true),
+  ex('Seated Forward Fold', 1, '30s', 'STRETCH', 1, 15, true),
+];
+
+// ═══════════════════════════════════════════════
+// PLAN 1: Full Gym Access — Push/Pull/Legs
+// ═══════════════════════════════════════════════
 const gymPPLDays: WorkoutDay[] = [
   {
-    day: 'Day 1', focus: 'Push', totalDuration: 60, exercises: [
-      ...DEFAULT_WARMUP,
-      ex('Barbell Bench Press', 4, '8-10', 'COMPOUND', 8),
-      ex('Overhead Barbell Press', 3, '8-10', 'COMPOUND', 7),
-      ex('Incline Dumbbell Press', 3, '10-12', 'ACCESSORY', 6),
-      ex('Lateral Raises', 3, '12-15', 'ACCESSORY', 5),
-      ex('Tricep Pushdown', 3, '12-15', 'ACCESSORY', 5),
-      ex('Cable Overhead Triceps Extension', 3, '12-15', 'ACCESSORY', 5),
-      ...DEFAULT_COOLDOWN,
-    ],
-  },
-  {
-    day: 'Day 2', focus: 'Pull', totalDuration: 60, exercises: [
-      ...DEFAULT_WARMUP,
-      ex('Barbell Row', 4, '8-10', 'COMPOUND', 8),
-      ex('Pull-Ups', 3, '6-10', 'COMPOUND', 7),
-      ex('Seated Cable Row', 3, '10-12', 'ACCESSORY', 6),
-      ex('Face Pulls', 3, '15-20', 'ACCESSORY', 5),
-      ex('Barbell Curl', 3, '10-12', 'ACCESSORY', 5),
-      ex('Hammer Curl', 3, '12-15', 'ACCESSORY', 5),
-      ...DEFAULT_COOLDOWN,
-    ],
-  },
-  {
-    day: 'Day 3', focus: 'Legs', totalDuration: 60, exercises: [
-      ...DEFAULT_WARMUP,
-      ex('Barbell Squat', 4, '8-10', 'COMPOUND', 8),
-      ex('Romanian Deadlift', 3, '10-12', 'COMPOUND', 7),
-      ex('Leg Press', 3, '10-12', 'ACCESSORY', 7),
-      ex('Leg Curl', 3, '12-15', 'ACCESSORY', 5),
-      ex('Calf Raises', 4, '15-20', 'ACCESSORY', 5),
-      ex('Plank', 3, '45s', 'ACCESSORY', 4),
-      ...DEFAULT_COOLDOWN,
-    ],
-  },
-  {
-    day: 'Day 4', focus: 'Push (Heavy)', totalDuration: 60, exercises: [
-      ...DEFAULT_WARMUP,
-      ex('Overhead Barbell Press', 4, '6-8', 'COMPOUND', 8),
-      ex('Dumbbell Press', 3, '8-10', 'COMPOUND', 7),
-      ex('Cable Fly', 3, '12-15', 'ACCESSORY', 5),
-      ex('Machine Shoulder Press', 3, '10-12', 'ACCESSORY', 6),
-      ex('Close Grip Bench Press', 3, '8-10', 'COMPOUND', 6),
-      ex('Dips', 3, '8-12', 'COMPOUND', 5),
-      ...DEFAULT_COOLDOWN,
-    ],
-  },
-  {
-    day: 'Day 5', focus: 'Pull (Heavy)', totalDuration: 60, exercises: [
-      ...DEFAULT_WARMUP,
-      ex('Deadlift', 4, '5-8', 'COMPOUND', 10),
-      ex('Lat Pulldown', 3, '10-12', 'ACCESSORY', 6),
-      ex('Dumbbell Row', 3, '10-12', 'ACCESSORY', 6),
-      ex('Reverse Fly', 3, '12-15', 'ACCESSORY', 5),
-      ex('Preacher Curl', 3, '10-12', 'ACCESSORY', 5),
-      ex('Shrugs', 3, '12-15', 'ACCESSORY', 5),
-      ...DEFAULT_COOLDOWN,
-    ],
-  },
-  {
-    day: 'Day 6', focus: 'Legs (Volume)', totalDuration: 60, exercises: [
-      ...DEFAULT_WARMUP,
-      ex('Front Squat', 4, '8-10', 'COMPOUND', 8),
-      ex('Walking Lunges', 3, '12 each', 'COMPOUND', 7),
-      ex('Leg Extension', 3, '12-15', 'ACCESSORY', 5),
-      ex('Seated Leg Curl', 3, '12-15', 'ACCESSORY', 5),
-      ex('Hip Thrust', 3, '10-12', 'COMPOUND', 6),
-      ex('Hanging Leg Raise', 3, '12-15', 'ACCESSORY', 5),
-      ...DEFAULT_COOLDOWN,
-    ],
-  },
-  {
-    day: 'Day 7', focus: 'Active Recovery', totalDuration: 30, isRecovery: true, exercises: [
-      ex('Brisk Walk', 1, '20 min', 'CARDIO', 20),
-    ],
-  },
-];
-
-// ─────────────────────────────────────────────
-// PLAN 2: Full Gym — Classic Split (Chest/Back/Shoulders/Arms/Legs)
-// ─────────────────────────────────────────────
-const gymClassicDays: WorkoutDay[] = [
-  {
-    day: 'Day 1', focus: 'Chest', totalDuration: 55, exercises: [
-      ...DEFAULT_WARMUP,
-      ex('Barbell Bench Press', 4, '8-10', 'COMPOUND', 8),
-      ex('Incline Dumbbell Press', 3, '10-12', 'COMPOUND', 7),
-      ex('Cable Fly', 3, '12-15', 'ACCESSORY', 5),
-      ex('Parallel Bar Dips', 3, '8-12', 'COMPOUND', 6),
-      ex('Push-Ups', 2, 'Max', 'ACCESSORY', 4),
-      ...DEFAULT_COOLDOWN,
-    ],
-  },
-  {
-    day: 'Day 2', focus: 'Back', totalDuration: 55, exercises: [
-      ...DEFAULT_WARMUP,
-      ex('Deadlift', 4, '6-8', 'COMPOUND', 10),
-      ex('Barbell Row', 3, '8-10', 'COMPOUND', 7),
-      ex('Lat Pulldown', 3, '10-12', 'ACCESSORY', 6),
-      ex('Seated Cable Row', 3, '10-12', 'ACCESSORY', 6),
-      ex('Face Pulls', 3, '15-20', 'ACCESSORY', 5),
-      ...DEFAULT_COOLDOWN,
-    ],
-  },
-  {
-    day: 'Day 3', focus: 'Legs', totalDuration: 60, exercises: [
-      ...DEFAULT_WARMUP,
-      ex('Barbell Squat', 4, '8-10', 'COMPOUND', 8),
-      ex('Leg Press', 3, '10-12', 'COMPOUND', 7),
-      ex('Romanian Deadlift', 3, '10-12', 'COMPOUND', 7),
-      ex('Leg Curl', 3, '12-15', 'ACCESSORY', 5),
-      ex('Calf Raises', 4, '15-20', 'ACCESSORY', 5),
-      ...DEFAULT_COOLDOWN,
-    ],
-  },
-  {
-    day: 'Day 4', focus: 'Shoulders', totalDuration: 50, exercises: [
-      ...DEFAULT_WARMUP,
-      ex('Overhead Barbell Press', 4, '8-10', 'COMPOUND', 8),
-      ex('Machine Shoulder Press', 3, '10-12', 'ACCESSORY', 6),
-      ex('Lateral Raises', 4, '12-15', 'ACCESSORY', 5),
-      ex('Reverse Fly', 3, '12-15', 'ACCESSORY', 5),
-      ex('Upright Row', 3, '10-12', 'ACCESSORY', 5),
-      ...DEFAULT_COOLDOWN,
-    ],
-  },
-  {
-    day: 'Day 5', focus: 'Arms & Core', totalDuration: 50, exercises: [
-      ...DEFAULT_WARMUP,
-      ex('Barbell Curl', 3, '10-12', 'ACCESSORY', 5),
-      ex('Close Grip Bench Press', 3, '8-10', 'COMPOUND', 6),
-      ex('Hammer Curl', 3, '12-15', 'ACCESSORY', 5),
-      ex('Tricep Pushdown', 3, '12-15', 'ACCESSORY', 5),
-      ex('Hanging Leg Raise', 3, '12-15', 'ACCESSORY', 5),
-      ex('Cable Crunch', 3, '15-20', 'ACCESSORY', 5),
-      ...DEFAULT_COOLDOWN,
-    ],
-  },
-  {
-    day: 'Day 6', focus: 'Full Body Power', totalDuration: 60, exercises: [
-      ...DEFAULT_WARMUP,
-      ex('Barbell Squat', 3, '6-8', 'COMPOUND', 8),
-      ex('Barbell Bench Press', 3, '6-8', 'COMPOUND', 7),
-      ex('Barbell Row', 3, '6-8', 'COMPOUND', 7),
-      ex('Overhead Barbell Press', 3, '8-10', 'COMPOUND', 7),
-      ex('Pull-Ups', 3, '6-10', 'COMPOUND', 5),
-      ...DEFAULT_COOLDOWN,
-    ],
-  },
-  {
-    day: 'Day 7', focus: 'Active Recovery', totalDuration: 30, isRecovery: true, exercises: [
-      ex('Brisk Walk', 1, '20 min', 'CARDIO', 20),
-    ],
-  },
-];
-
-// ─────────────────────────────────────────────
-// PLAN 3: Home Dumbbells — Push/Pull/Legs
-// ─────────────────────────────────────────────
-const dumbbellPPLDays: WorkoutDay[] = [
-  {
     day: 'Day 1', focus: 'Push', totalDuration: 55, exercises: [
-      ...DEFAULT_WARMUP,
-      ex('Floor Press', 4, '10-12', 'COMPOUND', 7),
-      ex('Dumbbell Shoulder Press', 3, '10-12', 'COMPOUND', 6),
-      ex('Push-Ups', 3, '12-15', 'COMPOUND', 5),
-      ex('Dumbbell Lateral Raise', 3, '12-15', 'ACCESSORY', 5),
-      ex('Dumbbell Tricep Kickback', 3, '12-15', 'ACCESSORY', 5),
-      ex('Diamond Push-Ups', 3, '10-15', 'COMPOUND', 5),
-      ...DEFAULT_COOLDOWN,
+      ...WARMUP_UPPER,
+      ex('Barbell Bench Press', 3, '10', 'COMPOUND', 6, 90),
+      ex('Incline Dumbbell Press', 3, '10', 'COMPOUND', 6, 75),
+      ex('Cable Fly', 3, '12', 'ACCESSORY', 5, 60),
+      ex('Overhead Barbell Press', 3, '8', 'COMPOUND', 6, 90),
+      ex('Cable Lateral Raise', 3, '12', 'ACCESSORY', 5, 60),
+      ex('Tricep Pushdown', 3, '12', 'ACCESSORY', 5, 60),
+      ...COOLDOWN_UPPER,
     ],
   },
   {
     day: 'Day 2', focus: 'Pull', totalDuration: 55, exercises: [
-      ...DEFAULT_WARMUP,
-      ex('Dumbbell Row', 4, '10-12', 'COMPOUND', 7),
-      ex('Romanian Deadlift', 3, '10-12', 'COMPOUND', 7),
-      ex('Reverse Fly', 3, '12-15', 'ACCESSORY', 5),
-      ex('Shrugs', 3, '12-15', 'ACCESSORY', 5),
-      ex('Concentration Curl', 3, '10-12', 'ACCESSORY', 5),
-      ex('Hammer Curl', 3, '12-15', 'ACCESSORY', 5),
-      ...DEFAULT_COOLDOWN,
+      ...WARMUP_UPPER,
+      ex('Barbell Row', 3, '10', 'COMPOUND', 6, 90),
+      ex('Lat Pulldown', 3, '10', 'COMPOUND', 6, 75),
+      ex('Seated Cable Row', 3, '12', 'ACCESSORY', 6, 60),
+      ex('Face Pulls', 3, '15', 'ACCESSORY', 5, 60),
+      ex('Barbell Curl', 3, '10', 'ACCESSORY', 5, 60),
+      ex('EZ Bar Curl', 3, '12', 'ACCESSORY', 5, 60),
+      ...COOLDOWN_UPPER_BACK,
     ],
   },
   {
     day: 'Day 3', focus: 'Legs', totalDuration: 55, exercises: [
-      ...DEFAULT_WARMUP,
-      ex('Goblet Squat', 4, '10-12', 'COMPOUND', 7),
-      ex('Romanian Deadlift', 3, '10-12', 'COMPOUND', 7),
-      ex('Dumbbell Lunges', 3, '10 each', 'COMPOUND', 7),
-      ex('Calf Raises', 4, '15-20', 'ACCESSORY', 5),
-      ex('Step Up', 3, '10 each', 'COMPOUND', 6),
-      ex('Plank', 3, '45s', 'ACCESSORY', 4),
-      ...DEFAULT_COOLDOWN,
+      ...WARMUP_LOWER,
+      ex('Barbell Squat', 3, '10', 'COMPOUND', 7, 120),
+      ex('Leg Press', 3, '12', 'COMPOUND', 6, 90),
+      ex('Romanian Deadlift', 3, '10', 'COMPOUND', 6, 90),
+      ex('Leg Curl', 3, '12', 'ACCESSORY', 5, 60),
+      ex('Calf Raises', 3, '15', 'ACCESSORY', 4, 45),
+      ex('Hip Thrust', 3, '10', 'COMPOUND', 6, 75),
+      ...COOLDOWN_LOWER,
     ],
   },
   {
-    day: 'Day 4', focus: 'Upper Push', totalDuration: 55, exercises: [
-      ...DEFAULT_WARMUP,
-      ex('Dumbbell Press', 4, '8-10', 'COMPOUND', 7),
-      ex('Arnold Press', 3, '10-12', 'COMPOUND', 6),
-      ex('Push-Ups', 3, '15-20', 'COMPOUND', 5),
-      ex('Dumbbell Lateral Raise', 3, '12-15', 'ACCESSORY', 5),
-      ex('Dumbbell Triceps Extension', 3, '12-15', 'ACCESSORY', 5),
-      ex('Pike Push-Ups', 3, '8-12', 'COMPOUND', 5),
-      ...DEFAULT_COOLDOWN,
+    day: 'Day 4', focus: 'Push (Volume)', totalDuration: 55, exercises: [
+      ...WARMUP_UPPER,
+      ex('Close Grip Bench Press', 3, '10', 'COMPOUND', 6, 90),
+      ex('Machine Shoulder Press', 3, '10', 'COMPOUND', 6, 75),
+      ex('Incline Dumbbell Press', 3, '12', 'COMPOUND', 6, 75),
+      ex('Cable Fly', 3, '15', 'ACCESSORY', 5, 60),
+      ex('Cable Overhead Triceps Extension', 3, '12', 'ACCESSORY', 5, 60),
+      ex('Dumbbell Lateral Raise', 3, '15', 'ACCESSORY', 5, 45),
+      ...COOLDOWN_UPPER,
     ],
   },
   {
-    day: 'Day 5', focus: 'Upper Pull', totalDuration: 55, exercises: [
-      ...DEFAULT_WARMUP,
-      ex('Bent Over Row', 4, '8-10', 'COMPOUND', 7),
-      ex('Single Arm Dumbbell Row', 3, '10-12', 'ACCESSORY', 6),
-      ex('Shrugs', 3, '15-20', 'ACCESSORY', 5),
-      ex('Concentration Curl', 3, '10-12', 'ACCESSORY', 5),
-      ex('Zottman Curl', 3, '12-15', 'ACCESSORY', 5),
-      ex('Reverse Fly', 3, '30s', 'ACCESSORY', 4),
-      ...DEFAULT_COOLDOWN,
+    day: 'Day 5', focus: 'Pull (Volume)', totalDuration: 55, exercises: [
+      ...WARMUP_UPPER,
+      ex('Deadlift', 3, '6', 'COMPOUND', 8, 150),
+      ex('Lat Pulldown', 3, '10', 'COMPOUND', 6, 75),
+      ex('Dumbbell Row', 3, '10', 'COMPOUND', 6, 75),
+      ex('Cable Rear Delt Fly', 3, '12', 'ACCESSORY', 5, 60),
+      ex('Preacher Curl', 3, '10', 'ACCESSORY', 5, 60),
+      ex('Hammer Curl', 3, '12', 'ACCESSORY', 5, 60),
+      ...COOLDOWN_UPPER_BACK,
     ],
   },
   {
     day: 'Day 6', focus: 'Legs & Core', totalDuration: 55, exercises: [
-      ...DEFAULT_WARMUP,
-      ex('Sumo Squat', 4, '10-12', 'COMPOUND', 7),
-      ex('Romanian Deadlift', 3, '10 each', 'COMPOUND', 7),
-      ex('Hip Thrust', 3, '12-15', 'COMPOUND', 6),
-      ex('Lateral Lunge', 3, '10 each', 'COMPOUND', 6),
-      ex('Bicycle Crunch', 3, '20', 'ACCESSORY', 4),
-      ex('Russian Twist', 3, '20', 'ACCESSORY', 4),
-      ...DEFAULT_COOLDOWN,
+      ...WARMUP_LOWER,
+      ex('Front Squat', 3, '10', 'COMPOUND', 7, 120),
+      ex('Walking Lunges', 3, '10 each', 'COMPOUND', 6, 75),
+      ex('Leg Extension', 3, '12', 'ACCESSORY', 5, 60),
+      ex('Seated Leg Curl', 3, '12', 'ACCESSORY', 5, 60),
+      ex('Hanging Leg Raise', 3, '12', 'ACCESSORY', 5, 60),
+      ex('Cable Crunch', 3, '15', 'ACCESSORY', 5, 60),
+      ...COOLDOWN_LOWER_FULL,
     ],
   },
   {
@@ -277,77 +155,163 @@ const dumbbellPPLDays: WorkoutDay[] = [
   },
 ];
 
-// ─────────────────────────────────────────────
-// PLAN 4: Bodyweight — Classic Split
-// ─────────────────────────────────────────────
-const bodyweightClassicDays: WorkoutDay[] = [
+// ═══════════════════════════════════════════════
+// PLAN 2: Dumbbells Only — Upper/Lower Split
+// ═══════════════════════════════════════════════
+const dumbbellDays: WorkoutDay[] = [
   {
     day: 'Day 1', focus: 'Upper Push', totalDuration: 50, exercises: [
-      ...DEFAULT_WARMUP,
-      ex('Push-Ups', 4, '15-20', 'COMPOUND', 5),
-      ex('Diamond Push-Ups', 3, '10-15', 'COMPOUND', 5),
-      ex('Pike Push-Ups', 3, '8-12', 'COMPOUND', 5),
-      ex('Push-Ups', 3, '12-15', 'COMPOUND', 5),
-      ex('Chair Dips', 3, '12-15', 'COMPOUND', 5),
-      ex('Plank', 3, '10', 'ACCESSORY', 5),
-      ...DEFAULT_COOLDOWN,
+      ...WARMUP_UPPER,
+      ex('Dumbbell Press', 3, '10', 'COMPOUND', 6, 75),
+      ex('Floor Press', 3, '12', 'COMPOUND', 6, 75),
+      ex('Dumbbell Fly', 3, '12', 'ACCESSORY', 5, 60),
+      ex('Dumbbell Shoulder Press', 3, '10', 'COMPOUND', 6, 75),
+      ex('Dumbbell Lateral Raise', 3, '12', 'ACCESSORY', 5, 45),
+      ex('Dumbbell Tricep Kickback', 3, '12', 'ACCESSORY', 5, 45),
+      ...COOLDOWN_UPPER,
     ],
   },
   {
-    day: 'Day 2', focus: 'Upper Pull & Core', totalDuration: 50, exercises: [
-      ...DEFAULT_WARMUP,
-      ex('Pull-Ups', 4, '6-12', 'COMPOUND', 7),
-      ex('Chin-Ups', 3, '6-10', 'COMPOUND', 6),
-      ex('Mountain Climbers', 3, '30s', 'CARDIO', 4),
-      ex('Reverse Crunch', 3, '12-15', 'ACCESSORY', 5),
-      ex('Hanging Leg Raise', 3, '12-15', 'ACCESSORY', 5),
-      ex('Plank', 3, '30s', 'ACCESSORY', 3),
-      ...DEFAULT_COOLDOWN,
+    day: 'Day 2', focus: 'Upper Pull', totalDuration: 50, exercises: [
+      ...WARMUP_UPPER,
+      ex('Dumbbell Row', 3, '10', 'COMPOUND', 6, 75),
+      ex('Single Arm Dumbbell Row', 3, '10 each', 'COMPOUND', 6, 75),
+      ex('Reverse Fly', 3, '12', 'ACCESSORY', 5, 60),
+      ex('Shrugs', 3, '12', 'ACCESSORY', 5, 45),
+      ex('Hammer Curl', 3, '10', 'ACCESSORY', 5, 60),
+      ex('Concentration Curl', 3, '10', 'ACCESSORY', 5, 60),
+      ...COOLDOWN_UPPER_BACK,
     ],
   },
   {
-    day: 'Day 3', focus: 'Legs', totalDuration: 50, exercises: [
-      ...DEFAULT_WARMUP,
-      ex('Jump Squat', 4, '20', 'COMPOUND', 5),
-      ex('Lunges', 3, '12 each', 'COMPOUND', 6),
-      ex('Bulgarian Split Squat', 3, '10 each', 'COMPOUND', 7),
-      ex('Glute Bridge', 3, '15-20', 'COMPOUND', 5),
-      ex('Calf Raises', 4, '15 each', 'ACCESSORY', 5),
-      ex('Wall Sit', 3, '45s', 'ACCESSORY', 3),
-      ...DEFAULT_COOLDOWN,
+    day: 'Day 3', focus: 'Lower Body', totalDuration: 50, exercises: [
+      ...WARMUP_LOWER,
+      ex('Goblet Squat', 3, '12', 'COMPOUND', 6, 75),
+      ex('Romanian Deadlift', 3, '10', 'COMPOUND', 6, 90),
+      ex('Dumbbell Lunges', 3, '10 each', 'COMPOUND', 6, 75),
+      ex('Hip Thrust', 3, '12', 'COMPOUND', 6, 75),
+      ex('Calf Raises', 3, '15', 'ACCESSORY', 4, 45),
+      ex('Glute Bridge', 3, '12', 'ACCESSORY', 5, 60),
+      ...COOLDOWN_LOWER,
     ],
   },
   {
-    day: 'Day 4', focus: 'Full Body HIIT', totalDuration: 45, exercises: [
-      ...DEFAULT_WARMUP,
-      ex('Burpees', 4, '10', 'CARDIO', 5),
-      ex('Mountain Climbers', 3, '30s', 'CARDIO', 3),
-      ex('Jump Squat', 3, '15', 'COMPOUND', 4),
-      ex('Push-Ups', 3, '12', 'COMPOUND', 5),
-      ex('High Knees', 3, '30s', 'CARDIO', 3),
-      ex('Plank', 3, '60s', 'ACCESSORY', 4),
-      ...DEFAULT_COOLDOWN,
+    day: 'Day 4', focus: 'Upper Push (Volume)', totalDuration: 50, exercises: [
+      ...WARMUP_UPPER,
+      ex('Arnold Press', 3, '10', 'COMPOUND', 6, 75),
+      ex('Floor Press', 3, '10', 'COMPOUND', 6, 75),
+      ex('Push-Ups', 3, '12', 'COMPOUND', 5, 60),
+      ex('Dumbbell Fly', 3, '15', 'ACCESSORY', 5, 45),
+      ex('Dumbbell Lateral Raise', 3, '15', 'ACCESSORY', 5, 45),
+      ex('Diamond Push-Ups', 3, '10', 'COMPOUND', 5, 60),
+      ...COOLDOWN_UPPER,
     ],
   },
   {
-    day: 'Day 5', focus: 'Upper Strength', totalDuration: 50, exercises: [
-      ...DEFAULT_WARMUP,
-      ex('Archer Pushups', 3, '6-8 each', 'COMPOUND', 6),
-      ex('Chin-Ups', 3, '6-10', 'COMPOUND', 7),
-      ex('Pike Push-Ups', 3, '10-15', 'COMPOUND', 5),
-      ex('Pull-Ups', 3, '6-10', 'COMPOUND', 6),
-      ex('Plank', 3, '15-20s', 'ACCESSORY', 3),
-      ...DEFAULT_COOLDOWN,
+    day: 'Day 5', focus: 'Upper Pull & Core', totalDuration: 50, exercises: [
+      ...WARMUP_UPPER,
+      ex('Single Arm Dumbbell Row', 3, '12', 'COMPOUND', 6, 75),
+      ex('Dumbbell Row', 3, '12', 'COMPOUND', 6, 75),
+      ex('Reverse Fly', 3, '15', 'ACCESSORY', 5, 45),
+      ex('Incline Dumbbell Curl', 3, '10', 'ACCESSORY', 5, 60),
+      ex('Hammer Curl', 3, '12', 'ACCESSORY', 5, 60),
+      ex('Bicycle Crunch', 3, '15', 'ACCESSORY', 5, 45),
+      ...COOLDOWN_UPPER_BACK,
     ],
   },
   {
-    day: 'Day 6', focus: 'Legs & Mobility', totalDuration: 50, exercises: [
-      ...DEFAULT_WARMUP,
-      ex('Cossack Squat', 3, '6-8 each', 'COMPOUND', 6),
-      ex('Lateral Lunge', 3, '12 each', 'COMPOUND', 6),
-      ex('Step Up', 3, '12 each', 'COMPOUND', 6),
-      ex('Single Leg Glute Bridge', 3, '12 each', 'COMPOUND', 5),
-      ...DEFAULT_COOLDOWN,
+    day: 'Day 6', focus: 'Lower Body & Core', totalDuration: 50, exercises: [
+      ...WARMUP_LOWER,
+      ex('Goblet Squat', 3, '15', 'COMPOUND', 6, 75),
+      ex('Bulgarian Split Squat', 3, '10 each', 'COMPOUND', 6, 75),
+      ex('Romanian Deadlift', 3, '12', 'COMPOUND', 6, 90),
+      ex('Lateral Lunge', 3, '10 each', 'COMPOUND', 6, 60),
+      ex('Crunches', 3, '15', 'ACCESSORY', 4, 45),
+      ex('Lying Leg Raise', 3, '12', 'ACCESSORY', 5, 45),
+      ...COOLDOWN_LOWER_FULL,
+    ],
+  },
+  {
+    day: 'Day 7', focus: 'Active Recovery', totalDuration: 30, isRecovery: true, exercises: [
+      ex('Brisk Walk', 1, '20 min', 'CARDIO', 20),
+    ],
+  },
+];
+
+// ═══════════════════════════════════════════════
+// PLAN 3: Bodyweight Only — Upper/Lower/HIIT
+// ═══════════════════════════════════════════════
+const bodyweightDays: WorkoutDay[] = [
+  {
+    day: 'Day 1', focus: 'Upper Push', totalDuration: 45, exercises: [
+      ...WARMUP_UPPER,
+      ex('Push-Ups', 3, '12', 'COMPOUND', 5, 60),
+      ex('Diamond Push-Ups', 3, '8', 'COMPOUND', 5, 60),
+      ex('Pike Push-Ups', 3, '8', 'COMPOUND', 5, 60),
+      ex('Chair Dips', 3, '10', 'COMPOUND', 5, 60),
+      ex('Plank', 3, '30s', 'ACCESSORY', 3, 30),
+      ex('Mountain Climbers', 3, '30s', 'CARDIO', 3, 30),
+      ...COOLDOWN_UPPER,
+    ],
+  },
+  {
+    day: 'Day 2', focus: 'Upper Pull & Core', totalDuration: 45, exercises: [
+      ...WARMUP_UPPER,
+      ex('Pull-Ups', 3, '6', 'COMPOUND', 5, 90),
+      ex('Chin-Ups', 3, '6', 'COMPOUND', 5, 90),
+      ex('Crunches', 3, '15', 'ACCESSORY', 4, 45),
+      ex('Bicycle Crunch', 3, '12', 'ACCESSORY', 4, 45),
+      ex('Lying Leg Raise', 3, '10', 'ACCESSORY', 4, 45),
+      ex('Reverse Crunch', 3, '12', 'ACCESSORY', 4, 45),
+      ...COOLDOWN_UPPER_BACK,
+    ],
+  },
+  {
+    day: 'Day 3', focus: 'Lower Body', totalDuration: 45, exercises: [
+      ...WARMUP_LOWER,
+      ex('Lunges', 3, '10 each', 'COMPOUND', 6, 60),
+      ex('Bulgarian Split Squat', 3, '8 each', 'COMPOUND', 6, 75),
+      ex('Glute Bridge', 3, '15', 'COMPOUND', 5, 60),
+      ex('Single Leg Glute Bridge', 3, '10 each', 'COMPOUND', 5, 60),
+      ex('Calf Raises', 3, '15', 'ACCESSORY', 4, 45),
+      ex('Wall Sit', 3, '30s', 'ACCESSORY', 3, 30),
+      ...COOLDOWN_LOWER,
+    ],
+  },
+  {
+    day: 'Day 4', focus: 'Full Body HIIT', totalDuration: 40, exercises: [
+      ...WARMUP_FULL,
+      ex('Burpees', 3, '8', 'CARDIO', 4, 45),
+      ex('Mountain Climbers', 3, '30s', 'CARDIO', 3, 30),
+      ex('Jump Squat', 3, '10', 'COMPOUND', 4, 45),
+      ex('Push-Ups', 3, '10', 'COMPOUND', 4, 45),
+      ex('Jumping Jacks', 3, '1 min', 'CARDIO', 3, 30),
+      ex('Plank', 3, '30s', 'ACCESSORY', 3, 30),
+      ...COOLDOWN_GENERAL,
+    ],
+  },
+  {
+    day: 'Day 5', focus: 'Upper Strength', totalDuration: 45, exercises: [
+      ...WARMUP_UPPER,
+      ex('Push-Ups', 3, '15', 'COMPOUND', 5, 60),
+      ex('Pike Push-Ups', 3, '10', 'COMPOUND', 5, 60),
+      ex('Pull-Ups', 3, '6', 'COMPOUND', 5, 90),
+      ex('Chin-Ups', 3, '6', 'COMPOUND', 5, 90),
+      ex('Diamond Push-Ups', 3, '10', 'COMPOUND', 5, 60),
+      ex('Chair Dips', 3, '12', 'COMPOUND', 5, 60),
+      ...COOLDOWN_UPPER,
+    ],
+  },
+  {
+    day: 'Day 6', focus: 'Lower & Core', totalDuration: 45, exercises: [
+      ...WARMUP_LOWER,
+      ex('Bulgarian Split Squat', 3, '10 each', 'COMPOUND', 6, 60),
+      ex('Lateral Lunge', 3, '10 each', 'COMPOUND', 6, 60),
+      ex('Donkey Kicks', 3, '12', 'ACCESSORY', 5, 45),
+      ex('Glute Bridge', 3, '15', 'COMPOUND', 5, 60),
+      ex('Reverse Crunch', 3, '15', 'ACCESSORY', 4, 45),
+      ex('Mountain Climbers', 3, '30s', 'CARDIO', 3, 30),
+      ...COOLDOWN_LOWER_FULL,
     ],
   },
   {
@@ -377,7 +341,7 @@ export const DEFAULT_PLANS: WorkoutPlan[] = [
   {
     id: -1,
     name: 'Gym Domination: PPL',
-    description: 'Push/Pull/Legs split for full gym access. High volume, proven strength builder.',
+    description: 'Push/Pull/Legs split for full gym access. Builds strength & muscle with barbells, cables, and machines.',
     difficulty: 'INTERMEDIATE',
     equipment: 'GYM',
     duration_weeks: 4,
@@ -388,58 +352,37 @@ export const DEFAULT_PLANS: WorkoutPlan[] = [
   },
   {
     id: -2,
-    name: 'Iron Classic Split',
-    description: 'Traditional bodypart split. Chest, Back, Legs, Shoulders, Arms + Full Body power day.',
-    difficulty: 'INTERMEDIATE',
-    equipment: 'GYM',
+    name: 'Home Iron: Dumbbell Split',
+    description: 'Upper/Lower split with dumbbells only. Perfect for home gym warriors building real muscle.',
+    difficulty: 'BEGINNER',
+    equipment: 'HOME_DUMBBELLS',
     duration_weeks: 4,
     days_per_week: 6,
-    days: expandToFourWeeks(gymClassicDays),
+    days: expandToFourWeeks(dumbbellDays),
     is_active: true,
     display_order: 2,
   },
   {
     id: -3,
-    name: 'Home Iron: Dumbbell PPL',
-    description: 'Push/Pull/Legs with dumbbells only. Perfect for home gym warriors.',
-    difficulty: 'BEGINNER',
-    equipment: 'HOME_DUMBBELLS',
-    duration_weeks: 4,
-    days_per_week: 6,
-    days: expandToFourWeeks(dumbbellPPLDays),
-    is_active: true,
-    display_order: 3,
-  },
-  {
-    id: -4,
     name: 'No Excuses: Bodyweight',
-    description: 'Zero equipment needed. Calisthenics-based program for anywhere, anytime.',
+    description: 'Zero equipment needed. Calisthenics-based program for fat loss and muscle building anywhere.',
     difficulty: 'BEGINNER',
     equipment: 'BODYWEIGHT',
     duration_weeks: 4,
     days_per_week: 6,
-    days: expandToFourWeeks(bodyweightClassicDays),
+    days: expandToFourWeeks(bodyweightDays),
     is_active: true,
-    display_order: 4,
+    display_order: 3,
   },
 ];
 
-// Auto-select the best default plan based on user equipment and split preference
+// Auto-select the best default plan based on user equipment
 export function getRecommendedPlan(
   equipment: 'GYM' | 'HOME_DUMBBELLS' | 'BODYWEIGHT',
   split?: 'PPL' | 'CLASSIC'
 ): WorkoutPlan {
   const eqPlans = DEFAULT_PLANS.filter(p => p.equipment === equipment);
-  if (eqPlans.length === 0) return DEFAULT_PLANS[3]; // fallback: bodyweight
-
-  if (split === 'PPL') {
-    const ppl = eqPlans.find(p => p.name.includes('PPL'));
-    if (ppl) return ppl;
-  }
-  if (split === 'CLASSIC') {
-    const classic = eqPlans.find(p => p.name.includes('Classic') || p.name.includes('Bodyweight'));
-    if (classic) return classic;
-  }
+  if (eqPlans.length === 0) return DEFAULT_PLANS[2]; // fallback: bodyweight
 
   return eqPlans[0];
 }

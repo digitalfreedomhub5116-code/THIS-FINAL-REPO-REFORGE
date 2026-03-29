@@ -50,7 +50,7 @@ const DayEditor: React.FC<DayEditorProps> = ({ day, dayIndex, exercises, adminTo
       reps: ex.default_reps,
       type: ex.type,
       notes: ex.notes || '',
-      videoUrl: ex.video_url || getExerciseVideoUrl(ex.name) || '',
+      videoUrl: getExerciseVideoUrl(ex.name) || ex.video_url || '',
       completed: false,
       duration: 0,
     };
@@ -225,7 +225,7 @@ const PlanBuilder: React.FC<{ adminToken: string }> = ({ adminToken }) => {
       ...day,
       exercises: (day.exercises || []).map(ex => ({
         ...ex,
-        videoUrl: ex.videoUrl || getExerciseVideoUrl(ex.name) || '',
+        videoUrl: getExerciseVideoUrl(ex.name) || ex.videoUrl || '',
       })),
     }));
     setForm({ name: p.name, description: p.description, difficulty: p.difficulty, equipment: p.equipment, duration_weeks: p.duration_weeks, days_per_week: p.days_per_week, is_active: p.is_active, display_order: p.display_order, image_url: (p as any).image_url || '', days: enrichedDays });

@@ -129,27 +129,28 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
   const exercise = plan.exercises[currentIdx] || plan.exercises[0]; // Fallback to avoid undefined crash
   const totalExercises = plan.exercises.length;
   
-  // Robust Video Lookup Strategy (checks exercise.videoUrl → EXERCISE_VIDEOS map → focusVideos → DB)
+  // Robust Video Lookup Strategy (checks EXERCISE_VIDEOS map → DB → exercise.videoUrl → focusVideos)
   const videoSource = React.useMemo(() => {
       if (!exercise) return null;
       
-      // 1. Direct videoUrl on exercise object
-      if (exercise.videoUrl && exercise.videoUrl.trim() !== '') return exercise.videoUrl;
+      const name = exercise.name;
+      const lowerName = name.toLowerCase();
 
-      // 2. Dedicated video map (case-insensitive)
-      const mapUrl = getExerciseVideoUrl(exercise.name);
+      // 1. Dedicated video map (case-insensitive) - LOCAL BUNDLED SOURCE OF TRUTH
+      const mapUrl = getExerciseVideoUrl(name);
       if (mapUrl) return mapUrl;
       
-      // 3. Focus videos from player state
-      const name = exercise.name;
-      if (player.focusVideos[name]) return player.focusVideos[name];
-      const lowerName = name.toLowerCase();
-      const looseKey = Object.keys(player.focusVideos).find(k => k.toLowerCase() === lowerName);
-      if (looseKey) return player.focusVideos[looseKey];
-
-      // 4. Exercise database from backend
+      // 2. Exercise database from backend (if user adds custom ones without bundling)
       const dbEntry = player.exerciseDatabase.find(e => e.name === name || e.name.toLowerCase() === lowerName);
       if (dbEntry?.videoUrl) return dbEntry.videoUrl;
+
+      // 3. Direct videoUrl on exercise object (legacy cache in plans)
+      if (exercise.videoUrl && exercise.videoUrl.trim() !== '') return exercise.videoUrl;
+
+      // 4. Focus videos from player state
+      if (player.focusVideos[name]) return player.focusVideos[name];
+      const looseKey = Object.keys(player.focusVideos).find(k => k.toLowerCase() === lowerName);
+      if (looseKey) return player.focusVideos[looseKey];
 
       return null;
   }, [exercise, player.focusVideos, player.exerciseDatabase]);
@@ -163,10 +164,13 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
     if (nextIdx >= totalExercises) return null;
     const nextEx = plan.exercises[nextIdx];
     if (!nextEx) return null;
-    if (nextEx.videoUrl && nextEx.videoUrl.trim() !== '') return nextEx.videoUrl;
     if (EXERCISE_VIDEOS[nextEx.name]) return EXERCISE_VIDEOS[nextEx.name];
+    
     const dbEntry = player.exerciseDatabase.find(e => e.name.toLowerCase() === nextEx.name.toLowerCase());
     if (dbEntry?.videoUrl) return dbEntry.videoUrl;
+
+    if (nextEx.videoUrl && nextEx.videoUrl.trim() !== '') return nextEx.videoUrl;
+    
     return null;
   }, [currentIdx, totalExercises, plan.exercises, player.exerciseDatabase]);
 

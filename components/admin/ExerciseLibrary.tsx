@@ -50,8 +50,7 @@ const ExerciseLibrary: React.FC<{ adminToken: string }> = ({ adminToken }) => {
   useEffect(() => { fetchExercises(); }, []);
 
   const getVideoUrl = (name: string, dbUrl?: string) => {
-    if (dbUrl && dbUrl.trim() !== '') return dbUrl;
-    return EXERCISE_VIDEOS[name] || '';
+    return EXERCISE_VIDEOS[name] || (dbUrl && dbUrl.trim() !== '' ? dbUrl : '');
   };
 
   const videoCount = exercises.filter(e => getVideoUrl(e.name, e.video_url)).length;
