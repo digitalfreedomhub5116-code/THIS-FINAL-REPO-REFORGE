@@ -66,6 +66,27 @@ const DayEditor: React.FC<DayEditorProps> = ({ day, dayIndex, totalDays, exercis
     onChange({ ...day, exercises: day.exercises.filter((_, i) => i !== idx) });
   };
 
+  const duplicateExercise = (idx: number) => {
+    const cloned = { ...JSON.parse(JSON.stringify(day.exercises[idx])), completed: false };
+    const updated = [...day.exercises];
+    updated.splice(idx + 1, 0, cloned);
+    onChange({ ...day, exercises: updated });
+  };
+
+  const moveExerciseUp = (idx: number) => {
+    if (idx <= 0) return;
+    const updated = [...day.exercises];
+    [updated[idx - 1], updated[idx]] = [updated[idx], updated[idx - 1]];
+    onChange({ ...day, exercises: updated });
+  };
+
+  const moveExerciseDown = (idx: number) => {
+    if (idx >= day.exercises.length - 1) return;
+    const updated = [...day.exercises];
+    [updated[idx], updated[idx + 1]] = [updated[idx + 1], updated[idx]];
+    onChange({ ...day, exercises: updated });
+  };
+
   const updateExercise = (idx: number, field: string, value: string | number) => {
     const updated = [...day.exercises];
     (updated[idx] as any)[field] = value;
@@ -140,6 +161,7 @@ const DayEditor: React.FC<DayEditorProps> = ({ day, dayIndex, totalDays, exercis
                 {(day.exercises || []).map((ex, idx) => (
                   <div key={idx} className="flex flex-col gap-2 bg-gray-900/50 border border-gray-800 rounded-lg p-2">
                     <div className="flex items-center gap-2">
+                      <div className="text-[9px] text-gray-600 font-mono w-4 shrink-0 text-center">{idx + 1}</div>
                       <div className="flex-1 min-w-0">
                         <div className="text-xs font-bold text-white truncate">{ex.name}</div>
                         <div className="flex gap-3 mt-1">
@@ -147,7 +169,14 @@ const DayEditor: React.FC<DayEditorProps> = ({ day, dayIndex, totalDays, exercis
                           <input value={ex.reps} onChange={e => updateExercise(idx, 'reps', e.target.value)} className="w-20 bg-black border border-gray-800 rounded px-1 py-0.5 text-[10px] text-white outline-none" placeholder="reps" />
                         </div>
                       </div>
-                      <button onClick={() => removeExercise(idx)} className="text-gray-700 hover:text-red-500 transition-colors shrink-0"><X size={12} /></button>
+                      <div className="flex flex-col gap-0.5 shrink-0">
+                        <button onClick={() => moveExerciseUp(idx)} disabled={idx === 0} title="Move up" className="text-gray-700 hover:text-white transition-colors disabled:opacity-20 disabled:cursor-not-allowed p-0.5"><ArrowUp size={10} /></button>
+                        <button onClick={() => moveExerciseDown(idx)} disabled={idx >= (day.exercises || []).length - 1} title="Move down" className="text-gray-700 hover:text-white transition-colors disabled:opacity-20 disabled:cursor-not-allowed p-0.5"><ArrowDown size={10} /></button>
+                      </div>
+                      <div className="flex flex-col gap-0.5 shrink-0">
+                        <button onClick={() => duplicateExercise(idx)} title="Duplicate exercise" className="text-gray-700 hover:text-cyan-400 transition-colors p-0.5"><Copy size={10} /></button>
+                        <button onClick={() => removeExercise(idx)} title="Remove exercise" className="text-gray-700 hover:text-red-500 transition-colors p-0.5"><X size={10} /></button>
+                      </div>
                     </div>
                     <div className="flex items-center gap-2 mt-1 border-t border-gray-800/50 pt-2">
                       <span className="text-[10px] text-gray-500 uppercase tracking-widest shrink-0 w-16">Video URL</span>
