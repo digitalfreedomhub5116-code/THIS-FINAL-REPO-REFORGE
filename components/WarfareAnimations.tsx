@@ -19,7 +19,11 @@ export const ClashInitAnim: React.FC<AnimProps> = ({ onComplete }) => {
   }, [onComplete]);
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/95 pointer-events-none overflow-hidden">
+    <motion.div
+      initial={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/95 pointer-events-none overflow-hidden">
       {/* Shockwave ring */}
       <motion.div
         initial={{ scale: 0, opacity: 1 }}
@@ -63,7 +67,7 @@ export const ClashInitAnim: React.FC<AnimProps> = ({ onComplete }) => {
           CLASH
         </h1>
       </motion.div>
-    </div>
+    </motion.div>
   );
 };
 
@@ -85,7 +89,11 @@ export const ClashVictoryAnim: React.FC<VictoryAnimProps> = ({ onComplete, oldRa
   }, [onComplete]);
 
   return (
-    <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-black/95 pointer-events-none overflow-hidden">
+    <motion.div
+      initial={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3 }}
+      className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-black/95 pointer-events-none overflow-hidden">
       {/* Particle burst */}
       {Array.from({ length: 20 }).map((_, i) => (
         <motion.div
@@ -144,7 +152,7 @@ export const ClashVictoryAnim: React.FC<VictoryAnimProps> = ({ onComplete, oldRa
         <Flame size={14} />
         <span className="text-[10px] font-black font-mono tracking-widest uppercase">RANK SEIZED</span>
       </motion.div>
-    </div>
+    </motion.div>
   );
 };
 
@@ -160,7 +168,11 @@ export const ClashDefeatAnim: React.FC<AnimProps & { targetName: string }> = ({ 
   }, [onComplete]);
 
   return (
-    <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center pointer-events-none overflow-hidden">
+    <motion.div
+      initial={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="fixed inset-0 z-[200] flex flex-col items-center justify-center pointer-events-none overflow-hidden">
       {/* Background with blur and dark red vignette */}
       <motion.div
         initial={{ opacity: 0 }}
@@ -220,7 +232,7 @@ export const ClashDefeatAnim: React.FC<AnimProps & { targetName: string }> = ({ 
           </p>
         </motion.div>
       </motion.div>
-    </div>
+    </motion.div>
   );
 };
 
@@ -250,7 +262,11 @@ export const ExtractionRollAnim: React.FC<ExtractionRollProps> = ({ extractionRa
   }, [extractionRate, onResult]);
 
   return (
-    <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-black/95 pointer-events-auto overflow-hidden">
+    <motion.div
+      initial={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-black/95 pointer-events-auto overflow-hidden">
       {/* Spinning rune circle */}
       <div className="relative w-64 h-64 flex items-center justify-center">
         <motion.div
@@ -305,7 +321,7 @@ export const ExtractionRollAnim: React.FC<ExtractionRollProps> = ({ extractionRa
           )}
         </motion.div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 
@@ -321,7 +337,11 @@ export const AriseAnim: React.FC<AnimProps & { shadowName: string }> = ({ onComp
   }, [onComplete]);
 
   return (
-    <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-black pointer-events-none overflow-hidden">
+    <motion.div
+      initial={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-black pointer-events-none overflow-hidden">
       {/* Purple particle storm */}
       {Array.from({ length: 40 }).map((_, i) => (
         <motion.div
@@ -377,7 +397,7 @@ export const AriseAnim: React.FC<AnimProps & { shadowName: string }> = ({ onComp
       >
         {shadowName} JOINS YOUR ARMY
       </motion.p>
-    </div>
+    </motion.div>
   );
 };
 
@@ -393,7 +413,11 @@ export const ScrollBurnAnim: React.FC<AnimProps & { scrollsRemaining: number }> 
   }, [onComplete]);
 
   return (
-    <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-black/90 pointer-events-none overflow-hidden">
+    <motion.div
+      initial={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-black/90 pointer-events-none overflow-hidden">
       {/* Fire particles */}
       {Array.from({ length: 15 }).map((_, i) => (
         <motion.div
@@ -437,7 +461,7 @@ export const ScrollBurnAnim: React.FC<AnimProps & { scrollsRemaining: number }> 
           Shadow Scrolls Remaining: {scrollsRemaining}
         </p>
       </motion.div>
-    </div>
+    </motion.div>
   );
 };
 
@@ -453,7 +477,11 @@ export const FortifyShieldAnim: React.FC<AnimProps> = ({ onComplete }) => {
   }, [onComplete]);
 
   return (
-    <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-green-950/30 backdrop-blur-sm pointer-events-none overflow-hidden">
+    <motion.div
+      initial={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-green-950/30 backdrop-blur-sm pointer-events-none overflow-hidden">
       {/* Hex shield segments */}
       {Array.from({ length: 6 }).map((_, i) => (
         <motion.div
@@ -507,7 +535,7 @@ export const FortifyShieldAnim: React.FC<AnimProps> = ({ onComplete }) => {
           SHIELD ACTIVE · 12 HOURS
         </p>
       </motion.div>
-    </div>
+    </motion.div>
   );
 };
 
@@ -523,7 +551,11 @@ export const MonarchCrownAnim: React.FC<AnimProps> = ({ onComplete }) => {
   }, [onComplete]);
 
   return (
-    <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-black/95 pointer-events-none overflow-hidden">
+    <motion.div
+      initial={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-black/95 pointer-events-none overflow-hidden">
       {/* Golden particle rain */}
       {Array.from({ length: 30 }).map((_, i) => (
         <motion.div
@@ -574,7 +606,7 @@ export const MonarchCrownAnim: React.FC<AnimProps> = ({ onComplete }) => {
       >
         YOU CLAIMED THE THRONE · REWARD: GOLD + KEY
       </motion.p>
-    </div>
+    </motion.div>
   );
 };
 
