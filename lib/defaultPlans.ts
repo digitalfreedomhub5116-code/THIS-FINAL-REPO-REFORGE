@@ -243,26 +243,26 @@ const dumbbellDays: WorkoutDay[] = [
 // ═══════════════════════════════════════════════
 const bodyweightDays: WorkoutDay[] = [
   {
-    day: 'Day 1', focus: 'Upper Push', totalDuration: 45, exercises: [
+    day: 'Day 1', focus: 'Push & Core', totalDuration: 45, exercises: [
       ...WARMUP_UPPER,
       ex('Push-Ups', 3, '12', 'COMPOUND', 5, 60),
-      ex('Diamond Push-Ups', 3, '8', 'COMPOUND', 5, 60),
-      ex('Pike Push-Ups', 3, '8', 'COMPOUND', 5, 60),
       ex('Chair Dips', 3, '10', 'COMPOUND', 5, 60),
       ex('Plank', 3, '30s', 'ACCESSORY', 3, 30),
+      ex('Crunches', 3, '15', 'ACCESSORY', 4, 45),
       ex('Mountain Climbers', 3, '30s', 'CARDIO', 3, 30),
+      ex('Lying Leg Raise', 3, '10', 'ACCESSORY', 4, 45),
       ...COOLDOWN_UPPER,
     ],
   },
   {
-    day: 'Day 2', focus: 'Upper Pull & Core', totalDuration: 45, exercises: [
+    day: 'Day 2', focus: 'Pull & Core', totalDuration: 45, exercises: [
       ...WARMUP_UPPER,
       ex('Pull-Ups', 3, '6', 'COMPOUND', 5, 90),
       ex('Chin-Ups', 3, '6', 'COMPOUND', 5, 90),
-      ex('Crunches', 3, '15', 'ACCESSORY', 4, 45),
       ex('Bicycle Crunch', 3, '12', 'ACCESSORY', 4, 45),
-      ex('Lying Leg Raise', 3, '10', 'ACCESSORY', 4, 45),
       ex('Reverse Crunch', 3, '12', 'ACCESSORY', 4, 45),
+      ex('Plank', 3, '30s', 'ACCESSORY', 3, 30),
+      ex('Mountain Climbers', 3, '30s', 'CARDIO', 3, 30),
       ...COOLDOWN_UPPER_BACK,
     ],
   },
@@ -282,23 +282,23 @@ const bodyweightDays: WorkoutDay[] = [
     day: 'Day 4', focus: 'Full Body HIIT', totalDuration: 40, exercises: [
       ...WARMUP_FULL,
       ex('Burpees', 3, '8', 'CARDIO', 4, 45),
-      ex('Mountain Climbers', 3, '30s', 'CARDIO', 3, 30),
       ex('Jump Squat', 3, '10', 'COMPOUND', 4, 45),
-      ex('Push-Ups', 3, '10', 'COMPOUND', 4, 45),
+      ex('Mountain Climbers', 3, '30s', 'CARDIO', 3, 30),
       ex('Jumping Jacks', 3, '1 min', 'CARDIO', 3, 30),
       ex('Plank', 3, '30s', 'ACCESSORY', 3, 30),
+      ex('Bicycle Crunch', 3, '12', 'ACCESSORY', 4, 45),
       ...COOLDOWN_GENERAL,
     ],
   },
   {
-    day: 'Day 5', focus: 'Upper Strength', totalDuration: 45, exercises: [
+    day: 'Day 5', focus: 'Upper Push & Shoulders', totalDuration: 45, exercises: [
       ...WARMUP_UPPER,
-      ex('Push-Ups', 3, '15', 'COMPOUND', 5, 60),
-      ex('Pike Push-Ups', 3, '10', 'COMPOUND', 5, 60),
-      ex('Pull-Ups', 3, '6', 'COMPOUND', 5, 90),
-      ex('Chin-Ups', 3, '6', 'COMPOUND', 5, 90),
-      ex('Diamond Push-Ups', 3, '10', 'COMPOUND', 5, 60),
+      ex('Diamond Push-Ups', 3, '8', 'COMPOUND', 5, 60),
+      ex('Pike Push-Ups', 3, '8', 'COMPOUND', 5, 60),
       ex('Chair Dips', 3, '12', 'COMPOUND', 5, 60),
+      ex('Crunches', 3, '15', 'ACCESSORY', 4, 45),
+      ex('Lying Leg Raise', 3, '12', 'ACCESSORY', 4, 45),
+      ex('Reverse Crunch', 3, '12', 'ACCESSORY', 4, 45),
       ...COOLDOWN_UPPER,
     ],
   },
@@ -309,8 +309,8 @@ const bodyweightDays: WorkoutDay[] = [
       ex('Lateral Lunge', 3, '10 each', 'COMPOUND', 6, 60),
       ex('Donkey Kicks', 3, '12', 'ACCESSORY', 5, 45),
       ex('Glute Bridge', 3, '15', 'COMPOUND', 5, 60),
-      ex('Reverse Crunch', 3, '15', 'ACCESSORY', 4, 45),
-      ex('Mountain Climbers', 3, '30s', 'CARDIO', 3, 30),
+      ex('Calf Raises', 3, '15', 'ACCESSORY', 4, 45),
+      ex('Wall Sit', 3, '30s', 'ACCESSORY', 3, 30),
       ...COOLDOWN_LOWER_FULL,
     ],
   },
