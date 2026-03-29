@@ -142,10 +142,10 @@ const N = {
   kneelingHipFlexor:     '/videos/exercises/kneeling_hip_flexor_stretch.mp4',
   machineShoulderPress:  '/videos/exercises/machine_shoulder_press.mp4',
   gluteActivationWalk:   '/videos/exercises/glute_activation_walk.mp4',
-  arnoldPress:           '/videos/exercises/arnold_press.mp4',
-  preacherCurl:          '/videos/exercises/preacher_curl.mp4',
-  briskWalk:             '/videos/exercises/brisk_walk.mp4',
-  shoulderStretch:       '/videos/exercises/shoulder_stretch.mp4',
+  arnoldPress:           '/videos/exercises/dumbbell_shoulder_press.mp4',  // arnold_press.mp4 missing, closest match
+  preacherCurl:          '/videos/exercises/incline_dumbbell_curl.mp4',   // preacher_curl.mp4 missing, closest match
+  briskWalk:             '/videos/exercises/jogging.mp4',                  // brisk_walk.mp4 missing, closest match
+  shoulderStretch:       '/videos/exercises/thread_the_needle_stretch.mp4', // shoulder_stretch.mp4 missing, closest match
 };
 
 
@@ -184,6 +184,7 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   'Cable Overhead Triceps Extension': N.cableOverheadTricep,
   'Dumbbell Triceps Extension':      N.dumbbellTricepKickback,
   'Dumbbell Tricep Kickback':        N.dumbbellTricepKickback,
+  'Dumbbell Tricep Kickbacks':       N.dumbbellTricepKickback,
   'Skull Crusher':                   N.skullCrusher,
   'EZ Bar Skull Crusher':            N.skullCrusher,
   'Kickback':                        N.kickback,
