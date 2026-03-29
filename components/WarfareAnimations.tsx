@@ -149,48 +149,76 @@ export const ClashVictoryAnim: React.FC<VictoryAnimProps> = ({ onComplete, oldRa
 };
 
 /* ╔══════════════════════════════════════════════════════════════╗
-   ║  3. CLASH DEFEAT — Red crack, shatter                       ║
+   ║  3. CLASH DEFEAT — Red slash, glitch out                    ║
    ╚══════════════════════════════════════════════════════════════╝ */
 export const ClashDefeatAnim: React.FC<AnimProps & { targetName: string }> = ({ onComplete, targetName }) => {
   useEffect(() => {
     playSystemSoundEffect('DANGER');
-    try { navigator.vibrate?.(300); } catch {}
-    const timer = setTimeout(onComplete, 1800);
+    try { navigator.vibrate?.([100, 50, 100, 50, 200]); } catch {}
+    const timer = setTimeout(onComplete, 2200);
     return () => clearTimeout(timer);
   }, [onComplete]);
 
   return (
-    <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-black/95 pointer-events-none overflow-hidden">
-      {/* Crack lines */}
-      {Array.from({ length: 5 }).map((_, i) => (
-        <motion.div
-          key={i}
-          initial={{ scaleX: 0, opacity: 0 }}
-          animate={{ scaleX: 1, opacity: [0, 1, 0.6] }}
-          transition={{ duration: 0.3, delay: i * 0.05 }}
-          className="absolute h-[2px] bg-red-600"
-          style={{
-            width: `${60 + Math.random() * 40}%`,
-            top: `${35 + i * 6}%`,
-            left: `${Math.random() * 20}%`,
-            transform: `rotate(${-10 + i * 5}deg)`,
-          }}
-        />
-      ))}
+    <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center pointer-events-none overflow-hidden">
+      {/* Background with blur and dark red vignette */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="absolute inset-0 bg-black/60 backdrop-blur-md"
+      />
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: [0, 1, 0.8] }}
+        className="absolute inset-0"
+        style={{ background: 'radial-gradient(circle at center, rgba(150, 0, 0, 0.1) 0%, rgba(30, 0, 0, 0.8) 100%)' }}
+      />
+      
+      {/* Glitch slash effect */}
+      <motion.div
+        initial={{ x: '-150%', y: '-50%', opacity: 0, rotate: -25 }}
+        animate={{ x: '150%', y: '50%', opacity: [0, 1, 1, 0] }}
+        transition={{ duration: 0.5, ease: 'linear', delay: 0.1 }}
+        className="absolute origin-center top-1/2 left-0 w-[200%] h-1 bg-red-500 shadow-[0_0_15px_rgba(239,68,68,1)]"
+      />
+      <motion.div
+        initial={{ x: '150%', y: '50%', opacity: 0, rotate: -25 }}
+        animate={{ x: '-150%', y: '-50%', opacity: [0, 1, 1, 0] }}
+        transition={{ duration: 0.4, ease: 'linear', delay: 0.2 }}
+        className="absolute origin-center top-1/2 left-0 w-[200%] h-[2px] bg-red-400 shadow-[0_0_10px_rgba(239,68,68,1)]"
+      />
 
       <motion.div
-        initial={{ scale: 1.5, opacity: 0 }}
-        animate={{ scale: [1.5, 1, 0.95], opacity: [0, 1, 0.8] }}
-        transition={{ duration: 1.5 }}
-        className="relative z-10 text-center"
+        initial={{ scale: 2, opacity: 0, filter: 'blur(10px)' }}
+        animate={{ scale: 1, opacity: 1, filter: 'blur(0px)' }}
+        transition={{ duration: 0.4, type: 'spring', bounce: 0.4 }}
+        className="relative z-10 text-center flex flex-col items-center justify-center w-full"
       >
-        <X size={60} className="text-red-600 mx-auto mb-2 drop-shadow-[0_0_20px_rgba(239,68,68,0.8)]" />
-        <h2 className="text-4xl font-black text-red-500 uppercase tracking-[0.3em] drop-shadow-[0_0_15px_rgba(239,68,68,0.5)]">
+        <motion.div
+          animate={{ x: [-5, 5, -4, 4, -2, 2, 0], y: [-2, 2, -1, 1, 0] }}
+          transition={{ duration: 0.4, delay: 0.2 }}
+        >
+          <Skull size={70} className="text-red-500 mb-6 drop-shadow-[0_0_20px_rgba(239,68,68,0.8)]" />
+        </motion.div>
+        
+        <h2 
+          className="text-5xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-red-400 to-red-600 uppercase tracking-[0.2em] md:tracking-[0.3em] ml-2"
+          style={{ WebkitTextStroke: '2px rgba(100,0,0,0.5)', filter: 'drop-shadow(0px 4px 15px rgba(220, 38, 38, 0.4))' }}
+        >
           DEFEATED
         </h2>
-        <p className="text-[10px] text-red-400/60 font-mono mt-2 tracking-widest">
-          {targetName}&apos;s DEFENSES HELD
-        </p>
+        
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.8, type: 'spring' }}
+          className="mt-6 px-6 py-2 rounded-full border border-red-500/30 bg-red-950/60 backdrop-blur-sm"
+        >
+          <p className="text-xs text-red-400 font-mono tracking-widest font-bold">
+            {targetName}&apos;S DEFENSES HELD
+          </p>
+        </motion.div>
       </motion.div>
     </div>
   );
