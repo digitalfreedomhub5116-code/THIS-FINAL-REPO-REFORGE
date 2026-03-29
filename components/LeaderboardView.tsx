@@ -23,6 +23,7 @@ interface LeaderboardEntry {
   total_xp: number;
   level: number;
   rank: string;
+  equipped_outfit_id?: string;
 }
 
 interface SimEntry extends LeaderboardEntry {
@@ -31,6 +32,7 @@ interface SimEntry extends LeaderboardEntry {
   isDebuffed: boolean;
   isShielded: boolean;
   computedRank: string;
+  outfitId: string;
 }
 
 interface LeaderboardViewProps {
@@ -65,6 +67,52 @@ function computeRankFromLevel(level: number): string {
   if (level >= 11) return 'D';
   return 'E';
 }
+
+// ── Outfit Config Maps ──
+const OUTFIT_CONFIG: Record<string, { name: string; accent: string; eyeColor: string; hoodColor: string; armorColor: string; tier: string }> = {
+  outfit_starter: { name: 'Neophyte', accent: '#9ca3af', eyeColor: '#60a5fa', hoodColor: '#374151', armorColor: '#1f2937', tier: 'E' },
+  outfit_ghost:   { name: 'Ghost',    accent: '#4ade80', eyeColor: '#4ade80', hoodColor: '#14532d', armorColor: '#166534', tier: 'D' },
+  outfit_knight:  { name: 'Ninja',    accent: '#60a5fa', eyeColor: '#f87171', hoodColor: '#1e293b', armorColor: '#334155', tier: 'C' },
+  outfit_assassin:{ name: 'Mars',     accent: '#c084fc', eyeColor: '#00d2ff', hoodColor: '#581c87', armorColor: '#7e22ce', tier: 'B' },
+  outfit_vanguard:{ name: 'Jupiter',  accent: '#facc15', eyeColor: '#60a5fa', hoodColor: '#713f12', armorColor: '#92400e', tier: 'A' },
+  outfit_monarch: { name: 'Overlord', accent: '#f87171', eyeColor: '#60a5fa', hoodColor: '#450a0a', armorColor: '#991b1b', tier: 'S' },
+};
+
+const DEFAULT_OUTFIT = OUTFIT_CONFIG.outfit_starter;
+
+// ── Hunter Face SVG Icon ──
+const HunterFaceIcon: React.FC<{ outfitId: string; size?: number }> = ({ outfitId, size = 40 }) => {
+  const cfg = OUTFIT_CONFIG[outfitId] || DEFAULT_OUTFIT;
+  return (
+    <svg width={size} height={size} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* Outer glow circle */}
+      <circle cx="20" cy="20" r="19" fill={`${cfg.accent}15`} stroke={`${cfg.accent}40`} strokeWidth="1" />
+      {/* Hood base */}
+      <path d="M8 18C8 11.4 13.4 6 20 6C26.6 6 32 11.4 32 18V28C32 29.1 31.1 30 30 30H10C8.9 30 8 29.1 8 28V18Z" fill={cfg.hoodColor} />
+      {/* Hood top curve */}
+      <path d="M10 18C10 12.5 14.5 8 20 8C25.5 8 30 12.5 30 18V20H10V18Z" fill={cfg.hoodColor} opacity="0.8" />
+      {/* Face shadow area */}
+      <path d="M12 19C12 15 15.6 12 20 12C24.4 12 28 15 28 19V24C28 24 24.5 25 20 25C15.5 25 12 24 12 24V19Z" fill="#0a0a1a" />
+      {/* Armor/collar */}
+      <path d="M11 26L15 24H25L29 26V30H11V26Z" fill={cfg.armorColor} />
+      <path d="M17 24L20 27L23 24" fill="none" stroke={cfg.accent} strokeWidth="0.8" opacity="0.6" />
+      {/* Left eye */}
+      <ellipse cx="16" cy="19" rx="2.5" ry="1.5" fill={cfg.eyeColor}>
+        <animate attributeName="opacity" values="1;0.6;1" dur="3s" repeatCount="indefinite" />
+      </ellipse>
+      {/* Right eye */}
+      <ellipse cx="24" cy="19" rx="2.5" ry="1.5" fill={cfg.eyeColor}>
+        <animate attributeName="opacity" values="1;0.6;1" dur="3s" repeatCount="indefinite" begin="0.15s" />
+      </ellipse>
+      {/* Eye glow */}
+      <ellipse cx="16" cy="19" rx="3.5" ry="2.5" fill={cfg.eyeColor} opacity="0.15" />
+      <ellipse cx="24" cy="19" rx="3.5" ry="2.5" fill={cfg.eyeColor} opacity="0.15" />
+      {/* Tier pip */}
+      <circle cx="33" cy="7" r="5" fill="#0a0a1a" stroke={`${cfg.accent}60`} strokeWidth="1" />
+      <text x="33" y="9.5" textAnchor="middle" fontSize="6" fontWeight="900" fill={cfg.accent} fontFamily="monospace">{cfg.tier}</text>
+    </svg>
+  );
+};
 
 // ── Animation Phase State Machine ──
 type AnimPhase =
@@ -170,6 +218,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
         isDebuffed: !isMe && warfare.activeDebuffs.some(d => d.id === (e.username || e.name)),
         isShielded: isMe && warfare.isShielded,
         computedRank: computeRankFromLevel(e.level || 1),
+        outfitId: isMe ? (player.equippedOutfitId || 'outfit_starter') : (e.equipped_outfit_id || 'outfit_starter'),
       };
     }).sort((a, b) => b.dominance - a.dominance);
   }, [entries, player.username, player.name, warfare.armyBuff, warfare.activeDebuffs, warfare.isShielded, outfitStats.boost]);
@@ -620,17 +669,11 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                         )}
                       </div>
 
-                      {/* Avatar */}
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shrink-0"
-                        style={{
-                          background: entry.isMe
-                            ? 'linear-gradient(135deg, rgba(168,85,247,0.2), rgba(139,92,246,0.1))'
-                            : `linear-gradient(135deg, ${rColor}18, ${rColor}08)`,
-                          border: `1px solid ${entry.isMe ? 'rgba(168,85,247,0.35)' : rColor + '30'}`,
-                          color: entry.isMe ? '#c084fc' : rColor,
-                          boxShadow: entry.isMe ? '0 0 12px rgba(168,85,247,0.15)' : 'none',
-                        }}>
-                        {(entry.username || entry.name).charAt(0).toUpperCase()}
+                      {/* Outfit Face Badge */}
+                      <div className="shrink-0 relative" style={{
+                        filter: entry.isMe ? `drop-shadow(0 0 8px ${(OUTFIT_CONFIG[entry.outfitId] || DEFAULT_OUTFIT).accent}50)` : 'none',
+                      }}>
+                        <HunterFaceIcon outfitId={entry.outfitId} size={42} />
                       </div>
 
                       {/* Info — FIXED: give more space to name */}
