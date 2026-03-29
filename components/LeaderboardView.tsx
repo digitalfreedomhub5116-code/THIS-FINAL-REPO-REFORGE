@@ -10,10 +10,11 @@ import { API_BASE } from '../lib/apiConfig';
 import { getPlayerAuthHeaders } from '../lib/playerApi';
 import { useWarfare } from '../hooks/useWarfare';
 import { useSystem } from '../hooks/useSystem';
+import { playSystemSoundEffect } from '../utils/soundEngine';
 import {
   ClashInitAnim, ClashVictoryAnim, ClashDefeatAnim,
   ExtractionRollAnim, AriseAnim, ScrollBurnAnim,
-  FortifyShieldAnim, MonarchCrownAnim, PowerSurgeBanner,
+  MonarchCrownAnim, PowerSurgeBanner,
 } from './WarfareAnimations';
 
 // ── Types ──
@@ -135,7 +136,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const { consumeItem, addRewards, addNotification } = useSystem();
+  const { consumeItem, addRewards, addNotification, setPlayer } = useSystem();
   const warfare = useWarfare(player.userId || 'local');
 
   const [animPhase, setAnimPhase] = useState<AnimPhase>({ type: 'NONE' });
@@ -247,6 +248,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
       const result = warfare.initiateClash(
         target.username || target.name,
         targetIdx + 1,
+        player.totalXp || 0,
         player.dailyXp || 0,
         outfitStats.attack,
         target.total_xp,
@@ -350,14 +352,14 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
     }
   }, [animPhase, cons.shadowScrolls]);
 
-  // ── FORTIFY ──
-  const handleFortify = useCallback(() => {
-    if (warfare.isShielded || cons.healthPotions < 1) return;
+  // ── RESTORE HP ──
+  const handleRestoreHp = useCallback(() => {
+    if (cons.healthPotions < 1 || (player.hp || 0) >= (player.maxHp || 100)) return;
     if (!consumeItem('healthPotions', 1)) return;
-    warfare.activateShield();
-    setExpandedTarget(null);
-    setAnimPhase({ type: 'FORTIFY' });
-  }, [warfare, cons.healthPotions, consumeItem]);
+    const amount = Math.floor((player.maxHp || 100) * 0.3);
+    setPlayer(prev => ({ ...prev, hp: Math.min(prev.maxHp || 100, (prev.hp || 0) + amount) }));
+    addNotification(`Restored ${amount} HP`, 'SUCCESS');
+  }, [cons.healthPotions, player.hp, player.maxHp, consumeItem, setPlayer, addNotification]);
 
   // ── EXCHANGE (Debuff) ──
   const handleExchange = useCallback((targetId: string, targetName: string) => {
@@ -367,12 +369,31 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
     setExpandedTarget(null);
   }, [cons.shadowScrolls, consumeItem, warfare]);
 
-  // ── RESTORE STAMINA ──
-  const handleRestoreStamina = useCallback(() => {
-    if (cons.healthPotions < 1 || warfare.attackCharges >= warfare.maxCharges) return;
-    if (!consumeItem('healthPotions', 1)) return;
-    warfare.useHealthPotion();
-  }, [cons.healthPotions, warfare, consumeItem]);
+  // ── RANDOM INCOMING BOT RAIDS ──
+  useEffect(() => {
+    const timer = setInterval(() => {
+      // 15% chance every 20 seconds to be randomly attacked by a bot
+      if (Math.random() < 0.15 && (player.hp || 0) > 0) {
+        const damage = Math.floor((player.maxHp || 100) * (0.10 + Math.random() * 0.10)); // 10% to 20%
+        setPlayer(prev => {
+          const currentHp = prev.hp || 0;
+          if (currentHp <= 0) return prev;
+          
+          let newHp = Math.max(0, currentHp - damage);
+          if (newHp <= 0) {
+            newHp = Math.floor((prev.maxHp || 100) * 0.5); // Reset to 50%
+            addNotification(`CRITICAL DEFEAT! You were ambushed and fell. HP reset to 50%.`, 'DANGER');
+            // If they had a win streak, they'd ideally lose it here, but that is in WarfareState.
+          } else {
+            addNotification(`AMBUSHED! An unstable Shadow struck you. -${damage} HP`, 'WARNING');
+          }
+          return { ...prev, hp: newHp };
+        });
+        playSystemSoundEffect('ERROR');
+      }
+    }, 20000); // Check every 20 seconds
+    return () => clearInterval(timer);
+  }, [player.hp, player.maxHp, setPlayer, addNotification]);
 
   // ═════════════════════════════════════════════
   //  RENDER
@@ -500,14 +521,53 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
         )}
 
         {/* ── ARSENAL + CHARGES ── */}
-        <div className="flex items-center justify-between rounded-2xl p-3 px-4"
+        <div className="flex flex-col gap-3 rounded-2xl p-4"
           style={{
             background: 'linear-gradient(135deg, rgba(255,255,255,0.02), rgba(0,0,0,0.3))',
             border: '1px solid rgba(255,255,255,0.06)',
           }}>
-          {/* Attack Charges */}
+          
+          <div className="flex items-center justify-between">
+            {/* Health Bar */}
+            <div className="flex items-center gap-2">
+              <span className="text-[9px] text-red-500 tracking-widest uppercase font-bold w-6">HP</span>
+              <div className="w-24 h-2.5 bg-red-950/50 rounded-full overflow-hidden border border-red-500/20 relative">
+                <motion.div 
+                  initial={{ width: 0 }}
+                  animate={{ width: `${Math.max(0, Math.min(100, ((player.hp || 0) / (player.maxHp || 100)) * 100))}%` }} 
+                  className="absolute left-0 top-0 bottom-0 bg-gradient-to-r from-red-600 to-red-400 rounded-full"
+                  transition={{ duration: 0.5, ease: 'easeOut' }}
+                />
+              </div>
+              <span className="text-[9px] text-red-400 font-mono ml-1">{Math.floor(player.hp || 0)}/{player.maxHp || 100}</span>
+              {(player.hp || 0) < (player.maxHp || 100) && cons.healthPotions > 0 && (
+                <button onClick={handleRestoreHp}
+                  className="text-[8px] font-black text-green-400 px-2 py-1 ml-1 rounded-md transition-all active:scale-90"
+                  style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)' }}>
+                  RESTORE
+                </button>
+              )}
+            </div>
+
+            {/* Consumables (now visually grouped together on the right) */}
+            <div className="flex gap-3.5">
+              <div className="flex items-center gap-1">
+                <FlaskConical size={11} className="text-green-400" />
+                <span className="text-[10px] text-white font-bold">{cons.healthPotions}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <ScrollText size={11} className="text-cyan-400" />
+                <span className="text-[10px] text-white font-bold">{cons.shadowScrolls}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <InfinityIcon size={11} className="text-purple-400" />
+                <span className="text-[10px] text-white font-bold">{cons.ultOrbs}</span>
+              </div>
+            </div>
+          </div>
+
           <div className="flex items-center gap-2.5">
-            <span className="text-[9px] text-gray-500 uppercase tracking-widest font-bold">Charges</span>
+            <span className="text-[9px] text-gray-500 uppercase tracking-widest font-bold w-6">Stamina</span>
             <div className="flex gap-1.5">
               {Array.from({ length: warfare.maxCharges }).map((_, i) => (
                 <motion.div key={i}
@@ -522,29 +582,6 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                   <Swords size={11} className={i < warfare.attackCharges ? 'text-red-400' : 'text-gray-700'} />
                 </motion.div>
               ))}
-            </div>
-            {warfare.attackCharges < warfare.maxCharges && cons.healthPotions > 0 && (
-              <button onClick={handleRestoreStamina}
-                className="text-[8px] font-black text-green-400 px-2.5 py-1 rounded-lg transition-all active:scale-90"
-                style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)' }}>
-                +2
-              </button>
-            )}
-          </div>
-
-          {/* Consumables */}
-          <div className="flex gap-3.5">
-            <div className="flex items-center gap-1">
-              <FlaskConical size={11} className="text-green-400" />
-              <span className="text-[10px] text-white font-bold">{cons.healthPotions}</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <ScrollText size={11} className="text-cyan-400" />
-              <span className="text-[10px] text-white font-bold">{cons.shadowScrolls}</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <InfinityIcon size={11} className="text-purple-400" />
-              <span className="text-[10px] text-white font-bold">{cons.ultOrbs}</span>
             </div>
           </div>
         </div>
@@ -745,24 +782,10 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                         >
                           <div className="p-3 flex gap-2">
                             {entry.isMe ? (
-                              // ── MY CARD: Fortify ──
-                              <button
-                                disabled={warfare.isShielded || cons.healthPotions < 1}
-                                onClick={handleFortify}
-                                className="flex-1 py-3.5 rounded-2xl flex flex-col items-center justify-center gap-1.5 transition-all active:scale-95 disabled:opacity-25 disabled:cursor-not-allowed"
-                                style={{
-                                  background: 'linear-gradient(135deg, rgba(74,222,128,0.06), rgba(74,222,128,0.02))',
-                                  border: '1px solid rgba(74,222,128,0.15)',
-                                  color: '#4ade80',
-                                }}>
-                                <ShieldAlert size={18} />
-                                <span className="text-[9px] font-black tracking-widest uppercase">
-                                  {warfare.isShielded ? 'SHIELDED' : 'FORTIFY'}
-                                </span>
-                                {!warfare.isShielded && (
-                                  <span className="text-[8px] text-green-400/50">1 Health Potion</span>
-                                )}
-                              </button>
+                              // ── MY CARD: Empty/Profile ──
+                              <div className="flex-1 py-3.5 rounded-2xl flex flex-col items-center justify-center gap-1.5 border border-white/5 bg-white/5 opacity-50">
+                                <span className="text-[10px] font-black tracking-widest uppercase text-gray-400">YOUR PROFILE</span>
+                              </div>
                             ) : (
                               <>
                                 {/* ── CLASH (only targets above me) ── */}
@@ -968,9 +991,6 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
             scrollsRemaining={animPhase.scrollsRemaining}
             onComplete={handleScrollBurnComplete}
           />
-        )}
-        {animPhase.type === 'FORTIFY' && (
-          <FortifyShieldAnim onComplete={() => setAnimPhase({ type: 'NONE' })} />
         )}
         {animPhase.type === 'MONARCH_CROWN' && (
           <MonarchCrownAnim onComplete={() => setAnimPhase({ type: 'NONE' })} />

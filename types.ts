@@ -82,7 +82,7 @@ export interface WarfareState {
   winStreak: number;
 
   // Defense
-  shieldExpiresAt: number;
+  lastBotRaid: number;
 
   // Debuffs cast on others
   activeDebuffs: { id: string; expiresAt: number }[];

@@ -23,7 +23,7 @@ const DEFAULT_STATE: WarfareState = {
   lastChargeReset: todayStr(),
   clashHistory: [],
   winStreak: 0,
-  shieldExpiresAt: 0,
+  lastBotRaid: 0,
   activeDebuffs: [],
   killFeed: [],
   powerSurgeActive: false,
@@ -179,6 +179,7 @@ export function useWarfare(userId: string) {
   const initiateClash = useCallback((
     targetName: string,
     targetRank: number,
+    myTotalXp: number,
     myDailyXp: number,
     outfitAttack: number,
     targetXp: number,
@@ -194,10 +195,10 @@ export function useWarfare(userId: string) {
     const lastStandBonus = myCurrentRank >= 4 && myCurrentRank <= 6 ? 1.25 : 1;
 
     const attackerPower = Math.floor(
-      (myDailyXp + outfitAttack * 10) * armyBuff * streakBonus * lastStandBonus
+      (myTotalXp + myDailyXp + outfitAttack * 50) * armyBuff * streakBonus * lastStandBonus
     );
 
-    // Defender gets random variance (±15%) + shield penalty
+    // Defender gets random variance (±15%) 
     const isTargetShielded = false; // We only track our own shield locally
     const variance = 0.85 + Math.random() * 0.30; // 0.85 to 1.15
     const defenderPower = Math.floor(targetXp * variance);
@@ -329,22 +330,7 @@ export function useWarfare(userId: string) {
     return true;
   }, [state.attackCharges]);
 
-  // ── ACTIVATE SHIELD ──
-  const activateShield = useCallback(() => {
-    const entry: KillFeedEntry = {
-      id: generateId(),
-      type: 'FORTIFY',
-      text: '🛡️ YOU activated FORTIFY — Shield active for 12 hours!',
-      timestamp: Date.now(),
-      highlight: true,
-    };
-
-    setState(prev => ({
-      ...prev,
-      shieldExpiresAt: Date.now() + SHIELD_DURATION_MS,
-      killFeed: [entry, ...prev.killFeed].slice(0, MAX_KILL_FEED),
-    }));
-  }, []);
+  // ── REMOVED ACTIVATE SHIELD (No longer fortifying via Shield) ──
 
   // ── CAST DEBUFF (Shadow Exchange) ──
   const castDebuff = useCallback((targetId: string, targetName: string) => {
@@ -375,8 +361,8 @@ export function useWarfare(userId: string) {
   }, [state.lastMonarchRewardDate]);
 
   // Computed getters
-  const isShielded = state.shieldExpiresAt > Date.now();
-  const shieldRemainingMs = isShielded ? state.shieldExpiresAt - Date.now() : 0;
+  const isShielded = false;
+  const shieldRemainingMs = 0;
   const activeDebuffs = state.activeDebuffs.filter(d => d.expiresAt > Date.now());
   const armyBuff = state.shadows.length * 2; // +2% per shadow
 
@@ -400,7 +386,6 @@ export function useWarfare(userId: string) {
     attemptExtraction,
     guaranteedExtraction,
     useHealthPotion,
-    activateShield,
     castDebuff,
     claimMonarchReward,
   };
