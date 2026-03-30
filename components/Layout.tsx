@@ -497,62 +497,44 @@ const Layout: React.FC<LayoutProps> = ({
                 </div>
               </div>
 
-              {/* RIGHT: Gold + Keys + Bell */}
-              <div id="tut-gold-display" className="flex items-center gap-1.5 sm:gap-2.5 flex-shrink-0">
+              {/* RIGHT: Keys + Gold + Bell */}
+              <div id="tut-gold-display" className="flex items-center gap-1.5 flex-shrink-0">
 
-                {/* Consumable item counts — desktop only */}
-                {consumables && (
-                  <div className="hidden sm:flex items-center gap-1">
-                    <div id="user-potion-balance" className="flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
-                      <span style={{ fontSize: 11 }}>🧪</span>
-                      <span className="font-mono text-[11px] font-bold text-red-300">{consumables.healthPotions}</span>
-                    </div>
-                    <div id="user-scroll-balance" className="flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(0,210,255,0.08)', border: '1px solid rgba(0,210,255,0.2)' }}>
-                      <span style={{ fontSize: 11 }}>📜</span>
-                      <span className="font-mono text-[11px] font-bold text-cyan-300">{consumables.shadowScrolls}</span>
-                    </div>
-                    <div id="user-orb-balance" className="flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.2)' }}>
-                      <span style={{ fontSize: 11 }}>⚡</span>
-                      <span className="font-mono text-[11px] font-bold text-purple-300">{consumables.ultOrbs}</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Keys pill */}
+                {/* Keys chip */}
                 <div
                   id="user-keys-balance"
-                  className="flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-2 rounded-xl"
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl h-8"
                   style={{
                     background: 'linear-gradient(180deg, rgba(139,92,246,0.12) 0%, rgba(6,4,18,0.80) 100%)',
                     border: '1px solid rgba(139,92,246,0.25)',
                     boxShadow: 'inset 0 1px 0 rgba(139,92,246,0.15)',
                   }}
                 >
-                  <AnimatedKeyIcon size={13} />
-                  <span className="font-mono text-[11px] sm:text-sm font-bold text-purple-300 whitespace-nowrap"><AnimatedCounter value={keys} /></span>
+                  <AnimatedKeyIcon size={12} />
+                  <span className="font-mono text-[11px] font-bold text-purple-300 whitespace-nowrap"><AnimatedCounter value={keys} /></span>
                 </div>
 
-                {/* Gold pill */}
+                {/* Gold chip */}
                 <button
                   id="gold-header-btn"
                   onClick={!headerDisabled ? onGoldClick : undefined}
                   disabled={headerDisabled}
-                  className="flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-2 rounded-xl transition-all active:scale-95"
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl transition-all active:scale-95 h-8"
                   style={{
                     background: 'linear-gradient(180deg, rgba(234,179,8,0.12) 0%, rgba(10,7,0,0.80) 100%)',
                     border: '1px solid rgba(234,179,8,0.28)',
                     boxShadow: 'inset 0 1px 0 rgba(234,179,8,0.15)',
                   }}
                 >
-                  <AnimatedCoinIcon size={13} />
-                  <span id="user-wallet-balance" className="font-mono text-[11px] sm:text-sm font-bold text-yellow-300 whitespace-nowrap"><AnimatedCounter value={gold} /></span>
+                  <AnimatedCoinIcon size={12} />
+                  <span id="user-wallet-balance" className="font-mono text-[11px] font-bold text-yellow-300 whitespace-nowrap"><AnimatedCounter value={gold} /></span>
                 </button>
 
                 {/* Bell */}
                 <div className="relative" ref={notifRef}>
                   <button
                     onClick={handleOpenNotifications}
-                    className={`w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition-all duration-200 border ${
+                    className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-200 border ${
                       showNotifications
                         ? 'bg-[#00d2ff]/15 border-[#00d2ff]/40 text-[#00d2ff]'
                         : 'bg-white/[0.05] border-white/[0.08] text-gray-400 hover:text-white hover:bg-white/10'

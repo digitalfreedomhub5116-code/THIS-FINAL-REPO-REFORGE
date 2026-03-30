@@ -608,6 +608,45 @@ export const useSystem = () => {
     return () => clearTimeout(timer);
   }, [processDailyReset]);
 
+  // ── AUTO STREAK TRACKING ──
+  // Updates streak + lastLoginDate every time the user opens the app on a new day.
+  // This is INDEPENDENT of daily reward claiming — streak should never get stuck.
+  useEffect(() => {
+    const today = toLocalDateStr();
+    const lastLogin = player.lastLoginDate;
+
+    // Already logged in today — nothing to do
+    if (lastLogin === today) return;
+
+    // Calculate new streak
+    let newStreak = 1;
+    if (lastLogin) {
+      const lastDate = new Date(lastLogin);
+      const currentDate = new Date();
+      lastDate.setHours(0, 0, 0, 0);
+      currentDate.setHours(0, 0, 0, 0);
+      const diffMs = currentDate.getTime() - lastDate.getTime();
+      const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+      if (diffDays === 1) {
+        // Logged in yesterday — continue streak
+        newStreak = (player.streak || 0) + 1;
+      } else if (diffDays === 0) {
+        // Same day (edge case with timezone) — keep current
+        newStreak = player.streak || 1;
+      } else {
+        // Missed more than 1 day — reset streak
+        newStreak = 1;
+      }
+    }
+
+    setPlayer(prev => ({
+      ...prev,
+      lastLoginDate: today,
+      streak: newStreak,
+    }));
+  }, [player.lastLoginDate]);
+
   const registerUser = (profile: { id?: string; name?: string; username?: string; keys?: number; raw_data?: Partial<PlayerData>; replitUser?: ReplitUser }) => {
     setPlayer(prev => {
       const cloudData = (profile.raw_data || {}) as Partial<PlayerData>;
