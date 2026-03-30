@@ -471,26 +471,29 @@ const App: React.FC = () => {
   }, [player.isConfigured, player.tutorialComplete, isNewUserOnboarding, checkDailyLogin]);
 
   // ── Streak Celebration Trigger ──
-  // Fires once per calendar day when the user opens the app (including Day 1).
+  // Fires EXACTLY ONCE per calendar day on first login. Not on reload, not on DB sync.
   // Independent of DailyLoginModal.
   useEffect(() => {
+    // Must be configured
     if (!player.isConfigured) return;
+    // Already shown this session
     if (streakShownRef.current) return;
 
-    // Use local date string for today
+    // Compute today's local date string
     const now = new Date();
     const y = now.getFullYear();
     const m = String(now.getMonth() + 1).padStart(2, '0');
     const d = String(now.getDate()).padStart(2, '0');
     const today = `${y}-${m}-${d}`;
 
-    // Guard: only show once per calendar day
+    // Only trigger when lastLoginDate just became today (set by useSystem auto-streak)
+    if (player.lastLoginDate !== today) return;
+
+    // Persistent guard: localStorage prevents re-showing on page reload
     const shownKey = `reforge_streak_shown_${today}`;
     if (localStorage.getItem(shownKey)) return;
 
-    // Only trigger when lastLoginDate is set to today (streak just updated by useSystem)
-    if (player.lastLoginDate !== today) return;
-
+    // Mark as shown IMMEDIATELY — before any async re-renders
     streakShownRef.current = true;
     localStorage.setItem(shownKey, '1');
 
@@ -513,7 +516,7 @@ const App: React.FC = () => {
       weeklyActivity: weekly,
     });
     setShowStreakCelebration(true);
-  }, [player.isConfigured, player.lastLoginDate, player.streak, player.history]);
+  }, [player.isConfigured, player.lastLoginDate]); // ← minimal deps: only fires when login date changes
 
   useEffect(() => {
     if (player.logs.length > 0 && player.logs[0].type === 'LEVEL_UP') {
