@@ -212,13 +212,29 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
     }
   }, []);
 
+  // Poll every 10 seconds
   useEffect(() => {
     fetchLeaderboard();
-    const interval = setInterval(() => fetchLeaderboard(), 30_000);
+    const interval = setInterval(() => fetchLeaderboard(), 10_000);
     return () => clearInterval(interval);
   }, [fetchLeaderboard]);
 
-  // ── Build simulated entries ──
+  // ── Instant refresh on quest/workout completion ──
+  useEffect(() => {
+    const onXpChange = () => {
+      // Small delay so the cloud sync has time to complete
+      setTimeout(() => fetchLeaderboard(), 2500);
+    };
+    window.addEventListener('quest:completed', onXpChange);
+    window.addEventListener('player:levelup', onXpChange);
+    return () => {
+      window.removeEventListener('quest:completed', onXpChange);
+      window.removeEventListener('player:levelup', onXpChange);
+    };
+  }, [fetchLeaderboard]);
+
+  // ── Build entries with INSTANT local XP merge ──
+  // When YOU earn XP, your card moves immediately without waiting for server refresh
   const entries = activeTab === 'global' ? globalEntries : dailyEntries;
   const xpField = activeTab === 'global' ? 'total_xp' : 'daily_xp';
 
@@ -245,19 +261,26 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
     return [...entries].map(e => {
       const entryId = e.username || e.name;
       const isMe = entryId === myEntryId;
-      // Use raw XP from the API — shadow boost is already applied at XP-earn time in useSystem.ts
-      const displayXp = (e as any)[xpField] || 0;
+
+      // ── INSTANT LOCAL MERGE: use latest local XP for "me" ──
+      // This makes your card move UP immediately when you earn XP
+      let displayXp: number;
+      if (isMe) {
+        displayXp = activeTab === 'global' ? (player.totalXp || 0) : (player.dailyXp || 0);
+      } else {
+        displayXp = (e as any)[xpField] || 0;
+      }
 
       return {
         ...e,
         isMe,
         dominance: displayXp,
         isDebuffed: false,
-        computedRank: computeRankFromLevel(e.level || 1),
+        computedRank: computeRankFromLevel(isMe ? (player.level || 1) : (e.level || 1)),
         outfitId: isMe ? (player.equippedOutfitId || 'outfit_starter') : (e.equipped_outfit_id || 'outfit_starter'),
       };
     }).sort((a, b) => b.dominance - a.dominance);
-  }, [entries, player.username, player.name, xpField, player.equippedOutfitId]);
+  }, [entries, player.username, player.name, xpField, player.equippedOutfitId, player.totalXp, player.dailyXp, player.level, activeTab]);
 
   const myIndex = simulatedEntries.findIndex(e => e.isMe);
   const myRank = myIndex >= 0 ? myIndex + 1 : 999;
