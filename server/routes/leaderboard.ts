@@ -17,7 +17,7 @@ router.get('/', async (req: Request, res: Response) => {
     // For daily: we need updated_at to check if daily_xp is stale
     const { data, error } = await (supabaseServer() as any)
       .from('players')
-      .select('username, name, total_xp, daily_xp, level, rank, raw_data, updated_at')
+      .select('id, supabase_id, username, name, total_xp, daily_xp, level, rank, raw_data, updated_at')
       .order(type === 'daily' ? 'daily_xp' : 'total_xp', { ascending: false })
       .limit(100);
 
@@ -37,6 +37,8 @@ router.get('/', async (req: Request, res: Response) => {
       const effectiveDailyXp = isSyncedToday ? (row.daily_xp || 0) : 0;
 
       return {
+        player_id: row.id,
+        supabase_id: row.supabase_id,
         username: row.username,
         name: row.name,
         total_xp: row.total_xp || 0,

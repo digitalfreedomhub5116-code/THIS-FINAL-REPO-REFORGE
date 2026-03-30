@@ -19,6 +19,8 @@ import RankRewardOverlay from './RankRewardOverlay';
 
 // ── Types ──
 interface LeaderboardEntry {
+  player_id?: string;
+  supabase_id?: string;
   username: string;
   name: string;
   total_xp: number;
@@ -268,31 +270,37 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
   const xpField = activeTab === 'global' ? 'total_xp' : 'daily_xp';
 
   const simulatedEntries: SimEntry[] = useMemo(() => {
+    // ── PRIMARY: Match by player UUID (bulletproof, never collides) ──
+    const myPlayerId = player.userId || '';
     const myUsername = (player.username || '').trim().toLowerCase();
     const myName = (player.name || '').trim().toLowerCase();
 
-    let myEntryId: string | null = null;
-    for (const e of entries) {
-      if (myUsername && (e.username || '').trim().toLowerCase() === myUsername) {
-        myEntryId = e.username || e.name;
-        break;
-      }
-    }
-    if (!myEntryId) {
-      for (const e of entries) {
-        if (myName && (e.name || '').trim().toLowerCase() === myName) {
-          myEntryId = e.username || e.name;
-          break;
+    return [...entries].map(e => {
+      // Match by player_id (table UUID) first — this is the authoritative match
+      let isMe = false;
+      if (myPlayerId && e.player_id) {
+        isMe = e.player_id === myPlayerId;
+      } else if (myPlayerId && e.supabase_id) {
+        // Fallback: some older API responses might use supabase_id
+        isMe = e.supabase_id === myPlayerId;
+      } else {
+        // Last resort fallback for offline/legacy: match by username
+        const entryUsername = (e.username || '').trim().toLowerCase();
+        const entryName = (e.name || '').trim().toLowerCase();
+        if (myUsername && entryUsername === myUsername) {
+          isMe = true;
+        } else if (myName && entryName === myName) {
+          // Only match by name if username didn't match ANY entry
+          const usernameMatchExists = entries.some(
+            x => (x.username || '').trim().toLowerCase() === myUsername
+          );
+          if (!usernameMatchExists) {
+            isMe = true;
+          }
         }
       }
-    }
-
-    return [...entries].map(e => {
-      const entryId = e.username || e.name;
-      const isMe = entryId === myEntryId;
 
       // ── INSTANT LOCAL MERGE: use latest local XP for "me" ──
-      // This makes your card move UP immediately when you earn XP
       let displayXp: number;
       if (isMe) {
         displayXp = activeTab === 'global' ? (player.totalXp || 0) : (player.dailyXp || 0);
@@ -309,7 +317,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
         outfitId: isMe ? (player.equippedOutfitId || 'outfit_starter') : (e.equipped_outfit_id || 'outfit_starter'),
       };
     }).sort((a, b) => b.dominance - a.dominance);
-  }, [entries, player.username, player.name, xpField, player.equippedOutfitId, player.totalXp, player.dailyXp, player.level, activeTab]);
+  }, [entries, player.userId, player.username, player.name, xpField, player.equippedOutfitId, player.totalXp, player.dailyXp, player.level, activeTab]);
 
   const myIndex = simulatedEntries.findIndex(e => e.isMe);
   const myRank = myIndex >= 0 ? myIndex + 1 : 999;
