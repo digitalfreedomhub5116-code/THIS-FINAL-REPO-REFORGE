@@ -76,6 +76,7 @@ const SystemPactScreen = lazy(() => import('./components/SystemPactScreen'));
 const ConfettiOverlay = lazy(() => import('./components/ConfettiOverlay'));
 const StrikeLiftedModal = lazy(() => import('./components/StrikeLiftedModal'));
 const ForgeGuardWidget = lazy(() => import('./components/ForgeGuardWidget'));
+const StreakCelebration = lazy(() => import('./components/StreakCelebration'));
 
 // ── Types ──
 type OnboardingPhase = 'SPLASH' | 'WELCOME' | 'AGREEMENT' | 'NAMING' | 'CALIBRATION' | 'AUTH' | 'AUTH_SIGN_IN_PAGE' | 'AUTH_CREATE_PAGE' | 'APP' | 'LOGOUT_CHOICE';
@@ -226,6 +227,13 @@ const App: React.FC = () => {
   const [strikeLiftedNotifId, setStrikeLiftedNotifId] = useState<string | null>(null);
 
   const [mentorMessages, setMentorMessages] = useState<{id: string, text: string}[]>([]);
+
+  // ── Streak Celebration ──
+  const [showStreakCelebration, setShowStreakCelebration] = useState(false);
+  const [streakAnimData, setStreakAnimData] = useState<{
+    oldStreak: number; newStreak: number; weeklyActivity: boolean[];
+  } | null>(null);
+  const streakShownRef = useRef(false);
 
   // ── Sync from DB — callable ref for immediate triggers + 2s polling ──
   const syncFromDbRef = useRef<() => Promise<void>>();
@@ -461,6 +469,51 @@ const App: React.FC = () => {
       setShowDailyLogin(true);
     }
   }, [player.isConfigured, player.tutorialComplete, isNewUserOnboarding, checkDailyLogin]);
+
+  // ── Streak Celebration Trigger ──
+  // Fires once per calendar day when the user opens the app (including Day 1).
+  // Independent of DailyLoginModal.
+  useEffect(() => {
+    if (!player.isConfigured) return;
+    if (streakShownRef.current) return;
+
+    // Use local date string for today
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    const today = `${y}-${m}-${d}`;
+
+    // Guard: only show once per calendar day
+    const shownKey = `reforge_streak_shown_${today}`;
+    if (localStorage.getItem(shownKey)) return;
+
+    // Only trigger when lastLoginDate is set to today (streak just updated by useSystem)
+    if (player.lastLoginDate !== today) return;
+
+    streakShownRef.current = true;
+    localStorage.setItem(shownKey, '1');
+
+    // Compute weekly activity (Mon=0 ... Sun=6)
+    const dow = now.getDay(); // 0=Sun, 1=Mon...
+    const mondayOffset = dow === 0 ? -6 : 1 - dow;
+    const weekly: boolean[] = [];
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(now);
+      date.setDate(now.getDate() + mondayOffset + i);
+      const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      const inHistory = (player.history || []).some(h => h.date === dateStr);
+      const isToday = dateStr === today;
+      weekly.push(inHistory || isToday);
+    }
+
+    setStreakAnimData({
+      oldStreak: Math.max(0, player.streak - 1),
+      newStreak: player.streak,
+      weeklyActivity: weekly,
+    });
+    setShowStreakCelebration(true);
+  }, [player.isConfigured, player.lastLoginDate, player.streak, player.history]);
 
   useEffect(() => {
     if (player.logs.length > 0 && player.logs[0].type === 'LEVEL_UP') {
@@ -967,6 +1020,22 @@ const App: React.FC = () => {
                 }} 
               />
             </ErrorBoundary>
+          )}
+          {showStreakCelebration && streakAnimData && (
+            <Suspense fallback={null}>
+              <ErrorBoundary>
+                <StreakCelebration
+                  oldStreak={streakAnimData.oldStreak}
+                  newStreak={streakAnimData.newStreak}
+                  outfitId={player.equippedOutfitId}
+                  weeklyActivity={streakAnimData.weeklyActivity}
+                  onComplete={() => {
+                    setShowStreakCelebration(false);
+                    setStreakAnimData(null);
+                  }}
+                />
+              </ErrorBoundary>
+            </Suspense>
           )}
           {showLevelUp && (
             <ErrorBoundary>
