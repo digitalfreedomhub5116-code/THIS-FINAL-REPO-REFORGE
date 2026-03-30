@@ -1624,7 +1624,7 @@ const App: React.FC = () => {
                           nutritionLogs: [],
                           personalBests: {},
                           skillProgress: [],
-                          consumables: { healthPotions: 0, shadowScrolls: 0, ultOrbs: 0 },
+                          consumables: { shadowScrolls: 0 },
                           stats: { strength: 10, intelligence: 10, discipline: 10, social: 10, focus: 10, willpower: 10 },
                           dailyStats: { strength: 0, intelligence: 0, discipline: 0, social: 0, focus: 0, willpower: 0 },
                           weeklyStats: { strength: 0, intelligence: 0, discipline: 0, social: 0, focus: 0, willpower: 0 },

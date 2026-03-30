@@ -42,12 +42,8 @@ const DailyLoginModal: React.FC<DailyLoginModalProps> = ({ onClose }) => {
       window.dispatchEvent(new CustomEvent('reforge:coin-earned', { detail: { goldGained: todayReward.amount, startRect: rect } }));
     } else if (todayReward.type === 'KEYS' || todayReward.type === 'WELCOME_KEYS') {
       window.dispatchEvent(new CustomEvent('reforge:key-earned', { detail: { amount: todayReward.amount, startRect: rect } }));
-    } else if (todayReward.type === 'HEALTH_POTION') {
-      window.dispatchEvent(new CustomEvent('reforge:consumable-earned', { detail: { type: 'POTION', amount: todayReward.amount, startRect: rect } }));
     } else if (todayReward.type === 'SHADOW_SCROLL') {
       window.dispatchEvent(new CustomEvent('reforge:consumable-earned', { detail: { type: 'SCROLL', amount: todayReward.amount, startRect: rect } }));
-    } else if (todayReward.type === 'ULT_ORB') {
-      window.dispatchEvent(new CustomEvent('reforge:consumable-earned', { detail: { type: 'ORB', amount: todayReward.amount, startRect: rect } }));
     }
   };
 

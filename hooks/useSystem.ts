@@ -67,7 +67,7 @@ const DEFAULT_PLAYER: PlayerData = {
   logs: [],
   quests: [],
   shopItems: [],
-  consumables: { healthPotions: 0, shadowScrolls: 0, ultOrbs: 0 },
+  consumables: { shadowScrolls: 0 },
   awakening: { vision: [], antiVision: [] },
   personalBests: {},
   nutritionLogs: [],
@@ -140,7 +140,7 @@ function migratePlayerData(raw: Partial<PlayerData>): PlayerData {
   if (!merged.startDate) merged.startDate = Date.now();
   if (!merged.unlockedLooks) merged.unlockedLooks = [];
   if (!merged.activeLookId) merged.activeLookId = '';
-  if (!merged.consumables) merged.consumables = { healthPotions: 0, shadowScrolls: 0, ultOrbs: 0 };
+  if (!merged.consumables) merged.consumables = { shadowScrolls: 0 };
   if (!merged.outfitStones) merged.outfitStones = {};
   merged.tutorialComplete = (raw as any)?.tutorialComplete ?? false;
   return merged;
@@ -333,7 +333,7 @@ export const useSystem = () => {
         ...data,
         _serverGold: serverGoldRef.current,
         _serverKeys: serverKeysRef.current,
-        consumables: data.consumables || { healthPotions: 0, shadowScrolls: 0, ultOrbs: 0 }
+        consumables: data.consumables || { shadowScrolls: 0 }
       };
       
       const res = await fetch(`${API_BASE}/api/player/${data.userId}`, {
@@ -881,7 +881,7 @@ export const useSystem = () => {
 
       let { currentXp, requiredXp, level, totalXp, dailyXp, gold, keys, consumables } = prev;
       
-      const safeConsumables = consumables || { healthPotions: 0, shadowScrolls: 0, ultOrbs: 0 };
+      const safeConsumables = consumables || { shadowScrolls: 0 };
 
       if (reward.type === 'GOLD') gold += reward.amount;
       if (reward.type === 'XP') {
@@ -891,9 +891,7 @@ export const useSystem = () => {
       }
       if (reward.type === 'WELCOME_KEYS' || reward.type === 'KEYS' || reward.type === 'DUNGEON_PASS') keys += reward.amount;
       
-      if (reward.type === 'HEALTH_POTION') safeConsumables.healthPotions += reward.amount;
       if (reward.type === 'SHADOW_SCROLL') safeConsumables.shadowScrolls += reward.amount;
-      if (reward.type === 'ULT_ORB') safeConsumables.ultOrbs += reward.amount;
 
       let leveledUp = false;
       if (reward.type === 'XP') {
@@ -972,9 +970,7 @@ export const useSystem = () => {
 
       const updatedConsumables = { ...prev.consumables };
       if (bonusItems) {
-        if (bonusItems.potions) updatedConsumables.healthPotions = (updatedConsumables.healthPotions ?? 0) + bonusItems.potions;
         if (bonusItems.scrolls) updatedConsumables.shadowScrolls = (updatedConsumables.shadowScrolls ?? 0) + bonusItems.scrolls;
-        if (bonusItems.orbs) updatedConsumables.ultOrbs = (updatedConsumables.ultOrbs ?? 0) + bonusItems.orbs;
       }
 
       return {
@@ -1367,11 +1363,9 @@ export const useSystem = () => {
   };
 
 
-  const buyConsumable = (type: 'healthPotion' | 'shadowScroll' | 'ultOrb') => {
+  const buyConsumable = (type: 'shadowScroll') => {
     const costs: Record<string, { gold?: number; keys?: number; label: string; field: keyof PlayerData['consumables'] }> = {
-      healthPotion: { gold: 100, label: 'Health Potion', field: 'healthPotions' },
       shadowScroll: { gold: 150, label: 'Shadow Scroll', field: 'shadowScrolls' },
-      ultOrb: { keys: 3, label: 'ULT Refill Orb', field: 'ultOrbs' },
     };
     const c = costs[type];
     if (c.gold !== undefined) {
@@ -1454,17 +1448,15 @@ export const useSystem = () => {
   };
 
   // Reward type definition for workout session rewards
-  type WorkoutRewardType = 'XP' | 'GOLD' | 'KEYS' | 'HEALTH_POTION' | 'SHADOW_SCROLL' | 'ULT_ORB';
+  type WorkoutRewardType = 'XP' | 'GOLD' | 'KEYS' | 'SHADOW_SCROLL';
   interface WorkoutReward { type: WorkoutRewardType; amount: number; label: string; }
 
   const generateWorkoutRewards = (anomalyPoints: number = 0): WorkoutReward[] => {
     const pool: { type: WorkoutRewardType; weight: number; min: number; max: number; label: string }[] = [
-      { type: 'XP', weight: 30, min: 150, max: 350, label: 'XP' },
-      { type: 'GOLD', weight: 30, min: 20, max: 80, label: 'Gold' },
+      { type: 'XP', weight: 35, min: 150, max: 350, label: 'XP' },
+      { type: 'GOLD', weight: 35, min: 20, max: 80, label: 'Gold' },
       { type: 'KEYS', weight: 15, min: 1, max: 2, label: 'Keys' },
-      { type: 'HEALTH_POTION', weight: 10, min: 1, max: 1, label: 'Health Potion' },
-      { type: 'SHADOW_SCROLL', weight: 10, min: 1, max: 1, label: 'Shadow Scroll' },
-      { type: 'ULT_ORB', weight: 5, min: 1, max: 1, label: 'Ult Orb' },
+      { type: 'SHADOW_SCROLL', weight: 15, min: 1, max: 1, label: 'Shadow Scroll' },
     ];
 
     const picked: WorkoutReward[] = [];
@@ -1518,18 +1510,14 @@ export const useSystem = () => {
         rewards = [
           { type: 'XP', amount: Math.floor(Math.random() * 51) + 250, label: 'XP' },
           { type: 'GOLD', amount: Math.floor(Math.random() * 151) + 150, label: 'Gold' },
-          Math.random() < 0.5
-            ? { type: 'HEALTH_POTION', amount: 1, label: 'Health Potion' }
-            : { type: 'SHADOW_SCROLL', amount: 1, label: 'Shadow Scroll' },
+          { type: 'SHADOW_SCROLL', amount: 1, label: 'Shadow Scroll' },
         ];
       } else if (totalExercises <= 7) {
         // Tier 3: 6-7 exercises → 300-450 coins, 350-400 XP, common item
         rewards = [
           { type: 'XP', amount: Math.floor(Math.random() * 51) + 350, label: 'XP' },
           { type: 'GOLD', amount: Math.floor(Math.random() * 151) + 300, label: 'Gold' },
-          Math.random() < 0.5
-            ? { type: 'HEALTH_POTION', amount: 1, label: 'Health Potion' }
-            : { type: 'SHADOW_SCROLL', amount: 1, label: 'Shadow Scroll' },
+          { type: 'SHADOW_SCROLL', amount: 1, label: 'Shadow Scroll' },
         ];
       } else {
         // Tier 4: 8+ exercises → 500-600 coins, 450-550 XP, 1 key
@@ -1558,18 +1546,14 @@ export const useSystem = () => {
       let xpReward = 0;
       let goldReward = 0;
       let keyReward = 0;
-      let potionReward = 0;
       let scrollReward = 0;
-      let orbReward = 0;
 
       for (const r of rewards) {
         switch (r.type) {
           case 'XP': xpReward += r.amount; break;
           case 'GOLD': goldReward += r.amount; break;
           case 'KEYS': keyReward += r.amount; break;
-          case 'HEALTH_POTION': potionReward += r.amount; break;
           case 'SHADOW_SCROLL': scrollReward += r.amount; break;
-          case 'ULT_ORB': orbReward += r.amount; break;
         }
       }
 
@@ -1635,9 +1619,7 @@ export const useSystem = () => {
       }
 
       const consumables = { ...prev.consumables };
-      consumables.healthPotions += potionReward;
       consumables.shadowScrolls += scrollReward;
-      consumables.ultOrbs += orbReward;
 
       return {
         ...prev,

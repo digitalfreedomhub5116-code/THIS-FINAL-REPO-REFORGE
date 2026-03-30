@@ -20,9 +20,7 @@ interface EventBanner {
 }
 
 interface Consumables {
-  healthPotions: number;
   shadowScrolls: number;
-  ultOrbs: number;
 }
 
 interface ShopViewProps {
@@ -35,7 +33,7 @@ interface ShopViewProps {
   lastDungeonEntry?: number;
   onStartDungeon?: (isFree: boolean) => void;
   consumables?: Consumables;
-  buyConsumable?: (type: 'healthPotion' | 'shadowScroll' | 'ultOrb') => void;
+  buyConsumable?: (type: 'shadowScroll') => void;
   streak?: number;
   lastLoginDate?: string;
   onOpenDailyCalendar?: () => void;
@@ -62,17 +60,6 @@ const RARITY_STYLES: Record<string, { label: string; bg: string; text: string; b
 
 const CONSUMABLE_ITEMS = [
   {
-    type: 'healthPotion' as const,
-    name: 'Health Potion',
-    desc: 'Heals War HP. Prevents elimination.',
-    rarity: 'COMMON',
-    costGold: 100,
-    costKeys: 0,
-    emoji: '🧪',
-    ownedKey: 'healthPotions' as keyof Consumables,
-    accentColor: '#ef4444',
-  },
-  {
     type: 'shadowScroll' as const,
     name: 'Shadow Scroll',
     desc: 'Consumed to attempt a Shadow Extraction.',
@@ -83,34 +70,21 @@ const CONSUMABLE_ITEMS = [
     ownedKey: 'shadowScrolls' as keyof Consumables,
     accentColor: '#00d2ff',
   },
-  {
-    type: 'ultOrb' as const,
-    name: 'ULT Refill Orb',
-    desc: 'Reloads your Ultimate ability instantly.',
-    rarity: 'LEGENDARY',
-    costGold: 0,
-    costKeys: 3,
-    emoji: '⚡',
-    ownedKey: 'ultOrbs' as keyof Consumables,
-    accentColor: '#a855f7',
-  },
 ];
 
 // Build 7-day login preview from the real REWARD_SCHEDULE so store stays synced with the popup
 const REWARD_EMOJI: Record<string, string> = {
   GOLD: '🪙', XP: '⚡', KEYS: '🗝️', WELCOME_KEYS: '🗝️', DUNGEON_PASS: '👻',
-  HEALTH_POTION: '🧪', SHADOW_SCROLL: '📜', ULT_ORB: '🔮',
+  SHADOW_SCROLL: '📜',
 };
 const REWARD_RARITY: Record<string, string> = {
   GOLD: 'COMMON', XP: 'COMMON', KEYS: 'RARE', WELCOME_KEYS: 'RARE', DUNGEON_PASS: 'RARE',
-  HEALTH_POTION: 'COMMON', SHADOW_SCROLL: 'RARE', ULT_ORB: 'LEGENDARY',
+  SHADOW_SCROLL: 'RARE',
 };
 const REWARD_SHORT: Record<string, (a: number) => string> = {
   GOLD: a => `${a} G`, XP: a => `${a} XP`, KEYS: a => a === 1 ? 'Key' : `${a} Keys`,
   WELCOME_KEYS: a => `${a} Keys`, DUNGEON_PASS: a => `${a} Pass`,
-  HEALTH_POTION: a => a === 1 ? 'Potion' : `×${a}`,
   SHADOW_SCROLL: a => a === 1 ? 'Scroll' : `×${a}`,
-  ULT_ORB: a => a === 1 ? 'Orb' : `×${a}`,
 };
 
 const ShopView: React.FC<ShopViewProps> = ({
@@ -120,7 +94,7 @@ const ShopView: React.FC<ShopViewProps> = ({
   keys = 0,
   lastDungeonEntry = 0,
   onStartDungeon,
-  consumables = { healthPotions: 0, shadowScrolls: 0, ultOrbs: 0 },
+  consumables = { shadowScrolls: 0 },
   buyConsumable,
   streak = 0,
   lastLoginDate = '',
@@ -198,7 +172,7 @@ const ShopView: React.FC<ShopViewProps> = ({
   const isFreeReady  = timeUntilFree <= 0;
   const canAffordPaid = keys >= 3;
 
-  const handleBuy = (type: 'healthPotion' | 'shadowScroll' | 'ultOrb') => {
+  const handleBuy = (type: 'shadowScroll') => {
     if (!buyConsumable) return;
     setBuyingItem(type);
     buyConsumable(type);
@@ -275,11 +249,9 @@ const ShopView: React.FC<ShopViewProps> = ({
           className="space-y-5"
         >
           {/* ── INVENTORY COUNTERS ── */}
-          <div className="grid grid-cols-3 gap-3 pt-2">
+          <div className="grid grid-cols-1 gap-3 pt-2">
             {[
-              { emoji: '🧪', label: 'Potions',  count: consumables.healthPotions, color: '#ef4444' },
-              { emoji: '📜', label: 'Scrolls',  count: consumables.shadowScrolls,  color: '#00d2ff' },
-              { emoji: '⚡', label: 'Orbs',     count: consumables.ultOrbs,        color: '#a855f7' },
+              { emoji: '📜', label: 'Scrolls', count: consumables.shadowScrolls, color: '#00d2ff' },
             ].map(c => (
               <motion.div
                 key={c.label}

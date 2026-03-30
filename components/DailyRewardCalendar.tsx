@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DailyRewardType } from '../types';
 import { REWARD_SCHEDULE } from '../lib/rewards';
-import { Coins, Zap, Key, Ghost, Heart, Scroll, Star, X, Check, Gift, Lock } from 'lucide-react';
+import { Coins, Zap, Key, Ghost, Scroll, X, Check, Gift, Lock } from 'lucide-react';
 
 interface DailyRewardCalendarProps {
   streak: number; 
@@ -18,9 +18,7 @@ const RewardIcon = ({ type, size = 24 }: { type: DailyRewardType; size?: number 
     case 'KEYS':
     case 'WELCOME_KEYS': return <Key size={size} className="text-purple-300" />;
     case 'DUNGEON_PASS': return <Ghost size={size} className="text-red-500" />;
-    case 'HEALTH_POTION': return <Heart size={size} className="text-red-400" />;
     case 'SHADOW_SCROLL': return <Scroll size={size} className="text-indigo-400" />;
-    case 'ULT_ORB': return <Star size={size} className="text-orange-400" />;
     default: return <Coins size={size} className="text-gray-400" />;
   }
 };

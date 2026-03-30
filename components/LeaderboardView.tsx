@@ -196,7 +196,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
   const [expandedTarget, setExpandedTarget] = useState<string | null>(null);
   const [extractableTargets, setExtractableTargets] = useState<string[]>([]);
 
-  const cons = player.consumables || { healthPotions: 0, shadowScrolls: 0, ultOrbs: 0 };
+  const cons = player.consumables || { shadowScrolls: 0 };
   const outfitStats = equippedOutfit?.baseStats || { attack: 15, boost: 5, extraction: 16, ultimate: 10 };
 
   // ── Rank Reward State ──
@@ -368,24 +368,20 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
   }, [warfare.canExtract, addNotification]);
 
   // ── EXTRACTION HANDLERS (use ref to avoid stale closure) ──
-  const handleStartExtraction = useCallback((useOrb: boolean) => {
+  const handleStartExtraction = useCallback(() => {
     const phase = animPhaseRef.current;
     if (phase.type !== 'EXTRACTION_PROMPT') return;
-    if (useOrb) {
-      if (!consumeItem('ultOrbs', 1)) return;
-    } else {
-      if (!consumeItem('shadowScrolls', 1)) return;
-    }
-    const rate = useOrb ? 100 : (warfare.powerSurgeActive
+    if (!consumeItem('shadowScrolls', 1)) return;
+    const rate = warfare.powerSurgeActive
       ? Math.min(100, outfitStats.extraction * 2)
-      : outfitStats.extraction);
+      : outfitStats.extraction;
 
     setAnimPhase({
       type: 'EXTRACTION_ROLL',
       targetName: phase.targetName,
       targetRank: phase.targetRank,
       rate,
-      useOrb,
+      useOrb: false,
     });
   }, [consumeItem, warfare.powerSurgeActive, outfitStats.extraction]);
 
@@ -787,7 +783,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                   {/* Shadow Scroll option */}
                   <button
                     disabled={cons.shadowScrolls < 1}
-                    onClick={() => handleStartExtraction(false)}
+                    onClick={() => handleStartExtraction()}
                     className="w-full py-3.5 rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-25"
                     style={{
                       background: 'linear-gradient(135deg, rgba(0,210,255,0.08), rgba(0,210,255,0.02))',
@@ -799,22 +795,6 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                         Shadow Scroll ({outfitStats.extraction}%{warfare.powerSurgeActive ? ' ×2' : ''})
                       </div>
                       <div className="text-[9px] text-cyan-400/50">{cons.shadowScrolls} remaining</div>
-                    </div>
-                  </button>
-
-                  {/* Ult Orb option */}
-                  <button
-                    disabled={cons.ultOrbs < 1}
-                    onClick={() => handleStartExtraction(true)}
-                    className="w-full py-3.5 rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-25"
-                    style={{
-                      background: 'linear-gradient(135deg, rgba(168,85,247,0.1), rgba(234,179,8,0.04))',
-                      border: '1px solid rgba(168,85,247,0.2)',
-                    }}>
-                    <InfinityIcon size={16} className="text-purple-400" />
-                    <div className="text-left">
-                      <div className="text-xs font-black text-purple-400">Ult Orb (100% GUARANTEED)</div>
-                      <div className="text-[9px] text-purple-400/50">{cons.ultOrbs} remaining</div>
                     </div>
                   </button>
 

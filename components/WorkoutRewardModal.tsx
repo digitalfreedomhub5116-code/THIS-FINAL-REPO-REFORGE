@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, Coins, Key, Heart, ScrollText, Sparkles, ChevronRight, AlertOctagon, ShieldOff, XCircle } from 'lucide-react';
+import { Zap, Coins, Key, ScrollText, ChevronRight, AlertOctagon, ShieldOff, XCircle } from 'lucide-react';
 
 export interface WorkoutReward {
-  type: 'XP' | 'GOLD' | 'KEYS' | 'HEALTH_POTION' | 'SHADOW_SCROLL' | 'ULT_ORB';
+  type: 'XP' | 'GOLD' | 'KEYS' | 'SHADOW_SCROLL';
   amount: number;
   label: string;
 }
@@ -31,20 +31,10 @@ const REWARD_CONFIG: Record<string, { icon: React.ReactNode; accent: string; acc
     accent: 'text-gray-300',
     accentRgb: '209,213,219',
   },
-  HEALTH_POTION: {
-    icon: <Heart size={28} fill="currentColor" />,
-    accent: 'text-gray-300',
-    accentRgb: '209,213,219',
-  },
   SHADOW_SCROLL: {
     icon: <ScrollText size={28} />,
     accent: 'text-gray-300',
     accentRgb: '209,213,219',
-  },
-  ULT_ORB: {
-    icon: <Sparkles size={28} fill="currentColor" />,
-    accent: 'text-white',
-    accentRgb: '255,255,255',
   },
 };
 
@@ -297,18 +287,7 @@ const WorkoutRewardModal: React.FC<WorkoutRewardModalProps> = ({ rewards, anomal
                     </div>
 
                     {/* Rarity tag */}
-                    {reward.type === 'ULT_ORB' && (
-                      <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ delay: 0.3, type: 'spring' }}
-                        className="text-[8px] font-black font-mono px-2 py-0.5 rounded tracking-widest"
-                        style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.6)', border: '1px solid rgba(255,255,255,0.1)' }}
-                      >
-                        RARE
-                      </motion.div>
-                    )}
-                    {(reward.type === 'SHADOW_SCROLL' || reward.type === 'HEALTH_POTION') && (
+                    {reward.type === 'SHADOW_SCROLL' && (
                       <motion.div
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}

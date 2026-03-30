@@ -22,7 +22,7 @@ export type Priority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 export type Rarity = 'COMMON' | 'RARE' | 'EPIC' | 'LEGENDARY' | 'MYTHIC';
 
 // --- DAILY REWARDS ---
-export type DailyRewardType = 'WELCOME_KEYS' | 'GOLD' | 'XP' | 'KEYS' | 'DUNGEON_PASS' | 'HEALTH_POTION' | 'SHADOW_SCROLL' | 'ULT_ORB';
+export type DailyRewardType = 'WELCOME_KEYS' | 'GOLD' | 'XP' | 'KEYS' | 'DUNGEON_PASS' | 'SHADOW_SCROLL';
 
 export interface DailyReward {
   type: DailyRewardType;
@@ -560,7 +560,7 @@ export interface PlayerData {
   quests: Quest[];
   questHistory?: Record<string, number>;
   shopItems: ShopItem[];
-  consumables: { healthPotions: number; shadowScrolls: number; ultOrbs: number };
+  consumables: { shadowScrolls: number };
   awakening: AwakeningData;
   personalBests: Record<string, number>;
 

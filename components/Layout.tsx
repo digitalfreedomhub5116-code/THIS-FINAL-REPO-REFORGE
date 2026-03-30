@@ -59,7 +59,7 @@ interface LayoutProps {
   streak?: number;
   gold?: number;
   keys?: number;
-  consumables?: { healthPotions: number; shadowScrolls: number; ultOrbs: number };
+  consumables?: { shadowScrolls: number };
   replitUser?: ReplitUser;
   notificationHistory?: StoredNotification[];
   hasUnreadNotifications?: boolean;
