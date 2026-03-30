@@ -40,6 +40,7 @@ interface TrackingPluginInterface {
   }>;
   isRunning(): Promise<{ running: boolean }>;
   clear(): Promise<{ cleared: boolean }>;
+  ensurePermissions(): Promise<{ location: boolean; activity: boolean }>;
 }
 
 // Register the native plugin — only available on Android
@@ -220,6 +221,16 @@ export function useSensors(userId: string = 'local') {
     // ─── NATIVE PATH (Android Foreground Service) ───────────────────────
     if (isNative() && NativeTracking) {
       try {
+        // Request ACTIVITY_RECOGNITION + FINE_LOCATION at runtime.
+        // On Android 10+ ACTIVITY_RECOGNITION is a dangerous permission that
+        // defaults to "denied" unless explicitly requested via a dialog.
+        try {
+          const nativePerms = await NativeTracking.ensurePermissions();
+          console.log('[Sensors] Native permissions — location:', nativePerms.location, 'activity:', nativePerms.activity);
+        } catch (permErr) {
+          console.warn('[Sensors] ensurePermissions failed (non-fatal):', permErr);
+        }
+
         // Determine mode: FULL if quest needs steps/distance, TIME_ONLY otherwise
         const needsFullTracking = !!(requirements?.steps || requirements?.distanceKm);
         const mode = needsFullTracking ? 'FULL' : 'TIME_ONLY';

@@ -156,22 +156,33 @@ const App: React.FC = () => {
     }
   }, [sensors, stopSensorTracking]);
 
-  // Sync sensor snapshot → quest sensorData every 5s while tracking
+  // Keep refs in sync so the interval callback always reads fresh values
+  const sensorSnapRef = useRef(sensors.snapshot);
+  const sensorQuestRef = useRef(sensors.activeQuestId);
+  useEffect(() => { sensorSnapRef.current = sensors.snapshot; }, [sensors.snapshot]);
+  useEffect(() => { sensorQuestRef.current = sensors.activeQuestId; }, [sensors.activeQuestId]);
+
+  // Sync sensor snapshot → quest sensorData every 3s while tracking.
+  // IMPORTANT: sensors.snapshot must NOT be in the dep array — the native
+  // polling updates it every 3s which would clear+recreate the interval
+  // perpetually, preventing the callback from ever firing.
   useEffect(() => {
-    if (!sensors.tracking || !sensors.activeQuestId || !sensors.snapshot) return;
+    if (!sensors.tracking) return;
     const interval = setInterval(() => {
-      if (sensors.snapshot && sensors.activeQuestId) {
-        updateQuestSensorData(sensors.activeQuestId, {
-          stepsRecorded: sensors.snapshot.stepsRecorded,
-          distanceRecorded: sensors.snapshot.distanceRecorded,
-          activeMinutesRecorded: sensors.snapshot.activeMinutesRecorded,
-          locationPath: sensors.snapshot.locationPath,
-          maxSpeedKmh: sensors.snapshot.maxSpeedKmh,
+      const snap = sensorSnapRef.current;
+      const qid = sensorQuestRef.current;
+      if (snap && qid) {
+        updateQuestSensorData(qid, {
+          stepsRecorded: snap.stepsRecorded,
+          distanceRecorded: snap.distanceRecorded,
+          activeMinutesRecorded: snap.activeMinutesRecorded,
+          locationPath: snap.locationPath,
+          maxSpeedKmh: snap.maxSpeedKmh,
         });
       }
-    }, 5000);
+    }, 3000);
     return () => clearInterval(interval);
-  }, [sensors.tracking, sensors.activeQuestId, sensors.snapshot, updateQuestSensorData]);
+  }, [sensors.tracking, updateQuestSensorData]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [dbOutfits, setDbOutfits] = useState<Outfit[]>([]);
   const [dailyReward, setDailyReward] = useState<DailyReward | null>(null);

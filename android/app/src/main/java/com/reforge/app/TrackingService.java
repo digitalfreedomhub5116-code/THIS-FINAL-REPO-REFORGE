@@ -147,39 +147,48 @@ public class TrackingService extends Service implements StepCounterHelper.StepLi
     private void startLocationTracking() {
         try {
             LocationRequest locationRequest = new LocationRequest.Builder(
-                    Priority.PRIORITY_HIGH_ACCURACY, 5000) // 5s interval
-                    .setMinUpdateDistanceMeters(10f) // 10m displacement filter
-                    .setWaitForAccurateLocation(true)
+                    Priority.PRIORITY_HIGH_ACCURACY, 3000) // 3s interval
+                    .setMinUpdateDistanceMeters(5f) // 5m displacement filter
+                    // NOTE: do NOT use setWaitForAccurateLocation(true) — it blocks
+                    // all location updates on many OEM devices (Oppo, Xiaomi, etc.)
                     .build();
 
             locationCallback = new LocationCallback() {
                 @Override
                 public void onLocationResult(LocationResult result) {
                     if (!isRunning || result == null) return;
-                    Location location = result.getLastLocation();
-                    if (location == null) return;
-                    processLocation(location);
+                    for (Location location : result.getLocations()) {
+                        if (location != null) {
+                            processLocation(location);
+                        }
+                    }
                 }
             };
 
             fusedLocationClient.requestLocationUpdates(
                     locationRequest, locationCallback, Looper.getMainLooper());
-            Log.i(TAG, "GPS tracking started with 10m displacement filter");
+            Log.i(TAG, "GPS tracking started — interval=3s, displacement=5m");
         } catch (SecurityException e) {
-            Log.e(TAG, "Location permission not granted", e);
+            Log.e(TAG, "Location permission not granted — GPS tracking DISABLED", e);
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to start location tracking", e);
         }
     }
 
     private void processLocation(Location location) {
-        // Filter: reject bad accuracy (>30m)
-        if (location.getAccuracy() > 30) {
-            Log.d(TAG, "Rejected location — accuracy " + location.getAccuracy() + "m");
+        float accuracy = location.getAccuracy();
+
+        // Filter: reject very bad accuracy (>50m)
+        if (accuracy > 50) {
+            Log.d(TAG, "Rejected location — accuracy " + accuracy + "m (>50m)");
             return;
         }
 
         double speedKmh = 0;
+        float speedMs = 0;
         if (location.hasSpeed()) {
-            speedKmh = location.getSpeed() * 3.6; // m/s to km/h
+            speedMs = location.getSpeed();
+            speedKmh = speedMs * 3.6; // m/s to km/h
         }
 
         // Track max speed
@@ -191,15 +200,24 @@ public class TrackingService extends Service implements StepCounterHelper.StepLi
             float distanceM = lastLocation.distanceTo(location);
             double distanceKm = distanceM / 1000.0;
 
-            // Filter: ignore GPS jitter (<10m) and teleports (>500m)
-            if (distanceM >= 10 && distanceM < 500) {
-                // Filter: ignore movement when speed < 0.5 m/s (standing still drift)
-                if (location.hasSpeed() && location.getSpeed() < 0.5f) {
-                    Log.d(TAG, "Ignored drift — speed " + location.getSpeed() + " m/s");
+            // Filter: ignore GPS jitter (<3m) and teleports (>500m)
+            if (distanceM >= 3 && distanceM < 500) {
+                // Only reject as drift if:
+                // 1) Speed is explicitly reported AND very low (<0.3 m/s), AND
+                // 2) The distance is small (<15m) — could be genuine GPS wobble
+                // This avoids rejecting real movement when speed reports 0 on first fixes
+                boolean isDrift = location.hasSpeed() && speedMs < 0.3f && distanceM < 15;
+                if (isDrift) {
+                    Log.d(TAG, "Drift — speed=" + String.format("%.2f", speedMs) + "m/s dist=" + String.format("%.1f", distanceM) + "m");
                 } else {
                     distanceRecordedKm += distanceKm;
+                    Log.d(TAG, "+" + String.format("%.1f", distanceM) + "m (acc=" + String.format("%.0f", accuracy) + "m spd=" + String.format("%.1f", speedMs) + "m/s) → total " + String.format("%.3f", distanceRecordedKm) + "km");
                 }
+            } else if (distanceM >= 500) {
+                Log.w(TAG, "Teleport rejected — " + String.format("%.0f", distanceM) + "m jump");
             }
+        } else {
+            Log.i(TAG, "First GPS fix — acc=" + String.format("%.0f", accuracy) + "m lat=" + location.getLatitude() + " lng=" + location.getLongitude());
         }
 
         lastLocation = location;

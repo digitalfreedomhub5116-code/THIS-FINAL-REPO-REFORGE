@@ -10,6 +10,8 @@ import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
+import com.getcapacitor.annotation.Permission;
+import com.getcapacitor.annotation.PermissionCallback;
 
 import org.json.JSONObject;
 
@@ -17,15 +19,62 @@ import org.json.JSONObject;
  * Capacitor Plugin that bridges JavaScript ↔ TrackingService.
  *
  * JavaScript API:
+ *   TrackingPlugin.ensurePermissions() → requests ACTIVITY_RECOGNITION + FINE_LOCATION at runtime
  *   TrackingPlugin.start({ questId, mode, reqSteps, reqDistanceKm, reqActiveMinutes, carrySteps, carryDistance, carryMinutes, carryMaxSpeed, startedAt })
  *   TrackingPlugin.stop()          → returns final snapshot
  *   TrackingPlugin.getSnapshot()   → returns current tracking data
  *   TrackingPlugin.isRunning()     → { running: boolean }
  *   TrackingPlugin.clear()         → clears persisted data
  */
-@CapacitorPlugin(name = "TrackingPlugin")
+@CapacitorPlugin(
+    name = "TrackingPlugin",
+    permissions = {
+        @Permission(
+            alias = "location",
+            strings = { "android.permission.ACCESS_FINE_LOCATION" }
+        ),
+        @Permission(
+            alias = "activity",
+            strings = { "android.permission.ACTIVITY_RECOGNITION" }
+        )
+    }
+)
 public class TrackingPlugin extends Plugin {
     private static final String TAG = "TrackingPlugin";
+
+    @PluginMethod()
+    public void ensurePermissions(PluginCall call) {
+        // On Android < 10, ACTIVITY_RECOGNITION doesn't exist as a runtime permission
+        boolean locationOk = "granted".equals(getPermissionState("location"));
+        boolean activityOk = Build.VERSION.SDK_INT < Build.VERSION_CODES.Q
+                || "granted".equals(getPermissionState("activity"));
+
+        if (locationOk && activityOk) {
+            Log.i(TAG, "All permissions already granted");
+            JSObject result = new JSObject();
+            result.put("location", true);
+            result.put("activity", true);
+            call.resolve(result);
+            return;
+        }
+
+        Log.i(TAG, "Requesting missing permissions — location=" + locationOk + " activity=" + activityOk);
+        requestAllPermissions(call, "permissionsCallback");
+    }
+
+    @PermissionCallback
+    private void permissionsCallback(PluginCall call) {
+        boolean locationGranted = "granted".equals(getPermissionState("location"));
+        boolean activityGranted = Build.VERSION.SDK_INT < Build.VERSION_CODES.Q
+                || "granted".equals(getPermissionState("activity"));
+
+        Log.i(TAG, "Permissions result — location=" + locationGranted + " activity=" + activityGranted);
+
+        JSObject result = new JSObject();
+        result.put("location", locationGranted);
+        result.put("activity", activityGranted);
+        call.resolve(result);
+    }
 
     @PluginMethod()
     public void start(PluginCall call) {

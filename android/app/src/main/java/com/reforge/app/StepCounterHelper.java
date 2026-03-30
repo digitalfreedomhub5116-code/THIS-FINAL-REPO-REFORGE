@@ -68,7 +68,13 @@ public class StepCounterHelper implements SensorEventListener {
 
         // SENSOR_DELAY_FASTEST for most responsive step updates
         // The step counter sensor is very battery-efficient regardless of delay
-        sensorManager.registerListener(this, stepSensor, SensorManager.SENSOR_DELAY_FASTEST);
+        boolean registered = sensorManager.registerListener(this, stepSensor, SensorManager.SENSOR_DELAY_FASTEST);
+        if (!registered) {
+            Log.e(TAG, "FAILED to register step counter — ACTIVITY_RECOGNITION permission likely denied. " +
+                    "Go to Settings → Apps → REFORGE → Permissions → Physical Activity → Allow");
+            isTracking = false;
+            return;
+        }
         Log.i(TAG, "Step counter started with " + initialSteps + " carry-over steps");
     }
 
