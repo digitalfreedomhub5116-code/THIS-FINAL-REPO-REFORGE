@@ -59,4 +59,57 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
+// ── Check for unclaimed rank rewards for a specific player ──
+router.get('/rewards', async (req: Request, res: Response) => {
+  const userId = req.query.userId as string;
+  if (!userId) return res.status(400).json({ error: 'userId required' });
+
+  try {
+    const { data, error } = await (supabaseServer() as any)
+      .from('daily_rank_snapshots')
+      .select('*')
+      .eq('player_id', userId)
+      .eq('claimed', false)
+      .order('snapshot_date', { ascending: false })
+      .limit(1);
+
+    if (error) {
+      console.error('[Leaderboard Rewards GET]', error);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+
+    if (!data || data.length === 0) {
+      return res.json({ reward: null });
+    }
+
+    return res.json({ reward: data[0] });
+  } catch (err) {
+    console.error('[Leaderboard Rewards GET]', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ── Claim a rank reward (mark as seen, animation played) ──
+router.post('/rewards/claim', async (req: Request, res: Response) => {
+  const { snapshotId } = req.body;
+  if (!snapshotId) return res.status(400).json({ error: 'snapshotId required' });
+
+  try {
+    const { error } = await (supabaseServer() as any)
+      .from('daily_rank_snapshots')
+      .update({ claimed: true })
+      .eq('id', snapshotId);
+
+    if (error) {
+      console.error('[Leaderboard Rewards Claim]', error);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('[Leaderboard Rewards Claim]', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 export default router;

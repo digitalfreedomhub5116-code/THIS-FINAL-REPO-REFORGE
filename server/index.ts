@@ -227,6 +227,135 @@ async function startServer() {
     } catch (err) {
       console.warn('[Server] Could not set up Supabase keep-alive:', err);
     }
+
+    // ── Midnight Leaderboard Reward Cron ──
+    // Checks every 60s if the UTC date has changed. On change, snapshots the
+    // top 5 daily XP earners and credits Gold/XP/Keys to their accounts.
+    try {
+      const { supabaseServer: getDb } = await import('./lib/supabase.js');
+
+      const REWARD_TIERS = [
+        { rank: 1, gold: 500, xp: 300, keys: 1 },
+        { rank: 2, gold: 300, xp: 200, keys: 0 },
+        { rank: 3, gold: 200, xp: 150, keys: 0 },
+        { rank: 4, gold: 100, xp: 75,  keys: 0 },
+        { rank: 5, gold: 100, xp: 50,  keys: 0 },
+      ];
+
+      let lastCronDate = '';
+
+      const runMidnightRewardCron = async () => {
+        const now = new Date();
+        const todayUTC = now.toISOString().slice(0, 10); // YYYY-MM-DD
+
+        // Only fire once per UTC day
+        if (todayUTC === lastCronDate) return;
+
+        // The snapshot is for YESTERDAY's leaderboard
+        const yesterday = new Date(now);
+        yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+        const yesterdayStr = yesterday.toISOString().slice(0, 10);
+
+        // Check if we already have a snapshot for yesterday
+        const db = getDb() as any;
+        const { data: existing } = await db
+          .from('daily_rank_snapshots')
+          .select('id')
+          .eq('snapshot_date', yesterdayStr)
+          .limit(1);
+
+        if (existing && existing.length > 0) {
+          // Already snapshotted yesterday — just update the marker
+          lastCronDate = todayUTC;
+          return;
+        }
+
+        console.log(`[Cron] Midnight reward distribution — snapshotting ${yesterdayStr}`);
+
+        // Yesterday's time boundaries (UTC)
+        const yesterdayStart = new Date(yesterdayStr + 'T00:00:00Z');
+        const yesterdayEnd = new Date(todayUTC + 'T00:00:00Z');
+
+        // Get top 5 players by daily_xp who synced yesterday
+        const { data: topPlayers, error: fetchErr } = await db
+          .from('players')
+          .select('id, username, name, daily_xp, gold, keys, total_xp')
+          .gte('updated_at', yesterdayStart.toISOString())
+          .lt('updated_at', yesterdayEnd.toISOString())
+          .gt('daily_xp', 0)
+          .order('daily_xp', { ascending: false })
+          .limit(5);
+
+        if (fetchErr) {
+          console.error('[Cron] Failed to fetch top players:', fetchErr);
+          return;
+        }
+
+        if (!topPlayers || topPlayers.length === 0) {
+          console.log('[Cron] No active players yesterday — skipping rewards');
+          lastCronDate = todayUTC;
+          return;
+        }
+
+        console.log(`[Cron] Top ${topPlayers.length} players:`, topPlayers.map((p: any) => `${p.username || p.name}: ${p.daily_xp} XP`));
+
+        // Distribute rewards
+        for (let i = 0; i < topPlayers.length; i++) {
+          const player = topPlayers[i];
+          const tier = REWARD_TIERS[i];
+          if (!tier) break;
+
+          // 1. Insert snapshot row
+          const { error: snapErr } = await db
+            .from('daily_rank_snapshots')
+            .insert({
+              snapshot_date: yesterdayStr,
+              rank: tier.rank,
+              player_id: player.id,
+              username: player.username || player.name,
+              daily_xp: player.daily_xp,
+              reward_gold: tier.gold,
+              reward_xp: tier.xp,
+              reward_keys: tier.keys,
+              claimed: false,
+            });
+
+          if (snapErr) {
+            console.error(`[Cron] Failed to insert snapshot for rank ${tier.rank}:`, snapErr);
+            continue;
+          }
+
+          // 2. Credit rewards directly to player's account
+          const { error: updateErr } = await db
+            .from('players')
+            .update({
+              gold: (player.gold || 0) + tier.gold,
+              keys: (player.keys || 0) + tier.keys,
+              total_xp: (player.total_xp || 0) + tier.xp,
+            })
+            .eq('id', player.id);
+
+          if (updateErr) {
+            console.error(`[Cron] Failed to credit rewards to ${player.username}:`, updateErr);
+          } else {
+            console.log(`[Cron] Rank #${tier.rank} → ${player.username || player.name}: +${tier.gold}G, +${tier.xp}XP, +${tier.keys}K`);
+          }
+        }
+
+        lastCronDate = todayUTC;
+        console.log(`[Cron] Midnight reward distribution complete for ${yesterdayStr}`);
+      };
+
+      // Run immediately on startup (catches up if server was down at midnight)
+      runMidnightRewardCron().catch(err => console.error('[Cron] Startup run failed:', err));
+      // Then check every 60 seconds
+      setInterval(() => {
+        runMidnightRewardCron().catch(err => console.error('[Cron] Interval run failed:', err));
+      }, 60_000);
+      console.log('[Server] Midnight reward cron scheduled (checks every 60s)');
+    } catch (err) {
+      console.warn('[Server] Could not set up midnight reward cron:', err);
+    }
   });
 }
 

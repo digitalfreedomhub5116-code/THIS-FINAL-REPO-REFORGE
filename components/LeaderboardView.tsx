@@ -15,6 +15,7 @@ import {
   ExtractionRollAnim, AriseAnim, ScrollBurnAnim,
   MonarchCrownAnim, PowerSurgeBanner,
 } from './WarfareAnimations';
+import RankRewardOverlay from './RankRewardOverlay';
 
 // ── Types ──
 interface LeaderboardEntry {
@@ -195,6 +196,34 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
 
   const cons = player.consumables || { healthPotions: 0, shadowScrolls: 0, ultOrbs: 0 };
   const outfitStats = equippedOutfit?.baseStats || { attack: 15, boost: 5, extraction: 16, ultimate: 10 };
+
+  // ── Rank Reward State ──
+  const [pendingReward, setPendingReward] = useState<{
+    id: string; rank: number; reward_gold: number; reward_xp: number; reward_keys: number;
+  } | null>(null);
+  const [showRewardOverlay, setShowRewardOverlay] = useState(false);
+  const rewardCheckedRef = useRef(false);
+
+  // Check for unclaimed rank rewards on mount (per-user via API)
+  useEffect(() => {
+    if (!player.userId || rewardCheckedRef.current) return;
+    rewardCheckedRef.current = true;
+
+    (async () => {
+      try {
+        const res = await fetch(
+          `${API_BASE}/api/leaderboard/rewards?userId=${player.userId}`,
+          { credentials: 'include', headers: { ...getPlayerAuthHeaders() } }
+        );
+        if (!res.ok) return;
+        const { reward } = await res.json();
+        if (reward) {
+          setPendingReward(reward);
+          setShowRewardOverlay(true);
+        }
+      } catch { /* offline — skip */ }
+    })();
+  }, [player.userId]);
 
   // ── Fetch both leaderboards ──
   const fetchLeaderboard = useCallback(async (showRefresh = false) => {
@@ -818,6 +847,42 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
         )}
         {animPhase.type === 'MONARCH_CROWN' && (
           <MonarchCrownAnim onComplete={() => setAnimPhase({ type: 'NONE' })} />
+        )}
+      </AnimatePresence>
+
+      {/* ── RANK REWARD OVERLAY ── */}
+      <AnimatePresence>
+        {showRewardOverlay && pendingReward && (
+          <RankRewardOverlay
+            rank={pendingReward.rank}
+            gold={pendingReward.reward_gold}
+            xp={pendingReward.reward_xp}
+            keys={pendingReward.reward_keys}
+            username={player.username || player.name || 'Hunter'}
+            onClaim={async () => {
+              setShowRewardOverlay(false);
+              // Local UI sync (rewards already credited by server cron)
+              addRewards(
+                pendingReward.reward_gold,
+                pendingReward.reward_xp,
+                pendingReward.reward_keys
+              );
+              addNotification(
+                `Leaderboard Reward: Rank #${pendingReward.rank} — +${pendingReward.reward_gold}G, +${pendingReward.reward_xp}XP${pendingReward.reward_keys > 0 ? `, +${pendingReward.reward_keys} Key` : ''}`,
+                'SUCCESS'
+              );
+              // Mark as claimed on server
+              try {
+                await fetch(`${API_BASE}/api/leaderboard/rewards/claim`, {
+                  method: 'POST',
+                  credentials: 'include',
+                  headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
+                  body: JSON.stringify({ snapshotId: pendingReward.id }),
+                });
+              } catch { /* will retry next time */ }
+              setPendingReward(null);
+            }}
+          />
         )}
       </AnimatePresence>
     </div>
