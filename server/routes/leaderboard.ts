@@ -67,10 +67,27 @@ router.get('/rewards', async (req: Request, res: Response) => {
   if (!userId) return res.status(400).json({ error: 'userId required' });
 
   try {
-    const { data, error } = await (supabaseServer() as any)
+    const db = supabaseServer() as any;
+
+    // Translate userId (Google OAuth numeric ID / supabase_id) to internal DB UUID
+    const { data: playerRow, error: playerErr } = await db
+      .from('players')
+      .select('id')
+      .eq('supabase_id', userId)
+      .limit(1)
+      .single();
+
+    if (playerErr || !playerRow) {
+      // Player not found — no rewards to show
+      return res.json({ reward: null });
+    }
+
+    const internalId: string = playerRow.id;
+
+    const { data, error } = await db
       .from('daily_rank_snapshots')
       .select('*')
-      .eq('player_id', userId)
+      .eq('player_id', internalId)
       .eq('claimed', false)
       .order('snapshot_date', { ascending: false })
       .limit(1);
