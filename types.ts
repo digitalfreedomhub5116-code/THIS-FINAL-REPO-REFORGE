@@ -592,4 +592,8 @@ export interface PlayerData {
   tournament: {
     pendingReward: TournamentReward | null;
   };
+
+  // Badge Stone System — per-outfit crystal counts
+  // e.g. { "outfit_ghost": 45, "outfit_assassin": 203 }
+  outfitStones: Record<string, number>;
 }

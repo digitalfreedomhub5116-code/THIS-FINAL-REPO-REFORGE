@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Lock, CheckCircle, Eye } from 'lucide-react';
-import { OUTFITS, TIERS } from '../utils/gameData';
+import { Lock, CheckCircle, Eye, Sparkles } from 'lucide-react';
+import { OUTFITS, TIERS, BADGE_TIERS, getStoneConfig, getOutfitXpBoost, getBadgeFillProgress } from '../utils/gameData';
 import { Outfit } from '../types';
-import { AttackIcon, BoostIcon, ExtractIcon, UltimateIcon } from './StatIcons';
+import HexBadge from './HexBadge';
 import OutfitPurchaseModal from './OutfitPurchaseModal';
 
 interface WardrobePreviewCardProps {
@@ -14,6 +14,7 @@ interface WardrobePreviewCardProps {
   onPurchase?: (outfit: Outfit) => void;
   onEquip: (id: string) => void;
   onOpenWardrobe: () => void;
+  outfitStones?: Record<string, number>;
 }
 
 // ── Vertical stat ring (sized to fit 4 in a column) ───────────────────────────
@@ -184,6 +185,7 @@ const WardrobePreviewCard: React.FC<WardrobePreviewCardProps> = ({
   onPurchase,
   onEquip,
   onOpenWardrobe: _onOpenWardrobe,
+  outfitStones = {},
 }) => {
   const outfits = (propOutfits && propOutfits.length > 0) ? propOutfits : OUTFITS;
 
@@ -326,45 +328,55 @@ const WardrobePreviewCard: React.FC<WardrobePreviewCardProps> = ({
       {/* ── MAIN 40/60 SPLIT — no visible divider ── */}
       <div className="flex" style={{ height: 'clamp(260px, 50vw, 360px)' }}>
 
-        {/* LEFT 40% — 4 stat rings in a vertical column */}
+        {/* LEFT 40% — 4 mini hex badges + boost */}
         <div
-          className="flex flex-col justify-center gap-3.5 py-4 px-3"
+          className="flex flex-col justify-center items-center gap-2 py-4 px-2"
           style={{ width: '40%' }}
         >
-          <StatRing
-            animKey={`${statAnimKey}-atk`}
-            value={attackVal}
-            color="#935251"
-            glowColor="#93525170"
-            icon={<AttackIcon size={15} color="#935251" />}
-            label="ATTACK"
-          />
-          <StatRing
-            animKey={`${statAnimKey}-bst`}
-            value={boostVal}
-            color="#7F61A4"
-            glowColor="#7F61A470"
-            icon={<BoostIcon size={15} color="#7F61A4" />}
-            label="BOOST"
-          />
-          <StatRing
-            animKey={`${statAnimKey}-ext`}
-            value={extractVal}
-            color="#595F9C"
-            glowColor="#595F9C70"
-            icon={<ExtractIcon size={15} color="#595F9C" />}
-            label="EXTRACT"
-          />
-          <StatRing
-            animKey={`${statAnimKey}-ult`}
-            value={ultimateVal}
-            color="#9F8232"
-            glowColor="#9F823270"
-            icon={<UltimateIcon size={15} color="#9F8232" />}
-            label="ULTIMATE"
-          />
+          {/* 2x2 mini badges grid */}
+          <div className="grid grid-cols-2 gap-1.5">
+            {BADGE_TIERS.map((tier, idx) => {
+              const stones = outfitStones[outfit.id] || 0;
+              const badgeUnlocked = stones >= tier.stonesRequired;
+              const fill = getBadgeFillProgress(stones, idx);
+              return (
+                <HexBadge
+                  key={tier.name}
+                  fillPercent={fill}
+                  tierIndex={idx}
+                  isUnlocked={badgeUnlocked}
+                  accentColor={accent}
+                  name={tier.name}
+                  size="small"
+                />
+              );
+            })}
+          </div>
 
-          {/* Outfit name + tier below rings, inside left panel */}
+          {/* XP Boost display */}
+          {(() => {
+            const stones = outfitStones[outfit.id] || 0;
+            const boost = getOutfitXpBoost(stones);
+            const stoneConf = getStoneConfig(outfit.id);
+            return (
+              <div className="text-center mt-1">
+                <div className="flex items-center justify-center gap-1 mb-1">
+                  <Sparkles size={9} style={{ color: boost > 0 ? accent : '#4b5563' }} />
+                  <span
+                    className="text-[9px] font-black font-mono"
+                    style={{ color: boost > 0 ? accent : '#4b5563' }}
+                  >
+                    +{Math.round(boost * 100)}% XP
+                  </span>
+                </div>
+                <div className="text-[7px] font-mono text-gray-600">
+                  {stones} {stoneConf.stoneName.split(' ')[0]}s
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Outfit name + tier */}
           <div className="mt-1">
             <AnimatePresence mode="wait">
               <motion.div

@@ -1413,6 +1413,7 @@ const App: React.FC = () => {
                     wardrobeOutfits={dbOutfits.length > 0 ? dbOutfits : OUTFITS}
                     wardrobeOnPurchase={purchaseOutfit}
                     wardrobeOnEquip={equipOutfit}
+                    outfitStones={player.outfitStones || {}}
                   />
                 </ErrorBoundary>
               </Suspense>
@@ -1449,6 +1450,7 @@ const App: React.FC = () => {
                     buyConsumable={buyConsumable}
                     streak={player.streak}
                     lastLoginDate={player.lastLoginDate}
+                    outfitStones={player.outfitStones || {}}
                   />
                 </ErrorBoundary>
               </Suspense>

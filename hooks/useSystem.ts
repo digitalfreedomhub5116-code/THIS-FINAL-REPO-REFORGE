@@ -8,6 +8,7 @@ import { playSystemSoundEffect } from '../utils/soundEngine';
 import { getPlayerAuthHeaders } from '../lib/playerApi';
 import { REWARD_SCHEDULE } from '../lib/rewards';
 import { API_BASE } from '../lib/apiConfig';
+import { OUTFITS, getOutfitXpBoost, getStoneConfig, getUnlockedBadgeCount, BADGE_TIERS } from '../utils/gameData';
 
 export const isEmbed = (url: string) => {
   return url.includes('youtube.com/embed') || url.includes('player.vimeo.com');
@@ -91,6 +92,7 @@ const DEFAULT_PLAYER: PlayerData = {
   combatStats: { attack: 0, boost: 0, ultimate: 0, extraction: 0 },
   unlockedLooks: [],
   activeLookId: '',
+  outfitStones: {},
 };
 
 function migratePlayerData(raw: Partial<PlayerData>): PlayerData {
@@ -139,6 +141,7 @@ function migratePlayerData(raw: Partial<PlayerData>): PlayerData {
   if (!merged.unlockedLooks) merged.unlockedLooks = [];
   if (!merged.activeLookId) merged.activeLookId = '';
   if (!merged.consumables) merged.consumables = { healthPotions: 0, shadowScrolls: 0, ultOrbs: 0 };
+  if (!merged.outfitStones) merged.outfitStones = {};
   merged.tutorialComplete = (raw as any)?.tutorialComplete ?? false;
   return merged;
 }
@@ -237,6 +240,12 @@ function getShadowXpMultiplier(userId: string): number {
     const count = (data?.shadows?.length ?? 0);
     return 1 + (Math.min(count, 3) * 0.02); // 1.00, 1.02, 1.04, or 1.06
   } catch { return 1; }
+}
+
+// ── Badge XP boost: based on equipped outfit's badges ──
+function getBadgeXpMultiplier(outfitStones: Record<string, number>, equippedOutfitId: string): number {
+  const stones = outfitStones[equippedOutfitId] || 0;
+  return 1 + getOutfitXpBoost(stones); // e.g. 1.17 for max badges
 }
 
 export const useSystem = () => {
@@ -1124,7 +1133,11 @@ export const useSystem = () => {
       let { currentXp, requiredXp, level, totalXp, dailyXp } = prev;
       // Apply shadow army XP boost
       const shadowMultiplier = getShadowXpMultiplier(prev.userId || 'local');
-      const boostedReward = Math.floor(reward * shadowMultiplier);
+      // Apply badge XP boost from equipped outfit
+      const badgeMultiplier = getBadgeXpMultiplier(prev.outfitStones || {}, prev.equippedOutfitId || 'outfit_starter');
+      const totalMultiplier = shadowMultiplier * badgeMultiplier;
+      const boostedReward = Math.floor(reward * totalMultiplier);
+      const badgeBonus = boostedReward - reward;
       currentXp += boostedReward;
       totalXp += boostedReward;
       dailyXp += boostedReward;
@@ -1136,7 +1149,8 @@ export const useSystem = () => {
       const pactBonusTag = isOptionalPact && !asMini ? ' [PACT 1.25x]' : '';
       const pactReturnTag = pactReturn > 0 ? ` (+${pactReturn}G Pledge Returned)` : '';
       const goldTag = goldReward > 0 ? `, +${goldReward} Gold` : '';
-      const newLogs = [createLog(`Completed Quest: ${quest.title} (+${reward} XP${goldTag}${pactBonusTag})${pactReturnTag}`, 'XP'), ...prev.logs];
+      const badgeTag = badgeBonus > 0 ? ` [Badge +${badgeBonus}]` : '';
+      const newLogs = [createLog(`Completed Quest: ${quest.title} (+${reward} XP${goldTag}${pactBonusTag}${badgeTag})${pactReturnTag}`, 'XP'), ...prev.logs];
       if (leveledUp) {
         newLogs.unshift(createLog(`LEVEL UP! REACHED LEVEL ${level}`, 'LEVEL_UP'));
         playSystemSoundEffect('LEVEL_UP');
@@ -1189,6 +1203,9 @@ export const useSystem = () => {
       const rect = el?.getBoundingClientRect() || null;
       window.dispatchEvent(new CustomEvent('reforge:coin-earned', { detail: { goldGained, startRect: rect } }));
     }
+
+    // Award random outfit stones on quest completion (1-3)
+    awardRandomStones(1, 3, 'Quest');
 
     // Post-state-update: dispatch coin-lost animation for burned pacts (cheat path)
     if (noRewards && prePact && prePactAmount > 0) {
@@ -1555,7 +1572,10 @@ export const useSystem = () => {
       let { currentXp, requiredXp, level, totalXp, dailyXp } = prev;
       // Apply shadow army XP boost
       const shadowMult = getShadowXpMultiplier(prev.userId || 'local');
-      const boostedWorkoutXp = Math.floor(totalXpGain * shadowMult);
+      // Apply badge XP boost
+      const badgeMult = getBadgeXpMultiplier(prev.outfitStones || {}, prev.equippedOutfitId || 'outfit_starter');
+      const combinedMult = shadowMult * badgeMult;
+      const boostedWorkoutXp = Math.floor(totalXpGain * combinedMult);
       currentXp += boostedWorkoutXp;
       totalXp += boostedWorkoutXp;
       dailyXp += boostedWorkoutXp;
@@ -1618,6 +1638,8 @@ export const useSystem = () => {
       const rewardSummary = rewards.map(r => `${r.amount} ${r.label}`).join(', ');
       addNotification(`Workout Complete! Rewards: ${rewardSummary}`, 'SUCCESS');
       triggerDuskMessage(`Workout Completed: ${exercisesCompleted}/${totalExercises} exercises done. Intensity: ${intensityModifier ? 'HIGH' : 'NORMAL'}. Rewards: ${rewardSummary}.`);
+      // Award random outfit stones on workout completion (2-5)
+      awardRandomStones(2, 5, 'Workout');
     }
 
     // Persist to workouts table (fire-and-forget)
@@ -1635,6 +1657,53 @@ export const useSystem = () => {
     }
 
     return rewards;
+  };
+
+  // ── STONE/CRYSTAL AWARDING ──
+  const awardRandomStones = (min: number, max: number, source: string) => {
+    const amount = Math.floor(Math.random() * (max - min + 1)) + min;
+    // Pick a random outfit to award stones to
+    const outfitIds = OUTFITS.map(o => o.id);
+    const targetOutfitId = outfitIds[Math.floor(Math.random() * outfitIds.length)];
+    const stoneConf = getStoneConfig(targetOutfitId);
+
+    setPlayer(prev => {
+      const prevStones = prev.outfitStones || {};
+      const oldCount = prevStones[targetOutfitId] || 0;
+      const newCount = oldCount + amount;
+      const newStones = { ...prevStones, [targetOutfitId]: newCount };
+
+      // Check if a new badge was unlocked
+      const oldBadges = getUnlockedBadgeCount(oldCount);
+      const newBadges = getUnlockedBadgeCount(newCount);
+
+      const newLogs = [
+        createLog(`+${amount} ${stoneConf.stoneName} earned (${source})`, 'LOOT'),
+        ...prev.logs,
+      ];
+
+      // If a new badge was unlocked, fire an event
+      if (newBadges > oldBadges) {
+        const unlockedTierIdx = newBadges - 1;
+        const tier = BADGE_TIERS[unlockedTierIdx];
+        if (tier) {
+          newLogs.unshift(
+            createLog(`BADGE UNLOCKED: ${tier.name} (${tier.label}) for ${stoneConf.stoneName.replace(' Crystal', '')}!`, 'SYSTEM')
+          );
+          window.dispatchEvent(new CustomEvent('badge:unlocked', {
+            detail: { tierIndex: unlockedTierIdx, outfitId: targetOutfitId }
+          }));
+        }
+      }
+
+      return {
+        ...prev,
+        outfitStones: newStones,
+        logs: newLogs.slice(0, 60),
+      };
+    });
+
+    addNotification(`+${amount} ${stoneConf.stoneName} (${source})`, 'SUCCESS');
   };
 
   const failWorkout = () => {
@@ -1970,6 +2039,7 @@ export const useSystem = () => {
     addNotification,
     updateSkillProgress,
     updateServerBaseline,
+    awardRandomStones,
   };
 };
 
