@@ -4,7 +4,7 @@
 CREATE TABLE IF NOT EXISTS daily_rank_snapshots (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   snapshot_date DATE NOT NULL,
-  rank INTEGER NOT NULL,  -- 1 through 5
+  rank INTEGER NOT NULL,
   player_id UUID REFERENCES players(id) ON DELETE CASCADE,
   username VARCHAR(255),
   daily_xp INTEGER DEFAULT 0,
@@ -28,9 +28,16 @@ CREATE INDEX IF NOT EXISTS idx_snapshots_date
 -- RLS: players can only read their own snapshots
 ALTER TABLE daily_rank_snapshots ENABLE ROW LEVEL SECURITY;
 
+-- Use explicit type cast to avoid text vs uuid mismatch
 CREATE POLICY "Players can view own snapshots" ON daily_rank_snapshots
   FOR SELECT USING (
-    EXISTS (SELECT 1 FROM players WHERE players.id = daily_rank_snapshots.player_id AND players.supabase_id = auth.uid())
+    EXISTS (
+      SELECT 1 FROM players
+      WHERE players.id = daily_rank_snapshots.player_id
+        AND players.supabase_id::text = auth.uid()::text
+    )
   );
 
--- Service role (server) has full access by default
+-- Allow service role (server) full access for inserts/updates
+CREATE POLICY "Service role full access" ON daily_rank_snapshots
+  FOR ALL USING (true) WITH CHECK (true);
