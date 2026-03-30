@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef, lazy, Suspense, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+import StoneDropAnim from './components/StoneDropAnim';
+import BadgeUnlockAnim from './components/BadgeUnlockAnim';
 import Layout from './components/Layout';
 import Navigation from './components/Navigation';
 import MobileFloatingMenu from './components/MobileFloatingMenu';
@@ -227,6 +229,39 @@ const App: React.FC = () => {
   const [strikeLiftedNotifId, setStrikeLiftedNotifId] = useState<string | null>(null);
 
   const [mentorMessages, setMentorMessages] = useState<{id: string, text: string}[]>([]);
+
+  // ── Stone Drop & Badge Unlock global animations ──
+  const [stoneAnim, setStoneAnim] = useState<{ outfitId: string; amount: number; oldCount: number; newCount: number; color: string; glow: string } | null>(null);
+  const stoneQueueRef          = useRef<Array<{ outfitId: string; amount: number; oldCount: number; newCount: number; color: string; glow: string }>>([]);
+  const stoneAnimActiveRef     = useRef(false);
+  const [badgeAnim, setBadgeAnim] = useState<{ tierIndex: number; outfitId: string } | null>(null);
+
+  const drainStoneQueue = useCallback(() => {
+    const next = stoneQueueRef.current.shift();
+    if (next) { stoneAnimActiveRef.current = true; setStoneAnim(next); }
+    else { stoneAnimActiveRef.current = false; }
+  }, []);
+
+  useEffect(() => {
+    const onStoneEarned = (e: Event) => {
+      const d = (e as CustomEvent).detail as { outfitId: string; amount: number; oldCount: number; newCount: number; color: string; glow: string; badgeUnlocked: boolean };
+      if (d.badgeUnlocked) return;
+      const entry = { outfitId: d.outfitId, amount: d.amount, oldCount: d.oldCount, newCount: d.newCount, color: d.color, glow: d.glow };
+      if (stoneAnimActiveRef.current) { stoneQueueRef.current.push(entry); }
+      else { stoneAnimActiveRef.current = true; setStoneAnim(entry); }
+    };
+    const onBadgeUnlocked = (e: Event) => {
+      const d = (e as CustomEvent).detail as { tierIndex: number; outfitId: string };
+      stoneQueueRef.current = []; setStoneAnim(null); stoneAnimActiveRef.current = false;
+      setBadgeAnim({ tierIndex: d.tierIndex, outfitId: d.outfitId });
+    };
+    window.addEventListener('stone:earned',   onStoneEarned);
+    window.addEventListener('badge:unlocked', onBadgeUnlocked);
+    return () => {
+      window.removeEventListener('stone:earned',   onStoneEarned);
+      window.removeEventListener('badge:unlocked', onBadgeUnlocked);
+    };
+  }, []);
 
   // ── Streak Celebration ──
   const [showStreakCelebration, setShowStreakCelebration] = useState(false);
@@ -1663,6 +1698,34 @@ const App: React.FC = () => {
             onCancel={() => setShowLogoutChoice(false)}
           />
         )}
+
+        {/* ── Stone Drop Animation (every award) ── */}
+        <AnimatePresence>
+          {stoneAnim && (
+            <StoneDropAnim
+              key={`stone-${stoneAnim.outfitId}-${stoneAnim.newCount}`}
+              outfitId={stoneAnim.outfitId}
+              amount={stoneAnim.amount}
+              oldCount={stoneAnim.oldCount}
+              newCount={stoneAnim.newCount}
+              color={stoneAnim.color}
+              glow={stoneAnim.glow}
+              onComplete={() => { setStoneAnim(null); drainStoneQueue(); }}
+            />
+          )}
+        </AnimatePresence>
+
+        {/* ── Badge Tier Unlock Animation (full cinematic) ── */}
+        <AnimatePresence>
+          {badgeAnim && (
+            <BadgeUnlockAnim
+              key={`badge-${badgeAnim.outfitId}-${badgeAnim.tierIndex}`}
+              tierIndex={badgeAnim.tierIndex}
+              outfitId={badgeAnim.outfitId}
+              onComplete={() => setBadgeAnim(null)}
+            />
+          )}
+        </AnimatePresence>
 
       </Layout>
     </>

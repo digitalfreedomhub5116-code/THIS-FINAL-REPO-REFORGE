@@ -1710,8 +1710,12 @@ export const useSystem = () => {
         ...prev.logs,
       ];
 
-      // If a new badge was unlocked, fire an event
-      if (newBadges > oldBadges) {
+      // Fire stone:earned for animation (always) and badge:unlocked if a tier was crossed
+      const badgeUnlocked = newBadges > oldBadges;
+      window.dispatchEvent(new CustomEvent('stone:earned', {
+        detail: { outfitId: targetOutfitId, amount, oldCount, newCount, color: stoneConf.stoneColor, glow: stoneConf.stoneGlow, badgeUnlocked }
+      }));
+      if (badgeUnlocked) {
         const unlockedTierIdx = newBadges - 1;
         const tier = BADGE_TIERS[unlockedTierIdx];
         if (tier) {
@@ -1747,7 +1751,11 @@ export const useSystem = () => {
         createLog(`+${amount} ${stoneConf.stoneName} earned (${source})`, 'LOOT'),
         ...prev.logs,
       ];
-      if (newBadges > oldBadges) {
+      const badgeUnlocked = newBadges > oldBadges;
+      window.dispatchEvent(new CustomEvent('stone:earned', {
+        detail: { outfitId, amount, oldCount, newCount, color: stoneConf.stoneColor, glow: stoneConf.stoneGlow, badgeUnlocked }
+      }));
+      if (badgeUnlocked) {
         const unlockedTierIdx = newBadges - 1;
         const tier = BADGE_TIERS[unlockedTierIdx];
         if (tier) {
