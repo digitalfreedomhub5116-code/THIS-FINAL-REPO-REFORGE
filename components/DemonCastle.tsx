@@ -2,29 +2,51 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, animate } from 'framer-motion';
-import { Ghost, Key, Coins, Skull, LogOut, Timer, AlertOctagon, Sparkles, Crown, Heart, Scroll, Star } from 'lucide-react';
+import { Ghost, Key, Coins, Skull, LogOut, Timer, AlertOctagon, Sparkles, Crown } from 'lucide-react';
+import CrystalIcon from './CrystalIcon';
 import { playSystemSoundEffect } from '../utils/soundEngine';
 import { useCoinReward } from '../hooks/useCoinReward';
 
 type CardType = 'SAFE' | 'TRAP' | 'JACKPOT';
-type RewardType = 'GOLD' | 'POTION' | 'SCROLL' | 'ORB' | 'KEY';
+type StoneRewardType = 'STONE_ASH' | 'STONE_PLUTON' | 'STONE_SATURN' | 'STONE_MARS' | 'STONE_JUPITER' | 'STONE_OVERLORD';
+type RewardType = 'GOLD' | 'KEY' | StoneRewardType;
+
+const STONE_REWARD_CONFIG: Record<StoneRewardType, { outfitId: string; color: string; glow: string; name: string; shortName: string }> = {
+  STONE_ASH:      { outfitId: 'outfit_starter',  color: '#9ca3af', glow: 'rgba(156,163,175,0.5)', name: 'Ash Crystal',      shortName: 'ASH' },
+  STONE_PLUTON:   { outfitId: 'outfit_ghost',     color: '#4ade80', glow: 'rgba(74,222,128,0.5)',  name: 'Pluton Crystal',   shortName: 'PLUTON' },
+  STONE_SATURN:   { outfitId: 'outfit_knight',    color: '#60a5fa', glow: 'rgba(96,165,250,0.5)',  name: 'Saturn Crystal',   shortName: 'SATURN' },
+  STONE_MARS:     { outfitId: 'outfit_assassin',  color: '#c084fc', glow: 'rgba(192,132,252,0.5)', name: 'Mars Crystal',     shortName: 'MARS' },
+  STONE_JUPITER:  { outfitId: 'outfit_vanguard',  color: '#facc15', glow: 'rgba(250,204,21,0.5)',  name: 'Jupiter Crystal',  shortName: 'JUPITER' },
+  STONE_OVERLORD: { outfitId: 'outfit_monarch',   color: '#f87171', glow: 'rgba(248,113,113,0.5)', name: 'Overlord Crystal', shortName: 'OVERLORD' },
+};
+const ALL_STONE_TYPES = Object.keys(STONE_REWARD_CONFIG) as StoneRewardType[];
+const isStoneType = (rt: RewardType): rt is StoneRewardType => rt.startsWith('STONE_');
+
+/** Scale stone drops by floor depth */
+const rollStoneAmount = (floor: number, isLootFloor: boolean): number => {
+  const min = isLootFloor ? 10 : 3;
+  const max = isLootFloor ? 22 : 9;
+  return Math.floor(Math.random() * (max - min + 1)) + min + Math.floor(floor / 8);
+};
 
 interface FloorCardData {
   id: string;
   type: CardType;
   rewardType?: RewardType;
-  reward: { gold: number; xp: number; keys: number; bonusItem?: 'POTION' | 'SCROLL' | 'ORB' };
+  reward: { gold: number; xp: number; keys: number; stoneAmount?: number };
 }
 
 /** Pick a single reward type from weighted pool */
 const rollRewardType = (): RewardType => {
-  // Common: GOLD 30%, POTION 25%, SCROLL 25%  |  Rare: KEY 10%, ORB 10%
   const pool: { type: RewardType; weight: number }[] = [
-    { type: 'GOLD', weight: 30 },
-    { type: 'POTION', weight: 25 },
-    { type: 'SCROLL', weight: 25 },
-    { type: 'KEY', weight: 10 },
-    { type: 'ORB', weight: 10 },
+    { type: 'GOLD',          weight: 22 },
+    { type: 'KEY',           weight: 4  },
+    { type: 'STONE_ASH',     weight: 12 },
+    { type: 'STONE_PLUTON',  weight: 12 },
+    { type: 'STONE_SATURN',  weight: 12 },
+    { type: 'STONE_MARS',    weight: 12 },
+    { type: 'STONE_JUPITER', weight: 12 },
+    { type: 'STONE_OVERLORD',weight: 14 },
   ];
   const total = pool.reduce((s, r) => s + r.weight, 0);
   let roll = Math.random() * total;
@@ -42,7 +64,8 @@ interface DemonCastleProps {
   onDeductGold: (amount: number) => boolean;
   onConsumeKey: (amount?: number) => Promise<boolean>;
   onEnterDungeon: (isFree: boolean) => Promise<boolean>;
-  onAddRewards: (gold: number, xp: number, keys?: number, bonusItems?: { potions?: number; scrolls?: number; orbs?: number }) => void;
+  onAddRewards: (gold: number, xp: number, keys?: number) => void;
+  onAwardStones: (outfitId: string, amount: number) => void;
   onPlayStateChange: (isPlaying: boolean) => void; 
   initialMode?: 'LOBBY' | 'PLAYING';
   onExit?: () => void;
@@ -213,15 +236,14 @@ const VintageCardFront = ({ data }: { data: FloorCardData }) => {
   })), []);
 
   // Theme config per reward type
+  const stoneConf = isStoneType(rt) ? STONE_REWARD_CONFIG[rt] : null;
   const theme = isTrap
     ? { bg: "bg-[#0f0f0f] border-red-900", corner: '', cornerColor: '' }
     : isRare
       ? { bg: "bg-[#1a0b2e] border-purple-500", corner: 'border-current', cornerColor: '#a855f7' }
-      : rt === 'POTION'
-        ? { bg: "bg-[#1a0808] border-red-800", corner: 'border-current', cornerColor: '#dc2626' }
-        : rt === 'SCROLL'
-          ? { bg: "bg-[#081218] border-cyan-700", corner: 'border-current', cornerColor: '#0891b2' }
-          : { bg: "bg-[#f5e6ca] border-[#c2a168]", corner: 'border-current', cornerColor: '#854d0e' };
+      : stoneConf
+        ? { bg: `bg-[#0a0a14] border-[${stoneConf.color}]/40`, corner: 'border-current', cornerColor: stoneConf.color }
+        : { bg: "bg-[#f5e6ca] border-[#c2a168]", corner: 'border-current', cornerColor: '#854d0e' };
 
   return (
     <div className={`w-full h-full rounded-xl border-[4px] relative overflow-hidden flex flex-col items-center justify-center shadow-[inset_0_0_30px_rgba(0,0,0,0.2)] ${theme.bg}`}>
@@ -274,52 +296,28 @@ const VintageCardFront = ({ data }: { data: FloorCardData }) => {
                <div className="text-[8px] text-purple-400/70 font-bold uppercase tracking-widest relative z-10">RARE DROP</div>
             </>
 
-        ) : rt === 'ORB' ? (
+        ) : stoneConf ? (
             <>
+               {/* Stone sparkle particles */}
                <div className="absolute inset-0 overflow-hidden pointer-events-none">
                   {sparkleParticles.map((p, i) => (
-                      <motion.div key={i} initial={{ opacity: 0, scale: 0 }} animate={{ opacity: [0, 1, 0], scale: [0, 1, 0], x: p.x, y: p.y }} transition={{ duration: 2, repeat: Infinity, delay: p.delay }} className="absolute top-1/2 left-1/2">
-                          <Sparkles size={8} className="text-orange-200" />
+                      <motion.div key={i} initial={{ opacity: 0, scale: 0 }} animate={{ opacity: [0, 1, 0], scale: [0, 1, 0], x: p.x, y: p.y }} transition={{ duration: 2.2, repeat: Infinity, delay: p.delay }} className="absolute top-1/2 left-1/2">
+                          <Sparkles size={7} style={{ color: stoneConf.color }} />
                       </motion.div>
                   ))}
                </div>
-               <motion.div animate={{ rotateY: 360 }} transition={{ duration: 5, repeat: Infinity, ease: "linear" }} className="text-orange-400 drop-shadow-[0_0_15px_rgba(249,115,22,0.5)] mb-2 relative z-10">
-                   <Star size={48} strokeWidth={1.5} fill="#f97316" className="text-orange-600" />
+               {/* Ambient glow */}
+               <div className="absolute inset-0 pointer-events-none" style={{ background: `radial-gradient(circle at center, ${stoneConf.color}20, transparent 70%)` }} />
+               <motion.div
+                 animate={{ y: [0, -6, 0], filter: [`drop-shadow(0 0 8px ${stoneConf.color})`, `drop-shadow(0 0 18px ${stoneConf.color})`, `drop-shadow(0 0 8px ${stoneConf.color})`] }}
+                 transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+                 className="mb-2 relative z-10"
+               >
+                 <CrystalIcon color={stoneConf.color} glow={stoneConf.glow} size={52} />
                </motion.div>
-               <div className="font-black text-orange-300 uppercase tracking-widest text-lg font-serif relative z-10 drop-shadow-sm">ULT ORB</div>
-               <div className="text-[8px] text-orange-400/70 font-bold uppercase tracking-widest relative z-10">RARE DROP</div>
-            </>
-
-        ) : rt === 'POTION' ? (
-            <>
-               <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                  {floatParticles.map((p, i) => (
-                      <motion.div key={i} initial={{ y: 60, opacity: 0 }} animate={{ y: -60, opacity: [0, 1, 0] }} transition={{ duration: 2.5, repeat: Infinity, delay: i * 0.7, ease: "easeOut" }} className="absolute left-1/2 text-red-400/20" style={{ marginLeft: p.marginLeft }}>
-                          <Heart size={10} fill="currentColor" />
-                      </motion.div>
-                  ))}
-               </div>
-               <motion.div animate={{ rotateY: 360 }} transition={{ duration: 6, repeat: Infinity, ease: "linear" }} className="text-red-400 drop-shadow-[0_0_10px_rgba(239,68,68,0.4)] mb-2 relative z-10">
-                   <Heart size={48} strokeWidth={1.5} fill="#ef4444" className="text-red-600" />
-               </motion.div>
-               <div className="font-black text-red-300 uppercase tracking-widest text-lg font-serif relative z-10 drop-shadow-sm">POTION</div>
-               <div className="text-[8px] text-red-400/70 font-bold uppercase tracking-widest relative z-10">+1 HEALTH</div>
-            </>
-
-        ) : rt === 'SCROLL' ? (
-            <>
-               <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                  {floatParticles.map((p, i) => (
-                      <motion.div key={i} initial={{ y: 60, opacity: 0 }} animate={{ y: -60, opacity: [0, 1, 0] }} transition={{ duration: 2.5, repeat: Infinity, delay: i * 0.7, ease: "easeOut" }} className="absolute left-1/2 text-cyan-400/20" style={{ marginLeft: p.marginLeft }}>
-                          <Scroll size={10} fill="currentColor" />
-                      </motion.div>
-                  ))}
-               </div>
-               <motion.div animate={{ rotateY: 360 }} transition={{ duration: 6, repeat: Infinity, ease: "linear" }} className="text-cyan-400 drop-shadow-[0_0_10px_rgba(0,210,255,0.4)] mb-2 relative z-10">
-                   <Scroll size={48} strokeWidth={1.5} className="text-cyan-400" />
-               </motion.div>
-               <div className="font-black text-cyan-300 uppercase tracking-widest text-lg font-serif relative z-10 drop-shadow-sm">SCROLL</div>
-               <div className="text-[8px] text-cyan-400/70 font-bold uppercase tracking-widest relative z-10">+1 SHADOW</div>
+               <div className="font-black uppercase tracking-widest text-sm font-serif relative z-10 drop-shadow-sm" style={{ color: stoneConf.color }}>{stoneConf.shortName}</div>
+               <div className="font-black text-white uppercase tracking-wider text-lg font-mono relative z-10">+{data.reward.stoneAmount ?? 5}</div>
+               <div className="text-[8px] font-bold uppercase tracking-widest relative z-10 opacity-60" style={{ color: stoneConf.color }}>CRYSTAL SHARD</div>
             </>
 
         ) : (
@@ -415,14 +413,11 @@ const FloatingCardWrapper: React.FC<{ children: React.ReactNode, index: number }
 const FlyingLoot: React.FC<{ lootType: RewardType; startRect: DOMRect | null }> = ({ lootType, startRect }) => {
     if (!startRect) return null;
 
-    const config: Record<RewardType, { bg: string; icon: React.ReactNode }> = {
-        GOLD:   { bg: 'bg-yellow-400 border-white', icon: <Coins size={20} color="white" fill="currentColor" /> },
-        KEY:    { bg: 'bg-purple-500 border-white', icon: <Key size={20} color="white" fill="currentColor" /> },
-        POTION: { bg: 'bg-red-500 border-white',    icon: <Heart size={20} color="white" fill="currentColor" /> },
-        SCROLL: { bg: 'bg-cyan-500 border-white',   icon: <Scroll size={20} color="white" /> },
-        ORB:    { bg: 'bg-orange-500 border-white',  icon: <Star size={20} color="white" fill="currentColor" /> },
-    };
-    const { bg, icon } = config[lootType] || config.GOLD;
+    const stoneConf = isStoneType(lootType) ? STONE_REWARD_CONFIG[lootType] : null;
+    const bg = lootType === 'KEY' ? 'bg-purple-500 border-white' : stoneConf ? 'bg-gray-800 border-white' : 'bg-yellow-400 border-white';
+    const icon = lootType === 'KEY' ? <Key size={20} color="white" fill="currentColor" />
+        : stoneConf ? <CrystalIcon color={stoneConf.color} glow={stoneConf.glow} size={20} />
+        : <Coins size={20} color="white" fill="currentColor" />;
 
     return (
         <motion.div
@@ -640,15 +635,16 @@ const SequentialReward: React.FC<{
 
 // --- SUB-COMPONENT: VICTORY SCREEN (PREMIUM) ---
 const VictoryScreen: React.FC<{ 
-  loot: { gold: number; xp: number; keys: number; potions: number; scrolls: number; orbs: number };
+  loot: { gold: number; xp: number; keys: number; stones: Record<string, number> };
   onClose: () => void;
 }> = ({ loot, onClose }) => {
   const [stage, setStage] = useState<'intro' | 'rewards' | 'done'>('intro');
-  const [rewardStage, setRewardStage] = useState(0); // 0-4: Gold, Keys, Potions, Scrolls, Orbs
+  const [rewardStage, setRewardStage] = useState(0);
   const [showConfetti, setShowConfetti] = useState(false);
   const [shake, setShake] = useState(false);
 
-  const totalStages = 5; // gold, keys, potions, scrolls, orbs
+  const collectedStones = Object.entries(loot.stones).filter(([, v]) => v > 0);
+  const totalStages = 2 + collectedStones.length; // gold, keys, + each stone type
 
   useEffect(() => {
     // Start rewards after intro
@@ -660,7 +656,7 @@ const VictoryScreen: React.FC<{
     if (stage === 'rewards' && rewardStage === totalStages) {
       setTimeout(() => {
         setStage('done');
-        if (loot.gold > 0 || loot.keys > 0 || loot.potions > 0 || loot.scrolls > 0 || loot.orbs > 0) {
+        if (loot.gold > 0 || loot.keys > 0 || Object.values(loot.stones).some(v => v > 0)) {
             setShowConfetti(true);
             setShake(true);
             playSystemSoundEffect('VICTORY_BURST'); 
@@ -774,36 +770,39 @@ const VictoryScreen: React.FC<{
              color="purple-500"
              onComplete={() => setRewardStage(prev => Math.max(prev, 2))}
            />
-           <SequentialReward 
-             start={rewardStage >= 2}
-             value={loot.potions} 
-             label="Potions" 
-             icon={<Heart size={22} />} 
-             delay={0.15} 
-             color="red-500"
-             onComplete={() => setRewardStage(prev => Math.max(prev, 3))}
-           />
+           {collectedStones.length === 0 && (
+             <SequentialReward 
+               start={rewardStage >= 2}
+               value={0} 
+               label="Stones" 
+               icon={<CrystalIcon color="#9ca3af" glow="rgba(156,163,175,0.5)" size={22} />} 
+               delay={0.15} 
+               color="gray-500"
+               onComplete={() => setRewardStage(prev => Math.max(prev, 3))}
+             />
+           )}
         </div>
-        <div className="grid grid-cols-3 gap-3 mb-10 relative z-10">
-           <SequentialReward 
-             start={rewardStage >= 3}
-             value={loot.scrolls} 
-             label="Scrolls" 
-             icon={<Scroll size={22} />} 
-             delay={0.15} 
-             color="indigo-500"
-             onComplete={() => setRewardStage(prev => Math.max(prev, 4))}
-           />
-           <SequentialReward 
-             start={rewardStage >= 4}
-             value={loot.orbs} 
-             label="Orbs" 
-             icon={<Star size={22} />} 
-             delay={0.15} 
-             color="orange-500"
-             onComplete={() => setRewardStage(prev => Math.max(prev, 5))}
-           />
-        </div>
+        {collectedStones.length > 0 && (
+          <div className={`grid gap-3 mb-10 relative z-10 ${collectedStones.length <= 3 ? 'grid-cols-3' : 'grid-cols-3'}`}>
+            {collectedStones.map(([stoneKey, amount], idx) => {
+              const sc = STONE_REWARD_CONFIG[stoneKey as StoneRewardType];
+              if (!sc) return null;
+              const stageIdx = 2 + idx;
+              return (
+                <SequentialReward 
+                  key={stoneKey}
+                  start={rewardStage >= stageIdx}
+                  value={amount} 
+                  label={sc.shortName} 
+                  icon={<CrystalIcon color={sc.color} glow={sc.glow} size={22} />} 
+                  delay={0.15} 
+                  color="blue-500"
+                  onComplete={() => setRewardStage(prev => Math.max(prev, stageIdx + 1))}
+                />
+              );
+            })}
+          </div>
+        )}
 
         {/* Footer Button */}
         <div className="h-14 relative z-10">
@@ -831,7 +830,7 @@ const VictoryScreen: React.FC<{
 
 // --- SUB-COMPONENT: GAME OVER SCREEN (PREMIUM) ---
 const GameOverScreen: React.FC<{ 
-  lostLoot: { gold: number; xp: number; keys: number; potions: number; scrolls: number; orbs: number };
+  lostLoot: { gold: number; xp: number; keys: number; stones: Record<string, number> };
   onClose: () => void;
 }> = ({ lostLoot, onClose }) => {
   const [screenShake, setScreenShake] = useState(true);
@@ -951,23 +950,21 @@ const GameOverScreen: React.FC<{
                     <div className="text-[8px] font-bold uppercase tracking-wider text-gray-800">KEYS</div>
                 </div>
             </div>
-            <div className="bg-black/40 border border-red-900/30 rounded-xl p-4 grid grid-cols-3 gap-3 mb-10 relative">
-                <div className="flex flex-col items-center gap-1.5 opacity-50 grayscale">
-                    <Heart size={18} className="text-gray-600" />
-                    <div className="text-xs font-bold text-red-800 font-mono line-through">{lostLoot.potions}</div>
-                    <div className="text-[8px] font-bold uppercase tracking-wider text-gray-800">POTIONS</div>
-                </div>
-                <div className="flex flex-col items-center gap-1.5 opacity-50 grayscale">
-                    <Scroll size={18} className="text-gray-600" />
-                    <div className="text-xs font-bold text-red-800 font-mono line-through">{lostLoot.scrolls}</div>
-                    <div className="text-[8px] font-bold uppercase tracking-wider text-gray-800">SCROLLS</div>
-                </div>
-                <div className="flex flex-col items-center gap-1.5 opacity-50 grayscale">
-                    <Star size={18} className="text-gray-600" />
-                    <div className="text-xs font-bold text-red-800 font-mono line-through">{lostLoot.orbs}</div>
-                    <div className="text-[8px] font-bold uppercase tracking-wider text-gray-800">ORBS</div>
-                </div>
-            </div>
+            {Object.entries(lostLoot.stones).filter(([, v]) => v > 0).length > 0 && (
+              <div className="bg-black/40 border border-red-900/30 rounded-xl p-4 grid grid-cols-3 gap-3 mb-10 relative">
+                {Object.entries(lostLoot.stones).filter(([, v]) => v > 0).map(([stoneKey, amount]) => {
+                  const sc = STONE_REWARD_CONFIG[stoneKey as StoneRewardType];
+                  if (!sc) return null;
+                  return (
+                    <div key={stoneKey} className="flex flex-col items-center gap-1.5 opacity-50 grayscale">
+                        <CrystalIcon color={sc.color} glow={sc.glow} size={18} />
+                        <div className="text-xs font-bold text-red-800 font-mono line-through">{amount}</div>
+                        <div className="text-[8px] font-bold uppercase tracking-wider text-gray-800">{sc.shortName}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
             
             {/* Action Button */}
             <motion.button 
@@ -990,6 +987,7 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
     lastDungeonEntry, 
     onConsumeKey, 
     onAddRewards, 
+    onAwardStones,
     onEnterDungeon,
     onPlayStateChange,
     initialMode,
@@ -1010,7 +1008,7 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
 
   // Data
   const [floor, setFloor] = useState(1);
-  const [lootBag, setLootBag] = useState({ gold: 0, xp: 0, keys: 0, potions: 0, scrolls: 0, orbs: 0 });
+  const [lootBag, setLootBag] = useState({ gold: 0, xp: 0, keys: 0, stones: {} as Record<string, number> });
   const [cards, setCards] = useState<FloorCardData[]>([]);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   
@@ -1026,7 +1024,7 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
   const [isScreenShaking, setIsScreenShaking] = useState(false);
 
   // Track lost loot for game over display
-  const [lostLoot, setLostLoot] = useState({ gold: 0, xp: 0, keys: 0, potions: 0, scrolls: 0, orbs: 0 });
+  const [lostLoot, setLostLoot] = useState({ gold: 0, xp: 0, keys: 0, stones: {} as Record<string, number> });
 
   const PAID_ENTRY_COST = 3;
 
@@ -1048,7 +1046,7 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
       const newCards: FloorCardData[] = [];
 
       if (isLootFloor) {
-          // Loot floors: 2 key cards + 2 ult orb cards (50-50 split)
+          // Loot floors: 2 key cards + 2 random stone cards
           for (let i = 0; i < 2; i++) {
               newCards.push({
                   id: `key-${i}-${floorNum}-${ts}`,
@@ -1058,11 +1056,12 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
               });
           }
           for (let i = 0; i < 2; i++) {
+              const stoneType = ALL_STONE_TYPES[Math.floor(Math.random() * ALL_STONE_TYPES.length)];
               newCards.push({
-                  id: `orb-${i}-${floorNum}-${ts}`,
+                  id: `stone-${i}-${floorNum}-${ts}`,
                   type: 'JACKPOT',
-                  rewardType: 'ORB',
-                  reward: { gold: 0, xp: 0, keys: 0, bonusItem: 'ORB' }
+                  rewardType: stoneType,
+                  reward: { gold: 0, xp: 0, keys: 0, stoneAmount: rollStoneAmount(floorNum, true) }
               });
           }
       } else {
@@ -1079,24 +1078,19 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
           const safeSlots = 4 - (hasTrap ? 1 : 0);
           for (let i = 0; i < safeSlots; i++) {
               const rt = rollRewardType();
-              const isRare = rt === 'KEY' || rt === 'ORB';
+              const isRare = rt === 'KEY';
 
               let reward: FloorCardData['reward'];
               switch (rt) {
                   case 'GOLD':
                       reward = { gold: 10 + Math.floor(Math.random() * 21), xp: 0, keys: 0 };
                       break;
-                  case 'POTION':
-                      reward = { gold: 0, xp: 0, keys: 0, bonusItem: 'POTION' };
-                      break;
-                  case 'SCROLL':
-                      reward = { gold: 0, xp: 0, keys: 0, bonusItem: 'SCROLL' };
-                      break;
                   case 'KEY':
                       reward = { gold: 0, xp: 0, keys: 1 };
                       break;
-                  case 'ORB':
-                      reward = { gold: 0, xp: 0, keys: 0, bonusItem: 'ORB' };
+                  default:
+                      // Stone type
+                      reward = { gold: 0, xp: 0, keys: 0, stoneAmount: rollStoneAmount(floorNum, false) };
                       break;
               }
 
@@ -1117,7 +1111,7 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
       if (initialMode === 'PLAYING') {
           // Initialize game state logic that normally happens in handleStartRun
           setFloor(1);
-          setLootBag({ gold: 0, xp: 0, keys: 0, potions: 0, scrolls: 0, orbs: 0 });
+          setLootBag({ gold: 0, xp: 0, keys: 0, stones: {} });
           setCards(generateFloor(1));
           setTurnState('IDLE');
           setSelectedCardId(null);
@@ -1172,7 +1166,7 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
           onPlayStateChange(true); // Lock Navigation
           setMode('PLAYING');
           setFloor(1);
-          setLootBag({ gold: 0, xp: 0, keys: 0, potions: 0, scrolls: 0, orbs: 0 });
+          setLootBag({ gold: 0, xp: 0, keys: 0, stones: {} });
           setCards(generateFloor(1));
           setTurnState('IDLE');
           setSelectedCardId(null);
@@ -1237,14 +1231,18 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
                       if (isMounted.current) setFlyingLoot(null);
                   }, 600);
                   
-                  setLootBag(prev => ({
-                      gold: prev.gold + card.reward.gold,
-                      xp: prev.xp + card.reward.xp,
-                      keys: prev.keys + card.reward.keys,
-                      potions: prev.potions + (card.reward.bonusItem === 'POTION' ? 1 : 0),
-                      scrolls: prev.scrolls + (card.reward.bonusItem === 'SCROLL' ? 1 : 0),
-                      orbs: prev.orbs + (card.reward.bonusItem === 'ORB' ? 1 : 0),
-                  }));
+                  setLootBag(prev => {
+                      const newStones = { ...prev.stones };
+                      if (isStoneType(rt) && card.reward.stoneAmount) {
+                          newStones[rt] = (newStones[rt] || 0) + card.reward.stoneAmount;
+                      }
+                      return {
+                          gold: prev.gold + card.reward.gold,
+                          xp: prev.xp + card.reward.xp,
+                          keys: prev.keys + card.reward.keys,
+                          stones: newStones,
+                      };
+                  });
 
                   // 4. "NEAR MISS" REVEAL SEQUENCE (Reduced to 700ms)
                   setTimeout(() => {
@@ -1255,15 +1253,20 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
                       let trapProbability = floor >= 8 ? 0.6 : 0.3;
                       if (isLootFloor) trapProbability = 0;
 
-                      const fakeTypes: RewardType[] = ['GOLD', 'POTION', 'SCROLL', 'KEY', 'ORB'];
+                      const fakeTypes: RewardType[] = ['GOLD', 'KEY', ...ALL_STONE_TYPES];
                       setCards(prevCards => prevCards.map(c => {
                           if (c.id === card.id) return c; // Keep selected card
                           
                           const r = Math.random();
-                          if (r < trapProbability) return { ...c, type: 'TRAP', rewardType: undefined };
+                          if (r < trapProbability) return { ...c, type: 'TRAP' as CardType, rewardType: undefined };
                           const fakeRt = fakeTypes[Math.floor(Math.random() * fakeTypes.length)];
-                          const isRareFake = fakeRt === 'KEY' || fakeRt === 'ORB';
-                          return { ...c, type: isRareFake ? 'JACKPOT' : 'SAFE', rewardType: fakeRt, reward: fakeRt === 'GOLD' ? { gold: 10 + Math.floor(Math.random() * 21), xp: 0, keys: 0 } : fakeRt === 'KEY' ? { gold: 0, xp: 0, keys: 1 } : { gold: 0, xp: 0, keys: 0, bonusItem: fakeRt === 'POTION' ? 'POTION' : fakeRt === 'SCROLL' ? 'SCROLL' : 'ORB' } };
+                          const isRareFake = fakeRt === 'KEY';
+                          const fakeReward: FloorCardData['reward'] = fakeRt === 'GOLD' 
+                              ? { gold: 10 + Math.floor(Math.random() * 21), xp: 0, keys: 0 } 
+                              : fakeRt === 'KEY' 
+                                  ? { gold: 0, xp: 0, keys: 1 } 
+                                  : { gold: 0, xp: 0, keys: 0, stoneAmount: 5 };
+                          return { ...c, type: (isRareFake ? 'JACKPOT' : 'SAFE') as CardType, rewardType: fakeRt, reward: fakeReward };
                       }));
 
                       // Trigger the flip for all cards in the grid
@@ -1347,15 +1350,19 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
       setIsTrapped(false);
       setLostLoot({ ...lootBag }); // Save what was lost before zeroing
       setMode('GAMEOVER');
-      setLootBag({ gold: 0, xp: 0, keys: 0, potions: 0, scrolls: 0, orbs: 0 });
+      setLootBag({ gold: 0, xp: 0, keys: 0, stones: {} });
       playSystemSoundEffect('DANGER');
   };
 
   const handleCashOut = () => {
-      const bonusItems = (lootBag.potions || lootBag.scrolls || lootBag.orbs)
-          ? { potions: lootBag.potions, scrolls: lootBag.scrolls, orbs: lootBag.orbs }
-          : undefined;
-      onAddRewards(lootBag.gold, lootBag.xp, lootBag.keys, bonusItems);
+      onAddRewards(lootBag.gold, lootBag.xp, lootBag.keys);
+      // Award collected stones to their respective outfits
+      Object.entries(lootBag.stones).forEach(([stoneKey, amount]) => {
+          if (amount > 0) {
+              const conf = STONE_REWARD_CONFIG[stoneKey as StoneRewardType];
+              if (conf) onAwardStones(conf.outfitId, amount);
+          }
+      });
       setMode('VICTORY');
       playSystemSoundEffect('LEVEL_UP');
   };
@@ -1477,14 +1484,8 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
                           <div id="loot-bag-keys" className="flex items-center gap-1 text-xs font-bold text-purple-400 font-mono">
                               <Key size={11} className="text-purple-500" /> <CountingNumber value={lootBag.keys} />
                           </div>
-                          <div className="flex items-center gap-1 text-xs font-bold text-red-400 font-mono">
-                              <Heart size={11} className="text-red-500" /> <CountingNumber value={lootBag.potions} />
-                          </div>
-                          <div className="flex items-center gap-1 text-xs font-bold text-cyan-400 font-mono">
-                              <Scroll size={11} className="text-cyan-500" /> <CountingNumber value={lootBag.scrolls} />
-                          </div>
-                          <div className="flex items-center gap-1 text-xs font-bold text-orange-400 font-mono">
-                              <Star size={11} className="text-orange-500" /> <CountingNumber value={lootBag.orbs} />
+                          <div className="flex items-center gap-1 text-xs font-bold text-blue-400 font-mono">
+                              <CrystalIcon color="#60a5fa" glow="rgba(96,165,250,0.5)" size={11} /> <CountingNumber value={Object.values(lootBag.stones).reduce((s, v) => s + v, 0)} />
                           </div>
                       </div>
                   </div>

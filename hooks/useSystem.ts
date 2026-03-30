@@ -1706,6 +1706,32 @@ export const useSystem = () => {
     addNotification(`+${amount} ${stoneConf.stoneName} (${source})`, 'SUCCESS');
   };
 
+  const awardOutfitStones = (outfitId: string, amount: number, source: string) => {
+    const stoneConf = getStoneConfig(outfitId);
+    setPlayer(prev => {
+      const prevStones = prev.outfitStones || {};
+      const oldCount = prevStones[outfitId] || 0;
+      const newCount = oldCount + amount;
+      const newStones = { ...prevStones, [outfitId]: newCount };
+      const oldBadges = getUnlockedBadgeCount(oldCount);
+      const newBadges = getUnlockedBadgeCount(newCount);
+      const newLogs = [
+        createLog(`+${amount} ${stoneConf.stoneName} earned (${source})`, 'LOOT'),
+        ...prev.logs,
+      ];
+      if (newBadges > oldBadges) {
+        const unlockedTierIdx = newBadges - 1;
+        const tier = BADGE_TIERS[unlockedTierIdx];
+        if (tier) {
+          newLogs.unshift(createLog(`BADGE UNLOCKED: ${tier.name} (${tier.label}) for ${stoneConf.stoneName.replace(' Crystal', '')}!`, 'SYSTEM'));
+          window.dispatchEvent(new CustomEvent('badge:unlocked', { detail: { tierIndex: unlockedTierIdx, outfitId } }));
+        }
+      }
+      return { ...prev, outfitStones: newStones, logs: newLogs.slice(0, 60) };
+    });
+    addNotification(`+${amount} ${stoneConf.stoneName} (${source})`, 'SUCCESS');
+  };
+
   const failWorkout = () => {
     addNotification('Workout Aborted. No Rewards.', 'WARNING');
   };
@@ -2040,6 +2066,7 @@ export const useSystem = () => {
     updateSkillProgress,
     updateServerBaseline,
     awardRandomStones,
+    awardOutfitStones,
   };
 };
 

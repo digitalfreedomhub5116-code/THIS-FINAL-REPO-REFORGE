@@ -119,7 +119,7 @@ const App: React.FC = () => {
     startSensorTracking, stopSensorTracking, updateQuestSensorData,
     verifyTicket, purchaseOutfit, equipOutfit,
     checkDailyLogin, updateSkillProgress,
-    updateServerBaseline,
+    updateServerBaseline, awardOutfitStones,
   } = useSystem();
 
   const sensors = useSensors();
@@ -1349,6 +1349,7 @@ const App: React.FC = () => {
                     onConsumeKey={consumeKey}
                     onEnterDungeon={enterDungeon}
                     onAddRewards={addRewards}
+                    onAwardStones={(outfitId, amount) => awardOutfitStones(outfitId, amount, 'dungeon')}
                     onPlayStateChange={setIsDungeonMode}
                     initialMode="PLAYING"
                     onExit={() => {
