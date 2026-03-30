@@ -270,17 +270,30 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
   const myIndex = simulatedEntries.findIndex(e => e.isMe);
   const myRank = myIndex >= 0 ? myIndex + 1 : 999;
 
-  // ── Update overtake tracker (daily tab only) ──
+  // ── Keep a ref to animPhase to avoid stale closures in callbacks ──
+  const animPhaseRef = useRef(animPhase);
+  useEffect(() => { animPhaseRef.current = animPhase; }, [animPhase]);
+
+  // ── Overtake detection (daily tab only) ──
+  const [overtakeNotif, setOvertakeNotif] = useState<string | null>(null);
   useEffect(() => {
     if (activeTab !== 'daily' || myIndex < 0) return;
     const myDailyXp = simulatedEntries[myIndex]?.dominance || 0;
     const myUser = player.username || player.name || '';
-    const targets = warfare.updateOvertakes(
+    const { extractable, overtakenNow } = warfare.detectOvertakes(
       myDailyXp,
       myUser,
       simulatedEntries.map(e => ({ username: e.username || e.name, daily_xp: e.dominance }))
     );
-    setExtractableTargets(targets);
+    setExtractableTargets(extractable);
+
+    // Show overtake notification for freshly-overtaken players
+    if (overtakenNow.length > 0) {
+      const names = overtakenNow.join(', ');
+      setOvertakeNotif(`⚡ OVERTAKE! You passed ${names}!`);
+      playSystemSoundEffect('SUCCESS');
+      setTimeout(() => setOvertakeNotif(null), 4000);
+    }
   }, [simulatedEntries, activeTab, myIndex, warfare, player.username, player.name]);
 
   // ── Check monarch reward ──
@@ -302,9 +315,10 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
     setExpandedTarget(null);
   }, [warfare.canExtract, addNotification]);
 
-  // ── EXTRACTION HANDLERS ──
+  // ── EXTRACTION HANDLERS (use ref to avoid stale closure) ──
   const handleStartExtraction = useCallback((useOrb: boolean) => {
-    if (animPhase.type !== 'EXTRACTION_PROMPT') return;
+    const phase = animPhaseRef.current;
+    if (phase.type !== 'EXTRACTION_PROMPT') return;
     if (useOrb) {
       if (!consumeItem('ultOrbs', 1)) return;
     } else {
@@ -316,46 +330,48 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
 
     setAnimPhase({
       type: 'EXTRACTION_ROLL',
-      targetName: animPhase.targetName,
-      targetRank: animPhase.targetRank,
+      targetName: phase.targetName,
+      targetRank: phase.targetRank,
       rate,
       useOrb,
     });
-  }, [animPhase, consumeItem, warfare.powerSurgeActive, outfitStats.extraction]);
+  }, [consumeItem, warfare.powerSurgeActive, outfitStats.extraction]);
 
   const handleExtractionResult = useCallback((success: boolean) => {
-    if (animPhase.type !== 'EXTRACTION_ROLL') return;
+    const phase = animPhaseRef.current;
+    if (phase.type !== 'EXTRACTION_ROLL') return;
     if (success) {
-      const shadow = animPhase.useOrb
-        ? warfare.guaranteedExtraction(animPhase.targetName, animPhase.targetRank)
-        : warfare.attemptExtraction(animPhase.targetName, animPhase.targetRank, animPhase.rate);
-      const shadowName = animPhase.useOrb
-        ? (shadow as any)?.name || `Shadow of ${animPhase.targetName}`
-        : ((shadow as any)?.shadow?.name || `Shadow of ${animPhase.targetName}`);
+      const result = phase.useOrb
+        ? warfare.guaranteedExtraction(phase.targetName, phase.targetRank)
+        : warfare.attemptExtraction(phase.targetName, phase.targetRank, phase.rate);
+      const shadowName = phase.useOrb
+        ? (result as any)?.name || `Shadow of ${phase.targetName}`
+        : ((result as any)?.shadow?.name || `Shadow of ${phase.targetName}`);
       setAnimPhase({ type: 'ARISE', shadowName });
       playSystemSoundEffect('LEVEL_UP');
     } else {
       setAnimPhase({
         type: 'SCROLL_BURN',
         scrollsRemaining: cons.shadowScrolls - 1,
-        targetName: animPhase.targetName,
-        targetRank: animPhase.targetRank,
+        targetName: phase.targetName,
+        targetRank: phase.targetRank,
       });
     }
-  }, [animPhase, warfare, cons.shadowScrolls]);
+  }, [warfare, cons.shadowScrolls]);
 
   const handleScrollBurnComplete = useCallback(() => {
-    if (animPhase.type !== 'SCROLL_BURN') { setAnimPhase({ type: 'NONE' }); return; }
+    const phase = animPhaseRef.current;
+    if (phase.type !== 'SCROLL_BURN') { setAnimPhase({ type: 'NONE' }); return; }
     if (cons.shadowScrolls > 0) {
       setAnimPhase({
         type: 'EXTRACTION_PROMPT',
-        targetName: animPhase.targetName,
-        targetRank: animPhase.targetRank,
+        targetName: phase.targetName,
+        targetRank: phase.targetRank,
       });
     } else {
       setAnimPhase({ type: 'NONE' });
     }
-  }, [animPhase, cons.shadowScrolls]);
+  }, [cons.shadowScrolls]);
 
   // ── EXCHANGE (Debuff) ──
   const handleExchange = useCallback((targetId: string, targetName: string) => {
@@ -475,6 +491,26 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
       {/* ── POWER SURGE BANNER ── */}
       {warfare.powerSurgeActive && <PowerSurgeBanner expiresAt={warfare.powerSurgeExpiresAt} />}
 
+      {/* ── OVERTAKE NOTIFICATION ── */}
+      <AnimatePresence>
+        {overtakeNotif && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.9 }}
+            className="rounded-2xl py-2.5 px-4 mb-3 text-center text-xs font-black tracking-wider"
+            style={{
+              background: 'linear-gradient(135deg, rgba(74,222,128,0.12), rgba(74,222,128,0.04))',
+              border: '1px solid rgba(74,222,128,0.25)',
+              color: '#4ade80',
+              boxShadow: '0 0 20px rgba(74,222,128,0.1)',
+            }}
+          >
+            {overtakeNotif}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* ── LEADERBOARD LIST ── */}
       <div className="space-y-1.5">
         {loading ? (
@@ -500,11 +536,12 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
               return (
                 <motion.div
                   key={entryId}
-                  layout
+                  layoutId={`lb-card-${entryId}`}
+                  layout="position"
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.2 }}
+                  transition={{ layout: { type: 'spring', stiffness: 300, damping: 30 }, duration: 0.3 }}
                   className="rounded-2xl overflow-hidden"
                   style={{
                     background: entry.isMe

@@ -4,7 +4,7 @@ import { ShadowSoldier, KillFeedEntry, WarfareState } from '../types';
 const STORAGE_KEY = 'shadow_warfare_v3_';
 const MAX_SHADOWS = 3;
 const OVERTAKE_WINDOW_MS = 10 * 60 * 1000; // 10 minutes extraction window
-const POWER_SURGE_DURATION_MS = 5 * 60 * 1000;  // 5 minutes
+const POWER_SURGE_DURATION_MS = 5 * 60 * 1000;
 const MAX_KILL_FEED = 30;
 
 function todayStr(): string {
@@ -25,7 +25,6 @@ const DEFAULT_STATE: WarfareState = {
   lastMonarchRewardDate: '',
 };
 
-// Track last daily reset date in localStorage to detect midnight rollover
 const LAST_RESET_KEY = 'shadow_warfare_last_reset_';
 
 function loadState(userId: string): WarfareState {
@@ -34,7 +33,6 @@ function loadState(userId: string): WarfareState {
     if (!saved) return { ...DEFAULT_STATE };
     const parsed = JSON.parse(saved) as WarfareState;
 
-    // Daily reset check — shadows + overtake tracker reset at midnight
     const today = todayStr();
     const lastReset = localStorage.getItem(LAST_RESET_KEY + userId) || '';
     if (lastReset !== today) {
@@ -43,16 +41,14 @@ function loadState(userId: string): WarfareState {
       localStorage.setItem(LAST_RESET_KEY + userId, today);
     }
 
-    // Clean expired debuffs
     parsed.activeDebuffs = (parsed.activeDebuffs || []).filter(d => d.expiresAt > Date.now());
 
-    // Clean expired power surge
     if (parsed.powerSurgeExpiresAt && parsed.powerSurgeExpiresAt <= Date.now()) {
       parsed.powerSurgeActive = false;
       parsed.powerSurgeExpiresAt = 0;
     }
 
-    // Clean expired overtake entries (older than 10 min)
+    // Clean expired overtake entries
     const now = Date.now();
     const tracker = parsed.overtakeTracker || {};
     for (const key of Object.keys(tracker)) {
@@ -74,7 +70,7 @@ function saveState(userId: string, state: WarfareState) {
   } catch { /* ignore */ }
 }
 
-// ── Bot name pool for kill feed simulation ──
+// ── Bot name pool for kill feed ──
 const BOT_ACTIONS = [
   (n1: string, n2: string) => `⚡ ${n1} overtook ${n2} in daily XP!`,
   (n1: string, n2: string) => `💀 ${n1} extracted SHADOW of ${n2}`,
@@ -107,34 +103,28 @@ export function useWarfare(userId: string) {
   const surgeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const botFeedRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Persist on every state change
-  useEffect(() => {
-    saveState(userId, state);
-  }, [userId, state]);
+  // Track the PREVIOUS snapshot of who was above/below me
+  // Key = username, Value = their daily_xp at last check
+  const prevStandingsRef = useRef<Record<string, number> | null>(null);
 
-  // Reload on user change
-  useEffect(() => {
-    setState(loadState(userId));
-  }, [userId]);
+  useEffect(() => { saveState(userId, state); }, [userId, state]);
+  useEffect(() => { setState(loadState(userId)); }, [userId]);
 
-  // ── Daily reset check (runs every 30s) ──
+  // Daily reset check
   useEffect(() => {
     const interval = setInterval(() => {
       const today = todayStr();
       const lastReset = localStorage.getItem(LAST_RESET_KEY + userId) || '';
       if (lastReset !== today) {
         localStorage.setItem(LAST_RESET_KEY + userId, today);
-        setState(prev => ({
-          ...prev,
-          shadows: [],
-          overtakeTracker: {},
-        }));
+        prevStandingsRef.current = null; // Reset snapshot too
+        setState(prev => ({ ...prev, shadows: [], overtakeTracker: {} }));
       }
     }, 30_000);
     return () => clearInterval(interval);
   }, [userId]);
 
-  // ── Simulated bot kill feed (every 15-30s) ──
+  // Bot kill feed
   useEffect(() => {
     const addBotEntry = () => {
       setState(prev => {
@@ -148,7 +138,7 @@ export function useWarfare(userId: string) {
     return () => { if (botFeedRef.current) clearInterval(botFeedRef.current); };
   }, []);
 
-  // ── Random Power Surge trigger (once per session, random 2-10 min after mount) ──
+  // Power surge
   useEffect(() => {
     const delay = (2 + Math.random() * 8) * 60_000;
     const timer = setTimeout(() => {
@@ -157,7 +147,7 @@ export function useWarfare(userId: string) {
         const entry: KillFeedEntry = {
           id: generateId(),
           type: 'POWER_SURGE',
-          text: '⚡ POWER SURGE ACTIVE — Extraction rates DOUBLED for 5 minutes!',
+          text: '⚡ POWER SURGE — Extraction rates DOUBLED for 5 min!',
           timestamp: Date.now(),
           highlight: true,
         };
@@ -175,63 +165,117 @@ export function useWarfare(userId: string) {
     return () => { clearTimeout(timer); if (surgeTimerRef.current) clearTimeout(surgeTimerRef.current); };
   }, []);
 
-  // ── OVERTAKE TRACKING ──
-  // Call this with the current daily leaderboard to update who you've overtaken.
-  // Returns a list of targets whose extraction window is currently open.
-  const updateOvertakes = useCallback((
+  // ── OVERTAKE DETECTION ──
+  // Compares current standings against the PREVIOUS snapshot.
+  // Only detects players who were ABOVE you (or equal) last time and are now BELOW you.
+  // Returns list of freshly-overtaken players (extraction window open).
+  const detectOvertakes = useCallback((
     myDailyXp: number,
     myUsername: string,
-    leaderboardEntries: { username: string; daily_xp: number }[],
-  ): string[] => {
+    currentEntries: { username: string; daily_xp: number }[],
+  ): { extractable: string[]; overtakenNow: string[] } => {
     const now = Date.now();
-    const extractableTargets: string[] = [];
+    const newlyOvertaken: string[] = [];
+
+    // Build current standings map (excluding self)
+    const currentMap: Record<string, number> = {};
+    for (const e of currentEntries) {
+      if (e.username === myUsername) continue;
+      currentMap[e.username] = e.daily_xp;
+    }
+
+    // First call ever = just snapshot, don't mark anyone as overtaken
+    if (prevStandingsRef.current === null) {
+      prevStandingsRef.current = { ...currentMap };
+      // But still check existing tracker entries for extractability
+      const extractable: string[] = [];
+      setState(prev => {
+        const tracker = { ...prev.overtakeTracker };
+        for (const [key, ts] of Object.entries(tracker)) {
+          const elapsed = now - ts;
+          if (elapsed <= OVERTAKE_WINDOW_MS && myDailyXp > (currentMap[key] ?? Infinity)) {
+            extractable.push(key);
+          } else if (elapsed > OVERTAKE_WINDOW_MS) {
+            delete tracker[key];
+          }
+        }
+        if (JSON.stringify(tracker) !== JSON.stringify(prev.overtakeTracker)) {
+          return { ...prev, overtakeTracker: tracker };
+        }
+        return prev;
+      });
+      return { extractable, overtakenNow: [] };
+    }
+
+    const prevMap = prevStandingsRef.current;
 
     setState(prev => {
       const tracker = { ...prev.overtakeTracker };
 
-      // For each player below me in daily XP
-      for (const entry of leaderboardEntries) {
-        if (entry.username === myUsername) continue;
-        if (myDailyXp <= entry.daily_xp) {
-          // I'm NOT ahead of this player — remove from tracker if they were there
-          delete tracker[entry.username];
-          continue;
+      for (const [username, currentXp] of Object.entries(currentMap)) {
+        const prevXp = prevMap[username];
+
+        // Player was ABOVE or EQUAL to me before, but now I'm above them = FRESH OVERTAKE
+        if (prevXp !== undefined && prevXp >= myDailyXp && myDailyXp > currentXp) {
+          // Wait, that's wrong - we need to check if they WERE above or equal to my PREVIOUS xp
+          // Actually the correct logic: they were ahead of me OR didn't exist in my tracker yet
+          // AND now my xp > their xp → that's an overtake
         }
 
-        // I AM ahead of this player
-        if (!tracker[entry.username]) {
-          // First time overtaking — start the 10-min window
-          tracker[entry.username] = now;
+        // Simpler logic: if I'm above them now AND I wasn't above them before
+        const wasAboveThem = prevMap[username] !== undefined && (prevMap[username] < (prevStandingsRef.current?.['__myXp'] ?? 0));
+        const isAboveThemNow = myDailyXp > currentXp;
+
+        if (isAboveThemNow && !wasAboveThem && !tracker[username]) {
+          // FRESH OVERTAKE
+          tracker[username] = now;
+          newlyOvertaken.push(username);
         }
 
-        // Check if within extraction window (10 min from overtake)
-        const elapsed = now - tracker[entry.username];
-        if (elapsed <= OVERTAKE_WINDOW_MS) {
-          extractableTargets.push(entry.username);
-        } else {
-          // Window expired — remove from tracker
-          delete tracker[entry.username];
+        // If I'm no longer above them, remove from tracker
+        if (!isAboveThemNow) {
+          delete tracker[username];
         }
       }
 
-      // Only update if tracker changed
+      // Clean expired
+      for (const key of Object.keys(tracker)) {
+        if (now - tracker[key] > OVERTAKE_WINDOW_MS) {
+          delete tracker[key];
+        }
+      }
+
       if (JSON.stringify(tracker) !== JSON.stringify(prev.overtakeTracker)) {
         return { ...prev, overtakeTracker: tracker };
       }
       return prev;
     });
 
-    return extractableTargets;
-  }, []);
+    // Update snapshot for next comparison
+    prevStandingsRef.current = { ...currentMap, __myXp: myDailyXp } as any;
 
-  // ── Check if a specific target is extractable ──
+    // Build extractable list from current tracker
+    const extractable: string[] = [];
+    const tracker = state.overtakeTracker;
+    for (const [key, ts] of Object.entries(tracker)) {
+      if (now - ts <= OVERTAKE_WINDOW_MS && myDailyXp > (currentMap[key] ?? Infinity)) {
+        extractable.push(key);
+      }
+    }
+    // Also add newly overtaken ones
+    for (const n of newlyOvertaken) {
+      if (!extractable.includes(n)) extractable.push(n);
+    }
+
+    return { extractable, overtakenNow: newlyOvertaken };
+  }, [state.overtakeTracker]);
+
   const isExtractable = useCallback((targetUsername: string): boolean => {
     const ts = state.overtakeTracker[targetUsername];
     if (!ts) return false;
     return (Date.now() - ts) <= OVERTAKE_WINDOW_MS;
   }, [state.overtakeTracker]);
 
-  // ── Get remaining extraction window time (ms) ──
   const getExtractionWindowRemaining = useCallback((targetUsername: string): number => {
     const ts = state.overtakeTracker[targetUsername];
     if (!ts) return 0;
@@ -239,10 +283,9 @@ export function useWarfare(userId: string) {
     return remaining > 0 ? remaining : 0;
   }, [state.overtakeTracker]);
 
-  // ── Can extract? (must have <3 shadows) ──
   const canExtract = state.shadows.length < MAX_SHADOWS;
 
-  // ── EXTRACTION (Shadow Scroll — uses outfit extraction %) ──
+  // ── EXTRACTION ──
   const attemptExtraction = useCallback((
     targetName: string,
     targetRank: number,
@@ -277,7 +320,6 @@ export function useWarfare(userId: string) {
         ...prev,
         shadows: [...prev.shadows, shadow],
         killFeed: [entry, ...prev.killFeed].slice(0, MAX_KILL_FEED),
-        // Remove from overtake tracker after extraction
         overtakeTracker: Object.fromEntries(
           Object.entries(prev.overtakeTracker).filter(([k]) => k !== targetName)
         ),
@@ -302,7 +344,6 @@ export function useWarfare(userId: string) {
     }
   }, [state.powerSurgeActive, state.shadows.length]);
 
-  // ── GUARANTEED EXTRACTION (Ult Orb) ──
   const guaranteedExtraction = useCallback((targetName: string, targetRank: number): ShadowSoldier | null => {
     if (state.shadows.length >= MAX_SHADOWS) return null;
 
@@ -316,7 +357,7 @@ export function useWarfare(userId: string) {
     const entry: KillFeedEntry = {
       id: generateId(),
       type: 'EXTRACTION',
-      text: `👑 ULT ORB used — ${targetName}'s shadow GUARANTEED extracted!`,
+      text: `👑 ULT ORB — ${targetName}'s shadow GUARANTEED!`,
       timestamp: Date.now(),
       highlight: true,
     };
@@ -333,16 +374,14 @@ export function useWarfare(userId: string) {
     return shadow;
   }, [state.shadows.length]);
 
-  // ── CAST DEBUFF (Shadow Exchange) ──
   const castDebuff = useCallback((targetId: string, targetName: string) => {
     const entry: KillFeedEntry = {
       id: generateId(),
       type: 'EXTRACTION',
-      text: `📜 YOU cast Shadow Exchange on ${targetName} — -15% Dominance`,
+      text: `📜 Shadow Exchange on ${targetName} — -15% Dominance`,
       timestamp: Date.now(),
       highlight: true,
     };
-
     setState(prev => ({
       ...prev,
       activeDebuffs: [
@@ -353,7 +392,6 @@ export function useWarfare(userId: string) {
     }));
   }, []);
 
-  // ── CLAIM MONARCH REWARD ──
   const claimMonarchReward = useCallback((): boolean => {
     const today = todayStr();
     if (state.lastMonarchRewardDate === today) return false;
@@ -361,12 +399,10 @@ export function useWarfare(userId: string) {
     return true;
   }, [state.lastMonarchRewardDate]);
 
-  // Computed getters
   const activeDebuffs = state.activeDebuffs.filter(d => d.expiresAt > Date.now());
-  const armyBuff = state.shadows.length * 2; // +2% per shadow
+  const armyBuff = state.shadows.length * 2;
 
   return {
-    // State
     shadows: state.shadows,
     maxShadows: MAX_SHADOWS,
     overtakeTracker: state.overtakeTracker,
@@ -377,8 +413,7 @@ export function useWarfare(userId: string) {
     powerSurgeExpiresAt: state.powerSurgeExpiresAt,
     canExtract,
 
-    // Actions
-    updateOvertakes,
+    detectOvertakes,
     isExtractable,
     getExtractionWindowRemaining,
     attemptExtraction,
