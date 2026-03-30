@@ -77,7 +77,7 @@ export async function scheduleMorningDusk(): Promise<void> {
       notifications: [
         {
           id: NOTIFICATION_IDS.MORNING_DUSK,
-          title: '⚔️ DUSK',
+          title: '⚔️ Message from Dusk',
           body: message,
           schedule: {
             at: next6AM,
@@ -103,7 +103,7 @@ export async function scheduleMorningDusk(): Promise<void> {
 
 export async function scheduleStreakReminder(currentStreak: number): Promise<void> {
   if (!Capacitor.isNativePlatform()) return;
-  if (currentStreak < 2) return; // Don't remind for low streaks
+  if (currentStreak < 1) return; // Don't remind for brand-new accounts
 
   try {
     await LocalNotifications.cancel({ notifications: [{ id: NOTIFICATION_IDS.STREAK_WARNING }] });
@@ -119,8 +119,8 @@ export async function scheduleStreakReminder(currentStreak: number): Promise<voi
       notifications: [
         {
           id: NOTIFICATION_IDS.STREAK_WARNING,
-          title: '🔥 Streak Alert',
-          body: `Your ${currentStreak}-day streak expires at midnight. One quest to save it.`,
+          title: '🔥 Your streak is breaking!',
+          body: `Your ${currentStreak}-day streak will be lost at midnight! Open the app to keep it alive.`,
           schedule: {
             at: next8PM,
             allowWhileIdle: true,

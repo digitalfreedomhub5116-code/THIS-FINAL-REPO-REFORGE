@@ -231,9 +231,9 @@ const App: React.FC = () => {
   // ── Streak Celebration ──
   const [showStreakCelebration, setShowStreakCelebration] = useState(false);
   const [streakAnimData, setStreakAnimData] = useState<{
-    oldStreak: number; newStreak: number; weeklyActivity: boolean[];
+    oldStreak: number; newStreak: number; weeklyActivity: boolean[]; streakBroken: boolean;
   } | null>(null);
-  const streakShownRef = useRef(false);
+  const streakShownRef = useRef<string | null>(null); // Tracks which userId+date combo was shown
 
   // ── Sync from DB — callable ref for immediate triggers + 2s polling ──
   const syncFromDbRef = useRef<() => Promise<void>>();
@@ -471,13 +471,11 @@ const App: React.FC = () => {
   }, [player.isConfigured, player.tutorialComplete, isNewUserOnboarding, checkDailyLogin]);
 
   // ── Streak Celebration Trigger ──
-  // Fires EXACTLY ONCE per calendar day on first login. Not on reload, not on DB sync.
-  // Independent of DailyLoginModal.
+  // Fires EXACTLY ONCE per calendar day per user on first login.
+  // Scoped by userId so switching accounts triggers it for the new account.
   useEffect(() => {
-    // Must be configured
-    if (!player.isConfigured) return;
-    // Already shown this session
-    if (streakShownRef.current) return;
+    // Must be configured with a real user
+    if (!player.isConfigured || !player.userId) return;
 
     // Compute today's local date string
     const now = new Date();
@@ -486,16 +484,22 @@ const App: React.FC = () => {
     const d = String(now.getDate()).padStart(2, '0');
     const today = `${y}-${m}-${d}`;
 
-    // Only trigger when lastLoginDate just became today (set by useSystem auto-streak)
+    // Only trigger when lastLoginDate is set to today (set by useSystem auto-streak)
     if (player.lastLoginDate !== today) return;
 
-    // Persistent guard: localStorage prevents re-showing on page reload
-    const shownKey = `reforge_streak_shown_${today}`;
-    if (localStorage.getItem(shownKey)) return;
+    // Per-user + per-day guard (handles account switching + page reload)
+    const guardKey = `reforge_streak_shown_${player.userId}_${today}`;
+    const sessionKey = `${player.userId}_${today}`;
+    if (streakShownRef.current === sessionKey) return; // Already shown this session for this user+day
+    if (localStorage.getItem(guardKey)) return; // Already shown (persists across reloads)
 
-    // Mark as shown IMMEDIATELY — before any async re-renders
-    streakShownRef.current = true;
-    localStorage.setItem(shownKey, '1');
+    // Mark as shown IMMEDIATELY
+    streakShownRef.current = sessionKey;
+    localStorage.setItem(guardKey, '1');
+
+    // Detect if streak was broken (reset to 1 from a higher value)
+    const isBroken = player.streak === 1 && oldStreakRef.current > 1;
+    const previousStreak = isBroken ? oldStreakRef.current : Math.max(0, player.streak - 1);
 
     // Compute weekly activity (Mon=0 ... Sun=6)
     const dow = now.getDay(); // 0=Sun, 1=Mon...
@@ -511,12 +515,21 @@ const App: React.FC = () => {
     }
 
     setStreakAnimData({
-      oldStreak: Math.max(0, player.streak - 1),
+      oldStreak: previousStreak,
       newStreak: player.streak,
       weeklyActivity: weekly,
+      streakBroken: isBroken,
     });
     setShowStreakCelebration(true);
-  }, [player.isConfigured, player.lastLoginDate]); // ← minimal deps: only fires when login date changes
+  }, [player.isConfigured, player.lastLoginDate, player.userId]); // userId in deps → triggers on account switch
+
+  // Track previous streak value to detect breaks
+  const oldStreakRef = useRef(player.streak);
+  useEffect(() => {
+    // Update the ref AFTER the streak trigger has had a chance to read it
+    const timer = setTimeout(() => { oldStreakRef.current = player.streak; }, 100);
+    return () => clearTimeout(timer);
+  }, [player.streak]);
 
   useEffect(() => {
     if (player.logs.length > 0 && player.logs[0].type === 'LEVEL_UP') {
@@ -1032,9 +1045,14 @@ const App: React.FC = () => {
                   newStreak={streakAnimData.newStreak}
                   outfitId={player.equippedOutfitId}
                   weeklyActivity={streakAnimData.weeklyActivity}
+                  streakBroken={streakAnimData.streakBroken}
                   onComplete={() => {
                     setShowStreakCelebration(false);
                     setStreakAnimData(null);
+                    // Schedule streak reminder notification after animation
+                    if (player.streak >= 2) {
+                      scheduleStreakReminder(player.streak).catch(() => {});
+                    }
                   }}
                 />
               </ErrorBoundary>
