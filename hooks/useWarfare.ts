@@ -1,12 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { ShadowSoldier, ClashResult, KillFeedEntry, WarfareState } from '../types';
+import { ShadowSoldier, KillFeedEntry, WarfareState } from '../types';
 
-const STORAGE_KEY = 'shadow_warfare_v2_';
-const MAX_CHARGES = 3;
-const SHIELD_DURATION_MS = 12 * 60 * 60 * 1000; // 12 hours
+const STORAGE_KEY = 'shadow_warfare_v3_';
+const MAX_SHADOWS = 3;
+const OVERTAKE_WINDOW_MS = 10 * 60 * 1000; // 10 minutes extraction window
 const POWER_SURGE_DURATION_MS = 5 * 60 * 1000;  // 5 minutes
 const MAX_KILL_FEED = 30;
-const MAX_CLASH_HISTORY = 20;
 
 function todayStr(): string {
   return new Date().toISOString().split('T')[0];
@@ -18,12 +17,7 @@ function generateId(): string {
 
 const DEFAULT_STATE: WarfareState = {
   shadows: [],
-  attackCharges: MAX_CHARGES,
-  maxCharges: MAX_CHARGES,
-  lastChargeReset: todayStr(),
-  clashHistory: [],
-  winStreak: 0,
-  lastBotRaid: 0,
+  overtakeTracker: {},
   activeDebuffs: [],
   killFeed: [],
   powerSurgeActive: false,
@@ -31,20 +25,22 @@ const DEFAULT_STATE: WarfareState = {
   lastMonarchRewardDate: '',
 };
 
+// Track last daily reset date in localStorage to detect midnight rollover
+const LAST_RESET_KEY = 'shadow_warfare_last_reset_';
+
 function loadState(userId: string): WarfareState {
   try {
     const saved = localStorage.getItem(STORAGE_KEY + userId);
     if (!saved) return { ...DEFAULT_STATE };
     const parsed = JSON.parse(saved) as WarfareState;
 
-    // Daily reset check
+    // Daily reset check — shadows + overtake tracker reset at midnight
     const today = todayStr();
-    if (parsed.lastChargeReset !== today) {
-      parsed.attackCharges = MAX_CHARGES;
-      parsed.lastChargeReset = today;
-      parsed.shadows = []; // Shadows reset at midnight
-      parsed.winStreak = 0;
-      parsed.clashHistory = [];
+    const lastReset = localStorage.getItem(LAST_RESET_KEY + userId) || '';
+    if (lastReset !== today) {
+      parsed.shadows = [];
+      parsed.overtakeTracker = {};
+      localStorage.setItem(LAST_RESET_KEY + userId, today);
     }
 
     // Clean expired debuffs
@@ -55,6 +51,16 @@ function loadState(userId: string): WarfareState {
       parsed.powerSurgeActive = false;
       parsed.powerSurgeExpiresAt = 0;
     }
+
+    // Clean expired overtake entries (older than 10 min)
+    const now = Date.now();
+    const tracker = parsed.overtakeTracker || {};
+    for (const key of Object.keys(tracker)) {
+      if (now - tracker[key] > OVERTAKE_WINDOW_MS) {
+        delete tracker[key];
+      }
+    }
+    parsed.overtakeTracker = tracker;
 
     return parsed;
   } catch {
@@ -70,11 +76,11 @@ function saveState(userId: string, state: WarfareState) {
 
 // ── Bot name pool for kill feed simulation ──
 const BOT_ACTIONS = [
-  (n1: string, n2: string) => `⚔️ ${n1} clashed ${n2} — VICTORY`,
-  (n1: string) => `🛡️ ${n1} activated FORTIFY`,
+  (n1: string, n2: string) => `⚡ ${n1} overtook ${n2} in daily XP!`,
   (n1: string, n2: string) => `💀 ${n1} extracted SHADOW of ${n2}`,
-  (n1: string, n2: string) => `📜 ${n1} burned a Shadow Scroll on ${n2}`,
-  (n1: string) => `🔥 ${n1} is on a 3-WIN STREAK`,
+  (n1: string) => `🔥 ${n1} is climbing the daily ranks!`,
+  (n1: string, n2: string) => `📜 ${n1} used Shadow Scroll on ${n2}`,
+  (n1: string) => `👑 ${n1} reached the top 3!`,
 ];
 
 const BOT_NAMES_POOL = [
@@ -89,7 +95,7 @@ function generateBotKillFeedEntry(): KillFeedEntry {
   const template = BOT_ACTIONS[Math.floor(Math.random() * BOT_ACTIONS.length)];
   return {
     id: generateId(),
-    type: 'CLASH_WIN',
+    type: 'EXTRACTION',
     text: template(n1, n2),
     timestamp: Date.now(),
     highlight: false,
@@ -115,22 +121,18 @@ export function useWarfare(userId: string) {
   useEffect(() => {
     const interval = setInterval(() => {
       const today = todayStr();
-      setState(prev => {
-        if (prev.lastChargeReset !== today) {
-          return {
-            ...prev,
-            attackCharges: MAX_CHARGES,
-            lastChargeReset: today,
-            shadows: [],
-            winStreak: 0,
-            clashHistory: [],
-          };
-        }
-        return prev;
-      });
+      const lastReset = localStorage.getItem(LAST_RESET_KEY + userId) || '';
+      if (lastReset !== today) {
+        localStorage.setItem(LAST_RESET_KEY + userId, today);
+        setState(prev => ({
+          ...prev,
+          shadows: [],
+          overtakeTracker: {},
+        }));
+      }
     }, 30_000);
     return () => clearInterval(interval);
-  }, []);
+  }, [userId]);
 
   // ── Simulated bot kill feed (every 15-30s) ──
   useEffect(() => {
@@ -141,7 +143,6 @@ export function useWarfare(userId: string) {
         return { ...prev, killFeed: feed };
       });
     };
-    // Initial batch
     addBotEntry();
     botFeedRef.current = setInterval(addBotEntry, 15_000 + Math.random() * 15_000);
     return () => { if (botFeedRef.current) clearInterval(botFeedRef.current); };
@@ -149,10 +150,10 @@ export function useWarfare(userId: string) {
 
   // ── Random Power Surge trigger (once per session, random 2-10 min after mount) ──
   useEffect(() => {
-    const delay = (2 + Math.random() * 8) * 60_000; // 2-10 minutes
+    const delay = (2 + Math.random() * 8) * 60_000;
     const timer = setTimeout(() => {
       setState(prev => {
-        if (prev.powerSurgeActive) return prev; // Already active
+        if (prev.powerSurgeActive) return prev;
         const entry: KillFeedEntry = {
           id: generateId(),
           type: 'POWER_SURGE',
@@ -167,7 +168,6 @@ export function useWarfare(userId: string) {
           killFeed: [entry, ...prev.killFeed].slice(0, MAX_KILL_FEED),
         };
       });
-      // Auto-expire surge
       surgeTimerRef.current = setTimeout(() => {
         setState(prev => ({ ...prev, powerSurgeActive: false, powerSurgeExpiresAt: 0 }));
       }, POWER_SURGE_DURATION_MS);
@@ -175,69 +175,72 @@ export function useWarfare(userId: string) {
     return () => { clearTimeout(timer); if (surgeTimerRef.current) clearTimeout(surgeTimerRef.current); };
   }, []);
 
-  // ── CLASH ──
-  const initiateClash = useCallback((
-    targetName: string,
-    targetRank: number,
-    myTotalXp: number,
+  // ── OVERTAKE TRACKING ──
+  // Call this with the current daily leaderboard to update who you've overtaken.
+  // Returns a list of targets whose extraction window is currently open.
+  const updateOvertakes = useCallback((
     myDailyXp: number,
-    outfitAttack: number,
-    targetXp: number,
-    myCurrentRank: number,
-  ): ClashResult | null => {
-    // Check charges
-    if (state.attackCharges <= 0) return null;
+    myUsername: string,
+    leaderboardEntries: { username: string; daily_xp: number }[],
+  ): string[] => {
+    const now = Date.now();
+    const extractableTargets: string[] = [];
 
-    // Calculate powers
-    const armyBuff = 1 + (state.shadows.length * 0.02);
-    const streakBonus = state.winStreak >= 3 ? 1.1 : 1;
-    // Last Stand: +25% if about to drop from top 5
-    const lastStandBonus = myCurrentRank >= 4 && myCurrentRank <= 6 ? 1.25 : 1;
+    setState(prev => {
+      const tracker = { ...prev.overtakeTracker };
 
-    const attackerPower = Math.floor(
-      (myTotalXp + myDailyXp + outfitAttack * 50) * armyBuff * streakBonus * lastStandBonus
-    );
+      // For each player below me in daily XP
+      for (const entry of leaderboardEntries) {
+        if (entry.username === myUsername) continue;
+        if (myDailyXp <= entry.daily_xp) {
+          // I'm NOT ahead of this player — remove from tracker if they were there
+          delete tracker[entry.username];
+          continue;
+        }
 
-    // Defender gets random variance (±15%) 
-    const isTargetShielded = false; // We only track our own shield locally
-    const variance = 0.85 + Math.random() * 0.30; // 0.85 to 1.15
-    const defenderPower = Math.floor(targetXp * variance);
+        // I AM ahead of this player
+        if (!tracker[entry.username]) {
+          // First time overtaking — start the 10-min window
+          tracker[entry.username] = now;
+        }
 
-    const won = attackerPower > defenderPower;
-    const newRank = won ? targetRank : myCurrentRank;
+        // Check if within extraction window (10 min from overtake)
+        const elapsed = now - tracker[entry.username];
+        if (elapsed <= OVERTAKE_WINDOW_MS) {
+          extractableTargets.push(entry.username);
+        } else {
+          // Window expired — remove from tracker
+          delete tracker[entry.username];
+        }
+      }
 
-    const result: ClashResult = {
-      id: generateId(),
-      targetName,
-      targetRank,
-      won,
-      timestamp: Date.now(),
-      attackerPower,
-      defenderPower,
-      myOldRank: myCurrentRank,
-      myNewRank: newRank,
-    };
+      // Only update if tracker changed
+      if (JSON.stringify(tracker) !== JSON.stringify(prev.overtakeTracker)) {
+        return { ...prev, overtakeTracker: tracker };
+      }
+      return prev;
+    });
 
-    const killEntry: KillFeedEntry = {
-      id: generateId(),
-      type: won ? 'CLASH_WIN' : 'CLASH_LOSE',
-      text: won
-        ? `⚔️ YOU defeated ${targetName} and stole Rank #${targetRank}!`
-        : `💔 YOU lost to ${targetName} — Rank #${myCurrentRank} held`,
-      timestamp: Date.now(),
-      highlight: true,
-    };
+    return extractableTargets;
+  }, []);
 
-    setState(prev => ({
-      ...prev,
-      attackCharges: prev.attackCharges - 1,
-      winStreak: won ? prev.winStreak + 1 : 0,
-      clashHistory: [result, ...prev.clashHistory].slice(0, MAX_CLASH_HISTORY),
-      killFeed: [killEntry, ...prev.killFeed].slice(0, MAX_KILL_FEED),
-    }));
+  // ── Check if a specific target is extractable ──
+  const isExtractable = useCallback((targetUsername: string): boolean => {
+    const ts = state.overtakeTracker[targetUsername];
+    if (!ts) return false;
+    return (Date.now() - ts) <= OVERTAKE_WINDOW_MS;
+  }, [state.overtakeTracker]);
 
-    return result;
-  }, [state.attackCharges, state.shadows.length, state.winStreak]);
+  // ── Get remaining extraction window time (ms) ──
+  const getExtractionWindowRemaining = useCallback((targetUsername: string): number => {
+    const ts = state.overtakeTracker[targetUsername];
+    if (!ts) return 0;
+    const remaining = OVERTAKE_WINDOW_MS - (Date.now() - ts);
+    return remaining > 0 ? remaining : 0;
+  }, [state.overtakeTracker]);
+
+  // ── Can extract? (must have <3 shadows) ──
+  const canExtract = state.shadows.length < MAX_SHADOWS;
 
   // ── EXTRACTION (Shadow Scroll — uses outfit extraction %) ──
   const attemptExtraction = useCallback((
@@ -245,7 +248,8 @@ export function useWarfare(userId: string) {
     targetRank: number,
     outfitExtractionRate: number,
   ): { success: boolean; shadow?: ShadowSoldier } => {
-    // Power surge doubles extraction rate
+    if (state.shadows.length >= MAX_SHADOWS) return { success: false };
+
     const effectiveRate = state.powerSurgeActive
       ? Math.min(100, outfitExtractionRate * 2)
       : outfitExtractionRate;
@@ -264,7 +268,7 @@ export function useWarfare(userId: string) {
       const entry: KillFeedEntry = {
         id: generateId(),
         type: 'EXTRACTION',
-        text: `💀 YOU extracted SHADOW of ${targetName} — Army: ${state.shadows.length + 1}`,
+        text: `💀 YOU extracted SHADOW of ${targetName} — Army: ${state.shadows.length + 1}/${MAX_SHADOWS}`,
         timestamp: Date.now(),
         highlight: true,
       };
@@ -273,6 +277,10 @@ export function useWarfare(userId: string) {
         ...prev,
         shadows: [...prev.shadows, shadow],
         killFeed: [entry, ...prev.killFeed].slice(0, MAX_KILL_FEED),
+        // Remove from overtake tracker after extraction
+        overtakeTracker: Object.fromEntries(
+          Object.entries(prev.overtakeTracker).filter(([k]) => k !== targetName)
+        ),
       }));
 
       return { success: true, shadow };
@@ -295,7 +303,9 @@ export function useWarfare(userId: string) {
   }, [state.powerSurgeActive, state.shadows.length]);
 
   // ── GUARANTEED EXTRACTION (Ult Orb) ──
-  const guaranteedExtraction = useCallback((targetName: string, targetRank: number): ShadowSoldier => {
+  const guaranteedExtraction = useCallback((targetName: string, targetRank: number): ShadowSoldier | null => {
+    if (state.shadows.length >= MAX_SHADOWS) return null;
+
     const shadow: ShadowSoldier = {
       id: generateId(),
       name: `Shadow of ${targetName}`,
@@ -315,28 +325,19 @@ export function useWarfare(userId: string) {
       ...prev,
       shadows: [...prev.shadows, shadow],
       killFeed: [entry, ...prev.killFeed].slice(0, MAX_KILL_FEED),
+      overtakeTracker: Object.fromEntries(
+        Object.entries(prev.overtakeTracker).filter(([k]) => k !== targetName)
+      ),
     }));
 
     return shadow;
-  }, []);
-
-  // ── USE HEALTH POTION (restore 2 charges) ──
-  const useHealthPotion = useCallback((): boolean => {
-    if (state.attackCharges >= MAX_CHARGES) return false;
-    setState(prev => ({
-      ...prev,
-      attackCharges: Math.min(MAX_CHARGES, prev.attackCharges + 2),
-    }));
-    return true;
-  }, [state.attackCharges]);
-
-  // ── REMOVED ACTIVATE SHIELD (No longer fortifying via Shield) ──
+  }, [state.shadows.length]);
 
   // ── CAST DEBUFF (Shadow Exchange) ──
   const castDebuff = useCallback((targetId: string, targetName: string) => {
     const entry: KillFeedEntry = {
       id: generateId(),
-      type: 'CLASH_WIN',
+      type: 'EXTRACTION',
       text: `📜 YOU cast Shadow Exchange on ${targetName} — -15% Dominance`,
       timestamp: Date.now(),
       highlight: true,
@@ -352,7 +353,7 @@ export function useWarfare(userId: string) {
     }));
   }, []);
 
-  // ── CLAIM MONARCH REWARD (called when #1 at midnight check) ──
+  // ── CLAIM MONARCH REWARD ──
   const claimMonarchReward = useCallback((): boolean => {
     const today = todayStr();
     if (state.lastMonarchRewardDate === today) return false;
@@ -361,31 +362,27 @@ export function useWarfare(userId: string) {
   }, [state.lastMonarchRewardDate]);
 
   // Computed getters
-  const isShielded = false;
-  const shieldRemainingMs = 0;
   const activeDebuffs = state.activeDebuffs.filter(d => d.expiresAt > Date.now());
   const armyBuff = state.shadows.length * 2; // +2% per shadow
 
   return {
     // State
     shadows: state.shadows,
-    attackCharges: state.attackCharges,
-    maxCharges: MAX_CHARGES,
-    winStreak: state.winStreak,
-    clashHistory: state.clashHistory,
+    maxShadows: MAX_SHADOWS,
+    overtakeTracker: state.overtakeTracker,
     killFeed: state.killFeed,
-    isShielded,
-    shieldRemainingMs,
     activeDebuffs,
     armyBuff,
     powerSurgeActive: state.powerSurgeActive,
     powerSurgeExpiresAt: state.powerSurgeExpiresAt,
+    canExtract,
 
     // Actions
-    initiateClash,
+    updateOvertakes,
+    isExtractable,
+    getExtractionWindowRemaining,
     attemptExtraction,
     guaranteedExtraction,
-    useHealthPotion,
     castDebuff,
     claimMonarchReward,
   };

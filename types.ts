@@ -69,20 +69,12 @@ export interface KillFeedEntry {
 }
 
 export interface WarfareState {
-  // Army
+  // Shadow Army — max 3 slots
   shadows: ShadowSoldier[];
 
-  // Combat
-  attackCharges: number;     // 0-3
-  maxCharges: number;        // 3
-  lastChargeReset: string;   // YYYY-MM-DD
-
-  // Clash log
-  clashHistory: ClashResult[];
-  winStreak: number;
-
-  // Defense
-  lastBotRaid: number;
+  // Overtake tracker: maps targetUsername → timestamp when you first overtook them
+  // Extraction is available for 10 mins from this timestamp, then expires
+  overtakeTracker: Record<string, number>;
 
   // Debuffs cast on others
   activeDebuffs: { id: string; expiresAt: number }[];

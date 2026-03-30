@@ -227,6 +227,18 @@ function safeLevelUp(currentXp: number, requiredXp: number, level: number): { cu
   return { currentXp, requiredXp, level, leveledUp, rank: computeRank(level) };
 }
 
+// ── Shadow army XP boost: +2% per shadow (max 3 shadows = +6%) ──
+function getShadowXpMultiplier(userId: string): number {
+  try {
+    const key = `shadow_warfare_v3_${userId}`;
+    const raw = localStorage.getItem(key);
+    if (!raw) return 1;
+    const data = JSON.parse(raw);
+    const count = (data?.shadows?.length ?? 0);
+    return 1 + (Math.min(count, 3) * 0.02); // 1.00, 1.02, 1.04, or 1.06
+  } catch { return 1; }
+}
+
 export const useSystem = () => {
   const [player, setPlayer] = useState<PlayerData>(loadFromStorage);
   const [notifications, setNotifications] = useState<SystemNotification[]>([]);
@@ -665,6 +677,12 @@ export const useSystem = () => {
         quests: currentQuests,
         isConfigured: true,
         replitUser: profile.replitUser || prev.replitUser,
+        // ── Preserve calibration data: profile arg > cloudData > prev (local state) ──
+        healthProfile: cloudData.healthProfile || (profile as any).healthProfile || prev.healthProfile,
+        stats: cloudData.stats || (profile as any).stats || prev.stats,
+        country: (cloudData as any).country || (profile as any).country || prev.country,
+        timezone: (cloudData as any).timezone || (profile as any).timezone || prev.timezone,
+        identity: cloudData.identity || (profile as any).identity || prev.identity,
         // Global assets: always keep locally-fetched global data, don't let per-user cloud data overwrite it
         focusVideos: { ...(cloudData.focusVideos || {}), ...prev.focusVideos },
         customProtocols: Object.keys(prev.customProtocols || {}).length > 0
@@ -1065,9 +1083,12 @@ export const useSystem = () => {
       }
 
       let { currentXp, requiredXp, level, totalXp, dailyXp } = prev;
-      currentXp += reward;
-      totalXp += reward;
-      dailyXp += reward;
+      // Apply shadow army XP boost
+      const shadowMultiplier = getShadowXpMultiplier(prev.userId || 'local');
+      const boostedReward = Math.floor(reward * shadowMultiplier);
+      currentXp += boostedReward;
+      totalXp += boostedReward;
+      dailyXp += boostedReward;
 
       const lu = safeLevelUp(currentXp, requiredXp, level);
       currentXp = lu.currentXp; requiredXp = lu.requiredXp; level = lu.level;
@@ -1075,7 +1096,8 @@ export const useSystem = () => {
 
       const pactBonusTag = isOptionalPact && !asMini ? ' [PACT 1.25x]' : '';
       const pactReturnTag = pactReturn > 0 ? ` (+${pactReturn}G Pledge Returned)` : '';
-      const newLogs = [createLog(`Completed Quest: ${quest.title} (+${reward} XP${pactBonusTag})${pactReturnTag}`, 'XP'), ...prev.logs];
+      const goldTag = goldReward > 0 ? `, +${goldReward} Gold` : '';
+      const newLogs = [createLog(`Completed Quest: ${quest.title} (+${reward} XP${goldTag}${pactBonusTag})${pactReturnTag}`, 'XP'), ...prev.logs];
       if (leveledUp) {
         newLogs.unshift(createLog(`LEVEL UP! REACHED LEVEL ${level}`, 'LEVEL_UP'));
         playSystemSoundEffect('LEVEL_UP');
@@ -1119,6 +1141,15 @@ export const useSystem = () => {
         ...(leveledUp ? { hp: prev.maxHp, mp: prev.maxMp } : {})
       };
     });
+
+    // Post-state-update: dispatch coin-earned animation for gold rewards
+    if (!noRewards && !prePact) {
+      const RANK_GOLD_ANIM: Record<string, number> = { E: 10, D: 20, C: 40, B: 80, A: 150, S: 300 };
+      const goldGained = RANK_GOLD_ANIM[preQuest?.rank || 'E'] || 20;
+      const el = document.getElementById(`quest-card-${id}`);
+      const rect = el?.getBoundingClientRect() || null;
+      window.dispatchEvent(new CustomEvent('reforge:coin-earned', { detail: { goldGained, startRect: rect } }));
+    }
 
     // Post-state-update: dispatch coin-lost animation for burned pacts (cheat path)
     if (noRewards && prePact && prePactAmount > 0) {
@@ -1483,9 +1514,12 @@ export const useSystem = () => {
       });
 
       let { currentXp, requiredXp, level, totalXp, dailyXp } = prev;
-      currentXp += totalXpGain;
-      totalXp += totalXpGain;
-      dailyXp += totalXpGain;
+      // Apply shadow army XP boost
+      const shadowMult = getShadowXpMultiplier(prev.userId || 'local');
+      const boostedWorkoutXp = Math.floor(totalXpGain * shadowMult);
+      currentXp += boostedWorkoutXp;
+      totalXp += boostedWorkoutXp;
+      dailyXp += boostedWorkoutXp;
 
       const lu = safeLevelUp(currentXp, requiredXp, level);
       currentXp = lu.currentXp; requiredXp = lu.requiredXp; level = lu.level;
