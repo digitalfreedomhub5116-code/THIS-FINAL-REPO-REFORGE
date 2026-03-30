@@ -158,7 +158,7 @@ const getActiveUserScope = (): string => {
       const payload = JSON.parse(decodeURIComponent(atob(base64).split('').map(function(c) {
           return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
       }).join('')));
-      return payload.userId || payload.supabase_id || payload.id || 'local';
+      return payload.sub || payload.userId || payload.supabase_id || payload.id || 'local';
     }
   } catch {}
   return 'local';
