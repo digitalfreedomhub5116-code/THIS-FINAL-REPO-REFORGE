@@ -443,10 +443,11 @@ const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onAvatarCha
 
                 {onRetakeTutorial && (
                   <button
-                    onClick={onRetakeTutorial}
-                    className="w-full border border-cyan-900/50 text-cyan-600 py-2.5 rounded-lg flex items-center justify-center gap-2 hover:border-cyan-500/50 hover:text-cyan-400 hover:bg-cyan-900/10 transition-all text-xs font-mono font-bold tracking-widest"
+                    disabled
+                    onClick={(e) => { e.preventDefault(); }}
+                    className="w-full border border-gray-800 text-gray-500 py-2.5 rounded-lg flex items-center justify-center gap-2 cursor-not-allowed opacity-50 transition-all text-xs font-mono font-bold tracking-widest"
                   >
-                    <RotateCcw size={12} /> RETAKE TUTORIAL
+                    <RotateCcw size={12} /> RETAKE TUTORIAL (DISABLED)
                   </button>
                 )}
                 {/* Reset Progress */}

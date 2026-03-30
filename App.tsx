@@ -1170,20 +1170,29 @@ const App: React.FC = () => {
         </AnimatePresence>
       </Suspense>
 
-      {!player.tutorialComplete && isNewUserOnboarding && (
-        <Suspense fallback={null}>
-          <ErrorBoundary>
-            <TutorialOverlay
-              currentStep={player.tutorialStep}
-              onNext={handleTutorialNext}
-              onComplete={handleTutorialComplete}
-              dynamicTargetId={tutorialTarget}
-              analysisFailed={tutorialAnalysisFailed}
-              onAnalysisRetry={() => { setTutorialAnalysisFailed(false); advanceTutorial(7); }}
-            />
-          </ErrorBoundary>
-        </Suspense>
-      )}
+      {/* Tutorial temporarily disabled per user request. Set TUTORIAL_ACTIVE to true to enable. */}
+      {(() => {
+        const TUTORIAL_ACTIVE = false; 
+        if (!TUTORIAL_ACTIVE) return null;
+        
+        if (!player.tutorialComplete && isNewUserOnboarding) {
+          return (
+            <Suspense fallback={null}>
+              <ErrorBoundary>
+                <TutorialOverlay
+                  currentStep={player.tutorialStep}
+                  onNext={handleTutorialNext}
+                  onComplete={handleTutorialComplete}
+                  dynamicTargetId={tutorialTarget}
+                  analysisFailed={tutorialAnalysisFailed}
+                  onAnalysisRetry={() => { setTutorialAnalysisFailed(false); advanceTutorial(7); }}
+                />
+              </ErrorBoundary>
+            </Suspense>
+          );
+        }
+        return null;
+      })()}
 
       {/* Confetti Overlay — rendered at App level */}
       <Suspense fallback={null}>
