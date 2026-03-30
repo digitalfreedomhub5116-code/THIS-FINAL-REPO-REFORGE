@@ -4,6 +4,7 @@ import { Eye, EyeOff, UserPlus } from 'lucide-react';
 import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import { PlayerData, ReplitUser } from '../types';
 import { API_BASE, fetchWithRetry, checkServerHealth } from '../lib/apiConfig';
+import { getPlayerAuthHeaders } from '../lib/playerApi';
 import { isNativePlatform } from '../lib/googleAuth';
 import NativeGoogleButton from './NativeGoogleButton';
 import { shuffleFacts } from '../lib/funFacts';
@@ -64,7 +65,7 @@ const SignInPage: React.FC<SignInPageProps> = ({ onLogin, onNavigate }) => {
         if (!woke) { setChecking(false); return; }
       }
       try {
-        const res = await fetchWithRetry(`${API_BASE}/api/auth/local/whoami`, { credentials: 'include' });
+        const res = await fetchWithRetry(`${API_BASE}/api/auth/local/whoami`, { credentials: 'include', headers: { ...getPlayerAuthHeaders() } });
         if (res.ok) {
           const json = await res.json();
           if (json.playerToken) localStorage.setItem('reforge_player_token', json.playerToken);

@@ -2,7 +2,7 @@ import express from 'express';
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 import { supabaseServer, isSupabaseDown } from '../lib/supabase.js';
-import { generatePlayerToken } from '../lib/playerAuth.js';
+import { generatePlayerToken, getAuthenticatedUserId } from '../lib/playerAuth.js';
 
 const router = express.Router();
 
@@ -241,14 +241,15 @@ router.post('/logout', (req, res) => {
 
 router.get('/me', async (req, res) => {
   try {
-    if (!(req.session as any).userId) {
+    const userId = getAuthenticatedUserId(req);
+    if (!userId) {
       return res.status(401).json({ error: 'Not logged in' });
     }
 
     const { data: user, error } = await (supabaseServer() as any)
       .from('players')
       .select('supabase_id, username, name, email, level, gold, keys')
-      .eq('supabase_id', (req.session as any).userId)
+      .eq('supabase_id', userId)
       .single();
 
     if (error || !user) {
@@ -264,14 +265,15 @@ router.get('/me', async (req, res) => {
 
 router.get('/whoami', async (req, res) => {
   try {
-    if (!(req.session as any).userId) {
+    const userId = getAuthenticatedUserId(req);
+    if (!userId) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
 
     const { data: user, error } = await (supabaseServer() as any)
       .from('players')
       .select('supabase_id, username, name, email, level, gold, keys')
-      .eq('supabase_id', (req.session as any).userId)
+      .eq('supabase_id', userId)
       .single();
 
     if (error || !user) {

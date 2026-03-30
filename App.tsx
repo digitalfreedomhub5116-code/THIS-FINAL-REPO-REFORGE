@@ -431,7 +431,7 @@ const App: React.FC = () => {
     if (logoutFlowRef.current) return;
     const restoreAfterAuth = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/auth/local/whoami`, { credentials: 'include' });
+        const res = await fetch(`${API_BASE}/api/auth/local/whoami`, { credentials: 'include', headers: { ...getPlayerAuthHeaders() } });
         if (!res.ok) return;
         const whoamiData = await res.json();
         const user = whoamiData?.user || whoamiData;

@@ -5,6 +5,7 @@ import { OUTFITS, BADGE_TIERS, OUTFIT_STONE_CONFIG, getStoneConfig, getOutfitXpB
 import { Outfit } from '../types';
 import HexBadge from './HexBadge';
 import CrystalIcon from './CrystalIcon';
+import BadgeUnlockAnim from './BadgeUnlockAnim';
 
 interface BadgesSectionProps {
   outfitStones: Record<string, number>;
@@ -21,6 +22,8 @@ const BadgesSection: React.FC<BadgesSectionProps> = ({
 }) => {
   const outfits = (propOutfits && propOutfits.length > 0) ? propOutfits : OUTFITS;
   const [selectedOutfitId, setSelectedOutfitId] = useState(equippedOutfitId || outfits[0]?.id || 'outfit_starter');
+  const [unlockAnim, setUnlockAnim] = useState<{ tierIndex: number; outfitId: string } | null>(null);
+
   const selectedOutfit = outfits.find(o => o.id === selectedOutfitId) || outfits[0];
   const stones = outfitStones[selectedOutfitId] || 0;
   const stoneConfig = getStoneConfig(selectedOutfitId);
@@ -34,6 +37,17 @@ const BadgesSection: React.FC<BadgesSectionProps> = ({
 
   return (
     <>
+      {/* Unlock animation overlay */}
+      <AnimatePresence>
+        {unlockAnim && (
+          <BadgeUnlockAnim
+            tierIndex={unlockAnim.tierIndex}
+            outfitId={unlockAnim.outfitId}
+            onComplete={() => setUnlockAnim(null)}
+          />
+        )}
+      </AnimatePresence>
+
       <div className="space-y-5">
         {/* ── SECTION HEADER ── */}
         <div className="flex items-center gap-3">
