@@ -3,16 +3,22 @@ import { supabaseServer } from '../lib/supabase.js';
 
 const router = Router();
 
+// Get today's date string in UTC (midnight boundary)
+function todayStartUTC(): string {
+  const now = new Date();
+  now.setUTCHours(0, 0, 0, 0);
+  return now.toISOString();
+}
+
 router.get('/', async (req: Request, res: Response) => {
   const type = (req.query.type as string) || 'global';
 
   try {
-    const orderColumn = type === 'daily' ? 'daily_xp' : 'total_xp';
-
+    // For daily: we need updated_at to check if daily_xp is stale
     const { data, error } = await (supabaseServer() as any)
       .from('players')
-      .select('username, name, total_xp, daily_xp, level, rank, raw_data')
-      .order(orderColumn, { ascending: false })
+      .select('username, name, total_xp, daily_xp, level, rank, raw_data, updated_at')
+      .order(type === 'daily' ? 'daily_xp' : 'total_xp', { ascending: false })
       .limit(100);
 
     if (error) {
@@ -20,23 +26,33 @@ router.get('/', async (req: Request, res: Response) => {
       return res.status(500).json({ error: 'Internal server error' });
     }
 
-    // Extract equippedOutfitId from raw_data and return as a flat field
-    const entries = (data || []).map((row: any) => ({
-      username: row.username,
-      name: row.name,
-      total_xp: row.total_xp,
-      daily_xp: row.daily_xp || 0,
-      level: row.level,
-      rank: row.rank,
-      equipped_outfit_id: row.raw_data?.equippedOutfitId || 'outfit_starter',
-    }));
+    const todayStart = new Date();
+    todayStart.setUTCHours(0, 0, 0, 0);
+    const todayStartMs = todayStart.getTime();
 
-    // For daily leaderboard, filter out users with 0 daily XP
-    const filtered = type === 'daily'
-      ? entries.filter((e: any) => e.daily_xp > 0)
-      : entries;
+    const entries = (data || []).map((row: any) => {
+      // If player hasn't synced today, their daily_xp is stale → treat as 0
+      const lastUpdated = row.updated_at ? new Date(row.updated_at).getTime() : 0;
+      const isSyncedToday = lastUpdated >= todayStartMs;
+      const effectiveDailyXp = isSyncedToday ? (row.daily_xp || 0) : 0;
 
-    return res.json(filtered);
+      return {
+        username: row.username,
+        name: row.name,
+        total_xp: row.total_xp || 0,
+        daily_xp: effectiveDailyXp,
+        level: row.level || 1,
+        rank: row.rank || 'E',
+        equipped_outfit_id: row.raw_data?.equippedOutfitId || 'outfit_starter',
+      };
+    });
+
+    // For daily tab, re-sort since we may have zeroed out some daily_xp values
+    if (type === 'daily') {
+      entries.sort((a: any, b: any) => b.daily_xp - a.daily_xp);
+    }
+
+    return res.json(entries);
   } catch (err) {
     console.error('[Leaderboard GET]', err);
     return res.status(500).json({ error: 'Internal server error' });

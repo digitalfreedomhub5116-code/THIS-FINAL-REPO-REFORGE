@@ -245,27 +245,19 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
     return [...entries].map(e => {
       const entryId = e.username || e.name;
       const isMe = entryId === myEntryId;
-      let dominance = (e as any)[xpField] || 0;
-
-      if (isMe && activeTab === 'daily') {
-        dominance += dominance * (warfare.armyBuff / 100);
-        dominance += outfitStats.boost * 10;
-      } else if (!isMe && activeTab === 'daily') {
-        const targetId = e.username || e.name;
-        const isDebuffed = warfare.activeDebuffs.some(d => d.id === targetId);
-        if (isDebuffed) dominance -= dominance * 0.15;
-      }
+      // Use raw XP from the API — shadow boost is already applied at XP-earn time in useSystem.ts
+      const displayXp = (e as any)[xpField] || 0;
 
       return {
         ...e,
         isMe,
-        dominance: Math.floor(dominance),
-        isDebuffed: !isMe && warfare.activeDebuffs.some(d => d.id === (e.username || e.name)),
+        dominance: displayXp,
+        isDebuffed: false,
         computedRank: computeRankFromLevel(e.level || 1),
         outfitId: isMe ? (player.equippedOutfitId || 'outfit_starter') : (e.equipped_outfit_id || 'outfit_starter'),
       };
     }).sort((a, b) => b.dominance - a.dominance);
-  }, [entries, player.username, player.name, warfare.armyBuff, warfare.activeDebuffs, outfitStats.boost, xpField, activeTab, player.equippedOutfitId]);
+  }, [entries, player.username, player.name, xpField, player.equippedOutfitId]);
 
   const myIndex = simulatedEntries.findIndex(e => e.isMe);
   const myRank = myIndex >= 0 ? myIndex + 1 : 999;
@@ -529,7 +521,6 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
               const entryId = entry.username || entry.name;
               const isExpanded = expandedTarget === entryId;
               const rankColor = RANK_COLORS[entry.computedRank] || '#78716c';
-              const isAboveMe = !entry.isMe && index < myIndex;
               const isExtractTarget = activeTab === 'daily' && extractableTargets.includes(entryId);
               const windowRemaining = activeTab === 'daily' ? warfare.getExtractionWindowRemaining(entryId) : 0;
 
@@ -580,9 +571,6 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                         </span>
                         {entry.isMe && (
                           <span className="text-[7px] px-1.5 py-0.5 rounded-full bg-purple-500/20 text-purple-400 font-black">YOU</span>
-                        )}
-                        {entry.isDebuffed && (
-                          <span className="text-[7px] px-1 py-0.5 rounded bg-red-500/20 text-red-400 font-bold">-15%</span>
                         )}
                       </div>
                       <div className="text-[9px] text-gray-600 font-mono">Lv.{entry.level}</div>
@@ -641,8 +629,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                             </div>
                           ) : activeTab === 'daily' ? (
                             <>
-                              {/* EXTRACT (if within 10-min window) */}
-                              {isExtractTarget && (
+                              {isExtractTarget ? (
                                 <button
                                   disabled={!warfare.canExtract}
                                   onClick={() => handleExtractPrompt(entry.username || entry.name, index + 1)}
@@ -653,34 +640,23 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                                     color: '#4ade80',
                                   }}>
                                   <Skull size={18} />
-                                  <span className="text-[9px] font-black tracking-widest uppercase">EXTRACT</span>
+                                  <span className="text-[9px] font-black tracking-widest uppercase">EXTRACT SHADOW</span>
                                   <span className="text-[8px] text-green-400/60">
-                                    {Math.ceil(windowRemaining / 60000)}m left
+                                    {Math.ceil(windowRemaining / 60000)}m window remaining
                                   </span>
                                 </button>
+                              ) : (
+                                <div className="flex-1 py-3.5 rounded-2xl flex flex-col items-center justify-center gap-1.5 border border-white/5 bg-white/[0.02] opacity-40">
+                                  <span className="text-[9px] text-gray-500 font-mono text-center px-4">
+                                    Overtake this player to unlock extraction
+                                  </span>
+                                </div>
                               )}
-
-                              {/* EXCHANGE (debuff — costs 1 scroll) */}
-                              <button
-                                disabled={entry.isDebuffed || cons.shadowScrolls < 1}
-                                onClick={() => handleExchange(entryId, entry.username || entry.name)}
-                                className="flex-1 py-3.5 rounded-2xl flex flex-col items-center justify-center gap-1.5 transition-all active:scale-95 disabled:opacity-25 disabled:cursor-not-allowed"
-                                style={{
-                                  background: 'linear-gradient(135deg, rgba(0,210,255,0.06), rgba(0,210,255,0.02))',
-                                  border: '1px solid rgba(0,210,255,0.12)',
-                                  color: '#22d3ee',
-                                }}>
-                                <Zap size={18} />
-                                <span className="text-[9px] font-black tracking-widest uppercase">
-                                  {entry.isDebuffed ? 'DEBUFFED' : 'EXCHANGE'}
-                                </span>
-                                <span className="text-[8px] text-cyan-400/50">1 Shadow Scroll</span>
-                              </button>
                             </>
                           ) : (
-                            <div className="flex-1 py-3.5 rounded-2xl flex flex-col items-center justify-center gap-1.5 border border-white/5 bg-white/5 opacity-30">
+                            <div className="flex-1 py-3.5 rounded-2xl flex flex-col items-center justify-center gap-1.5 border border-white/5 bg-white/[0.02] opacity-30">
                               <Globe size={14} className="text-gray-500" />
-                              <span className="text-[9px] text-gray-500 font-mono">Global view — no actions</span>
+                              <span className="text-[9px] text-gray-500 font-mono">Global — view only</span>
                             </div>
                           )}
                         </div>

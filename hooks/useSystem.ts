@@ -582,7 +582,7 @@ export const useSystem = () => {
         lastDailyReset: now,
         yesterdayStats: { ...prev.dailyStats },
         dailyStats: { strength: 0, intelligence: 0, discipline: 0, social: 0, focus: 0, willpower: 0 },
-        dailyXp: Math.max(0, prev.dailyXp - xpPenalty),
+        dailyXp: 0,  // ← Reset daily XP to 0 at midnight
         totalXp: Math.max(0, prev.totalXp - xpPenalty),
         stats: updatedStats,
         history: updatedHistory,
