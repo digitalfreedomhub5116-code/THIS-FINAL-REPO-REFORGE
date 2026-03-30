@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Lock, CheckCircle, Eye, Sparkles } from 'lucide-react';
+import { Lock, CheckCircle, Eye, Sparkles, Check } from 'lucide-react';
 import { OUTFITS, TIERS, BADGE_TIERS, getStoneConfig, getOutfitXpBoost, getBadgeFillProgress } from '../utils/gameData';
 import { Outfit } from '../types';
 import HexBadge from './HexBadge';
@@ -334,21 +334,46 @@ const WardrobePreviewCard: React.FC<WardrobePreviewCardProps> = ({
           style={{ width: '40%' }}
         >
           {/* 2x2 mini badges grid */}
-          <div className="grid grid-cols-2 gap-1.5">
+          <div className="grid grid-cols-2 gap-2">
             {BADGE_TIERS.map((tier, idx) => {
               const stones = outfitStones[outfit.id] || 0;
               const badgeUnlocked = stones >= tier.stonesRequired;
               const fill = getBadgeFillProgress(stones, idx);
               return (
-                <HexBadge
-                  key={tier.name}
-                  fillPercent={fill}
-                  tierIndex={idx}
-                  isUnlocked={badgeUnlocked}
-                  accentColor={accent}
-                  name={tier.name}
-                  size="small"
-                />
+                <div key={tier.name} className="flex flex-col items-center gap-0.5">
+                  <div className="relative">
+                    <HexBadge
+                      fillPercent={fill}
+                      tierIndex={idx}
+                      isUnlocked={badgeUnlocked}
+                      accentColor={accent}
+                      name={tier.name}
+                      size="small"
+                    />
+                    {badgeUnlocked && (
+                      <div
+                        className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center"
+                        style={{ background: accent, boxShadow: `0 0 6px ${accent}` }}
+                      >
+                        <Check size={8} color="#000" strokeWidth={3} />
+                      </div>
+                    )}
+                  </div>
+                  <div
+                    className="text-[6px] font-black font-mono uppercase tracking-wide text-center leading-tight"
+                    style={{ color: badgeUnlocked ? accent : '#374151', maxWidth: 52 }}
+                  >
+                    {tier.name.split(' ').slice(0, 2).join(' ')}
+                  </div>
+                  {tier.xpBoost > 0 && (
+                    <div
+                      className="text-[5px] font-mono text-center leading-none"
+                      style={{ color: badgeUnlocked ? accent + 'aa' : '#1f2937' }}
+                    >
+                      {tier.label}
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>

@@ -277,16 +277,25 @@ const HexBadge: React.FC<HexBadgeProps> = ({
           )}
 
           {/* ── roman numeral ── */}
-          {size === 'large' && isUnlocked && (
+          {isUnlocked && (
             <text
-              x={CX} y={CY + 5}
+              x={CX} y={CY + (size === 'large' ? 5 : 2)}
               textAnchor="middle" dominantBaseline="middle"
-              fill="white" fontWeight="900" fontSize="16" fontFamily="monospace"
-              style={{ filter: `drop-shadow(0 0 6px ${accentColor})` } as React.CSSProperties}
+              fill="white" fontWeight="900" fontSize={size === 'large' ? 16 : 7} fontFamily="monospace"
+              style={{ filter: `drop-shadow(0 0 ${size === 'large' ? 6 : 3}px ${accentColor})` } as React.CSSProperties}
               opacity="0.9"
             >
               {['I','II','III','IV'][tierIndex]}
             </text>
+          )}
+
+          {/* ── small locked state ── */}
+          {!isUnlocked && size === 'small' && (
+            <g opacity="0.35">
+              <rect x={CX - 5} y={CY} width="10" height="7" rx="1.5" fill="none" stroke="white" strokeWidth="0.9" />
+              <path d={`M${CX-3},${CY} C${CX-3},${CY-4} ${CX+3},${CY-4} ${CX+3},${CY}`} fill="none" stroke="white" strokeWidth="0.9" />
+              <circle cx={CX} cy={CY + 3.5} r="1.5" fill="white" />
+            </g>
           )}
         </svg>
 

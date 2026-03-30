@@ -113,6 +113,7 @@ const OutfitPurchaseModal: React.FC<Props> = ({
   const [videoPhase, setVideoPhase] = useState<'intro' | 'loop' | 'image'>('image');
   const [purchased, setPurchased] = useState(false);
   const [showUnlocked, setShowUnlocked] = useState(false);
+  const [showFlash, setShowFlash] = useState(false);
 
   const accent = outfit.accentColor || '#FFD700';
   const canAfford = gold >= outfit.cost;
@@ -220,20 +221,14 @@ const OutfitPurchaseModal: React.FC<Props> = ({
   const handleBuy = () => {
     if (purchased) return;
     setPurchased(true);
-    setShowUnlocked(true);
+    setShowFlash(true);
+    setTimeout(() => setShowFlash(false), 400);
+    setTimeout(() => setShowUnlocked(true), 120);
     runConfetti();
 
-    setTimeout(() => {
-      onPurchase(outfit);
-    }, 80);
-
-    setTimeout(() => {
-      onEquip(outfit.id);
-    }, 200);
-
-    setTimeout(() => {
-      onClose();
-    }, 2200);
+    setTimeout(() => { onPurchase(outfit); }, 80);
+    setTimeout(() => { onEquip(outfit.id); }, 200);
+    setTimeout(() => { onClose(); }, 2800);
   };
 
   const handleEquip = () => {
@@ -329,31 +324,88 @@ const OutfitPurchaseModal: React.FC<Props> = ({
             </div>
           </div>
 
+          {/* Screen flash on purchase */}
+          <AnimatePresence>
+            {showFlash && (
+              <motion.div
+                className="absolute inset-0 z-30 pointer-events-none"
+                initial={{ opacity: 0.85 }}
+                animate={{ opacity: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.35, ease: 'easeOut' }}
+                style={{ background: `radial-gradient(ellipse at center, ${accent}cc 0%, white 60%, ${accent}44 100%)` }}
+              />
+            )}
+          </AnimatePresence>
+
+          {/* Pulse rings */}
+          <AnimatePresence>
+            {showUnlocked && (
+              <>
+                {[0, 1, 2].map(i => (
+                  <motion.div
+                    key={i}
+                    className="absolute inset-0 rounded-none pointer-events-none z-20"
+                    style={{ border: `2px solid ${accent}`, margin: -i * 2 }}
+                    initial={{ opacity: 0.8, scale: 0.6 }}
+                    animate={{ opacity: 0, scale: 1.6 + i * 0.3 }}
+                    transition={{ duration: 0.7, delay: i * 0.12, ease: 'easeOut' }}
+                  />
+                ))}
+              </>
+            )}
+          </AnimatePresence>
+
           {/* "UNLOCKED" flash text */}
           <AnimatePresence>
             {showUnlocked && (
               <motion.div
-                className="absolute inset-0 flex items-center justify-center pointer-events-none z-20"
-                initial={{ scale: 0.5, opacity: 0 }}
-                animate={{ scale: 1.05, opacity: 1 }}
-                exit={{ scale: 1.3, opacity: 0 }}
-                transition={{ duration: 0.4, ease: 'easeOut' }}
+                className="absolute inset-0 flex items-center justify-center pointer-events-none z-20 px-4"
+                initial={{ scale: 0.4, opacity: 0 }}
+                animate={{ scale: [0.4, 1.12, 1.0], opacity: [0, 1, 1] }}
+                exit={{ scale: 1.2, opacity: 0 }}
+                transition={{ duration: 0.5, times: [0, 0.6, 1], ease: 'easeOut' }}
               >
-                <div className="text-center">
+                <div className="text-center w-full">
+                  {/* Glow halo behind text */}
                   <div
-                    className="text-5xl font-black uppercase tracking-[0.2em] leading-none"
+                    className="absolute inset-0 pointer-events-none"
+                    style={{ background: `radial-gradient(ellipse at center, ${accent}40 0%, transparent 65%)` }}
+                  />
+                  <motion.div
+                    className="text-[clamp(2.5rem,12vw,4rem)] font-black uppercase leading-none relative"
                     style={{
-                      background: `linear-gradient(135deg, #FFFFFF 0%, ${accent} 50%, #FFD700 100%)`,
+                      background: `linear-gradient(135deg, #FFFFFF 0%, ${accent} 45%, #FFD700 100%)`,
                       WebkitBackgroundClip: 'text',
                       WebkitTextFillColor: 'transparent',
-                      filter: `drop-shadow(0 0 24px ${accent}cc)`,
+                      letterSpacing: '0.05em',
+                      filter: `drop-shadow(0 0 28px ${accent}dd)`,
                     }}
+                    animate={{ filter: [
+                      `drop-shadow(0 0 28px ${accent}dd)`,
+                      `drop-shadow(0 0 48px ${accent}ff)`,
+                      `drop-shadow(0 0 28px ${accent}dd)`,
+                    ]}}
+                    transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
                   >
                     UNLOCKED
-                  </div>
-                  <div className="text-sm font-bold tracking-widest mt-2" style={{ color: accent + 'cc' }}>
+                  </motion.div>
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3, duration: 0.4 }}
+                    className="text-sm font-black tracking-[0.25em] mt-3 uppercase"
+                    style={{ color: accent }}
+                  >
                     {outfit.name}
-                  </div>
+                  </motion.div>
+                  <motion.div
+                    initial={{ opacity: 0, scaleX: 0 }}
+                    animate={{ opacity: 1, scaleX: 1 }}
+                    transition={{ delay: 0.45, duration: 0.5 }}
+                    className="h-0.5 w-24 mx-auto mt-2 rounded-full"
+                    style={{ background: `linear-gradient(to right, transparent, ${accent}, transparent)` }}
+                  />
                 </div>
               </motion.div>
             )}

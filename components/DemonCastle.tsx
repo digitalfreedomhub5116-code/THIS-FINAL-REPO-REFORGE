@@ -552,35 +552,36 @@ const SequentialReward: React.FC<{
 }> = ({ value, label, icon, delay, color, onComplete, start }) => {
   const [displayValue, setDisplayValue] = useState(0);
   const hasRun = useRef(false);
+  const onCompleteRef = useRef(onComplete);
+  useEffect(() => { onCompleteRef.current = onComplete; });
 
   useEffect(() => {
     if (!start || hasRun.current) return;
+    hasRun.current = true; // Set immediately to block any concurrent re-invocation
     
     if (value <= 0) {
        const t = setTimeout(() => {
          setDisplayValue(0);
-         hasRun.current = true;
-         onComplete?.();
+         onCompleteRef.current?.();
        }, delay * 1000);
        return () => clearTimeout(t);
     }
 
     const t = setTimeout(() => {
       let startTime: number;
-      const duration = 2500; // Slower, dramatic count up (2.5s)
+      const duration = 1800;
       let lastSoundTime = 0;
       
       const animate = (timestamp: number) => {
         if (!startTime) startTime = timestamp;
         const progress = Math.min((timestamp - startTime) / duration, 1);
-        // Quartic easing for dramatic slow down at end
         const ease = 1 - Math.pow(1 - progress, 4); 
         
         const current = Math.floor(ease * value);
         setDisplayValue(current);
 
-        // Sound clicks (throttled) - faster at start, slower at end
-        const soundInterval = 50 + (progress * 150);
+        // Sound clicks — throttled more aggressively
+        const soundInterval = 120 + (progress * 200);
         if (progress < 1 && timestamp - lastSoundTime > soundInterval) {
            playSystemSoundEffect('TICK'); 
            lastSoundTime = timestamp;
@@ -590,11 +591,7 @@ const SequentialReward: React.FC<{
           requestAnimationFrame(animate);
         } else {
           setDisplayValue(value);
-          hasRun.current = true;
-          // Only play COIN/finish sound if it's not the very last item (handled by victory screen)
-          // actually, individual completion sound is good
-          playSystemSoundEffect('COIN'); 
-          onComplete?.();
+          onCompleteRef.current?.();
         }
       };
       
@@ -602,7 +599,7 @@ const SequentialReward: React.FC<{
     }, delay * 1000);
 
     return () => clearTimeout(t);
-  }, [start, value, delay, onComplete]);
+  }, [start, value, delay]);
 
   // Determine styles based on color prop
   const colorStyles = {
@@ -670,7 +667,7 @@ const VictoryScreen: React.FC<{
   const goldRays = Array.from({ length: 16 }, (_, i) => i * 22.5);
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/95 backdrop-blur-xl overflow-hidden">
+    <div className="fixed inset-0 z-[200] flex items-end justify-center bg-black/95 backdrop-blur-xl overflow-hidden">
       <ImpactConfetti active={showConfetti} />
       
       {/* Background Rays */}
@@ -701,57 +698,64 @@ const VictoryScreen: React.FC<{
       </div>
 
       <motion.div 
-        initial={{ scale: 0.9, opacity: 0 }}
+        initial={{ y: 80, opacity: 0 }}
         animate={{ 
-            scale: 1, 
+            y: shake ? [0, -6, 6, -4, 4, 0] : 0,
             opacity: 1,
-            y: shake ? [0, -5, 5, -5, 5, 0] : 0 
         }}
         transition={{ 
-            scale: { duration: 0.5, ease: "easeOut" },
-            y: { duration: 0.4 } 
+            y: shake ? { duration: 0.4 } : { duration: 0.45, ease: [0.22, 1, 0.36, 1] },
+            opacity: { duration: 0.35 }
         }}
-        className="w-full max-w-md bg-[#0a0a0f] border border-blue-900/50 rounded-3xl p-8 relative overflow-hidden shadow-[0_0_80px_rgba(59,130,246,0.25)]"
+        className="w-full max-w-md bg-[#0a0a0f] border border-blue-900/50 rounded-t-3xl relative overflow-hidden shadow-[0_-20px_80px_rgba(59,130,246,0.25)]"
+        style={{ maxHeight: '92dvh', display: 'flex', flexDirection: 'column' }}
       >
+        {/* Drag handle */}
+        <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
+          <div className="w-10 h-1 rounded-full bg-white/15" />
+        </div>
+
+        {/* Scrollable content */}
+        <div className="overflow-y-auto flex-1 px-6 pt-2 pb-4">
+
         {/* Header */}
-        <div className="text-center mb-10 relative z-10">
+        <div className="text-center mb-7 relative z-10">
           <motion.div
             initial={{ opacity: 0, scale: 0.5 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5, delay: 0.1 }}
             className="inline-block mb-2"
           >
-             <Crown size={40} className="text-yellow-400 drop-shadow-[0_0_15px_rgba(250,204,21,0.6)]" fill="currentColor" strokeWidth={1} />
+             <Crown size={36} className="text-yellow-400 drop-shadow-[0_0_15px_rgba(250,204,21,0.6)]" fill="currentColor" strokeWidth={1} />
           </motion.div>
           <motion.h1 
             initial={{ y: -20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.2 }}
-            className="text-4xl font-black italic text-white drop-shadow-[0_0_15px_rgba(59,130,246,0.8)] tracking-tight"
+            className="text-3xl font-black italic text-white drop-shadow-[0_0_15px_rgba(59,130,246,0.8)] tracking-tight"
           >
             DUNGEON <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">CLEARED</span>
           </motion.h1>
-          {stage === 'done' && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mt-2"
-              >
-                  <span className="text-sm font-black font-mono tracking-[0.5em] text-blue-300/80 uppercase animate-pulse">
-                      Escaped
-                  </span>
-              </motion.div>
-          )}
+          <motion.div
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35 }}
+            className="mt-1.5"
+          >
+            <span className="text-[10px] font-black font-mono tracking-[0.5em] text-blue-300/60 uppercase">
+                ESCAPED
+            </span>
+          </motion.div>
           <motion.div 
             initial={{ width: 0 }}
-            animate={{ width: "120px" }}
+            animate={{ width: "100px" }}
             transition={{ delay: 0.5, duration: 0.8 }}
-            className="h-1 bg-gradient-to-r from-blue-500 to-purple-500 mx-auto mt-4 rounded-full shadow-[0_0_15px_rgba(139,92,246,0.8)]" 
+            className="h-0.5 bg-gradient-to-r from-blue-500 to-purple-500 mx-auto mt-3 rounded-full shadow-[0_0_12px_rgba(139,92,246,0.8)]" 
           />
         </div>
 
         {/* Rewards Grid */}
-        <div className="grid grid-cols-3 gap-3 mb-6 relative z-10">
+        <div className="grid grid-cols-3 gap-3 mb-4 relative z-10">
            <SequentialReward 
              start={stage === 'rewards' || stage === 'done'}
              value={loot.gold} 
@@ -783,7 +787,7 @@ const VictoryScreen: React.FC<{
            )}
         </div>
         {collectedStones.length > 0 && (
-          <div className={`grid gap-3 mb-10 relative z-10 ${collectedStones.length <= 3 ? 'grid-cols-3' : 'grid-cols-3'}`}>
+          <div className={`grid gap-3 mb-4 relative z-10 ${collectedStones.length <= 3 ? 'grid-cols-3' : 'grid-cols-3'}`}>
             {collectedStones.map(([stoneKey, amount], idx) => {
               const sc = STONE_REWARD_CONFIG[stoneKey as StoneRewardType];
               if (!sc) return null;
@@ -804,21 +808,25 @@ const VictoryScreen: React.FC<{
           </div>
         )}
 
-        {/* Footer Button */}
-        <div className="h-14 relative z-10">
+        </div>{/* end scrollable */}
+
+        {/* Footer Button — always visible, outside scroll */}
+        <div className="px-6 pb-6 pt-2 flex-shrink-0 relative z-10">
             <AnimatePresence>
-            {stage === 'done' && (
+            {stage === 'done' ? (
                 <motion.button
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
-                whileHover={{ scale: 1.05, boxShadow: "0 0 30px rgba(59,130,246,0.4)" }}
-                whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: 1.03, boxShadow: "0 0 30px rgba(59,130,246,0.5)" }}
+                whileTap={{ scale: 0.96 }}
                 onClick={onClose}
-                className="w-full py-4 bg-gradient-to-r from-blue-900/40 to-purple-900/40 border border-blue-500/50 text-white font-black font-mono tracking-widest rounded-xl hover:border-blue-400 transition-all shadow-[0_0_20px_rgba(59,130,246,0.15)] group relative overflow-hidden"
+                className="w-full py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-black font-mono tracking-widest rounded-2xl transition-all shadow-[0_0_24px_rgba(59,130,246,0.35)] group relative overflow-hidden"
                 >
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-                CLAIM BOUNTY
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+                ✦ CLAIM BOUNTY
                 </motion.button>
+            ) : (
+                <div className="w-full py-4 rounded-2xl bg-white/5 animate-pulse" />
             )}
             </AnimatePresence>
         </div>
