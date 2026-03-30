@@ -615,7 +615,7 @@ const SequentialReward: React.FC<{
     <motion.div 
       initial={{ opacity: 0, y: 20, scale: 0.9 }}
       animate={{ opacity: start ? (value > 0 ? 1 : 0.5) : 0, y: start ? 0 : 20, scale: start ? 1 : 0.9 }}
-      className={`flex flex-col items-center p-4 rounded-xl border transition-all duration-500 ${value > 0 ? `${colorStyles.border} ${colorStyles.bg} ${colorStyles.shadow}` : 'border-gray-800 bg-black/40'}`}
+      className={`flex flex-col items-center p-3 rounded-xl border transition-all duration-500 overflow-hidden ${value > 0 ? `${colorStyles.border} ${colorStyles.bg} ${colorStyles.shadow}` : 'border-gray-800 bg-black/40'}`}
     >
       <div className={`mb-2 ${value > 0 ? colorStyles.text : 'text-gray-600'} drop-shadow-md`}>
         {icon}
@@ -623,7 +623,7 @@ const SequentialReward: React.FC<{
       <div className={`text-2xl font-black font-mono ${value > 0 ? colorStyles.text : 'text-gray-600'} drop-shadow-sm`}>
         {displayValue}
       </div>
-      <div className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mt-1">
+      <div className="text-[9px] uppercase tracking-wide text-gray-500 font-bold mt-1 w-full text-center truncate px-0.5">
         {label}
       </div>
     </motion.div>

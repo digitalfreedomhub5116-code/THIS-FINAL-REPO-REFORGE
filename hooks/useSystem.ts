@@ -713,6 +713,28 @@ export const useSystem = () => {
 
       const currentGold = cloudData.gold ?? prev.gold;
 
+      // ── Detect user switch to prevent cross-account data contamination ──
+      const incomingUserId = (profile.id as string) || '';
+      const isUserSwitch = !!(prev.userId && incomingUserId && prev.userId !== incomingUserId);
+
+      // ── Union helper: merge unlockedOutfits (additive — never lose a purchase) ──
+      const mergedUnlockedOutfits: string[] = isUserSwitch
+        ? (cloudData.unlockedOutfits || ['outfit_starter'])   // switching user: server only, no bleed
+        : Array.from(new Set([                                 // same user: union local + server
+            ...(prev.unlockedOutfits || ['outfit_starter']),
+            ...(cloudData.unlockedOutfits || ['outfit_starter']),
+          ]));
+
+      // ── Max helper: merge outfitStones (additive — stones never decrease on sync) ──
+      const mergedOutfitStones: Record<string, number> = (() => {
+        if (isUserSwitch) return cloudData.outfitStones || {}; // switching user: server only
+        const base: Record<string, number> = { ...(cloudData.outfitStones || {}) };
+        for (const [k, v] of Object.entries(prev.outfitStones || {})) {
+          base[k] = Math.max(base[k] || 0, v);
+        }
+        return base;
+      })();
+
       const updated: PlayerData = {
         ...DEFAULT_PLAYER,
         ...prev,
@@ -731,6 +753,12 @@ export const useSystem = () => {
         country: (cloudData as any).country || (profile as any).country || prev.country,
         timezone: (cloudData as any).timezone || (profile as any).timezone || prev.timezone,
         identity: cloudData.identity || (profile as any).identity || prev.identity,
+        // ── Outfit ownership: safe merged values computed above ──
+        unlockedOutfits: mergedUnlockedOutfits,
+        outfitStones: mergedOutfitStones,
+        equippedOutfitId: isUserSwitch
+          ? (cloudData.equippedOutfitId || 'outfit_starter')
+          : (cloudData.equippedOutfitId || prev.equippedOutfitId || 'outfit_starter'),
         // Global assets: always keep locally-fetched global data, don't let per-user cloud data overwrite it
         focusVideos: { ...(cloudData.focusVideos || {}), ...prev.focusVideos },
         customProtocols: Object.keys(prev.customProtocols || {}).length > 0

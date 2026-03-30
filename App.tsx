@@ -292,6 +292,33 @@ const App: React.FC = () => {
           if (isFirstPoll) {
             if (dbGold !== prev.gold) updates.gold = dbGold;
             if (dbKeys !== prev.keys) updates.keys = dbKeys;
+
+            // ── Outfit persistence: restore from server on first poll ──
+            // Uses union/max so that neither server nor local can lose purchases
+            // (covers page reload, cleared localStorage, and code redeploys)
+            if (rawData.unlockedOutfits) {
+              const union = Array.from(new Set([
+                ...(prev.unlockedOutfits || ['outfit_starter']),
+                ...(rawData.unlockedOutfits as string[]),
+              ]));
+              if (union.length !== (prev.unlockedOutfits || []).length ||
+                  union.some(id => !(prev.unlockedOutfits || []).includes(id))) {
+                updates.unlockedOutfits = union;
+              }
+            }
+            if (rawData.outfitStones && typeof rawData.outfitStones === 'object') {
+              const serverStones = rawData.outfitStones as Record<string, number>;
+              const merged: Record<string, number> = { ...serverStones };
+              for (const [k, v] of Object.entries(prev.outfitStones || {})) {
+                merged[k] = Math.max(merged[k] || 0, v);
+              }
+              // Only update if it differs
+              const differs = Object.keys(merged).some(k => (prev.outfitStones || {})[k] !== merged[k]);
+              if (differs) updates.outfitStones = merged;
+            }
+            if (rawData.equippedOutfitId && rawData.equippedOutfitId !== prev.equippedOutfitId) {
+              updates.equippedOutfitId = rawData.equippedOutfitId as string;
+            }
           } else {
             if (goldChangedInDb && dbGold !== prev.gold) updates.gold = dbGold;
             if (keysChangedInDb && dbKeys !== prev.keys) updates.keys = dbKeys;
