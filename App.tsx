@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef, lazy, Suspense, useMem
 import { motion, AnimatePresence } from 'framer-motion';
 
 import StoneDropAnim from './components/StoneDropAnim';
+import BatchStoneAnim, { BatchStoneEntry } from './components/BatchStoneAnim';
 import BadgeUnlockAnim from './components/BadgeUnlockAnim';
 import Layout from './components/Layout';
 import Navigation from './components/Navigation';
@@ -245,15 +246,42 @@ const App: React.FC = () => {
   const [mentorMessages, setMentorMessages] = useState<{id: string, text: string}[]>([]);
 
   // ── Stone Drop & Badge Unlock global animations ──
+  // Single-stone animation (for lone awards like quests/workouts)
   const [stoneAnim, setStoneAnim] = useState<{ outfitId: string; amount: number; oldCount: number; newCount: number; color: string; glow: string } | null>(null);
-  const stoneQueueRef          = useRef<Array<{ outfitId: string; amount: number; oldCount: number; newCount: number; color: string; glow: string }>>([]);
-  const stoneAnimActiveRef     = useRef(false);
+  // Batch animation (for dungeon cash-outs with multiple stone types)
+  const [batchStoneAnim, setBatchStoneAnim] = useState<BatchStoneEntry[] | null>(null);
   const [badgeAnim, setBadgeAnim] = useState<{ tierIndex: number; outfitId: string } | null>(null);
 
-  const drainStoneQueue = useCallback(() => {
-    const next = stoneQueueRef.current.shift();
-    if (next) { stoneAnimActiveRef.current = true; setStoneAnim(next); }
-    else { stoneAnimActiveRef.current = false; }
+  // Batching system: buffer rapid-fire events, then decide single vs batch
+  const stoneBatchBuffer = useRef<Array<{ outfitId: string; amount: number; oldCount: number; newCount: number; color: string; glow: string }>>([]);
+  const stoneBatchTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const stoneAnimBusy    = useRef(false);
+
+  const flushStoneBatch = useCallback(() => {
+    const batch = [...stoneBatchBuffer.current];
+    stoneBatchBuffer.current = [];
+    stoneBatchTimer.current = null;
+    if (batch.length === 0) { stoneAnimBusy.current = false; return; }
+
+    // Merge duplicates by outfitId (sum amounts, keep final newCount)
+    const merged = new Map<string, typeof batch[0]>();
+    for (const entry of batch) {
+      const existing = merged.get(entry.outfitId);
+      if (existing) {
+        existing.amount += entry.amount;
+        existing.newCount = Math.max(existing.newCount, entry.newCount);
+      } else {
+        merged.set(entry.outfitId, { ...entry });
+      }
+    }
+    const items = Array.from(merged.values());
+
+    stoneAnimBusy.current = true;
+    if (items.length === 1) {
+      setStoneAnim(items[0]);
+    } else {
+      setBatchStoneAnim(items);
+    }
   }, []);
 
   useEffect(() => {
@@ -261,12 +289,22 @@ const App: React.FC = () => {
       const d = (e as CustomEvent).detail as { outfitId: string; amount: number; oldCount: number; newCount: number; color: string; glow: string; badgeUnlocked: boolean };
       if (d.badgeUnlocked) return;
       const entry = { outfitId: d.outfitId, amount: d.amount, oldCount: d.oldCount, newCount: d.newCount, color: d.color, glow: d.glow };
-      if (stoneAnimActiveRef.current) { stoneQueueRef.current.push(entry); }
-      else { stoneAnimActiveRef.current = true; setStoneAnim(entry); }
+
+      // If an animation is already showing, queue for after it finishes
+      stoneBatchBuffer.current.push(entry);
+
+      // Debounce: wait 200ms for more events before deciding single vs batch
+      if (stoneBatchTimer.current) clearTimeout(stoneBatchTimer.current);
+      if (!stoneAnimBusy.current) {
+        stoneBatchTimer.current = setTimeout(flushStoneBatch, 200);
+      }
     };
     const onBadgeUnlocked = (e: Event) => {
       const d = (e as CustomEvent).detail as { tierIndex: number; outfitId: string };
-      stoneQueueRef.current = []; setStoneAnim(null); stoneAnimActiveRef.current = false;
+      // Badge unlock takes priority — cancel any pending stone anims
+      stoneBatchBuffer.current = [];
+      if (stoneBatchTimer.current) { clearTimeout(stoneBatchTimer.current); stoneBatchTimer.current = null; }
+      setStoneAnim(null); setBatchStoneAnim(null); stoneAnimBusy.current = false;
       setBadgeAnim({ tierIndex: d.tierIndex, outfitId: d.outfitId });
     };
     window.addEventListener('stone:earned',   onStoneEarned);
@@ -274,8 +312,9 @@ const App: React.FC = () => {
     return () => {
       window.removeEventListener('stone:earned',   onStoneEarned);
       window.removeEventListener('badge:unlocked', onBadgeUnlocked);
+      if (stoneBatchTimer.current) clearTimeout(stoneBatchTimer.current);
     };
-  }, []);
+  }, [flushStoneBatch]);
 
   // ── Streak Celebration ──
   const [showStreakCelebration, setShowStreakCelebration] = useState(false);
@@ -1740,7 +1779,7 @@ const App: React.FC = () => {
           />
         )}
 
-        {/* ── Stone Drop Animation (every award) ── */}
+        {/* ── Stone Drop Animation (single award) ── */}
         <AnimatePresence>
           {stoneAnim && (
             <StoneDropAnim
@@ -1751,7 +1790,18 @@ const App: React.FC = () => {
               newCount={stoneAnim.newCount}
               color={stoneAnim.color}
               glow={stoneAnim.glow}
-              onComplete={() => { setStoneAnim(null); drainStoneQueue(); }}
+              onComplete={() => { setStoneAnim(null); stoneAnimBusy.current = false; flushStoneBatch(); }}
+            />
+          )}
+        </AnimatePresence>
+
+        {/* ── Batch Stone Animation (dungeon cash-out with multiple stone types) ── */}
+        <AnimatePresence>
+          {batchStoneAnim && (
+            <BatchStoneAnim
+              key={`batch-stones-${batchStoneAnim.map(s => s.outfitId).join('-')}`}
+              stones={batchStoneAnim}
+              onComplete={() => { setBatchStoneAnim(null); stoneAnimBusy.current = false; flushStoneBatch(); }}
             />
           )}
         </AnimatePresence>

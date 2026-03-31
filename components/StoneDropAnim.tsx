@@ -27,6 +27,8 @@ function hexPoints(cx: number, cy: number, r: number): string {
   }).join(' ');
 }
 
+const prand = (seed: number) => (((seed * 127 + 31) * 251) % 1000) / 1000;
+
 const StoneDropAnim: React.FC<StoneDropAnimProps> = ({
   outfitId, amount, oldCount, newCount, color, onComplete,
 }) => {
@@ -34,42 +36,49 @@ const StoneDropAnim: React.FC<StoneDropAnimProps> = ({
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
 
-  // Which badge tier is currently being filled
   const nextTierIdx  = Math.min(getUnlockedBadgeCount(oldCount), 3);
-  const displayTier  = Math.min(getUnlockedBadgeCount(newCount), 3);   // tier to show numeral of
+  const displayTier  = Math.min(getUnlockedBadgeCount(newCount), 3);
   const oldFill      = getBadgeFillProgress(oldCount, nextTierIdx);
   const newFill      = Math.max(oldFill, getBadgeFillProgress(newCount, displayTier));
   const stone        = getStoneConfig(outfitId);
 
-  // 8 shards at different angles + distances
+  // 10 shards at different angles + distances
   const shards = useMemo(() => {
-    const rng = (n: number) => (((n * 127 + 31) * 251) % 100) / 100; // deterministic pseudo-rand
-    return Array.from({ length: 8 }, (_, i) => {
-      const angle = (i / 8) * Math.PI * 2 - Math.PI / 2 + (rng(i) * 0.5 - 0.25);
-      const dist  = 115 + rng(i + 8) * 50;
+    return Array.from({ length: 10 }, (_, i) => {
+      const angle = (i / 10) * Math.PI * 2 - Math.PI / 2 + (prand(i) * 0.4 - 0.2);
+      const dist  = 120 + prand(i + 8) * 60;
       return {
         x0: Math.cos(angle) * dist,
         y0: Math.sin(angle) * dist,
-        delay: i * 0.085,
-        size: 5 + (i % 3),
+        delay: i * 0.06,
+        size: 4 + (i % 3) * 1.5,
       };
     });
   }, []);
 
+  // Ambient particles
+  const ambientParticles = useMemo(() =>
+    Array.from({ length: 14 }, (_, i) => ({
+      x: prand(i * 7) * 100,
+      y: prand(i * 13 + 3) * 100,
+      size: 1 + prand(i * 19 + 7) * 1.5,
+      duration: 3 + prand(i * 23) * 3,
+      delay: prand(i * 31) * 2,
+    })),
+  []);
+
   useEffect(() => {
-    // Phase timeline
-    const t1 = setTimeout(() => setPhase('absorb'),  350);
+    const t1 = setTimeout(() => setPhase('absorb'),  400);
     const t2 = setTimeout(() => {
       setPhase('filled');
       playSystemSoundEffect('COIN');
-    }, 1350);
-    const t3 = setTimeout(() => setPhase('levitate'), 1600);
-    const t4 = setTimeout(() => setPhase('exit'),     2150);
-    const t5 = setTimeout(() => onCompleteRef.current(), 2600);
+    }, 1400);
+    const t3 = setTimeout(() => setPhase('levitate'), 1700);
+    const t4 = setTimeout(() => setPhase('exit'),     2300);
+    const t5 = setTimeout(() => onCompleteRef.current(), 2750);
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); clearTimeout(t5); };
   }, []);
 
-  // Fill rect y: starts at (1-oldFill)*VB from top, animates to (1-newFill)*VB
   const fillY0 = (1 - oldFill) * VB;
   const fillY1 = (1 - newFill) * VB;
 
@@ -83,217 +92,248 @@ const StoneDropAnim: React.FC<StoneDropAnimProps> = ({
       className="fixed inset-0 z-[9998] flex items-center justify-center overflow-hidden"
       initial={{ opacity: 0 }}
       animate={{ opacity: isExiting ? 0 : 1 }}
-      transition={{ duration: isExiting ? 0.45 : 0.22 }}
-      style={{ background: 'rgba(0,0,0,0.90)', backdropFilter: 'blur(12px)' }}
+      transition={{ duration: isExiting ? 0.4 : 0.25 }}
+      style={{ background: 'rgba(2,2,8,0.93)', backdropFilter: 'blur(16px)' }}
     >
+      {/* Ambient floating particles */}
+      {ambientParticles.map((p, i) => (
+        <motion.div
+          key={`ap-${i}`}
+          className="absolute rounded-full pointer-events-none"
+          style={{
+            width: p.size, height: p.size,
+            background: color,
+            opacity: 0.1,
+            left: `${p.x}%`, top: `${p.y}%`,
+            boxShadow: `0 0 ${p.size * 4}px ${color}`,
+          }}
+          animate={{ y: [0, -25, 0], opacity: [0.06, 0.2, 0.06] }}
+          transition={{ duration: p.duration, delay: p.delay, repeat: Infinity, ease: 'easeInOut' }}
+        />
+      ))}
+
       {/* Deep color bloom behind badge */}
       <motion.div
         className="absolute inset-0 pointer-events-none"
         initial={{ opacity: 0 }}
         animate={{ opacity: phase === 'absorb' || phase === 'filled' || phase === 'levitate' ? 1 : 0 }}
-        transition={{ duration: 0.5 }}
+        transition={{ duration: 0.6 }}
         style={{
-          background: `radial-gradient(ellipse 55% 40% at 50% 50%, ${color}22 0%, transparent 70%)`,
+          background: `radial-gradient(ellipse 50% 35% at 50% 48%, ${color}18 0%, transparent 70%)`,
         }}
       />
 
       {/* ── BADGE + SHARDS CONTAINER ── */}
-      <div className="relative flex items-center justify-center">
+      <div className="relative flex flex-col items-center justify-center">
 
-        {/* Shards converging into badge */}
-        <AnimatePresence>
-          {phase === 'absorb' && shards.map((s, i) => (
-            <motion.div
-              key={i}
-              className="absolute pointer-events-none"
-              style={{
-                width:  s.size,
-                height: s.size,
-                borderRadius: 2,
-                background: color,
-                boxShadow: `0 0 ${s.size * 3}px ${color}, 0 0 ${s.size}px white`,
-                rotate: `${i * 45}deg`,
-              }}
-              initial={{ x: s.x0, y: s.y0, opacity: 1, scale: 1 }}
-              animate={{ x: 0, y: 0, opacity: 0, scale: 0 }}
-              transition={{
-                duration: 0.65,
-                delay: s.delay,
-                ease: [0.4, 0, 0.8, 1],
-              }}
-              onAnimationComplete={() => {
-                if (i === 3) playSystemSoundEffect('TICK');
-              }}
-            />
-          ))}
-        </AnimatePresence>
+        <div className="relative">
+          {/* Shards converging into badge */}
+          <AnimatePresence>
+            {phase === 'absorb' && shards.map((s, i) => (
+              <motion.div
+                key={i}
+                className="absolute pointer-events-none"
+                style={{
+                  width:  s.size,
+                  height: s.size,
+                  borderRadius: s.size > 5 ? 2 : 1,
+                  background: color,
+                  boxShadow: `0 0 ${s.size * 3}px ${color}, 0 0 ${s.size}px rgba(255,255,255,0.4)`,
+                  rotate: `${i * 36}deg`,
+                  left: '50%', top: '50%',
+                  marginLeft: -s.size / 2, marginTop: -s.size / 2,
+                }}
+                initial={{ x: s.x0, y: s.y0, opacity: 1, scale: 1.2 }}
+                animate={{ x: 0, y: 0, opacity: 0, scale: 0 }}
+                transition={{
+                  duration: 0.6,
+                  delay: s.delay,
+                  ease: [0.4, 0, 0.8, 1],
+                }}
+                onAnimationComplete={() => {
+                  if (i === 4) playSystemSoundEffect('TICK');
+                }}
+              />
+            ))}
+          </AnimatePresence>
 
-        {/* Impact ring — pulse when shards hit */}
-        <AnimatePresence>
-          {(phase === 'absorb' || phase === 'filled') && (
-            <motion.div
-              key={`ring-${phase}`}
-              className="absolute pointer-events-none rounded-full"
-              style={{
-                width:  160,
-                height: 160,
-                border: `2px solid ${color}`,
-                opacity: 0.8,
-              }}
-              initial={{ scale: 0.5, opacity: 0.8 }}
-              animate={{ scale: 2.2, opacity: 0 }}
-              transition={{ duration: 0.65, delay: 0.72, ease: 'easeOut' }}
-            />
-          )}
-        </AnimatePresence>
-
-        {/* ── HEX BADGE ── */}
-        <motion.div
-          initial={{ scale: 0, opacity: 0 }}
-          animate={{
-            scale:   isExiting   ? 0.5 : 1,
-            opacity: isExiting   ? 0   : 1,
-            y:       isLeviating ? [0, -22, 6, -14, 3, -8, 2, 0] : 0,
-            rotate:  isLeviating ? [0, -3, 1.5, -1.2, 0.6, 0]    : 0,
-          }}
-          transition={{
-            scale:   { type: 'spring', stiffness: 430, damping: 19 },
-            opacity: { duration: 0.22 },
-            y:       isLeviating ? { duration: 1.1, ease: [0.37, 0, 0.63, 1] } : { duration: 0.3 },
-            rotate:  { duration: 1.1 },
-          }}
-          style={{
-            filter: phase === 'levitate' || phase === 'filled'
-              ? `drop-shadow(0 0 18px ${color}) drop-shadow(0 0 36px ${color}55)`
-              : `drop-shadow(0 0 10px ${color}66)`,
-          }}
-        >
-          <svg viewBox="0 0 120 120" width={170} height={170} overflow="visible">
-            <defs>
-              {/* Fill clipPath — animated upward */}
-              <clipPath id={`sd-fill-clip-${uid}`}>
-                <motion.rect
-                  x={0}
-                  width={VB}
-                  initial={{ y: fillY0, height: VB - fillY0 }}
-                  animate={{ y: fillY1, height: VB - fillY1 }}
-                  transition={{ duration: 0.75, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}
+          {/* Impact ring — pulse when shards hit */}
+          <AnimatePresence>
+            {(phase === 'filled') && (
+              <>
+                <motion.div
+                  key="ring-inner"
+                  className="absolute pointer-events-none rounded-full"
+                  style={{
+                    width: 170, height: 170,
+                    border: `1.5px solid ${color}`,
+                    left: '50%', top: '50%',
+                    marginLeft: -85, marginTop: -85,
+                  }}
+                  initial={{ scale: 0.4, opacity: 0.7 }}
+                  animate={{ scale: 2, opacity: 0 }}
+                  transition={{ duration: 0.7, ease: 'easeOut' }}
                 />
-              </clipPath>
+                <motion.div
+                  key="ring-outer"
+                  className="absolute pointer-events-none rounded-full"
+                  style={{
+                    width: 170, height: 170,
+                    border: `1px solid ${color}`,
+                    left: '50%', top: '50%',
+                    marginLeft: -85, marginTop: -85,
+                  }}
+                  initial={{ scale: 0.6, opacity: 0.4 }}
+                  animate={{ scale: 2.8, opacity: 0 }}
+                  transition={{ duration: 0.9, delay: 0.1, ease: 'easeOut' }}
+                />
+              </>
+            )}
+          </AnimatePresence>
 
-              {/* Liquid fill gradient */}
-              <linearGradient id={`sd-fill-${uid}`} x1="0" y1="1" x2="0" y2="0">
-                <stop offset="0%"   stopColor={color} stopOpacity="0.45" />
-                <stop offset="60%"  stopColor={color} stopOpacity="0.8"  />
-                <stop offset="100%" stopColor={color} stopOpacity="1"    />
-              </linearGradient>
+          {/* ── HEX BADGE ── */}
+          <motion.div
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{
+              scale:   isExiting ? 0.6 : 1,
+              opacity: isExiting ? 0   : 1,
+              y:       isLeviating ? [0, -18, 4, -10, 2, -5, 0] : 0,
+              rotate:  isLeviating ? [0, -2, 1, -0.8, 0.4, 0]   : 0,
+            }}
+            transition={{
+              scale:   { type: 'spring', stiffness: 400, damping: 20 },
+              opacity: { duration: 0.25 },
+              y:       isLeviating ? { duration: 1.0, ease: [0.37, 0, 0.63, 1] } : { duration: 0.3 },
+              rotate:  { duration: 1.0 },
+            }}
+            style={{
+              filter: phase === 'levitate' || phase === 'filled'
+                ? `drop-shadow(0 0 20px ${color}) drop-shadow(0 0 40px ${color}44)`
+                : `drop-shadow(0 0 8px ${color}55)`,
+            }}
+          >
+            <svg viewBox="0 0 120 120" width={170} height={170}>
+              <defs>
+                {/* Hex-shaped clip for the fill — prevents bleed outside hex */}
+                <clipPath id={`sd-hex-clip-${uid}`}>
+                  <polygon points={hexPoints(CX, CY, R)} />
+                </clipPath>
 
-              {/* Badge dark background */}
-              <radialGradient id={`sd-bg-${uid}`} cx="50%" cy="40%" r="60%">
-                <stop offset="0%"   stopColor={color} stopOpacity="0.14" />
-                <stop offset="100%" stopColor="#060610" stopOpacity="1"  />
-              </radialGradient>
+                {/* Fill level rect clip — animated upward */}
+                <clipPath id={`sd-fill-clip-${uid}`}>
+                  <motion.rect
+                    x={0}
+                    width={VB}
+                    initial={{ y: fillY0, height: VB - fillY0 }}
+                    animate={{ y: fillY1, height: VB - fillY1 }}
+                    transition={{ duration: 0.75, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                  />
+                </clipPath>
 
-              {/* Inner edge glow */}
-              <filter id={`sd-glow-${uid}`}>
-                <feGaussianBlur stdDeviation="2" result="blur" />
-                <feComposite in="SourceGraphic" in2="blur" operator="over" />
-              </filter>
-            </defs>
+                {/* Liquid fill gradient */}
+                <linearGradient id={`sd-fill-${uid}`} x1="0" y1="1" x2="0" y2="0">
+                  <stop offset="0%"   stopColor={color} stopOpacity="0.4" />
+                  <stop offset="50%"  stopColor={color} stopOpacity="0.7" />
+                  <stop offset="100%" stopColor={color} stopOpacity="0.95" />
+                </linearGradient>
 
-            {/* Dark hex background */}
-            <polygon
-              points={hexPoints(CX, CY, R)}
-              fill={`url(#sd-bg-${uid})`}
-            />
+                {/* Badge dark background */}
+                <radialGradient id={`sd-bg-${uid}`} cx="50%" cy="40%" r="60%">
+                  <stop offset="0%"   stopColor={color} stopOpacity="0.12" />
+                  <stop offset="100%" stopColor="#060610" stopOpacity="1" />
+                </radialGradient>
+              </defs>
 
-            {/* Crystal fill (clipped, rises up) */}
-            <g clipPath={`url(#sd-fill-clip-${uid})`}>
+              {/* Dark hex background */}
               <polygon
                 points={hexPoints(CX, CY, R)}
-                fill={`url(#sd-fill-${uid})`}
+                fill={`url(#sd-bg-${uid})`}
               />
-              {/* Shimmer line on top of fill */}
-              <motion.rect
-                x={0}
-                width={120}
-                height={3}
-                fill={`${color}88`}
-                initial={{ y: fillY0 - 1, opacity: 0 }}
-                animate={{ y: [fillY0, fillY1 - 1, fillY1 - 1], opacity: [0, 0.9, 0] }}
-                transition={{ duration: 0.75, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}
+
+              {/* Crystal fill — double clipped: hex shape + rising level */}
+              <g clipPath={`url(#sd-hex-clip-${uid})`}>
+                <g clipPath={`url(#sd-fill-clip-${uid})`}>
+                  <polygon
+                    points={hexPoints(CX, CY, R)}
+                    fill={`url(#sd-fill-${uid})`}
+                  />
+                </g>
+              </g>
+
+              {/* Outer hex border */}
+              <polygon
+                points={hexPoints(CX, CY, R)}
+                fill="none"
+                stroke={color}
+                strokeWidth="1.5"
+                opacity="0.7"
+                strokeLinejoin="round"
               />
-            </g>
 
-            {/* Outer hex border */}
-            <polygon
-              points={hexPoints(CX, CY, R)}
-              fill="none"
-              stroke={color}
-              strokeWidth="1.5"
-              opacity="0.75"
-            />
+              {/* Inner hex deco ring */}
+              <polygon
+                points={hexPoints(CX, CY, R - 7)}
+                fill="none"
+                stroke={color}
+                strokeWidth="0.4"
+                opacity="0.18"
+                strokeDasharray="4 3"
+              />
 
-            {/* Inner hex deco ring */}
-            <polygon
-              points={hexPoints(CX, CY, R - 7)}
-              fill="none"
-              stroke={color}
-              strokeWidth="0.5"
-              opacity="0.2"
-              strokeDasharray="4 3"
-            />
+              {/* Tier numeral */}
+              <text
+                x={CX}
+                y={CY + 4}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                fill="white"
+                fontWeight="900"
+                fontSize="22"
+                fontFamily="monospace"
+                opacity="0.9"
+                style={{ filter: `drop-shadow(0 0 8px ${color})` } as React.CSSProperties}
+              >
+                {['I', 'II', 'III', 'IV'][displayTier]}
+              </text>
+            </svg>
+          </motion.div>
+        </div>
 
-            {/* Tier numeral */}
-            <text
-              x={CX}
-              y={CY + 4}
-              textAnchor="middle"
-              dominantBaseline="middle"
-              fill="white"
-              fontWeight="900"
-              fontSize="22"
-              fontFamily="monospace"
-              opacity="0.9"
-              style={{ filter: `drop-shadow(0 0 8px ${color})` } as React.CSSProperties}
-            >
-              {['I', 'II', 'III', 'IV'][displayTier]}
-            </text>
-          </svg>
+        {/* ── +N CRYSTAL TEXT ── */}
+        <motion.div
+          className="font-black font-mono uppercase tracking-wider text-center pointer-events-none mt-4"
+          style={{
+            color,
+            fontSize: 'clamp(1rem, 4.5vw, 1.4rem)',
+            textShadow: `0 0 24px ${color}88, 0 0 8px ${color}`,
+            letterSpacing: '0.12em',
+          }}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{
+            opacity: phase === 'absorb' || phase === 'filled' || phase === 'levitate' ? 1 : 0,
+            y: phase === 'absorb' || phase === 'filled' || phase === 'levitate' ? 0 : 10,
+          }}
+          transition={{ duration: 0.35, delay: phase === 'absorb' ? 0.5 : 0 }}
+        >
+          +{amount} {stone.stoneName}
+        </motion.div>
+
+        {/* ── Stone name subtitle ── */}
+        <motion.div
+          className="font-mono font-bold text-center pointer-events-none uppercase tracking-[0.3em] mt-1"
+          style={{
+            color: `${color}88`,
+            fontSize: 'clamp(0.55rem, 2.5vw, 0.7rem)',
+          }}
+          initial={{ opacity: 0 }}
+          animate={{
+            opacity: phase === 'filled' || phase === 'levitate' ? 0.6 : 0,
+          }}
+          transition={{ duration: 0.3, delay: 0.1 }}
+        >
+          Badge Tier {['I', 'II', 'III', 'IV'][displayTier]}
         </motion.div>
       </div>
-
-      {/* ── +N CRYSTAL TEXT ── */}
-      <motion.div
-        className="absolute font-black font-mono uppercase tracking-wider text-center pointer-events-none"
-        style={{
-          bottom: 'calc(50% - 130px)',
-          color,
-          fontSize: 'clamp(0.95rem, 4.5vw, 1.35rem)',
-          textShadow: `0 0 24px ${color}88, 0 0 8px ${color}`,
-          letterSpacing: '0.12em',
-        }}
-        initial={{ opacity: 0, y: 8 }}
-        animate={{
-          opacity: phase === 'absorb' || phase === 'filled' || phase === 'levitate' ? 1 : 0,
-          y: phase === 'absorb' || phase === 'filled' || phase === 'levitate' ? 0 : 8,
-        }}
-        transition={{ duration: 0.3, delay: phase === 'absorb' ? 0.5 : 0 }}
-      >
-        +{amount} {stone.stoneName}
-      </motion.div>
-
-      {/* ── DIVIDER LINE ── */}
-      <motion.div
-        className="absolute pointer-events-none"
-        style={{ bottom: 'calc(50% - 155px)', width: 120, height: 1, background: `linear-gradient(to right, transparent, ${color}80, transparent)` }}
-        initial={{ scaleX: 0, opacity: 0 }}
-        animate={{
-          scaleX: phase === 'filled' || phase === 'levitate' ? 1 : 0,
-          opacity: phase === 'filled' || phase === 'levitate' ? 1 : 0,
-        }}
-        transition={{ duration: 0.4 }}
-      />
     </motion.div>
   );
 };
