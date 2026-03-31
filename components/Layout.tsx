@@ -562,8 +562,8 @@ const Layout: React.FC<LayoutProps> = ({
                     boxShadow: 'inset 0 1px 0 rgba(234,179,8,0.15)',
                   }}
                 >
-                  <div className="flex items-center justify-center -ml-2 -mr-1" style={{ width: 40 }}>
-                    <AnimatedCoinIcon size={50} />
+                  <div className="flex items-center justify-center -ml-1 -mr-1" style={{ width: 35 }}>
+                    <AnimatedCoinIcon size={35} />
                   </div>
                   <span id="user-wallet-balance" className="font-mono text-[11px] font-bold text-yellow-300 whitespace-nowrap z-10"><AnimatedCounter value={gold} /></span>
                 </button>
