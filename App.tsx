@@ -32,7 +32,15 @@ import { DAILY_REWARDS_ENABLED } from './lib/rewards';
 import { getPlayerAuthHeaders, getOrRefreshPlayerHeaders } from './lib/playerApi';
 import { Terminal } from 'lucide-react';
 import { API_BASE } from './lib/apiConfig';
-import { requestNotificationPermission, scheduleMorningDusk, scheduleStreakReminder } from './hooks/useLocalNotifications';
+import {
+  requestNotificationPermission,
+  scheduleMorningDusk,
+  scheduleStreakReminder,
+  scheduleWorkoutReminder,
+  scheduleLeaderboardNudge,
+  scheduleComebackPing,
+  scheduleQuestDeadline,
+} from './hooks/useLocalNotifications';
 
 // ── Existing lazy imports ──
 const DailyLoginModal = lazy(() => import('./components/DailyLoginModal'));
@@ -195,12 +203,28 @@ const App: React.FC = () => {
   // ── Schedule local notifications when user is authenticated ──
   useEffect(() => {
     if (!player.userId || isLocalUser(player.userId) || !player.isConfigured) return;
-    // Request notification permission and schedule recurring notifications
     (async () => {
-      await requestNotificationPermission();
+      const granted = await requestNotificationPermission();
+      if (!granted) return;
+
+      const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+      const hasWorkedOutToday = player.lastWorkoutDate === today;
+      const hasDailyXp = (player.dailyXp || 0) > 0;
+
+      // Daily: reschedule each app open so the message rotates
       await scheduleMorningDusk();
-      if (player.streak > 2) {
-        await scheduleStreakReminder(player.streak);
+      await scheduleWorkoutReminder(hasWorkedOutToday);
+      await scheduleStreakReminder(player.streak, hasWorkedOutToday);
+      await scheduleLeaderboardNudge(hasDailyXp);
+
+      // Comeback: always push 48h out; cancels/re-sets each app open
+      await scheduleComebackPing();
+
+      // Quest deadlines: schedule for any active quests with expiresAt
+      for (const q of player.quests) {
+        if (!q.isCompleted && !q.failed && q.expiresAt) {
+          await scheduleQuestDeadline(q.id, q.title, q.expiresAt);
+        }
       }
     })();
   }, [player.userId, player.isConfigured]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1177,9 +1201,9 @@ const App: React.FC = () => {
                   onComplete={() => {
                     setShowStreakCelebration(false);
                     setStreakAnimData(null);
-                    // Schedule streak reminder notification after animation
-                    if (player.streak >= 2) {
-                      scheduleStreakReminder(player.streak).catch(() => {});
+                    // Re-schedule streak reminder for tomorrow (workout already done today)
+                    if (player.streak >= 1) {
+                      scheduleStreakReminder(player.streak, true).catch(() => {});
                     }
                   }}
                 />

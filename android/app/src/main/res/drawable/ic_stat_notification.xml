@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Sword blade (top-right to bottom-left diagonal) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M17.5,2.5 L21.5,6.5 L8.5,19.5 L4.5,15.5 Z" />
+    <!-- Crossguard -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M14,9 L15,8 L16,9 L15,10 Z M9,14 L10,13 L11,14 L10,15 Z" />
+    <!-- Handle -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M4.5,15.5 L2.5,21.5 L8.5,19.5 Z" />
+    <!-- Small diamond accent at hilt -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M12.5,11.5 L13.5,10.5 L14.5,11.5 L13.5,12.5 Z" />
+</vector>

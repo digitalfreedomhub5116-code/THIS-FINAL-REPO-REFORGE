@@ -9,6 +9,7 @@ import { getPlayerAuthHeaders } from '../lib/playerApi';
 import { REWARD_SCHEDULE } from '../lib/rewards';
 import { API_BASE } from '../lib/apiConfig';
 import { OUTFITS, getOutfitXpBoost, getStoneConfig, getUnlockedBadgeCount, BADGE_TIERS } from '../utils/gameData';
+import { scheduleQuestDeadline, cancelDailyReminders } from './useLocalNotifications';
 
 export const isEmbed = (url: string) => {
   return url.includes('youtube.com/embed') || url.includes('player.vimeo.com');
@@ -1077,6 +1078,9 @@ export const useSystem = () => {
   const addQuest = (quest: Quest) => {
     setPlayer(prev => ({ ...prev, quests: [quest, ...prev.quests] }));
     addNotification('New Quest Protocol Initialized', 'SYSTEM');
+    if (quest.expiresAt) {
+      scheduleQuestDeadline(quest.id, quest.title, quest.expiresAt).catch(() => {});
+    }
   };
 
   const completeQuest = (id: string, asMini: boolean = false, noRewards: boolean = false) => {
@@ -1690,6 +1694,8 @@ export const useSystem = () => {
       addNotification('Workout Voided — Too many anomalies detected. No rewards granted.', 'WARNING');
       triggerDuskMessage(`Workout VOIDED: ${exercisesCompleted}/${totalExercises} exercises attempted but ${anomalyPoints} anomaly violations detected. No rewards granted — the hunter tried to cheat the system.`);
     } else {
+      // Cancel today's workout/streak/leaderboard reminders — user has already trained
+      cancelDailyReminders().catch(() => {});
       const rewardSummary = rewards.map(r => `${r.amount} ${r.label}`).join(', ');
       addNotification(`Workout Complete! Rewards: ${rewardSummary}`, 'SUCCESS');
       triggerDuskMessage(`Workout Completed: ${exercisesCompleted}/${totalExercises} exercises done. Intensity: ${intensityModifier ? 'HIGH' : 'NORMAL'}. Rewards: ${rewardSummary}.`);
