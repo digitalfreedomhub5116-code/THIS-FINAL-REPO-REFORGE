@@ -7,8 +7,10 @@ import Lottie from 'lottie-react';
 import { DailyChestAnim, LegendaryChestAnim, AllianceChestAnim, ChestOpeningAnim } from './ChestAnimations';
 
 let _legendaryLottieData: object | null | false = null;
-const LegendaryChestLottie: React.FC<{ size?: number; loop?: boolean }> = ({ size = 160, loop = true }) => {
+const LegendaryChestLottie: React.FC<{ size?: number; phase?: 'IDLE' | 'OPENING'; onComplete?: () => void }> = ({ size = 160, phase = 'IDLE', onComplete }) => {
   const [data, setData] = React.useState<object | null | false>(_legendaryLottieData);
+  const lottieRef = React.useRef<any>(null);
+
   React.useEffect(() => {
     if (_legendaryLottieData !== null) { setData(_legendaryLottieData); return; }
     fetch('/assets/lottie/legendary_chest.json')
@@ -16,7 +18,50 @@ const LegendaryChestLottie: React.FC<{ size?: number; loop?: boolean }> = ({ siz
       .then(d => { _legendaryLottieData = d ?? false; setData(_legendaryLottieData); })
       .catch(() => { _legendaryLottieData = false; setData(false); });
   }, []);
-  if (data) return <div style={{ width: size, height: size, flexShrink: 0 }}><Lottie animationData={data} loop={loop} autoplay className="w-full h-full" /></div>;
+
+  const handleDOMLoaded = () => {
+    if (lottieRef.current) {
+      if (phase === 'IDLE') {
+        lottieRef.current.goToAndStop(0, true);
+      } else if (phase === 'OPENING') {
+        lottieRef.current.goToAndPlay(0, true);
+      }
+    }
+  };
+
+  React.useEffect(() => {
+    if (lottieRef.current) {
+      if (phase === 'IDLE') {
+        lottieRef.current.goToAndStop(0, true);
+      } else if (phase === 'OPENING') {
+        lottieRef.current.goToAndPlay(0, true);
+      }
+    }
+  }, [phase]);
+
+  const handleComplete = () => {
+    if (lottieRef.current) {
+      const totalFrames = lottieRef.current.getDuration(true);
+      lottieRef.current.goToAndStop(totalFrames - 1, true);
+    }
+    if (onComplete) onComplete();
+  };
+
+  if (data) {
+    return (
+      <div style={{ width: size, height: size, flexShrink: 0 }}>
+        <Lottie
+          lottieRef={lottieRef}
+          animationData={data}
+          loop={false}
+          autoplay={false}
+          onDOMLoaded={handleDOMLoaded}
+          onComplete={handleComplete}
+          className="w-full h-full"
+        />
+      </div>
+    );
+  }
   return <LegendaryChestAnim isLocked={false} size={size} />;
 };
 import { SystemCoin } from './icons/SystemCoin';
@@ -327,7 +372,7 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
           <div className="relative w-full h-44 flex items-center justify-center overflow-hidden"
             style={{ background: cfg.bg }}>
             {type === 'DAILY'     && <DailyChestAnim     isLocked={locked} size={160} />}
-            {type === 'LEGENDARY' && <LegendaryChestLottie size={160} loop />}
+            {type === 'LEGENDARY' && <LegendaryChestLottie phase="IDLE" size={160} />}
             {type === 'ALLIANCE'  && <AllianceChestAnim  isLocked={locked} size={160} />}
             {locked && (
               <div className="absolute inset-0 z-20 bg-black/60 flex flex-col items-center justify-center gap-2 backdrop-blur-[2px]">
@@ -396,6 +441,15 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
   const renderOpeningChest = () => {
     if (!activeChest) return null;
     const cfg = CHEST_CFG[activeChest];
+
+    if (activeChest === 'LEGENDARY') {
+      return (
+        <div className="relative flex items-center justify-center scale-[1.5]">
+          <LegendaryChestLottie phase="OPENING" size={240} onComplete={handleOpenComplete} />
+        </div>
+      );
+    }
+
     return (
       <ChestOpeningAnim
         color={cfg.color}
@@ -418,7 +472,7 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
           style={{ background: CHEST_CFG[activeChest].bg, border: `1px solid ${CHEST_CFG[activeChest].borderColor}` }}
         >
           {activeChest === 'DAILY'     && <DailyChestAnim     isLocked={false} size={112} />}
-          {activeChest === 'LEGENDARY' && <LegendaryChestLottie size={112} loop />}
+          {activeChest === 'LEGENDARY' && <LegendaryChestLottie phase="IDLE" size={112} />}
           {activeChest === 'ALLIANCE'  && <AllianceChestAnim  isLocked={false} size={112} />}
         </motion.div>
         {cards.map((card, i) => {
