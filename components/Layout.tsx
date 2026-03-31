@@ -524,7 +524,7 @@ const Layout: React.FC<LayoutProps> = ({
                       {displayName}
                     </div>
                     {streak > 0 && (
-                      <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(251,146,60,0.1)', border: '1px solid rgba(251,146,60,0.2)' }}>
+                      <div className="flex items-center gap-0.5">
                         <Flame size={8} className="fill-orange-400 text-orange-400" />
                         <span className="font-mono text-[8px] sm:text-[9px] font-bold text-orange-400">{streak}d</span>
                       </div>
@@ -536,36 +536,23 @@ const Layout: React.FC<LayoutProps> = ({
               {/* RIGHT: Keys + Gold + Bell */}
               <div id="tut-gold-display" className="flex items-center gap-1.5 flex-shrink-0">
 
-                {/* Keys chip */}
-                <div
-                  id="user-keys-balance"
-                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl h-8"
-                  style={{
-                    background: 'linear-gradient(180deg, rgba(139,92,246,0.12) 0%, rgba(6,4,18,0.80) 100%)',
-                    border: '1px solid rgba(139,92,246,0.25)',
-                    boxShadow: 'inset 0 1px 0 rgba(139,92,246,0.15)',
-                  }}
-                >
+                {/* Keys */}
+                <div id="user-keys-balance" className="flex items-center gap-1">
                   <AnimatedKeyIcon size={12} />
                   <span className="font-mono text-[11px] font-bold text-purple-300 whitespace-nowrap"><AnimatedCounter value={keys} /></span>
                 </div>
 
-                {/* Gold chip */}
+                {/* Gold */}
                 <button
                   id="gold-header-btn"
                   onClick={!headerDisabled ? onGoldClick : undefined}
                   disabled={headerDisabled}
-                  className="flex items-center rounded-xl transition-all active:scale-95 h-8 pl-0 pr-3 relative"
-                  style={{
-                    background: 'linear-gradient(180deg, rgba(234,179,8,0.12) 0%, rgba(10,7,0,0.80) 100%)',
-                    border: '1px solid rgba(234,179,8,0.28)',
-                    boxShadow: 'inset 0 1px 0 rgba(234,179,8,0.15)',
-                  }}
+                  className="flex items-center gap-0.5 transition-all active:scale-95"
                 >
-                  <div className="flex items-center justify-center -ml-1 -mr-1" style={{ width: 35 }}>
-                    <AnimatedCoinIcon size={35} />
+                  <div className="flex items-center justify-center" style={{ width: 28 }}>
+                    <AnimatedCoinIcon size={28} />
                   </div>
-                  <span id="user-wallet-balance" className="font-mono text-[11px] font-bold text-yellow-300 whitespace-nowrap z-10"><AnimatedCounter value={gold} /></span>
+                  <span id="user-wallet-balance" className="font-mono text-[11px] font-bold text-yellow-300 whitespace-nowrap"><AnimatedCounter value={gold} /></span>
                 </button>
 
                 {/* Bell */}
