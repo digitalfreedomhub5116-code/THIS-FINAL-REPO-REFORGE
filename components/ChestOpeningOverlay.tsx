@@ -31,12 +31,12 @@ export default function ChestOpeningOverlay({ onClose, chestType }: ChestOpening
       .catch(() => {});
   }, []);
 
-  // Once lottie loads, pause immediately at frame 0
-  useEffect(() => {
-    if (lottieData && lottieRef.current) {
+  const handleDOMLoaded = () => {
+    // Reliably freeze at frame 0 once the animation DOM is ready
+    if (lottieRef.current) {
       lottieRef.current.goToAndStop(0, true);
     }
-  }, [lottieData]);
+  };
 
   const handleOpen = () => {
     if (isOpening.current || phase !== 'IDLE') return;
@@ -144,6 +144,7 @@ export default function ChestOpeningOverlay({ onClose, chestType }: ChestOpening
                 animationData={lottieData}
                 loop={false}
                 autoplay={false}
+                onDOMLoaded={handleDOMLoaded}
                 onComplete={handleLottieComplete}
                 className="w-full h-full drop-shadow-2xl"
               />
