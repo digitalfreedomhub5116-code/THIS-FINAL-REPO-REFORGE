@@ -142,6 +142,8 @@ function migratePlayerData(raw: Partial<PlayerData>): PlayerData {
   if (!merged.unlockedLooks) merged.unlockedLooks = [];
   if (!merged.activeLookId) merged.activeLookId = '';
   if (!merged.consumables) merged.consumables = { shadowScrolls: 0 };
+  if (!merged.chests) merged.chests = { legendary: 0 };
+  else if (merged.chests.legendary === undefined) merged.chests.legendary = 0;
   if (!merged.outfitStones) merged.outfitStones = {};
   merged.tutorialComplete = (raw as any)?.tutorialComplete ?? false;
   return merged;

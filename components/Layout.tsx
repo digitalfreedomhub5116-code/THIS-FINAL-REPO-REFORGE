@@ -157,6 +157,14 @@ const Layout: React.FC<LayoutProps> = ({
     if (forceHeaderVisible) setHeaderVisible(true);
   }, [forceHeaderVisible]);
 
+  const coinLottieRef = useRef<object | null>(null);
+  useEffect(() => {
+    fetch('/assets/lottie/coin.json')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) coinLottieRef.current = data; })
+      .catch(() => {});
+  }, []);
+
   const coinForceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     const COIN_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="none" stroke="#eab308" stroke-width="1.5"/><text x="7" y="10.5" text-anchor="middle" font-size="6" font-weight="900" fill="#eab308" font-family="monospace">◈</text></svg>`;
@@ -174,17 +182,18 @@ const Layout: React.FC<LayoutProps> = ({
       const endX = destRect.left + destRect.width / 2;
       const endY = destRect.top + destRect.height / 2;
       const COIN_COUNT = 8;
+      const lottieData = coinLottieRef.current;
       for (let i = 0; i < COIN_COUNT; i++) {
         setTimeout(() => {
+          const SIZE = lottieData ? 32 : 18;
           const coin = document.createElement('div');
-          coin.style.cssText = `position:fixed;width:18px;height:18px;left:${startX - 9}px;top:${startY - 9}px;z-index:9999;pointer-events:none;`;
-          coin.innerHTML = COIN_SVG;
+          coin.style.cssText = `position:fixed;width:${SIZE}px;height:${SIZE}px;left:${startX - SIZE/2}px;top:${startY - SIZE/2}px;z-index:9999;pointer-events:none;overflow:hidden;`;
           document.body.appendChild(coin);
           const scatterX = (Math.random() - 0.5) * 60;
           const scatterY = (Math.random() - 0.5) * 60;
           const midX = (startX + endX) / 2 - startX + (Math.random() - 0.5) * 60;
           const midY = Math.min(startY, endY) - 80 - Math.random() * 60 - startY;
-          coin.animate([
+          const flyAnim = coin.animate([
             { transform: 'translate(0,0) scale(0.5)', opacity: 0 },
             { transform: `translate(${scatterX}px,${scatterY}px) scale(1)`, opacity: 1, offset: 0.12 },
             { transform: `translate(${midX}px,${midY}px) scale(1.1)`, offset: 0.5 },
@@ -193,7 +202,16 @@ const Layout: React.FC<LayoutProps> = ({
             duration: 900 + Math.random() * 300,
             easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
             fill: 'forwards',
-          }).onfinish = () => coin.remove();
+          });
+          if (lottieData) {
+            import('lottie-web').then(({ default: lottieLib }) => {
+              const anim = lottieLib.loadAnimation({ container: coin, renderer: 'svg', loop: true, autoplay: true, animationData: lottieData as object });
+              flyAnim.onfinish = () => { anim.destroy(); coin.remove(); };
+            }).catch(() => { coin.innerHTML = COIN_SVG; flyAnim.onfinish = () => coin.remove(); });
+          } else {
+            coin.innerHTML = COIN_SVG;
+            flyAnim.onfinish = () => coin.remove();
+          }
         }, i * 60);
       }
     };
