@@ -655,11 +655,14 @@ export const HealthView: React.FC<HealthViewProps> = ({
       // Check if session is from today (before daily reset)
       const sessionDate = new Date(session.timestamp).toISOString().split('T')[0];
       const today = new Date().toISOString().split('T')[0];
-      if (sessionDate === today) {
+      // Also check if today's workout is already recorded as completed/cheated
+      // If so, this is a stale session left over after completion — clear it
+      const todayOutcome = _readDayMap(_dayMapKey)[today];
+      if (sessionDate === today && !todayOutcome) {
         setSavedSession(session);
         setShowResumePrompt(true);
       } else {
-        // Session is from a previous day — mark as failed and clear
+        // Session is stale (previous day, or today already completed) — clear
         clearWorkoutSession(playerData.userId || 'local');
       }
     }

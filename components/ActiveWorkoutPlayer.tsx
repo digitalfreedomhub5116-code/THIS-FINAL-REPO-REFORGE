@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Pause, X, AlertOctagon, Check, Activity, Film, Timer as TimerIcon, ChevronRight, Zap, Clock } from 'lucide-react';
@@ -123,6 +123,9 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
 
   // --- ANTI-CHEAT ---
   const [anomalyPoints, setAnomalyPoints] = useState(savedSession?.anomalyPoints ?? 0);
+
+  // Guard: once workout completes, stop persisting session to localStorage
+  const completedRef = useRef(false);
   const [phaseStartTime, setPhaseStartTime] = useState(Date.now());
 
   // Derived Data
@@ -239,6 +242,7 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
       // Reset set count to 0 so we know we are between exercises
       setCurrentSet(0); 
     } else {
+      completedRef.current = true;
       clearWorkoutSession(player.userId || 'local');
       SpeechService.announceVictory();
       playSystemSoundEffect('LEVEL_UP');
@@ -304,7 +308,9 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
   }, [timeLeft, isPaused, phase, handleTimerComplete, currentIdx, plan.exercises]);
 
   // --- SESSION PERSISTENCE: Save state whenever key values change ---
+  // Skip saving once workout has been completed (prevents re-save after clear)
   useEffect(() => {
+    if (completedRef.current) return;
     saveWorkoutSession({
       currentIdx,
       currentSet,
