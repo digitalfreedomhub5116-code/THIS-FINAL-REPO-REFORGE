@@ -3,7 +3,22 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Castle, X, HelpCircle, Check, Lock, Info, Coins } from 'lucide-react';
+import Lottie from 'lottie-react';
 import { DailyChestAnim, LegendaryChestAnim, AllianceChestAnim, ChestOpeningAnim } from './ChestAnimations';
+
+let _legendaryLottieData: object | null | false = null;
+const LegendaryChestLottie: React.FC<{ size?: number; loop?: boolean }> = ({ size = 160, loop = true }) => {
+  const [data, setData] = React.useState<object | null | false>(_legendaryLottieData);
+  React.useEffect(() => {
+    if (_legendaryLottieData !== null) { setData(_legendaryLottieData); return; }
+    fetch('/assets/lottie/legendary_chest.json')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { _legendaryLottieData = d ?? false; setData(_legendaryLottieData); })
+      .catch(() => { _legendaryLottieData = false; setData(false); });
+  }, []);
+  if (data) return <div style={{ width: size, height: size, flexShrink: 0 }}><Lottie animationData={data} loop={loop} autoplay className="w-full h-full" /></div>;
+  return <LegendaryChestAnim isLocked={false} size={size} />;
+};
 import { SystemCoin } from './icons/SystemCoin';
 import { SystemKey } from './icons/SystemKey';
 import { playSystemSoundEffect } from '../utils/soundEngine';
@@ -312,7 +327,7 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
           <div className="relative w-full h-44 flex items-center justify-center overflow-hidden"
             style={{ background: cfg.bg }}>
             {type === 'DAILY'     && <DailyChestAnim     isLocked={locked} size={160} />}
-            {type === 'LEGENDARY' && <LegendaryChestAnim isLocked={locked} size={160} />}
+            {type === 'LEGENDARY' && <LegendaryChestLottie size={160} loop />}
             {type === 'ALLIANCE'  && <AllianceChestAnim  isLocked={locked} size={160} />}
             {locked && (
               <div className="absolute inset-0 z-20 bg-black/60 flex flex-col items-center justify-center gap-2 backdrop-blur-[2px]">
@@ -403,7 +418,7 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
           style={{ background: CHEST_CFG[activeChest].bg, border: `1px solid ${CHEST_CFG[activeChest].borderColor}` }}
         >
           {activeChest === 'DAILY'     && <DailyChestAnim     isLocked={false} size={112} />}
-          {activeChest === 'LEGENDARY' && <LegendaryChestAnim isLocked={false} size={112} />}
+          {activeChest === 'LEGENDARY' && <LegendaryChestLottie size={112} loop />}
           {activeChest === 'ALLIANCE'  && <AllianceChestAnim  isLocked={false} size={112} />}
         </motion.div>
         {cards.map((card, i) => {
