@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Castle, X, HelpCircle, Check, Lock, Info, Coins } from 'lucide-react';
 // ChestAnimations SVG fallbacks are used inside ChestLottieOverlays
 import { DailyChestLottie, LegendaryChestLottieV2, AllianceChestLottie, preloadChestLotties } from './ChestLottieOverlays';
+import { getStoneConfig, OUTFIT_STONE_CONFIG } from '../utils/gameData';
 import { SystemCoin } from './icons/SystemCoin';
 import { SystemKey } from './icons/SystemKey';
 import { playSystemSoundEffect } from '../utils/soundEngine';
@@ -26,7 +27,7 @@ type Phase = 'SELECTION' | 'HERO';
 type HeroStep = 'FLY_IN' | 'VIBRATE' | 'OPEN' | 'CARDS_OUT';
 
 interface RewardCard {
-  type: 'GOLD' | 'XP' | 'KEYS' | 'ITEM';
+  type: 'GOLD' | 'XP' | 'KEYS' | 'ITEM' | 'STONE';
   amount: number;
   label: string;
   color: string;
@@ -64,20 +65,26 @@ const REWARD_POOLS: Record<'DAILY' | 'LEGENDARY' | 'ALLIANCE', WeightedReward[]>
     { reward: { type: 'KEYS', amount: 1,     label: 'KEY',     color: '#a855f7' }, weight: 15 },
   ],
   LEGENDARY: [
-    { reward: { type: 'GOLD', amount: 800,  label: 'GOLD',    color: '#eab308' }, weight: 30 },
-    { reward: { type: 'GOLD', amount: 1500, label: 'GOLD',    color: '#eab308' }, weight: 15 },
-    { reward: { type: 'ITEM', amount: 1,     label: 'SCROLL',  color: '#00d2ff' }, weight: 20 },
-    { reward: { type: 'KEYS', amount: 3,     label: 'KEYS',    color: '#a855f7' }, weight: 15 },
-    { reward: { type: 'ITEM', amount: 1,     label: 'ORB',     color: '#bf5eff' }, weight: 8 },
-    { reward: { type: 'ITEM', amount: 1,     label: 'POTION',  color: '#ef4444' }, weight: 12 },
+    { reward: { type: 'GOLD',  amount: 800,  label: 'GOLD',            color: '#eab308' }, weight: 25 },
+    { reward: { type: 'GOLD',  amount: 1500, label: 'GOLD',            color: '#eab308' }, weight: 12 },
+    { reward: { type: 'KEYS',  amount: 3,    label: 'KEYS',            color: '#a855f7' }, weight: 15 },
+    { reward: { type: 'ITEM',  amount: 1,    label: 'SCROLL',          color: '#00d2ff' }, weight: 12 },
+    { reward: { type: 'STONE', amount: 2,    label: 'outfit_starter',  color: '#9ca3af' }, weight: 12 },
+    { reward: { type: 'STONE', amount: 2,    label: 'outfit_ghost',    color: '#4ade80' }, weight: 10 },
+    { reward: { type: 'STONE', amount: 1,    label: 'outfit_knight',   color: '#60a5fa' }, weight: 8 },
+    { reward: { type: 'STONE', amount: 1,    label: 'outfit_assassin',  color: '#c084fc' }, weight: 6 },
   ],
   ALLIANCE: [
-    { reward: { type: 'GOLD', amount: 600,  label: 'GOLD',    color: '#eab308' }, weight: 25 },
-    { reward: { type: 'GOLD', amount: 1200, label: 'GOLD',    color: '#eab308' }, weight: 15 },
-    { reward: { type: 'KEYS', amount: 5,     label: 'KEYS',    color: '#a855f7' }, weight: 15 },
-    { reward: { type: 'ITEM', amount: 1,     label: 'SCROLL',  color: '#00d2ff' }, weight: 15 },
-    { reward: { type: 'ITEM', amount: 1,     label: 'ORB',     color: '#bf5eff' }, weight: 12 },
-    { reward: { type: 'ITEM', amount: 2,     label: 'POTION',  color: '#ef4444' }, weight: 18 },
+    { reward: { type: 'GOLD',  amount: 600,  label: 'GOLD',            color: '#eab308' }, weight: 18 },
+    { reward: { type: 'GOLD',  amount: 1200, label: 'GOLD',            color: '#eab308' }, weight: 10 },
+    { reward: { type: 'KEYS',  amount: 5,    label: 'KEYS',            color: '#a855f7' }, weight: 12 },
+    { reward: { type: 'ITEM',  amount: 1,    label: 'SCROLL',          color: '#00d2ff' }, weight: 10 },
+    { reward: { type: 'STONE', amount: 3,    label: 'outfit_starter',  color: '#9ca3af' }, weight: 8 },
+    { reward: { type: 'STONE', amount: 3,    label: 'outfit_ghost',    color: '#4ade80' }, weight: 8 },
+    { reward: { type: 'STONE', amount: 2,    label: 'outfit_knight',   color: '#60a5fa' }, weight: 8 },
+    { reward: { type: 'STONE', amount: 2,    label: 'outfit_assassin',  color: '#c084fc' }, weight: 8 },
+    { reward: { type: 'STONE', amount: 1,    label: 'outfit_vanguard', color: '#facc15' }, weight: 6 },
+    { reward: { type: 'STONE', amount: 1,    label: 'outfit_monarch',  color: '#f87171' }, weight: 4 },
   ],
 };
 
@@ -110,14 +117,14 @@ const CHEST_CFG = {
     glowColor: 'rgba(245,158,11,0.25)',
     bg: 'linear-gradient(135deg, #1a1200 0%, #2a1e00 100%)',
     rewards: [
-      { type: 'GOLD' as const, amount: 1000, label: 'GOLD',   color: '#eab308' },
-      { type: 'KEYS' as const, amount: 3,    label: 'KEYS',   color: '#a855f7' },
-      { type: 'ITEM' as const, amount: 1,    label: 'SCROLL', color: '#00d2ff' },
+      { type: 'GOLD' as const,  amount: 1000, label: 'GOLD',   color: '#eab308' },
+      { type: 'KEYS' as const,  amount: 3,    label: 'KEYS',   color: '#a855f7' },
+      { type: 'STONE' as const, amount: 2,    label: 'SHARDS', color: '#60a5fa' },
     ],
     contents: [
       { icon: '🪙', text: 'Gold — High' },
       { icon: '🗝️', text: 'Keys — 2–4' },
-      { icon: '🧪', text: 'Potion / Scroll / Orb' },
+      { icon: '💎', text: 'Stone Shards / Scrolls' },
     ],
     cost: '7 Keys',
     costType: 'keys' as const,
@@ -130,14 +137,14 @@ const CHEST_CFG = {
     glowColor: 'rgba(191,94,255,0.25)',
     bg: 'linear-gradient(135deg, #0e0018 0%, #180028 100%)',
     rewards: [
-      { type: 'GOLD' as const, amount: 800,  label: 'GOLD',   color: '#eab308' },
-      { type: 'KEYS' as const, amount: 5,    label: 'KEYS',   color: '#a855f7' },
-      { type: 'ITEM' as const, amount: 1,    label: 'ORB',    color: '#bf5eff' },
+      { type: 'GOLD' as const,  amount: 800,  label: 'GOLD',   color: '#eab308' },
+      { type: 'KEYS' as const,  amount: 5,    label: 'KEYS',   color: '#a855f7' },
+      { type: 'STONE' as const, amount: 3,    label: 'SHARDS', color: '#c084fc' },
     ],
     contents: [
       { icon: '🪙', text: 'Gold — Very High' },
       { icon: '🗝️', text: 'Keys — 4–6' },
-      { icon: '🧪', text: 'Potions / Scrolls / Orbs' },
+      { icon: '💎', text: 'All Crystal Shards / Scrolls' },
     ],
     cost: '36 Keys',
     costType: 'keys' as const,
@@ -152,6 +159,7 @@ const getRewardIcon = (type: RewardCard['type']) => {
     case 'KEYS': return <SystemKey size={26} />;
     case 'XP':   return <span className="text-xl leading-none">⚡</span>;
     case 'ITEM':  return <span className="text-xl leading-none">🧪</span>;
+    case 'STONE': return <span className="text-xl leading-none">💎</span>;
   }
 };
 
@@ -174,7 +182,7 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
   onAddRewards,
   onAddNotification,
 }) => {
-  const { player } = useSystem();
+  const { player, awardOutfitStones } = useSystem();
   const DAILY_CHEST_KEY = `reforge_daily_chest_time_${player.userId || 'local'}`;
 
   const [activeModal, setActiveModal] = useState<'NONE' | 'REWARDS' | 'DUNGEON'>('NONE');
@@ -255,7 +263,7 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
     setSelectedCard(null);
   };
 
-  const handleLottieComplete = () => setHeroStep('CARDS_OUT');
+  const handleLottieComplete = () => setHeroStep(prev => prev === 'OPEN' ? 'CARDS_OUT' : prev);
 
   const handleCardSelect = (i: number) => {
     if (selectedCard !== null) return;
@@ -268,25 +276,29 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
     setHeroStep('FLY_IN');
     const t1 = setTimeout(() => setHeroStep('VIBRATE'), 600);
     const t2 = setTimeout(() => setHeroStep('OPEN'), 1600);
-    const t3 = setTimeout(() => setHeroStep(prev => prev === 'OPEN' ? 'CARDS_OUT' : prev), 5500);
+    const t3 = setTimeout(() => setHeroStep(prev => prev === 'OPEN' ? 'CARDS_OUT' : prev), 2900);
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
   }, [phase, activeChest]);
 
   const handleCollect = () => {
     if (selectedCard === null || !activeChest) return;
     const card = cards[selectedCard];
-    const bonusItems: { potions?: number; scrolls?: number; orbs?: number } = {};
-    if (card.type === 'ITEM') {
-      if (card.label === 'POTION') bonusItems.potions = card.amount;
-      else if (card.label === 'SCROLL') bonusItems.scrolls = card.amount;
-      else if (card.label === 'ORB') bonusItems.orbs = card.amount;
+    if (card.type === 'STONE') {
+      awardOutfitStones(card.label, card.amount, 'chest');
+    } else {
+      const bonusItems: { potions?: number; scrolls?: number; orbs?: number } = {};
+      if (card.type === 'ITEM') {
+        if (card.label === 'POTION') bonusItems.potions = card.amount;
+        else if (card.label === 'SCROLL') bonusItems.scrolls = card.amount;
+        else if (card.label === 'ORB') bonusItems.orbs = card.amount;
+      }
+      onAddRewards(
+        card.type === 'GOLD' ? card.amount : 0,
+        card.type === 'XP'   ? card.amount : 0,
+        card.type === 'KEYS' ? card.amount : 0,
+        Object.keys(bonusItems).length > 0 ? bonusItems : undefined,
+      );
     }
-    onAddRewards(
-      card.type === 'GOLD' ? card.amount : 0,
-      card.type === 'XP'   ? card.amount : 0,
-      card.type === 'KEYS' ? card.amount : 0,
-      Object.keys(bonusItems).length > 0 ? bonusItems : undefined,
-    );
     playSystemSoundEffect('LEVEL_UP');
     setActiveModal('NONE');
   };
@@ -521,7 +533,7 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
                 : isChosen
                 ? { scale: 1.25, x: 0, y: -20, opacity: 1, rotateY: 180 }
                 : { scale: 1, x: pos.x, y: pos.y, opacity: 1, rotateY: 0 }}
-              transition={{ type: 'spring', stiffness: 200, damping: 18, delay: fadeOut ? 0 : i * 0.1 + 0.12 }}
+              transition={{ type: 'spring', stiffness: 260, damping: 20, delay: fadeOut ? 0 : i * 0.06 }}
               onClick={!anySel ? () => handleCardSelect(i) : undefined}
               className="absolute w-20 h-28 cursor-pointer select-none z-[10]"
               style={{ transformStyle: 'preserve-3d', top: '45%', left: '50%', marginLeft: -40, marginTop: -56 }}
@@ -547,7 +559,7 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
                       {getRewardIcon(card.type)}
                       <div className="text-base font-black text-white font-mono">+{card.amount}</div>
                       <div className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
-                        style={{ background: `${card.color}20`, color: card.color }}>{card.label}</div>
+                        style={{ background: `${card.color}20`, color: card.color }}>{card.type === 'STONE' ? getStoneConfig(card.label).stoneName : card.label}</div>
                     </div>
                   </>
                 ) : (

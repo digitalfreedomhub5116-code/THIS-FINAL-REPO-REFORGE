@@ -285,6 +285,7 @@ const BadgesSection: React.FC<BadgesSectionProps> = ({
               { source: 'Workout Completion', amount: '2-5', icon: '💪' },
               { source: 'Dungeon Tower', amount: '3-8', icon: '🏰' },
               { source: 'Daily Login', amount: '5-30', icon: '📅' },
+              { source: 'Chest Rewards', amount: '1-3', icon: '🎁' },
             ].map(s => (
               <div key={s.source} className="flex items-center gap-2">
                 <span className="text-sm">{s.icon}</span>
