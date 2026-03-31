@@ -523,12 +523,6 @@ const Layout: React.FC<LayoutProps> = ({
                     <div className="text-white font-black text-base sm:text-lg leading-none tracking-tight truncate max-w-[80px] sm:max-w-[160px] uppercase">
                       {displayName}
                     </div>
-                    {streak > 0 && (
-                      <div className="flex items-center gap-0.5">
-                        <Flame size={8} className="fill-orange-400 text-orange-400" />
-                        <span className="font-mono text-[8px] sm:text-[9px] font-bold text-orange-400">{streak}d</span>
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
