@@ -673,53 +673,6 @@ const ShopView: React.FC<ShopViewProps> = ({
             })}
           </div>
 
-          {/* ── CHEST INVENTORY ── */}
-          {((chests?.legendary || 0) > 0 || true) && (
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="text-[10px] font-mono font-bold tracking-[0.3em] uppercase text-gray-400">CHEST INVENTORY</div>
-                <div className="flex-1 h-px bg-system-border" />
-              </div>
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex items-center gap-4 p-4 rounded-xl relative overflow-hidden"
-                style={{ background: 'linear-gradient(135deg,rgba(234,179,8,0.08),rgba(0,0,0,0.7))', border: '1px solid rgba(234,179,8,0.25)' }}
-              >
-                <div className="absolute left-0 top-0 bottom-0 w-0.5 rounded-l-xl" style={{ background: '#eab308', opacity: 0.8 }} />
-                <div className="flex-shrink-0 w-14 h-14 rounded-xl flex items-center justify-center text-3xl"
-                  style={{ background: 'rgba(234,179,8,0.12)', border: '1px solid rgba(234,179,8,0.3)' }}
-                >
-                  📦
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <span className="font-bold text-white font-mono text-sm">Legendary Chest</span>
-                    <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded uppercase tracking-wider"
-                      style={{ background: 'rgba(234,179,8,0.12)', color: '#eab308', border: '1px solid rgba(234,179,8,0.3)' }}
-                    >LEGENDARY</span>
-                  </div>
-                  <div className="text-[11px] text-gray-500 leading-tight mb-1">Contains Gold, Shadow Scrolls & Crystals</div>
-                  <div className="text-[10px] font-mono text-yellow-400/80">
-                    Owned: <span className="font-bold">{chests?.legendary || 0}</span>
-                  </div>
-                </div>
-                <motion.button
-                  onClick={onOpenChest}
-                  disabled={!onOpenChest || (chests?.legendary || 0) === 0}
-                  whileTap={{ scale: 0.93 }}
-                  className="flex-shrink-0 px-4 py-2 rounded-lg font-mono font-black text-[11px] uppercase tracking-widest transition-all"
-                  style={(chests?.legendary || 0) > 0
-                    ? { background: '#eab308', color: '#000', boxShadow: '0 0 14px rgba(234,179,8,0.4)' }
-                    : { background: 'rgba(40,40,50,0.8)', color: '#4b5563', border: '1px solid rgba(100,100,100,0.2)', cursor: 'not-allowed', opacity: 0.5 }
-                  }
-                >
-                  {(chests?.legendary || 0) > 0 ? 'OPEN' : 'NONE'}
-                </motion.button>
-              </motion.div>
-            </div>
-          )}
-
           {/* ── REGISTERED SHOP ITEMS ── */}
           {items.length > 0 && (
             <div className="space-y-3">
