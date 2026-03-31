@@ -4,6 +4,7 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.os.Build;
 import android.os.Bundle;
+import androidx.annotation.RequiresApi;
 import com.getcapacitor.BridgeActivity;
 import com.codetrixstudio.capacitor.GoogleAuth.GoogleAuth;
 
@@ -70,6 +71,7 @@ public class MainActivity extends BridgeActivity {
         ));
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.O)
     private NotificationChannel makeChannel(String id, String name, String desc, int importance) {
         NotificationChannel channel = new NotificationChannel(id, name, importance);
         channel.setDescription(desc);
