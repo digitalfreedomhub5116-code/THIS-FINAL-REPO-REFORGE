@@ -555,15 +555,17 @@ const Layout: React.FC<LayoutProps> = ({
                   id="gold-header-btn"
                   onClick={!headerDisabled ? onGoldClick : undefined}
                   disabled={headerDisabled}
-                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl transition-all active:scale-95 h-8"
+                  className="flex items-center rounded-xl transition-all active:scale-95 h-8 pl-0 pr-3 relative"
                   style={{
                     background: 'linear-gradient(180deg, rgba(234,179,8,0.12) 0%, rgba(10,7,0,0.80) 100%)',
                     border: '1px solid rgba(234,179,8,0.28)',
                     boxShadow: 'inset 0 1px 0 rgba(234,179,8,0.15)',
                   }}
                 >
-                  <AnimatedCoinIcon size={50} />
-                  <span id="user-wallet-balance" className="font-mono text-[11px] font-bold text-yellow-300 whitespace-nowrap"><AnimatedCounter value={gold} /></span>
+                  <div className="flex items-center justify-center -ml-2 -mr-1" style={{ width: 40 }}>
+                    <AnimatedCoinIcon size={50} />
+                  </div>
+                  <span id="user-wallet-balance" className="font-mono text-[11px] font-bold text-yellow-300 whitespace-nowrap z-10"><AnimatedCounter value={gold} /></span>
                 </button>
 
                 {/* Bell */}
