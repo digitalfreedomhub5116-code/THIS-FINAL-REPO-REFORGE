@@ -1,6 +1,6 @@
 import { DailyReward } from '../types';
 
-export const DAILY_REWARDS_ENABLED = true;
+export const DAILY_REWARDS_ENABLED = false;
 export const SKILLS_ENABLED = false;
 
 export const REWARD_SCHEDULE: DailyReward[] = [
