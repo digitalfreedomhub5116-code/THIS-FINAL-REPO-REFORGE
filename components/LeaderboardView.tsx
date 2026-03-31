@@ -276,15 +276,16 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
     const myName = (player.name || '').trim().toLowerCase();
 
     return [...entries].map(e => {
-      // Match by player_id (table UUID) first — this is the authoritative match
+      // Match by player_id (table UUID) or supabase_id (auth ID)
       let isMe = false;
-      if (myPlayerId && e.player_id) {
-        isMe = e.player_id === myPlayerId;
-      } else if (myPlayerId && e.supabase_id) {
-        // Fallback: some older API responses might use supabase_id
-        isMe = e.supabase_id === myPlayerId;
-      } else {
-        // Last resort fallback for offline/legacy: match by username
+      if (myPlayerId) {
+        if (e.player_id === myPlayerId || e.supabase_id === myPlayerId) {
+          isMe = true;
+        }
+      }
+      
+      if (!isMe) {
+        // Last resort fallback for offline/legacy: match by username or name
         const entryUsername = (e.username || '').trim().toLowerCase();
         const entryName = (e.name || '').trim().toLowerCase();
         if (myUsername && entryUsername === myUsername) {
