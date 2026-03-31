@@ -48,9 +48,9 @@ const ChestLottieBase: React.FC<BaseLottieProps> = ({ src, size, phase, onComple
     onComplete?.();
   };
 
-  if (data) {
-    return (
-      <div style={{ width: size, height: size, flexShrink: 0 }}>
+  return (
+    <div style={{ width: size, height: size, flexShrink: 0, position: 'relative' }}>
+      {data ? (
         <Lottie
           lottieRef={lottieRef}
           animationData={data}
@@ -60,10 +60,27 @@ const ChestLottieBase: React.FC<BaseLottieProps> = ({ src, size, phase, onComple
           onComplete={handleComplete}
           className="w-full h-full"
         />
-      </div>
-    );
-  }
-  return <>{fallback}</>;
+      ) : data === false ? (
+        <>{fallback}</>
+      ) : (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-1/2 h-1/2 rounded-2xl animate-pulse"
+            style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))' }} />
+        </div>
+      )}
+    </div>
+  );
+};
+
+/** Eagerly fetch & cache all chest Lottie JSONs so they're ready before the user sees them */
+export const preloadChestLotties = () => {
+  ['/assets/lottie/daily_chest.json', '/assets/lottie/legendary_chest.json', '/assets/lottie/alliance_chest.json'].forEach(src => {
+    if (_cache[src] !== undefined) return;
+    fetch(src)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { _cache[src] = d ?? false; })
+      .catch(() => { _cache[src] = false; });
+  });
 };
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -92,7 +109,7 @@ export const DailyChestLottie: React.FC<ChestProps> = ({ size = 160, phase = 'ID
         className="absolute rounded-full"
         style={{
           width: size * 0.7, height: size * 0.5,
-          left: '50%', top: '55%',
+          left: '50%', top: '50%',
           transform: 'translate(-50%, -50%)',
           background: 'radial-gradient(ellipse, rgba(0,212,255,0.15) 0%, transparent 70%)',
           filter: 'blur(8px)',
@@ -179,7 +196,7 @@ export const LegendaryChestLottieV2: React.FC<ChestProps> = ({ size = 160, phase
         className="absolute rounded-full"
         style={{
           width: size * 0.75, height: size * 0.55,
-          left: '50%', top: '55%',
+          left: '50%', top: '50%',
           transform: 'translate(-50%, -50%)',
           background: 'radial-gradient(ellipse, rgba(245,158,11,0.2) 0%, transparent 70%)',
           filter: 'blur(10px)',
@@ -285,7 +302,7 @@ export const AllianceChestLottie: React.FC<ChestProps> = ({ size = 160, phase = 
         className="absolute rounded-full"
         style={{
           width: size * 0.9, height: size * 0.65,
-          left: '50%', top: '52%',
+          left: '50%', top: '50%',
           transform: 'translate(-50%, -50%)',
           background: 'radial-gradient(ellipse, rgba(191,94,255,0.25) 0%, rgba(225,29,72,0.08) 50%, transparent 75%)',
           filter: 'blur(12px)',
@@ -298,7 +315,7 @@ export const AllianceChestLottie: React.FC<ChestProps> = ({ size = 160, phase = 
         className="absolute rounded-full"
         style={{
           width: size * 0.5, height: size * 0.35,
-          left: '50%', top: '55%',
+          left: '50%', top: '50%',
           transform: 'translate(-50%, -50%)',
           background: 'radial-gradient(ellipse, rgba(225,29,72,0.2) 0%, transparent 70%)',
           filter: 'blur(8px)',
@@ -320,10 +337,10 @@ export const AllianceChestLottie: React.FC<ChestProps> = ({ size = 160, phase = 
         >
           <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ overflow: 'visible' }}>
             {/* Outer dashed circle */}
-            <circle cx={size / 2} cy={size * 0.55} r={runeR}
+            <circle cx={size / 2} cy={size / 2} r={runeR}
               fill="none" stroke="#bf5eff" strokeWidth="1" opacity="0.3" strokeDasharray="4 3" />
             {/* Inner circle */}
-            <circle cx={size / 2} cy={size * 0.55} r={runeR * 0.82}
+            <circle cx={size / 2} cy={size / 2} r={runeR * 0.82}
               fill="none" stroke="#bf5eff" strokeWidth="0.6" opacity="0.2" />
             {/* Runes */}
             {RUNES.map((rune, i) => {
@@ -331,7 +348,7 @@ export const AllianceChestLottie: React.FC<ChestProps> = ({ size = 160, phase = 
               return (
                 <text key={i}
                   x={size / 2 + runeR * Math.cos(a)}
-                  y={size * 0.55 + runeR * Math.sin(a)}
+                  y={size / 2 + runeR * Math.sin(a)}
                   fill="#bf5eff" fontSize={size * 0.05} textAnchor="middle" dominantBaseline="middle"
                   fontWeight="bold" opacity="0.5"
                 >{rune}</text>
@@ -353,7 +370,7 @@ export const AllianceChestLottie: React.FC<ChestProps> = ({ size = 160, phase = 
             const a = (og.angle * Math.PI) / 180;
             const r = size * 0.34;
             const cx = size / 2 + r * Math.cos(a);
-            const cy = size * 0.55 + r * Math.sin(a);
+            const cy = size / 2 + r * Math.sin(a);
             return (
               <div key={i}
                 className="absolute"

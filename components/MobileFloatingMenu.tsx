@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Castle, X, HelpCircle, Check, Lock, Info, Coins } from 'lucide-react';
 // ChestAnimations SVG fallbacks are used inside ChestLottieOverlays
-import { DailyChestLottie, LegendaryChestLottieV2, AllianceChestLottie } from './ChestLottieOverlays';
+import { DailyChestLottie, LegendaryChestLottieV2, AllianceChestLottie, preloadChestLotties } from './ChestLottieOverlays';
 import { SystemCoin } from './icons/SystemCoin';
 import { SystemKey } from './icons/SystemKey';
 import { playSystemSoundEffect } from '../utils/soundEngine';
@@ -196,6 +196,7 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
   const cardRefs     = useRef<Record<ChestType, HTMLDivElement | null>>({ DAILY: null, LEGENDARY: null, ALLIANCE: null });
 
   useEffect(() => {
+    preloadChestLotties();
     const stored = localStorage.getItem(DAILY_CHEST_KEY);
     if (stored) setLastDailyChest(parseInt(stored, 10));
 
@@ -267,7 +268,8 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
     setHeroStep('FLY_IN');
     const t1 = setTimeout(() => setHeroStep('VIBRATE'), 600);
     const t2 = setTimeout(() => setHeroStep('OPEN'), 1600);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
+    const t3 = setTimeout(() => setHeroStep(prev => prev === 'OPEN' ? 'CARDS_OUT' : prev), 5500);
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
   }, [phase, activeChest]);
 
   const handleCollect = () => {
@@ -513,7 +515,7 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
           return (
             <motion.div
               key={i}
-              initial={{ scale: 0, x: 0, y: 0, opacity: 0 }}
+              initial={{ scale: 0.1, x: 0, y: 25, opacity: 0 }}
               animate={fadeOut
                 ? { scale: 0, opacity: 0, x: pos.x, y: pos.y }
                 : isChosen
