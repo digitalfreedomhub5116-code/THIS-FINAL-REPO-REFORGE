@@ -1235,10 +1235,10 @@ export const HealthView: React.FC<HealthViewProps> = ({
       const lowStats = [ { subject: 'STRENGTH', value: 40, fullMark: 100 }, { subject: 'INTELLIGENCE', value: 50, fullMark: 100 }, { subject: 'FOCUS', value: 30, fullMark: 100 }, { subject: 'SOCIAL', value: 20, fullMark: 100 }, { subject: 'WILLPOWER', value: 60, fullMark: 100 } ];
       const highStatsData = [ { subject: 'STRENGTH', value: 85, fullMark: 100 }, { subject: 'INTELLIGENCE', value: 75, fullMark: 100 }, { subject: 'FOCUS', value: 80, fullMark: 100 }, { subject: 'SOCIAL', value: 65, fullMark: 100 }, { subject: 'WILLPOWER', value: 95, fullMark: 100 } ];
       const currentStats = lowStats.map((stat, i) => ({ subject: stat.subject, value: lerp(stat.value, highStatsData[i].value, transformProgress), fullMark: 100 }));
-      const currentColor = lerpColor("#ef4444", "#10b981", transformProgress);
+      const currentColor = lerpColor("#00d2ff", "#10b981", transformProgress);
       return (
           <div className="fixed inset-0 z-50 bg-black flex flex-col items-center justify-between p-4 sm:p-6 font-mono overflow-y-auto h-[100dvh]" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)' }}>
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(16,185,129,0.05)_0%,transparent_70%)]" />
+              <div className="absolute inset-0" style={{ background: isAnimating ? 'radial-gradient(circle at center, rgba(0,210,255,0.07) 0%, transparent 60%)' : isTransformed ? 'radial-gradient(circle at center, rgba(16,185,129,0.08) 0%, transparent 60%)' : 'radial-gradient(circle at center, rgba(0,210,255,0.04) 0%, transparent 60%)' }} />
               <div className="flex-1 w-full flex flex-col items-center justify-center min-h-0 relative z-10">
                   <div className="absolute top-4 left-4 opacity-30 text-[10px] space-y-4 hidden lg:block">
                       <div className="p-2 border border-gray-800 rounded">TARGET_GOAL: {formData.goal}</div>
@@ -1261,11 +1261,16 @@ export const HealthView: React.FC<HealthViewProps> = ({
                     <AnimatePresence mode="wait">
                         {!isTransformed && !isAnimating ? (
                             <motion.div key="init" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-4">
-                                <p className="text-xs text-gray-500 max-w-xs mx-auto leading-relaxed">The System has analyzed your current vessel. You are capable of reaching peak human potential within this cycle.</p>
-                                <button onClick={handleAscensionClick} className="w-full py-4 bg-red-600 text-white font-black rounded-2xl animate-pulse shadow-[0_0_30px_#ef4444] tracking-widest text-xs sm:text-sm uppercase">INITIATE ASCENSION SEQUENCE</button>
+                                <p className="text-xs text-gray-500 max-w-xs mx-auto leading-relaxed">The System has analyzed your biological data. Peak evolution awaits — initiate the sequence to unlock your potential.</p>
+                                <motion.button whileTap={{ scale: 0.97 }} onClick={handleAscensionClick} className="w-full py-4 bg-system-neon/10 border border-system-neon/40 text-system-neon font-black rounded-2xl hover:bg-system-neon/20 hover:border-system-neon/70 shadow-[0_0_20px_rgba(0,210,255,0.2)] transition-all tracking-[0.2em] text-xs uppercase">INITIATE ASCENSION SEQUENCE</motion.button>
                             </motion.div>
                         ) : isAnimating ? (
-                            <OptimizationSequence onComplete={handleOptimizationComplete} />
+                            <motion.div key="animating" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="py-4 space-y-3">
+                              <div className="text-system-neon font-bold tracking-[0.3em] text-center uppercase text-xs" style={{ animation: 'pulse 1.5s ease-in-out infinite' }}>REWRITING BIOLOGY...</div>
+                              <div className="w-full h-px overflow-hidden rounded-full bg-white/5">
+                                <motion.div className="h-full bg-system-neon shadow-[0_0_8px_#00d2ff]" initial={{ x: '-100%' }} animate={{ x: '100%' }} transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }} />
+                              </div>
+                            </motion.div>
                         ) : (
                             <motion.div key="accept" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
                                 <div className="p-3 bg-system-success/5 border border-system-success/30 rounded-2xl"><div className="text-system-success font-black text-xs mb-1 flex items-center justify-center gap-2"><ShieldCheck size={14} /> SYSTEM GUARANTEE</div><p className="text-[10px] text-gray-400 leading-relaxed max-w-xs mx-auto">Adherence to established protocols ensures peak biological evolution.</p></div>
@@ -1275,36 +1280,34 @@ export const HealthView: React.FC<HealthViewProps> = ({
                     </AnimatePresence>
                   </div>
               </div>
-              <div className="absolute top-6 right-6 flex items-center gap-3 text-gray-800 opacity-50 pointer-events-none"><Activity size={24} /><div className="text-[10px] font-bold">BIO_SYNC_V2 // STABLE</div></div>
+              <div className="absolute top-6 right-6 flex items-center gap-2 opacity-30 pointer-events-none"><Activity size={14} className="text-system-neon" /><div className="text-[9px] font-bold tracking-widest" style={{ color: currentColor }}>BIO_SYNC_V2 // STABLE</div></div>
           </div>
       );
   }
 
   if (viewMode === 'FINALIZING') {
       return (
-          <div className="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center font-mono">
-              <Sparkles className="text-system-neon mb-8 animate-pulse" size={48} />
-              <div className="text-2xl text-white font-black uppercase text-center tracking-[0.3em]">{finalizingLog}</div>
-              <div className="mt-8 w-64 h-1 bg-gray-900 rounded-full overflow-hidden relative">
-                  {/* Base track */}
-                  <div className="absolute inset-0 bg-blue-900/20" />
-                  
-                  {/* Dramatic progress fill */}
-                  <motion.div 
-                      className="absolute inset-y-0 left-0 bg-system-neon shadow-[0_0_15px_#00d2ff]"
-                      initial={{ width: "0%" }}
-                      animate={{ width: ["0%", "45%", "55%", "92%", "100%"] }}
-                      transition={{ 
-                          duration: 4, 
-                          times: [0, 0.35, 0.65, 0.85, 1],
-                          ease: "easeInOut" 
-                      }}
-                  />
-                  
-                  {/* Highlight sheen */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent w-[200%] animate-[slideRight_2s_ease-in-out_infinite]" />
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center font-mono gap-8">
+              <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center, rgba(0,210,255,0.05) 0%, transparent 60%)' }} />
+              {/* Animated ring */}
+              <div className="relative w-20 h-20">
+                  <svg className="w-full h-full -rotate-90" viewBox="0 0 80 80">
+                      <circle cx="40" cy="40" r="35" fill="none" stroke="rgba(0,210,255,0.08)" strokeWidth="2" />
+                      <motion.circle cx="40" cy="40" r="35" fill="none" stroke="#00d2ff" strokeWidth="2" strokeLinecap="round"
+                          strokeDasharray="220" initial={{ strokeDashoffset: 220 }} animate={{ strokeDashoffset: 0 }}
+                          transition={{ duration: 4, ease: 'easeInOut' }} />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                      <motion.div animate={{ opacity: [0.5, 1, 0.5] }} transition={{ duration: 1.5, repeat: Infinity }}>
+                          <Sparkles className="text-system-neon" size={24} />
+                      </motion.div>
+                  </div>
               </div>
-          </div>
+              <div className="text-center space-y-2 relative z-10">
+                  <div className="text-[9px] font-bold tracking-[0.4em] uppercase text-system-neon/50 mb-2">SYSTEM PROTOCOL</div>
+                  <motion.div key={finalizingLog} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="text-sm text-white font-black uppercase tracking-[0.25em]">{finalizingLog}</motion.div>
+              </div>
+          </motion.div>
       );
   }
 
