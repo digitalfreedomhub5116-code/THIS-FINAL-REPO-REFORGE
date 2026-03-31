@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Lottie from 'lottie-react';
 
 // ── Outfit config for accent theming ──
 const OUTFIT_CONFIG: Record<string, { accent: string; glow: string }> = {
@@ -36,6 +37,8 @@ const SLASH_PATHS = [
   'M35,20 Q55,32 70,28',
   'M-35,20 Q-55,32 -70,28',
 ];
+
+let _flameLottieData: object | null | false = null;
 
 const DAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
@@ -74,6 +77,13 @@ const StreakCelebration: React.FC<StreakCelebrationProps> = ({
 }) => {
   const cfg = OUTFIT_CONFIG[outfitId] || DEFAULT_CFG;
   const [phase, setPhase] = useState(0);
+  const [lottieData, setLottieData] = useState<object | null | false>(_flameLottieData);
+
+  useEffect(() => {
+    if (_flameLottieData !== null) { setLottieData(_flameLottieData); return; }
+    fetch('/assets/lottie/flame.json').then(r => r.ok ? r.json() : null).then(data => { _flameLottieData = data ?? false; setLottieData(_flameLottieData); }).catch(() => { _flameLottieData = false; setLottieData(false); });
+  }, []);
+
   const flameScale = getFlameScale(newStreak);
   const intensity = getFlameIntensity(newStreak);
   const isPerfectWeek = useMemo(() => weeklyActivity.filter(Boolean).length >= 7, [weeklyActivity]);
@@ -391,7 +401,28 @@ const StreakCelebration: React.FC<StreakCelebrationProps> = ({
           </svg>
         )}
 
-        {/* ── The Flame SVG ── */}
+                {/* ── The Flame SVG ── */}
+        <motion.div
+          className="absolute inset-0 flex items-center justify-center"
+          animate={
+            streakBroken
+              ? { scale: phase >= 1 ? [flameScale, flameScale * 0.5, 0] : flameScale, opacity: phase >= 1 ? [1, 0.5, 0] : 1 }
+              : phase >= 1 ? { scale: [flameScale, flameScale * 1.12, flameScale] } : { scale: flameScale }
+          }
+          transition={streakBroken ? { duration: 1.5, ease: 'easeIn' } : { duration: 0.55, ease: 'easeOut' }}
+        >
+          {lottieData ? (
+            <div style={{ width: FLAME_W * 1.6, height: FLAME_H * 1.6, marginTop: -20, filter: streakBroken && phase >= 1 ? 'grayscale(1)' : 'drop-shadow(0 0 15px rgba(251,146,60,0.5))' }}>
+              <Lottie animationData={lottieData} loop autoplay style={{ width: '100%', height: '100%' }} />
+            </div>
+          ) : (
+            <div className="text-orange-500">Loading flame...</div>
+          )}
+        </motion.div>
+        
+        {/*
+        --- TO REVERT TO OLD FLAME SVG, REPLACE THE motion.div ABOVE WITH THE FOLLOWING BLOCK ---
+        { ── The Flame SVG ── }
         <motion.div
           className="absolute inset-0 flex items-center justify-center"
           animate={
@@ -490,6 +521,8 @@ const StreakCelebration: React.FC<StreakCelebrationProps> = ({
             </svg>
           </motion.div>
         </motion.div>
+        ---------------------------------------------------------------------------------------
+        */}
 
         {/* ── Sparkle ring (only for continuing streaks with intensity >= 2) ── */}
         {phase >= 1 && !streakBroken && intensity >= 2 && (
