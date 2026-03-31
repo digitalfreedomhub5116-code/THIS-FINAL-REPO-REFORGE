@@ -548,7 +548,7 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
         >
           <button
             onClick={() => setActiveModal('REWARDS')}
-            className="w-12 h-12 bg-black/40 backdrop-blur-md border border-purple-500/40 rounded-full flex items-center justify-center active:scale-90 transition-all relative overflow-hidden"
+            className="w-10 h-10 bg-black/40 backdrop-blur-md border border-purple-500/40 rounded-full flex items-center justify-center active:scale-90 transition-all relative overflow-hidden"
           >
             {!isChestLoaded && (
               <div className="absolute inset-0 flex items-center justify-center">
