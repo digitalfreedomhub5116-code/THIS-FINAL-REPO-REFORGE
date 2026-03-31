@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Bell, LogOut, Flame, Edit3, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Lottie from 'lottie-react';
 import { SystemNotification, ReplitUser } from '../types';
 
-const AnimatedCoinIcon: React.FC<{ size?: number }> = ({ size = 16 }) => (
+const _CoinSVGFallback: React.FC<{ size: number }> = ({ size }) => (
   <svg
     width={size} height={size} viewBox="0 0 14 14"
     style={{ animation: 'coinFlip 3s ease-in-out infinite', filter: 'drop-shadow(0 0 5px #eab308)', flexShrink: 0 }}
@@ -12,6 +13,23 @@ const AnimatedCoinIcon: React.FC<{ size?: number }> = ({ size = 16 }) => (
     <text x="7" y="10.5" textAnchor="middle" fontSize="6" fontWeight="900" fill="#eab308" fontFamily="monospace">◈</text>
   </svg>
 );
+
+let _layoutCoinData: object | null | false = null;
+
+const AnimatedCoinIcon: React.FC<{ size?: number }> = ({ size = 16 }) => {
+  const [data, setData] = React.useState<object | null | false>(_layoutCoinData);
+  React.useEffect(() => {
+    if (_layoutCoinData !== null) { setData(_layoutCoinData); return; }
+    fetch('/assets/lottie/coins.json')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { _layoutCoinData = d ?? false; setData(_layoutCoinData); })
+      .catch(() => { _layoutCoinData = false; setData(false); });
+  }, []);
+  if (data) {
+    return <div style={{ width: size, height: size, flexShrink: 0 }}><Lottie animationData={data} loop autoplay style={{ width: '100%', height: '100%' }} /></div>;
+  }
+  return <_CoinSVGFallback size={size} />;
+};
 
 const AnimatedKeyIcon: React.FC<{ size?: number }> = ({ size = 16 }) => (
   <svg
