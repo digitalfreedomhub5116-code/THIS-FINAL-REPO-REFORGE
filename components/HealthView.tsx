@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { Activity, Ruler, Fingerprint, Flame, Target, Check, Sparkles, User, Weight, ChevronRight, ChevronLeft, ShieldCheck, ArrowRight, Clock, TrendingUp, Trash2, Utensils, Camera, Loader2, Save, Droplets, Wheat, Beef, SkipForward, Lock, Key, Cpu, Plus, X, Settings } from 'lucide-react';
 import { HealthProfile, WorkoutDay, WorkoutPlan, PlayerData, ProgressPhoto, MealLog, FoodItem, MealType } from '../types';
@@ -46,6 +46,31 @@ import FoodLibrary from './FoodLibrary';
 import SkillsView from './SkillsView';
 import { SKILLS_ENABLED } from '../lib/rewards';
 import { Camera as CapCamera, CameraResultType, CameraSource } from '@capacitor/camera';
+
+// ── Module-level scan session (survives tab switches / component remounts) ──
+type ScanStateType = 'IDLE' | 'SCANNING' | 'RESULT' | 'ERROR';
+interface ScanSessionStore {
+  state: ScanStateType;
+  image: string | null;
+  result: FoodItem | null;
+  error: string | null;
+  mealType: MealType;
+}
+const _scanSession: ScanSessionStore = {
+  state: 'IDLE', image: null, result: null, error: null, mealType: 'LUNCH'
+};
+// Callback the currently-mounted HealthView registers to receive live updates
+let _onScanUpdate: ((s: ScanSessionStore) => void) | null = null;
+
+function updateScan(patch: Partial<ScanSessionStore>) {
+  Object.assign(_scanSession, patch);
+  _onScanUpdate?.({ ..._scanSession });
+  if (patch.state === 'SCANNING') {
+    window.dispatchEvent(new CustomEvent('foodscan:start'));
+  } else if (patch.state === 'RESULT' || patch.state === 'ERROR' || patch.state === 'IDLE') {
+    window.dispatchEvent(new CustomEvent('foodscan:end'));
+  }
+}
 
 interface HealthViewProps {
   healthProfile?: HealthProfile;
@@ -556,13 +581,24 @@ export const HealthView: React.FC<HealthViewProps> = ({
   });
   const [finalizingLog, setFinalizingLog] = useState("Initializing...");
 
-  // --- NUTRITION SCANNER STATE ---
-  const [scanState, setScanState] = useState<'IDLE' | 'SCANNING' | 'RESULT' | 'ERROR'>('IDLE');
-  const [scannedImage, setScannedImage] = useState<string | null>(null);
-  const [scanResult, setScanResult] = useState<FoodItem | null>(null);
+  // --- NUTRITION SCANNER STATE (backed by module-level store for persistence) ---
+  const [scanSession, setScanSession] = useState<ScanSessionStore>(() => ({ ..._scanSession }));
+  const scanState = scanSession.state;
+  const scannedImage = scanSession.image;
+  const scanResult = scanSession.result;
+  const scanError = scanSession.error;
+  const selectedMealType = scanSession.mealType;
   const [scanItems, setScanItems] = useState<any[]>([]);
-  const [scanError, setScanError] = useState<string | null>(null);
-  const [selectedMealType, setSelectedMealType] = useState<MealType>('LUNCH');
+
+  // Register live-update callback so in-flight fetches update this mounted component
+  useEffect(() => {
+    _onScanUpdate = (s) => setScanSession(s);
+    // Sync on mount in case scan completed while this component was unmounted
+    setScanSession({ ..._scanSession });
+    return () => { _onScanUpdate = null; };
+  }, []);
+
+  const setSelectedMealType = useCallback((t: MealType) => updateScan({ mealType: t }), []);
   const [selectedMealLog, setSelectedMealLog] = useState<MealLog | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [loadingMessage, setLoadingMessage] = useState("ANALYSING IMAGE...");
@@ -765,11 +801,11 @@ export const HealthView: React.FC<HealthViewProps> = ({
       if (!healthProfile && !skippedSetup) setViewMode('SETUP'); 
   }, [healthProfile, skippedSetup]);
 
-  // Scanner Logic
+  // Scanner loading message rotation (no "DON'T CHANGE THE TAB" — scan persists now)
   useEffect(() => {
       let interval: ReturnType<typeof setInterval>;
       if (scanState === 'SCANNING') {
-          const messages = [ "ANALYSING IMAGE...", "GETTING MACROS...", "DON'T CHANGE THE TAB...", "DOING MAGIC...", "FINALIZING..." ];
+          const messages = [ "ANALYSING IMAGE...", "GETTING MACROS...", "DOING MAGIC...", "ALMOST THERE...", "FINALIZING..." ];
           let i = 0;
           setLoadingMessage(messages[0]);
           interval = setInterval(() => { i++; if (i < messages.length) { setLoadingMessage(messages[i]); } }, 4500);
@@ -969,6 +1005,23 @@ export const HealthView: React.FC<HealthViewProps> = ({
       }
   };
 
+  // ── Shared image compression helper ──
+  const compressImage = useCallback(async (dataUrl: string, maxWidth = 640): Promise<string> => {
+      return new Promise((resolve, reject) => {
+          const img = new Image();
+          img.src = dataUrl;
+          img.onload = () => {
+              const canvas = document.createElement('canvas');
+              let w = img.width, h = img.height;
+              if (w > maxWidth) { h = Math.round((h * maxWidth) / w); w = maxWidth; }
+              canvas.width = w; canvas.height = h;
+              canvas.getContext('2d')?.drawImage(img, 0, 0, w, h);
+              resolve(canvas.toDataURL('image/jpeg', 0.55));
+          };
+          img.onerror = reject;
+      });
+  }, []);
+
   // ── Native Camera/Gallery picker (Capacitor) ──
   const handleNativePick = async () => {
       if (playerData.keys <= 0) {
@@ -981,7 +1034,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
               quality: 80,
               allowEditing: false,
               resultType: CameraResultType.DataUrl,
-              source: CameraSource.Prompt, // Shows "Camera or Gallery" native dialog
+              source: CameraSource.Prompt,
               width: 800,
               promptLabelHeader: 'Log Meal',
               promptLabelPhoto: 'Choose from Gallery',
@@ -997,12 +1050,13 @@ export const HealthView: React.FC<HealthViewProps> = ({
               return;
           }
 
-          setScanError(null);
-          setShowMicros(false);
-          setScanState('SCANNING');
-          setScannedImage(photo.dataUrl);
+          // Compress native photo before sending (reduces payload 60-80%)
+          const compressedDataUrl = await compressImage(photo.dataUrl);
 
-          const imageBase64 = photo.dataUrl.split(',')[1];
+          updateScan({ state: 'SCANNING', image: compressedDataUrl, error: null });
+          setShowMicros(false);
+
+          const imageBase64 = compressedDataUrl.split(',')[1];
           const response = await fetch(`${API_BASE}/api/nutrition/analyze`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -1037,9 +1091,8 @@ export const HealthView: React.FC<HealthViewProps> = ({
               ingredients: Array.isArray(data.ingredients) ? data.ingredients : [],
               aiConfidence: data.confidence || 'Medium',
           };
-          setScanResult(mappedResult);
+          updateScan({ state: 'RESULT', result: mappedResult });
           setScanItems([]);
-          setScanState('RESULT');
       } catch (error: any) {
           // If Camera plugin isn't available (web), fall back to file input
           if (error?.message?.includes('not implemented') || error?.message?.includes('not available') || error?.code === 'UNIMPLEMENTED') {
@@ -1052,8 +1105,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
           }
           const msg = error instanceof Error ? error.message : 'Analysis failed';
           console.error('[Nutrition Scanner]', msg);
-          setScanError(msg);
-          setScanState('ERROR');
+          updateScan({ state: 'ERROR', error: msg });
           onAddRewards?.(0, 0, 1);
       }
   };
@@ -1075,46 +1127,20 @@ export const HealthView: React.FC<HealthViewProps> = ({
           return;
       }
 
-      setScanError(null);
+      updateScan({ state: 'SCANNING', error: null });
       setShowMicros(false);
-      setScanState('SCANNING');
-
-      // --- CLIENT-SIDE IMAGE COMPRESSION ---
-      const compressImage = async (imageFile: File, maxWidth = 800): Promise<string> => {
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.readAsDataURL(imageFile);
-          reader.onload = (event) => {
-            const img = new Image();
-            img.src = event.target?.result as string;
-            img.onload = () => {
-              const canvas = document.createElement('canvas');
-              let width = img.width;
-              let height = img.height;
-              
-              if (width > maxWidth) {
-                height = Math.round((height * maxWidth) / width);
-                width = maxWidth;
-              }
-              
-              canvas.width = width;
-              canvas.height = height;
-              const ctx = canvas.getContext('2d');
-              ctx?.drawImage(img, 0, 0, width, height);
-              // Compress to 0.7 quality JPEG
-              const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-              resolve(dataUrl);
-            };
-            img.onerror = reject;
-          };
-          reader.onerror = reject;
-        });
-      };
 
       try {
-          const compressedDataUrl = await compressImage(file);
-          setScannedImage(compressedDataUrl);
-          
+          // Compress from File object
+          const dataUrl: string = await new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.readAsDataURL(file);
+              reader.onload = (ev) => resolve(ev.target?.result as string);
+              reader.onerror = reject;
+          });
+          const compressedDataUrl = await compressImage(dataUrl);
+          updateScan({ image: compressedDataUrl });
+
           const imageBase64 = compressedDataUrl.split(',')[1];
 
           const response = await fetch(`${API_BASE}/api/nutrition/analyze`, {
@@ -1153,14 +1179,12 @@ export const HealthView: React.FC<HealthViewProps> = ({
               aiConfidence: data.confidence || 'Medium',
           };
 
-          setScanResult(mappedResult);
+          updateScan({ state: 'RESULT', result: mappedResult });
           setScanItems([]);
-          setScanState('RESULT');
       } catch (error) {
           const msg = error instanceof Error ? error.message : 'Analysis failed';
           console.error('[Nutrition Scanner]', msg);
-          setScanError(msg);
-          setScanState('ERROR');
+          updateScan({ state: 'ERROR', error: msg });
           onAddRewards?.(0, 0, 1);
       }
   };
@@ -1173,7 +1197,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
       }
   };
 
-  const resetScanner = () => { setScanState('IDLE'); setScannedImage(null); setScanResult(null); setScanItems([]); setScanError(null); setShowMicros(false); };
+  const resetScanner = () => { updateScan({ state: 'IDLE', image: null, result: null, error: null }); setScanItems([]); setShowMicros(false); };
 
   const handleOptimizationComplete = () => {
       setIsTransformed(true);

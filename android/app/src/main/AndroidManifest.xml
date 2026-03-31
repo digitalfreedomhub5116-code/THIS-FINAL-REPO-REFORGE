@@ -53,6 +53,8 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_HEALTH" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <!-- Prevent CPU sleep during active quest tracking (screen off) -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <!-- Notifications (streak reminders, quest alerts) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />

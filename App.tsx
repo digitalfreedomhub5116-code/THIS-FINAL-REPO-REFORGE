@@ -26,7 +26,8 @@ import {
 
 import { useSystem, isLocalUser } from './hooks/useSystem';
 import { useSensors } from './hooks/useSensors';
-import { Tab, CoreStats, HealthProfile, Outfit, DbOutfit, TierLevel, PlayerData, Quest, DailyReward } from './types';
+import { Tab, CoreStats, HealthProfile, Outfit, DbOutfit, TierLevel, PlayerData, Quest, DailyReward, MealType } from './types';
+import { App as CapApp } from '@capacitor/app';
 import { OUTFITS } from './utils/gameData';
 import { DAILY_REWARDS_ENABLED } from './lib/rewards';
 import { getPlayerAuthHeaders, getOrRefreshPlayerHeaders } from './lib/playerApi';
@@ -200,6 +201,18 @@ const App: React.FC = () => {
   const [dailyReward, setDailyReward] = useState<DailyReward | null>(null);
   const [showDailyLogin, setShowDailyLogin] = useState(false);
 
+  // ── Food scan banner listener ──
+  useEffect(() => {
+    const onStart = () => setFoodScanBannerVisible(true);
+    const onEnd = () => setFoodScanBannerVisible(false);
+    window.addEventListener('foodscan:start', onStart);
+    window.addEventListener('foodscan:end', onEnd);
+    return () => {
+      window.removeEventListener('foodscan:start', onStart);
+      window.removeEventListener('foodscan:end', onEnd);
+    };
+  }, []);
+
   // ── Schedule local notifications when user is authenticated ──
   useEffect(() => {
     if (!player.userId || isLocalUser(player.userId) || !player.isConfigured) return;
@@ -244,7 +257,19 @@ const App: React.FC = () => {
   const authInitialMode: 'SIGN_IN' | 'CREATE' = 'SIGN_IN';
   const [showLogoutChoice, setShowLogoutChoice] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('DASHBOARD');
+  const tabHistoryRef = useRef<Tab[]>(['DASHBOARD']);
   const [healthViewKey, setHealthViewKey] = useState(0);
+
+  // ── Tab navigation with history for Android back button ──
+  const navigateTo = useCallback((tab: Tab) => {
+    setActiveTab(prev => {
+      if (prev !== tab) tabHistoryRef.current.push(prev);
+      return tab;
+    });
+  }, []);
+
+  // ── Food scan banner (shown on non-HEALTH tabs when scan is running) ──
+  const [foodScanBannerVisible, setFoodScanBannerVisible] = useState(false);
   const [showAdminLogin, setShowAdminLogin] = useState(() => window.location.pathname === '/shadow-council');
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminToken, setAdminToken] = useState('');
@@ -269,12 +294,74 @@ const App: React.FC = () => {
 
   const [mentorMessages, setMentorMessages] = useState<{id: string, text: string}[]>([]);
 
+  // ── Android back button (history-based) ──
+  useEffect(() => {
+    let backPressedOnce = false;
+    let backPressTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const handler = CapApp.addListener('backButton', () => {
+      // 1. If any overlay is open, close it first
+      if (isDungeonMode) return; // dungeon handles its own back
+      if (showDuskChat) { setShowDuskChat(false); return; }
+      if (showLogoutChoice) { setShowLogoutChoice(false); return; }
+      if (showLevelUp) { setShowLevelUp(false); return; }
+      if (showLevelDown) { setShowLevelDown(false); return; }
+
+      // 2. Pop history stack
+      const history = tabHistoryRef.current;
+      if (history.length > 1) {
+        const prev = history.pop()!;
+        setActiveTab(prev);
+        return;
+      }
+
+      // 3. At root — double-press to exit
+      if (backPressedOnce) {
+        if (backPressTimer) clearTimeout(backPressTimer);
+        CapApp.exitApp();
+        return;
+      }
+      backPressedOnce = true;
+      backPressTimer = setTimeout(() => { backPressedOnce = false; }, 2000);
+      addNotification('Press back again to exit', 'SYSTEM');
+    });
+
+    return () => {
+      handler.then(h => h.remove());
+      if (backPressTimer) clearTimeout(backPressTimer);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDungeonMode, showDuskChat, showLogoutChoice, showLevelUp, showLevelDown]);
+
   // ── Stone Drop & Badge Unlock global animations ──
   // Single-stone animation (for lone awards like quests/workouts)
   const [stoneAnim, setStoneAnim] = useState<{ outfitId: string; amount: number; oldCount: number; newCount: number; color: string; glow: string } | null>(null);
   // Batch animation (for dungeon cash-outs with multiple stone types)
   const [batchStoneAnim, setBatchStoneAnim] = useState<BatchStoneEntry[] | null>(null);
   const [badgeAnim, setBadgeAnim] = useState<{ tierIndex: number; outfitId: string } | null>(null);
+
+  // ── Swipe-to-change-tab ──────────────────────────────────────────────────────
+  const NAV_TAB_ORDER: Tab[] = ['DASHBOARD', 'HEALTH', 'QUESTS', 'STORE', 'LEADERBOARD'];
+  const swipeTouchStart = useRef<{ x: number; y: number } | null>(null);
+
+  const handleSwipeTouchStart = useCallback((e: React.TouchEvent) => {
+    const t = e.touches[0];
+    swipeTouchStart.current = { x: t.clientX, y: t.clientY };
+  }, []);
+
+  const handleSwipeTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (!swipeTouchStart.current) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - swipeTouchStart.current.x;
+    const dy = t.clientY - swipeTouchStart.current.y;
+    swipeTouchStart.current = null;
+    // Only count horizontal swipes (dx dominant, min 60px)
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    const idx = NAV_TAB_ORDER.indexOf(activeTab);
+    if (idx === -1) return;
+    const next = dx < 0 ? NAV_TAB_ORDER[idx + 1] : NAV_TAB_ORDER[idx - 1];
+    if (next) navigateTo(next);
+  }, [activeTab, navigateTo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Batching system: buffer rapid-fire events, then decide single vs batch
   const stoneBatchBuffer = useRef<Array<{ outfitId: string; amount: number; oldCount: number; newCount: number; color: string; glow: string }>>([]);
@@ -1377,7 +1464,7 @@ const App: React.FC = () => {
         navigation={shouldShowNav && activeTab !== 'PROFILE' ? (
           <Navigation
             activeTab={activeTab}
-            onTabChange={setActiveTab}
+            onTabChange={navigateTo}
             badges={{ ALLIANCE: !player.allianceId }}
           />
         ) : null}
@@ -1397,10 +1484,27 @@ const App: React.FC = () => {
         onClearNotificationHistory={clearNotificationHistory}
         headerDisabled={isDungeonMode}
         forceHeaderVisible={!player.tutorialComplete && isNewUserOnboarding && (player.tutorialStep === 3 || player.tutorialStep === 16)}
-        onGoldClick={!isDungeonMode ? () => setActiveTab('STORE') : undefined}
+        onGoldClick={!isDungeonMode ? () => navigateTo('STORE') : undefined}
         onLogout={() => setShowLogoutChoice(true)}
-        onEditProfile={() => setActiveTab('PROFILE')}
+        onEditProfile={() => navigateTo('PROFILE')}
       >
+        {/* Food scan in-progress banner — shown on any tab except HEALTH */}
+        {foodScanBannerVisible && activeTab !== 'HEALTH' && (
+          <div
+            className="fixed top-20 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 rounded-full text-xs font-mono font-bold cursor-pointer"
+            style={{ background: 'rgba(0,210,255,0.12)', border: '1px solid rgba(0,210,255,0.4)', color: '#00d2ff', backdropFilter: 'blur(12px)' }}
+            onClick={() => navigateTo('HEALTH')}
+          >
+            <span className="animate-pulse">●</span> Food scan running — tap to view
+          </div>
+        )}
+
+        {/* Main content wrapper with swipe-to-change-tab */}
+        <div
+          onTouchStart={handleSwipeTouchStart}
+          onTouchEnd={handleSwipeTouchEnd}
+          style={{ minHeight: 0 }}
+        >
         <AnimatePresence mode="wait">
 
           {/* ── DASHBOARD ── */}
@@ -1749,6 +1853,7 @@ const App: React.FC = () => {
           )}
 
         </AnimatePresence>
+        </div>{/* end swipe wrapper */}
 
         {activeTab === 'DASHBOARD' && (
           <MobileFloatingMenu

@@ -181,17 +181,49 @@ The GOLDEN RULE: A valid quest MUST be physically possible for a human, AND have
    - DRAINED/BURNOUT energy: increase difficulty one rank, reduce minDurationMinutes by 10%
    - Energy HIGH/PEAK: may reduce perceived rank
 8. reasoning: Write a SHORT, punchy 1-2 sentence analysis. Be direct and motivational. Avoid generic filler.
-9. sensorRequirements: For physical/outdoor quests, provide an object specifying what device sensors should verify:
-   - "steps": number of steps expected (e.g. "Walk 10000 steps" → 10000, "Run 5km" → ~6500)
-   - "distanceKm": distance in km (e.g. "Run 5km" → 5, "Cycle 20km" → 20)
-   - "activeMinutes": active movement minutes (e.g. "Exercise 30 min" → 30, "Jog for 1 hour" → 60)
-   - Only include fields that are relevant. For non-physical quests (reading, studying, cooking), set sensorRequirements to null.
-   - Examples:
-     * "Run 5km" → {"steps":6500,"distanceKm":5,"activeMinutes":25}
-     * "Walk 10000 steps" → {"steps":10000,"distanceKm":7}
-     * "Gym workout 45 min" → {"activeMinutes":45}
-     * "Read 30 pages" → null
-     * "Meditate 20 min" → null
+9. sensorRequirements: For physical/outdoor quests, provide an object specifying what device sensors should verify.
+   Use this activity→sensor mapping TABLE strictly:
+
+   WALKING (walk, stroll, hike, trek):
+     - steps: N×80 per minute of walking, OR exact step target if stated
+     - distanceKm: N×0.067 km per minute, OR exact distance if stated
+     - activeMinutes: duration in minutes
+     Example: "Walk 10 min" → {"steps":800,"distanceKm":0.67,"activeMinutes":10}
+     Example: "Hike 5km" → {"steps":6500,"distanceKm":5,"activeMinutes":60}
+
+   RUNNING / JOGGING / SPRINTING (run, jog, sprint):
+     - steps: N×130 per minute, OR derive from distance (1km≈1300 steps)
+     - distanceKm: exact if stated, OR N×0.17 km per minute
+     - activeMinutes: duration in minutes
+     Example: "Run 10 min" → {"steps":1300,"distanceKm":1.7,"activeMinutes":10}
+     Example: "Jog 3km" → {"steps":3900,"distanceKm":3,"activeMinutes":18}
+
+   CYCLING / BIKING / RIDING (cycle, bike, ride, spin):
+     - distanceKm: exact if stated, OR N×0.25 km per minute
+     - activeMinutes: duration in minutes
+     - NO steps (phone pedometer is unreliable on a bicycle)
+     Example: "Cycle 20 min" → {"distanceKm":5,"activeMinutes":20}
+     Example: "Bike 10km" → {"distanceKm":10,"activeMinutes":24}
+
+   SWIMMING (swim, laps):
+     - activeMinutes ONLY (GPS and phone pedometer are unusable in water)
+     Example: "Swim 30 min" → {"activeMinutes":30}
+
+   GYM / INDOOR WORKOUT (gym, workout, lift, pushups, pullups, squats, weights, HIIT, circuit, CrossFit):
+     - activeMinutes ONLY
+     Example: "Gym workout 45 min" → {"activeMinutes":45}
+     Example: "100 pushups" → {"activeMinutes":15}
+
+   OUTDOOR SPORT (football, basketball, tennis, etc.):
+     - activeMinutes ONLY (no reliable GPS path)
+     Example: "Play football 1 hour" → {"activeMinutes":60}
+
+   NON-PHYSICAL (reading, studying, cooking, meditating, journaling, coding):
+     - sensorRequirements: null
+     Example: "Read 30 pages" → null
+     Example: "Meditate 20 min" → null
+
+   IMPORTANT: Always include activeMinutes for ANY physical quest that has a time component. Always include distanceKm for outdoor locomotion (walk/run/cycle). Always include steps for walk/run but NEVER for cycle/swim/gym.
 
 Respond with ONLY valid JSON, no markdown:
 {"rank":"C","xp":100,"categories":["strength","discipline"],"reasoning":"Running 10km demands serious endurance and mental fortitude at your current fitness level.","estimatedDuration":70,"minDurationMinutes":36,"autoDetectedTime":null,"isSpam":false,"sensorRequirements":{"steps":13000,"distanceKm":10,"activeMinutes":50}}`;

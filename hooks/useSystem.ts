@@ -1138,19 +1138,19 @@ export const useSystem = () => {
         const sd = quest.sensorData;
         const flags: string[] = [];
 
-        // Steps — only enforce if step counter actually recorded something
+        // Steps — only enforce if step counter actually recorded something (threshold: 35%)
         const stepsRecorded = sd?.stepsRecorded ?? 0;
-        if (sr.steps && stepsRecorded > 0 && stepsRecorded < sr.steps * 0.8) {
+        if (sr.steps && stepsRecorded > 0 && stepsRecorded < sr.steps * 0.35) {
           flags.push(`Steps: ${stepsRecorded}/${sr.steps}`);
         }
 
-        // Distance — only enforce if GPS recorded meaningful distance
+        // Distance — only enforce if GPS recorded meaningful distance (threshold: 20%)
         const distRecorded = sd?.distanceRecorded ?? 0;
-        if (sr.distanceKm && distRecorded > 0 && distRecorded < sr.distanceKm * 0.8) {
+        if (sr.distanceKm && distRecorded > 0 && distRecorded < sr.distanceKm * 0.20) {
           flags.push(`Distance: ${distRecorded.toFixed(2)}/${sr.distanceKm}km`);
         }
 
-        // Active minutes — only enforce if timer recorded minutes
+        // Active minutes — only enforce if timer recorded minutes (threshold: 70%)
         const activeMin = sd?.activeMinutesRecorded ?? 0;
         if (sr.activeMinutes && activeMin > 0 && activeMin < sr.activeMinutes * 0.7) {
           flags.push(`Active: ${activeMin}/${sr.activeMinutes}min`);
