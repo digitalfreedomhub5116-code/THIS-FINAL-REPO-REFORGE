@@ -22,7 +22,6 @@ const DEFAULT_STATE: WarfareState = {
   killFeed: [],
   powerSurgeActive: false,
   powerSurgeExpiresAt: 0,
-  lastMonarchRewardDate: '',
 };
 
 const LAST_RESET_KEY = 'shadow_warfare_last_reset_';
@@ -392,13 +391,6 @@ export function useWarfare(userId: string) {
     }));
   }, []);
 
-  const claimMonarchReward = useCallback((): boolean => {
-    const today = todayStr();
-    if (state.lastMonarchRewardDate === today) return false;
-    setState(prev => ({ ...prev, lastMonarchRewardDate: today }));
-    return true;
-  }, [state.lastMonarchRewardDate]);
-
   const activeDebuffs = state.activeDebuffs.filter(d => d.expiresAt > Date.now());
   const armyBuff = state.shadows.length * 2;
 
@@ -419,6 +411,5 @@ export function useWarfare(userId: string) {
     attemptExtraction,
     guaranteedExtraction,
     castDebuff,
-    claimMonarchReward,
   };
 }

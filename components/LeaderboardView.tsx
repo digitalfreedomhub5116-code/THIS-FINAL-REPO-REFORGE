@@ -13,7 +13,7 @@ import { useSystem } from '../hooks/useSystem';
 import { playSystemSoundEffect } from '../utils/soundEngine';
 import {
   ExtractionRollAnim, AriseAnim, ScrollBurnAnim,
-  MonarchCrownAnim, PowerSurgeBanner,
+  PowerSurgeBanner,
 } from './WarfareAnimations';
 import RankRewardOverlay from './RankRewardOverlay';
 
@@ -348,15 +348,6 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
       setTimeout(() => setOvertakeNotif(null), 4000);
     }
   }, [simulatedEntries, activeTab, myIndex, warfare, player.username, player.name]);
-
-  // ── Check monarch reward ──
-  useEffect(() => {
-    if (myRank === 1 && warfare.claimMonarchReward()) {
-      setAnimPhase({ type: 'MONARCH_CROWN' });
-      addRewards(100, 0, 1);
-      addNotification('Monarch Reward: +100 Gold, +1 Key!', 'SUCCESS');
-    }
-  }, [myRank, warfare, addRewards, addNotification]);
 
   // ── EXTRACTION PROMPT ──
   const handleExtractPrompt = useCallback((targetName: string, targetRank: number) => {
@@ -833,9 +824,6 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
             scrollsRemaining={animPhase.scrollsRemaining}
             onComplete={handleScrollBurnComplete}
           />
-        )}
-        {animPhase.type === 'MONARCH_CROWN' && (
-          <MonarchCrownAnim onComplete={() => setAnimPhase({ type: 'NONE' })} />
         )}
       </AnimatePresence>
 

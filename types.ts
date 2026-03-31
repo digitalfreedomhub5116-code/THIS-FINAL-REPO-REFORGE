@@ -85,9 +85,6 @@ export interface WarfareState {
   // Power surge
   powerSurgeActive: boolean;
   powerSurgeExpiresAt: number;
-
-  // Daily reward tracking
-  lastMonarchRewardDate: string;
 }
 
 export interface DbOutfit {
