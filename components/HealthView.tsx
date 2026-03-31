@@ -1872,15 +1872,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                     {/* Right side: Flame Lottie */}
                                     <div className="relative w-24 h-24 flex items-center justify-center shrink-0">
                                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none -mt-4">
-                                            <FlameLottie size={120} />
-                                        </div>
-                                        <div className="text-center relative z-10">
-                                            <div className="text-sm font-bold text-white leading-none tracking-wider font-mono drop-shadow-md">
-                                                {streakInWeek}/7
-                                            </div>
-                                            <div className="text-[7px] font-black text-gray-400 tracking-[0.2em] uppercase mt-1 drop-shadow-md">
-                                                THIS WEEK
-                                            </div>
+                                            <FlameLottie size={102} />
                                         </div>
                                     </div>
                                 </div>
