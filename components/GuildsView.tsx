@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 import { Alliance, AllianceMember, AllianceChatMessage, PlayerData, GuildLog } from '../types';
 import { playSystemSoundEffect } from '../utils/soundEngine';
+import { SystemCoin } from './icons/SystemCoin';
+
 
 // --- MOCK DATA GENERATORS ---
 const MOCK_NAMES = ["Shadow Legion", "Iron Blood", "Void Walkers", "Solaris", "Night's Edge"];
@@ -639,7 +641,7 @@ const GuildsView: React.FC<GuildsViewProps> = ({ player, onJoin, onLeave }) => {
                                                 <span className="text-[10px] text-white font-mono">Rank Up</span>
                                             </div>
                                             <div className="flex flex-col items-center">
-                                                <Coins className="text-yellow-500 mb-1" size={24} />
+                                                <div className="flex items-center justify-center -mx-2 -my-2" style={{ width: 35, flexShrink: 0 }}><SystemCoin size={35} /></div>
                                                 <span className="text-[10px] text-white font-mono">2000 G</span>
                                             </div>
                                             <div className="flex flex-col items-center">

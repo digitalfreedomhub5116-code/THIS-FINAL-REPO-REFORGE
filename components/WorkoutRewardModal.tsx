@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Zap, Coins, Key, ScrollText, ChevronRight, AlertOctagon, ShieldOff, XCircle } from 'lucide-react';
+import { SystemCoin } from './icons/SystemCoin';
+
 
 export interface WorkoutReward {
   type: 'XP' | 'GOLD' | 'KEYS' | 'SHADOW_SCROLL';
@@ -22,7 +24,7 @@ const REWARD_CONFIG: Record<string, { icon: React.ReactNode; accent: string; acc
     accentRgb: '255,255,255',
   },
   GOLD: {
-    icon: <Coins size={28} fill="currentColor" />,
+    icon: <div className="flex items-center justify-center -mx-2 -my-2" style={{ width: 35, flexShrink: 0 }}><SystemCoin size={35} /></div>,
     accent: 'text-amber-200',
     accentRgb: '253,230,138',
   },

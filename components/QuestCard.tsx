@@ -2,6 +2,8 @@ import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Check, X, Dumbbell, Brain, Shield, Users, Zap, Trash2, ZapOff, Lock, Coins, Flame, Eye, MapPin, Activity, Play, Square } from 'lucide-react';
 import { Quest, CoreStats, Rank } from '../types';
+import { SystemCoin } from './icons/SystemCoin';
+
 
 interface QuestCardProps {
   quest: Quest;
@@ -224,7 +226,7 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
                     className="flex items-center gap-1 text-[8px] font-black font-mono tracking-widest px-1.5 py-0.5 rounded"
                     style={{ color: '#fbbf24', background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)' }}
                   >
-                    <Coins size={8} /> {quest.pactAmount}G PLEDGED
+                    <div className="flex items-center justify-center -mx-2 -my-2" style={{ width: 35, flexShrink: 0 }}><SystemCoin size={35} /></div> {quest.pactAmount}G PLEDGED
                   </span>
                 )}
                 {quest.pactStatus === 'honored' && (
@@ -308,7 +310,7 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
             </div>
             {quest.hasPact && quest.pactAmount && quest.pactStatus === 'active' && (
               <div className="flex items-center gap-0.5 font-bold font-mono text-[10px]" style={{ color: '#fbbf24' }}>
-                <Coins size={9} />
+                <div className="flex items-center justify-center -mx-2 -my-2" style={{ width: 35, flexShrink: 0 }}><SystemCoin size={35} /></div>
                 {quest.pactAmount}
               </div>
             )}

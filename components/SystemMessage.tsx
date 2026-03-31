@@ -2,6 +2,8 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, CheckCircle, Shield, Zap, Info, Coins } from 'lucide-react';
 import { SystemNotification, NotificationType } from '../types';
+import { SystemCoin } from './icons/SystemCoin';
+
 
 interface SystemMessageProps {
   notifications: SystemNotification[];
@@ -34,7 +36,7 @@ const SystemMessage: React.FC<SystemMessageProps> = ({ notifications, removeNoti
       case 'WARNING': return <AlertTriangle size={18} />;
       case 'DANGER': return <Shield size={18} />;
       case 'LEVEL_UP': return <Zap size={18} />;
-      case 'PURCHASE': return <Coins size={18} />;
+      case 'PURCHASE': return <div className="flex items-center justify-center -mx-2 -my-2" style={{ width: 35, flexShrink: 0 }}><SystemCoin size={35} /></div>;
       case 'SYSTEM': return <Info size={18} />;
     }
   };

@@ -3,6 +3,8 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Trophy, Coins, Award, Sparkles } from 'lucide-react';
 import { TournamentReward } from '../types';
+import { SystemCoin } from './icons/SystemCoin';
+
 
 interface TournamentResultModalProps {
   reward: TournamentReward;
@@ -71,7 +73,7 @@ const TournamentResultModal: React.FC<TournamentResultModalProps> = ({ reward, o
                         <div>
                             <div className="text-[10px] text-gray-500 font-mono mb-1">REWARD</div>
                             <div className="text-3xl font-black font-mono text-system-accent flex items-center justify-center gap-2">
-                                <Coins size={24} /> {reward.gold}
+                                <div className="flex items-center justify-center -mx-2 -my-2" style={{ width: 35, flexShrink: 0 }}><SystemCoin size={35} /></div> {reward.gold}
                             </div>
                         </div>
                     </div>

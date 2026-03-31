@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Coins } from 'lucide-react';
 import { Rank } from '../types';
 import { playSystemSoundEffect } from '../utils/soundEngine';
+import { SystemCoin } from './icons/SystemCoin';
+
 
 interface SystemPactScreenProps {
   visible: boolean;
@@ -363,7 +365,7 @@ const SystemPactScreen: React.FC<SystemPactScreenProps> = ({
                       animate={{ opacity: 1, scale: 1, rotate: 0 }}
                       transition={{ type: 'spring', stiffness: 300, damping: 18 }}
                     >
-                      <Coins size={32} className="text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]" />
+                      <div className="flex items-center justify-center -mx-2 -my-2" style={{ width: 35, flexShrink: 0 }}><SystemCoin size={35} /></div>
                     </motion.div>
                   )}
                 </AnimatePresence>

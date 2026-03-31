@@ -6,6 +6,8 @@ import { Ghost, Key, Coins, Skull, LogOut, Timer, AlertOctagon, Sparkles, Crown 
 import CrystalIcon from './CrystalIcon';
 import { playSystemSoundEffect } from '../utils/soundEngine';
 import { useCoinReward } from '../hooks/useCoinReward';
+import { SystemCoin } from './icons/SystemCoin';
+
 
 type CardType = 'SAFE' | 'TRAP' | 'JACKPOT';
 type StoneRewardType = 'STONE_ASH' | 'STONE_PLUTON' | 'STONE_SATURN' | 'STONE_MARS' | 'STONE_JUPITER' | 'STONE_OVERLORD';
@@ -326,12 +328,12 @@ const VintageCardFront = ({ data }: { data: FloorCardData }) => {
                <div className="absolute inset-0 overflow-hidden pointer-events-none">
                   {floatParticles.map((p, i) => (
                       <motion.div key={i} initial={{ y: 60, opacity: 0 }} animate={{ y: -60, opacity: [0, 1, 0] }} transition={{ duration: 2.5, repeat: Infinity, delay: i * 0.7, ease: "easeOut" }} className="absolute left-1/2 text-[#b08d55]/20" style={{ marginLeft: p.marginLeft }}>
-                          <Coins size={10} fill="currentColor" />
+                          <div className="flex items-center justify-center -mx-2 -my-2" style={{ width: 35, flexShrink: 0 }}><SystemCoin size={35} /></div>
                       </motion.div>
                   ))}
                </div>
                <motion.div animate={{ rotateY: 360 }} transition={{ duration: 6, repeat: Infinity, ease: "linear" }} className="text-[#b08d55] drop-shadow-sm mb-2 relative z-10">
-                   <Coins size={48} strokeWidth={1.5} fill="#eab308" className="text-yellow-700" />
+                   <div className="flex items-center justify-center -mx-2 -my-2" style={{ width: 35, flexShrink: 0 }}><SystemCoin size={35} /></div>
                </motion.div>
                <div className="font-black text-[#5c4033] uppercase tracking-widest text-xl font-serif relative z-10 drop-shadow-sm">{data.reward.gold}</div>
                <div className="text-[8px] text-[#854d0e] font-bold uppercase tracking-widest relative z-10">GOLD COINS</div>
@@ -417,7 +419,7 @@ const FlyingLoot: React.FC<{ lootType: RewardType; startRect: DOMRect | null }> 
     const bg = lootType === 'KEY' ? 'bg-purple-500 border-white' : stoneConf ? 'bg-gray-800 border-white' : 'bg-yellow-400 border-white';
     const icon = lootType === 'KEY' ? <Key size={20} color="white" fill="currentColor" />
         : stoneConf ? <CrystalIcon color={stoneConf.color} glow={stoneConf.glow} size={20} />
-        : <Coins size={20} color="white" fill="currentColor" />;
+        : <div className="flex items-center justify-center -mx-2 -my-2" style={{ width: 35, flexShrink: 0 }}><SystemCoin size={35} /></div>;
 
     return (
         <motion.div
@@ -760,7 +762,7 @@ const VictoryScreen: React.FC<{
              start={stage === 'rewards' || stage === 'done'}
              value={loot.gold} 
              label="Gold" 
-             icon={<Coins size={22} />} 
+             icon={<div className="flex items-center justify-center -mx-2 -my-2" style={{ width: 35, flexShrink: 0 }}><SystemCoin size={35} /></div>} 
              delay={0}
              color="yellow-500"
              onComplete={() => setRewardStage(prev => Math.max(prev, 1))}
@@ -948,7 +950,7 @@ const GameOverScreen: React.FC<{
                 <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-red-600/50" />
 
                 <div className="flex flex-col items-center gap-1.5 opacity-50 grayscale">
-                    <Coins size={18} className="text-gray-600" />
+                    <div className="flex items-center justify-center -mx-2 -my-2" style={{ width: 35, flexShrink: 0 }}><SystemCoin size={35} /></div>
                     <div className="text-xs font-bold text-red-800 font-mono line-through">{lostLoot.gold}</div>
                     <div className="text-[8px] font-bold uppercase tracking-wider text-gray-800">GOLD</div>
                 </div>
@@ -1486,7 +1488,7 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
                   <div className="text-right">
                       <div className="text-[10px] text-gray-500 font-bold tracking-widest uppercase">Loot Bag</div>
                       <div id="loot-bag-balance" className="flex items-center justify-end gap-2 text-lg font-bold text-yellow-500 font-serif">
-                          <Coins size={16} fill="currentColor" /> <CountingNumber value={lootBag.gold} />
+                          <div className="flex items-center justify-center -mx-2 -my-2" style={{ width: 35, flexShrink: 0 }}><SystemCoin size={35} /></div> <CountingNumber value={lootBag.gold} />
                       </div>
                       <div className="flex items-center justify-end gap-3 mt-0.5">
                           <div id="loot-bag-keys" className="flex items-center gap-1 text-xs font-bold text-purple-400 font-mono">
@@ -1637,7 +1639,7 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
                                       <div className="relative z-10 flex flex-col">
                                           <span className="text-[9px] text-red-400 font-bold uppercase tracking-widest">Risk of Loss</span>
                                           <div className="flex gap-3 mt-1">
-                                              <span className="text-yellow-500 font-bold text-sm flex items-center gap-1"><Coins size={12} /> {lootBag.gold}</span>
+                                              <span className="text-yellow-500 font-bold text-sm flex items-center gap-1"><div className="flex items-center justify-center -mx-2 -my-2" style={{ width: 35, flexShrink: 0 }}><SystemCoin size={35} /></div> {lootBag.gold}</span>
                                           </div>
                                       </div>
                                       <div className="relative z-10">

@@ -7,6 +7,8 @@ import { ShopItem, Outfit } from '../types';
 import { API_BASE } from '../lib/apiConfig';
 import ErrorBoundary from './ErrorBoundary';
 import OnboardingNotice from './OnboardingNotice';
+import { SystemCoin } from './icons/SystemCoin';
+
 const WardrobePreviewCard = lazy(() => import('./WardrobePreviewCard'));
 const BadgesSection = lazy(() => import('./BadgesSection'));
 
@@ -641,7 +643,7 @@ const ShopView: React.FC<ShopViewProps> = ({
                     >
                       {item.costGold > 0 ? (
                         <>
-                          <Coins size={11} className="text-yellow-400" />
+                          <div className="flex items-center justify-center -mx-2 -my-2" style={{ width: 35, flexShrink: 0 }}><SystemCoin size={35} /></div>
                           <span className="text-yellow-300">{item.costGold}</span>
                         </>
                       ) : (
@@ -746,7 +748,7 @@ const ShopView: React.FC<ShopViewProps> = ({
                     <div className="flex items-center gap-1 px-2 py-1 rounded-lg font-mono text-xs font-bold"
                       style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.08)' }}
                     >
-                      <Coins size={11} className="text-yellow-400" />
+                      <div className="flex items-center justify-center -mx-2 -my-2" style={{ width: 35, flexShrink: 0 }}><SystemCoin size={35} /></div>
                       <span className="text-yellow-300">{item.cost}</span>
                     </div>
                     <button

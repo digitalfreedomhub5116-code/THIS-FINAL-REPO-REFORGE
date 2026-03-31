@@ -3,6 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { AlertTriangle, Timer, Skull, Flame, CheckCircle, Lock, Coins } from 'lucide-react';
 import { PenaltyTask } from '../types';
+import { SystemCoin } from './icons/SystemCoin';
+
 
 interface PenaltyZoneProps {
   endTime?: number;
@@ -157,7 +159,7 @@ const PenaltyZone: React.FC<PenaltyZoneProps> = ({ endTime, task, gold, onSurviv
                     }
                 `}
              >
-                <Coins size={20} />
+                <div className="flex items-center justify-center -mx-2 -my-2" style={{ width: 35, flexShrink: 0 }}><SystemCoin size={35} /></div>
                 {canAffordSacrifice ? 'SACRIFICE 500 GOLD TO SKIP' : 'INSUFFICIENT FUNDS FOR SACRIFICE (500 G)'}
              </button>
          </div>

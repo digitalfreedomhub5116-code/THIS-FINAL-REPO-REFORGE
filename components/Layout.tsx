@@ -543,8 +543,8 @@ const Layout: React.FC<LayoutProps> = ({
                   disabled={headerDisabled}
                   className="flex items-center gap-0.5 transition-all active:scale-95"
                 >
-                  <div className="flex items-center justify-center" style={{ width: 40 }}>
-                    <AnimatedCoinIcon size={40} />
+                  <div className="flex items-center justify-center" style={{ width: 35 }}>
+                    <AnimatedCoinIcon size={35} />
                   </div>
                   <span id="user-wallet-balance" className="font-mono text-[13px] font-bold text-yellow-300 whitespace-nowrap"><AnimatedCounter value={gold} /></span>
                 </button>

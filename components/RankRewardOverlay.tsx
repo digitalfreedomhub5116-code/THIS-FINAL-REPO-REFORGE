@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trophy, Crown, Key, Zap, Coins } from 'lucide-react';
+import { SystemCoin } from './icons/SystemCoin';
+
 
 interface RankRewardOverlayProps {
   rank: number;        // 1-5
@@ -407,7 +409,7 @@ const RankRewardOverlay: React.FC<RankRewardOverlayProps> = ({
                 background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.2)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                <Coins size={20} color="#fbbf24" />
+                <div className="flex items-center justify-center -mx-2 -my-2" style={{ width: 35, flexShrink: 0 }}><SystemCoin size={35} /></div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column' }}>
                 <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.15em' }}>GOLD</span>
