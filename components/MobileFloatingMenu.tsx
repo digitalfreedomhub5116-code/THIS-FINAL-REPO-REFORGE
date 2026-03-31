@@ -640,7 +640,9 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
                         <h2 className="text-lg font-black text-white uppercase tracking-tight font-mono">CHEST VAULT</h2>
                         <div className="flex items-center gap-3">
                           <div className="flex items-center gap-1 text-xs font-mono font-bold text-yellow-300">
-                            <Coins size={11} className="text-yellow-400" /> {gold}
+                            <div className="flex items-center justify-center -mx-2 -my-2" style={{ width: 35, flexShrink: 0 }}>
+                              <SystemCoin size={35} />
+                            </div> {gold}
                           </div>
                           <div className="flex items-center gap-1 text-xs font-mono font-bold text-purple-300">
                             <SystemKey size={13} /> {keys}
