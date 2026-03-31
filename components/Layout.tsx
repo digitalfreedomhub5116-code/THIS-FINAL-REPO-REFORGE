@@ -534,12 +534,12 @@ const Layout: React.FC<LayoutProps> = ({
               </div>
 
               {/* RIGHT: Keys + Gold + Bell */}
-              <div id="tut-gold-display" className="flex items-center gap-1.5 flex-shrink-0">
+              <div id="tut-gold-display" className="flex items-center gap-2.5 flex-shrink-0">
 
                 {/* Keys */}
                 <div id="user-keys-balance" className="flex items-center gap-1">
-                  <AnimatedKeyIcon size={12} />
-                  <span className="font-mono text-[11px] font-bold text-purple-300 whitespace-nowrap"><AnimatedCounter value={keys} /></span>
+                  <AnimatedKeyIcon size={15} />
+                  <span className="font-mono text-[13px] font-bold text-purple-300 whitespace-nowrap"><AnimatedCounter value={keys} /></span>
                 </div>
 
                 {/* Gold */}
@@ -549,14 +549,14 @@ const Layout: React.FC<LayoutProps> = ({
                   disabled={headerDisabled}
                   className="flex items-center gap-0.5 transition-all active:scale-95"
                 >
-                  <div className="flex items-center justify-center" style={{ width: 28 }}>
-                    <AnimatedCoinIcon size={28} />
+                  <div className="flex items-center justify-center" style={{ width: 35 }}>
+                    <AnimatedCoinIcon size={35} />
                   </div>
-                  <span id="user-wallet-balance" className="font-mono text-[11px] font-bold text-yellow-300 whitespace-nowrap"><AnimatedCounter value={gold} /></span>
+                  <span id="user-wallet-balance" className="font-mono text-[13px] font-bold text-yellow-300 whitespace-nowrap"><AnimatedCounter value={gold} /></span>
                 </button>
 
                 {/* Bell */}
-                <div className="relative" ref={notifRef}>
+                <div className="relative ml-2" ref={notifRef}>
                   <button
                     onClick={handleOpenNotifications}
                     className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-200 border ${
