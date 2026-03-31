@@ -5,9 +5,10 @@ import { REWARD_SCHEDULE } from '../lib/rewards';
 
 interface DailyLoginModalProps {
   onClose: () => void;
+  onChestReward?: () => void;
 }
 
-const DailyLoginModal: React.FC<DailyLoginModalProps> = ({ onClose }) => {
+const DailyLoginModal: React.FC<DailyLoginModalProps> = ({ onClose, onChestReward }) => {
   const { player, claimDailyReward } = useSystem();
 
   // Always compute reward fresh from player state + schedule
@@ -30,7 +31,7 @@ const DailyLoginModal: React.FC<DailyLoginModalProps> = ({ onClose }) => {
     }
   }
 
-  const currentCycleDay = ((currentStreak - 1) % 30) + 1;
+  const currentCycleDay = ((currentStreak - 1) % 7) + 1;
   const todayReward = !isClaimed ? REWARD_SCHEDULE[currentCycleDay - 1] : null;
 
   const handleClaim = (rect: DOMRect | null) => {
@@ -44,6 +45,10 @@ const DailyLoginModal: React.FC<DailyLoginModalProps> = ({ onClose }) => {
       window.dispatchEvent(new CustomEvent('reforge:key-earned', { detail: { amount: todayReward.amount, startRect: rect } }));
     } else if (todayReward.type === 'SHADOW_SCROLL') {
       window.dispatchEvent(new CustomEvent('reforge:consumable-earned', { detail: { type: 'SCROLL', amount: todayReward.amount, startRect: rect } }));
+    } else if (todayReward.type === 'CHEST_LEGENDARY') {
+      setTimeout(() => onChestReward?.(), 800);
+    } else if (todayReward.type === 'VENUS_SHARDS') {
+      window.dispatchEvent(new CustomEvent('reforge:shard-earned', { detail: { amount: todayReward.amount, startRect: rect } }));
     }
   };
 

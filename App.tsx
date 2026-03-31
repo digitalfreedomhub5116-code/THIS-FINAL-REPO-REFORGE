@@ -79,6 +79,7 @@ const ConfettiOverlay = lazy(() => import('./components/ConfettiOverlay'));
 const StrikeLiftedModal = lazy(() => import('./components/StrikeLiftedModal'));
 const ForgeGuardWidget = lazy(() => import('./components/ForgeGuardWidget'));
 const StreakCelebration = lazy(() => import('./components/StreakCelebration'));
+const ChestOpeningOverlay = lazy(() => import('./components/ChestOpeningOverlay'));
 
 // ── Types ──
 type OnboardingPhase = 'SPLASH' | 'WELCOME' | 'AGREEMENT' | 'NAMING' | 'CALIBRATION' | 'AUTH' | 'AUTH_SIGN_IN_PAGE' | 'AUTH_CREATE_PAGE' | 'APP' | 'LOGOUT_CHOICE';
@@ -125,6 +126,8 @@ const App: React.FC = () => {
   } = useSystem();
 
   const sensors = useSensors();
+
+  const [showChestOpening, setShowChestOpening] = useState(false);
 
   // ── Sensor tracking handlers ──
   const handleStartTracking = useCallback(async (questId: string, requirements?: { steps?: number; distanceKm?: number; activeMinutes?: number }) => {
@@ -1106,7 +1109,12 @@ const App: React.FC = () => {
                 onClose={() => {
                   setShowDailyLogin(false);
                   setDailyReward(null);
-                }} 
+                }}
+                onChestReward={() => {
+                  setShowDailyLogin(false);
+                  setDailyReward(null);
+                  setShowChestOpening(true);
+                }}
               />
             </ErrorBoundary>
           )}
@@ -1127,6 +1135,16 @@ const App: React.FC = () => {
                       scheduleStreakReminder(player.streak).catch(() => {});
                     }
                   }}
+                />
+              </ErrorBoundary>
+            </Suspense>
+          )}
+          {showChestOpening && (
+            <Suspense fallback={null}>
+              <ErrorBoundary>
+                <ChestOpeningOverlay
+                  chestType="LEGENDARY"
+                  onClose={() => setShowChestOpening(false)}
                 />
               </ErrorBoundary>
             </Suspense>
@@ -1488,6 +1506,8 @@ const App: React.FC = () => {
                     wardrobeOnPurchase={purchaseOutfit}
                     wardrobeOnEquip={equipOutfit}
                     outfitStones={player.outfitStones || {}}
+                    chests={player.chests}
+                    onOpenChest={() => setShowChestOpening(true)}
                   />
                 </ErrorBoundary>
               </Suspense>
@@ -1525,6 +1545,8 @@ const App: React.FC = () => {
                     streak={player.streak}
                     lastLoginDate={player.lastLoginDate}
                     outfitStones={player.outfitStones || {}}
+                    chests={player.chests}
+                    onOpenChest={() => setShowChestOpening(true)}
                   />
                 </ErrorBoundary>
               </Suspense>

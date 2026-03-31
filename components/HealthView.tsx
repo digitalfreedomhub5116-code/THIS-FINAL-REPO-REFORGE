@@ -1806,102 +1806,90 @@ export const HealthView: React.FC<HealthViewProps> = ({
                         const weeksCompleted = Math.floor(completedWorkouts / Math.max(daysPerWeek, 1));
                         const weeksLeft = Math.max(totalWeeks - weeksCompleted, 0);
                         const streakInWeek = playerData.streak % 7 || (playerData.streak > 0 && playerData.streak % 7 === 0 ? 7 : 0);
-                        const milestones: Record<number, string> = { 7: '7-DAY MILESTONE', 14: '14-DAY MILESTONE', 21: '21-DAY MILESTONE', 30: '30-DAY MILESTONE', 60: '60-DAY MILESTONE', 100: '100-DAY LEGEND' };
-                        const activeMilestone = milestones[playerData.streak];
-                        const streakTier = playerData.streak >= 30 ? { accent: '#fbbf24', glow: 'rgba(251,191,36,0.25)', border: 'rgba(251,191,36,0.3)', dot: '#fbbf24' }
-                                         : playerData.streak >= 7  ? { accent: '#f97316', glow: 'rgba(249,115,22,0.2)',  border: 'rgba(249,115,22,0.25)', dot: '#f97316' }
-                                         :                           { accent: '#00d2ff', glow: 'rgba(0,210,255,0.12)',  border: 'rgba(0,210,255,0.18)', dot: '#00d2ff' };
+                        const daysToMilestone = playerData.streak === 0 ? 7 : 7 - streakInWeek;
+                        
+                        // Calculate stroke-dasharray for circular progress (circumference is ~157)
+                        const circumference = 2 * Math.PI * 25; // r=25
+                        const progressOffset = circumference - (streakInWeek / 7) * circumference;
+
                         return (
                         <motion.div key="wo" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4 relative pb-24">
 
-                            {/* ── STREAK HERO — Liquid Glass ── */}
-                            <div className="relative rounded-3xl overflow-hidden"
+                            {/* ── ACTIVE STREAK WIDGET ── */}
+                            <div className="relative rounded-2xl overflow-hidden p-5"
                                 style={{
-                                    background: 'rgba(255,255,255,0.04)',
-                                    backdropFilter: 'blur(24px)',
-                                    WebkitBackdropFilter: 'blur(24px)',
-                                    border: `1px solid ${streakTier.border}`,
-                                    boxShadow: `0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08), 0 0 40px ${streakTier.glow}`,
+                                    background: '#0B1015',
+                                    border: '1px solid rgba(0, 210, 255, 0.15)',
+                                    boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
                                 }}
                             >
-                                <div className="absolute inset-0 pointer-events-none" style={{ background: `radial-gradient(ellipse at 30% 0%, ${streakTier.glow} 0%, transparent 60%)` }} />
-                                <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent 0%, ${streakTier.accent}55 40%, ${streakTier.accent}99 50%, ${streakTier.accent}55 60%, transparent 100%)` }} />
+                                {/* Top Header */}
+                                <div className="text-[10px] font-black tracking-[0.2em] mb-4 text-[#00d2ff]">
+                                    ACTIVE STREAK
+                                </div>
 
-                                <div className="relative px-6 pt-6 pb-4">
-                                    <div className="flex items-start justify-between gap-4">
-                                        <div>
-                                            <div className="text-[9px] font-bold uppercase tracking-[0.25em] mb-2" style={{ color: `${streakTier.accent}cc` }}>ACTIVE STREAK</div>
-                                            <div key={streakAnimKey} className="flex items-end gap-2 animate-streak-pop">
-                                                <span className="text-7xl font-black leading-none text-white" style={{ textShadow: `0 0 30px ${streakTier.accent}80` }}>
-                                                    {playerData.streak}
-                                                </span>
-                                                <span className="text-base font-bold mb-3 text-white/40">days</span>
-                                            </div>
-                                            {activeMilestone ? (
-                                                <div className="inline-flex items-center mt-2 px-2.5 py-1 rounded-full" style={{ background: `${streakTier.accent}18`, border: `1px solid ${streakTier.accent}40` }}>
-                                                    <span className="text-[9px] font-black tracking-widest" style={{ color: streakTier.accent }}>{activeMilestone}</span>
-                                                </div>
-                                            ) : (
-                                                <div className="text-[10px] font-mono mt-2 text-white/35">
-                                                    {playerData.streak === 0 ? 'Complete a workout to start your streak' :
-                                                     playerData.streak < 7  ? `${7 - playerData.streak} more days to first milestone` :
-                                                     playerData.streak < 30 ? `${[14,21,30].find(m => m > playerData.streak)! - playerData.streak} days to next milestone` :
-                                                     'Elite consistency achieved'}
-                                                </div>
-                                            )}
+                                <div className="flex items-start justify-between mb-8">
+                                    {/* Left side: Days count and subtitle */}
+                                    <div>
+                                        <div key={streakAnimKey} className="flex items-baseline gap-2 animate-streak-pop">
+                                            <span className="text-7xl font-semibold leading-none text-white tracking-tighter">
+                                                {playerData.streak}
+                                            </span>
+                                            <span className="text-xl font-bold text-gray-400 mb-1">days</span>
                                         </div>
-                                        {/* Streak ring */}
-                                        <div className="shrink-0 mt-1">
-                                            <svg width="72" height="72" viewBox="0 0 72 72">
-                                                <circle cx="36" cy="36" r="30" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="6" />
-                                                <circle cx="36" cy="36" r="30" fill="none" stroke={streakTier.accent} strokeWidth="6"
-                                                    strokeDasharray={`${Math.min((streakInWeek / 7) * 188.5, 188.5)} 188.5`}
-                                                    strokeLinecap="round" transform="rotate(-90 36 36)"
-                                                    style={{ filter: `drop-shadow(0 0 6px ${streakTier.accent})`, transition: 'stroke-dasharray 0.6s ease' }}
-                                                />
-                                                <text x="36" y="39" textAnchor="middle" fontSize="13" fontWeight="900" fill="white" fontFamily="monospace">{streakInWeek}/7</text>
-                                            </svg>
-                                            <div className="text-[8px] text-center mt-1 font-mono text-white/30 uppercase tracking-wider">This Week</div>
+                                        <div className="text-xs font-mono mt-3 text-gray-500 font-medium">
+                                            {playerData.streak === 0 ? 'Start your streak today' : 
+                                             `${daysToMilestone} more days to first milestone`}
                                         </div>
                                     </div>
-                                    {/* Week progress bars */}
-                                    <div className="flex gap-1.5 mt-4">
-                                        {Array.from({ length: 7 }).map((_, i) => (
-                                            <div key={i} className="flex-1 h-1.5 rounded-full transition-all duration-500" style={i < streakInWeek
-                                                ? { background: streakTier.accent, boxShadow: `0 0 8px ${streakTier.accent}80` }
-                                                : { background: 'rgba(255,255,255,0.07)' }} />
-                                        ))}
+
+                                    {/* Right side: Circular Progress */}
+                                    <div className="relative w-20 h-20 flex items-center justify-center shrink-0">
+                                        {/* Background ring */}
+                                        <svg className="absolute inset-0 w-full h-full -rotate-90">
+                                            <circle cx="40" cy="40" r="25" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="6" />
+                                            {/* Progress ring */}
+                                            <circle cx="40" cy="40" r="25" fill="none" stroke="#00d2ff" strokeWidth="6" strokeLinecap="round" 
+                                                    style={{ strokeDasharray: circumference, strokeDashoffset: progressOffset, transition: 'stroke-dashoffset 0.8s ease-out' }} />
+                                        </svg>
+                                        <div className="text-center">
+                                            <div className="text-sm font-black text-white">{streakInWeek}/7</div>
+                                        </div>
+                                        <div className="absolute -bottom-4 text-[8px] font-black tracking-widest text-gray-500 uppercase">THIS WEEK</div>
                                     </div>
+                                </div>
+
+                                {/* Bottom: 7-segment progress bar */}
+                                <div className="flex gap-2">
+                                    {[1, 2, 3, 4, 5, 6, 7].map(day => (
+                                        <div 
+                                            key={day} 
+                                            className="h-1.5 flex-1 rounded-full transition-colors duration-500"
+                                            style={{ 
+                                                background: day <= streakInWeek ? '#00d2ff' : 'rgba(255,255,255,0.06)',
+                                                boxShadow: day <= streakInWeek ? '0 0 8px rgba(0,210,255,0.4)' : 'none'
+                                            }}
+                                        />
+                                    ))}
                                 </div>
                             </div>
 
-                            {/* ── WEEK COUNTDOWN + TOTAL WORKOUTS — Liquid Glass ── */}
-                            <div className="flex gap-3">
-                                <div className="flex-1 rounded-2xl p-4 text-center" style={{
-                                    background: 'rgba(0,210,255,0.05)',
-                                    backdropFilter: 'blur(20px)',
-                                    WebkitBackdropFilter: 'blur(20px)',
-                                    border: '1px solid rgba(0,210,255,0.15)',
-                                    boxShadow: '0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.06)',
-                                }}>
-                                    <div className="text-[9px] text-system-neon/60 uppercase tracking-widest font-bold mb-1.5">Weeks Left</div>
-                                    <div className="text-4xl font-black text-system-neon leading-none" style={{ textShadow: '0 0 20px rgba(0,210,255,0.5)' }}>
-                                        {weeksLeft}
-                                    </div>
-                                    <div className="text-[9px] text-white/20 mt-1.5 font-mono">Week {weeksCompleted + 1} of {totalWeeks}</div>
+                            {/* ── STATS GRID ── */}
+                            <div className="grid grid-cols-2 gap-4">
+                                {/* Weeks Left Card */}
+                                <div className="rounded-2xl p-5 flex flex-col items-center justify-center"
+                                     style={{ background: '#0B1015', border: '1px solid rgba(0, 210, 255, 0.15)' }}>
+                                    <div className="text-[10px] font-black tracking-[0.2em] text-[#00d2ff] mb-2">WEEKS LEFT</div>
+                                    <div className="text-5xl font-semibold text-[#00d2ff] leading-none mb-2">{weeksLeft}</div>
+                                    <div className="text-[10px] font-mono font-bold text-gray-500 uppercase tracking-widest">Week {Math.min(weeksCompleted + 1, totalWeeks)} of {totalWeeks}</div>
                                 </div>
-                                <div className="flex-1 rounded-2xl p-4 text-center" style={{
-                                    background: 'rgba(168,85,247,0.05)',
-                                    backdropFilter: 'blur(20px)',
-                                    WebkitBackdropFilter: 'blur(20px)',
-                                    border: '1px solid rgba(168,85,247,0.18)',
-                                    boxShadow: '0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.06)',
-                                }}>
-                                    <div className="text-[9px] text-purple-400/60 uppercase tracking-widest font-bold mb-1.5">Workouts Done</div>
-                                    <div className="text-4xl font-black text-purple-300 leading-none" style={{ textShadow: '0 0 20px rgba(168,85,247,0.5)' }}>
-                                        {completedWorkouts}
-                                    </div>
-                                    <div className="text-[9px] text-white/20 mt-1.5 font-mono">{calculateTimeEstimate(healthProfile || formData)}</div>
+
+                                {/* Workouts Done Card */}
+                                <div className="rounded-2xl p-5 flex flex-col items-center justify-center"
+                                     style={{ background: '#100B15', border: '1px solid rgba(192, 132, 252, 0.15)' }}>
+                                    <div className="text-[10px] font-black tracking-[0.2em] text-[#c084fc] mb-2 uppercase text-center w-full">WORKOUTS DONE</div>
+                                    <div className="text-5xl font-semibold text-[#c084fc] leading-none mb-2">{completedWorkouts}</div>
+                                    <div className="text-[10px] font-mono font-bold text-gray-500 uppercase tracking-widest">Goal Reached</div>
                                 </div>
                             </div>
 

@@ -19,6 +19,9 @@ const RewardIcon = ({ type, size = 24 }: { type: DailyRewardType; size?: number 
     case 'WELCOME_KEYS': return <Key size={size} className="text-purple-300" />;
     case 'DUNGEON_PASS': return <Ghost size={size} className="text-red-500" />;
     case 'SHADOW_SCROLL': return <Scroll size={size} className="text-indigo-400" />;
+    case 'CHEST_LEGENDARY': return <span style={{ fontSize: size * 0.9 }}>📦</span>;
+    case 'VENUS_SHARDS': return <span style={{ fontSize: size * 0.9 }}>🩶</span>;
+    case 'NONE': return <span style={{ fontSize: size * 0.8 }}>—</span>;
     default: return <Coins size={size} className="text-gray-400" />;
   }
 };
@@ -48,8 +51,8 @@ const DailyRewardCalendar: React.FC<DailyRewardCalendarProps> = ({
     setTimeout(() => setToastMsg(null), 2000);
   };
 
-  // Calculate current day in the 30-day cycle (1-indexed)
-  const currentCycleDay = ((streak - 1) % 30) + 1;
+  // Calculate current day in the 7-day cycle (1-indexed)
+  const currentCycleDay = ((streak - 1) % 7) + 1;
   
   // Determine if there's a claimable reward today
   const canClaimToday = !hasClaimedToday;
@@ -161,7 +164,7 @@ const DailyRewardCalendar: React.FC<DailyRewardCalendarProps> = ({
         {/* Calendar Grid - 3 columns */}
         <div className="px-5 pb-4 overflow-y-auto flex-1 custom-scrollbar">
           <div className="grid grid-cols-3 gap-2.5">
-            {REWARD_SCHEDULE.slice(0, 12).map((reward, idx) => {
+            {REWARD_SCHEDULE.slice(0, 7).map((reward, idx) => {
               const dayNum = idx + 1;
               
               // Determine status
@@ -223,7 +226,7 @@ const DailyRewardCalendar: React.FC<DailyRewardCalendarProps> = ({
 
                   {/* Amount */}
                   <div className={`text-xs font-black ${isCurrent ? 'text-purple-200' : isClaimed ? 'text-gray-500' : 'text-gray-600'}`}>
-                    ×{reward.amount}
+                    {reward.type === 'NONE' ? '—' : reward.type === 'CHEST_LEGENDARY' ? '×1' : `×${reward.amount}`}
                   </div>
 
                   {/* Claimed Checkmark */}

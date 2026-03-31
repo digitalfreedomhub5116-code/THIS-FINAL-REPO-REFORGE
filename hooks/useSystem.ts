@@ -68,6 +68,7 @@ const DEFAULT_PLAYER: PlayerData = {
   quests: [],
   shopItems: [],
   consumables: { shadowScrolls: 0 },
+  chests: { legendary: 0 },
   awakening: { vision: [], antiVision: [] },
   personalBests: {},
   nutritionLogs: [],
@@ -860,7 +861,7 @@ export const useSystem = () => {
         nextStreak = 1;
     }
 
-    const rewardIndex = (nextStreak - 1) % 30;
+    const rewardIndex = (nextStreak - 1) % 7;
     return REWARD_SCHEDULE[rewardIndex];
   }, [player.lastLoginDate, player.streak]);
 
@@ -882,6 +883,8 @@ export const useSystem = () => {
       let { currentXp, requiredXp, level, totalXp, dailyXp, gold, keys, consumables } = prev;
       
       const safeConsumables = consumables || { shadowScrolls: 0 };
+      const safeChests = prev.chests || { legendary: 0 };
+      const safeStones = prev.outfitStones || {};
 
       if (reward.type === 'GOLD') gold += reward.amount;
       if (reward.type === 'XP') {
@@ -889,9 +892,20 @@ export const useSystem = () => {
         totalXp += reward.amount;
         dailyXp += reward.amount;
       }
-      if (reward.type === 'WELCOME_KEYS' || reward.type === 'KEYS' || reward.type === 'DUNGEON_PASS') keys += reward.amount;
+      if (reward.type === 'WELCOME_KEYS' || reward.type === 'KEYS' || reward.type === 'DUNGEON_PASS') {
+        keys += reward.amount;
+        if (reward.type === 'KEYS' && ((nextStreak - 1) % 7) + 1 === 7) {
+          // Day 7 also grants a legendary chest
+          safeChests.legendary += 1;
+        }
+      }
       
       if (reward.type === 'SHADOW_SCROLL') safeConsumables.shadowScrolls += reward.amount;
+      if (reward.type === 'CHEST_LEGENDARY') safeChests.legendary += reward.amount;
+      if (reward.type === 'VENUS_SHARDS') {
+        const venusId = 'outfit_starter';
+        safeStones[venusId] = (safeStones[venusId] || 0) + reward.amount;
+      }
 
       let leveledUp = false;
       if (reward.type === 'XP') {
@@ -917,6 +931,8 @@ export const useSystem = () => {
         rank: computeRank(level),
         totalXp,
         dailyXp,
+        chests: safeChests,
+        outfitStones: safeStones,
         consumables: safeConsumables,
         logs,
         ...(leveledUp ? { hp: prev.maxHp, mp: prev.maxMp } : {})
@@ -988,6 +1004,30 @@ export const useSystem = () => {
         ...(leveledUp ? { hp: prev.maxHp, mp: prev.maxMp } : {})
       };
     });
+  };
+
+  const openLegendaryChest = (): { gold: number; scrolls: number; stones: number } | null => {
+    const legendary = player.chests?.legendary ?? 0;
+    if (legendary <= 0) return null;
+    const gold = Math.floor(Math.random() * 500) + 300;
+    const scrolls = Math.floor(Math.random() * 3) + 1;
+    const stones = Math.floor(Math.random() * 50) + 50;
+    setPlayer(prev => {
+      const safeChests = { ...(prev.chests || { legendary: 0 }) };
+      safeChests.legendary = Math.max(0, safeChests.legendary - 1);
+      const updatedConsumables = { ...prev.consumables };
+      updatedConsumables.shadowScrolls = (updatedConsumables.shadowScrolls ?? 0) + scrolls;
+      const safeStones = { ...(prev.outfitStones || {}) };
+      safeStones['outfit_starter'] = (safeStones['outfit_starter'] || 0) + stones;
+      return {
+        ...prev,
+        gold: prev.gold + gold,
+        chests: safeChests,
+        consumables: updatedConsumables,
+        outfitStones: safeStones,
+      };
+    });
+    return { gold, scrolls, stones };
   };
 
   const updateFocusVideos = (videos: Record<string, string>) => {
@@ -2067,6 +2107,7 @@ export const useSystem = () => {
     claimDailyReward,
     deductGold,
     addRewards,
+    openLegendaryChest,
     enterDungeon,
     unlockOutfit,
     setActiveOutfit,
