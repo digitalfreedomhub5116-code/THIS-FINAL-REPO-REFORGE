@@ -10,6 +10,32 @@ import WorkoutOverview from './WorkoutOverview';
 import ProtocolMonthView from './ProtocolMonthView';
 import PlanSelector from './PlanSelector';
 import CustomPlanBuilder from './CustomPlanBuilder';
+import Lottie from 'lottie-react';
+
+let _flameLottieData: object | null | false = null;
+
+const FlameLottie: React.FC<{ size?: number; className?: string }> = ({ size = 80, className = "" }) => {
+  const [lottieData, setLottieData] = useState<object | null | false>(_flameLottieData);
+
+  useEffect(() => {
+    if (_flameLottieData !== null) { setLottieData(_flameLottieData); return; }
+    fetch('/assets/lottie/flame.json')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { _flameLottieData = data ?? false; setLottieData(_flameLottieData); })
+      .catch(() => { _flameLottieData = false; setLottieData(false); });
+  }, []);
+
+  if (lottieData) {
+    return (
+      <div style={{ width: size, height: size }} className={`relative flex-shrink-0 flex items-center justify-center ${className}`}>
+        <Lottie animationData={lottieData} loop autoplay className="w-full h-full object-cover scale-[1.35]" />
+      </div>
+    );
+  }
+
+  // Fallback if flame.json fails to load or hasn't loaded yet
+  return <div style={{ width: size, height: size }} className={`relative flex items-center justify-center ${className}`}><Flame size={size * 0.6} className="text-orange-500 fill-orange-500 animate-pulse" /></div>;
+};
 import PlanCustomizer from './PlanCustomizer';
 import { generateSystemProtocol, calculateTimeEstimate } from '../utils/workoutGenerator';
 import { playSystemSoundEffect } from '../utils/soundEngine';
@@ -1843,23 +1869,23 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                         </div>
                                     </div>
 
-                                    {/* Right side: Circular Progress */}
-                                    <div className="relative w-20 h-20 flex items-center justify-center shrink-0">
-                                        {/* Background ring */}
-                                        <svg className="absolute inset-0 w-full h-full -rotate-90">
-                                            <circle cx="40" cy="40" r="25" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="6" />
-                                            {/* Progress ring */}
-                                            <circle cx="40" cy="40" r="25" fill="none" stroke="#00d2ff" strokeWidth="6" strokeLinecap="round" 
-                                                    style={{ strokeDasharray: circumference, strokeDashoffset: progressOffset, transition: 'stroke-dashoffset 0.8s ease-out' }} />
-                                        </svg>
-                                        <div className="text-center">
-                                            <div className="text-sm font-black text-white">{streakInWeek}/7</div>
+                                    {/* Right side: Flame Lottie */}
+                                    <div className="relative w-24 h-24 flex items-center justify-center shrink-0">
+                                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none -mt-4">
+                                            <FlameLottie size={120} />
                                         </div>
-                                        <div className="absolute -bottom-4 text-[8px] font-black tracking-widest text-gray-500 uppercase">THIS WEEK</div>
+                                        <div className="text-center relative z-10">
+                                            <div className="text-sm font-bold text-white leading-none tracking-wider font-mono drop-shadow-md">
+                                                {streakInWeek}/7
+                                            </div>
+                                            <div className="text-[7px] font-black text-gray-400 tracking-[0.2em] uppercase mt-1 drop-shadow-md">
+                                                THIS WEEK
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
-                                {/* Bottom: 7-segment progress bar */}
+                                {/* Bottom Weekly Tracker (Pills) */}
                                 <div className="flex gap-2">
                                     {[1, 2, 3, 4, 5, 6, 7].map(day => (
                                         <div 
