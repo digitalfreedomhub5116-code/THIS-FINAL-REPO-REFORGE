@@ -187,13 +187,15 @@ const ShopView: React.FC<ShopViewProps> = ({
 
   const todayStr = new Date().toISOString().split('T')[0];
   const claimedToday = lastLoginDate === todayStr;
-  // Use 30-day cycle matching the popup calendar
-  const currentCycleDay30 = Math.max(1, ((streak - 1) % 30) + 1);
-  // For the 7-day preview, show a sliding window of 7 days starting from the current position
+  // Use schedule length for cycle so it works with any schedule size
+  const scheduleLen = REWARD_SCHEDULE.length;
+  const currentCycleDay30 = Math.max(1, ((streak - 1) % scheduleLen) + 1);
+  // For the preview, show a sliding window starting from the current position
   const previewStartIdx = Math.max(0, currentCycleDay30 - 1); // 0-indexed
-  const previewDays = Array.from({ length: 7 }, (_, i) => {
-    const idx = (previewStartIdx + i) % 30;
+  const previewDays = Array.from({ length: scheduleLen }, (_, i) => {
+    const idx = (previewStartIdx + i) % scheduleLen;
     const r = REWARD_SCHEDULE[idx];
+    if (!r) return { day: i + 1, actualCycleDay: idx + 1, emoji: '🎁', label: '?', rarity: 'COMMON' };
     return { day: i + 1, actualCycleDay: idx + 1, emoji: REWARD_EMOJI[r.type] || '🎁', label: (REWARD_SHORT[r.type] || (() => '?'))(r.amount), rarity: REWARD_RARITY[r.type] || 'COMMON' };
   });
   const currentStreakDay = 1; // The first item in the sliding window is always "today"
