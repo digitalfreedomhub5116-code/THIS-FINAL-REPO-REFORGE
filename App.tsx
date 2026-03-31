@@ -607,11 +607,19 @@ const App: React.FC = () => {
     return () => clearTimeout(timer);
   }, [player.streak]);
 
+  // Global event listener for level up (much more reliable than checking logs)
   useEffect(() => {
-    if (player.logs.length > 0 && player.logs[0].type === 'LEVEL_UP') {
-      const diff = Date.now() - player.logs[0].timestamp;
-      if (diff < 5000) setShowLevelUp(true);
-    }
+    const handleLevelUp = (e: Event) => {
+      const level = (e as CustomEvent).detail?.level;
+      if (level) {
+        setShowLevelUp(true);
+      }
+    };
+    window.addEventListener('player:levelup', handleLevelUp);
+    return () => window.removeEventListener('player:levelup', handleLevelUp);
+  }, []);
+
+  useEffect(() => {
     if (player.logs.length > 0 && player.logs[0].type === 'LEVEL_DOWN') {
       const diff = Date.now() - player.logs[0].timestamp;
       if (diff < 5000) setShowLevelDown(true);

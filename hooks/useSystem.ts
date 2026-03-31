@@ -919,6 +919,7 @@ export const useSystem = () => {
       if (leveledUp) {
         logs.unshift(createLog(`LEVEL UP! REACHED LEVEL ${level}`, 'LEVEL_UP'));
         playSystemSoundEffect('LEVEL_UP');
+        window.dispatchEvent(new CustomEvent('player:levelup', { detail: { level } }));
       }
 
       return {
@@ -1056,6 +1057,7 @@ export const useSystem = () => {
         newLogs.unshift(createLog(`LEVEL UP! REACHED LEVEL ${level}`, 'LEVEL_UP'));
         addNotification(`LEVEL UP! You are now Level ${level}`, 'LEVEL_UP');
         playSystemSoundEffect('LEVEL_UP');
+        window.dispatchEvent(new CustomEvent('player:levelup', { detail: { level } }));
       }
 
       return {
@@ -1646,6 +1648,7 @@ export const useSystem = () => {
       if (leveledUp) {
         newLogs.unshift(createLog(`LEVEL UP! REACHED LEVEL ${level}`, 'LEVEL_UP'));
         playSystemSoundEffect('LEVEL_UP');
+        window.dispatchEvent(new CustomEvent('player:levelup', { detail: { level } }));
       }
 
       const today = toLocalDateStr();
