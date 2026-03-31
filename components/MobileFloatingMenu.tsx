@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Castle, X, HelpCircle, Check, Lock, Info, Coins } from 'lucide-react';
-import { ChestOpeningAnim } from './ChestAnimations';
+// ChestAnimations SVG fallbacks are used inside ChestLottieOverlays
 import { DailyChestLottie, LegendaryChestLottieV2, AllianceChestLottie } from './ChestLottieOverlays';
 import { SystemCoin } from './icons/SystemCoin';
 import { SystemKey } from './icons/SystemKey';
@@ -22,7 +22,8 @@ interface MobileFloatingMenuProps {
 }
 
 type ChestType = 'DAILY' | 'LEGENDARY' | 'ALLIANCE';
-type Phase = 'SELECTION' | 'OPENING' | 'CARDS';
+type Phase = 'SELECTION' | 'HERO';
+type HeroStep = 'FLY_IN' | 'VIBRATE' | 'OPEN' | 'CARDS_OUT';
 
 interface RewardCard {
   type: 'GOLD' | 'XP' | 'KEYS' | 'ITEM';
@@ -183,6 +184,7 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
   const [activeChest, setActiveChest]   = useState<ChestType | null>(null);
   const [cards, setCards]               = useState<RewardCard[]>([]);
   const [selectedCard, setSelectedCard] = useState<number | null>(null);
+  const [heroStep, setHeroStep] = useState<HeroStep>('FLY_IN');
 
   const [activeTab, setActiveTab]           = useState<ChestType>('DAILY');
   const [expandedDropdown, setExpanded]     = useState<ChestType | null>(null);
@@ -209,6 +211,7 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
       setCards([]);
       setActiveTab('DAILY');
       setExpanded(null);
+      setHeroStep('FLY_IN');
     }
   }, [activeModal]);
 
@@ -247,17 +250,25 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
     const pool = pickWeightedRandom(REWARD_POOLS[type], 4);
     setCards(pool);
     setActiveChest(type);
-    setPhase('OPENING');
+    setPhase('HERO');
     setSelectedCard(null);
   };
 
-  const handleOpenComplete = () => setPhase('CARDS');
+  const handleLottieComplete = () => setHeroStep('CARDS_OUT');
 
   const handleCardSelect = (i: number) => {
     if (selectedCard !== null) return;
     playSystemSoundEffect('TICK');
     setSelectedCard(i);
   };
+
+  useEffect(() => {
+    if (phase !== 'HERO') return;
+    setHeroStep('FLY_IN');
+    const t1 = setTimeout(() => setHeroStep('VIBRATE'), 600);
+    const t2 = setTimeout(() => setHeroStep('OPEN'), 1600);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [phase, activeChest]);
 
   const handleCollect = () => {
     if (selectedCard === null || !activeChest) return;
@@ -378,63 +389,127 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
     );
   };
 
-  /* ─── Opening phase ──────────────────────────────────────────────────── */
-  const renderOpeningChest = () => {
+  /* ─── Hero Sequence (unified opening + cards) ────────────────────────── */
+  const renderHeroSequence = () => {
     if (!activeChest) return null;
     const cfg = CHEST_CFG[activeChest];
-
-    if (activeChest === 'DAILY') {
-      return (
-        <div className="relative flex items-center justify-center scale-[1.3]">
-          <DailyChestLottie phase="OPENING" size={220} onComplete={handleOpenComplete} />
-        </div>
-      );
-    }
-    if (activeChest === 'LEGENDARY') {
-      return (
-        <div className="relative flex items-center justify-center scale-[1.5]">
-          <LegendaryChestLottieV2 phase="OPENING" size={240} onComplete={handleOpenComplete} />
-        </div>
-      );
-    }
-    if (activeChest === 'ALLIANCE') {
-      return (
-        <div className="relative flex items-center justify-center scale-[1.5]">
-          <AllianceChestLottie phase="OPENING" size={240} onComplete={handleOpenComplete} />
-        </div>
-      );
-    }
+    const lottiePhase: 'IDLE' | 'OPENING' = heroStep === 'OPEN' || heroStep === 'CARDS_OUT' ? 'OPENING' : 'IDLE';
+    const showCards = heroStep === 'CARDS_OUT';
+    const isVibrating = heroStep === 'VIBRATE';
+    const isFlying = heroStep === 'FLY_IN';
 
     return (
-      <ChestOpeningAnim
-        color={cfg.color}
-        glowColor={cfg.glowColor}
-        onComplete={handleOpenComplete}
-      />
-    );
-  };
+      <div className="relative overflow-hidden" style={{ height: 360 }}>
+        {/* CSS keyframes for shake and aura rotation */}
+        <style>{`
+          @keyframes chest-shake {
+            0%, 100% { transform: translate(0,0) rotate(0deg); }
+            10% { transform: translate(-6px, 2px) rotate(-3deg); }
+            20% { transform: translate(6px, -2px) rotate(3deg); }
+            30% { transform: translate(-5px, 1px) rotate(-2deg); }
+            40% { transform: translate(5px, -1px) rotate(2deg); }
+            50% { transform: translate(-3px, 2px) rotate(-1.5deg); }
+            60% { transform: translate(3px, -2px) rotate(1.5deg); }
+            70% { transform: translate(-2px, 1px) rotate(-0.5deg); }
+            80% { transform: translate(2px, -1px) rotate(0.5deg); }
+            90% { transform: translate(-1px, 1px) rotate(0.5deg); }
+          }
+          @keyframes aura-rotate {
+            from { transform: translate(-50%, -50%) rotate(0deg); }
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+          }
+        `}</style>
 
-  /* ─── Cards phase ────────────────────────────────────────────────────── */
-  const renderCardsPhase = () => {
-    if (!activeChest) return null;
-    return (
-      <div className="relative flex items-center justify-center" style={{ height: 300 }}>
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 0.3, scale: 1 }}
-          transition={{ duration: 0.5 }}
-          className="w-28 h-28 rounded-2xl overflow-hidden opacity-30"
-          style={{ background: CHEST_CFG[activeChest].bg, border: `1px solid ${CHEST_CFG[activeChest].borderColor}` }}
+        {/* Dark vignette overlay */}
+        <motion.div
+          className="absolute inset-0 pointer-events-none z-[1]"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: showCards ? 0.3 : 1 }}
+          transition={{ duration: 0.6 }}
+          style={{
+            background: 'radial-gradient(circle at 50% 45%, transparent 12%, rgba(0,0,0,0.55) 45%, rgba(0,0,0,0.92) 100%)',
+          }}
+        />
+
+        {/* Central coloured glow */}
+        <motion.div
+          className="absolute pointer-events-none z-[2]"
+          style={{
+            left: '50%', top: '45%',
+            width: 200, height: 200,
+            marginLeft: -100, marginTop: -100,
+            borderRadius: '50%',
+            background: `radial-gradient(circle, ${cfg.color}18 0%, ${cfg.color}08 40%, transparent 70%)`,
+            filter: 'blur(20px)',
+          }}
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{ opacity: showCards ? 0 : [0.6, 1, 0.6], scale: showCards ? 0.3 : [1, 1.15, 1] }}
+          transition={{ opacity: { duration: 1.8, repeat: showCards ? 0 : Infinity }, scale: { duration: 1.8, repeat: showCards ? 0 : Infinity } }}
+        />
+
+        {/* Rotating sunburst aura */}
+        <AnimatePresence>
+          {!showCards && !isFlying && (
+            <motion.div
+              className="absolute pointer-events-none z-[2]"
+              initial={{ opacity: 0, scale: 0.3 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.5 }}
+              transition={{ duration: 0.5 }}
+              style={{
+                left: '50%', top: '45%',
+                width: 300, height: 300,
+                marginLeft: -150, marginTop: -150,
+                animation: 'aura-rotate 12s linear infinite',
+              }}
+            >
+              <svg width="300" height="300" viewBox="0 0 300 300">
+                {Array.from({ length: 24 }).map((_, i) => {
+                  const a = (i * 15 * Math.PI) / 180;
+                  return (
+                    <line key={i}
+                      x1={150 + 45 * Math.cos(a)} y1={150 + 45 * Math.sin(a)}
+                      x2={150 + 150 * Math.cos(a)} y2={150 + 150 * Math.sin(a)}
+                      stroke={cfg.color} strokeWidth={i % 3 === 0 ? 2 : 0.8}
+                      opacity={i % 3 === 0 ? 0.2 : 0.08}
+                    />
+                  );
+                })}
+                <circle cx="150" cy="150" r="55" fill="none" stroke={cfg.color} strokeWidth="1.5" opacity="0.2" />
+                <circle cx="150" cy="150" r="90" fill="none" stroke={cfg.color} strokeWidth="0.8" opacity="0.1" strokeDasharray="6 4" />
+                <circle cx="150" cy="150" r="125" fill="none" stroke={cfg.color} strokeWidth="0.4" opacity="0.05" />
+              </svg>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Hero chest — flies in, vibrates, opens, then shrinks */}
+        <motion.div
+          className="absolute z-[5]"
+          style={{ left: '50%', top: '45%' }}
+          initial={{ scale: 0.15, opacity: 0, x: '-50%', y: '-50%' }}
+          animate={showCards
+            ? { scale: 0.35, opacity: 0.12, x: '-50%', y: '-50%' }
+            : { scale: 1, opacity: 1, x: '-50%', y: '-50%' }
+          }
+          transition={showCards
+            ? { type: 'spring', stiffness: 180, damping: 22, delay: 0.15 }
+            : { type: 'spring', stiffness: 150, damping: 14 }
+          }
         >
-          {activeChest === 'DAILY'     && <DailyChestLottie     phase="IDLE" size={112} />}
-          {activeChest === 'LEGENDARY' && <LegendaryChestLottieV2 phase="IDLE" size={112} />}
-          {activeChest === 'ALLIANCE'  && <AllianceChestLottie  phase="IDLE" size={112} />}
+          <div style={{ animation: isVibrating ? 'chest-shake 0.08s infinite' : 'none' }}>
+            {activeChest === 'DAILY' && <DailyChestLottie phase={lottiePhase} size={200} onComplete={handleLottieComplete} />}
+            {activeChest === 'LEGENDARY' && <LegendaryChestLottieV2 phase={lottiePhase} size={200} onComplete={handleLottieComplete} />}
+            {activeChest === 'ALLIANCE' && <AllianceChestLottie phase={lottiePhase} size={200} onComplete={handleLottieComplete} />}
+          </div>
         </motion.div>
-        {cards.map((card, i) => {
-          const pos      = CARD_POSITIONS[i];
+
+        {/* Reward cards — burst from chest center */}
+        {showCards && cards.map((card, i) => {
+          const pos = CARD_POSITIONS[i];
           const isChosen = selectedCard === i;
-          const anySel   = selectedCard !== null;
-          const fadeOut  = anySel && !isChosen;
+          const anySel = selectedCard !== null;
+          const fadeOut = anySel && !isChosen;
           return (
             <motion.div
               key={i}
@@ -442,23 +517,24 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
               animate={fadeOut
                 ? { scale: 0, opacity: 0, x: pos.x, y: pos.y }
                 : isChosen
-                ? { scale: 1.25, x: 0, y: -16, opacity: 1, rotateY: 180 }
+                ? { scale: 1.25, x: 0, y: -20, opacity: 1, rotateY: 180 }
                 : { scale: 1, x: pos.x, y: pos.y, opacity: 1, rotateY: 0 }}
-              transition={{ type: 'spring', stiffness: 240, damping: 22, delay: fadeOut ? 0 : i * 0.08 + 0.5 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 18, delay: fadeOut ? 0 : i * 0.1 + 0.12 }}
               onClick={!anySel ? () => handleCardSelect(i) : undefined}
-              className="absolute w-20 h-28 cursor-pointer select-none"
-              style={{ transformStyle: 'preserve-3d', top: '50%', left: '50%', marginLeft: -40, marginTop: -56 }}
+              className="absolute w-20 h-28 cursor-pointer select-none z-[10]"
+              style={{ transformStyle: 'preserve-3d', top: '45%', left: '50%', marginLeft: -40, marginTop: -56 }}
             >
               {/* Front face (question mark) */}
               <div className="absolute inset-0 rounded-xl flex items-center justify-center"
-                style={{ background: '#080914', border: '1px solid rgba(255,255,255,0.08)', backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}>
+                style={{ background: '#080914', border: `1px solid ${cfg.color}20`, backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}>
                 <div className="absolute inset-0 rounded-xl opacity-15"
                   style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px)', backgroundSize: '8px 8px' }} />
-                <div className="w-9 h-9 rounded-full border border-white/15 flex items-center justify-center relative z-10">
-                  <HelpCircle size={16} className="text-white/30" />
+                <div className="w-9 h-9 rounded-full flex items-center justify-center relative z-10"
+                  style={{ border: `1px solid ${cfg.color}30` }}>
+                  <HelpCircle size={16} style={{ color: `${cfg.color}50` }} />
                 </div>
               </div>
-              {/* Back face (reward) - transformStyle:flat prevents child 3D animations from leaking through backface */}
+              {/* Back face (reward) */}
               <div className="absolute inset-0 rounded-xl flex flex-col items-center justify-center gap-1.5 border-2 overflow-hidden"
                 style={{ background: '#080914', backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', transform: 'rotateY(180deg)', transformStyle: 'flat', borderColor: card.color, boxShadow: `0 0 20px ${card.color}50` }}>
                 {isChosen ? (
@@ -693,37 +769,31 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
                         </>
                       )}
 
-                      {phase === 'OPENING' && (
+                      {phase === 'HERO' && (
                         <div className="px-4 pb-4">
-                          {renderOpeningChest()}
-                        </div>
-                      )}
-
-                      {phase === 'CARDS' && (
-                        <div className="px-4 pb-4">
-                          {renderCardsPhase()}
+                          {renderHeroSequence()}
                         </div>
                       )}
                     </div>
 
                     {/* Footer */}
                     <div className="px-5 py-4 border-t border-white/[0.05] shrink-0" style={{ background: 'rgba(0,0,0,0.6)' }}>
-                      {phase === 'OPENING' && (
+                      {phase === 'HERO' && heroStep !== 'CARDS_OUT' && (
                         <motion.p
                           animate={{ opacity: [0.4, 1, 0.4] }}
                           transition={{ duration: 1.1, repeat: Infinity }}
                           className="text-center text-xs font-black font-mono uppercase tracking-widest"
                           style={{ color: activeChest ? CHEST_CFG[activeChest].color : '#fff' }}
                         >
-                          UNLOCKING...
+                          {heroStep === 'FLY_IN' ? 'PREPARING...' : heroStep === 'VIBRATE' ? 'UNLOCKING...' : 'REVEALING...'}
                         </motion.p>
                       )}
-                      {phase === 'CARDS' && selectedCard === null && (
+                      {phase === 'HERO' && heroStep === 'CARDS_OUT' && selectedCard === null && (
                         <p className="text-center text-xs font-black font-mono uppercase tracking-widest text-white animate-pulse">
                           CHOOSE YOUR REWARD
                         </p>
                       )}
-                      {phase === 'CARDS' && selectedCard !== null && (
+                      {phase === 'HERO' && heroStep === 'CARDS_OUT' && selectedCard !== null && (
                         <motion.button
                           initial={{ opacity: 0, y: 8 }}
                           animate={{ opacity: 1, y: 0 }}
