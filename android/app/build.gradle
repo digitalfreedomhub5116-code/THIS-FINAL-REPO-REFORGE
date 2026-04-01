@@ -1,5 +1,12 @@
 apply plugin: 'com.android.application'
 
+// Load keystore credentials from local.properties (not committed to Git)
+def localProps = new Properties()
+def localPropsFile = rootProject.file("local.properties")
+if (localPropsFile.exists()) {
+    localProps.load(new FileInputStream(localPropsFile))
+}
+
 android {
     namespace = "com.reforge.app"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -16,13 +23,17 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            storeFile file(localProps.getProperty('RELEASE_STORE_FILE', 'reforge-release.keystore'))
+            storePassword localProps.getProperty('RELEASE_STORE_PASSWORD', '')
+            keyAlias localProps.getProperty('RELEASE_KEY_ALIAS', 'reforge')
+            keyPassword localProps.getProperty('RELEASE_KEY_PASSWORD', '')
+        }
+    }
     buildTypes {
         release {
-            // TODO: Before Play Store upload, replace with your release keystore:
-            //   1. Generate keystore: keytool -genkey -v -keystore reforge-release.keystore -alias reforge -keyalg RSA -keysize 2048 -validity 10000
-            //   2. Add signingConfigs.release block above buildTypes
-            //   3. Change this line to: signingConfig signingConfigs.release
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.release
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
