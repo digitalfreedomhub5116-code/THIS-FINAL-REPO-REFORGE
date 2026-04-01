@@ -46,7 +46,7 @@ const getBandMax = (tier: number) => {
 
 const getHunterClass = (rank: number) => {
     if (rank === 1) return "S-RANK MONARCH";
-    if (rank <= 3) return "NATIONAL LEVEL";
+    if (rank <= 3) return "APEX ELITE";
     if (rank <= 7) return "A-RANK ELITE";
     return "RANK-B HUNTER";
 };

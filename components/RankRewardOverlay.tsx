@@ -15,9 +15,9 @@ interface RankRewardOverlayProps {
 
 // ── Rank Config ──
 const RANK_CONFIG: Record<number, { emoji: string; title: string; color: string; glow: string; bgGrad: string }> = {
-  1: { emoji: '👑', title: 'SHADOW MONARCH', color: '#fbbf24', glow: 'rgba(251,191,36,0.6)', bgGrad: 'radial-gradient(ellipse at center, rgba(251,191,36,0.12) 0%, rgba(10,10,26,0.98) 70%)' },
-  2: { emoji: '🥈', title: 'NATIONAL LEVEL', color: '#c0c0c0', glow: 'rgba(192,192,192,0.5)', bgGrad: 'radial-gradient(ellipse at center, rgba(192,192,192,0.08) 0%, rgba(10,10,26,0.98) 70%)' },
-  3: { emoji: '🥉', title: 'NATIONAL LEVEL', color: '#cd7f32', glow: 'rgba(205,127,50,0.5)', bgGrad: 'radial-gradient(ellipse at center, rgba(205,127,50,0.08) 0%, rgba(10,10,26,0.98) 70%)' },
+  1: { emoji: '👑', title: 'FORGE SOVEREIGN', color: '#fbbf24', glow: 'rgba(251,191,36,0.6)', bgGrad: 'radial-gradient(ellipse at center, rgba(251,191,36,0.12) 0%, rgba(10,10,26,0.98) 70%)' },
+  2: { emoji: '🥈', title: 'APEX ELITE', color: '#c0c0c0', glow: 'rgba(192,192,192,0.5)', bgGrad: 'radial-gradient(ellipse at center, rgba(192,192,192,0.08) 0%, rgba(10,10,26,0.98) 70%)' },
+  3: { emoji: '🥉', title: 'APEX ELITE', color: '#cd7f32', glow: 'rgba(205,127,50,0.5)', bgGrad: 'radial-gradient(ellipse at center, rgba(205,127,50,0.08) 0%, rgba(10,10,26,0.98) 70%)' },
   4: { emoji: '🏅', title: 'S-RANK ELITE', color: '#a855f7', glow: 'rgba(168,85,247,0.4)', bgGrad: 'radial-gradient(ellipse at center, rgba(168,85,247,0.06) 0%, rgba(10,10,26,0.98) 70%)' },
   5: { emoji: '🏅', title: 'S-RANK ELITE', color: '#a855f7', glow: 'rgba(168,85,247,0.4)', bgGrad: 'radial-gradient(ellipse at center, rgba(168,85,247,0.06) 0%, rgba(10,10,26,0.98) 70%)' },
 };

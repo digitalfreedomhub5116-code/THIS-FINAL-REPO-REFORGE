@@ -1931,6 +1931,46 @@ const App: React.FC = () => {
                         skillProgress: [],
                       } as PlayerData);
                     }}
+                    onDeleteAccount={async () => {
+                      if (!player.userId || player.userId.startsWith('local')) return;
+                      const uid = player.userId;
+                      const authHeaders = await getOrRefreshPlayerHeaders(API_BASE);
+
+                      // 1. Call server to delete account data — this MUST succeed
+                      let res: Response;
+                      try {
+                        res = await fetch(`${API_BASE}/api/player/${uid}/delete-account`, {
+                          method: 'DELETE',
+                          headers: { 'Content-Type': 'application/json', ...authHeaders },
+                          credentials: 'include',
+                        });
+                      } catch (networkErr) {
+                        throw new Error('Network error — check your internet connection and try again.');
+                      }
+
+                      if (!res.ok) {
+                        let serverMsg = 'Server failed to delete account.';
+                        try {
+                          const body = await res.json();
+                          if (body?.error) serverMsg = body.error;
+                        } catch { /* non-JSON response */ }
+                        throw new Error(serverMsg);
+                      }
+
+                      // 2. Server confirmed deletion — NOW safe to wipe local data
+                      localStorage.removeItem('reforge_player_v2');
+                      localStorage.removeItem('reforge_player_token');
+                      localStorage.removeItem(`reforge_workout_day_map_${uid}`);
+                      localStorage.removeItem(`reforge_journey_start_${uid}`);
+                      localStorage.removeItem(`reforge_session_logs_${uid}`);
+                      localStorage.removeItem('reforge_workout_day_map');
+                      localStorage.removeItem('reforge_journey_start');
+                      localStorage.removeItem('reforge_notif_opt');
+                      sessionStorage.clear();
+                      resetPlayer();
+                      setOnboardingPhase('SPLASH');
+                      setLoading(false);
+                    }}
                   />
                 </ErrorBoundary>
               </Suspense>

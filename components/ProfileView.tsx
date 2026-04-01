@@ -14,6 +14,7 @@ interface ProfileViewProps {
   onNavigate?: (tab: 'STORE' | 'DASHBOARD' | 'QUESTS' | 'HEALTH' | 'LEADERBOARD' | 'PROFILE') => void;
   onRetakeTutorial?: () => void;
   onResetProgress?: () => Promise<void>;
+  onDeleteAccount?: () => Promise<void>;
 }
 
 const glassPanel = {
@@ -55,11 +56,15 @@ function compressImage(file: File, maxSize = 512): Promise<string> {
   });
 }
 
-const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onAvatarChange, onLogout, onBack, onRetakeTutorial, onResetProgress }) => {
+const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onAvatarChange, onLogout, onBack, onRetakeTutorial, onResetProgress, onDeleteAccount }) => {
   const [activeTab, setActiveTab] = useState<'LOGS' | 'CONFIG'>('LOGS');
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [resetStep, setResetStep] = useState<0 | 1 | 2>(0); // 0=initial, 1=confirmed once, 2=resetting
   const [resetDone, setResetDone] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteStep, setDeleteStep] = useState<0 | 1 | 2>(0);
+  const [deleteTyped, setDeleteTyped] = useState('');
+  const [deleteError, setDeleteError] = useState('');
 
   const [name, setName] = useState(player.name || '');
   const [username, setUsername] = useState(player.username || '');
@@ -460,12 +465,18 @@ const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onAvatarCha
                   </button>
                 )}
 
-                <div className="pt-3 border-t border-white/[0.06] flex gap-3">
+                <div className="pt-3 border-t border-white/[0.06] space-y-3">
                   <button
                     onClick={onLogout}
-                    className="flex-1 bg-red-900/20 border border-red-900/50 text-red-500 py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-red-900/40 hover:text-red-400 transition-colors text-xs font-mono"
+                    className="w-full bg-red-900/20 border border-red-900/50 text-red-500 py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-red-900/40 hover:text-red-400 transition-colors text-xs font-mono"
                   >
                     <LogOut size={12} /> LOGOUT
+                  </button>
+                  <button
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="w-full border border-red-900/30 text-red-700 py-2 rounded-lg flex items-center justify-center gap-2 hover:border-red-600/50 hover:text-red-500 hover:bg-red-900/10 transition-all text-[10px] font-mono tracking-widest"
+                  >
+                    DELETE ACCOUNT
                   </button>
                 </div>
               </motion.div>
@@ -489,6 +500,118 @@ const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onAvatarCha
             playerGold={player.gold ?? 0}
             playerKeys={(player as any).keys ?? 0}
           />
+        )}
+      </AnimatePresence>
+
+      {/* Delete Account Confirmation Modal */}
+      <AnimatePresence>
+        {showDeleteConfirm && onDeleteAccount && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[800] bg-black/90 flex items-center justify-center p-6 font-mono"
+            onClick={() => { setShowDeleteConfirm(false); setDeleteStep(0); setDeleteTyped(''); }}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              onClick={e => e.stopPropagation()}
+              className="w-full max-w-sm bg-[#0a0a14] border border-red-900/40 rounded-2xl p-6 space-y-4"
+            >
+              {deleteStep === 2 ? (
+                <div className="text-center py-4">
+                  {deleteError ? (
+                    <>
+                      <XCircle size={32} className="text-red-500 mx-auto mb-3" />
+                      <div className="text-xs text-red-400 font-bold tracking-widest mb-1">DELETION FAILED</div>
+                      <p className="text-[11px] text-gray-400 mt-2 px-2">{deleteError}</p>
+                      <div className="grid grid-cols-2 gap-3 mt-4">
+                        <button onClick={() => { setShowDeleteConfirm(false); setDeleteStep(0); setDeleteTyped(''); setDeleteError(''); }} className="py-3 rounded-xl border border-gray-700 text-gray-400 font-bold text-xs tracking-widest">
+                          CANCEL
+                        </button>
+                        <button onClick={() => { setDeleteError(''); setDeleteStep(1); }} className="py-3 rounded-xl bg-red-600 text-white font-bold text-xs tracking-widest hover:bg-red-500 transition-colors">
+                          RETRY
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="w-8 h-8 border-2 border-red-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                      <div className="text-xs text-gray-400 tracking-widest">DELETING ACCOUNT...</div>
+                    </>
+                  )}
+                </div>
+              ) : deleteStep === 1 ? (
+                <>
+                  <div className="text-center">
+                    <AlertTriangle size={32} className="text-red-500 mx-auto mb-2" />
+                    <h3 className="text-lg font-black text-red-400">FINAL CONFIRMATION</h3>
+                    <p className="text-[11px] text-gray-400 mt-2">Type <span className="text-red-400 font-bold">DELETE</span> below to permanently erase your account.</p>
+                  </div>
+                  <input
+                    type="text"
+                    value={deleteTyped}
+                    onChange={e => setDeleteTyped(e.target.value.toUpperCase())}
+                    placeholder="Type DELETE"
+                    className="w-full bg-black/60 border border-red-900/40 rounded-lg px-3 py-2.5 text-sm font-mono text-white focus:border-red-500/50 focus:outline-none text-center tracking-widest"
+                    autoFocus
+                  />
+                  <div className="grid grid-cols-2 gap-3">
+                    <button onClick={() => { setShowDeleteConfirm(false); setDeleteStep(0); setDeleteTyped(''); }} className="py-3 rounded-xl border border-gray-700 text-gray-400 font-bold text-xs tracking-widest">
+                      CANCEL
+                    </button>
+                    <button
+                      disabled={deleteTyped !== 'DELETE'}
+                      onClick={async () => {
+                        setDeleteStep(2);
+                        setDeleteError('');
+                        try {
+                          await onDeleteAccount();
+                        } catch (err: any) {
+                          setDeleteError(err?.message || 'Something went wrong. Your data was NOT deleted.');
+                        }
+                      }}
+                      className={`py-3 rounded-xl font-bold text-xs tracking-widest transition-all ${
+                        deleteTyped === 'DELETE'
+                          ? 'bg-red-600 text-white hover:bg-red-500'
+                          : 'bg-gray-800 text-gray-600 cursor-not-allowed'
+                      }`}
+                    >
+                      DELETE FOREVER
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="text-center">
+                    <AlertTriangle size={32} className="text-red-500 mx-auto mb-2" />
+                    <h3 className="text-lg font-black text-white">Delete Account?</h3>
+                    <p className="text-[11px] text-gray-400 mt-2 leading-relaxed">This will <span className="text-red-400 font-bold">permanently delete</span> everything:</p>
+                    <ul className="text-[10px] text-gray-500 mt-3 space-y-1 text-left px-4">
+                      <li className="flex items-center gap-2"><span className="text-red-400">✕</span> Your profile & codename</li>
+                      <li className="flex items-center gap-2"><span className="text-red-400">✕</span> All XP, level, rank, streak</li>
+                      <li className="flex items-center gap-2"><span className="text-red-400">✕</span> All coins & keys</li>
+                      <li className="flex items-center gap-2"><span className="text-red-400">✕</span> Workout history & nutrition logs</li>
+                      <li className="flex items-center gap-2"><span className="text-red-400">✕</span> Outfits & purchases</li>
+                    </ul>
+                    <p className="text-[10px] text-red-400 font-bold mt-3">This action CANNOT be undone.</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button onClick={() => { setShowDeleteConfirm(false); setDeleteStep(0); }} className="py-3 rounded-xl border border-gray-700 text-gray-400 font-bold text-xs tracking-widest">
+                      CANCEL
+                    </button>
+                    <button
+                      onClick={() => setDeleteStep(1)}
+                      className="py-3 rounded-xl bg-red-600 text-white font-bold text-xs tracking-widest hover:bg-red-500 transition-colors"
+                    >
+                      CONTINUE
+                    </button>
+                  </div>
+                </>
+              )}
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

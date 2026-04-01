@@ -55,7 +55,7 @@ const RANK_GLOW: Record<string, string> = {
   B: 'rgba(6,182,212,0.3)', A: 'rgba(234,179,8,0.4)', S: 'rgba(168,85,247,0.5)',
 };
 
-const HUNTER_TITLES = ['SHADOW MONARCH', 'NATIONAL LEVEL', 'NATIONAL LEVEL', 'S-RANK ELITE', 'S-RANK ELITE', 'A-RANK HUNTER'];
+const HUNTER_TITLES = ['FORGE SOVEREIGN', 'APEX ELITE', 'APEX ELITE', 'S-RANK ELITE', 'S-RANK ELITE', 'A-RANK HUNTER'];
 
 function getHunterTitle(rank: number): string {
   if (rank <= 0) return 'UNRANKED';

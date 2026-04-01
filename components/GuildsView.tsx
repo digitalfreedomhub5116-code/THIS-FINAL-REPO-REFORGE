@@ -17,16 +17,16 @@ const MOCK_BADGES = ["🛡️", "⚔️", "🐉", "🐺", "👁️"];
 
 // Separate Chat from Logs
 const MOCK_CHAT_MESSAGES: AllianceChatMessage[] = [
-    { id: 'c1', senderName: 'Sung Jin-Woo', text: 'Everyone focus on daily quests.', timestamp: Date.now() - 3600000, isSystem: false },
-    { id: 'c2', senderName: 'Cha Hae-In', text: 'On it. Just logged my workout.', timestamp: Date.now() - 1800000, isSystem: false },
-    { id: 'c3', senderName: 'Thomas Andre', text: 'I need 2 more keys for the dungeon.', timestamp: Date.now() - 900000, isSystem: false },
+    { id: 'c1', senderName: 'Commander Vex', text: 'Everyone focus on daily quests.', timestamp: Date.now() - 3600000, isSystem: false },
+    { id: 'c2', senderName: 'Nova Kael', text: 'On it. Just logged my workout.', timestamp: Date.now() - 1800000, isSystem: false },
+    { id: 'c3', senderName: 'Titan Forge', text: 'I need 2 more keys for the dungeon.', timestamp: Date.now() - 900000, isSystem: false },
 ];
 
 const MOCK_SYSTEM_LOGS: GuildLog[] = [
     { id: 'l1', type: 'SYSTEM', content: 'War declared against "Iron Blood"!', timestamp: Date.now() - 10000000 },
-    { id: 'l2', type: 'ACHIEVEMENT', user: 'Sung Jin-Woo', content: 'reached Level 100', timestamp: Date.now() - 5000000 },
+    { id: 'l2', type: 'ACHIEVEMENT', user: 'Commander Vex', content: 'reached Level 100', timestamp: Date.now() - 5000000 },
     { id: 'l3', type: 'SYSTEM', content: 'Alliance leveled up to Rank 5', timestamp: Date.now() - 2000000 },
-    { id: 'l4', type: 'SYSTEM', content: 'Thomas Andre joined the alliance', timestamp: Date.now() - 900000 },
+    { id: 'l4', type: 'SYSTEM', content: 'Titan Forge joined the alliance', timestamp: Date.now() - 900000 },
 ];
 
 const generateDummyAlliances = (): Alliance[] => {
@@ -44,10 +44,10 @@ const generateDummyAlliances = (): Alliance[] => {
 };
 
 const MOCK_MEMBERS: AllianceMember[] = [
-    { id: 'm1', name: 'Sung Jin-Woo', role: 'LEADER', totalXpContribution: 15200, status: 'ONLINE', lastActive: Date.now() },
-    { id: 'm2', name: 'Cha Hae-In', role: 'OFFICER', totalXpContribution: 12100, status: 'ONLINE', lastActive: Date.now() },
-    { id: 'm3', name: 'Thomas Andre', role: 'MEMBER', totalXpContribution: 9800, status: 'OFFLINE', lastActive: Date.now() - 3600000 },
-    { id: 'm4', name: 'Go Gun-Hee', role: 'MEMBER', totalXpContribution: 8500, status: 'OFFLINE', lastActive: Date.now() - 86400000 },
+    { id: 'm1', name: 'Commander Vex', role: 'LEADER', totalXpContribution: 15200, status: 'ONLINE', lastActive: Date.now() },
+    { id: 'm2', name: 'Nova Kael', role: 'OFFICER', totalXpContribution: 12100, status: 'ONLINE', lastActive: Date.now() },
+    { id: 'm3', name: 'Titan Forge', role: 'MEMBER', totalXpContribution: 9800, status: 'OFFLINE', lastActive: Date.now() - 3600000 },
+    { id: 'm4', name: 'Warden Ash', role: 'MEMBER', totalXpContribution: 8500, status: 'OFFLINE', lastActive: Date.now() - 86400000 },
 ];
 
 interface GuildsViewProps {
@@ -306,7 +306,7 @@ const GuildsView: React.FC<GuildsViewProps> = ({ player, onJoin, onLeave }) => {
                                     value={createName}
                                     onChange={e => setCreateName(e.target.value)}
                                     className="w-full bg-black/50 border border-white/10 rounded p-2 text-white font-mono focus:border-system-neon outline-none"
-                                    placeholder="e.g. Shadow Monarchs"
+                                    placeholder="e.g. Iron Vanguard"
                                 />
                             </div>
                             <div>

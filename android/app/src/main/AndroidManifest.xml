@@ -45,7 +45,8 @@
     <!-- Location for distance-based quests (run 5km, walk to park, etc.) -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    <!-- ACCESS_BACKGROUND_LOCATION removed: foreground service already has location access.
+         Declaring it triggers mandatory Google Play manual review + possible rejection. -->
 
     <!-- Step counter / physical activity recognition -->
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />

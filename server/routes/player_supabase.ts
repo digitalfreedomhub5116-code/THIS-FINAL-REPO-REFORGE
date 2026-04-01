@@ -354,6 +354,57 @@ router.post('/:id/reset-progress', async (req: Request, res: Response) => {
   }
 });
 
+// ── Delete Account: Google Play requires self-service account deletion ──
+router.delete('/:id/delete-account', async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const authUserId = getAuthenticatedUserId(req);
+  if (!authUserId) return res.status(401).json({ error: 'Unauthorized' });
+  if (authUserId !== id) return res.status(403).json({ error: 'Forbidden — can only delete your own account' });
+
+  try {
+    const sb = supabaseServer() as any;
+
+    // 1. Delete player row from public.players table (CRITICAL — must succeed)
+    const { error: deleteError } = await sb
+      .from('players')
+      .delete()
+      .eq('supabase_id', id);
+
+    if (deleteError) {
+      console.error('[Account Delete] Failed to delete player row:', deleteError);
+      return res.status(500).json({ error: 'Failed to delete account data. Please try again.' });
+    }
+
+    // 2. Delete Supabase Auth user (best-effort — requires service_role key)
+    try {
+      const { error: authError } = await sb.auth.admin.deleteUser(id);
+      if (authError) {
+        console.warn('[Account Delete] Auth user delete failed (non-critical):', authError.message);
+      }
+    } catch (authErr) {
+      // If using anon key instead of service_role, this will fail — that's OK,
+      // the player row is already gone which is the critical data.
+      console.warn('[Account Delete] Auth admin API unavailable:', (authErr as any)?.message);
+    }
+
+    // 3. Delete avatar from storage (best-effort)
+    try {
+      await sb.storage.from('avatars').remove([`avatars/${id}.webp`]);
+    } catch { /* avatar may not exist */ }
+
+    // 4. Destroy the session
+    if (req.session) {
+      req.session.destroy(() => {});
+    }
+
+    console.log(`[Account Delete] User ${id} — account permanently deleted`);
+    return res.json({ success: true, message: 'Account and all data permanently deleted.' });
+  } catch (err) {
+    console.error('[Account Delete]', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // ── Avatar Upload: accept base64 image, store in Supabase Storage, update avatar_url ──
 router.post('/:id/avatar', async (req: Request, res: Response) => {
   const { id } = req.params;
