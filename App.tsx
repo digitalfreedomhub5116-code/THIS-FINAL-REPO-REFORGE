@@ -213,34 +213,50 @@ const App: React.FC = () => {
     };
   }, []);
 
-  // ── Schedule local notifications when user is authenticated ──
+  // ── Notification opt-in (in-app prompt for Android <13 where system auto-grants) ──
+  const [showNotifPrompt, setShowNotifPrompt] = useState(false);
+  const notifOptKey = `reforge_notif_opted_${player.userId || 'local'}`;
+
   useEffect(() => {
     if (!player.userId || isLocalUser(player.userId) || !player.isConfigured) return;
-    (async () => {
-      const granted = await requestNotificationPermission();
-      if (!granted) return;
-
-      const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
-      const hasWorkedOutToday = player.lastWorkoutDate === today;
-      const hasDailyXp = (player.dailyXp || 0) > 0;
-
-      // Daily: reschedule each app open so the message rotates
-      await scheduleMorningDusk();
-      await scheduleWorkoutReminder(hasWorkedOutToday);
-      await scheduleStreakReminder(player.streak, hasWorkedOutToday);
-      await scheduleLeaderboardNudge(hasDailyXp);
-
-      // Comeback: always push 48h out; cancels/re-sets each app open
-      await scheduleComebackPing();
-
-      // Quest deadlines: schedule for any active quests with expiresAt
-      for (const q of player.quests) {
-        if (!q.isCompleted && !q.failed && q.expiresAt) {
-          await scheduleQuestDeadline(q.id, q.title, q.expiresAt);
-        }
-      }
-    })();
+    const opted = localStorage.getItem(notifOptKey);
+    if (opted === 'yes') {
+      // Already opted in — schedule silently
+      (async () => {
+        await requestNotificationPermission();
+        await _scheduleAllNotifications();
+      })();
+    } else if (opted === null) {
+      // First time — show in-app prompt
+      setShowNotifPrompt(true);
+    }
+    // opted === 'no' → user declined, skip scheduling
   }, [player.userId, player.isConfigured]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const _scheduleAllNotifications = async () => {
+    const today = new Date().toLocaleDateString('en-CA');
+    const hasWorkedOutToday = player.lastWorkoutDate === today;
+    const hasDailyXp = (player.dailyXp || 0) > 0;
+    await scheduleMorningDusk();
+    await scheduleWorkoutReminder(hasWorkedOutToday);
+    await scheduleStreakReminder(player.streak, hasWorkedOutToday);
+    await scheduleLeaderboardNudge(hasDailyXp);
+    await scheduleComebackPing();
+    for (const q of player.quests) {
+      if (!q.isCompleted && !q.failed && q.expiresAt) {
+        await scheduleQuestDeadline(q.id, q.title, q.expiresAt);
+      }
+    }
+  };
+
+  const handleNotifOptIn = async (accept: boolean) => {
+    setShowNotifPrompt(false);
+    localStorage.setItem(notifOptKey, accept ? 'yes' : 'no');
+    if (accept) {
+      await requestNotificationPermission();
+      await _scheduleAllNotifications();
+    }
+  };
 
   // Persist onboarding phase so auth pages survive page reload
   const savedPhase = sessionStorage.getItem('reforge_onboarding_phase') as OnboardingPhase | null;
@@ -342,21 +358,37 @@ const App: React.FC = () => {
 
   // ── Swipe-to-change-tab ──────────────────────────────────────────────────────
   const NAV_TAB_ORDER: Tab[] = ['DASHBOARD', 'HEALTH', 'QUESTS', 'STORE', 'LEADERBOARD'];
-  const swipeTouchStart = useRef<{ x: number; y: number } | null>(null);
+  const swipeTouchStart = useRef<{ x: number; y: number; inScrollable: boolean } | null>(null);
+
+  const _isInsideHorizontalScroll = (el: EventTarget | null): boolean => {
+    let node = el as HTMLElement | null;
+    while (node && node !== document.body) {
+      if (node.scrollWidth > node.clientWidth + 4) {
+        const style = window.getComputedStyle(node);
+        const ox = style.overflowX;
+        if (ox === 'auto' || ox === 'scroll' || (ox === 'hidden' && node.dataset.swipeIgnore !== undefined)) return true;
+      }
+      node = node.parentElement;
+    }
+    return false;
+  };
 
   const handleSwipeTouchStart = useCallback((e: React.TouchEvent) => {
     const t = e.touches[0];
-    swipeTouchStart.current = { x: t.clientX, y: t.clientY };
+    swipeTouchStart.current = { x: t.clientX, y: t.clientY, inScrollable: _isInsideHorizontalScroll(e.target) };
   }, []);
 
   const handleSwipeTouchEnd = useCallback((e: React.TouchEvent) => {
     if (!swipeTouchStart.current) return;
-    const t = e.changedTouches[0];
-    const dx = t.clientX - swipeTouchStart.current.x;
-    const dy = t.clientY - swipeTouchStart.current.y;
+    const start = swipeTouchStart.current;
     swipeTouchStart.current = null;
-    // Only count horizontal swipes (dx dominant, min 60px)
-    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    // Don't hijack swipe if it started inside a horizontal-scrollable element
+    if (start.inScrollable) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - start.x;
+    const dy = t.clientY - start.y;
+    // Only count horizontal swipes (dx dominant, min 80px, ratio 2:1)
+    if (Math.abs(dx) < 80 || Math.abs(dx) < Math.abs(dy) * 2) return;
     const idx = NAV_TAB_ORDER.indexOf(activeTab);
     if (idx === -1) return;
     const next = dx < 0 ? NAV_TAB_ORDER[idx + 1] : NAV_TAB_ORDER[idx - 1];
@@ -1788,63 +1820,104 @@ const App: React.FC = () => {
                     onRetakeTutorial={() => { resetTutorial(); setIsNewUserOnboarding(true); setActiveTab('DASHBOARD'); }}
                     onResetProgress={async () => {
                       if (!player.userId || player.userId.startsWith('local')) return;
+                      const uid = player.userId;
                       const authHeaders = await getOrRefreshPlayerHeaders(API_BASE);
-                      const res = await fetch(`${API_BASE}/api/player/${player.userId}/reset-progress`, {
+                      const res = await fetch(`${API_BASE}/api/player/${uid}/reset-progress`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', ...authHeaders },
                         credentials: 'include',
                       });
                       if (!res.ok) throw new Error('Reset failed');
-                      // Clear workout map so WorkoutMap resets to Day 1
+                      // Clear user-scoped workout map, journey start & session logs
+                      localStorage.removeItem(`reforge_workout_day_map_${uid}`);
+                      localStorage.removeItem(`reforge_journey_start_${uid}`);
+                      localStorage.removeItem(`reforge_session_logs_${uid}`);
+                      // Clear legacy non-scoped keys too
                       localStorage.removeItem('reforge_workout_day_map');
                       localStorage.removeItem('reforge_journey_start');
                       setHealthViewKey(k => k + 1);
-                      // Reload fresh player data from DB
-                      const freshRes = await fetch(`${API_BASE}/api/player/${player.userId}`, { credentials: 'include', headers: { ...authHeaders } });
-                      if (freshRes.ok) {
-                        const row = await freshRes.json();
-                        const rawData = row.raw_data as Partial<PlayerData> | null;
-                        // After reset, server wipes XP/level/streak etc. We must reset local state
-                        // to match, otherwise the 2s sync will write stale data back to DB.
-                        setPlayer(prev => ({
-                          ...prev,
-                          level: 1,
-                          currentXp: 0,
-                          requiredXp: 100,
-                          totalXp: 0,
-                          dailyXp: 0,
-                          rank: 'E',
-                          streak: 0,
-                          hp: 100,
-                          maxHp: 100,
-                          mp: 50,
-                          maxMp: 50,
-                          isPenaltyActive: false,
-                          penaltyEndTime: undefined,
-                          penaltyTask: undefined,
-                          dailyQuestComplete: false,
-                          tutorialStep: 0,
-                          tutorialComplete: false,
-                          lastDungeonEntry: undefined,
-                          logs: [],
-                          quests: [],
-                          history: [],
-                          nutritionLogs: [],
-                          personalBests: {},
-                          skillProgress: [],
-                          consumables: { shadowScrolls: 0 },
-                          stats: { strength: 10, intelligence: 10, discipline: 10, social: 10, focus: 10, willpower: 10 },
-                          dailyStats: { strength: 0, intelligence: 0, discipline: 0, social: 0, focus: 0, willpower: 0 },
-                          weeklyStats: { strength: 0, intelligence: 0, discipline: 0, social: 0, focus: 0, willpower: 0 },
-                          monthlyStats: { strength: 0, intelligence: 0, discipline: 0, social: 0, focus: 0, willpower: 0 },
-                          isConfigured: false,
-                          // Preserve identity fields from DB
-                          gold: rawData?.gold ?? row.gold ?? prev.gold,
-                          keys: rawData?.keys ?? row.keys ?? prev.keys,
-                          name: rawData?.name ?? prev.name,
-                          username: rawData?.username ?? prev.username,
-                        }));
-                      }
+                      // Fetch preserved gold/keys from DB after server reset
+                      let preservedGold = player.gold;
+                      let preservedKeys = player.keys;
+                      try {
+                        const freshRes = await fetch(`${API_BASE}/api/player/${uid}`, { credentials: 'include', headers: { ...authHeaders } });
+                        if (freshRes.ok) {
+                          const row = await freshRes.json();
+                          preservedGold = row.gold ?? row.raw_data?.gold ?? player.gold;
+                          preservedKeys = row.keys ?? row.raw_data?.keys ?? player.keys;
+                        }
+                      } catch { /* use local values */ }
+                      // Full reset: wipe EVERYTHING except identity + gold/keys
+                      setPlayer({
+                        isConfigured: false,
+                        tutorialStep: 0,
+                        tutorialComplete: false,
+                        name: player.name,
+                        username: player.username,
+                        userId: uid,
+                        avatarUrl: player.avatarUrl,
+                        level: 1,
+                        currentXp: 0,
+                        requiredXp: 100,
+                        totalXp: 0,
+                        dailyXp: 0,
+                        rank: 'E',
+                        gold: preservedGold,
+                        keys: preservedKeys,
+                        streak: 0,
+                        stats: { strength: 10, intelligence: 10, discipline: 10, social: 10, focus: 10, willpower: 10 },
+                        dailyStats: { strength: 0, intelligence: 0, discipline: 0, social: 0, focus: 0, willpower: 0 },
+                        yesterdayStats: { strength: 0, intelligence: 0, discipline: 0, social: 0, focus: 0, willpower: 0 },
+                        weeklyStats: { strength: 0, intelligence: 0, discipline: 0, social: 0, focus: 0, willpower: 0 },
+                        monthlyStats: { strength: 0, intelligence: 0, discipline: 0, social: 0, focus: 0, willpower: 0 },
+                        lastStatUpdate: { strength: 0, intelligence: 0, discipline: 0, social: 0, focus: 0, willpower: 0 },
+                        lastDailyReset: Date.now(),
+                        lastWeeklyReset: Date.now(),
+                        lastMonthlyReset: Date.now(),
+                        history: [],
+                        hp: 100,
+                        maxHp: 100,
+                        mp: 100,
+                        maxMp: 100,
+                        fatigue: 0,
+                        job: 'Civilian',
+                        title: 'None',
+                        lastLoginDate: '',
+                        lastWorkoutDate: '',
+                        dailyQuestComplete: false,
+                        isPenaltyActive: false,
+                        lastDungeonEntry: 0,
+                        logs: [],
+                        quests: [],
+                        shopItems: [],
+                        consumables: { shadowScrolls: 0 },
+                        chests: { legendary: 0 },
+                        awakening: { vision: [], antiVision: [] },
+                        personalBests: {},
+                        nutritionLogs: [],
+                        exerciseDatabase: [],
+                        focusVideos: {},
+                        ownedOutfits: ['default'],
+                        activeOutfit: 'default',
+                        customProtocols: {},
+                        tournament: { pendingReward: null },
+                        country: player.country || 'United States',
+                        timezone: player.timezone || 'UTC',
+                        cheatStrikes: 0,
+                        totalStrikesEver: 0,
+                        isBanned: false,
+                        trustScore: 100,
+                        duskUnreadCount: 1,
+                        startDate: 0,
+                        equippedOutfitId: 'outfit_starter',
+                        unlockedOutfits: ['outfit_starter'],
+                        equippedShadows: [null, null, null] as (null)[],
+                        combatStats: { attack: 0, boost: 0, ultimate: 0, extraction: 0 },
+                        unlockedLooks: [],
+                        activeLookId: '',
+                        outfitStones: {},
+                        skillProgress: [],
+                      } as PlayerData);
                     }}
                   />
                 </ErrorBoundary>
@@ -1944,6 +2017,49 @@ const App: React.FC = () => {
               outfitId={badgeAnim.outfitId}
               onComplete={() => setBadgeAnim(null)}
             />
+          )}
+        </AnimatePresence>
+
+        {/* ── Notification Opt-In Prompt (Android <13 auto-grants, so we ask in-app) ── */}
+        <AnimatePresence>
+          {showNotifPrompt && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[900] bg-black/90 flex items-center justify-center p-6 font-mono"
+              onClick={() => handleNotifOptIn(false)}
+            >
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                onClick={e => e.stopPropagation()}
+                className="w-full max-w-sm bg-[#0a0a14] border border-[#00d2ff]/30 rounded-2xl p-6 space-y-4"
+              >
+                <div className="text-center">
+                  <div className="text-3xl mb-3">🔔</div>
+                  <h3 className="text-lg font-black text-white">Enable Notifications?</h3>
+                  <p className="text-[11px] text-gray-400 mt-2 leading-relaxed">
+                    Get daily motivation from Dusk, streak reminders, quest deadline alerts, and workout nudges. You can change this anytime in your profile settings.
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => handleNotifOptIn(false)}
+                    className="py-3 rounded-xl border border-gray-700 text-gray-400 font-bold text-xs tracking-widest hover:text-white transition-colors"
+                  >
+                    NO THANKS
+                  </button>
+                  <button
+                    onClick={() => handleNotifOptIn(true)}
+                    className="py-3 rounded-xl bg-[#00d2ff] text-black font-bold text-xs tracking-widest hover:bg-white transition-colors"
+                  >
+                    ENABLE
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
           )}
         </AnimatePresence>
 

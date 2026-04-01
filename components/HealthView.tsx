@@ -650,10 +650,34 @@ export const HealthView: React.FC<HealthViewProps> = ({
   const [dayMap, setDayMap] = useState<Record<string, 'completed' | 'cheated' | 'missed'>>(() => _readDayMap(_dayMapKey));
   const [journeyStartDate, setJourneyStartDate] = useState<string>(() => _readJourneyStart(_journeyKey));
 
-  // Reload dayMap + journeyStartDate when userId changes (account switch)
+  // ── Session Logs: per-day array of workout sessions ──
+  type SessionLog = { name: string; source: 'DEFAULT' | 'CUSTOM'; status: 'completed' | 'cheated' | 'incomplete'; timestamp: number };
+  const _sessionLogKey = `reforge_session_logs_${playerData.userId || 'local'}`;
+  const _readSessionLogs = (key: string): Record<string, SessionLog[]> => {
+    try { return JSON.parse(localStorage.getItem(key) || '{}'); } catch { return {}; }
+  };
+  const [sessionLogs, setSessionLogs] = useState<Record<string, SessionLog[]>>(() => _readSessionLogs(_sessionLogKey));
+  const _writeSessionLogs = (next: Record<string, SessionLog[]>) => {
+    setSessionLogs(next);
+    try { localStorage.setItem(_sessionLogKey, JSON.stringify(next)); } catch {}
+  };
+  const _addSessionLog = (dateStr: string, log: SessionLog) => {
+    const next = { ...sessionLogs, [dateStr]: [...(sessionLogs[dateStr] || []), log] };
+    _writeSessionLogs(next);
+    // Update dayMap outcome from sessions: completed > cheated > missed
+    const sessions = next[dateStr] || [];
+    const bestOutcome: 'completed' | 'cheated' = sessions.some(s => s.status === 'completed') ? 'completed' : 'cheated';
+    _writeDayMap({ ...dayMap, [dateStr]: bestOutcome });
+  };
+
+  // todayDefaultDone = at least one DEFAULT session completed/cheated today
+  const todayDefaultDone = (sessionLogs[todayStr] || []).some(s => s.source === 'DEFAULT' && (s.status === 'completed' || s.status === 'cheated'));
+
+  // Reload dayMap + journeyStartDate + sessionLogs when userId changes (account switch)
   useEffect(() => {
     setDayMap(_readDayMap(_dayMapKey));
     setJourneyStartDate(_readJourneyStart(_journeyKey));
+    setSessionLogs(_readSessionLogs(_sessionLogKey));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playerData.userId]);
 
@@ -684,21 +708,17 @@ export const HealthView: React.FC<HealthViewProps> = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [journeyStartDate, playerData.userId]);
 
-  // Check for saved workout session on mount
+  // Check for saved workout session on mount (allow resume even if today has prior sessions)
   useEffect(() => {
     const session = loadWorkoutSession(playerData.userId || 'local');
     if (session) {
-      // Check if session is from today (before daily reset)
       const sessionDate = new Date(session.timestamp).toISOString().split('T')[0];
       const today = new Date().toISOString().split('T')[0];
-      // Also check if today's workout is already recorded as completed/cheated
-      // If so, this is a stale session left over after completion — clear it
-      const todayOutcome = _readDayMap(_dayMapKey)[today];
-      if (sessionDate === today && !todayOutcome) {
+      if (sessionDate === today) {
         setSavedSession(session);
         setShowResumePrompt(true);
       } else {
-        // Session is stale (previous day, or today already completed) — clear
+        // Session is stale (previous day) — clear
         clearWorkoutSession(playerData.userId || 'local');
       }
     }
@@ -1704,9 +1724,14 @@ export const HealthView: React.FC<HealthViewProps> = ({
           const rewards = onCompleteWorkout(c, t, r, false, anomaly, isCustomWorkout);
           clearWorkoutSession(playerData.userId || 'local');
           setSavedSession(null);
-          // Write today's outcome to the day map
-          const outcome: 'completed' | 'cheated' = (anomaly ?? 0) >= 5 ? 'cheated' : 'completed';
-          _writeDayMap({ ...dayMap, [todayStr]: outcome });
+          // Log session and update day map
+          const status: 'completed' | 'cheated' = (anomaly ?? 0) >= 5 ? 'cheated' : 'completed';
+          _addSessionLog(todayStr, {
+            name: activePlan.focus || activePlan.day || 'Workout',
+            source: isCustomWorkout ? 'CUSTOM' : 'DEFAULT',
+            status,
+            timestamp: Date.now(),
+          });
           if (rewards && Array.isArray(rewards) && rewards.length > 0) {
             setWorkoutRewards(rewards);
             setWorkoutAnomalyPoints(anomaly ?? 0);
@@ -2337,7 +2362,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                         </button>
                                     </div>
                                 </div>
-                                <WorkoutMap currentWeight={healthProfile?.weight || 0} targetWeight={healthProfile?.targetWeight || 0} workoutPlan={calculatedPlan} dayMap={dayMap} todayStr={todayStr} journeyStartDate={journeyStartDate} streak={playerData.streak} planChangedAtDay={(healthProfile as any)?.planChangedAtDay} planChangeLabel={(healthProfile as any)?.prevPlanName && healthProfile?.selectedPlanName ? `${(healthProfile as any).prevPlanName} → ${healthProfile.selectedPlanName}` : undefined} onStartDay={(idx) => { if (todayDone) { setShowTodayDoneNotice(true); setTimeout(() => setShowTodayDoneNotice(false), 3000); return; } setActivePlan(calculatedPlan[idx % calculatedPlan.length]); setViewMode('OVERVIEW'); }} />
+                                <WorkoutMap currentWeight={healthProfile?.weight || 0} targetWeight={healthProfile?.targetWeight || 0} workoutPlan={calculatedPlan} dayMap={dayMap} todayStr={todayStr} journeyStartDate={journeyStartDate} streak={playerData.streak} planChangedAtDay={(healthProfile as any)?.planChangedAtDay} planChangeLabel={(healthProfile as any)?.prevPlanName && healthProfile?.selectedPlanName ? `${(healthProfile as any).prevPlanName} → ${healthProfile.selectedPlanName}` : undefined} sessionLogs={sessionLogs} onStartDay={(idx) => { if (todayDefaultDone) { setShowTodayDoneNotice(true); setTimeout(() => setShowTodayDoneNotice(false), 3000); return; } setActivePlan(calculatedPlan[idx % calculatedPlan.length]); setViewMode('OVERVIEW'); }} />
                             </div>
 
                             {/* ── PROTOCOL CALENDAR ── */}
@@ -2354,22 +2379,17 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                             exit={{ opacity: 0, y: 8, scale: 0.95 }}
                                             className="bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-right shadow-xl max-w-[180px]"
                                         >
-                                            <div className="text-[10px] font-black text-white mb-0.5">Session Done!</div>
-                                            <div className="text-[9px] text-gray-400 font-mono leading-tight">Come back tomorrow for your next workout.</div>
+                                            <div className="text-[10px] font-black text-white mb-0.5">Default Plan Done!</div>
+                                            <div className="text-[9px] text-gray-400 font-mono leading-tight">Tap + to create a custom workout session.</div>
                                         </motion.div>
                                     )}
                                 </AnimatePresence>
                                 <motion.button
                                     onClick={() => {
-                                        if (todayDone) {
-                                            setShowTodayDoneNotice(true);
-                                            setTimeout(() => setShowTodayDoneNotice(false), 3000);
-                                            return;
-                                        }
                                         setShowCustomPlanBuilder(true);
                                         onToggleNav?.(false);
                                     }}
-                                    className={`w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-[0_4px_15px_rgba(0,0,0,0.4)] ${todayDone ? 'bg-gray-800 text-gray-500 border border-gray-700' : 'bg-system-neon text-black hover:bg-white shadow-[0_0_20px_rgba(0,210,255,0.5),0_4px_15px_rgba(0,0,0,0.4)] animate-fab-float'}`}
+                                    className="w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-[0_4px_15px_rgba(0,0,0,0.4)] bg-system-neon text-black hover:bg-white shadow-[0_0_20px_rgba(0,210,255,0.5),0_4px_15px_rgba(0,0,0,0.4)] animate-fab-float"
                                     whileTap={{ scale: 0.9 }}
                                 >
                                     <Plus size={24} strokeWidth={3} />

@@ -53,6 +53,7 @@ const FloatingRewardGem = ({ color = '#a855f7', scale = 0.6 }: { color?: string;
 };
 
 type DayOutcome = 'completed' | 'cheated' | 'missed';
+type SessionLog = { name: string; source: 'DEFAULT' | 'CUSTOM'; status: 'completed' | 'cheated' | 'incomplete'; timestamp: number };
 
 // Helpers for local-date arithmetic
 const _localDateStr = (d: Date = new Date()): string => {
@@ -82,6 +83,7 @@ interface WorkoutMapProps {
   streak?: number;
   planChangedAtDay?: number;
   planChangeLabel?: string;
+  sessionLogs?: Record<string, SessionLog[]>;
   onStartDay: (dayIndex: number) => void;
 }
 
@@ -95,6 +97,7 @@ const WorkoutMap: React.FC<WorkoutMapProps> = ({
   streak = 0,
   planChangedAtDay,
   planChangeLabel,
+  sessionLogs = {},
   onStartDay 
 }) => {
   const todayIndex = useMemo(() => Math.max(0, _daysBetween(journeyStartDate, todayStr)), [journeyStartDate, todayStr]);
@@ -392,12 +395,24 @@ const WorkoutMap: React.FC<WorkoutMapProps> = ({
                                         initial={{ opacity: 0, y: 10, scale: 0.95 }}
                                         animate={{ opacity: 1, y: 0, scale: 1 }}
                                         transition={{ delay: 0.2 }}
-                                        className="absolute top-full mt-4 bg-emerald-950/90 backdrop-blur-md border border-emerald-700/60 p-3 rounded-xl w-48 flex flex-col items-center text-center z-50"
+                                        className="absolute top-full mt-4 bg-emerald-950/90 backdrop-blur-md border border-emerald-700/60 p-3 rounded-xl w-52 flex flex-col items-center text-center z-50"
                                     >
                                         <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-0.5 h-4 bg-emerald-500/50" />
                                         <Check size={16} className="text-emerald-400 mb-1" />
                                         <div className="text-[10px] font-black text-emerald-300 uppercase tracking-widest mb-1">WELL DONE!</div>
-                                        <div className="text-[9px] text-emerald-500/80 font-mono leading-tight">Come back tomorrow for your next workout session.</div>
+                                        {(sessionLogs[nodeDate] || []).length > 0 && (
+                                            <div className="w-full flex flex-col gap-0.5 mb-1.5">
+                                                {(sessionLogs[nodeDate] || []).map((s, si) => (
+                                                    <div key={si} className={`text-[7px] font-mono px-1.5 py-0.5 rounded flex items-center gap-1 ${
+                                                        s.status === 'completed' ? 'text-emerald-400 bg-emerald-900/50' : 'text-amber-400 bg-amber-900/50'
+                                                    }`}>
+                                                        {s.status === 'completed' ? <Check size={7} /> : <AlertCircle size={7} />}
+                                                        <span className="truncate">{s.source === 'CUSTOM' ? '⚡' : ''}{s.name}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                        <div className="text-[9px] text-emerald-500/80 font-mono leading-tight">Tap + to add a custom session.</div>
                                     </motion.div>
                                 )}
 
@@ -407,39 +422,58 @@ const WorkoutMap: React.FC<WorkoutMapProps> = ({
                                         initial={{ opacity: 0, y: 10, scale: 0.95 }}
                                         animate={{ opacity: 1, y: 0, scale: 1 }}
                                         transition={{ delay: 0.2 }}
-                                        className="absolute top-full mt-4 bg-amber-950/90 backdrop-blur-md border border-amber-700/60 p-3 rounded-xl w-48 flex flex-col items-center text-center z-50"
+                                        className="absolute top-full mt-4 bg-amber-950/90 backdrop-blur-md border border-amber-700/60 p-3 rounded-xl w-52 flex flex-col items-center text-center z-50"
                                     >
                                         <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-0.5 h-4 bg-amber-500/50" />
                                         <AlertCircle size={16} className="text-amber-400 mb-1" />
                                         <div className="text-[10px] font-black text-amber-300 uppercase tracking-widest mb-1">CHEATED</div>
-                                        <div className="text-[9px] text-amber-500/80 font-mono leading-tight">Come back tomorrow to try again.</div>
+                                        {(sessionLogs[nodeDate] || []).length > 0 && (
+                                            <div className="w-full flex flex-col gap-0.5 mb-1.5">
+                                                {(sessionLogs[nodeDate] || []).map((s, si) => (
+                                                    <div key={si} className={`text-[7px] font-mono px-1.5 py-0.5 rounded flex items-center gap-1 ${
+                                                        s.status === 'completed' ? 'text-emerald-400 bg-emerald-900/50' : 'text-amber-400 bg-amber-900/50'
+                                                    }`}>
+                                                        {s.status === 'completed' ? <Check size={7} /> : <AlertCircle size={7} />}
+                                                        <span className="truncate">{s.source === 'CUSTOM' ? '⚡' : ''}{s.name}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                        <div className="text-[9px] text-amber-500/80 font-mono leading-tight">Tap + to add a custom session.</div>
                                     </motion.div>
                                 )}
 
-                                {/* Completed Replay Tag (past days only) */}
-                                {isCompleted && !isCurrent && !selectedPreview && (
-                                    <div className="absolute top-full mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <div className="text-[9px] text-emerald-400 font-mono bg-black/80 px-2 py-1 rounded border border-emerald-800">REPLAY</div>
-                                    </div>
-                                )}
-
-                                {/* Cheated Day Label */}
-                                {isCheated && !isCurrent && (
-                                    <div className="absolute top-full mt-2">
-                                        <div className="text-[8px] text-amber-400 font-mono font-bold bg-amber-950/80 px-2 py-0.5 rounded border border-amber-700 flex items-center gap-1">
-                                            <AlertCircle size={8} /> CHEATED
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Missed Day Label */}
-                                {isMissed && !isCheated && (
-                                    <div className="absolute top-full mt-2">
-                                        <div className="text-[8px] text-red-400 font-mono bg-red-950/80 px-2 py-0.5 rounded border border-red-800 flex items-center gap-1">
-                                            <AlertTriangle size={8} /> MISSED
-                                        </div>
-                                    </div>
-                                )}
+                                {/* Session Logs for this node (past & current days) */}
+                                {(() => {
+                                    const nodeSessions = sessionLogs[nodeDate] || [];
+                                    if (nodeSessions.length > 0 && !isCurrent) {
+                                        return (
+                                            <div className="absolute top-full mt-2 flex flex-col items-center gap-0.5 max-w-[120px]">
+                                                {nodeSessions.map((s, si) => (
+                                                    <div key={si} className={`text-[7px] font-mono px-1.5 py-0.5 rounded flex items-center gap-1 truncate max-w-full ${
+                                                        s.status === 'completed' ? 'text-emerald-400 bg-emerald-950/70 border border-emerald-800/50' :
+                                                        s.status === 'cheated' ? 'text-amber-400 bg-amber-950/70 border border-amber-800/50' :
+                                                        'text-red-400 bg-red-950/70 border border-red-800/50'
+                                                    }`}>
+                                                        {s.status === 'completed' ? <Check size={7} /> : s.status === 'cheated' ? <AlertCircle size={7} /> : <X size={7} />}
+                                                        <span className="truncate">{s.source === 'CUSTOM' ? '⚡' : ''}{s.name}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        );
+                                    }
+                                    // Fallback labels for days with no session logs
+                                    if (isMissed && !isCurrent) {
+                                        return (
+                                            <div className="absolute top-full mt-2">
+                                                <div className="text-[8px] text-red-400 font-mono bg-red-950/80 px-2 py-0.5 rounded border border-red-800 flex items-center gap-1">
+                                                    <AlertTriangle size={8} /> MISSED
+                                                </div>
+                                            </div>
+                                        );
+                                    }
+                                    return null;
+                                })()}
                             </motion.div>
                         );
                     })}
