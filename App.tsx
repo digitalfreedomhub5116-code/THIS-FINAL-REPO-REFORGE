@@ -34,6 +34,7 @@ import { getPlayerAuthHeaders, getOrRefreshPlayerHeaders } from './lib/playerApi
 import { Terminal } from 'lucide-react';
 import { API_BASE } from './lib/apiConfig';
 import {
+  checkNotificationPermissionStatus,
   requestNotificationPermission,
   scheduleMorningDusk,
   scheduleStreakReminder,
@@ -227,8 +228,20 @@ const App: React.FC = () => {
         await _scheduleAllNotifications();
       })();
     } else if (opted === null) {
-      // First time — show in-app prompt
-      setShowNotifPrompt(true);
+      // First-time user — detect Android version via permission status
+      (async () => {
+        const status = await checkNotificationPermissionStatus();
+        if (status === 'prompt') {
+          // Android 13+ — system has a native permission dialog, use it directly
+          const granted = await requestNotificationPermission();
+          localStorage.setItem(notifOptKey, granted ? 'yes' : 'no');
+          if (granted) await _scheduleAllNotifications();
+        } else if (status === 'granted') {
+          // Android <13 — OS auto-granted without asking; show in-app prompt
+          setShowNotifPrompt(true);
+        }
+        // status === 'denied' → already denied or not native, skip
+      })();
     }
     // opted === 'no' → user declined, skip scheduling
   }, [player.userId, player.isConfigured]); // eslint-disable-line react-hooks/exhaustive-deps

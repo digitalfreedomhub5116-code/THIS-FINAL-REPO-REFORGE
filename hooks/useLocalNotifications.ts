@@ -89,6 +89,16 @@ function hashCode(str: string): number {
 
 // ─── Permission ──────────────────────────────────────────────
 
+export async function checkNotificationPermissionStatus(): Promise<'prompt' | 'granted' | 'denied'> {
+  if (!isNative()) return 'denied';
+  try {
+    const perm = await LocalNotifications.checkPermissions();
+    return perm.display as 'prompt' | 'granted' | 'denied';
+  } catch {
+    return 'denied';
+  }
+}
+
 export async function requestNotificationPermission(): Promise<boolean> {
   if (!isNative()) return false;
   try {
