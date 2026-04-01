@@ -28,7 +28,7 @@ const AnimatedCoinIcon: React.FC<{ size?: number }> = ({ size = 16 }) => {
   if (data) {
     return <div style={{ width: size, height: size, flexShrink: 0 }}><Lottie animationData={data} loop autoplay style={{ width: '100%', height: '100%' }} /></div>;
   }
-  return <_CoinSVGFallback size={size} />;
+  return <_CoinSVGFallback size={Math.min(size, 18)} />;
 };
 
 const AnimatedKeyIcon: React.FC<{ size?: number }> = ({ size = 16 }) => (
