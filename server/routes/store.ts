@@ -9,7 +9,7 @@ router.get('/outfits', async (_req: Request, res: Response) => {
   try {
     const { data, error } = await (supabaseServer() as any)
       .from('store_outfits')
-      .select('*')
+      .select('id, outfit_key, name, description, tier, cost, accent_color, image_url, intro_video_url, loop_video_url, attack, boost, extraction, ultimate, is_default, display_order')
       .order('display_order', { ascending: true })
       .order('id', { ascending: true });
     if (error) throw error;
@@ -124,7 +124,7 @@ router.get('/banners', async (_req: Request, res: Response) => {
   try {
     const { data, error } = await (supabaseServer() as any)
       .from('event_banners')
-      .select('*')
+      .select('id, title, subtitle, image_url, link_url, accent_color, is_active, display_order')
       .eq('is_active', true)
       .order('display_order', { ascending: true });
     if (error) throw error;

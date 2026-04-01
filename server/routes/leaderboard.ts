@@ -86,7 +86,7 @@ router.get('/rewards', async (req: Request, res: Response) => {
 
     const { data, error } = await db
       .from('daily_rank_snapshots')
-      .select('*')
+      .select('id, player_id, snapshot_date, rank_position, xp_snapshot, reward_gold, reward_keys, claimed')
       .eq('player_id', internalId)
       .eq('claimed', false)
       .order('snapshot_date', { ascending: false })

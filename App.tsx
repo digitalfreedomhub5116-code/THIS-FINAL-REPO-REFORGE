@@ -492,16 +492,15 @@ const App: React.FC = () => {
     lastKnownDbKeys.current = null;
     const syncFromDb = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/player/${player.userId}`, { credentials: 'include', headers: { ...getPlayerAuthHeaders() } });
+        // Use lightweight /sync endpoint (~1KB) instead of full GET (~50KB)
+        const res = await fetch(`${API_BASE}/api/player/${player.userId}/sync`, { credentials: 'include', headers: { ...getPlayerAuthHeaders() } });
         if (!res.ok) return;
         const row = await res.json();
-        const rawData = row.raw_data as Partial<PlayerData> | null;
-        if (!rawData) return;
-        const dbBanned  = rawData.isBanned       ?? false;
-        const dbStrikes = rawData.cheatStrikes   ?? 0;
-        const dbGold    = rawData.gold           ?? 0;
-        const dbKeys    = rawData.keys           ?? 0;
-        const dbTotalStrikes = rawData.totalStrikesEver ?? 0;
+        const dbBanned  = row.isBanned       ?? false;
+        const dbStrikes = row.cheatStrikes   ?? 0;
+        const dbGold    = row.gold           ?? 0;
+        const dbKeys    = row.keys           ?? 0;
+        const dbTotalStrikes = row.totalStrikesEver ?? 0;
 
         // Determine if gold/keys changed in DB since our last poll.
         // If DB value changed → admin or server modified it → apply to local state.
@@ -540,28 +539,28 @@ const App: React.FC = () => {
             // ── Outfit persistence: restore from server on first poll ──
             // Uses union/max so that neither server nor local can lose purchases
             // (covers page reload, cleared localStorage, and code redeploys)
-            if (rawData.unlockedOutfits) {
+            const serverOutfits = row.unlockedOutfits as string[] | undefined;
+            if (serverOutfits && serverOutfits.length > 0) {
               const union = Array.from(new Set([
                 ...(prev.unlockedOutfits || ['outfit_starter']),
-                ...(rawData.unlockedOutfits as string[]),
+                ...serverOutfits,
               ]));
               if (union.length !== (prev.unlockedOutfits || []).length ||
                   union.some(id => !(prev.unlockedOutfits || []).includes(id))) {
                 updates.unlockedOutfits = union;
               }
             }
-            if (rawData.outfitStones && typeof rawData.outfitStones === 'object') {
-              const serverStones = rawData.outfitStones as Record<string, number>;
+            const serverStones = row.outfitStones as Record<string, number> | undefined;
+            if (serverStones && typeof serverStones === 'object') {
               const merged: Record<string, number> = { ...serverStones };
               for (const [k, v] of Object.entries(prev.outfitStones || {})) {
                 merged[k] = Math.max(merged[k] || 0, v);
               }
-              // Only update if it differs
               const differs = Object.keys(merged).some(k => (prev.outfitStones || {})[k] !== merged[k]);
               if (differs) updates.outfitStones = merged;
             }
-            if (rawData.equippedOutfitId && rawData.equippedOutfitId !== prev.equippedOutfitId) {
-              updates.equippedOutfitId = rawData.equippedOutfitId as string;
+            if (row.equippedOutfitId && row.equippedOutfitId !== prev.equippedOutfitId) {
+              updates.equippedOutfitId = row.equippedOutfitId as string;
             }
           } else {
             if (goldChangedInDb && dbGold !== prev.gold) updates.gold = dbGold;
@@ -581,7 +580,7 @@ const App: React.FC = () => {
     };
     syncFromDbRef.current = syncFromDb;
     syncFromDb();
-    const interval = setInterval(syncFromDb, 2000);
+    const interval = setInterval(syncFromDb, 15000);
     // Listen for immediate sync triggers (e.g. after recordStrike server success)
     const onSyncNeeded = () => syncFromDb();
     window.addEventListener('reforge:sync-needed', onSyncNeeded);

@@ -24,7 +24,7 @@ router.post('/create', async (req: Request, res: Response) => {
         pledge_amount,
         status: 'active',
       })
-      .select()
+      .select('id, user_id, quest_id, quest_title, quest_rank, pledge_amount, status')
       .single();
 
     if (error) throw error;
@@ -52,7 +52,7 @@ router.post('/resolve', async (req: Request, res: Response) => {
       .eq('user_id', userId)
       .eq('quest_id', quest_id)
       .eq('status', 'active')
-      .select()
+      .select('id, user_id, quest_id, status, resolved_at')
       .single();
 
     if (error) throw error;
@@ -81,7 +81,7 @@ router.post('/burn', async (req: Request, res: Response) => {
       .eq('user_id', userId)
       .eq('quest_id', quest_id)
       .eq('status', 'active')
-      .select()
+      .select('id, status')
       .single();
 
     if (pactErr) throw pactErr;

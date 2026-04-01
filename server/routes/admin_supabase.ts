@@ -380,9 +380,9 @@ router.get('/usage', async (req: Request, res: Response) => {
 
     let query = (supabaseServer() as any)
       .from('api_usage_logs')
-      .select('*')
+      .select('id, endpoint, method, status_code, cost_usd, model, tokens_in, tokens_out, created_at')
       .order('created_at', { ascending: false })
-      .limit(10000);
+      .limit(1000);
     if (dateFilter) query = query.gte('created_at', dateFilter);
 
     const { data: logs, error } = await query;
@@ -451,7 +451,7 @@ router.get('/store/outfits', async (req: Request, res: Response) => {
   try {
     const { data, error } = await (supabaseServer() as any)
       .from('store_outfits')
-      .select('*')
+      .select('id, outfit_key, name, description, tier, cost, accent_color, image_url, intro_video_url, loop_video_url, attack, boost, extraction, ultimate, is_default, display_order')
       .order('display_order', { ascending: true })
       .order('id', { ascending: true });
     
@@ -527,7 +527,7 @@ router.get('/banners', async (req: Request, res: Response) => {
   try {
     const { data, error } = await (supabaseServer() as any)
       .from('event_banners')
-      .select('*')
+      .select('id, title, subtitle, image_url, link_url, accent_color, is_active, display_order')
       .order('display_order', { ascending: true })
       .order('id', { ascending: true });
     if (error) throw error;
@@ -599,7 +599,7 @@ router.get('/plans', async (req: Request, res: Response) => {
   try {
     const { data, error } = await (supabaseServer() as any)
       .from('workout_plans')
-      .select('*')
+      .select('id, name, description, difficulty, equipment, duration_weeks, days_per_week, days, display_order, image_url, is_active')
       .order('display_order', { ascending: true })
       .order('id', { ascending: true });
     
@@ -712,7 +712,7 @@ router.get('/exercises', async (req: Request, res: Response) => {
   try {
     const { data, error } = await (supabaseServer() as any)
       .from('workout_exercises')
-      .select('*')
+      .select('id, name, type, muscle_group, default_sets, default_reps, video_url, notes, equipment, is_active, display_order')
       .order('display_order', { ascending: true })
       .order('id', { ascending: true });
     

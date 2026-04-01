@@ -335,10 +335,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
       return () => clearInterval(interval);
   }, [activeTab, usagePeriod]);
 
-  // Real-time sync: poll every 2s on USERS tab to reflect player-side changes
+  // Real-time sync: poll every 15s on USERS tab to reflect player-side changes
   useEffect(() => {
       if (activeTab !== 'USERS') return;
-      const interval = setInterval(() => fetchUsers(), 2000);
+      const interval = setInterval(() => fetchUsers(), 15000);
       return () => clearInterval(interval);
   }, [activeTab]);
 

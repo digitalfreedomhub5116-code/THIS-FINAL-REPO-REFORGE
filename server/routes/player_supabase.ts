@@ -26,12 +26,46 @@ router.get('/codename/check', async (req: Request, res: Response) => {
   }
 });
 
+// Lightweight sync endpoint — returns ONLY fields needed for polling (~1KB vs ~50KB)
+// Used by the 15s polling loop in App.tsx instead of the full GET
+router.get('/:id/sync', async (req: Request, res: Response) => {
+  const { id } = req.params;
+  try {
+    const { data, error } = await (supabaseServer() as any)
+      .from('players')
+      .select('gold, keys, is_banned, cheat_strikes, total_strikes_ever, pending_notifications, raw_data')
+      .eq('supabase_id', id)
+      .single();
+
+    if (error || !data) {
+      return res.status(404).json({ error: 'Player not found' });
+    }
+
+    const row = data as any;
+    const rawData = row.raw_data || {};
+    return res.json({
+      gold: row.gold,
+      keys: row.keys,
+      isBanned: row.is_banned,
+      cheatStrikes: row.cheat_strikes,
+      totalStrikesEver: row.total_strikes_ever ?? 0,
+      pending_notifications: row.pending_notifications,
+      unlockedOutfits: rawData.unlockedOutfits || [],
+      equippedOutfitId: rawData.equippedOutfitId || 'outfit_starter',
+      outfitStones: rawData.outfitStones || {},
+    });
+  } catch (err) {
+    console.error('[Player SYNC]', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 router.get('/:id', async (req: Request, res: Response) => {
   const { id } = req.params;
   try {
     const { data, error } = await (supabaseServer() as any)
       .from('players')
-      .select('*')
+      .select('supabase_id, username, name, level, current_xp, required_xp, total_xp, daily_xp, rank, streak, hp, max_hp, mp, max_mp, gold, keys, is_configured, is_banned, is_penalty_active, penalty_end_time, cheat_strikes, total_strikes_ever, last_login_date, last_dungeon_entry, tutorial_step, tutorial_complete, daily_quest_complete, last_daily_reset, last_weekly_reset, last_monthly_reset, avatar_url, pending_notifications, raw_data, updated_at')
       .eq('supabase_id', id)
       .single();
     
@@ -154,16 +188,14 @@ router.put('/:id', async (req: Request, res: Response) => {
     };
 
     // Use update (not upsert) to prevent creating duplicate rows
-    const { data: result, error } = await (supabaseServer() as any)
+    const { error } = await (supabaseServer() as any)
       .from('players')
       .update(playerData)
-      .eq('supabase_id', id)
-      .select()
-      .single();
+      .eq('supabase_id', id);
 
     if (error) throw error;
 
-    return res.json({ ...result, _serverGold: newGold, _serverKeys: newKeys });
+    return res.json({ success: true, _serverGold: newGold, _serverKeys: newKeys });
   } catch (err) {
     console.error('[Player PUT]', err);
     return res.status(500).json({ error: 'Internal server error' });
