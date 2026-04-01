@@ -234,17 +234,12 @@ function safeLevelUp(currentXp: number, requiredXp: number, level: number): { cu
   return { currentXp, requiredXp, level, leveledUp, rank: computeRank(level) };
 }
 
-// ── Shadow army XP boost: +2% per shadow (max 3 shadows = +6%) ──
-function getShadowXpMultiplier(userId: string): number {
-  try {
-    const key = `shadow_warfare_v3_${userId}`;
-    const raw = localStorage.getItem(key);
-    if (!raw) return 1;
-    const data = JSON.parse(raw);
-    const count = (data?.shadows?.length ?? 0);
-    return 1 + (Math.min(count, 3) * 0.02); // 1.00, 1.02, 1.04, or 1.06
-  } catch { return 1; }
+// Shadow warfare removed — always return 1x multiplier
+function getShadowXpMultiplier(_userId: string): number {
+  return 1;
 }
+
+const MAX_DAILY_WORKOUTS = 6;
 
 // ── Badge XP boost: based on equipped outfit's badges ──
 function getBadgeXpMultiplier(outfitStones: Record<string, number>, equippedOutfitId: string): number {
@@ -265,15 +260,15 @@ export const useSystem = () => {
   const serverKeysRef = useRef(player.keys);
 
   useEffect(() => {
-    localStorage.setItem(`reforge_player_v2_${player.userId || 'local'}`, JSON.stringify(player));
+    try { localStorage.setItem(`reforge_player_v2_${player.userId || 'local'}`, JSON.stringify(player)); } catch { /* quota exceeded or private mode */ }
   }, [player]);
 
   useEffect(() => {
-    localStorage.setItem(`reforge_notif_history_${player.userId || 'local'}`, JSON.stringify(notificationHistory));
+    try { localStorage.setItem(`reforge_notif_history_${player.userId || 'local'}`, JSON.stringify(notificationHistory)); } catch { /* ignore */ }
   }, [notificationHistory, player.userId]);
 
   useEffect(() => {
-    localStorage.setItem(`reforge_notif_unread_${player.userId || 'local'}`, hasUnreadNotifications ? 'true' : 'false');
+    try { localStorage.setItem(`reforge_notif_unread_${player.userId || 'local'}`, hasUnreadNotifications ? 'true' : 'false'); } catch { /* ignore */ }
   }, [hasUnreadNotifications, player.userId]);
 
   useEffect(() => {
@@ -903,7 +898,6 @@ export const useSystem = () => {
         }
       }
       
-      if (reward.type === 'SHADOW_SCROLL') safeConsumables.shadowScrolls += reward.amount;
       if (reward.type === 'CHEST_LEGENDARY') safeChests.legendary += reward.amount;
       if (reward.type === 'VENUS_SHARDS') {
         const venusId = 'outfit_starter';
@@ -1174,6 +1168,8 @@ export const useSystem = () => {
           playSystemSoundEffect('DANGER');
           const flagStr = flags.join(', ');
           const newLogs = [createLog(`Sensor Anomaly: ${quest.title} — ${flagStr}${hasPact ? ` — ${pactAmount}G BURNED` : ''}`, 'WARNING'), ...prev.logs];
+          // Notify user visibly so they know why 0 XP was awarded
+          setTimeout(() => addNotification(`Sensor Anomaly Detected: ${flagStr}. No XP awarded.`, 'DANGER'), 0);
           return { ...prev, quests, logs: newLogs, cheatStrikes: (prev.cheatStrikes || 0) + 1 };
         }
       }
@@ -1182,7 +1178,7 @@ export const useSystem = () => {
       quests[qIndex] = { ...quest, isCompleted: true, completedAsMini: asMini, pactStatus: hasPact ? 'honored' : quest.pactStatus, sensorTracking: false };
 
       const RANK_GOLD: Record<string, number> = { E: 10, D: 20, C: 40, B: 80, A: 150, S: 300 };
-      const baseXpReward = asMini ? Math.floor(quest.xpReward * 0.1) : quest.xpReward;
+      const baseXpReward = asMini ? Math.floor((quest.xpReward || 50) * 0.1) : (quest.xpReward || 50);
       // 1.25x XP bonus for optional-rank pacts (E, D, C) that were honored
       const reward = (isOptionalPact && !asMini) ? Math.floor(baseXpReward * 1.25) : baseXpReward;
       const goldReward = asMini ? 5 : (RANK_GOLD[quest.rank] || 20);
@@ -1496,15 +1492,14 @@ export const useSystem = () => {
   };
 
   // Reward type definition for workout session rewards
-  type WorkoutRewardType = 'XP' | 'GOLD' | 'KEYS' | 'SHADOW_SCROLL';
+  type WorkoutRewardType = 'XP' | 'GOLD' | 'KEYS';
   interface WorkoutReward { type: WorkoutRewardType; amount: number; label: string; }
 
   const generateWorkoutRewards = (anomalyPoints: number = 0): WorkoutReward[] => {
     const pool: { type: WorkoutRewardType; weight: number; min: number; max: number; label: string }[] = [
-      { type: 'XP', weight: 35, min: 150, max: 350, label: 'XP' },
-      { type: 'GOLD', weight: 35, min: 20, max: 80, label: 'Gold' },
-      { type: 'KEYS', weight: 15, min: 1, max: 2, label: 'Keys' },
-      { type: 'SHADOW_SCROLL', weight: 15, min: 1, max: 1, label: 'Shadow Scroll' },
+      { type: 'XP', weight: 40, min: 150, max: 350, label: 'XP' },
+      { type: 'GOLD', weight: 40, min: 20, max: 80, label: 'Gold' },
+      { type: 'KEYS', weight: 20, min: 1, max: 2, label: 'Keys' },
     ];
 
     const picked: WorkoutReward[] = [];
@@ -1543,6 +1538,19 @@ export const useSystem = () => {
     workoutCompletingRef.current = true;
     setTimeout(() => { workoutCompletingRef.current = false; }, 2000);
 
+    // ── Daily workout cap: prevent unlimited reward farming ──
+    const today = toLocalDateStr();
+    const capKey = `reforge_workout_cap_${today}`;
+    let dailyCount = 0;
+    try { dailyCount = parseInt(localStorage.getItem(capKey) || '0', 10) || 0; } catch {}
+    const dailyCapExceeded = dailyCount >= MAX_DAILY_WORKOUTS;
+    if (dailyCapExceeded) {
+      addNotification(`Daily workout limit reached (${MAX_DAILY_WORKOUTS}). No rewards — rest and come back tomorrow!`, 'WARNING');
+      return [];
+    }
+    // Increment daily count
+    try { localStorage.setItem(capKey, String(dailyCount + 1)); } catch {}
+
     const penaltyExceeded = anomalyPoints >= 5;
     
     let rewards: WorkoutReward[] = [];
@@ -1554,18 +1562,16 @@ export const useSystem = () => {
         // Too few exercises — no rewards
         rewards = [];
       } else if (totalExercises <= 5) {
-        // Tier 2: 3-5 exercises → 150-300 coins, 250-300 XP, common item
+        // Tier 2: 3-5 exercises → 150-300 coins, 250-300 XP
         rewards = [
           { type: 'XP', amount: Math.floor(Math.random() * 51) + 250, label: 'XP' },
           { type: 'GOLD', amount: Math.floor(Math.random() * 151) + 150, label: 'Gold' },
-          { type: 'SHADOW_SCROLL', amount: 1, label: 'Shadow Scroll' },
         ];
       } else if (totalExercises <= 7) {
-        // Tier 3: 6-7 exercises → 300-450 coins, 350-400 XP, common item
+        // Tier 3: 6-7 exercises → 300-450 coins, 350-400 XP
         rewards = [
           { type: 'XP', amount: Math.floor(Math.random() * 51) + 350, label: 'XP' },
           { type: 'GOLD', amount: Math.floor(Math.random() * 151) + 300, label: 'Gold' },
-          { type: 'SHADOW_SCROLL', amount: 1, label: 'Shadow Scroll' },
         ];
       } else {
         // Tier 4: 8+ exercises → 500-600 coins, 450-550 XP, 1 key
@@ -1594,14 +1600,12 @@ export const useSystem = () => {
       let xpReward = 0;
       let goldReward = 0;
       let keyReward = 0;
-      let scrollReward = 0;
 
       for (const r of rewards) {
         switch (r.type) {
           case 'XP': xpReward += r.amount; break;
           case 'GOLD': goldReward += r.amount; break;
           case 'KEYS': keyReward += r.amount; break;
-          case 'SHADOW_SCROLL': scrollReward += r.amount; break;
         }
       }
 
@@ -1667,9 +1671,6 @@ export const useSystem = () => {
         newStreak = prevDate === yesterday ? prev.streak + 1 : 1;
       }
 
-      const consumables = { ...prev.consumables };
-      consumables.shadowScrolls += scrollReward;
-
       return {
         ...prev,
         currentXp,
@@ -1682,7 +1683,6 @@ export const useSystem = () => {
         personalBests: newPBs,
         gold: prev.gold + totalGoldGain,
         keys: prev.keys + keyReward,
-        consumables,
         logs: newLogs,
         streak: newStreak,
         lastWorkoutDate: today,

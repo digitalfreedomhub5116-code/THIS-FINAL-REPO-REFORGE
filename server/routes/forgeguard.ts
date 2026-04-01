@@ -20,10 +20,15 @@ function isGibberish(text: string): boolean {
 
   const lower = trimmed.toLowerCase();
   const words = lower.split(/\s+/);
-  const vowelRegex = /[aeiou]/;
 
+  // Multi-word inputs (3+ words) are almost never gibberish — let the AI judge
+  if (words.length >= 3) return false;
+
+  const vowelRegex = /[aeiou]/;
+  // At least one word must have a vowel (but numbers like "5km" don't need one)
   const anyWordHasVowel = words.some(w => vowelRegex.test(w));
-  if (!anyWordHasVowel) return true;
+  const hasNumbers = /\d/.test(lower);
+  if (!anyWordHasVowel && !hasNumbers) return true;
 
   const consonants = new Set('bcdfghjklmnpqrstvwxyz');
   for (const word of words) {
@@ -32,7 +37,7 @@ function isGibberish(text: string): boolean {
       if (!ch.match(/[a-z]/)) { run = 0; continue; }
       if (consonants.has(ch)) {
         run++;
-        if (run >= 5) return true;
+        if (run >= 6) return true; // Relaxed from 5 to 6 for typo tolerance
       } else {
         run = 0;
       }
@@ -43,7 +48,7 @@ function isGibberish(text: string): boolean {
     const letters = lower.replace(/[^a-z]/g, '');
     if (letters.length > 6) {
       const vowelCount = (letters.match(/[aeiou]/g) || []).length;
-      if (vowelCount / letters.length < 0.15) return true;
+      if (vowelCount / letters.length < 0.10) return true; // Relaxed from 0.15 to 0.10
     }
   }
 
@@ -121,6 +126,11 @@ ${calibrationContext}
 ${statsContext}
 
 Quest Title: "${title}"
+
+=== TYPO & SPELLING TOLERANCE ===
+Users type quest titles quickly on mobile. If the title contains typos, misspellings, or shorthand but the INTENT is clearly a real-world task, interpret it correctly and proceed with analysis.
+Examples: "runnig 5km" → "running 5km", "stdy 2 hours" → "study 2 hours", "pushps 50" → "pushups 50", "mediatte 15 min" → "meditate 15 min", "red 30 pges" → "read 30 pages", "wlk 3km" → "walk 3km".
+Only reject as gibberish if the text is truly random characters with NO recognizable intent (e.g. "xkjqw", "aaaa", "12345").
 
 === REJECTION RULES (isSpam = true) ===
 

@@ -61,6 +61,7 @@ async function startServer() {
     'http://localhost',
     'capacitor://localhost',
     'https://localhost',
+    'https://this-final-repo-reforge-production.up.railway.app',
   ];
   if (process.env.DEPLOYED_URL) allowedOrigins.push(process.env.DEPLOYED_URL);
 
@@ -72,18 +73,25 @@ async function startServer() {
 
   app.use(cors({
     origin: (origin, cb) => {
+      // Allow requests with no origin (mobile apps, server-to-server, same-origin)
       if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
-      cb(null, true); // allow all for now — tighten post-launch if needed
+      console.warn(`[CORS] Blocked request from origin: ${origin}`);
+      cb(new Error('Not allowed by CORS'));
     },
     credentials: true
   }));
   app.use(json({ limit: '50mb' }));
   const isProduction = process.env.NODE_ENV === 'production';
   const sessionOptions: any = {
-    secret: process.env.JWT_SECRET!,
+    secret: process.env.SESSION_SECRET || process.env.JWT_SECRET!,
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: false, maxAge: 7 * 24 * 60 * 60 * 1000 }, // 7 days
+    cookie: {
+      secure: isProduction,
+      httpOnly: true,
+      sameSite: isProduction ? 'none' as const : 'lax' as const,
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    },
   };
 
   if (process.env.DATABASE_URL) {
@@ -162,20 +170,29 @@ async function startServer() {
     legacyHeaders: false,
   });
 
+  // General API rate limiter — 120 requests per minute per IP
+  const generalRateLimit = rateLimit({
+    windowMs: 60 * 1000,
+    max: 120,
+    message: { error: 'Rate limit exceeded. Please slow down.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
   // API routes
   app.use('/api/forge-guard', aiRateLimit, forgeGuardRouter.default);
-  app.use('/api/player', playerRouter.default);
-  app.use('/api/leaderboard', leaderboardRouter.default);
-  app.use('/api/videos', videosRouter.default);
+  app.use('/api/player', generalRateLimit, playerRouter.default);
+  app.use('/api/leaderboard', generalRateLimit, leaderboardRouter.default);
+  app.use('/api/videos', generalRateLimit, videosRouter.default);
   app.use('/api/admin', adminRouter.default);
   app.use('/api/nutrition', aiRateLimit, nutritionRouter.default);
-  app.use('/api/dusk', duskRouter.default);
-  app.use('/api/store', storeRouter.default);
-  app.use('/api/global-config', globalConfigRouter.default);
-  app.use('/api/workout', workoutRouter.default);
-  app.use('/api/system-pact', systemPactRouter.default);
-  app.use('/api/audit', auditRouter.default);
-  app.use('/api/auth/local', localAuthRouter.default);
+  app.use('/api/dusk', aiRateLimit, duskRouter.default);
+  app.use('/api/store', generalRateLimit, storeRouter.default);
+  app.use('/api/global-config', generalRateLimit, globalConfigRouter.default);
+  app.use('/api/workout', generalRateLimit, workoutRouter.default);
+  app.use('/api/system-pact', generalRateLimit, systemPactRouter.default);
+  app.use('/api/audit', generalRateLimit, auditRouter.default);
+  app.use('/api/auth/local', generalRateLimit, localAuthRouter.default);
 
   // Google OAuth setup
   setupGoogleAuth(app);
@@ -325,21 +342,9 @@ async function startServer() {
             continue;
           }
 
-          // 2. Credit rewards directly to player's account
-          const { error: updateErr } = await db
-            .from('players')
-            .update({
-              gold: (player.gold || 0) + tier.gold,
-              keys: (player.keys || 0) + tier.keys,
-              total_xp: (player.total_xp || 0) + tier.xp,
-            })
-            .eq('id', player.id);
-
-          if (updateErr) {
-            console.error(`[Cron] Failed to credit rewards to ${player.username}:`, updateErr);
-          } else {
-            console.log(`[Cron] Rank #${tier.rank} → ${player.username || player.name}: +${tier.gold}G, +${tier.xp}XP, +${tier.keys}K`);
-          }
+          // Rewards are credited when the player claims via /api/leaderboard/rewards/claim
+          // (no direct DB credit here to prevent double-counting)
+          console.log(`[Cron] Rank #${tier.rank} → ${player.username || player.name}: snapshot created (${tier.gold}G, ${tier.xp}XP, ${tier.keys}K — pending claim)`);
         }
 
         lastCronDate = todayUTC;

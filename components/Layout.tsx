@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Bell, LogOut, Flame, Edit3, Trash2 } from 'lucide-react';
+import { LogOut, Edit3, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Lottie from 'lottie-react';
 import { SystemNotification, ReplitUser } from '../types';
@@ -559,7 +559,7 @@ const Layout: React.FC<LayoutProps> = ({
                         : 'bg-white/[0.05] border-white/[0.08] text-gray-400 hover:text-white hover:bg-white/10'
                     }`}
                   >
-                    <Bell size={16} />
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
                     {hasUnreadNotifications && (
                       <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 rounded-full border-2 border-black shadow-[0_0_6px_rgba(239,68,68,0.8)]" />
                     )}
@@ -595,7 +595,7 @@ const Layout: React.FC<LayoutProps> = ({
                         <div className="max-h-72 overflow-y-auto">
                           {notificationHistory.length === 0 ? (
                             <div className="py-8 text-center">
-                              <Bell size={20} className="text-gray-700 mx-auto mb-2" />
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-700 mx-auto mb-2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
                               <p className="text-gray-600 text-xs font-mono">No notifications</p>
                             </div>
                           ) : (

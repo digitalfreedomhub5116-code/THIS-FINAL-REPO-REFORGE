@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { supabaseServer } from '../lib/supabase.js';
+import { getAuthenticatedUserId } from '../lib/playerAuth.js';
 
 const router = Router();
 
@@ -108,23 +109,72 @@ router.get('/rewards', async (req: Request, res: Response) => {
   }
 });
 
-// ── Claim a rank reward (mark as seen, animation played) ──
+// ── Claim a rank reward: auth-gated, credits rewards server-side, prevents double-claim ──
 router.post('/rewards/claim', async (req: Request, res: Response) => {
+  const authUserId = getAuthenticatedUserId(req);
+  if (!authUserId) return res.status(401).json({ error: 'Unauthorized' });
+
   const { snapshotId } = req.body;
   if (!snapshotId) return res.status(400).json({ error: 'snapshotId required' });
 
   try {
-    const { error } = await (supabaseServer() as any)
+    const db = supabaseServer() as any;
+
+    // 1. Fetch snapshot and verify it exists + not already claimed
+    const { data: snapshot, error: snapErr } = await db
+      .from('daily_rank_snapshots')
+      .select('id, player_id, reward_gold, reward_xp, reward_keys, claimed')
+      .eq('id', snapshotId)
+      .single();
+
+    if (snapErr || !snapshot) {
+      return res.status(404).json({ error: 'Snapshot not found' });
+    }
+    if (snapshot.claimed) {
+      return res.json({ success: true, already_claimed: true });
+    }
+
+    // 2. Verify the requesting user owns this snapshot
+    const { data: playerRow, error: playerErr } = await db
+      .from('players')
+      .select('id, gold, keys, total_xp')
+      .eq('supabase_id', authUserId)
+      .single();
+
+    if (playerErr || !playerRow) {
+      return res.status(403).json({ error: 'Player not found' });
+    }
+    if (playerRow.id !== snapshot.player_id) {
+      return res.status(403).json({ error: 'Forbidden — snapshot does not belong to you' });
+    }
+
+    // 3. Credit rewards to the player's DB account
+    const newGold = (playerRow.gold || 0) + (snapshot.reward_gold || 0);
+    const newKeys = (playerRow.keys || 0) + (snapshot.reward_keys || 0);
+    const newTotalXp = (playerRow.total_xp || 0) + (snapshot.reward_xp || 0);
+
+    const { error: creditErr } = await db
+      .from('players')
+      .update({ gold: newGold, keys: newKeys, total_xp: newTotalXp })
+      .eq('id', playerRow.id);
+
+    if (creditErr) {
+      console.error('[Leaderboard Rewards Claim] Credit failed:', creditErr);
+      return res.status(500).json({ error: 'Failed to credit rewards' });
+    }
+
+    // 4. Mark snapshot as claimed
+    const { error: claimErr } = await db
       .from('daily_rank_snapshots')
       .update({ claimed: true })
       .eq('id', snapshotId);
 
-    if (error) {
-      console.error('[Leaderboard Rewards Claim]', error);
-      return res.status(500).json({ error: 'Internal server error' });
+    if (claimErr) {
+      console.error('[Leaderboard Rewards Claim] Mark claimed failed:', claimErr);
     }
 
-    return res.json({ success: true });
+    console.log(`[Leaderboard Claim] Player ${authUserId} claimed rank reward: +${snapshot.reward_gold}G, +${snapshot.reward_xp}XP, +${snapshot.reward_keys}K`);
+    return res.json({ success: true, rewards: { gold: snapshot.reward_gold, xp: snapshot.reward_xp, keys: snapshot.reward_keys } });
   } catch (err) {
     console.error('[Leaderboard Rewards Claim]', err);
     return res.status(500).json({ error: 'Internal server error' });

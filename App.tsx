@@ -19,8 +19,8 @@ import {
   SkeletonWardrobePreview, SkeletonRankProgression, SkeletonUpcomingQuests,
   SkeletonDashboardWidgets, SkeletonForgeGuard,
   SkeletonQuestsPage, SkeletonShopPage, SkeletonCastlePage,
-  SkeletonAlliancePage, SkeletonGrowthPage, SkeletonHealthPage,
-  SkeletonRankingPage, SkeletonProfilePage, SkeletonAdminPage,
+  SkeletonAlliancePage, SkeletonHealthPage,
+  SkeletonProfilePage, SkeletonAdminPage,
   SkeletonOnboardingPage, SkeletonGenericPage,
 } from './components/SkeletonLoaders';
 
@@ -50,14 +50,14 @@ const AdminLogin = lazy(() => import('./components/AdminLogin'));
 const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
 const QuestsView = lazy(() => import('./components/QuestsView'));
 const ShopView = lazy(() => import('./components/ShopView'));
-const GrowthView = lazy(() => import('./components/GrowthView'));
+// GrowthView removed — unreachable tab (no navigation path)
 const HealthView = lazy(() =>
   import('./components/HealthView').then(m => ({ default: m.HealthView }))
 );
 
 const StatBoxes = lazy(() => import('./components/StatBoxes'));
 const LevelUpCinematic = lazy(() => import('./components/LevelUpCinematic'));
-const WelcomeIntro = lazy(() => import('./components/WelcomeIntro'));
+// WelcomeIntro removed — dead code (never triggered)
 const PenaltyZone = lazy(() => import('./components/PenaltyZone'));
 const TournamentResultModal = lazy(() => import('./components/TournamentResultModal'));
 const TutorialOverlay = lazy(() => import('./components/TutorialOverlay'));
@@ -70,7 +70,7 @@ const NameOnboarding = lazy(() => import('./components/NameOnboarding'));
 // AvatarGenerator removed — no longer needed
 const DuskChat = lazy(() => import('./components/DuskChat'));
 const XpCollectionOverlay = lazy(() => import('./components/XpCollectionOverlay'));
-const CheatWarningModal = lazy(() => import('./components/CheatWarningModal'));
+// CheatWarningModal removed — dead code (never triggered)
 const LevelDownCinematic = lazy(() => import('./components/LevelDownCinematic'));
 const BanScreen = lazy(() => import('./components/BanScreen'));
 const BanReversalNotice = lazy(() => import('./components/BanReversalNotice'));
@@ -304,7 +304,6 @@ const App: React.FC = () => {
   const [adminToken, setAdminToken] = useState('');
   const [isNewUserOnboarding, setIsNewUserOnboarding] = useState(false);
   const [highlightDungeon, setHighlightDungeon] = useState(false);
-  const [showWelcome, setShowWelcome] = useState(false);
   const [showLevelUp, setShowLevelUp] = useState(false);
   const [showLevelDown, setShowLevelDown] = useState(false);
   const [showNav, setShowNav] = useState(true);
@@ -322,45 +321,6 @@ const App: React.FC = () => {
   const [strikeLiftedNotifId, setStrikeLiftedNotifId] = useState<string | null>(null);
 
   const [mentorMessages, setMentorMessages] = useState<{id: string, text: string}[]>([]);
-
-  // ── Android back button (history-based) ──
-  useEffect(() => {
-    let backPressedOnce = false;
-    let backPressTimer: ReturnType<typeof setTimeout> | null = null;
-
-    const handler = CapApp.addListener('backButton', () => {
-      // 1. If any overlay is open, close it first
-      if (isDungeonMode) return; // dungeon handles its own back
-      if (showDuskChat) { setShowDuskChat(false); return; }
-      if (showLogoutChoice) { setShowLogoutChoice(false); return; }
-      if (showLevelUp) { setShowLevelUp(false); return; }
-      if (showLevelDown) { setShowLevelDown(false); return; }
-
-      // 2. Pop history stack
-      const history = tabHistoryRef.current;
-      if (history.length > 1) {
-        const prev = history.pop()!;
-        setActiveTab(prev);
-        return;
-      }
-
-      // 3. At root — double-press to exit
-      if (backPressedOnce) {
-        if (backPressTimer) clearTimeout(backPressTimer);
-        CapApp.exitApp();
-        return;
-      }
-      backPressedOnce = true;
-      backPressTimer = setTimeout(() => { backPressedOnce = false; }, 2000);
-      addNotification('Press back again to exit', 'SYSTEM');
-    });
-
-    return () => {
-      handler.then(h => h.remove());
-      if (backPressTimer) clearTimeout(backPressTimer);
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isDungeonMode, showDuskChat, showLogoutChoice, showLevelUp, showLevelDown]);
 
   // ── Stone Drop & Badge Unlock global animations ──
   // Single-stone animation (for lone awards like quests/workouts)
@@ -586,7 +546,6 @@ const App: React.FC = () => {
     window.addEventListener('reforge:sync-needed', onSyncNeeded);
     return () => { clearInterval(interval); window.removeEventListener('reforge:sync-needed', onSyncNeeded); };
   }, [player.userId]); // eslint-disable-line react-hooks/exhaustive-deps
-  const [showCheatWarning, setShowCheatWarning] = useState(false);
   const [xpCollection, setXpCollection] = useState<XpCollectionState | null>(null);
   const [tempHealthProfile, setTempHealthProfile] = useState<HealthProfile | undefined>();
   const [tempStats, setTempStats] = useState<CoreStats | undefined>();
@@ -607,6 +566,58 @@ const App: React.FC = () => {
 
   const [showPactScreen, setShowPactScreen] = useState(false);
   const [pendingPactQuest, setPendingPactQuest] = useState<Quest | null>(null);
+
+  // ── Android back button ──
+  // Closes any open popup/modal first, then goes to Dashboard, then double-press exits.
+  const backBtnRefs = useRef({ pressedOnce: false, timer: null as ReturnType<typeof setTimeout> | null });
+  useEffect(() => {
+    const handler = CapApp.addListener('backButton', () => {
+      // 1. Dungeon handles its own back
+      if (isDungeonMode) return;
+
+      // 2. Critical quest screens — back button should NOT dismiss these
+      // (dismissing would leave the quest in limbo: not completed, not failed)
+      if (pendingPenalty || showAuditTheater) return;
+
+      // 3. Close any open popup/modal/overlay (most intrusive first)
+      if (showPactScreen)       { setShowPactScreen(false); setPendingPactQuest(null); return; }
+      if (showDuskChat)         { setShowDuskChat(false); return; }
+      if (showChestOpening)     { setShowChestOpening(false); return; }
+      if (showDailyLogin)       { setShowDailyLogin(false); return; }
+      if (showStreakCelebration) { setShowStreakCelebration(false); return; }
+      if (showLevelUp)          { setShowLevelUp(false); return; }
+      if (showLevelDown)        { setShowLevelDown(false); return; }
+      if (rankUpData)           { setRankUpData(null); return; }
+      if (showBanReversalNotice){ setShowBanReversalNotice(false); return; }
+      if (showLogoutChoice)     { setShowLogoutChoice(false); return; }
+      if (showNotifPrompt)      { setShowNotifPrompt(false); return; }
+      if (stoneAnim)            { setStoneAnim(null); return; }
+      if (batchStoneAnim)       { setBatchStoneAnim(null); return; }
+      if (badgeAnim)            { setBadgeAnim(null); return; }
+
+      // 3. If not on Dashboard, go to Dashboard
+      if (activeTab !== 'DASHBOARD') {
+        setActiveTab('DASHBOARD');
+        tabHistoryRef.current = ['DASHBOARD'];
+        return;
+      }
+
+      // 4. Already on Dashboard with no popups — double-press to exit
+      if (backBtnRefs.current.pressedOnce) {
+        if (backBtnRefs.current.timer) clearTimeout(backBtnRefs.current.timer);
+        CapApp.exitApp();
+        return;
+      }
+      backBtnRefs.current.pressedOnce = true;
+      backBtnRefs.current.timer = setTimeout(() => { backBtnRefs.current.pressedOnce = false; }, 2000);
+      addNotification('Press back again to exit', 'SYSTEM');
+    });
+
+    return () => { handler.then(h => h.remove()); };
+  }, [isDungeonMode, pendingPenalty, showAuditTheater, showPactScreen, showDuskChat,
+      showChestOpening, showDailyLogin, showStreakCelebration, showLevelUp, showLevelDown,
+      rankUpData, showBanReversalNotice, showLogoutChoice, showNotifPrompt,
+      stoneAnim, batchStoneAnim, badgeAnim, activeTab, addNotification]);
 
   const isPenalty = player.isPenaltyActive;
 
@@ -907,7 +918,8 @@ const App: React.FC = () => {
     const levelBefore = player.level;
     const requiredXpBefore = player.requiredXp;
     const xpGained = asMini ? Math.floor((quest.xpReward || 50) * 0.1) : (quest.xpReward || 50);
-    const goldGained = asMini ? 5 : 20;
+    const RANK_GOLD: Record<string, number> = { E: 10, D: 20, C: 40, B: 80, A: 150, S: 300 };
+    const goldGained = asMini ? 5 : (RANK_GOLD[quest.rank] || 20);
 
     // Time Gate Check (EarlyCompletionPenalty)
     if (quest.minDurationMinutes && quest.minDurationMinutes > 0) {
@@ -980,13 +992,12 @@ const App: React.FC = () => {
     if (rect) {
       setXpCollection({ startRect: rect, xpGained, currentXp: xpBefore, requiredXp, level });
     }
-    window.dispatchEvent(new CustomEvent('reforge:coin-earned', { detail: { goldGained, startRect: rect ?? null } }));
     // Confetti — large for pact-honored, small for regular
     window.dispatchEvent(new CustomEvent('reforge:confetti', {
       detail: { intensity: hasPact ? 'large' : 'small', origin: rect ?? null }
     }));
     if (hasPact) {
-      addNotification(`Pact Honored. ${quest.pactAmount}G Returned. +1.25x XP Bonus.`, 'SUCCESS');
+      addNotification(`Pact Honored. ${quest?.pactAmount ?? 0}G Returned. +1.25x XP Bonus.`, 'SUCCESS');
     }
     if (player.tutorialStep === 13) advanceTutorial(14);
     if (player.tutorialStep === 14) advanceTutorial(15);
@@ -1264,15 +1275,6 @@ const App: React.FC = () => {
     }
   }
 
-  // ── Welcome Intro (for users who logged in via old flow) ──
-  if (showWelcome) {
-    return (
-      <Suspense fallback={<SkeletonOnboardingPage />}>
-        <WelcomeIntro onComplete={() => setShowWelcome(false)} />
-      </Suspense>
-    );
-  }
-
   // ── Penalty Zone ──
   if (isPenalty) {
     return (
@@ -1405,33 +1407,24 @@ const App: React.FC = () => {
           )}
           {strikeLiftedNotifId && (
             <Suspense fallback={null}>
-              <StrikeLiftedModal
-                visible={true}
-                onAcknowledge={async () => {
-                  if (player.userId && strikeLiftedNotifId) {
-                    try {
-                      await fetch(`${API_BASE}/api/player/${player.userId}/notification/${strikeLiftedNotifId}`, {
-                        method: 'DELETE',
-                        headers: { ...getPlayerAuthHeaders() },
-                        credentials: 'include',
-                      });
-                    } catch { /* ignore */ }
-                  }
-                  setStrikeLiftedNotifId(null);
-                }}
-              />
+              <ErrorBoundary>
+                <StrikeLiftedModal
+                  visible={true}
+                  onAcknowledge={async () => {
+                    if (player.userId && strikeLiftedNotifId) {
+                      try {
+                        await fetch(`${API_BASE}/api/player/${player.userId}/notification/${strikeLiftedNotifId}`, {
+                          method: 'DELETE',
+                          headers: { ...getPlayerAuthHeaders() },
+                          credentials: 'include',
+                        });
+                      } catch { /* ignore */ }
+                    }
+                    setStrikeLiftedNotifId(null);
+                  }}
+                />
+              </ErrorBoundary>
             </Suspense>
-          )}
-          {showCheatWarning && (
-            <ErrorBoundary>
-              <CheatWarningModal
-                strikes={player.cheatStrikes}
-                onAcknowledge={() => setShowCheatWarning(false)}
-                onRemoveStrike={removeStrike}
-                onVerifyTicket={(proof: string, reason: string) => verifyTicket(proof, reason, player.originalSelfieUrl)}
-                originalSelfieUrl={player.originalSelfieUrl}
-              />
-            </ErrorBoundary>
           )}
           {showAuditTheater && pendingAuditQuest && (
             <Suspense fallback={null}>
@@ -1489,7 +1482,9 @@ const App: React.FC = () => {
 
       {/* Confetti Overlay — rendered at App level */}
       <Suspense fallback={null}>
-        <ConfettiOverlay />
+        <ErrorBoundary>
+          <ConfettiOverlay />
+        </ErrorBoundary>
       </Suspense>
 
       {/* System Pact Screen — rendered at App level to cover navbar */}
@@ -1509,7 +1504,7 @@ const App: React.FC = () => {
           <Navigation
             activeTab={activeTab}
             onTabChange={navigateTo}
-            badges={{ ALLIANCE: !player.allianceId }}
+            badges={{ LEADERBOARD: !player.allianceId }}
           />
         ) : null}
         playerLevel={player.level}
@@ -1772,20 +1767,6 @@ const App: React.FC = () => {
             </motion.div>
           )}
 
-          {/* ── GROWTH ── */}
-          {activeTab === 'GROWTH' && (
-            <motion.div key="growth" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <Suspense fallback={<SkeletonGrowthPage />}>
-                <ErrorBoundary fallbackLabel="Growth view failed to load">
-                  <GrowthView
-                    player={player}
-                    onLogout={() => setShowLogoutChoice(true)}
-                  />
-                </ErrorBoundary>
-              </Suspense>
-            </motion.div>
-          )}
-
           {/* ── HEALTH ── */}
           {activeTab === 'HEALTH' && (
             <motion.div key={`health-${healthViewKey}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
@@ -1823,13 +1804,6 @@ const App: React.FC = () => {
                     onAvatarChange={(newUrl) => setPlayer(prev => ({ ...prev, avatarUrl: newUrl }))}
                     onLogout={() => setShowLogoutChoice(true)}
                     onBack={() => setActiveTab('DASHBOARD')}
-                    onNavigate={(tab) => {
-                      if (tab === 'STORE') {
-                        setHighlightDungeon(true);
-                      }
-                      setActiveTab(tab);
-                    }}
-                    onRetakeTutorial={() => { resetTutorial(); setIsNewUserOnboarding(true); setActiveTab('DASHBOARD'); }}
                     onDeleteAccount={async () => {
                       if (!player.userId || player.userId.startsWith('local')) return;
                       const uid = player.userId;
@@ -1880,6 +1854,7 @@ const App: React.FC = () => {
         </div>{/* end swipe wrapper */}
 
         {activeTab === 'DASHBOARD' && (
+          <ErrorBoundary>
           <MobileFloatingMenu
             gold={player.gold}
             keys={player.keys}
@@ -1893,9 +1868,11 @@ const App: React.FC = () => {
             onAddRewards={addRewards}
             onAddNotification={(msg: string, type: any) => addNotification(msg, type)}
           />
+          </ErrorBoundary>
         )}
 
         {showLogoutChoice && (
+          <ErrorBoundary>
           <LogoutChoiceScreen
             onSelect={(dest) => {
               logoutFlowRef.current = true;
@@ -1930,6 +1907,7 @@ const App: React.FC = () => {
             }}
             onCancel={() => setShowLogoutChoice(false)}
           />
+          </ErrorBoundary>
         )}
 
         {/* ── Stone Drop Animation (single award) ── */}

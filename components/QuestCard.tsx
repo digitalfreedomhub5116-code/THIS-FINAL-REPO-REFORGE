@@ -94,11 +94,12 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
   // catColor/catIcon now read directly from maps in JSX for combined pillars
   const displayXp  = isMiniActive ? Math.floor(quest.xpReward * 0.1) : quest.xpReward;
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
     if (completingRef.current) return; // Debounce rapid taps
     completingRef.current = true;
-    // Auto-stop sensor tracking before completing
-    if (quest.sensorTracking && onStopTracking) onStopTracking(quest.id);
+    // Auto-stop sensor tracking before completing — MUST await so final
+    // sensor data is written to state before completeQuest reads it
+    if (quest.sensorTracking && onStopTracking) await onStopTracking(quest.id);
     onComplete(quest.id, isMiniActive);
     setTimeout(() => { completingRef.current = false; }, 1500);
   };

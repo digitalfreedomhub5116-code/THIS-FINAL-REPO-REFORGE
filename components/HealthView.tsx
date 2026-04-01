@@ -1857,7 +1857,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
             )}
         </AnimatePresence>
 
-        <div id="tut-health" className="h-full flex flex-col gap-6 font-mono">
+        <div id="tut-health" className="flex flex-col gap-6 font-mono">
             <div className="flex gap-2 sticky top-20 z-30 pt-1 pb-2 bg-transparent">
                 {visibleTabs.map(t => (
                     <button
@@ -1875,7 +1875,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
                     </button>
                 ))}
             </div>
-            <div className="flex-1 pb-20">
+            <div className="pb-20">
                 <AnimatePresence mode="wait">
                     {activeTab === 'WORKOUT' && (() => {
                         const completedWorkouts = Object.values(dayMap).filter(o => o === 'completed' || o === 'cheated').length;

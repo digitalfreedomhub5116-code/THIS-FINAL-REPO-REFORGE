@@ -206,13 +206,47 @@ router.delete('/users/:id', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
   const { id } = req.params;
   try {
-    const { error } = await (supabaseServer() as any)
+    const sb = supabaseServer() as any;
+
+    // 1. Get internal player ID for snapshot cleanup
+    const { data: playerRow } = await sb
+      .from('players')
+      .select('id')
+      .eq('supabase_id', id)
+      .single();
+
+    // 2. Delete player row from public.players table (CRITICAL — must succeed)
+    const { error: deleteError } = await sb
       .from('players')
       .delete()
       .eq('supabase_id', id);
-    if (error) throw error;
+    if (deleteError) throw deleteError;
+
+    // 3. Delete Supabase Auth user (best-effort — requires service_role key)
+    try {
+      const { error: authError } = await sb.auth.admin.deleteUser(id);
+      if (authError) {
+        console.warn('[Admin Delete] Auth user delete failed (non-critical):', authError.message);
+      }
+    } catch (authErr) {
+      console.warn('[Admin Delete] Auth admin API unavailable:', (authErr as any)?.message);
+    }
+
+    // 4. Delete avatar from storage (best-effort)
+    try {
+      await sb.storage.from('avatars').remove([`avatars/${id}.webp`]);
+    } catch { /* avatar may not exist */ }
+
+    // 5. Delete leaderboard snapshots (best-effort)
+    if (playerRow?.id) {
+      try {
+        await sb.from('daily_rank_snapshots').delete().eq('player_id', playerRow.id);
+      } catch { /* snapshots may not exist */ }
+    }
+
     await logAdminAction('delete_user', req, { targetUser: id });
-    return res.json({ success: true });
+    console.log(`[Admin Delete] User ${id} — account permanently deleted`);
+    return res.json({ success: true, message: 'Account and all data permanently deleted.' });
   } catch (err) {
     console.error('[Admin delete user]', err);
     return res.status(500).json({ error: 'Internal server error' });

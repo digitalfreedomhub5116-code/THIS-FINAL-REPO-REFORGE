@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Save, User, Briefcase, Award, Shield, Terminal, Activity, Settings, LogOut, Lock, ArrowLeft, CheckCircle, XCircle, RotateCcw, AlertTriangle, Camera, Loader2 } from 'lucide-react';
+import { Save, User, Briefcase, Award, Shield, Terminal, Activity, Settings, LogOut, Lock, ArrowLeft, CheckCircle, XCircle, AlertTriangle, Camera, Loader2 } from 'lucide-react';
 import { PlayerData, HealthProfile } from '../types';
 import { API_BASE } from '../lib/apiConfig';
 import { getPlayerAuthHeaders, getOrRefreshPlayerHeaders } from '../lib/playerApi';
@@ -11,8 +11,6 @@ interface ProfileViewProps {
   onAvatarChange?: (newUrl: string) => void;
   onLogout: () => void;
   onBack?: () => void;
-  onNavigate?: (tab: 'STORE' | 'DASHBOARD' | 'QUESTS' | 'HEALTH' | 'LEADERBOARD' | 'PROFILE') => void;
-  onRetakeTutorial?: () => void;
   onDeleteAccount?: () => Promise<void>;
 }
 
@@ -55,7 +53,7 @@ function compressImage(file: File, maxSize = 512): Promise<string> {
   });
 }
 
-const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onAvatarChange, onLogout, onBack, onRetakeTutorial, onDeleteAccount }) => {
+const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onAvatarChange, onLogout, onBack, onDeleteAccount }) => {
   const [activeTab, setActiveTab] = useState<'LOGS' | 'CONFIG'>('LOGS');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteStep, setDeleteStep] = useState<0 | 1 | 2>(0);
@@ -442,15 +440,6 @@ const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onAvatarCha
                   SAVE CHANGES
                 </button>
 
-                {onRetakeTutorial && (
-                  <button
-                    disabled
-                    onClick={(e) => { e.preventDefault(); }}
-                    className="w-full border border-gray-800 text-gray-500 py-2.5 rounded-lg flex items-center justify-center gap-2 cursor-not-allowed opacity-50 transition-all text-xs font-mono font-bold tracking-widest"
-                  >
-                    <RotateCcw size={12} /> RETAKE TUTORIAL (DISABLED)
-                  </button>
-                )}
                 <div className="pt-3 border-t border-white/[0.06] space-y-3">
                   <button
                     onClick={onLogout}

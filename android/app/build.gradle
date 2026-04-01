@@ -8,7 +8,7 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
-        versionName "1.0"
+        versionName "1.0.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -18,9 +18,13 @@ android {
     }
     buildTypes {
         release {
+            // TODO: Before Play Store upload, replace with your release keystore:
+            //   1. Generate keystore: keytool -genkey -v -keystore reforge-release.keystore -alias reforge -keyalg RSA -keysize 2048 -validity 10000
+            //   2. Add signingConfigs.release block above buildTypes
+            //   3. Change this line to: signingConfig signingConfigs.release
             signingConfig signingConfigs.debug
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 }
