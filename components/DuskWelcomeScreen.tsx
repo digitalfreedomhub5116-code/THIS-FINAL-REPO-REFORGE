@@ -70,9 +70,9 @@ const DuskWelcomeScreen: React.FC<DuskWelcomeScreenProps> = ({ onComplete }) => 
   const [showButton, setShowButton] = useState(false);
   const [introEnded, setIntroEnded] = useState(false);
 
-  // Default outfit data from DB
-  const [introVideoUrl, setIntroVideoUrl] = useState('');
-  const [loopVideoUrl, setLoopVideoUrl] = useState('');
+  // Default outfit data — hardcoded Venus fallbacks so video plays instantly
+  const [introVideoUrl, setIntroVideoUrl] = useState('/assets/outfits/venusintro.mp4');
+  const [loopVideoUrl, setLoopVideoUrl] = useState('/assets/outfits/venusloop.mp4');
   const [fallbackImage, setFallbackImage] = useState('');
   const [videosReady, setVideosReady] = useState(false);
 
