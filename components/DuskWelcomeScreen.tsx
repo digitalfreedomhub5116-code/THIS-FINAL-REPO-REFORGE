@@ -87,8 +87,11 @@ const DuskWelcomeScreen: React.FC<DuskWelcomeScreenProps> = ({ onComplete }) => 
         if (!Array.isArray(rows)) return;
         const defaultOutfit = rows.find((o: any) => o.is_default === true) || rows[0];
         if (!defaultOutfit) return;
-        if (defaultOutfit.intro_video_url) setIntroVideoUrl(defaultOutfit.intro_video_url);
-        if (defaultOutfit.loop_video_url) setLoopVideoUrl(defaultOutfit.loop_video_url);
+        // Only override hardcoded Venus URLs if DB returns valid non-default paths
+        const dbIntro = defaultOutfit.intro_video_url || '';
+        const dbLoop = defaultOutfit.loop_video_url || '';
+        if (dbIntro && !dbIntro.includes('defaultintro')) setIntroVideoUrl(dbIntro);
+        if (dbLoop && !dbLoop.includes('defaultloop')) setLoopVideoUrl(dbLoop);
         if (defaultOutfit.image_url) setFallbackImage(defaultOutfit.image_url);
       })
       .catch(() => { /* fail silently — fallback image or empty */ });

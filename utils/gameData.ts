@@ -20,6 +20,8 @@ export const OUTFITS: Outfit[] = [
     baseStats: { attack: 40, boost: 10, ultimate: 5, extraction: 0 },
     cost: 0,
     accentColor: '#9ca3af',
+    introVideoUrl: '/assets/outfits/venusintro.mp4',
+    loopVideoUrl: '/assets/outfits/venusloop.mp4',
     buffs: [],
     isDefault: true,
   },
@@ -32,6 +34,8 @@ export const OUTFITS: Outfit[] = [
     baseStats: { attack: 90, boost: 60, ultimate: 45, extraction: 30 },
     cost: 800,
     accentColor: '#4ade80',
+    introVideoUrl: '/assets/outfits/greenherointro.mp4',
+    loopVideoUrl: '/assets/outfits/greenheroloop.mp4',
     buffs: [{ label: 'XP Boost', color: '#4ade80' }],
   },
   {
@@ -43,6 +47,8 @@ export const OUTFITS: Outfit[] = [
     baseStats: { attack: 150, boost: 50, ultimate: 100, extraction: 20 },
     cost: 1500,
     accentColor: '#60a5fa',
+    introVideoUrl: '/assets/outfits/ninjaintro.mp4',
+    loopVideoUrl: '/assets/outfits/ninjaloop.mp4',
     buffs: [{ label: 'Nutrition Boost', color: '#60a5fa' }],
   },
   {
@@ -86,6 +92,8 @@ export const OUTFITS: Outfit[] = [
     baseStats: { attack: 2500, boost: 1500, ultimate: 4000, extraction: 5000 },
     cost: 50000,
     accentColor: '#f87171',
+    introVideoUrl: '/assets/outfits/redprinceintro.mp4',
+    loopVideoUrl: '/assets/outfits/redprinceloop.mp4',
     buffs: [
       { label: 'Coin Frenzy',        color: '#facc15' },
       { label: 'Shadow Extraction',  color: '#c084fc' },
