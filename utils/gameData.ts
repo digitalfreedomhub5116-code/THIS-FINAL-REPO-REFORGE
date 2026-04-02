@@ -88,7 +88,7 @@ export const OUTFITS: Outfit[] = [
     name: "Overlord's Raiment",
     tier: 'S',
     description: 'The ultimate armor of the Overlord. All limits transcended.',
-    image: '/images/outfit/outfit-s.jpg',
+    image: '/assets/outfits/redprinceimg.png',
     baseStats: { attack: 2500, boost: 1500, ultimate: 4000, extraction: 5000 },
     cost: 50000,
     accentColor: '#f87171',
