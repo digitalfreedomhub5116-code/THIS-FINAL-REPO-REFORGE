@@ -124,7 +124,7 @@ const App: React.FC = () => {
     player, setPlayer, notifications,
     notificationHistory, hasUnreadNotifications, markNotificationsRead, clearNotificationHistory,
     registerUser, addQuest, completeQuest, failQuest, failFlaggedQuest, resetQuest, deleteQuest,
-    purchaseItem, buyConsumable, addNotification,
+    purchaseItem, addNotification,
     removeNotification, saveHealthProfile, updateProfile,
     logMeal, deleteMeal, completeWorkoutSession, failWorkout,
     advanceTutorial, completeTutorial, resetTutorial, resetPlayer, resolvePenalty, reducePenalty,
@@ -134,7 +134,7 @@ const App: React.FC = () => {
     startSensorTracking, stopSensorTracking, updateQuestSensorData,
     verifyTicket, purchaseOutfit, equipOutfit,
     checkDailyLogin, updateSkillProgress,
-    updateServerBaseline, awardOutfitStones,
+    updateServerBaseline, awardRandomStones,
   } = useSystem();
 
   const sensors = useSensors();
@@ -1655,7 +1655,7 @@ const App: React.FC = () => {
                     onConsumeKey={consumeKey}
                     onEnterDungeon={enterDungeon}
                     onAddRewards={addRewards}
-                    onAwardStones={(outfitId, amount) => awardOutfitStones(outfitId, amount, 'dungeon')}
+                    onAwardStones={(outfitId, amount) => awardRandomStones(amount, amount, 'dungeon')}
                     onPlayStateChange={setIsDungeonMode}
                     initialMode="PLAYING"
                     onExit={() => {
@@ -1708,7 +1708,6 @@ const App: React.FC = () => {
                     lastDungeonEntry={player.lastDungeonEntry ?? 0}
                     onStartDungeon={handleStartDungeon}
                     consumables={player.consumables}
-                    buyConsumable={buyConsumable}
                     streak={player.streak}
                     lastLoginDate={player.lastLoginDate}
                     onOpenDailyCalendar={DAILY_REWARDS_ENABLED ? () => setShowDailyLogin(true) : undefined}
@@ -1756,7 +1755,6 @@ const App: React.FC = () => {
                     lastDungeonEntry={player.lastDungeonEntry ?? 0}
                     onStartDungeon={handleStartDungeon}
                     consumables={player.consumables}
-                    buyConsumable={buyConsumable}
                     streak={player.streak}
                     lastLoginDate={player.lastLoginDate}
                     outfitStones={player.outfitStones || {}}

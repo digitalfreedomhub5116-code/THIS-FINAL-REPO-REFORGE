@@ -63,7 +63,6 @@ export const OUTFITS: Outfit[] = [
     introVideoUrl: '/assets/outfits/marsintro.mp4',
     loopVideoUrl: '/assets/outfits/marsloop.mp4',
     buffs: [
-      { label: 'Shadow Extraction', color: '#c084fc' },
       { label: 'XP Boost',          color: '#4ade80' },
     ],
   },
@@ -80,7 +79,7 @@ export const OUTFITS: Outfit[] = [
     loopVideoUrl: '/assets/outfits/jupiterloop.mp4',
     buffs: [
       { label: 'Coin Frenzy',        color: '#facc15' },
-      { label: 'Shadow Extraction',  color: '#c084fc' },
+      { label: 'XP Boost',           color: '#4ade80' },
     ],
   },
   {
@@ -96,7 +95,6 @@ export const OUTFITS: Outfit[] = [
     loopVideoUrl: '/assets/outfits/redprinceloop.mp4',
     buffs: [
       { label: 'Coin Frenzy',        color: '#facc15' },
-      { label: 'Shadow Extraction',  color: '#c084fc' },
       { label: 'XP Boost',           color: '#4ade80' },
       { label: 'Nutrition Boost',    color: '#60a5fa' },
     ],

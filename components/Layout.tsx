@@ -77,7 +77,7 @@ interface LayoutProps {
   streak?: number;
   gold?: number;
   keys?: number;
-  consumables?: { shadowScrolls: number };
+  consumables?: Record<string, never>;
   replitUser?: ReplitUser;
   notificationHistory?: StoredNotification[];
   hasUnreadNotifications?: boolean;

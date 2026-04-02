@@ -22,7 +22,6 @@ interface EventBanner {
 }
 
 interface Consumables {
-  shadowScrolls: number;
 }
 
 interface ShopViewProps {
@@ -63,19 +62,7 @@ const RARITY_STYLES: Record<string, { label: string; bg: string; text: string; b
   LEGENDARY: { label: 'LEGENDARY', bg: 'rgba(234,179,8,0.12)',  text: '#eab308', border: 'rgba(234,179,8,0.3)' },
 };
 
-const CONSUMABLE_ITEMS = [
-  {
-    type: 'shadowScroll' as const,
-    name: 'Shadow Scroll',
-    desc: 'Consumed to attempt a Shadow Extraction.',
-    rarity: 'RARE',
-    costGold: 150,
-    costKeys: 0,
-    emoji: '📜',
-    ownedKey: 'shadowScrolls' as keyof Consumables,
-    accentColor: '#00d2ff',
-  },
-];
+const CONSUMABLE_ITEMS: any[] = [];
 
 // Build 7-day login preview from the real REWARD_SCHEDULE so store stays synced with the popup
 const REWARD_EMOJI: Record<string, string> = {
@@ -100,7 +87,7 @@ const ShopView: React.FC<ShopViewProps> = ({
   keys = 0,
   lastDungeonEntry = 0,
   onStartDungeon,
-  consumables = { shadowScrolls: 0 },
+  consumables = { },
   buyConsumable,
   streak = 0,
   lastLoginDate = '',

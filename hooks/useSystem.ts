@@ -235,14 +235,9 @@ function safeLevelUp(currentXp: number, requiredXp: number, level: number): { cu
   return { currentXp, requiredXp, level, leveledUp, rank: computeRank(level) };
 }
 
-// Shadow warfare removed — always return 1x multiplier
-function getShadowXpMultiplier(_userId: string): number {
-  return 1;
-}
+const MAX_DAILY_WORKOUTS = 3;
 
-const MAX_DAILY_WORKOUTS = 6;
-
-// ── Badge XP boost: based on equipped outfit's badges ──
+// Badge XP Multiplier logic
 function getBadgeXpMultiplier(outfitStones: Record<string, number>, equippedOutfitId: string): number {
   const stones = outfitStones[equippedOutfitId] || 0;
   return 1 + getOutfitXpBoost(stones); // e.g. 1.17 for max badges
@@ -885,7 +880,7 @@ export const useSystem = () => {
 
       let { currentXp, requiredXp, level, totalXp, dailyXp, gold, keys, consumables } = prev;
       
-      const safeConsumables = consumables || { shadowScrolls: 0 };
+      const safeConsumables = consumables || {};
       const safeChests = prev.chests || { legendary: 0 };
       const safeStones = prev.outfitStones || {};
 
@@ -988,9 +983,6 @@ export const useSystem = () => {
       }
 
       const updatedConsumables = { ...prev.consumables };
-      if (bonusItems) {
-        if (bonusItems.scrolls) updatedConsumables.shadowScrolls = (updatedConsumables.shadowScrolls ?? 0) + bonusItems.scrolls;
-      }
 
       return {
         ...prev,
@@ -1019,7 +1011,6 @@ export const useSystem = () => {
       const safeChests = { ...(prev.chests || { legendary: 0 }) };
       safeChests.legendary = Math.max(0, safeChests.legendary - 1);
       const updatedConsumables = { ...prev.consumables };
-      updatedConsumables.shadowScrolls = (updatedConsumables.shadowScrolls ?? 0) + scrolls;
       const safeStones = { ...(prev.outfitStones || {}) };
       safeStones['outfit_starter'] = (safeStones['outfit_starter'] || 0) + stones;
       return {
@@ -1204,11 +1195,9 @@ export const useSystem = () => {
       }
 
       let { currentXp, requiredXp, level, totalXp, dailyXp } = prev;
-      // Apply shadow army XP boost
-      const shadowMultiplier = getShadowXpMultiplier(prev.userId || 'local');
       // Apply badge XP boost from equipped outfit
       const badgeMultiplier = getBadgeXpMultiplier(prev.outfitStones || {}, prev.equippedOutfitId || 'outfit_starter');
-      const totalMultiplier = shadowMultiplier * badgeMultiplier;
+      const totalMultiplier = badgeMultiplier;
       const boostedReward = Math.floor(reward * totalMultiplier);
       const badgeBonus = boostedReward - reward;
       currentXp += boostedReward;
@@ -1397,47 +1386,6 @@ export const useSystem = () => {
     addNotification(`Acquired: ${item.title}`, 'PURCHASE');
     playSystemSoundEffect('PURCHASE');
   };
-  const consumeItem = (field: keyof PlayerData['consumables'], amount: number = 1): boolean => {
-    const current = player.consumables?.[field] ?? 0;
-    if (current < amount) return false;
-    
-    setPlayer(prev => ({
-      ...prev,
-      consumables: {
-        ...prev.consumables,
-        [field]: Math.max(0, (prev.consumables?.[field] ?? 0) - amount)
-      }
-    }));
-    return true;
-  };
-
-
-  const buyConsumable = (type: 'shadowScroll') => {
-    const costs: Record<string, { gold?: number; keys?: number; label: string; field: keyof PlayerData['consumables'] }> = {
-      shadowScroll: { gold: 150, label: 'Shadow Scroll', field: 'shadowScrolls' },
-    };
-    const c = costs[type];
-    if (c.gold !== undefined) {
-      if (player.gold < c.gold) { addNotification('Insufficient Coins', 'WARNING'); return; }
-      setPlayer(prev => ({
-        ...prev,
-        gold: prev.gold - c.gold!,
-        consumables: { ...prev.consumables, [c.field]: (prev.consumables?.[c.field] ?? 0) + 1 },
-        logs: [createLog(`Purchased: ${c.label} (-${c.gold} G)`, 'PURCHASE'), ...prev.logs],
-      }));
-    } else if (c.keys !== undefined) {
-      if (player.keys < c.keys) { addNotification('Insufficient Keys', 'WARNING'); return; }
-      setPlayer(prev => ({
-        ...prev,
-        keys: prev.keys - c.keys!,
-        consumables: { ...prev.consumables, [c.field]: (prev.consumables?.[c.field] ?? 0) + 1 },
-        logs: [createLog(`Purchased: ${c.label} (-${c.keys} Keys)`, 'PURCHASE'), ...prev.logs],
-      }));
-    }
-    addNotification(`${c.label} acquired!`, 'PURCHASE');
-    playSystemSoundEffect('PURCHASE');
-  };
-
   const addShopItem = (item: ShopItem) => {
     setPlayer(prev => ({ ...prev, shopItems: [...prev.shopItems, item] }));
   };
@@ -1639,11 +1587,9 @@ export const useSystem = () => {
       });
 
       let { currentXp, requiredXp, level, totalXp, dailyXp } = prev;
-      // Apply shadow army XP boost
-      const shadowMult = getShadowXpMultiplier(prev.userId || 'local');
       // Apply badge XP boost
       const badgeMult = getBadgeXpMultiplier(prev.outfitStones || {}, prev.equippedOutfitId || 'outfit_starter');
-      const combinedMult = shadowMult * badgeMult;
+      const combinedMult = badgeMult;
       const boostedWorkoutXp = Math.floor(totalXpGain * combinedMult);
       currentXp += boostedWorkoutXp;
       totalXp += boostedWorkoutXp;
@@ -2092,8 +2038,6 @@ export const useSystem = () => {
     resetQuest,
     deleteQuest,
     purchaseItem,
-    consumeItem,
-    buyConsumable,
     addShopItem,
     removeShopItem,
     removeNotification,
@@ -2141,7 +2085,5 @@ export const useSystem = () => {
     updateSkillProgress,
     updateServerBaseline,
     awardRandomStones,
-    awardOutfitStones,
   };
 };
-

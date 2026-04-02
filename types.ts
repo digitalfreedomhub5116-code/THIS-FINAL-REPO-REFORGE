@@ -557,7 +557,7 @@ export interface PlayerData {
   quests: Quest[];
   questHistory?: Record<string, number>;
   shopItems: ShopItem[];
-  consumables: { shadowScrolls: number };
+  consumables?: Record<string, never>;
   chests: { legendary: number };
   personalBests: Record<string, number>;
 
