@@ -6,6 +6,7 @@ import {
 } from '../types';
 import { playSystemSoundEffect } from '../utils/soundEngine';
 import { getPlayerAuthHeaders } from '../lib/playerApi';
+import { clearAuthNative } from '../lib/nativeAuth';
 import { REWARD_SCHEDULE } from '../lib/rewards';
 import { API_BASE } from '../lib/apiConfig';
 import { OUTFITS, getOutfitXpBoost, getStoneConfig, getUnlockedBadgeCount, BADGE_TIERS } from '../utils/gameData';
@@ -786,7 +787,7 @@ export const useSystem = () => {
       await fetch(`${API_BASE}/api/auth/local/logout`, { method: 'POST', credentials: 'include' });
     } catch { /* ignore */ }
     localStorage.removeItem(`reforge_player_v2_${player.userId || 'local'}`);
-    localStorage.removeItem('reforge_player_token'); // Make sure we clear the token too if it's there
+    clearAuthNative(); // Clear JWT from both localStorage and native Preferences
     window.location.reload();
   };
 

@@ -5,6 +5,7 @@ import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import { PlayerData, ReplitUser } from '../types';
 import { API_BASE, fetchWithRetry, checkServerHealth } from '../lib/apiConfig';
 import { getPlayerAuthHeaders } from '../lib/playerApi';
+import { saveAuthNative } from '../lib/nativeAuth';
 import { isNativePlatform } from '../lib/googleAuth';
 import NativeGoogleButton from './NativeGoogleButton';
 import { shuffleFacts } from '../lib/funFacts';
@@ -68,7 +69,7 @@ const SignInPage: React.FC<SignInPageProps> = ({ onLogin, onNavigate }) => {
         const res = await fetchWithRetry(`${API_BASE}/api/auth/local/whoami`, { credentials: 'include', headers: { ...getPlayerAuthHeaders() } });
         if (res.ok) {
           const json = await res.json();
-          if (json.playerToken) localStorage.setItem('reforge_player_token', json.playerToken);
+          if (json.playerToken) saveAuthNative(json.playerToken);
           const user: ReplitUser = json.user || json;
           if (user?.id || (user as any)?.supabase_id) {
             await loginWithUser(user);
@@ -126,7 +127,7 @@ const SignInPage: React.FC<SignInPageProps> = ({ onLogin, onNavigate }) => {
         setError(data.error || `Sign in failed (${res.status})`);
         return;
       }
-      if (data.playerToken) localStorage.setItem('reforge_player_token', data.playerToken);
+      if (data.playerToken) saveAuthNative(data.playerToken);
       await loginWithUser(data.user || data);
     } catch (err: any) {
       console.error('[SignIn] Login network error:', err);
@@ -160,7 +161,7 @@ const SignInPage: React.FC<SignInPageProps> = ({ onLogin, onNavigate }) => {
         setError(data.error || `Google sign-in failed (${res.status})`);
         return;
       }
-      if (data.playerToken) localStorage.setItem('reforge_player_token', data.playerToken);
+      if (data.playerToken) saveAuthNative(data.playerToken);
       const googleUser = data.user || data;
       const replitUser: ReplitUser = {
         id: googleUser.id,

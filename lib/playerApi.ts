@@ -1,3 +1,5 @@
+import { saveAuthNative } from './nativeAuth';
+
 /**
  * Helper to build Authorization headers for player API calls.
  * Reads the JWT from localStorage (set at login time).
@@ -30,7 +32,7 @@ export async function getOrRefreshPlayerHeaders(apiBase: string): Promise<Record
       if (res.ok) {
         const data = await res.json().catch(() => ({}));
         if (data.playerToken) {
-          localStorage.setItem('reforge_player_token', data.playerToken);
+          saveAuthNative(data.playerToken);
           return { Authorization: `Bearer ${data.playerToken}` };
         }
       }

@@ -4,6 +4,7 @@ import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import { PlayerData, ReplitUser } from '../types';
 import { API_BASE, fetchWithRetry, checkServerHealth } from '../lib/apiConfig';
+import { saveAuthNative } from '../lib/nativeAuth';
 import { isNativePlatform } from '../lib/googleAuth';
 import NativeGoogleButton from './NativeGoogleButton';
 import { shuffleFacts } from '../lib/funFacts';
@@ -70,7 +71,7 @@ const CreateAccountPage: React.FC<CreateAccountPageProps> = ({ onLogin, onNaviga
         const res = await fetchWithRetry(`${API_BASE}/api/auth/local/whoami`, { credentials: 'include' });
         if (res.ok) {
           const json = await res.json();
-          if (json.playerToken) localStorage.setItem('reforge_player_token', json.playerToken);
+          if (json.playerToken) saveAuthNative(json.playerToken);
           const user: ReplitUser = json.user || json;
           if (user?.id || (user as any)?.supabase_id) {
             await loginWithUser(user);
@@ -154,7 +155,7 @@ const CreateAccountPage: React.FC<CreateAccountPageProps> = ({ onLogin, onNaviga
         setError(data.error || `Registration failed (${res.status})`);
         return;
       }
-      if (data.playerToken) localStorage.setItem('reforge_player_token', data.playerToken);
+      if (data.playerToken) saveAuthNative(data.playerToken);
       await loginWithUser(data.user || data);
     } catch (err: any) {
       console.error('[CreateAccount] Registration network error:', err);
@@ -186,7 +187,7 @@ const CreateAccountPage: React.FC<CreateAccountPageProps> = ({ onLogin, onNaviga
         setError(data.error || 'Google sign-up failed');
         return;
       }
-      if (data.playerToken) localStorage.setItem('reforge_player_token', data.playerToken);
+      if (data.playerToken) saveAuthNative(data.playerToken);
       const googleUser = data.user || data;
       const replitUser: ReplitUser = {
         id: googleUser.id,

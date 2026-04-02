@@ -31,6 +31,7 @@ import { App as CapApp } from '@capacitor/app';
 import { OUTFITS } from './utils/gameData';
 import { DAILY_REWARDS_ENABLED } from './lib/rewards';
 import { getPlayerAuthHeaders, getOrRefreshPlayerHeaders } from './lib/playerApi';
+import { saveAuthNative, clearAuthNative } from './lib/nativeAuth';
 import { Terminal } from 'lucide-react';
 import { API_BASE } from './lib/apiConfig';
 import {
@@ -645,7 +646,7 @@ const App: React.FC = () => {
         const user = whoamiData?.user || whoamiData;
         if (!user?.id && !user?.supabase_id) return;
         const uid = user.id || user.supabase_id;
-        if (whoamiData.playerToken) localStorage.setItem('reforge_player_token', whoamiData.playerToken);
+        if (whoamiData.playerToken) saveAuthNative(whoamiData.playerToken, uid);
 
         // Returning user — try to load their full player record from the DB.
         // This handles localStorage being cleared (mobile, new device, private mode, etc.)
@@ -1831,8 +1832,8 @@ const App: React.FC = () => {
                       }
 
                       // 2. Server confirmed deletion — NOW safe to wipe local data
+                      clearAuthNative();
                       localStorage.removeItem('reforge_player_v2');
-                      localStorage.removeItem('reforge_player_token');
                       localStorage.removeItem(`reforge_workout_day_map_${uid}`);
                       localStorage.removeItem(`reforge_journey_start_${uid}`);
                       localStorage.removeItem(`reforge_session_logs_${uid}`);
@@ -1880,8 +1881,8 @@ const App: React.FC = () => {
               // 1. Clear local storage and reset player state IMMEDIATELY
               const prevUserId = player.userId;
               const prevPlayer = { ...player };
+              clearAuthNative();
               localStorage.removeItem('reforge_player_v2');
-              localStorage.removeItem('reforge_player_token');
               sessionStorage.setItem('reforge_logout_pending', '1');
               resetPlayer();
               // 2. Navigate directly to the chosen destination — instant
