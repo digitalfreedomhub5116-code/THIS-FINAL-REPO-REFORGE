@@ -653,6 +653,10 @@ export const useSystem = () => {
       ...prev,
       lastLoginDate: today,
       streak: newStreak,
+      stats: {
+        ...prev.stats,
+        discipline: (prev.stats?.discipline || 0) + 1,
+      },
     }));
   }, [player.lastLoginDate]);
 

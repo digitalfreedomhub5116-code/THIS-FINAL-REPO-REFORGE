@@ -43,7 +43,7 @@ export const OUTFITS: Outfit[] = [
     name: 'Iron Will Plate',
     tier: 'C',
     description: 'Standard-issue tank armor. High durability, steady output.',
-    image: '/images/outfit/outfit-c.jpg',
+    image: '/assets/outfits/ninjaimg.png',
     baseStats: { attack: 150, boost: 50, ultimate: 100, extraction: 20 },
     cost: 1500,
     accentColor: '#60a5fa',
