@@ -710,7 +710,7 @@ const App: React.FC = () => {
             name: o.name,
             description: o.description,
             tier: o.tier as TierLevel,
-            image: o.image_url || staticMatch?.image || '',
+            image: staticMatch?.image || o.image_url || '',
             baseStats: { attack: o.attack, boost: o.boost, extraction: o.extraction, ultimate: o.ultimate },
             cost: o.cost,
             accentColor: o.accent_color,
