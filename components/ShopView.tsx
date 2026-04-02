@@ -34,7 +34,6 @@ interface ShopViewProps {
   lastDungeonEntry?: number;
   onStartDungeon?: (isFree: boolean) => void;
   consumables?: Consumables;
-  buyConsumable?: (type: 'shadowScroll') => void;
   streak?: number;
   lastLoginDate?: string;
   onOpenDailyCalendar?: () => void;
@@ -88,7 +87,6 @@ const ShopView: React.FC<ShopViewProps> = ({
   lastDungeonEntry = 0,
   onStartDungeon,
   consumables = { },
-  buyConsumable,
   streak = 0,
   lastLoginDate = '',
   onOpenDailyCalendar,
@@ -104,7 +102,7 @@ const ShopView: React.FC<ShopViewProps> = ({
   chests,
   onOpenChest,
 }) => {
-  const [storeTab, setStoreTab] = useState<'OUTFITS' | 'BADGES' | 'ITEMS'>('OUTFITS');
+  const [storeTab, setStoreTab] = useState<'OUTFITS' | 'BADGES'>('OUTFITS');
   const [timeUntilFree, setTimeUntilFree] = useState<number>(0);
   const [buyingItem, setBuyingItem] = useState<string | null>(null);
   const [dungeonHighlightActive, setDungeonHighlightActive] = useState(false);
@@ -167,13 +165,6 @@ const ShopView: React.FC<ShopViewProps> = ({
   const isFreeReady  = timeUntilFree <= 0;
   const canAffordPaid = keys >= 3;
 
-  const handleBuy = (type: 'shadowScroll') => {
-    if (!buyConsumable) return;
-    setBuyingItem(type);
-    buyConsumable(type);
-    setTimeout(() => setBuyingItem(null), 600);
-  };
-
   const todayStr = new Date().toISOString().split('T')[0];
   const claimedToday = lastLoginDate === todayStr;
   // Use schedule length for cycle so it works with any schedule size
@@ -214,12 +205,11 @@ const ShopView: React.FC<ShopViewProps> = ({
     <div id="tut-store" className="space-y-5 pb-10">
       <OnboardingNotice page="STORE" />
 
-      {/* ── 3-TAB NAVIGATION ── */}
+      {/* ── 2-TAB NAVIGATION ── */}
       <div className="flex gap-1 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
         {([
           { id: 'OUTFITS' as const, label: 'Outfits', icon: <Shirt size={13} /> },
           { id: 'BADGES' as const, label: 'Badges', icon: <Hexagon size={13} /> },
-          { id: 'ITEMS' as const, label: 'Items', icon: <ShoppingBag size={13} /> },
         ]).map(tab => (
           <motion.button
             key={tab.id}
@@ -245,26 +235,6 @@ const ShopView: React.FC<ShopViewProps> = ({
           animate={{ opacity: 1 }}
           className="space-y-5"
         >
-          {/* ── INVENTORY COUNTERS ── */}
-          <div className="grid grid-cols-1 gap-3 pt-2">
-            {[
-              { emoji: '📜', label: 'Scrolls', count: consumables.shadowScrolls, color: '#00d2ff' },
-            ].map(c => (
-              <motion.div
-                key={c.label}
-                initial={{ opacity: 0, y: -6 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex flex-col items-center justify-center gap-1 rounded-xl py-3 px-2 relative overflow-hidden"
-                style={{ background: `${c.color}10`, border: `1px solid ${c.color}25` }}
-              >
-                <div className="absolute inset-0" style={{ background: `radial-gradient(ellipse at 50% 0%, ${c.color}08, transparent 70%)` }} />
-                <span className="text-2xl leading-none">{c.emoji}</span>
-                <span className="font-mono font-black text-xl" style={{ color: c.color }}>{c.count}</span>
-                <span className="font-mono text-[9px] uppercase tracking-widest text-gray-500">{c.label}</span>
-              </motion.div>
-            ))}
-          </div>
-
           {/* ── EVENTS LABEL ── */}
           <div className="flex items-center gap-3">
             <div className="text-[10px] font-mono font-bold tracking-[0.3em] uppercase text-gray-400">EVENTS</div>
@@ -567,146 +537,6 @@ const ShopView: React.FC<ShopViewProps> = ({
               outfits={wardrobeOutfits}
             />
           </Suspense>
-        </motion.div>
-      )}
-
-      {/* ── TAB: ITEMS ── */}
-      {storeTab === 'ITEMS' && (
-        <motion.div
-          key="items-tab"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="space-y-5"
-        >
-          {/* ── ITEMS LABEL ── */}
-          <div className="flex items-center gap-3">
-            <div className="text-[10px] font-mono font-bold tracking-[0.3em] uppercase text-gray-400">ITEMS</div>
-            <div className="flex-1 h-px bg-system-border" />
-          </div>
-
-          {/* ── CONSUMABLE BUY CARDS — Shadow Scrolls only ── */}
-          <div className="space-y-3">
-            {CONSUMABLE_ITEMS.filter(item => item.type === 'shadowScroll').map((item, idx) => {
-              const rarity    = RARITY_STYLES[item.rarity];
-              const owned     = consumables[item.ownedKey];
-              const canAfford = item.costGold > 0 ? gold >= item.costGold : keys >= item.costKeys;
-              const isBuying  = buyingItem === item.type;
-
-              return (
-                <motion.div
-                  key={item.type}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.06 }}
-                  className="flex items-center gap-4 p-4 rounded-xl relative overflow-hidden"
-                  style={{ background: 'linear-gradient(135deg,rgba(0,0,0,0.6),rgba(15,15,25,0.9))', border: '1px solid rgba(255,255,255,0.07)' }}
-                >
-                  <div className="absolute left-0 top-0 bottom-0 w-0.5 rounded-l-xl" style={{ background: item.accentColor, opacity: 0.7 }} />
-
-                  <div className="flex-shrink-0 w-14 h-14 rounded-xl flex items-center justify-center text-3xl"
-                    style={{ background: `${item.accentColor}15`, border: `1px solid ${item.accentColor}30` }}
-                  >
-                    {item.emoji}
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                      <span className="font-bold text-white font-mono text-sm">{item.name}</span>
-                      <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded uppercase tracking-wider"
-                        style={{ background: rarity.bg, color: rarity.text, border: `1px solid ${rarity.border}` }}
-                      >
-                        {rarity.label}
-                      </span>
-                    </div>
-                    <div className="text-[11px] text-gray-500 leading-tight mb-1">{item.desc}</div>
-                    <div className="text-[10px] font-mono" style={{ color: item.accentColor, opacity: 0.8 }}>
-                      Owned: <span className="font-bold">{owned}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex-shrink-0 flex flex-col items-end gap-2">
-                    <div className="flex items-center gap-1 px-2 py-1 rounded-lg font-mono text-xs font-bold"
-                      style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.08)' }}
-                    >
-                      {item.costGold > 0 ? (
-                        <>
-                          <div className="flex items-center justify-center -mx-2 -my-2" style={{ width: 35, flexShrink: 0 }}><SystemCoin size={35} /></div>
-                          <span className="text-yellow-300">{item.costGold}</span>
-                        </>
-                      ) : (
-                        <>
-                          <Key size={11} className="text-purple-400" />
-                          <span className="text-purple-300">{item.costKeys}</span>
-                        </>
-                      )}
-                    </div>
-
-                    <motion.button
-                      onClick={() => handleBuy(item.type)}
-                      disabled={!canAfford || !buyConsumable}
-                      whileTap={{ scale: canAfford ? 0.93 : 1 }}
-                      animate={isBuying ? { scale: [1, 1.15, 1] } : {}}
-                      className="px-4 py-1.5 rounded-lg font-mono font-black text-[11px] uppercase tracking-widest transition-all"
-                      style={canAfford
-                        ? { background: item.accentColor, color: '#000', boxShadow: `0 0 12px ${item.accentColor}50`, opacity: 1 }
-                        : { background: 'rgba(40,40,50,0.8)', color: '#4b5563', border: '1px solid rgba(100,100,100,0.2)', cursor: 'not-allowed', opacity: 0.6 }
-                      }
-                    >
-                      {isBuying ? '✓' : 'BUY'}
-                    </motion.button>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
-
-          {/* ── REGISTERED SHOP ITEMS ── */}
-          {items.length > 0 && (
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="text-[10px] font-mono font-bold tracking-[0.3em] uppercase text-gray-400">REWARDS</div>
-                <div className="flex-1 h-px bg-system-border" />
-              </div>
-              {items.slice(0, 3).map(item => (
-                <motion.div
-                  key={item.id}
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="flex items-center gap-4 p-4 rounded-xl"
-                  style={{ background: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.12)' }}
-                >
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
-                    style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)' }}
-                  >
-                    ⭐
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-bold text-white font-mono text-sm">{item.title}</div>
-                    {item.description && <div className="text-[11px] text-gray-500 mt-0.5">{item.description}</div>}
-                  </div>
-                  <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                    <div className="flex items-center gap-1 px-2 py-1 rounded-lg font-mono text-xs font-bold"
-                      style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.08)' }}
-                    >
-                      <div className="flex items-center justify-center -mx-2 -my-2" style={{ width: 35, flexShrink: 0 }}><SystemCoin size={35} /></div>
-                      <span className="text-yellow-300">{item.cost}</span>
-                    </div>
-                    <button
-                      onClick={() => purchaseItem(item)}
-                      disabled={gold < item.cost}
-                      className="px-4 py-1.5 rounded-lg font-mono font-black text-[11px] uppercase tracking-widest transition-all"
-                      style={gold >= item.cost
-                        ? { background: '#eab308', color: '#000', boxShadow: '0 0 12px rgba(234,179,8,0.4)' }
-                        : { background: 'rgba(40,40,50,0.8)', color: '#4b5563', border: '1px solid rgba(100,100,100,0.2)', cursor: 'not-allowed', opacity: 0.6 }
-                      }
-                    >
-                      BUY
-                    </button>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          )}
         </motion.div>
       )}
     </div>
