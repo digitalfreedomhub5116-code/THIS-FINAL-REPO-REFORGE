@@ -559,6 +559,7 @@ export interface PlayerData {
   shopItems: ShopItem[];
   consumables?: Record<string, never>;
   chests: { legendary: number };
+  claimedStreakRewards?: number[];
   personalBests: Record<string, number>;
 
   // Health

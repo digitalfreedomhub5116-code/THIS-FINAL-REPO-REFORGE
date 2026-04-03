@@ -36,6 +36,8 @@ const FlameLottie: React.FC<{ size?: number; className?: string }> = ({ size = 8
   // Fallback if flame.json fails to load or hasn't loaded yet
   return <div style={{ width: size, height: size }} className={`relative flex items-center justify-center ${className}`}><Flame size={size * 0.6} className="text-orange-500 fill-orange-500 animate-pulse" /></div>;
 };
+import StreakRewardsTimeline from './StreakRewardsTimeline';
+import { useSystem } from '../hooks/useSystem';
 import PlanCustomizer from './PlanCustomizer';
 import { generateSystemProtocol, calculateTimeEstimate } from '../utils/workoutGenerator';
 import { playSystemSoundEffect } from '../utils/soundEngine';
@@ -537,6 +539,27 @@ const GeneratingMessage: React.FC<{ messages: string[] }> = ({ messages }) => {
             </motion.div>
         </AnimatePresence>
     );
+};
+
+// ── Streak Rewards Timeline Wrapper ──
+const StreakRewardsTimelineWrapper: React.FC<{ playerData: PlayerData }> = ({ playerData }) => {
+  const { claimStreakReward } = useSystem();
+  return (
+    <StreakRewardsTimeline
+      streak={playerData.streak || 0}
+      claimedDays={playerData.claimedStreakRewards || []}
+      onClaimReward={(day, reward) => {
+        claimStreakReward(day, reward);
+        // Dispatch HUD animations
+        if (reward.type === 'GOLD' || reward.type === 'ALLIANCE_CHEST') {
+          window.dispatchEvent(new CustomEvent('reforge:coin-earned', { detail: { goldGained: reward.type === 'ALLIANCE_CHEST' ? 600 : reward.amount } }));
+        }
+        if (reward.type === 'KEY' || reward.type === 'ALLIANCE_CHEST') {
+          window.dispatchEvent(new CustomEvent('reforge:key-earned', { detail: { amount: reward.type === 'ALLIANCE_CHEST' ? 5 : reward.amount } }));
+        }
+      }}
+    />
+  );
 };
 
 export const HealthView: React.FC<HealthViewProps> = ({ 
@@ -1946,6 +1969,9 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                     ))}
                                 </div>
                             </div>
+
+                            {/* ── STREAK REWARDS TIMELINE ── */}
+                            <StreakRewardsTimelineWrapper playerData={playerData} />
 
                             {/* ── STATS GRID ── */}
                             <div className="grid grid-cols-2 gap-4">

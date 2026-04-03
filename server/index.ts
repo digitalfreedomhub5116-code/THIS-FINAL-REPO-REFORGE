@@ -289,16 +289,16 @@ async function startServer() {
 
         console.log(`[Cron] Midnight reward distribution — snapshotting ${yesterdayStr}`);
 
-        // Yesterday's time boundaries (UTC)
+        // Get top 5 players by daily_xp who synced since yesterday start.
+        // We remove the upper-bound filter because players who opened the app
+        // early today will have already reset daily_xp to 0 (filtered by gt>0)
+        // while players who haven't opened yet still carry yesterday's daily_xp.
         const yesterdayStart = new Date(yesterdayStr + 'T00:00:00Z');
-        const yesterdayEnd = new Date(todayUTC + 'T00:00:00Z');
 
-        // Get top 5 players by daily_xp who synced yesterday
         const { data: topPlayers, error: fetchErr } = await db
           .from('players')
           .select('id, username, name, daily_xp, gold, keys, total_xp')
           .gte('updated_at', yesterdayStart.toISOString())
-          .lt('updated_at', yesterdayEnd.toISOString())
           .gt('daily_xp', 0)
           .order('daily_xp', { ascending: false })
           .limit(5);

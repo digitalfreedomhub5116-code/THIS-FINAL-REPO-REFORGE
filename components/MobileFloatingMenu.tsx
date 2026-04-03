@@ -182,7 +182,7 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
   onAddRewards,
   onAddNotification,
 }) => {
-  const { player, awardOutfitStones } = useSystem();
+  const { player, awardRandomStones } = useSystem();
   const DAILY_CHEST_KEY = `reforge_daily_chest_time_${player.userId || 'local'}`;
 
   const [activeModal, setActiveModal] = useState<'NONE' | 'REWARDS' | 'DUNGEON'>('NONE');
@@ -284,7 +284,7 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
     if (selectedCard === null || !activeChest) return;
     const card = cards[selectedCard];
     if (card.type === 'STONE') {
-      awardOutfitStones(card.label, card.amount, 'chest');
+      awardRandomStones(1, card.amount, 'chest');
     } else {
       const bonusItems: { potions?: number; scrolls?: number; orbs?: number } = {};
       if (card.type === 'ITEM') {

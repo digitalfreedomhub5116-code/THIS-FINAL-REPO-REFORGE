@@ -69,8 +69,9 @@ const DEFAULT_PLAYER: PlayerData = {
   logs: [],
   quests: [],
   shopItems: [],
-  consumables: { shadowScrolls: 0 },
+  consumables: {},
   chests: { legendary: 0 },
+  claimedStreakRewards: [],
   awakening: { vision: [], antiVision: [] },
   personalBests: {},
   nutritionLogs: [],
@@ -143,7 +144,7 @@ function migratePlayerData(raw: Partial<PlayerData>): PlayerData {
   if (!merged.startDate) merged.startDate = Date.now();
   if (!merged.unlockedLooks) merged.unlockedLooks = [];
   if (!merged.activeLookId) merged.activeLookId = '';
-  if (!merged.consumables) merged.consumables = { shadowScrolls: 0 };
+  if (!merged.consumables) merged.consumables = {};
   if (!merged.chests) merged.chests = { legendary: 0 };
   else if (merged.chests.legendary === undefined) merged.chests.legendary = 0;
   if (!merged.outfitStones) merged.outfitStones = {};
@@ -941,6 +942,59 @@ export const useSystem = () => {
   const checkDailyLogin = useCallback((): DailyReward | null => {
     return getDailyReward();
   }, [player.lastLoginDate, player.streak]);
+
+  const claimStreakReward = (day: number, reward: { type: string; amount: number; label: string }) => {
+    setPlayer(prev => {
+      const claimed = prev.claimedStreakRewards || [];
+      if (claimed.includes(day)) return prev; // Already claimed
+
+      let { gold, keys, currentXp, requiredXp, level, totalXp, dailyXp } = prev;
+      const safeChests = { ...(prev.chests || { legendary: 0 }) };
+      const safeStones = { ...(prev.outfitStones || {}) };
+
+      switch (reward.type) {
+        case 'GOLD':
+          gold += reward.amount;
+          break;
+        case 'STONES': {
+          // Award stones to a random outfit
+          const outfitIds = ['outfit_starter', 'outfit_ghost', 'outfit_knight', 'outfit_assassin', 'outfit_vanguard', 'outfit_monarch'];
+          const randomOutfit = outfitIds[Math.floor(Math.random() * outfitIds.length)];
+          safeStones[randomOutfit] = (safeStones[randomOutfit] || 0) + reward.amount;
+          break;
+        }
+        case 'LEGENDARY_CHEST':
+          safeChests.legendary = (safeChests.legendary || 0) + reward.amount;
+          break;
+        case 'KEY':
+          keys += reward.amount;
+          break;
+        case 'ALLIANCE_CHEST':
+          // Alliance chests are special — award gold + keys + stones combo
+          gold += 600;
+          keys += 5;
+          safeChests.legendary = (safeChests.legendary || 0) + 1;
+          break;
+      }
+
+      const logs = [createLog(`Streak Reward (Day ${day}): ${reward.label}`, 'STREAK'), ...prev.logs];
+
+      return {
+        ...prev,
+        gold,
+        keys,
+        currentXp,
+        requiredXp,
+        level,
+        totalXp,
+        dailyXp,
+        chests: safeChests,
+        outfitStones: safeStones,
+        claimedStreakRewards: [...claimed, day],
+        logs: logs.slice(0, 60),
+      };
+    });
+  };
 
   const deductGold = (amount: number): boolean => {
     if (player.gold >= amount) {
@@ -2065,6 +2119,7 @@ export const useSystem = () => {
     consumeKey,
     checkDailyLogin,
     claimDailyReward,
+    claimStreakReward,
     deductGold,
     addRewards,
     openLegendaryChest,
