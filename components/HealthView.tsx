@@ -1970,8 +1970,8 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                 </div>
                             </div>
 
-                            {/* ── STREAK REWARDS TIMELINE ── */}
-                            <StreakRewardsTimelineWrapper playerData={playerData} />
+                            {/* ── STREAK REWARDS TIMELINE (hidden for now) ── */}
+                            {/* <StreakRewardsTimelineWrapper playerData={playerData} /> */}
 
                             {/* ── STATS GRID ── */}
                             <div className="grid grid-cols-2 gap-4">
