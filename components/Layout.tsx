@@ -273,56 +273,6 @@ const Layout: React.FC<LayoutProps> = ({
     };
     window.addEventListener('reforge:key-earned', handleKeyEarned);
 
-    const handleConsumableEarned = (e: Event) => {
-      const { type, amount, startRect } = (e as CustomEvent).detail as { type: 'POTION' | 'SCROLL' | 'ORB'; amount: number; startRect: DOMRect | null };
-      setHeaderVisible(true);
-      if (!startRect) return;
-
-      let targetId = '';
-      let icon = '';
-      let color = '';
-
-      switch (type) {
-        case 'POTION': targetId = 'user-potion-balance'; icon = '🧪'; color = '#f87171'; break;
-        case 'SCROLL': targetId = 'user-scroll-balance'; icon = '📜'; color = '#22d3ee'; break;
-        case 'ORB': targetId = 'user-orb-balance'; icon = '⚡'; color = '#c084fc'; break;
-      }
-
-      const destEl = document.getElementById(targetId);
-      if (!destEl) return;
-      const destRect = destEl.getBoundingClientRect();
-      const startX = startRect.left + startRect.width / 2;
-      const startY = startRect.top + startRect.height / 2;
-      const endX = destRect.left + destRect.width / 2;
-      const endY = destRect.top + destRect.height / 2;
-      const ITEM_COUNT = 3; // Fewer items for consumables
-
-      for (let i = 0; i < ITEM_COUNT; i++) {
-        setTimeout(() => {
-          const item = document.createElement('div');
-          item.style.cssText = `position:fixed;font-size:16px;left:${startX - 8}px;top:${startY - 8}px;z-index:9999;pointer-events:none;`;
-          item.textContent = icon;
-          document.body.appendChild(item);
-          
-          const scatterX = (Math.random() - 0.5) * 40;
-          const scatterY = (Math.random() - 0.5) * 40;
-          const midX = (startX + endX) / 2 - startX + (Math.random() - 0.5) * 40;
-          const midY = Math.min(startY, endY) - 50 - Math.random() * 40 - startY;
-          
-          item.animate([
-            { transform: 'translate(0,0) scale(0.5)', opacity: 0 },
-            { transform: `translate(${scatterX}px,${scatterY}px) scale(1)`, opacity: 1, offset: 0.15 },
-            { transform: `translate(${midX}px,${midY}px) scale(1.1)`, offset: 0.5 },
-            { transform: `translate(${endX - startX}px,${endY - startY}px) scale(0.5)`, opacity: 0 },
-          ], {
-            duration: 800 + Math.random() * 300,
-            easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
-            fill: 'forwards',
-          }).onfinish = () => item.remove();
-        }, i * 80);
-      }
-    };
-    window.addEventListener('reforge:consumable-earned', handleConsumableEarned);
 
     const COIN_LOST_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="none" stroke="#ef4444" stroke-width="1.5"/><text x="7" y="10.5" text-anchor="middle" font-size="6" font-weight="900" fill="#ef4444" font-family="monospace">◈</text></svg>`;
     const handleCoinLost = (e: Event) => {
@@ -385,7 +335,6 @@ const Layout: React.FC<LayoutProps> = ({
     return () => {
       window.removeEventListener('reforge:coin-earned', handleCoinEarned);
       window.removeEventListener('reforge:key-earned', handleKeyEarned);
-      window.removeEventListener('reforge:consumable-earned', handleConsumableEarned);
       window.removeEventListener('reforge:coin-lost', handleCoinLost);
     };
   }, []);

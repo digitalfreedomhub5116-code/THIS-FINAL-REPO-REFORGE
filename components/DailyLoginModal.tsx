@@ -43,8 +43,6 @@ const DailyLoginModal: React.FC<DailyLoginModalProps> = ({ onClose, onChestRewar
       window.dispatchEvent(new CustomEvent('reforge:coin-earned', { detail: { goldGained: todayReward.amount, startRect: rect } }));
     } else if (todayReward.type === 'KEYS' || todayReward.type === 'WELCOME_KEYS') {
       window.dispatchEvent(new CustomEvent('reforge:key-earned', { detail: { amount: todayReward.amount, startRect: rect } }));
-    } else if (todayReward.type === 'SHADOW_SCROLL') {
-      window.dispatchEvent(new CustomEvent('reforge:consumable-earned', { detail: { type: 'SCROLL', amount: todayReward.amount, startRect: rect } }));
     } else if (todayReward.type === 'CHEST_LEGENDARY') {
       setTimeout(() => onChestReward?.(), 800);
     } else if (todayReward.type === 'VENUS_SHARDS') {

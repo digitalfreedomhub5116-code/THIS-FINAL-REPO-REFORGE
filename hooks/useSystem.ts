@@ -329,7 +329,7 @@ export const useSystem = () => {
         ...data,
         _serverGold: serverGoldRef.current,
         _serverKeys: serverKeysRef.current,
-        consumables: data.consumables || { shadowScrolls: 0 }
+        consumables: data.consumables || {}
       };
       
       const res = await fetch(`${API_BASE}/api/player/${data.userId}`, {
@@ -1017,7 +1017,7 @@ export const useSystem = () => {
     setPlayer(prev => ({ ...prev, activeOutfit: outfitId }));
   };
 
-  const addRewards = (gold: number, xp: number, keys: number = 0, bonusItems?: { potions?: number; scrolls?: number; orbs?: number }) => {
+  const addRewards = (gold: number, xp: number, keys: number = 0) => {
     setPlayer(prev => {
       let { currentXp, requiredXp, level, totalXp, dailyXp } = prev;
       currentXp += xp;
@@ -1036,13 +1036,10 @@ export const useSystem = () => {
         playSystemSoundEffect('LEVEL_UP');
       }
 
-      const updatedConsumables = { ...prev.consumables };
-
       return {
         ...prev,
         gold: prev.gold + gold,
         keys: prev.keys + keys,
-        consumables: updatedConsumables,
         currentXp,
         requiredXp,
         level,
@@ -1055,27 +1052,26 @@ export const useSystem = () => {
     });
   };
 
-  const openLegendaryChest = (): { gold: number; scrolls: number; stones: number } | null => {
+  const openLegendaryChest = (): { gold: number; keys: number; stones: number } | null => {
     const legendary = player.chests?.legendary ?? 0;
     if (legendary <= 0) return null;
     const gold = Math.floor(Math.random() * 500) + 300;
-    const scrolls = Math.floor(Math.random() * 3) + 1;
+    const keys = Math.random() < 0.4 ? Math.floor(Math.random() * 3) + 1 : 0;
     const stones = Math.floor(Math.random() * 50) + 50;
     setPlayer(prev => {
       const safeChests = { ...(prev.chests || { legendary: 0 }) };
       safeChests.legendary = Math.max(0, safeChests.legendary - 1);
-      const updatedConsumables = { ...prev.consumables };
       const safeStones = { ...(prev.outfitStones || {}) };
       safeStones['outfit_starter'] = (safeStones['outfit_starter'] || 0) + stones;
       return {
         ...prev,
         gold: prev.gold + gold,
+        keys: prev.keys + keys,
         chests: safeChests,
-        consumables: updatedConsumables,
         outfitStones: safeStones,
       };
     });
-    return { gold, scrolls, stones };
+    return { gold, keys, stones };
   };
 
   const updateFocusVideos = (videos: Record<string, string>) => {

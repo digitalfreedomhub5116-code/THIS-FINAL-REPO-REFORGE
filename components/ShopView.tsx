@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef, lazy, Suspense, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Coins, Timer, Key, CheckCircle2, Lock, ChevronLeft, ChevronRight, Heart, Scroll, Star, Zap, Ghost, Hexagon, ShoppingBag, Shirt } from 'lucide-react';
+import { Coins, Timer, Key, CheckCircle2, Lock, ChevronLeft, ChevronRight, Heart, Star, Zap, Ghost, Hexagon, ShoppingBag, Shirt } from 'lucide-react';
 import { REWARD_SCHEDULE, DAILY_REWARDS_ENABLED } from '../lib/rewards';
 import { ShopItem, Outfit } from '../types';
 import { API_BASE } from '../lib/apiConfig';
@@ -66,16 +66,15 @@ const CONSUMABLE_ITEMS: any[] = [];
 // Build 7-day login preview from the real REWARD_SCHEDULE so store stays synced with the popup
 const REWARD_EMOJI: Record<string, string> = {
   GOLD: '🪙', XP: '⚡', KEYS: '🗝️', WELCOME_KEYS: '🗝️', DUNGEON_PASS: '👻',
-  SHADOW_SCROLL: '📜', CHEST_LEGENDARY: '📦', VENUS_SHARDS: '🩶', NONE: '—',
+  CHEST_LEGENDARY: '📦', VENUS_SHARDS: '🩶', NONE: '—',
 };
 const REWARD_RARITY: Record<string, string> = {
   GOLD: 'COMMON', XP: 'COMMON', KEYS: 'RARE', WELCOME_KEYS: 'RARE', DUNGEON_PASS: 'RARE',
-  SHADOW_SCROLL: 'RARE', CHEST_LEGENDARY: 'LEGENDARY', VENUS_SHARDS: 'RARE', NONE: 'COMMON',
+  CHEST_LEGENDARY: 'LEGENDARY', VENUS_SHARDS: 'RARE', NONE: 'COMMON',
 };
 const REWARD_SHORT: Record<string, (a: number) => string> = {
   GOLD: a => `${a} G`, XP: a => `${a} XP`, KEYS: a => a === 1 ? 'Key' : `${a} Keys`,
   WELCOME_KEYS: a => `${a} Keys`, DUNGEON_PASS: a => `${a} Pass`,
-  SHADOW_SCROLL: a => a === 1 ? 'Scroll' : `×${a}`,
   CHEST_LEGENDARY: () => 'Chest', VENUS_SHARDS: a => `${a} Shards`, NONE: () => '—',
 };
 

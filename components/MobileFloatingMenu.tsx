@@ -18,7 +18,7 @@ interface MobileFloatingMenuProps {
   keys: number;
   lastDungeonEntry: number;
   onConsumeKey: (amount: number) => Promise<boolean>;
-  onAddRewards: (gold: number, xp: number, keys: number, bonusItems?: { potions?: number; scrolls?: number; orbs?: number }) => void;
+  onAddRewards: (gold: number, xp: number, keys?: number) => void;
   onAddNotification: (msg: string, type: any) => void;
 }
 
@@ -60,25 +60,23 @@ const pickWeightedRandom = (pool: WeightedReward[], count: number): RewardCard[]
 const REWARD_POOLS: Record<'DAILY' | 'LEGENDARY' | 'ALLIANCE', WeightedReward[]> = {
   DAILY: [
     { reward: { type: 'GOLD', amount: 150,  label: 'GOLD',    color: '#eab308' }, weight: 35 },
-    { reward: { type: 'GOLD', amount: 300,  label: 'GOLD',    color: '#eab308' }, weight: 20 },
-    { reward: { type: 'ITEM', amount: 1,     label: 'POTION',  color: '#ef4444' }, weight: 30 },
-    { reward: { type: 'KEYS', amount: 1,     label: 'KEY',     color: '#a855f7' }, weight: 15 },
+    { reward: { type: 'GOLD', amount: 300,  label: 'GOLD',    color: '#eab308' }, weight: 25 },
+    { reward: { type: 'KEYS', amount: 1,     label: 'KEY',     color: '#a855f7' }, weight: 20 },
+    { reward: { type: 'STONE', amount: 1,    label: 'outfit_starter',  color: '#9ca3af' }, weight: 20 },
   ],
   LEGENDARY: [
     { reward: { type: 'GOLD',  amount: 800,  label: 'GOLD',            color: '#eab308' }, weight: 25 },
     { reward: { type: 'GOLD',  amount: 1500, label: 'GOLD',            color: '#eab308' }, weight: 12 },
-    { reward: { type: 'KEYS',  amount: 3,    label: 'KEYS',            color: '#a855f7' }, weight: 15 },
-    { reward: { type: 'ITEM',  amount: 1,    label: 'SCROLL',          color: '#00d2ff' }, weight: 12 },
-    { reward: { type: 'STONE', amount: 2,    label: 'outfit_starter',  color: '#9ca3af' }, weight: 12 },
-    { reward: { type: 'STONE', amount: 2,    label: 'outfit_ghost',    color: '#4ade80' }, weight: 10 },
-    { reward: { type: 'STONE', amount: 1,    label: 'outfit_knight',   color: '#60a5fa' }, weight: 8 },
-    { reward: { type: 'STONE', amount: 1,    label: 'outfit_assassin',  color: '#c084fc' }, weight: 6 },
+    { reward: { type: 'KEYS',  amount: 3,    label: 'KEYS',            color: '#a855f7' }, weight: 18 },
+    { reward: { type: 'STONE', amount: 2,    label: 'outfit_starter',  color: '#9ca3af' }, weight: 15 },
+    { reward: { type: 'STONE', amount: 2,    label: 'outfit_ghost',    color: '#4ade80' }, weight: 12 },
+    { reward: { type: 'STONE', amount: 1,    label: 'outfit_knight',   color: '#60a5fa' }, weight: 10 },
+    { reward: { type: 'STONE', amount: 1,    label: 'outfit_assassin',  color: '#c084fc' }, weight: 8 },
   ],
   ALLIANCE: [
     { reward: { type: 'GOLD',  amount: 600,  label: 'GOLD',            color: '#eab308' }, weight: 18 },
-    { reward: { type: 'GOLD',  amount: 1200, label: 'GOLD',            color: '#eab308' }, weight: 10 },
-    { reward: { type: 'KEYS',  amount: 5,    label: 'KEYS',            color: '#a855f7' }, weight: 12 },
-    { reward: { type: 'ITEM',  amount: 1,    label: 'SCROLL',          color: '#00d2ff' }, weight: 10 },
+    { reward: { type: 'GOLD',  amount: 1200, label: 'GOLD',            color: '#eab308' }, weight: 12 },
+    { reward: { type: 'KEYS',  amount: 5,    label: 'KEYS',            color: '#a855f7' }, weight: 14 },
     { reward: { type: 'STONE', amount: 3,    label: 'outfit_starter',  color: '#9ca3af' }, weight: 8 },
     { reward: { type: 'STONE', amount: 3,    label: 'outfit_ghost',    color: '#4ade80' }, weight: 8 },
     { reward: { type: 'STONE', amount: 2,    label: 'outfit_knight',   color: '#60a5fa' }, weight: 8 },
@@ -99,12 +97,12 @@ const CHEST_CFG = {
     rewards: [
       { type: 'GOLD' as const, amount: 200,  label: 'GOLD',   color: '#eab308' },
       { type: 'KEYS' as const, amount: 1,    label: 'KEYS',   color: '#a855f7' },
-      { type: 'ITEM' as const, amount: 1,    label: 'POTION', color: '#ef4444' },
+      { type: 'STONE' as const, amount: 1,   label: 'STONES', color: '#9ca3af' },
     ],
     contents: [
       { icon: '🪙', text: 'Gold — Low' },
       { icon: '🗝️', text: 'Key — Rare' },
-      { icon: '🧪', text: 'Potion' },
+      { icon: '💎', text: 'Outfit Stones' },
     ],
     cost: 'FREE',
     costType: 'timer' as const,
@@ -124,7 +122,7 @@ const CHEST_CFG = {
     contents: [
       { icon: '🪙', text: 'Gold — High' },
       { icon: '🗝️', text: 'Keys — 2–4' },
-      { icon: '💎', text: 'Stone Shards / Scrolls' },
+      { icon: '💎', text: 'Stone Shards' },
     ],
     cost: '7 Keys',
     costType: 'keys' as const,
@@ -144,7 +142,7 @@ const CHEST_CFG = {
     contents: [
       { icon: '🪙', text: 'Gold — Very High' },
       { icon: '🗝️', text: 'Keys — 4–6' },
-      { icon: '💎', text: 'All Crystal Shards / Scrolls' },
+      { icon: '💎', text: 'All Crystal Shards' },
     ],
     cost: '36 Keys',
     costType: 'keys' as const,
@@ -286,17 +284,10 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
     if (card.type === 'STONE') {
       awardRandomStones(1, card.amount, 'chest');
     } else {
-      const bonusItems: { potions?: number; scrolls?: number; orbs?: number } = {};
-      if (card.type === 'ITEM') {
-        if (card.label === 'POTION') bonusItems.potions = card.amount;
-        else if (card.label === 'SCROLL') bonusItems.scrolls = card.amount;
-        else if (card.label === 'ORB') bonusItems.orbs = card.amount;
-      }
       onAddRewards(
         card.type === 'GOLD' ? card.amount : 0,
         card.type === 'XP'   ? card.amount : 0,
         card.type === 'KEYS' ? card.amount : 0,
-        Object.keys(bonusItems).length > 0 ? bonusItems : undefined,
       );
     }
     playSystemSoundEffect('LEVEL_UP');
