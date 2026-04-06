@@ -867,7 +867,7 @@ const GameOverScreen: React.FC<{
 
   return (
     <motion.div 
-      className="fixed inset-0 z-[200] flex flex-col items-center justify-center p-6 text-center bg-black/95 backdrop-blur-xl overflow-hidden"
+      className="fixed inset-0 z-[30] flex flex-col items-center justify-center p-6 pb-safe-nav text-center bg-black/95 backdrop-blur-xl overflow-hidden"
       animate={screenShake ? { x: [0, -4, 4, -4, 4, 0], y: [0, -2, 2, -2, 2, 0] } : {}}
       transition={{ duration: 0.4 }}
     >

@@ -1660,7 +1660,7 @@ const App: React.FC = () => {
                     initialMode="PLAYING"
                     onExit={() => {
                       setIsDungeonMode(false);
-                      setActiveTab('REWARDS');
+                      setActiveTab('STORE');
                     }}
                   />
                 </ErrorBoundary>
