@@ -139,7 +139,7 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, badges,
         style={{ bottom: 'calc(12px + env(safe-area-inset-bottom, 0px))' }}
       >
         <div
-          className="relative flex items-center justify-around rounded-full px-2 py-1.5 overflow-hidden"
+          className="relative flex items-center justify-around rounded-full px-1.5 py-1 overflow-hidden"
           style={{
             background: 'linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(8,8,20,0.82) 16%, rgba(4,4,14,0.92) 100%)',
             backdropFilter: 'blur(28px) saturate(200%)',
@@ -167,7 +167,7 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, badges,
                 key={item.id}
                 id={item.id === 'HEALTH' ? 'tut-nav-health' : item.id === 'QUESTS' ? 'nav-quests-btn' : undefined}
                 onClick={() => handleTabClick(item.id)}
-                className="relative flex flex-col items-center justify-center w-12 h-12"
+                className="relative flex flex-col items-center justify-center w-10 h-10"
               >
                 {isActive && !isLocked && (
                   <motion.div
@@ -210,16 +210,16 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, badges,
                         : 'none',
                   }}
                 >
-                  {isLocked ? <Lock size={18} /> : <Icon size={20} />}
+                  {isLocked ? <Lock size={16} /> : <Icon size={18} />}
                 </div>
                 {/* Label removed - icons only */}
                 {isLocked && (
                   <div
-                    className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center z-20"
+                    className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full flex items-center justify-center z-20"
                     style={{
                       background: 'rgba(20,20,35,0.95)',
                       border: '1px solid rgba(80,80,120,0.4)',
-                      fontSize: 7,
+                      fontSize: 6,
                       fontWeight: 900,
                       color: '#5a5a6a',
                       fontFamily: 'monospace',
