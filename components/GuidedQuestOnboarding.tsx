@@ -380,7 +380,7 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({ currentSt
               style={{
                 left: Math.max(16, Math.min(spotlightRect.x + spotlightRect.w / 2 - 130, window.innerWidth - 276)),
                 top: step.position === 'bottom'
-                  ? Math.max(80, spotlightRect.y - 140)
+                  ? Math.max(80, spotlightRect.y - 180)
                   : Math.min(window.innerHeight - 200, spotlightRect.y + spotlightRect.h + 16),
                 width: 260,
                 zIndex: 10,
@@ -427,8 +427,8 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({ currentSt
                 <h3 className="text-sm font-black text-white tracking-wide mb-1">{step.title}</h3>
                 <p className="text-[11px] text-gray-400 leading-relaxed">{step.subtitle}</p>
 
-                {/* Skip / Next */}
-                {!step.waitForAction && (
+                {/* Skip / Next - hide CONTINUE for step 3 since it has its own NEXT button */}
+                {!step.waitForAction && currentStep !== 3 && (
                   <button
                     onClick={() => onStepComplete(currentStep)}
                     className="mt-3 flex items-center gap-1 text-[10px] font-bold tracking-wider text-cyan-400 hover:text-cyan-300 transition-colors"
