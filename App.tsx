@@ -334,6 +334,7 @@ const App: React.FC = () => {
   const [workoutOnboardingStep, setWorkoutOnboardingStep] = useState(0);
   const [showQuestOnboarding, setShowQuestOnboarding] = useState(false);
   const [showWorkoutOnboarding, setShowWorkoutOnboarding] = useState(false);
+  const [questAnalysisFailed, setQuestAnalysisFailed] = useState(false); // Track if quest analysis failed during tutorial
   const [showRankReveal, setShowRankReveal] = useState(false);
   const [showFeatureUnlock, setShowFeatureUnlock] = useState<number | null>(null);
   const [showLevel5Tutorial, setShowLevel5Tutorial] = useState(false);
@@ -951,17 +952,19 @@ const App: React.FC = () => {
   }, [player.level, player.isConfigured]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Quest Onboarding Step Handler ──
-  const handleQuestOnboardingStep = useCallback((step: number) => {
+  const handleQuestOnboardingStep = useCallback((step: number, isFailure = false) => {
     if (step === 1) {
       // User tapped Quests tab
       setQuestOnboardingStep(2);
       setActiveTab('QUESTS');
-    } else if (step === 7) {
-      // Error step - go back to step 3 to re-enter text
-      // Clear the input first
-      const input = document.getElementById('tut-quest-title') as HTMLInputElement;
-      if (input) input.value = '';
+    } else if (step === 4 && isFailure) {
+      // Analysis failed - go back to step 3 with error state
+      setQuestAnalysisFailed(true);
       setQuestOnboardingStep(3);
+    } else if (step === 3 && questAnalysisFailed) {
+      // User is retrying after failure - reset error state and proceed
+      setQuestAnalysisFailed(false);
+      setQuestOnboardingStep(4);
     } else if (step < 6) {
       setQuestOnboardingStep(step + 1);
     } else {
@@ -970,7 +973,7 @@ const App: React.FC = () => {
       setQuestOnboardingStep(0);
       setPlayer(prev => ({ ...prev, questOnboardingDone: true }));
     }
-  }, [setPlayer]);
+  }, [setPlayer, questAnalysisFailed]);
 
   const handleQuestOnboardingComplete = useCallback(() => {
     setShowQuestOnboarding(false);
@@ -1682,6 +1685,8 @@ const App: React.FC = () => {
               currentStep={questOnboardingStep}
               onStepComplete={handleQuestOnboardingStep}
               onComplete={handleQuestOnboardingComplete}
+              analysisFailed={questAnalysisFailed}
+              onAnalysisFailedReset={() => setQuestAnalysisFailed(false)}
             />
           </ErrorBoundary>
         </Suspense>

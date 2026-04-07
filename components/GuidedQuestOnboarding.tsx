@@ -5,8 +5,10 @@ import { playSystemSoundEffect } from '../utils/soundEngine';
 
 interface GuidedQuestOnboardingProps {
   currentStep: number;
-  onStepComplete: (step: number) => void;
+  onStepComplete: (step: number, isFailure?: boolean) => void;
   onComplete: () => void;
+  analysisFailed?: boolean;
+  onAnalysisFailedReset?: () => void;
 }
 
 interface StepConfig {
@@ -79,7 +81,13 @@ const STEPS: StepConfig[] = [
   },
 ];
 
-const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({ currentStep, onStepComplete, onComplete }) => {
+const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({ 
+  currentStep, 
+  onStepComplete, 
+  onComplete,
+  analysisFailed = false,
+  onAnalysisFailedReset,
+}) => {
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const [wordCount, setWordCount] = useState(0);
   const [visible, setVisible] = useState(true);
@@ -192,20 +200,39 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({ currentSt
     };
   }, [currentStep, onStepComplete]);
 
-  // For step 4 (analyze button), detect when ForgeGuard result appears
+  // For step 4 (analyze button), detect when ForgeGuard result appears or error shows
   useEffect(() => {
     if (currentStep !== 4) return;
     
+    let checkCount = 0;
+    let failureDetected = false;
     const checkAnalysisComplete = () => {
-      // Check if ForgeGuard result card is visible
+      checkCount++;
+      
+      // Check if ForgeGuard result card is visible (success)
       const forgeResult = document.getElementById('tut-quest-category');
-      if (forgeResult) {
-        onStepComplete(4);
+      if (forgeResult && !failureDetected) {
+        onStepComplete(4, false); // Success
+        return;
+      }
+      
+      // Check if error message is visible (failure) - quest was rejected
+      const errorContainer = document.querySelector('.bg-red-500\\/10, .bg-red-500\\/20, .bg-red-900\\/20, [class*="bg-red"]');
+      const errorText = document.querySelector('.text-red-400, .text-red-500');
+      const questRejectedText = document.body.innerText.includes('Quest rejected') || 
+                                document.body.innerText.includes('must specify') ||
+                                document.body.innerText.includes('Invalid quest');
+      
+      // If we see error indicators, mark failure and go back to step 3
+      if ((errorContainer || errorText || questRejectedText) && checkCount > 2) {
+        failureDetected = true;
+        onStepComplete(4, true); // Failure - go back to step 3
+        return;
       }
     };
     
     checkAnalysisComplete();
-    const interval = setInterval(checkAnalysisComplete, 200);
+    const interval = setInterval(checkAnalysisComplete, 400);
     const observer = new MutationObserver(checkAnalysisComplete);
     observer.observe(document.body, { childList: true, subtree: true });
     
@@ -380,8 +407,8 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({ currentSt
               style={{
                 left: Math.max(16, Math.min(spotlightRect.x + spotlightRect.w / 2 - 130, window.innerWidth - 276)),
                 top: step.position === 'bottom'
-                  ? currentStep === 7
-                    ? Math.max(80, spotlightRect.y - 220) // Error step: much higher to not overlap input
+                  ? currentStep === 3 && analysisFailed
+                    ? Math.max(60, spotlightRect.y - 240) // Error state: much higher to not overlap input
                     : Math.max(80, spotlightRect.y - 180)
                   : Math.min(window.innerHeight - 200, spotlightRect.y + spotlightRect.h + 16),
                 width: 260,
@@ -439,9 +466,18 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({ currentSt
                   </button>
                 )}
 
-              {/* Step 3 - Word count validation */}
+                {/* Step 3 - Word count validation with error state support */}
                 {currentStep === 3 && (
                   <div className="mt-3 space-y-2">
+                    {/* Error message when analysis failed */}
+                    {analysisFailed && (
+                      <div className="p-2.5 rounded-lg bg-red-900/20 border border-red-500/30 mb-2">
+                        <p className="text-[10px] text-red-400 leading-relaxed">
+                          Invalid quest format. Add time or amount.<br/>
+                          <span className="text-red-300">Examples: Run 5km, Read 20 pages</span>
+                        </p>
+                      </div>
+                    )}
                     <div className="flex items-center justify-between text-[10px]">
                       <span className={wordCount >= 2 ? 'text-green-400' : 'text-gray-500'}>
                         {wordCount} word{wordCount !== 1 ? 's' : ''}
@@ -451,7 +487,12 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({ currentSt
                       </span>
                     </div>
                     <button
-                      onClick={() => onStepComplete(currentStep)}
+                      onClick={() => {
+                        if (analysisFailed && onAnalysisFailedReset) {
+                          onAnalysisFailedReset();
+                        }
+                        onStepComplete(currentStep, false);
+                      }}
                       disabled={wordCount < 2}
                       className={`w-full py-2 rounded-lg text-[11px] font-bold tracking-wider transition-all ${
                         wordCount >= 2
@@ -459,7 +500,7 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({ currentSt
                           : 'bg-gray-800 text-gray-500 cursor-not-allowed'
                       }`}
                     >
-                      NEXT
+                      {analysisFailed ? 'TRY AGAIN' : 'NEXT'}
                     </button>
                   </div>
                 )}
