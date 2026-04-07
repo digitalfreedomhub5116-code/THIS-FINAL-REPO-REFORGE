@@ -130,9 +130,9 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({ currentSt
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-[900] pointer-events-none"
         >
-          {/* Dark overlay with spotlight cutout */}
+          {/* Dark overlay with spotlight cutout - pointer-events-none on SVG to let clicks pass through */}
           {spotlightRect && (
-            <svg className="absolute inset-0 w-full h-full pointer-events-auto" style={{ zIndex: 1 }}>
+            <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 1 }}>
               <defs>
                 <mask id="spotlight-mask">
                   <rect width="100%" height="100%" fill="white" />
@@ -153,6 +153,30 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({ currentSt
                 mask="url(#spotlight-mask)"
               />
             </svg>
+          )}
+
+          {/* Click-blocking layer outside spotlight area */}
+          {spotlightRect && (
+            <div
+              className="absolute pointer-events-auto"
+              style={{
+                left: 0,
+                top: 0,
+                width: '100%',
+                height: '100%',
+                zIndex: 1,
+                clipPath: `polygon(
+                  0% 0%, 100% 0%, 100% 100%, 0% 100%,
+                  0% ${spotlightRect.y}px,
+                  ${spotlightRect.x}px ${spotlightRect.y}px,
+                  ${spotlightRect.x}px ${spotlightRect.y + spotlightRect.h}px,
+                  ${spotlightRect.x + spotlightRect.w}px ${spotlightRect.y + spotlightRect.h}px,
+                  ${spotlightRect.x + spotlightRect.w}px ${spotlightRect.y}px,
+                  0% ${spotlightRect.y}px,
+                  0% 0%
+                )`,
+              }}
+            />
           )}
 
           {/* Pulsing neon border around target */}
@@ -183,19 +207,6 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({ currentSt
             </motion.div>
           )}
 
-          {/* Allow clicking through to the target - use pointer-events-none so native clicks pass through */}
-          {spotlightRect && step && step.waitForAction && (
-            <div
-              className="absolute pointer-events-none"
-              style={{
-                left: spotlightRect.x,
-                top: spotlightRect.y,
-                width: spotlightRect.w,
-                height: spotlightRect.h,
-                zIndex: 5,
-              }}
-            />
-          )}
 
           {/* Floating hint for action steps */}
           {spotlightRect && step && step.waitForAction && (

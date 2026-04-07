@@ -110,9 +110,9 @@ const WorkoutOnboardingTutorial: React.FC<WorkoutOnboardingProps> = ({ currentSt
         exit={{ opacity: 0 }}
         className="fixed inset-0 z-[900] pointer-events-none"
       >
-        {/* Dark overlay with spotlight */}
+        {/* Dark overlay with spotlight - pointer-events-none on SVG */}
         {spotlightRect && (
-          <svg className="absolute inset-0 w-full h-full pointer-events-auto" style={{ zIndex: 1 }}>
+          <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 1 }}>
             <defs>
               <mask id="w-spotlight-mask">
                 <rect width="100%" height="100%" fill="white" />
@@ -128,6 +128,30 @@ const WorkoutOnboardingTutorial: React.FC<WorkoutOnboardingProps> = ({ currentSt
             </defs>
             <rect width="100%" height="100%" fill="rgba(0,0,0,0.78)" mask="url(#w-spotlight-mask)" />
           </svg>
+        )}
+
+        {/* Click-blocking layer outside spotlight area */}
+        {spotlightRect && (
+          <div
+            className="absolute pointer-events-auto"
+            style={{
+              left: 0,
+              top: 0,
+              width: '100%',
+              height: '100%',
+              zIndex: 1,
+              clipPath: `polygon(
+                0% 0%, 100% 0%, 100% 100%, 0% 100%,
+                0% ${spotlightRect.y}px,
+                ${spotlightRect.x}px ${spotlightRect.y}px,
+                ${spotlightRect.x}px ${spotlightRect.y + spotlightRect.h}px,
+                ${spotlightRect.x + spotlightRect.w}px ${spotlightRect.y + spotlightRect.h}px,
+                ${spotlightRect.x + spotlightRect.w}px ${spotlightRect.y}px,
+                0% ${spotlightRect.y}px,
+                0% 0%
+              )`,
+            }}
+          />
         )}
 
         {/* Neon border */}
@@ -152,13 +176,6 @@ const WorkoutOnboardingTutorial: React.FC<WorkoutOnboardingProps> = ({ currentSt
           </motion.div>
         )}
 
-        {/* Click through zone - allow native clicks to pass through */}
-        {spotlightRect && step && (
-          <div
-            className="absolute pointer-events-none"
-            style={{ left: spotlightRect.x, top: spotlightRect.y, width: spotlightRect.w, height: spotlightRect.h, zIndex: 5 }}
-          />
-        )}
 
         {/* Tooltip */}
         {spotlightRect && (
