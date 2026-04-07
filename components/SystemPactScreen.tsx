@@ -450,6 +450,7 @@ const SystemPactScreen: React.FC<SystemPactScreenProps> = ({
               ) : (
                 <>
                   <motion.button
+                    id="tut-enter-pact"
                     onClick={handleAccept}
                     disabled={playerGold < pledgeAmount}
                     className="w-full py-4 rounded-2xl text-sm font-black uppercase tracking-[0.2em] transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed relative overflow-hidden"

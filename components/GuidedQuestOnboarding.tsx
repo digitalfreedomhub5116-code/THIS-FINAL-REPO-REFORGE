@@ -131,9 +131,9 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({ currentSt
     }
   }, [currentStep]);
 
-  // Auto-advance non-action steps after a delay
+  // Auto-advance non-action steps after a delay (except step 3 which has word count validation)
   useEffect(() => {
-    if (!step || step.waitForAction) return;
+    if (!step || step.waitForAction || currentStep === 3) return;
     const timer = setTimeout(() => {
       onStepComplete(currentStep);
     }, 3000);
