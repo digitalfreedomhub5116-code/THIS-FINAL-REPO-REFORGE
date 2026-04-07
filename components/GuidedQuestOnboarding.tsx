@@ -110,7 +110,7 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({ currentSt
 
   if (!step || currentStep < 1 || currentStep > 6) return null;
 
-  const padding = 8;
+  const padding = 12; // Larger padding for easier mobile tapping
   const spotlightRect = tooltipPos
     ? {
         x: tooltipPos.x - padding,
@@ -118,7 +118,7 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({ currentSt
         w: tooltipPos.w + padding * 2,
         h: tooltipPos.h + padding * 2,
       }
-    : null;
+    : { x: window.innerWidth / 2 - 50, y: window.innerHeight / 2 - 50, w: 100, h: 100 }; // Default center fallback
 
   return (
     <AnimatePresence>
@@ -184,16 +184,24 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({ currentSt
           )}
 
           {/* Allow clicking through to the target */}
-          {spotlightRect && (
+          {spotlightRect && step && (
             <div
-              className="absolute pointer-events-auto"
+              className="absolute pointer-events-auto cursor-pointer"
               style={{
                 left: spotlightRect.x,
                 top: spotlightRect.y,
                 width: spotlightRect.w,
                 height: spotlightRect.h,
-                zIndex: 3,
+                zIndex: 5,
                 background: 'transparent',
+              }}
+              onClick={(e) => {
+                // Forward click to the actual target element
+                const target = document.getElementById(step.targetId);
+                if (target) {
+                  e.stopPropagation();
+                  target.click();
+                }
               }}
             />
           )}

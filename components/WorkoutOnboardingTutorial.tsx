@@ -96,10 +96,10 @@ const WorkoutOnboardingTutorial: React.FC<WorkoutOnboardingProps> = ({ currentSt
 
   if (!step || currentStep < 1 || currentStep > W_STEPS.length) return null;
 
-  const padding = 8;
+  const padding = 12; // Larger padding for mobile tapping
   const spotlightRect = tooltipPos
     ? { x: tooltipPos.x - padding, y: tooltipPos.y - padding, w: tooltipPos.w + padding * 2, h: tooltipPos.h + padding * 2 }
-    : null;
+    : { x: window.innerWidth / 2 - 50, y: window.innerHeight / 2 - 50, w: 100, h: 100 };
 
   return (
     <AnimatePresence>
@@ -153,10 +153,17 @@ const WorkoutOnboardingTutorial: React.FC<WorkoutOnboardingProps> = ({ currentSt
         )}
 
         {/* Click through zone */}
-        {spotlightRect && (
+        {spotlightRect && step && (
           <div
-            className="absolute pointer-events-auto"
-            style={{ left: spotlightRect.x, top: spotlightRect.y, width: spotlightRect.w, height: spotlightRect.h, zIndex: 3, background: 'transparent' }}
+            className="absolute pointer-events-auto cursor-pointer"
+            style={{ left: spotlightRect.x, top: spotlightRect.y, width: spotlightRect.w, height: spotlightRect.h, zIndex: 5, background: 'transparent' }}
+            onClick={(e) => {
+              const target = document.getElementById(step.targetId);
+              if (target) {
+                e.stopPropagation();
+                target.click();
+              }
+            }}
           />
         )}
 

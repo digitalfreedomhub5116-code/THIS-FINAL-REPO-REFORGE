@@ -167,7 +167,7 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, badges,
                 key={item.id}
                 id={item.id === 'HEALTH' ? 'tut-nav-health' : item.id === 'QUESTS' ? 'nav-quests-btn' : undefined}
                 onClick={() => handleTabClick(item.id)}
-                className="relative flex items-center justify-center w-12 h-10"
+                className="relative flex flex-col items-center justify-center w-14 h-14"
               >
                 {isActive && !isLocked && (
                   <motion.div
@@ -210,11 +210,19 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, badges,
                         : 'none',
                   }}
                 >
-                  {isLocked ? <Lock size={18} /> : <Icon size={20} />}
+                  {isLocked ? <Lock size={20} /> : <Icon size={22} />}
                 </div>
+                {/* Label below icon */}
+                <span
+                  className={`relative z-10 text-[9px] font-medium mt-0.5 transition-colors duration-200 ${
+                    isLocked ? 'text-gray-800' : isActive ? (isQuest ? 'text-cyan-400' : 'text-white') : 'text-gray-500'
+                  }`}
+                >
+                  {item.label}
+                </span>
                 {isLocked && (
                   <div
-                    className="absolute -top-1 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center z-20"
+                    className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center z-20"
                     style={{
                       background: 'rgba(20,20,35,0.95)',
                       border: '1px solid rgba(80,80,120,0.4)',
