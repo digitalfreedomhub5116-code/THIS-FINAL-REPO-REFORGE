@@ -40,7 +40,7 @@ const DEFAULT_PLAYER: PlayerData = {
   requiredXp: 100,
   totalXp: 0,
   dailyXp: 0,
-  rank: 'E',
+  rank: 'UNRANKED',
   gold: 0,
   keys: 0,
   streak: 0,
@@ -97,6 +97,10 @@ const DEFAULT_PLAYER: PlayerData = {
   unlockedLooks: [],
   activeLookId: '',
   outfitStones: {},
+  featureUnlocksShown: [],
+  rankRevealed: false,
+  questOnboardingDone: false,
+  workoutOnboardingDone: false,
 };
 
 function migratePlayerData(raw: Partial<PlayerData>): PlayerData {
@@ -149,6 +153,18 @@ function migratePlayerData(raw: Partial<PlayerData>): PlayerData {
   else if (merged.chests.legendary === undefined) merged.chests.legendary = 0;
   if (!merged.outfitStones) merged.outfitStones = {};
   merged.tutorialComplete = (raw as any)?.tutorialComplete ?? false;
+  // Feature gate migration — existing configured users get everything unlocked
+  if (raw.isConfigured && raw.rank !== 'UNRANKED') {
+    if (merged.featureUnlocksShown === undefined) merged.featureUnlocksShown = [5, 10];
+    if (merged.rankRevealed === undefined) merged.rankRevealed = true;
+    if (merged.questOnboardingDone === undefined) merged.questOnboardingDone = true;
+    if (merged.workoutOnboardingDone === undefined) merged.workoutOnboardingDone = true;
+  } else {
+    if (merged.featureUnlocksShown === undefined) merged.featureUnlocksShown = [];
+    if (merged.rankRevealed === undefined) merged.rankRevealed = false;
+    if (merged.questOnboardingDone === undefined) merged.questOnboardingDone = false;
+    if (merged.workoutOnboardingDone === undefined) merged.workoutOnboardingDone = false;
+  }
   return merged;
 }
 
@@ -211,7 +227,7 @@ const RANK_THRESHOLDS: { rank: 'E' | 'D' | 'C' | 'B' | 'A' | 'S'; minLevel: numb
   { rank: 'E', minLevel: 1 },
 ];
 
-function computeRank(level: number): 'E' | 'D' | 'C' | 'B' | 'A' | 'S' {
+function computeRank(level: number): 'UNRANKED' | 'E' | 'D' | 'C' | 'B' | 'A' | 'S' {
   for (const t of RANK_THRESHOLDS) {
     if (level >= t.minLevel) return t.rank;
   }
@@ -219,7 +235,7 @@ function computeRank(level: number): 'E' | 'D' | 'C' | 'B' | 'A' | 'S' {
 }
 
 // Safe level-up helper: caps iterations and ensures requiredXp always grows
-function safeLevelUp(currentXp: number, requiredXp: number, level: number): { currentXp: number; requiredXp: number; level: number; leveledUp: boolean; rank: 'E' | 'D' | 'C' | 'B' | 'A' | 'S' } {
+function safeLevelUp(currentXp: number, requiredXp: number, level: number): { currentXp: number; requiredXp: number; level: number; leveledUp: boolean; rank: 'UNRANKED' | 'E' | 'D' | 'C' | 'B' | 'A' | 'S' } {
   // Floor requiredXp to prevent runaway loops from corrupted data
   if (!requiredXp || requiredXp < 50) requiredXp = 100;
   let leveledUp = false;

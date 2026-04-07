@@ -33,6 +33,7 @@ import { DAILY_REWARDS_ENABLED } from './lib/rewards';
 import { getPlayerAuthHeaders, getOrRefreshPlayerHeaders } from './lib/playerApi';
 import { saveAuthNative, clearAuthNative } from './lib/nativeAuth';
 import { Terminal } from 'lucide-react';
+import { getLockedTabs } from './components/FeatureGate';
 import { API_BASE } from './lib/apiConfig';
 import {
   checkNotificationPermissionStatus,
@@ -92,6 +93,11 @@ const StrikeLiftedModal = lazy(() => import('./components/StrikeLiftedModal'));
 const ForgeGuardWidget = lazy(() => import('./components/ForgeGuardWidget'));
 const StreakCelebration = lazy(() => import('./components/StreakCelebration'));
 const ChestOpeningOverlay = lazy(() => import('./components/ChestOpeningOverlay'));
+const GuidedQuestOnboarding = lazy(() => import('./components/GuidedQuestOnboarding'));
+const WorkoutOnboardingTutorial = lazy(() => import('./components/WorkoutOnboardingTutorial'));
+const FeatureUnlockCinematic = lazy(() => import('./components/FeatureUnlockCinematic'));
+const Level5Tutorial = lazy(() => import('./components/Level5Tutorial'));
+const Level10Tutorial = lazy(() => import('./components/Level10Tutorial'));
 
 // ── Types ──
 type OnboardingPhase = 'SPLASH' | 'WELCOME' | 'AGREEMENT' | 'NAMING' | 'CALIBRATION' | 'AUTH' | 'AUTH_SIGN_IN_PAGE' | 'AUTH_CREATE_PAGE' | 'APP' | 'LOGOUT_CHOICE';
@@ -323,6 +329,18 @@ const App: React.FC = () => {
 
   const [mentorMessages, setMentorMessages] = useState<{id: string, text: string}[]>([]);
 
+  // ── Level-gated Onboarding State ──
+  const [questOnboardingStep, setQuestOnboardingStep] = useState(0);
+  const [workoutOnboardingStep, setWorkoutOnboardingStep] = useState(0);
+  const [showQuestOnboarding, setShowQuestOnboarding] = useState(false);
+  const [showWorkoutOnboarding, setShowWorkoutOnboarding] = useState(false);
+  const [showRankReveal, setShowRankReveal] = useState(false);
+  const [showFeatureUnlock, setShowFeatureUnlock] = useState<number | null>(null);
+  const [showLevel5Tutorial, setShowLevel5Tutorial] = useState(false);
+  const [level5TutStep, setLevel5TutStep] = useState(1);
+  const [showLevel10Tutorial, setShowLevel10Tutorial] = useState(false);
+  const [level10TutStep, setLevel10TutStep] = useState(1);
+
   // ── Stone Drop & Badge Unlock global animations ──
   // Single-stone animation (for lone awards like quests/workouts)
   const [stoneAnim, setStoneAnim] = useState<{ outfitId: string; amount: number; oldCount: number; newCount: number; color: string; glow: string } | null>(null);
@@ -366,8 +384,12 @@ const App: React.FC = () => {
     const idx = NAV_TAB_ORDER.indexOf(activeTab);
     if (idx === -1) return;
     const next = dx < 0 ? NAV_TAB_ORDER[idx + 1] : NAV_TAB_ORDER[idx - 1];
-    if (next) navigateTo(next);
-  }, [activeTab, navigateTo]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!next) return;
+    // Prevent swiping into locked tabs
+    const locked = getLockedTabs(player.level);
+    if (locked[next]) return;
+    navigateTo(next);
+  }, [activeTab, navigateTo, player.level]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Batching system: buffer rapid-fire events, then decide single vs batch
   const stoneBatchBuffer = useRef<Array<{ outfitId: string; amount: number; oldCount: number; newCount: number; color: string; glow: string }>>([]);
@@ -835,7 +857,12 @@ const App: React.FC = () => {
   useEffect(() => {
     const currentRank = player.rank;
     if (prevRankRef.current !== null && prevRankRef.current !== currentRank && player.isConfigured) {
-      const rankOrder = ['E', 'D', 'C', 'B', 'A', 'S'];
+      // Skip UNRANKED → E transition — handled by the dedicated rank reveal cinematic
+      if (prevRankRef.current === 'UNRANKED' && currentRank === 'E') {
+        prevRankRef.current = currentRank;
+        return;
+      }
+      const rankOrder = ['UNRANKED', 'E', 'D', 'C', 'B', 'A', 'S'];
       const oldIdx = rankOrder.indexOf(prevRankRef.current);
       const newIdx = rankOrder.indexOf(currentRank);
       if (newIdx > oldIdx) {
@@ -848,6 +875,131 @@ const App: React.FC = () => {
   useEffect(() => {
     if (!isDungeonMode) setShowNav(true);
   }, [activeTab, isDungeonMode]);
+
+  // ── Level 1 Quest Onboarding Trigger ──
+  // Show guided quest tutorial for new users who haven't completed it
+  useEffect(() => {
+    if (!player.isConfigured) return;
+    if (player.questOnboardingDone) return;
+    if (player.level < 1) return;
+    // Only trigger after initial onboarding is done
+    if (onboardingPhase !== 'APP') return;
+    // Don't show if already showing something else
+    if (showLevelUp || showLevelDown || rankUpData || showStreakCelebration) return;
+    // Small delay to let the app settle
+    const timer = setTimeout(() => {
+      if (!player.questOnboardingDone) {
+        setShowQuestOnboarding(true);
+        setQuestOnboardingStep(1);
+        setActiveTab('DASHBOARD');
+      }
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [player.isConfigured, player.questOnboardingDone, onboardingPhase]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Rank Reveal after quest+workout onboarding complete ──
+  useEffect(() => {
+    if (!player.isConfigured) return;
+    if (player.rankRevealed) return;
+    if (player.rank !== 'UNRANKED') return;
+    if (!player.questOnboardingDone) return;
+    // Show rank reveal after quest onboarding is done
+    const timer = setTimeout(() => {
+      setShowRankReveal(true);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [player.questOnboardingDone, player.rankRevealed, player.rank, player.isConfigured]);
+
+  // ── Feature Unlock Triggers (Level 5 and Level 10) ──
+  const prevLevelRef = useRef(player.level);
+  useEffect(() => {
+    if (!player.isConfigured) return;
+    const prev = prevLevelRef.current;
+    const curr = player.level;
+    prevLevelRef.current = curr;
+    if (prev === curr) return;
+
+    const shownLevels = player.featureUnlocksShown || [];
+    if (curr >= 5 && !shownLevels.includes(5) && prev < 5) {
+      setTimeout(() => setShowFeatureUnlock(5), 1500);
+    } else if (curr >= 10 && !shownLevels.includes(10) && prev < 10) {
+      setTimeout(() => setShowFeatureUnlock(10), 1500);
+    }
+  }, [player.level, player.isConfigured]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Quest Onboarding Step Handler ──
+  const handleQuestOnboardingStep = useCallback((step: number) => {
+    if (step === 1) {
+      // User tapped Quests tab
+      setQuestOnboardingStep(2);
+      setActiveTab('QUESTS');
+    } else if (step < 6) {
+      setQuestOnboardingStep(step + 1);
+    } else {
+      // Quest onboarding complete
+      setShowQuestOnboarding(false);
+      setQuestOnboardingStep(0);
+      setPlayer(prev => ({ ...prev, questOnboardingDone: true }));
+    }
+  }, [setPlayer]);
+
+  const handleQuestOnboardingComplete = useCallback(() => {
+    setShowQuestOnboarding(false);
+    setQuestOnboardingStep(0);
+    setPlayer(prev => ({ ...prev, questOnboardingDone: true }));
+  }, [setPlayer]);
+
+  // ── Workout Onboarding Step Handler ──
+  const handleWorkoutOnboardingStep = useCallback((step: number) => {
+    if (step < 4) {
+      setWorkoutOnboardingStep(step + 1);
+    } else {
+      setShowWorkoutOnboarding(false);
+      setWorkoutOnboardingStep(0);
+      setPlayer(prev => ({ ...prev, workoutOnboardingDone: true }));
+    }
+  }, [setPlayer]);
+
+  const handleWorkoutOnboardingComplete = useCallback(() => {
+    setShowWorkoutOnboarding(false);
+    setWorkoutOnboardingStep(0);
+    setPlayer(prev => ({ ...prev, workoutOnboardingDone: true }));
+  }, [setPlayer]);
+
+  // ── Rank Reveal Complete Handler ──
+  const handleRankRevealComplete = useCallback(() => {
+    setShowRankReveal(false);
+    setPlayer(prev => ({ ...prev, rank: 'E', rankRevealed: true }));
+    // Trigger workout onboarding after rank reveal
+    if (!player.workoutOnboardingDone) {
+      setTimeout(() => {
+        setShowWorkoutOnboarding(true);
+        setWorkoutOnboardingStep(1);
+        setActiveTab('HEALTH');
+      }, 800);
+    }
+  }, [setPlayer, player.workoutOnboardingDone]);
+
+  // ── Feature Unlock Complete Handler ──
+  const handleFeatureUnlockComplete = useCallback((level: number) => {
+    setShowFeatureUnlock(null);
+    setPlayer(prev => ({
+      ...prev,
+      featureUnlocksShown: [...(prev.featureUnlocksShown || []), level],
+    }));
+    // Show the tutorial after the cinematic
+    if (level === 5) {
+      setTimeout(() => {
+        setShowLevel5Tutorial(true);
+        setLevel5TutStep(1);
+      }, 400);
+    } else if (level === 10) {
+      setTimeout(() => {
+        setShowLevel10Tutorial(true);
+        setLevel10TutStep(1);
+      }, 400);
+    }
+  }, [setPlayer]);
 
 
   const handleTutorialNext = () => {
@@ -1355,49 +1507,61 @@ const App: React.FC = () => {
             </Suspense>
           )}
           {showLevelUp && (
-            <ErrorBoundary>
-              <LevelUpCinematic level={player.level} onComplete={() => setShowLevelUp(false)} />
-            </ErrorBoundary>
+            <Suspense fallback={null}>
+              <ErrorBoundary>
+                <LevelUpCinematic level={player.level} onComplete={() => setShowLevelUp(false)} />
+              </ErrorBoundary>
+            </Suspense>
           )}
           {showLevelDown && (
-            <ErrorBoundary>
-              <LevelDownCinematic onClose={() => setShowLevelDown(false)} />
-            </ErrorBoundary>
+            <Suspense fallback={null}>
+              <ErrorBoundary>
+                <LevelDownCinematic onClose={() => setShowLevelDown(false)} />
+              </ErrorBoundary>
+            </Suspense>
           )}
           {rankUpData && (
-            <ErrorBoundary>
-              <RankUpCinematic
-                oldRank={rankUpData.oldRank as 'E'|'D'|'C'|'B'|'A'|'S'}
-                newRank={rankUpData.newRank as 'E'|'D'|'C'|'B'|'A'|'S'}
-                onComplete={() => setRankUpData(null)}
-              />
-            </ErrorBoundary>
+            <Suspense fallback={null}>
+              <ErrorBoundary>
+                <RankUpCinematic
+                  oldRank={rankUpData.oldRank as 'UNRANKED'|'E'|'D'|'C'|'B'|'A'|'S'}
+                  newRank={rankUpData.newRank as 'UNRANKED'|'E'|'D'|'C'|'B'|'A'|'S'}
+                  onComplete={() => setRankUpData(null)}
+                />
+              </ErrorBoundary>
+            </Suspense>
           )}
           {player.tournament.pendingReward && (
-            <ErrorBoundary>
-              <TournamentResultModal reward={player.tournament.pendingReward} onClaim={claimTournamentReward} />
-            </ErrorBoundary>
+            <Suspense fallback={null}>
+              <ErrorBoundary>
+                <TournamentResultModal reward={player.tournament.pendingReward} onClaim={claimTournamentReward} />
+              </ErrorBoundary>
+            </Suspense>
           )}
           {showDuskChat && (
-            <ErrorBoundary>
-              <DuskChat
-                player={player}
-                onClose={() => setShowDuskChat(false)}
-                onMarkRead={markDuskMessagesRead}
-              />
-            </ErrorBoundary>
+            <Suspense fallback={null}>
+              <ErrorBoundary>
+                <DuskChat
+                  player={player}
+                  onClose={() => setShowDuskChat(false)}
+                  onMarkRead={markDuskMessagesRead}
+                />
+              </ErrorBoundary>
+            </Suspense>
           )}
           {xpCollection && (
-            <ErrorBoundary>
-              <XpCollectionOverlay
-                startRect={xpCollection.startRect}
-                xpGained={xpCollection.xpGained}
-                currentXp={xpCollection.currentXp}
-                requiredXp={xpCollection.requiredXp}
-                level={xpCollection.level}
-                onComplete={() => setXpCollection(null)}
-              />
-            </ErrorBoundary>
+            <Suspense fallback={null}>
+              <ErrorBoundary>
+                <XpCollectionOverlay
+                  startRect={xpCollection.startRect}
+                  xpGained={xpCollection.xpGained}
+                  currentXp={xpCollection.currentXp}
+                  requiredXp={xpCollection.requiredXp}
+                  level={xpCollection.level}
+                  onComplete={() => setXpCollection(null)}
+                />
+              </ErrorBoundary>
+            </Suspense>
           )}
           {showBanReversalNotice && (
             <Suspense fallback={null}>
@@ -1481,6 +1645,87 @@ const App: React.FC = () => {
         return null;
       })()}
 
+      {/* ── Guided Quest Onboarding (Level 1) ── */}
+      {showQuestOnboarding && questOnboardingStep > 0 && (
+        <Suspense fallback={null}>
+          <ErrorBoundary>
+            <GuidedQuestOnboarding
+              currentStep={questOnboardingStep}
+              onStepComplete={handleQuestOnboardingStep}
+              onComplete={handleQuestOnboardingComplete}
+            />
+          </ErrorBoundary>
+        </Suspense>
+      )}
+
+      {/* ── Workout Onboarding Tutorial (Level 1) ── */}
+      {showWorkoutOnboarding && workoutOnboardingStep > 0 && (
+        <Suspense fallback={null}>
+          <ErrorBoundary>
+            <WorkoutOnboardingTutorial
+              currentStep={workoutOnboardingStep}
+              onStepComplete={handleWorkoutOnboardingStep}
+              onComplete={handleWorkoutOnboardingComplete}
+            />
+          </ErrorBoundary>
+        </Suspense>
+      )}
+
+      {/* ── Rank Reveal (UNRANKED → E) ── */}
+      <AnimatePresence>
+        {showRankReveal && (
+          <Suspense fallback={null}>
+            <ErrorBoundary>
+              <RankUpCinematic
+                oldRank="UNRANKED"
+                newRank="E"
+                onComplete={handleRankRevealComplete}
+              />
+            </ErrorBoundary>
+          </Suspense>
+        )}
+      </AnimatePresence>
+
+      {/* ── Feature Unlock Cinematic (Level 5 / Level 10) ── */}
+      <AnimatePresence>
+        {showFeatureUnlock !== null && (
+          <Suspense fallback={null}>
+            <ErrorBoundary>
+              <FeatureUnlockCinematic
+                level={showFeatureUnlock}
+                onComplete={() => handleFeatureUnlockComplete(showFeatureUnlock)}
+              />
+            </ErrorBoundary>
+          </Suspense>
+        )}
+      </AnimatePresence>
+
+      {/* ── Level 5 Tutorial ── */}
+      {showLevel5Tutorial && (
+        <Suspense fallback={null}>
+          <ErrorBoundary>
+            <Level5Tutorial
+              currentStep={level5TutStep}
+              onStepComplete={(step) => setLevel5TutStep(step + 1)}
+              onComplete={() => setShowLevel5Tutorial(false)}
+            />
+          </ErrorBoundary>
+        </Suspense>
+      )}
+
+      {/* ── Level 10 Tutorial ── */}
+      {showLevel10Tutorial && (
+        <Suspense fallback={null}>
+          <ErrorBoundary>
+            <Level10Tutorial
+              currentStep={level10TutStep}
+              onStepComplete={(step) => setLevel10TutStep(step + 1)}
+              onComplete={() => setShowLevel10Tutorial(false)}
+            />
+          </ErrorBoundary>
+        </Suspense>
+      )}
+
       {/* Confetti Overlay — rendered at App level */}
       <Suspense fallback={null}>
         <ErrorBoundary>
@@ -1506,6 +1751,14 @@ const App: React.FC = () => {
             activeTab={activeTab}
             onTabChange={navigateTo}
             badges={{ LEADERBOARD: !player.allianceId }}
+            playerLevel={player.level}
+            guidedStep={showQuestOnboarding ? questOnboardingStep : showWorkoutOnboarding ? 7 : undefined}
+            onGuidedAction={(step) => {
+              if (step === 1) handleQuestOnboardingStep(1);
+              if (step === 7) {
+                // Workout onboarding step — just switch tab
+              }
+            }}
           />
         ) : null}
         playerLevel={player.level}
@@ -1784,6 +2037,8 @@ const App: React.FC = () => {
                     onToggleNav={handleToggleNav}
                     onConsumeKey={consumeKey}
                     onUpdateSkillProgress={updateSkillProgress}
+                    playerLevel={player.level}
+                    onAddRewards={addRewards}
                   />
                 </ErrorBoundary>
               </Suspense>

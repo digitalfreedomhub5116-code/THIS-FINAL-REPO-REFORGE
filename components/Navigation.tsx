@@ -1,14 +1,18 @@
 
-import React from 'react';
-import { LayoutGrid, Activity, Swords, Store, Trophy } from 'lucide-react';
-import { motion } from 'framer-motion';
+import React, { useState } from 'react';
+import { LayoutGrid, Activity, Swords, Store, Trophy, Lock } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Tab } from '../types';
 import SystemGlitchBadge from './SystemGlitchBadge';
+import { getLockedTabs, LockedFeaturePopup, FEATURE_GATES } from './FeatureGate';
 
 interface NavigationProps {
   activeTab: Tab;
   onTabChange: (tab: Tab) => void;
   badges?: Record<string, boolean>;
+  playerLevel?: number;
+  guidedStep?: number;
+  onGuidedAction?: (step: number) => void;
 }
 
 const NAV_ITEMS = [
@@ -19,9 +23,37 @@ const NAV_ITEMS = [
   { id: 'LEADERBOARD' as Tab, label: 'Ranks', icon: Trophy },
 ];
 
-const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, badges }) => {
+const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, badges, playerLevel = 99, guidedStep, onGuidedAction }) => {
+  const [lockedPopup, setLockedPopup] = useState<{ label: string; level: number } | null>(null);
+  const lockedTabs = getLockedTabs(playerLevel);
+  const isGuidedQuestStep = guidedStep === 1;
+  const isGuidedHealthStep = guidedStep === 7;
+
+  const handleTabClick = (tabId: Tab) => {
+    if (lockedTabs[tabId]) {
+      const gateKey = tabId === 'STORE' ? 'STORE' : tabId === 'LEADERBOARD' ? 'LEADERBOARD' : '';
+      const gate = FEATURE_GATES[gateKey];
+      setLockedPopup({ label: gate?.label || tabId, level: lockedTabs[tabId] });
+      return;
+    }
+    if (isGuidedQuestStep && tabId === 'QUESTS' && onGuidedAction) {
+      onGuidedAction(1);
+    }
+    if (isGuidedHealthStep && tabId === 'HEALTH' && onGuidedAction) {
+      onGuidedAction(7);
+    }
+    onTabChange(tabId);
+  };
+
   return (
     <>
+      <LockedFeaturePopup
+        visible={!!lockedPopup}
+        featureLabel={lockedPopup?.label || ''}
+        requiredLevel={lockedPopup?.level || 0}
+        onClose={() => setLockedPopup(null)}
+      />
+
       {/* Desktop Sidebar */}
       <motion.nav
         initial={{ x: -100, opacity: 0 }}
@@ -39,16 +71,18 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, badges 
         <div className="flex-1 py-6 px-4 space-y-1">
           {NAV_ITEMS.map((item) => {
             const isActive = activeTab === item.id;
+            const isLocked = !!lockedTabs[item.id];
             const Icon = item.icon;
+            const isGuidedHighlight = (isGuidedQuestStep && item.id === 'QUESTS') || (isGuidedHealthStep && item.id === 'HEALTH');
             return (
               <button
                 key={item.id}
-                onClick={() => onTabChange(item.id)}
+                onClick={() => handleTabClick(item.id)}
                 className={`w-full flex items-center gap-4 px-4 py-3 rounded-lg transition-all duration-300 relative group overflow-hidden ${
-                  isActive ? 'text-white' : 'text-gray-500 hover:text-gray-300'
+                  isLocked ? 'text-gray-700 cursor-not-allowed' : isActive ? 'text-white' : 'text-gray-500 hover:text-gray-300'
                 }`}
               >
-                {isActive && (
+                {isActive && !isLocked && (
                   <motion.div
                     layoutId="active-nav-desktop"
                     className="absolute inset-0 bg-gray-800/50 border border-gray-700/50 rounded-lg"
@@ -56,17 +90,28 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, badges 
                     transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                   />
                 )}
-                {isActive && (
+                {isActive && !isLocked && (
                   <motion.div
                     layoutId="active-indicator"
                     className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-system-neon rounded-r-full shadow-[0_0_10px_#00d2ff]"
                   />
                 )}
-                <div className={`relative z-10 transition-transform duration-300 ${isActive ? 'scale-110 text-system-neon' : ''}`}>
-                  <Icon size={20} />
+                {isGuidedHighlight && (
+                  <motion.div
+                    className="absolute inset-0 rounded-lg pointer-events-none"
+                    animate={{ boxShadow: ['0 0 8px rgba(0,210,255,0.3)', '0 0 20px rgba(0,210,255,0.7)', '0 0 8px rgba(0,210,255,0.3)'] }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                    style={{ border: '1px solid rgba(0,210,255,0.5)' }}
+                  />
+                )}
+                <div className={`relative z-10 transition-transform duration-300 ${isLocked ? 'opacity-40' : isActive ? 'scale-110 text-system-neon' : ''}`}>
+                  {isLocked ? <Lock size={20} /> : <Icon size={20} />}
                 </div>
-                <span className="font-mono text-sm tracking-wide relative z-10 font-medium">{item.label}</span>
-                {badges?.[item.id] && (
+                <span className={`font-mono text-sm tracking-wide relative z-10 font-medium ${isLocked ? 'opacity-40' : ''}`}>{item.label}</span>
+                {isLocked && (
+                  <span className="relative z-10 ml-auto text-[9px] font-mono text-gray-700 tracking-wider">Lv.{lockedTabs[item.id]}</span>
+                )}
+                {!isLocked && badges?.[item.id] && (
                   <div className="relative z-10 ml-auto">
                     <SystemGlitchBadge />
                   </div>
@@ -114,14 +159,17 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, badges 
           {NAV_ITEMS.map((item) => {
             const isActive = activeTab === item.id;
             const isQuest = item.id === 'QUESTS';
+            const isLocked = !!lockedTabs[item.id];
             const Icon = item.icon;
+            const isGuidedHighlight = (isGuidedQuestStep && item.id === 'QUESTS') || (isGuidedHealthStep && item.id === 'HEALTH');
             return (
               <button
                 key={item.id}
-                onClick={() => onTabChange(item.id)}
+                id={item.id === 'HEALTH' ? 'tut-nav-health' : item.id === 'QUESTS' ? 'nav-quests-btn' : undefined}
+                onClick={() => handleTabClick(item.id)}
                 className="relative flex items-center justify-center w-12 h-10"
               >
-                {isActive && (
+                {isActive && !isLocked && (
                   <motion.div
                     layoutId="active-nav-pill"
                     className="absolute inset-0 rounded-full"
@@ -136,23 +184,50 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, badges 
                     transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                   />
                 )}
+                {isGuidedHighlight && (
+                  <motion.div
+                    className="absolute inset-0 rounded-full pointer-events-none"
+                    animate={{ boxShadow: ['0 0 6px rgba(0,210,255,0.3)', '0 0 18px rgba(0,210,255,0.8)', '0 0 6px rgba(0,210,255,0.3)'] }}
+                    transition={{ duration: 1.2, repeat: Infinity }}
+                    style={{ border: '1px solid rgba(0,210,255,0.5)' }}
+                  />
+                )}
                 <div
                   className="relative z-10 transition-all duration-200"
                   style={{
-                    color: isActive
-                      ? (isQuest ? '#00d2ff' : '#ffffff')
+                    color: isLocked
+                      ? '#2a2a3a'
+                      : isActive
+                        ? (isQuest ? '#00d2ff' : '#ffffff')
+                        : isQuest
+                          ? '#00d2ff'
+                          : '#6b7280',
+                    transform: isActive && !isLocked ? 'scale(1.15)' : 'scale(1)',
+                    filter: isLocked
+                      ? 'none'
                       : isQuest
-                        ? '#00d2ff'
-                        : '#6b7280',
-                    transform: isActive ? 'scale(1.15)' : 'scale(1)',
-                    filter: isQuest
-                      ? `drop-shadow(0 0 ${isActive ? '8px' : '5px'} rgba(0,210,255,${isActive ? '0.8' : '0.55'}))`
-                      : 'none',
+                        ? `drop-shadow(0 0 ${isActive ? '8px' : '5px'} rgba(0,210,255,${isActive ? '0.8' : '0.55'}))`
+                        : 'none',
                   }}
                 >
-                  <Icon size={20} />
+                  {isLocked ? <Lock size={18} /> : <Icon size={20} />}
                 </div>
-                {badges?.[item.id] && !isActive && (
+                {isLocked && (
+                  <div
+                    className="absolute -top-1 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center z-20"
+                    style={{
+                      background: 'rgba(20,20,35,0.95)',
+                      border: '1px solid rgba(80,80,120,0.4)',
+                      fontSize: 7,
+                      fontWeight: 900,
+                      color: '#5a5a6a',
+                      fontFamily: 'monospace',
+                    }}
+                  >
+                    {lockedTabs[item.id]}
+                  </div>
+                )}
+                {!isLocked && badges?.[item.id] && !isActive && (
                   <div className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full z-20 shadow-[0_0_6px_rgba(239,68,68,0.8)]" />
                 )}
               </button>

@@ -26,6 +26,7 @@ interface Particle {
 }
 
 const CONFETTI_COLORS_BY_RANK: Record<RankType, string[]> = {
+  UNRANKED: ['#4a4a5a', '#6a6a7a', '#3a3a4a'],
   E: ['#6b7280', '#9ca3af', '#4b5563'],
   D: ['#c87941', '#e8a060', '#f59e0b', '#78350f'],
   C: ['#38bdf8', '#7dd3fc', '#0ea5e9', '#e0f2fe', '#ffffff'],
@@ -143,8 +144,9 @@ const RankUpCinematic: React.FC<RankUpCinematicProps> = ({ oldRank, newRank, onC
     return () => { [t1,t2,t3,t4,t5,t6].forEach(clearTimeout); };
   }, [onComplete]);
 
-  const rankOrder: RankType[] = ['E','D','C','B','A','S'];
+  const rankOrder: RankType[] = ['UNRANKED','E','D','C','B','A','S'];
   const rankName: Record<RankType, string> = {
+    UNRANKED: 'Unregistered',
     E: 'Awakened Hunter',
     D: 'Iron Gate',
     C: 'Knight of the System',
@@ -354,7 +356,7 @@ const RankUpCinematic: React.FC<RankUpCinematicProps> = ({ oldRank, newRank, onC
                     letterSpacing: '0.12em',
                   }}
                 >
-                  RANK UP
+                  {oldRank === 'UNRANKED' ? 'RANK ASSIGNED' : 'RANK UP'}
                 </motion.div>
 
                 <motion.div
@@ -364,7 +366,7 @@ const RankUpCinematic: React.FC<RankUpCinematicProps> = ({ oldRank, newRank, onC
                   transition={{ delay: 0.25 }}
                   className="flex items-center gap-3 text-2xl font-black font-mono"
                 >
-                  <span style={{ color: oldMeta.primary, opacity: 0.6 }}>{oldRank}</span>
+                  <span style={{ color: oldMeta.primary, opacity: 0.6 }}>{oldRank === 'UNRANKED' ? '?' : oldRank}</span>
                   <span className="text-gray-600 text-lg">→</span>
                   <span
                     style={{
@@ -396,7 +398,9 @@ const RankUpCinematic: React.FC<RankUpCinematicProps> = ({ oldRank, newRank, onC
                 >
                   {newRank === 'S'
                     ? '"You have surpassed all known limits. The System acknowledges your ascension."'
-                    : '"A new gate opens before you. The System has recognized your power."'}
+                    : oldRank === 'UNRANKED'
+                      ? '"The System has scanned your potential. Your rank has been assigned. Prove yourself, Hunter."'
+                      : '"A new gate opens before you. The System has recognized your power."'}
                 </motion.div>
 
                 <motion.button

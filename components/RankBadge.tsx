@@ -2,7 +2,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 
-export type RankType = 'E' | 'D' | 'C' | 'B' | 'A' | 'S';
+export type RankType = 'UNRANKED' | 'E' | 'D' | 'C' | 'B' | 'A' | 'S';
 
 interface RankBadgeProps {
   rank: RankType;
@@ -21,6 +21,15 @@ export const RANK_META: Record<RankType, {
   bg: string;
   labelColor: string;
 }> = {
+  UNRANKED: {
+    primary:    '#4a4a5a',
+    secondary:  '#2a2a3a',
+    letter:     '#6a6a7a',
+    border:     '#3a3a4a',
+    glow:       'rgba(74,74,90,0.0)',
+    bg:         '#08080e',
+    labelColor: '#5a5a6a',
+  },
   E: {
     primary:    '#8892a4',
     secondary:  '#4a5568',
@@ -78,6 +87,45 @@ export const RANK_META: Record<RankType, {
 };
 
 /* ─── Per-rank SVG badge renderers ─────────────────────────────────────────── */
+
+const BadgeUnranked: React.FC<{ s: number; animated: boolean }> = ({ s, animated }) => {
+  const cx = s / 2, cy = s / 2;
+  const r = s * 0.42;
+  const m = RANK_META.UNRANKED;
+  const pts = hexPts(cx, cy, r, -30);
+  const ptsInner = hexPts(cx, cy, r * 0.74, -30);
+
+  return (
+    <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`} style={{ overflow: 'visible' }}>
+      <defs>
+        <radialGradient id="bg-unranked" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor={m.primary} stopOpacity="0.1" />
+          <stop offset="100%" stopColor="#000" stopOpacity="1" />
+        </radialGradient>
+        <filter id="glow-unranked" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="1" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        {animated && <style>{`
+          @keyframes unranked-flicker { 0%,100%{opacity:0.6}30%{opacity:0.3}50%{opacity:0.7}70%{opacity:0.25}90%{opacity:0.55} }
+          @keyframes unranked-crack { 0%,100%{opacity:0.15}50%{opacity:0.35} }
+          .badge-unranked-letter{animation:unranked-flicker 3s infinite}
+          .badge-unranked-crack{animation:unranked-crack 2s ease-in-out infinite}
+        `}</style>}
+      </defs>
+      {/* Plate */}
+      <polygon points={pts} fill="url(#bg-unranked)" stroke={m.border} strokeWidth={s * 0.028} opacity="0.6" />
+      {/* Crack lines — unstable/shattered look */}
+      <line className="badge-unranked-crack" x1={cx-r*0.6} y1={cy-r*0.4} x2={cx+r*0.2} y2={cy+r*0.65} stroke={m.primary} strokeWidth={s*0.02} opacity="0.25" strokeLinecap="round"/>
+      <line className="badge-unranked-crack" x1={cx+r*0.45} y1={cy-r*0.6} x2={cx-r*0.15} y2={cy+r*0.35} stroke={m.primary} strokeWidth={s*0.016} opacity="0.2" strokeLinecap="round"/>
+      <line className="badge-unranked-crack" x1={cx-r*0.2} y1={cy-r*0.65} x2={cx+r*0.5} y2={cy+r*0.25} stroke={m.primary} strokeWidth={s*0.014} opacity="0.18" strokeLinecap="round"/>
+      {/* Inner ring — dashed, broken feel */}
+      <polygon points={ptsInner} fill="none" stroke={m.primary} strokeWidth={s*0.014} opacity="0.15" strokeDasharray={`${s*0.06} ${s*0.04}`} />
+      {/* Question mark letter */}
+      <text className="badge-unranked-letter" x={cx} y={cy+s*0.15} textAnchor="middle" fontSize={s*0.44} fontWeight="900" fontFamily="'Arial Black',sans-serif" fill={m.letter} filter="url(#glow-unranked)" opacity="0.5">?</text>
+    </svg>
+  );
+};
 
 const BadgeE: React.FC<{ s: number; animated: boolean }> = ({ s, animated }) => {
   const cx = s / 2, cy = s / 2;
@@ -391,7 +439,8 @@ function hexPts(cx: number, cy: number, r: number, offsetDeg = 0): string {
 
 /* ─── Main export ───────────────────────────────────────────────────────────── */
 
-const BADGE_COMPONENTS = {
+const BADGE_COMPONENTS: Record<RankType, React.FC<{ s: number; animated: boolean }>> = {
+  UNRANKED: BadgeUnranked,
   E: BadgeE,
   D: BadgeD,
   C: BadgeC,
@@ -422,7 +471,7 @@ const RankBadge: React.FC<RankBadgeProps> = ({
           className="mt-1 text-[9px] font-black tracking-[0.22em] font-mono uppercase"
           style={{ color: meta.labelColor, textShadow: `0 0 8px ${meta.glow}` }}
         >
-          {rank}-RANK
+          {rank === 'UNRANKED' ? 'UNRANKED' : `${rank}-RANK`}
         </div>
       )}
     </motion.div>

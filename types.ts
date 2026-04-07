@@ -15,7 +15,7 @@ export interface NavItem {
   id: Tab;
 }
 
-export type Rank = 'E' | 'D' | 'C' | 'B' | 'A' | 'S';
+export type Rank = 'UNRANKED' | 'E' | 'D' | 'C' | 'B' | 'A' | 'S';
 export type TierLevel = 'E' | 'D' | 'C' | 'B' | 'A' | 'S';
 
 export type Priority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
@@ -595,4 +595,10 @@ export interface PlayerData {
   // Badge Stone System — per-outfit crystal counts
   // e.g. { "outfit_ghost": 45, "outfit_assassin": 203 }
   outfitStones: Record<string, number>;
+
+  // Feature gate tracking
+  featureUnlocksShown?: number[];
+  rankRevealed?: boolean;
+  questOnboardingDone?: boolean;
+  workoutOnboardingDone?: boolean;
 }

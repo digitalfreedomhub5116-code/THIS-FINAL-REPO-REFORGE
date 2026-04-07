@@ -16,6 +16,7 @@ interface SystemPactScreenProps {
 }
 
 const PLEDGE_AMOUNTS: Record<Rank, number> = {
+  UNRANKED: 0,
   E: 10,
   D: 25,
   C: 60,
@@ -31,6 +32,7 @@ function isMandatory(rank: Rank): boolean {
 }
 
 const RANK_GLOW: Record<Rank, { r: number; g: number; b: number }> = {
+  UNRANKED: { r: 74, g: 74, b: 90 },
   E: { r: 107, g: 114, b: 128 },
   D: { r: 249, g: 115, b: 22 },
   C: { r: 234, g: 179, b: 8 },

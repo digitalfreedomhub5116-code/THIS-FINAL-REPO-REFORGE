@@ -17,6 +17,7 @@ interface QuestCardProps {
 }
 
 const RANK_BAR: Record<Rank, string> = {
+  UNRANKED: '#4a4a5a',
   S: '#a855f7',
   A: '#eab308',
   B: '#3b82f6',
@@ -26,6 +27,7 @@ const RANK_BAR: Record<Rank, string> = {
 };
 
 const RANK_LABEL: Record<Rank, string> = {
+  UNRANKED: 'rgba(74,74,90,0.08)',
   S: 'rgba(168,85,247,0.15)',
   A: 'rgba(234,179,8,0.12)',
   B: 'rgba(59,130,246,0.12)',

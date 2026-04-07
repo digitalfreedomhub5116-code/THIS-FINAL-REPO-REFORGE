@@ -90,6 +90,7 @@ interface HealthViewProps {
   onConsumeKey: (amount?: number) => Promise<boolean>;
   onAddRewards?: (gold: number, xp: number, keys?: number) => void;
   onUpdateSkillProgress?: (progress: import('../types').SkillProgress[]) => void;
+  playerLevel?: number;
 }
 
 // --- OPTIMIZATION SEQUENCE COMPONENT ---
@@ -563,7 +564,7 @@ const StreakRewardsTimelineWrapper: React.FC<{ playerData: PlayerData }> = ({ pl
 };
 
 export const HealthView: React.FC<HealthViewProps> = ({ 
-  healthProfile, onSaveProfile, onCompleteWorkout, onFailWorkout, onLogMeal, onDeleteMeal: _onDeleteMeal, playerData, onToggleNav, onConsumeKey, onAddRewards, onUpdateSkillProgress
+  healthProfile, onSaveProfile, onCompleteWorkout, onFailWorkout, onLogMeal, onDeleteMeal: _onDeleteMeal, playerData, onToggleNav, onConsumeKey, onAddRewards, onUpdateSkillProgress, playerLevel = 99
 }) => {
   const [viewMode, setViewMode] = useState<'MAP' | 'OVERVIEW' | 'ACTIVE' | 'SETUP' | 'PROCESSING' | 'DIAGNOSIS' | 'PROJECTION' | 'FINALIZING' | 'PLAN_SELECT'>('MAP');
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
@@ -582,6 +583,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
   const [streakAnimKey, setStreakAnimKey] = useState(0);
   const prevStreakRef = useRef(playerData.streak);
   const [activeTab, setActiveTab] = useState<'WORKOUT' | 'NUTRITION' | 'SKILLS'>('WORKOUT');
+  const nutritionLocked = playerLevel < 5;
   const visibleTabs = SKILLS_ENABLED ? ['WORKOUT', 'NUTRITION', 'SKILLS'] : ['WORKOUT', 'NUTRITION'];
   
   // Track if user skipped setup
@@ -1882,21 +1884,26 @@ export const HealthView: React.FC<HealthViewProps> = ({
 
         <div id="tut-health" className="flex flex-col gap-6 font-mono">
             <div className="flex gap-2 sticky top-20 z-30 pt-1 pb-2 bg-transparent">
-                {visibleTabs.map(t => (
+                {visibleTabs.map(t => {
+                    const isTabLocked = t === 'NUTRITION' && nutritionLocked;
+                    return (
                     <button
                         key={t}
                         id={t === 'NUTRITION' ? 'tut-health-nutrition-tab' : undefined}
-                        onClick={() => setActiveTab(t as any)}
+                        onClick={() => !isTabLocked && setActiveTab(t as any)}
                         className={`flex-1 py-2.5 text-xs font-bold tracking-widest rounded-lg transition-all duration-200 border ${
-                            activeTab === t
-                                ? 'text-system-neon border-system-neon shadow-[0_0_12px_rgba(0,210,255,0.25)]'
-                                : 'text-gray-600 border-gray-800 hover:text-gray-400 hover:border-gray-600'
+                            isTabLocked
+                                ? 'text-gray-700 border-gray-800/50 cursor-not-allowed opacity-50'
+                                : activeTab === t
+                                    ? 'text-system-neon border-system-neon shadow-[0_0_12px_rgba(0,210,255,0.25)]'
+                                    : 'text-gray-600 border-gray-800 hover:text-gray-400 hover:border-gray-600'
                         }`}
                         style={{ background: 'transparent' }}
                     >
-                        {t}
+                        {isTabLocked ? <span className="flex items-center justify-center gap-1.5"><Lock size={10} />{t} <span className="text-[8px] text-gray-600">Lv.5</span></span> : t}
                     </button>
-                ))}
+                    );
+                })}
             </div>
             <div className="pb-20">
                 <AnimatePresence mode="wait">
@@ -1996,6 +2003,15 @@ export const HealthView: React.FC<HealthViewProps> = ({
                             <div>
                                 <div className="flex items-center justify-between mb-3">
                                     <div className="text-xs font-black text-white uppercase tracking-widest">Training Programs</div>
+                                    {nutritionLocked ? (
+                                    <button
+                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider opacity-40 cursor-not-allowed"
+                                        style={{ background: 'rgba(100,100,140,0.1)', border: '1px solid rgba(100,100,140,0.2)', color: '#6a6a7a' }}
+                                        onClick={() => {}}
+                                    >
+                                        <Lock size={10} /> AI Plan <span className="text-[7px]">Lv.5</span>
+                                    </button>
+                                    ) : (
                                     <button
                                         onClick={() => { setAiPlanError(null); setAiConfirmStep(0); setShowAIConfirm(true); }}
                                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all"
@@ -2004,6 +2020,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                         <Sparkles size={10} />
                                         {(healthProfile as any)?.aiPlanUsed ? 'Regenerate AI Plan (5 🗝)' : 'Create Plan with AI (Free)'}
                                     </button>
+                                    )}
                                 </div>
 
                                 <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 -mx-4 px-4">
