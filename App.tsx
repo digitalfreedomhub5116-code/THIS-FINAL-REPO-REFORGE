@@ -878,24 +878,47 @@ const App: React.FC = () => {
 
   // ── Level 1 Quest Onboarding Trigger ──
   // Show guided quest tutorial for new users who haven't completed it
+  // This triggers AFTER streak celebration closes
+  const prevStreakShownRef = useRef(showStreakCelebration);
   useEffect(() => {
     if (!player.isConfigured) return;
     if (player.questOnboardingDone) return;
     if (player.level < 1) return;
     // Only trigger after initial onboarding is done
     if (onboardingPhase !== 'APP') return;
-    // Don't show if already showing something else
-    if (showLevelUp || showLevelDown || rankUpData || showStreakCelebration) return;
-    // Small delay to let the app settle
-    const timer = setTimeout(() => {
-      if (!player.questOnboardingDone) {
-        setShowQuestOnboarding(true);
-        setQuestOnboardingStep(1);
-        setActiveTab('DASHBOARD');
-      }
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, [player.isConfigured, player.questOnboardingDone, onboardingPhase]); // eslint-disable-line react-hooks/exhaustive-deps
+    
+    // Don't show if level up/down, rank up, or other overlays are active
+    if (showLevelUp || showLevelDown || rankUpData) return;
+    
+    // Wait for streak celebration to finish (transition from true to false)
+    const streakWasShown = prevStreakShownRef.current;
+    const streakJustClosed = streakWasShown && !showStreakCelebration;
+    prevStreakShownRef.current = showStreakCelebration;
+    
+    // If streak is currently showing, wait
+    if (showStreakCelebration) return;
+    
+    // Only proceed if streak just closed or we're already past it
+    // and quest onboarding hasn't started yet
+    if (!streakJustClosed && questOnboardingStep === 0) {
+      // Initial check - small delay to let app settle
+      const timer = setTimeout(() => {
+        if (!player.questOnboardingDone && !showStreakCelebration) {
+          setShowQuestOnboarding(true);
+          setQuestOnboardingStep(1);
+          setActiveTab('DASHBOARD');
+        }
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+    
+    // Streak just closed - start quest onboarding
+    if (streakJustClosed && questOnboardingStep === 0) {
+      setShowQuestOnboarding(true);
+      setQuestOnboardingStep(1);
+      setActiveTab('DASHBOARD');
+    }
+  }, [player.isConfigured, player.questOnboardingDone, onboardingPhase, showStreakCelebration, showLevelUp, showLevelDown, rankUpData]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Rank Reveal after quest+workout onboarding complete ──
   useEffect(() => {
