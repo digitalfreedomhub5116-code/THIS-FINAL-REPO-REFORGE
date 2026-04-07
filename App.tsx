@@ -956,6 +956,12 @@ const App: React.FC = () => {
       // User tapped Quests tab
       setQuestOnboardingStep(2);
       setActiveTab('QUESTS');
+    } else if (step === 7) {
+      // Error step - go back to step 3 to re-enter text
+      // Clear the input first
+      const input = document.getElementById('tut-quest-title') as HTMLInputElement;
+      if (input) input.value = '';
+      setQuestOnboardingStep(3);
     } else if (step < 6) {
       setQuestOnboardingStep(step + 1);
     } else {

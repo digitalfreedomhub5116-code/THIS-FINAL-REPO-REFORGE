@@ -71,8 +71,8 @@ const STEPS: StepConfig[] = [
   {
     targetId: 'tut-quest-title',
     icon: <AlertTriangle size={18} />,
-    title: 'Invalid Quest Name',
-    subtitle: 'Please enter a valid task. Be specific about what you want to achieve.',
+    title: 'Invalid Quest Format',
+    subtitle: 'Your quest needs a time or amount. Be specific!\n\nExamples:\n• Run 10 km\n• Read 30 pages\n• Cook dinner for 5 people',
     position: 'bottom',
     waitForAction: false,
     isErrorStep: true,
@@ -380,7 +380,9 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({ currentSt
               style={{
                 left: Math.max(16, Math.min(spotlightRect.x + spotlightRect.w / 2 - 130, window.innerWidth - 276)),
                 top: step.position === 'bottom'
-                  ? Math.max(80, spotlightRect.y - 180)
+                  ? currentStep === 7
+                    ? Math.max(80, spotlightRect.y - 220) // Error step: much higher to not overlap input
+                    : Math.max(80, spotlightRect.y - 180)
                   : Math.min(window.innerHeight - 200, spotlightRect.y + spotlightRect.h + 16),
                 width: 260,
                 zIndex: 10,
@@ -462,12 +464,20 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({ currentSt
                   </div>
                 )}
 
-                {/* Error step - show red styling */}
+                {/* Error step - show red styling with NEXT button to go back to step 3 */}
                 {step.isErrorStep && (
-                  <div className="mt-3 p-2 rounded-lg bg-red-900/20 border border-red-500/30">
-                    <p className="text-[10px] text-red-400">
-                      Try: &quot;Run 5km&quot;, &quot;Read 30 pages&quot;, &quot;Study for 2 hours&quot;
-                    </p>
+                  <div className="mt-3 space-y-2">
+                    <div className="p-2.5 rounded-lg bg-red-900/20 border border-red-500/30">
+                      <p className="text-[10px] text-red-400 leading-relaxed">
+                        {step.subtitle}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => onStepComplete(currentStep)}
+                      className="w-full py-2.5 rounded-lg text-[11px] font-bold tracking-wider bg-cyan-500 text-black hover:bg-cyan-400 transition-all"
+                    >
+                      TRY AGAIN
+                    </button>
                   </div>
                 )}
 
