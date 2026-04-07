@@ -183,31 +183,46 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({ currentSt
             </motion.div>
           )}
 
-          {/* Allow clicking through to the target */}
-          {spotlightRect && step && (
+          {/* Allow clicking through to the target - use pointer-events-none so native clicks pass through */}
+          {spotlightRect && step && step.waitForAction && (
             <div
-              className="absolute pointer-events-auto cursor-pointer"
+              className="absolute pointer-events-none"
               style={{
                 left: spotlightRect.x,
                 top: spotlightRect.y,
                 width: spotlightRect.w,
                 height: spotlightRect.h,
                 zIndex: 5,
-                background: 'transparent',
-              }}
-              onClick={(e) => {
-                // Forward click to the actual target element
-                const target = document.getElementById(step.targetId);
-                if (target) {
-                  e.stopPropagation();
-                  target.click();
-                }
               }}
             />
           )}
 
-          {/* Tooltip card */}
-          {spotlightRect && (
+          {/* Floating hint for action steps */}
+          {spotlightRect && step && step.waitForAction && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="absolute pointer-events-none"
+              style={{
+                left: '50%',
+                bottom: 120,
+                transform: 'translateX(-50%)',
+                zIndex: 10,
+              }}
+            >
+              <div
+                className="px-4 py-2 rounded-full text-[11px] font-bold text-white whitespace-nowrap"
+                style={{
+                  background: 'rgba(0,0,0,0.8)',
+                  border: '1px solid rgba(0,210,255,0.4)',
+                  boxShadow: '0 0 20px rgba(0,210,255,0.3)',
+                }}
+              >
+                Tap the highlighted button
+              </div>
+            </motion.div>
+          )}
+          {spotlightRect && step && !step.waitForAction && (
             <motion.div
               key={`tooltip-${currentStep}`}
               initial={{ opacity: 0, y: step.position === 'bottom' ? -10 : 10, scale: 0.95 }}

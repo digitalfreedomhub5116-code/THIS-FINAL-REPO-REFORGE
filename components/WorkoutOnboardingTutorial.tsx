@@ -152,18 +152,11 @@ const WorkoutOnboardingTutorial: React.FC<WorkoutOnboardingProps> = ({ currentSt
           </motion.div>
         )}
 
-        {/* Click through zone */}
+        {/* Click through zone - allow native clicks to pass through */}
         {spotlightRect && step && (
           <div
-            className="absolute pointer-events-auto cursor-pointer"
-            style={{ left: spotlightRect.x, top: spotlightRect.y, width: spotlightRect.w, height: spotlightRect.h, zIndex: 5, background: 'transparent' }}
-            onClick={(e) => {
-              const target = document.getElementById(step.targetId);
-              if (target) {
-                e.stopPropagation();
-                target.click();
-              }
-            }}
+            className="absolute pointer-events-none"
+            style={{ left: spotlightRect.x, top: spotlightRect.y, width: spotlightRect.w, height: spotlightRect.h, zIndex: 5 }}
           />
         )}
 
