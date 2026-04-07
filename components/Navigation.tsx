@@ -139,7 +139,7 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, badges,
         style={{ bottom: 'calc(12px + env(safe-area-inset-bottom, 0px))' }}
       >
         <div
-          className="relative flex items-center justify-around rounded-full px-2 py-2 overflow-hidden"
+          className="relative flex items-center justify-around rounded-full px-2 py-1.5 overflow-hidden"
           style={{
             background: 'linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(8,8,20,0.82) 16%, rgba(4,4,14,0.92) 100%)',
             backdropFilter: 'blur(28px) saturate(200%)',
@@ -148,7 +148,7 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, badges,
             borderLeft: '1px solid rgba(255,255,255,0.08)',
             borderRight: '1px solid rgba(255,255,255,0.04)',
             borderBottom: '1px solid rgba(255,255,255,0.03)',
-            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -1px 0 rgba(0,0,0,0.3), 0 12px 40px rgba(0,0,0,0.55), 0 4px 12px rgba(0,0,0,0.4)',
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -1px 0 rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.5), 0 3px 8px rgba(0,0,0,0.35)',
           }}
         >
           {/* Specular top-edge line */}
@@ -167,7 +167,7 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, badges,
                 key={item.id}
                 id={item.id === 'HEALTH' ? 'tut-nav-health' : item.id === 'QUESTS' ? 'nav-quests-btn' : undefined}
                 onClick={() => handleTabClick(item.id)}
-                className="relative flex flex-col items-center justify-center w-14 h-14"
+                className="relative flex flex-col items-center justify-center w-12 h-12"
               >
                 {isActive && !isLocked && (
                   <motion.div
@@ -210,7 +210,7 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, badges,
                         : 'none',
                   }}
                 >
-                  {isLocked ? <Lock size={20} /> : <Icon size={22} />}
+                  {isLocked ? <Lock size={18} /> : <Icon size={20} />}
                 </div>
                 {/* Label removed - icons only */}
                 {isLocked && (
