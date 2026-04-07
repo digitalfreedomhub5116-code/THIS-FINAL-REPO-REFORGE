@@ -63,11 +63,11 @@ const STEPS: StepConfig[] = [
     waitForAction: false,
   },
   {
-    targetId: 'tut-confirm-quest',
+    targetId: 'tut-enter-pact',
     icon: <Check size={18} />,
-    title: 'Lock It In',
-    subtitle: 'Your pledge is ready. Confirm and begin.',
-    position: 'bottom',
+    title: 'Enter The Pact',
+    subtitle: 'Accept the System Pact to earn 1.25x XP on verified completion.',
+    position: 'top',
     waitForAction: true,
   },
   {
@@ -263,26 +263,27 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({
     };
   }, [currentStep, onStepComplete]);
 
-  // For step 6 (confirm button), detect when quest is created (modal closes)
+  // For step 6 (Enter Pact button), detect when quest is created (Pact screen closes)
   useEffect(() => {
     if (currentStep !== 6) return;
     
     const checkQuestCreated = () => {
-      // If modal closes and we're back to quest list, quest was created
-      const modalTitle = document.querySelector('h3.text-xs.font-black.text-white.font-mono.tracking-widest');
-      const questInput = document.getElementById('tut-quest-title');
-      const isModalClosed = !modalTitle?.textContent?.includes('NEW QUEST') && !questInput;
+      // Check if System Pact screen is still visible
+      const pactScreen = document.querySelector('[id="tut-enter-pact"]');
+      const pactVisible = !!pactScreen;
       
-      // Also check if a quest card appears in the list
+      // Also check if a quest card appears in the list (quest was created)
       const questCards = document.querySelectorAll('[id^="quest-card-"]');
+      const hasQuests = questCards.length > 0;
       
-      if (isModalClosed && questCards.length > 0) {
+      // If Pact screen closed and we have quests, the quest was created
+      if (!pactVisible && hasQuests) {
         onStepComplete(6);
       }
     };
     
     checkQuestCreated();
-    const interval = setInterval(checkQuestCreated, 200);
+    const interval = setInterval(checkQuestCreated, 300);
     const observer = new MutationObserver(checkQuestCreated);
     observer.observe(document.body, { childList: true, subtree: true });
     
@@ -400,7 +401,8 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({
               className="absolute pointer-events-none"
               style={{
                 left: '50%',
-                bottom: 120,
+                // For step 6 (Enter Pact button at bottom), show hint higher up
+                bottom: currentStep === 6 ? 180 : 120,
                 transform: 'translateX(-50%)',
                 zIndex: 10,
               }}
