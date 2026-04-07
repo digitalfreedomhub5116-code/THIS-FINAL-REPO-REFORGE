@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Swords, Plus, Type, Cpu, Clock, Check, ChevronRight } from 'lucide-react';
+import { Swords, Plus, Type, Cpu, Clock, Check, ChevronRight, AlertTriangle } from 'lucide-react';
 import { playSystemSoundEffect } from '../utils/soundEngine';
 
 interface GuidedQuestOnboardingProps {
@@ -16,6 +16,7 @@ interface StepConfig {
   subtitle: string;
   position: 'bottom' | 'top';
   waitForAction: boolean;
+  isErrorStep?: boolean;
 }
 
 const STEPS: StepConfig[] = [
@@ -40,7 +41,7 @@ const STEPS: StepConfig[] = [
     icon: <Type size={18} />,
     title: 'Describe Your Objective',
     subtitle: 'Write what you want to achieve. Be specific.',
-    position: 'top',
+    position: 'bottom',
     waitForAction: false,
   },
   {
@@ -48,7 +49,7 @@ const STEPS: StepConfig[] = [
     icon: <Cpu size={18} />,
     title: 'Analyze with AI',
     subtitle: 'The System will scan and rank your quest.',
-    position: 'top',
+    position: 'bottom',
     waitForAction: true,
   },
   {
@@ -56,7 +57,7 @@ const STEPS: StepConfig[] = [
     icon: <Clock size={18} />,
     title: 'Set Your Schedule',
     subtitle: 'Choose when you\'ll complete this quest.',
-    position: 'top',
+    position: 'bottom',
     waitForAction: false,
   },
   {
@@ -64,13 +65,23 @@ const STEPS: StepConfig[] = [
     icon: <Check size={18} />,
     title: 'Lock It In',
     subtitle: 'Your pledge is ready. Confirm and begin.',
-    position: 'top',
+    position: 'bottom',
     waitForAction: true,
+  },
+  {
+    targetId: 'tut-quest-title',
+    icon: <AlertTriangle size={18} />,
+    title: 'Invalid Quest Name',
+    subtitle: 'Please enter a valid task. Be specific about what you want to achieve.',
+    position: 'bottom',
+    waitForAction: false,
+    isErrorStep: true,
   },
 ];
 
 const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({ currentStep, onStepComplete, onComplete }) => {
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  const [wordCount, setWordCount] = useState(0);
   const [visible, setVisible] = useState(true);
   const rafRef = useRef<number>(0);
 
@@ -93,9 +104,30 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({ currentSt
     return () => cancelAnimationFrame(rafRef.current);
   }, [step, updateTargetPosition]);
 
+  // Sound effect on step change
   useEffect(() => {
     if (currentStep > 0) {
       try { playSystemSoundEffect('NOTIFICATION'); } catch {}
+    }
+  }, [currentStep]);
+
+  // For step 3, track word count in the input
+  useEffect(() => {
+    if (currentStep !== 3) return;
+    
+    const checkWordCount = () => {
+      const input = document.getElementById('tut-quest-title') as HTMLInputElement;
+      if (input) {
+        const words = input.value.trim().split(/\s+/).filter(w => w.length > 0).length;
+        setWordCount(words);
+      }
+    };
+    
+    const input = document.getElementById('tut-quest-title');
+    if (input) {
+      input.addEventListener('input', checkWordCount);
+      checkWordCount(); // Initial check
+      return () => input.removeEventListener('input', checkWordCount);
     }
   }, [currentStep]);
 
@@ -212,7 +244,7 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({ currentSt
     };
   }, [currentStep, onStepComplete]);
 
-  if (!step || currentStep < 1 || currentStep > 6) return null;
+  if (!step || currentStep < 1 || currentStep > 7) return null;
 
   const padding = 12; // Larger padding for easier mobile tapping
   const spotlightRect = tooltipPos
@@ -346,10 +378,10 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({ currentSt
               transition={{ type: 'spring', stiffness: 400, damping: 25 }}
               className="absolute pointer-events-auto"
               style={{
-                left: Math.max(16, Math.min(spotlightRect.x, window.innerWidth - 280)),
+                left: Math.max(16, Math.min(spotlightRect.x + spotlightRect.w / 2 - 130, window.innerWidth - 276)),
                 top: step.position === 'bottom'
-                  ? spotlightRect.y - 120
-                  : spotlightRect.y + spotlightRect.h + 16,
+                  ? Math.max(80, spotlightRect.y - 140)
+                  : Math.min(window.innerHeight - 200, spotlightRect.y + spotlightRect.h + 16),
                 width: 260,
                 zIndex: 10,
               }}
@@ -403,6 +435,40 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({ currentSt
                   >
                     CONTINUE <ChevronRight size={12} />
                   </button>
+                )}
+
+              {/* Step 3 - Word count validation */}
+                {currentStep === 3 && (
+                  <div className="mt-3 space-y-2">
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className={wordCount >= 2 ? 'text-green-400' : 'text-gray-500'}>
+                        {wordCount} word{wordCount !== 1 ? 's' : ''}
+                      </span>
+                      <span className={wordCount >= 2 ? 'text-green-400' : 'text-gray-600'}>
+                        Min 2 words required
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => onStepComplete(currentStep)}
+                      disabled={wordCount < 2}
+                      className={`w-full py-2 rounded-lg text-[11px] font-bold tracking-wider transition-all ${
+                        wordCount >= 2
+                          ? 'bg-cyan-500 text-black hover:bg-cyan-400'
+                          : 'bg-gray-800 text-gray-500 cursor-not-allowed'
+                      }`}
+                    >
+                      NEXT
+                    </button>
+                  </div>
+                )}
+
+                {/* Error step - show red styling */}
+                {step.isErrorStep && (
+                  <div className="mt-3 p-2 rounded-lg bg-red-900/20 border border-red-500/30">
+                    <p className="text-[10px] text-red-400">
+                      Try: &quot;Run 5km&quot;, &quot;Read 30 pages&quot;, &quot;Study for 2 hours&quot;
+                    </p>
+                  </div>
                 )}
 
                 {currentStep === 1 && (
