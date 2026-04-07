@@ -206,33 +206,54 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({
     
     let checkCount = 0;
     let failureDetected = false;
+    let successDetected = false;
+    
     const checkAnalysisComplete = () => {
       checkCount++;
       
-      // Check if ForgeGuard result card is visible (success)
+      // PRIORITY 1: Check if ForgeGuard result card is visible (SUCCESS)
       const forgeResult = document.getElementById('tut-quest-category');
-      if (forgeResult && !failureDetected) {
-        onStepComplete(4, false); // Success
+      if (forgeResult && !failureDetected && !successDetected) {
+        successDetected = true;
+        onStepComplete(4, false); // Success - proceed to step 5
         return;
       }
       
-      // Check if error message is visible (failure) - quest was rejected
-      const errorContainer = document.querySelector('.bg-red-500\\/10, .bg-red-500\\/20, .bg-red-900\\/20, [class*="bg-red"]');
-      const errorText = document.querySelector('.text-red-400, .text-red-500');
-      const questRejectedText = document.body.innerText.includes('Quest rejected') || 
-                                document.body.innerText.includes('must specify') ||
-                                document.body.innerText.includes('Invalid quest');
-      
-      // If we see error indicators, mark failure and go back to step 3
-      if ((errorContainer || errorText || questRejectedText) && checkCount > 2) {
-        failureDetected = true;
-        onStepComplete(4, true); // Failure - go back to step 3
-        return;
+      // PRIORITY 2: Check for specific AI error messages (FAILURE)
+      // Only detect if we haven't already succeeded
+      if (!successDetected && !failureDetected && checkCount > 3) {
+        const bodyText = document.body.innerText;
+        
+        // Check for specific AI rejection phrases (these are the actual error messages from AI)
+        const hasQuestRejected = bodyText.includes('Quest rejected');
+        const hasMustSpecify = bodyText.toLowerCase().includes('must specify') || 
+                               bodyText.toLowerCase().includes('please specify');
+        const hasInvalidQuest = bodyText.toLowerCase().includes('invalid quest');
+        const hasNotProperQuest = bodyText.toLowerCase().includes('proper quest') || 
+                                  bodyText.toLowerCase().includes('proper task');
+        
+        // Look for error message in the quest result area specifically
+        const questResultArea = document.querySelector('#tut-quest-category')?.closest('.bg-gradient-to-br, .bg-\[\#0a0a14\]');
+        const hasRedErrorInResult = questResultArea?.querySelector('.text-red-400, .text-red-500, .text-rose-400') !== null;
+        
+        // Only trigger failure if we see specific rejection text
+        if ((hasQuestRejected || hasMustSpecify || hasInvalidQuest || hasNotProperQuest) && checkCount > 5) {
+          failureDetected = true;
+          onStepComplete(4, true); // Failure - go back to step 3
+          return;
+        }
+        
+        // Fallback: if we see red error text specifically within the quest result card after many checks
+        if (hasRedErrorInResult && checkCount > 8) {
+          failureDetected = true;
+          onStepComplete(4, true); // Failure - go back to step 3
+          return;
+        }
       }
     };
     
     checkAnalysisComplete();
-    const interval = setInterval(checkAnalysisComplete, 400);
+    const interval = setInterval(checkAnalysisComplete, 500);
     const observer = new MutationObserver(checkAnalysisComplete);
     observer.observe(document.body, { childList: true, subtree: true });
     
