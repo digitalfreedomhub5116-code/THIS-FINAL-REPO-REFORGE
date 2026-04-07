@@ -108,6 +108,110 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({ currentSt
     return () => clearTimeout(timer);
   }, [currentStep, step, onStepComplete]);
 
+  // For step 1 (Quests tab), detect when tab is active
+  useEffect(() => {
+    if (currentStep !== 1) return;
+    
+    const checkQuestsTabActive = () => {
+      // Check if we're on the QUESTS tab by looking for quest-specific elements
+      const questsHeader = document.querySelector('span.text-xs.font-black.font-mono.tracking-widest');
+      const isQuestsTab = questsHeader?.textContent?.includes('TODAY TASKS') || 
+                          !!document.getElementById('tut-add-quest') ||
+                          !!document.getElementById('quest-list-container');
+      
+      if (isQuestsTab) {
+        onStepComplete(1);
+      }
+    };
+    
+    checkQuestsTabActive();
+    const interval = setInterval(checkQuestsTabActive, 200);
+    const observer = new MutationObserver(checkQuestsTabActive);
+    observer.observe(document.body, { childList: true, subtree: true });
+    
+    return () => {
+      clearInterval(interval);
+      observer.disconnect();
+    };
+  }, [currentStep, onStepComplete]);
+
+  // For step 2 (+ button), detect when quest modal opens and auto-advance
+  useEffect(() => {
+    if (currentStep !== 2) return;
+    
+    const checkModalOpen = () => {
+      const modalTitle = document.querySelector('h3.text-xs.font-black.text-white.font-mono.tracking-widest');
+      const questInput = document.getElementById('tut-quest-title');
+      const isModalOpen = modalTitle?.textContent?.includes('NEW QUEST') || !!questInput;
+      
+      if (isModalOpen) {
+        onStepComplete(2);
+      }
+    };
+    
+    checkModalOpen();
+    const interval = setInterval(checkModalOpen, 200);
+    const observer = new MutationObserver(checkModalOpen);
+    observer.observe(document.body, { childList: true, subtree: true });
+    
+    return () => {
+      clearInterval(interval);
+      observer.disconnect();
+    };
+  }, [currentStep, onStepComplete]);
+
+  // For step 4 (analyze button), detect when ForgeGuard result appears
+  useEffect(() => {
+    if (currentStep !== 4) return;
+    
+    const checkAnalysisComplete = () => {
+      // Check if ForgeGuard result card is visible
+      const forgeResult = document.getElementById('tut-quest-category');
+      if (forgeResult) {
+        onStepComplete(4);
+      }
+    };
+    
+    checkAnalysisComplete();
+    const interval = setInterval(checkAnalysisComplete, 200);
+    const observer = new MutationObserver(checkAnalysisComplete);
+    observer.observe(document.body, { childList: true, subtree: true });
+    
+    return () => {
+      clearInterval(interval);
+      observer.disconnect();
+    };
+  }, [currentStep, onStepComplete]);
+
+  // For step 6 (confirm button), detect when quest is created (modal closes)
+  useEffect(() => {
+    if (currentStep !== 6) return;
+    
+    const checkQuestCreated = () => {
+      // If modal closes and we're back to quest list, quest was created
+      const modalTitle = document.querySelector('h3.text-xs.font-black.text-white.font-mono.tracking-widest');
+      const questInput = document.getElementById('tut-quest-title');
+      const isModalClosed = !modalTitle?.textContent?.includes('NEW QUEST') && !questInput;
+      
+      // Also check if a quest card appears in the list
+      const questCards = document.querySelectorAll('[id^="quest-card-"]');
+      
+      if (isModalClosed && questCards.length > 0) {
+        onStepComplete(6);
+      }
+    };
+    
+    checkQuestCreated();
+    const interval = setInterval(checkQuestCreated, 200);
+    const observer = new MutationObserver(checkQuestCreated);
+    observer.observe(document.body, { childList: true, subtree: true });
+    
+    return () => {
+      clearInterval(interval);
+      observer.disconnect();
+    };
+  }, [currentStep, onStepComplete]);
+
   if (!step || currentStep < 1 || currentStep > 6) return null;
 
   const padding = 12; // Larger padding for easier mobile tapping
