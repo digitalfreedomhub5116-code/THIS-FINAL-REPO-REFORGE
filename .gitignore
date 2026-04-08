@@ -26,3 +26,8 @@ dist-ssr
 .env
 *.keystore
 *.jks
+
+# Test screenshots
+test-results/
+*.png
+!public/**/*.png

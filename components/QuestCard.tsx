@@ -229,7 +229,7 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
                     className="flex items-center gap-1 text-[8px] font-black font-mono tracking-widest px-1.5 py-0.5 rounded"
                     style={{ color: '#fbbf24', background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)' }}
                   >
-                    <div className="flex items-center justify-center -mx-2 -my-2" style={{ width: 35, flexShrink: 0 }}><SystemCoin size={35} /></div> {quest.pactAmount}G PLEDGED
+                    <Coins size={10} /> {quest.pactAmount}G PLEDGED
                   </span>
                 )}
                 {quest.pactStatus === 'honored' && (

@@ -161,7 +161,7 @@ const DuskWelcomeScreen: React.FC<DuskWelcomeScreenProps> = ({ onComplete }) => 
       <div className="relative w-full h-full flex flex-col md:flex-row">
 
         {/* ── LEFT: Thought Box Panel ── */}
-        <div className="relative flex-1 flex flex-col items-center justify-end md:justify-center px-4 py-8 overflow-hidden z-20 pb-24 md:pb-4">
+        <div className="relative flex-1 flex flex-col items-center justify-end md:justify-center px-4 py-4 sm:py-8 overflow-hidden z-20 pb-16 sm:pb-24 md:pb-4">
 
           {/* Floating particles */}
           <AmbientParticles />
@@ -181,7 +181,7 @@ const DuskWelcomeScreen: React.FC<DuskWelcomeScreenProps> = ({ onComplete }) => 
           >
             {/* Glass panel */}
             <div
-              className="rounded-xl px-4 py-4"
+              className="rounded-xl px-4 py-3 sm:py-4"
               style={{
                 background: 'rgba(255,255,255,0.03)',
                 backdropFilter: 'blur(12px)',
@@ -191,7 +191,7 @@ const DuskWelcomeScreen: React.FC<DuskWelcomeScreenProps> = ({ onComplete }) => 
               }}
             >
               {/* Header label */}
-              <div className="flex items-center gap-1.5 mb-3">
+              <div className="flex items-center gap-1.5 mb-2 sm:mb-3">
                 <motion.div
                   className="w-1 h-1 rounded-full bg-cyan-400"
                   animate={{ opacity: [1, 0.3, 1] }}
@@ -204,7 +204,7 @@ const DuskWelcomeScreen: React.FC<DuskWelcomeScreenProps> = ({ onComplete }) => 
 
               {/* Typewriter message */}
               <div
-                className="text-[12px] md:text-[13px] leading-relaxed font-medium mb-4 min-h-[100px]"
+                className="text-[11px] sm:text-[12px] md:text-[13px] leading-relaxed font-medium mb-3 sm:mb-4 min-h-[80px] sm:min-h-[100px]"
                 style={{ color: 'rgba(255,255,255,0.88)', fontFamily: 'Georgia, serif' }}
               >
                 {displayedText}
@@ -233,7 +233,7 @@ const DuskWelcomeScreen: React.FC<DuskWelcomeScreenProps> = ({ onComplete }) => 
                   >
                     <button
                       onClick={onComplete}
-                      className="w-full py-3 rounded-lg font-black text-xs tracking-[0.2em] uppercase transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                      className="w-full py-2.5 sm:py-3 rounded-lg font-black text-xs tracking-[0.2em] uppercase transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
                       style={{
                         background: 'linear-gradient(135deg, rgba(0,210,255,0.9), rgba(0,180,220,0.95))',
                         color: '#fff',
