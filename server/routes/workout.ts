@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { supabaseServer } from '../lib/supabase.js';
 import { logUsage } from '../utils/logUsage.js';
+import { EXERCISE_VIDEOS, getExerciseVideoUrl, fixVideoPath } from '../../lib/exerciseVideos.js';
 
 const router = Router();
 
@@ -30,7 +31,14 @@ router.get('/exercises', async (req: Request, res: Response) => {
     q = q.order('display_order', { ascending: true }).order('id', { ascending: true });
     const { data, error } = await q;
     if (error) throw error;
-    return res.json(data || []);
+    // Fix stale video URLs: prefer local EXERCISE_VIDEOS map, fix old /videos/ paths
+    const fixed = (data || []).map((ex: any) => {
+      const localUrl = getExerciseVideoUrl(ex.name);
+      if (localUrl) return { ...ex, video_url: localUrl };
+      if (ex.video_url) return { ...ex, video_url: fixVideoPath(ex.video_url) };
+      return ex;
+    });
+    return res.json(fixed);
   } catch (err) {
     console.error('[Workout] GET exercises error:', err);
     return res.status(500).json({ error: 'Failed to load exercises' });
@@ -146,10 +154,12 @@ Rules: use only library exercises, BULK=heavy reps like "12,10,8", CUT=more card
     }
     const parsed = JSON.parse(jsonText);
 
-    // Build video lookup map
+    // Build video lookup map: prioritize local EXERCISE_VIDEOS, then DB (with path fix)
     const videoMap: Record<string, string> = {};
     for (const ex of available) {
-      if (ex.video_url) videoMap[ex.name.toLowerCase()] = ex.video_url;
+      const localUrl = getExerciseVideoUrl(ex.name);
+      if (localUrl) { videoMap[ex.name.toLowerCase()] = localUrl; }
+      else if (ex.video_url) { videoMap[ex.name.toLowerCase()] = fixVideoPath(ex.video_url); }
     }
 
     // Expand 1-week template to 4 weeks with progressive overload

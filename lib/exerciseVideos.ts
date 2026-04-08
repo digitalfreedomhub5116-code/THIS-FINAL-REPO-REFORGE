@@ -364,6 +364,15 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   'Lying Spinal Twist':              N.lyingSpinalTwist,
 };
 
+// Fix stale video paths from DB: /videos/... → /assets/videos/...
+// This handles the migration where files moved from public/videos/ to public/assets/videos/
+export function fixVideoPath(url: string): string {
+  if (!url) return url;
+  // Only fix local paths (not external URLs like Cloudinary)
+  if (url.startsWith('/videos/')) return '/assets' + url;
+  return url;
+}
+
 // Helper: lookup video URL by exercise name
 // Handles: exact match, case-insensitive, parenthetical suffixes like "(Chest)",
 // singular/plural, and prefix matching

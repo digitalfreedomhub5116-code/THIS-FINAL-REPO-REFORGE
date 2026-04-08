@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { Clock, Flame, Dumbbell, Activity, HeartPulse, Fingerprint, ScanLine, Video, AlertTriangle, ChevronRight, CheckCircle2 } from 'lucide-react';
 import { WorkoutDay, Exercise } from '../types';
 import { isEmbed } from '../hooks/useSystem';
-import { EXERCISE_VIDEOS } from '../lib/exerciseVideos';
+import { EXERCISE_VIDEOS, fixVideoPath } from '../lib/exerciseVideos';
 import { calculateExerciseCalories } from '../utils/workoutGenerator';
 
 interface WorkoutOverviewProps {
@@ -51,7 +51,7 @@ const HolographicBody: React.FC<{ focus: string; isCardio: boolean; videos: Reco
       return 'REST';
   }, [focus, isCardio, videos]);
 
-  const videoUrl = videos[videoKey] || '/assets/videos/body-scan.mp4';
+  const videoUrl = fixVideoPath(videos[videoKey]) || '/assets/videos/body-scan.mp4';
 
   // Reset error state when video source changes
   useEffect(() => {
@@ -85,6 +85,7 @@ const HolographicBody: React.FC<{ focus: string; isCardio: boolean; videos: Reco
           ) : (
              <video 
                 key={videoUrl} // Critical: Forces React to re-mount video element when URL changes
+                src={videoUrl}
                 poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
                 className="w-full h-full object-cover object-top opacity-80 group-hover:opacity-100 transition-opacity duration-500 bg-transparent"
                 autoPlay
@@ -95,9 +96,7 @@ const HolographicBody: React.FC<{ focus: string; isCardio: boolean; videos: Reco
                     console.error(`Video Error loading: ${videoUrl}`);
                     setHasError(true);
                 }}
-             >
-                 <source src={videoUrl} />
-             </video>
+             />
           )
       ) : (
           <div className="flex flex-col items-center justify-center text-gray-700 p-4 text-center">
@@ -148,7 +147,7 @@ const HolographicBody: React.FC<{ focus: string; isCardio: boolean; videos: Reco
 
 // --- EXERCISE ROW ---
 const ExerciseRow: React.FC<{ exercise: Exercise; calories: number }> = ({ exercise, calories }) => {
-    const videoUrl = EXERCISE_VIDEOS[exercise.name] || exercise.videoUrl || '';
+    const videoUrl = EXERCISE_VIDEOS[exercise.name] || fixVideoPath(exercise.videoUrl || '') || '';
     const hasVideo = !!(videoUrl && videoUrl.trim() !== '');
 
     return (

@@ -9,6 +9,7 @@ import { getPlayerAuthHeaders } from '../lib/playerApi';
 import { clearAuthNative } from '../lib/nativeAuth';
 import { REWARD_SCHEDULE } from '../lib/rewards';
 import { API_BASE } from '../lib/apiConfig';
+import { fixVideoPath } from '../lib/exerciseVideos';
 import { OUTFITS, getOutfitXpBoost, getStoneConfig, getUnlockedBadgeCount, BADGE_TIERS } from '../utils/gameData';
 import { scheduleQuestDeadline, cancelDailyReminders } from './useLocalNotifications';
 
@@ -299,7 +300,10 @@ export const useSystem = () => {
         ]);
 
         if (videosRes.ok) {
-          const videoMap = (await videosRes.json()) as Record<string, string>;
+          const rawVideoMap = (await videosRes.json()) as Record<string, string>;
+          // Fix stale DB paths: /videos/... → /assets/videos/...
+          const videoMap: Record<string, string> = {};
+          for (const [k, v] of Object.entries(rawVideoMap)) { videoMap[k] = fixVideoPath(v); }
           const exerciseDB: AdminExercise[] = Object.entries(videoMap).map(([key, url]) => ({
             id: key,
             name: key,

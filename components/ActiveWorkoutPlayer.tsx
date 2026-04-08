@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Pause, X, AlertOctagon, Check, Activity, Film, Timer as TimerIcon, ChevronRight, Zap, Clock } from 'lucide-react';
-import { EXERCISE_VIDEOS, getExerciseVideoUrl } from '../lib/exerciseVideos';
+import { EXERCISE_VIDEOS, getExerciseVideoUrl, fixVideoPath } from '../lib/exerciseVideos';
 import { WorkoutDay } from '../types';
 import { SpeechService } from '../utils/speechService';
 import { playSystemSoundEffect } from '../utils/soundEngine';
@@ -145,15 +145,15 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
       
       // 2. Exercise database from backend (if user adds custom ones without bundling)
       const dbEntry = player.exerciseDatabase.find(e => e.name === name || e.name.toLowerCase() === lowerName);
-      if (dbEntry?.videoUrl) return dbEntry.videoUrl;
+      if (dbEntry?.videoUrl) return fixVideoPath(dbEntry.videoUrl);
 
       // 3. Direct videoUrl on exercise object (legacy cache in plans)
-      if (exercise.videoUrl && exercise.videoUrl.trim() !== '') return exercise.videoUrl;
+      if (exercise.videoUrl && exercise.videoUrl.trim() !== '') return fixVideoPath(exercise.videoUrl);
 
       // 4. Focus videos from player state
-      if (player.focusVideos[name]) return player.focusVideos[name];
+      if (player.focusVideos[name]) return fixVideoPath(player.focusVideos[name]);
       const looseKey = Object.keys(player.focusVideos).find(k => k.toLowerCase() === lowerName);
-      if (looseKey) return player.focusVideos[looseKey];
+      if (looseKey) return fixVideoPath(player.focusVideos[looseKey]);
 
       return null;
   }, [exercise, player.focusVideos, player.exerciseDatabase]);
@@ -170,9 +170,9 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
     if (EXERCISE_VIDEOS[nextEx.name]) return EXERCISE_VIDEOS[nextEx.name];
     
     const dbEntry = player.exerciseDatabase.find(e => e.name.toLowerCase() === nextEx.name.toLowerCase());
-    if (dbEntry?.videoUrl) return dbEntry.videoUrl;
+    if (dbEntry?.videoUrl) return fixVideoPath(dbEntry.videoUrl);
 
-    if (nextEx.videoUrl && nextEx.videoUrl.trim() !== '') return nextEx.videoUrl;
+    if (nextEx.videoUrl && nextEx.videoUrl.trim() !== '') return fixVideoPath(nextEx.videoUrl);
     
     return null;
   }, [currentIdx, totalExercises, plan.exercises, player.exerciseDatabase]);
