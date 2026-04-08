@@ -33,7 +33,7 @@ router.get('/:id/sync', async (req: Request, res: Response) => {
   try {
     const { data, error } = await (supabaseServer() as any)
       .from('players')
-      .select('gold, keys, is_banned, cheat_strikes, total_strikes_ever, pending_notifications, raw_data')
+      .select('gold, keys, is_banned, cheat_strikes, total_strikes_ever, pending_notifications, raw_data, level, current_xp, required_xp, total_xp, daily_xp, rank, streak, hp, max_hp, mp, max_mp')
       .eq('supabase_id', id)
       .single();
 
@@ -53,6 +53,17 @@ router.get('/:id/sync', async (req: Request, res: Response) => {
       unlockedOutfits: rawData.unlockedOutfits || [],
       equippedOutfitId: rawData.equippedOutfitId || 'outfit_starter',
       outfitStones: rawData.outfitStones || {},
+      level: row.level ?? 1,
+      currentXp: row.current_xp ?? 0,
+      requiredXp: row.required_xp ?? 100,
+      totalXp: row.total_xp ?? 0,
+      dailyXp: row.daily_xp ?? 0,
+      rank: row.rank ?? 'E',
+      streak: row.streak ?? 0,
+      hp: row.hp ?? 100,
+      maxHp: row.max_hp ?? 100,
+      mp: row.mp ?? 100,
+      maxMp: row.max_mp ?? 100,
     });
   } catch (err) {
     console.error('[Player SYNC]', err);

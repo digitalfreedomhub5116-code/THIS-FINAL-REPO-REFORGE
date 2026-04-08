@@ -465,15 +465,37 @@ const App: React.FC = () => {
 
   // ── Sync from DB — callable ref for immediate triggers + 2s polling ──
   const syncFromDbRef = useRef<() => Promise<void>>();
-  // Track last known DB values so we only overwrite local gold/keys when admin changes them
+  // Track last known DB values so we only overwrite local gold/keys/xp/level when admin changes them
   const lastKnownDbGold = useRef<number | null>(null);
   const lastKnownDbKeys = useRef<number | null>(null);
+  const lastKnownDbLevel = useRef<number | null>(null);
+  const lastKnownDbCurrentXp = useRef<number | null>(null);
+  const lastKnownDbRequiredXp = useRef<number | null>(null);
+  const lastKnownDbTotalXp = useRef<number | null>(null);
+  const lastKnownDbDailyXp = useRef<number | null>(null);
+  const lastKnownDbRank = useRef<string | null>(null);
+  const lastKnownDbStreak = useRef<number | null>(null);
+  const lastKnownDbHp = useRef<number | null>(null);
+  const lastKnownDbMaxHp = useRef<number | null>(null);
+  const lastKnownDbMp = useRef<number | null>(null);
+  const lastKnownDbMaxMp = useRef<number | null>(null);
   useEffect(() => {
     if (!player.userId || isLocalUser(player.userId)) return;
     banReversalShownRef.current = false;
     // Reset tracking refs on user change
     lastKnownDbGold.current = null;
     lastKnownDbKeys.current = null;
+    lastKnownDbLevel.current = null;
+    lastKnownDbCurrentXp.current = null;
+    lastKnownDbRequiredXp.current = null;
+    lastKnownDbTotalXp.current = null;
+    lastKnownDbDailyXp.current = null;
+    lastKnownDbRank.current = null;
+    lastKnownDbStreak.current = null;
+    lastKnownDbHp.current = null;
+    lastKnownDbMaxHp.current = null;
+    lastKnownDbMp.current = null;
+    lastKnownDbMaxMp.current = null;
     const syncFromDb = async () => {
       try {
         // Use lightweight /sync endpoint (~1KB) instead of full GET (~50KB)
@@ -485,15 +507,45 @@ const App: React.FC = () => {
         const dbGold    = row.gold           ?? 0;
         const dbKeys    = row.keys           ?? 0;
         const dbTotalStrikes = row.totalStrikesEver ?? 0;
+        const dbLevel     = row.level     ?? 1;
+        const dbCurrentXp = row.currentXp ?? 0;
+        const dbRequiredXp = row.requiredXp ?? 100;
+        const dbTotalXp   = row.totalXp   ?? 0;
+        const dbDailyXp   = row.dailyXp   ?? 0;
+        const dbRank      = row.rank      ?? 'E';
+        const dbStreak    = row.streak    ?? 0;
+        const dbHp        = row.hp        ?? 100;
+        const dbMaxHp     = row.maxHp     ?? 100;
+        const dbMp        = row.mp        ?? 100;
+        const dbMaxMp     = row.maxMp     ?? 100;
 
-        // Determine if gold/keys changed in DB since our last poll.
+        // Determine if values changed in DB since our last poll.
         // If DB value changed → admin or server modified it → apply to local state.
         // If DB value is same as last poll → keep local values (user has pending changes).
         const goldChangedInDb = lastKnownDbGold.current !== null && dbGold !== lastKnownDbGold.current;
         const keysChangedInDb = lastKnownDbKeys.current !== null && dbKeys !== lastKnownDbKeys.current;
+        const levelChangedInDb = lastKnownDbLevel.current !== null && dbLevel !== lastKnownDbLevel.current;
+        const xpChangedInDb = lastKnownDbCurrentXp.current !== null && dbCurrentXp !== lastKnownDbCurrentXp.current;
+        const totalXpChangedInDb = lastKnownDbTotalXp.current !== null && dbTotalXp !== lastKnownDbTotalXp.current;
+        const dailyXpChangedInDb = lastKnownDbDailyXp.current !== null && dbDailyXp !== lastKnownDbDailyXp.current;
+        const rankChangedInDb = lastKnownDbRank.current !== null && dbRank !== lastKnownDbRank.current;
+        const streakChangedInDb = lastKnownDbStreak.current !== null && dbStreak !== lastKnownDbStreak.current;
+        const hpChangedInDb = lastKnownDbHp.current !== null && dbHp !== lastKnownDbHp.current;
+        const mpChangedInDb = lastKnownDbMp.current !== null && dbMp !== lastKnownDbMp.current;
         const isFirstPoll = lastKnownDbGold.current === null;
         lastKnownDbGold.current = dbGold;
         lastKnownDbKeys.current = dbKeys;
+        lastKnownDbLevel.current = dbLevel;
+        lastKnownDbCurrentXp.current = dbCurrentXp;
+        lastKnownDbRequiredXp.current = dbRequiredXp;
+        lastKnownDbTotalXp.current = dbTotalXp;
+        lastKnownDbDailyXp.current = dbDailyXp;
+        lastKnownDbRank.current = dbRank;
+        lastKnownDbStreak.current = dbStreak;
+        lastKnownDbHp.current = dbHp;
+        lastKnownDbMaxHp.current = dbMaxHp;
+        lastKnownDbMp.current = dbMp;
+        lastKnownDbMaxMp.current = dbMaxMp;
 
         // KEY FIX: When admin changes gold/keys in DB, update the server
         // baseline refs so the debounced sync in useSystem won't compute
@@ -519,6 +571,17 @@ const App: React.FC = () => {
           if (isFirstPoll) {
             if (dbGold !== prev.gold) updates.gold = dbGold;
             if (dbKeys !== prev.keys) updates.keys = dbKeys;
+            if (dbLevel !== prev.level) updates.level = dbLevel;
+            if (dbCurrentXp !== prev.currentXp) updates.currentXp = dbCurrentXp;
+            if (dbRequiredXp !== prev.requiredXp) updates.requiredXp = dbRequiredXp;
+            if (dbTotalXp !== prev.totalXp) updates.totalXp = dbTotalXp;
+            if (dbDailyXp !== prev.dailyXp) updates.dailyXp = dbDailyXp;
+            if (dbRank !== prev.rank) updates.rank = dbRank;
+            if (dbStreak !== prev.streak) updates.streak = dbStreak;
+            if (dbHp !== prev.hp) updates.hp = dbHp;
+            if (dbMaxHp !== prev.maxHp) updates.maxHp = dbMaxHp;
+            if (dbMp !== prev.mp) updates.mp = dbMp;
+            if (dbMaxMp !== prev.maxMp) updates.maxMp = dbMaxMp;
 
             // ── Outfit persistence: restore from server on first poll ──
             // Uses union/max so that neither server nor local can lose purchases
@@ -549,6 +612,16 @@ const App: React.FC = () => {
           } else {
             if (goldChangedInDb && dbGold !== prev.gold) updates.gold = dbGold;
             if (keysChangedInDb && dbKeys !== prev.keys) updates.keys = dbKeys;
+            if (levelChangedInDb && dbLevel !== prev.level) updates.level = dbLevel;
+            if (xpChangedInDb && dbCurrentXp !== prev.currentXp) updates.currentXp = dbCurrentXp;
+            if (totalXpChangedInDb && dbTotalXp !== prev.totalXp) updates.totalXp = dbTotalXp;
+            if (dailyXpChangedInDb && dbDailyXp !== prev.dailyXp) updates.dailyXp = dbDailyXp;
+            if (rankChangedInDb && dbRank !== prev.rank) updates.rank = dbRank as any;
+            if (streakChangedInDb && dbStreak !== prev.streak) updates.streak = dbStreak;
+            if (hpChangedInDb) { if (dbHp !== prev.hp) updates.hp = dbHp; if (dbMaxHp !== prev.maxHp) updates.maxHp = dbMaxHp; }
+            if (mpChangedInDb) { if (dbMp !== prev.mp) updates.mp = dbMp; if (dbMaxMp !== prev.maxMp) updates.maxMp = dbMaxMp; }
+            // Also sync requiredXp when level changes (admin may have adjusted it)
+            if (levelChangedInDb && dbRequiredXp !== prev.requiredXp) updates.requiredXp = dbRequiredXp;
           }
 
           return Object.keys(updates).length > 0 ? { ...prev, ...updates } : prev;
@@ -568,7 +641,21 @@ const App: React.FC = () => {
     // Listen for immediate sync triggers (e.g. after recordStrike server success)
     const onSyncNeeded = () => syncFromDb();
     window.addEventListener('reforge:sync-needed', onSyncNeeded);
-    return () => { clearInterval(interval); window.removeEventListener('reforge:sync-needed', onSyncNeeded); };
+    // ── App resume & visibility change: immediate sync when user returns ──
+    const handleAppResume = () => { if (syncFromDbRef.current) syncFromDbRef.current(); };
+    const handleVisibility = () => { if (document.visibilityState === 'visible') handleAppResume(); };
+    document.addEventListener('visibilitychange', handleVisibility);
+    let capListener: { remove: () => void } | null = null;
+    CapApp.addListener('appStateChange', ({ isActive }) => {
+      if (isActive) handleAppResume();
+    }).then(l => { capListener = l; }).catch(() => {});
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('reforge:sync-needed', onSyncNeeded);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      if (capListener) capListener.remove();
+    };
   }, [player.userId]); // eslint-disable-line react-hooks/exhaustive-deps
   const [xpCollection, setXpCollection] = useState<XpCollectionState | null>(null);
   const [tempHealthProfile, setTempHealthProfile] = useState<HealthProfile | undefined>();
