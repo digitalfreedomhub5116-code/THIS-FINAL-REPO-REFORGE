@@ -89,16 +89,65 @@ const StreakCelebration: React.FC<StreakCelebrationProps> = ({
   const isPerfectWeek = useMemo(() => weeklyActivity.filter(Boolean).length >= 7, [weeklyActivity]);
   const rand = useRef(seededRandom(newStreak * 7 + 42)).current;
 
+  // ── Shatter animation states (broken streak only) ──
+  const [shatterActive, setShatterActive] = useState(false);
+  const [numberBurning, setNumberBurning] = useState(false);
+
+  // Generate shatter fragment data for the old streak number
+  const shatterFragments = useMemo(() => {
+    if (!streakBroken) return [];
+    const frags: Array<{ id: number; clipPath: string; tx: number; ty: number; rot: number; delay: number }> = [];
+    const cols = 5, rows = 4;
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const j = 3;
+        const x1 = (c / cols) * 100 + rand() * j, y1 = (r / rows) * 100 + rand() * j;
+        const x2 = ((c + 1) / cols) * 100 - rand() * j, y2 = ((r + 1) / rows) * 100 - rand() * j;
+        const dirX = ((x1 + x2) / 2 - 50) / 50;
+        frags.push({
+          id: r * cols + c,
+          clipPath: `polygon(${x1}% ${y1}%, ${x2}% ${y1}%, ${x2}% ${y2}%, ${x1}% ${y2}%)`,
+          tx: dirX * 280 + (rand() - 0.5) * 120,
+          ty: 150 + rand() * 350,
+          rot: (rand() - 0.5) * 720,
+          delay: rand() * 0.15,
+        });
+      }
+    }
+    return frags;
+  }, [streakBroken, rand]);
+
+  // Pre-computed ember particles for shatter burst
+  const shatterEmbers = useMemo(() => {
+    if (!streakBroken) return [];
+    return Array.from({ length: 28 }, (_, i) => ({
+      id: i, size: 2 + rand() * 5, colorIdx: i % 4,
+      tx: (rand() - 0.5) * 280, ty: -60 - rand() * 120,
+      dur: 0.6 + rand() * 0.6, delay: rand() * 0.15,
+    }));
+  }, [streakBroken, rand]);
+
+  // Crack line paths for the burning number
+  const crackLines = useMemo(() => [
+    'M 28 8 L 42 32 L 35 50 L 52 78 L 44 95',
+    'M 72 5 L 58 28 L 66 48 L 48 72 L 58 98',
+    'M 12 35 L 32 42 L 55 38 L 75 48 L 92 40',
+    'M 8 68 L 28 60 L 52 65 L 78 58 L 95 65',
+    'M 42 32 L 58 28',
+    'M 35 50 L 66 48',
+  ], []);
+
   // Phases:
   // NORMAL: 0=dormant → 1=ignition → 2=number → 3=calendar → 4=continue
   // BROKEN: 0=lit flame → 1=extinguish+smoke → 2=reset number → 3=calendar → 4=continue
   useEffect(() => {
     if (streakBroken) {
       const timers = [
-        setTimeout(() => setPhase(1), 600),   // Start extinguish early
-        setTimeout(() => setPhase(2), 2400),   // Show reset number
-        setTimeout(() => setPhase(3), 3600),   // Calendar
-        setTimeout(() => setPhase(4), 4200),   // Continue
+        setTimeout(() => { setPhase(1); setNumberBurning(true); }, 600),   // Flame dies, number burns
+        setTimeout(() => { setShatterActive(true); setNumberBurning(false); }, 2000), // SHATTER!
+        setTimeout(() => setPhase(2), 3400),   // Show reset number
+        setTimeout(() => setPhase(3), 4600),   // Calendar
+        setTimeout(() => setPhase(4), 5400),   // Continue
       ];
       return () => timers.forEach(clearTimeout);
     } else {
@@ -180,6 +229,40 @@ const StreakCelebration: React.FC<StreakCelebrationProps> = ({
       noise.start(ctx.currentTime + 0.3);
     } catch { /* */ }
   }, [phase, streakBroken]);
+
+  // Shatter impact sound (glass crack + low boom)
+  useEffect(() => {
+    if (!shatterActive || !streakBroken) return;
+    try {
+      const AC = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AC) return;
+      const ctx = new AC();
+      // Impact boom
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.connect(g); g.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(120, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(30, ctx.currentTime + 0.6);
+      g.gain.setValueAtTime(0.15, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.8);
+      osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.8);
+      // Glass shatter noise burst
+      const bufferSize = ctx.sampleRate * 0.4;
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * 0.5;
+      const noise = ctx.createBufferSource();
+      const ng = ctx.createGain();
+      const hipass = ctx.createBiquadFilter();
+      hipass.type = 'highpass'; hipass.frequency.value = 2000;
+      noise.buffer = buffer;
+      noise.connect(hipass); hipass.connect(ng); ng.connect(ctx.destination);
+      ng.gain.setValueAtTime(0.12, ctx.currentTime);
+      ng.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+      noise.start(ctx.currentTime);
+    } catch { /* */ }
+  }, [shatterActive, streakBroken]);
 
   // Number reveal sound
   useEffect(() => {
@@ -401,7 +484,7 @@ const StreakCelebration: React.FC<StreakCelebrationProps> = ({
           </svg>
         )}
 
-                {/* ── The Flame SVG ── */}
+        {/* ── The Flame SVG ── */}
         <motion.div
           className="absolute inset-0 flex items-center justify-center"
           animate={
@@ -419,110 +502,6 @@ const StreakCelebration: React.FC<StreakCelebrationProps> = ({
             <div className="text-orange-500">Loading flame...</div>
           )}
         </motion.div>
-        
-        {/*
-        --- TO REVERT TO OLD FLAME SVG, REPLACE THE motion.div ABOVE WITH THE FOLLOWING BLOCK ---
-        { ── The Flame SVG ── }
-        <motion.div
-          className="absolute inset-0 flex items-center justify-center"
-          animate={
-            streakBroken
-              ? { scale: phase >= 1 ? [flameScale, flameScale * 0.5, 0] : flameScale, opacity: phase >= 1 ? [1, 0.5, 0] : 1 }
-              : phase >= 1 ? { scale: [flameScale, flameScale * 1.12, flameScale] } : { scale: flameScale }
-          }
-          transition={streakBroken ? { duration: 1.5, ease: 'easeIn' } : { duration: 0.55, ease: 'easeOut' }}
-        >
-          <motion.div
-            animate={{
-              filter: streakBroken
-                ? phase >= 1 ? 'brightness(0.3) grayscale(0.8)' : 'brightness(1)'
-                : phase >= 1 ? 'brightness(1.15)' : 'brightness(0.18)',
-            }}
-            transition={{ duration: streakBroken ? 1.2 : 0.5 }}
-          >
-            <svg width="90" height="112" viewBox="0 0 64 80" fill="none">
-              <defs>
-                <linearGradient id="sFlameG" x1="32" y1="78" x2="32" y2="2" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stopColor={streakBroken ? brokenColors.base : phase >= 1 ? flameColors.base : '#151522'} />
-                  <stop offset="35%" stopColor={streakBroken ? brokenColors.outer : phase >= 1 ? flameColors.outer : '#17172a'} />
-                  <stop offset="65%" stopColor={streakBroken ? brokenColors.mid : phase >= 1 ? flameColors.mid : '#1e1e30'} />
-                  <stop offset="100%" stopColor={streakBroken ? brokenColors.core : phase >= 1 ? flameColors.core : '#252540'} />
-                </linearGradient>
-                <linearGradient id="sFlameI" x1="32" y1="68" x2="32" y2="22" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stopColor={phase >= 1 && !streakBroken ? flameColors.outer : '#151522'} />
-                  <stop offset="100%" stopColor={phase >= 1 && !streakBroken ? '#ffffffee' : '#1e1e30'} />
-                </linearGradient>
-                <filter id="sGlow"><feGaussianBlur stdDeviation="4" result="b" /><feComposite in="SourceGraphic" in2="b" operator="over" /></filter>
-              </defs>
-              <motion.path
-                d="M32 4 C32 4, 8 30, 8 50 C8 64, 18 77, 32 77 C46 77, 56 64, 56 50 C56 30, 32 4, 32 4Z"
-                fill="url(#sFlameG)"
-                filter={phase >= 1 && !streakBroken ? 'url(#sGlow)' : undefined}
-                animate={phase >= 1 && !streakBroken ? {
-                  d: [
-                    'M32 4 C32 4, 8 30, 8 50 C8 64, 18 77, 32 77 C46 77, 56 64, 56 50 C56 30, 32 4, 32 4Z',
-                    'M32 2 C32 2, 6 28, 6 48 C6 63, 17 78, 32 78 C47 78, 58 63, 58 48 C58 28, 32 2, 32 2Z',
-                    'M32 4 C32 4, 8 30, 8 50 C8 64, 18 77, 32 77 C46 77, 56 64, 56 50 C56 30, 32 4, 32 4Z',
-                  ]
-                } : {}}
-                transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
-              />
-              <motion.path
-                d="M32 24 C32 24, 18 40, 18 52 C18 62, 24 69, 32 69 C40 69, 46 62, 46 52 C46 40, 32 24, 32 24Z"
-                fill="url(#sFlameI)"
-                opacity={phase >= 1 && !streakBroken ? 0.85 : 0.1}
-                animate={phase >= 1 && !streakBroken ? {
-                  d: [
-                    'M32 24 C32 24, 18 40, 18 52 C18 62, 24 69, 32 69 C40 69, 46 62, 46 52 C46 40, 32 24, 32 24Z',
-                    'M32 20 C32 20, 16 38, 16 50 C16 61, 23 70, 32 70 C41 70, 48 61, 48 50 C48 38, 32 20, 32 20Z',
-                    'M32 24 C32 24, 18 40, 18 52 C18 62, 24 69, 32 69 C40 69, 46 62, 46 52 C46 40, 32 24, 32 24Z',
-                  ]
-                } : {}}
-                transition={{ duration: 1.3, repeat: Infinity, ease: 'easeInOut', delay: 0.2 }}
-              />
-              {phase >= 1 && !streakBroken && (
-                <motion.ellipse
-                  cx="32" cy="58" rx={6 + intensity} ry={8 + intensity}
-                  fill="#ffffffcc"
-                  animate={{ ry: [8 + intensity, 10 + intensity, 8 + intensity], opacity: [0.25, 0.45, 0.25] }}
-                  transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
-                />
-              )}
-              {phase >= 1 && !streakBroken && intensity >= 3 && (
-                <>
-                  <motion.path d="M20 42 C16 32, 12 24, 16 14" fill="none" stroke={flameColors.mid}
-                    strokeWidth="1.5" strokeLinecap="round"
-                    animate={{ opacity: [0.2, 0.55, 0.2] }}
-                    transition={{ duration: 1.8, repeat: Infinity }} />
-                  <motion.path d="M44 42 C48 32, 52 24, 48 14" fill="none" stroke={flameColors.mid}
-                    strokeWidth="1.5" strokeLinecap="round"
-                    animate={{ opacity: [0.2, 0.55, 0.2] }}
-                    transition={{ duration: 1.8, repeat: Infinity, delay: 0.4 }} />
-                </>
-              )}
-              {phase >= 1 && !streakBroken && intensity >= 4 && (
-                <>
-                  <motion.path d="M25 12 C22 4, 24 -2, 28 -6" fill="none" stroke={flameColors.outer}
-                    strokeWidth="1.2" strokeLinecap="round"
-                    animate={{ opacity: [0.3, 0.6, 0.3] }}
-                    transition={{ duration: 1.5, repeat: Infinity }} />
-                  <motion.path d="M39 12 C42 4, 40 -2, 36 -6" fill="none" stroke={flameColors.outer}
-                    strokeWidth="1.2" strokeLinecap="round"
-                    animate={{ opacity: [0.3, 0.6, 0.3] }}
-                    transition={{ duration: 1.5, repeat: Infinity, delay: 0.3 }} />
-                </>
-              )}
-              {phase >= 1 && !streakBroken && intensity >= 5 && (
-                <motion.path d="M32 6 C30 0, 28 -4, 32 -8 C36 -4, 34 0, 32 6"
-                  fill={flameColors.mid} opacity={0.5}
-                  animate={{ opacity: [0.3, 0.7, 0.3], y: [0, -2, 0] }}
-                  transition={{ duration: 1.4, repeat: Infinity }} />
-              )}
-            </svg>
-          </motion.div>
-        </motion.div>
-        ---------------------------------------------------------------------------------------
-        */}
 
         {/* ── Sparkle ring (only for continuing streaks with intensity >= 2) ── */}
         {phase >= 1 && !streakBroken && intensity >= 2 && (
@@ -551,87 +530,251 @@ const StreakCelebration: React.FC<StreakCelebrationProps> = ({
       </div>
 
       {/* ═══ STREAK BROKEN MESSAGE ═══ */}
-      {streakBroken && phase >= 1 && phase < 2 && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5, duration: 0.5 }}
-          className="absolute text-center"
-          style={{ top: '55%' }}
-        >
-          <motion.p
-            className="text-sm font-bold tracking-wide"
-            style={{ color: '#ef4444' }}
-            animate={{ opacity: [0.6, 1, 0.6] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
+      <AnimatePresence>
+        {streakBroken && phase >= 1 && phase < 2 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.5 }}
+            className="absolute text-center z-20"
+            style={{ top: '58%' }}
           >
-            Your streak was broken...
-          </motion.p>
-        </motion.div>
-      )}
+            <motion.p
+              className="text-lg font-black tracking-widest uppercase"
+              style={{ color: '#ef4444', textShadow: '0 0 30px rgba(239,68,68,0.4)' }}
+              animate={shatterActive
+                ? { x: [0, -4, 4, -3, 2, 0], opacity: [1, 0.7, 1] }
+                : { opacity: [0.5, 1, 0.5] }
+              }
+              transition={shatterActive
+                ? { duration: 0.35, repeat: 2 }
+                : { duration: 1.5, repeat: Infinity }
+              }
+            >
+              {shatterActive ? 'STREAK LOST' : 'Your streak was broken...'}
+            </motion.p>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ═══ STREAK NUMBER ═══ */}
       <div className="relative mt-4" style={{ minHeight: 95 }}>
-        <AnimatePresence mode="wait">
-          {phase < 2 ? (
-            <motion.div
-              key="old"
-              exit={streakBroken
-                ? { opacity: 0, scale: 0.3, y: -30, filter: 'blur(12px)' }
-                : { opacity: 0, scale: 0.5, y: -20, filter: 'blur(8px)' }
-              }
-              transition={{ duration: streakBroken ? 0.5 : 0.35 }}
-              className="text-center"
-            >
-              <span
-                className="font-black text-6xl tabular-nums"
-                style={{
-                  color: streakBroken && phase >= 1 ? '#ef444480' : '#16162a',
-                  fontFamily: "'Inter', sans-serif",
-                  textDecoration: streakBroken && phase >= 1 ? 'line-through' : 'none',
-                }}
+        {streakBroken ? (
+          <>
+            {/* ── Burning number with cracks (before shatter) ── */}
+            <AnimatePresence>
+              {!shatterActive && (
+                <motion.div
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.1 }}
+                  className="text-center relative"
+                  style={{ display: 'inline-flex', justifyContent: 'center', width: '100%' }}
+                >
+                  {/* Crack lines SVG overlay */}
+                  {numberBurning && (
+                    <svg className="absolute inset-0 w-full h-full pointer-events-none z-10" viewBox="0 0 100 100" preserveAspectRatio="none">
+                      {crackLines.map((d, i) => (
+                        <motion.path
+                          key={i} d={d} fill="none"
+                          stroke="rgba(239,68,68,0.9)" strokeWidth="1.2" strokeLinecap="round"
+                          initial={{ pathLength: 0, opacity: 0 }}
+                          animate={{ pathLength: 1, opacity: 1 }}
+                          transition={{ duration: 0.4, delay: i * 0.12 }}
+                        />
+                      ))}
+                    </svg>
+                  )}
+                  <motion.span
+                    className="font-black text-6xl tabular-nums"
+                    style={{ fontFamily: "'Inter', sans-serif" }}
+                    animate={{
+                      color: numberBurning ? '#ef4444' : '#ef444450',
+                      textShadow: numberBurning
+                        ? ['0 0 8px rgba(239,68,68,0.2)', '0 0 40px rgba(239,68,68,0.8)', '0 0 15px rgba(239,68,68,0.4)']
+                        : '0 0 0px transparent',
+                    }}
+                    transition={{ duration: 1, repeat: numberBurning ? Infinity : 0, repeatType: 'mirror' }}
+                  >
+                    {oldStreak}
+                  </motion.span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* ── Shattering fragments ── */}
+            {shatterActive && phase < 2 && (
+              <div className="relative flex items-center justify-center" style={{ minHeight: 90 }}>
+                {shatterFragments.map((frag) => (
+                  <motion.div
+                    key={frag.id}
+                    className="absolute flex items-center justify-center"
+                    style={{ clipPath: frag.clipPath, width: 200, height: 80 }}
+                    initial={{ x: 0, y: 0, rotate: 0, opacity: 1, scale: 1 }}
+                    animate={{
+                      x: frag.tx,
+                      y: [0, frag.ty * -0.12, frag.ty],
+                      rotate: frag.rot,
+                      opacity: [1, 0.85, 0],
+                      scale: [1, 0.85, 0.15],
+                    }}
+                    transition={{
+                      duration: 1.4, delay: frag.delay,
+                      ease: [0.22, 0, 0.9, 0.25],
+                      y: { times: [0, 0.15, 1] },
+                    }}
+                  >
+                    <span className="font-black text-6xl tabular-nums" style={{
+                      fontFamily: "'Inter', sans-serif",
+                      background: 'linear-gradient(180deg, #fbbf24 0%, #ef4444 50%, #7f1d1d 100%)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      filter: 'drop-shadow(0 0 8px rgba(239,68,68,0.6))',
+                    }}>
+                      {oldStreak}
+                    </span>
+                  </motion.div>
+                ))}
+
+                {/* Ember burst from shatter point */}
+                {shatterEmbers.map((e) => (
+                  <motion.div
+                    key={`se-${e.id}`}
+                    className="absolute rounded-full"
+                    style={{
+                      width: e.size, height: e.size,
+                      background: ['#fbbf24', '#ef4444', '#f97316', '#ffffff'][e.colorIdx],
+                      boxShadow: `0 0 6px ${['#fbbf24', '#ef4444', '#f97316', '#ffffff'][e.colorIdx]}`,
+                    }}
+                    initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
+                    animate={{
+                      x: e.tx,
+                      y: [0, e.ty, e.ty - 40],
+                      opacity: [1, 0.7, 0],
+                      scale: [1, 0.5, 0],
+                    }}
+                    transition={{ duration: e.dur, delay: e.delay, ease: 'easeOut' }}
+                  />
+                ))}
+
+                {/* Red flash at shatter moment */}
+                <motion.div
+                  className="absolute rounded-full pointer-events-none"
+                  style={{ width: 200, height: 200, background: 'radial-gradient(circle, rgba(239,68,68,0.5), transparent 70%)' }}
+                  initial={{ opacity: 0, scale: 0.3 }}
+                  animate={{ opacity: [0, 1, 0], scale: [0.3, 2.5, 3.5] }}
+                  transition={{ duration: 0.7 }}
+                />
+
+                {/* Falling ash particles */}
+                {Array.from({ length: 12 }).map((_, i) => (
+                  <motion.div
+                    key={`ash-${i}`}
+                    className="absolute"
+                    style={{
+                      width: 3 + rand() * 3, height: 1 + rand() * 2,
+                      background: `rgba(100,100,120,${0.3 + rand() * 0.4})`,
+                      borderRadius: 1,
+                    }}
+                    initial={{ x: (rand() - 0.5) * 80, y: 0, opacity: 0.6, rotate: rand() * 360 }}
+                    animate={{
+                      y: [0, 150 + rand() * 200],
+                      x: (rand() - 0.5) * 120,
+                      rotate: rand() * 720,
+                      opacity: [0.6, 0.3, 0],
+                    }}
+                    transition={{ duration: 2 + rand(), delay: 0.3 + rand() * 0.5, ease: 'easeIn' }}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* ── New number rising from ashes ── */}
+            <AnimatePresence>
+              {phase >= 2 && (
+                <motion.div
+                  key="new-broken"
+                  initial={{ opacity: 0, scale: 0.5, y: 40, filter: 'blur(10px)' }}
+                  animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }}
+                  transition={{ type: 'spring', stiffness: 180, damping: 18, delay: 0.1 }}
+                  className="text-center"
+                >
+                  <motion.span
+                    className="font-black text-7xl tabular-nums block"
+                    style={{
+                      background: 'linear-gradient(180deg, #6b7280 0%, #4b5563 50%, #374151 100%)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      fontFamily: "'Inter', sans-serif",
+                    }}
+                  >
+                    {newStreak}
+                  </motion.span>
+                  <motion.span
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5, duration: 0.5 }}
+                    className="block text-xs font-black tracking-[0.4em] uppercase mt-1.5"
+                    style={{ color: '#6b728080' }}
+                  >
+                    streak reset
+                  </motion.span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </>
+        ) : (
+          /* ── Normal (non-broken) streak ── */
+          <AnimatePresence mode="wait">
+            {phase < 2 ? (
+              <motion.div
+                key="old"
+                exit={{ opacity: 0, scale: 0.5, y: -20, filter: 'blur(8px)' }}
+                transition={{ duration: 0.35 }}
+                className="text-center"
               >
-                {oldStreak}
-              </span>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="new"
-              initial={{ opacity: 0, scale: streakBroken ? 0.5 : 2.5, y: streakBroken ? 30 : 20, filter: 'blur(10px)' }}
-              animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }}
-              transition={{ type: 'spring', stiffness: 250, damping: 16 }}
-              className="text-center"
-            >
-              <motion.span
-                className="font-black text-7xl tabular-nums block"
-                style={{
-                  background: streakBroken
-                    ? 'linear-gradient(180deg, #6b7280 0%, #4b5563 50%, #374151 100%)'
-                    : `linear-gradient(180deg, ${flameColors.core} 0%, ${flameColors.mid} 40%, ${flameColors.outer} 70%, ${flameColors.base} 100%)`,
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  filter: streakBroken
-                    ? 'none'
-                    : `drop-shadow(0 0 30px ${flameColors.mid}80) drop-shadow(0 0 60px ${flameColors.outer}40)`,
-                  fontFamily: "'Inter', sans-serif",
-                }}
-                animate={streakBroken ? {} : { scale: [1, 1.035, 1] }}
-                transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut' }}
+                <span
+                  className="font-black text-6xl tabular-nums"
+                  style={{ color: '#16162a', fontFamily: "'Inter', sans-serif" }}
+                >
+                  {oldStreak}
+                </span>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="new"
+                initial={{ opacity: 0, scale: 2.5, y: 20, filter: 'blur(10px)' }}
+                animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }}
+                transition={{ type: 'spring', stiffness: 250, damping: 16 }}
+                className="text-center"
               >
-                {newStreak}
-              </motion.span>
-              <motion.span
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4, duration: 0.5 }}
-                className="block text-xs font-black tracking-[0.4em] uppercase mt-1.5"
-                style={{ color: streakBroken ? '#6b728080' : `${flameColors.mid}80` }}
-              >
-                {streakBroken ? 'streak reset' : 'day streak'}
-              </motion.span>
-            </motion.div>
-          )}
-        </AnimatePresence>
+                <motion.span
+                  className="font-black text-7xl tabular-nums block"
+                  style={{
+                    background: `linear-gradient(180deg, ${flameColors.core} 0%, ${flameColors.mid} 40%, ${flameColors.outer} 70%, ${flameColors.base} 100%)`,
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    filter: `drop-shadow(0 0 30px ${flameColors.mid}80) drop-shadow(0 0 60px ${flameColors.outer}40)`,
+                    fontFamily: "'Inter', sans-serif",
+                  }}
+                  animate={{ scale: [1, 1.035, 1] }}
+                  transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut' }}
+                >
+                  {newStreak}
+                </motion.span>
+                <motion.span
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4, duration: 0.5 }}
+                  className="block text-xs font-black tracking-[0.4em] uppercase mt-1.5"
+                  style={{ color: `${flameColors.mid}80` }}
+                >
+                  day streak
+                </motion.span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        )}
       </div>
 
       {/* ═══ WEEKLY CALENDAR ═══ */}

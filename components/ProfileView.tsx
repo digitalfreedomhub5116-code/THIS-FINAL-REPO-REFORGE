@@ -1,9 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Save, User, Briefcase, Award, Shield, Terminal, Activity, Settings, LogOut, Lock, ArrowLeft, CheckCircle, XCircle, AlertTriangle, Camera, Loader2 } from 'lucide-react';
 import { PlayerData, HealthProfile } from '../types';
 import { API_BASE } from '../lib/apiConfig';
 import { getPlayerAuthHeaders, getOrRefreshPlayerHeaders } from '../lib/playerApi';
+
+// DEBUG: Lazy-load StreakCelebration for testing (REMOVE WHEN DONE)
+const StreakCelebration = lazy(() => import('./StreakCelebration'));
 
 interface ProfileViewProps {
   player: PlayerData;
@@ -73,6 +76,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onAvatarCha
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarError, setAvatarError] = useState('');
   const avatarInputRef = useRef<HTMLInputElement>(null);
+  const [showDebugStreak, setShowDebugStreak] = useState(false); // DEBUG: REMOVE WHEN DONE
 
   const handleAvatarPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -572,6 +576,27 @@ const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onAvatarCha
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ── DEBUG: Test Streak Break Animation (REMOVE WHEN DONE) ── */}
+      <button
+        onClick={() => setShowDebugStreak(true)}
+        className="mt-6 px-4 py-2 rounded-lg text-[10px] font-mono tracking-wider uppercase opacity-30 hover:opacity-80 transition-opacity border border-red-900/30"
+        style={{ background: 'rgba(239,68,68,0.08)', color: '#ef4444' }}
+      >
+        [DEV] Test Streak Break
+      </button>
+      {showDebugStreak && (
+        <Suspense fallback={null}>
+          <StreakCelebration
+            oldStreak={player.streak > 1 ? player.streak : 15}
+            newStreak={1}
+            outfitId={player.equippedOutfitId || 'outfit_starter'}
+            weeklyActivity={[true, true, true, false, false, false, false]}
+            streakBroken={true}
+            onComplete={() => setShowDebugStreak(false)}
+          />
+        </Suspense>
+      )}
     </div>
   );
 };
