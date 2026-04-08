@@ -27,6 +27,10 @@ dist-ssr
 *.keystore
 *.jks
 
+# MCP config (contains API keys)
+.windsurf/
+mcp-setup.md
+
 # Test screenshots
 test-results/
 *.png
