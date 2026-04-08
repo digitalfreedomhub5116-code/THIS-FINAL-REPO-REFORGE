@@ -559,16 +559,165 @@ video {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-/* Tablet container constraint */
+/* ============================================================
+   RESPONSIVE SCALING — Tablet & Desktop
+   ============================================================ */
+
+/* CSS custom properties for responsive scaling */
+:root {
+  --app-max-w: 100%;
+  --content-pad: 1rem;
+  --card-pad: 1rem;
+  --modal-max-w: 100%;
+  --text-scale: 1;
+  --icon-scale: 1;
+  --btn-pad-x: 1rem;
+  --btn-pad-y: 0.625rem;
+}
+
+/* ── Tablet (768px – 1023px) ── */
 @media (min-width: 768px) {
+  :root {
+    --app-max-w: 720px;
+    --content-pad: 1.5rem;
+    --card-pad: 1.25rem;
+    --modal-max-w: 540px;
+    --text-scale: 1.05;
+    --icon-scale: 1.1;
+    --btn-pad-x: 1.25rem;
+    --btn-pad-y: 0.75rem;
+  }
+
+  /* Tablet container — centered, wider than before */
   .tablet-container {
-    max-width: 640px;
+    max-width: var(--app-max-w);
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* Scale text slightly for readability */
+  .space-y-4 > *,
+  .space-y-6 > * {
+    font-size: calc(1em * var(--text-scale));
+  }
+
+  /* Modals: proper centering + max width */
+  .fixed.inset-0 > [class*="max-w-lg"],
+  .fixed.inset-0 > [class*="max-w-md"],
+  .fixed.inset-0 > [class*="max-w-xl"] {
+    max-width: var(--modal-max-w) !important;
     margin-left: auto;
     margin-right: auto;
   }
 }
+
+/* ── Desktop (1024px – 1439px) ── */
+@media (min-width: 1024px) {
+  :root {
+    --app-max-w: 880px;
+    --content-pad: 2rem;
+    --card-pad: 1.5rem;
+    --modal-max-w: 580px;
+    --text-scale: 1.08;
+    --icon-scale: 1.15;
+    --btn-pad-x: 1.5rem;
+    --btn-pad-y: 0.875rem;
+  }
+
+  .tablet-container {
+    max-width: var(--app-max-w);
+  }
+}
+
+/* ── Large Desktop (1440px+) ── */
+@media (min-width: 1440px) {
+  :root {
+    --app-max-w: 960px;
+    --content-pad: 2.5rem;
+    --modal-max-w: 640px;
+    --text-scale: 1.1;
+    --icon-scale: 1.2;
+  }
+
+  .tablet-container {
+    max-width: var(--app-max-w);
+  }
+}
+
+/* ── Responsive grid utility ── */
+.responsive-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+@media (min-width: 768px) {
+  .responsive-grid-2 {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem;
+  }
+}
+
+.responsive-grid-2-3 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+@media (min-width: 768px) {
+  .responsive-grid-2-3 {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem;
+  }
+}
+@media (min-width: 1280px) {
+  .responsive-grid-2-3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* ── Full-width children that should span both columns on tablet ── */
+.responsive-full-span {
+  grid-column: 1 / -1;
+}
+
+/* ── Global responsive scaling via content zoom ── */
+/* Scales ALL elements (text, icons, SVGs, Lottie, buttons, spacing)
+   proportionally on tablet/desktop without editing individual components.
+   zoom affects layout flow (unlike transform:scale), so it works correctly. */
+@media (min-width: 768px) {
+  .tablet-container {
+    zoom: 1.05;
+  }
+
+  /* XP bar slightly thicker */
+  .xp-bar { height: 7px; }
+
+  /* Scrollbar slightly wider */
+  ::-webkit-scrollbar { width: 6px; }
+}
+
 @media (min-width: 1024px) {
   .tablet-container {
-    max-width: 768px;
+    zoom: 1.08;
+  }
+  .xp-bar { height: 8px; }
+}
+
+@media (min-width: 1440px) {
+  .tablet-container {
+    zoom: 1.12;
+  }
+}
+
+/* ── Modal max-width guardrails for tablet/desktop ── */
+/* Prevent modals from stretching across entire wide screen */
+@media (min-width: 768px) {
+  /* Bottom-sheet modals: center on tablet instead of anchoring to bottom */
+  .fixed.inset-0.flex.items-end {
+    align-items: center;
+  }
+
+  /* Inner modal panels with rounded-t (bottom sheet corners) → full rounded */
+  .fixed.inset-0 .rounded-t-2xl {
+    border-radius: 1rem;
   }
 }

@@ -473,7 +473,7 @@ const QuestsView: React.FC<QuestsViewProps> = ({
   const scheduleReady = !!scheduleTime;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 md:space-y-6">
       <OnboardingNotice page="QUEST" />
       {/* ── Futuristic Calendar Header ── */}
       <div
@@ -508,7 +508,7 @@ const QuestsView: React.FC<QuestsViewProps> = ({
               setIsModalOpen(true);
               if (tutorialStep === 6 && onTutorialAction) onTutorialAction(7);
             }}
-            className="w-11 h-11 rounded-full flex items-center justify-center active:scale-90 transition-all"
+            className="w-11 h-11 md:w-13 md:h-13 rounded-full flex items-center justify-center active:scale-90 transition-all"
             style={{
               background: '#00d4ff',
               boxShadow: '0 0 22px rgba(0,212,255,0.5), 0 4px 14px rgba(0,0,0,0.35)',
@@ -520,8 +520,8 @@ const QuestsView: React.FC<QuestsViewProps> = ({
       </div>
 
       {/* Quest List */}
-      <div id="quest-list-container" className="space-y-4 min-h-[50vh] pb-20 relative">
-        <div className="absolute left-6 top-0 bottom-0 w-px bg-gray-800 z-0 hidden md:block" />
+      <div id="quest-list-container" className="space-y-4 md:space-y-5 min-h-[50vh] pb-20 relative">
+        {/* Timeline line removed — caused visual artifact below quest cards */}
         <AnimatePresence mode="popLayout">
           {timelineQuests.map((quest, index) => {
             const isTutorialWelcomePhase = (tutorialStep ?? 0) >= 13 && (tutorialStep ?? 0) <= 15;
@@ -573,13 +573,13 @@ const QuestsView: React.FC<QuestsViewProps> = ({
       {/* Create Quest Modal */}
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/90 backdrop-blur-sm overflow-hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+          <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/90 backdrop-blur-sm overflow-hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
             <motion.div
               initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 40 }}
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-              className="w-full max-w-lg rounded-t-2xl sm:rounded-2xl overflow-hidden max-h-[94vh] sm:max-h-[88vh] sm:m-4 relative flex flex-col"
+              className="w-full max-w-lg md:max-w-xl rounded-t-2xl md:rounded-2xl overflow-hidden max-h-[94vh] md:max-h-[85vh] md:m-6 relative flex flex-col"
               style={{ background: '#08081a', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 -8px 40px rgba(0,0,0,0.6), 0 0 80px rgba(0,210,255,0.03)' }}
             >
               {/* Modal Header — minimal */}

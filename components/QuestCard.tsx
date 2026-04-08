@@ -132,13 +132,7 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
           : isMiniActive
           ? '1px solid rgba(0,210,255,0.22)'
           : '1px solid rgba(255,255,255,0.10)',
-        borderLeft: isCompleted
-          ? '1px solid rgba(34,197,94,0.10)'
-          : isFailed
-          ? '1px solid rgba(239,68,68,0.08)'
-          : isMiniActive
-          ? '1px solid rgba(0,210,255,0.10)'
-          : '1px solid rgba(255,255,255,0.05)',
+        borderLeft: 'none',
         borderRight: '1px solid rgba(255,255,255,0.03)',
         borderBottom: '1px solid rgba(255,255,255,0.03)',
         boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06), 0 4px 20px rgba(0,0,0,0.40)',

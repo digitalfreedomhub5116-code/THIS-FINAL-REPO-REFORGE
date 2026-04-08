@@ -227,7 +227,7 @@ const RANK_THRESHOLDS: { rank: 'E' | 'D' | 'C' | 'B' | 'A' | 'S'; minLevel: numb
   { rank: 'E', minLevel: 1 },
 ];
 
-function computeRank(level: number): 'UNRANKED' | 'E' | 'D' | 'C' | 'B' | 'A' | 'S' {
+export function computeRank(level: number): 'UNRANKED' | 'E' | 'D' | 'C' | 'B' | 'A' | 'S' {
   for (const t of RANK_THRESHOLDS) {
     if (level >= t.minLevel) return t.rank;
   }
@@ -235,12 +235,12 @@ function computeRank(level: number): 'UNRANKED' | 'E' | 'D' | 'C' | 'B' | 'A' | 
 }
 
 // Safe level-up helper: caps iterations and ensures requiredXp always grows
-function safeLevelUp(currentXp: number, requiredXp: number, level: number): { currentXp: number; requiredXp: number; level: number; leveledUp: boolean; rank: 'UNRANKED' | 'E' | 'D' | 'C' | 'B' | 'A' | 'S' } {
+export function safeLevelUp(currentXp: number, requiredXp: number, level: number): { currentXp: number; requiredXp: number; level: number; leveledUp: boolean; rank: 'UNRANKED' | 'E' | 'D' | 'C' | 'B' | 'A' | 'S' } {
   // Floor requiredXp to prevent runaway loops from corrupted data
   if (!requiredXp || requiredXp < 50) requiredXp = 100;
   let leveledUp = false;
   let iterations = 0;
-  const MAX_LEVELUPS = 10; // Hard cap per single XP grant
+  const MAX_LEVELUPS = 100; // Hard cap per single XP grant (high enough for admin bulk XP)
   while (currentXp >= requiredXp && iterations < MAX_LEVELUPS) {
     currentXp -= requiredXp;
     level++;

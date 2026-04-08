@@ -278,7 +278,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
 
 
   return (
-    <div className="min-h-screen pb-24 px-3 pt-3" style={{ background: 'linear-gradient(180deg, #08081a 0%, #0d0d20 100%)' }}>
+    <div className="min-h-screen pb-24 px-3 md:px-4 pt-3" style={{ background: 'linear-gradient(180deg, #08081a 0%, #0d0d20 100%)' }}>
 
       {/* ── TAB SWITCHER ── */}
       <div className="flex rounded-2xl overflow-hidden mb-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>

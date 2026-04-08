@@ -15,7 +15,7 @@ const DashboardWidgets: React.FC<DashboardWidgetsProps> = ({
   const isClaimed = player.lastLoginDate === new Date().toISOString().split('T')[0];
 
   return (
-    <div className="grid grid-cols-1 gap-4 mb-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5 mb-6">
       {/* Daily Login Widget */}
       <button
         onClick={onOpenDailyCalendar}

@@ -24,7 +24,7 @@ import {
   SkeletonOnboardingPage, SkeletonGenericPage,
 } from './components/SkeletonLoaders';
 
-import { useSystem, isLocalUser } from './hooks/useSystem';
+import { useSystem, isLocalUser, safeLevelUp } from './hooks/useSystem';
 import { useSensors } from './hooks/useSensors';
 import { Tab, CoreStats, HealthProfile, Outfit, DbOutfit, TierLevel, PlayerData, Quest, DailyReward, MealType } from './types';
 import { App as CapApp } from '@capacitor/app';
@@ -624,7 +624,30 @@ const App: React.FC = () => {
             if (levelChangedInDb && dbRequiredXp !== prev.requiredXp) updates.requiredXp = dbRequiredXp;
           }
 
-          return Object.keys(updates).length > 0 ? { ...prev, ...updates } : prev;
+          if (Object.keys(updates).length === 0) return prev;
+
+          // Apply updates first, then check if level-up processing is needed
+          const merged = { ...prev, ...updates };
+
+          // If XP changed (from admin DB edit), run safeLevelUp to process overflow
+          const xpWasTouched = 'currentXp' in updates || 'requiredXp' in updates;
+          if (xpWasTouched && merged.currentXp >= merged.requiredXp) {
+            const lu = safeLevelUp(merged.currentXp, merged.requiredXp, merged.level);
+            if (lu.leveledUp) {
+              merged.currentXp = lu.currentXp;
+              merged.requiredXp = lu.requiredXp;
+              merged.level = lu.level;
+              merged.rank = lu.rank as any;
+              merged.hp = merged.maxHp;
+              merged.mp = merged.maxMp;
+              // Dispatch level-up event so cinematic + sound play
+              setTimeout(() => {
+                window.dispatchEvent(new CustomEvent('player:levelup', { detail: { level: lu.level } }));
+              }, 100);
+            }
+          }
+
+          return merged;
         });
 
         // Check for pending strike_lifted notifications
@@ -1928,7 +1951,7 @@ const App: React.FC = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="space-y-6"
+              className="space-y-6 md:space-y-8"
             >
               {/* Player Status Card (replaces HunterCommandDeck & HunterGrowthTerminal) */}
               <Suspense fallback={<SkeletonStatsChart />}>
@@ -1945,7 +1968,7 @@ const App: React.FC = () => {
               </Suspense>
 
               {/* Stat Pillars */}
-              <div id="tut-stats">
+              <div id="tut-stats" className="responsive-full-span">
                 <Suspense fallback={<SkeletonStatBoxes />}>
                   <ErrorBoundary fallbackLabel="Stat boxes failed">
                     <StatBoxes
@@ -1957,7 +1980,11 @@ const App: React.FC = () => {
                 </Suspense>
               </div>
 
+              {/* ── 2-col responsive grid for mid-section cards ── */}
+              <div className="responsive-grid-2">
+
               {/* XP Level Progress */}
+              <div className="responsive-full-span">
               <Suspense fallback={<SkeletonLevelProgress />}>
                 <ErrorBoundary fallbackLabel="Level progress failed">
                   <LevelProgressCard
@@ -1976,6 +2003,7 @@ const App: React.FC = () => {
                   />
                 </ErrorBoundary>
               </Suspense>
+              </div>
 
               {/* ForgeGuard Integrity — Strike Counter */}
               <Suspense fallback={<SkeletonForgeGuard />}>
@@ -2011,6 +2039,8 @@ const App: React.FC = () => {
                   />
                 </ErrorBoundary>
               </Suspense>
+
+              </div>{/* end responsive-grid-2 */}
 
             </motion.div>
           )}

@@ -89,7 +89,7 @@ const StatBoxes: React.FC<StatBoxesProps> = ({ stats, dailyStats }) => {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
         <AnimatePresence>
           {visibleStats.map((config, i) => {
             const total = Math.floor(stats[config.key] || 0);

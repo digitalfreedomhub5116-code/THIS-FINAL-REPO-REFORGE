@@ -201,7 +201,7 @@ const ShopView: React.FC<ShopViewProps> = ({
   };
 
   return (
-    <div id="tut-store" className="space-y-5 pb-10">
+    <div id="tut-store" className="space-y-5 md:space-y-6 pb-10">
       <OnboardingNotice page="STORE" />
 
       {/* ── 2-TAB NAVIGATION ── */}
