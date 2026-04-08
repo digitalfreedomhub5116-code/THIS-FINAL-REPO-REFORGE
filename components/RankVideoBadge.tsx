@@ -5,27 +5,27 @@ import React, { useState } from 'react';
 // LOCAL: All media files bundled in public/ for offline mobile use
 const RANK_MEDIA: Record<string, { video: string; image: string }> = {
   'E': {
-    video: '/videos/ranks/rank-e.webm',
+    video: '/assets/videos/ranks/rank-e.webm',
     image: '/images/ranks/e-rank.jpg' 
   },
   'D': {
-    video: '/videos/ranks/rank-d.webm',
+    video: '/assets/videos/ranks/rank-d.webm',
     image: '/images/ranks/d-rank.jpg' 
   },
   'C': {
-    video: '/videos/ranks/rank-c.mp4',
+    video: '/assets/videos/ranks/rank-c.mp4',
     image: '/images/ranks/c-rank.jpg' 
   },
   'B': {
-    video: '/videos/ranks/rank-b.mp4',
+    video: '/assets/videos/ranks/rank-b.mp4',
     image: '/images/ranks/b-rank.jpg' 
   },
   'A': {
-    video: '/videos/ranks/rank-a.mp4',
+    video: '/assets/videos/ranks/rank-a.mp4',
     image: '/images/ranks/a-rank.jpg' 
   },
   'S': {
-    video: '/videos/ranks/rank-s.mp4',
+    video: '/assets/videos/ranks/rank-s.mp4',
     image: '/images/ranks/s-rank.jpg' 
   },
 };

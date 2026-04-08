@@ -51,7 +51,7 @@ const HolographicBody: React.FC<{ focus: string; isCardio: boolean; videos: Reco
       return 'REST';
   }, [focus, isCardio, videos]);
 
-  const videoUrl = videos[videoKey] || '/videos/body-scan.mp4';
+  const videoUrl = videos[videoKey] || '/assets/videos/body-scan.mp4';
 
   // Reset error state when video source changes
   useEffect(() => {
