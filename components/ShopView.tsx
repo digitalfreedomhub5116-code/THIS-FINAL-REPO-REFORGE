@@ -507,6 +507,7 @@ const ShopView: React.FC<ShopViewProps> = ({
               <ErrorBoundary fallbackLabel="Wardrobe preview failed">
                 <WardrobePreviewCard
                   gold={wardrobeGold ?? gold}
+                  keys={keys}
                   unlockedOutfits={wardrobeUnlockedOutfits || ['outfit_starter']}
                   equippedOutfitId={wardrobeEquippedOutfitId || 'outfit_starter'}
                   outfits={wardrobeOutfits}

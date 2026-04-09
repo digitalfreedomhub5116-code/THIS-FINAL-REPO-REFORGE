@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { LogOut, Save, RefreshCw, Video, Link, Search, Activity, Plus, Edit3, Trash2, Star, Dumbbell, BookOpen, Image, ToggleLeft, ToggleRight } from 'lucide-react';
+import { LogOut, Save, RefreshCw, Video, Link, Search, Activity, Plus, Edit3, Trash2, Star, Dumbbell, BookOpen, Image, ToggleLeft, ToggleRight, Flag, ChevronDown, ChevronUp, CheckSquare, XSquare } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { WorkoutDay } from '../types';
 import { useSystem, isEmbed } from '../hooks/useSystem';
@@ -63,7 +63,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
   const { updateFocusVideos, updateCustomProtocols, player } = useSystem();
   
   // --- STATE ---
-  const [activeTab, setActiveTab] = useState<'PROTOCOLS' | 'REGIONS' | 'USERS' | 'STORE' | 'USAGE'>('PROTOCOLS');
+  const [activeTab, setActiveTab] = useState<'PROTOCOLS' | 'REGIONS' | 'USERS' | 'STORE' | 'USAGE' | 'REPORTS'>('PROTOCOLS');
   const [selectedCategory, _setSelectedCategory] = useState<ProtocolCategory>('GYM_PPL');
   const [selectedWeek, _setSelectedWeek] = useState<number>(1);
   const [selectedDayIdx, _setSelectedDayIdx] = useState<number>(0);
@@ -84,6 +84,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
   const [viewUserLoading, setViewUserLoading] = useState(false);
   const [goldInput, setGoldInput] = useState<Record<string, string>>({});
   const [keysInput, setKeysInput] = useState<Record<string, string>>({});
+
+  // Reports State
+  const [reports, setReports] = useState<any[]>([]);
+  const [reportsLoading, setReportsLoading] = useState(false);
+  const [expandedReportId, setExpandedReportId] = useState<number | null>(null);
 
   // Usage State
   const [usageData, setUsageData] = useState<any>(null);
@@ -319,10 +324,33 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
       } finally { setBannerLoading(false); }
   };
 
+  const fetchReports = async () => {
+      setReportsLoading(true);
+      try {
+          const res = await fetch(`${API_BASE}/api/reports`, {
+              headers: { 'Authorization': `Bearer ${adminToken}` },
+          });
+          if (res.ok) setReports(await res.json());
+      } catch (err) { console.error('Reports fetch error:', err); }
+      finally { setReportsLoading(false); }
+  };
+
+  const resolveReport = async (id: number, status: 'resolved' | 'dismissed') => {
+      try {
+          await fetch(`${API_BASE}/api/reports/${id}`, {
+              method: 'PATCH',
+              headers: { 'Authorization': `Bearer ${adminToken}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ status }),
+          });
+          setReports(prev => prev.map(r => r.id === id ? { ...r, status } : r));
+      } catch (err) { console.error('Resolve report error:', err); }
+  };
+
   useEffect(() => { 
       if (activeTab === 'USERS') fetchUsers();
       if (activeTab === 'STORE') { fetchStoreOutfits(); fetchBanners(); }
       if (activeTab === 'USAGE') fetchUsage(usagePeriod);
+      if (activeTab === 'REPORTS') fetchReports();
   }, [activeTab]);
 
   useEffect(() => {
@@ -513,6 +541,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
                             <button onClick={() => setActiveTab('USERS')} className={`text-[10px] font-bold tracking-widest transition-colors ${activeTab === 'USERS' ? 'text-system-neon' : 'text-gray-600 hover:text-white'}`}>[ HUNTER_REGISTRY ]</button>
                             <button onClick={() => setActiveTab('STORE')} className={`text-[10px] font-bold tracking-widest transition-colors ${activeTab === 'STORE' ? 'text-yellow-400' : 'text-gray-600 hover:text-white'}`}>[ STORE ]</button>
                             <button onClick={() => setActiveTab('USAGE')} className={`text-[10px] font-bold tracking-widest transition-colors ${activeTab === 'USAGE' ? 'text-emerald-400' : 'text-gray-600 hover:text-white'}`}>[ USAGE ]</button>
+                            <button onClick={() => setActiveTab('REPORTS')} className={`text-[10px] font-bold tracking-widest transition-colors ${activeTab === 'REPORTS' ? 'text-red-400' : 'text-gray-600 hover:text-white'}`}>[ REPORTS{reports.filter(r => r.status === 'pending').length > 0 ? ` (${reports.filter(r => r.status === 'pending').length})` : ''} ]</button>
                         </div>
                     </div>
                 </div>
@@ -1377,6 +1406,138 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
                       </>
                   ) : (
                       <div className="text-center py-20 text-gray-600 font-mono text-xs">Failed to load usage data.</div>
+                  )}
+              </div>
+          )}
+
+          {/* ── REPORTS TAB ── */}
+          {activeTab === 'REPORTS' && (
+              <div className="space-y-4 animate-in fade-in duration-500">
+                  <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                          <Flag size={16} className="text-red-400" />
+                          <h2 className="text-white font-black text-sm uppercase tracking-widest">Player Reports</h2>
+                          <span className="text-[9px] px-2 py-0.5 rounded-full bg-red-950/50 text-red-400 font-black border border-red-900/30">
+                              {reports.filter(r => r.status === 'pending').length} pending
+                          </span>
+                      </div>
+                      <button onClick={fetchReports} disabled={reportsLoading} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-900 border border-gray-800 text-gray-400 hover:text-white text-[10px] font-black tracking-widest uppercase transition-all disabled:opacity-50">
+                          <RefreshCw size={11} className={reportsLoading ? 'animate-spin' : ''} /> REFRESH
+                      </button>
+                  </div>
+
+                  {reportsLoading ? (
+                      <div className="text-center py-20 text-gray-600 font-mono text-xs">Loading reports...</div>
+                  ) : reports.length === 0 ? (
+                      <div className="text-center py-20 text-gray-600 font-mono text-xs">No reports found.</div>
+                  ) : (
+                      <div className="space-y-2">
+                          {reports.map((report: any) => {
+                              const isExpanded = expandedReportId === report.id;
+                              const statusColor = report.status === 'pending' ? '#f87171' : report.status === 'resolved' ? '#4ade80' : '#6b7280';
+                              const outfitImgMap: Record<string, string> = {
+                                  outfit_starter: '/assets/outfits/venusimg.png',
+                                  outfit_ghost: '/assets/outfits/greenheroimg.png',
+                                  outfit_knight: '/assets/outfits/ninjaimg.png',
+                                  outfit_assassin: '/assets/outfits/marsimg.jpeg',
+                                  outfit_vanguard: '/assets/outfits/jupiterimg.jpeg',
+                                  outfit_monarch: '/assets/outfits/redprinceimg.png',
+                              };
+                              return (
+                                  <div key={report.id} className="bg-gray-900/40 border border-gray-800 rounded-xl overflow-hidden">
+                                      {/* Report row */}
+                                      <div
+                                          className="flex items-center gap-3 p-4 cursor-pointer hover:bg-white/[0.02] transition-colors"
+                                          onClick={() => setExpandedReportId(isExpanded ? null : report.id)}
+                                      >
+                                          <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${statusColor}15`, border: `1px solid ${statusColor}40` }}>
+                                              <Flag size={13} style={{ color: statusColor }} />
+                                          </div>
+                                          <div className="flex-1 min-w-0">
+                                              <div className="flex items-center gap-2 flex-wrap">
+                                                  <span className="text-[11px] font-black text-white">{report.reported_name}</span>
+                                                  <span className="text-[9px] text-gray-500 font-mono">reported by</span>
+                                                  <span className="text-[10px] font-bold text-gray-400">{report.reporter_name}</span>
+                                              </div>
+                                              <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                                                  {(report.reasons || []).map((r: string) => (
+                                                      <span key={r} className="text-[8px] px-1.5 py-0.5 rounded bg-red-950/40 text-red-400 font-black border border-red-900/20">{r}</span>
+                                                  ))}
+                                                  <span className="text-[8px] text-gray-600 font-mono ml-auto">{new Date(report.created_at).toLocaleString()}</span>
+                                              </div>
+                                          </div>
+                                          <span className="text-[8px] px-2 py-1 rounded font-black uppercase tracking-widest flex-shrink-0" style={{ background: `${statusColor}18`, color: statusColor, border: `1px solid ${statusColor}35` }}>
+                                              {report.status}
+                                          </span>
+                                          {isExpanded ? <ChevronUp size={14} className="text-gray-600 flex-shrink-0" /> : <ChevronDown size={14} className="text-gray-600 flex-shrink-0" />}
+                                      </div>
+
+                                      {/* Expanded detail panel */}
+                                      {isExpanded && (
+                                          <div className="border-t border-gray-800 p-4 space-y-4 bg-black/30">
+                                              {/* Reported player stats */}
+                                              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                                  {[
+                                                      { label: 'Level', value: report.reported_level ?? '—' },
+                                                      { label: 'Rank', value: report.reported_rank ?? '—' },
+                                                      { label: 'Total XP', value: Number(report.reported_xp || 0).toLocaleString() },
+                                                      { label: 'Gold', value: Number(report.reported_gold || 0).toLocaleString() },
+                                                      { label: 'Keys', value: report.reported_keys ?? 0 },
+                                                      { label: 'Outfits Owned', value: (report.reported_unlocked_outfits || []).length },
+                                                  ].map(({ label, value }) => (
+                                                      <div key={label} className="bg-gray-900/60 rounded-lg px-3 py-2 border border-gray-800">
+                                                          <div className="text-[8px] text-gray-500 font-mono uppercase tracking-widest">{label}</div>
+                                                          <div className="text-sm font-black text-white mt-0.5">{value}</div>
+                                                      </div>
+                                                  ))}
+                                              </div>
+
+                                              {/* Equipped outfit */}
+                                              <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                                                  {outfitImgMap[report.reported_outfit_id] && (
+                                                      <img src={outfitImgMap[report.reported_outfit_id]} alt="" className="w-12 h-12 object-contain rounded-lg opacity-80" style={{ background: 'rgba(255,255,255,0.04)' }} />
+                                                  )}
+                                                  <div>
+                                                      <div className="text-[8px] text-gray-500 font-mono uppercase tracking-widest">Equipped Outfit</div>
+                                                      <div className="text-[11px] font-black text-white capitalize">{(report.reported_outfit_id || 'outfit_starter').replace('outfit_', '').replace('_', ' ')}</div>
+                                                  </div>
+                                                  {(report.reported_unlocked_outfits || []).length > 0 && (
+                                                      <div className="ml-auto text-right">
+                                                          <div className="text-[8px] text-gray-500 font-mono uppercase tracking-widest mb-1">All Owned</div>
+                                                          <div className="flex gap-1 flex-wrap justify-end">
+                                                              {(report.reported_unlocked_outfits as string[]).map((o: string) => (
+                                                                  <span key={o} className="text-[8px] px-1.5 py-0.5 rounded bg-gray-800 text-gray-400 font-mono">{o.replace('outfit_', '')}</span>
+                                                              ))}
+                                                          </div>
+                                                      </div>
+                                                  )}
+                                              </div>
+
+                                              {/* Actions */}
+                                              {report.status === 'pending' && (
+                                                  <div className="flex gap-2">
+                                                      <button
+                                                          onClick={() => resolveReport(report.id, 'resolved')}
+                                                          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all hover:brightness-110"
+                                                          style={{ background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.25)', color: '#4ade80' }}
+                                                      >
+                                                          <CheckSquare size={12} /> Mark Resolved
+                                                      </button>
+                                                      <button
+                                                          onClick={() => resolveReport(report.id, 'dismissed')}
+                                                          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all hover:brightness-110"
+                                                          style={{ background: 'rgba(107,114,128,0.1)', border: '1px solid rgba(107,114,128,0.25)', color: '#9ca3af' }}
+                                                      >
+                                                          <XSquare size={12} /> Dismiss
+                                                      </button>
+                                                  </div>
+                                              )}
+                                          </div>
+                                      )}
+                                  </div>
+                              );
+                          })}
+                      </div>
                   )}
               </div>
           )}

@@ -47,6 +47,7 @@ async function startServer() {
   const workoutRouter = await import('./routes/workout.js');
   const systemPactRouter = await import('./routes/systemPact.js');
   const auditRouter = await import('./routes/audit.js');
+  const reportsRouter = await import('./routes/reports.js');
 
   const app = express();
   const PORT = process.env.PORT ? parseInt(process.env.PORT) : 8001;
@@ -192,6 +193,7 @@ async function startServer() {
   app.use('/api/global-config', generalRateLimit, globalConfigRouter.default);
   app.use('/api/workout', generalRateLimit, workoutRouter.default);
   app.use('/api/system-pact', generalRateLimit, systemPactRouter.default);
+  app.use('/api/reports', generalRateLimit, reportsRouter.default);
   app.use('/api/audit', generalRateLimit, auditRouter.default);
   app.use('/api/auth/local', generalRateLimit, localAuthRouter.default);
 

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Trophy, Sparkles, RefreshCw, Zap,
   Crown, FlaskConical, ChevronRight,
-  Infinity as InfinityIcon, Users, X, Globe, CalendarDays,
+  Infinity as InfinityIcon, Users, X, Globe, CalendarDays, Flag, AlertTriangle, CheckSquare, Square, Send,
 } from 'lucide-react';
 import { PlayerData, Outfit } from '../types';
 import { API_BASE } from '../lib/apiConfig';
@@ -11,6 +11,7 @@ import { getPlayerAuthHeaders } from '../lib/playerApi';
 import { useSystem } from '../hooks/useSystem';
 import { playSystemSoundEffect } from '../utils/soundEngine';
 import RankRewardOverlay from './RankRewardOverlay';
+import { OUTFITS } from '../utils/gameData';
 
 // ── Types ──
 interface LeaderboardEntry {
@@ -141,6 +142,52 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
   const { addNotification, setPlayer, updateServerBaseline } = useSystem();
 
   const [expandedTarget, setExpandedTarget] = useState<string | null>(null);
+
+  // ── Report Modal State ──
+  const [reportTarget, setReportTarget] = useState<SimEntry | null>(null);
+  const [reportChecks, setReportChecks] = useState({ cheating: true, hacking: true, unusualActivity: true });
+  const [reportSubmitting, setReportSubmitting] = useState(false);
+  const [reportDone, setReportDone] = useState(false);
+
+  const openReport = (entry: SimEntry, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setReportChecks({ cheating: true, hacking: true, unusualActivity: true });
+    setReportDone(false);
+    setReportTarget(entry);
+  };
+
+  const submitReport = async () => {
+    if (!reportTarget) return;
+    setReportSubmitting(true);
+    const reasons: string[] = [];
+    if (reportChecks.cheating) reasons.push('Cheating');
+    if (reportChecks.hacking) reasons.push('Hacking');
+    if (reportChecks.unusualActivity) reasons.push('Unusual Activity');
+    try {
+      await fetch(`${API_BASE}/api/reports`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
+        credentials: 'include',
+        body: JSON.stringify({
+          reporterUserId: player.userId,
+          reporterName: player.username || player.name,
+          reportedUserId: reportTarget.supabase_id || reportTarget.player_id || '',
+          reportedName: reportTarget.username || reportTarget.name,
+          reportedLevel: reportTarget.level,
+          reportedRank: reportTarget.computedRank,
+          reportedXp: reportTarget.dominance,
+          reportedOutfitId: reportTarget.outfitId,
+          reasons,
+        }),
+      });
+      setReportDone(true);
+      setTimeout(() => setReportTarget(null), 1800);
+    } catch {
+      addNotification('Failed to submit report. Try again.', 'DANGER');
+    } finally {
+      setReportSubmitting(false);
+    }
+  };
 
   // ── Rank Reward State ──
   const [pendingReward, setPendingReward] = useState<{
@@ -446,29 +493,51 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
 
                   {/* ── Action Drawer ── */}
                   <AnimatePresence>
-                    {isExpanded && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.25, ease: 'easeInOut' }}
-                        className="overflow-hidden"
-                        style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}
-                      >
-                        <div className="p-3 flex gap-2">
-                          {entry.isMe ? (
-                            <div className="flex-1 py-3.5 rounded-2xl flex flex-col items-center justify-center gap-1.5 border border-white/5 bg-white/5 opacity-50">
-                              <span className="text-[10px] font-black tracking-widest uppercase text-gray-400">YOUR PROFILE</span>
+                    {isExpanded && (() => {
+                      const outfitData = OUTFITS.find(o => o.id === entry.outfitId);
+                      const cfg = OUTFIT_CONFIG[entry.outfitId] || DEFAULT_OUTFIT_CFG;
+                      return (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.25, ease: 'easeInOut' }}
+                          className="overflow-hidden"
+                          style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}
+                        >
+                          <div className="p-3 space-y-2">
+                            {/* Outfit info row */}
+                            <div className="flex items-center gap-3 rounded-xl px-3 py-2.5" style={{ background: `${cfg.accent}0d`, border: `1px solid ${cfg.accent}22` }}>
+                              <HunterBadge outfitId={entry.outfitId} size={38} />
+                              <div className="flex-1 min-w-0">
+                                <div className="text-[9px] font-mono text-gray-500 uppercase tracking-widest">Equipped Outfit</div>
+                                <div className="text-[11px] font-black text-white truncate">{outfitData?.name || cfg.name}</div>
+                                <div className="text-[9px] font-mono mt-0.5" style={{ color: cfg.accent }}>{cfg.tier}-Rank Tier</div>
+                              </div>
+                              {outfitData?.image && (
+                                <img src={outfitData.image} alt={outfitData.name} className="w-10 h-10 object-contain rounded-lg opacity-80" style={{ background: `${cfg.accent}11` }} />
+                              )}
                             </div>
-                          ) : (
-                            <div className="flex-1 py-3.5 rounded-2xl flex flex-col items-center justify-center gap-1.5 border border-white/5 bg-white/[0.02] opacity-30">
-                              <Globe size={14} className="text-gray-500" />
-                              <span className="text-[9px] text-gray-500 font-mono">Global — view only</span>
-                            </div>
-                          )}
-                        </div>
-                      </motion.div>
-                    )}
+
+                            {/* Action row */}
+                            {entry.isMe ? (
+                              <div className="py-2.5 rounded-xl flex items-center justify-center gap-1.5 border border-white/5 bg-white/5 opacity-50">
+                                <span className="text-[10px] font-black tracking-widest uppercase text-gray-400">YOUR PROFILE</span>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={(e) => openReport(entry, e)}
+                                className="w-full py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95"
+                                style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171' }}
+                              >
+                                <Flag size={12} />
+                                <span className="text-[10px] font-black tracking-widest uppercase">Report Player</span>
+                              </button>
+                            )}
+                          </div>
+                        </motion.div>
+                      );
+                    })()}
                   </AnimatePresence>
                 </motion.div>
               );
@@ -477,6 +546,97 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
         )}
       </div>
 
+
+      {/* ── REPORT MODAL ── */}
+      <AnimatePresence>
+        {reportTarget && (
+          <motion.div
+            className="fixed inset-0 z-[9000] flex items-end justify-center"
+            style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setReportTarget(null)}
+          >
+            <motion.div
+              className="w-full max-w-sm rounded-t-3xl p-6 pb-10"
+              style={{ background: 'linear-gradient(180deg, #0f0f1f 0%, #08081a 100%)', border: '1px solid rgba(239,68,68,0.2)', borderBottom: 'none' }}
+              initial={{ y: 120, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 120, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)' }}>
+                    <AlertTriangle size={15} className="text-red-400" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-black text-white">Report Player</div>
+                    <div className="text-[9px] text-gray-500 font-mono truncate max-w-[180px]">{reportTarget.username || reportTarget.name}</div>
+                  </div>
+                </div>
+                <button onClick={() => setReportTarget(null)} className="w-7 h-7 rounded-full flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                  <X size={13} className="text-gray-400" />
+                </button>
+              </div>
+
+              {reportDone ? (
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="py-6 flex flex-col items-center gap-3"
+                >
+                  <div className="text-2xl">✅</div>
+                  <div className="text-sm font-black text-green-400">Report Submitted</div>
+                  <div className="text-[10px] text-gray-500 font-mono text-center">Our team will review this report. Thank you.</div>
+                </motion.div>
+              ) : (
+                <>
+                  <div className="text-[10px] text-gray-400 font-mono mb-4 uppercase tracking-widest">Select reasons (all apply by default)</div>
+                  <div className="space-y-2 mb-6">
+                    {([
+                      { key: 'cheating', label: 'Cheating', desc: 'Using exploits or unfair advantages' },
+                      { key: 'hacking', label: 'Hacking', desc: 'Modifying game data or using scripts' },
+                      { key: 'unusualActivity', label: 'Unusual Activity', desc: 'Suspicious stat progression or behavior' },
+                    ] as { key: keyof typeof reportChecks; label: string; desc: string }[]).map(({ key, label, desc }) => (
+                      <button
+                        key={key}
+                        onClick={() => setReportChecks(prev => ({ ...prev, [key]: !prev[key] }))}
+                        className="w-full flex items-center gap-3 rounded-xl px-3.5 py-3 transition-all"
+                        style={{
+                          background: reportChecks[key] ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.02)',
+                          border: reportChecks[key] ? '1px solid rgba(239,68,68,0.3)' : '1px solid rgba(255,255,255,0.06)',
+                        }}
+                      >
+                        {reportChecks[key]
+                          ? <CheckSquare size={16} className="text-red-400 shrink-0" />
+                          : <Square size={16} className="text-gray-600 shrink-0" />
+                        }
+                        <div className="text-left">
+                          <div className="text-[11px] font-black text-white">{label}</div>
+                          <div className="text-[9px] text-gray-500 font-mono">{desc}</div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    onClick={submitReport}
+                    disabled={reportSubmitting || (!reportChecks.cheating && !reportChecks.hacking && !reportChecks.unusualActivity)}
+                    className="w-full py-3.5 rounded-2xl font-black uppercase tracking-widest text-sm flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50"
+                    style={{ background: 'linear-gradient(135deg, #dc2626, #991b1b)', boxShadow: '0 4px 20px rgba(220,38,38,0.3)', color: '#fff' }}
+                  >
+                    <Send size={13} />
+                    {reportSubmitting ? 'Submitting...' : 'Submit Report'}
+                  </button>
+                </>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── RANK REWARD OVERLAY ── */}
       <AnimatePresence>

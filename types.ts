@@ -128,6 +128,7 @@ export interface Outfit {
   image: string;
   baseStats: CombatStats;
   cost: number;
+  keyCost?: number;
   buffs?: { label: string; color: string }[];
   accentColor?: string;
   introVideoUrl?: string;

@@ -8,6 +8,7 @@ import OutfitPurchaseModal from './OutfitPurchaseModal';
 
 interface WardrobePreviewCardProps {
   gold: number;
+  keys?: number;
   unlockedOutfits: string[];
   equippedOutfitId: string;
   outfits?: Outfit[];
@@ -169,7 +170,8 @@ const OutfitCard: React.FC<{
       <div className="absolute bottom-0 inset-x-0 px-1.5 pb-1.5">
         <div className="text-[6px] font-black text-white truncate leading-tight">{outfit.name}</div>
         <div className="text-[5.5px] font-mono" style={{ color: accent + 'cc' }}>
-          {outfit.cost === 0 ? 'FREE' : `${outfit.cost.toLocaleString()}G`}
+          {outfit.cost === 0 && (outfit.keyCost ?? 0) === 0 ? 'FREE'
+            : [outfit.cost > 0 ? `${outfit.cost.toLocaleString()}G` : '', (outfit.keyCost ?? 0) > 0 ? `${outfit.keyCost}🗝️` : ''].filter(Boolean).join(' + ')}
         </div>
       </div>
     </motion.button>
@@ -179,6 +181,7 @@ const OutfitCard: React.FC<{
 // ── Main component ────────────────────────────────────────────────────────────
 const WardrobePreviewCard: React.FC<WardrobePreviewCardProps> = ({
   gold,
+  keys = 0,
   unlockedOutfits = [],
   equippedOutfitId,
   outfits: propOutfits,
@@ -602,6 +605,7 @@ const WardrobePreviewCard: React.FC<WardrobePreviewCardProps> = ({
       <OutfitPurchaseModal
         outfit={outfit}
         gold={gold}
+        keys={keys}
         isUnlocked={isUnlocked}
         onPurchase={(o) => { onPurchase?.(o); }}
         onEquip={onEquip}

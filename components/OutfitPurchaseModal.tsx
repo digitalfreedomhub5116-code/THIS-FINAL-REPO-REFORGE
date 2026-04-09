@@ -1,12 +1,13 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Lock } from 'lucide-react';
+import { X, Lock, Key } from 'lucide-react';
 import { Outfit } from '../types';
 
 interface Props {
   outfit: Outfit;
   gold: number;
+  keys?: number;
   isUnlocked: boolean;
   onPurchase: (outfit: Outfit) => void;
   onEquip: (id: string) => void;
@@ -99,6 +100,7 @@ function drawParticle(ctx: CanvasRenderingContext2D, p: Particle) {
 const OutfitPurchaseModal: React.FC<Props> = ({
   outfit,
   gold,
+  keys = 0,
   isUnlocked,
   onPurchase,
   onEquip,
@@ -116,8 +118,11 @@ const OutfitPurchaseModal: React.FC<Props> = ({
   const [showFlash, setShowFlash] = useState(false);
 
   const accent = outfit.accentColor || '#FFD700';
-  const canAfford = gold >= outfit.cost;
-  const isFree = outfit.cost === 0;
+  const keyCost = outfit.keyCost ?? 0;
+  const canAffordGold = gold >= outfit.cost;
+  const canAffordKeys = keys >= keyCost;
+  const canAfford = canAffordGold && canAffordKeys;
+  const isFree = outfit.cost === 0 && keyCost === 0;
 
   // Video sequence
   const startVideoSequence = useCallback(() => {
@@ -432,22 +437,34 @@ const OutfitPurchaseModal: React.FC<Props> = ({
 
           {/* Price row */}
           {!isUnlocked && (
-            <div className="flex items-center gap-2 mb-4">
-              <div
-                className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-black"
-                style={{ background: '#FFD700', color: '#000' }}
-              >
-                G
-              </div>
-              <span className="text-lg font-black text-white">
-                {isFree ? 'FREE' : outfit.cost.toLocaleString()}
-              </span>
-              {!isFree && (
-                <span className="text-xs text-gray-500 font-mono">gold</span>
+            <div className="flex items-center gap-3 mb-4 flex-wrap">
+              {isFree ? (
+                <span className="text-lg font-black text-white">FREE</span>
+              ) : (
+                <>
+                  {outfit.cost > 0 && (
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-black" style={{ background: '#FFD700', color: '#000' }}>G</div>
+                      <span className={`text-lg font-black ${canAffordGold ? 'text-white' : 'text-red-400'}`}>{outfit.cost.toLocaleString()}</span>
+                      <span className="text-xs text-gray-500 font-mono">gold</span>
+                    </div>
+                  )}
+                  {outfit.cost > 0 && keyCost > 0 && (
+                    <span className="text-gray-600 font-black">+</span>
+                  )}
+                  {keyCost > 0 && (
+                    <div className="flex items-center gap-1.5">
+                      <Key size={14} className={canAffordKeys ? 'text-purple-400' : 'text-red-400'} />
+                      <span className={`text-lg font-black ${canAffordKeys ? 'text-white' : 'text-red-400'}`}>{keyCost}</span>
+                      <span className="text-xs text-gray-500 font-mono">key{keyCost !== 1 ? 's' : ''}</span>
+                    </div>
+                  )}
+                </>
               )}
               {!canAfford && !isFree && (
                 <span className="ml-auto text-[10px] text-red-500 font-bold uppercase tracking-widest flex items-center gap-1">
-                  <Lock size={10} /> Need {(outfit.cost - gold).toLocaleString()} more
+                  <Lock size={10} />
+                  {!canAffordGold ? `Need ${(outfit.cost - gold).toLocaleString()} more gold` : `Need ${keyCost - keys} more key${keyCost - keys !== 1 ? 's' : ''}`}
                 </span>
               )}
             </div>
@@ -466,7 +483,7 @@ const OutfitPurchaseModal: React.FC<Props> = ({
             >
               ⚡ EQUIP NOW
             </button>
-          ) : (canAfford || isFree) ? (
+          ) : canAfford ? (
             <button
               onClick={handleBuy}
               disabled={purchased}
@@ -479,7 +496,7 @@ const OutfitPurchaseModal: React.FC<Props> = ({
                 color: purchased ? '#6b7280' : '#000',
               }}
             >
-              {purchased ? '✓ PURCHASED' : `BUY NOW — ${isFree ? 'FREE' : outfit.cost.toLocaleString() + 'G'}`}
+              {purchased ? '✓ PURCHASED' : isFree ? 'CLAIM FREE' : `BUY — ${outfit.cost > 0 ? outfit.cost.toLocaleString() + 'G' : ''}${outfit.cost > 0 && keyCost > 0 ? ' + ' : ''}${keyCost > 0 ? keyCost + ' Key' + (keyCost !== 1 ? 's' : '') : ''}`}
             </button>
           ) : (
             <button
@@ -487,7 +504,7 @@ const OutfitPurchaseModal: React.FC<Props> = ({
               className="w-full py-4 rounded-2xl font-black uppercase tracking-widest text-sm flex items-center justify-center gap-2 cursor-not-allowed"
               style={{ background: 'rgba(255,255,255,0.04)', border: '1.5px solid rgba(255,255,255,0.09)', color: '#4b5563' }}
             >
-              <Lock size={14} /> INSUFFICIENT GOLD
+              <Lock size={14} /> {!canAffordGold ? 'INSUFFICIENT GOLD' : 'INSUFFICIENT KEYS'}
             </button>
           )}
         </motion.div>

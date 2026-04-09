@@ -2060,21 +2060,30 @@ export const useSystem = () => {
     }
   }, [removeStrike, addNotification]);
 
-  const purchaseOutfit = useCallback((outfit: { id: string; name: string; cost: number }) => {
+  const purchaseOutfit = useCallback((outfit: { id: string; name: string; cost: number; keyCost?: number }) => {
     setPlayer(prev => {
       if ((prev.gold || 0) < outfit.cost) {
         addNotification('Insufficient Gold.', 'DANGER');
         return prev;
       }
+      const keyCost = outfit.keyCost ?? 0;
+      if (keyCost > 0 && (prev.keys || 0) < keyCost) {
+        addNotification('Insufficient Keys.', 'DANGER');
+        return prev;
+      }
       const unlocked = prev.unlockedOutfits || ['outfit_starter'];
       if (unlocked.includes(outfit.id)) return prev;
       playSystemSoundEffect('PURCHASE');
+      const costLabel = outfit.cost > 0 && keyCost > 0
+        ? `-${outfit.cost}G, -${keyCost} Key${keyCost !== 1 ? 's' : ''}`
+        : outfit.cost > 0 ? `-${outfit.cost}G` : keyCost > 0 ? `-${keyCost} Key${keyCost !== 1 ? 's' : ''}` : 'FREE';
       addNotification(`${outfit.name} Unlocked!`, 'PURCHASE');
       return {
         ...prev,
         gold: prev.gold - outfit.cost,
+        keys: (prev.keys || 0) - keyCost,
         unlockedOutfits: [...unlocked, outfit.id],
-        logs: [createLog(`Purchased: ${outfit.name} (-${outfit.cost}G)`, 'PURCHASE'), ...prev.logs]
+        logs: [createLog(`Purchased: ${outfit.name} (${costLabel})`, 'PURCHASE'), ...prev.logs]
       };
     });
   }, [addNotification]);
