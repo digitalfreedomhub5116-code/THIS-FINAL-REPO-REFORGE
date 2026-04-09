@@ -58,15 +58,15 @@ const STEPS: StepConfig[] = [
     targetId: 'tut-schedule',
     icon: <Clock size={18} />,
     title: 'Set Your Schedule',
-    subtitle: 'Choose when you\'ll complete this quest.',
+    subtitle: 'Pick a time for your quest, then tap NEXT to confirm.',
     position: 'bottom',
     waitForAction: false,
   },
   {
-    targetId: 'tut-enter-pact',
+    targetId: 'tut-confirm-quest',
     icon: <Check size={18} />,
-    title: 'Enter The Pact',
-    subtitle: 'Accept the System Pact to earn 1.25x XP on verified completion.',
+    title: 'Confirm Your Quest',
+    subtitle: 'Tap CONFIRM PROTOCOL to lock in your quest and begin.',
     position: 'top',
     waitForAction: true,
   },
@@ -141,7 +141,7 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({
 
   // Auto-advance non-action steps after a delay (except step 3 and 5)
   useEffect(() => {
-    if (!step || step.waitForAction || currentStep === 3 || currentStep === 5) return;
+    if (!step || step.waitForAction || currentStep === 3 || currentStep === 5 || currentStep === 4) return;
     const timer = setTimeout(() => {
       onStepComplete(currentStep);
     }, 3000);
@@ -204,10 +204,6 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({
   useEffect(() => {
     if (currentStep !== 4) return;
     
-    let checkCount = 0;
-    let failureDetected = false;
-    let successDetected = false;
-    
     const checkAnalysisComplete = () => {
       // Success: ForgeGuard result card appeared
       if (document.getElementById('tut-quest-category')) {
@@ -233,26 +229,21 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({
     };
   }, [currentStep, onStepComplete]);
 
-  // For step 6 (Enter Pact button), detect when quest is created (Pact screen closes)
+  // For step 5 (schedule), detect when schedule section disappears (i.e. confirm was clicked — fallback)
+  // Step 5 is manual-advance via NEXT button, so no auto-detection needed
+
+  // For step 6 (confirm button), detect when the quest modal closes (quest was created)
   useEffect(() => {
     if (currentStep !== 6) return;
     
     const checkQuestCreated = () => {
-      // Check if System Pact screen is still visible
-      const pactScreen = document.querySelector('[id="tut-enter-pact"]');
-      const pactVisible = !!pactScreen;
-      
-      // Also check if a quest card appears in the list (quest was created)
-      const questCards = document.querySelectorAll('[id^="quest-card-"]');
-      const hasQuests = questCards.length > 0;
-      
-      // If Pact screen closed and we have quests, the quest was created
-      if (!pactVisible && hasQuests) {
+      // Modal closed = quest was confirmed
+      const confirmBtn = document.getElementById('tut-confirm-quest');
+      if (!confirmBtn) {
         onStepComplete(6);
       }
     };
     
-    checkQuestCreated();
     const interval = setInterval(checkQuestCreated, 300);
     const observer = new MutationObserver(checkQuestCreated);
     observer.observe(document.body, { childList: true, subtree: true });
@@ -263,7 +254,8 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({
     };
   }, [currentStep, onStepComplete]);
 
-  if (!step || currentStep < 1 || currentStep > 7) return null;
+
+  if (!step || currentStep < 1 || currentStep > 6) return null;
 
   const padding = 12; // Larger padding for easier mobile tapping
   const spotlightRect = tooltipPos
@@ -427,12 +419,12 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({
                   </div>
                   <div className="flex-1">
                     <div className="text-[9px] font-mono text-gray-600 tracking-[0.2em] uppercase">
-                      Step {currentStep} of {STEPS.length}
+                      Step {currentStep} of 6
                     </div>
                   </div>
-                  {/* Progress dots */}
+                  {/* Progress dots — show only 6 (exclude error step at index 6) */}
                   <div className="flex gap-1">
-                    {STEPS.map((_, i) => (
+                    {STEPS.slice(0, 6).map((_, i) => (
                       <div
                         key={i}
                         className="w-1.5 h-1.5 rounded-full"
@@ -449,8 +441,8 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({
                 <h3 className="text-sm font-black text-white tracking-wide mb-1">{step.title}</h3>
                 <p className="text-[11px] text-gray-400 leading-relaxed">{step.subtitle}</p>
 
-                {/* Skip / Next - hide CONTINUE for step 3 since it has its own NEXT button */}
-                {!step.waitForAction && currentStep !== 3 && (
+                {/* Skip / Next - hide CONTINUE for steps 3 and 5 since they have their own NEXT buttons */}
+                {!step.waitForAction && currentStep !== 3 && currentStep !== 5 && (
                   <button
                     onClick={() => onStepComplete(currentStep)}
                     className="mt-3 flex items-center gap-1 text-[10px] font-bold tracking-wider text-cyan-400 hover:text-cyan-300 transition-colors"
@@ -496,6 +488,16 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({
                       {analysisFailed ? 'TRY AGAIN' : 'NEXT'}
                     </button>
                   </div>
+                )}
+
+                {/* Step 5 — Schedule: show NEXT button to advance to Confirm step */}
+                {currentStep === 5 && (
+                  <button
+                    onClick={() => onStepComplete(5)}
+                    className="mt-3 w-full py-2 rounded-lg text-[11px] font-bold tracking-wider bg-cyan-500 text-black hover:bg-cyan-400 transition-all"
+                  >
+                    NEXT →
+                  </button>
                 )}
 
                 {/* Error step - show red styling with NEXT button to go back to step 3 */}

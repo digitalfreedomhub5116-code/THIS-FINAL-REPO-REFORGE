@@ -452,7 +452,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onAvatarCha
                 </button>
 
                 {/* ── Theme Toggle ── */}
-                <div className="pt-3 border-t border-white/[0.06]">
+                <div className="pt-3 border-t border-white/[0.06]" style={{ display: 'none' }}>
                   <button
                     onClick={toggleTheme}
                     className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.05] transition-all group"
