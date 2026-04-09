@@ -408,13 +408,16 @@ const QuestsView: React.FC<QuestsViewProps> = ({
       setError('SET A TIME — When are you doing this quest today?');
       return;
     }
-    const isDuplicate = quests.some(
-      q => q.title.toLowerCase().trim() === title.toLowerCase().trim() && !q.isCompleted && !q.failed
-    );
-    if (isDuplicate) {
-      setError('DUPLICATE QUEST DETECTED. COMPLETE EXISTING TASK FIRST.');
-      playSystemSoundEffect('WARNING');
-      return;
+    // Skip duplicate check during quest onboarding tutorial so user doesn't get stuck
+    if (playerData?.questOnboardingDone !== false) {
+      const isDuplicate = quests.some(
+        q => q.title.toLowerCase().trim() === title.toLowerCase().trim() && !q.isCompleted && !q.failed
+      );
+      if (isDuplicate) {
+        setError('DUPLICATE QUEST DETECTED. COMPLETE EXISTING TASK FIRST.');
+        playSystemSoundEffect('WARNING');
+        return;
+      }
     }
 
     // Mandatory pact gold check — block quest creation if player can't afford (skip during tutorial)
