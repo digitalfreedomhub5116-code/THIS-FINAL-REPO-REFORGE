@@ -2304,14 +2304,6 @@ const App: React.FC = () => {
                       setOnboardingPhase('SPLASH');
                       setLoading(false);
                     }}
-                    // DEBUG: Test quest tutorial (REMOVE WHEN DONE)
-                    onTestQuestTutorial={() => {
-                      setPlayer(prev => ({ ...prev, questOnboardingDone: false }));
-                      setQuestAnalysisFailed(false);
-                      setQuestOnboardingStep(1);
-                      setShowQuestOnboarding(true);
-                      setActiveTab('DASHBOARD');
-                    }}
                   />
                 </ErrorBoundary>
               </Suspense>

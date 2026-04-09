@@ -14,8 +14,6 @@ interface ProfileViewProps {
   onLogout: () => void;
   onBack?: () => void;
   onDeleteAccount?: () => Promise<void>;
-  // DEBUG: Test quest tutorial (REMOVE WHEN DONE)
-  onTestQuestTutorial?: () => void;
 }
 
 const glassPanel = {
@@ -57,7 +55,7 @@ function compressImage(file: File, maxSize = 512): Promise<string> {
   });
 }
 
-const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onAvatarChange, onLogout, onBack, onDeleteAccount, onTestQuestTutorial }) => {
+const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onAvatarChange, onLogout, onBack, onDeleteAccount }) => {
   const { theme, toggleTheme } = useThemeContext();
   const [activeTab, setActiveTab] = useState<'LOGS' | 'CONFIG'>('LOGS');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -164,11 +162,6 @@ const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onAvatarCha
     setUsernameStatus('idle');
   };
 
-  const handleTestQuestTutorial = () => {
-    if (onTestQuestTutorial) {
-      onTestQuestTutorial();
-    }
-  };
 
   return (
     <div className="flex flex-col items-center justify-start min-h-[80vh] gap-6 w-full max-w-2xl mx-auto pb-8">
@@ -612,15 +605,6 @@ const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onAvatarCha
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* ── DEBUG: Test Quest Tutorial (REMOVE WHEN DONE) ── */}
-      <button
-        onClick={handleTestQuestTutorial}
-        className="mt-6 px-4 py-2 rounded-lg text-[10px] font-mono tracking-wider uppercase opacity-30 hover:opacity-80 transition-opacity border border-orange-900/30"
-        style={{ background: 'rgba(249,115,22,0.08)', color: '#f97316' }}
-      >
-        [DEV] Test Quest Tutorial
-      </button>
     </div>
   );
 };
