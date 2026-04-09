@@ -1358,15 +1358,22 @@ const App: React.FC = () => {
     setSensorBlockedQuestId(null);
 
     if (isSensorBlock) {
-      // Sensor validation failed — permanently fail the quest + coin-lost animation
+      // Sensor validation failed — permanently fail the quest + strike + coin-lost animation
       failQuest(q.id);
+      recordStrike();
       const el = document.getElementById(`quest-card-${q.id}`);
       const sourceRect = el?.getBoundingClientRect() || null;
       window.dispatchEvent(new CustomEvent('reforge:coin-lost', { detail: { amount: 50, sourceRect } }));
       return;
     }
 
-    // Regular audit flagged — silent log + still complete (existing behaviour)
+    // Regular audit flagged — fail quest, record strike, coin-lost animation
+    failQuest(q.id);
+    recordStrike();
+    const el = document.getElementById(`quest-card-${q.id}`);
+    const sourceRect = el?.getBoundingClientRect() || null;
+    window.dispatchEvent(new CustomEvent('reforge:coin-lost', { detail: { amount: q.goldGained || 20, sourceRect } }));
+
     fetch(`${API_BASE}/api/audit/log`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1378,8 +1385,6 @@ const App: React.FC = () => {
       }),
       credentials: 'include'
     }).catch(() => {});
-
-    finishQuestComplete(q.id, q.asMini, q.rect, q.xpGained, q.xpBefore, q.requiredXp, q.level, q.goldGained);
   };
 
   // ── System Pact handlers ──
