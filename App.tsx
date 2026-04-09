@@ -2260,7 +2260,10 @@ const App: React.FC = () => {
                     }}
                     // DEBUG: Test quest tutorial (REMOVE WHEN DONE)
                     onTestQuestTutorial={() => {
-                      resetTutorial();
+                      setPlayer(prev => ({ ...prev, questOnboardingDone: false }));
+                      setQuestAnalysisFailed(false);
+                      setQuestOnboardingStep(1);
+                      setShowQuestOnboarding(true);
                       setActiveTab('DASHBOARD');
                     }}
                   />
