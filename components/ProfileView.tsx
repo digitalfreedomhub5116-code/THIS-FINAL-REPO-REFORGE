@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Save, User, Briefcase, Award, Shield, Terminal, Activity, Settings, LogOut, Lock, ArrowLeft, CheckCircle, XCircle, AlertTriangle, Camera, Loader2 } from 'lucide-react';
+import { Save, User, Briefcase, Award, Shield, Terminal, Activity, Settings, LogOut, Lock, ArrowLeft, CheckCircle, XCircle, AlertTriangle, Camera, Loader2, Sun, Moon } from 'lucide-react';
 import { PlayerData, HealthProfile } from '../types';
 import { API_BASE } from '../lib/apiConfig';
 import { getPlayerAuthHeaders, getOrRefreshPlayerHeaders } from '../lib/playerApi';
+import { useThemeContext } from '../hooks/useTheme';
 
 // DEBUG: Lazy-load StreakCelebration for testing (REMOVE WHEN DONE)
 const StreakCelebration = lazy(() => import('./StreakCelebration'));
@@ -57,6 +58,7 @@ function compressImage(file: File, maxSize = 512): Promise<string> {
 }
 
 const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onAvatarChange, onLogout, onBack, onDeleteAccount }) => {
+  const { theme, toggleTheme } = useThemeContext();
   const [activeTab, setActiveTab] = useState<'LOGS' | 'CONFIG'>('LOGS');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteStep, setDeleteStep] = useState<0 | 1 | 2>(0);
@@ -443,6 +445,35 @@ const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onAvatarCha
                   <Save size={14} />
                   SAVE CHANGES
                 </button>
+
+                {/* ── Theme Toggle ── */}
+                <div className="pt-3 border-t border-white/[0.06]">
+                  <button
+                    onClick={toggleTheme}
+                    className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.05] transition-all group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: theme === 'dark' ? 'rgba(139,92,246,0.15)' : 'rgba(250,204,21,0.15)' }}>
+                        {theme === 'dark' ? <Moon size={16} className="text-purple-400" /> : <Sun size={16} className="text-yellow-400" />}
+                      </div>
+                      <div className="text-left">
+                        <div className="text-[11px] font-bold text-white tracking-wide">{theme === 'dark' ? 'DARK MODE' : 'LIGHT MODE'}</div>
+                        <div className="text-[9px] text-gray-500 font-mono">Tap to switch theme</div>
+                      </div>
+                    </div>
+                    <div
+                      className="w-10 h-5 rounded-full relative transition-colors"
+                      style={{ background: theme === 'light' ? '#8b5cf6' : 'rgba(255,255,255,0.12)' }}
+                    >
+                      <motion.div
+                        className="w-4 h-4 rounded-full bg-white absolute top-0.5"
+                        animate={{ left: theme === 'light' ? 22 : 2 }}
+                        transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                        style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.3)' }}
+                      />
+                    </div>
+                  </button>
+                </div>
 
                 <div className="pt-3 border-t border-white/[0.06] space-y-3">
                   <button

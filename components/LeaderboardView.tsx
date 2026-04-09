@@ -138,8 +138,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const { addNotification } = useSystem();
-  // Note: rewards are credited server-side via /api/leaderboard/rewards/claim
+  const { addNotification, setPlayer, updateServerBaseline } = useSystem();
 
   const [expandedTarget, setExpandedTarget] = useState<string | null>(null);
 
@@ -490,22 +489,40 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
             username={player.username || player.name || 'Hunter'}
             onClaim={async () => {
               setShowRewardOverlay(false);
-              // Rewards are credited server-side by the claim endpoint — no local addRewards
-              // to prevent double-counting. The sync loop will pick up gold/keys changes.
               addNotification(
                 `Leaderboard Reward: Rank #${pendingReward.rank} — +${pendingReward.reward_gold}G, +${pendingReward.reward_xp}XP${pendingReward.reward_keys > 0 ? `, +${pendingReward.reward_keys} Key` : ''}`,
                 'SUCCESS'
               );
-              // Mark as claimed on server (server credits rewards to DB)
+              // Claim on server — server credits rewards and returns authoritative values
               try {
-                await fetch(`${API_BASE}/api/leaderboard/rewards/claim`, {
+                const res = await fetch(`${API_BASE}/api/leaderboard/rewards/claim`, {
                   method: 'POST',
                   credentials: 'include',
                   headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
                   body: JSON.stringify({ snapshotId: pendingReward.id }),
                 });
-                // Trigger sync so local state picks up the server-credited rewards
-                window.dispatchEvent(new Event('reforge:sync-needed'));
+                if (res.ok) {
+                  const result = await res.json();
+                  if (result.player && !result.already_claimed) {
+                    // Apply server-authoritative values directly (no double-counting)
+                    const p = result.player;
+                    setPlayer(prev => ({
+                      ...prev,
+                      gold: p.gold,
+                      keys: p.keys,
+                      currentXp: p.currentXp,
+                      requiredXp: p.requiredXp,
+                      level: p.level,
+                      rank: p.rank,
+                      totalXp: p.totalXp,
+                      dailyXp: p.dailyXp,
+                    }));
+                    // Update server baseline so the sync loop doesn't compute wrong deltas
+                    updateServerBaseline(p.gold, p.keys);
+                  }
+                }
+                // Also trigger sync to catch any other pending changes
+                setTimeout(() => window.dispatchEvent(new Event('reforge:sync-needed')), 500);
               } catch { /* will retry next time */ }
               setPendingReward(null);
             }}

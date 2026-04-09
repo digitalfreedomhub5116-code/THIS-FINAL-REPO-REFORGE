@@ -26,6 +26,7 @@ import {
 
 import { useSystem, isLocalUser, safeLevelUp } from './hooks/useSystem';
 import { useSensors } from './hooks/useSensors';
+import { useTheme, ThemeContext } from './hooks/useTheme';
 import { Tab, CoreStats, HealthProfile, Outfit, DbOutfit, TierLevel, PlayerData, Quest, DailyReward, MealType } from './types';
 import { App as CapApp } from '@capacitor/app';
 import { OUTFITS } from './utils/gameData';
@@ -144,6 +145,7 @@ const App: React.FC = () => {
   } = useSystem();
 
   const sensors = useSensors();
+  const themeCtx = useTheme();
 
   const [showChestOpening, setShowChestOpening] = useState(false);
 
@@ -1596,6 +1598,7 @@ const App: React.FC = () => {
   const shouldShowNav = showNav && !isDungeonMode;
 
   return (
+    <ThemeContext.Provider value={themeCtx}>
     <>
       <SystemMessage notifications={notifications} removeNotification={removeNotification} />
 
@@ -2399,6 +2402,7 @@ const App: React.FC = () => {
 
       </Layout>
     </>
+    </ThemeContext.Provider>
   );
 };
 

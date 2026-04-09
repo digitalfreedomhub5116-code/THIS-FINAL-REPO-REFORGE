@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Tab } from '../types';
 import SystemGlitchBadge from './SystemGlitchBadge';
 import { getLockedTabs, LockedFeaturePopup, FEATURE_GATES } from './FeatureGate';
+import { useThemeContext } from '../hooks/useTheme';
 
 interface NavigationProps {
   activeTab: Tab;
@@ -24,6 +25,8 @@ const NAV_ITEMS = [
 ];
 
 const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, badges, playerLevel = 99, guidedStep, onGuidedAction }) => {
+  const { theme } = useThemeContext();
+  const isLight = theme === 'light';
   const [lockedPopup, setLockedPopup] = useState<{ label: string; level: number } | null>(null);
   const lockedTabs = getLockedTabs(playerLevel);
   const isGuidedQuestStep = guidedStep === 1;
@@ -140,7 +143,13 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, badges,
       >
         <div
           className="relative flex items-center justify-around rounded-full px-1.5 py-1 overflow-hidden"
-          style={{
+          style={isLight ? {
+            background: 'rgba(255,255,255,0.88)',
+            backdropFilter: 'blur(28px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(28px) saturate(180%)',
+            border: '1px solid rgba(0,0,0,0.08)',
+            boxShadow: '0 -1px 8px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.08)',
+          } : {
             background: 'linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(8,8,20,0.82) 16%, rgba(4,4,14,0.92) 100%)',
             backdropFilter: 'blur(28px) saturate(200%)',
             WebkitBackdropFilter: 'blur(28px) saturate(200%)',

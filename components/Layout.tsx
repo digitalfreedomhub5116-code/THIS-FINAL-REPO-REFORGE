@@ -3,6 +3,7 @@ import { LogOut, Edit3, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Lottie from 'lottie-react';
 import { SystemNotification, ReplitUser } from '../types';
+import { useThemeContext } from '../hooks/useTheme';
 
 const _CoinSVGFallback: React.FC<{ size: number }> = ({ size }) => (
   <svg
@@ -92,12 +93,19 @@ interface LayoutProps {
   forceHeaderVisible?: boolean;
 }
 
-const glassDropdown = {
+const glassDropdownDark = {
   background: 'linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(10,10,18,0.95) 15%, rgba(6,6,14,0.98) 100%)',
   backdropFilter: 'blur(24px) saturate(180%)',
   WebkitBackdropFilter: 'blur(24px) saturate(180%)',
   border: '1px solid rgba(255,255,255,0.10)',
   boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 24px 64px rgba(0,0,0,0.85)',
+};
+const glassDropdownLight = {
+  background: 'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(245,245,247,0.98) 100%)',
+  backdropFilter: 'blur(24px) saturate(180%)',
+  WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+  border: '1px solid rgba(0,0,0,0.08)',
+  boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
 };
 
 const Layout: React.FC<LayoutProps> = ({
@@ -123,6 +131,8 @@ const Layout: React.FC<LayoutProps> = ({
   headerDisabled = false,
   forceHeaderVisible = false
 }) => {
+  const { theme } = useThemeContext();
+  const isLight = theme === 'light';
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [headerVisible, setHeaderVisible] = useState(true);
@@ -361,7 +371,7 @@ const Layout: React.FC<LayoutProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-system-bg text-gray-200 font-sans selection:bg-system-accent selection:text-white overflow-x-hidden">
+    <div className="min-h-screen bg-system-bg font-sans overflow-x-hidden" style={{ color: 'var(--color-text-primary)' }}>
 
       {/* Background ambient glow */}
       <div className="fixed top-0 left-0 w-full h-full pointer-events-none z-0">
@@ -389,11 +399,15 @@ const Layout: React.FC<LayoutProps> = ({
             className={`fixed top-0 right-0 z-40 ${navigation ? 'left-0 md:left-64' : 'left-0'}`}
             style={{
               paddingTop: 'env(safe-area-inset-top, 0px)',
-              background: 'linear-gradient(180deg, rgba(255,255,255,0.055) 0%, rgba(8,8,18,0.88) 18%, rgba(4,4,12,0.96) 100%)',
+              background: isLight
+                ? 'linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(245,245,247,0.98) 100%)'
+                : 'linear-gradient(180deg, rgba(255,255,255,0.055) 0%, rgba(8,8,18,0.88) 18%, rgba(4,4,12,0.96) 100%)',
               backdropFilter: 'blur(28px) saturate(180%)',
               WebkitBackdropFilter: 'blur(28px) saturate(180%)',
-              borderBottom: '1px solid rgba(255,255,255,0.07)',
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.07), 0 8px 32px rgba(0,0,0,0.5)',
+              borderBottom: `1px solid var(--color-border-subtle)`,
+              boxShadow: isLight
+                ? '0 1px 4px rgba(0,0,0,0.06)'
+                : 'inset 0 1px 0 rgba(255,255,255,0.07), 0 8px 32px rgba(0,0,0,0.5)',
             }}
           >
             {/* Specular top edge */}
@@ -433,7 +447,7 @@ const Layout: React.FC<LayoutProps> = ({
                         exit={{ opacity: 0, y: -8, scale: 0.95 }}
                         transition={{ duration: 0.15 }}
                         className="absolute left-0 top-full mt-2 w-52 rounded-2xl z-50 overflow-hidden"
-                        style={glassDropdown}
+                        style={isLight ? glassDropdownLight : glassDropdownDark}
                       >
                         <div className="px-4 py-3 border-b border-white/[0.06]">
                           <div className="text-white font-bold text-sm truncate">{playerName}</div>
@@ -469,7 +483,7 @@ const Layout: React.FC<LayoutProps> = ({
                 <div className="min-w-0">
                   <div className="hidden sm:block text-[10px] text-gray-500 font-mono tracking-widest leading-none mb-0.5 uppercase">Hello</div>
                   <div className="flex items-center gap-1.5">
-                    <div className="text-white font-black text-base sm:text-lg leading-none tracking-tight truncate max-w-[80px] sm:max-w-[160px] uppercase">
+                    <div className="font-black text-base sm:text-lg leading-none tracking-tight truncate max-w-[80px] sm:max-w-[160px] uppercase" style={{ color: 'var(--color-text-heading)' }}>
                       {displayName}
                     </div>
                   </div>
@@ -522,7 +536,7 @@ const Layout: React.FC<LayoutProps> = ({
                         exit={{ opacity: 0, y: -8, scale: 0.95 }}
                         transition={{ duration: 0.15 }}
                         className="absolute right-0 top-full mt-2 w-76 rounded-2xl z-50 overflow-hidden"
-                        style={{ ...glassDropdown, width: 288 }}
+                        style={{ ...(isLight ? glassDropdownLight : glassDropdownDark), width: 288 }}
                       >
                         <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
                           <span className="text-white font-mono text-xs font-bold tracking-widest">NOTIFICATIONS</span>

@@ -19,10 +19,17 @@ export default {
     },
     extend: {
       colors: {
-        'system-bg':      '#09090b',
-        'system-card':    '#0f0f1a',
-        'system-border':  '#1e1e35',
-        'system-surface': '#161625',
+        // Theme-aware colors via CSS variables
+        'system-bg':      'var(--color-bg-secondary)',
+        'system-card':    'var(--color-bg-card)',
+        'system-border':  'var(--color-border-primary)',
+        'system-surface': 'var(--color-bg-surface)',
+        // Theme text colors
+        'theme-primary':  'var(--color-text-primary)',
+        'theme-secondary':'var(--color-text-secondary)',
+        'theme-muted':    'var(--color-text-muted)',
+        'theme-heading':  'var(--color-text-heading)',
+        // Static accent colors (same in both themes)
         'system-accent':  '#8b5cf6',
         'system-neon':    '#00d2ff',
         'system-success': '#34d399',

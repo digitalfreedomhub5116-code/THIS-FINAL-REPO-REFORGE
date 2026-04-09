@@ -1,6 +1,29 @@
 import { Router, Request, Response } from 'express';
 import { supabaseServer } from '../lib/supabase.js';
 import { getAuthenticatedUserId } from '../lib/playerAuth.js';
+// ── Inline safeLevelUp (mirrors lib/levelSystem.ts) ──
+function computeRank(level: number): string {
+  if (level >= 80) return 'S';
+  if (level >= 55) return 'A';
+  if (level >= 39) return 'B';
+  if (level >= 27) return 'C';
+  if (level >= 11) return 'D';
+  return 'E';
+}
+function safeLevelUp(currentXp: number, requiredXp: number, level: number) {
+  if (!requiredXp || requiredXp < 50) requiredXp = 100;
+  let leveledUp = false;
+  let iterations = 0;
+  while (currentXp >= requiredXp && iterations < 100) {
+    currentXp -= requiredXp;
+    level++;
+    const next = Math.floor(requiredXp * 1.2);
+    requiredXp = next > requiredXp ? next : requiredXp + 1;
+    leveledUp = true;
+    iterations++;
+  }
+  return { currentXp, requiredXp, level, leveledUp, rank: computeRank(level) };
+}
 
 const router = Router();
 
@@ -137,7 +160,7 @@ router.post('/rewards/claim', async (req: Request, res: Response) => {
     // 2. Verify the requesting user owns this snapshot
     const { data: playerRow, error: playerErr } = await db
       .from('players')
-      .select('id, gold, keys, total_xp')
+      .select('id, gold, keys, total_xp, current_xp, required_xp, daily_xp, level, rank')
       .eq('supabase_id', authUserId)
       .single();
 
@@ -149,13 +172,31 @@ router.post('/rewards/claim', async (req: Request, res: Response) => {
     }
 
     // 3. Credit rewards to the player's DB account
+    const rewardXp = snapshot.reward_xp || 0;
     const newGold = (playerRow.gold || 0) + (snapshot.reward_gold || 0);
     const newKeys = (playerRow.keys || 0) + (snapshot.reward_keys || 0);
-    const newTotalXp = (playerRow.total_xp || 0) + (snapshot.reward_xp || 0);
+    const newTotalXp = (playerRow.total_xp || 0) + rewardXp;
+    const newDailyXp = (playerRow.daily_xp || 0) + rewardXp;
+
+    // Run safeLevelUp to handle overflow into level-ups
+    const lu = safeLevelUp(
+      (playerRow.current_xp || 0) + rewardXp,
+      playerRow.required_xp || 100,
+      playerRow.level || 1
+    );
 
     const { error: creditErr } = await db
       .from('players')
-      .update({ gold: newGold, keys: newKeys, total_xp: newTotalXp })
+      .update({
+        gold: newGold,
+        keys: newKeys,
+        total_xp: newTotalXp,
+        daily_xp: newDailyXp,
+        current_xp: lu.currentXp,
+        required_xp: lu.requiredXp,
+        level: lu.level,
+        rank: lu.rank,
+      })
       .eq('id', playerRow.id);
 
     if (creditErr) {
@@ -173,8 +214,12 @@ router.post('/rewards/claim', async (req: Request, res: Response) => {
       console.error('[Leaderboard Rewards Claim] Mark claimed failed:', claimErr);
     }
 
-    console.log(`[Leaderboard Claim] Player ${authUserId} claimed rank reward: +${snapshot.reward_gold}G, +${snapshot.reward_xp}XP, +${snapshot.reward_keys}K`);
-    return res.json({ success: true, rewards: { gold: snapshot.reward_gold, xp: snapshot.reward_xp, keys: snapshot.reward_keys } });
+    console.log(`[Leaderboard Claim] Player ${authUserId} claimed rank reward: +${snapshot.reward_gold}G, +${snapshot.reward_xp}XP, +${snapshot.reward_keys}K (lvl ${lu.level})`);
+    return res.json({
+      success: true,
+      rewards: { gold: snapshot.reward_gold, xp: snapshot.reward_xp, keys: snapshot.reward_keys },
+      player: { gold: newGold, keys: newKeys, currentXp: lu.currentXp, requiredXp: lu.requiredXp, level: lu.level, rank: lu.rank, totalXp: newTotalXp, dailyXp: newDailyXp },
+    });
   } catch (err) {
     console.error('[Leaderboard Rewards Claim]', err);
     return res.status(500).json({ error: 'Internal server error' });
