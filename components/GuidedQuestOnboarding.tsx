@@ -34,7 +34,7 @@ const STEPS: StepConfig[] = [
     targetId: 'tut-add-quest',
     icon: <Plus size={18} />,
     title: 'Create a Quest',
-    subtitle: 'Tap the + button to register your first mission.',
+    subtitle: 'Tap the + button to register your first mission. (Note: AI analysis burns Mana)',
     position: 'top',
     waitForAction: true,
   },
@@ -50,7 +50,7 @@ const STEPS: StepConfig[] = [
     targetId: 'tut-quest-analyze',
     icon: <Cpu size={18} />,
     title: 'Analyze with AI',
-    subtitle: 'The System will scan and rank your quest.',
+    subtitle: 'The System will scan and rank your quest. This burns Mana power.',
     position: 'bottom',
     waitForAction: true,
   },
@@ -139,9 +139,9 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({
     }
   }, [currentStep]);
 
-  // Auto-advance non-action steps after a delay (except step 3 which has word count validation)
+  // Auto-advance non-action steps after a delay (except step 3 and 5)
   useEffect(() => {
-    if (!step || step.waitForAction || currentStep === 3) return;
+    if (!step || step.waitForAction || currentStep === 3 || currentStep === 5) return;
     const timer = setTimeout(() => {
       onStepComplete(currentStep);
     }, 3000);
@@ -209,46 +209,16 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({
     let successDetected = false;
     
     const checkAnalysisComplete = () => {
-      checkCount++;
-      
-      // PRIORITY 1: Check if ForgeGuard result card is visible (SUCCESS)
-      const forgeResult = document.getElementById('tut-quest-category');
-      if (forgeResult && !failureDetected && !successDetected) {
-        successDetected = true;
+      // Success: ForgeGuard result card appeared
+      if (document.getElementById('tut-quest-category')) {
         onStepComplete(4, false); // Success - proceed to step 5
         return;
       }
       
-      // PRIORITY 2: Check for specific AI error messages (FAILURE)
-      // Only detect if we haven't already succeeded
-      if (!successDetected && !failureDetected && checkCount > 3) {
-        const bodyText = document.body.innerText;
-        
-        // Check for specific AI rejection phrases (these are the actual error messages from AI)
-        const hasQuestRejected = bodyText.includes('Quest rejected');
-        const hasMustSpecify = bodyText.toLowerCase().includes('must specify') || 
-                               bodyText.toLowerCase().includes('please specify');
-        const hasInvalidQuest = bodyText.toLowerCase().includes('invalid quest');
-        const hasNotProperQuest = bodyText.toLowerCase().includes('proper quest') || 
-                                  bodyText.toLowerCase().includes('proper task');
-        
-        // Look for error message in the quest result area specifically
-        const questResultArea = document.querySelector('#tut-quest-category')?.closest('.bg-gradient-to-br, .bg-\[\#0a0a14\]');
-        const hasRedErrorInResult = questResultArea?.querySelector('.text-red-400, .text-red-500, .text-rose-400') !== null;
-        
-        // Only trigger failure if we see specific rejection text
-        if ((hasQuestRejected || hasMustSpecify || hasInvalidQuest || hasNotProperQuest) && checkCount > 5) {
-          failureDetected = true;
-          onStepComplete(4, true); // Failure - go back to step 3
-          return;
-        }
-        
-        // Fallback: if we see red error text specifically within the quest result card after many checks
-        if (hasRedErrorInResult && checkCount > 8) {
-          failureDetected = true;
-          onStepComplete(4, true); // Failure - go back to step 3
-          return;
-        }
+      // Failure: Forge Error banner appeared
+      if (document.getElementById('forge-error-banner')) {
+        onStepComplete(4, true); // Failure - go back to step 3
+        return;
       }
     };
     

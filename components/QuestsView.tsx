@@ -679,10 +679,12 @@ const QuestsView: React.FC<QuestsViewProps> = ({
                 </button>
                 );})()}
 
-                {/* ForgeGuard Error */}
+                {/* Forge Error Message */}
                 <AnimatePresence>
                   {forgeError && (
-                    <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                    <motion.div
+                      id="forge-error-banner"
+                      initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
                       className="bg-red-950/30 border border-red-800/40 rounded-xl p-3 flex items-start gap-2"
                     >
                       <AlertTriangle size={12} className="text-red-400 mt-0.5 shrink-0" />
