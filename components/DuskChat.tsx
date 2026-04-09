@@ -119,7 +119,7 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, onClose, onMarkRead, onCons
         }]);
     } catch (error) {
         console.error('Dusk AI Error:', error);
-        if (onRefundMana) onRefundMana(20);
+        if (onRefundMana) onRefundMana(5);
         setMessages(prev => [...prev, {
             id: Date.now().toString(),
             sender: 'dusk',
@@ -131,11 +131,11 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, onClose, onMarkRead, onCons
     }
   };
 
-  const hasMana = (player.mp ?? 100) >= 20;
+  const hasMana = (player.mp ?? 100) >= 5;
 
   const handleSend = () => {
       if (!inputValue.trim()) return;
-      if (onConsumeMana && !onConsumeMana(20)) return;
+      if (onConsumeMana && !onConsumeMana(5)) return;
       
       const userMsg: Message = {
           id: Date.now().toString(),
@@ -232,7 +232,7 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, onClose, onMarkRead, onCons
                         Dusk is here to help you stay on track.
                     </span>
                     <span className={`text-[9px] font-mono font-bold flex items-center gap-0.5 ${hasMana ? 'text-cyan-500/60' : 'text-red-500'}`}>
-                        <Zap size={8} /> {hasMana ? '20 MANA / msg' : 'NO MANA'}
+                        <Zap size={8} /> {hasMana ? '5 MANA / msg' : 'NO MANA'}
                     </span>
                 </div>
             </div>
