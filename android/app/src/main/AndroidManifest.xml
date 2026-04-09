@@ -32,7 +32,8 @@
         <service
             android:name=".TrackingService"
             android:foregroundServiceType="health|location"
-            android:exported="false" />
+            android:exported="false"
+        />
     </application>
 
     <!-- Permissions -->
