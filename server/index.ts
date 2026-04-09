@@ -298,6 +298,7 @@ async function startServer() {
         const { data: topPlayers, error: fetchErr } = await db
           .from('players')
           .select('id, username, name, daily_xp, gold, keys, total_xp')
+          .eq('is_banned', false)
           .gte('updated_at', yesterdayStart.toISOString())
           .gt('daily_xp', 0)
           .order('daily_xp', { ascending: false })

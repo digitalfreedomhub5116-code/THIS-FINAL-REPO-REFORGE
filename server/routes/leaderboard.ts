@@ -42,6 +42,7 @@ router.get('/', async (req: Request, res: Response) => {
     const { data, error } = await (supabaseServer() as any)
       .from('players')
       .select('id, supabase_id, username, name, total_xp, daily_xp, level, rank, raw_data, updated_at')
+      .eq('is_banned', false)
       .order(type === 'daily' ? 'daily_xp' : 'total_xp', { ascending: false })
       .limit(100);
 
