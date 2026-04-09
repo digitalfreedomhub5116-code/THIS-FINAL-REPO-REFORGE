@@ -2258,6 +2258,11 @@ const App: React.FC = () => {
                       setOnboardingPhase('SPLASH');
                       setLoading(false);
                     }}
+                    // DEBUG: Test quest tutorial (REMOVE WHEN DONE)
+                    onTestQuestTutorial={() => {
+                      resetTutorial();
+                      setActiveTab('DASHBOARD');
+                    }}
                   />
                 </ErrorBoundary>
               </Suspense>

@@ -6,8 +6,6 @@ import { API_BASE } from '../lib/apiConfig';
 import { getPlayerAuthHeaders, getOrRefreshPlayerHeaders } from '../lib/playerApi';
 import { useThemeContext } from '../hooks/useTheme';
 
-// DEBUG: Lazy-load StreakCelebration for testing (REMOVE WHEN DONE)
-const StreakCelebration = lazy(() => import('./StreakCelebration'));
 
 interface ProfileViewProps {
   player: PlayerData;
@@ -16,6 +14,8 @@ interface ProfileViewProps {
   onLogout: () => void;
   onBack?: () => void;
   onDeleteAccount?: () => Promise<void>;
+  // DEBUG: Test quest tutorial (REMOVE WHEN DONE)
+  onTestQuestTutorial?: () => void;
 }
 
 const glassPanel = {
@@ -57,7 +57,7 @@ function compressImage(file: File, maxSize = 512): Promise<string> {
   });
 }
 
-const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onAvatarChange, onLogout, onBack, onDeleteAccount }) => {
+const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onAvatarChange, onLogout, onBack, onDeleteAccount, onTestQuestTutorial }) => {
   const { theme, toggleTheme } = useThemeContext();
   const [activeTab, setActiveTab] = useState<'LOGS' | 'CONFIG'>('LOGS');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -78,7 +78,6 @@ const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onAvatarCha
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarError, setAvatarError] = useState('');
   const avatarInputRef = useRef<HTMLInputElement>(null);
-  const [showDebugStreak, setShowDebugStreak] = useState(false); // DEBUG: REMOVE WHEN DONE
 
   const handleAvatarPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -163,6 +162,12 @@ const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onAvatarCha
     onUpdate({ name: name.trim(), username: username.trim(), job: job.trim(), title: title.trim(), healthProfile: updatedHealth });
     originalUsername.current = username.trim();
     setUsernameStatus('idle');
+  };
+
+  const handleTestQuestTutorial = () => {
+    if (onTestQuestTutorial) {
+      onTestQuestTutorial();
+    }
   };
 
   return (
@@ -608,26 +613,14 @@ const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onAvatarCha
         )}
       </AnimatePresence>
 
-      {/* ── DEBUG: Test Streak Break Animation (REMOVE WHEN DONE) ── */}
+      {/* ── DEBUG: Test Quest Tutorial (REMOVE WHEN DONE) ── */}
       <button
-        onClick={() => setShowDebugStreak(true)}
-        className="mt-6 px-4 py-2 rounded-lg text-[10px] font-mono tracking-wider uppercase opacity-30 hover:opacity-80 transition-opacity border border-red-900/30"
-        style={{ background: 'rgba(239,68,68,0.08)', color: '#ef4444' }}
+        onClick={handleTestQuestTutorial}
+        className="mt-6 px-4 py-2 rounded-lg text-[10px] font-mono tracking-wider uppercase opacity-30 hover:opacity-80 transition-opacity border border-orange-900/30"
+        style={{ background: 'rgba(249,115,22,0.08)', color: '#f97316' }}
       >
-        [DEV] Test Streak Break
+        [DEV] Test Quest Tutorial
       </button>
-      {showDebugStreak && (
-        <Suspense fallback={null}>
-          <StreakCelebration
-            oldStreak={player.streak > 1 ? player.streak : 15}
-            newStreak={1}
-            outfitId={player.equippedOutfitId || 'outfit_starter'}
-            weeklyActivity={[true, true, true, false, false, false, false]}
-            streakBroken={true}
-            onComplete={() => setShowDebugStreak(false)}
-          />
-        </Suspense>
-      )}
     </div>
   );
 };

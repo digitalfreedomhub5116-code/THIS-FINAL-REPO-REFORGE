@@ -56,12 +56,13 @@ async function startServer() {
 
   // Middleware
   const allowedOrigins = [
-    'http://localhost:5000',
     'http://localhost:3000',
+    'http://localhost:5173',
     'http://localhost',
     'capacitor://localhost',
     'https://localhost',
     'https://this-final-repo-reforge-production.up.railway.app',
+    'https://this-final-repo-reforge-production-2c30.up.railway.app',
   ];
   if (process.env.DEPLOYED_URL) allowedOrigins.push(process.env.DEPLOYED_URL);
 

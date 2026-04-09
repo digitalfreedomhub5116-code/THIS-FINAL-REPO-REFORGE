@@ -13,7 +13,7 @@ const isNativePlatform = Capacitor.isNativePlatform();
 // When running inside a native APK, point API calls to the Railway server.
 // When running in a browser, use relative URLs (same origin).
 export const API_BASE = isNativePlatform
-  ? 'https://this-final-repo-reforge-production.up.railway.app'
+  ? 'https://this-final-repo-reforge-production-2c30.up.railway.app'
   : '';
 
 /**
