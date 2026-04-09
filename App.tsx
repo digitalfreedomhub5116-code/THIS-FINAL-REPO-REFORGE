@@ -135,7 +135,7 @@ const App: React.FC = () => {
     removeNotification, saveHealthProfile, updateProfile,
     logMeal, deleteMeal, completeWorkoutSession, failWorkout,
     advanceTutorial, completeTutorial, resetTutorial, resetPlayer, resolvePenalty, reducePenalty,
-    claimTournamentReward, consumeKey,
+    claimTournamentReward, consumeKey, consumeMana, refundMana,
     deductGold, enterDungeon, addRewards,
     recordStrike, removeStrike, markDuskMessagesRead,
     startSensorTracking, stopSensorTracking, updateQuestSensorData,
@@ -1690,6 +1690,8 @@ const App: React.FC = () => {
                   player={player}
                   onClose={() => setShowDuskChat(false)}
                   onMarkRead={markDuskMessagesRead}
+                  onConsumeMana={consumeMana}
+                  onRefundMana={refundMana}
                 />
               </ErrorBoundary>
             </Suspense>
@@ -2096,6 +2098,8 @@ const App: React.FC = () => {
                     onShowPact={handleShowPact}
                     onStartTracking={handleStartTracking}
                     onStopTracking={handleStopTracking}
+                    onConsumeMana={consumeMana}
+                    onRefundMana={refundMana}
                   />
                 </ErrorBoundary>
               </Suspense>
@@ -2190,6 +2194,8 @@ const App: React.FC = () => {
                     tutorialStep={player.tutorialStep}
                     onToggleNav={handleToggleNav}
                     onConsumeKey={consumeKey}
+                    onConsumeMana={consumeMana}
+                    onRefundMana={refundMana}
                     onUpdateSkillProgress={updateSkillProgress}
                     playerLevel={player.level}
                     onAddRewards={addRewards}

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Send, Terminal, AlertTriangle, Shield, RefreshCw } from 'lucide-react';
+import { X, Send, Terminal, AlertTriangle, Shield, RefreshCw, Zap } from 'lucide-react';
 import { PlayerData } from '../types';
 import { API_BASE } from '../lib/apiConfig';
 
@@ -9,6 +9,8 @@ interface DuskChatProps {
   player: PlayerData;
   onClose: () => void;
   onMarkRead?: () => void;
+  onConsumeMana?: (amount: number) => boolean;
+  onRefundMana?: (amount: number) => void;
 }
 
 interface Message {
@@ -18,7 +20,7 @@ interface Message {
   timestamp: number;
 }
 
-const DuskChat: React.FC<DuskChatProps> = ({ player, onClose, onMarkRead }) => {
+const DuskChat: React.FC<DuskChatProps> = ({ player, onClose, onMarkRead, onConsumeMana, onRefundMana }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -117,6 +119,7 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, onClose, onMarkRead }) => {
         }]);
     } catch (error) {
         console.error('Dusk AI Error:', error);
+        if (onRefundMana) onRefundMana(20);
         setMessages(prev => [...prev, {
             id: Date.now().toString(),
             sender: 'dusk',
@@ -128,8 +131,11 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, onClose, onMarkRead }) => {
     }
   };
 
+  const hasMana = (player.mp ?? 100) >= 20;
+
   const handleSend = () => {
       if (!inputValue.trim()) return;
+      if (onConsumeMana && !onConsumeMana(20)) return;
       
       const userMsg: Message = {
           id: Date.now().toString(),
@@ -215,14 +221,19 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, onClose, onMarkRead }) => {
                     />
                     <button 
                         onClick={handleSend}
-                        disabled={!inputValue.trim() || isLoading}
+                        disabled={!inputValue.trim() || isLoading || !hasMana}
                         className="absolute right-2 p-2 bg-system-neon text-black rounded hover:bg-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         <Send size={16} />
                     </button>
                 </div>
-                <div className="mt-2 text-[9px] text-gray-600 text-center font-mono">
-                    Dusk is here to help you stay on track. Be honest with yourself.
+                <div className="mt-2 flex items-center justify-center gap-2">
+                    <span className="text-[9px] text-gray-600 font-mono">
+                        Dusk is here to help you stay on track.
+                    </span>
+                    <span className={`text-[9px] font-mono font-bold flex items-center gap-0.5 ${hasMana ? 'text-cyan-500/60' : 'text-red-500'}`}>
+                        <Zap size={8} /> {hasMana ? '20 MANA / msg' : 'NO MANA'}
+                    </span>
                 </div>
             </div>
         </motion.div>

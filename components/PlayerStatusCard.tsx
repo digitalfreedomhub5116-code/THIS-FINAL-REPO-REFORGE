@@ -1040,6 +1040,60 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
         )}
       </AnimatePresence>
 
+      {/* --- MANA BAR --- */}
+      {(() => {
+        const mana = player.mp ?? 100;
+        const maxMana = player.maxMp ?? 100;
+        const pct = maxMana > 0 ? (mana / maxMana) * 100 : 0;
+        const manaColor = pct > 75 ? '#00d2ff' : pct > 50 ? '#eab308' : pct > 10 ? '#f97316' : '#ef4444';
+        const manaGlow = pct > 75 ? 'rgba(0,210,255,0.3)' : pct > 50 ? 'rgba(234,179,8,0.25)' : pct > 10 ? 'rgba(249,115,22,0.25)' : 'rgba(239,68,68,0.4)';
+        return (
+          <div className="w-full bg-[#0A0A0F]/90 border-t border-white/[0.03] px-3 py-2 z-20 shrink-0">
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-2">
+                <div
+                  className="flex items-center justify-center w-4 h-4 rounded"
+                  style={{ background: `${manaColor}15`, border: `1px solid ${manaColor}30` }}
+                >
+                  <Zap size={8} style={{ color: manaColor }} />
+                </div>
+                <span className="text-[9px] font-mono font-bold text-gray-400 uppercase tracking-widest">SYSTEM MANA</span>
+              </div>
+              <span className="text-[10px] font-black font-mono" style={{ color: manaColor }}>
+                {Math.floor(mana)} / {maxMana}
+              </span>
+            </div>
+            <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.05)' }}>
+              <motion.div
+                className="h-full rounded-full"
+                style={{
+                  background: manaColor,
+                  boxShadow: `0 0 8px ${manaGlow}`,
+                }}
+                initial={{ width: 0 }}
+                animate={{ width: `${pct}%` }}
+                transition={{ duration: 0.6, ease: 'easeOut' }}
+              />
+            </div>
+            {pct <= 10 && pct > 0 && (
+              <motion.span
+                className="text-[7px] font-mono font-bold mt-1 block text-center"
+                style={{ color: '#ef4444' }}
+                animate={{ opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+              >
+                MANA CRITICALLY LOW
+              </motion.span>
+            )}
+            {pct <= 0 && (
+              <span className="text-[7px] font-mono font-bold mt-1 block text-center text-red-500">
+                MANA DEPLETED — AI FEATURES LOCKED
+              </span>
+            )}
+          </div>
+        );
+      })()}
+
       {/* --- BOTTOM SECTION: TALK TO DUSK BUTTON --- */}
       <div className="w-full p-3 bg-[#0A0A0F] border-t border-white/5 z-20 relative shrink-0">
         <button

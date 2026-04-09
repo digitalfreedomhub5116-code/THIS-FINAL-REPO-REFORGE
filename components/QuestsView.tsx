@@ -45,6 +45,8 @@ interface QuestsViewProps {
   onShowPact?: (quest: Quest) => void;
   onStartTracking?: (id: string, requirements?: { steps?: number; distanceKm?: number; activeMinutes?: number }) => void;
   onStopTracking?: (id: string) => void;
+  onConsumeMana?: (amount: number) => boolean;
+  onRefundMana?: (amount: number) => void;
 }
 
 const RANK_COLORS: Record<Rank, { bg: string; text: string; border: string; glow: string }> = {
@@ -277,7 +279,7 @@ const FuturisticCalendar: React.FC<{ quests: Quest[] }> = ({ quests }) => {
 const QuestsView: React.FC<QuestsViewProps> = ({
   quests, addQuest, completeQuest, failQuest, resetQuest, deleteQuest,
   tutorialStep, onTutorialAction, onTutorialAnalysisFail, playerData, onToggleNav, onShowPact,
-  onStartTracking, onStopTracking
+  onStartTracking, onStopTracking, onConsumeMana, onRefundMana
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [title, setTitle] = useState('');
@@ -290,6 +292,7 @@ const QuestsView: React.FC<QuestsViewProps> = ({
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [forgeResult, setForgeResult] = useState<ForgeGuardResult | null>(null);
   const [forgeError, setForgeError] = useState<string | null>(null);
+  const [analysisCount, setAnalysisCount] = useState(0);
 
   const userTimezone = getUserTimezone();
 
@@ -323,6 +326,13 @@ const QuestsView: React.FC<QuestsViewProps> = ({
     if (!title.trim() || title.trim().length < 5) {
       setForgeError('Describe the quest clearly. Be specific about what you will actually do.');
       return;
+    }
+    const manaCost = 15 + (analysisCount * 5);
+    if (onConsumeMana) {
+      if (!onConsumeMana(manaCost)) {
+        setForgeError(`MANA DEPLETED — Need ${manaCost} mana. Resets at midnight.`);
+        return;
+      }
     }
     setIsAnalyzing(true);
     setForgeResult(null);
@@ -378,10 +388,12 @@ const QuestsView: React.FC<QuestsViewProps> = ({
           if (tutorialStep === 8 && onTutorialAction) onTutorialAction(9);
         }
       }
+      setAnalysisCount(prev => prev + 1);
     } catch {
       setForgeError('ForgeGuard is offline. Quest creation requires AI analysis — please try again.');
+      if (onRefundMana) onRefundMana(manaCost);
       if (tutorialStep === 8 && onTutorialAnalysisFail) {
-        setTitle(''); // Clear title on offline error too, to avoid getting stuck
+        setTitle('');
         onTutorialAnalysisFail();
       }
     } finally {
@@ -461,6 +473,7 @@ const QuestsView: React.FC<QuestsViewProps> = ({
     setScheduleTime('');
     setAutoScheduled(false);
     setIsDaily(false);
+    setAnalysisCount(0);
   };
 
   const handleCompleteWithRect = (id: string, asMini?: boolean) => {
@@ -661,7 +674,7 @@ const QuestsView: React.FC<QuestsViewProps> = ({
                   {isAnalyzing ? (
                     <><Loader2 size={14} className="animate-spin" /> ANALYZING...</>
                   ) : (
-                    <><BrainCircuit size={14} /> ANALYZE QUEST</>
+                    <><BrainCircuit size={14} /> ANALYZE QUEST <span className="text-[9px] opacity-60 ml-1">({15 + analysisCount * 5} MANA)</span></>
                   )}
                 </button>
                 );})()}

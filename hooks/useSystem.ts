@@ -577,6 +577,7 @@ export const useSystem = () => {
         yesterdayStats: { ...prev.dailyStats },
         dailyStats: { strength: 0, intelligence: 0, discipline: 0, social: 0, focus: 0, willpower: 0 },
         dailyXp: 0,  // ← Reset daily XP to 0 at midnight
+        mp: prev.maxMp ?? 100,  // ← Reset mana to full at midnight
         totalXp: Math.max(0, prev.totalXp - xpPenalty),
         stats: updatedStats,
         history: updatedHistory,
@@ -786,6 +787,18 @@ export const useSystem = () => {
       return true;
     }
     return false;
+  };
+
+  const consumeMana = (amount: number): boolean => {
+    if ((player.mp ?? 100) >= amount) {
+      setPlayer(prev => ({ ...prev, mp: Math.max(0, (prev.mp ?? 100) - amount) }));
+      return true;
+    }
+    return false;
+  };
+
+  const refundMana = (amount: number): void => {
+    setPlayer(prev => ({ ...prev, mp: Math.min(prev.maxMp ?? 100, (prev.mp ?? 100) + amount) }));
   };
 
   const enterDungeon = async (isFree: boolean): Promise<boolean> => {
@@ -2186,6 +2199,8 @@ export const useSystem = () => {
     updateCustomProtocols,
     addXp,
     consumeKey,
+    consumeMana,
+    refundMana,
     checkDailyLogin,
     claimDailyReward,
     claimStreakReward,

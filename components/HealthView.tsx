@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
-import { Activity, Ruler, Fingerprint, Flame, Target, Check, Sparkles, User, Weight, ChevronRight, ChevronLeft, ShieldCheck, ArrowRight, Clock, TrendingUp, Trash2, Utensils, Camera, Loader2, Save, Droplets, Wheat, Beef, SkipForward, Lock, Key, Cpu, Plus, X, Settings } from 'lucide-react';
+import { Activity, Ruler, Fingerprint, Flame, Target, Check, Sparkles, User, Weight, ChevronRight, ChevronLeft, ShieldCheck, ArrowRight, Clock, TrendingUp, Trash2, Utensils, Camera, Loader2, Save, Droplets, Wheat, Beef, SkipForward, Lock, Key, Cpu, Plus, X, Settings, Zap } from 'lucide-react';
 import { HealthProfile, WorkoutDay, WorkoutPlan, PlayerData, ProgressPhoto, MealLog, FoodItem, MealType } from '../types';
 import ActiveWorkoutPlayer, { SavedWorkoutSession, loadWorkoutSession, clearWorkoutSession } from './ActiveWorkoutPlayer';
 import WorkoutRewardModal, { WorkoutReward } from './WorkoutRewardModal';
@@ -88,6 +88,8 @@ interface HealthViewProps {
   tutorialStep?: number;
   onToggleNav?: (visible: boolean) => void;
   onConsumeKey: (amount?: number) => Promise<boolean>;
+  onConsumeMana: (amount: number) => boolean;
+  onRefundMana: (amount: number) => void;
   onAddRewards?: (gold: number, xp: number, keys?: number) => void;
   onUpdateSkillProgress?: (progress: import('../types').SkillProgress[]) => void;
   playerLevel?: number;
@@ -564,7 +566,7 @@ const StreakRewardsTimelineWrapper: React.FC<{ playerData: PlayerData }> = ({ pl
 };
 
 export const HealthView: React.FC<HealthViewProps> = ({ 
-  healthProfile, onSaveProfile, onCompleteWorkout, onFailWorkout, onLogMeal, onDeleteMeal: _onDeleteMeal, playerData, onToggleNav, onConsumeKey, onAddRewards, onUpdateSkillProgress, playerLevel = 99
+  healthProfile, onSaveProfile, onCompleteWorkout, onFailWorkout, onLogMeal, onDeleteMeal: _onDeleteMeal, playerData, onToggleNav, onConsumeKey, onConsumeMana, onRefundMana, onAddRewards, onUpdateSkillProgress, playerLevel = 99
 }) => {
   const [viewMode, setViewMode] = useState<'MAP' | 'OVERVIEW' | 'ACTIVE' | 'SETUP' | 'PROCESSING' | 'DIAGNOSIS' | 'PROJECTION' | 'FINALIZING' | 'PLAN_SELECT'>('MAP');
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
@@ -630,8 +632,8 @@ export const HealthView: React.FC<HealthViewProps> = ({
   const [showMicros, setShowMicros] = useState(false);
   const [showFoodLibrary, setShowFoodLibrary] = useState(false);
   
-  // Keys Alert State
-  const [showKeyAlert, setShowKeyAlert] = useState(false);
+  // Mana Alert State
+  const [showManaAlert, setShowManaAlert] = useState(false);
 
   // Custom Calorie Limit State
   const [showCalorieEditor, setShowCalorieEditor] = useState(false);
@@ -956,17 +958,9 @@ export const HealthView: React.FC<HealthViewProps> = ({
 
   const handleGenerateAIPlan = async () => {
       const isFirstTime = !(healthProfile as any)?.aiPlanUsed;
-      if (!isFirstTime && playerData.keys < 5) {
-          setAiPlanError('You need 5 keys to generate an AI plan. Complete quests to earn more keys.');
-          return;
-      }
       if (!isFirstTime) {
-          const consumed = await onConsumeKey();
-          if (!consumed) { setAiPlanError('Failed to consume keys. Please try again.'); return; }
-          await onConsumeKey();
-          await onConsumeKey();
-          await onConsumeKey();
-          await onConsumeKey();
+          setAiPlanError('AI Plan already generated. Only one AI plan per account.');
+          return;
       }
       setAiPlanError(null);
       setIsGeneratingPlan(true);
@@ -1069,8 +1063,8 @@ export const HealthView: React.FC<HealthViewProps> = ({
 
   // ── Native Camera/Gallery picker (Capacitor) ──
   const handleNativePick = async () => {
-      if (playerData.keys <= 0) {
-          setShowKeyAlert(true);
+      if ((playerData.mp ?? 100) < 35) {
+          setShowManaAlert(true);
           return;
       }
 
@@ -1089,9 +1083,8 @@ export const HealthView: React.FC<HealthViewProps> = ({
 
           if (!photo.dataUrl) return;
 
-          const keyConsumed = await onConsumeKey();
-          if (!keyConsumed) {
-              setShowKeyAlert(true);
+          if (!onConsumeMana(35)) {
+              setShowManaAlert(true);
               return;
           }
 
@@ -1151,13 +1144,13 @@ export const HealthView: React.FC<HealthViewProps> = ({
           const msg = error instanceof Error ? error.message : 'Analysis failed';
           console.error('[Nutrition Scanner]', msg);
           updateScan({ state: 'ERROR', error: msg });
-          onAddRewards?.(0, 0, 1);
+          onRefundMana(35);
       }
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-      if (playerData.keys <= 0) {
-          setShowKeyAlert(true);
+      if ((playerData.mp ?? 100) < 35) {
+          setShowManaAlert(true);
           e.target.value = '';
           return;
       }
@@ -1165,9 +1158,8 @@ export const HealthView: React.FC<HealthViewProps> = ({
       const file = e.target.files?.[0];
       if (!file) return;
 
-      const keyConsumed = await onConsumeKey();
-      if (!keyConsumed) {
-          setShowKeyAlert(true);
+      if (!onConsumeMana(35)) {
+          setShowManaAlert(true);
           e.target.value = '';
           return;
       }
@@ -1230,7 +1222,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
           const msg = error instanceof Error ? error.message : 'Analysis failed';
           console.error('[Nutrition Scanner]', msg);
           updateScan({ state: 'ERROR', error: msg });
-          onAddRewards?.(0, 0, 1);
+          onRefundMana(35);
       }
   };
 
@@ -1789,30 +1781,30 @@ export const HealthView: React.FC<HealthViewProps> = ({
     <>
         <OnboardingNotice page="HEALTH" />
         <AnimatePresence>
-            {showKeyAlert && (
+            {showManaAlert && (
                 <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/90 backdrop-blur-md">
                     <motion.div 
                         initial={{ scale: 0.8, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         exit={{ scale: 0.8, opacity: 0 }}
-                        className="bg-[#0a0a0a] border border-purple-500/50 w-full max-w-sm rounded-2xl p-8 text-center shadow-[0_0_50px_rgba(168,85,247,0.3)] relative overflow-hidden"
+                        className="bg-[#0a0a0a] border border-cyan-500/50 w-full max-w-sm rounded-2xl p-8 text-center shadow-[0_0_50px_rgba(0,210,255,0.3)] relative overflow-hidden"
                     >
                         {/* Background Effect */}
-                        <div className="absolute inset-0 bg-purple-900/10 pointer-events-none" />
+                        <div className="absolute inset-0 bg-cyan-900/10 pointer-events-none" />
                         
                         <div className="relative z-10 flex flex-col items-center">
-                            <div className="w-16 h-16 rounded-full bg-black border border-purple-500 flex items-center justify-center mb-6 shadow-[0_0_20px_rgba(168,85,247,0.5)]">
-                                <Lock size={32} className="text-purple-500" />
+                            <div className="w-16 h-16 rounded-full bg-black border border-cyan-500 flex items-center justify-center mb-6 shadow-[0_0_20px_rgba(0,210,255,0.5)]">
+                                <Lock size={32} className="text-cyan-500" />
                             </div>
                             
-                            <h2 className="text-xl font-black text-white font-mono uppercase tracking-tighter mb-2">ACCESS DENIED</h2>
-                            <p className="text-xs text-purple-300 font-mono mb-6 leading-relaxed">
-                                INSUFFICIENT KEYS.<br/>Obtain Keys from the Demon Castle to perform Deep Scans.
+                            <h2 className="text-xl font-black text-white font-mono uppercase tracking-tighter mb-2">MANA DEPLETED</h2>
+                            <p className="text-xs text-cyan-300 font-mono mb-6 leading-relaxed">
+                                INSUFFICIENT MANA.<br/>Your System Mana resets at midnight. Come back tomorrow.
                             </p>
                             
                             <button 
-                                onClick={() => setShowKeyAlert(false)}
-                                className="w-full py-4 bg-purple-600 text-white font-bold rounded-xl hover:bg-purple-500 transition-colors uppercase tracking-widest text-xs font-mono shadow-lg"
+                                onClick={() => setShowManaAlert(false)}
+                                className="w-full py-4 bg-cyan-600 text-white font-bold rounded-xl hover:bg-cyan-500 transition-colors uppercase tracking-widest text-xs font-mono shadow-lg"
                             >
                                 ACKNOWLEDGE
                             </button>
@@ -2337,15 +2329,14 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                                     AI will build a <span className="text-white font-bold">{aiDaysPerWeek}-day plan</span> with <span className="text-white font-bold">{aiSessionDuration}-min sessions</span> — tailored to your <span className="text-white font-bold">{(healthProfile || formData).goal || 'RECOMP'}</span> goal using only exercises from the library.
                                                 </p>
                                                 {(healthProfile as any)?.aiPlanUsed ? (
-                                                    <div className="flex items-center gap-2 mb-4 px-3 py-2 rounded-xl" style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.2)' }}>
-                                                        <span className="text-sm">🗝</span>
-                                                        <span className="text-[11px] text-purple-300 font-bold">Costs 5 Keys</span>
-                                                        <span className="text-[10px] text-gray-500 ml-auto">You have {playerData.keys}</span>
+                                                    <div className="flex items-center gap-2 mb-4 px-3 py-2 rounded-xl" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)' }}>
+                                                        <span className="text-sm">🔒</span>
+                                                        <span className="text-[11px] text-red-400 font-bold">Already Generated — One per account</span>
                                                     </div>
                                                 ) : (
                                                     <div className="flex items-center gap-2 mb-4 px-3 py-2 rounded-xl" style={{ background: 'rgba(0,210,255,0.08)', border: '1px solid rgba(0,210,255,0.2)' }}>
                                                         <span className="text-sm">✨</span>
-                                                        <span className="text-[11px] text-system-neon font-bold">Free — First Time!</span>
+                                                        <span className="text-[11px] text-system-neon font-bold">Free — One Time Only</span>
                                                     </div>
                                                 )}
                                                 {aiPlanError && (
@@ -2358,7 +2349,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                                         <button onClick={() => setAiConfirmStep(1)} className="flex-1 py-3 rounded-xl text-[11px] font-bold text-gray-500 border border-gray-800">← Back</button>
                                                         <button
                                                             onClick={handleGenerateAIPlan}
-                                                            disabled={(healthProfile as any)?.aiPlanUsed && playerData.keys < 5}
+                                                            disabled={!!(healthProfile as any)?.aiPlanUsed}
                                                             className="flex-1 py-3 rounded-xl text-[11px] font-black text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                                                             style={{ background: 'linear-gradient(135deg,#7c3aed,#9333ea)', boxShadow: '0 0 20px rgba(139,92,246,0.4)' }}
                                                         >
@@ -2506,7 +2497,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                                         if (!val || val < 800 || val > 10000) return;
                                                         if (!healthProfile) return;
                                                         const consumed = await onConsumeKey(5);
-                                                        if (!consumed) { setShowKeyAlert(true); return; }
+                                                        if (!consumed) { setShowManaAlert(true); return; }
                                                         const updated = { ...healthProfile, customCalorieLimit: val };
                                                         onSaveProfile(updated, updated.category || 'Hunter');
                                                         setShowCalorieEditor(false);
@@ -2522,7 +2513,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                                     onClick={async () => {
                                                         if (!healthProfile) return;
                                                         const consumed = await onConsumeKey(5);
-                                                        if (!consumed) { setShowKeyAlert(true); return; }
+                                                        if (!consumed) { setShowManaAlert(true); return; }
                                                         const updated = { ...healthProfile, customCalorieLimit: undefined };
                                                         onSaveProfile(updated, updated.category || 'Hunter');
                                                         setShowCalorieEditor(false);
@@ -2686,7 +2677,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                             <h3 className="text-lg font-bold text-white font-mono tracking-tight">LOG MEAL</h3>
                                             <p className="text-[10px] text-gray-400 font-mono mt-1 tracking-wider uppercase opacity-80">TAP TO SCAN · CAMERA OR GALLERY</p>
                                             <p className="text-[9px] text-gray-500 font-mono tracking-widest uppercase mt-2 flex items-center justify-center gap-1">
-                                                <Key size={10} className="text-purple-500" /> 1 KEY REQUIRED
+                                                <Zap size={10} className="text-cyan-500" /> 35 MANA
                                             </p>
                                         </div>
 
