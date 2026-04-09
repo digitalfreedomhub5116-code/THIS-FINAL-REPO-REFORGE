@@ -42,7 +42,7 @@ const STEPS: StepConfig[] = [
     targetId: 'tut-quest-title',
     icon: <Type size={18} />,
     title: 'Describe Your Objective',
-    subtitle: 'Write what you want to achieve. Be specific.',
+    subtitle: 'Include a quantity or time in your quest.\nExamples: Run 10 mins, Read 10 pages, Cook for 3 people',
     position: 'bottom',
     waitForAction: false,
   },
@@ -90,6 +90,7 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({
 }) => {
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const [wordCount, setWordCount] = useState(0);
+  const [scheduleReady, setScheduleReady] = useState(false);
   const [visible, setVisible] = useState(true);
   const rafRef = useRef<number>(0);
 
@@ -143,6 +144,21 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({
       return () => input.removeEventListener('input', checkWordCount);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentStep]);
+
+  // For step 5, poll schedule time input to enable/disable NEXT
+  useEffect(() => {
+    if (currentStep !== 5) return;
+    const checkSchedule = () => {
+      const timeInput = document.querySelector('#tut-schedule input[type="time"]') as HTMLInputElement;
+      setScheduleReady(!!timeInput?.value);
+    };
+    checkSchedule();
+    const interval = setInterval(checkSchedule, 300);
+    const observer = new MutationObserver(checkSchedule);
+    const scheduleEl = document.getElementById('tut-schedule');
+    if (scheduleEl) observer.observe(scheduleEl, { childList: true, subtree: true, attributes: true });
+    return () => { clearInterval(interval); observer.disconnect(); };
   }, [currentStep]);
 
   // Auto-advance non-action steps after a delay (except step 3 and 5)
@@ -398,8 +414,8 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({
               style={{
                 left: Math.max(16, Math.min(spotlightRect.x + spotlightRect.w / 2 - 130, window.innerWidth - 276)),
                 top: step.position === 'bottom'
-                  ? currentStep === 3 && analysisFailed
-                    ? Math.max(60, spotlightRect.y - 240) // Error state: much higher to not overlap input
+                  ? currentStep === 3
+                    ? Math.max(40, spotlightRect.y - 260) // Higher to avoid overlapping input
                     : Math.max(80, spotlightRect.y - 180)
                   : Math.min(window.innerHeight - 200, spotlightRect.y + spotlightRect.h + 16),
                 width: 260,
@@ -445,7 +461,7 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({
 
                 {/* Title and subtitle */}
                 <h3 className="text-sm font-black text-white tracking-wide mb-1">{step.title}</h3>
-                <p className="text-[11px] text-gray-400 leading-relaxed">{step.subtitle}</p>
+                <p className="text-[11px] text-gray-400 leading-relaxed whitespace-pre-line">{step.subtitle}</p>
 
                 {/* Skip / Next - hide CONTINUE for steps 3 and 5 since they have their own NEXT buttons */}
                 {!step.waitForAction && currentStep !== 3 && currentStep !== 5 && (
@@ -498,12 +514,24 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({
 
                 {/* Step 5 — Schedule: show NEXT button to advance to Confirm step */}
                 {currentStep === 5 && (
-                  <button
-                    onClick={() => onStepComplete(5)}
-                    className="mt-3 w-full py-2 rounded-lg text-[11px] font-bold tracking-wider bg-cyan-500 text-black hover:bg-cyan-400 transition-all"
-                  >
-                    NEXT →
-                  </button>
+                  <div className="mt-3 space-y-2">
+                    {!scheduleReady && (
+                      <span className="block text-[10px] text-amber-400/80 text-center">
+                        Pick a time or tap NOW to continue
+                      </span>
+                    )}
+                    <button
+                      onClick={() => onStepComplete(5)}
+                      disabled={!scheduleReady}
+                      className={`w-full py-2 rounded-lg text-[11px] font-bold tracking-wider transition-all ${
+                        scheduleReady
+                          ? 'bg-cyan-500 text-black hover:bg-cyan-400'
+                          : 'bg-gray-800 text-gray-500 cursor-not-allowed'
+                      }`}
+                    >
+                      NEXT →
+                    </button>
+                  </div>
                 )}
 
                 {/* Error step - show red styling with NEXT button to go back to step 3 */}
