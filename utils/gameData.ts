@@ -13,7 +13,7 @@ export const TIERS: Record<TierLevel, TierConfig> = {
 export const OUTFITS: Outfit[] = [
   {
     id: 'outfit_starter',
-    name: 'Neophyte Tracksuit',
+    name: 'Venus',
     tier: 'E',
     description: 'Basic gear for the awakened. Offers minimal protection but unrestricted movement.',
     image: '/assets/outfits/venusimg.png',
@@ -28,7 +28,7 @@ export const OUTFITS: Outfit[] = [
   },
   {
     id: 'outfit_ghost',
-    name: 'Ghost Protocol',
+    name: 'Ghost',
     tier: 'D',
     description: 'Lightweight recon suit. Early hunters swear by its stealth properties.',
     image: '/assets/outfits/greenheroimg.png',
@@ -42,7 +42,7 @@ export const OUTFITS: Outfit[] = [
   },
   {
     id: 'outfit_knight',
-    name: 'Iron Will Plate',
+    name: 'Ninja',
     tier: 'C',
     description: 'Standard-issue tank armor. High durability, steady output.',
     image: '/assets/outfits/ninjaimg.png',
@@ -89,7 +89,7 @@ export const OUTFITS: Outfit[] = [
   },
   {
     id: 'outfit_monarch',
-    name: "Overlord's Raiment",
+    name: 'Monarch',
     tier: 'S',
     description: 'The ultimate armor of the Overlord. All limits transcended.',
     image: '/assets/outfits/redprinceimg.png',

@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Lock, Key } from 'lucide-react';
 import { Outfit } from '../types';
+import OutfitHunterBadge from './OutfitHunterBadge';
 
 interface Props {
   outfit: Outfit;
@@ -289,13 +290,11 @@ const OutfitPurchaseModal: React.FC<Props> = ({
             style={{ display: videoPhase === 'loop' ? 'block' : 'none' }}
           />
 
-          {/* Image fallback */}
-          {videoPhase === 'image' && outfit.image && (
-            <img
-              src={outfit.image}
-              alt={outfit.name}
-              className="absolute inset-0 w-full h-full object-contain"
-            />
+          {/* Avatar fallback — HunterBadge instead of real photo */}
+          {videoPhase === 'image' && (
+            <div className="absolute inset-0 flex items-center justify-center" style={{ background: `radial-gradient(ellipse at 50% 55%, ${accent}25 0%, transparent 70%), #0A0A0F` }}>
+              <OutfitHunterBadge outfitId={outfit.id} size={200} />
+            </div>
           )}
 
           {/* 4-sided vignette */}

@@ -5,6 +5,7 @@ import { OUTFITS, TIERS, BADGE_TIERS, getStoneConfig, getOutfitXpBoost, getBadge
 import { Outfit } from '../types';
 import HexBadge from './HexBadge';
 import OutfitPurchaseModal from './OutfitPurchaseModal';
+import OutfitHunterBadge from './OutfitHunterBadge';
 
 interface WardrobePreviewCardProps {
   gold: number;
@@ -79,8 +80,6 @@ const OutfitCard: React.FC<{
   onClick: () => void;
 }> = ({ outfit, isActive, isUnlocked, isEquipped, onClick }) => {
   const accent = outfit.accentColor || '#9ca3af';
-  const [imgError, setImgError] = useState(false);
-  const hasImage = !!outfit.image && !imgError;
 
   return (
     <motion.button
@@ -97,37 +96,13 @@ const OutfitCard: React.FC<{
         transition: 'box-shadow 0.2s ease',
       }}
     >
-      {/* Character image — shown when image_url is set */}
-      {hasImage && (
-        <img
-          src={outfit.image}
-          alt={outfit.name}
-          className="absolute inset-0 w-full h-full"
-          style={{
-            objectFit: 'cover',
-            objectPosition: 'top center',
-            opacity: isUnlocked ? 0.9 : 0.25,
-          }}
-          onError={() => setImgError(true)}
-        />
-      )}
-
-      {/* Fallback: tier letter when no image */}
-      {!hasImage && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span
-            className="font-black"
-            style={{
-              fontSize: 28,
-              color: accent,
-              textShadow: `0 0 20px ${accent}80`,
-              letterSpacing: '-0.02em',
-            }}
-          >
-            {outfit.tier}
-          </span>
-        </div>
-      )}
+      {/* Hunter Badge avatar */}
+      <div
+        className="absolute inset-0 flex items-center justify-center"
+        style={{ opacity: isUnlocked ? 1 : 0.3, filter: isUnlocked ? 'none' : 'grayscale(0.6)' }}
+      >
+        <OutfitHunterBadge outfitId={outfit.id} size={44} animate={isActive} />
+      </div>
 
       {/* Bottom gradient */}
       <div
@@ -433,12 +408,12 @@ const WardrobePreviewCard: React.FC<WardrobePreviewCardProps> = ({
           className="relative overflow-hidden"
           style={{ width: '60%', height: '100%' }}
         >
-          {/* Ambient fallback */}
+          {/* Avatar fallback — always show HunterBadge instead of real photo */}
           <AnimatePresence>
             {(!hasVideo || videoPhase === 'image') && (
               <motion.div
-                key="fallback-img"
-                className="absolute inset-0"
+                key="fallback-badge"
+                className="absolute inset-0 flex items-center justify-center"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
@@ -446,23 +421,11 @@ const WardrobePreviewCard: React.FC<WardrobePreviewCardProps> = ({
               >
                 <div
                   className="absolute inset-0"
-                  style={{
-                    background: `radial-gradient(ellipse at 50% 55%, ${accent}30 0%, transparent 65%), #0A0A0F`,
-                  }}
+                  style={{ background: `radial-gradient(ellipse at 50% 55%, ${accent}30 0%, transparent 65%), #0A0A0F` }}
                 />
-                {outfit.image && (
-                  <img
-                    src={outfit.image}
-                    alt={outfit.name}
-                    className="absolute inset-0 w-full h-full"
-                    style={{
-                      objectFit: 'cover',
-                      objectPosition: 'top center',
-                      opacity: isUnlocked ? 0.92 : 0.28,
-                      filter: isUnlocked ? 'saturate(1.1)' : 'grayscale(0.85) brightness(0.35)',
-                    }}
-                  />
-                )}
+                <div style={{ opacity: isUnlocked ? 1 : 0.3, filter: isUnlocked ? 'none' : 'grayscale(0.7)', position: 'relative', zIndex: 1 }}>
+                  <OutfitHunterBadge outfitId={outfit.id} size={120} />
+                </div>
                 {isUnlocked && [0, 1, 2].map(i => (
                   <motion.div
                     key={i}

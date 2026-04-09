@@ -8,6 +8,7 @@ import { API_BASE } from '../lib/apiConfig';
 import { MASTER_PROTOCOL_REGISTRY } from '../utils/workoutGenerator';
 import ExerciseLibrary from './admin/ExerciseLibrary';
 import PlanBuilder from './admin/PlanBuilder';
+import OutfitHunterBadge, { OUTFIT_BADGE_CONFIG } from './OutfitHunterBadge';
 
 interface StoreOutfit {
   id: number;
@@ -1435,14 +1436,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
                           {reports.map((report: any) => {
                               const isExpanded = expandedReportId === report.id;
                               const statusColor = report.status === 'pending' ? '#f87171' : report.status === 'resolved' ? '#4ade80' : '#6b7280';
-                              const outfitImgMap: Record<string, string> = {
-                                  outfit_starter: '/assets/outfits/venusimg.png',
-                                  outfit_ghost: '/assets/outfits/greenheroimg.png',
-                                  outfit_knight: '/assets/outfits/ninjaimg.png',
-                                  outfit_assassin: '/assets/outfits/marsimg.jpeg',
-                                  outfit_vanguard: '/assets/outfits/jupiterimg.jpeg',
-                                  outfit_monarch: '/assets/outfits/redprinceimg.png',
-                              };
+                              const outfitCfg = OUTFIT_BADGE_CONFIG[report.reported_outfit_id] || OUTFIT_BADGE_CONFIG.outfit_starter;
                               return (
                                   <div key={report.id} className="bg-gray-900/40 border border-gray-800 rounded-xl overflow-hidden">
                                       {/* Report row */}
@@ -1494,12 +1488,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
 
                                               {/* Equipped outfit */}
                                               <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                                                  {outfitImgMap[report.reported_outfit_id] && (
-                                                      <img src={outfitImgMap[report.reported_outfit_id]} alt="" className="w-12 h-12 object-contain rounded-lg opacity-80" style={{ background: 'rgba(255,255,255,0.04)' }} />
-                                                  )}
+                                                  <OutfitHunterBadge outfitId={report.reported_outfit_id || 'outfit_starter'} size={44} />
                                                   <div>
                                                       <div className="text-[8px] text-gray-500 font-mono uppercase tracking-widest">Equipped Outfit</div>
-                                                      <div className="text-[11px] font-black text-white capitalize">{(report.reported_outfit_id || 'outfit_starter').replace('outfit_', '').replace('_', ' ')}</div>
+                                                      <div className="text-[11px] font-black text-white">{outfitCfg.name}</div>
+                                                      <div className="text-[8px] font-mono mt-0.5" style={{ color: outfitCfg.accent }}>{outfitCfg.tier}-Rank</div>
                                                   </div>
                                                   {(report.reported_unlocked_outfits || []).length > 0 && (
                                                       <div className="ml-auto text-right">

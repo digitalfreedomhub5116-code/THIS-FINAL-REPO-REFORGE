@@ -12,6 +12,7 @@ import { useSystem } from '../hooks/useSystem';
 import { playSystemSoundEffect } from '../utils/soundEngine';
 import RankRewardOverlay from './RankRewardOverlay';
 import { OUTFITS } from '../utils/gameData';
+import OutfitHunterBadge, { OUTFIT_BADGE_CONFIG } from './OutfitHunterBadge';
 
 // ── Types ──
 interface LeaderboardEntry {
@@ -68,65 +69,9 @@ function computeRankFromLevel(level: number): string {
   return 'E';
 }
 
-// ── Outfit Config Maps ──
-const OUTFIT_CONFIG: Record<string, { name: string; accent: string; eyeColor: string; hoodColor: string; armorColor: string; tier: string; shape: string }> = {
-  outfit_starter: { name: 'Neophyte', accent: '#9ca3af', eyeColor: '#60a5fa', hoodColor: '#374151', armorColor: '#1f2937', tier: 'E', shape: 'circle' },
-  outfit_ghost:   { name: 'Ghost',    accent: '#4ade80', eyeColor: '#4ade80', hoodColor: '#14532d', armorColor: '#166534', tier: 'D', shape: 'diamond' },
-  outfit_knight:  { name: 'Ninja',    accent: '#60a5fa', eyeColor: '#f87171', hoodColor: '#1e293b', armorColor: '#334155', tier: 'C', shape: 'hexagon' },
-  outfit_assassin:{ name: 'Mars',     accent: '#c084fc', eyeColor: '#00d2ff', hoodColor: '#581c87', armorColor: '#7e22ce', tier: 'B', shape: 'octagon' },
-  outfit_vanguard:{ name: 'Jupiter',  accent: '#facc15', eyeColor: '#60a5fa', hoodColor: '#713f12', armorColor: '#92400e', tier: 'A', shape: 'star' },
-  outfit_monarch: { name: 'Overlord', accent: '#f87171', eyeColor: '#60a5fa', hoodColor: '#450a0a', armorColor: '#991b1b', tier: 'S', shape: 'crown' },
-};
-
+// ── Outfit Config (accent colors for leaderboard row backgrounds) ──
+const OUTFIT_CONFIG = OUTFIT_BADGE_CONFIG;
 const DEFAULT_OUTFIT_CFG = OUTFIT_CONFIG.outfit_starter;
-
-// ── Hunter Badge (Refined with tier-specific styling and animation) ──
-const HunterBadge: React.FC<{ outfitId: string; size?: number }> = ({ outfitId, size = 36 }) => {
-  const cfg = OUTFIT_CONFIG[outfitId] || DEFAULT_OUTFIT_CFG;
-  return (
-    <motion.div
-      animate={{ scale: [1, 1.05, 1] }}
-      transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-      style={{
-        width: size,
-        height: size,
-        position: 'relative',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      <svg width={size} height={size} viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-        {/* Glow ring */}
-        <circle cx="18" cy="18" r="17" fill="none" stroke={cfg.accent} strokeWidth="1.5" opacity="0.4">
-          <animate attributeName="opacity" values="0.2;0.6;0.2" dur="2.5s" repeatCount="indefinite" />
-        </circle>
-        {/* Inner bg */}
-        <circle cx="18" cy="18" r="15" fill={`${cfg.hoodColor}`} />
-        {/* Hood */}
-        <path d="M7 16C7 11 11.5 6 18 6C24.5 6 29 11 29 16V24C29 25 28 26 27 26H9C8 26 7 25 7 24V16Z" fill={cfg.hoodColor} />
-        {/* Face shadow */}
-        <path d="M10 16C10 13 13 10 18 10C23 10 26 13 26 16V21C26 21 23 22 18 22C13 22 10 21 10 21V16Z" fill="#08081a" />
-        {/* Armor */}
-        <path d="M9 23L13 21H23L27 23V26H9V23Z" fill={cfg.armorColor} />
-        <path d="M15 21L18 24L21 21" fill="none" stroke={cfg.accent} strokeWidth="0.7" opacity="0.5" />
-        {/* Eyes */}
-        <ellipse cx="14.5" cy="16.5" rx="2" ry="1.2" fill={cfg.eyeColor}>
-          <animate attributeName="opacity" values="1;0.5;1" dur="2.5s" repeatCount="indefinite" />
-        </ellipse>
-        <ellipse cx="21.5" cy="16.5" rx="2" ry="1.2" fill={cfg.eyeColor}>
-          <animate attributeName="opacity" values="1;0.5;1" dur="2.5s" repeatCount="indefinite" begin="0.15s" />
-        </ellipse>
-        {/* Eye glow */}
-        <ellipse cx="14.5" cy="16.5" rx="3" ry="2" fill={cfg.eyeColor} opacity="0.12" />
-        <ellipse cx="21.5" cy="16.5" rx="3" ry="2" fill={cfg.eyeColor} opacity="0.12" />
-        {/* Tier badge */}
-        <circle cx="30" cy="6" r="5.5" fill="#0a0a1a" stroke={cfg.accent} strokeWidth="1" />
-        <text x="30" y="8.5" textAnchor="middle" fontSize="6" fontWeight="900" fill={cfg.accent} fontFamily="monospace">{cfg.tier}</text>
-      </svg>
-    </motion.div>
-  );
-};
 
 
 // ═══════════════════════════════════════════════════════════════
@@ -452,7 +397,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                     </div>
 
                     {/* Outfit Badge */}
-                    <HunterBadge outfitId={entry.outfitId} size={32} />
+                    <OutfitHunterBadge outfitId={entry.outfitId} size={32} />
 
                     {/* Name + title */}
                     <div className="flex-1 min-w-0">
@@ -508,15 +453,12 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                           <div className="p-3 space-y-2">
                             {/* Outfit info row */}
                             <div className="flex items-center gap-3 rounded-xl px-3 py-2.5" style={{ background: `${cfg.accent}0d`, border: `1px solid ${cfg.accent}22` }}>
-                              <HunterBadge outfitId={entry.outfitId} size={38} />
+                              <OutfitHunterBadge outfitId={entry.outfitId} size={48} />
                               <div className="flex-1 min-w-0">
                                 <div className="text-[9px] font-mono text-gray-500 uppercase tracking-widest">Equipped Outfit</div>
                                 <div className="text-[11px] font-black text-white truncate">{outfitData?.name || cfg.name}</div>
                                 <div className="text-[9px] font-mono mt-0.5" style={{ color: cfg.accent }}>{cfg.tier}-Rank Tier</div>
                               </div>
-                              {outfitData?.image && (
-                                <img src={outfitData.image} alt={outfitData.name} className="w-10 h-10 object-contain rounded-lg opacity-80" style={{ background: `${cfg.accent}11` }} />
-                              )}
                             </div>
 
                             {/* Action row */}
