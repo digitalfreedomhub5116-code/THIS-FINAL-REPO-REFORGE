@@ -133,13 +133,27 @@ const AuditTheater: React.FC<AuditTheaterProps> = ({
                         transition={{ duration: 0.3 }}
                         className="flex flex-col items-center py-4"
                     >
-                        <motion.div
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                            className="text-cyan-400 mb-6 drop-shadow-[0_0_15px_rgba(6,182,212,0.6)]"
-                        >
-                            <ScanSearch size={48} strokeWidth={1.5} />
-                        </motion.div>
+                        <div className="relative mb-6 flex items-center justify-center" style={{ width: 72, height: 72 }}>
+                            {/* Circular loading ring */}
+                            <svg className="absolute inset-0 w-full h-full" viewBox="0 0 72 72">
+                                <circle cx="36" cy="36" r="32" fill="none" stroke="rgba(6,182,212,0.15)" strokeWidth="2" />
+                                <motion.circle
+                                    cx="36" cy="36" r="32" fill="none"
+                                    stroke="rgba(6,182,212,0.8)"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeDasharray="201"
+                                    strokeDashoffset="201"
+                                    animate={{ strokeDashoffset: [201, 50, 201] }}
+                                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                                    style={{ filter: 'drop-shadow(0 0 6px rgba(6,182,212,0.6))' }}
+                                />
+                            </svg>
+                            {/* Fixed icon */}
+                            <div className="text-cyan-400 drop-shadow-[0_0_15px_rgba(6,182,212,0.6)]">
+                                <ScanSearch size={36} strokeWidth={1.5} />
+                            </div>
+                        </div>
                         
                         <h2 className="text-cyan-400 text-lg font-black tracking-[0.2em] mb-2 uppercase text-center">
                             FORGEGUARD AUDIT

@@ -1182,36 +1182,20 @@ export const useSystem = () => {
         return { ...prev, quests, logs: newLogs };
       }
 
-      // ── SENSOR ANTI-CHEAT CHECK (2-of-3 Rule) ──
-      // For quests with sensor requirements, at least 2 of the tracked metrics
-      // must reach ≥60% of their target. Recording 0 = definite FAIL for that metric.
+      // ── SENSOR ANTI-CHEAT SAFETY NET ──
+      // Primary validation is in App.tsx handleQuestComplete (runs before this).
+      // This is a fallback — if somehow completeQuest is called directly and
+      // sensor data is insufficient, silently abort completion.
       if (quest.sensorRequirements && !asMini) {
         const sr = quest.sensorRequirements;
         const sd = quest.sensorData;
-
-        // Evaluate only metrics that have a requirement set
-        const checks: { label: string; pass: boolean }[] = [];
-        if (sr.steps) {
-          const recorded = sd?.stepsRecorded ?? 0;
-          checks.push({ label: `Steps: ${recorded}/${sr.steps}`, pass: recorded >= sr.steps * 0.6 });
-        }
-        if (sr.distanceKm) {
-          const recorded = sd?.distanceRecorded ?? 0;
-          checks.push({ label: `Distance: ${recorded.toFixed(2)}/${sr.distanceKm}km`, pass: recorded >= sr.distanceKm * 0.6 });
-        }
-        if (sr.activeMinutes) {
-          const recorded = sd?.activeMinutesRecorded ?? 0;
-          checks.push({ label: `Active: ${recorded}/${sr.activeMinutes}min`, pass: recorded >= sr.activeMinutes * 0.6 });
-        }
-
-        const passCount = checks.filter(c => c.pass).length;
-        const failedChecks = checks.filter(c => !c.pass).map(c => c.label);
-
-        // Fail if fewer than 2 metrics pass (or if 1 metric exists and it fails)
+        const checks: boolean[] = [];
+        if (sr.steps) checks.push((sd?.stepsRecorded ?? 0) >= sr.steps * 0.6);
+        if (sr.distanceKm) checks.push((sd?.distanceRecorded ?? 0) >= sr.distanceKm * 0.6);
+        if (sr.activeMinutes) checks.push((sd?.activeMinutesRecorded ?? 0) >= sr.activeMinutes * 0.6);
+        const passCount = checks.filter(Boolean).length;
         if (checks.length > 0 && passCount < Math.min(2, checks.length)) {
-          // Signal sensor block to App.tsx via player state — quest stays unchanged (not completed/failed yet)
-          // App.tsx watches _sensorBlockedQuestId and triggers ForgeGuard then failQuest
-          return { ...prev, _sensorBlockedQuestId: quest.id, _sensorBlockedFlags: failedChecks } as any;
+          return prev; // Abort — quest stays unchanged
         }
       }
 

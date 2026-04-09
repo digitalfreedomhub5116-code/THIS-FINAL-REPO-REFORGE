@@ -968,36 +968,6 @@ const App: React.FC = () => {
     }
   }, [player.logs, player.level]);
 
-  // ── Sensor Block Interceptor ──
-  // When completeQuest detects a sensor validation failure (2-of-3 rule),
-  // it sets _sensorBlockedQuestId on player state. We intercept here to
-  // show the ForgeGuard anomaly screen, after which failQuest is called.
-  useEffect(() => {
-    const blockedId = (player as any)._sensorBlockedQuestId as string | undefined;
-    if (!blockedId || showAuditTheater) return;
-    const quest = player.quests.find(q => q.id === blockedId);
-    if (!quest || quest.isCompleted || quest.failed) return;
-    setSensorBlockedQuestId(blockedId);
-    setAuditOutcome('flagged');
-    setPendingAuditQuest({
-      id: blockedId,
-      title: quest.title,
-      rank: quest.rank,
-      asMini: false,
-      rect: undefined,
-      xpGained: 0,
-      xpBefore: player.currentXp,
-      requiredXp: player.requiredXp,
-      level: player.level,
-      goldGained: 0,
-    });
-    setShowAuditTheater(true);
-    // Clear the signal from player state so this doesn't re-trigger
-    setPlayer((prev: any) => {
-      const { _sensorBlockedQuestId, _sensorBlockedFlags, ...rest } = prev;
-      return rest;
-    });
-  }, [(player as any)._sensorBlockedQuestId]);
 
   useEffect(() => {
     const currentRank = player.rank;
@@ -1261,6 +1231,34 @@ const App: React.FC = () => {
           elapsedMinutes, minDurationMinutes: quest.minDurationMinutes,
           xpGained, xpBefore, requiredXp: requiredXpBefore, level: levelBefore, goldGained,
         });
+        return;
+      }
+    }
+
+    // -- Sensor Validation (2-of-3 Rule) — checked BEFORE any animation --
+    if (quest.sensorRequirements && !asMini) {
+      const sr = quest.sensorRequirements;
+      const sd = (quest as any).sensorData;
+      const checks: { pass: boolean }[] = [];
+      if (sr.steps) {
+        checks.push({ pass: (sd?.stepsRecorded ?? 0) >= sr.steps * 0.6 });
+      }
+      if (sr.distanceKm) {
+        checks.push({ pass: (sd?.distanceRecorded ?? 0) >= sr.distanceKm * 0.6 });
+      }
+      if (sr.activeMinutes) {
+        checks.push({ pass: (sd?.activeMinutesRecorded ?? 0) >= sr.activeMinutes * 0.6 });
+      }
+      const passCount = checks.filter(c => c.pass).length;
+      if (checks.length > 0 && passCount < Math.min(2, checks.length)) {
+        // Sensor validation failed — show ForgeGuard immediately, NO animations
+        setSensorBlockedQuestId(id);
+        setAuditOutcome('flagged');
+        setPendingAuditQuest({
+          id, title: quest.title, rank: quest.rank, asMini: false, rect,
+          xpGained: 0, xpBefore, requiredXp: requiredXpBefore, level: levelBefore, goldGained: 0,
+        });
+        setShowAuditTheater(true);
         return;
       }
     }
