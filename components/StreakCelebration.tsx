@@ -529,31 +529,41 @@ const StreakCelebration: React.FC<StreakCelebrationProps> = ({
         )}
       </div>
 
-      {/* ═══ STREAK BROKEN MESSAGE ═══ */}
+      {/* ═══ STREAK BROKEN MESSAGE (sequential words above flame) ═══ */}
       <AnimatePresence>
         {streakBroken && phase >= 1 && phase < 2 && (
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.5 }}
-            className="absolute text-center z-20"
-            style={{ top: '58%' }}
+            transition={{ duration: 0.4 }}
+            className="text-center z-20 mb-6"
           >
-            <motion.p
-              className="text-lg font-black tracking-widest uppercase"
-              style={{ color: '#ef4444', textShadow: '0 0 30px rgba(239,68,68,0.4)' }}
-              animate={shatterActive
-                ? { x: [0, -4, 4, -3, 2, 0], opacity: [1, 0.7, 1] }
-                : { opacity: [0.5, 1, 0.5] }
-              }
-              transition={shatterActive
-                ? { duration: 0.35, repeat: 2 }
-                : { duration: 1.5, repeat: Infinity }
-              }
-            >
-              {shatterActive ? 'STREAK LOST' : 'Your streak was broken...'}
-            </motion.p>
+            <div className="flex items-center justify-center gap-3">
+              {['YOUR', 'STREAK', 'BROKE'].map((word, i) => (
+                <motion.span
+                  key={word}
+                  className="text-lg font-black tracking-widest"
+                  style={{ color: '#ef4444', textShadow: '0 0 30px rgba(239,68,68,0.4)' }}
+                  initial={{ opacity: 0, y: 12, filter: 'blur(4px)' }}
+                  animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                  transition={{ duration: 0.4, delay: i * 0.35 }}
+                >
+                  {word}
+                </motion.span>
+              ))}
+            </div>
+            {shatterActive && (
+              <motion.p
+                className="text-lg font-black tracking-widest uppercase mt-1"
+                style={{ color: '#ef4444', textShadow: '0 0 30px rgba(239,68,68,0.5)' }}
+                initial={{ opacity: 0 }}
+                animate={{ x: [0, -4, 4, -3, 2, 0], opacity: [0, 1, 0.7, 1] }}
+                transition={{ duration: 0.35, repeat: 2 }}
+              >
+                STREAK LOST
+              </motion.p>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
