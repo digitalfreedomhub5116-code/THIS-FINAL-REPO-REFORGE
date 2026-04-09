@@ -559,7 +559,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
             onClick={() => setReportTarget(null)}
           >
             <motion.div
-              className="w-full max-w-sm rounded-t-3xl p-6 pb-10"
+              className="w-full max-w-sm rounded-t-3xl p-6 pb-28"
               style={{ background: 'linear-gradient(180deg, #0f0f1f 0%, #08081a 100%)', border: '1px solid rgba(239,68,68,0.2)', borderBottom: 'none' }}
               initial={{ y: 120, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
