@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Trophy, Sparkles, RefreshCw, Zap,
   Crown, FlaskConical, ChevronRight,
-  Infinity as InfinityIcon, Users, X, Globe, CalendarDays, Flag, AlertTriangle, CheckSquare, Square, Send,
+  Infinity as InfinityIcon, Users, X, Globe, CalendarDays, Flag, AlertTriangle, CheckSquare, Square, Send, Flame,
 } from 'lucide-react';
 import { PlayerData, Outfit } from '../types';
 import { API_BASE } from '../lib/apiConfig';
@@ -24,6 +24,7 @@ interface LeaderboardEntry {
   daily_xp: number;
   level: number;
   rank: string;
+  streak: number;
   equipped_outfit_id?: string;
 }
 
@@ -33,6 +34,7 @@ interface SimEntry extends LeaderboardEntry {
   isDebuffed: boolean;
   computedRank: string;
   outfitId: string;
+  streak: number;
 }
 
 interface LeaderboardViewProps {
@@ -251,6 +253,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
         isDebuffed: false,
         computedRank: computeRankFromLevel(isMe ? (player.level || 1) : (e.level || 1)),
         outfitId: isMe ? (player.equippedOutfitId || 'outfit_starter') : (e.equipped_outfit_id || 'outfit_starter'),
+        streak: isMe ? (player.streak || 0) : (e.streak || 0),
       };
     }).sort((a, b) => b.dominance - a.dominance);
   }, [entries, player.userId, player.username, player.name, xpField, player.equippedOutfitId, player.totalXp, player.dailyXp, player.level, activeTab]);
@@ -409,7 +412,15 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                           <span className="text-[7px] px-1.5 py-0.5 rounded-full bg-purple-500/20 text-purple-400 font-black">YOU</span>
                         )}
                       </div>
-                      <div className="text-[9px] text-gray-600 font-mono">Lv.{entry.level}</div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[9px] text-gray-600 font-mono">Lv.{entry.level}</span>
+                        {entry.streak > 0 && (
+                          <span className="flex items-center gap-0.5">
+                            <Flame size={9} style={{ color: entry.streak >= 7 ? '#f97316' : entry.streak >= 3 ? '#fb923c' : '#fbbf24' }} />
+                            <span className="text-[9px] font-black font-mono" style={{ color: entry.streak >= 7 ? '#f97316' : entry.streak >= 3 ? '#fb923c' : '#fbbf24' }}>{entry.streak}</span>
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     {/* XP + Rank badge */}

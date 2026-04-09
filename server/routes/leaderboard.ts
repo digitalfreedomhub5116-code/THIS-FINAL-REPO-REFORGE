@@ -41,7 +41,7 @@ router.get('/', async (req: Request, res: Response) => {
     // For daily: we need updated_at to check if daily_xp is stale
     const { data, error } = await (supabaseServer() as any)
       .from('players')
-      .select('id, supabase_id, username, name, total_xp, daily_xp, level, rank, raw_data, updated_at')
+      .select('id, supabase_id, username, name, total_xp, daily_xp, level, rank, streak, raw_data, updated_at')
       .eq('is_banned', false)
       .order(type === 'daily' ? 'daily_xp' : 'total_xp', { ascending: false })
       .limit(100);
@@ -70,6 +70,7 @@ router.get('/', async (req: Request, res: Response) => {
         daily_xp: effectiveDailyXp,
         level: row.level || 1,
         rank: row.rank || 'E',
+        streak: row.streak || 0,
         equipped_outfit_id: row.raw_data?.equippedOutfitId || 'outfit_starter',
       };
     });

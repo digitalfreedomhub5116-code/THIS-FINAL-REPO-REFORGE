@@ -851,8 +851,8 @@ export const useSystem = () => {
       lastDate.setHours(0,0,0,0);
       currentDate.setHours(0,0,0,0);
       
-      const diffTime = Math.abs(currentDate.getTime() - lastDate.getTime());
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+      const diffMs = currentDate.getTime() - lastDate.getTime();
+      const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
 
       if (diffDays === 1) {
         nextStreak = (player.streak || 0) + 1;
@@ -1675,16 +1675,6 @@ export const useSystem = () => {
       }
 
       const today = toLocalDateStr();
-      const prevDate = prev.lastWorkoutDate || '';
-      let newStreak = prev.streak;
-      if (prevDate === today) {
-        newStreak = prev.streak;
-      } else {
-        const yesterdayD = new Date();
-        yesterdayD.setDate(yesterdayD.getDate() - 1);
-        const yesterday = toLocalDateStr(yesterdayD);
-        newStreak = prevDate === yesterday ? prev.streak + 1 : 1;
-      }
 
       return {
         ...prev,
@@ -1699,7 +1689,6 @@ export const useSystem = () => {
         gold: prev.gold + totalGoldGain,
         keys: prev.keys + keyReward,
         logs: newLogs,
-        streak: newStreak,
         lastWorkoutDate: today,
         ...(leveledUp ? { hp: prev.maxHp, mp: prev.maxMp } : {})
       };
