@@ -122,6 +122,11 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({
   // For step 3, track word count in the input
   useEffect(() => {
     if (currentStep !== 3) return;
+
+    // Clear any stale error when (re-)entering step 3
+    if (analysisFailed && onAnalysisFailedReset) {
+      onAnalysisFailedReset();
+    }
     
     const checkWordCount = () => {
       const input = document.getElementById('tut-quest-title') as HTMLInputElement;
@@ -137,6 +142,7 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({
       checkWordCount(); // Initial check
       return () => input.removeEventListener('input', checkWordCount);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentStep]);
 
   // Auto-advance non-action steps after a delay (except step 3 and 5)
