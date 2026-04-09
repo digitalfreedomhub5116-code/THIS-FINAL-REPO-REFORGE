@@ -702,6 +702,7 @@ const App: React.FC = () => {
 
   const [showPactScreen, setShowPactScreen] = useState(false);
   const [pendingPactQuest, setPendingPactQuest] = useState<Quest | null>(null);
+  const [sensorBlockedQuestId, setSensorBlockedQuestId] = useState<string | null>(null);
 
   // ── Android back button ──
   // Closes any open popup/modal first, then goes to Dashboard, then double-press exits.
@@ -966,6 +967,37 @@ const App: React.FC = () => {
       if (diff < 5000) setShowLevelDown(true);
     }
   }, [player.logs, player.level]);
+
+  // ── Sensor Block Interceptor ──
+  // When completeQuest detects a sensor validation failure (2-of-3 rule),
+  // it sets _sensorBlockedQuestId on player state. We intercept here to
+  // show the ForgeGuard anomaly screen, after which failQuest is called.
+  useEffect(() => {
+    const blockedId = (player as any)._sensorBlockedQuestId as string | undefined;
+    if (!blockedId || showAuditTheater) return;
+    const quest = player.quests.find(q => q.id === blockedId);
+    if (!quest || quest.isCompleted || quest.failed) return;
+    setSensorBlockedQuestId(blockedId);
+    setAuditOutcome('flagged');
+    setPendingAuditQuest({
+      id: blockedId,
+      title: quest.title,
+      rank: quest.rank,
+      asMini: false,
+      rect: undefined,
+      xpGained: 0,
+      xpBefore: player.currentXp,
+      requiredXp: player.requiredXp,
+      level: player.level,
+      goldGained: 0,
+    });
+    setShowAuditTheater(true);
+    // Clear the signal from player state so this doesn't re-trigger
+    setPlayer((prev: any) => {
+      const { _sensorBlockedQuestId, _sensorBlockedFlags, ...rest } = prev;
+      return rest;
+    });
+  }, [(player as any)._sensorBlockedQuestId]);
 
   useEffect(() => {
     const currentRank = player.rank;
@@ -1314,14 +1346,29 @@ const App: React.FC = () => {
     const q = pendingAuditQuest;
     setShowAuditTheater(false);
     setPendingAuditQuest(null);
+    setSensorBlockedQuestId(null);
     finishQuestComplete(q.id, q.asMini, q.rect, q.xpGained, q.xpBefore, q.requiredXp, q.level, q.goldGained);
   };
 
   const handleAuditFlagged = () => {
     if (!pendingAuditQuest) return;
     const q = pendingAuditQuest;
-    
-    // Silent background fetch to log the audit
+    const isSensorBlock = sensorBlockedQuestId === q.id;
+
+    setShowAuditTheater(false);
+    setPendingAuditQuest(null);
+    setSensorBlockedQuestId(null);
+
+    if (isSensorBlock) {
+      // Sensor validation failed — permanently fail the quest + coin-lost animation
+      failQuest(q.id);
+      const el = document.getElementById(`quest-card-${q.id}`);
+      const sourceRect = el?.getBoundingClientRect() || null;
+      window.dispatchEvent(new CustomEvent('reforge:coin-lost', { detail: { amount: 50, sourceRect } }));
+      return;
+    }
+
+    // Regular audit flagged — silent log + still complete (existing behaviour)
     fetch(`${API_BASE}/api/audit/log`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1334,8 +1381,6 @@ const App: React.FC = () => {
       credentials: 'include'
     }).catch(() => {});
 
-    setShowAuditTheater(false);
-    setPendingAuditQuest(null);
     finishQuestComplete(q.id, q.asMini, q.rect, q.xpGained, q.xpBefore, q.requiredXp, q.level, q.goldGained);
   };
 

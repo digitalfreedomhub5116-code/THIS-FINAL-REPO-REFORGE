@@ -1182,55 +1182,36 @@ export const useSystem = () => {
         return { ...prev, quests, logs: newLogs };
       }
 
-      // ── SENSOR ANTI-CHEAT CHECK ──
-      // Per-sensor enforcement: only check a specific metric if THAT sensor
-      // actually collected data.  e.g. steps=0 means the accelerometer/step
-      // counter failed → skip the step threshold but still check GPS distance
-      // and active-minutes independently.
+      // ── SENSOR ANTI-CHEAT CHECK (2-of-3 Rule) ──
+      // For quests with sensor requirements, at least 2 of the tracked metrics
+      // must reach ≥60% of their target. Recording 0 = definite FAIL for that metric.
       if (quest.sensorRequirements && !asMini) {
         const sr = quest.sensorRequirements;
         const sd = quest.sensorData;
-        const flags: string[] = [];
 
-        // Steps — only enforce if step counter actually recorded something (threshold: 35%)
-        const stepsRecorded = sd?.stepsRecorded ?? 0;
-        if (sr.steps && stepsRecorded > 0 && stepsRecorded < sr.steps * 0.35) {
-          flags.push(`Steps: ${stepsRecorded}/${sr.steps}`);
+        // Evaluate only metrics that have a requirement set
+        const checks: { label: string; pass: boolean }[] = [];
+        if (sr.steps) {
+          const recorded = sd?.stepsRecorded ?? 0;
+          checks.push({ label: `Steps: ${recorded}/${sr.steps}`, pass: recorded >= sr.steps * 0.6 });
+        }
+        if (sr.distanceKm) {
+          const recorded = sd?.distanceRecorded ?? 0;
+          checks.push({ label: `Distance: ${recorded.toFixed(2)}/${sr.distanceKm}km`, pass: recorded >= sr.distanceKm * 0.6 });
+        }
+        if (sr.activeMinutes) {
+          const recorded = sd?.activeMinutesRecorded ?? 0;
+          checks.push({ label: `Active: ${recorded}/${sr.activeMinutes}min`, pass: recorded >= sr.activeMinutes * 0.6 });
         }
 
-        // Distance — only enforce if GPS recorded meaningful distance (threshold: 20%)
-        const distRecorded = sd?.distanceRecorded ?? 0;
-        if (sr.distanceKm && distRecorded > 0 && distRecorded < sr.distanceKm * 0.20) {
-          flags.push(`Distance: ${distRecorded.toFixed(2)}/${sr.distanceKm}km`);
-        }
+        const passCount = checks.filter(c => c.pass).length;
+        const failedChecks = checks.filter(c => !c.pass).map(c => c.label);
 
-        // Active minutes — only enforce if timer recorded minutes (threshold: 70%)
-        const activeMin = sd?.activeMinutesRecorded ?? 0;
-        if (sr.activeMinutes && activeMin > 0 && activeMin < sr.activeMinutes * 0.7) {
-          flags.push(`Active: ${activeMin}/${sr.activeMinutes}min`);
-        }
-
-        // Speed anomaly — only if GPS was working and recorded movement
-        if ((sr.steps || sr.distanceKm) && sd?.maxSpeedKmh && sd.maxSpeedKmh > 50) {
-          flags.push(`Speed anomaly: ${sd.maxSpeedKmh}km/h`);
-        }
-
-        // Cadence anomaly — only if step counter actually counted steps
-        if (stepsRecorded > 0 && quest.createdAt) {
-          const durationSec = (Date.now() - quest.createdAt) / 1000;
-          if (durationSec > 0 && stepsRecorded / durationSec > 4) {
-            flags.push(`Cadence anomaly: ${(stepsRecorded / durationSec).toFixed(1)} steps/sec`);
-          }
-        }
-
-        if (flags.length > 0) {
-          quests[qIndex] = { ...quest, isCompleted: true, completedAsMini: asMini, pactStatus: hasPact ? 'burned' : quest.pactStatus, sensorTracking: false };
-          playSystemSoundEffect('DANGER');
-          const flagStr = flags.join(', ');
-          const newLogs = [createLog(`Sensor Anomaly: ${quest.title} — ${flagStr}${hasPact ? ` — ${pactAmount}G BURNED` : ''}`, 'WARNING'), ...prev.logs];
-          // Notify user visibly so they know why 0 XP was awarded
-          setTimeout(() => addNotification(`Sensor Anomaly Detected: ${flagStr}. No XP awarded.`, 'DANGER'), 0);
-          return { ...prev, quests, logs: newLogs, cheatStrikes: (prev.cheatStrikes || 0) + 1 };
+        // Fail if fewer than 2 metrics pass (or if 1 metric exists and it fails)
+        if (checks.length > 0 && passCount < Math.min(2, checks.length)) {
+          // Signal sensor block to App.tsx via player state — quest stays unchanged (not completed/failed yet)
+          // App.tsx watches _sensorBlockedQuestId and triggers ForgeGuard then failQuest
+          return { ...prev, _sensorBlockedQuestId: quest.id, _sensorBlockedFlags: failedChecks } as any;
         }
       }
 
