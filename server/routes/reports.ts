@@ -2,6 +2,11 @@ import { Router, Request, Response } from 'express';
 import { supabaseServer } from '../lib/supabase.js';
 import { requireAdmin } from '../lib/adminAuth.js';
 
+const adminGuard = (req: Request, res: Response, next: () => void) => {
+  if (!requireAdmin(req, res)) return;
+  next();
+};
+
 const router = Router();
 
 // ── POST /api/reports — submit a player report ──
@@ -65,7 +70,7 @@ router.post('/', async (req: Request, res: Response) => {
 });
 
 // ── GET /api/reports — admin only, fetch all reports ──
-router.get('/', requireAdmin, async (req: Request, res: Response) => {
+router.get('/', adminGuard, async (req: Request, res: Response) => {
   try {
     const sb = supabaseServer() as any;
     const { data, error } = await sb
@@ -83,7 +88,7 @@ router.get('/', requireAdmin, async (req: Request, res: Response) => {
 });
 
 // ── PATCH /api/reports/:id — admin dismiss/resolve ──
-router.patch('/:id', requireAdmin, async (req: Request, res: Response) => {
+router.patch('/:id', adminGuard, async (req: Request, res: Response) => {
   const { id } = req.params;
   const { status } = req.body; // 'resolved' | 'dismissed'
   if (!['resolved', 'dismissed'].includes(status)) {
