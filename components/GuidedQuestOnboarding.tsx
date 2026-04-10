@@ -225,7 +225,10 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({
   // For step 4 (analyze button), detect when ForgeGuard result appears or error shows
   useEffect(() => {
     if (currentStep !== 4) return;
-    
+
+    // Snapshot any stale error banner present BEFORE analysis starts
+    const hadErrorOnEntry = !!document.getElementById('forge-error-banner');
+
     const checkAnalysisComplete = () => {
       // Success: ForgeGuard result card appeared
       if (document.getElementById('tut-quest-category')) {
@@ -233,19 +236,32 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({
         return;
       }
       
-      // Failure: Forge Error banner appeared
-      if (document.getElementById('forge-error-banner')) {
+      // Failure: Forge Error banner appeared AFTER step 4 started
+      const banner = document.getElementById('forge-error-banner');
+      if (banner && !hadErrorOnEntry) {
         onStepComplete(4, true); // Failure - go back to step 3
         return;
       }
+      // If error existed on entry but now disappeared and a NEW one appeared, detect that too
+      if (banner && hadErrorOnEntry) {
+        // Check if the banner text changed (new error after analysis)
+        const text = banner.textContent || '';
+        if (text.includes('ForgeGuard') || text.includes('rejected') || text.includes('invalid')) {
+          onStepComplete(4, true);
+        }
+      }
     };
     
-    checkAnalysisComplete();
+    // Delay initial check so stale errors from previous attempts aren't caught immediately
+    const startTimer = setTimeout(() => {
+      checkAnalysisComplete();
+    }, 1000);
     const interval = setInterval(checkAnalysisComplete, 500);
     const observer = new MutationObserver(checkAnalysisComplete);
     observer.observe(document.body, { childList: true, subtree: true });
     
     return () => {
+      clearTimeout(startTimer);
       clearInterval(interval);
       observer.disconnect();
     };

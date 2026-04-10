@@ -337,7 +337,7 @@ const QuestsView: React.FC<QuestsViewProps> = ({
     if (isQuestOnboarding && tutFreeUsed < 2) {
       // First 2 analyses during tutorial are free — no mana deducted
       localStorage.setItem(tutFreeKey, String(tutFreeUsed + 1));
-    } else if (isQuestOnboarding && tutFreeUsed >= 2 && (playerData?.mp ?? 100) < 25) {
+    } else if (isQuestOnboarding && tutFreeUsed >= 2 && (playerData?.mp ?? 100) < manaCost) {
       // 3rd+ attempt but mana too low — end tutorial gracefully
       onTutorialManaOut?.();
       return;
