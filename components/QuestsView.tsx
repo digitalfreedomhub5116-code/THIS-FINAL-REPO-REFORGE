@@ -436,7 +436,7 @@ const QuestsView: React.FC<QuestsViewProps> = ({
     }
 
     // Mandatory pact gold check — block quest creation if player can't afford (skip during tutorial)
-    if (tutorialStep !== 4) {
+    if (tutorialStep !== 4 && !isQuestOnboarding) {
       const rank = forgeResult.rank;
       const pledgeAmount = PLEDGE_AMOUNTS[rank];
       if (MANDATORY_RANKS.has(rank) && (playerData?.gold ?? 0) < pledgeAmount) {
@@ -468,7 +468,7 @@ const QuestsView: React.FC<QuestsViewProps> = ({
     };
 
     // During tutorial, skip pact (user has 0 gold)
-    if (tutorialStep === 4) {
+    if (tutorialStep === 4 || isQuestOnboarding) {
       addQuest(newQuest);
       resetForm();
       if (onTutorialAction) onTutorialAction(5);
