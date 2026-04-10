@@ -299,10 +299,14 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({ currentStep, onNext, 
                   } else {
                       el.classList.add('tutorial-highlight');
                   }
+                  return true;
               }
+              setTargetElement(null);
+              return false;
           } else {
               setTargetElement(null);
               setDialogPosition(stepData.forcePosition || 'center');
+              return true;
           }
       };
 
@@ -312,10 +316,22 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({ currentStep, onNext, 
       const retryTimer2 = setTimeout(findAndSetTarget, 500);
       const retryTimer3 = setTimeout(findAndSetTarget, 1000);
 
+      let pollTimer: ReturnType<typeof setInterval> | null = null;
+      if (stepData.targetId) {
+          pollTimer = setInterval(() => {
+              const ok = findAndSetTarget();
+              if (ok) {
+                  if (pollTimer) clearInterval(pollTimer);
+                  pollTimer = null;
+              }
+          }, 250);
+      }
+
       return () => {
           clearTimeout(retryTimer1);
           clearTimeout(retryTimer2);
           clearTimeout(retryTimer3);
+          if (pollTimer) clearInterval(pollTimer);
           document.querySelectorAll('.tutorial-highlight, .tutorial-highlight-inset').forEach(el => {
               el.classList.remove('tutorial-highlight', 'tutorial-highlight-inset');
           });
@@ -471,7 +487,7 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({ currentStep, onNext, 
                         </div>
 
                         {/* Interactive Hint */}
-                        {stepData.targetId && (
+                        {stepData.targetId && targetElement && (
                             <motion.div 
                                 initial={{ opacity: 0, height: 0 }}
                                 animate={{ opacity: 1, height: 'auto' }}
