@@ -246,8 +246,9 @@ const App: React.FC = () => {
           localStorage.setItem(notifOptKey, granted ? 'yes' : 'no');
           if (granted) await _scheduleAllNotifications();
         } else if (status === 'granted') {
-          // Android <13 — OS auto-granted without asking; show in-app prompt
+          // Android <13 — OS auto-granted without asking; enqueue in-app prompt
           setShowNotifPrompt(true);
+          enqueueOverlay('notifPrompt');
         }
         // status === 'denied' → already denied or not native, skip
       })();
@@ -273,6 +274,7 @@ const App: React.FC = () => {
 
   const handleNotifOptIn = async (accept: boolean) => {
     setShowNotifPrompt(false);
+    dismissOverlay();
     localStorage.setItem(notifOptKey, accept ? 'yes' : 'no');
     if (accept) {
       await requestNotificationPermission();
@@ -464,6 +466,38 @@ const App: React.FC = () => {
     oldStreak: number; newStreak: number; weeklyActivity: boolean[]; streakBroken: boolean;
   } | null>(null);
   const streakShownRef = useRef<string | null>(null); // Tracks which userId+date combo was shown
+
+  // ── Overlay Queue System ──
+  // Only one gameplay-interrupting overlay at a time. Priority: streak > levelUp > levelDown > rankUp > dailyLogin > notifPrompt
+  type OverlayType = 'streak' | 'levelUp' | 'levelDown' | 'rankUp' | 'dailyLogin' | 'notifPrompt';
+  const OVERLAY_PRIORITY: Record<OverlayType, number> = { streak: 0, levelUp: 1, levelDown: 2, rankUp: 3, dailyLogin: 4, notifPrompt: 5 };
+  const overlayQueueRef = useRef<OverlayType[]>([]);
+  const [activeOverlay, setActiveOverlay] = useState<OverlayType | null>(null);
+
+  const enqueueOverlay = useCallback((type: OverlayType) => {
+    const q = overlayQueueRef.current;
+    if (q.includes(type)) return; // Already queued
+    q.push(type);
+    // Sort by priority (streak first)
+    q.sort((a, b) => OVERLAY_PRIORITY[a] - OVERLAY_PRIORITY[b]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const dismissOverlay = useCallback(() => {
+    setActiveOverlay(null);
+  }, []);
+
+  // Process queue: show next overlay when none is active and tutorial is done
+  useEffect(() => {
+    if (activeOverlay) return; // One is already showing
+    // Block all overlays during tutorial (if re-enabled in the future)
+    if (!player.tutorialComplete && !player.isConfigured) return;
+    const q = overlayQueueRef.current;
+    if (q.length === 0) return;
+    const next = q.shift()!;
+    setActiveOverlay(next);
+  }, [activeOverlay, player.tutorialComplete, player.isConfigured,
+      // Re-check when any of the triggers fire (these deps cause re-evaluation)
+      showStreakCelebration, showLevelUp, showLevelDown, rankUpData, showDailyLogin, showNotifPrompt]);
 
   // ── Sync from DB — callable ref for immediate triggers + 2s polling ──
   const syncFromDbRef = useRef<() => Promise<void>>();
@@ -885,8 +919,9 @@ const App: React.FC = () => {
       localStorage.setItem('reforge_daily_modal_shown', today);
       setDailyReward(reward);
       setShowDailyLogin(true);
+      enqueueOverlay('dailyLogin');
     }
-  }, [player.isConfigured, player.tutorialComplete, isNewUserOnboarding, checkDailyLogin]);
+  }, [player.isConfigured, player.tutorialComplete, isNewUserOnboarding, checkDailyLogin]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Streak Celebration Trigger ──
   // Fires EXACTLY ONCE per calendar day per user on first login.
@@ -939,7 +974,8 @@ const App: React.FC = () => {
       streakBroken: isBroken,
     });
     setShowStreakCelebration(true);
-  }, [player.isConfigured, player.lastLoginDate, player.userId]); // userId in deps → triggers on account switch
+    enqueueOverlay('streak');
+  }, [player.isConfigured, player.lastLoginDate, player.userId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Track previous streak value to detect breaks
   const oldStreakRef = useRef(player.streak);
@@ -955,18 +991,19 @@ const App: React.FC = () => {
       const level = (e as CustomEvent).detail?.level;
       if (level) {
         setShowLevelUp(true);
+        enqueueOverlay('levelUp');
       }
     };
     window.addEventListener('player:levelup', handleLevelUp);
     return () => window.removeEventListener('player:levelup', handleLevelUp);
-  }, []);
+  }, [enqueueOverlay]);
 
   useEffect(() => {
     if (player.logs.length > 0 && player.logs[0].type === 'LEVEL_DOWN') {
       const diff = Date.now() - player.logs[0].timestamp;
-      if (diff < 5000) setShowLevelDown(true);
+      if (diff < 5000) { setShowLevelDown(true); enqueueOverlay('levelDown'); }
     }
-  }, [player.logs, player.level]);
+  }, [player.logs, player.level, enqueueOverlay]);
 
 
   useEffect(() => {
@@ -982,10 +1019,11 @@ const App: React.FC = () => {
       const newIdx = rankOrder.indexOf(currentRank);
       if (newIdx > oldIdx) {
         setRankUpData({ oldRank: prevRankRef.current, newRank: currentRank });
+        enqueueOverlay('rankUp');
       }
     }
     prevRankRef.current = currentRank;
-  }, [player.rank, player.isConfigured]);
+  }, [player.rank, player.isConfigured, enqueueOverlay]);
 
   useEffect(() => {
     if (!isDungeonMode) setShowNav(true);
@@ -1651,22 +1689,24 @@ const App: React.FC = () => {
       {/* ── Overlays ── */}
       <Suspense fallback={null}>
         <AnimatePresence>
-          {DAILY_REWARDS_ENABLED && showDailyLogin && (
+          {DAILY_REWARDS_ENABLED && showDailyLogin && activeOverlay === 'dailyLogin' && (
             <ErrorBoundary>
               <DailyLoginModal 
                 onClose={() => {
                   setShowDailyLogin(false);
                   setDailyReward(null);
+                  dismissOverlay();
                 }}
                 onChestReward={() => {
                   setShowDailyLogin(false);
                   setDailyReward(null);
+                  dismissOverlay();
                   setShowChestOpening(true);
                 }}
               />
             </ErrorBoundary>
           )}
-          {showStreakCelebration && streakAnimData && (
+          {showStreakCelebration && streakAnimData && activeOverlay === 'streak' && (
             <Suspense fallback={null}>
               <ErrorBoundary>
                 <StreakCelebration
@@ -1678,6 +1718,7 @@ const App: React.FC = () => {
                   onComplete={() => {
                     setShowStreakCelebration(false);
                     setStreakAnimData(null);
+                    dismissOverlay();
                     // Re-schedule streak reminder for tomorrow (workout already done today)
                     if (player.streak >= 1) {
                       scheduleStreakReminder(player.streak, true).catch(() => {});
@@ -1697,27 +1738,27 @@ const App: React.FC = () => {
               </ErrorBoundary>
             </Suspense>
           )}
-          {showLevelUp && (
+          {showLevelUp && activeOverlay === 'levelUp' && (
             <Suspense fallback={null}>
               <ErrorBoundary>
-                <LevelUpCinematic level={player.level} onComplete={() => setShowLevelUp(false)} />
+                <LevelUpCinematic level={player.level} onComplete={() => { setShowLevelUp(false); dismissOverlay(); }} />
               </ErrorBoundary>
             </Suspense>
           )}
-          {showLevelDown && (
+          {showLevelDown && activeOverlay === 'levelDown' && (
             <Suspense fallback={null}>
               <ErrorBoundary>
-                <LevelDownCinematic onClose={() => setShowLevelDown(false)} />
+                <LevelDownCinematic onClose={() => { setShowLevelDown(false); dismissOverlay(); }} />
               </ErrorBoundary>
             </Suspense>
           )}
-          {rankUpData && (
+          {rankUpData && activeOverlay === 'rankUp' && (
             <Suspense fallback={null}>
               <ErrorBoundary>
                 <RankUpCinematic
                   oldRank={rankUpData.oldRank as 'UNRANKED'|'E'|'D'|'C'|'B'|'A'|'S'}
                   newRank={rankUpData.newRank as 'UNRANKED'|'E'|'D'|'C'|'B'|'A'|'S'}
-                  onComplete={() => setRankUpData(null)}
+                  onComplete={() => { setRankUpData(null); dismissOverlay(); }}
                 />
               </ErrorBoundary>
             </Suspense>
@@ -1814,9 +1855,9 @@ const App: React.FC = () => {
         </AnimatePresence>
       </Suspense>
 
-      {/* Tutorial temporarily disabled per user request. Set TUTORIAL_ACTIVE to true to enable. */}
+      {/* Tutorial enabled per user request. Set TUTORIAL_ACTIVE to true to enable. */}
       {(() => {
-        const TUTORIAL_ACTIVE = false; 
+        const TUTORIAL_ACTIVE = true; 
         if (!TUTORIAL_ACTIVE) return null;
         
         if (!player.tutorialComplete && isNewUserOnboarding) {
@@ -2411,7 +2452,7 @@ const App: React.FC = () => {
 
         {/* ── Notification Opt-In Prompt (Android <13 auto-grants, so we ask in-app) ── */}
         <AnimatePresence>
-          {showNotifPrompt && (
+          {showNotifPrompt && activeOverlay === 'notifPrompt' && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
