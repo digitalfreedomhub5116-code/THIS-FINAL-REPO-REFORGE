@@ -490,7 +490,7 @@ const App: React.FC = () => {
   useEffect(() => {
     if (activeOverlay) return; // One is already showing
     // Block all overlays during tutorial (if re-enabled in the future)
-    if (!player.tutorialComplete && !player.isConfigured) return;
+    if (!player.tutorialComplete) return;
     const q = overlayQueueRef.current;
     if (q.length === 0) return;
     const next = q.shift()!;
@@ -1188,9 +1188,7 @@ const App: React.FC = () => {
 
   const handleTutorialNext = () => {
     const nextStep = player.tutorialStep + 1;
-    if (nextStep === 5) setActiveTab('QUESTS');
-    if (nextStep === 17) setActiveTab('HEALTH');
-    if (nextStep === 19) setActiveTab('DASHBOARD');
+    if (nextStep === 1) setActiveTab('QUESTS');
     advanceTutorial(nextStep);
   };
 
@@ -1198,46 +1196,11 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (!player.tutorialComplete) {
-      if (player.tutorialStep === 12 && player.quests.length > 0) {
-        setTutorialTarget(`quest-card-${player.quests[0].id}`);
-      } else if (player.tutorialStep === 13) {
-        const q = player.quests.find(q => q.id.includes('init_q1'));
-        if (q) setTutorialTarget(`quest-card-${q.id}`);
-      } else if (player.tutorialStep === 14) {
-        const q = player.quests.find(q => q.id.includes('init_q2'));
-        if (q) setTutorialTarget(`quest-card-${q.id}`);
-      } else if (player.tutorialStep === 15) {
-        const q = player.quests.find(q => q.id.includes('init_q3'));
-        if (q) setTutorialTarget(`quest-card-${q.id}`);
-      } else {
-        setTutorialTarget(null);
-      }
+      setTutorialTarget(null);
     }
   }, [player.tutorialStep, player.quests, player.tutorialComplete]);
 
-  useEffect(() => {
-    if (player.tutorialComplete || player.tutorialStep < 13 || player.tutorialStep > 15) return;
-
-    const welcomeQuest1 = player.quests.find(q => q.id.includes('init_q1'));
-    const welcomeQuest2 = player.quests.find(q => q.id.includes('init_q2'));
-    const welcomeQuest3 = player.quests.find(q => q.id.includes('init_q3'));
-
-    const isUnavailable = (quest?: Quest) => !quest || quest.isCompleted || quest.failed;
-
-    if (player.tutorialStep === 13 && isUnavailable(welcomeQuest1)) {
-      advanceTutorial(14);
-      return;
-    }
-
-    if (player.tutorialStep === 14 && isUnavailable(welcomeQuest2)) {
-      advanceTutorial(15);
-      return;
-    }
-
-    if (player.tutorialStep === 15 && isUnavailable(welcomeQuest3)) {
-      advanceTutorial(16);
-    }
-  }, [player.tutorialComplete, player.tutorialStep, player.quests, advanceTutorial]);
+  // Welcome quest auto-advance removed (6-step tutorial)
 
   const handleStartDungeon = async (isFree: boolean) => {
     const allowed = await enterDungeon(isFree);
@@ -1364,9 +1327,7 @@ const App: React.FC = () => {
     if (hasPact) {
       addNotification(`Pact Honored. ${quest?.pactAmount ?? 0}G Returned. +1.25x XP Bonus.`, 'SUCCESS');
     }
-    if (player.tutorialStep === 13) advanceTutorial(14);
-    if (player.tutorialStep === 14) advanceTutorial(15);
-    if (player.tutorialStep === 15) { advanceTutorial(16); }
+    // Welcome quest tutorial advances removed (6-step tutorial)
   };
 
   const handlePenaltyAcknowledge = () => {
@@ -1454,7 +1415,7 @@ const App: React.FC = () => {
     }).catch(() => {});
     setShowPactScreen(false);
     setPendingPactQuest(null);
-    if (player.tutorialStep === 11) advanceTutorial(12);
+    if (player.tutorialStep === 4) advanceTutorial(5);
   }, [pendingPactQuest, deductGold, addQuest, addNotification, player.tutorialStep, advanceTutorial]);
 
   const handlePactDecline = useCallback(() => {
@@ -1469,7 +1430,7 @@ const App: React.FC = () => {
     addNotification('Quest activated without pledge.', 'SYSTEM');
     setShowPactScreen(false);
     setPendingPactQuest(null);
-    if (player.tutorialStep === 11) advanceTutorial(12);
+    if (player.tutorialStep === 4) advanceTutorial(5);
   }, [pendingPactQuest, addQuest, addNotification, player.tutorialStep, advanceTutorial]);
 
   // ── Loading Screen — black sword loader ──
@@ -1870,7 +1831,7 @@ const App: React.FC = () => {
                   onComplete={handleTutorialComplete}
                   dynamicTargetId={tutorialTarget}
                   analysisFailed={tutorialAnalysisFailed}
-                  onAnalysisRetry={() => { setTutorialAnalysisFailed(false); advanceTutorial(7); }}
+                  onAnalysisRetry={() => { setTutorialAnalysisFailed(false); advanceTutorial(2); }}
                 />
               </ErrorBoundary>
             </Suspense>
@@ -2012,7 +1973,7 @@ const App: React.FC = () => {
         onMarkNotificationsRead={markNotificationsRead}
         onClearNotificationHistory={clearNotificationHistory}
         headerDisabled={isDungeonMode}
-        forceHeaderVisible={!player.tutorialComplete && isNewUserOnboarding && (player.tutorialStep === 3 || player.tutorialStep === 16)}
+        forceHeaderVisible={!player.tutorialComplete && isNewUserOnboarding && player.tutorialStep === 4}
         onGoldClick={!isDungeonMode ? () => navigateTo('STORE') : undefined}
         onLogout={() => setShowLogoutChoice(true)}
         onEditProfile={() => navigateTo('PROFILE')}

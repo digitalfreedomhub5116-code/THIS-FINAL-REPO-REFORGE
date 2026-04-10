@@ -359,7 +359,7 @@ const QuestsView: React.FC<QuestsViewProps> = ({
           'ForgeGuard has rejected this objective. The System cannot verify this as a real-world task. Dusk is watching — do not waste his time.'
         );
         playSystemSoundEffect('WARNING');
-        if (tutorialStep === 8 && onTutorialAnalysisFail) {
+        if (tutorialStep === 3 && onTutorialAnalysisFail) {
           setTitle(''); // Clear title so they have to type again
           onTutorialAnalysisFail();
         }
@@ -374,7 +374,7 @@ const QuestsView: React.FC<QuestsViewProps> = ({
             'Quest rejected — you must specify a time, distance, or rep count for physical tasks. Example: "Run 10 mins", "50 pushups", "Cycle 5km".'
           );
           playSystemSoundEffect('WARNING');
-          if (tutorialStep === 8 && onTutorialAnalysisFail) {
+          if (tutorialStep === 3 && onTutorialAnalysisFail) {
             setTitle('');
             onTutorialAnalysisFail();
           }
@@ -385,14 +385,14 @@ const QuestsView: React.FC<QuestsViewProps> = ({
             setAutoScheduled(true);
           }
           playSystemSoundEffect('PURCHASE');
-          if (tutorialStep === 8 && onTutorialAction) onTutorialAction(9);
+          if (tutorialStep === 3 && onTutorialAction) onTutorialAction(4);
         }
       }
       setAnalysisCount(prev => prev + 1);
     } catch {
       setForgeError('ForgeGuard is offline. Quest creation requires AI analysis — please try again.');
       if (onRefundMana) onRefundMana(manaCost);
-      if (tutorialStep === 8 && onTutorialAnalysisFail) {
+      if (tutorialStep === 3 && onTutorialAnalysisFail) {
         setTitle('');
         onTutorialAnalysisFail();
       }
@@ -421,7 +421,7 @@ const QuestsView: React.FC<QuestsViewProps> = ({
     }
 
     // Mandatory pact gold check — block quest creation if player can't afford (skip during tutorial)
-    if (tutorialStep !== 11) {
+    if (tutorialStep !== 4) {
       const rank = forgeResult.rank;
       const pledgeAmount = PLEDGE_AMOUNTS[rank];
       if (MANDATORY_RANKS.has(rank) && (playerData?.gold ?? 0) < pledgeAmount) {
@@ -452,11 +452,11 @@ const QuestsView: React.FC<QuestsViewProps> = ({
       ...(forgeResult.sensorRequirements ? { sensorRequirements: forgeResult.sensorRequirements } : {}),
     };
 
-    // During tutorial, skip pact (user has 0 gold, learns about pact at step 16)
-    if (tutorialStep === 11) {
+    // During tutorial, skip pact (user has 0 gold)
+    if (tutorialStep === 4) {
       addQuest(newQuest);
       resetForm();
-      if (onTutorialAction) onTutorialAction(12);
+      if (onTutorialAction) onTutorialAction(5);
     } else if (onShowPact) {
       onShowPact(newQuest);
       setIsModalOpen(false);
@@ -522,7 +522,7 @@ const QuestsView: React.FC<QuestsViewProps> = ({
             id="tut-add-quest"
             onClick={() => {
               setIsModalOpen(true);
-              if (tutorialStep === 6 && onTutorialAction) onTutorialAction(7);
+              if (tutorialStep === 1 && onTutorialAction) onTutorialAction(2);
             }}
             className="w-11 h-11 md:w-13 md:h-13 rounded-full flex items-center justify-center active:scale-90 transition-all"
             style={{
@@ -540,7 +540,7 @@ const QuestsView: React.FC<QuestsViewProps> = ({
         {/* Timeline line removed — caused visual artifact below quest cards */}
         <AnimatePresence mode="popLayout">
           {timelineQuests.map((quest, index) => {
-            const isTutorialWelcomePhase = (tutorialStep ?? 0) >= 13 && (tutorialStep ?? 0) <= 15;
+            const isTutorialWelcomePhase = false;
             let isLocked = false;
             if (isTutorialWelcomePhase) {
               const isWelcomeQuest = quest.id.includes('init_q');

@@ -35,7 +35,7 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({ currentStep, onNext, 
   const [questInputValue, setQuestInputValue] = useState('');
   const observerRef = useRef<ResizeObserver | null>(null);
   
-  // Script Configuration
+  // Script Configuration — Streamlined 6-step quest tutorial
   const SCRIPT: Record<number, ScriptStep> = {
       0: {
           title: "Hunter Protocol",
@@ -44,53 +44,15 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({ currentStep, onNext, 
           forcePosition: 'center'
       },
       1: {
-          title: "Core Attributes",
-          body: "Strength · Focus · Discipline · Social — four stats that define your power. Every quest raises them.",
-          buttonText: "Next",
-          targetId: 'tut-stats',
-          allowInteraction: true,
-          forcePosition: 'bottom'
-      },
-      2: {
-          title: "Rank",
-          body: "Level up to climb from E-Rank to S-Rank. S-Rank is earned, not given.",
-          buttonText: "Next",
-          targetId: 'tut-rank',
-          allowInteraction: true,
-          forcePosition: 'top'
-      },
-      3: {
-          title: "Gold & Keys",
-          body: "Gold is earned from quests — spend it in the Store. Keys unlock chests.",
-          buttonText: "Next",
-          targetId: 'tut-gold-display',
-          allowInteraction: true,
-          forcePosition: 'bottom'
-      },
-      4: {
-          title: "Navigation",
-          body: "Tap the nav bar to switch between Quests, Store, Health, and Dashboard.",
-          buttonText: "Go to Quests",
-          targetId: 'tut-nav-mobile',
-          allowInteraction: true,
-          forcePosition: 'top'
-      },
-      5: {
-          title: "Quests",
-          body: "A Quest is a real-world promise. Complete it to earn XP, Gold, and stat points.",
-          buttonText: "Forge a Quest",
-          forcePosition: 'center'
-      },
-      6: {
           title: "Add a Quest",
-          body: "Tap the button to forge your first quest.",
+          body: "A Quest is a real-world promise. Tap the button to forge your first quest.",
           buttonText: "Tap to Add Quest",
           targetId: 'tut-add-quest',
           waitForAction: true,
           allowInteraction: true,
           forcePosition: 'bottom'
       },
-      7: {
+      2: {
           title: "Name It",
           body: "Use at least 2 words — \"Run 5km at 7am\" beats \"Exercise\". ForgeGuard will analyze it.",
           buttonText: "Next",
@@ -99,7 +61,7 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({ currentStep, onNext, 
           requireInput: true,
           forcePosition: 'top'
       },
-      8: {
+      3: {
           title: "Analyze",
           body: "Tap Analyze. ForgeGuard will assign a Rank, XP value, and stat to your quest.",
           buttonText: "Tap to Analyze",
@@ -108,23 +70,7 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({ currentStep, onNext, 
           allowInteraction: true,
           forcePosition: 'bottom'
       },
-      9: {
-          title: "ForgeGuard Verdict",
-          body: "ForgeGuard assigned a Rank, XP reward, and pillar stats to your quest. This analysis guarantees balanced progression.",
-          buttonText: "Next",
-          targetId: 'tut-quest-category',
-          allowInteraction: true,
-          forcePosition: 'bottom'
-      },
-      10: {
-          title: "Mandatory: Schedule It",
-          body: "You MUST set a time. Tap 'NOW' for immediate action or pick a specific time.\nUnscheduled quests cannot be confirmed. Uncompleted quests vanish at midnight.",
-          buttonText: "Understood",
-          targetId: 'tut-schedule',
-          allowInteraction: true,
-          forcePosition: 'top'
-      },
-      11: {
+      4: {
           title: "Confirm",
           body: "Tap Confirm to lock the quest. Complete it before midnight or it is lost.",
           buttonText: "Tap to Confirm",
@@ -133,67 +79,9 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({ currentStep, onNext, 
           allowInteraction: true,
           forcePosition: 'top'
       },
-      12: {
-          title: "Quest Forged",
-          body: "Your quest is now live. Do NOT tap Complete unless you have actually done the task — the System will penalize you.",
-          buttonText: "Understood",
-          targetId: 'quest-list-container',
-          forcePosition: 'bottom'
-      },
-      13: {
-          title: "Welcome Quest 1 of 3 — Strength",
-          body: "The System has issued 3 Welcome Quests to calibrate your power.\n\nFirst: \"Get Strength to Change Yourself\"\nComplete it now to continue.",
-          buttonText: "Complete to Continue",
-          targetId: 'quest-list-container',
-          waitForAction: true,
-          allowInteraction: true,
-          forcePosition: 'top'
-      },
-      14: {
-          title: "Welcome Quest 2 of 3 — Discipline",
-          body: "Strength confirmed. Now prove your discipline.\n\n\"Take the 1st Step to Change\"\nComplete it to continue.",
-          buttonText: "Complete to Continue",
-          targetId: 'quest-list-container',
-          waitForAction: true,
-          allowInteraction: true,
-          forcePosition: 'top'
-      },
-      15: {
-          title: "Welcome Quest 3 of 3 — Social",
-          body: "Final calibration. You already forged your first quest — own it.\n\n\"Register One Quest\"\nComplete this to unlock the full System.",
-          buttonText: "Complete to Continue",
-          targetId: 'quest-list-container',
-          waitForAction: true,
-          allowInteraction: true,
-          forcePosition: 'top'
-      },
-      16: {
-          title: "The System Pact",
-          body: "Hunter. That Gold you earned is not a reward — it is leverage.\n\nBefore every quest, The System will demand a Shadow Pledge. Lock your Gold as proof of intent. Complete the quest with honor and it returns. Cheat, and it burns — forever — fed to those who did not falter.\n\nFor high-rank quests, the Pact is mandatory. There is no negotiation.\n\nThis is how The System separates hunters from pretenders.",
-          buttonText: "UNDERSTOOD",
-          targetId: 'tut-gold-display',
-          allowInteraction: false,
-          forcePosition: 'bottom'
-      },
-      17: {
-          title: "Workout Module",
-          body: "Workout plans adapt to your calibration data. Complete sessions to build Attack and Boost stats.",
-          buttonText: "Next",
-          targetId: 'tut-health',
-          allowInteraction: true,
-          forcePosition: 'top'
-      },
-      18: {
-          title: "Nutrition Protocol",
-          body: "Track your macros here. Log meals to build the Extract stat. Tap Nutrition to explore.",
-          buttonText: "Next",
-          targetId: 'tut-health-nutrition-tab',
-          allowInteraction: true,
-          forcePosition: 'bottom'
-      },
-      19: {
+      5: {
           title: "Protocol Complete",
-          body: "Fully initialized. Every rep, every session — it counts.\nRise, Hunter.",
+          body: "Your first quest is forged. Complete it to earn XP and Gold.\n\nRise, Hunter.",
           buttonText: "Begin Ascent",
           forcePosition: 'center'
       }
@@ -201,14 +89,7 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({ currentStep, onNext, 
 
   const stepData = useMemo(() => {
     const data = { ...SCRIPT[currentStep] };
-    if (currentStep === 12 && dynamicTargetId) {
-      data.targetId = dynamicTargetId;
-      data.body = "Your quest is now live. Do NOT tap Complete unless you have actually done the task — the System will penalize you.";
-    }
-    if (currentStep >= 13 && currentStep <= 15 && dynamicTargetId) {
-      data.targetId = dynamicTargetId;
-    }
-    if (analysisFailed && currentStep === 8) {
+    if (analysisFailed && currentStep === 3) {
       data.targetId = 'tut-quest-title';
       data.forcePosition = 'bottom';
     }
@@ -622,7 +503,7 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({ currentStep, onNext, 
                                         >
                                             Got It — Retry <ArrowRight size={14} />
                                         </motion.button>
-                                    ) : currentStep === 19 ? ( 
+                                    ) : currentStep === 5 ? ( 
                                         <motion.button 
                                             key="btn-complete"
                                             initial={{ opacity: 0, scale: 0.8 }}
@@ -667,7 +548,7 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({ currentStep, onNext, 
                     
                     {/* Progress Dots */}
                     <div className="bg-black/50 py-1.5 px-4 flex gap-1 justify-center shrink-0">
-                        {Array.from({ length: 20 }).map((_, i) => (
+                        {Array.from({ length: 6 }).map((_, i) => (
                             <motion.div 
                                 key={i}
                                 layout 
