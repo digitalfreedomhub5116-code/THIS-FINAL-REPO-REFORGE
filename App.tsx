@@ -261,11 +261,12 @@ const App: React.FC = () => {
     const today = new Date().toLocaleDateString('en-CA');
     const hasWorkedOutToday = player.lastWorkoutDate === today;
     const hasDailyXp = (player.dailyXp || 0) > 0;
-    await scheduleMorningDusk();
-    await scheduleWorkoutReminder(hasWorkedOutToday);
-    await scheduleStreakReminder(player.streak, hasWorkedOutToday);
+    const name = player.name || 'Hunter';
+    await scheduleMorningDusk(name);
+    await scheduleWorkoutReminder(hasWorkedOutToday, name);
+    await scheduleStreakReminder(player.streak, hasWorkedOutToday, true, name); // openedAppToday = true (they're in the app right now)
     await scheduleLeaderboardNudge(hasDailyXp);
-    await scheduleComebackPing();
+    await scheduleComebackPing(name);
     for (const q of player.quests) {
       if (!q.isCompleted && !q.failed && q.expiresAt) {
         await scheduleQuestDeadline(q.id, q.title, q.expiresAt);
@@ -1698,7 +1699,7 @@ const App: React.FC = () => {
                     dismissOverlay();
                     // Re-schedule streak reminder for tomorrow (workout already done today)
                     if (player.streak >= 1) {
-                      scheduleStreakReminder(player.streak, true).catch(() => {});
+                      scheduleStreakReminder(player.streak, true, true, player.name || 'Hunter').catch(() => {});
                     }
                   }}
                 />

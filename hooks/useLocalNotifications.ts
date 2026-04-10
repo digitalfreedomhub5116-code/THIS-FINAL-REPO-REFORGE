@@ -15,37 +15,55 @@ import { LocalNotifications } from '@capacitor/local-notifications';
 
 // ─── Dusk Morning Messages ────────────────────────────────────
 
+// {name} is replaced at schedule time with the player's name or 'Hunter'
 const DUSK_MESSAGES = [
-  "The weak version of you is watching. Don't disappoint them.",
-  "Another sunrise. Another chance to level up. Don't waste it.",
-  "I analyzed your patterns. You're capable of more. Prove it.",
-  "The System doesn't care about motivation. It cares about discipline.",
-  "Your rivals trained while you slept. Time to close the gap.",
-  "6:00 AM. The grind protocol initiates now.",
-  "I've prepared today's quests. Open the app to accept them.",
-  "Warning — stagnation detected. Immediate action recommended.",
-  "Every day you skip is a day you drift further from the version of you that wins.",
-  "Discipline beats motivation. Every. Single. Time.",
-  "I scanned your progress. You're behind schedule. Fix it today.",
-  "The strongest hunters aren't born. They're forged through consistency.",
-  "Another hunter just surpassed you on the leaderboard. Will you allow that?",
-  "The penalty zone doesn't discriminate. Neither should your effort.",
-  "You have 24 hours. Make them count. DUSK out.",
+  "{name}, the weak version of you is watching. Don't disappoint them.",
+  "Another sunrise, {name}. Another chance to level up. Don't waste it.",
+  "I analyzed your patterns, {name}. You're capable of more. Prove it.",
+  "The System doesn't care about motivation, {name}. It cares about discipline.",
+  "{name}, your rivals trained while you slept. Time to close the gap.",
+  "6:00 AM. {name}, the grind protocol initiates now.",
+  "{name}, I've prepared today's quests. Open the app to accept them.",
+  "Warning — stagnation detected, {name}. Immediate action recommended.",
+  "{name}, every day you skip is a day you drift further from the version of you that wins.",
+  "Discipline beats motivation. Every. Single. Time. Right, {name}?",
+  "{name}, I scanned your progress. You're behind schedule. Fix it today.",
+  "The strongest hunters aren't born, {name}. They're forged through consistency.",
+  "Another hunter just surpassed you on the leaderboard, {name}. Will you allow that?",
+  "The penalty zone doesn't discriminate, {name}. Neither should your effort.",
+  "{name}, you have 24 hours. Make them count. DUSK out.",
 ];
 
 const WORKOUT_MESSAGES = [
-  "You haven't trained today. Even 15 minutes counts. Don't break the chain.",
-  "Your body is waiting. No workout logged yet.",
-  "The grind doesn't pause. Your workout window is closing.",
-  "Every skipped session is a gift to your rivals. Train now.",
-  "No pain logged yet today. The System is watching.",
+  "{name}, you haven't trained today. Even 15 minutes counts. Don't break the chain.",
+  "Your body is waiting, {name}. No workout logged yet.",
+  "The grind doesn't pause, {name}. Your workout window is closing.",
+  "{name}, every skipped session is a gift to your rivals. Train now.",
+  "No pain logged yet today, {name}. The System is watching.",
+];
+
+// Sent when user HAS already worked out (positive reinforcement at 5 PM slot)
+const WORKOUT_DONE_MESSAGES = [
+  "Great work today, {name}. Your body thanks you. Keep the momentum.",
+  "{name}, workout logged. The System is pleased. Rest well, train harder tomorrow.",
+  "You showed up today, {name}. That's what separates hunters from civilians.",
+  "{name}, session complete. Your rivals wish they had your discipline.",
+  "Protocol fulfilled, {name}. Recovery mode activated. See you tomorrow.",
+];
+
+// Sent when user opened app today but hasn't worked out (gentler streak reminder at 8 PM)
+const STREAK_GENTLE_MESSAGES = [
+  "{name}, you were active today but your streak still needs a workout. There's still time.",
+  "Almost there, {name}. You opened the app — now finish the day with a workout.",
+  "{name}, the hardest part is showing up. You're already here. One workout saves your streak.",
+  "Your {streak}-day streak is waiting for you, {name}. A quick session seals the deal.",
 ];
 
 const COMEBACK_MESSAGES = [
-  "It's been a while. Your rivals are pulling ahead. Return to the grind.",
-  "Absence detected. The System has been waiting for you.",
-  "Your quests are expiring and your rivals are training. Open the app.",
-  "2 days offline. The gap is growing. Come back and close it.",
+  "{name}, it's been a while. Your rivals are pulling ahead. Return to the grind.",
+  "Absence detected, {name}. The System has been waiting for you.",
+  "{name}, your quests are expiring and your rivals are training. Open the app.",
+  "2 days offline, {name}. The gap is growing. Come back and close it.",
 ];
 
 // ─── Stable Notification IDs ─────────────────────────────────
@@ -75,8 +93,14 @@ function nextTimeAt(hour: number, minute = 0): Date {
   return d;
 }
 
-function pick<T>(arr: T[]): T {
+function pick(arr: string[]): string {
   return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function personalize(msg: string, name: string, streak?: number): string {
+  let result = msg.replace(/\{name\}/g, name || 'Hunter');
+  if (streak !== undefined) result = result.replace(/\{streak\}/g, String(streak));
+  return result;
 }
 
 function hashCode(str: string): number {
@@ -113,7 +137,7 @@ export async function requestNotificationPermission(): Promise<boolean> {
 
 // ─── Morning Dusk (6 AM, one-shot, re-scheduled each app open) ──
 
-export async function scheduleMorningDusk(): Promise<void> {
+export async function scheduleMorningDusk(playerName = 'Hunter'): Promise<void> {
   if (!isNative()) return;
   try {
     await LocalNotifications.cancel({ notifications: [{ id: NOTIF_IDS.MORNING_DUSK }] });
@@ -122,7 +146,7 @@ export async function scheduleMorningDusk(): Promise<void> {
       notifications: [{
         id: NOTIF_IDS.MORNING_DUSK,
         title: '⚔️ Message from Dusk',
-        body: pick(DUSK_MESSAGES),
+        body: personalize(pick(DUSK_MESSAGES), playerName),
         schedule: { at, allowWhileIdle: true },
         smallIcon: 'ic_stat_notification',
         channelId: 'reforge_dusk',
@@ -136,25 +160,28 @@ export async function scheduleMorningDusk(): Promise<void> {
 
 // ─── Workout Reminder (5 PM, only if no workout today) ───────
 
-export async function scheduleWorkoutReminder(hasWorkedOutToday: boolean): Promise<void> {
+export async function scheduleWorkoutReminder(hasWorkedOutToday: boolean, playerName = 'Hunter'): Promise<void> {
   if (!isNative()) return;
   try {
     await LocalNotifications.cancel({ notifications: [{ id: NOTIF_IDS.WORKOUT_REMINDER }] });
-    if (hasWorkedOutToday) return; // Already trained — don't nag
     const at = nextTimeAt(17, 0);
     // Only schedule for today (not tomorrow) — next app open will re-evaluate
     if (at.getDate() !== new Date().getDate()) return;
+    const title = hasWorkedOutToday ? '✅ Workout Complete' : '💪 No workout logged yet';
+    const body = hasWorkedOutToday
+      ? personalize(pick(WORKOUT_DONE_MESSAGES), playerName)
+      : personalize(pick(WORKOUT_MESSAGES), playerName);
     await LocalNotifications.schedule({
       notifications: [{
         id: NOTIF_IDS.WORKOUT_REMINDER,
-        title: '💪 No workout logged yet',
-        body: pick(WORKOUT_MESSAGES),
+        title,
+        body,
         schedule: { at, allowWhileIdle: true },
         smallIcon: 'ic_stat_notification',
         channelId: 'reforge_workout',
       }],
     });
-    console.log('[Notif] Workout reminder →', at.toLocaleTimeString());
+    console.log('[Notif] Workout reminder →', at.toLocaleTimeString(), hasWorkedOutToday ? '(praise)' : '(nudge)');
   } catch (err) {
     console.warn('[Notif] scheduleWorkoutReminder failed:', err);
   }
@@ -162,24 +189,35 @@ export async function scheduleWorkoutReminder(hasWorkedOutToday: boolean): Promi
 
 // ─── Streak At-Risk Warning (8 PM, only if no workout today) ─
 
-export async function scheduleStreakReminder(currentStreak: number, hasWorkedOutToday: boolean): Promise<void> {
+export async function scheduleStreakReminder(
+  currentStreak: number,
+  hasWorkedOutToday: boolean,
+  openedAppToday: boolean,
+  playerName = 'Hunter',
+): Promise<void> {
   if (!isNative()) return;
   try {
     await LocalNotifications.cancel({ notifications: [{ id: NOTIF_IDS.STREAK_WARNING }] });
-    if (hasWorkedOutToday || currentStreak < 1) return;
+    if (currentStreak < 1) return; // No streak to protect
+    if (hasWorkedOutToday) return; // Streak is safe — no notification needed
     const at = nextTimeAt(20, 0);
     if (at.getDate() !== new Date().getDate()) return;
+    // User opened app today → gentler reminder; otherwise → urgent warning
+    const title = openedAppToday ? '🔥 Finish your streak' : '🔥 Streak in danger!';
+    const body = openedAppToday
+      ? personalize(pick(STREAK_GENTLE_MESSAGES), playerName, currentStreak)
+      : personalize(`{name}, your ${currentStreak}-day streak ends at midnight. One workout saves it.`, playerName, currentStreak);
     await LocalNotifications.schedule({
       notifications: [{
         id: NOTIF_IDS.STREAK_WARNING,
-        title: '🔥 Streak in danger!',
-        body: `Your ${currentStreak}-day streak ends at midnight. One workout saves it.`,
+        title,
+        body,
         schedule: { at, allowWhileIdle: true },
         smallIcon: 'ic_stat_notification',
         channelId: 'reforge_streak',
       }],
     });
-    console.log('[Notif] Streak reminder →', at.toLocaleTimeString());
+    console.log('[Notif] Streak reminder →', at.toLocaleTimeString(), openedAppToday ? '(gentle)' : '(urgent)');
   } catch (err) {
     console.warn('[Notif] scheduleStreakReminder failed:', err);
   }
@@ -212,7 +250,7 @@ export async function scheduleLeaderboardNudge(hasDailyXp: boolean): Promise<voi
 
 // ─── Comeback Ping (48h after now, one-shot) ─────────────────
 
-export async function scheduleComebackPing(): Promise<void> {
+export async function scheduleComebackPing(playerName = 'Hunter'): Promise<void> {
   if (!isNative()) return;
   try {
     await LocalNotifications.cancel({ notifications: [{ id: NOTIF_IDS.COMEBACK_PING }] });
@@ -221,7 +259,7 @@ export async function scheduleComebackPing(): Promise<void> {
       notifications: [{
         id: NOTIF_IDS.COMEBACK_PING,
         title: '🗡️ The System noticed your absence',
-        body: pick(COMEBACK_MESSAGES),
+        body: personalize(pick(COMEBACK_MESSAGES), playerName),
         schedule: { at, allowWhileIdle: true },
         smallIcon: 'ic_stat_notification',
         channelId: 'reforge_comeback',
