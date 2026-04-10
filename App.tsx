@@ -229,6 +229,7 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (!player.userId || isLocalUser(player.userId) || !player.isConfigured) return;
+    if (!player.questOnboardingDone) return; // Wait for quest tutorial to finish first
     const opted = localStorage.getItem(notifOptKey);
     if (opted === 'yes') {
       // Already opted in — schedule silently
@@ -254,7 +255,7 @@ const App: React.FC = () => {
       })();
     }
     // opted === 'no' → user declined, skip scheduling
-  }, [player.userId, player.isConfigured]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [player.userId, player.isConfigured, player.questOnboardingDone]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const _scheduleAllNotifications = async () => {
     const today = new Date().toLocaleDateString('en-CA');
