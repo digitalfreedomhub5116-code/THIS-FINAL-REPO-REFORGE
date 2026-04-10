@@ -13,8 +13,8 @@ export const FEATURE_GATES: Record<string, FeatureGateConfig> = {
   HEALTH_NUTRITION: { level: 5, label: 'Nutrition Scanner', description: 'Scan food, log meals, and track macros with AI.' },
   HEALTH_CUSTOM_WORKOUT: { level: 5, label: 'AI Workout Generator', description: 'Generate personalized workout protocols using keys.' },
   HEALTH_CALORIE_LIMIT: { level: 5, label: 'Custom Calorie Limit', description: 'Set a custom daily calorie target.' },
-  STORE: { level: 5, label: 'Armory & Store', description: 'Unlock outfits, chests, and dungeon access.' },
-  LEADERBOARD: { level: 10, label: 'Hunter Rankings', description: 'Compete against other hunters on the global leaderboard.' },
+  STORE: { level: 1, label: 'Armory & Store', description: 'Unlock outfits, chests, and dungeon access.' },
+  LEADERBOARD: { level: 3, label: 'Hunter Rankings', description: 'Unlock the global leaderboard at level 3 and compete with others.' },
   DEMON_CASTLE: { level: 10, label: 'Demon Castle', description: 'Enter dangerous dungeons for powerful rewards.' },
   MOBILE_CHESTS: { level: 5, label: 'Chests & Keys', description: 'Open legendary and alliance chests using keys.' },
 };
@@ -36,10 +36,7 @@ export function useFeatureGate(featureKey: string, playerLevel: number): { locke
 // ── Nav locked tabs by level ──
 export function getLockedTabs(playerLevel: number): Record<string, number> {
   const locked: Record<string, number> = {};
-  if (playerLevel < 5) locked['STORE'] = 5;
-  if (playerLevel < 10) {
-    locked['LEADERBOARD'] = 10;
-  }
+  if (playerLevel < 3) locked['LEADERBOARD'] = 3;
   return locked;
 }
 

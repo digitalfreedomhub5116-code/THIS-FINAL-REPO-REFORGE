@@ -21,7 +21,7 @@ const LVL10_STEPS: TStepConfig[] = [
   {
     icon: <Trophy size={20} />,
     title: 'Hunter Rankings',
-    subtitle: 'You now have access to the global leaderboard. Compete and climb the ranks.',
+    subtitle: 'Your rank matters more now. Keep climbing to earn bigger rewards and recognition.',
     color: '#fbbf24',
     autoAdvanceMs: 4500,
   },

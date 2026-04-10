@@ -20,8 +20,8 @@ interface TStepConfig {
 const LVL5_STEPS: TStepConfig[] = [
   {
     icon: <Store size={20} />,
-    title: 'The Store is Open',
-    subtitle: 'Browse outfits, open chests, and spend your keys and gold in the Armory.',
+    title: 'Store Tips',
+    subtitle: 'Browse outfits, open chests, and spend your keys and gold in the Store.',
     color: '#c084fc',
     autoAdvanceMs: 4500,
   },
@@ -34,7 +34,7 @@ const LVL5_STEPS: TStepConfig[] = [
   },
   {
     icon: <Utensils size={20} />,
-    title: 'Nutrition Scanner',
+    title: 'Nutrition Tips',
     subtitle: 'Head to Health → Nutrition to scan food with AI and log your meals.',
     color: '#22d3ee',
     autoAdvanceMs: 4500,

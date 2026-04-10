@@ -585,7 +585,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
   const [streakAnimKey, setStreakAnimKey] = useState(0);
   const prevStreakRef = useRef(playerData.streak);
   const [activeTab, setActiveTab] = useState<'WORKOUT' | 'NUTRITION' | 'SKILLS'>('WORKOUT');
-  const nutritionLocked = playerLevel < 5;
+  const nutritionLocked = false;
   const visibleTabs = SKILLS_ENABLED ? ['WORKOUT', 'NUTRITION', 'SKILLS'] : ['WORKOUT', 'NUTRITION'];
   
   // Track if user skipped setup
@@ -1995,15 +1995,6 @@ export const HealthView: React.FC<HealthViewProps> = ({
                             <div>
                                 <div className="flex items-center justify-between mb-3">
                                     <div className="text-xs font-black text-white uppercase tracking-widest">Training Programs</div>
-                                    {nutritionLocked ? (
-                                    <button
-                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider opacity-40 cursor-not-allowed"
-                                        style={{ background: 'rgba(100,100,140,0.1)', border: '1px solid rgba(100,100,140,0.2)', color: '#6a6a7a' }}
-                                        onClick={() => {}}
-                                    >
-                                        <Lock size={10} /> AI Plan <span className="text-[7px]">Lv.5</span>
-                                    </button>
-                                    ) : (
                                     <button
                                         onClick={() => { setAiPlanError(null); setAiConfirmStep(0); setShowAIConfirm(true); }}
                                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all"
@@ -2012,7 +2003,6 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                         <Sparkles size={10} />
                                         {(healthProfile as any)?.aiPlanUsed ? 'Regenerate AI Plan (5 🗝)' : 'Create Plan with AI (Free)'}
                                     </button>
-                                    )}
                                 </div>
 
                                 <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 -mx-4 px-4">

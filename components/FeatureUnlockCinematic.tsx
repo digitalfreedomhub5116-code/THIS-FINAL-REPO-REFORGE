@@ -13,12 +13,12 @@ interface FeatureUnlockConfig {
 
 const UNLOCK_CONFIGS: Record<number, FeatureUnlockConfig[]> = {
   5: [
-    { icon: <Store size={32} />, title: 'ARMORY & STORE', subtitle: 'Outfits, chests, and dungeon access unlocked.', color: '#c084fc', glow: 'rgba(192,132,252,0.6)' },
-    { icon: <Utensils size={32} />, title: 'NUTRITION SCANNER', subtitle: 'AI food scanning and meal tracking activated.', color: '#22d3ee', glow: 'rgba(34,211,238,0.6)' },
+    { icon: <Store size={32} />, title: 'ARMORY & STORE', subtitle: 'New Store content is now available.', color: '#c084fc', glow: 'rgba(192,132,252,0.6)' },
+    { icon: <Utensils size={32} />, title: 'NUTRITION SCANNER', subtitle: 'Nutrition tools are now available in Health → Nutrition.', color: '#22d3ee', glow: 'rgba(34,211,238,0.6)' },
     { icon: <Sparkles size={32} />, title: 'AI PROTOCOL GENERATOR', subtitle: 'Generate custom workout plans with keys.', color: '#a78bfa', glow: 'rgba(167,139,250,0.6)' },
   ],
   10: [
-    { icon: <Trophy size={32} />, title: 'HUNTER RANKINGS', subtitle: 'Compete on the global leaderboard.', color: '#fbbf24', glow: 'rgba(251,191,36,0.6)' },
+    { icon: <Trophy size={32} />, title: 'HUNTER RANKINGS', subtitle: 'Climb higher and earn bigger rank rewards.', color: '#fbbf24', glow: 'rgba(251,191,36,0.6)' },
     { icon: <Castle size={32} />, title: 'DEMON CASTLE', subtitle: 'Enter dangerous dungeons for powerful rewards.', color: '#ef4444', glow: 'rgba(239,68,68,0.6)' },
   ],
 };
