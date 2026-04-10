@@ -18,10 +18,23 @@ interface AuthViewProps {
 
 type Mode = 'SIGN_IN' | 'CREATE';
 
-const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode }) => {
+const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode = 'SIGN_IN' }) => {
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [checking, setChecking] = useState(true);
   const [serverWaking, setServerWaking] = useState(false);
-  const [mode, setMode] = useState<Mode>(initialMode ?? 'SIGN_IN');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const prevHtmlOverflow = document.documentElement.style.overflow;
+    const prevBodyOverflow = document.body.style.overflow;
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.documentElement.style.overflow = prevHtmlOverflow;
+      document.body.style.overflow = prevBodyOverflow;
+    };
+  }, []);
 
   const [identifier, setIdentifier] = useState('');
   const [username, setUsername]     = useState('');
@@ -30,8 +43,6 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode }) => {
   const [confirm, setConfirm]       = useState('');
   const [showPass, setShowPass]     = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [loading, setLoading]       = useState(false);
-  const [error, setError]           = useState('');
 
   // Fun facts cycling
   const shuffledFacts = useRef(shuffleFacts());

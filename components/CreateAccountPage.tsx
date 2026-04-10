@@ -26,6 +26,17 @@ const CreateAccountPage: React.FC<CreateAccountPageProps> = ({ onLogin, onNaviga
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  useEffect(() => {
+    const prevHtmlOverflow = document.documentElement.style.overflow;
+    const prevBodyOverflow = document.body.style.overflow;
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.documentElement.style.overflow = prevHtmlOverflow;
+      document.body.style.overflow = prevBodyOverflow;
+    };
+  }, []);
+
   // Fun facts cycling
   const shuffledFacts = useRef(shuffleFacts());
   const [factIndex, setFactIndex] = useState(0);
