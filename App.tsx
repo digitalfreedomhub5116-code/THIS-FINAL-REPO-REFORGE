@@ -338,6 +338,7 @@ const App: React.FC = () => {
   const [workoutOnboardingStep, setWorkoutOnboardingStep] = useState(0);
   const [showQuestOnboarding, setShowQuestOnboarding] = useState(false);
   const [showWorkoutOnboarding, setShowWorkoutOnboarding] = useState(false);
+  const [showDuskWelcome, setShowDuskWelcome] = useState(false);
   const [questAnalysisFailed, setQuestAnalysisFailed] = useState(false); // Track if quest analysis failed during tutorial
   const [showRankReveal, setShowRankReveal] = useState(false);
   const [showFeatureUnlock, setShowFeatureUnlock] = useState<number | null>(null);
@@ -1039,6 +1040,8 @@ const App: React.FC = () => {
     if (player.level < 1) return;
     // Only trigger after initial onboarding is done
     if (onboardingPhase !== 'APP') return;
+    if (showDuskWelcome) return;
+    if (showQuestOnboarding || questOnboardingStep !== 0) return;
     
     // Don't show if level up/down, rank up, or other overlays are active
     if (showLevelUp || showLevelDown || rankUpData) return;
@@ -1057,8 +1060,7 @@ const App: React.FC = () => {
       // Initial check - small delay to let app settle
       const timer = setTimeout(() => {
         if (!player.questOnboardingDone && !showStreakCelebration) {
-          setShowQuestOnboarding(true);
-          setQuestOnboardingStep(1);
+          setShowDuskWelcome(true);
           setActiveTab('DASHBOARD');
         }
       }, 500);
@@ -1067,11 +1069,17 @@ const App: React.FC = () => {
     
     // Streak just closed - start quest onboarding
     if (streakJustClosed && questOnboardingStep === 0) {
-      setShowQuestOnboarding(true);
-      setQuestOnboardingStep(1);
+      setShowDuskWelcome(true);
       setActiveTab('DASHBOARD');
     }
-  }, [player.isConfigured, player.questOnboardingDone, onboardingPhase, showStreakCelebration, showLevelUp, showLevelDown, rankUpData]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [player.isConfigured, player.questOnboardingDone, onboardingPhase, showStreakCelebration, showLevelUp, showLevelDown, rankUpData, showDuskWelcome, showQuestOnboarding, questOnboardingStep]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleDuskWelcomeNext = useCallback(() => {
+    setShowDuskWelcome(false);
+    setShowQuestOnboarding(true);
+    setQuestOnboardingStep(1);
+    setActiveTab('DASHBOARD');
+  }, []);
 
   // ── Rank Reveal after quest+workout onboarding complete ──
   useEffect(() => {
@@ -1818,7 +1826,7 @@ const App: React.FC = () => {
 
       {/* Tutorial enabled per user request. Set TUTORIAL_ACTIVE to true to enable. */}
       {(() => {
-        const TUTORIAL_ACTIVE = true; 
+        const TUTORIAL_ACTIVE = false; 
         if (!TUTORIAL_ACTIVE) return null;
         
         if (!player.tutorialComplete && isNewUserOnboarding) {
@@ -1839,6 +1847,55 @@ const App: React.FC = () => {
         }
         return null;
       })()}
+
+      <AnimatePresence>
+        {showDuskWelcome && (
+          <motion.div
+            key="dusk-welcome"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[950]"
+            style={{ background: 'rgba(0,0,0,0.82)', backdropFilter: 'blur(10px)' }}
+          >
+            <div className="absolute inset-0 flex items-center justify-center p-6">
+              <motion.div
+                initial={{ opacity: 0, y: 12, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 12, scale: 0.98 }}
+                transition={{ type: 'spring', stiffness: 260, damping: 24 }}
+                className="w-full max-w-[420px] rounded-2xl border border-cyan-400/30 overflow-hidden"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(12,12,30,0.98) 0%, rgba(6,6,20,0.98) 100%)',
+                  boxShadow: '0 0 40px rgba(0,210,255,0.18), 0 10px 40px rgba(0,0,0,0.6)',
+                }}
+              >
+                <div className="h-1 w-full" style={{ background: 'linear-gradient(90deg, transparent, rgba(0,210,255,0.9), transparent)' }} />
+                <div className="p-5">
+                  <div className="text-[10px] font-mono tracking-[0.25em] uppercase text-cyan-300/80">
+                    Welcome
+                  </div>
+                  <div className="mt-2 text-lg font-black text-white">
+                    Hi! I’m Dusk.
+                  </div>
+                  <div className="mt-2 text-[12px] leading-relaxed text-gray-300">
+                    I’m your companion here. I’ll show you the basics so you can create your first quest and start making progress.
+                  </div>
+                  <div className="mt-5 flex justify-end">
+                    <button
+                      onClick={handleDuskWelcomeNext}
+                      className="px-5 py-2.5 rounded-xl text-xs font-black font-mono tracking-widest"
+                      style={{ background: '#00d4ff', color: '#000', boxShadow: '0 0 18px rgba(0,210,255,0.35)' }}
+                    >
+                      NEXT
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Guided Quest Onboarding (Level 1) ── */}
       {showQuestOnboarding && questOnboardingStep > 0 && (
