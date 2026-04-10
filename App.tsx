@@ -286,11 +286,11 @@ const App: React.FC = () => {
     savedPhase === 'AUTH_SIGN_IN_PAGE' || savedPhase === 'AUTH_CREATE_PAGE' || savedPhase === 'CALIBRATION'
   );
 
-  const [loading, setLoading] = useState(!savedPhase);
+  const [loading, setLoading] = useState(false);
 
   const [onboardingPhase, setOnboardingPhase] = useState<OnboardingPhase>(() => {
     if (savedPhase) return savedPhase;
-    return player.isConfigured ? 'APP' : 'SPLASH';
+    return player.isConfigured ? 'APP' : 'WELCOME';
   });
   const authInitialMode: 'SIGN_IN' | 'CREATE' = 'SIGN_IN';
   const [showLogoutChoice, setShowLogoutChoice] = useState(false);
@@ -2301,7 +2301,7 @@ const App: React.FC = () => {
                       localStorage.removeItem('reforge_notif_opt');
                       sessionStorage.clear();
                       resetPlayer();
-                      setOnboardingPhase('SPLASH');
+                      setOnboardingPhase('WELCOME');
                       setLoading(false);
                     }}
                   />
