@@ -487,16 +487,15 @@ const App: React.FC = () => {
     setActiveOverlay(null);
   }, []);
 
-  // Process queue: show next overlay when none is active and tutorial is done
+  // Process queue: show next overlay when none is active
   useEffect(() => {
     if (activeOverlay) return; // One is already showing
-    // Block all overlays during tutorial (if re-enabled in the future)
-    if (!player.tutorialComplete) return;
+    if (!player.isConfigured) return; // Wait until player is ready
     const q = overlayQueueRef.current;
     if (q.length === 0) return;
     const next = q.shift()!;
     setActiveOverlay(next);
-  }, [activeOverlay, player.tutorialComplete, player.isConfigured,
+  }, [activeOverlay, player.isConfigured,
       // Re-check when any of the triggers fire (these deps cause re-evaluation)
       showStreakCelebration, showLevelUp, showLevelDown, rankUpData, showDailyLogin, showNotifPrompt]);
 
@@ -1042,6 +1041,7 @@ const App: React.FC = () => {
     if (onboardingPhase !== 'APP') return;
     if (showDuskWelcome) return;
     if (showQuestOnboarding || questOnboardingStep !== 0) return;
+    if (activeOverlay !== null) return; // Wait for any queued overlay (streak, notifPrompt) to finish first
     
     // Don't show if level up/down, rank up, or other overlays are active
     if (showLevelUp || showLevelDown || rankUpData) return;
@@ -1059,7 +1059,7 @@ const App: React.FC = () => {
     if (!streakJustClosed && questOnboardingStep === 0) {
       // Initial check - small delay to let app settle
       const timer = setTimeout(() => {
-        if (!player.questOnboardingDone && !showStreakCelebration) {
+        if (!player.questOnboardingDone && !showStreakCelebration && activeOverlay === null) {
           setShowDuskWelcome(true);
           setActiveTab('DASHBOARD');
         }

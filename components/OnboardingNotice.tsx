@@ -51,7 +51,6 @@ const OnboardingNotice: React.FC<OnboardingNoticeProps> = ({ page }) => {
   const { player } = useSystem();
 
   useEffect(() => {
-    if (!player.tutorialComplete) return; // Block popups during old tutorial
     if (!player.questOnboardingDone) return; // Block popups during quest onboarding tutorial
 
     const dismissed = localStorage.getItem(getDismissedKey(player.userId, page));
