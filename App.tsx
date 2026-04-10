@@ -1141,6 +1141,13 @@ const App: React.FC = () => {
     setPlayer(prev => ({ ...prev, questOnboardingDone: true }));
   }, [setPlayer]);
 
+  const handleTutorialManaOut = useCallback(() => {
+    setShowQuestOnboarding(false);
+    setQuestOnboardingStep(0);
+    setPlayer(prev => ({ ...prev, questOnboardingDone: true }));
+    addNotification('Not enough Mana to continue the tutorial. Mana resets at midnight.', 'WARNING');
+  }, [setPlayer, addNotification]);
+
   // ── Workout Onboarding Step Handler ──
   const handleWorkoutOnboardingStep = useCallback((step: number) => {
     if (step < 4) {
@@ -2205,6 +2212,8 @@ const App: React.FC = () => {
                     onStopTracking={handleStopTracking}
                     onConsumeMana={consumeMana}
                     onRefundMana={refundMana}
+                    isQuestOnboarding={showQuestOnboarding && questOnboardingStep > 0}
+                    onTutorialManaOut={handleTutorialManaOut}
                   />
                 </ErrorBoundary>
               </Suspense>

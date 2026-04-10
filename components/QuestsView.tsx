@@ -47,6 +47,8 @@ interface QuestsViewProps {
   onStopTracking?: (id: string) => void;
   onConsumeMana?: (amount: number) => boolean;
   onRefundMana?: (amount: number) => void;
+  isQuestOnboarding?: boolean;
+  onTutorialManaOut?: () => void;
 }
 
 const RANK_COLORS: Record<Rank, { bg: string; text: string; border: string; glow: string }> = {
@@ -279,7 +281,8 @@ const FuturisticCalendar: React.FC<{ quests: Quest[] }> = ({ quests }) => {
 const QuestsView: React.FC<QuestsViewProps> = ({
   quests, addQuest, completeQuest, failQuest, resetQuest, deleteQuest,
   tutorialStep, onTutorialAction, onTutorialAnalysisFail, playerData, onToggleNav, onShowPact,
-  onStartTracking, onStopTracking, onConsumeMana, onRefundMana
+  onStartTracking, onStopTracking, onConsumeMana, onRefundMana,
+  isQuestOnboarding, onTutorialManaOut,
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [title, setTitle] = useState('');
@@ -328,10 +331,22 @@ const QuestsView: React.FC<QuestsViewProps> = ({
       return;
     }
     const manaCost = 15 + (analysisCount * 5);
-    if (onConsumeMana) {
-      if (!onConsumeMana(manaCost)) {
-        setForgeError(`MANA DEPLETED — Need ${manaCost} mana. Resets at midnight.`);
-        return;
+    const tutFreeKey = `reforge_tut_free_analyses_${playerData?.userId || 'local'}`;
+    const tutFreeUsed = parseInt(localStorage.getItem(tutFreeKey) || '0', 10);
+
+    if (isQuestOnboarding && tutFreeUsed < 2) {
+      // First 2 analyses during tutorial are free — no mana deducted
+      localStorage.setItem(tutFreeKey, String(tutFreeUsed + 1));
+    } else if (isQuestOnboarding && tutFreeUsed >= 2 && (playerData?.mp ?? 100) < 25) {
+      // 3rd+ attempt but mana too low — end tutorial gracefully
+      onTutorialManaOut?.();
+      return;
+    } else {
+      if (onConsumeMana) {
+        if (!onConsumeMana(manaCost)) {
+          setForgeError(`MANA DEPLETED — Need ${manaCost} mana. Resets at midnight.`);
+          return;
+        }
       }
     }
     setIsAnalyzing(true);
