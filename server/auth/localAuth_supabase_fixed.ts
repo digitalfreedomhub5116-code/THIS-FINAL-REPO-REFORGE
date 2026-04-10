@@ -183,22 +183,12 @@ router.post('/login', async (req, res) => {
     // Type cast the user data
     const userData = user as any;
 
-    // DEBUG: Log password_hash state to diagnose login failures
-    console.log('[Auth Login DEBUG]', {
-      username: userData.username,
-      hasPasswordHash: !!userData.password_hash,
-      hashLength: userData.password_hash?.length,
-      hashPrefix: userData.password_hash?.substring(0, 7),
-      authType: userData.auth_type,
-    });
-
     if (!userData.password_hash) {
       return res.status(401).json({ error: 'Invalid codename or password (no hash found)' });
     }
 
     // Check password
     const isValid = await bcrypt.compare(password, userData.password_hash);
-    console.log('[Auth Login DEBUG] bcrypt compare result:', isValid);
     if (!isValid) {
       return res.status(401).json({ error: 'Invalid codename or password' });
     }

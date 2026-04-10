@@ -235,7 +235,7 @@ export async function scheduleLeaderboardNudge(hasDailyXp: boolean): Promise<voi
     await LocalNotifications.schedule({
       notifications: [{
         id: NOTIF_IDS.LEADERBOARD_NUDGE,
-        title: '� Leaderboard resets at midnight',
+        title: '🏆 Leaderboard resets at midnight',
         body: 'Top 5 earn Gold + XP + Keys. Check your rank and push for rewards before reset!',
         schedule: { at, allowWhileIdle: true },
         smallIcon: 'ic_stat_notification',

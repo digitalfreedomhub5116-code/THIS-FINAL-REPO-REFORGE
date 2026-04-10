@@ -507,29 +507,41 @@ export const useSystem = () => {
       }
 
       // --- WEEKLY AUDIT: >2 SKIPS = EXTRA PENALTY ---
-      // Track missed workouts this week
-      const weekStart = new Date(todayStart);
-      weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // Sunday
-      const weekStartMs = weekStart.getTime();
-      const weeklyMissedKey = `weeklyMissed_${weekStart.toISOString().split('T')[0]}`;
-      const weeklyMissed = ((prev as any).weeklyWorkoutMisses || 0);
+      // Increment weekly miss counter when a required workout was missed
+      let weeklyMissed = ((prev as any).weeklyWorkoutMisses || 0);
+      const missedRequiredWorkout = daysSinceStart > 0 && prev.healthProfile?.workoutPlan &&
+        (() => {
+          const lastWorkout2 = prev.lastWorkoutDate || '';
+          const yd = new Date(todayStart); yd.setDate(yd.getDate() - 1);
+          if (lastWorkout2 === toLocalDateStr(yd)) return false;
+          const plan = prev.healthProfile!.workoutPlan!;
+          if (!plan.length) return false;
+          const idx = ((prev as any).workoutCompletedDays || 0) % plan.length;
+          return plan[idx] && !plan[idx].isRecovery;
+        })();
+      if (missedRequiredWorkout) weeklyMissed++;
 
-      // If it's a new week (Monday reset), check last week's misses
-      if (weekStart.getDay() === 0 && daysSinceStart > 7) {
-        const lastWeekMisses = ((prev as any).weeklyWorkoutMisses || 0);
-        if (lastWeekMisses > 2) {
-          // Extra penalty for skipping more than 2 workouts in a week
+      // Check if a new week started (Sunday boundary)
+      const weekStart = new Date(todayStart);
+      weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // This Sunday
+      const weekStartMs = weekStart.getTime();
+      const lastWeeklyAudit = (prev as any).lastWeeklyAuditMs || 0;
+      const isNewWeek = weekStartMs > lastWeeklyAudit && daysSinceStart > 7;
+
+      if (isNewWeek) {
+        if (weeklyMissed > 2) {
           xpPenalty = 50;
           updatedStats.discipline = Math.max(0, updatedStats.discipline - 10);
           updatedStats.willpower = Math.max(0, updatedStats.willpower - 10);
           updatedStats.strength = Math.max(0, updatedStats.strength - 5);
           newLogs.unshift({
             id: Math.random().toString(36).substring(2, 9),
-            message: `WEEKLY AUDIT FAILED: ${lastWeekMisses} workouts missed (max 2). XP -${xpPenalty}, Discipline -10, Willpower -10, Strength -5.`,
+            message: `WEEKLY AUDIT FAILED: ${weeklyMissed} workouts missed (max 2). XP -${xpPenalty}, Discipline -10, Willpower -10, Strength -5.`,
             timestamp: now,
             type: 'WARNING'
           });
         }
+        weeklyMissed = 0; // Reset counter for the new week
       }
 
       // --- NUTRITION AUDIT: EXCEEDED CALORIES/MACROS ---
@@ -582,7 +594,9 @@ export const useSystem = () => {
         stats: updatedStats,
         history: updatedHistory,
         logs: [...newLogs, ...prev.logs].slice(0, 60),
-      };
+        weeklyWorkoutMisses: weeklyMissed,
+        lastWeeklyAuditMs: isNewWeek ? weekStartMs : lastWeeklyAudit,
+      } as any;
     });
   }, []);
 

@@ -30,6 +30,9 @@ router.get('/codename/check', async (req: Request, res: Response) => {
 // Used by the 15s polling loop in App.tsx instead of the full GET
 router.get('/:id/sync', async (req: Request, res: Response) => {
   const { id } = req.params;
+  const authUserId = getAuthenticatedUserId(req);
+  if (!authUserId) return res.status(401).json({ error: 'Unauthorized' });
+  if (authUserId !== id) return res.status(403).json({ error: 'Forbidden' });
   try {
     const { data, error } = await (supabaseServer() as any)
       .from('players')
@@ -73,6 +76,9 @@ router.get('/:id/sync', async (req: Request, res: Response) => {
 
 router.get('/:id', async (req: Request, res: Response) => {
   const { id } = req.params;
+  const authUserId = getAuthenticatedUserId(req);
+  if (!authUserId) return res.status(401).json({ error: 'Unauthorized' });
+  if (authUserId !== id) return res.status(403).json({ error: 'Forbidden' });
   try {
     const { data, error } = await (supabaseServer() as any)
       .from('players')

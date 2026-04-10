@@ -5,6 +5,8 @@ import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import { PlayerData, ReplitUser } from '../types';
 import { API_BASE, fetchWithRetry, checkServerHealth } from '../lib/apiConfig';
+import { getPlayerAuthHeaders } from '../lib/playerApi';
+import { saveAuthNative } from '../lib/nativeAuth';
 import { isNativePlatform } from '../lib/googleAuth';
 import NativeGoogleButton from './NativeGoogleButton';
 import { shuffleFacts } from '../lib/funFacts';
@@ -73,9 +75,10 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode }) => {
         if (!woke) { setChecking(false); return; }
       }
       try {
-        const res = await fetchWithRetry(`${API_BASE}/api/auth/local/whoami`, { credentials: 'include' });
+        const res = await fetchWithRetry(`${API_BASE}/api/auth/local/whoami`, { credentials: 'include', headers: { ...getPlayerAuthHeaders() } });
         if (res.ok) {
           const json = await res.json();
+          if (json.playerToken) saveAuthNative(json.playerToken);
           const user: ReplitUser = json.user || json;
           if (user?.id || (user as any)?.supabase_id) {
             await loginWithUser({ ...user, id: user.id || (user as any).supabase_id });
@@ -124,9 +127,10 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode }) => {
       let data: any;
       try { data = JSON.parse(text); } catch { data = { error: `Server error (${res.status})` }; }
       if (!res.ok) { setError(data.error || `Login failed (${res.status})`); return; }
+      if (data.playerToken) saveAuthNative(data.playerToken);
       await loginWithUser(data.user || data);
     } catch (err: any) {
-      setError(`Connection error — server may be restarting. Please wait 30 seconds and try again.`);
+      setError(`Connection error — please check your internet and try again.`);
     } finally {
       setLoading(false);
     }
@@ -150,9 +154,10 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode }) => {
       let data: any;
       try { data = JSON.parse(text); } catch { data = { error: `Server error (${res.status})` }; }
       if (!res.ok) { setError(data.error || `Registration failed (${res.status})`); return; }
+      if (data.playerToken) saveAuthNative(data.playerToken);
       await loginWithUser(data.user || data);
     } catch (err: any) {
-      setError(`Connection error — server may be restarting. Please wait 30 seconds and try again.`);
+      setError(`Connection error — please check your internet and try again.`);
     } finally {
       setLoading(false);
     }
@@ -175,9 +180,10 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode }) => {
         setError(data.error || `Google sign-in failed (${res.status})`);
         return;
       }
+      if (data.playerToken) saveAuthNative(data.playerToken);
       await loginWithUser(data.user || data);
     } catch (err: any) {
-      setError(`Connection error — server may be restarting. Please wait 30 seconds and try again.`);
+      setError(`Connection error — please check your internet and try again.`);
     } finally {
       setLoading(false);
     }
@@ -215,7 +221,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode }) => {
           REFORGE
         </motion.div>
         <div className="text-gray-400 text-xs text-center">
-          {serverWaking ? 'Waking up the server... this might take a few seconds' : 'Checking session...'}
+          {serverWaking ? 'Connecting to server...' : 'Checking session...'}
         </div>
         {serverWaking && (
           <>
@@ -255,7 +261,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode }) => {
             <motion.div animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 2, repeat: Infinity }} className="text-system-neon text-lg font-black tracking-widest">
               REFORGE
             </motion.div>
-            <div className="text-gray-400 text-xs text-center">Waking up the server... this might take a few seconds</div>
+            <div className="text-gray-400 text-xs text-center">{mode === 'CREATE' ? 'Creating your account...' : 'Signing you in...'}</div>
             <div className="w-48 h-1 bg-gray-800 rounded-full overflow-hidden">
               <motion.div className="h-full bg-system-neon/60 rounded-full" animate={{ x: ['-100%', '100%'] }} transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }} style={{ width: '40%' }} />
             </div>
