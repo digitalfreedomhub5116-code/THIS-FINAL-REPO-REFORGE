@@ -13,8 +13,7 @@ const LevelUpCinematic: React.FC<LevelUpCinematicProps> = ({ level, onComplete }
     const t1 = setTimeout(() => setPhase('shockwave'), 600);
     const t2 = setTimeout(() => setPhase('rise'), 800);
     const t3 = setTimeout(() => setPhase('label'), 1200);
-    const t4 = setTimeout(() => onComplete(), 3500);
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); };
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
   }, [onComplete]);
 
   return (
@@ -110,6 +109,22 @@ const LevelUpCinematic: React.FC<LevelUpCinematicProps> = ({ level, onComplete }
               <div className="text-[10px] font-mono text-white/30 tracking-[0.3em]">
                 LIMITS TRANSCENDED
               </div>
+              <motion.button
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 }}
+                whileTap={{ scale: 0.96 }}
+                onClick={onComplete}
+                className="mt-6 px-8 py-2.5 font-black text-xs tracking-[0.3em] font-mono uppercase rounded border cursor-pointer"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(139,92,246,0.15), rgba(139,92,246,0.05))',
+                  borderColor: 'rgba(139,92,246,0.5)',
+                  color: '#a78bfa',
+                  boxShadow: '0 0 16px rgba(139,92,246,0.3)',
+                }}
+              >
+                CONTINUE
+              </motion.button>
             </motion.div>
           )}
         </AnimatePresence>

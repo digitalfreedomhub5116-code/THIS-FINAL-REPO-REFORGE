@@ -1396,9 +1396,9 @@ export const HealthView: React.FC<HealthViewProps> = ({
                           strokeLinecap="round"
                           strokeDasharray="276"
                           initial={{ strokeDashoffset: 276, rotate: -90 }}
-                          animate={{ strokeDashoffset: 0, rotate: -90 }}
-                          transition={{ duration: 8, ease: 'linear' }}
-                          style={{ transformOrigin: '50% 50%' }}
+                          animate={{ strokeDashoffset: [276, 220, 210, 140, 135, 80, 50, 45, 0] }}
+                          transition={{ duration: 8, times: [0, 0.1, 0.25, 0.35, 0.5, 0.6, 0.75, 0.88, 1], ease: 'easeInOut' }}
+                          style={{ transformOrigin: '50% 50%', rotate: -90 }}
                       />
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center">
@@ -1995,14 +1995,24 @@ export const HealthView: React.FC<HealthViewProps> = ({
                             <div>
                                 <div className="flex items-center justify-between mb-3">
                                     <div className="text-xs font-black text-white uppercase tracking-widest">Training Programs</div>
-                                    <button
-                                        onClick={() => { setAiPlanError(null); setAiConfirmStep(0); setShowAIConfirm(true); }}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all"
-                                        style={{ background: 'rgba(168,85,247,0.15)', border: '1px solid rgba(168,85,247,0.35)', color: '#c084fc', boxShadow: '0 0 12px rgba(168,85,247,0.15)' }}
-                                    >
-                                        <Sparkles size={10} />
-                                        {(healthProfile as any)?.aiPlanUsed ? 'Regenerate AI Plan (5 🗝)' : 'Create Plan with AI (Free)'}
-                                    </button>
+                                    {(healthProfile as any)?.aiPlanUsed ? (
+                                        <span
+                                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider opacity-50 cursor-not-allowed"
+                                            style={{ background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.2)', color: '#9ca3af' }}
+                                        >
+                                            <Check size={10} />
+                                            Workout Plan Claimed
+                                        </span>
+                                    ) : (
+                                        <button
+                                            onClick={() => { setAiPlanError(null); setAiConfirmStep(0); setShowAIConfirm(true); }}
+                                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all"
+                                            style={{ background: 'rgba(168,85,247,0.15)', border: '1px solid rgba(168,85,247,0.35)', color: '#c084fc', boxShadow: '0 0 12px rgba(168,85,247,0.15)' }}
+                                        >
+                                            <Sparkles size={10} />
+                                            Create Plan with AI (Free)
+                                        </button>
+                                    )}
                                 </div>
 
                                 <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 -mx-4 px-4">

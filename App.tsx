@@ -1398,7 +1398,7 @@ const App: React.FC = () => {
 
     syncFromDb();
 
-    const interval = setInterval(syncFromDb, 15000);
+    const interval = setInterval(syncFromDb, 30000);
 
     // Listen for immediate sync triggers (e.g. after recordStrike server success)
 

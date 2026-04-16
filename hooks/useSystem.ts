@@ -102,7 +102,7 @@ const DEFAULT_PLAYER: PlayerData = {
   outfitStones: {},
   featureUnlocksShown: [],
   rankRevealed: false,
-  questOnboardingDone: false,
+  questOnboardingDone: true,
   workoutOnboardingDone: false,
 };
 
