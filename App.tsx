@@ -2074,6 +2074,8 @@ const App: React.FC = () => {
 
   useEffect(() => {
 
+    return; // DISABLED: Quest tutorial removed in v4
+
     if (!player.isConfigured) return;
 
     if (player.questOnboardingDone) return;
@@ -4032,7 +4034,7 @@ const App: React.FC = () => {
 
             playerLevel={player.level}
 
-            guidedStep={showQuestOnboarding ? questOnboardingStep : showWorkoutOnboarding ? 7 : undefined}
+            guidedStep={showWorkoutOnboarding ? 7 : undefined}
 
             onGuidedAction={(step) => {
 

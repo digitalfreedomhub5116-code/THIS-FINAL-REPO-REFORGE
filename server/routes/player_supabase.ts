@@ -36,7 +36,7 @@ router.get('/:id/sync', async (req: Request, res: Response) => {
   try {
     const { data, error } = await (supabaseServer() as any)
       .from('players')
-      .select('gold, keys, is_banned, cheat_strikes, total_strikes_ever, pending_notifications, raw_data, level, current_xp, required_xp, total_xp, daily_xp, rank, streak, hp, max_hp, mp, max_mp')
+      .select('gold, keys, is_banned, cheat_strikes, total_strikes_ever, pending_notifications, level, current_xp, required_xp, total_xp, daily_xp, rank, streak, hp, max_hp, mp, max_mp, raw_data->unlockedOutfits, raw_data->equippedOutfitId, raw_data->outfitStones')
       .eq('supabase_id', id)
       .single();
 
@@ -45,7 +45,6 @@ router.get('/:id/sync', async (req: Request, res: Response) => {
     }
 
     const row = data as any;
-    const rawData = row.raw_data || {};
     return res.json({
       gold: row.gold,
       keys: row.keys,
@@ -53,9 +52,9 @@ router.get('/:id/sync', async (req: Request, res: Response) => {
       cheatStrikes: row.cheat_strikes,
       totalStrikesEver: row.total_strikes_ever ?? 0,
       pending_notifications: row.pending_notifications,
-      unlockedOutfits: rawData.unlockedOutfits || [],
-      equippedOutfitId: rawData.equippedOutfitId || 'outfit_starter',
-      outfitStones: rawData.outfitStones || {},
+      unlockedOutfits: row.unlockedOutfits || [],
+      equippedOutfitId: row.equippedOutfitId || 'outfit_starter',
+      outfitStones: row.outfitStones || {},
       level: row.level ?? 1,
       currentXp: row.current_xp ?? 0,
       requiredXp: row.required_xp ?? 100,
@@ -315,7 +314,7 @@ router.post('/:id/reset-progress', async (req: Request, res: Response) => {
     // Fetch current gold, keys, and ban/anomaly fields so we can preserve them
     const { data: current, error: fetchErr } = await (supabaseServer() as any)
       .from('players')
-      .select('gold, keys, username, name, email, auth_type, avatar_url, is_banned, cheat_strikes, total_strikes_ever, ban_reason')
+      .select('gold, keys, username, name, email, auth_type, avatar_url, is_banned, cheat_strikes, total_strikes_ever')
       .eq('supabase_id', id)
       .single();
     if (fetchErr) throw fetchErr;

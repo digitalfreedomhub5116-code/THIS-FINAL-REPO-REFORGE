@@ -113,7 +113,7 @@ export async function setupGoogleAuth(app: Express) {
         // Generate unique username from email or Google ID
         const baseUsername = email ? email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '_') : `hunter_${googleId.slice(-6)}`;
         // Check uniqueness
-        const { data: taken } = await sb.from('players').select('username').eq('username', baseUsername).single();
+        const { data: taken } = await sb.from('players').select('username').eq('username', baseUsername).maybeSingle();
         username = taken ? `${baseUsername}_${crypto.randomBytes(3).toString('hex')}` : baseUsername;
 
         const { error: insertError } = await sb.from('players').insert({

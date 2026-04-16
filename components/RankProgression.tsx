@@ -74,7 +74,7 @@ const RankProgression: React.FC<RankProgressionProps> = ({ player }) => {
                         <div 
                             key={rank.id} 
                             data-active={status === 'ACTIVE'}
-                            className={`relative z-10 flex flex-col items-center ${status === 'LOCKED' ? 'opacity-50 blur-[1px] grayscale' : 'opacity-100'}`}
+                            className={`relative z-10 flex flex-col items-center ${status === 'LOCKED' ? 'opacity-50 grayscale' : 'opacity-100'}`}
                         >
                             {/* Animated Video Badge */}
                             <motion.div

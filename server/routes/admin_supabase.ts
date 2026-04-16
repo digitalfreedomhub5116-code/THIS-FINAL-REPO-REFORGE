@@ -414,7 +414,7 @@ router.get('/usage', async (req: Request, res: Response) => {
 
     let query = (supabaseServer() as any)
       .from('api_usage_logs')
-      .select('id, endpoint, method, status_code, cost_usd, model, tokens_in, tokens_out, created_at')
+      .select('id, route, cost_usd, model, input_tokens, output_tokens, success, user_id, created_at')
       .order('created_at', { ascending: false })
       .limit(1000);
     if (dateFilter) query = query.gte('created_at', dateFilter);

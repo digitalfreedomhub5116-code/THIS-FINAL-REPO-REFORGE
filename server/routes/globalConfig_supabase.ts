@@ -11,7 +11,7 @@ router.get('/:key', async (req: Request, res: Response) => {
       .from('global_config')
       .select('value')
       .eq('key', key)
-      .single();
+      .maybeSingle();
     if (error && (error.code === 'PGRST116' || error.code === '42P01')) return res.json({});
     if (error) {
       console.error('[GlobalConfig GET]', error);
@@ -38,7 +38,7 @@ router.put('/:key', async (req: Request, res: Response) => {
       .from('global_config')
       .upsert({ key, value, updated_at: new Date().toISOString() })
       .eq('key', key)
-      .single();
+      .maybeSingle();
     if (error) {
       console.error('[GlobalConfig PUT]', error);
       return res.status(500).json({ error: 'Internal server error' });
