@@ -669,6 +669,31 @@ const QuestsView: React.FC<QuestsViewProps> = ({
                     </span>
                     <span className="text-[9px] text-gray-700 font-mono">{title.length}/120</span>
                   </div>
+
+                  {/* Mandatory specificity note */}
+                  <div className="mt-2.5 rounded-xl p-3" style={{ background: 'rgba(251,191,36,0.04)', border: '1px solid rgba(251,191,36,0.15)' }}>
+                    <p className="text-[10px] font-black text-amber-400 font-mono uppercase tracking-wider mb-2">
+                      Always include a time or amount
+                    </p>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 text-[10px] font-mono">
+                        <span className="text-red-400 font-bold">&#10007;</span>
+                        <span className="text-gray-500 line-through">Running</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-[10px] font-mono">
+                        <span className="text-green-400 font-bold">&#10003;</span>
+                        <span className="text-gray-300">Run 10 km</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-[10px] font-mono mt-1.5">
+                        <span className="text-red-400 font-bold">&#10007;</span>
+                        <span className="text-gray-500 line-through">Cook dinner</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-[10px] font-mono">
+                        <span className="text-green-400 font-bold">&#10003;</span>
+                        <span className="text-gray-300">Cook dinner for 5 people</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 {/* ForgeGuard Analyze Button — hidden after result */}
