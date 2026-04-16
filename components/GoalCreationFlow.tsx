@@ -77,7 +77,10 @@ export default function GoalCreationFlow({
         }),
       });
 
-      if (!res.ok) throw new Error('Analysis failed');
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `Analysis failed (${res.status})`);
+      }
       const data = await res.json();
 
       if (data.isInvalid) {
@@ -96,7 +99,8 @@ export default function GoalCreationFlow({
       setStep('INTERVIEW');
       playSystemSoundEffect('PURCHASE');
     } catch (err: any) {
-      setError('ForgeGuard is offline. Try again later.');
+      console.error('[GoalCreation] Analyze error:', err);
+      setError(err?.message || 'ForgeGuard is offline. Try again later.');
       setStep('ERROR');
       if (onRefundMana) onRefundMana(MANA_COST);
     }
@@ -193,8 +197,8 @@ export default function GoalCreationFlow({
         initial={{ y: 40, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 40, opacity: 0 }}
-        className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl"
-        style={{ background: '#0a0a0f', border: '1px solid rgba(255,255,255,0.06)' }}
+        className="w-full max-w-md max-h-[85vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl"
+        style={{ background: '#0a0a0f', border: '1px solid rgba(255,255,255,0.06)', marginBottom: 80 }}
       >
         {/* Header */}
         <div className="sticky top-0 z-10 flex items-center justify-between px-5 pt-5 pb-3" style={{ background: '#0a0a0f' }}>

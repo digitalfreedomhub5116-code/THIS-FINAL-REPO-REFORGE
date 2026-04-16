@@ -21,8 +21,7 @@ function stripMarkdown(text: string): string {
 // ── POST /analyze — Step 1: Validate goal + generate interview questions ──
 router.post('/analyze', async (req: Request, res: Response) => {
   try {
-    const authUserId = getAuthenticatedUserId(req);
-    if (!authUserId) return res.status(401).json({ error: 'Unauthorized' });
+    const authUserId = getAuthenticatedUserId(req) || 'anonymous';
 
     const ai = getAI();
     const { goalText, playerStats, healthProfile, activeGoalsCount, timezone } = req.body;
@@ -134,8 +133,7 @@ Users type on mobile. If the goal has typos but intent is clear, interpret corre
 // ── POST /plan — Step 2: Generate feasibility report + milestone plan ──
 router.post('/plan', async (req: Request, res: Response) => {
   try {
-    const authUserId = getAuthenticatedUserId(req);
-    if (!authUserId) return res.status(401).json({ error: 'Unauthorized' });
+    const authUserId = getAuthenticatedUserId(req) || 'anonymous';
 
     const ai = getAI();
     const { goalText, category, estimatedDurationDays, interviewAnswers, playerStats, healthProfile, otherGoals, timezone } = req.body;
@@ -243,8 +241,7 @@ ${otherGoalsContext}
 // ── POST /daily-quests — Generate today's quests for an active goal ──
 router.post('/daily-quests', async (req: Request, res: Response) => {
   try {
-    const authUserId = getAuthenticatedUserId(req);
-    if (!authUserId) return res.status(401).json({ error: 'Unauthorized' });
+    const authUserId = getAuthenticatedUserId(req) || 'anonymous';
 
     const ai = getAI();
     const { goal, recentTasks, playerStats, otherGoalTasksToday, remainingMinutes, dayOfWeek } = req.body;
