@@ -477,6 +477,78 @@ export interface ReplitUser {
   profileImageUrl?: string | null;
 }
 
+// --- SHADOW MISSION (Long-Term Goals) ---
+export type GoalCategory = 'ACADEMIC' | 'FITNESS' | 'FINANCIAL' | 'SKILL' | 'CAREER' | 'HEALTH' | 'CREATIVE';
+export type GoalStatus = 'INTERVIEW' | 'REVIEW' | 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'ABANDONED';
+
+export interface GoalMilestone {
+  phase: number;
+  title: string;
+  description: string;
+  startDay: number;
+  endDay: number;
+  targetOutcome: string;
+  sampleDailyPattern: string[];
+  connectionToNext: string;
+}
+
+export interface GoalInterviewQuestion {
+  id: number;
+  question: string;
+  type: 'text' | 'number';
+  prefilled?: string | number | null;
+  answer?: string | number | null;
+}
+
+export interface GoalQuest {
+  id: string;
+  title: string;
+  estimatedDuration: number;
+  categories: (keyof CoreStats)[];
+  rank: Rank;
+  xp: number;
+  reasoning: string;
+  connectionToPrevious?: string;
+  completed?: boolean;
+}
+
+export interface GoalDailyTask {
+  id: string;
+  goalId: string;
+  date: string;          // YYYY-MM-DD
+  dayNumber: number;
+  quests: GoalQuest[];
+  completedCount: number;
+  totalCount: number;
+  dailyNote: string;
+  progressUpdate: string;
+  createdAt: number;
+}
+
+export interface Goal {
+  id: string;
+  userId?: string;
+  title: string;
+  category: GoalCategory;
+  goalRank: Rank;
+  successProbability: number;
+  status: GoalStatus;
+  milestones: GoalMilestone[];
+  currentMilestone: number;
+  interviewQA: GoalInterviewQuestion[];
+  dailyCommitmentMin: number;
+  totalDurationDays: number;
+  smartDurationReasoning: string;
+  weeklyRestDay: string;
+  riskFactors: string[];
+  reasoning: string;
+  startDate: number;
+  targetDate: number;
+  streak: number;
+  dailyTasks: GoalDailyTask[];
+  createdAt: number;
+}
+
 export interface PlayerData {
   userId?: string;
   replitUser?: ReplitUser;
@@ -602,4 +674,7 @@ export interface PlayerData {
   rankRevealed?: boolean;
   questOnboardingDone?: boolean;
   workoutOnboardingDone?: boolean;
+
+  // Shadow Mission (Long-Term Goals)
+  goals?: Goal[];
 }

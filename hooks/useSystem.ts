@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   PlayerData, Quest, ShopItem, SystemNotification, NotificationType,
   ActivityLog, HealthProfile, ProgressPhoto, MealLog, WorkoutDay, AdminExercise, DailyReward,
-  ReplitUser, HistoryEntry
+  ReplitUser, HistoryEntry, Goal
 } from '../types';
 import { playSystemSoundEffect } from '../utils/soundEngine';
 import { getPlayerAuthHeaders } from '../lib/playerApi';
@@ -104,6 +104,7 @@ const DEFAULT_PLAYER: PlayerData = {
   rankRevealed: false,
   questOnboardingDone: true,
   workoutOnboardingDone: true,
+  goals: [],
 };
 
 function migratePlayerData(raw: Partial<PlayerData>): PlayerData {

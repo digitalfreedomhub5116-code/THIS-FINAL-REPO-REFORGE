@@ -2,7 +2,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, CalendarDays, ChevronLeft, ChevronRight, Check, XCircle, Skull, AlertTriangle, BrainCircuit, Loader2, CheckCircle, X, Clock, ShieldCheck, Globe, Repeat, Zap, Dumbbell, Brain, Shield, Users } from 'lucide-react';
-import { Quest, CoreStats, Rank, Priority, PlayerData } from '../types';
+import { Quest, CoreStats, Rank, Priority, PlayerData, Goal } from '../types';
+import GoalsView from './GoalsView';
 import RankBadge from './RankBadge';
 import type { RankType } from './RankBadge';
 import QuestCard from './QuestCard';
@@ -49,6 +50,9 @@ interface QuestsViewProps {
   onRefundMana?: (amount: number) => void;
   isQuestOnboarding?: boolean;
   onTutorialManaOut?: () => void;
+  goals?: Goal[];
+  onUpdateGoals?: (goals: Goal[]) => void;
+  onDeductGold?: (amount: number) => void;
 }
 
 const RANK_COLORS: Record<Rank, { bg: string; text: string; border: string; glow: string }> = {
@@ -283,7 +287,9 @@ const QuestsView: React.FC<QuestsViewProps> = ({
   tutorialStep, onTutorialAction, onTutorialAnalysisFail, playerData, onToggleNav, onShowPact,
   onStartTracking, onStopTracking, onConsumeMana, onRefundMana,
   isQuestOnboarding, onTutorialManaOut,
+  goals, onUpdateGoals, onDeductGold,
 }) => {
+  const [activeSubTab, setActiveSubTab] = useState<'QUESTS' | 'GOALS'>('QUESTS');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -506,6 +512,46 @@ const QuestsView: React.FC<QuestsViewProps> = ({
   return (
     <div className="space-y-4 md:space-y-6">
       <OnboardingNotice page="QUEST" />
+
+      {/* ── Sub-Tab Switcher ── */}
+      <div className="flex items-center gap-1 px-1">
+        {(['QUESTS', 'GOALS'] as const).map(tab => (
+          <button
+            key={tab}
+            onClick={() => setActiveSubTab(tab)}
+            className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all font-mono ${
+              activeSubTab === tab
+                ? 'text-white'
+                : 'text-gray-600 hover:text-gray-400'
+            }`}
+            style={activeSubTab === tab ? {
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              boxShadow: '0 0 12px rgba(0,210,255,0.08)',
+            } : {
+              background: 'transparent',
+              border: '1px solid transparent',
+            }}
+          >
+            {tab === 'GOALS' ? `Goals ${(goals || []).filter(g => g.status === 'ACTIVE').length > 0 ? `(${(goals || []).filter(g => g.status === 'ACTIVE').length})` : ''}` : tab}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Goals Tab ── */}
+      {activeSubTab === 'GOALS' && (
+        <GoalsView
+          goals={goals || []}
+          playerData={playerData}
+          onUpdateGoals={onUpdateGoals || (() => {})}
+          onConsumeMana={onConsumeMana}
+          onRefundMana={onRefundMana}
+          onDeductGold={onDeductGold}
+        />
+      )}
+
+      {/* ── Quests Tab ── */}
+      {activeSubTab === 'QUESTS' && <>
       {/* ── Futuristic Calendar Header ── */}
       <div
         className="sticky top-0 z-20 space-y-3 pt-2 pb-3 px-0"
@@ -887,6 +933,7 @@ const QuestsView: React.FC<QuestsViewProps> = ({
           </div>
         )}
       </AnimatePresence>
+      </>}
 
     </div>
   );

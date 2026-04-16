@@ -4422,6 +4422,12 @@ const App: React.FC = () => {
 
                     onTutorialManaOut={handleTutorialManaOut}
 
+                    goals={player.goals || []}
+
+                    onUpdateGoals={(updatedGoals) => setPlayer(prev => ({ ...prev, goals: updatedGoals }))}
+
+                    onDeductGold={(amount) => setPlayer(prev => ({ ...prev, gold: Math.max(0, prev.gold - amount) }))}
+
                   />
 
                 </ErrorBoundary>
