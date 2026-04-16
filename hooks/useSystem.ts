@@ -36,7 +36,7 @@ const toLocalDateStr = (d: Date = new Date()): string => {
 const DEFAULT_PLAYER: PlayerData = {
   isConfigured: false,
   tutorialStep: 0,
-  tutorialComplete: false,
+  tutorialComplete: true,
   name: '',
   level: 1,
   currentXp: 0,

@@ -3146,7 +3146,7 @@ const App: React.FC = () => {
 
             }
 
-            if (!(cloudData?.tutorialComplete ?? (merged as any).tutorialComplete)) setIsNewUserOnboarding(true);
+            // Tutorial disabled in v4 — no longer setting isNewUserOnboarding
 
             ssClear();
 
@@ -3198,7 +3198,7 @@ const App: React.FC = () => {
 
             }
 
-            if (!(cloudData?.tutorialComplete ?? (merged as any).tutorialComplete)) setIsNewUserOnboarding(true);
+            // Tutorial disabled in v4 — no longer setting isNewUserOnboarding
 
             ssClear();
 
@@ -3252,7 +3252,7 @@ const App: React.FC = () => {
 
             }
 
-            if (!(cloudData?.tutorialComplete ?? (merged as any).tutorialComplete)) setIsNewUserOnboarding(true);
+            // Tutorial disabled in v4 — no longer setting isNewUserOnboarding
 
             ssClear();
 
@@ -3680,7 +3680,7 @@ const App: React.FC = () => {
 
         
 
-        if (!player.tutorialComplete && isNewUserOnboarding) {
+        if (false) { // DISABLED: Tutorial removed in v4
 
           return (
 
@@ -4082,7 +4082,7 @@ const App: React.FC = () => {
 
         headerDisabled={isDungeonMode}
 
-        forceHeaderVisible={!player.tutorialComplete && isNewUserOnboarding && player.tutorialStep === 4}
+        forceHeaderVisible={false}
 
         onGoldClick={!isDungeonMode ? () => navigateTo('STORE') : undefined}
 
