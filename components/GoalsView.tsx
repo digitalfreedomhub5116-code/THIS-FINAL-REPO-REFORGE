@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Target, Trophy, Sparkles } from 'lucide-react';
-import { Goal, PlayerData } from '../types';
+import { Goal, PlayerData, Quest } from '../types';
 import GoalCard from './GoalCard';
 import GoalCreationFlow from './GoalCreationFlow';
 import GoalDetailView from './GoalDetailView';
@@ -10,18 +10,22 @@ interface GoalsViewProps {
   goals: Goal[];
   playerData?: PlayerData;
   onUpdateGoals: (goals: Goal[]) => void;
+  onDeleteGoal?: (goalId: string) => void;
   onConsumeMana?: (amount: number) => boolean;
   onRefundMana?: (amount: number) => void;
   onDeductGold?: (amount: number) => void;
+  onAddQuestToFeed?: (quest: Quest) => void;
 }
 
 export default function GoalsView({
   goals,
   playerData,
   onUpdateGoals,
+  onDeleteGoal,
   onConsumeMana,
   onRefundMana,
   onDeductGold,
+  onAddQuestToFeed,
 }: GoalsViewProps) {
   const [showCreate, setShowCreate] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
@@ -43,8 +47,9 @@ export default function GoalsView({
     const updated = goals.map(g => g.id === goalId ? { ...g, status: 'ABANDONED' as const } : g);
     onUpdateGoals(updated);
     setSelectedGoal(null);
+    if (onDeleteGoal) onDeleteGoal(goalId);
     if (onDeductGold) onDeductGold(50);
-  }, [goals, onUpdateGoals, onDeductGold]);
+  }, [goals, onUpdateGoals, onDeleteGoal, onDeductGold]);
 
   // If a goal detail is selected, show that
   if (selectedGoal) {
@@ -57,6 +62,7 @@ export default function GoalsView({
         onBack={() => setSelectedGoal(null)}
         onUpdateGoal={handleUpdateGoal}
         onDeleteGoal={handleDeleteGoal}
+        onAddQuestToFeed={onAddQuestToFeed}
       />
     );
   }

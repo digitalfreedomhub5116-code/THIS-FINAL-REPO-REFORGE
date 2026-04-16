@@ -1810,6 +1810,66 @@ const App: React.FC = () => {
 
 
 
+  // ── Fetch goals from DB on app load ──
+  const fetchGoalsFromDb = useCallback(async () => {
+    if (!player.isConfigured || !player.userId) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/goals`, {
+        credentials: 'include',
+        headers: { ...getPlayerAuthHeaders() },
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.goals && Array.isArray(data.goals)) {
+        setPlayer(prev => ({ ...prev, goals: data.goals }));
+      }
+    } catch (e) {
+      console.warn('[Goals] Failed to fetch from DB:', e);
+    }
+  }, [player.isConfigured, player.userId]);
+
+  useEffect(() => { fetchGoalsFromDb(); }, [fetchGoalsFromDb]);
+
+  const saveGoalToDb = useCallback(async (goal: any) => {
+    if (!player.userId) return;
+    try {
+      await fetch(`${API_BASE}/api/goals/save`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
+        body: JSON.stringify({ goal }),
+      });
+    } catch (e) {
+      console.warn('[Goals] Failed to save to DB:', e);
+    }
+  }, [player.userId]);
+
+  const handleUpdateGoals = useCallback((updatedGoals: any[]) => {
+    setPlayer(prev => {
+      // Find which goals changed and save them
+      const prevGoals = prev.goals || [];
+      updatedGoals.forEach(g => {
+        const old = prevGoals.find(pg => pg.id === g.id);
+        if (!old || JSON.stringify(old) !== JSON.stringify(g)) {
+          saveGoalToDb(g);
+        }
+      });
+      return { ...prev, goals: updatedGoals };
+    });
+  }, [saveGoalToDb]);
+
+  const handleDeleteGoal = useCallback(async (goalId: string) => {
+    if (player.userId) {
+      try {
+        await fetch(`${API_BASE}/api/goals/${goalId}`, {
+          method: 'DELETE',
+          credentials: 'include',
+          headers: { ...getPlayerAuthHeaders() },
+        });
+      } catch (e) { console.warn('[Goals] Failed to delete from DB:', e); }
+    }
+  }, [player.userId]);
+
   // Deferred daily login check — persistent guard via localStorage
 
   useEffect(() => {
@@ -3388,7 +3448,7 @@ const App: React.FC = () => {
 
                     if (player.streak >= 1) {
 
-                      scheduleStreakReminder(player.streak, true).catch(() => {});
+                      scheduleStreakReminder(player.streak, true, true).catch(() => {});
 
                     }
 
@@ -4424,7 +4484,9 @@ const App: React.FC = () => {
 
                     goals={player.goals || []}
 
-                    onUpdateGoals={(updatedGoals) => setPlayer(prev => ({ ...prev, goals: updatedGoals }))}
+                    onUpdateGoals={handleUpdateGoals}
+
+                    onDeleteGoal={handleDeleteGoal}
 
                     onDeductGold={(amount) => setPlayer(prev => ({ ...prev, gold: Math.max(0, prev.gold - amount) }))}
 

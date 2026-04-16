@@ -214,6 +214,12 @@ export interface Quest {
     maxSpeedKmh?: number;
   };
   sensorTracking?: boolean;
+  // Goal-linked quest fields
+  goalId?: string;
+  goalTitle?: string;
+  goalQuestResources?: GoalQuestResource[];
+  goalQuestSteps?: string[];
+  connectionToPrevious?: string;
 }
 
 export interface ShopItem {
@@ -500,6 +506,15 @@ export interface GoalInterviewQuestion {
   answer?: string | number | null;
 }
 
+export interface GoalQuestResource {
+  type: 'youtube' | 'article' | 'book' | 'search_query';
+  title: string;
+  url?: string;
+  searchQuery?: string;
+  channel?: string;
+  bookInfo?: string;
+}
+
 export interface GoalQuest {
   id: string;
   title: string;
@@ -510,6 +525,8 @@ export interface GoalQuest {
   reasoning: string;
   connectionToPrevious?: string;
   completed?: boolean;
+  stepByStep?: string[];
+  resources?: GoalQuestResource[];
 }
 
 export interface GoalDailyTask {

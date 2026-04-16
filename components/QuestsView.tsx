@@ -52,6 +52,7 @@ interface QuestsViewProps {
   onTutorialManaOut?: () => void;
   goals?: Goal[];
   onUpdateGoals?: (goals: Goal[]) => void;
+  onDeleteGoal?: (goalId: string) => void;
   onDeductGold?: (amount: number) => void;
 }
 
@@ -287,7 +288,7 @@ const QuestsView: React.FC<QuestsViewProps> = ({
   tutorialStep, onTutorialAction, onTutorialAnalysisFail, playerData, onToggleNav, onShowPact,
   onStartTracking, onStopTracking, onConsumeMana, onRefundMana,
   isQuestOnboarding, onTutorialManaOut,
-  goals, onUpdateGoals, onDeductGold,
+  goals, onUpdateGoals, onDeleteGoal, onDeductGold,
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<'QUESTS' | 'GOALS'>('QUESTS');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -544,9 +545,11 @@ const QuestsView: React.FC<QuestsViewProps> = ({
           goals={goals || []}
           playerData={playerData}
           onUpdateGoals={onUpdateGoals || (() => {})}
+          onDeleteGoal={onDeleteGoal}
           onConsumeMana={onConsumeMana}
           onRefundMana={onRefundMana}
           onDeductGold={onDeductGold}
+          onAddQuestToFeed={addQuest}
         />
       )}
 

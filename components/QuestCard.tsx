@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Check, X, Dumbbell, Brain, Shield, Users, Zap, Trash2, ZapOff, Lock, Coins, Flame, Eye, MapPin, Activity, Play, Square } from 'lucide-react';
+import { Check, X, Dumbbell, Brain, Shield, Users, Zap, Trash2, ZapOff, Lock, Coins, Flame, Eye, MapPin, Activity, Play, Square, Target, ExternalLink, BookOpen, Youtube, Search, ChevronDown, ChevronUp } from 'lucide-react';
 import { Quest, CoreStats, Rank } from '../types';
 import { SystemCoin } from './icons/SystemCoin';
 
@@ -83,6 +83,7 @@ const SensorBar: React.FC<{
 
 const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDelete, isLocked, onStartTracking, onStopTracking }) => {
   const [isMiniView, setIsMiniView] = useState(false);
+  const [showResources, setShowResources] = useState(false);
   const completingRef = useRef(false);
 
   const isExpired = quest.expiresAt ? Date.now() > quest.expiresAt : false;
@@ -210,6 +211,14 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
                   DAILY
                 </span>
               )}
+              {quest.goalId && (
+                <span
+                  className="flex items-center gap-0.5 text-[8px] font-black font-mono tracking-widest px-1.5 py-0.5 rounded"
+                  style={{ color: '#c084fc', background: 'rgba(192,132,252,0.08)', border: '1px solid rgba(192,132,252,0.2)' }}
+                >
+                  <Target size={8} /> GOAL
+                </span>
+              )}
               {isMiniActive && (
                 <span className="text-[8px] font-mono text-[#00d2ff]/60">↯ ACTIVATION MODE</span>
               )}
@@ -245,12 +254,76 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
               </div>
             )}
 
+            {/* Goal title link */}
+            {quest.goalTitle && (
+              <p className="text-[10px] text-purple-400/60 font-mono mt-1 truncate">
+                Mission: {quest.goalTitle}
+              </p>
+            )}
+
             {/* Description */}
-            {!isMiniActive && quest.description && (
+            {!isMiniActive && quest.description && !quest.goalId && (
               <p className="text-gray-600 text-[11px] mt-1.5 leading-relaxed line-clamp-1">
                 {quest.description}
               </p>
             )}
+
+            {/* Goal quest steps & resources toggle */}
+            {quest.goalId && isActive && (quest.goalQuestSteps?.length || quest.goalQuestResources?.length) ? (
+              <div className="mt-2">
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowResources(!showResources); }}
+                  className="flex items-center gap-1 text-[10px] font-mono text-cyan-400 hover:text-cyan-300 transition-colors"
+                >
+                  {showResources ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                  {showResources ? 'Hide details' : 'View steps & resources'}
+                </button>
+                {showResources && (
+                  <div className="mt-2 space-y-2">
+                    {/* Step by step */}
+                    {quest.goalQuestSteps && quest.goalQuestSteps.length > 0 && (
+                      <div className="rounded-lg p-2.5" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                        <p className="text-[9px] font-mono text-gray-500 uppercase tracking-wider mb-1.5">Steps</p>
+                        {quest.goalQuestSteps.map((step, i) => (
+                          <p key={i} className="text-[11px] text-gray-400 font-mono leading-relaxed">{step}</p>
+                        ))}
+                      </div>
+                    )}
+                    {/* Resources */}
+                    {quest.goalQuestResources && quest.goalQuestResources.length > 0 && (
+                      <div className="rounded-lg p-2.5" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                        <p className="text-[9px] font-mono text-gray-500 uppercase tracking-wider mb-1.5">Resources</p>
+                        {quest.goalQuestResources.map((r, i) => (
+                          <div key={i} className="flex items-start gap-2 mb-2 last:mb-0">
+                            <div className="mt-0.5 flex-shrink-0">
+                              {r.type === 'youtube' && <Youtube size={12} className="text-red-400" />}
+                              {r.type === 'article' && <ExternalLink size={12} className="text-blue-400" />}
+                              {r.type === 'book' && <BookOpen size={12} className="text-amber-400" />}
+                              {r.type === 'search_query' && <Search size={12} className="text-green-400" />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[11px] text-gray-300 font-medium truncate">{r.title}</p>
+                              {r.channel && <p className="text-[9px] text-gray-500 font-mono">Channel: {r.channel}</p>}
+                              {r.bookInfo && <p className="text-[9px] text-amber-400/70 font-mono">{r.bookInfo}</p>}
+                              {r.url && (
+                                <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-cyan-400 font-mono underline break-all" onClick={e => e.stopPropagation()}>
+                                  {r.url.length > 60 ? r.url.slice(0, 60) + '...' : r.url}
+                                </a>
+                              )}
+                              {!r.url && r.searchQuery && (
+                                <a href={`https://www.youtube.com/results?search_query=${encodeURIComponent(r.searchQuery)}`} target="_blank" rel="noopener noreferrer" className="text-[10px] text-cyan-400/70 font-mono underline" onClick={e => e.stopPropagation()}>
+                                  Search: {r.searchQuery}
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : null}
 
             {/* Trigger hint */}
             {isActive && quest.trigger && !isMiniActive && (

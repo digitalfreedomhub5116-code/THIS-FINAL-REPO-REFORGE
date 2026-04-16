@@ -265,13 +265,18 @@ router.post('/daily-quests', async (req: Request, res: Response) => {
       `Day ${t.dayNumber}: tasks=[${t.quests?.map((q: any) => `"${q.title}"(${q.completed ? 'DONE' : 'MISSED'})`).join(', ')}]`
     ).join('\n  ');
 
-    const prompt = `You are ForgeGuard generating today's goal quests.
+    const userCountry = req.body.userCountry || 'India';
+    const userLanguage = req.body.userLanguage || 'English';
+
+    const prompt = `You are ForgeGuard generating today's goal quests with REAL, SPECIFIC, ACTIONABLE tasks.
 
 === CONTEXT ===
 Goal: "${goal.title}" — Day ${currentDay}/${totalDays} (${percentComplete}% complete)
 Category: ${goal.category}
 Current Milestone: Phase ${milestone?.phase || 1} - "${milestone?.title || 'In Progress'}" (Day ${dayInPhase}/${phaseDuration})
 Sample Daily Pattern for this phase: ${JSON.stringify(milestone?.sampleDailyPattern || [])}
+User Country: ${userCountry}
+User Language: ${userLanguage}
 
 === CONTINUITY DATA (recent days) ===
 ${recentContext || 'No previous data (Day 1)'}
@@ -283,7 +288,7 @@ Other goals' tasks today: ${otherGoalTasksToday || 'None'}
 Remaining available time: ${remainingMinutes || 90} min
 Weekly Rest Day: ${goal.weeklyRestDay || 'Sunday'}
 
-=== RULES ===
+=== CRITICAL RULES ===
 1. INTERCONNECTED: Today's tasks must logically follow yesterday's. Reference what was done/missed.
    - If user completed a reading task yesterday → today include practice/application of that material
    - If user MISSED a task yesterday → include a lighter catch-up version today
@@ -293,6 +298,20 @@ Weekly Rest Day: ${goal.weeklyRestDay || 'Sunday'}
 5. VARIETY: Don't repeat the exact same task title 3 days in a row. Vary the approach.
 6. Each quest must have a specific, measurable target (time, reps, pages, distance, etc.)
 7. Generate 2-4 quests.
+
+=== RESOURCE RULES (CRITICAL — NO HALLUCINATION) ===
+8. SPOON-FEED THE USER: For EVERY task, provide:
+   a) EXACT step-by-step instructions (numbered list, 3-5 steps)
+   b) REAL resource recommendations:
+      - For STUDY/ACADEMIC goals: exact book chapters + page ranges, real YouTube channel names + search keywords
+      - For CODING/SKILL goals: real documentation URLs (docs.python.org, developer.mozilla.org, etc.), real YouTube channels (e.g. "Corey Schafer", "freeCodeCamp", "Apna College" for Hindi), real course platforms
+      - For FITNESS goals: real exercise names with proper form cues, real YouTube channels (e.g. "Jeff Nippard", "Calisthenicmovement", "FitnessFAQ")
+      - For FINANCIAL goals: real platforms, real blogs, real tools
+   c) SEARCH QUERIES: Always provide a YouTube search query the user can copy-paste
+   d) Prefer resources in the user's language (${userLanguage}) and popular in ${userCountry}
+9. DO NOT INVENT URLs. Only include a URL if you are CERTAIN it exists (official docs, well-known sites like youtube.com/results?search_query=..., docs.python.org, w3schools.com, geeksforgeeks.org, etc.)
+10. For YouTube: provide the search URL format: https://www.youtube.com/results?search_query=<encoded_query>
+    This is ALWAYS valid and guaranteed to work.
 
 === RESPONSE FORMAT (JSON only, no markdown) ===
 {
@@ -304,21 +323,52 @@ Weekly Rest Day: ${goal.weeklyRestDay || 'Sunday'}
       "rank": "D",
       "xp": 50,
       "reasoning": "Why this task matters for the goal today",
-      "connectionToPrevious": "How this connects to yesterday's work"
+      "connectionToPrevious": "How this connects to yesterday's work",
+      "stepByStep": [
+        "Step 1: Open Python IDE or terminal",
+        "Step 2: Create a new file called day1_basics.py",
+        "Step 3: Write a program that takes user input and prints it reversed",
+        "Step 4: Test with 3 different inputs",
+        "Step 5: Push to GitHub or save in your project folder"
+      ],
+      "resources": [
+        {
+          "type": "youtube",
+          "title": "Python Tutorial for Beginners - Corey Schafer",
+          "url": "https://www.youtube.com/results?search_query=python+tutorial+beginners+corey+schafer",
+          "searchQuery": "python tutorial beginners corey schafer",
+          "channel": "Corey Schafer"
+        },
+        {
+          "type": "article",
+          "title": "Python Official Tutorial - Chapter 3: Strings",
+          "url": "https://docs.python.org/3/tutorial/introduction.html#strings",
+          "searchQuery": "python strings tutorial official docs"
+        },
+        {
+          "type": "book",
+          "title": "Automate the Boring Stuff with Python",
+          "bookInfo": "Chapter 1, Pages 1-25",
+          "searchQuery": "automate boring stuff python chapter 1"
+        }
+      ]
     }
   ],
   "dailyNote": "Brief motivational or practical note for today.",
   "progressUpdate": "Phase X, Day Y. Progress summary."
 }`;
 
-    // Use Flash for daily generation (cheap + fast)
-    const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    // Use Gemini 2.5 Pro with Google Search grounding for resource-rich quests
+    const model = ai.getGenerativeModel({
+      model: 'gemini-2.5-pro-preview-05-06',
+      tools: [{ googleSearchRetrieval: {} } as any],
+    });
     const result = await model.generateContent(prompt);
     const text = result.response.text().trim();
 
     logUsage({
       route: 'goals/daily-quests',
-      model: 'gemini-2.0-flash',
+      model: 'gemini-2.5-pro-preview-05-06',
       inputTokens: result.response.usageMetadata?.promptTokenCount ?? 0,
       outputTokens: result.response.usageMetadata?.candidatesTokenCount ?? 0,
       success: true,
@@ -341,6 +391,120 @@ Weekly Rest Day: ${goal.weeklyRestDay || 'Sunday'}
   } catch (err: any) {
     console.error('[Goals daily-quests]', err);
     return res.status(500).json({ error: err.message || 'Daily quest generation failed' });
+  }
+});
+
+// ── GET / — Fetch user's goals from DB ──
+router.get('/', async (req: Request, res: Response) => {
+  try {
+    const authUserId = getAuthenticatedUserId(req);
+    if (!authUserId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const sb = supabaseServer() as any;
+    const { data, error } = await sb
+      .from('goals')
+      .select('*')
+      .eq('user_id', authUserId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    // Convert DB rows to client Goal objects
+    const goals = (data || []).map((row: any) => ({
+      id: row.id,
+      userId: row.user_id,
+      title: row.title,
+      category: row.category,
+      goalRank: row.goal_rank,
+      successProbability: row.success_probability,
+      status: row.status,
+      milestones: row.milestones || [],
+      currentMilestone: row.current_milestone,
+      interviewQA: row.interview_qa || [],
+      dailyCommitmentMin: row.daily_commitment_min,
+      totalDurationDays: row.total_duration_days,
+      smartDurationReasoning: row.smart_duration_reasoning,
+      weeklyRestDay: row.weekly_rest_day,
+      riskFactors: row.risk_factors || [],
+      reasoning: row.reasoning,
+      startDate: row.start_date,
+      targetDate: row.target_date,
+      streak: row.streak,
+      dailyTasks: row.daily_tasks || [],
+      createdAt: new Date(row.created_at).getTime(),
+    }));
+
+    return res.json({ goals });
+  } catch (err: any) {
+    console.error('[Goals GET]', err);
+    return res.status(500).json({ error: err.message || 'Failed to fetch goals' });
+  }
+});
+
+// ── POST /save — Upsert goal to DB ──
+router.post('/save', async (req: Request, res: Response) => {
+  try {
+    const authUserId = getAuthenticatedUserId(req);
+    if (!authUserId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { goal } = req.body;
+    if (!goal || !goal.id) return res.status(400).json({ error: 'Goal data required' });
+
+    const sb = supabaseServer() as any;
+    const row = {
+      id: goal.id,
+      user_id: authUserId,
+      title: goal.title,
+      category: goal.category,
+      goal_rank: goal.goalRank,
+      success_probability: goal.successProbability,
+      status: goal.status,
+      milestones: goal.milestones || [],
+      current_milestone: goal.currentMilestone || 0,
+      interview_qa: goal.interviewQA || [],
+      daily_commitment_min: goal.dailyCommitmentMin,
+      total_duration_days: goal.totalDurationDays,
+      smart_duration_reasoning: goal.smartDurationReasoning,
+      weekly_rest_day: goal.weeklyRestDay,
+      risk_factors: goal.riskFactors || [],
+      reasoning: goal.reasoning,
+      start_date: goal.startDate,
+      target_date: goal.targetDate,
+      streak: goal.streak || 0,
+      daily_tasks: goal.dailyTasks || [],
+      updated_at: new Date().toISOString(),
+    };
+
+    const { error } = await sb
+      .from('goals')
+      .upsert(row, { onConflict: 'id' });
+
+    if (error) throw error;
+    return res.json({ success: true });
+  } catch (err: any) {
+    console.error('[Goals save]', err);
+    return res.status(500).json({ error: err.message || 'Failed to save goal' });
+  }
+});
+
+// ── DELETE /:id — Abandon goal ──
+router.delete('/:id', async (req: Request, res: Response) => {
+  try {
+    const authUserId = getAuthenticatedUserId(req);
+    if (!authUserId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const sb = supabaseServer() as any;
+    const { error } = await sb
+      .from('goals')
+      .update({ status: 'ABANDONED', updated_at: new Date().toISOString() })
+      .eq('id', req.params.id)
+      .eq('user_id', authUserId);
+
+    if (error) throw error;
+    return res.json({ success: true });
+  } catch (err: any) {
+    console.error('[Goals delete]', err);
+    return res.status(500).json({ error: err.message || 'Failed to abandon goal' });
   }
 });
 
