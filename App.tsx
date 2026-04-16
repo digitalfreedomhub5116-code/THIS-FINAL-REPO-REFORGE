@@ -2346,21 +2346,7 @@ const App: React.FC = () => {
 
     setPlayer(prev => ({ ...prev, rank: 'E', rankRevealed: true }));
 
-    // Trigger workout onboarding after rank reveal
-
-    if (!player.workoutOnboardingDone) {
-
-      setTimeout(() => {
-
-        setShowWorkoutOnboarding(true);
-
-        setWorkoutOnboardingStep(1);
-
-        setActiveTab('HEALTH');
-
-      }, 800);
-
-    }
+    // DISABLED: Workout onboarding removed in v4
 
   }, [setPlayer, player.workoutOnboardingDone]);
 
@@ -4034,7 +4020,7 @@ const App: React.FC = () => {
 
             playerLevel={player.level}
 
-            guidedStep={showWorkoutOnboarding ? 7 : undefined}
+            guidedStep={undefined}
 
             onGuidedAction={(step) => {
 

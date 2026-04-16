@@ -103,7 +103,7 @@ const DEFAULT_PLAYER: PlayerData = {
   featureUnlocksShown: [],
   rankRevealed: false,
   questOnboardingDone: true,
-  workoutOnboardingDone: false,
+  workoutOnboardingDone: true,
 };
 
 function migratePlayerData(raw: Partial<PlayerData>): PlayerData {
