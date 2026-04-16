@@ -100,14 +100,13 @@ Users type on mobile. If the goal has typos but intent is clear, interpret corre
   ]
 }`;
 
-    // Use Gemini 2.5 Pro for goal analysis (best reasoning)
-    const model = ai.getGenerativeModel({ model: 'gemini-2.5-flash-preview-05-20' });
+    const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash' });
     const result = await model.generateContent(prompt);
     const text = result.response.text().trim();
 
     logUsage({
       route: 'goals/analyze',
-      model: 'gemini-2.5-flash-preview-05-20',
+      model: 'gemini-2.0-flash',
       inputTokens: result.response.usageMetadata?.promptTokenCount ?? 0,
       outputTokens: result.response.usageMetadata?.candidatesTokenCount ?? 0,
       success: true,
@@ -209,13 +208,13 @@ ${otherGoalsContext}
   "weeklyRestDay": "Sunday"
 }`;
 
-    const model = ai.getGenerativeModel({ model: 'gemini-2.5-flash-preview-05-20' });
+    const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash' });
     const result = await model.generateContent(prompt);
     const text = result.response.text().trim();
 
     logUsage({
       route: 'goals/plan',
-      model: 'gemini-2.5-flash-preview-05-20',
+      model: 'gemini-2.0-flash',
       inputTokens: result.response.usageMetadata?.promptTokenCount ?? 0,
       outputTokens: result.response.usageMetadata?.candidatesTokenCount ?? 0,
       success: true,
