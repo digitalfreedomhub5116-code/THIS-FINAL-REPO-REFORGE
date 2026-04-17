@@ -4449,45 +4449,7 @@ const App: React.FC = () => {
                   </div>
                 </button>
               ) : null}
-
-              {/* Upcoming Active Quests */}
-
-              <Suspense fallback={<SkeletonUpcomingQuests />}>
-
-                <ErrorBoundary fallbackLabel="Upcoming quests failed">
-
-                  <UpcomingQuests
-
-                    quests={player.quests}
-
-                    onNavigateToQuests={() => setActiveTab('QUESTS')}
-
-                  />
-
-                </ErrorBoundary>
-
-              </Suspense>
-
-
-
-              {/* Dashboard Widgets (clan chests + Dusk) */}
-
-              <Suspense fallback={<SkeletonDashboardWidgets />}>
-
-                <ErrorBoundary fallbackLabel="Dashboard widgets failed">
-
-                  <DashboardWidgets
-
-                    player={player}
-
-                    onOpenDailyCalendar={DAILY_REWARDS_ENABLED ? () => setShowDailyLogin(true) : undefined}
-
-                  />
-
-                </ErrorBoundary>
-
-              </Suspense>
-
+              {/* End of mid-section cards */}
 
 
               </div>{/* end responsive-grid-2 */}
