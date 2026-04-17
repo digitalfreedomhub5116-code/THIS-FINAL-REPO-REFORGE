@@ -6,6 +6,12 @@ import { playSystemSoundEffect } from '../utils/soundEngine';
 import { API_BASE } from '../lib/apiConfig';
 import { getPlayerAuthHeaders } from '../lib/playerApi';
 
+function addMins(time: string, mins: number): string {
+  const [h, m] = time.split(':').map(Number);
+  const total = h * 60 + m + mins;
+  return `${String(Math.floor(total / 60) % 24).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+}
+
 const RANK_COLORS: Record<string, string> = {
   E: '#9ca3af', D: '#fb923c', C: '#facc15', B: '#4ade80', A: '#22d3ee', S: '#c084fc',
   UNRANKED: '#6b7280',
@@ -20,6 +26,7 @@ interface QuestGenStore {
   // Deferred actions: queued data that needs to be applied when component remounts
   pendingGoalUpdate: Goal | null;
   pendingFeedQuests: Quest[];
+  pendingScheduleSlots: any[];
 }
 
 const _questGenStore: QuestGenStore = {
@@ -29,6 +36,7 @@ const _questGenStore: QuestGenStore = {
   error: null,
   pendingGoalUpdate: null,
   pendingFeedQuests: [],
+  pendingScheduleSlots: [],
 };
 
 // Callback the currently-mounted GoalDetailView registers to receive live updates
@@ -51,7 +59,7 @@ function startQuestGeneration(params: {
 
   if (_questGenStore.state === 'GENERATING') return; // already in-flight
 
-  updateQuestGenStore({ state: 'GENERATING', goalId: goal.id, todayTasks: null, error: null, pendingGoalUpdate: null, pendingFeedQuests: [] });
+  updateQuestGenStore({ state: 'GENERATING', goalId: goal.id, todayTasks: null, error: null, pendingGoalUpdate: null, pendingFeedQuests: [], pendingScheduleSlots: [] });
 
   const otherGoalTasksToday = allGoals
     .filter(g => g.id !== goal.id && g.status === 'ACTIVE')
@@ -79,6 +87,7 @@ function startQuestGeneration(params: {
       dayOfWeek: new Date().toLocaleDateString('en-US', { weekday: 'long' }),
       userCountry: playerData?.country || 'India',
       userLanguage: 'English',
+      scheduleProfile: playerData?.scheduleProfile || null,
     }),
   })
     .then(async res => {
@@ -128,7 +137,25 @@ function startQuestGeneration(params: {
         goalQuestResources: gq.resources || [],
         goalQuestSteps: gq.stepByStep || [],
         connectionToPrevious: gq.connectionToPrevious,
+        scheduledTime: gq.scheduledTime || undefined,
       }));
+
+      // Build schedule slots from quests that have scheduled times
+      const scheduleSlots = feedQuests
+        .filter(q => q.scheduledTime)
+        .map(q => ({
+          id: `sched-quest-${q.id}`,
+          startTime: q.scheduledTime!,
+          endTime: addMins(q.scheduledTime!, q.estimatedDuration || 20),
+          type: 'QUEST' as const,
+          label: q.title,
+          questId: q.id,
+          goalId: goal.id,
+          status: 'PENDING' as const,
+          isFlexible: true,
+          isCarryOver: false,
+          notifyEnabled: true,
+        }));
 
       updateQuestGenStore({
         state: 'DONE',
@@ -136,6 +163,7 @@ function startQuestGeneration(params: {
         error: null,
         pendingGoalUpdate: updatedGoal,
         pendingFeedQuests: feedQuests,
+        pendingScheduleSlots: scheduleSlots,
       });
 
       playSystemSoundEffect('PURCHASE');
@@ -173,6 +201,7 @@ interface GoalDetailViewProps {
   onUpdateGoal: (updatedGoal: Goal) => void;
   onDeleteGoal: (goalId: string) => void;
   onAddQuestToFeed?: (quest: Quest) => void;
+  onUpdateScheduleSlots?: (slots: any[]) => void;
 }
 
 export default function GoalDetailView({
@@ -183,6 +212,7 @@ export default function GoalDetailView({
   onUpdateGoal,
   onDeleteGoal,
   onAddQuestToFeed,
+  onUpdateScheduleSlots,
 }: GoalDetailViewProps) {
   // Sync state from module-level store
   const [genStore, setGenStore] = useState<QuestGenStore>(() => ({ ..._questGenStore }));
@@ -232,8 +262,13 @@ export default function GoalDetailView({
         genStore.pendingFeedQuests.forEach(q => onAddQuestToFeed(q));
       }
 
+      // Apply deferred schedule slot injection
+      if (onUpdateScheduleSlots && genStore.pendingScheduleSlots.length > 0) {
+        onUpdateScheduleSlots(genStore.pendingScheduleSlots);
+      }
+
       // Clear pending actions (already applied)
-      updateQuestGenStore({ pendingGoalUpdate: null, pendingFeedQuests: [] });
+      updateQuestGenStore({ pendingGoalUpdate: null, pendingFeedQuests: [], pendingScheduleSlots: [] });
     }
   }, [genStore.state, genStore.goalId, goal.id]); // eslint-disable-line react-hooks/exhaustive-deps
 

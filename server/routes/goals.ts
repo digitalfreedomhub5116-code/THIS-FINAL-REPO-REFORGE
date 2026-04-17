@@ -18,6 +18,19 @@ function stripMarkdown(text: string): string {
   return text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
 }
 
+function addMin(time: string, mins: number): string {
+  const [h, m] = time.split(':').map(Number);
+  const total = h * 60 + m + mins;
+  return `${String(Math.floor(total / 60) % 24).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+}
+
+function subtractMin(time: string, mins: number): string {
+  const [h, m] = time.split(':').map(Number);
+  let total = h * 60 + m - mins;
+  if (total < 0) total += 24 * 60;
+  return `${String(Math.floor(total / 60) % 24).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+}
+
 // ── POST /analyze — Step 1: Validate goal + generate interview questions ──
 router.post('/analyze', async (req: Request, res: Response) => {
   try {
@@ -243,7 +256,7 @@ router.post('/daily-quests', async (req: Request, res: Response) => {
     const authUserId = getAuthenticatedUserId(req) || 'anonymous';
 
     const ai = getAI();
-    const { goal, recentTasks, playerStats, otherGoalTasksToday, remainingMinutes, dayOfWeek } = req.body;
+    const { goal, recentTasks, playerStats, otherGoalTasksToday, remainingMinutes, dayOfWeek, scheduleProfile } = req.body;
 
     if (!goal) {
       return res.status(400).json({ error: 'Goal data is required' });
@@ -268,6 +281,50 @@ router.post('/daily-quests', async (req: Request, res: Response) => {
     const userCountry = req.body.userCountry || 'India';
     const userLanguage = req.body.userLanguage || 'English';
 
+    // ── Build schedule context if profile exists ──
+    let scheduleContext = '';
+    if (scheduleProfile) {
+      const blockedSlots: string[] = [];
+      const sp = scheduleProfile;
+
+      blockedSlots.push(`${sp.wakeUpTime}-${addMin(sp.wakeUpTime, sp.morningRoutineMin || 30)}: Morning Routine (unavailable)`);
+
+      if (sp.role === 'STUDENT') {
+        if (sp.schoolStart && sp.schoolEnd) blockedSlots.push(`${sp.schoolStart}-${sp.schoolEnd}: School/College (unavailable)`);
+        if (sp.coachingEnabled && sp.coachingStart && sp.coachingEnd) blockedSlots.push(`${sp.coachingStart}-${sp.coachingEnd}: Coaching (unavailable)`);
+      } else if (sp.role === 'PROFESSIONAL') {
+        if (sp.workStart && sp.workEnd) blockedSlots.push(`${sp.workStart}-${sp.workEnd}: Work (unavailable)`);
+      }
+
+      blockedSlots.push(`${sp.dinnerTime}-${addMin(sp.dinnerTime, 30)}: Dinner (unavailable)`);
+      const windDown = subtractMin(sp.bedtime, sp.windDownMinutes || 30);
+      blockedSlots.push(`${windDown}-${sp.bedtime}: Wind-Down (unavailable)`);
+      blockedSlots.push(`After ${sp.bedtime}: Sleep (unavailable)`);
+
+      scheduleContext = `
+=== USER'S DAILY SCHEDULE (CRITICAL — assign times to quests!) ===
+The user has set up their daily schedule. You MUST assign a specific start time to each quest.
+
+BLOCKED TIMES (DO NOT schedule quests here):
+${blockedSlots.join('\n')}
+
+PREFERENCES:
+- Preferred workout time: ${sp.preferredWorkoutTime || 'MORNING'}
+- Preferred study/focus time: ${sp.preferredStudyTime || 'AFTERNOON'}
+- User wakes at ${sp.wakeUpTime}, sleeps at ${sp.bedtime}
+
+SCHEDULING RULES:
+1. Place WORKOUT quests during the user's preferred workout time
+2. Place STUDY/READING quests during the user's preferred study time
+3. Place LIGHT tasks (revision, flashcards) in evening or near wind-down
+4. Leave 15-min gaps between consecutive quests
+5. Never schedule quests during blocked times
+6. Never schedule quests after bedtime
+
+For EACH quest, include a "scheduledTime" field in "HH:MM" format (24-hour).
+`;
+    }
+
     const prompt = `You are ForgeGuard — an elite AI MENTOR, not a syllabus generator. You create hyper-realistic, bite-sized MICRO-QUESTS that a real human can actually complete without burning out.
 
 === YOUR CORE PHILOSOPHY ===
@@ -281,7 +338,7 @@ Sample Daily Pattern for this phase: ${JSON.stringify(milestone?.sampleDailyPatt
 User Country: ${userCountry}
 User Language: ${userLanguage}
 Daily commitment for this goal: ${goal.dailyCommitmentMin || remainingMinutes || 90} min
-
+${scheduleContext}
 === CONTINUITY DATA (recent days — PICK UP WHERE THE USER LEFT OFF) ===
 ${recentContext || 'No previous data (Day 1 — start from the very beginning, absolute basics)'}
 CRITICAL: Study the recent task titles carefully. If yesterday's task was "Read pages 1-4 of Chapter 1", today MUST start from page 5. NEVER repeat content the user already covered. Track exact page numbers, exercise progressions, lesson numbers, etc.
@@ -388,7 +445,7 @@ URL RULES:
       "estimatedDuration": 20,
       "categories": ["intelligence"],
       "rank": "D",
-      "xp": 40,
+      "xp": 40,${scheduleProfile ? '\n      "scheduledTime": "15:00",' : ''}
       "reasoning": "Starting with just 4 pages to build the reading habit without overwhelm. These pages cover foundational definitions needed for all of Chemistry.",
       "connectionToPrevious": "Day 1 — starting from scratch. Tomorrow will continue from page 5.",
       "stepByStep": [

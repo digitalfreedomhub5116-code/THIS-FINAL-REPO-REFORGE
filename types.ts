@@ -483,6 +483,76 @@ export interface ReplitUser {
   profileImageUrl?: string | null;
 }
 
+// --- SCHEDULE PLANNER ---
+export type ScheduleRole = 'STUDENT' | 'PROFESSIONAL' | 'GAP_YEAR' | 'FREELANCER';
+export type PreferredWorkoutTime = 'EARLY_MORNING' | 'MORNING' | 'AFTERNOON' | 'EVENING' | 'LATE_NIGHT';
+export type PreferredStudyTime = 'MORNING' | 'AFTERNOON' | 'EVENING' | 'NIGHT';
+
+export interface ScheduleProfile {
+  role: ScheduleRole;
+
+  // Time anchors
+  wakeUpTime: string;         // "06:30"
+  bedtime: string;            // "23:30" — user's choice
+  morningRoutineMin: number;  // 30
+
+  // Role-specific blocked slots
+  schoolStart?: string;
+  schoolEnd?: string;
+  coachingEnabled?: boolean;
+  coachingStart?: string;
+  coachingEnd?: string;
+  workStart?: string;
+  workEnd?: string;
+  commuteMinutes?: number;
+  lunchBreakMinutes?: number;
+
+  // Preferences
+  preferredWorkoutTime: PreferredWorkoutTime;
+  preferredStudyTime: PreferredStudyTime;
+  dinnerTime: string;         // "20:30"
+
+  // Flexibility
+  windDownMinutes: number;    // Before sleep, default 30
+  napEnabled: boolean;
+  napDuration?: number;
+  fixedCommitments: string;   // Free text
+
+  // Weekend overrides
+  weekendDifferent: boolean;
+  weekendWakeUp?: string;
+  weekendBedtime?: string;
+
+  createdAt: number;
+  updatedAt: number;
+}
+
+export type ScheduleSlotType = 'QUEST' | 'WORKOUT' | 'BLOCKED' | 'MEAL' | 'FREE' | 'SLEEP' | 'ROUTINE';
+export type ScheduleSlotStatus = 'PENDING' | 'ACTIVE' | 'COMPLETED' | 'SKIPPED' | 'DEFERRED';
+
+export interface ScheduleSlot {
+  id: string;
+  startTime: string;          // "07:00"
+  endTime: string;            // "07:30"
+  type: ScheduleSlotType;
+  questId?: string;           // Links to Quest.id
+  goalId?: string;            // Links to Goal.id
+  label: string;
+  status: ScheduleSlotStatus;
+  isFlexible: boolean;        // Can be moved/reordered
+  isCarryOver: boolean;       // Deferred from yesterday
+  notifyEnabled?: boolean;    // Send notification 15 min before
+}
+
+export interface DailySchedule {
+  date: string;               // "2026-04-17"
+  slots: ScheduleSlot[];
+  swapsUsed: number;          // Max 2/day
+  restDayUsed: boolean;
+  adjustedAt?: number;        // If "I'm Running Late" was used
+  generatedAt: number;
+}
+
 // --- SHADOW MISSION (Long-Term Goals) ---
 export type GoalCategory = 'ACADEMIC' | 'FITNESS' | 'FINANCIAL' | 'SKILL' | 'CAREER' | 'HEALTH' | 'CREATIVE';
 export type GoalStatus = 'INTERVIEW' | 'REVIEW' | 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'ABANDONED';
@@ -694,4 +764,8 @@ export interface PlayerData {
 
   // Shadow Mission (Long-Term Goals)
   goals?: Goal[];
+
+  // Schedule Planner
+  scheduleProfile?: ScheduleProfile;
+  dailySchedules?: DailySchedule[];
 }

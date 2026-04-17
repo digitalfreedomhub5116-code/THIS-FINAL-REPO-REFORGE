@@ -55,6 +55,7 @@ interface QuestsViewProps {
   onUpdateGoals?: (goals: Goal[]) => void;
   onDeleteGoal?: (goalId: string) => void;
   onDeductGold?: (amount: number) => void;
+  onUpdateScheduleSlots?: (slots: any[]) => void;
 }
 
 const RANK_COLORS: Record<Rank, { bg: string; text: string; border: string; glow: string }> = {
@@ -289,7 +290,7 @@ const QuestsView: React.FC<QuestsViewProps> = ({
   tutorialStep, onTutorialAction, onTutorialAnalysisFail, playerData, onToggleNav, onShowPact,
   onStartTracking, onStopTracking, onConsumeMana, onRefundMana,
   isQuestOnboarding, onTutorialManaOut,
-  goals, onUpdateGoals, onDeleteGoal, onDeductGold,
+  goals, onUpdateGoals, onDeleteGoal, onDeductGold, onUpdateScheduleSlots,
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<'QUESTS' | 'GOALS'>('QUESTS');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -551,6 +552,7 @@ const QuestsView: React.FC<QuestsViewProps> = ({
           onRefundMana={onRefundMana}
           onDeductGold={onDeductGold}
           onAddQuestToFeed={addQuest}
+          onUpdateScheduleSlots={onUpdateScheduleSlots}
         />
       )}
 

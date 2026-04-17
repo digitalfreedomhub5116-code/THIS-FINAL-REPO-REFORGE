@@ -49,6 +49,7 @@ async function startServer() {
   const auditRouter = await import('./routes/audit.js');
   const reportsRouter = await import('./routes/reports.js');
   const goalsRouter = await import('./routes/goals.js');
+  const scheduleRouter = await import('./routes/schedule.js');
 
   const app = express();
   const PORT = process.env.PORT ? parseInt(process.env.PORT) : 8001;
@@ -196,6 +197,7 @@ async function startServer() {
   app.use('/api/reports', generalRateLimit, reportsRouter.default);
   app.use('/api/audit', generalRateLimit, auditRouter.default);
   app.use('/api/goals', aiRateLimit, goalsRouter.default);
+  app.use('/api/schedule', aiRateLimit, scheduleRouter.default);
   app.use('/api/auth/local', generalRateLimit, localAuthRouter.default);
 
   // Google OAuth setup

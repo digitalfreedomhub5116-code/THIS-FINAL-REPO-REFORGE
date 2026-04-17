@@ -333,3 +333,63 @@ export async function cancelAllNotifications(): Promise<void> {
     console.warn('[Notif] cancelAllNotifications failed:', err);
   }
 }
+
+// ─── Schedule Slot Reminder (15 min before a scheduled quest) ─
+
+const SCHEDULE_NOTIF_BASE = 8000;
+
+const SCHEDULE_REMINDER_MESSAGES = [
+  'Your next quest starts in 15 minutes. Prepare yourself, Hunter.',
+  'Time check — "{title}" begins in 15 minutes.',
+  'The System has scheduled "{title}" next. 15 minutes remain.',
+  'Dusk says: "{title}" in 15 min. No excuses.',
+  '⚡ "{title}" starting soon. Get ready.',
+];
+
+export async function scheduleSlotReminder(
+  slotId: string,
+  slotLabel: string,
+  startTimeStr: string, // "15:00"
+): Promise<void> {
+  if (!isNative()) return;
+  try {
+    const notifId = SCHEDULE_NOTIF_BASE + hashCode(slotId);
+
+    // Parse the slot time for today
+    const [h, m] = startTimeStr.split(':').map(Number);
+    const reminderDate = new Date();
+    reminderDate.setHours(h, m, 0, 0);
+    // Subtract 15 minutes
+    reminderDate.setMinutes(reminderDate.getMinutes() - 15);
+
+    // Don't schedule if the reminder time is already in the past
+    if (reminderDate <= new Date()) return;
+
+    const msg = pick(SCHEDULE_REMINDER_MESSAGES).replace(/\{title\}/g, slotLabel);
+
+    await LocalNotifications.schedule({
+      notifications: [{
+        id: notifId,
+        title: '📋 Upcoming Quest',
+        body: msg,
+        schedule: { at: reminderDate, allowWhileIdle: true },
+        smallIcon: 'ic_stat_notification',
+        channelId: 'reforge_quests',
+      }],
+    });
+    console.log(`[Notif] Schedule reminder → ${slotLabel} at ${reminderDate.toLocaleTimeString()}`);
+  } catch (err) {
+    console.warn('[Notif] scheduleSlotReminder failed:', err);
+  }
+}
+
+export async function cancelScheduleSlotReminder(slotId: string): Promise<void> {
+  if (!isNative()) return;
+  try {
+    const notifId = SCHEDULE_NOTIF_BASE + hashCode(slotId);
+    await LocalNotifications.cancel({ notifications: [{ id: notifId }] });
+    console.log(`[Notif] Schedule reminder cancelled for ${slotId}`);
+  } catch (err) {
+    console.warn('[Notif] cancelScheduleSlotReminder failed:', err);
+  }
+}

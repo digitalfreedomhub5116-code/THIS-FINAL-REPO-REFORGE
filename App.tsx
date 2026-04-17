@@ -56,7 +56,7 @@ import { useSensors } from './hooks/useSensors';
 
 import { useTheme, ThemeContext } from './hooks/useTheme';
 
-import { Tab, CoreStats, HealthProfile, Outfit, DbOutfit, TierLevel, PlayerData, Quest, DailyReward, MealType } from './types';
+import { Tab, CoreStats, HealthProfile, Outfit, DbOutfit, TierLevel, PlayerData, Quest, DailyReward, MealType, ScheduleProfile } from './types';
 
 import { App as CapApp } from '@capacitor/app';
 
@@ -199,6 +199,10 @@ const FeatureUnlockCinematic = lazy(() => import('./components/FeatureUnlockCine
 const Level5Tutorial = lazy(() => import('./components/Level5Tutorial'));
 
 const Level10Tutorial = lazy(() => import('./components/Level10Tutorial'));
+
+const ScheduleSetupFlow = lazy(() => import('./components/ScheduleSetupFlow'));
+
+const TodayProtocol = lazy(() => import('./components/TodayProtocol'));
 
 
 
@@ -697,6 +701,9 @@ const App: React.FC = () => {
   const [showLevel10Tutorial, setShowLevel10Tutorial] = useState(false);
 
   const [level10TutStep, setLevel10TutStep] = useState(1);
+
+  // ── Schedule Planner ──
+  const [showScheduleSetup, setShowScheduleSetup] = useState(false);
 
 
 
@@ -1869,6 +1876,97 @@ const App: React.FC = () => {
       } catch (e) { console.warn('[Goals] Failed to delete from DB:', e); }
     }
   }, [player.userId]);
+
+  // ── Schedule Profile save handler ──
+  const handleSaveScheduleProfile = useCallback((profile: ScheduleProfile) => {
+    setPlayer(prev => ({ ...prev, scheduleProfile: profile }));
+    setShowScheduleSetup(false);
+    addNotification('Schedule Protocol activated. Your day is now optimized.', 'SUCCESS');
+  }, [addNotification]);
+
+  // ── Schedule slot action handler (skip/defer from TodayProtocol) ──
+  // FIX: No "COMPLETE" action — quests must go through ForgeGuard in QuestsView
+  const handleScheduleSlotAction = useCallback((slotId: string, action: 'SKIP' | 'DEFER', updatedSlots: any[]) => {
+    const today = new Date().toISOString().split('T')[0];
+    setPlayer(prev => {
+      const schedules = [...(prev.dailySchedules || [])];
+      const todayIdx = schedules.findIndex(s => s.date === today);
+
+      // Anti-cheat: enforce limits before applying
+      const currentSlots = todayIdx >= 0 ? schedules[todayIdx].slots : updatedSlots;
+      const skips = currentSlots.filter((s: any) => s.status === 'SKIPPED').length;
+      const defers = currentSlots.filter((s: any) => s.status === 'DEFERRED').length;
+      if (action === 'SKIP' && skips >= 2) return prev;
+      if (action === 'DEFER' && defers >= 2) return prev;
+
+      if (todayIdx >= 0) {
+        schedules[todayIdx] = { ...schedules[todayIdx], slots: updatedSlots };
+      } else {
+        schedules.push({ date: today, slots: updatedSlots, swapsUsed: 0, restDayUsed: false, generatedAt: Date.now() });
+      }
+      return { ...prev, dailySchedules: schedules };
+    });
+    if (action === 'SKIP') {
+      addNotification('Quest skipped — costs 10 XP.', 'WARNING');
+    } else if (action === 'DEFER') {
+      addNotification('Quest deferred to tomorrow. Max 2/day.', 'SYSTEM');
+    }
+  }, [addNotification]);
+
+  // ── Schedule notification toggle handler ──
+  const handleScheduleNotifyToggle = useCallback((_slotId: string, _enabled: boolean, updatedSlots: any[]) => {
+    const today = new Date().toISOString().split('T')[0];
+    setPlayer(prev => {
+      const schedules = [...(prev.dailySchedules || [])];
+      const todayIdx = schedules.findIndex(s => s.date === today);
+      if (todayIdx >= 0) {
+        schedules[todayIdx] = { ...schedules[todayIdx], slots: updatedSlots };
+      } else {
+        schedules.push({ date: today, slots: updatedSlots, swapsUsed: 0, restDayUsed: false, generatedAt: Date.now() });
+      }
+      return { ...prev, dailySchedules: schedules };
+    });
+  }, []);
+
+  // ── Schedule reorder handler (drag-to-reorder flexible slots) ──
+  const handleScheduleReorder = useCallback((updatedSlots: any[]) => {
+    const today = new Date().toISOString().split('T')[0];
+    setPlayer(prev => {
+      const schedules = [...(prev.dailySchedules || [])];
+      const todayIdx = schedules.findIndex(s => s.date === today);
+      if (todayIdx >= 0) {
+        schedules[todayIdx] = { ...schedules[todayIdx], slots: updatedSlots };
+      } else {
+        schedules.push({ date: today, slots: updatedSlots, swapsUsed: 0, restDayUsed: false, generatedAt: Date.now() });
+      }
+      return { ...prev, dailySchedules: schedules };
+    });
+  }, []);
+
+  // ── Merge quest-generated schedule slots into the daily schedule ──
+  const handleMergeQuestScheduleSlots = useCallback((newSlots: any[]) => {
+    if (!newSlots?.length) return;
+    const today = new Date().toISOString().split('T')[0];
+    const sortByTime = (a: any, b: any) => {
+      const [ah, am] = a.startTime.split(':').map(Number);
+      const [bh, bm] = b.startTime.split(':').map(Number);
+      return (ah * 60 + am) - (bh * 60 + bm);
+    };
+    setPlayer(prev => {
+      const schedules = [...(prev.dailySchedules || [])];
+      const todayIdx = schedules.findIndex(s => s.date === today);
+      if (todayIdx >= 0) {
+        const existing = schedules[todayIdx].slots.filter(
+          (s: any) => s.type !== 'QUEST' || !newSlots.some((ns: any) => ns.goalId === s.goalId)
+        );
+        const merged = [...existing, ...newSlots].sort(sortByTime);
+        schedules[todayIdx] = { ...schedules[todayIdx], slots: merged };
+      } else {
+        schedules.push({ date: today, slots: newSlots.sort(sortByTime), swapsUsed: 0, restDayUsed: false, generatedAt: Date.now() });
+      }
+      return { ...prev, dailySchedules: schedules };
+    });
+  }, []);
 
   // Deferred daily login check — persistent guard via localStorage
 
@@ -4309,6 +4407,49 @@ const App: React.FC = () => {
 
 
 
+              {/* Today's Protocol — Schedule Timeline */}
+              {player.scheduleProfile ? (
+                <Suspense fallback={<SkeletonUpcomingQuests />}>
+                  <ErrorBoundary fallbackLabel="Schedule failed">
+                    <TodayProtocol
+                      scheduleProfile={player.scheduleProfile}
+                      dailySchedule={player.dailySchedules?.find(s => s.date === new Date().toISOString().split('T')[0])}
+                      goals={player.goals || []}
+                      onNavigateToQuests={() => setActiveTab('QUESTS')}
+                      onSetupSchedule={() => setShowScheduleSetup(true)}
+                      onSlotAction={handleScheduleSlotAction}
+                      onToggleNotify={handleScheduleNotifyToggle}
+                      onReorderSlots={handleScheduleReorder}
+                    />
+                  </ErrorBoundary>
+                </Suspense>
+              ) : (player.goals || []).length > 0 ? (
+                <button
+                  onClick={() => setShowScheduleSetup(true)}
+                  className="w-full rounded-2xl p-4 text-left transition-all hover:opacity-90"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(34,211,238,0.06), rgba(6,182,212,0.03))',
+                    border: '1px solid rgba(34,211,238,0.12)',
+                  }}
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-9 h-9 rounded-xl flex items-center justify-center"
+                      style={{ background: 'rgba(34,211,238,0.1)' }}
+                    >
+                      <span className="text-lg">⚡</span>
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-xs font-black text-white uppercase tracking-wider">Setup Daily Protocol</div>
+                      <div className="text-[9px] text-gray-500 font-mono mt-0.5">
+                        Tell us your schedule to get AI-optimized time slots for your goals
+                      </div>
+                    </div>
+                    <div className="text-cyan-400 text-xs font-mono">→</div>
+                  </div>
+                </button>
+              ) : null}
+
               {/* Upcoming Active Quests */}
 
               <Suspense fallback={<SkeletonUpcomingQuests />}>
@@ -4470,6 +4611,8 @@ const App: React.FC = () => {
                     onDeleteGoal={handleDeleteGoal}
 
                     onDeductGold={(amount) => setPlayer(prev => ({ ...prev, gold: Math.max(0, prev.gold - amount) }))}
+
+                    onUpdateScheduleSlots={handleMergeQuestScheduleSlots}
 
                   />
 
@@ -5079,6 +5222,21 @@ const App: React.FC = () => {
 
           )}
 
+        </AnimatePresence>
+
+
+
+        {/* ── Schedule Setup Flow Modal ── */}
+        <AnimatePresence>
+          {showScheduleSetup && (
+            <Suspense fallback={null}>
+              <ScheduleSetupFlow
+                existingProfile={player.scheduleProfile}
+                onComplete={handleSaveScheduleProfile}
+                onClose={() => setShowScheduleSetup(false)}
+              />
+            </Suspense>
+          )}
         </AnimatePresence>
 
 

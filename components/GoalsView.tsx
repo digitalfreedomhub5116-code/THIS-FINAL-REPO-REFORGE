@@ -15,6 +15,7 @@ interface GoalsViewProps {
   onRefundMana?: (amount: number) => void;
   onDeductGold?: (amount: number) => void;
   onAddQuestToFeed?: (quest: Quest) => void;
+  onUpdateScheduleSlots?: (slots: any[]) => void;
 }
 
 export default function GoalsView({
@@ -26,6 +27,7 @@ export default function GoalsView({
   onRefundMana,
   onDeductGold,
   onAddQuestToFeed,
+  onUpdateScheduleSlots,
 }: GoalsViewProps) {
   const [showCreate, setShowCreate] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
@@ -63,6 +65,7 @@ export default function GoalsView({
         onUpdateGoal={handleUpdateGoal}
         onDeleteGoal={handleDeleteGoal}
         onAddQuestToFeed={onAddQuestToFeed}
+        onUpdateScheduleSlots={onUpdateScheduleSlots}
       />
     );
   }
