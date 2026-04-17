@@ -49,6 +49,7 @@ export default function GoalDetailView({
   const [isGenerating, setIsGenerating] = useState(false);
   const [todayTasks, setTodayTasks] = useState<GoalDailyTask | null>(null);
   const [showConfirmAbandon, setShowConfirmAbandon] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
 
   const rankColor = RANK_COLORS[goal.goalRank] || RANK_COLORS.D;
   const currentDay = Math.max(1, Math.floor((Date.now() - goal.startDate) / (1000 * 60 * 60 * 24)) + 1);
@@ -70,6 +71,7 @@ export default function GoalDetailView({
   const generateDailyQuests = useCallback(async () => {
     if (isGenerating) return;
     setIsGenerating(true);
+    setGenerateError(null);
 
     try {
       const otherGoalTasksToday = allGoals
@@ -102,7 +104,10 @@ export default function GoalDetailView({
         }),
       });
 
-      if (!res.ok) throw new Error('Failed to generate quests');
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        throw new Error(errBody.error || `Server error (${res.status})`);
+      }
       const data = await res.json();
 
       const newDailyTask: GoalDailyTask = {
@@ -154,8 +159,9 @@ export default function GoalDetailView({
       }
 
       playSystemSoundEffect('PURCHASE');
-    } catch (err) {
+    } catch (err: any) {
       console.error('[GoalDetail] Failed to generate daily quests:', err);
+      setGenerateError(err.message || 'Failed to generate quests. Please try again.');
     } finally {
       setIsGenerating(false);
     }
@@ -279,6 +285,22 @@ export default function GoalDetailView({
             <div className="flex items-center justify-center py-6 gap-2">
               <Loader2 className="w-5 h-5 text-cyan-400 animate-spin" />
               <span className="text-xs text-gray-400 font-mono">Generating resource-rich quests with AI...</span>
+            </div>
+          )}
+
+          {generateError && !isGenerating && !todayTasks && (
+            <div className="rounded-xl p-3 mb-2" style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)' }}>
+              <div className="flex items-start gap-2 mb-2">
+                <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                <p className="text-[12px] text-red-300 font-mono leading-relaxed">{generateError}</p>
+              </div>
+              <button
+                onClick={generateDailyQuests}
+                className="w-full py-2.5 rounded-lg text-xs font-bold text-white uppercase tracking-wider mt-1"
+                style={{ background: 'rgba(239,68,68,0.15)' }}
+              >
+                Retry Generation
+              </button>
             </div>
           )}
 

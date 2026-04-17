@@ -358,17 +358,16 @@ Weekly Rest Day: ${goal.weeklyRestDay || 'Sunday'}
   "progressUpdate": "Phase X, Day Y. Progress summary."
 }`;
 
-    // Use Gemini 2.5 Pro with Google Search grounding for resource-rich quests
+    // Use Gemini 2.0 Flash for daily quest generation
     const model = ai.getGenerativeModel({
-      model: 'gemini-2.5-pro-preview-05-06',
-      tools: [{ googleSearchRetrieval: {} } as any],
+      model: 'gemini-2.0-flash',
     });
     const result = await model.generateContent(prompt);
     const text = result.response.text().trim();
 
     logUsage({
       route: 'goals/daily-quests',
-      model: 'gemini-2.5-pro-preview-05-06',
+      model: 'gemini-2.0-flash',
       inputTokens: result.response.usageMetadata?.promptTokenCount ?? 0,
       outputTokens: result.response.usageMetadata?.candidatesTokenCount ?? 0,
       success: true,
