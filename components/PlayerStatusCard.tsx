@@ -6,6 +6,7 @@ import {
 import { ChevronLeft, ChevronRight, Terminal, Zap, X, Layers } from 'lucide-react';
 import { PlayerData, CoreStats, Outfit, HistoryEntry } from '../types';
 import MentorThoughtBox from './MentorThoughtBox';
+import ForgeGuardWidget from './ForgeGuardWidget';
 
 // ── Tiered Scaling System ──
 const TIER_SIZE = 40;
@@ -1093,6 +1094,12 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
           </div>
         );
       })()}
+
+      {/* --- FORGEGUARD INTEGRITY: Strikes counter (below mana, above Dusk) --- */}
+      <ForgeGuardWidget
+        cheatStrikes={player.cheatStrikes ?? 0}
+        totalStrikesEver={player.totalStrikesEver}
+      />
 
       {/* --- BOTTOM SECTION: TALK TO DUSK BUTTON --- */}
       <div className="w-full p-3 bg-[#0A0A0F] border-t border-white/5 z-20 relative shrink-0">
