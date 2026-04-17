@@ -3028,6 +3028,8 @@ const App: React.FC = () => {
 
             userId={player.userId}
 
+            username={player.username || player.name}
+
             onAdminUnban={() => {
 
               setPlayer(prev => ({ ...prev, isBanned: false, cheatStrikes: 0 }));

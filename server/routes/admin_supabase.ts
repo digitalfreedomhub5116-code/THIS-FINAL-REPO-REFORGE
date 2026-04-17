@@ -665,6 +665,108 @@ router.get('/usage', async (req: Request, res: Response) => {
 
 });
 
+// ── Ban Appeals ──
+
+// POST /appeals — banned user submits an appeal (no auth required since they're banned)
+router.post('/appeals', async (req: Request, res: Response) => {
+  try {
+    const { userId, username, message } = req.body;
+    if (!userId || !message || message.trim().length < 20) {
+      return res.status(400).json({ error: 'userId and message (min 20 chars) required' });
+    }
+
+    // Check for existing pending appeal
+    const { data: existing } = await (supabaseServer() as any)
+      .from('ban_appeals')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('status', 'pending')
+      .limit(1);
+
+    if (existing && existing.length > 0) {
+      return res.status(409).json({ error: 'You already have a pending appeal. Please wait for review.' });
+    }
+
+    const { data, error } = await (supabaseServer() as any)
+      .from('ban_appeals')
+      .insert({
+        user_id: userId,
+        username: username || 'Unknown',
+        message: message.trim().substring(0, 500),
+        status: 'pending',
+      })
+      .select('id, created_at')
+      .single();
+
+    if (error) throw error;
+    return res.json({ success: true, appealId: data.id });
+  } catch (err: any) {
+    console.error('[Appeals] Submit error:', err);
+    return res.status(500).json({ error: 'Failed to submit appeal' });
+  }
+});
+
+// GET /appeals — admin fetches all appeals
+router.get('/appeals', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+  try {
+    const { data, error } = await (supabaseServer() as any)
+      .from('ban_appeals')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(100);
+
+    if (error) throw error;
+    return res.json(data || []);
+  } catch (err) {
+    console.error('[Appeals] Fetch error:', err);
+    return res.status(500).json({ error: 'Failed to fetch appeals' });
+  }
+});
+
+// POST /appeals/:id/resolve — admin approves or denies an appeal
+router.post('/appeals/:id/resolve', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+  try {
+    const { status: newStatus, adminNote } = req.body;
+    if (!['approved', 'denied'].includes(newStatus)) {
+      return res.status(400).json({ error: 'status must be approved or denied' });
+    }
+
+    // Get the appeal to find the user_id
+    const { data: appeal, error: fetchErr } = await (supabaseServer() as any)
+      .from('ban_appeals')
+      .select('user_id')
+      .eq('id', req.params.id)
+      .single();
+
+    if (fetchErr || !appeal) return res.status(404).json({ error: 'Appeal not found' });
+
+    // Update appeal status
+    await (supabaseServer() as any)
+      .from('ban_appeals')
+      .update({
+        status: newStatus,
+        admin_note: adminNote || null,
+        resolved_at: new Date().toISOString(),
+      })
+      .eq('id', req.params.id);
+
+    // If approved, unban the user (reset cheat_strikes to 0)
+    if (newStatus === 'approved') {
+      await (supabaseServer() as any)
+        .from('players')
+        .update({ cheat_strikes: 0 })
+        .eq('supabase_id', appeal.user_id);
+    }
+
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('[Appeals] Resolve error:', err);
+    return res.status(500).json({ error: 'Failed to resolve appeal' });
+  }
+});
+
 // Store outfit management
 router.get('/store/outfits', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;

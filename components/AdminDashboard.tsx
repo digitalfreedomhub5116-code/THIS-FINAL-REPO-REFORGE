@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { LogOut, Save, RefreshCw, Video, Link, Search, Activity, Plus, Edit3, Trash2, Star, Dumbbell, BookOpen, Image, ToggleLeft, ToggleRight, Flag, ChevronDown, ChevronUp, CheckSquare, XSquare } from 'lucide-react';
+import { LogOut, Save, RefreshCw, Video, Link, Search, Activity, Plus, Edit3, Trash2, Star, Dumbbell, BookOpen, Image, ToggleLeft, ToggleRight, Flag, ChevronDown, ChevronUp, CheckSquare, XSquare, ShieldAlert } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { WorkoutDay } from '../types';
 import { useSystem, isEmbed } from '../hooks/useSystem';
@@ -65,7 +65,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
   const { updateFocusVideos, updateCustomProtocols, player } = useSystem();
   
   // --- STATE ---
-  const [activeTab, setActiveTab] = useState<'PROTOCOLS' | 'REGIONS' | 'USERS' | 'STORE' | 'USAGE' | 'REPORTS'>('PROTOCOLS');
+  const [activeTab, setActiveTab] = useState<'PROTOCOLS' | 'REGIONS' | 'USERS' | 'STORE' | 'USAGE' | 'REPORTS' | 'APPEALS'>('PROTOCOLS');
   const [selectedCategory, _setSelectedCategory] = useState<ProtocolCategory>('GYM_PPL');
   const [selectedWeek, _setSelectedWeek] = useState<number>(1);
   const [selectedDayIdx, _setSelectedDayIdx] = useState<number>(0);
@@ -93,6 +93,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
   const [reports, setReports] = useState<any[]>([]);
   const [reportsLoading, setReportsLoading] = useState(false);
   const [expandedReportId, setExpandedReportId] = useState<number | null>(null);
+
+  // Appeals State
+  const [appeals, setAppeals] = useState<any[]>([]);
+  const [appealsLoading, setAppealsLoading] = useState(false);
+  const [expandedAppealId, setExpandedAppealId] = useState<string | null>(null);
+  const [appealAdminNote, setAppealAdminNote] = useState<Record<string, string>>({});
 
   // Usage State
   const [usageData, setUsageData] = useState<any>(null);
@@ -350,11 +356,35 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
       } catch (err) { console.error('Resolve report error:', err); }
   };
 
+  const fetchAppeals = async () => {
+      setAppealsLoading(true);
+      try {
+          const res = await fetch(`${API_BASE}/api/admin/appeals`, {
+              headers: { 'Authorization': `Bearer ${adminToken}` },
+          });
+          if (res.ok) setAppeals(await res.json());
+      } catch (err) { console.error('Appeals fetch error:', err); }
+      finally { setAppealsLoading(false); }
+  };
+
+  const resolveAppeal = async (id: string, status: 'approved' | 'denied') => {
+      try {
+          await fetch(`${API_BASE}/api/admin/appeals/${id}/resolve`, {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${adminToken}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ status, adminNote: appealAdminNote[id] || '' }),
+          });
+          setAppeals(prev => prev.map(a => a.id === id ? { ...a, status, resolved_at: new Date().toISOString() } : a));
+          setExpandedAppealId(null);
+      } catch (err) { console.error('Resolve appeal error:', err); }
+  };
+
   useEffect(() => { 
       if (activeTab === 'USERS') fetchUsers();
       if (activeTab === 'STORE') { fetchStoreOutfits(); fetchBanners(); }
       if (activeTab === 'USAGE') fetchUsage(usagePeriod);
       if (activeTab === 'REPORTS') fetchReports();
+      if (activeTab === 'APPEALS') fetchAppeals();
   }, [activeTab]);
 
   useEffect(() => {
@@ -546,6 +576,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
                             <button onClick={() => setActiveTab('STORE')} className={`text-[10px] font-bold tracking-widest transition-colors ${activeTab === 'STORE' ? 'text-yellow-400' : 'text-gray-600 hover:text-white'}`}>[ STORE ]</button>
                             <button onClick={() => setActiveTab('USAGE')} className={`text-[10px] font-bold tracking-widest transition-colors ${activeTab === 'USAGE' ? 'text-emerald-400' : 'text-gray-600 hover:text-white'}`}>[ USAGE ]</button>
                             <button onClick={() => setActiveTab('REPORTS')} className={`text-[10px] font-bold tracking-widest transition-colors ${activeTab === 'REPORTS' ? 'text-red-400' : 'text-gray-600 hover:text-white'}`}>[ REPORTS{reports.filter(r => r.status === 'pending').length > 0 ? ` (${reports.filter(r => r.status === 'pending').length})` : ''} ]</button>
+                            <button onClick={() => setActiveTab('APPEALS')} className={`text-[10px] font-bold tracking-widest transition-colors ${activeTab === 'APPEALS' ? 'text-orange-400' : 'text-gray-600 hover:text-white'}`}>[ APPEALS{appeals.filter(a => a.status === 'pending').length > 0 ? ` (${appeals.filter(a => a.status === 'pending').length})` : ''} ]</button>
                         </div>
                     </div>
                 </div>
@@ -1601,6 +1632,136 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
                                                       >
                                                           <XSquare size={12} /> Dismiss
                                                       </button>
+                                                  </div>
+                                              )}
+                                          </div>
+                                      )}
+                                  </div>
+                              );
+                          })}
+                      </div>
+                  )}
+              </div>
+          )}
+
+          {/* ── APPEALS TAB ── */}
+          {activeTab === 'APPEALS' && (
+              <div className="space-y-4 animate-in fade-in duration-500">
+                  <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                          <ShieldAlert size={16} className="text-orange-400" />
+                          <h2 className="text-white font-black text-sm uppercase tracking-widest">Ban Appeals</h2>
+                          <span className="text-[9px] px-2 py-0.5 rounded-full bg-orange-950/50 text-orange-400 font-black border border-orange-900/30">
+                              {appeals.filter(a => a.status === 'pending').length} pending
+                          </span>
+                      </div>
+                      <button onClick={fetchAppeals} disabled={appealsLoading} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-900 border border-gray-800 text-gray-400 hover:text-white text-[10px] font-black tracking-widest uppercase transition-all disabled:opacity-50">
+                          <RefreshCw size={11} className={appealsLoading ? 'animate-spin' : ''} /> REFRESH
+                      </button>
+                  </div>
+
+                  {appealsLoading ? (
+                      <div className="text-center py-20 text-gray-600 font-mono text-xs">Loading appeals...</div>
+                  ) : appeals.length === 0 ? (
+                      <div className="text-center py-20 text-gray-600 font-mono text-xs">No ban appeals found.</div>
+                  ) : (
+                      <div className="space-y-2">
+                          {appeals.map((appeal: any) => {
+                              const isExpanded = expandedAppealId === appeal.id;
+                              const statusColor = appeal.status === 'pending' ? '#f97316' : appeal.status === 'approved' ? '#4ade80' : '#ef4444';
+                              return (
+                                  <div key={appeal.id} className="bg-gray-900/40 border border-gray-800 rounded-xl overflow-hidden">
+                                      <div
+                                          className="flex items-center gap-3 p-4 cursor-pointer hover:bg-white/[0.02] transition-colors"
+                                          onClick={() => setExpandedAppealId(isExpanded ? null : appeal.id)}
+                                      >
+                                          <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${statusColor}15`, border: `1px solid ${statusColor}40` }}>
+                                              <ShieldAlert size={13} style={{ color: statusColor }} />
+                                          </div>
+                                          <div className="flex-1 min-w-0">
+                                              <div className="flex items-center gap-2 flex-wrap">
+                                                  <span className="text-[11px] font-black text-white">{appeal.username || 'Unknown'}</span>
+                                                  <span className="text-[9px] text-gray-600 font-mono">{appeal.user_id?.substring(0, 8)}...</span>
+                                              </div>
+                                              <div className="text-[10px] text-gray-500 font-mono mt-0.5 truncate">{appeal.message?.substring(0, 80)}{appeal.message?.length > 80 ? '...' : ''}</div>
+                                          </div>
+                                          <span className="text-[8px] px-2 py-1 rounded font-black uppercase tracking-widest flex-shrink-0" style={{ background: `${statusColor}18`, color: statusColor, border: `1px solid ${statusColor}35` }}>
+                                              {appeal.status}
+                                          </span>
+                                          <span className="text-[8px] text-gray-600 font-mono flex-shrink-0">
+                                              {new Date(appeal.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                                          </span>
+                                          {isExpanded ? <ChevronUp size={14} className="text-gray-600 flex-shrink-0" /> : <ChevronDown size={14} className="text-gray-600 flex-shrink-0" />}
+                                      </div>
+
+                                      {isExpanded && (
+                                          <div className="border-t border-gray-800 p-4 space-y-4 bg-black/30">
+                                              {/* Full message */}
+                                              <div>
+                                                  <div className="text-[9px] text-gray-600 font-mono uppercase tracking-widest mb-2">Full Appeal Message</div>
+                                                  <div className="bg-gray-900/60 border border-gray-800 rounded-lg p-4 text-xs text-gray-300 font-mono leading-relaxed whitespace-pre-wrap">
+                                                      {appeal.message}
+                                                  </div>
+                                              </div>
+
+                                              {/* User info */}
+                                              <div className="grid grid-cols-2 gap-3">
+                                                  <div className="bg-gray-900/60 rounded-lg px-3 py-2 border border-gray-800">
+                                                      <div className="text-[8px] text-gray-500 font-mono uppercase tracking-widest">User ID</div>
+                                                      <div className="text-[10px] font-mono text-white mt-0.5 break-all">{appeal.user_id}</div>
+                                                  </div>
+                                                  <div className="bg-gray-900/60 rounded-lg px-3 py-2 border border-gray-800">
+                                                      <div className="text-[8px] text-gray-500 font-mono uppercase tracking-widest">Submitted</div>
+                                                      <div className="text-[10px] font-mono text-white mt-0.5">{new Date(appeal.created_at).toLocaleString()}</div>
+                                                  </div>
+                                              </div>
+
+                                              {/* Admin note + actions */}
+                                              {appeal.status === 'pending' && (
+                                                  <div className="space-y-3">
+                                                      <div>
+                                                          <div className="text-[9px] text-gray-600 font-mono uppercase tracking-widest mb-1.5">Admin Note (optional)</div>
+                                                          <input
+                                                              value={appealAdminNote[appeal.id] || ''}
+                                                              onChange={e => setAppealAdminNote(prev => ({ ...prev, [appeal.id]: e.target.value }))}
+                                                              placeholder="Add a note for this decision..."
+                                                              className="w-full bg-black border border-gray-800 rounded-lg px-3 py-2 text-xs text-white font-mono outline-none focus:border-gray-600 placeholder-gray-700"
+                                                          />
+                                                      </div>
+                                                      <div className="flex gap-2">
+                                                          <button
+                                                              onClick={() => resolveAppeal(appeal.id, 'approved')}
+                                                              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all hover:brightness-110"
+                                                              style={{ background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.25)', color: '#4ade80' }}
+                                                          >
+                                                              <CheckSquare size={12} /> Approve & Unban
+                                                          </button>
+                                                          <button
+                                                              onClick={() => resolveAppeal(appeal.id, 'denied')}
+                                                              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all hover:brightness-110"
+                                                              style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: '#ef4444' }}
+                                                          >
+                                                              <XSquare size={12} /> Deny Appeal
+                                                          </button>
+                                                      </div>
+                                                  </div>
+                                              )}
+
+                                              {/* Resolved info */}
+                                              {appeal.status !== 'pending' && (
+                                                  <div className="bg-gray-900/60 border border-gray-800 rounded-lg p-3">
+                                                      <div className="flex items-center gap-2">
+                                                          <span className="text-[9px] font-mono text-gray-500 uppercase tracking-widest">Decision:</span>
+                                                          <span className={`text-[10px] font-black uppercase ${appeal.status === 'approved' ? 'text-green-400' : 'text-red-400'}`}>
+                                                              {appeal.status === 'approved' ? '✓ APPROVED & UNBANNED' : '✗ DENIED'}
+                                                          </span>
+                                                      </div>
+                                                      {appeal.admin_note && (
+                                                          <div className="text-[10px] text-gray-400 font-mono mt-1">Note: {appeal.admin_note}</div>
+                                                      )}
+                                                      {appeal.resolved_at && (
+                                                          <div className="text-[9px] text-gray-600 font-mono mt-1">Resolved: {new Date(appeal.resolved_at).toLocaleString()}</div>
+                                                      )}
                                                   </div>
                                               )}
                                           </div>
