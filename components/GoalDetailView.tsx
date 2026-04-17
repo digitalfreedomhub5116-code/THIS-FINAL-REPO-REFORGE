@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Calendar, Clock, Target, Flame, TrendingUp, Pause, Play, Trash2, Loader2, CheckCircle, Circle, AlertTriangle, ExternalLink, BookOpen, Youtube, Search, ChevronDown, ChevronUp } from 'lucide-react';
 import { Goal, GoalDailyTask, GoalQuest, GoalQuestResource, PlayerData, Quest, Rank } from '../types';
@@ -10,6 +10,144 @@ const RANK_COLORS: Record<string, string> = {
   E: '#9ca3af', D: '#fb923c', C: '#facc15', B: '#4ade80', A: '#22d3ee', S: '#c084fc',
   UNRANKED: '#6b7280',
 };
+
+// ── Module-level quest generation store (survives tab switches / component remounts) ──
+interface QuestGenStore {
+  state: 'IDLE' | 'GENERATING' | 'DONE' | 'ERROR';
+  goalId: string | null;
+  todayTasks: GoalDailyTask | null;
+  error: string | null;
+  // Deferred actions: queued data that needs to be applied when component remounts
+  pendingGoalUpdate: Goal | null;
+  pendingFeedQuests: Quest[];
+}
+
+const _questGenStore: QuestGenStore = {
+  state: 'IDLE',
+  goalId: null,
+  todayTasks: null,
+  error: null,
+  pendingGoalUpdate: null,
+  pendingFeedQuests: [],
+};
+
+// Callback the currently-mounted GoalDetailView registers to receive live updates
+let _onQuestGenUpdate: ((s: QuestGenStore) => void) | null = null;
+
+function updateQuestGenStore(patch: Partial<QuestGenStore>) {
+  Object.assign(_questGenStore, patch);
+  _onQuestGenUpdate?.({ ..._questGenStore });
+}
+
+// Module-level fetch — runs independently of component lifecycle
+function startQuestGeneration(params: {
+  goal: Goal;
+  allGoals: Goal[];
+  playerData?: PlayerData;
+  todayStr: string;
+  currentDay: number;
+}) {
+  const { goal, allGoals, playerData, todayStr, currentDay } = params;
+
+  if (_questGenStore.state === 'GENERATING') return; // already in-flight
+
+  updateQuestGenStore({ state: 'GENERATING', goalId: goal.id, todayTasks: null, error: null, pendingGoalUpdate: null, pendingFeedQuests: [] });
+
+  const otherGoalTasksToday = allGoals
+    .filter(g => g.id !== goal.id && g.status === 'ACTIVE')
+    .flatMap(g => g.dailyTasks?.find(t => t.date === todayStr)?.quests || [])
+    .map(q => q.title)
+    .join(', ');
+
+  const otherGoalsMinutes = allGoals
+    .filter(g => g.id !== goal.id && g.status === 'ACTIVE')
+    .reduce((sum, g) => sum + (g.dailyCommitmentMin || 0), 0);
+
+  const remainingMinutes = Math.max(30, (playerData?.healthProfile?.sessionDuration ?? 120) - otherGoalsMinutes);
+  const recentTasks = (goal.dailyTasks || []).slice(-7);
+
+  fetch(`${API_BASE}/api/goals/daily-quests`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
+    credentials: 'include',
+    body: JSON.stringify({
+      goal,
+      recentTasks,
+      playerStats: playerData?.stats,
+      otherGoalTasksToday: otherGoalTasksToday || 'None',
+      remainingMinutes,
+      dayOfWeek: new Date().toLocaleDateString('en-US', { weekday: 'long' }),
+      userCountry: playerData?.country || 'India',
+      userLanguage: 'English',
+    }),
+  })
+    .then(async res => {
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        throw new Error(errBody.error || `Server error (${res.status})`);
+      }
+      return res.json();
+    })
+    .then(data => {
+      const newDailyTask: GoalDailyTask = {
+        id: `dt-${goal.id}-${todayStr}`,
+        goalId: goal.id,
+        date: todayStr,
+        dayNumber: currentDay,
+        quests: data.quests || [],
+        completedCount: 0,
+        totalCount: (data.quests || []).length,
+        dailyNote: data.dailyNote || '',
+        progressUpdate: data.progressUpdate || '',
+        createdAt: Date.now(),
+      };
+
+      // Build the updated goal
+      const updatedGoal: Goal = {
+        ...goal,
+        dailyTasks: [...(goal.dailyTasks || []).filter(t => t.date !== todayStr), newDailyTask],
+      };
+
+      // Build feed quests
+      const feedQuests: Quest[] = (data.quests || []).map((gq: any, i: number) => ({
+        id: gq.id || `goal-quest-${goal.id}-${Date.now()}-${i}`,
+        title: gq.title,
+        description: gq.reasoning || `Goal quest for: ${goal.title}`,
+        rank: (gq.rank || 'D') as Rank,
+        priority: 'MEDIUM' as any,
+        category: (gq.categories?.[0] || 'intelligence') as any,
+        categories: gq.categories,
+        xpReward: Math.round((gq.xp || 50) * 1.5),
+        isCompleted: false,
+        createdAt: Date.now(),
+        isDaily: true,
+        estimatedDuration: gq.estimatedDuration,
+        aiReasoning: gq.reasoning,
+        goalId: goal.id,
+        goalTitle: goal.title,
+        goalQuestResources: gq.resources || [],
+        goalQuestSteps: gq.stepByStep || [],
+        connectionToPrevious: gq.connectionToPrevious,
+      }));
+
+      updateQuestGenStore({
+        state: 'DONE',
+        todayTasks: newDailyTask,
+        error: null,
+        pendingGoalUpdate: updatedGoal,
+        pendingFeedQuests: feedQuests,
+      });
+
+      playSystemSoundEffect('PURCHASE');
+    })
+    .catch((err: any) => {
+      console.error('[GoalDetail] Failed to generate daily quests:', err);
+      updateQuestGenStore({
+        state: 'ERROR',
+        error: err.message || 'Failed to generate quests. Please try again.',
+      });
+    });
+}
 
 // Collapsible text component
 function ReadMore({ text, maxLines = 3 }: { text: string; maxLines?: number }) {
@@ -46,10 +184,13 @@ export default function GoalDetailView({
   onDeleteGoal,
   onAddQuestToFeed,
 }: GoalDetailViewProps) {
-  const [isGenerating, setIsGenerating] = useState(false);
+  // Sync state from module-level store
+  const [genStore, setGenStore] = useState<QuestGenStore>(() => ({ ..._questGenStore }));
+  const isGenerating = genStore.state === 'GENERATING' && genStore.goalId === goal.id;
+  const generateError = genStore.state === 'ERROR' && genStore.goalId === goal.id ? genStore.error : null;
+
   const [todayTasks, setTodayTasks] = useState<GoalDailyTask | null>(null);
   const [showConfirmAbandon, setShowConfirmAbandon] = useState(false);
-  const [generateError, setGenerateError] = useState<string | null>(null);
 
   const rankColor = RANK_COLORS[goal.goalRank] || RANK_COLORS.D;
   const currentDay = Math.max(1, Math.floor((Date.now() - goal.startDate) / (1000 * 60 * 60 * 24)) + 1);
@@ -61,111 +202,45 @@ export default function GoalDetailView({
 
   const todayStr = new Date().toISOString().split('T')[0];
 
-  // Check if today's tasks already exist
+  // Register live-update callback so in-flight fetches update this mounted component
+  useEffect(() => {
+    _onQuestGenUpdate = (s) => setGenStore(s);
+    // Sync on mount in case generation completed while unmounted
+    setGenStore({ ..._questGenStore });
+    return () => { _onQuestGenUpdate = null; };
+  }, []);
+
+  // Check if today's tasks already exist in goal data
   useEffect(() => {
     const existing = goal.dailyTasks?.find(t => t.date === todayStr);
     if (existing) setTodayTasks(existing);
   }, [goal.dailyTasks, todayStr]);
 
-  // Generate today's quests
-  const generateDailyQuests = useCallback(async () => {
-    if (isGenerating) return;
-    setIsGenerating(true);
-    setGenerateError(null);
+  // Apply pending deferred actions when component (re)mounts or store updates
+  useEffect(() => {
+    if (genStore.state === 'DONE' && genStore.goalId === goal.id && genStore.todayTasks) {
+      // Set local display
+      setTodayTasks(genStore.todayTasks);
 
-    try {
-      const otherGoalTasksToday = allGoals
-        .filter(g => g.id !== goal.id && g.status === 'ACTIVE')
-        .flatMap(g => g.dailyTasks?.find(t => t.date === todayStr)?.quests || [])
-        .map(q => q.title)
-        .join(', ');
-
-      const otherGoalsMinutes = allGoals
-        .filter(g => g.id !== goal.id && g.status === 'ACTIVE')
-        .reduce((sum, g) => sum + (g.dailyCommitmentMin || 0), 0);
-
-      const remainingMinutes = Math.max(30, (playerData?.healthProfile?.sessionDuration ?? 120) - otherGoalsMinutes);
-
-      const recentTasks = (goal.dailyTasks || []).slice(-7);
-
-      const res = await fetch(`${API_BASE}/api/goals/daily-quests`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
-        credentials: 'include',
-        body: JSON.stringify({
-          goal,
-          recentTasks,
-          playerStats: playerData?.stats,
-          otherGoalTasksToday: otherGoalTasksToday || 'None',
-          remainingMinutes,
-          dayOfWeek: new Date().toLocaleDateString('en-US', { weekday: 'long' }),
-          userCountry: playerData?.country || 'India',
-          userLanguage: 'English',
-        }),
-      });
-
-      if (!res.ok) {
-        const errBody = await res.json().catch(() => ({}));
-        throw new Error(errBody.error || `Server error (${res.status})`);
-      }
-      const data = await res.json();
-
-      const newDailyTask: GoalDailyTask = {
-        id: `dt-${goal.id}-${todayStr}`,
-        goalId: goal.id,
-        date: todayStr,
-        dayNumber: currentDay,
-        quests: data.quests || [],
-        completedCount: 0,
-        totalCount: (data.quests || []).length,
-        dailyNote: data.dailyNote || '',
-        progressUpdate: data.progressUpdate || '',
-        createdAt: Date.now(),
-      };
-
-      setTodayTasks(newDailyTask);
-
-      const updatedGoal = {
-        ...goal,
-        dailyTasks: [...(goal.dailyTasks || []).filter(t => t.date !== todayStr), newDailyTask],
-      };
-      onUpdateGoal(updatedGoal);
-
-      // Inject each goal quest into the main quest feed
-      if (onAddQuestToFeed && data.quests) {
-        data.quests.forEach((gq: any, i: number) => {
-          const feedQuest: Quest = {
-            id: gq.id || `goal-quest-${goal.id}-${Date.now()}-${i}`,
-            title: gq.title,
-            description: gq.reasoning || `Goal quest for: ${goal.title}`,
-            rank: (gq.rank || 'D') as Rank,
-            priority: 'MEDIUM' as any,
-            category: (gq.categories?.[0] || 'intelligence') as any,
-            categories: gq.categories,
-            xpReward: Math.round((gq.xp || 50) * 1.5),
-            isCompleted: false,
-            createdAt: Date.now(),
-            isDaily: true,
-            estimatedDuration: gq.estimatedDuration,
-            aiReasoning: gq.reasoning,
-            goalId: goal.id,
-            goalTitle: goal.title,
-            goalQuestResources: gq.resources || [],
-            goalQuestSteps: gq.stepByStep || [],
-            connectionToPrevious: gq.connectionToPrevious,
-          };
-          onAddQuestToFeed(feedQuest);
-        });
+      // Apply deferred goal update
+      if (genStore.pendingGoalUpdate) {
+        onUpdateGoal(genStore.pendingGoalUpdate);
       }
 
-      playSystemSoundEffect('PURCHASE');
-    } catch (err: any) {
-      console.error('[GoalDetail] Failed to generate daily quests:', err);
-      setGenerateError(err.message || 'Failed to generate quests. Please try again.');
-    } finally {
-      setIsGenerating(false);
+      // Apply deferred feed quest injection
+      if (onAddQuestToFeed && genStore.pendingFeedQuests.length > 0) {
+        genStore.pendingFeedQuests.forEach(q => onAddQuestToFeed(q));
+      }
+
+      // Clear pending actions (already applied)
+      updateQuestGenStore({ pendingGoalUpdate: null, pendingFeedQuests: [] });
     }
-  }, [goal, playerData, allGoals, todayStr, currentDay, isGenerating, onUpdateGoal, onAddQuestToFeed]);
+  }, [genStore.state, genStore.goalId, goal.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Trigger generation
+  const generateDailyQuests = useCallback(() => {
+    startQuestGeneration({ goal, allGoals, playerData, todayStr, currentDay });
+  }, [goal, allGoals, playerData, todayStr, currentDay]);
 
   // Toggle quest completion
   const toggleQuestComplete = useCallback((questId: string) => {
