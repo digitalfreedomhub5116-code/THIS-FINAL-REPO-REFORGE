@@ -152,31 +152,31 @@ const ForgeGuardWidget: React.FC<ForgeGuardWidgetProps> = ({ cheatStrikes, total
         </div>
 
         {/* Warning line — always visible */}
-        <div className="flex items-start gap-1.5">
+        <div className="flex items-start gap-2 mt-1">
           {isBanned ? (
-            <div className="flex items-center gap-1.5">
-              <Ban size={9} className="text-red-500 flex-shrink-0 mt-px" />
-              <span className="font-mono text-[9px] text-red-400 font-bold tracking-wide uppercase">
+            <div className="flex items-center gap-2">
+              <Ban size={13} className="text-red-500 flex-shrink-0" />
+              <span className="font-mono text-xs text-red-400 font-black tracking-wide uppercase">
                 ACCOUNT PERMANENTLY BANNED — 5 STRIKES REACHED
               </span>
             </div>
           ) : isDanger ? (
-            <div className="flex items-center gap-1.5">
-              <AlertTriangle size={9} className="text-red-400 flex-shrink-0 mt-px" />
-              <span className="font-mono text-[9px] text-red-400/80 tracking-wide">
-                {5 - cheatStrikes} strike{5 - cheatStrikes > 1 ? 's' : ''} remaining before permanent ban
+            <div className="flex items-center gap-2">
+              <AlertTriangle size={13} className="text-red-400 flex-shrink-0" />
+              <span className="font-mono text-xs text-red-400 font-bold tracking-wide uppercase">
+                ⚠ {5 - cheatStrikes} STRIKE{5 - cheatStrikes > 1 ? 'S' : ''} REMAINING — PERMANENT BAN
               </span>
             </div>
           ) : hasStrikes ? (
-            <div className="flex items-center gap-1.5">
-              <AlertTriangle size={9} className="text-amber-500/70 flex-shrink-0 mt-px" />
-              <span className="font-mono text-[9px] text-amber-400/60 tracking-wide">
-                Cheating quests = strike. 5 strikes = permanent ban.
+            <div className="flex items-center gap-2">
+              <AlertTriangle size={13} className="text-amber-500/70 flex-shrink-0" />
+              <span className="font-mono text-[11px] text-amber-400/80 font-bold tracking-wide">
+                Cheating quests = strike. <span className="text-amber-300 font-black uppercase">5 strikes = permanent ban.</span>
               </span>
             </div>
           ) : (
-            <span className="font-mono text-[9px] text-gray-600 tracking-wide">
-              Completing quests dishonestly results in strikes. <span className="text-gray-500 font-bold">5 strikes = permanent ban.</span>
+            <span className="font-mono text-[11px] text-gray-500 tracking-wide">
+              Completing quests dishonestly results in strikes. <span className="text-gray-400 font-black uppercase">5 strikes = permanent ban.</span>
             </span>
           )}
         </div>

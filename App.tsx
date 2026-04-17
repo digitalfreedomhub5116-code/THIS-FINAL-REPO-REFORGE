@@ -4226,19 +4226,7 @@ const App: React.FC = () => {
 
               </Suspense>
 
-              {/* ForgeGuard Integrity — Strike Counter (top of home for visibility) */}
 
-              <Suspense fallback={<SkeletonForgeGuard />}>
-
-                <ForgeGuardWidget
-
-                  cheatStrikes={player.cheatStrikes}
-
-                  totalStrikesEver={player.totalStrikesEver}
-
-                />
-
-              </Suspense>
 
 
 
@@ -4315,6 +4303,14 @@ const App: React.FC = () => {
               </Suspense>
 
               </div>
+
+              {/* ForgeGuard Integrity — Strike Counter (below mana/XP for visibility) */}
+              <Suspense fallback={<SkeletonForgeGuard />}>
+                <ForgeGuardWidget
+                  cheatStrikes={player.cheatStrikes}
+                  totalStrikesEver={player.totalStrikesEver}
+                />
+              </Suspense>
 
 
 
