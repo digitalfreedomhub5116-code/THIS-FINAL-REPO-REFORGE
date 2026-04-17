@@ -17,7 +17,7 @@ function safeLevelUp(currentXp: number, requiredXp: number, level: number) {
   while (currentXp >= requiredXp && iterations < 100) {
     currentXp -= requiredXp;
     level++;
-    const next = Math.floor(requiredXp * 1.2);
+    const next = Math.floor(requiredXp * 1.5);
     requiredXp = next > requiredXp ? next : requiredXp + 1;
     leveledUp = true;
     iterations++;

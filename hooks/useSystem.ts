@@ -1614,7 +1614,7 @@ export const useSystem = () => {
         totalXpGain = xpReward;
         totalGoldGain = goldReward;
       } else {
-        const baseXp = exercisesCompleted * 120;
+        const baseXp = exercisesCompleted * 40;
         const bonusXp = intensityModifier ? 250 : 0;
         totalXpGain = baseXp + bonusXp + xpReward;
         totalGoldGain = Math.floor((baseXp + bonusXp) / 10) + goldReward;

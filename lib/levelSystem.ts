@@ -34,7 +34,7 @@ export function safeLevelUp(
   while (currentXp >= requiredXp && iterations < MAX_LEVELUPS) {
     currentXp -= requiredXp;
     level++;
-    const next = Math.floor(requiredXp * 1.2);
+    const next = Math.floor(requiredXp * 1.5);
     requiredXp = next > requiredXp ? next : requiredXp + 1; // Guarantee growth
     leveledUp = true;
     iterations++;

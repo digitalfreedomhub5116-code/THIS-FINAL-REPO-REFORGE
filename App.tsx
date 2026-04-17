@@ -2670,7 +2670,7 @@ const App: React.FC = () => {
 
       let outcome: 'verified' | 'flagged' = 'verified';
 
-      if (hasCheatStrikes || tooManyHighRanksToday || isFirstS) {
+      if (hasCheatStrikes || tooManyHighRanksToday || isFirstS || Math.random() < 0.15) {
 
         outcome = 'flagged';
 
@@ -2796,11 +2796,17 @@ const App: React.FC = () => {
 
 
 
+    // Record strike — cheating detected by ForgeGuard
+
+    recordStrike();
+
+
+
     if (isSensorBlock) {
 
       // Sensor validation failed — permanently fail the quest + coin-lost animation
 
-      failQuest(q.id);
+      failFlaggedQuest(q.id);
 
       const el = document.getElementById(`quest-card-${q.id}`);
 
@@ -2816,7 +2822,7 @@ const App: React.FC = () => {
 
     // Regular audit flagged — fail quest + coin-lost animation
 
-    failQuest(q.id);
+    failFlaggedQuest(q.id);
 
     const el = document.getElementById(`quest-card-${q.id}`);
 
@@ -4220,6 +4226,20 @@ const App: React.FC = () => {
 
               </Suspense>
 
+              {/* ForgeGuard Integrity — Strike Counter (top of home for visibility) */}
+
+              <Suspense fallback={<SkeletonForgeGuard />}>
+
+                <ForgeGuardWidget
+
+                  cheatStrikes={player.cheatStrikes}
+
+                  totalStrikesEver={player.totalStrikesEver}
+
+                />
+
+              </Suspense>
+
 
 
               {/* Stat Pillars */}
@@ -4295,22 +4315,6 @@ const App: React.FC = () => {
               </Suspense>
 
               </div>
-
-
-
-              {/* ForgeGuard Integrity — Strike Counter */}
-
-              <Suspense fallback={<SkeletonForgeGuard />}>
-
-                <ForgeGuardWidget
-
-                  cheatStrikes={player.cheatStrikes}
-
-                  totalStrikesEver={player.totalStrikesEver}
-
-                />
-
-              </Suspense>
 
 
 

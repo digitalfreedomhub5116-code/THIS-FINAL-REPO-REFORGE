@@ -216,7 +216,7 @@ const AuditTheater: React.FC<AuditTheaterProps> = ({
                         <p className="text-gray-400 text-[11px] tracking-wider font-mono mb-6 text-center leading-relaxed">
                             {isVerified 
                                 ? 'Integrity scan complete. No anomalies detected in completion pattern. Rewards authorized.' 
-                                : 'Irregular completion timing detected. ForgeGuard has logged this interaction. Rewards granted, but record noted.'}
+                                : 'Anomaly detected. ForgeGuard has flagged this quest — REWARDS DENIED. A strike has been recorded against your hunter profile.'}
                         </p>
 
                         <motion.button
@@ -235,7 +235,7 @@ const AuditTheater: React.FC<AuditTheaterProps> = ({
                         >
                             {isVerified && <CheckCircle2 size={16} />}
                             {!isVerified && !canDismiss && <ShieldAlert size={16} />}
-                            {isVerified ? 'CLAIM REWARDS' : (canDismiss ? 'UNDERSTOOD' : `LOCK ENGAGED (${countdown})`)}
+                            {isVerified ? 'CLAIM REWARDS' : (canDismiss ? 'ACCEPT PENALTY' : `LOCK ENGAGED (${countdown})`)}
                         </motion.button>
                     </motion.div>
                 )}
