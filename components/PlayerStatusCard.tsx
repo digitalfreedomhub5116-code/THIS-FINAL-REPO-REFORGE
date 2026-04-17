@@ -860,7 +860,7 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
       </div>
 
       {/* --- RADAR LEVEL INDICATOR BAR --- */}
-      <div className="w-full bg-[#0A0A0F]/90 border-t border-white/[0.03] px-3 py-3 z-20 shrink-0">
+      <div className="w-full bg-[#0A0A0F]/90 border-t border-white/[0.03] px-3 py-4 z-20 shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div
@@ -1049,7 +1049,7 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
         const manaColor = pct > 75 ? '#00d2ff' : pct > 50 ? '#eab308' : pct > 10 ? '#f97316' : '#ef4444';
         const manaGlow = pct > 75 ? 'rgba(0,210,255,0.3)' : pct > 50 ? 'rgba(234,179,8,0.25)' : pct > 10 ? 'rgba(249,115,22,0.25)' : 'rgba(239,68,68,0.4)';
         return (
-          <div className="w-full bg-[#0A0A0F]/90 border-t border-white/[0.03] px-3 py-3 z-20 shrink-0">
+          <div className="w-full bg-[#0A0A0F]/90 border-t border-white/[0.03] px-3 py-4 z-20 shrink-0">
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-2">
                 <div
@@ -1096,7 +1096,7 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
       })()}
 
       {/* --- FORGEGUARD INTEGRITY: Strikes counter (below mana, above Dusk) --- */}
-      <div className="w-full py-1">
+      <div className="w-full py-2.5 px-3">
         <ForgeGuardWidget
           cheatStrikes={player.cheatStrikes ?? 0}
           totalStrikesEver={player.totalStrikesEver}
@@ -1104,7 +1104,7 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
       </div>
 
       {/* --- BOTTOM SECTION: TALK TO DUSK BUTTON --- */}
-      <div className="w-full p-3 pt-2 bg-[#0A0A0F] border-t border-white/5 z-20 relative shrink-0">
+      <div className="w-full p-3 pt-3 bg-[#0A0A0F] border-t border-white/5 z-20 relative shrink-0">
         <button
           onClick={onOpenDuskChat}
           className="w-full relative rounded-xl overflow-hidden h-[48px] flex items-center justify-center gap-3 px-4 group transition-all duration-300"
