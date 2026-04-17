@@ -1242,7 +1242,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div>
                           <div className="text-xs font-black text-emerald-400 uppercase tracking-widest mb-0.5">Gemini API — Collective Usage</div>
-                          <div className="text-[10px] text-gray-600 font-mono">All users combined · costs in INR (₹83.5/USD) · auto-refreshes 30s</div>
+                          <div className="text-[10px] text-gray-600 font-mono">All users combined · costs in INR (₹{usageData?.exchangeRate ? Number(usageData.exchangeRate).toFixed(1) : '...'}/USD live) · auto-refreshes 30s</div>
                       </div>
                       <div className="flex gap-2 items-center">
                           {(['today', 'week', 'month', 'all'] as const).map(p => (
@@ -1382,6 +1382,57 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
                               </div>
                           </div>
 
+                          {/* By User */}
+                          <div className="bg-system-card border border-gray-800 rounded-xl overflow-hidden">
+                              <div className="px-4 py-3 border-b border-gray-800 bg-gray-900/50">
+                                  <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest">By User</div>
+                              </div>
+                              <div className="overflow-x-auto">
+                                  <table className="w-full text-left border-collapse">
+                                      <thead>
+                                          <tr className="text-[9px] text-gray-600 uppercase tracking-widest border-b border-gray-800/50">
+                                              <th className="p-3">User</th>
+                                              <th className="p-3 text-right">Calls</th>
+                                              <th className="p-3 text-right">Tokens</th>
+                                              <th className="p-3 text-right">Cost (INR)</th>
+                                              <th className="p-3 text-right">Cost (USD)</th>
+                                              <th className="p-3">Routes Used</th>
+                                              <th className="p-3 text-right">Last Call</th>
+                                          </tr>
+                                      </thead>
+                                      <tbody>
+                                          {(usageData.byUser || []).map((row: any) => (
+                                              <tr key={row.userId} className="border-b border-gray-800/30 hover:bg-white/5 transition-colors">
+                                                  <td className="p-3">
+                                                      <div className="flex items-center gap-2">
+                                                          <div className={`w-2 h-2 rounded-full flex-shrink-0 ${row.userId === 'anonymous' ? 'bg-gray-600' : 'bg-emerald-500'}`} />
+                                                          <span className="text-[10px] font-bold text-white">{row.username}</span>
+                                                      </div>
+                                                  </td>
+                                                  <td className="p-3 text-right text-sm font-bold text-white">{Number(row.calls).toLocaleString()}</td>
+                                                  <td className="p-3 text-right text-xs text-gray-400">{Number(row.tokens).toLocaleString()}</td>
+                                                  <td className="p-3 text-right text-sm font-bold text-emerald-400">₹{Number(row.cost_inr).toFixed(2)}</td>
+                                                  <td className="p-3 text-right text-xs text-gray-500">${Number(row.cost_usd).toFixed(4)}</td>
+                                                  <td className="p-3">
+                                                      <div className="flex gap-1 flex-wrap">
+                                                          {(row.routes || []).map((r: string) => (
+                                                              <span key={r} className="text-[8px] px-1.5 py-0.5 rounded bg-gray-800 text-gray-400 font-mono">{r}</span>
+                                                          ))}
+                                                      </div>
+                                                  </td>
+                                                  <td className="p-3 text-right text-[9px] text-gray-600 font-mono whitespace-nowrap">
+                                                      {row.lastCall ? new Date(row.lastCall).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
+                                                  </td>
+                                              </tr>
+                                          ))}
+                                          {(usageData.byUser || []).length === 0 && (
+                                              <tr><td colSpan={7} className="p-6 text-center text-[10px] text-gray-600 font-mono">No user data for this period</td></tr>
+                                          )}
+                                      </tbody>
+                                  </table>
+                              </div>
+                          </div>
+
                           {/* Recent Calls */}
                           <div className="bg-system-card border border-gray-800 rounded-xl overflow-hidden">
                               <div className="px-4 py-3 border-b border-gray-800 bg-gray-900/50">
@@ -1393,6 +1444,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
                                           <tr className="text-[9px] text-gray-600 uppercase tracking-widest border-b border-gray-800/50">
                                               <th className="p-3">Time</th>
                                               <th className="p-3">Route</th>
+                                              <th className="p-3">User</th>
                                               <th className="p-3">Model</th>
                                               <th className="p-3 text-right">Tokens</th>
                                               <th className="p-3 text-right">Cost (INR)</th>
@@ -1406,6 +1458,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
                                                       {new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                                                   </td>
                                                   <td className="p-3 text-[10px] font-mono text-gray-400">{log.route}</td>
+                                                  <td className="p-3 text-[10px] font-mono text-gray-500">{log.username || '—'}</td>
                                                   <td className="p-3">
                                                       <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-widest ${
                                                           log.model.includes('2.0-flash') ? 'bg-emerald-950/50 text-emerald-500' :

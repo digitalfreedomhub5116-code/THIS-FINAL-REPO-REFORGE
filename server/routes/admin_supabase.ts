@@ -5,7 +5,29 @@ import { generateAdminToken, requireAdmin } from '../lib/adminAuth.js';
 const router = Router();
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD!;
-const USD_TO_INR = 83.5;
+
+// ── Live USD→INR exchange rate with 6-hour cache ──
+let cachedRate = 85.0; // sensible fallback
+let rateLastFetched = 0;
+const RATE_CACHE_MS = 6 * 60 * 60 * 1000; // 6 hours
+
+async function getUsdToInr(): Promise<number> {
+  if (Date.now() - rateLastFetched < RATE_CACHE_MS && cachedRate > 0) return cachedRate;
+  try {
+    const res = await fetch('https://open.er-api.com/v6/latest/USD');
+    if (res.ok) {
+      const data = await res.json();
+      if (data?.rates?.INR) {
+        cachedRate = data.rates.INR;
+        rateLastFetched = Date.now();
+        console.log(`[Admin] Live USD/INR rate: ₹${cachedRate.toFixed(2)}`);
+      }
+    }
+  } catch (err) {
+    console.warn('[Admin] Failed to fetch live exchange rate, using cached:', cachedRate);
+  }
+  return cachedRate;
+}
 
 const MAX_ATTEMPTS = 3;
 const BLOCK_DURATION_MS = 30 * 60 * 1000; // 30 minutes
@@ -513,6 +535,8 @@ router.get('/usage', async (req: Request, res: Response) => {
   const period = (req.query.period as string) || 'month';
 
   try {
+    const USD_TO_INR = await getUsdToInr();
+
     // Date filter based on period
     let dateFilter: string | null = null;
     const now = new Date();
@@ -524,11 +548,13 @@ router.get('/usage', async (req: Request, res: Response) => {
       dateFilter = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
     }
 
+    // Fetch logs — use higher limit for all-time
+    const logLimit = period === 'all' ? 5000 : 2000;
     let query = (supabaseServer() as any)
       .from('api_usage_logs')
       .select('id, route, cost_usd, model, input_tokens, output_tokens, success, user_id, created_at')
       .order('created_at', { ascending: false })
-      .limit(1000);
+      .limit(logLimit);
     if (dateFilter) query = query.gte('created_at', dateFilter);
 
     const { data: logs, error } = await query;
@@ -540,7 +566,8 @@ router.get('/usage', async (req: Request, res: Response) => {
     const totalCostInr = totalCostUsd * USD_TO_INR;
     const totalCalls = allLogs.length;
     const totalTokens = allLogs.reduce((s: number, l: any) => s + (Number(l.input_tokens) || 0) + (Number(l.output_tokens) || 0), 0);
-    const uniqueUsers = new Set(allLogs.filter((l: any) => l.user_id).map((l: any) => l.user_id)).size;
+    const uniqueUserIds = [...new Set(allLogs.filter((l: any) => l.user_id).map((l: any) => l.user_id))];
+    const uniqueUsers = uniqueUserIds.length;
 
     // By Model
     const modelMap: Record<string, { calls: number; input_tokens: number; output_tokens: number; cost_usd: number }> = {};
@@ -568,6 +595,48 @@ router.get('/usage', async (req: Request, res: Response) => {
       route, ...s, cost_inr: s.cost_usd * USD_TO_INR,
     })).sort((a, b) => b.cost_usd - a.cost_usd);
 
+    // By User — aggregate per user_id
+    const userMap: Record<string, { calls: number; cost_usd: number; tokens: number; routes: Set<string>; lastCall: string }> = {};
+    allLogs.forEach((l: any) => {
+      const uid = l.user_id || 'anonymous';
+      if (!userMap[uid]) userMap[uid] = { calls: 0, cost_usd: 0, tokens: 0, routes: new Set(), lastCall: '' };
+      userMap[uid].calls++;
+      userMap[uid].cost_usd += Number(l.cost_usd) || 0;
+      userMap[uid].tokens += (Number(l.input_tokens) || 0) + (Number(l.output_tokens) || 0);
+      userMap[uid].routes.add(l.route || 'unknown');
+      if (!userMap[uid].lastCall || l.created_at > userMap[uid].lastCall) {
+        userMap[uid].lastCall = l.created_at;
+      }
+    });
+
+    // Lookup usernames for all user_ids
+    const userIdsToLookup = Object.keys(userMap).filter(id => id !== 'anonymous');
+    let usernameMap: Record<string, string> = {};
+    if (userIdsToLookup.length > 0) {
+      try {
+        const { data: players } = await (supabaseServer() as any)
+          .from('players')
+          .select('supabase_id, username, name')
+          .in('supabase_id', userIdsToLookup);
+        if (players) {
+          for (const p of players) {
+            usernameMap[p.supabase_id] = p.username || p.name || p.supabase_id.substring(0, 8);
+          }
+        }
+      } catch { /* username lookup is optional */ }
+    }
+
+    const byUser = Object.entries(userMap).map(([userId, s]) => ({
+      userId,
+      username: userId === 'anonymous' ? 'Anonymous (no auth)' : (usernameMap[userId] || userId.substring(0, 8) + '...'),
+      calls: s.calls,
+      cost_usd: s.cost_usd,
+      cost_inr: s.cost_usd * USD_TO_INR,
+      tokens: s.tokens,
+      routes: [...s.routes],
+      lastCall: s.lastCall,
+    })).sort((a, b) => b.cost_usd - a.cost_usd);
+
     // Time Series (daily)
     const dayMap: Record<string, number> = {};
     allLogs.forEach((l: any) => {
@@ -578,17 +647,22 @@ router.get('/usage', async (req: Request, res: Response) => {
       .map(([date, cost_usd]) => ({ date, cost_usd, cost_inr: cost_usd * USD_TO_INR }))
       .sort((a, b) => a.date.localeCompare(b.date));
 
-    // Recent Logs (last 50)
-    const recentLogs = allLogs.slice(0, 50);
+    // Recent Logs (last 50) — include username
+    const recentLogs = allLogs.slice(0, 50).map((l: any) => ({
+      ...l,
+      username: l.user_id ? (usernameMap[l.user_id] || l.user_id.substring(0, 8)) : null,
+    }));
 
     return res.json({
       totalCostUsd, totalCostInr, totalCalls, totalTokens, uniqueUsers,
-      byModel, byRoute, timeSeries, recentLogs,
+      exchangeRate: USD_TO_INR,
+      byModel, byRoute, byUser, timeSeries, recentLogs,
     });
   } catch (err) {
     console.error('[Admin usage]', err);
     return res.status(500).json({ error: 'Internal server error' });
   }
+
 });
 
 // Store outfit management

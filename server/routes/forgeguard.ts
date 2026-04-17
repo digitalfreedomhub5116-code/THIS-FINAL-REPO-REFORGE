@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { logUsage } from '../utils/logUsage.js';
+import { getAuthenticatedUserId } from '../lib/playerAuth.js';
 
 const router = Router();
 
@@ -77,6 +78,7 @@ async function tryModel(ai: GoogleGenerativeAI, modelName: string, prompt: strin
 router.post('/analyze-quest', async (req: Request, res: Response) => {
   try {
     const ai = getAI();
+    const userId = getAuthenticatedUserId(req) || req.body.userId || null;
     const { title, userStats, healthProfile, timezone } = req.body;
 
     if (!title) {
@@ -259,6 +261,7 @@ Respond with ONLY valid JSON, no markdown:
       inputTokens: modelResult.inputTokens,
       outputTokens: modelResult.outputTokens,
       success: true,
+      userId: userId || undefined,
     });
 
     const cleaned = stripMarkdown(modelResult.text);

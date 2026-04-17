@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { logUsage } from '../utils/logUsage.js';
+import { getAuthenticatedUserId } from '../lib/playerAuth.js';
 
 const router = Router();
 
@@ -52,6 +53,7 @@ router.post('/analyze', async (req: Request, res: Response) => {
   }
 
   const { imageBase64, mimeType } = req.body as { imageBase64?: string; mimeType?: string };
+  const userId = getAuthenticatedUserId(req) || null;
 
   if (!imageBase64) {
     return res.status(400).json({ error: 'imageBase64 is required' });
@@ -101,6 +103,7 @@ router.post('/analyze', async (req: Request, res: Response) => {
         inputTokens: result.response.usageMetadata?.promptTokenCount ?? 0,
         outputTokens: result.response.usageMetadata?.candidatesTokenCount ?? 0,
         success: true,
+        userId: userId || undefined,
       });
       return res.json({ success: true, data: nutrition, model: modelName });
     } catch (err: unknown) {

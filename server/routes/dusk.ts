@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { logUsage } from '../utils/logUsage.js';
+import { getAuthenticatedUserId } from '../lib/playerAuth.js';
 
 const router = Router();
 
@@ -12,6 +13,7 @@ router.post('/chat', async (req: Request, res: Response) => {
     }
 
     const { message, playerContext, history } = req.body;
+    const userId = getAuthenticatedUserId(req) || null;
     if (!message) {
       return res.status(400).json({ error: 'message is required' });
     }
@@ -60,6 +62,7 @@ Your Personality & Rules:
       inputTokens: result.response.usageMetadata?.promptTokenCount ?? 0,
       outputTokens: result.response.usageMetadata?.candidatesTokenCount ?? 0,
       success: true,
+      userId: userId || undefined,
     });
 
     return res.json({ text });
