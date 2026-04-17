@@ -1322,7 +1322,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
                               <div className="bg-gray-900/40 border border-gray-800 rounded-xl p-5">
                                   <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Cost Over Time (INR)</div>
                                   <ResponsiveContainer width="100%" height={180}>
-                                      <BarChart data={(usageData.timeSeries || []).map((d: any) => ({ ...d, cost_inr: Number((d.cost_inr || d.cost_usd * 83.5)).toFixed(2) }))} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+                                      <BarChart data={(usageData.timeSeries || []).map((d: any) => ({ ...d, cost_inr: Number((d.cost_inr || d.cost_usd * (usageData?.exchangeRate || 85))).toFixed(2) }))} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
                                           <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" />
                                           <XAxis dataKey="date" tick={{ fontSize: 9, fill: '#555' }} tickLine={false} axisLine={false} />
                                           <YAxis tick={{ fontSize: 9, fill: '#555' }} tickLine={false} axisLine={false} tickFormatter={(v: number) => `₹${v}`} width={50} />
@@ -1369,7 +1369,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
                                                   <td className="p-3 text-right text-sm font-bold text-white">{Number(row.calls).toLocaleString()}</td>
                                                   <td className="p-3 text-right text-xs text-gray-400">{Number(row.input_tokens).toLocaleString()}</td>
                                                   <td className="p-3 text-right text-xs text-gray-400">{Number(row.output_tokens).toLocaleString()}</td>
-                                                  <td className="p-3 text-right text-sm font-bold text-emerald-400">₹{(Number(row.cost_inr || row.cost_usd * 83.5)).toFixed(2)}</td>
+                                                  <td className="p-3 text-right text-sm font-bold text-emerald-400">₹{(Number(row.cost_inr || row.cost_usd * (usageData?.exchangeRate || 85))).toFixed(2)}</td>
                                                   <td className="p-3 text-right text-xs text-gray-500">${Number(row.cost_usd).toFixed(4)}</td>
                                               </tr>
                                           ))}
@@ -1401,7 +1401,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
                                               <tr key={row.route} className="border-b border-gray-800/30 hover:bg-white/5 transition-colors">
                                                   <td className="p-3 text-xs font-mono text-gray-300">{row.route}</td>
                                                   <td className="p-3 text-right text-sm font-bold text-white">{Number(row.calls).toLocaleString()}</td>
-                                                  <td className="p-3 text-right text-sm font-bold text-emerald-400">₹{(Number(row.cost_inr || row.cost_usd * 83.5)).toFixed(2)}</td>
+                                                  <td className="p-3 text-right text-sm font-bold text-emerald-400">₹{(Number(row.cost_inr || row.cost_usd * (usageData?.exchangeRate || 85))).toFixed(2)}</td>
                                                   <td className="p-3 text-right text-xs text-gray-500">${Number(row.cost_usd).toFixed(4)}</td>
                                               </tr>
                                           ))}
@@ -1498,7 +1498,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
                                                       }`}>{log.model.replace('gemini-', '')}</span>
                                                   </td>
                                                   <td className="p-3 text-right text-[10px] text-gray-500 font-mono">{(Number(log.input_tokens) + Number(log.output_tokens)).toLocaleString()}</td>
-                                                  <td className="p-3 text-right text-[10px] font-bold text-emerald-500">₹{(Number(log.cost_inr || log.cost_usd * 83.5)).toFixed(3)}</td>
+                                                  <td className="p-3 text-right text-[10px] font-bold text-emerald-500">₹{(Number(log.cost_inr || log.cost_usd * (usageData?.exchangeRate || 85))).toFixed(3)}</td>
                                                   <td className="p-3 text-center">
                                                       <span className={`text-[9px] font-black px-1.5 py-0.5 rounded uppercase ${log.success ? 'bg-green-950/50 text-green-500' : 'bg-red-950/50 text-red-500'}`}>
                                                           {log.success ? 'OK' : 'ERR'}

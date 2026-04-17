@@ -42,6 +42,7 @@ import PlanCustomizer from './PlanCustomizer';
 import { generateSystemProtocol, calculateTimeEstimate } from '../utils/workoutGenerator';
 import { playSystemSoundEffect } from '../utils/soundEngine';
 import { API_BASE } from '../lib/apiConfig';
+import { getPlayerAuthHeaders } from '../lib/playerApi';
 import { DEFAULT_PLANS, getRecommendedPlan } from '../lib/defaultPlans';
 import OnboardingNotice from './OnboardingNotice';
 import FoodLibrary from './FoodLibrary';
@@ -1097,7 +1098,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
           const imageBase64 = compressedDataUrl.split(',')[1];
           const response = await fetch(`${API_BASE}/api/nutrition/analyze`, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
               credentials: 'include',
               body: JSON.stringify({ imageBase64, mimeType: 'image/jpeg' }),
           });
@@ -1182,7 +1183,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
 
           const response = await fetch(`${API_BASE}/api/nutrition/analyze`, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
               credentials: 'include',
               body: JSON.stringify({ imageBase64, mimeType: 'image/jpeg' }),
           });

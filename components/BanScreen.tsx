@@ -7,7 +7,6 @@ import { API_BASE } from '../lib/apiConfig';
 interface BanScreenProps {
   userId?: string;
   username?: string;
-  onAdminUnban?: () => void;
 }
 
 const BanScreen: React.FC<BanScreenProps> = ({ userId, username }) => {

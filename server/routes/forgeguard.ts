@@ -78,7 +78,7 @@ async function tryModel(ai: GoogleGenerativeAI, modelName: string, prompt: strin
 router.post('/analyze-quest', async (req: Request, res: Response) => {
   try {
     const ai = getAI();
-    const userId = getAuthenticatedUserId(req) || req.body.userId || null;
+    const userId = getAuthenticatedUserId(req) || null;
     const { title, userStats, healthProfile, timezone } = req.body;
 
     if (!title) {

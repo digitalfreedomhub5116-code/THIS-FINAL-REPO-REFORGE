@@ -665,7 +665,10 @@ router.get('/usage', async (req: Request, res: Response) => {
 
 });
 
-// ── Ban Appeals ──
+// In-memory rate limit for appeal submissions (IP → timestamps)
+const appealRateMap = new Map<string, number[]>();
+const APPEAL_RATE_LIMIT = 3;      // max appeals
+const APPEAL_RATE_WINDOW = 3600000; // per hour
 
 // POST /appeals — banned user submits an appeal (no auth required since they're banned)
 router.post('/appeals', async (req: Request, res: Response) => {
@@ -673,6 +676,29 @@ router.post('/appeals', async (req: Request, res: Response) => {
     const { userId, username, message } = req.body;
     if (!userId || !message || message.trim().length < 20) {
       return res.status(400).json({ error: 'userId and message (min 20 chars) required' });
+    }
+
+    // Rate limit by IP
+    const ip = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+    const ipKey = String(ip);
+    const now = Date.now();
+    const timestamps = (appealRateMap.get(ipKey) || []).filter(t => now - t < APPEAL_RATE_WINDOW);
+    if (timestamps.length >= APPEAL_RATE_LIMIT) {
+      return res.status(429).json({ error: 'Too many appeals. Please try again later.' });
+    }
+
+    // Verify that the userId belongs to a real banned player
+    const { data: player } = await (supabaseServer() as any)
+      .from('players')
+      .select('supabase_id, username, cheat_strikes, is_banned')
+      .eq('supabase_id', userId)
+      .single();
+
+    if (!player) {
+      return res.status(400).json({ error: 'Invalid user.' });
+    }
+    if ((player.cheat_strikes ?? 0) < 5 && !player.is_banned) {
+      return res.status(400).json({ error: 'This account is not banned.' });
     }
 
     // Check for existing pending appeal
@@ -687,11 +713,12 @@ router.post('/appeals', async (req: Request, res: Response) => {
       return res.status(409).json({ error: 'You already have a pending appeal. Please wait for review.' });
     }
 
+    // Use server-verified username, not client-supplied
     const { data, error } = await (supabaseServer() as any)
       .from('ban_appeals')
       .insert({
         user_id: userId,
-        username: username || 'Unknown',
+        username: player.username || username || 'Unknown',
         message: message.trim().substring(0, 500),
         status: 'pending',
       })
@@ -699,6 +726,11 @@ router.post('/appeals', async (req: Request, res: Response) => {
       .single();
 
     if (error) throw error;
+
+    // Record rate limit hit
+    timestamps.push(now);
+    appealRateMap.set(ipKey, timestamps);
+
     return res.json({ success: true, appealId: data.id });
   } catch (err: any) {
     console.error('[Appeals] Submit error:', err);
@@ -752,11 +784,11 @@ router.post('/appeals/:id/resolve', async (req: Request, res: Response) => {
       })
       .eq('id', req.params.id);
 
-    // If approved, unban the user (reset cheat_strikes to 0)
+    // If approved, unban the user (reset cheat_strikes and is_banned)
     if (newStatus === 'approved') {
       await (supabaseServer() as any)
         .from('players')
-        .update({ cheat_strikes: 0 })
+        .update({ cheat_strikes: 0, is_banned: false })
         .eq('supabase_id', appeal.user_id);
     }
 

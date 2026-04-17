@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Send, Terminal, AlertTriangle, Shield, RefreshCw, Zap } from 'lucide-react';
 import { PlayerData } from '../types';
 import { API_BASE } from '../lib/apiConfig';
+import { getPlayerAuthHeaders } from '../lib/playerApi';
 
 interface DuskChatProps {
   player: PlayerData;
@@ -91,7 +92,7 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, onClose, onMarkRead, onCons
 
         const res = await fetch(`${API_BASE}/api/dusk/chat`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
             credentials: 'include',
             body: JSON.stringify({
                 message: userMessage,

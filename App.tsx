@@ -3025,19 +3025,8 @@ const App: React.FC = () => {
         <ErrorBoundary fallbackLabel="Ban screen failed">
 
           <BanScreen
-
             userId={player.userId}
-
             username={player.username || player.name}
-
-            onAdminUnban={() => {
-
-              setPlayer(prev => ({ ...prev, isBanned: false, cheatStrikes: 0 }));
-
-              setShowBanReversalNotice(true);
-
-            }}
-
           />
 
         </ErrorBoundary>
