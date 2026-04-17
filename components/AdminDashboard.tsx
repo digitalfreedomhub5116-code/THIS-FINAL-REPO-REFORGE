@@ -9,6 +9,7 @@ import { MASTER_PROTOCOL_REGISTRY } from '../utils/workoutGenerator';
 import ExerciseLibrary from './admin/ExerciseLibrary';
 import PlanBuilder from './admin/PlanBuilder';
 import OutfitHunterBadge, { OUTFIT_BADGE_CONFIG } from './OutfitHunterBadge';
+import AdminUserProfileModal from './AdminUserProfileModal';
 
 interface StoreOutfit {
   id: number;
@@ -83,6 +84,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
   const [confirmDeleteUserId, setConfirmDeleteUserId] = useState<string | null>(null);
   const [viewUserData, setViewUserData] = useState<any>(null);
   const [viewUserLoading, setViewUserLoading] = useState(false);
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
+  const [profileInitialTab, setProfileInitialTab] = useState<'OVERVIEW' | 'QUESTS' | 'ACTIVITY' | 'GOALS' | 'RAW'>('OVERVIEW');
   const [goldInput, setGoldInput] = useState<Record<string, string>>({});
   const [keysInput, setKeysInput] = useState<Record<string, string>>({});
 
@@ -618,8 +621,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
 
            {activeTab === 'USERS' && (
                <div className="space-y-6 animate-in fade-in duration-500">
-                   {/* View User Data Modal */}
-                   {viewUserData && (
+                   {/* User Profile Modal (rich view) */}
+                   {profileUserId && (
+                       <AdminUserProfileModal
+                           userId={profileUserId}
+                           adminToken={adminToken}
+                           initialTab={profileInitialTab}
+                           onClose={() => { setProfileUserId(null); setProfileInitialTab('OVERVIEW'); }}
+                       />
+                   )}
+
+                   {/* Legacy raw JSON modal (kept as fallback) */}
+                   {viewUserData && !profileUserId && (
                        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setViewUserData(null)}>
                            <div className="bg-[#0a0a0a] border border-gray-700 rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
                                <div className="flex justify-between items-center mb-4">
@@ -675,8 +688,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
                                        return (u.username?.toLowerCase().includes(q) || u.name?.toLowerCase().includes(q) || u.supabase_id?.toLowerCase().includes(q));
                                    }).map((user) => (
                                        <tr key={user.supabase_id} className={`border-b border-gray-800/50 transition-colors ${user.is_banned ? 'bg-red-950/10 hover:bg-red-950/20' : 'hover:bg-white/5'}`}>
-                                           <td className="p-3">
-                                               <div className="font-bold text-sm text-white">{user.username || 'ANONYMOUS'}</div>
+                                           <td className="p-3 cursor-pointer group" onClick={() => setProfileUserId(user.supabase_id)}>
+                                               <div className="font-bold text-sm text-white group-hover:text-cyan-400 transition-colors">{user.username || 'ANONYMOUS'}</div>
                                                <div className="text-[10px] text-gray-600 mt-0.5">{user.name}</div>
                                                <div className="text-[8px] text-gray-700 mt-0.5 font-mono">{user.supabase_id?.slice(0, 12)}...</div>
                                            </td>
@@ -754,11 +767,23 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
                                            <td className="p-3 text-right">
                                                <div className="flex flex-col items-end gap-1">
                                                    <button
+                                                       onClick={() => { setProfileInitialTab('OVERVIEW'); setProfileUserId(user.supabase_id); }}
+                                                       className="text-[9px] bg-cyan-950/40 hover:bg-cyan-900/60 border border-cyan-800/50 text-cyan-400 px-2 py-1 rounded font-bold tracking-widest uppercase transition-all"
+                                                   >
+                                                       PROFILE
+                                                   </button>
+                                                   <button
+                                                       onClick={() => { setProfileInitialTab('QUESTS'); setProfileUserId(user.supabase_id); }}
+                                                       className="text-[9px] bg-amber-950/40 hover:bg-amber-900/60 border border-amber-800/50 text-amber-400 px-2 py-1 rounded font-bold tracking-widest uppercase transition-all"
+                                                   >
+                                                       QUEST HISTORY
+                                                   </button>
+                                                   <button
                                                        onClick={() => fetchUserData(user.supabase_id)}
                                                        disabled={viewUserLoading}
-                                                       className="text-[9px] bg-blue-950/40 hover:bg-blue-900/60 border border-blue-800/50 text-blue-400 px-2 py-1 rounded font-bold tracking-widest uppercase transition-all"
+                                                       className="text-[9px] bg-gray-900/40 hover:bg-gray-800/60 border border-gray-700/50 text-gray-500 px-2 py-1 rounded font-bold tracking-widest uppercase transition-all"
                                                    >
-                                                       {viewUserLoading ? '...' : 'VIEW DATA'}
+                                                       {viewUserLoading ? '...' : 'RAW'}
                                                    </button>
                                                    {confirmDeleteUserId === user.supabase_id ? (
                                                        <div className="flex gap-1">

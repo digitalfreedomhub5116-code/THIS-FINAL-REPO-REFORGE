@@ -270,6 +270,118 @@ router.get('/users/:id/data', async (req: Request, res: Response) => {
   }
 });
 
+// ── Rich user history: quests, XP log, goals, stats ──────
+router.get('/users/:id/history', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+  const { id } = req.params;
+  try {
+    const sb = supabaseServer() as any;
+
+    // 1. Get player data
+    const { data: player, error } = await sb
+      .from('players')
+      .select('supabase_id, username, name, level, total_xp, current_xp, required_xp, rank, gold, keys, streak, hp, max_hp, mp, max_mp, fatigue, job, title, is_banned, cheat_strikes, country, timezone, created_at, updated_at, raw_data')
+      .eq('supabase_id', id)
+      .single();
+    if (error) throw error;
+
+    const raw = player?.raw_data || {};
+
+    // 2. Extract quests
+    const quests = (raw.quests || []).map((q: any) => ({
+      id: q.id,
+      title: q.title,
+      description: q.description || '',
+      rank: q.rank || 'E',
+      category: q.category || '',
+      categories: q.categories || [],
+      xpReward: q.xpReward || 0,
+      isCompleted: !!q.isCompleted,
+      failed: !!q.failed,
+      isDaily: !!q.isDaily,
+      createdAt: q.createdAt,
+      completedAt: q.completedAt,
+      hasPact: !!q.hasPact,
+      pactAmount: q.pactAmount || 0,
+      pactStatus: q.pactStatus,
+      goalId: q.goalId,
+      goalTitle: q.goalTitle,
+      estimatedDuration: q.estimatedDuration,
+    }));
+
+    // 3. Extract activity logs (XP earnings, loot, penalties, etc.)
+    const logs = (raw.logs || []).map((l: any) => ({
+      id: l.id,
+      type: l.type,        // 'XP', 'LOOT', 'PENALTY', 'WARNING', 'SYSTEM', etc.
+      message: l.message,
+      timestamp: l.timestamp,
+    }));
+
+    // 4. Extract daily history snapshots
+    const history = (raw.history || []).map((h: any) => ({
+      date: h.date,
+      dailyXp: h.dailyXp || 0,
+      totalXp: h.totalXp || 0,
+      questCompletion: h.questCompletion || 0,
+      stats: h.stats || {},
+    }));
+
+    // 5. Fetch goals from dedicated table
+    const { data: goals } = await sb
+      .from('goals')
+      .select('id, title, category, goal_rank, status, success_probability, streak, daily_commitment_min, total_duration_days, start_date, created_at')
+      .eq('user_id', id)
+      .order('created_at', { ascending: false });
+
+    // 6. Player summary (non-raw_data fields)
+    const summary = {
+      supabase_id: player.supabase_id,
+      username: player.username,
+      name: player.name,
+      level: player.level,
+      totalXp: player.total_xp,
+      currentXp: player.current_xp,
+      requiredXp: player.required_xp,
+      rank: player.rank,
+      gold: player.gold,
+      keys: player.keys,
+      streak: player.streak,
+      hp: player.hp,
+      maxHp: player.max_hp,
+      mp: player.mp,
+      maxMp: player.max_mp,
+      fatigue: player.fatigue,
+      job: player.job,
+      title: player.title,
+      isBanned: player.is_banned,
+      cheatStrikes: player.cheat_strikes,
+      country: player.country,
+      timezone: player.timezone,
+      createdAt: player.created_at,
+      updatedAt: player.updated_at,
+      stats: raw.stats || {},
+    };
+
+    return res.json({
+      summary,
+      quests: quests.sort((a: any, b: any) => (b.createdAt || 0) - (a.createdAt || 0)),
+      logs: logs.sort((a: any, b: any) => (b.timestamp || 0) - (a.timestamp || 0)),
+      history: history.sort((a: any, b: any) => (b.date || '').localeCompare(a.date || '')),
+      goals: goals || [],
+      questStats: {
+        total: quests.length,
+        completed: quests.filter((q: any) => q.isCompleted).length,
+        failed: quests.filter((q: any) => q.failed).length,
+        active: quests.filter((q: any) => !q.isCompleted && !q.failed).length,
+        totalXpEarned: quests.filter((q: any) => q.isCompleted).reduce((s: number, q: any) => s + (q.xpReward || 0), 0),
+      },
+    });
+  } catch (err) {
+    console.error('[Admin user history]', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 router.post('/users/:id/adjust-strikes', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
   const { id } = req.params;
