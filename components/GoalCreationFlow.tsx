@@ -11,6 +11,40 @@ const RANK_COLORS: Record<string, string> = {
   UNRANKED: '#6b7280',
 };
 
+/** Calculate total free minutes from a schedule profile */
+function calcFreeMinutes(profile: any, existingGoals: Goal[]): number {
+  if (!profile?.wakeUpTime || !profile?.bedtime) return 0;
+  const toMin = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+  
+  const wakeUp = toMin(profile.wakeUpTime);
+  const bedtime = toMin(profile.bedtime);
+  let totalDay = bedtime - wakeUp;
+  if (totalDay <= 0) return 0;
+
+  // Subtract routine
+  totalDay -= (profile.morningRoutineMin || 30);
+  
+  // Subtract school/work
+  if (profile.role === 'STUDENT') {
+    if (profile.schoolStart && profile.schoolEnd) totalDay -= (toMin(profile.schoolEnd) - toMin(profile.schoolStart));
+    if (profile.coachingEnabled && profile.coachingStart && profile.coachingEnd) totalDay -= (toMin(profile.coachingEnd) - toMin(profile.coachingStart));
+  } else if (profile.role === 'PROFESSIONAL' && profile.workStart && profile.workEnd) {
+    totalDay -= (toMin(profile.workEnd) - toMin(profile.workStart));
+  }
+
+  // Subtract dinner + wind-down
+  totalDay -= 30; // dinner
+  totalDay -= (profile.windDownMinutes || 30);
+
+  // Subtract other goals' commitments
+  const otherGoalsMins = existingGoals
+    .filter(g => g.status === 'ACTIVE')
+    .reduce((sum, g) => sum + (g.dailyCommitmentMin || 0), 0);
+  totalDay -= otherGoalsMins;
+
+  return Math.max(0, totalDay);
+}
+
 interface GoalCreationFlowProps {
   playerData?: PlayerData;
   existingGoals: Goal[];
@@ -402,6 +436,28 @@ export default function GoalCreationFlow({
                     <div className="text-[8px] text-gray-600 font-mono">PHASES</div>
                   </div>
                 </div>
+
+                {/* FIX Loophole 1: Time-budget warning */}
+                {(() => {
+                  const freeMin = calcFreeMinutes(playerData?.scheduleProfile, existingGoals);
+                  const commitMin = planData.dailyCommitmentMinutes || 60;
+                  if (freeMin > 0 && commitMin > freeMin) {
+                    return (
+                      <div className="rounded-xl p-3 mb-3 flex items-start gap-2" style={{ background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.15)' }}>
+                        <AlertTriangle className="w-3.5 h-3.5 text-amber-400 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <div className="text-[10px] font-bold text-amber-300">Time Budget Warning</div>
+                          <p className="text-[9px] text-amber-400/80 font-mono leading-relaxed mt-0.5">
+                            This goal needs {commitMin}m/day, but your schedule only has ~{freeMin}m free
+                            {existingGoals.filter(g => g.status === 'ACTIVE').length > 0 && ' (after other goals)'}.
+                            Some quests may be left unscheduled. Consider adjusting your schedule or goal scope.
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
 
                 {/* AI Reasoning */}
                 <div className="rounded-xl p-3 mb-3" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>

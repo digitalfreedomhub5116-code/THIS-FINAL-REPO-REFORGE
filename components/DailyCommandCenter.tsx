@@ -1054,6 +1054,7 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
         goal={liveGoal}
         playerData={playerData}
         allGoals={goals || []}
+        existingQuests={todaysQuests}
         onBack={() => setSelectedGoal(null)}
         onUpdateGoal={handleUpdateGoal}
         onDeleteGoal={handleDeleteGoal}

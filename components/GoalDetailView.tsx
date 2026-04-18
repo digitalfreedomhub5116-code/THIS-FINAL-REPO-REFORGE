@@ -25,12 +25,22 @@ function minutesToTime(mins: number): string {
 
 /**
  * Auto-schedules quests into free gaps between schedule blocks.
- * Returns quests with populated scheduledTime fields.
+ * 
+ * Fixes applied:
+ * - Loophole 1: Bedtime hard cap (never schedule past bedtime)
+ * - Loophole 2: Existing quests from other goals are treated as blocked intervals
+ * - Loophole 3: Gaps already in the past are skipped
+ * - Loophole 4: Manual quests with scheduledTime are treated as blocked intervals
+ * - Loophole 8: Duration-fits-gap check (quest must FIT entirely in gap)
+ * 
+ * Returns quests with populated scheduledTime fields. 
+ * Quests that can't fit anywhere remain without scheduledTime (flexible/unscheduled).
  */
 function autoScheduleQuestsIntoGaps(
   quests: Quest[],
   scheduleProfile: any | null | undefined,
   existingSlots: any[] | undefined,
+  existingQuests?: Quest[],
 ): Quest[] {
   if (!scheduleProfile && (!existingSlots || existingSlots.length === 0)) return quests;
 
@@ -66,56 +76,102 @@ function autoScheduleQuestsIntoGaps(
     if (start && end) blocked.push({ start, end });
   });
 
+  // FIX Loophole 2 & 4: Add existing quests (from other goals + manual) as blocked intervals
+  if (existingQuests?.length) {
+    existingQuests.forEach(q => {
+      if (!q.scheduledTime || q.isCompleted || q.failed) return;
+      const timeStr = q.scheduledTime.includes('T')
+        ? q.scheduledTime.split('T')[1].slice(0, 5)
+        : q.scheduledTime;
+      const start = timeToMinutes(timeStr);
+      const end = start + (q.estimatedDuration || 20);
+      blocked.push({ start, end });
+    });
+  }
+
   blocked.sort((a, b) => a.start - b.start);
 
+  // Merge overlapping blocked intervals
+  const mergedBlocked: { start: number; end: number }[] = [];
+  for (const b of blocked) {
+    const last = mergedBlocked[mergedBlocked.length - 1];
+    if (last && b.start <= last.end) {
+      last.end = Math.max(last.end, b.end);
+    } else {
+      mergedBlocked.push({ ...b });
+    }
+  }
+
   // Find free gaps (between wake-up and bedtime)
-  const wakeUp = scheduleProfile?.wakeUpTime ? timeToMinutes(scheduleProfile.wakeUpTime) : 480; // default 8 AM
-  const bedtime = scheduleProfile?.bedtime ? timeToMinutes(scheduleProfile.bedtime) : 1380; // default 11 PM
+  const wakeUp = scheduleProfile?.wakeUpTime ? timeToMinutes(scheduleProfile.wakeUpTime) : 480;
+  const bedtime = scheduleProfile?.bedtime ? timeToMinutes(scheduleProfile.bedtime) : 1380;
+
+  // FIX Loophole 3: Skip past-time slots
+  const now = new Date();
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const effectiveStart = Math.max(wakeUp, currentMinutes + 5); // at least 5 min from now
 
   const gaps: { start: number; end: number }[] = [];
-  let cursor = wakeUp;
+  let cursor = effectiveStart;
 
-  for (const block of blocked) {
+  for (const block of mergedBlocked) {
+    if (block.end <= cursor) continue; // entirely in the past
     if (block.start > cursor) {
-      const gapDuration = block.start - cursor;
-      if (gapDuration >= 15) { // minimum 15 min gap
-        gaps.push({ start: cursor, end: block.start });
+      const gapEnd = Math.min(block.start, bedtime); // FIX Loophole 1: cap at bedtime
+      const gapDuration = gapEnd - cursor;
+      if (gapDuration >= 15) {
+        gaps.push({ start: cursor, end: gapEnd });
       }
     }
     cursor = Math.max(cursor, block.end);
   }
 
-  // Final gap until bedtime
+  // Final gap until bedtime (FIX Loophole 1)
   if (cursor < bedtime) {
     gaps.push({ start: cursor, end: bedtime });
   }
 
-  // Assign quests to gaps (first-fit)
+  // Assign quests to gaps (first-fit with FIX Loophole 8: duration must fit)
   let gapIdx = 0;
-  let gapCursor = gaps.length > 0 ? gaps[0].start : wakeUp;
+  let gapCursor = gaps.length > 0 ? gaps[0].start : effectiveStart;
 
   return quests.map(quest => {
     if (quest.scheduledTime) return quest; // already has a time
 
     const duration = quest.estimatedDuration || 20;
+    const BUFFER = 5; // 5 min buffer between quests
 
-    // Find a gap that fits
+    // Find a gap where the ENTIRE quest duration fits
     while (gapIdx < gaps.length) {
       const gap = gaps[gapIdx];
       const availableInGap = gap.end - gapCursor;
+
+      // FIX Loophole 8: Check if full duration fits, not just start time
       if (availableInGap >= duration) {
+        // FIX Loophole 1: Ensure quest end doesn't exceed bedtime
+        if (gapCursor + duration > bedtime) {
+          // Can't fit before bedtime — leave unscheduled
+          return quest;
+        }
+
         const scheduledTime = minutesToTime(gapCursor);
-        gapCursor += duration + 5; // 5 min buffer between quests
-        return { ...quest, scheduledTime: new Date(`${new Date().toISOString().split('T')[0]}T${scheduledTime}`).toISOString() };
+        gapCursor += duration + BUFFER;
+
+        // If buffer pushes past gap end, move to next gap
+        if (gapCursor >= gap.end && gapIdx + 1 < gaps.length) {
+          gapIdx++;
+          gapCursor = gaps[gapIdx].start;
+        }
+
+        return { ...quest, scheduledTime: `${scheduledTime}` };
       }
       gapIdx++;
       if (gapIdx < gaps.length) gapCursor = gaps[gapIdx].start;
     }
 
-    // No gap available — place after last cursor
-    const scheduledTime = minutesToTime(gapCursor);
-    gapCursor += duration + 5;
-    return { ...quest, scheduledTime: new Date(`${new Date().toISOString().split('T')[0]}T${scheduledTime}`).toISOString() };
+    // No gap available — leave unscheduled (flexible) instead of placing past bedtime
+    // FIX Loophole 1: Previously it would place quests after the last cursor regardless
+    return quest;
   });
 }
 
@@ -161,10 +217,26 @@ function startQuestGeneration(params: {
   playerData?: PlayerData;
   todayStr: string;
   currentDay: number;
+  existingQuests?: Quest[]; // All currently scheduled quests (for gap awareness)
 }) {
-  const { goal, allGoals, playerData, todayStr, currentDay } = params;
+  const { goal, allGoals, playerData, todayStr, currentDay, existingQuests } = params;
 
   if (_questGenStore.state === 'GENERATING') return; // already in-flight
+
+  // FIX Loophole 6: Rest day check
+  const dayOfWeek = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+  if (goal.weeklyRestDay && goal.weeklyRestDay.toLowerCase() === dayOfWeek.toLowerCase()) {
+    updateQuestGenStore({
+      state: 'ERROR',
+      goalId: goal.id,
+      todayTasks: null,
+      error: `Today is your rest day (${goal.weeklyRestDay}). Take a break — quests resume tomorrow!`,
+      pendingGoalUpdate: null,
+      pendingFeedQuests: [],
+      pendingScheduleSlots: [],
+    });
+    return;
+  }
 
   updateQuestGenStore({ state: 'GENERATING', goalId: goal.id, todayTasks: null, error: null, pendingGoalUpdate: null, pendingFeedQuests: [], pendingScheduleSlots: [] });
 
@@ -255,6 +327,7 @@ function startQuestGeneration(params: {
         rawFeedQuests,
         playerData?.scheduleProfile,
         existingDailySlots,
+        existingQuests, // FIX Loophole 2 & 4: pass all existing quests as blocked intervals
       );
 
       // Build schedule slots from quests that have scheduled times
@@ -314,6 +387,7 @@ interface GoalDetailViewProps {
   goal: Goal;
   playerData?: PlayerData;
   allGoals: Goal[];
+  existingQuests?: Quest[]; // All current quests for gap-aware scheduling
   onBack: () => void;
   onUpdateGoal: (updatedGoal: Goal) => void;
   onDeleteGoal: (goalId: string) => void;
@@ -325,6 +399,7 @@ export default function GoalDetailView({
   goal,
   playerData,
   allGoals,
+  existingQuests,
   onBack,
   onUpdateGoal,
   onDeleteGoal,
@@ -391,8 +466,8 @@ export default function GoalDetailView({
 
   // Trigger generation
   const generateDailyQuests = useCallback(() => {
-    startQuestGeneration({ goal, allGoals, playerData, todayStr, currentDay });
-  }, [goal, allGoals, playerData, todayStr, currentDay]);
+    startQuestGeneration({ goal, allGoals, playerData, todayStr, currentDay, existingQuests });
+  }, [goal, allGoals, playerData, todayStr, currentDay, existingQuests]);
 
   // Toggle quest completion
   const toggleQuestComplete = useCallback((questId: string) => {
