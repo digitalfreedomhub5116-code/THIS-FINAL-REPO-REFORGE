@@ -4559,6 +4559,15 @@ const App: React.FC = () => {
 
                     onReorderSlots={handleScheduleReorder}
 
+                    rescheduleQuest={(questId, newTime) => {
+                      setPlayer(prev => ({
+                        ...prev,
+                        quests: prev.quests.map(q =>
+                          q.id === questId ? { ...q, scheduledTime: newTime } : q
+                        ),
+                      }));
+                    }}
+
                   />
 
                 </ErrorBoundary>

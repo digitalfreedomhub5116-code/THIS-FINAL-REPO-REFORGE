@@ -13,6 +13,7 @@ interface QuestCardProps {
   onDelete: (id: string) => void;
   isLocked?: boolean;
   lockMessage?: string;
+  onReschedule?: () => void;
   onStartTracking?: (id: string, requirements?: { steps?: number; distanceKm?: number; activeMinutes?: number }) => void;
   onStopTracking?: (id: string) => void;
 }
@@ -82,7 +83,7 @@ const SensorBar: React.FC<{
   );
 };
 
-const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDelete, isLocked, lockMessage, onStartTracking, onStopTracking }) => {
+const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDelete, isLocked, lockMessage, onReschedule, onStartTracking, onStopTracking }) => {
   const [isMiniView, setIsMiniView] = useState(false);
   const [showResources, setShowResources] = useState(false);
   const completingRef = useRef(false);
@@ -156,6 +157,15 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
           <div className="flex flex-col items-center gap-2">
             <Lock size={20} className="text-gray-500" />
             <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest text-center px-4">{lockMessage || 'Available After Tutorial'}</span>
+            {onReschedule && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onReschedule(); }}
+                className="mt-1 px-3 py-1.5 rounded-lg text-[9px] font-bold text-cyan-400 uppercase tracking-wider transition-all active:scale-95"
+                style={{ background: 'rgba(34,211,238,0.08)', border: '1px solid rgba(34,211,238,0.2)' }}
+              >
+                ↻ Reschedule
+              </button>
+            )}
           </div>
         </div>
       )}

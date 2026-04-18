@@ -95,9 +95,9 @@ interface DailyCommandCenterProps {
   onDeleteGoal?: (goalId: string) => void;
   onDeductGold?: (amount: number) => void;
   onUpdateScheduleSlots?: (slots: any[]) => void;
-  // Schedule props
   scheduleProfile?: ScheduleProfile;
   dailySchedule?: DailySchedule;
+  rescheduleQuest?: (questId: string, newScheduledTime: string) => void;
   onSetupSchedule?: () => void;
   onSlotAction?: (slotId: string, action: 'SKIP' | 'DEFER', slots: ScheduleSlot[]) => void;
   onToggleNotify?: (slotId: string, enabled: boolean, slots: ScheduleSlot[]) => void;
@@ -528,6 +528,137 @@ const FreeSlotRow: React.FC<{
 };
 
 // ────────────────────────────────────────────────────────────
+// RESCHEDULE MODAL (User controls WHEN)
+// ────────────────────────────────────────────────────────────
+
+const RescheduleModal: React.FC<{
+  quest: Quest;
+  scheduleSlots: ScheduleSlot[];
+  onSave: (questId: string, newTime: string) => void;
+  onClose: () => void;
+}> = ({ quest, scheduleSlots, onSave, onClose }) => {
+  const currentScheduledStr = quest.scheduledTime?.includes('T')
+    ? quest.scheduledTime.split('T')[1].slice(0, 5)
+    : (quest.scheduledTime || '12:00');
+
+  const [selectedTime, setSelectedTime] = useState(currentScheduledStr);
+
+  // Check if selected time overlaps with any blocked schedule slot
+  const selectedMin = timeToMinutes(selectedTime);
+  const questDuration = quest.estimatedDuration || 20;
+  const questEnd = selectedMin + questDuration;
+
+  const overlappingSlot = scheduleSlots.find(slot => {
+    if (slot.type === 'QUEST') return false; // Don't warn about other quests
+    const slotStart = timeToMinutes(slot.startTime);
+    const slotEnd = timeToMinutes(slot.endTime);
+    return selectedMin < slotEnd && questEnd > slotStart;
+  });
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[9999] flex items-center justify-center px-6"
+      style={{ background: 'rgba(0,0,0,0.85)' }}
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ y: 30, opacity: 0, scale: 0.95 }}
+        animate={{ y: 0, opacity: 1, scale: 1 }}
+        exit={{ y: 30, opacity: 0, scale: 0.95 }}
+        className="w-full max-w-xs rounded-2xl overflow-hidden"
+        style={{ background: '#0f0f1a', border: '1px solid rgba(255,255,255,0.08)' }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="px-5 pt-5 pb-3">
+          <h3 className="text-xs font-black text-white uppercase tracking-wider">Reschedule Quest</h3>
+          <p className="text-[10px] text-gray-500 font-mono mt-1 truncate">{quest.title}</p>
+        </div>
+
+        {/* Time picker */}
+        <div className="px-5 pb-4">
+          <label className="block text-[9px] font-mono text-gray-600 uppercase tracking-wider mb-2">
+            Choose Time
+          </label>
+          <input
+            type="time"
+            value={selectedTime}
+            onChange={e => setSelectedTime(e.target.value)}
+            className="w-full rounded-xl p-3 text-white text-lg font-mono font-bold text-center focus:outline-none"
+            style={{
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(34,211,238,0.2)',
+              colorScheme: 'dark',
+            }}
+          />
+
+          {/* Duration info */}
+          <div className="flex items-center justify-between mt-2 px-1">
+            <span className="text-[9px] text-gray-600 font-mono">
+              Duration: ~{questDuration}m
+            </span>
+            <span className="text-[9px] text-gray-600 font-mono">
+              Ends: {minutesToTime12(questEnd)}
+            </span>
+          </div>
+
+          {/* Overlap warning (Option B) */}
+          {overlappingSlot && (
+            <div className="rounded-lg p-2.5 mt-3 flex items-start gap-2"
+              style={{ background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.15)' }}
+            >
+              <AlertTriangle className="w-3 h-3 text-amber-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-[9px] font-bold text-amber-300">Overlaps with {overlappingSlot.label}</p>
+                <p className="text-[8px] text-amber-400/70 font-mono">
+                  {formatTime12(overlappingSlot.startTime)} – {formatTime12(overlappingSlot.endTime)}. You can still save if you have free time during this.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Original time note */}
+          <p className="text-[8px] text-gray-700 font-mono text-center mt-3">
+            AI suggested: {formatTime12(currentScheduledStr)}
+          </p>
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-2 px-5 pb-5">
+          <button
+            onClick={onClose}
+            className="flex-1 py-2.5 rounded-xl text-[10px] font-bold text-gray-400 uppercase tracking-wider"
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => {
+              onSave(quest.id, selectedTime);
+              onClose();
+            }}
+            className="flex-1 py-2.5 rounded-xl text-[10px] font-bold text-black uppercase tracking-wider"
+            style={{ background: 'linear-gradient(135deg, #22d3ee, #06b6d4)' }}
+          >
+            Save Time
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
+// Helper for modal — convert minutes to 12h display format
+function minutesToTime12(mins: number): string {
+  const h = Math.floor(((mins % 1440) + 1440) % 1440 / 60);
+  const m = ((mins % 60) + 60) % 60;
+  return formatTime12(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+}
+
+// ────────────────────────────────────────────────────────────
 // QUEST TIMELINE ROW (quest with time-lock state)
 // ────────────────────────────────────────────────────────────
 
@@ -541,9 +672,10 @@ const QuestTimelineRow: React.FC<{
   onFail: (id: string) => void;
   onReset: (id: string) => void;
   onDelete: (id: string) => void;
+  onReschedule?: (quest: Quest) => void;
   onStartTracking?: (id: string, requirements?: any) => void;
   onStopTracking?: (id: string) => void;
-}> = ({ quest, currentMinutes, isCurrent, isPast, isLast, onComplete, onFail, onReset, onDelete, onStartTracking, onStopTracking }) => {
+}> = ({ quest, currentMinutes, isCurrent, isPast, isLast, onComplete, onFail, onReset, onDelete, onReschedule, onStartTracking, onStopTracking }) => {
   const scheduledStr = quest.scheduledTime?.includes('T')
     ? quest.scheduledTime.split('T')[1].slice(0, 5)
     : (quest.scheduledTime || '00:00');
@@ -559,8 +691,8 @@ const QuestTimelineRow: React.FC<{
   const minutesUntilAvailable = scheduledMin - currentMinutes;
   const lockMessage = isTimeLocked
     ? minutesUntilAvailable >= 60
-      ? `Available in ${Math.floor(minutesUntilAvailable / 60)}h ${minutesUntilAvailable % 60}m`
-      : `Available in ${minutesUntilAvailable}m`
+      ? `Scheduled at ${formatTime12(scheduledStr)} • Available in ${Math.floor(minutesUntilAvailable / 60)}h ${minutesUntilAvailable % 60}m`
+      : `Scheduled at ${formatTime12(scheduledStr)} • Available in ${minutesUntilAvailable}m`
     : undefined;
 
   // F3: Swipe-to-complete for E/D rank only — NOT when time-locked
@@ -568,18 +700,28 @@ const QuestTimelineRow: React.FC<{
   const [swipeX, setSwipeX] = useState(0);
   const swipeThreshold = 120;
 
+  const canReschedule = !isCompleted && !isFailed && onReschedule;
+
   return (
     <div className="flex gap-0 relative">
-      {/* Left column: time */}
+      {/* Left column: time — tappable to reschedule */}
       <div className="flex flex-col items-center w-16 flex-shrink-0">
-        <div className={`text-[10px] font-mono font-bold text-right w-full pr-2 pb-1 ${
-          isCompleted ? 'text-emerald-600' : isFailed ? 'text-red-700' :
-          isTimeLocked ? 'text-gray-700' :
-          isCurrent ? 'text-cyan-400' : isPast ? 'text-gray-700' : 'text-gray-500'
-        }`}>
+        <button
+          onClick={() => canReschedule && onReschedule(quest)}
+          disabled={!canReschedule}
+          className={`text-[10px] font-mono font-bold text-right w-full pr-2 pb-1 transition-colors ${
+            isCompleted ? 'text-emerald-600' : isFailed ? 'text-red-700' :
+            isTimeLocked ? 'text-gray-700 hover:text-cyan-400' :
+            isCurrent ? 'text-cyan-400 hover:text-cyan-300' : isPast ? 'text-gray-700' : 'text-gray-500 hover:text-cyan-400'
+          } ${canReschedule ? 'cursor-pointer active:scale-95' : 'cursor-default'}`}
+          title={canReschedule ? 'Tap to reschedule' : undefined}
+        >
           {formatTime12(scheduledStr).split(' ')[0]}
           <span className="text-[7px] ml-0.5">{formatTime12(scheduledStr).split(' ')[1]}</span>
-        </div>
+          {canReschedule && (
+            <div className="text-[7px] text-cyan-500/40 font-normal mt-0.5">tap ↻</div>
+          )}
+        </button>
       </div>
 
       {/* Timeline dot + line */}
@@ -680,6 +822,7 @@ const QuestTimelineRow: React.FC<{
             quest={quest}
             isLocked={isTimeLocked}
             lockMessage={lockMessage}
+            onReschedule={isTimeLocked && onReschedule ? () => onReschedule(quest) : undefined}
             onComplete={(id, asMini) => {
               const el = document.getElementById(`quest-card-${id}`);
               const rect = el?.getBoundingClientRect() || undefined;
@@ -756,7 +899,7 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
   onStartTracking, onStopTracking, onConsumeMana, onRefundMana,
   isQuestOnboarding, onTutorialManaOut,
   goals, onUpdateGoals, onDeleteGoal, onDeductGold, onUpdateScheduleSlots,
-  scheduleProfile, dailySchedule, onSetupSchedule,
+  scheduleProfile, dailySchedule, rescheduleQuest: rescheduleQuestProp, onSetupSchedule,
   onSlotAction, onToggleNotify, onReorderSlots,
 }) => {
   // ── State ──
@@ -772,6 +915,7 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
   const [analysisCount, setAnalysisCount] = useState(0);
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
   const [showGoalCreate, setShowGoalCreate] = useState(false);
+  const [rescheduleQuest, setRescheduleQuest] = useState<Quest | null>(null); // Reschedule modal
   const [pastCollapsed, setPastCollapsed] = useState(true); // F6
 
   // F5: Rule banner auto-hide
@@ -1365,6 +1509,7 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
                         onFail={failQuest}
                         onReset={resetQuest}
                         onDelete={deleteQuest}
+                        onReschedule={rescheduleQuestProp ? (q) => setRescheduleQuest(q) : undefined}
                         onStartTracking={onStartTracking}
                         onStopTracking={onStopTracking}
                       />
@@ -1448,6 +1593,21 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
             onGoalCreated={handleGoalCreated}
             onConsumeMana={onConsumeMana}
             onRefundMana={onRefundMana}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* ── Reschedule Modal ── */}
+      <AnimatePresence>
+        {rescheduleQuest && rescheduleQuestProp && (
+          <RescheduleModal
+            quest={rescheduleQuest}
+            scheduleSlots={scheduleSlots}
+            onSave={(questId, newTime) => {
+              rescheduleQuestProp(questId, newTime);
+              playSystemSoundEffect('SYSTEM');
+            }}
+            onClose={() => setRescheduleQuest(null)}
           />
         )}
       </AnimatePresence>
