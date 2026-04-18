@@ -543,10 +543,17 @@ const RescheduleModal: React.FC<{
 
   const [selectedTime, setSelectedTime] = useState(currentScheduledStr);
 
+  // Current time in minutes for validation
+  const now = new Date();
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
   // Check if selected time overlaps with any blocked schedule slot
   const selectedMin = timeToMinutes(selectedTime);
   const questDuration = quest.estimatedDuration || 20;
   const questEnd = selectedMin + questDuration;
+
+  // Can't schedule in the past
+  const isPastTime = selectedMin < currentMinutes;
 
   const overlappingSlot = scheduleSlots.find(slot => {
     if (slot.type === 'QUEST') return false; // Don't warn about other quests
@@ -590,7 +597,7 @@ const RescheduleModal: React.FC<{
             className="w-full rounded-xl p-3 text-white text-lg font-mono font-bold text-center focus:outline-none"
             style={{
               background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(34,211,238,0.2)',
+              border: isPastTime ? '1px solid rgba(239,68,68,0.4)' : '1px solid rgba(34,211,238,0.2)',
               colorScheme: 'dark',
             }}
           />
@@ -605,8 +612,18 @@ const RescheduleModal: React.FC<{
             </span>
           </div>
 
+          {/* Past time error */}
+          {isPastTime && (
+            <div className="rounded-lg p-2.5 mt-3 flex items-start gap-2"
+              style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)' }}
+            >
+              <X className="w-3 h-3 text-red-400 flex-shrink-0 mt-0.5" />
+              <p className="text-[9px] font-bold text-red-300">Can't schedule in the past. Pick a future time.</p>
+            </div>
+          )}
+
           {/* Overlap warning (Option B) */}
-          {overlappingSlot && (
+          {!isPastTime && overlappingSlot && (
             <div className="rounded-lg p-2.5 mt-3 flex items-start gap-2"
               style={{ background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.15)' }}
             >
@@ -637,11 +654,18 @@ const RescheduleModal: React.FC<{
           </button>
           <button
             onClick={() => {
-              onSave(quest.id, selectedTime);
-              onClose();
+              if (!isPastTime) {
+                onSave(quest.id, selectedTime);
+                onClose();
+              }
             }}
-            className="flex-1 py-2.5 rounded-xl text-[10px] font-bold text-black uppercase tracking-wider"
-            style={{ background: 'linear-gradient(135deg, #22d3ee, #06b6d4)' }}
+            disabled={isPastTime}
+            className="flex-1 py-2.5 rounded-xl text-[10px] font-bold text-black uppercase tracking-wider transition-opacity"
+            style={{
+              background: isPastTime ? '#374151' : 'linear-gradient(135deg, #22d3ee, #06b6d4)',
+              opacity: isPastTime ? 0.4 : 1,
+              color: isPastTime ? '#6b7280' : '#000',
+            }}
           >
             Save Time
           </button>
@@ -700,7 +724,8 @@ const QuestTimelineRow: React.FC<{
   const [swipeX, setSwipeX] = useState(0);
   const swipeThreshold = 120;
 
-  const canReschedule = !isCompleted && !isFailed && onReschedule;
+  // Can't reschedule: if completed/failed, or within 10 min of scheduled time, or past scheduled time
+  const canReschedule = !isCompleted && !isFailed && onReschedule && (currentMinutes < scheduledMin - 10);
 
   return (
     <div className="flex gap-0 relative">
