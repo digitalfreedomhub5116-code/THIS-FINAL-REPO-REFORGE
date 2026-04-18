@@ -1,16 +1,10 @@
 import { Router, Request, Response } from 'express';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { supabaseServer } from '../lib/supabase.js';
 import { logUsage } from '../utils/logUsage.js';
 import { EXERCISE_VIDEOS, getExerciseVideoUrl, fixVideoPath } from '../../lib/exerciseVideos.js';
+import { getSharedAI, generateWithRetry } from '../utils/geminiRetry.js';
 
 const router = Router();
-
-function getAI() {
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) throw new Error('GEMINI_API_KEY not set');
-  return new GoogleGenerativeAI(key);
-}
 
 router.get('/exercises', async (req: Request, res: Response) => {
   try {
@@ -133,9 +127,9 @@ Respond ONLY with valid compact JSON (no markdown, no extra whitespace):
 
 Rules: use only library exercises, BULK=heavy reps like "12,10,8", CUT=more cardio, STRENGTH="5,5,5", output exactly ${totalPerWeek} days`;
 
-    const ai = getAI();
+    const ai = getSharedAI();
     const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash' });
-    const result = await model.generateContent(prompt);
+    const result = await generateWithRetry(model, prompt);
     const text = result.response.text().trim();
     const usage = result.response.usageMetadata;
 

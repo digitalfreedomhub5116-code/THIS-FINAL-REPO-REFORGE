@@ -1,18 +1,10 @@
 import { Router, Request, Response } from 'express';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { logUsage } from '../utils/logUsage.js';
 import { getAuthenticatedUserId } from '../lib/playerAuth.js';
 import { supabaseServer } from '../lib/supabase.js';
+import { getSharedAI, generateWithRetry } from '../utils/geminiRetry.js';
 
 const router = Router();
-
-// ── Helpers ──
-
-function getAI() {
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) throw new Error('GEMINI_API_KEY not set');
-  return new GoogleGenerativeAI(key);
-}
 
 function stripMarkdown(text: string): string {
   return text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
@@ -36,7 +28,7 @@ router.post('/analyze', async (req: Request, res: Response) => {
   try {
     const authUserId = getAuthenticatedUserId(req) || 'anonymous';
 
-    const ai = getAI();
+    const ai = getSharedAI();
     const { goalText, playerStats, healthProfile, activeGoalsCount, timezone } = req.body;
 
     if (!goalText || goalText.trim().length < 5) {
@@ -114,7 +106,7 @@ Users type on mobile. If the goal has typos but intent is clear, interpret corre
 }`;
 
     const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash' });
-    const result = await model.generateContent(prompt);
+    const result = await generateWithRetry(model, prompt);
     const text = result.response.text().trim();
 
     logUsage({
@@ -147,7 +139,7 @@ router.post('/plan', async (req: Request, res: Response) => {
   try {
     const authUserId = getAuthenticatedUserId(req) || 'anonymous';
 
-    const ai = getAI();
+    const ai = getSharedAI();
     const { goalText, category, estimatedDurationDays, interviewAnswers, playerStats, healthProfile, otherGoals, timezone } = req.body;
 
     if (!goalText || !category || !interviewAnswers) {
@@ -222,7 +214,7 @@ ${otherGoalsContext}
 }`;
 
     const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash' });
-    const result = await model.generateContent(prompt);
+    const result = await generateWithRetry(model, prompt);
     const text = result.response.text().trim();
 
     logUsage({
@@ -255,7 +247,7 @@ router.post('/daily-quests', async (req: Request, res: Response) => {
   try {
     const authUserId = getAuthenticatedUserId(req) || 'anonymous';
 
-    const ai = getAI();
+    const ai = getSharedAI();
     const { goal, recentTasks, playerStats, otherGoalTasksToday, remainingMinutes, dayOfWeek, scheduleProfile } = req.body;
 
     if (!goal) {
@@ -480,7 +472,7 @@ URL RULES:
     const model = ai.getGenerativeModel({
       model: 'gemini-2.0-flash',
     });
-    const result = await model.generateContent(prompt);
+    const result = await generateWithRetry(model, prompt);
     const text = result.response.text().trim();
 
     logUsage({

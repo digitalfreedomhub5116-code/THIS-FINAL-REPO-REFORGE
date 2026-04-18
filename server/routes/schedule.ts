@@ -1,15 +1,9 @@
 import { Router, Request, Response } from 'express';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { logUsage } from '../utils/logUsage.js';
 import { getAuthenticatedUserId } from '../lib/playerAuth.js';
+import { getSharedAI, generateWithRetry } from '../utils/geminiRetry.js';
 
 const router = Router();
-
-function getAI() {
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) throw new Error('GEMINI_API_KEY not set');
-  return new GoogleGenerativeAI(key);
-}
 
 function stripMarkdown(text: string): string {
   return text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
@@ -18,7 +12,7 @@ function stripMarkdown(text: string): string {
 // ── Generate daily schedule slots by assigning time slots to goal quests ──
 router.post('/generate', async (req: Request, res: Response) => {
   try {
-    const ai = getAI();
+    const ai = getSharedAI();
     const userId = getAuthenticatedUserId(req);
     if (!userId) {
       return res.status(401).json({ error: 'Authentication required' });
@@ -125,7 +119,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown, no explanation.`;
     for (const modelName of models) {
       try {
         const model = ai.getGenerativeModel({ model: modelName });
-        const result = await model.generateContent(prompt);
+        const result = await generateWithRetry(model, prompt);
         const usage = result.response.usageMetadata;
         modelResult = {
           text: result.response.text(),
@@ -188,7 +182,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown, no explanation.`;
 // ── Swap a quest in the schedule with AI-generated alternatives ──
 router.post('/swap', async (req: Request, res: Response) => {
   try {
-    const ai = getAI();
+    const ai = getSharedAI();
     const userId = getAuthenticatedUserId(req);
     if (!userId) {
       return res.status(401).json({ error: 'Authentication required' });
@@ -228,7 +222,7 @@ Return ONLY valid JSON array of 3 alternatives:
 ]`;
 
     const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash' });
-    const result = await model.generateContent(prompt);
+    const result = await generateWithRetry(model, prompt);
     const usage = result.response.usageMetadata;
 
     logUsage({

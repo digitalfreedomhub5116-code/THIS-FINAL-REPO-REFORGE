@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { logUsage } from '../utils/logUsage.js';
 import { getAuthenticatedUserId } from '../lib/playerAuth.js';
+import { generateWithRetry } from '../utils/geminiRetry.js';
 
 const router = Router();
 
@@ -73,7 +74,7 @@ router.post('/analyze', async (req: Request, res: Response) => {
     try {
       console.log(`[Nutrition] Trying model: ${modelName}`);
       const model = genAI.getGenerativeModel({ model: modelName });
-      const result = await model.generateContent([NUTRITION_PROMPT, imagePart]);
+      const result = await generateWithRetry(model, [NUTRITION_PROMPT, imagePart]);
       const text = result.response.text().trim();
 
       const cleaned = text

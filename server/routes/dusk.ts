@@ -1,14 +1,14 @@
 import { Router, Request, Response } from 'express';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { logUsage } from '../utils/logUsage.js';
 import { getAuthenticatedUserId } from '../lib/playerAuth.js';
+import { getSharedAI, generateWithRetry } from '../utils/geminiRetry.js';
 
 const router = Router();
 
 router.post('/chat', async (req: Request, res: Response) => {
   try {
-    const key = process.env.GEMINI_API_KEY;
-    if (!key) {
+    let ai: ReturnType<typeof getSharedAI>;
+    try { ai = getSharedAI(); } catch {
       return res.status(500).json({ error: 'GEMINI_API_KEY not set' });
     }
 
@@ -18,7 +18,6 @@ router.post('/chat', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'message is required' });
     }
 
-    const ai = new GoogleGenerativeAI(key);
     const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
     const historyContext = (history || [])
@@ -53,7 +52,7 @@ Your Personality & Rules:
 
     const fullPrompt = `${systemPrompt}\n\nChat History:\n${historyContext}\n\n${isSystemEvent ? `[SYSTEM NOTIFICATION: ${userMessage}]\nReact to this event. Talk directly to the user in a helpful but firm way.` : `User: ${userMessage}`}\nDUSK:`;
 
-    const result = await model.generateContent(fullPrompt);
+    const result = await generateWithRetry(model, fullPrompt);
     const text = result.response.text().trim();
 
     logUsage({

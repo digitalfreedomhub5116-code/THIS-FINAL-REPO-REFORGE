@@ -2,14 +2,9 @@ import { Router, Request, Response } from 'express';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { logUsage } from '../utils/logUsage.js';
 import { getAuthenticatedUserId } from '../lib/playerAuth.js';
+import { getSharedAI, generateWithRetry } from '../utils/geminiRetry.js';
 
 const router = Router();
-
-function getAI() {
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) throw new Error('GEMINI_API_KEY not set');
-  return new GoogleGenerativeAI(key);
-}
 
 function stripMarkdown(text: string): string {
   return text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
@@ -65,7 +60,7 @@ interface ModelResult {
 
 async function tryModel(ai: GoogleGenerativeAI, modelName: string, prompt: string): Promise<ModelResult> {
   const model = ai.getGenerativeModel({ model: modelName });
-  const result = await model.generateContent(prompt);
+  const result = await generateWithRetry(model, prompt);
   const usage = result.response.usageMetadata;
   return {
     text: result.response.text(),
@@ -77,7 +72,7 @@ async function tryModel(ai: GoogleGenerativeAI, modelName: string, prompt: strin
 
 router.post('/analyze-quest', async (req: Request, res: Response) => {
   try {
-    const ai = getAI();
+    const ai = getSharedAI();
     const userId = getAuthenticatedUserId(req) || null;
     const { title, userStats, healthProfile, timezone } = req.body;
 
