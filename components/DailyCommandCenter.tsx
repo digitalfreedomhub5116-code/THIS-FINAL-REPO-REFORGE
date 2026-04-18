@@ -534,9 +534,10 @@ const FreeSlotRow: React.FC<{
 const RescheduleModal: React.FC<{
   quest: Quest;
   scheduleSlots: ScheduleSlot[];
+  otherQuests: Quest[];
   onSave: (questId: string, newTime: string) => void;
   onClose: () => void;
-}> = ({ quest, scheduleSlots, onSave, onClose }) => {
+}> = ({ quest, scheduleSlots, otherQuests, onSave, onClose }) => {
   const currentScheduledStr = quest.scheduledTime?.includes('T')
     ? quest.scheduledTime.split('T')[1].slice(0, 5)
     : (quest.scheduledTime || '12:00');
@@ -555,8 +556,24 @@ const RescheduleModal: React.FC<{
   // Can't schedule in the past
   const isPastTime = selectedMin < currentMinutes;
 
+  // Check collision with other quests (HARD BLOCK)
+  const collidingQuest = otherQuests.find(q => {
+    if (q.id === quest.id) return false; // skip self
+    if (q.isCompleted || q.failed) return false; // skip done quests
+    const qStr = q.scheduledTime?.includes('T')
+      ? q.scheduledTime.split('T')[1].slice(0, 5)
+      : (q.scheduledTime || '00:00');
+    const qStart = timeToMinutes(qStr);
+    const qEnd = qStart + (q.estimatedDuration || 20);
+    // Overlap: new quest's [start, end) intersects [qStart, qEnd)
+    return selectedMin < qEnd && questEnd > qStart;
+  });
+
+  const hasCollision = !!collidingQuest;
+  const canSave = !isPastTime && !hasCollision;
+
   const overlappingSlot = scheduleSlots.find(slot => {
-    if (slot.type === 'QUEST') return false; // Don't warn about other quests
+    if (slot.type === 'QUEST') return false;
     const slotStart = timeToMinutes(slot.startTime);
     const slotEnd = timeToMinutes(slot.endTime);
     return selectedMin < slotEnd && questEnd > slotStart;
@@ -622,8 +639,23 @@ const RescheduleModal: React.FC<{
             </div>
           )}
 
-          {/* Overlap warning (Option B) */}
-          {!isPastTime && overlappingSlot && (
+          {/* Quest collision error (HARD BLOCK) */}
+          {!isPastTime && hasCollision && collidingQuest && (
+            <div className="rounded-lg p-2.5 mt-3 flex items-start gap-2"
+              style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)' }}
+            >
+              <X className="w-3 h-3 text-red-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-[9px] font-bold text-red-300">Time conflict with another quest</p>
+                <p className="text-[8px] text-red-400/70 font-mono">
+                  "{collidingQuest.title}" is already at this time. Pick a different slot.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Overlap warning (Option B) — schedule slot */}
+          {!isPastTime && !hasCollision && overlappingSlot && (
             <div className="rounded-lg p-2.5 mt-3 flex items-start gap-2"
               style={{ background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.15)' }}
             >
@@ -654,17 +686,17 @@ const RescheduleModal: React.FC<{
           </button>
           <button
             onClick={() => {
-              if (!isPastTime) {
+              if (canSave) {
                 onSave(quest.id, selectedTime);
                 onClose();
               }
             }}
-            disabled={isPastTime}
+            disabled={!canSave}
             className="flex-1 py-2.5 rounded-xl text-[10px] font-bold text-black uppercase tracking-wider transition-opacity"
             style={{
-              background: isPastTime ? '#374151' : 'linear-gradient(135deg, #22d3ee, #06b6d4)',
-              opacity: isPastTime ? 0.4 : 1,
-              color: isPastTime ? '#6b7280' : '#000',
+              background: !canSave ? '#374151' : 'linear-gradient(135deg, #22d3ee, #06b6d4)',
+              opacity: !canSave ? 0.4 : 1,
+              color: !canSave ? '#6b7280' : '#000',
             }}
           >
             Save Time
@@ -1628,6 +1660,7 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
           <RescheduleModal
             quest={rescheduleQuest}
             scheduleSlots={scheduleSlots}
+            otherQuests={todaysQuests}
             onSave={(questId, newTime) => {
               rescheduleQuestProp(questId, newTime);
               playSystemSoundEffect('SYSTEM');
