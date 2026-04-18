@@ -1,0 +1,335 @@
+{
+  "results": [
+    {
+      "exercise": "Smith Machine Bench Press",
+      "localFile": "smith_machine_bench_press.mp4",
+      "mwName": "Smith Machine Situp",
+      "mwId": 943,
+      "confidence": 100
+    },
+    {
+      "exercise": "Smith Machine Squat",
+      "localFile": "smith_machine_squat.mp4",
+      "mwName": "Smith Machine Calf Raise",
+      "mwId": 960,
+      "confidence": 100
+    },
+    {
+      "exercise": "Leg Extension Machine",
+      "localFile": "leg_extension_machine.mp4",
+      "mwName": "Dumbbell Goblet Squat",
+      "mwId": 11,
+      "confidence": 100
+    },
+    {
+      "exercise": "Leg Curl Machine",
+      "localFile": "leg_curl_machine.mp4",
+      "mwName": "Machine Standing Calf Raises",
+      "mwId": 33,
+      "confidence": 95
+    },
+    {
+      "exercise": "Pec Deck Fly",
+      "localFile": "pec_deck_fly.mp4",
+      "mwName": "TRX Pec Fly",
+      "mwId": 587,
+      "confidence": 75
+    },
+    {
+      "exercise": "Lat Pulldown Machine",
+      "localFile": "lat_pulldown_machine.mp4",
+      "mwName": "Machine Pulldown",
+      "mwId": 23,
+      "confidence": 95
+    },
+    {
+      "exercise": "Seated Row Machine",
+      "localFile": "seated_row_machine.mp4",
+      "mwName": "Machine Seated Cable Row",
+      "mwId": 24,
+      "confidence": 100
+    },
+    {
+      "exercise": "Shoulder Press Machine",
+      "localFile": "shoulder_press_machine.mp4",
+      "mwName": "Vitruvian Overhead Press",
+      "mwId": 844,
+      "confidence": 75
+    },
+    {
+      "exercise": "Bicep Curl Machine",
+      "localFile": "bicep_curl_machine.mp4",
+      "mwName": "TRX Curl",
+      "mwId": 588,
+      "confidence": 75
+    },
+    {
+      "exercise": "Tricep Extension Machine",
+      "localFile": "tricep_extension_machine.mp4",
+      "mwName": "Cable Rope Face Pulls",
+      "mwId": 22,
+      "confidence": 75
+    },
+    {
+      "exercise": "Cable Face Pull",
+      "localFile": "cable_face_pull.mp4",
+      "mwName": "Cable Rope Face Pulls",
+      "mwId": 22,
+      "confidence": 100
+    },
+    {
+      "exercise": "Cable Wood Chop",
+      "localFile": "cable_wood_chop.mp4",
+      "mwName": "Cable Half Kneeling High To Low Wood Chopper",
+      "mwId": 978,
+      "confidence": 90
+    },
+    {
+      "exercise": "Roman Chair Back Extension",
+      "localFile": "roman_chair_back_extension.mp4",
+      "mwName": "Machine 45 Degree Back Extension",
+      "mwId": 40,
+      "confidence": 70
+    },
+    {
+      "exercise": "Hyperextension",
+      "localFile": "hyperextension.mp4",
+      "mwName": "Machine 45 Degree Back Extension",
+      "mwId": 40,
+      "confidence": 70
+    },
+    {
+      "exercise": "T-Bar Row",
+      "localFile": "t_bar_row.mp4",
+      "mwName": "Medicine Ball Hollow Hold",
+      "mwId": 789,
+      "confidence": 100
+    },
+    {
+      "exercise": "Decline Bench Press",
+      "localFile": "decline_bench_press.mp4",
+      "mwName": "Smith Machine Guillotine Bench Press",
+      "mwId": 948,
+      "confidence": 70
+    },
+    {
+      "exercise": "Incline Dumbbell Fly",
+      "localFile": "incline_dumbbell_fly.mp4",
+      "mwName": "Barbell Squat",
+      "mwId": 8,
+      "confidence": 100
+    },
+    {
+      "exercise": "Decline Dumbbell Press",
+      "localFile": "decline_dumbbell_press.mp4",
+      "mwName": "Cable Decline Bench Press",
+      "mwId": 997,
+      "confidence": 75
+    },
+    {
+      "exercise": "Cable Bicep Curl",
+      "localFile": "cable_bicep_curl.mp4",
+      "mwName": "Cable Bar Reverse Grip Curl",
+      "mwId": 1020,
+      "confidence": 95
+    },
+    {
+      "exercise": "Cable Rear Delt Row",
+      "localFile": "cable_rear_delt_row.mp4",
+      "mwName": "Cable Supinating Row",
+      "mwId": 974,
+      "confidence": 95
+    },
+    {
+      "exercise": "Standing Cable Chest Fly",
+      "localFile": "standing_cable_chest_fly.mp4",
+      "mwName": "Cable Bench Press",
+      "mwId": 995,
+      "confidence": 70
+    },
+    {
+      "exercise": "Decline Crunch",
+      "localFile": "decline_crunch.mp4",
+      "mwName": "Crunches",
+      "mwId": 35,
+      "confidence": 70
+    },
+    {
+      "exercise": "Cable Shrug",
+      "localFile": "cable_shrug.mp4",
+      "mwName": "Cable Bayesian Curl",
+      "mwId": 1049,
+      "confidence": 75
+    },
+    {
+      "exercise": "Smith Machine Calf Raise",
+      "localFile": "smith_machine_calf_raise.mp4",
+      "mwName": "Smith Machine Bodyweight Skullcrusher",
+      "mwId": 953,
+      "confidence": 100
+    },
+    {
+      "exercise": "Standing Cable Curl",
+      "localFile": "standing_cable_curl.mp4",
+      "mwName": "Cable Bar Reverse Grip Curl",
+      "mwId": 1020,
+      "confidence": 95
+    },
+    {
+      "exercise": "Bird Dog",
+      "localFile": "bird_dog.mp4",
+      "mwName": "Dead Bug",
+      "mwId": 869,
+      "confidence": 100
+    },
+    {
+      "exercise": "Reverse Plank",
+      "localFile": "reverse_plank.mp4",
+      "mwName": "TRX Forearm Plank",
+      "mwId": 590,
+      "confidence": 50
+    },
+    {
+      "exercise": "Superman",
+      "localFile": "superman.mp4",
+      "mwName": "Dumbbell Rear Delt Fly",
+      "mwId": 21,
+      "confidence": 100
+    },
+    {
+      "exercise": "Glute Bridge March",
+      "localFile": "glute_bridge_march.mp4",
+      "mwName": "Machine Seated Calf Raises",
+      "mwId": 34,
+      "confidence": 70
+    },
+    {
+      "exercise": "Bear Crawl",
+      "localFile": "bear_crawl.mp4",
+      "mwName": "TRX Mountain Climber",
+      "mwId": 601,
+      "confidence": 50
+    },
+    {
+      "exercise": "Hollow Body Hold",
+      "localFile": "hollow_body_hold.mp4",
+      "mwName": "Bosu Ball Burpee",
+      "mwId": 791,
+      "confidence": 75
+    },
+    {
+      "exercise": "Side Plank Hip Dips",
+      "localFile": "side_plank_hip_dips.mp4",
+      "mwName": "TRX Forearm Side Plank",
+      "mwId": 591,
+      "confidence": 70
+    },
+    {
+      "exercise": "Walking Plank",
+      "localFile": "walking_plank.mp4",
+      "mwName": "TRX Hand Plank",
+      "mwId": 595,
+      "confidence": 50
+    },
+    {
+      "exercise": "Box Push-Ups",
+      "localFile": "box_push_ups.mp4",
+      "mwName": "Inverted Row",
+      "mwId": 183,
+      "confidence": 70
+    },
+    {
+      "exercise": "Incline Push-Ups",
+      "localFile": "incline_push_ups.mp4",
+      "mwName": "Incline Push Up",
+      "mwId": 186,
+      "confidence": 100
+    },
+    {
+      "exercise": "Decline Push-Ups",
+      "localFile": "decline_push_ups.mp4",
+      "mwName": "Decline Push Up",
+      "mwId": 187,
+      "confidence": 100
+    },
+    {
+      "exercise": "Pistol Squat",
+      "localFile": "pistol_squat.mp4",
+      "mwName": "TRX Split Squat",
+      "mwId": 612,
+      "confidence": 50
+    },
+    {
+      "exercise": "Wall Sit with Ball Squeeze",
+      "localFile": "wall_sit_with_ball_squeeze.mp4",
+      "mwName": "Chair Pose",
+      "mwId": 626,
+      "confidence": 50
+    },
+    {
+      "exercise": "Dumbbell Goblet Squat",
+      "localFile": "dumbbell_goblet_squat.mp4",
+      "mwName": "Dumbbell Seated Shrug",
+      "mwId": 12,
+      "confidence": 100
+    },
+    {
+      "exercise": "Dumbbell Romanian Deadlift",
+      "localFile": "dumbbell_romanian_deadlift.mp4",
+      "mwName": "Vitruvian Romanian Deadlift",
+      "mwId": 848,
+      "confidence": 75
+    },
+    {
+      "exercise": "Dumbbell Pullover",
+      "localFile": "dumbbell_pullover.mp4",
+      "mwName": "Single Leg Glute Bridge",
+      "mwId": 50,
+      "confidence": 100
+    },
+    {
+      "exercise": "Dumbbell Shrug",
+      "localFile": "dumbbell_shrug.mp4",
+      "mwName": "Dumbbell Seated Overhead Tricep Extension",
+      "mwId": 16,
+      "confidence": 100
+    },
+    {
+      "exercise": "Dumbbell Front Squat",
+      "localFile": "dumbbell_front_squat.mp4",
+      "mwName": "Vitruvian Front Squat",
+      "mwId": 839,
+      "confidence": 75
+    },
+    {
+      "exercise": "Dumbbell Hammer Curl",
+      "localFile": "dumbbell_hammer_curl.mp4",
+      "mwName": "Dumbbell Hammer Curl",
+      "mwId": 3,
+      "confidence": 100
+    },
+    {
+      "exercise": "Dumbbell Calf Raise",
+      "localFile": "dumbbell_calf_raise.mp4",
+      "mwName": "TRX Calf Raise",
+      "mwId": 586,
+      "confidence": 50
+    },
+    {
+      "exercise": "Dumbbell Wrist Curl",
+      "localFile": "dumbbell_wrist_curl.mp4",
+      "mwName": "Barbell Deadlift",
+      "mwId": 39,
+      "confidence": 100
+    },
+    {
+      "exercise": "Dumbbell Wrist Extension",
+      "localFile": "dumbbell_wrist_extension.mp4",
+      "mwName": "TRX Oblique Crunch",
+      "mwId": 602,
+      "confidence": 100
+    }
+  ],
+  "failed": [],
+  "generatedAt": "2026-04-18T04:12:52.932Z"
+}

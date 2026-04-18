@@ -1,0 +1,592 @@
+[
+  {
+    "name": "Smith Machine Bench Press",
+    "type": "COMPOUND",
+    "muscle_group": "CHEST",
+    "equipment": "GYM",
+    "default_sets": 3,
+    "default_reps": "12, 10, 8",
+    "is_time_based": false,
+    "is_sport": false
+  },
+  {
+    "name": "Smith Machine Squat",
+    "type": "COMPOUND",
+    "muscle_group": "QUADS",
+    "equipment": "GYM",
+    "default_sets": 3,
+    "default_reps": "12, 10, 8",
+    "is_time_based": false,
+    "is_sport": false
+  },
+  {
+    "name": "Leg Extension Machine",
+    "type": "ISOLATION",
+    "muscle_group": "QUADS",
+    "equipment": "GYM",
+    "default_sets": 3,
+    "default_reps": "15, 15, 12",
+    "is_time_based": false,
+    "is_sport": false
+  },
+  {
+    "name": "Leg Curl Machine",
+    "type": "ISOLATION",
+    "muscle_group": "HAMSTRINGS",
+    "equipment": "GYM",
+    "default_sets": 3,
+    "default_reps": "15, 15, 12",
+    "is_time_based": false,
+    "is_sport": false
+  },
+  {
+    "name": "Pec Deck Fly",
+    "type": "ISOLATION",
+    "muscle_group": "CHEST",
+    "equipment": "GYM",
+    "default_sets": 3,
+    "default_reps": "15, 15, 12",
+    "is_time_based": false,
+    "is_sport": false
+  },
+  {
+    "name": "Lat Pulldown Machine",
+    "type": "COMPOUND",
+    "muscle_group": "BACK",
+    "equipment": "GYM",
+    "default_sets": 3,
+    "default_reps": "12, 10, 8",
+    "is_time_based": false,
+    "is_sport": false
+  },
+  {
+    "name": "Seated Row Machine",
+    "type": "COMPOUND",
+    "muscle_group": "BACK",
+    "equipment": "GYM",
+    "default_sets": 3,
+    "default_reps": "12, 10, 8",
+    "is_time_based": false,
+    "is_sport": false
+  },
+  {
+    "name": "Shoulder Press Machine",
+    "type": "COMPOUND",
+    "muscle_group": "SHOULDERS",
+    "equipment": "GYM",
+    "default_sets": 3,
+    "default_reps": "12, 10, 8",
+    "is_time_based": false,
+    "is_sport": false
+  },
+  {
+    "name": "Bicep Curl Machine",
+    "type": "ISOLATION",
+    "muscle_group": "BICEPS",
+    "equipment": "GYM",
+    "default_sets": 3,
+    "default_reps": "15, 15, 12",
+    "is_time_based": false,
+    "is_sport": false
+  },
+  {
+    "name": "Tricep Extension Machine",
+    "type": "ISOLATION",
+    "muscle_group": "TRICEPS",
+    "equipment": "GYM",
+    "default_sets": 3,
+    "default_reps": "15, 15, 12",
+    "is_time_based": false,
+    "is_sport": false
+  },
+  {
+    "name": "Cable Face Pull",
+    "type": "ISOLATION",
+    "muscle_group": "SHOULDERS",
+    "equipment": "GYM",
+    "default_sets": 3,
+    "default_reps": "15, 15, 12",
+    "is_time_based": false,
+    "is_sport": false
+  },
+  {
+    "name": "Cable Wood Chop",
+    "type": "COMPOUND",
+    "muscle_group": "CORE",
+    "equipment": "GYM",
+    "default_sets": 3,
+    "default_reps": "12, 12, 10",
+    "is_time_based": false,
+    "is_sport": false
+  },
+  {
+    "name": "Roman Chair Back Extension",
+    "type": "ISOLATION",
+    "muscle_group": "BACK",
+    "equipment": "GYM",
+    "default_sets": 3,
+    "default_reps": "15, 15, 12",
+    "is_time_based": false,
+    "is_sport": false
+  },
+  {
+    "name": "Hyperextension",
+    "type": "ISOLATION",
+    "muscle_group": "BACK",
+    "equipment": "GYM",
+    "default_sets": 3,
+    "default_reps": "15, 15, 12",
+    "is_time_based": false,
+    "is_sport": false
+  },
+  {
+    "name": "T-Bar Row",
+    "type": "COMPOUND",
+    "muscle_group": "BACK",
+    "equipment": "GYM",
+    "default_sets": 3,
+    "default_reps": "12, 10, 8",
+    "is_time_based": false,
+    "is_sport": false
+  },
+  {
+    "name": "Decline Bench Press",
+    "type": "COMPOUND",
+    "muscle_group": "CHEST",
+    "equipment": "GYM",
+    "default_sets": 3,
+    "default_reps": "12, 10, 8",
+    "is_time_based": false,
+    "is_sport": false
+  },
+  {
+    "name": "Incline Dumbbell Fly",
+    "type": "ISOLATION",
+    "muscle_group": "CHEST",
+    "equipment": "DUMBBELL",
+    "default_sets": 3,
+    "default_reps": "12, 12, 10",
+    "is_time_based": false,
+    "is_sport": false
+  },
+  {
+    "name": "Decline Dumbbell Press",
+    "type": "COMPOUND",
+    "muscle_group": "CHEST",
+    "equipment": "DUMBBELL",
+    "default_sets": 3,
+    "default_reps": "12, 10, 8",
+    "is_time_based": false,
+    "is_sport": false
+  },
+  {
+    "name": "Cable Bicep Curl",
+    "type": "ISOLATION",
+    "muscle_group": "BICEPS",
+    "equipment": "GYM",
+    "default_sets": 3,
+    "default_reps": "15, 15, 12",
+    "is_time_based": false,
+    "is_sport": false
+  },
+  {
+    "name": "Cable Rear Delt Row",
+    "type": "ISOLATION",
+    "muscle_group": "SHOULDERS",
+    "equipment": "GYM",
+    "default_sets": 3,
+    "default_reps": "15, 15, 12",
+    "is_time_based": false,
+    "is_sport": false
+  },
+  {
+    "name": "Standing Cable Chest Fly",
+    "type": "ISOLATION",
+    "muscle_group": "CHEST",
+    "equipment": "GYM",
+    "default_sets": 3,
+    "default_reps": "15, 15, 12",
+    "is_time_based": false,
+    "is_sport": false
+  },
+  {
+    "name": "Decline Crunch",
+    "type": "ISOLATION",
+    "muscle_group": "CORE",
+    "equipment": "GYM",
+    "default_sets": 3,
+    "default_reps": "15, 15, 12",
+    "is_time_based": false,
+    "is_sport": false
+  },
+  {
+    "name": "Cable Shrug",
+    "type": "ISOLATION",
+    "muscle_group": "SHOULDERS",
+    "equipment": "GYM",
+    "default_sets": 3,
+    "default_reps": "15, 15, 12",
+    "is_time_based": false,
+    "is_sport": false
+  },
+  {
+    "name": "Smith Machine Calf Raise",
+    "type": "ISOLATION",
+    "muscle_group": "CALVES",
+    "equipment": "GYM",
+    "default_sets": 3,
+    "default_reps": "15, 15, 12",
+    "is_time_based": false,
+    "is_sport": false
+  },
+  {
+    "name": "Standing Cable Curl",
+    "type": "ISOLATION",
+    "muscle_group": "BICEPS",
+    "equipment": "GYM",
+    "default_sets": 3,
+    "default_reps": "12, 12, 10",
+    "is_time_based": false,
+    "is_sport": false
+  },
+  {
+    "name": "Bird Dog",
+    "type": "ISOLATION",
+    "muscle_group": "CORE",
+    "equipment": "BODYWEIGHT",
+    "default_sets": 3,
+    "default_reps": "10, 10, 10",
+    "is_time_based": false,
+    "is_sport": false
+  },
+  {
+    "name": "Reverse Plank",
+    "type": "COMPOUND",
+    "muscle_group": "CORE",
+    "equipment": "BODYWEIGHT",
+    "default_sets": 2,
+    "default_reps": "30s, 30s",
+    "is_time_based": true,
+    "is_sport": false
+  },
+  {
+    "name": "Superman",
+    "type": "ISOLATION",
+    "muscle_group": "BACK",
+    "equipment": "BODYWEIGHT",
+    "default_sets": 3,
+    "default_reps": "12, 12, 10",
+    "is_time_based": false,
+    "is_sport": false
+  },
+  {
+    "name": "Glute Bridge March",
+    "type": "ISOLATION",
+    "muscle_group": "GLUTES",
+    "equipment": "BODYWEIGHT",
+    "default_sets": 3,
+    "default_reps": "10, 10, 10",
+    "is_time_based": false,
+    "is_sport": false
+  },
+  {
+    "name": "Bear Crawl",
+    "type": "COMPOUND",
+    "muscle_group": "FULL BODY",
+    "equipment": "BODYWEIGHT",
+    "default_sets": 2,
+    "default_reps": "30s, 30s",
+    "is_time_based": true,
+    "is_sport": false
+  },
+  {
+    "name": "Hollow Body Hold",
+    "type": "COMPOUND",
+    "muscle_group": "CORE",
+    "equipment": "BODYWEIGHT",
+    "default_sets": 2,
+    "default_reps": "30s, 30s",
+    "is_time_based": true,
+    "is_sport": false
+  },
+  {
+    "name": "Side Plank Hip Dips",
+    "type": "ISOLATION",
+    "muscle_group": "CORE",
+    "equipment": "BODYWEIGHT",
+    "default_sets": 3,
+    "default_reps": "12, 12, 10",
+    "is_time_based": false,
+    "is_sport": false
+  },
+  {
+    "name": "Walking Plank",
+    "type": "COMPOUND",
+    "muscle_group": "CORE",
+    "equipment": "BODYWEIGHT",
+    "default_sets": 2,
+    "default_reps": "30s, 30s",
+    "is_time_based": true,
+    "is_sport": false
+  },
+  {
+    "name": "Box Push-Ups",
+    "type": "COMPOUND",
+    "muscle_group": "CHEST",
+    "equipment": "BODYWEIGHT",
+    "default_sets": 3,
+    "default_reps": "12, 12, 10",
+    "is_time_based": false,
+    "is_sport": false
+  },
+  {
+    "name": "Incline Push-Ups",
+    "type": "COMPOUND",
+    "muscle_group": "CHEST",
+    "equipment": "BODYWEIGHT",
+    "default_sets": 3,
+    "default_reps": "12, 12, 10",
+    "is_time_based": false,
+    "is_sport": false
+  },
+  {
+    "name": "Decline Push-Ups",
+    "type": "COMPOUND",
+    "muscle_group": "CHEST",
+    "equipment": "BODYWEIGHT",
+    "default_sets": 3,
+    "default_reps": "10, 10, 8",
+    "is_time_based": false,
+    "is_sport": false
+  },
+  {
+    "name": "Pistol Squat",
+    "type": "COMPOUND",
+    "muscle_group": "LEGS",
+    "equipment": "BODYWEIGHT",
+    "default_sets": 3,
+    "default_reps": "5, 5, 3",
+    "is_time_based": false,
+    "is_sport": false
+  },
+  {
+    "name": "Wall Sit with Ball Squeeze",
+    "type": "COMPOUND",
+    "muscle_group": "QUADS",
+    "equipment": "BODYWEIGHT",
+    "default_sets": 2,
+    "default_reps": "30s, 30s",
+    "is_time_based": true,
+    "is_sport": false
+  },
+  {
+    "name": "Dumbbell Goblet Squat",
+    "type": "COMPOUND",
+    "muscle_group": "LEGS",
+    "equipment": "DUMBBELL",
+    "default_sets": 3,
+    "default_reps": "12, 10, 8",
+    "is_time_based": false,
+    "is_sport": false
+  },
+  {
+    "name": "Dumbbell Romanian Deadlift",
+    "type": "COMPOUND",
+    "muscle_group": "HAMSTRINGS",
+    "equipment": "DUMBBELL",
+    "default_sets": 3,
+    "default_reps": "12, 10, 8",
+    "is_time_based": false,
+    "is_sport": false
+  },
+  {
+    "name": "Dumbbell Pullover",
+    "type": "ISOLATION",
+    "muscle_group": "CHEST",
+    "equipment": "DUMBBELL",
+    "default_sets": 3,
+    "default_reps": "12, 12, 10",
+    "is_time_based": false,
+    "is_sport": false
+  },
+  {
+    "name": "Dumbbell Shrug",
+    "type": "ISOLATION",
+    "muscle_group": "SHOULDERS",
+    "equipment": "DUMBBELL",
+    "default_sets": 3,
+    "default_reps": "15, 15, 12",
+    "is_time_based": false,
+    "is_sport": false
+  },
+  {
+    "name": "Dumbbell Front Squat",
+    "type": "COMPOUND",
+    "muscle_group": "LEGS",
+    "equipment": "DUMBBELL",
+    "default_sets": 3,
+    "default_reps": "12, 10, 8",
+    "is_time_based": false,
+    "is_sport": false
+  },
+  {
+    "name": "Dumbbell Hammer Curl",
+    "type": "ISOLATION",
+    "muscle_group": "BICEPS",
+    "equipment": "DUMBBELL",
+    "default_sets": 3,
+    "default_reps": "12, 12, 10",
+    "is_time_based": false,
+    "is_sport": false
+  },
+  {
+    "name": "Dumbbell Calf Raise",
+    "type": "ISOLATION",
+    "muscle_group": "CALVES",
+    "equipment": "DUMBBELL",
+    "default_sets": 3,
+    "default_reps": "15, 15, 12",
+    "is_time_based": false,
+    "is_sport": false
+  },
+  {
+    "name": "Dumbbell Wrist Curl",
+    "type": "ISOLATION",
+    "muscle_group": "FOREARMS",
+    "equipment": "DUMBBELL",
+    "default_sets": 3,
+    "default_reps": "15, 15, 12",
+    "is_time_based": false,
+    "is_sport": false
+  },
+  {
+    "name": "Dumbbell Wrist Extension",
+    "type": "ISOLATION",
+    "muscle_group": "FOREARMS",
+    "equipment": "DUMBBELL",
+    "default_sets": 3,
+    "default_reps": "15, 15, 12",
+    "is_time_based": false,
+    "is_sport": false
+  },
+  {
+    "name": "Running (Outdoor)",
+    "type": "CARDIO",
+    "muscle_group": "CARDIO",
+    "equipment": "BODYWEIGHT",
+    "default_sets": 1,
+    "default_reps": "30 min",
+    "is_time_based": true,
+    "is_sport": true
+  },
+  {
+    "name": "Cycling",
+    "type": "CARDIO",
+    "muscle_group": "CARDIO",
+    "equipment": "BODYWEIGHT",
+    "default_sets": 1,
+    "default_reps": "30 min",
+    "is_time_based": true,
+    "is_sport": true
+  },
+  {
+    "name": "Cricket",
+    "type": "SPORT",
+    "muscle_group": "FULL BODY",
+    "equipment": "BODYWEIGHT",
+    "default_sets": 1,
+    "default_reps": "60 min",
+    "is_time_based": true,
+    "is_sport": true
+  },
+  {
+    "name": "Football (Soccer)",
+    "type": "SPORT",
+    "muscle_group": "FULL BODY",
+    "equipment": "BODYWEIGHT",
+    "default_sets": 1,
+    "default_reps": "60 min",
+    "is_time_based": true,
+    "is_sport": true
+  },
+  {
+    "name": "Basketball",
+    "type": "SPORT",
+    "muscle_group": "FULL BODY",
+    "equipment": "BODYWEIGHT",
+    "default_sets": 1,
+    "default_reps": "60 min",
+    "is_time_based": true,
+    "is_sport": true
+  },
+  {
+    "name": "Badminton",
+    "type": "SPORT",
+    "muscle_group": "FULL BODY",
+    "equipment": "BODYWEIGHT",
+    "default_sets": 1,
+    "default_reps": "45 min",
+    "is_time_based": true,
+    "is_sport": true
+  },
+  {
+    "name": "Tennis",
+    "type": "SPORT",
+    "muscle_group": "FULL BODY",
+    "equipment": "BODYWEIGHT",
+    "default_sets": 1,
+    "default_reps": "45 min",
+    "is_time_based": true,
+    "is_sport": true
+  },
+  {
+    "name": "Swimming",
+    "type": "CARDIO",
+    "muscle_group": "CARDIO",
+    "equipment": "BODYWEIGHT",
+    "default_sets": 1,
+    "default_reps": "30 min",
+    "is_time_based": true,
+    "is_sport": true
+  },
+  {
+    "name": "Hiking",
+    "type": "CARDIO",
+    "muscle_group": "LEGS",
+    "equipment": "BODYWEIGHT",
+    "default_sets": 1,
+    "default_reps": "60 min",
+    "is_time_based": true,
+    "is_sport": true
+  },
+  {
+    "name": "Yoga Flow",
+    "type": "STRETCH",
+    "muscle_group": "FULL BODY",
+    "equipment": "BODYWEIGHT",
+    "default_sets": 1,
+    "default_reps": "30 min",
+    "is_time_based": true,
+    "is_sport": true
+  },
+  {
+    "name": "Jump Rope HIIT",
+    "type": "CARDIO",
+    "muscle_group": "CARDIO",
+    "equipment": "BODYWEIGHT",
+    "default_sets": 2,
+    "default_reps": "20s, 20s",
+    "is_time_based": true,
+    "is_sport": true
+  },
+  {
+    "name": "Stair Climbing",
+    "type": "CARDIO",
+    "muscle_group": "LEGS",
+    "equipment": "BODYWEIGHT",
+    "default_sets": 1,
+    "default_reps": "20 min",
+    "is_time_based": true,
+    "is_sport": true
+  }
+]

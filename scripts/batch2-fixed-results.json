@@ -1,0 +1,281 @@
+{
+  "results": [
+    {
+      "exercise": "Smith Machine Bench Press",
+      "mwName": "Smith Machine Guillotine Bench Press",
+      "mwId": 948,
+      "file": "smith_machine_bench_press.mp4"
+    },
+    {
+      "exercise": "Smith Machine Squat",
+      "mwName": "Smith Machine Sissy Squat",
+      "mwId": 938,
+      "file": "smith_machine_squat.mp4"
+    },
+    {
+      "exercise": "Leg Extension Machine",
+      "mwName": "Machine Leg Extension",
+      "mwId": 10,
+      "file": "leg_extension_machine.mp4"
+    },
+    {
+      "exercise": "Leg Curl Machine",
+      "mwName": "Machine Seated Leg Curl",
+      "mwId": 1198,
+      "file": "leg_curl_machine.mp4"
+    },
+    {
+      "exercise": "Pec Deck Fly",
+      "mwName": "Machine Pec Fly",
+      "mwId": 1507,
+      "file": "pec_deck_fly.mp4"
+    },
+    {
+      "exercise": "Lat Pulldown Machine",
+      "mwName": "Machine Plate Loaded Pulldown",
+      "mwId": 1659,
+      "file": "lat_pulldown_machine.mp4"
+    },
+    {
+      "exercise": "Seated Row Machine",
+      "mwName": "Machine Seated Cable Row",
+      "mwId": 24,
+      "file": "seated_row_machine.mp4"
+    },
+    {
+      "exercise": "Bicep Curl Machine",
+      "mwName": "Machine Bicep Curl",
+      "mwId": 1680,
+      "file": "bicep_curl_machine.mp4"
+    },
+    {
+      "exercise": "Tricep Extension Machine",
+      "mwName": "Machine Tricep Pushdown",
+      "mwId": 1681,
+      "file": "tricep_extension_machine.mp4"
+    },
+    {
+      "exercise": "Cable Face Pull",
+      "mwName": "Cable Rope Face Pulls",
+      "mwId": 22,
+      "file": "cable_face_pull.mp4"
+    },
+    {
+      "exercise": "Cable Wood Chop",
+      "mwName": "Cable Wood Chopper",
+      "mwId": 247,
+      "file": "cable_wood_chop.mp4"
+    },
+    {
+      "exercise": "Roman Chair Back Extension",
+      "mwName": "Machine 45 Degree Back Extension",
+      "mwId": 40,
+      "file": "roman_chair_back_extension.mp4"
+    },
+    {
+      "exercise": "Hyperextension",
+      "mwName": "Bodyweight Stability Ball Hyperextension",
+      "mwId": 1777,
+      "file": "hyperextension.mp4"
+    },
+    {
+      "exercise": "T-Bar Row",
+      "mwName": "Barbell Landmine Row",
+      "mwId": 338,
+      "file": "t_bar_row.mp4"
+    },
+    {
+      "exercise": "Decline Bench Press",
+      "mwName": "Dumbbell Decline Bench Press",
+      "mwId": 381,
+      "file": "decline_bench_press.mp4"
+    },
+    {
+      "exercise": "Incline Dumbbell Fly",
+      "mwName": "Dumbbell Incline Chest Flys",
+      "mwId": 7,
+      "file": "incline_dumbbell_fly.mp4"
+    },
+    {
+      "exercise": "Decline Dumbbell Press",
+      "mwName": "Dumbbell Decline Alternating Single Arm Press",
+      "mwId": 380,
+      "file": "decline_dumbbell_press.mp4"
+    },
+    {
+      "exercise": "Cable Bicep Curl",
+      "mwName": "Cable Hamstring Curl",
+      "mwId": 225,
+      "file": "cable_bicep_curl.mp4"
+    },
+    {
+      "exercise": "Cable Rear Delt Row",
+      "mwName": "Cable High Single Arm Rear Delt Fly",
+      "mwId": 228,
+      "file": "cable_rear_delt_row.mp4"
+    },
+    {
+      "exercise": "Standing Cable Chest Fly",
+      "mwName": "Cable Standing Single Arm Incline Chest Fly",
+      "mwId": 1851,
+      "file": "standing_cable_chest_fly.mp4"
+    },
+    {
+      "exercise": "Cable Shrug",
+      "mwName": "Cable 30 Degree Shrug",
+      "mwId": 235,
+      "file": "cable_shrug.mp4"
+    },
+    {
+      "exercise": "Smith Machine Calf Raise",
+      "mwName": "Smith Machine Seated Calf Raise",
+      "mwId": 946,
+      "file": "smith_machine_calf_raise.mp4"
+    },
+    {
+      "exercise": "Standing Cable Curl",
+      "mwName": "Cable Hamstring Curl",
+      "mwId": 225,
+      "file": "standing_cable_curl.mp4"
+    },
+    {
+      "exercise": "Bird Dog",
+      "mwName": "Bird Dog",
+      "mwId": 867,
+      "file": "bird_dog.mp4"
+    },
+    {
+      "exercise": "Superman",
+      "mwName": "Supermans",
+      "mwId": 195,
+      "file": "superman.mp4"
+    },
+    {
+      "exercise": "Glute Bridge March",
+      "mwName": "Glute Bridge",
+      "mwId": 29,
+      "file": "glute_bridge_march.mp4"
+    },
+    {
+      "exercise": "Hollow Body Hold",
+      "mwName": "Hollow Hold",
+      "mwId": 328,
+      "file": "hollow_body_hold.mp4"
+    },
+    {
+      "exercise": "Side Plank Hip Dips",
+      "mwName": "Side Plank Up Down",
+      "mwId": 322,
+      "file": "side_plank_hip_dips.mp4"
+    },
+    {
+      "exercise": "Walking Plank",
+      "mwName": "Side Plank Up Down",
+      "mwId": 322,
+      "file": "walking_plank.mp4"
+    },
+    {
+      "exercise": "Box Push-Ups",
+      "mwName": "Incline Push Up",
+      "mwId": 186,
+      "file": "box_push_ups.mp4"
+    },
+    {
+      "exercise": "Incline Push-Ups",
+      "mwName": "Incline Push Up",
+      "mwId": 186,
+      "file": "incline_push_ups.mp4"
+    },
+    {
+      "exercise": "Decline Push-Ups",
+      "mwName": "Decline Push Up",
+      "mwId": 187,
+      "file": "decline_push_ups.mp4"
+    },
+    {
+      "exercise": "Pistol Squat",
+      "mwName": "Single Leg Eccentric Box Squat",
+      "mwId": 1258,
+      "file": "pistol_squat.mp4"
+    },
+    {
+      "exercise": "Wall Sit with Ball Squeeze",
+      "mwName": "Seated Quad Stretch",
+      "mwId": 1311,
+      "file": "wall_sit_with_ball_squeeze.mp4"
+    },
+    {
+      "exercise": "Dumbbell Goblet Squat",
+      "mwName": "Dumbbell Goblet Squat",
+      "mwId": 11,
+      "file": "dumbbell_goblet_squat.mp4"
+    },
+    {
+      "exercise": "Dumbbell Romanian Deadlift",
+      "mwName": "Dumbbell Romanian Deadlift",
+      "mwId": 291,
+      "file": "dumbbell_romanian_deadlift.mp4"
+    },
+    {
+      "exercise": "Dumbbell Pullover",
+      "mwName": "Dumbbell Pullover",
+      "mwId": 413,
+      "file": "dumbbell_pullover.mp4"
+    },
+    {
+      "exercise": "Dumbbell Shrug",
+      "mwName": "Dumbbell Seated Shrug",
+      "mwId": 12,
+      "file": "dumbbell_shrug.mp4"
+    },
+    {
+      "exercise": "Dumbbell Front Squat",
+      "mwName": "Dumbbell Front Rack Pause Squat",
+      "mwId": 426,
+      "file": "dumbbell_front_squat.mp4"
+    },
+    {
+      "exercise": "Dumbbell Hammer Curl",
+      "mwName": "Dumbbell Hammer Curl",
+      "mwId": 3,
+      "file": "dumbbell_hammer_curl.mp4"
+    },
+    {
+      "exercise": "Dumbbell Calf Raise",
+      "mwName": "Dumbbell Calf Raise",
+      "mwId": 294,
+      "file": "dumbbell_calf_raise.mp4"
+    },
+    {
+      "exercise": "Dumbbell Wrist Curl",
+      "mwName": "Dumbbell Wrist Curl",
+      "mwId": 32,
+      "file": "dumbbell_wrist_curl.mp4"
+    },
+    {
+      "exercise": "Dumbbell Wrist Extension",
+      "mwName": "Dumbbell Wrist Extension",
+      "mwId": 316,
+      "file": "dumbbell_wrist_extension.mp4"
+    }
+  ],
+  "failed": [
+    {
+      "exercise": "Shoulder Press Machine",
+      "reason": "No MuscleWiki results for any search term"
+    },
+    {
+      "exercise": "Decline Crunch",
+      "reason": "No MuscleWiki results for any search term"
+    },
+    {
+      "exercise": "Reverse Plank",
+      "reason": "No MuscleWiki results for any search term"
+    },
+    {
+      "exercise": "Bear Crawl",
+      "reason": "No MuscleWiki results for any search term"
+    }
+  ],
+  "at": "2026-04-18T04:32:44.685Z"
+}

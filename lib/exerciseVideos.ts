@@ -148,6 +148,57 @@ const N = {
   shoulderStretch:       '/assets/videos/exercises/thread_the_needle_stretch.mp4', // shoulder_stretch.mp4 missing, closest match
 };
 
+// ── Batch 2: New exercise videos ──
+const B = {
+  smithBench:            '/assets/videos/exercises-batch2/smith_machine_bench_press.mp4',
+  smithSquat:            '/assets/videos/exercises-batch2/smith_machine_squat.mp4',
+  legExtMachine:         '/assets/videos/exercises-batch2/leg_extension_machine.mp4',
+  legCurlMachine:        '/assets/videos/exercises-batch2/leg_curl_machine.mp4',
+  pecDeckFly:            '/assets/videos/exercises-batch2/pec_deck_fly.mp4',
+  latPullMachine:        '/assets/videos/exercises-batch2/lat_pulldown_machine.mp4',
+  seatedRowMachine:      '/assets/videos/exercises-batch2/seated_row_machine.mp4',
+  shoulderPressMach:     '/assets/videos/exercises-batch2/shoulder_press_machine.mp4',
+  bicepCurlMachine:      '/assets/videos/exercises-batch2/bicep_curl_machine.mp4',
+  tricepExtMachine:      '/assets/videos/exercises-batch2/tricep_extension_machine.mp4',
+  cableFacePull:         '/assets/videos/exercises-batch2/cable_face_pull.mp4',
+  cableWoodChop:         '/assets/videos/exercises-batch2/cable_wood_chop.mp4',
+  romanChairExt:         '/assets/videos/exercises-batch2/roman_chair_back_extension.mp4',
+  hyperextension:        '/assets/videos/exercises-batch2/hyperextension.mp4',
+  tBarRow:               '/assets/videos/exercises-batch2/t_bar_row.mp4',
+  declineBench:          '/assets/videos/exercises-batch2/decline_bench_press.mp4',
+  inclineDbFly:          '/assets/videos/exercises-batch2/incline_dumbbell_fly.mp4',
+  declineDbPress:        '/assets/videos/exercises-batch2/decline_dumbbell_press.mp4',
+  cableBicepCurl:        '/assets/videos/exercises-batch2/cable_bicep_curl.mp4',
+  cableRearDeltRow:      '/assets/videos/exercises-batch2/cable_rear_delt_row.mp4',
+  standCableChestFly:    '/assets/videos/exercises-batch2/standing_cable_chest_fly.mp4',
+  declineCrunch:         '/assets/videos/exercises-batch2/decline_crunch.mp4',
+  cableShrug:            '/assets/videos/exercises-batch2/cable_shrug.mp4',
+  smithCalfRaise:        '/assets/videos/exercises-batch2/smith_machine_calf_raise.mp4',
+  standCableCurl:        '/assets/videos/exercises-batch2/standing_cable_curl.mp4',
+  birdDog:               '/assets/videos/exercises-batch2/bird_dog.mp4',
+  reversePlank:          '/assets/videos/exercises-batch2/reverse_plank.mp4',
+  supermanEx:            '/assets/videos/exercises-batch2/superman.mp4',
+  gluteBridgeMarch:      '/assets/videos/exercises-batch2/glute_bridge_march.mp4',
+  bearCrawl:             '/assets/videos/exercises-batch2/bear_crawl.mp4',
+  hollowBodyHold:        '/assets/videos/exercises-batch2/hollow_body_hold.mp4',
+  sidePlankDips:         '/assets/videos/exercises-batch2/side_plank_hip_dips.mp4',
+  walkingPlank:          '/assets/videos/exercises-batch2/walking_plank.mp4',
+  boxPushUps:            '/assets/videos/exercises-batch2/box_push_ups.mp4',
+  inclinePushUps:        '/assets/videos/exercises-batch2/incline_push_ups.mp4',
+  declinePushUps:        '/assets/videos/exercises-batch2/decline_push_ups.mp4',
+  pistolSquat:           '/assets/videos/exercises-batch2/pistol_squat.mp4',
+  wallSitBallSqueeze:    '/assets/videos/exercises-batch2/wall_sit_with_ball_squeeze.mp4',
+  dbGobletSquat:         '/assets/videos/exercises-batch2/dumbbell_goblet_squat.mp4',
+  dbRomanianDl:          '/assets/videos/exercises-batch2/dumbbell_romanian_deadlift.mp4',
+  dbPullover:            '/assets/videos/exercises-batch2/dumbbell_pullover.mp4',
+  dbShrug:               '/assets/videos/exercises-batch2/dumbbell_shrug.mp4',
+  dbFrontSquat:          '/assets/videos/exercises-batch2/dumbbell_front_squat.mp4',
+  dbHammerCurl:          '/assets/videos/exercises-batch2/dumbbell_hammer_curl.mp4',
+  dbCalfRaise:           '/assets/videos/exercises-batch2/dumbbell_calf_raise.mp4',
+  dbWristCurl:           '/assets/videos/exercises-batch2/dumbbell_wrist_curl.mp4',
+  dbWristExt:            '/assets/videos/exercises-batch2/dumbbell_wrist_extension.mp4',
+};
+
 
 export const EXERCISE_VIDEOS: Record<string, string> = {
   // ══════════════════════════════════════════════
@@ -362,6 +413,69 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   'Side Lunge Stretch':              N.sideLungeStretch,
   'Thread the Needle Stretch':       N.threadTheNeedle,
   'Lying Spinal Twist':              N.lyingSpinalTwist,
+
+  // ══════════════════════════════════════════════
+  // ── Batch 2: Gym Machines ──
+  // ══════════════════════════════════════════════
+  'Smith Machine Bench Press':       B.smithBench,
+  'Smith Machine Squat':             B.smithSquat,
+  'Leg Extension Machine':           B.legExtMachine,
+  'Leg Curl Machine':                B.legCurlMachine,
+  'Pec Deck Fly':                    B.pecDeckFly,
+  'Lat Pulldown Machine':            B.latPullMachine,
+  'Seated Row Machine':              B.seatedRowMachine,
+  'Shoulder Press Machine':          B.shoulderPressMach,
+  'Bicep Curl Machine':              B.bicepCurlMachine,
+  'Tricep Extension Machine':        B.tricepExtMachine,
+  'Cable Face Pull':                 B.cableFacePull,
+  'Cable Wood Chop':                 B.cableWoodChop,
+  'Roman Chair Back Extension':      B.romanChairExt,
+  'Hyperextension':                  B.hyperextension,
+  'T-Bar Row':                       B.tBarRow,
+  'Decline Bench Press':             B.declineBench,
+  'Cable Bicep Curl':                B.cableBicepCurl,
+  'Cable Rear Delt Row':             B.cableRearDeltRow,
+  'Standing Cable Chest Fly':        B.standCableChestFly,
+  'Decline Crunch':                  B.declineCrunch,
+  'Cable Shrug':                     B.cableShrug,
+  'Smith Machine Calf Raise':        B.smithCalfRaise,
+  'Standing Cable Curl':             B.standCableCurl,
+
+  // ══════════════════════════════════════════════
+  // ── Batch 2: Chest (Dumbbell) ──
+  // ══════════════════════════════════════════════
+  'Incline Dumbbell Fly':            B.inclineDbFly,
+  'Decline Dumbbell Press':          B.declineDbPress,
+  'Dumbbell Pullover':               B.dbPullover,
+
+  // ══════════════════════════════════════════════
+  // ── Batch 2: Bodyweight ──
+  // ══════════════════════════════════════════════
+  'Bird Dog':                        B.birdDog,
+  'Reverse Plank':                   B.reversePlank,
+  'Superman':                        B.supermanEx,
+  'Glute Bridge March':              B.gluteBridgeMarch,
+  'Bear Crawl':                      B.bearCrawl,
+  'Hollow Body Hold':                B.hollowBodyHold,
+  'Side Plank Hip Dips':             B.sidePlankDips,
+  'Walking Plank':                   B.walkingPlank,
+  'Box Push-Ups':                    B.boxPushUps,
+  'Incline Push-Ups':                B.inclinePushUps,
+  'Decline Push-Ups':                B.declinePushUps,
+  'Pistol Squat':                    B.pistolSquat,
+  'Wall Sit with Ball Squeeze':      B.wallSitBallSqueeze,
+
+  // ══════════════════════════════════════════════
+  // ── Batch 2: Dumbbell / Kettlebell ──
+  // ══════════════════════════════════════════════
+  'Dumbbell Goblet Squat':           B.dbGobletSquat,
+  'Dumbbell Romanian Deadlift':      B.dbRomanianDl,
+  'Dumbbell Shrug':                  B.dbShrug,
+  'Dumbbell Front Squat':            B.dbFrontSquat,
+  'Dumbbell Hammer Curl':            B.dbHammerCurl,
+  'Dumbbell Calf Raise':             B.dbCalfRaise,
+  'Dumbbell Wrist Curl':             B.dbWristCurl,
+  'Dumbbell Wrist Extension':        B.dbWristExt,
 };
 
 // Fix stale video paths from DB: /videos/... → /assets/videos/...
