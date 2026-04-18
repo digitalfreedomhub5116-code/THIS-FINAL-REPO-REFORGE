@@ -12,6 +12,113 @@ function addMins(time: string, mins: number): string {
   return `${String(Math.floor(total / 60) % 24).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
 }
 
+function timeToMinutes(t: string): number {
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function minutesToTime(mins: number): string {
+  const h = Math.floor(((mins % 1440) + 1440) % 1440 / 60);
+  const m = ((mins % 60) + 60) % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+/**
+ * Auto-schedules quests into free gaps between schedule blocks.
+ * Returns quests with populated scheduledTime fields.
+ */
+function autoScheduleQuestsIntoGaps(
+  quests: Quest[],
+  scheduleProfile: any | null | undefined,
+  existingSlots: any[] | undefined,
+): Quest[] {
+  if (!scheduleProfile && (!existingSlots || existingSlots.length === 0)) return quests;
+
+  // Build blocked intervals from schedule
+  const blocked: { start: number; end: number }[] = [];
+
+  // Use existing slots or build from profile
+  const slots = existingSlots?.length ? existingSlots : (() => {
+    if (!scheduleProfile) return [];
+    const s: any[] = [];
+    const routineEnd = timeToMinutes(scheduleProfile.wakeUpTime) + (scheduleProfile.morningRoutineMin || 30);
+    s.push({ start: timeToMinutes(scheduleProfile.wakeUpTime), end: routineEnd });
+
+    if (scheduleProfile.role === 'STUDENT') {
+      if (scheduleProfile.schoolStart && scheduleProfile.schoolEnd) {
+        s.push({ start: timeToMinutes(scheduleProfile.schoolStart), end: timeToMinutes(scheduleProfile.schoolEnd) });
+      }
+      if (scheduleProfile.coachingEnabled && scheduleProfile.coachingStart && scheduleProfile.coachingEnd) {
+        s.push({ start: timeToMinutes(scheduleProfile.coachingStart), end: timeToMinutes(scheduleProfile.coachingEnd) });
+      }
+    } else if (scheduleProfile.role === 'PROFESSIONAL' && scheduleProfile.workStart && scheduleProfile.workEnd) {
+      s.push({ start: timeToMinutes(scheduleProfile.workStart), end: timeToMinutes(scheduleProfile.workEnd) });
+    }
+
+    s.push({ start: timeToMinutes(scheduleProfile.dinnerTime), end: timeToMinutes(scheduleProfile.dinnerTime) + 30 });
+    s.push({ start: timeToMinutes(scheduleProfile.bedtime) - (scheduleProfile.windDownMinutes || 30), end: timeToMinutes(scheduleProfile.bedtime) + 1 });
+    return s;
+  })();
+
+  slots.forEach((slot: any) => {
+    const start = typeof slot.start === 'number' ? slot.start : (slot.startTime ? timeToMinutes(slot.startTime) : 0);
+    const end = typeof slot.end === 'number' ? slot.end : (slot.endTime ? timeToMinutes(slot.endTime) : 0);
+    if (start && end) blocked.push({ start, end });
+  });
+
+  blocked.sort((a, b) => a.start - b.start);
+
+  // Find free gaps (between wake-up and bedtime)
+  const wakeUp = scheduleProfile?.wakeUpTime ? timeToMinutes(scheduleProfile.wakeUpTime) : 480; // default 8 AM
+  const bedtime = scheduleProfile?.bedtime ? timeToMinutes(scheduleProfile.bedtime) : 1380; // default 11 PM
+
+  const gaps: { start: number; end: number }[] = [];
+  let cursor = wakeUp;
+
+  for (const block of blocked) {
+    if (block.start > cursor) {
+      const gapDuration = block.start - cursor;
+      if (gapDuration >= 15) { // minimum 15 min gap
+        gaps.push({ start: cursor, end: block.start });
+      }
+    }
+    cursor = Math.max(cursor, block.end);
+  }
+
+  // Final gap until bedtime
+  if (cursor < bedtime) {
+    gaps.push({ start: cursor, end: bedtime });
+  }
+
+  // Assign quests to gaps (first-fit)
+  let gapIdx = 0;
+  let gapCursor = gaps.length > 0 ? gaps[0].start : wakeUp;
+
+  return quests.map(quest => {
+    if (quest.scheduledTime) return quest; // already has a time
+
+    const duration = quest.estimatedDuration || 20;
+
+    // Find a gap that fits
+    while (gapIdx < gaps.length) {
+      const gap = gaps[gapIdx];
+      const availableInGap = gap.end - gapCursor;
+      if (availableInGap >= duration) {
+        const scheduledTime = minutesToTime(gapCursor);
+        gapCursor += duration + 5; // 5 min buffer between quests
+        return { ...quest, scheduledTime: new Date(`${new Date().toISOString().split('T')[0]}T${scheduledTime}`).toISOString() };
+      }
+      gapIdx++;
+      if (gapIdx < gaps.length) gapCursor = gaps[gapIdx].start;
+    }
+
+    // No gap available — place after last cursor
+    const scheduledTime = minutesToTime(gapCursor);
+    gapCursor += duration + 5;
+    return { ...quest, scheduledTime: new Date(`${new Date().toISOString().split('T')[0]}T${scheduledTime}`).toISOString() };
+  });
+}
+
 const RANK_COLORS: Record<string, string> = {
   E: '#9ca3af', D: '#fb923c', C: '#facc15', B: '#4ade80', A: '#22d3ee', S: '#c084fc',
   UNRANKED: '#6b7280',
@@ -118,7 +225,7 @@ function startQuestGeneration(params: {
       };
 
       // Build feed quests
-      const feedQuests: Quest[] = (data.quests || []).map((gq: any, i: number) => ({
+      const rawFeedQuests: Quest[] = (data.quests || []).map((gq: any, i: number) => ({
         id: gq.id || `goal-quest-${goal.id}-${Date.now()}-${i}`,
         title: gq.title,
         description: gq.reasoning || `Goal quest for: ${goal.title}`,
@@ -139,6 +246,16 @@ function startQuestGeneration(params: {
         connectionToPrevious: gq.connectionToPrevious,
         scheduledTime: gq.scheduledTime || undefined,
       }));
+
+      // Auto-schedule quests into free gaps between schedule blocks
+      const today = new Date().toISOString().split('T')[0];
+      const existingDailySlots = (playerData as any)?.dailySchedules
+        ?.find((s: any) => s.date === today)?.slots;
+      const feedQuests = autoScheduleQuestsIntoGaps(
+        rawFeedQuests,
+        playerData?.scheduleProfile,
+        existingDailySlots,
+      );
 
       // Build schedule slots from quests that have scheduled times
       const scheduleSlots = feedQuests

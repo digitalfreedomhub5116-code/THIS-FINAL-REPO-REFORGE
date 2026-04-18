@@ -554,6 +554,11 @@ const QuestTimelineRow: React.FC<{
   const scheduledMin = timeToMinutes(scheduledStr);
   const isOverdue = !isCompleted && !isFailed && currentMinutes > (scheduledMin + estDuration);
 
+  // F3: Swipe-to-complete for E/D rank only
+  const canSwipeComplete = !isCompleted && !isFailed && (quest.rank === 'E' || quest.rank === 'D');
+  const [swipeX, setSwipeX] = useState(0);
+  const swipeThreshold = 120;
+
   return (
     <div className="flex gap-0 relative">
       {/* Left column: time */}
@@ -593,41 +598,135 @@ const QuestTimelineRow: React.FC<{
         ) : (
           <div className="w-3 h-3 rounded-full border-2 mt-1 flex-shrink-0 z-10" style={{ borderColor: '#22d3ee40' }} />
         )}
-        {/* Vertical line */}
         {!isLast && (
           <div className="w-px flex-1 min-h-[12px]" style={{ background: 'rgba(255,255,255,0.06)' }} />
         )}
       </div>
 
-      {/* Quest Card */}
-      <div className="flex-1 min-w-0 pb-2 pl-2">
-        {/* Overdue badge */}
+      {/* Quest Card with swipe */}
+      <div className="flex-1 min-w-0 pb-2 pl-2 relative overflow-hidden">
         {isOverdue && (
           <div className="flex items-center gap-1 mb-1">
             <AlertTriangle className="w-3 h-3 text-amber-400" />
             <span className="text-[8px] font-mono font-bold text-amber-400 uppercase tracking-wider">Overdue — complete now!</span>
           </div>
         )}
-        {/* Estimated duration hint */}
         {!isCompleted && !isFailed && (
           <div className="flex items-center gap-1 mb-1">
             <Timer className="w-2.5 h-2.5 text-gray-600" />
             <span className="text-[8px] font-mono text-gray-600">~{estDuration} min</span>
           </div>
         )}
-        <QuestCard
-          quest={quest}
-          onComplete={(id, asMini) => {
-            const el = document.getElementById(`quest-card-${id}`);
-            const rect = el?.getBoundingClientRect() || undefined;
-            onComplete(id, asMini, rect);
-          }}
-          onFail={onFail}
-          onReset={onReset}
-          onDelete={onDelete}
-          onStartTracking={onStartTracking}
-          onStopTracking={onStopTracking}
+
+        {/* F3: Swipe reveal background */}
+        {canSwipeComplete && swipeX > 20 && (
+          <div className="absolute inset-0 flex items-center pl-4 rounded-xl z-0"
+            style={{ background: `rgba(34,197,94,${Math.min(swipeX / swipeThreshold, 1) * 0.15})` }}
+          >
+            <div className="flex items-center gap-1.5" style={{ opacity: Math.min(swipeX / swipeThreshold, 1) }}>
+              <Check className="w-4 h-4 text-emerald-400" />
+              <span className="text-[10px] font-black text-emerald-400 font-mono uppercase tracking-wider">
+                {swipeX >= swipeThreshold ? 'RELEASE TO COMPLETE' : 'SWIPE TO COMPLETE'}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {canSwipeComplete ? (
+          <motion.div
+            drag="x"
+            dragConstraints={{ left: 0, right: 160 }}
+            dragElastic={0.1}
+            onDrag={(_e, info) => setSwipeX(info.offset.x)}
+            onDragEnd={(_e, info) => {
+              if (info.offset.x >= swipeThreshold) {
+                const el = document.getElementById(`quest-card-${quest.id}`);
+                const rect = el?.getBoundingClientRect() || undefined;
+                onComplete(quest.id, false, rect);
+              }
+              setSwipeX(0);
+            }}
+            className="relative z-10"
+            style={{ touchAction: 'pan-y' }}
+          >
+            <QuestCard
+              quest={quest}
+              onComplete={(id, asMini) => {
+                const el = document.getElementById(`quest-card-${id}`);
+                const rect = el?.getBoundingClientRect() || undefined;
+                onComplete(id, asMini, rect);
+              }}
+              onFail={onFail}
+              onReset={onReset}
+              onDelete={onDelete}
+              onStartTracking={onStartTracking}
+              onStopTracking={onStopTracking}
+            />
+          </motion.div>
+        ) : (
+          <QuestCard
+            quest={quest}
+            onComplete={(id, asMini) => {
+              const el = document.getElementById(`quest-card-${id}`);
+              const rect = el?.getBoundingClientRect() || undefined;
+              onComplete(id, asMini, rect);
+            }}
+            onFail={onFail}
+            onReset={onReset}
+            onDelete={onDelete}
+            onStartTracking={onStartTracking}
+            onStopTracking={onStopTracking}
+          />
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ────────────────────────────────────────────────────────────
+// PROGRESS RING (F4)
+// ────────────────────────────────────────────────────────────
+
+const ProgressRing: React.FC<{ completed: number; total: number }> = ({ completed, total }) => {
+  const size = 38;
+  const strokeWidth = 3;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const progress = total > 0 ? completed / total : 0;
+  const strokeDashoffset = circumference * (1 - progress);
+  const isComplete = completed === total && total > 0;
+
+  return (
+    <div className="relative" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="-rotate-90">
+        {/* Background circle */}
+        <circle cx={size / 2} cy={size / 2} r={radius}
+          fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={strokeWidth}
         />
+        {/* Progress arc */}
+        <motion.circle cx={size / 2} cy={size / 2} r={radius}
+          fill="none"
+          stroke={isComplete ? '#4ade80' : '#22d3ee'}
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          initial={{ strokeDashoffset: circumference }}
+          animate={{ strokeDashoffset }}
+          transition={{ duration: 0.8, ease: 'easeOut' }}
+          style={isComplete ? { filter: 'drop-shadow(0 0 4px rgba(74,222,128,0.5))' } : {}}
+        />
+      </svg>
+      {/* Center text */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        {isComplete ? (
+          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 400 }}>
+            <Check className="w-3.5 h-3.5 text-emerald-400" strokeWidth={3} />
+          </motion.div>
+        ) : (
+          <span className="text-[9px] font-black font-mono text-gray-300">
+            {completed}<span className="text-gray-600">/{total}</span>
+          </span>
+        )}
       </div>
     </div>
   );
@@ -659,6 +758,24 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
   const [analysisCount, setAnalysisCount] = useState(0);
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
   const [showGoalCreate, setShowGoalCreate] = useState(false);
+  const [pastCollapsed, setPastCollapsed] = useState(true); // F6
+
+  // F5: Rule banner auto-hide
+  const [bannerDismissed, setBannerDismissed] = useState(() => {
+    return localStorage.getItem('reforge_rule_banner_dismissed') === 'true';
+  });
+  const bannerFirstSeen = useMemo(() => {
+    const stored = localStorage.getItem('reforge_rule_banner_first_seen');
+    if (stored) return parseInt(stored, 10);
+    localStorage.setItem('reforge_rule_banner_first_seen', String(Date.now()));
+    return Date.now();
+  }, []);
+  const bannerExpired = Date.now() - bannerFirstSeen > 7 * 24 * 60 * 60 * 1000; // 7 days
+  const showBanner = !bannerDismissed && !bannerExpired;
+
+  // F2: Auto-scroll ref
+  const currentEntryRef = useRef<HTMLDivElement>(null);
+  const hasScrolled = useRef(false);
 
   // ── Live clock (updates every 30s) ──
   const [currentMinutes, setCurrentMinutes] = useState(() => {
@@ -679,6 +796,8 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
   useEffect(() => {
     onToggleNav?.(!isModalOpen);
   }, [isModalOpen, onToggleNav]);
+
+
 
   // ── Build unified timeline ──
   const scheduleSlots = useMemo(() => {
@@ -737,6 +856,16 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
 
   // All visible (always show full day)
   const visibleTimeline = timeline;
+
+  // F2: Auto-scroll to current entry on mount
+  useEffect(() => {
+    if (!hasScrolled.current && currentEntryRef.current) {
+      setTimeout(() => {
+        currentEntryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        hasScrolled.current = true;
+      }, 400);
+    }
+  }, [timeline.length]);
 
   // Stats
   const activeQuests = todaysQuests.filter(q => !q.isCompleted && !q.failed);
@@ -942,20 +1071,8 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
             <span className="text-xs font-black font-mono tracking-[0.25em] text-white uppercase">
               TODAY
             </span>
-            <span className="px-2.5 py-1 rounded-full text-[10px] font-mono font-bold"
-              style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.14)', color: '#9ca3af' }}
-            >
-              {completedQuests.length}/{totalTasks} Done
-            </span>
-            {progress > 0 && (
-              <div className="w-16 h-1.5 rounded-full bg-white/5 overflow-hidden">
-                <motion.div className="h-full rounded-full"
-                  style={{ background: progress >= 100 ? 'linear-gradient(90deg, #4ade80, #22c55e)' : 'linear-gradient(90deg, #22d3ee88, #22d3ee)' }}
-                  animate={{ width: `${progress}%` }}
-                  transition={{ duration: 0.8 }}
-                />
-              </div>
-            )}
+            {/* F4: Progress Ring */}
+            <ProgressRing completed={completedQuests.length} total={totalTasks} />
           </div>
 
           <div className="flex items-center gap-2">
@@ -979,17 +1096,25 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
         </div>
       </div>
 
-      {/* ── Rule Banner — soft reminder ── */}
-      <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl mx-1"
-        style={{ background: 'rgba(251,191,36,0.04)', border: '1px solid rgba(251,191,36,0.12)' }}
-      >
-        <div className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(251,191,36,0.08)' }}>
-          <Clock className="w-3 h-3 text-amber-400" />
+      {/* ── Rule Banner — soft reminder (F5: auto-hide after 7 days) ── */}
+      {showBanner && (
+        <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl mx-1 relative"
+          style={{ background: 'rgba(251,191,36,0.04)', border: '1px solid rgba(251,191,36,0.12)' }}
+        >
+          <div className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(251,191,36,0.08)' }}>
+            <Clock className="w-3 h-3 text-amber-400" />
+          </div>
+          <p className="text-[9px] font-mono text-amber-400/80 leading-relaxed flex-1">
+            Complete each quest within its scheduled time for full XP. Overdue quests still work but you lose the streak bonus.
+          </p>
+          <button
+            onClick={() => { setBannerDismissed(true); localStorage.setItem('reforge_rule_banner_dismissed', 'true'); }}
+            className="p-1 rounded hover:bg-white/5 flex-shrink-0"
+          >
+            <X className="w-3 h-3 text-gray-600" />
+          </button>
         </div>
-        <p className="text-[9px] font-mono text-amber-400/80 leading-relaxed">
-          Complete each quest within its scheduled time for full XP. Overdue quests still work but you lose the streak bonus.
-        </p>
-      </div>
+      )}
 
       {/* ── Setup Schedule Prompt (if no schedule) ── */}
       {!scheduleProfile && (goals || []).length > 0 && onSetupSchedule && (
@@ -1013,59 +1138,133 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
 
       {/* ── UNIFIED TIMELINE ── */}
       <div className="min-h-[40vh] pb-4 relative px-1">
-        {visibleTimeline.map((entry, index) => {
-          const isLastEntry = index === visibleTimeline.length - 1;
+        {(() => {
+          // F6: Separate past schedule blocks from active entries
+          const pastSlots: typeof visibleTimeline = [];
+          const activeEntries: typeof visibleTimeline = [];
+          let foundCurrent = false;
 
-          if (entry.type === 'SLOT' && entry.slot) {
-            const slotMin = timeToMinutes(entry.slot.startTime);
-            const isCurrent = currentMinutes >= slotMin && currentMinutes < timeToMinutes(entry.slot.endTime);
-            const isPast = currentMinutes >= timeToMinutes(entry.slot.endTime);
-
-            return (
-              <motion.div key={`slot-${entry.slot.id}`}
-                initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.04, duration: 0.3 }}
-              >
-                <ScheduleSlotRow slot={entry.slot} isCurrent={isCurrent} isPast={isPast} isLast={isLastEntry} />
-              </motion.div>
-            );
+          for (const entry of visibleTimeline) {
+            if (entry.type === 'SLOT' && entry.slot) {
+              const endMin = timeToMinutes(entry.slot.endTime);
+              if (currentMinutes >= endMin && !foundCurrent) {
+                pastSlots.push(entry);
+                continue;
+              }
+            }
+            foundCurrent = true;
+            activeEntries.push(entry);
           }
 
-          if (entry.type === 'QUEST' && entry.quest) {
-            const quest = entry.quest;
-            const scheduledMin = quest.scheduledTime
-              ? timeToMinutes(quest.scheduledTime.includes('T') ? quest.scheduledTime.split('T')[1].slice(0, 5) : quest.scheduledTime)
-              : currentMinutes;
-            const isActive = !quest.isCompleted && !quest.failed;
-            const isCurrent = isActive && currentMinutes >= (scheduledMin - 10) && currentMinutes <= (scheduledMin + (quest.estimatedDuration || 20) + 10);
-            const isPast = quest.isCompleted || quest.failed;
+          return (
+            <>
+              {/* F6: Collapsed past schedule blocks */}
+              {pastSlots.length > 0 && (
+                <div className="mb-2">
+                  <button
+                    onClick={() => setPastCollapsed(!pastCollapsed)}
+                    className="w-full flex items-center gap-2 py-2 px-2 rounded-lg hover:bg-white/[0.02] transition-colors"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <CheckCircle className="w-3 h-3 text-gray-600" />
+                      <span className="text-[10px] font-mono text-gray-500">
+                        {pastSlots.length} block{pastSlots.length > 1 ? 's' : ''} completed
+                      </span>
+                    </div>
+                    <span className="text-[9px] text-gray-700 font-mono flex-1 truncate ml-1">
+                      {pastSlots.map(e => e.slot?.label).filter(Boolean).join(', ')}
+                    </span>
+                    {pastCollapsed ? (
+                      <ChevronDown className="w-3 h-3 text-gray-700 flex-shrink-0" />
+                    ) : (
+                      <ChevronUp className="w-3 h-3 text-gray-700 flex-shrink-0" />
+                    )}
+                  </button>
 
-            return (
-              <motion.div key={`quest-${quest.id}`}
-                layout
-                initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.3, delay: index * 0.04 }}
-              >
-                <QuestTimelineRow
-                  quest={quest}
-                  currentMinutes={currentMinutes}
-                  isCurrent={isCurrent}
-                  isPast={!!isPast}
-                  isLast={isLastEntry}
-                  onComplete={completeQuest}
-                  onFail={failQuest}
-                  onReset={resetQuest}
-                  onDelete={deleteQuest}
-                  onStartTracking={onStartTracking}
-                  onStopTracking={onStopTracking}
-                />
-              </motion.div>
-            );
-          }
+                  <AnimatePresence>
+                    {!pastCollapsed && pastSlots.map((entry, i) => (
+                      <motion.div key={`past-slot-${entry.slot?.id}`}
+                        initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.2 }}
+                      >
+                        <ScheduleSlotRow slot={entry.slot!} isCurrent={false} isPast={true}
+                          isLast={i === pastSlots.length - 1 && activeEntries.length === 0} />
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
 
-          return null;
-        })}
+                  {/* Separator between past and active */}
+                  {activeEntries.length > 0 && (
+                    <div className="flex items-center gap-2 py-1 px-2">
+                      <div className="h-px flex-1" style={{ background: 'rgba(255,255,255,0.04)' }} />
+                      <span className="text-[8px] text-gray-700 font-mono uppercase tracking-wider">Now</span>
+                      <div className="h-px flex-1" style={{ background: 'rgba(255,255,255,0.04)' }} />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Active entries */}
+              {activeEntries.map((entry, index) => {
+                const isLastEntry = index === activeEntries.length - 1;
+                // F2: Attach ref to the first active entry for auto-scroll
+                const isCurrentRef = index === 0;
+
+                if (entry.type === 'SLOT' && entry.slot) {
+                  const slotMin = timeToMinutes(entry.slot.startTime);
+                  const isCurrent = currentMinutes >= slotMin && currentMinutes < timeToMinutes(entry.slot.endTime);
+                  const isPast = currentMinutes >= timeToMinutes(entry.slot.endTime);
+
+                  return (
+                    <motion.div key={`slot-${entry.slot.id}`}
+                      ref={isCurrentRef ? currentEntryRef : undefined}
+                      initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.04, duration: 0.3 }}
+                    >
+                      <ScheduleSlotRow slot={entry.slot} isCurrent={isCurrent} isPast={isPast} isLast={isLastEntry} />
+                    </motion.div>
+                  );
+                }
+
+                if (entry.type === 'QUEST' && entry.quest) {
+                  const quest = entry.quest;
+                  const scheduledMin = quest.scheduledTime
+                    ? timeToMinutes(quest.scheduledTime.includes('T') ? quest.scheduledTime.split('T')[1].slice(0, 5) : quest.scheduledTime)
+                    : currentMinutes;
+                  const isActive = !quest.isCompleted && !quest.failed;
+                  const isCurrent = isActive && currentMinutes >= (scheduledMin - 10) && currentMinutes <= (scheduledMin + (quest.estimatedDuration || 20) + 10);
+                  const isPast = quest.isCompleted || quest.failed;
+
+                  return (
+                    <motion.div key={`quest-${quest.id}`}
+                      ref={isCurrentRef ? currentEntryRef : undefined}
+                      layout
+                      initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ duration: 0.3, delay: index * 0.04 }}
+                    >
+                      <QuestTimelineRow
+                        quest={quest}
+                        currentMinutes={currentMinutes}
+                        isCurrent={isCurrent}
+                        isPast={!!isPast}
+                        isLast={isLastEntry}
+                        onComplete={completeQuest}
+                        onFail={failQuest}
+                        onReset={resetQuest}
+                        onDelete={deleteQuest}
+                        onStartTracking={onStartTracking}
+                        onStopTracking={onStopTracking}
+                      />
+                    </motion.div>
+                  );
+                }
+
+                return null;
+              })}
+            </>
+          );
+        })()}
 
         {/* Empty state */}
         {timeline.length === 0 && todaysQuests.length === 0 && (
