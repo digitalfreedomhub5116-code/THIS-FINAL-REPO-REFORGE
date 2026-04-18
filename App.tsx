@@ -104,7 +104,7 @@ const AdminLogin = lazy(() => import('./components/AdminLogin'));
 
 const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
 
-const QuestsView = lazy(() => import('./components/QuestsView'));
+const DailyCommandCenter = lazy(() => import('./components/DailyCommandCenter'));
 
 const ShopView = lazy(() => import('./components/ShopView'));
 
@@ -202,6 +202,7 @@ const Level10Tutorial = lazy(() => import('./components/Level10Tutorial'));
 
 const ScheduleSetupFlow = lazy(() => import('./components/ScheduleSetupFlow'));
 
+const NextUpCard = lazy(() => import('./components/NextUpCard'));
 const TodayProtocol = lazy(() => import('./components/TodayProtocol'));
 
 
@@ -4407,48 +4408,18 @@ const App: React.FC = () => {
 
 
 
-              {/* Today's Protocol — Schedule Timeline */}
-              {player.scheduleProfile ? (
-                <Suspense fallback={<SkeletonUpcomingQuests />}>
-                  <ErrorBoundary fallbackLabel="Schedule failed">
-                    <TodayProtocol
-                      scheduleProfile={player.scheduleProfile}
-                      dailySchedule={player.dailySchedules?.find(s => s.date === new Date().toISOString().split('T')[0])}
-                      goals={player.goals || []}
-                      onNavigateToQuests={() => setActiveTab('QUESTS')}
-                      onSetupSchedule={() => setShowScheduleSetup(true)}
-                      onSlotAction={handleScheduleSlotAction}
-                      onToggleNotify={handleScheduleNotifyToggle}
-                      onReorderSlots={handleScheduleReorder}
-                    />
-                  </ErrorBoundary>
-                </Suspense>
-              ) : (player.goals || []).length > 0 ? (
-                <button
-                  onClick={() => setShowScheduleSetup(true)}
-                  className="w-full rounded-2xl p-4 text-left transition-all hover:opacity-90"
-                  style={{
-                    background: 'linear-gradient(135deg, rgba(34,211,238,0.06), rgba(6,182,212,0.03))',
-                    border: '1px solid rgba(34,211,238,0.12)',
-                  }}
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-9 h-9 rounded-xl flex items-center justify-center"
-                      style={{ background: 'rgba(34,211,238,0.1)' }}
-                    >
-                      <span className="text-lg">⚡</span>
-                    </div>
-                    <div className="flex-1">
-                      <div className="text-xs font-black text-white uppercase tracking-wider">Setup Daily Protocol</div>
-                      <div className="text-[9px] text-gray-500 font-mono mt-0.5">
-                        Tell us your schedule to get AI-optimized time slots for your goals
-                      </div>
-                    </div>
-                    <div className="text-cyan-400 text-xs font-mono">→</div>
-                  </div>
-                </button>
-              ) : null}
+              {/* Next Up Card — compact schedule preview */}
+              <Suspense fallback={<SkeletonUpcomingQuests />}>
+                <ErrorBoundary fallbackLabel="Next Up failed">
+                  <NextUpCard
+                    scheduleProfile={player.scheduleProfile}
+                    dailySchedule={player.dailySchedules?.find(s => s.date === new Date().toISOString().split('T')[0])}
+                    quests={player.quests}
+                    goals={player.goals || []}
+                    onNavigateToQuests={() => setActiveTab('QUESTS')}
+                  />
+                </ErrorBoundary>
+              </Suspense>
               {/* End of mid-section cards */}
 
 
@@ -4526,7 +4497,7 @@ const App: React.FC = () => {
 
                 <ErrorBoundary fallbackLabel="Quests failed to load">
 
-                  <QuestsView
+                  <DailyCommandCenter
 
                     quests={player.quests}
 
@@ -4575,6 +4546,18 @@ const App: React.FC = () => {
                     onDeductGold={(amount) => setPlayer(prev => ({ ...prev, gold: Math.max(0, prev.gold - amount) }))}
 
                     onUpdateScheduleSlots={handleMergeQuestScheduleSlots}
+
+                    scheduleProfile={player.scheduleProfile}
+
+                    dailySchedule={player.dailySchedules?.find(s => s.date === new Date().toISOString().split('T')[0])}
+
+                    onSetupSchedule={() => setShowScheduleSetup(true)}
+
+                    onSlotAction={handleScheduleSlotAction}
+
+                    onToggleNotify={handleScheduleNotifyToggle}
+
+                    onReorderSlots={handleScheduleReorder}
 
                   />
 
