@@ -1116,24 +1116,113 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
         </div>
       )}
 
-      {/* ── Setup Schedule Prompt (if no schedule) ── */}
-      {!scheduleProfile && (goals || []).length > 0 && onSetupSchedule && (
-        <button
-          onClick={onSetupSchedule}
-          className="w-full rounded-2xl p-4 text-left transition-all hover:opacity-90"
-          style={{ background: 'linear-gradient(135deg, rgba(34,211,238,0.06), rgba(6,182,212,0.03))', border: '1px solid rgba(34,211,238,0.12)' }}
+      {/* ── SETUP CHECKLIST (when schedule or goals missing) ── */}
+      {(!scheduleProfile || activeGoals.length === 0) && (
+        <div className="mx-1 rounded-2xl overflow-hidden"
+          style={{ background: 'linear-gradient(135deg, rgba(34,211,238,0.03), rgba(139,92,246,0.03))', border: '1px solid rgba(255,255,255,0.06)' }}
         >
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'rgba(34,211,238,0.1)' }}>
-              <span className="text-lg">⚡</span>
+          {/* Header */}
+          <div className="px-4 pt-4 pb-3">
+            <div className="flex items-center gap-2 mb-1">
+              <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #22d3ee, #8b5cf6)' }}>
+                <Zap className="w-3 h-3 text-white" />
+              </div>
+              <span className="text-xs font-black text-white uppercase tracking-wider">Setup Your Day</span>
             </div>
-            <div className="flex-1">
-              <div className="text-xs font-black text-white uppercase tracking-wider">Setup Daily Protocol</div>
-              <div className="text-[9px] text-gray-500 font-mono mt-0.5">Tell us your schedule to unlock the full timeline</div>
-            </div>
-            <div className="text-cyan-400 text-xs font-mono">→</div>
+            <p className="text-[9px] text-gray-500 font-mono leading-relaxed">
+              Complete these steps to unlock the full timeline experience with auto-scheduled quests.
+            </p>
           </div>
-        </button>
+
+          {/* Step 1: Schedule */}
+          <div className="px-4 py-3" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+            <div className="flex items-start gap-3">
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                scheduleProfile ? 'bg-emerald-500/20' : 'bg-white/5'
+              }`}>
+                {scheduleProfile ? (
+                  <Check className="w-3 h-3 text-emerald-400" strokeWidth={3} />
+                ) : (
+                  <span className="text-[10px] font-black text-gray-400 font-mono">1</span>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className={`text-[11px] font-bold ${
+                  scheduleProfile ? 'text-gray-500 line-through' : 'text-white'
+                }`}>
+                  Set Your Daily Schedule
+                </div>
+                <p className="text-[9px] text-gray-600 font-mono mt-0.5">
+                  {scheduleProfile
+                    ? `Wake ${formatTime12(scheduleProfile.wakeUpTime)} · Sleep ${formatTime12(scheduleProfile.bedtime)}`
+                    : 'Wake up time, school/work, meals, bedtime — so we know when you\'re free'
+                  }
+                </p>
+                {!scheduleProfile && onSetupSchedule && (
+                  <button
+                    onClick={onSetupSchedule}
+                    className="mt-2 px-3 py-1.5 rounded-lg text-[9px] font-black text-black uppercase tracking-wider"
+                    style={{ background: 'linear-gradient(135deg, #22d3ee, #06b6d4)' }}
+                  >
+                    Setup Schedule
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Step 2: Goals */}
+          <div className="px-4 py-3" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+            <div className="flex items-start gap-3">
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                activeGoals.length > 0 ? 'bg-emerald-500/20' : 'bg-white/5'
+              }`}>
+                {activeGoals.length > 0 ? (
+                  <Check className="w-3 h-3 text-emerald-400" strokeWidth={3} />
+                ) : (
+                  <span className="text-[10px] font-black text-gray-400 font-mono">2</span>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className={`text-[11px] font-bold ${
+                  activeGoals.length > 0 ? 'text-gray-500 line-through' : 'text-white'
+                }`}>
+                  Create Your First Goal
+                </div>
+                <p className="text-[9px] text-gray-600 font-mono mt-0.5">
+                  {activeGoals.length > 0
+                    ? `${activeGoals.length} active goal${activeGoals.length > 1 ? 's' : ''}`
+                    : 'Tell us what you want to achieve — AI will auto-generate daily quests for it'
+                  }
+                </p>
+                {activeGoals.length === 0 && (
+                  <button
+                    onClick={() => setShowGoalCreate(true)}
+                    className="mt-2 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider"
+                    style={{ background: 'rgba(139,92,246,0.15)', color: '#c084fc', border: '1px solid rgba(139,92,246,0.2)' }}
+                  >
+                    Create Shadow Mission
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Step 3: Manual Quest hint */}
+          <div className="px-4 py-3" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+            <div className="flex items-start gap-3">
+              <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 bg-white/5">
+                <span className="text-[10px] font-black text-gray-400 font-mono">3</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[11px] font-bold text-white">Add a Manual Quest</div>
+                <p className="text-[9px] text-gray-600 font-mono mt-0.5">
+                  Tap the <span className="text-cyan-400">[+]</span> button above to forge custom quests anytime
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* ── UNIFIED TIMELINE ── */}
@@ -1320,26 +1409,6 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
               ))}
             </div>
           )}
-        </div>
-      )}
-
-      {/* Empty goals + CTA */}
-      {activeGoals.length === 0 && completedGoals.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-10 px-6">
-          <div className="w-12 h-12 rounded-full flex items-center justify-center mb-3" style={{ background: 'rgba(34,211,238,0.06)' }}>
-            <Target className="w-5 h-5 text-cyan-500" />
-          </div>
-          <h3 className="text-xs font-bold text-white mb-1">No Active Goals</h3>
-          <p className="text-[9px] text-gray-500 font-mono text-center mb-4 max-w-[220px]">
-            Set a long-term goal and AI will create daily quests in your timeline.
-          </p>
-          <button
-            onClick={() => setShowGoalCreate(true)}
-            className="px-5 py-2.5 rounded-xl text-[10px] font-black text-black uppercase tracking-wider"
-            style={{ background: 'linear-gradient(135deg, #22d3ee, #06b6d4)' }}
-          >
-            Create Shadow Mission
-          </button>
         </div>
       )}
 
