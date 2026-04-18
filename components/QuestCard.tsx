@@ -12,6 +12,7 @@ interface QuestCardProps {
   onReset: (id: string) => void;
   onDelete: (id: string) => void;
   isLocked?: boolean;
+  lockMessage?: string;
   onStartTracking?: (id: string, requirements?: { steps?: number; distanceKm?: number; activeMinutes?: number }) => void;
   onStopTracking?: (id: string) => void;
 }
@@ -81,7 +82,7 @@ const SensorBar: React.FC<{
   );
 };
 
-const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDelete, isLocked, onStartTracking, onStopTracking }) => {
+const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDelete, isLocked, lockMessage, onStartTracking, onStopTracking }) => {
   const [isMiniView, setIsMiniView] = useState(false);
   const [showResources, setShowResources] = useState(false);
   const completingRef = useRef(false);
@@ -149,12 +150,12 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
             : 'linear-gradient(135deg, rgba(0,210,255,0.05) 0%, transparent 60%)',
         }} />
       )}
-      {/* Locked overlay — shown during tutorial for non-welcome quests */}
+      {/* Locked overlay — time-locked or tutorial locked */}
       {isLocked && (
         <div className="absolute inset-0 z-20 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(4px)' }}>
           <div className="flex flex-col items-center gap-2">
             <Lock size={20} className="text-gray-500" />
-            <span className="text-[9px] font-black text-gray-600 uppercase tracking-widest">Available After Tutorial</span>
+            <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest text-center px-4">{lockMessage || 'Available After Tutorial'}</span>
           </div>
         </div>
       )}
@@ -389,7 +390,7 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
         </div>
 
         {/* ── ACTIVE: action buttons ── */}
-        {isActive && (
+        {isActive && !isLocked && (
           <div className="flex items-center gap-2 mt-3">
             {/* Sensor tracking: start button or active indicator (no manual stop) */}
             {quest.sensorRequirements && onStartTracking && (

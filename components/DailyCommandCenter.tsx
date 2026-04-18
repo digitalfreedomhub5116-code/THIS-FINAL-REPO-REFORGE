@@ -554,8 +554,17 @@ const QuestTimelineRow: React.FC<{
   const scheduledMin = timeToMinutes(scheduledStr);
   const isOverdue = !isCompleted && !isFailed && currentMinutes > (scheduledMin + estDuration);
 
-  // F3: Swipe-to-complete for E/D rank only
-  const canSwipeComplete = !isCompleted && !isFailed && (quest.rank === 'E' || quest.rank === 'D');
+  // TIME-LOCK: Quest is visible but not completable until scheduled time arrives
+  const isTimeLocked = !isCompleted && !isFailed && currentMinutes < scheduledMin;
+  const minutesUntilAvailable = scheduledMin - currentMinutes;
+  const lockMessage = isTimeLocked
+    ? minutesUntilAvailable >= 60
+      ? `Available in ${Math.floor(minutesUntilAvailable / 60)}h ${minutesUntilAvailable % 60}m`
+      : `Available in ${minutesUntilAvailable}m`
+    : undefined;
+
+  // F3: Swipe-to-complete for E/D rank only — NOT when time-locked
+  const canSwipeComplete = !isCompleted && !isFailed && !isTimeLocked && (quest.rank === 'E' || quest.rank === 'D');
   const [swipeX, setSwipeX] = useState(0);
   const swipeThreshold = 120;
 
@@ -565,6 +574,7 @@ const QuestTimelineRow: React.FC<{
       <div className="flex flex-col items-center w-16 flex-shrink-0">
         <div className={`text-[10px] font-mono font-bold text-right w-full pr-2 pb-1 ${
           isCompleted ? 'text-emerald-600' : isFailed ? 'text-red-700' :
+          isTimeLocked ? 'text-gray-700' :
           isCurrent ? 'text-cyan-400' : isPast ? 'text-gray-700' : 'text-gray-500'
         }`}>
           {formatTime12(scheduledStr).split(' ')[0]}
@@ -588,6 +598,8 @@ const QuestTimelineRow: React.FC<{
             animate={{ scale: [1, 1.2, 1] }}
             transition={{ duration: 1.5, repeat: Infinity }}
           />
+        ) : isTimeLocked ? (
+          <div className="w-3 h-3 rounded-full mt-1 flex-shrink-0 z-10" style={{ background: '#1a1a2e', border: '2px solid #374151' }} />
         ) : isCurrent ? (
           <motion.div
             className="w-3.5 h-3.5 rounded-full mt-1 flex-shrink-0 z-10"
@@ -666,6 +678,8 @@ const QuestTimelineRow: React.FC<{
         ) : (
           <QuestCard
             quest={quest}
+            isLocked={isTimeLocked}
+            lockMessage={lockMessage}
             onComplete={(id, asMini) => {
               const el = document.getElementById(`quest-card-${id}`);
               const rect = el?.getBoundingClientRect() || undefined;

@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Calendar, Clock, Target, Flame, TrendingUp, Pause, Play, Trash2, Loader2, CheckCircle, Circle, AlertTriangle, ExternalLink, BookOpen, Youtube, Search, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, Target, Flame, TrendingUp, Pause, Play, Trash2, Loader2, CheckCircle, Circle, AlertTriangle, ExternalLink, BookOpen, Youtube, Search, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react';
 import { Goal, GoalDailyTask, GoalQuest, GoalQuestResource, PlayerData, Quest, Rank } from '../types';
 import { playSystemSoundEffect } from '../utils/soundEngine';
 import { API_BASE } from '../lib/apiConfig';
@@ -616,6 +616,37 @@ export default function GoalDetailView({
               <p className="text-[11px] text-gray-600 font-mono">Quests have been added to your main quest feed.</p>
               {todayTasks.progressUpdate && (
                 <div className="text-xs text-gray-600 font-mono text-center mt-2">{todayTasks.progressUpdate}</div>
+              )}
+
+              {/* Regenerate button — for when user doesn't like today's quests */}
+              {!isGenerating && todayTasks.completedCount === 0 && (
+                <button
+                  onClick={() => {
+                    if (confirm('Regenerate today\'s quests? Current quests will be replaced with new ones.')) {
+                      // Clear today's tasks so generateDailyQuests runs fresh
+                      setTodayTasks(null);
+                      const updGoal = {
+                        ...goal,
+                        dailyTasks: (goal.dailyTasks || []).filter(t => t.date !== todayStr),
+                      };
+                      onUpdateGoal(updGoal);
+                      // Small delay then regenerate
+                      setTimeout(() => {
+                        startQuestGeneration({ goal: updGoal, allGoals, playerData, todayStr, currentDay, existingQuests });
+                      }, 200);
+                    }
+                  }}
+                  className="w-full py-2.5 rounded-lg text-[10px] font-bold text-gray-400 uppercase tracking-wider mt-2 flex items-center justify-center gap-1.5 transition-colors hover:text-amber-400"
+                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+                >
+                  <RefreshCw className="w-3 h-3" />
+                  Don't like these? Regenerate
+                </button>
+              )}
+              {todayTasks.completedCount > 0 && (
+                <p className="text-[9px] text-gray-700 font-mono text-center mt-1">
+                  Can't regenerate — {todayTasks.completedCount} quest{todayTasks.completedCount > 1 ? 's' : ''} already completed
+                </p>
               )}
             </div>
           )}
