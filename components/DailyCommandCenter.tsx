@@ -801,9 +801,17 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
 
   // ── Build unified timeline ──
   const scheduleSlots = useMemo(() => {
-    if (dailySchedule?.slots?.length) return dailySchedule.slots;
-    if (scheduleProfile) return buildDefaultSlots(scheduleProfile);
-    return [];
+    // Always build the default schedule blocks from profile (routine, school, meals, sleep)
+    const defaultSlots = scheduleProfile ? buildDefaultSlots(scheduleProfile) : [];
+
+    // Merge in any extra slots from dailySchedule (e.g., goal-quest slots added dynamically)
+    if (dailySchedule?.slots?.length) {
+      const defaultIds = new Set(defaultSlots.map(s => s.id));
+      const extras = dailySchedule.slots.filter(s => !defaultIds.has(s.id));
+      return [...defaultSlots, ...extras];
+    }
+
+    return defaultSlots;
   }, [dailySchedule, scheduleProfile]);
 
   // Today's quests sorted by scheduled time
