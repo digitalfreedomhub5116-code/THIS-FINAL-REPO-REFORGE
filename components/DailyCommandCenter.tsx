@@ -429,53 +429,66 @@ const ScheduleSlotRow: React.FC<{
   slot: ScheduleSlot;
   isCurrent: boolean;
   isPast: boolean;
-}> = ({ slot, isCurrent, isPast }) => {
+  isLast?: boolean;
+}> = ({ slot, isCurrent, isPast, isLast }) => {
   const slotColor = SLOT_COLORS[slot.type] || '#6b7280';
 
   return (
-    <div className={`flex items-center gap-2.5 py-2 px-3 rounded-xl transition-colors ${
-      isCurrent ? 'bg-white/[0.03]' : ''
-    }`}>
-      {/* Time */}
-      <div className={`w-14 text-[10px] font-mono font-bold text-right flex-shrink-0 ${
-        isCurrent ? 'text-cyan-400' : isPast ? 'text-gray-700' : 'text-gray-500'
-      }`}>
-        {formatTime12(slot.startTime).split(' ')[0]}
-        <span className="text-[7px] ml-0.5">{formatTime12(slot.startTime).split(' ')[1]}</span>
+    <div className="flex gap-0 relative">
+      {/* Left column: time + timeline */}
+      <div className="flex flex-col items-center w-16 flex-shrink-0">
+        {/* Time label */}
+        <div className={`text-[10px] font-mono font-bold text-right w-full pr-2 pb-1 ${
+          isCurrent ? 'text-cyan-400' : isPast ? 'text-gray-700' : 'text-gray-500'
+        }`}>
+          {formatTime12(slot.startTime).split(' ')[0]}
+          <span className="text-[7px] ml-0.5">{formatTime12(slot.startTime).split(' ')[1]}</span>
+        </div>
       </div>
 
-      {/* Dot */}
-      <div className="flex flex-col items-center flex-shrink-0">
+      {/* Timeline dot + line */}
+      <div className="flex flex-col items-center w-5 flex-shrink-0 relative">
+        {/* Dot */}
         {isCurrent ? (
           <motion.div
-            className="w-2.5 h-2.5 rounded-full"
-            style={{ background: slotColor, boxShadow: `0 0 8px ${slotColor}` }}
-            animate={{ scale: [1, 1.3, 1] }}
+            className="w-3 h-3 rounded-full z-10 mt-1 flex-shrink-0"
+            style={{ background: slotColor, boxShadow: `0 0 10px ${slotColor}` }}
+            animate={{ scale: [1, 1.4, 1] }}
             transition={{ duration: 2, repeat: Infinity }}
           />
         ) : isPast ? (
-          <div className="w-2 h-2 rounded-full bg-gray-800 border border-gray-700" />
+          <div className="w-2.5 h-2.5 rounded-full mt-1 flex-shrink-0 z-10" style={{ background: slotColor, opacity: 0.3 }} />
         ) : (
-          <Circle className="w-2 h-2 text-gray-700" />
+          <div className="w-2.5 h-2.5 rounded-full border-2 mt-1 flex-shrink-0 z-10" style={{ borderColor: slotColor + '60' }} />
+        )}
+        {/* Vertical line (extends downward) */}
+        {!isLast && (
+          <div className="w-px flex-1 min-h-[12px]" style={{ background: 'rgba(255,255,255,0.06)' }} />
         )}
       </div>
 
       {/* Content */}
-      <div className="flex-1 min-w-0 flex items-center gap-1.5">
-        <div className="flex-shrink-0">{SLOT_ICONS[slot.type]}</div>
-        <span className={`text-[11px] font-mono truncate ${
-          isCurrent ? 'text-white font-bold' : isPast ? 'text-gray-700' : 'text-gray-400'
+      <div className={`flex-1 min-w-0 pb-3 pl-2 ${
+        isCurrent ? '' : isPast ? 'opacity-50' : ''
+      }`}>
+        <div className={`flex items-center gap-1.5 py-1.5 px-2.5 rounded-lg ${
+          isCurrent ? 'bg-white/[0.04]' : ''
         }`}>
-          {slot.label}
-        </span>
-        {isCurrent && (
-          <span className="text-[7px] font-black text-cyan-400 px-1.5 py-0.5 rounded bg-cyan-400/10 flex-shrink-0 uppercase tracking-wider">Now</span>
-        )}
-        {slot.type === 'BLOCKED' && (
-          <span className="text-[7px] text-gray-700 font-mono ml-auto flex-shrink-0">
-            until {formatTime12(slot.endTime)}
+          <div className="flex-shrink-0">{SLOT_ICONS[slot.type]}</div>
+          <span className={`text-[11px] font-mono truncate ${
+            isCurrent ? 'text-white font-bold' : isPast ? 'text-gray-600' : 'text-gray-400'
+          }`}>
+            {slot.label}
           </span>
-        )}
+          {isCurrent && (
+            <span className="text-[7px] font-black text-cyan-400 px-1.5 py-0.5 rounded bg-cyan-400/10 flex-shrink-0 uppercase tracking-wider ml-auto">Now</span>
+          )}
+          {slot.type === 'BLOCKED' && (
+            <span className="text-[8px] text-gray-700 font-mono ml-auto flex-shrink-0">
+              until {formatTime12(slot.endTime)}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -520,98 +533,88 @@ const FreeSlotRow: React.FC<{
 
 const QuestTimelineRow: React.FC<{
   quest: Quest;
-  lockState: ReturnType<typeof getQuestLockState>;
   currentMinutes: number;
   isCurrent: boolean;
   isPast: boolean;
+  isLast?: boolean;
   onComplete: (id: string, asMini?: boolean, rect?: DOMRect) => void;
   onFail: (id: string) => void;
   onReset: (id: string) => void;
   onDelete: (id: string) => void;
   onStartTracking?: (id: string, requirements?: any) => void;
   onStopTracking?: (id: string) => void;
-}> = ({ quest, lockState, currentMinutes, isCurrent, isPast, onComplete, onFail, onReset, onDelete, onStartTracking, onStopTracking }) => {
+}> = ({ quest, currentMinutes, isCurrent, isPast, isLast, onComplete, onFail, onReset, onDelete, onStartTracking, onStopTracking }) => {
   const scheduledStr = quest.scheduledTime?.includes('T')
     ? quest.scheduledTime.split('T')[1].slice(0, 5)
     : (quest.scheduledTime || '00:00');
 
   const isCompleted = quest.isCompleted;
   const isFailed = quest.failed;
-  const isLocked = lockState.state === 'LOCKED' && !isCompleted && !isFailed;
+  const estDuration = quest.estimatedDuration || 20;
+  const scheduledMin = timeToMinutes(scheduledStr);
+  const isOverdue = !isCompleted && !isFailed && currentMinutes > (scheduledMin + estDuration);
 
   return (
-    <div className="relative">
-      {/* Time indicator row */}
-      <div className={`flex items-center gap-2.5 px-3 pt-1 ${isLocked ? 'opacity-50' : ''}`}>
-        <div className={`w-14 text-[10px] font-mono font-bold text-right flex-shrink-0 ${
-          isCurrent && lockState.state === 'ACTIVE' ? 'text-cyan-400' :
-          isCompleted ? 'text-gray-700' : isPast ? 'text-gray-700' : 'text-gray-500'
+    <div className="flex gap-0 relative">
+      {/* Left column: time */}
+      <div className="flex flex-col items-center w-16 flex-shrink-0">
+        <div className={`text-[10px] font-mono font-bold text-right w-full pr-2 pb-1 ${
+          isCompleted ? 'text-emerald-600' : isFailed ? 'text-red-700' :
+          isCurrent ? 'text-cyan-400' : isPast ? 'text-gray-700' : 'text-gray-500'
         }`}>
           {formatTime12(scheduledStr).split(' ')[0]}
           <span className="text-[7px] ml-0.5">{formatTime12(scheduledStr).split(' ')[1]}</span>
         </div>
-
-        {/* Status dot */}
-        <div className="flex flex-col items-center flex-shrink-0">
-          {lockState.state === 'ACTIVE' && !isCompleted && !isFailed ? (
-            <motion.div
-              className="w-3 h-3 rounded-full"
-              style={{ background: '#22d3ee', boxShadow: '0 0 8px #22d3ee' }}
-              animate={{ scale: [1, 1.3, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            />
-          ) : lockState.state === 'OVERTIME' ? (
-            <motion.div className="w-3 h-3 rounded-full" style={{ background: '#fb923c', boxShadow: '0 0 8px #fb923c' }}
-              animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 1.5, repeat: Infinity }}
-            />
-          ) : isCompleted ? (
-            <CheckCircle className="w-3 h-3 text-emerald-500" />
-          ) : isFailed ? (
-            <XCircle className="w-3 h-3 text-red-500" />
-          ) : isLocked ? (
-            <div className="w-2.5 h-2.5 rounded-full bg-gray-800 border border-gray-700" />
-          ) : (
-            <Circle className="w-2.5 h-2.5 text-gray-600" />
-          )}
-        </div>
-
-        {/* Lock/Timer badge */}
-        <div className="flex-1 min-w-0 flex items-center gap-1.5">
-          {isLocked && (
-            <span className="text-[8px] font-mono font-bold text-gray-600 flex items-center gap-1">
-              <Timer className="w-3 h-3" />
-              Starts in {formatCountdown(lockState.untilActivationMin)}
-            </span>
-          )}
-          {lockState.state === 'ACTIVE' && !isCompleted && !isFailed && lockState.remainingMin > 0 && (
-            <span className="text-[8px] font-mono font-bold text-cyan-400 flex items-center gap-1">
-              <Timer className="w-3 h-3" />
-              {formatCountdown(lockState.remainingMin)} left
-            </span>
-          )}
-          {lockState.state === 'OVERTIME' && !isCompleted && !isFailed && (
-            <span className="text-[8px] font-mono font-bold text-amber-400 flex items-center gap-1 animate-pulse">
-              <AlertTriangle className="w-3 h-3" />
-              OVERTIME! Hurry up
-            </span>
-          )}
-          {lockState.state === 'EXPIRED' && !isCompleted && !isFailed && (
-            <span className="text-[8px] font-mono font-bold text-red-400 flex items-center gap-1">
-              <XCircle className="w-3 h-3" />
-              Window expired
-            </span>
-          )}
-          {/* 60% threshold badge */}
-          {(lockState.state === 'ACTIVE') && !isCompleted && !isFailed && lockState.thresholdMin > 0 && (
-            <span className="text-[7px] font-mono text-gray-600 ml-auto">
-              Min {lockState.thresholdMin}m to complete
-            </span>
-          )}
-        </div>
       </div>
 
-      {/* Quest Card — reuse existing */}
-      <div className={`ml-[72px] mr-1 mt-1 mb-1 ${isLocked ? 'opacity-40 pointer-events-none' : ''}`}>
+      {/* Timeline dot + line */}
+      <div className="flex flex-col items-center w-5 flex-shrink-0 relative">
+        {isCompleted ? (
+          <div className="w-3.5 h-3.5 rounded-full bg-emerald-500 flex items-center justify-center mt-1 flex-shrink-0 z-10">
+            <Check className="w-2 h-2 text-black" strokeWidth={3} />
+          </div>
+        ) : isFailed ? (
+          <div className="w-3.5 h-3.5 rounded-full bg-red-500 flex items-center justify-center mt-1 flex-shrink-0 z-10">
+            <X className="w-2 h-2 text-black" strokeWidth={3} />
+          </div>
+        ) : isOverdue ? (
+          <motion.div className="w-3.5 h-3.5 rounded-full mt-1 flex-shrink-0 z-10"
+            style={{ background: '#fb923c', boxShadow: '0 0 8px #fb923c' }}
+            animate={{ scale: [1, 1.2, 1] }}
+            transition={{ duration: 1.5, repeat: Infinity }}
+          />
+        ) : isCurrent ? (
+          <motion.div
+            className="w-3.5 h-3.5 rounded-full mt-1 flex-shrink-0 z-10"
+            style={{ background: '#22d3ee', boxShadow: '0 0 12px #22d3ee' }}
+            animate={{ scale: [1, 1.3, 1] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          />
+        ) : (
+          <div className="w-3 h-3 rounded-full border-2 mt-1 flex-shrink-0 z-10" style={{ borderColor: '#22d3ee40' }} />
+        )}
+        {/* Vertical line */}
+        {!isLast && (
+          <div className="w-px flex-1 min-h-[12px]" style={{ background: 'rgba(255,255,255,0.06)' }} />
+        )}
+      </div>
+
+      {/* Quest Card */}
+      <div className="flex-1 min-w-0 pb-2 pl-2">
+        {/* Overdue badge */}
+        {isOverdue && (
+          <div className="flex items-center gap-1 mb-1">
+            <AlertTriangle className="w-3 h-3 text-amber-400" />
+            <span className="text-[8px] font-mono font-bold text-amber-400 uppercase tracking-wider">Overdue — complete now!</span>
+          </div>
+        )}
+        {/* Estimated duration hint */}
+        {!isCompleted && !isFailed && (
+          <div className="flex items-center gap-1 mb-1">
+            <Timer className="w-2.5 h-2.5 text-gray-600" />
+            <span className="text-[8px] font-mono text-gray-600">~{estDuration} min</span>
+          </div>
+        )}
         <QuestCard
           quest={quest}
           onComplete={(id, asMini) => {
@@ -622,7 +625,6 @@ const QuestTimelineRow: React.FC<{
           onFail={onFail}
           onReset={onReset}
           onDelete={onDelete}
-          isLocked={isLocked}
           onStartTracking={onStartTracking}
           onStopTracking={onStopTracking}
         />
@@ -657,7 +659,6 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
   const [analysisCount, setAnalysisCount] = useState(0);
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
   const [showGoalCreate, setShowGoalCreate] = useState(false);
-  const [showFullDay, setShowFullDay] = useState(false);
 
   // ── Live clock (updates every 30s) ──
   const [currentMinutes, setCurrentMinutes] = useState(() => {
@@ -734,11 +735,8 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
     return 0;
   }, [timeline, currentMinutes]);
 
-  // Visible entries (show around current if not expanded)
-  const visibleTimeline = showFullDay ? timeline : timeline.slice(
-    Math.max(0, currentEntryIdx - 2),
-    Math.min(timeline.length, currentEntryIdx + 8)
-  );
+  // All visible (always show full day)
+  const visibleTimeline = timeline;
 
   // Stats
   const activeQuests = todaysQuests.filter(q => !q.isCompleted && !q.failed);
@@ -981,6 +979,18 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
         </div>
       </div>
 
+      {/* ── Rule Banner — soft reminder ── */}
+      <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl mx-1"
+        style={{ background: 'rgba(251,191,36,0.04)', border: '1px solid rgba(251,191,36,0.12)' }}
+      >
+        <div className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(251,191,36,0.08)' }}>
+          <Clock className="w-3 h-3 text-amber-400" />
+        </div>
+        <p className="text-[9px] font-mono text-amber-400/80 leading-relaxed">
+          Complete each quest within its scheduled time for full XP. Overdue quests still work but you lose the streak bonus.
+        </p>
+      </div>
+
       {/* ── Setup Schedule Prompt (if no schedule) ── */}
       {!scheduleProfile && (goals || []).length > 0 && onSetupSchedule && (
         <button
@@ -994,7 +1004,7 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
             </div>
             <div className="flex-1">
               <div className="text-xs font-black text-white uppercase tracking-wider">Setup Daily Protocol</div>
-              <div className="text-[9px] text-gray-500 font-mono mt-0.5">Tell us your schedule for time-locked goals</div>
+              <div className="text-[9px] text-gray-500 font-mono mt-0.5">Tell us your schedule to unlock the full timeline</div>
             </div>
             <div className="text-cyan-400 text-xs font-mono">→</div>
           </div>
@@ -1002,60 +1012,60 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
       )}
 
       {/* ── UNIFIED TIMELINE ── */}
-      <div className="space-y-1 min-h-[40vh] pb-4 relative">
-        <AnimatePresence mode="popLayout">
-          {visibleTimeline.map((entry, index) => {
-            if (entry.type === 'SLOT' && entry.slot) {
-              const slotMin = timeToMinutes(entry.slot.startTime);
-              const isCurrent = currentMinutes >= slotMin && currentMinutes < timeToMinutes(entry.slot.endTime);
-              const isPast = currentMinutes >= timeToMinutes(entry.slot.endTime);
+      <div className="min-h-[40vh] pb-4 relative px-1">
+        {visibleTimeline.map((entry, index) => {
+          const isLastEntry = index === visibleTimeline.length - 1;
 
-              return (
-                <motion.div key={`slot-${entry.slot.id}`}
-                  initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.03 }}
-                >
-                  <ScheduleSlotRow slot={entry.slot} isCurrent={isCurrent} isPast={isPast} />
-                </motion.div>
-              );
-            }
+          if (entry.type === 'SLOT' && entry.slot) {
+            const slotMin = timeToMinutes(entry.slot.startTime);
+            const isCurrent = currentMinutes >= slotMin && currentMinutes < timeToMinutes(entry.slot.endTime);
+            const isPast = currentMinutes >= timeToMinutes(entry.slot.endTime);
 
-            if (entry.type === 'QUEST' && entry.quest) {
-              const quest = entry.quest;
-              const lockState = getQuestLockState(quest, currentMinutes);
-              const scheduledMin = quest.scheduledTime
-                ? timeToMinutes(quest.scheduledTime.includes('T') ? quest.scheduledTime.split('T')[1].slice(0, 5) : quest.scheduledTime)
-                : currentMinutes;
-              const isCurrent = lockState.state === 'ACTIVE' || lockState.state === 'OVERTIME';
-              const isPast = quest.isCompleted || quest.failed || lockState.state === 'EXPIRED';
+            return (
+              <motion.div key={`slot-${entry.slot.id}`}
+                initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.04, duration: 0.3 }}
+              >
+                <ScheduleSlotRow slot={entry.slot} isCurrent={isCurrent} isPast={isPast} isLast={isLastEntry} />
+              </motion.div>
+            );
+          }
 
-              return (
-                <motion.div key={`quest-${quest.id}`}
-                  layout
-                  initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.25, delay: index * 0.03 }}
-                >
-                  <QuestTimelineRow
-                    quest={quest}
-                    lockState={lockState}
-                    currentMinutes={currentMinutes}
-                    isCurrent={isCurrent}
-                    isPast={isPast}
-                    onComplete={completeQuest}
-                    onFail={failQuest}
-                    onReset={resetQuest}
-                    onDelete={deleteQuest}
-                    onStartTracking={onStartTracking}
-                    onStopTracking={onStopTracking}
-                  />
-                </motion.div>
-              );
-            }
+          if (entry.type === 'QUEST' && entry.quest) {
+            const quest = entry.quest;
+            const scheduledMin = quest.scheduledTime
+              ? timeToMinutes(quest.scheduledTime.includes('T') ? quest.scheduledTime.split('T')[1].slice(0, 5) : quest.scheduledTime)
+              : currentMinutes;
+            const isActive = !quest.isCompleted && !quest.failed;
+            const isCurrent = isActive && currentMinutes >= (scheduledMin - 10) && currentMinutes <= (scheduledMin + (quest.estimatedDuration || 20) + 10);
+            const isPast = quest.isCompleted || quest.failed;
 
-            return null;
-          })}
-        </AnimatePresence>
+            return (
+              <motion.div key={`quest-${quest.id}`}
+                layout
+                initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.3, delay: index * 0.04 }}
+              >
+                <QuestTimelineRow
+                  quest={quest}
+                  currentMinutes={currentMinutes}
+                  isCurrent={isCurrent}
+                  isPast={!!isPast}
+                  isLast={isLastEntry}
+                  onComplete={completeQuest}
+                  onFail={failQuest}
+                  onReset={resetQuest}
+                  onDelete={deleteQuest}
+                  onStartTracking={onStartTracking}
+                  onStopTracking={onStopTracking}
+                />
+              </motion.div>
+            );
+          }
+
+          return null;
+        })}
 
         {/* Empty state */}
         {timeline.length === 0 && todaysQuests.length === 0 && (
@@ -1064,24 +1074,10 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
           </div>
         )}
 
-        {/* Show more/less toggle */}
-        {timeline.length > 6 && (
-          <button
-            onClick={() => setShowFullDay(!showFullDay)}
-            className="w-full flex items-center justify-center gap-1 py-2 mt-1 text-[9px] font-mono text-gray-600 hover:text-gray-400 transition-colors"
-          >
-            {showFullDay ? (
-              <><ChevronUp className="w-3 h-3" /> Show Less</>
-            ) : (
-              <><ChevronDown className="w-3 h-3" /> Show Full Day ({timeline.length} items)</>
-            )}
-          </button>
-        )}
-
         {timeline.length > 0 && (
           <div className="flex justify-center mt-4">
             <div className="text-[10px] text-gray-700 font-mono flex items-center gap-2">
-              <Skull size={12} /> END OF LINE
+              <Moon size={12} className="text-indigo-500" /> END OF DAY
             </div>
           </div>
         )}
