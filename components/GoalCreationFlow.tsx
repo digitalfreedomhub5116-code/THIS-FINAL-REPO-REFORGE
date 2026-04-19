@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Loader2, Target, AlertTriangle, ChevronRight, CheckCircle, Shield, Calendar, Flame, Brain, TrendingUp, Clock } from 'lucide-react';
+import { X, Loader2, Target, AlertTriangle, ChevronRight, CheckCircle, Shield, Calendar, Flame, Brain, TrendingUp, Clock, CalendarOff } from 'lucide-react';
 import { Goal, GoalInterviewQuestion, GoalMilestone, PlayerData, Rank } from '../types';
 import { playSystemSoundEffect } from '../utils/soundEngine';
 import { API_BASE } from '../lib/apiConfig';
@@ -77,6 +77,9 @@ export default function GoalCreationFlow({
 
   // Plan result
   const [planData, setPlanData] = useState<any>(null);
+
+  // Rest day selection — user can override AI suggestion
+  const [restDay, setRestDay] = useState<string>('Sunday');
 
   const MANA_COST = 30;
 
@@ -176,6 +179,7 @@ export default function GoalCreationFlow({
       if (!res.ok) throw new Error('Plan generation failed');
       const data = await res.json();
       setPlanData(data);
+      setRestDay(data.weeklyRestDay || 'Sunday');
       setStep('REVIEW');
       playSystemSoundEffect('PURCHASE');
     } catch (err: any) {
@@ -203,7 +207,7 @@ export default function GoalCreationFlow({
       dailyCommitmentMin: planData.dailyCommitmentMinutes || 60,
       totalDurationDays: planData.totalDurationDays || estimatedDays,
       smartDurationReasoning: planData.smartDurationReasoning || '',
-      weeklyRestDay: planData.weeklyRestDay || 'Sunday',
+      weeklyRestDay: restDay,
       riskFactors: planData.riskFactors || [],
       reasoning: planData.reasoning || '',
       startDate: now,
@@ -215,7 +219,7 @@ export default function GoalCreationFlow({
 
     playSystemSoundEffect('LEVEL_UP');
     onGoalCreated(newGoal);
-  }, [planData, goalText, category, estimatedDays, questions, playerData, onGoalCreated]);
+  }, [planData, goalText, category, estimatedDays, questions, playerData, onGoalCreated, restDay]);
 
   const rankColor = RANK_COLORS[planData?.goalRank] || RANK_COLORS.D;
 
@@ -496,6 +500,47 @@ export default function GoalCreationFlow({
                       </div>
                     ))}
                   </div>
+                </div>
+
+                {/* Rest Day Picker */}
+                <div className="rounded-xl p-3 mb-3" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
+                  <div className="flex items-center gap-2 mb-2.5">
+                    <CalendarOff className="w-3.5 h-3.5 text-indigo-400" />
+                    <span className="text-[9px] font-mono text-gray-400 uppercase tracking-wider">Weekly Rest Day</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => {
+                      const isSelected = restDay === day;
+                      return (
+                        <button
+                          key={day}
+                          onClick={() => { setRestDay(day); playSystemSoundEffect('SYSTEM'); }}
+                          className="px-2.5 py-1.5 rounded-lg text-[9px] font-black font-mono uppercase tracking-wide transition-all"
+                          style={{
+                            background: isSelected ? 'rgba(129,140,248,0.15)' : 'rgba(255,255,255,0.02)',
+                            border: `1px solid ${isSelected ? 'rgba(129,140,248,0.4)' : 'rgba(255,255,255,0.06)'}`,
+                            color: isSelected ? '#a5b4fc' : '#6b7280',
+                          }}
+                        >
+                          {day.slice(0, 3)}
+                        </button>
+                      );
+                    })}
+                    <button
+                      onClick={() => { setRestDay('NONE'); playSystemSoundEffect('SYSTEM'); }}
+                      className="px-2.5 py-1.5 rounded-lg text-[9px] font-black font-mono uppercase tracking-wide transition-all"
+                      style={{
+                        background: restDay === 'NONE' ? 'rgba(239,68,68,0.12)' : 'rgba(255,255,255,0.02)',
+                        border: `1px solid ${restDay === 'NONE' ? 'rgba(239,68,68,0.3)' : 'rgba(255,255,255,0.06)'}`,
+                        color: restDay === 'NONE' ? '#f87171' : '#6b7280',
+                      }}
+                    >
+                      None
+                    </button>
+                  </div>
+                  <p className="text-[8px] text-gray-600 font-mono mt-2">
+                    {restDay === 'NONE' ? 'No rest day — quests generated every day.' : `Light/no quests on ${restDay}s.`}
+                  </p>
                 </div>
 
                 {/* Risk factors */}

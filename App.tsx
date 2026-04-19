@@ -28,6 +28,8 @@ import LogoutChoiceScreen from './components/LogoutChoiceScreen';
 
 import SystemMessage from './components/SystemMessage';
 
+import SystemToastOverlay from './components/SystemToast';
+
 import ErrorBoundary from './components/ErrorBoundary';
 
 import {
@@ -5197,6 +5199,7 @@ const App: React.FC = () => {
 
       </Layout>
 
+    <SystemToastOverlay />
     </>
 
     </ThemeContext.Provider>

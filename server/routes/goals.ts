@@ -210,7 +210,7 @@ ${otherGoalsContext}
       "connectionToNext": "How this phase prepares for the next"
     }
   ],
-  "weeklyRestDay": "Sunday"
+  "weeklyRestDay": "Sunday (or any day — the user will pick their own in-app)"
 }`;
 
     const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash' });
@@ -401,7 +401,9 @@ The title alone should tell the user exactly what to do without reading the desc
 ✅ GOOD: "Math: Solve 5 Quadratic Equation Problems (Ex. 4.1, Q1-Q5)"
 
 RULE 6 — REST DAY:
-If today is ${goal.weeklyRestDay || 'Sunday'}, generate only 1 ultra-light quest (10 min max):
+If today is the user's rest day (${goal.weeklyRestDay || 'Sunday'}), generate only 1 ultra-light quest (10 min max).
+If the user has set rest day to "NONE", generate normal quests — no rest day applies.
+Examples for rest days:
 - Academic: "Quick 5-min flashcard review of this week's formulas"
 - Fitness: "10-minute gentle stretching routine"
 - Coding: "Read 1 interesting article about what you're learning"

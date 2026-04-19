@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Calendar, Clock, Target, Flame, TrendingUp, Pause, Play, Trash2, Loader2, CheckCircle, Circle, AlertTriangle, ExternalLink, BookOpen, Youtube, Search, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, Target, Flame, TrendingUp, Pause, Play, Trash2, Loader2, CheckCircle, Circle, AlertTriangle, ExternalLink, BookOpen, Youtube, Search, ChevronDown, ChevronUp, RefreshCw, CalendarOff } from 'lucide-react';
 import { Goal, GoalDailyTask, GoalQuest, GoalQuestResource, PlayerData, Quest, Rank } from '../types';
 import { playSystemSoundEffect } from '../utils/soundEngine';
 import { API_BASE } from '../lib/apiConfig';
@@ -223,9 +223,9 @@ function startQuestGeneration(params: {
 
   if (_questGenStore.state === 'GENERATING') return; // already in-flight
 
-  // FIX Loophole 6: Rest day check
+  // FIX Loophole 6: Rest day check (skip if user chose NONE)
   const dayOfWeek = new Date().toLocaleDateString('en-US', { weekday: 'long' });
-  if (goal.weeklyRestDay && goal.weeklyRestDay.toLowerCase() === dayOfWeek.toLowerCase()) {
+  if (goal.weeklyRestDay && goal.weeklyRestDay !== 'NONE' && goal.weeklyRestDay.toLowerCase() === dayOfWeek.toLowerCase()) {
     updateQuestGenStore({
       state: 'ERROR',
       goalId: goal.id,
@@ -413,6 +413,7 @@ export default function GoalDetailView({
 
   const [todayTasks, setTodayTasks] = useState<GoalDailyTask | null>(null);
   const [showConfirmAbandon, setShowConfirmAbandon] = useState(false);
+  const [showRestDayPicker, setShowRestDayPicker] = useState(false);
 
   const rankColor = RANK_COLORS[goal.goalRank] || RANK_COLORS.D;
   const currentDay = Math.max(1, Math.floor((Date.now() - goal.startDate) / (1000 * 60 * 60 * 24)) + 1);
@@ -560,6 +561,75 @@ export default function GoalDetailView({
               <div className="text-[10px] text-gray-600 font-mono">ODDS</div>
             </div>
           </div>
+        </div>
+
+        {/* Rest Day Setting */}
+        <div className="rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(129,140,248,0.08)' }}>
+          <button
+            onClick={() => setShowRestDayPicker(!showRestDayPicker)}
+            className="w-full flex items-center justify-between"
+          >
+            <div className="flex items-center gap-2">
+              <CalendarOff className="w-3.5 h-3.5 text-indigo-400" />
+              <span className="text-xs font-mono text-gray-400 uppercase tracking-wider">Rest Day</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono font-bold" style={{ color: goal.weeklyRestDay === 'NONE' ? '#f87171' : '#a5b4fc' }}>
+                {goal.weeklyRestDay === 'NONE' ? 'None' : goal.weeklyRestDay || 'Sunday'}
+              </span>
+              {showRestDayPicker ? <ChevronUp className="w-3 h-3 text-gray-600" /> : <ChevronDown className="w-3 h-3 text-gray-600" />}
+            </div>
+          </button>
+          <AnimatePresence>
+            {showRestDayPicker && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mt-3 overflow-hidden"
+              >
+                <div className="flex flex-wrap gap-1.5">
+                  {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => {
+                    const isSelected = (goal.weeklyRestDay || 'Sunday') === day;
+                    return (
+                      <button
+                        key={day}
+                        onClick={() => {
+                          onUpdateGoal({ ...goal, weeklyRestDay: day });
+                          playSystemSoundEffect('SYSTEM');
+                        }}
+                        className="px-2.5 py-1.5 rounded-lg text-[9px] font-black font-mono uppercase tracking-wide transition-all"
+                        style={{
+                          background: isSelected ? 'rgba(129,140,248,0.15)' : 'rgba(255,255,255,0.02)',
+                          border: `1px solid ${isSelected ? 'rgba(129,140,248,0.4)' : 'rgba(255,255,255,0.06)'}`,
+                          color: isSelected ? '#a5b4fc' : '#6b7280',
+                        }}
+                      >
+                        {day.slice(0, 3)}
+                      </button>
+                    );
+                  })}
+                  <button
+                    onClick={() => {
+                      onUpdateGoal({ ...goal, weeklyRestDay: 'NONE' });
+                      playSystemSoundEffect('SYSTEM');
+                    }}
+                    className="px-2.5 py-1.5 rounded-lg text-[9px] font-black font-mono uppercase tracking-wide transition-all"
+                    style={{
+                      background: goal.weeklyRestDay === 'NONE' ? 'rgba(239,68,68,0.12)' : 'rgba(255,255,255,0.02)',
+                      border: `1px solid ${goal.weeklyRestDay === 'NONE' ? 'rgba(239,68,68,0.3)' : 'rgba(255,255,255,0.06)'}`,
+                      color: goal.weeklyRestDay === 'NONE' ? '#f87171' : '#6b7280',
+                    }}
+                  >
+                    None
+                  </button>
+                </div>
+                <p className="text-[8px] text-gray-600 font-mono mt-2">
+                  {goal.weeklyRestDay === 'NONE' ? 'No rest day — quests generated every day.' : `Light/no quests on ${goal.weeklyRestDay || 'Sunday'}s.`}
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Today's Quests */}
