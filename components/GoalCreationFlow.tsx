@@ -272,7 +272,7 @@ export default function GoalCreationFlow({
                   <textarea
                     value={goalText}
                     onChange={e => { setGoalText(e.target.value); setError(null); }}
-                    placeholder='e.g. "Crack NEET 2027" or "Get weight under 50kg" or "Earn ₹10,000 freelancing"'
+                    placeholder='e.g. "Crack my dream exam" or "Earn ₹1 Lakh/month" or "Get into the best shape of my life"'
                     maxLength={200}
                     rows={3}
                     className="w-full rounded-xl p-3.5 text-white text-sm focus:outline-none transition-all placeholder:text-gray-700 font-mono resize-none"
