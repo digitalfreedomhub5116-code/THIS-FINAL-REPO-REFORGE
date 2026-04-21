@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { logUsage } from '../utils/logUsage.js';
 import { getAuthenticatedUserId } from '../lib/playerAuth.js';
-import { getSharedAI, generateWithRetry } from '../utils/geminiRetry.js';
+import { getSharedAI, generateWithFallback, DEFAULT_MODEL_CHAIN } from '../utils/geminiRetry.js';
 
 const router = Router();
 
@@ -17,8 +17,6 @@ router.post('/chat', async (req: Request, res: Response) => {
     if (!message) {
       return res.status(400).json({ error: 'message is required' });
     }
-
-    const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
     const historyContext = (history || [])
       .slice(-8)
@@ -52,12 +50,12 @@ Your Personality & Rules:
 
     const fullPrompt = `${systemPrompt}\n\nChat History:\n${historyContext}\n\n${isSystemEvent ? `[SYSTEM NOTIFICATION: ${userMessage}]\nReact to this event. Talk directly to the user in a helpful but firm way.` : `User: ${userMessage}`}\nDUSK:`;
 
-    const result = await generateWithRetry(model, fullPrompt);
+    const { result, modelName } = await generateWithFallback(ai, [...DEFAULT_MODEL_CHAIN], fullPrompt);
     const text = result.response.text().trim();
 
     logUsage({
       route: 'dusk/chat',
-      model: 'gemini-2.0-flash',
+      model: modelName,
       inputTokens: result.response.usageMetadata?.promptTokenCount ?? 0,
       outputTokens: result.response.usageMetadata?.candidatesTokenCount ?? 0,
       success: true,

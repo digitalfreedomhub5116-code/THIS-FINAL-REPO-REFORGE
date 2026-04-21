@@ -28,41 +28,80 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Codename can only contain letters, numbers, and underscores' });
     }
 
-    // Check if user exists
-    let existingUser, checkError;
+    // Normalize email for consistent storage + lookups (prevents dup rows differing by case)
+    const normalizedEmail = email.trim().toLowerCase();
+    const trimmedUsername = username.trim();
+
+    // ──────────────────────────────────────────────────────────────────────
+    // IDEMPOTENT REGISTER RECOVERY
+    // Mobile networks (esp. on Railway cold starts) sometimes drop the HTTP
+    // response AFTER the server has successfully inserted the user. The client
+    // then sees "Connection error" and, on retry, would normally get a 409.
+    // Result: account is actually created, but user thinks signup failed and
+    // uninstalls the app — this is the #1 cause of the 30% signup-failure
+    // complaint.
+    //
+    // To recover: if the (email + password) combination matches an existing
+    // LOCAL account exactly, we treat this retry as a successful login instead
+    // of a duplicate-error. This is safe — we only return the session if the
+    // password actually verifies.
+    // ──────────────────────────────────────────────────────────────────────
     try {
-      const result = await supabaseServer()
-        .from('players')
-        .select('username')
-        .eq('username', username)
-        .single();
-      existingUser = result.data;
-      checkError = result.error;
-    } catch (err) {
-      console.error('[Auth Register] Error checking user existence:', err);
-      return res.status(500).json({ error: 'Failed to check user existence' });
-    }
-
-    if (checkError && checkError.code !== 'PGRST116') {
-      throw checkError;
-    }
-
-    if (existingUser) {
-      return res.status(409).json({ error: 'Codename already taken' });
-    }
-
-    // Check if email is already registered
-    try {
+      // Use .ilike() for case-insensitive email match. Paired with the
+      // UNIQUE(LOWER(email)) DB index this guarantees at most one row
+      // regardless of historical case variation.
       const { data: emailExists } = await (supabaseServer() as any)
         .from('players')
-        .select('email')
-        .eq('email', email.trim().toLowerCase())
+        .select('supabase_id, username, name, email, password_hash, level, gold, keys, auth_type')
+        .ilike('email', normalizedEmail)
         .limit(1);
       if (emailExists && emailExists.length > 0) {
+        const existing: any = emailExists[0];
+        // Only allow recovery for local-auth accounts with a password hash.
+        if (existing.password_hash && existing.auth_type === 'local') {
+          const pwMatches = await bcrypt.compare(password, existing.password_hash).catch(() => false);
+          if (pwMatches) {
+            // Skip req.session write — see note on the success path below.
+            // JWT is the primary auth mechanism; avoiding the session PG write
+            // keeps the response under ~200ms so mobile networks don't drop it.
+            const playerToken = generatePlayerToken(existing.supabase_id);
+            return res.json({
+              message: 'Account already existed — signed in',
+              user: {
+                id: existing.supabase_id,
+                username: existing.username,
+                name: existing.name,
+                email: existing.email,
+                level: existing.level,
+                gold: existing.gold,
+                keys: existing.keys,
+              },
+              playerToken,
+              recovered: true,
+            });
+          }
+        }
         return res.status(409).json({ error: 'An account with this email already exists. Try signing in instead.' });
       }
     } catch (emailCheckErr) {
       console.error('[Auth Register] Email check error:', emailCheckErr);
+      // Continue — username check below will still catch duplicates
+    }
+
+    // Check if username is taken — use maybeSingle() so "not found" is not an error
+    try {
+      const { data: existingUser, error: checkError } = await (supabaseServer() as any)
+        .from('players')
+        .select('username')
+        .eq('username', trimmedUsername)
+        .maybeSingle();
+      if (checkError) throw checkError;
+      if (existingUser) {
+        return res.status(409).json({ error: 'Codename already taken' });
+      }
+    } catch (err) {
+      console.error('[Auth Register] Error checking username:', err);
+      return res.status(500).json({ error: 'Failed to check user existence' });
     }
 
     // Hash password
@@ -83,9 +122,9 @@ router.post('/register', async (req, res) => {
         .from('players')
         .insert({
           supabase_id: userId,
-          username: username,
-          name: username,
-          email: email,
+          username: trimmedUsername,
+          name: trimmedUsername,
+          email: normalizedEmail,
           password_hash: hashedPassword,
           auth_type: 'local',
           level: 1,
@@ -125,18 +164,21 @@ router.post('/register', async (req, res) => {
       return res.status(500).json({ error: `Registration failed: ${insertResult.error.message || insertResult.error.code || 'database error'}` });
     }
 
-    // Set session — non-fatal if session store fails
-    (req.session as any).userId = userId;
-    (req.session as any).authType = 'local';
+    // IMPORTANT: We intentionally DO NOT set req.session here.
+    // express-session auto-saves on res.end, which blocks the response on a
+    // Postgres write to the `session` table (1-5s of added latency on a
+    // moderately busy pool). On a flaky mobile network this extra window
+    // is enough for the response packet to get dropped — the classic
+    // "account created but client sees Connection error" failure mode.
+    //
+    // The client already receives `playerToken` (JWT) which is the real
+    // auth token used by `getAuthenticatedUserId` (see playerAuth.ts — JWT
+    // is checked before session). So the session cookie is redundant.
     const playerToken = generatePlayerToken(userId);
-    const successPayload = {
+    return res.json({
       message: 'Account created successfully',
-      user: { id: userId, username, name: username, email, level: 1, gold: 100, keys: 3 },
+      user: { id: userId, username: trimmedUsername, name: trimmedUsername, email: normalizedEmail, level: 1, gold: 100, keys: 3 },
       playerToken,
-    };
-    req.session.save((saveErr) => {
-      if (saveErr) console.error('[Auth Register] Session save error (non-fatal):', saveErr);
-      return res.json(successPayload);
     });
   } catch (err: any) {
     console.error('[Local Auth Register] Unexpected error:', err);
@@ -153,8 +195,9 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Codename/email and password are required' });
     }
 
-    // Try username first, then email
-    // Use .order() to prefer rows WITH password_hash (handles legacy duplicates)
+    // Try username first (case-sensitive — usernames are canonical), then email
+    // (case-insensitive — users often mis-type the case of their email).
+    // Use .order() to prefer rows WITH password_hash (handles legacy duplicates).
     let user = null;
 
     const { data: byName } = await (supabaseServer() as any)
@@ -167,10 +210,15 @@ router.post('/login', async (req, res) => {
     if (byName && byName.length > 0) {
       user = byName[0];
     } else {
+      // Case-insensitive email lookup via .ilike() with no wildcards.
+      // This lets "John@Gmail.com" match a row stored as "john@gmail.com"
+      // even for legacy users whose email was written mixed-case before we
+      // started normalizing at insert time.
+      const normalizedLoginId = loginId.toLowerCase();
       const { data: byEmail } = await (supabaseServer() as any)
         .from('players')
         .select('*')
-        .eq('email', loginId)
+        .ilike('email', normalizedLoginId)
         .order('password_hash', { ascending: false, nullsFirst: false })
         .limit(1);
       if (byEmail && byEmail.length > 0) user = byEmail[0];
@@ -193,11 +241,10 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid codename or password' });
     }
 
-    // Set session — non-fatal if session store fails
-    (req.session as any).userId = userData.supabase_id;
-    (req.session as any).authType = 'local';
+    // Skip req.session write — JWT is the primary auth. See detailed note in
+    // the /register handler above.
     const playerToken = generatePlayerToken(userData.supabase_id);
-    const loginPayload = {
+    return res.json({
       message: 'Login successful',
       user: {
         id: userData.supabase_id,
@@ -209,10 +256,6 @@ router.post('/login', async (req, res) => {
         keys: userData.keys
       },
       playerToken,
-    };
-    req.session.save((saveErr) => {
-      if (saveErr) console.error('[Auth Login] Session save error (non-fatal):', saveErr);
-      return res.json(loginPayload);
     });
   } catch (err) {
     console.error('[Local Auth Login]', err);

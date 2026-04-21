@@ -1,8 +1,7 @@
 import { Router, Request, Response } from 'express';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { logUsage } from '../utils/logUsage.js';
 import { getAuthenticatedUserId } from '../lib/playerAuth.js';
-import { getSharedAI, generateWithRetry } from '../utils/geminiRetry.js';
+import { getSharedAI, generateWithFallback, DEFAULT_MODEL_CHAIN } from '../utils/geminiRetry.js';
 
 const router = Router();
 
@@ -49,25 +48,6 @@ function isGibberish(text: string): boolean {
   }
 
   return false;
-}
-
-interface ModelResult {
-  text: string;
-  model: string;
-  inputTokens: number;
-  outputTokens: number;
-}
-
-async function tryModel(ai: GoogleGenerativeAI, modelName: string, prompt: string): Promise<ModelResult> {
-  const model = ai.getGenerativeModel({ model: modelName });
-  const result = await generateWithRetry(model, prompt);
-  const usage = result.response.usageMetadata;
-  return {
-    text: result.response.text(),
-    model: modelName,
-    inputTokens: usage?.promptTokenCount ?? 0,
-    outputTokens: usage?.candidatesTokenCount ?? 0,
-  };
 }
 
 router.post('/analyze-quest', async (req: Request, res: Response) => {
@@ -235,31 +215,31 @@ The GOLDEN RULE: A valid quest MUST be physically possible for a human, AND have
 Respond with ONLY valid JSON, no markdown:
 {"rank":"C","xp":100,"categories":["strength","discipline"],"reasoning":"Running 10km demands serious endurance and mental fortitude at your current fitness level.","estimatedDuration":70,"minDurationMinutes":36,"autoDetectedTime":null,"isSpam":false,"sensorRequirements":{"steps":13000,"distanceKm":10,"activeMinutes":50}}`;
 
-    let modelResult: ModelResult | null = null;
-    const models = ['gemini-2.0-flash', 'gemini-1.5-flash'];
-    for (const modelName of models) {
-      try {
-        modelResult = await tryModel(ai, modelName, prompt);
-        break;
-      } catch (err) {
-        console.warn(`[ForgeGuard] Model ${modelName} failed, trying next...`);
-      }
-    }
-
-    if (!modelResult) {
+    let modelName: string;
+    let responseText: string;
+    let inputTokens = 0;
+    let outputTokens = 0;
+    try {
+      const r = await generateWithFallback(ai, [...DEFAULT_MODEL_CHAIN], prompt);
+      modelName = r.modelName;
+      responseText = r.result.response.text();
+      inputTokens = r.result.response.usageMetadata?.promptTokenCount ?? 0;
+      outputTokens = r.result.response.usageMetadata?.candidatesTokenCount ?? 0;
+    } catch (err) {
+      console.error('[ForgeGuard] All models failed', err);
       return res.status(500).json({ error: 'All AI models failed' });
     }
 
     logUsage({
       route: 'forgeguard/analyze-quest',
-      model: modelResult.model,
-      inputTokens: modelResult.inputTokens,
-      outputTokens: modelResult.outputTokens,
+      model: modelName,
+      inputTokens,
+      outputTokens,
       success: true,
       userId: userId || undefined,
     });
 
-    const cleaned = stripMarkdown(modelResult.text);
+    const cleaned = stripMarkdown(responseText);
     const parsed = JSON.parse(cleaned);
     // Normalize: AI now returns categories array, ensure backward compat
     if (parsed.categories && !parsed.category) {

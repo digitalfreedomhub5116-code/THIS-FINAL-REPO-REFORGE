@@ -148,14 +148,16 @@ const CreateAccountPage: React.FC<CreateAccountPageProps> = ({ onLogin, onNaviga
     }
 
     setLoading(true);
+    const cleanEmail = email.trim();
+    const cleanUsername = username.trim();
     try {
       const res = await fetchWithRetry(`${API_BASE}/api/auth/local/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
-          username: username.trim(),
-          email: email.trim(),
+          username: cleanUsername,
+          email: cleanEmail,
           password,
         }),
       });
@@ -170,13 +172,34 @@ const CreateAccountPage: React.FC<CreateAccountPageProps> = ({ onLogin, onNaviga
       await loginWithUser(data.user || data);
     } catch (err: any) {
       console.error('[CreateAccount] Registration network error:', err);
+      // ────────────────────────────────────────────────────────────────────
+      // NETWORK-FAILURE AUTO-RECOVERY
+      // On mobile, the server may have successfully created the account but
+      // the response packet was dropped. Silently attempt to sign in with the
+      // same credentials — if the server did process the register, this
+      // succeeds and the user never notices the hiccup.
+      // ────────────────────────────────────────────────────────────────────
+      try {
+        const loginRes = await fetchWithRetry(`${API_BASE}/api/auth/local/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ identifier: cleanEmail, password }),
+        });
+        if (loginRes.ok) {
+          const loginData = await loginRes.json();
+          if (loginData.playerToken) saveAuthNative(loginData.playerToken);
+          await loginWithUser(loginData.user || loginData);
+          return;
+        }
+      } catch { /* recovery failed — fall through to error message */ }
       const msg = err?.message || String(err) || 'Unknown network error';
       if (msg.includes('Failed to fetch') || msg.includes('NetworkError') || msg.includes('ERR_CONNECTION')) {
-        setError('Server unreachable — please check your internet connection and try again.');
+        setError('Network hiccup — please check your internet and tap Create Account again.');
       } else if (msg.includes('timeout') || msg.includes('AbortError')) {
-        setError('Request timed out — server may be overloaded. Please try again.');
+        setError('Request timed out — please try again in a moment.');
       } else {
-        setError(`Connection error: ${msg}`);
+        setError('Something went wrong — please try again.');
       }
     } finally {
       setLoading(false);

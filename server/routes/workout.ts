@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { supabaseServer } from '../lib/supabase.js';
 import { logUsage } from '../utils/logUsage.js';
 import { EXERCISE_VIDEOS, getExerciseVideoUrl, fixVideoPath } from '../../lib/exerciseVideos.js';
-import { getSharedAI, generateWithRetry } from '../utils/geminiRetry.js';
+import { getSharedAI, generateWithFallback, DEFAULT_MODEL_CHAIN } from '../utils/geminiRetry.js';
 
 const router = Router();
 
@@ -128,14 +128,13 @@ Respond ONLY with valid compact JSON (no markdown, no extra whitespace):
 Rules: use only library exercises, BULK=heavy reps like "12,10,8", CUT=more cardio, STRENGTH="5,5,5", output exactly ${totalPerWeek} days`;
 
     const ai = getSharedAI();
-    const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash' });
-    const result = await generateWithRetry(model, prompt);
+    const { result, modelName } = await generateWithFallback(ai, [...DEFAULT_MODEL_CHAIN], prompt);
     const text = result.response.text().trim();
     const usage = result.response.usageMetadata;
 
     logUsage({
       route: '/api/workout/generate-ai',
-      model: 'gemini-2.0-flash',
+      model: modelName,
       inputTokens: usage?.promptTokenCount ?? 0,
       outputTokens: usage?.candidatesTokenCount ?? 0,
       success: true,

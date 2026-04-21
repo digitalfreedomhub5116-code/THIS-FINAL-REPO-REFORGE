@@ -154,12 +154,14 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode = 'SIGN_IN' })
     if (password !== confirm) { setError('Passwords do not match'); return; }
     if (password.length < 6) { setError('Password must be at least 6 characters'); return; }
     setLoading(true);
+    const cleanEmail = email.trim();
+    const cleanUsername = username.trim();
     try {
       const res = await fetchWithRetry(`${API_BASE}/api/auth/local/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ username: username.trim(), email: email.trim(), password }),
+        body: JSON.stringify({ username: cleanUsername, email: cleanEmail, password }),
       });
       const text = await res.text();
       let data: any;
@@ -168,7 +170,35 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode = 'SIGN_IN' })
       if (data.playerToken) saveAuthNative(data.playerToken);
       await loginWithUser(data.user || data);
     } catch (err: any) {
-      setError(`Connection error — please check your internet and try again.`);
+      // ────────────────────────────────────────────────────────────────────
+      // NETWORK-FAILURE AUTO-RECOVERY
+      // On mobile networks, the server often successfully creates the account
+      // but the response packet is dropped. Without this code, the user sees
+      // "Connection error" and (if they retry) gets "email already taken",
+      // then uninstalls. To recover gracefully we silently attempt to sign in
+      // using the same credentials — if the server did process the register,
+      // this succeeds and the user never notices the hiccup.
+      // ────────────────────────────────────────────────────────────────────
+      try {
+        const loginRes = await fetchWithRetry(`${API_BASE}/api/auth/local/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ identifier: cleanEmail, password }),
+        });
+        if (loginRes.ok) {
+          const loginData = await loginRes.json();
+          if (loginData.playerToken) saveAuthNative(loginData.playerToken);
+          await loginWithUser(loginData.user || loginData);
+          return;
+        }
+      } catch { /* recovery attempt failed — fall through to error message */ }
+      const msg = err?.message || String(err) || '';
+      if (msg.includes('Failed to fetch') || msg.includes('NetworkError') || msg.includes('ERR_CONNECTION') || msg.includes('AbortError')) {
+        setError('Network hiccup — please check your internet and tap Create Account again.');
+      } else {
+        setError('Something went wrong — please try again in a moment.');
+      }
     } finally {
       setLoading(false);
     }

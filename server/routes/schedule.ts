@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { logUsage } from '../utils/logUsage.js';
 import { getAuthenticatedUserId } from '../lib/playerAuth.js';
-import { getSharedAI, generateWithRetry } from '../utils/geminiRetry.js';
+import { getSharedAI, generateWithFallback, DEFAULT_MODEL_CHAIN } from '../utils/geminiRetry.js';
 
 const router = Router();
 
@@ -113,40 +113,31 @@ Return ONLY a valid JSON array of schedule slots:
 
 IMPORTANT: Return ONLY the JSON array, no markdown, no explanation.`;
 
-    const models = ['gemini-2.0-flash', 'gemini-1.5-flash'];
-    let modelResult: { text: string; model: string; inputTokens: number; outputTokens: number } | null = null;
-
-    for (const modelName of models) {
-      try {
-        const model = ai.getGenerativeModel({ model: modelName });
-        const result = await generateWithRetry(model, prompt);
-        const usage = result.response.usageMetadata;
-        modelResult = {
-          text: result.response.text(),
-          model: modelName,
-          inputTokens: usage?.promptTokenCount ?? 0,
-          outputTokens: usage?.candidatesTokenCount ?? 0,
-        };
-        break;
-      } catch (err) {
-        console.warn(`[Schedule] Model ${modelName} failed, trying next...`);
-      }
-    }
-
-    if (!modelResult) {
+    let modelName: string;
+    let responseText: string;
+    let inputTokens = 0;
+    let outputTokens = 0;
+    try {
+      const r = await generateWithFallback(ai, [...DEFAULT_MODEL_CHAIN], prompt);
+      modelName = r.modelName;
+      responseText = r.result.response.text();
+      inputTokens = r.result.response.usageMetadata?.promptTokenCount ?? 0;
+      outputTokens = r.result.response.usageMetadata?.candidatesTokenCount ?? 0;
+    } catch (err) {
+      console.error('[Schedule] All models failed', err);
       return res.status(500).json({ error: 'All AI models failed' });
     }
 
     logUsage({
       route: 'schedule/generate',
-      model: modelResult.model,
-      inputTokens: modelResult.inputTokens,
-      outputTokens: modelResult.outputTokens,
+      model: modelName,
+      inputTokens,
+      outputTokens,
       success: true,
       userId: userId || undefined,
     });
 
-    const cleaned = stripMarkdown(modelResult.text);
+    const cleaned = stripMarkdown(responseText);
     const slotsRaw = JSON.parse(cleaned);
 
     // Normalize slots — add IDs and default status
@@ -221,13 +212,12 @@ Return ONLY valid JSON array of 3 alternatives:
   {"title":"...","estimatedDuration":30,"rank":"C","xp":45,"categories":["intelligence","discipline"],"reasoning":"...","stepByStep":["Step 1","Step 2"]}
 ]`;
 
-    const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash' });
-    const result = await generateWithRetry(model, prompt);
+    const { result, modelName } = await generateWithFallback(ai, [...DEFAULT_MODEL_CHAIN], prompt);
     const usage = result.response.usageMetadata;
 
     logUsage({
       route: 'schedule/swap',
-      model: 'gemini-2.0-flash',
+      model: modelName,
       inputTokens: usage?.promptTokenCount ?? 0,
       outputTokens: usage?.candidatesTokenCount ?? 0,
       success: true,
@@ -237,7 +227,7 @@ Return ONLY valid JSON array of 3 alternatives:
     const cleaned = stripMarkdown(result.response.text());
     const alternatives = JSON.parse(cleaned);
 
-    return res.json({ alternatives });
+    return res.json({ alternatives, model: modelName });
   } catch (err: any) {
     console.error('[Schedule swap]', err);
     return res.status(500).json({ error: err.message || 'Swap generation failed' });

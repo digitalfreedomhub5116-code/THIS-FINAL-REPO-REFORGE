@@ -6,10 +6,10 @@ import { generateWithRetry } from '../utils/geminiRetry.js';
 
 const router = Router();
 
+// Primary 2.0-flash (cheaper); 2.5-flash as fallback when 2.0 is capacity-throttled.
 const MODELS_TO_TRY = [
-  'gemini-2.5-flash',
   'gemini-2.0-flash',
-  'gemini-1.5-flash',
+  'gemini-2.5-flash',
 ];
 
 const NUTRITION_PROMPT = `You are a strict, professional nutritionist AI.

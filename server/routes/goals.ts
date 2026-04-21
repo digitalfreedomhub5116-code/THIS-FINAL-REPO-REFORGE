@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { logUsage } from '../utils/logUsage.js';
 import { getAuthenticatedUserId } from '../lib/playerAuth.js';
 import { supabaseServer } from '../lib/supabase.js';
-import { getSharedAI, generateWithRetry } from '../utils/geminiRetry.js';
+import { getSharedAI, generateWithFallback, DEFAULT_MODEL_CHAIN } from '../utils/geminiRetry.js';
 
 const router = Router();
 
@@ -105,13 +105,12 @@ Users type on mobile. If the goal has typos but intent is clear, interpret corre
   ]
 }`;
 
-    const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash' });
-    const result = await generateWithRetry(model, prompt);
+    const { result, modelName } = await generateWithFallback(ai, [...DEFAULT_MODEL_CHAIN], prompt);
     const text = result.response.text().trim();
 
     logUsage({
       route: 'goals/analyze',
-      model: 'gemini-2.0-flash',
+      model: modelName,
       inputTokens: result.response.usageMetadata?.promptTokenCount ?? 0,
       outputTokens: result.response.usageMetadata?.candidatesTokenCount ?? 0,
       success: true,
@@ -213,13 +212,12 @@ ${otherGoalsContext}
   "weeklyRestDay": "Sunday (or any day — the user will pick their own in-app)"
 }`;
 
-    const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash' });
-    const result = await generateWithRetry(model, prompt);
+    const { result, modelName } = await generateWithFallback(ai, [...DEFAULT_MODEL_CHAIN], prompt);
     const text = result.response.text().trim();
 
     logUsage({
       route: 'goals/plan',
-      model: 'gemini-2.0-flash',
+      model: modelName,
       inputTokens: result.response.usageMetadata?.promptTokenCount ?? 0,
       outputTokens: result.response.usageMetadata?.candidatesTokenCount ?? 0,
       success: true,
@@ -470,16 +468,13 @@ URL RULES:
   "progressUpdate": "Phase ${milestone?.phase || 1}, Day ${dayInPhase}. ${percentComplete}% through the goal."
 }`;
 
-    // Use Gemini 2.0 Flash for daily quest generation
-    const model = ai.getGenerativeModel({
-      model: 'gemini-2.0-flash',
-    });
-    const result = await generateWithRetry(model, prompt);
+    // Primary: Gemini 2.0 Flash (cheaper). Falls back to 2.5-flash on 429.
+    const { result, modelName } = await generateWithFallback(ai, [...DEFAULT_MODEL_CHAIN], prompt);
     const text = result.response.text().trim();
 
     logUsage({
       route: 'goals/daily-quests',
-      model: 'gemini-2.0-flash',
+      model: modelName,
       inputTokens: result.response.usageMetadata?.promptTokenCount ?? 0,
       outputTokens: result.response.usageMetadata?.candidatesTokenCount ?? 0,
       success: true,

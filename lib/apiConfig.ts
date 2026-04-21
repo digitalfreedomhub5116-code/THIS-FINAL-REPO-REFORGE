@@ -18,18 +18,30 @@ export const API_BASE = isNativePlatform
 
 /**
  * Fetch with automatic retry for transient failures (Railway restarts, Supabase wake-ups).
- * Retries up to `retries` times with `delayMs` between attempts.
- * Each attempt has a `timeoutMs` (default 65s) to handle Railway cold starts.
+ *
+ * IMPORTANT: Retries are ONLY safe for idempotent methods (GET, HEAD, OPTIONS).
+ * For POST/PUT/PATCH/DELETE, retrying after a network timeout can cause the server
+ * to process the request twice — creating duplicate accounts, duplicate charges, etc.
+ *
+ * By default we auto-detect based on the HTTP method:
+ *   - GET / HEAD / OPTIONS / no-method  → retries enabled (3x)
+ *   - POST / PUT / PATCH / DELETE        → single attempt, no retry
+ *
+ * Callers can override this by passing `retries` explicitly.
  */
 export async function fetchWithRetry(
   input: RequestInfo | URL,
   init?: RequestInit,
-  retries: number = 3,
+  retries?: number,
   delayMs: number = 2000,
-  timeoutMs: number = 65000
+  timeoutMs: number = 45000
 ): Promise<Response> {
+  const method = (init?.method || 'GET').toUpperCase();
+  const isIdempotent = method === 'GET' || method === 'HEAD' || method === 'OPTIONS';
+  const effectiveRetries = retries !== undefined ? retries : (isIdempotent ? 3 : 0);
+
   let lastError: any;
-  for (let attempt = 0; attempt <= retries; attempt++) {
+  for (let attempt = 0; attempt <= effectiveRetries; attempt++) {
     try {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -38,7 +50,7 @@ export async function fetchWithRetry(
       return res;
     } catch (err) {
       lastError = err;
-      if (attempt < retries) {
+      if (attempt < effectiveRetries) {
         await new Promise(r => setTimeout(r, delayMs));
       }
     }
