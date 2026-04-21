@@ -223,6 +223,8 @@ const SS_HEALTH = 'reforge_temp_health';
 
 const SS_STATS = 'reforge_temp_stats';
 
+const SS_AUTH = 'reforge_temp_auth';
+
 
 
 function ssSet(key: string, value: unknown) {
@@ -239,7 +241,7 @@ function ssGet<T>(key: string): T | null {
 
 function ssClear() {
 
-  try { sessionStorage.removeItem(SS_USER); sessionStorage.removeItem(SS_HEALTH); sessionStorage.removeItem(SS_STATS); } catch { /* ignore */ }
+  try { sessionStorage.removeItem(SS_USER); sessionStorage.removeItem(SS_HEALTH); sessionStorage.removeItem(SS_STATS); sessionStorage.removeItem(SS_AUTH); } catch { /* ignore */ }
 
 }
 
@@ -1455,6 +1457,10 @@ const App: React.FC = () => {
   const [tempStats, setTempStats] = useState<CoreStats | undefined>();
 
   const [tempUserData, setTempUserData] = useState<{ country: string; tz: string } | undefined>();
+
+  // Holds the auth profile for new signups who authenticated BEFORE completing calibration.
+  // registerUser is deferred until CalibrationFlow completes so isConfigured=true doesn't auto-skip onboarding.
+  const [tempAuthProfile, setTempAuthProfile] = useState<any>(() => ssGet<any>(SS_AUTH));
 
   const [pendingPenalty, setPendingPenalty] = useState<{
 
@@ -3156,7 +3162,7 @@ const App: React.FC = () => {
 
         <Suspense fallback={<SkeletonOnboardingPage />}>
 
-          <DuskWelcomeScreen onComplete={() => setOnboardingPhase('AGREEMENT')} />
+          <DuskWelcomeScreen onComplete={() => setOnboardingPhase('AUTH')} />
 
         </Suspense>
 
@@ -3234,7 +3240,49 @@ const App: React.FC = () => {
 
                 ssSet(SS_STATS, stats);
 
-                // If we came from logout recalibrate, go to sign-in page, otherwise regular auth
+                // New flow: user authenticated BEFORE calibration. Finalize registration now and go to APP.
+
+                if (tempAuthProfile && !logoutFlowRef.current) {
+
+                  const cloudData = (tempAuthProfile as any).raw_data as Partial<PlayerData> | undefined;
+
+                  const merged = {
+
+                    ...tempAuthProfile,
+
+                    ...(tempUserData ? {
+
+                      country: tempUserData.country,
+
+                      timezone: tempUserData.tz,
+
+                    } : {}),
+
+                    healthProfile: profile,
+
+                    stats,
+
+                  };
+
+                  registerUser(merged);
+
+                  if (!cloudData?.startDate) {
+
+                    setPlayer(prev => ({ ...prev, startDate: prev.startDate || Date.now() }));
+
+                  }
+
+                  setTempAuthProfile(null);
+
+                  ssClear();
+
+                  // Effect on player.isConfigured will auto-route to APP
+
+                  return;
+
+                }
+
+                // Legacy path (logout-recalibrate): go back to sign-in
 
                 setOnboardingPhase(logoutFlowRef.current ? 'AUTH_SIGN_IN_PAGE' : 'AUTH');
 
@@ -3262,39 +3310,55 @@ const App: React.FC = () => {
 
             const cloudData = (profile as any).raw_data as Partial<PlayerData> | undefined;
 
-            const merged = {
+            const isReturningUser = !!(cloudData?.isConfigured || (cloudData as any)?.avatarUrl);
 
-              ...profile,
+            if (isReturningUser) {
 
-              ...(tempUserData ? {
+              // Returning user — register immediately, go straight to APP
 
-                country: tempUserData.country,
+              const merged = {
 
-                timezone: tempUserData.tz,
+                ...profile,
 
-              } : {}),
+                ...(tempUserData ? {
 
-              ...(tempHealthProfile ? { healthProfile: tempHealthProfile } : {}),
+                  country: tempUserData.country,
 
-              ...(tempStats ? { stats: tempStats } : {}),
+                  timezone: tempUserData.tz,
 
-            };
+                } : {}),
 
-            registerUser(merged);
+                ...(tempHealthProfile ? { healthProfile: tempHealthProfile } : {}),
 
-            // Only force startDate for truly new users (no cloud data)
+                ...(tempStats ? { stats: tempStats } : {}),
 
-            if (!cloudData?.startDate) {
+              };
 
-              setPlayer(prev => ({ ...prev, startDate: prev.startDate || Date.now() }));
+              registerUser(merged);
+
+              if (!cloudData?.startDate) {
+
+                setPlayer(prev => ({ ...prev, startDate: prev.startDate || Date.now() }));
+
+              }
+
+              ssClear();
+
+              setOnboardingPhase('APP');
+
+            } else {
+
+              // New user signup — defer registerUser until calibration completes,
+
+              // otherwise isConfigured=true would auto-skip the onboarding flow
+
+              setTempAuthProfile(profile);
+
+              ssSet(SS_AUTH, profile);
+
+              setOnboardingPhase('AGREEMENT');
 
             }
-
-            // Tutorial disabled in v4 — no longer setting isNewUserOnboarding
-
-            ssClear();
-
-            setOnboardingPhase('APP');
 
           }}
 
@@ -3316,37 +3380,51 @@ const App: React.FC = () => {
 
             const cloudData = (profile as any).raw_data as Partial<PlayerData> | undefined;
 
-            const merged = {
+            const isReturningUser = !!(cloudData?.isConfigured || (cloudData as any)?.avatarUrl);
 
-              ...profile,
+            if (isReturningUser) {
 
-              ...(tempUserData ? {
+              const merged = {
 
-                country: tempUserData.country,
+                ...profile,
 
-                timezone: tempUserData.tz,
+                ...(tempUserData ? {
 
-              } : {}),
+                  country: tempUserData.country,
 
-              ...(tempHealthProfile ? { healthProfile: tempHealthProfile } : {}),
+                  timezone: tempUserData.tz,
 
-              ...(tempStats ? { stats: tempStats } : {}),
+                } : {}),
 
-            };
+                ...(tempHealthProfile ? { healthProfile: tempHealthProfile } : {}),
 
-            registerUser(merged);
+                ...(tempStats ? { stats: tempStats } : {}),
 
-            if (!cloudData?.startDate) {
+              };
 
-              setPlayer(prev => ({ ...prev, startDate: prev.startDate || Date.now() }));
+              registerUser(merged);
+
+              if (!cloudData?.startDate) {
+
+                setPlayer(prev => ({ ...prev, startDate: prev.startDate || Date.now() }));
+
+              }
+
+              ssClear();
+
+              setOnboardingPhase('APP');
+
+            } else {
+
+              // Signed in but not yet calibrated (abandoned signup) — resume onboarding
+
+              setTempAuthProfile(profile);
+
+              ssSet(SS_AUTH, profile);
+
+              setOnboardingPhase('AGREEMENT');
 
             }
-
-            // Tutorial disabled in v4 — no longer setting isNewUserOnboarding
-
-            ssClear();
-
-            setOnboardingPhase('APP');
 
           }}
 
@@ -3370,37 +3448,51 @@ const App: React.FC = () => {
 
             const cloudData = (profile as any).raw_data as Partial<PlayerData> | undefined;
 
-            const merged = {
+            const isReturningUser = !!(cloudData?.isConfigured || (cloudData as any)?.avatarUrl);
 
-              ...profile,
+            if (isReturningUser) {
 
-              ...(tempUserData ? {
+              const merged = {
 
-                country: tempUserData.country,
+                ...profile,
 
-                timezone: tempUserData.tz,
+                ...(tempUserData ? {
 
-              } : {}),
+                  country: tempUserData.country,
 
-              ...(tempHealthProfile ? { healthProfile: tempHealthProfile } : {}),
+                  timezone: tempUserData.tz,
 
-              ...(tempStats ? { stats: tempStats } : {}),
+                } : {}),
 
-            };
+                ...(tempHealthProfile ? { healthProfile: tempHealthProfile } : {}),
 
-            registerUser(merged);
+                ...(tempStats ? { stats: tempStats } : {}),
 
-            if (!cloudData?.startDate) {
+              };
 
-              setPlayer(prev => ({ ...prev, startDate: prev.startDate || Date.now() }));
+              registerUser(merged);
+
+              if (!cloudData?.startDate) {
+
+                setPlayer(prev => ({ ...prev, startDate: prev.startDate || Date.now() }));
+
+              }
+
+              ssClear();
+
+              setOnboardingPhase('APP');
+
+            } else {
+
+              // New account — defer registerUser until after calibration
+
+              setTempAuthProfile(profile);
+
+              ssSet(SS_AUTH, profile);
+
+              setOnboardingPhase('AGREEMENT');
 
             }
-
-            // Tutorial disabled in v4 — no longer setting isNewUserOnboarding
-
-            ssClear();
-
-            setOnboardingPhase('APP');
 
           }}
 
