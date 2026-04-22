@@ -128,10 +128,13 @@ const CalibrationReport: React.FC<{ profile: HealthProfile, onContinue: () => vo
         <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="fixed inset-0 z-[150] bg-black flex flex-col items-center p-4 sm:p-6 font-mono overflow-y-auto"
-            style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 32px)' }}
+            className="fixed inset-0 z-[150] bg-black flex flex-col font-mono"
         >
-            <div className="w-full max-w-lg md:max-w-2xl space-y-6 sm:space-y-8 my-auto">
+            <div
+                className="flex-1 overflow-y-auto flex flex-col items-center px-4 sm:px-6 pt-4 pb-2"
+                style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)' }}
+            >
+                <div className="w-full max-w-lg md:max-w-2xl space-y-6 sm:space-y-8 my-auto pb-24">
                 <div className="text-center space-y-2">
                     <motion.div 
                         initial={{ scale: 0.9, opacity: 0 }} 
@@ -236,19 +239,27 @@ const CalibrationReport: React.FC<{ profile: HealthProfile, onContinue: () => vo
                     </motion.div>
                 </div>
 
-                <div className="bg-gray-900/30 border border-gray-800 rounded-xl p-6 text-center space-y-4">
+                <div className="bg-gray-900/30 border border-gray-800 rounded-xl p-6 text-center">
                     <p className="text-xs text-gray-400 leading-relaxed max-w-md mx-auto">
                         The System has generated a personalized protocol based on this analysis. 
                         Compliance is mandatory for optimal results.
                     </p>
-                    <button 
-                        onClick={onContinue}
-                        className="group relative inline-flex items-center gap-3 px-8 py-4 bg-white text-black font-black uppercase tracking-widest text-xs rounded-lg hover:bg-system-neon hover:scale-105 transition-all shadow-[0_0_20px_rgba(255,255,255,0.3)]"
-                    >
-                        <ShieldCheck size={16} /> Accept Protocols
-                        <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
-                    </button>
                 </div>
+                </div>
+            </div>
+
+            {/* Sticky bottom CTA — always visible so new users don't miss the Accept Protocols button */}
+            <div
+                className="shrink-0 px-4 sm:px-6 pt-6 pb-4 bg-gradient-to-t from-black via-black/95 to-transparent flex justify-center"
+                style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)' }}
+            >
+                <button 
+                    onClick={onContinue}
+                    className="group relative inline-flex items-center gap-3 px-8 py-4 bg-white text-black font-black uppercase tracking-widest text-xs rounded-lg hover:bg-system-neon hover:scale-105 transition-all shadow-[0_0_20px_rgba(255,255,255,0.3)]"
+                >
+                    <ShieldCheck size={16} /> Accept Protocols
+                    <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                </button>
             </div>
         </motion.div>
     );
