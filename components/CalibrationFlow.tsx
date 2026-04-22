@@ -1292,18 +1292,18 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                                   <Zap className="text-yellow-400" size={18} />
                                   <span className="text-xs text-gray-500 uppercase tracking-widest font-bold">Energy & Activity</span>
                               </div>
-                              <p className="text-gray-600 text-[11px]">Three quick snapshots — tap one in each row and hit Next. ⚡</p>
+                              <p className="text-gray-600 text-[11px]">Three quick snapshots — tap one in each row and hit Next.</p>
                           </motion.div>
 
                           {/* Lifestyle Activity */}
                           <motion.div variants={setupItemVariants}>
-                              <p className="text-[10px] text-gray-500 uppercase font-bold mb-2 tracking-widest">🏃 Lifestyle Activity</p>
+                              <p className="text-[10px] text-gray-500 uppercase font-bold mb-2 tracking-widest">Lifestyle Activity</p>
                               <div className="grid grid-cols-2 gap-2">
                                   {([
-                                      { val: 'SEDENTARY', label: '🪑 Sedentary', sub: 'Mostly sitting' },
-                                      { val: 'LIGHT', label: '🚶 Light', sub: 'Some movement' },
-                                      { val: 'MODERATE', label: '⚡ Moderate', sub: 'Regular activity' },
-                                      { val: 'VERY_ACTIVE', label: '🔥 Very Active', sub: 'Always moving' },
+                                      { val: 'SEDENTARY', label: 'Sedentary', sub: 'Mostly sitting' },
+                                      { val: 'LIGHT', label: 'Light', sub: 'Some movement' },
+                                      { val: 'MODERATE', label: 'Moderate', sub: 'Regular activity' },
+                                      { val: 'VERY_ACTIVE', label: 'Very Active', sub: 'Always moving' },
                                   ] as const).map(opt => (
                                       <button
                                           key={opt.val}
@@ -1319,22 +1319,21 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
 
                           {/* Energy Right Now */}
                           <motion.div variants={setupItemVariants}>
-                              <p className="text-[10px] text-gray-500 uppercase font-bold mb-2 tracking-widest">⚡ Energy Right Now</p>
+                              <p className="text-[10px] text-gray-500 uppercase font-bold mb-2 tracking-widest">Energy Right Now</p>
                               <div className="grid grid-cols-5 gap-1.5">
                                   {([
-                                      { val: 'DRAINED', label: '💀', sub: 'Drained' },
-                                      { val: 'LOW', label: '🔋', sub: 'Low' },
-                                      { val: 'MODERATE', label: '😐', sub: 'Okay' },
-                                      { val: 'HIGH', label: '🔥', sub: 'High' },
-                                      { val: 'PEAK', label: '🌟', sub: 'Peak' },
+                                      { val: 'DRAINED', sub: 'Drained' },
+                                      { val: 'LOW', sub: 'Low' },
+                                      { val: 'MODERATE', sub: 'Okay' },
+                                      { val: 'HIGH', sub: 'High' },
+                                      { val: 'PEAK', sub: 'Peak' },
                                   ] as const).map(opt => (
                                       <button
                                           key={opt.val}
                                           onClick={() => setFormData({ ...formData, energyLevel: opt.val })}
-                                          className={`py-2.5 rounded-xl border text-center transition-all ${formData.energyLevel === opt.val ? 'bg-white text-black border-white' : 'border-gray-800 text-gray-400 hover:border-gray-600'}`}
+                                          className={`py-3.5 rounded-xl border text-center transition-all ${formData.energyLevel === opt.val ? 'bg-white text-black border-white' : 'border-gray-800 text-gray-400 hover:border-gray-600'}`}
                                       >
-                                          <div className="text-lg">{opt.label}</div>
-                                          <div className="text-[8px] font-bold uppercase">{opt.sub}</div>
+                                          <div className="text-[10px] font-bold uppercase tracking-wide">{opt.sub}</div>
                                       </button>
                                   ))}
                               </div>
@@ -1342,13 +1341,13 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
 
                           {/* Stress Level */}
                           <motion.div variants={setupItemVariants}>
-                              <p className="text-[10px] text-gray-500 uppercase font-bold mb-2 tracking-widest">🧠 Stress Level</p>
+                              <p className="text-[10px] text-gray-500 uppercase font-bold mb-2 tracking-widest">Stress Level</p>
                               <div className="grid grid-cols-2 gap-2">
                                   {([
-                                      { val: 'LOW', label: '😌 Calm', sub: 'All good' },
-                                      { val: 'MODERATE', label: '😤 Moderate', sub: 'Some pressure' },
-                                      { val: 'HIGH', label: '😰 High', sub: 'Overwhelmed' },
-                                      { val: 'BURNOUT', label: '🔴 Burnout', sub: 'At capacity' },
+                                      { val: 'LOW', label: 'Calm', sub: 'All good' },
+                                      { val: 'MODERATE', label: 'Moderate', sub: 'Some pressure' },
+                                      { val: 'HIGH', label: 'High', sub: 'Overwhelmed' },
+                                      { val: 'BURNOUT', label: 'Burnout', sub: 'At capacity' },
                                   ] as const).map(opt => (
                                       <button
                                           key={opt.val}
@@ -1381,12 +1380,12 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                                   <Brain className="text-purple-400" size={18} />
                                   <span className="text-xs text-gray-500 uppercase tracking-widest font-bold">Capability Scan</span>
                               </div>
-                              <p className="text-gray-600 text-[11px]">Quick baseline check — ForgeGuard uses this to scale your quests. Be honest! 🎮</p>
+                              <p className="text-gray-600 text-[11px]">Quick baseline check — ForgeGuard uses this to scale your quests. Be honest.</p>
                           </motion.div>
 
                           {/* Push-ups */}
                           <motion.div variants={setupItemVariants}>
-                              <p className="text-[10px] text-gray-500 uppercase font-bold mb-2 tracking-widest">💪 Max Push-ups (one set)</p>
+                              <p className="text-[10px] text-gray-500 uppercase font-bold mb-2 tracking-widest">Max Push-ups (one set)</p>
                               <div className="grid grid-cols-2 gap-2">
                                   {([
                                       { label: '0 – 5', sub: 'Beginner', val: 5 },
@@ -1405,7 +1404,7 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
 
                           {/* Focus & Learning (merged) */}
                           <motion.div variants={setupItemVariants}>
-                              <p className="text-[10px] text-gray-500 uppercase font-bold mb-2 tracking-widest">🧠 Focus & Learning Habit</p>
+                              <p className="text-[10px] text-gray-500 uppercase font-bold mb-2 tracking-widest">Focus & Learning Habit</p>
                               <div className="grid grid-cols-2 gap-2">
                                   {([
                                       { label: 'Easily Distracted', sub: 'Rarely reads or focuses', focus: 15, reading: 0 },
@@ -1425,7 +1424,7 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
 
                           {/* Sleep */}
                           <motion.div variants={setupItemVariants}>
-                              <p className="text-[10px] text-gray-500 uppercase font-bold mb-2 tracking-widest">😴 Average Sleep</p>
+                              <p className="text-[10px] text-gray-500 uppercase font-bold mb-2 tracking-widest">Average Sleep</p>
                               <div className="grid grid-cols-2 gap-2">
                                   {([
                                       { label: '< 5 hrs', sub: 'Critical', val: 4 },
