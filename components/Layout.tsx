@@ -91,6 +91,7 @@ interface LayoutProps {
   hideHeader?: boolean;
   headerDisabled?: boolean;
   forceHeaderVisible?: boolean;
+  hideAmbientGlow?: boolean;
 }
 
 const glassDropdownDark = {
@@ -129,7 +130,8 @@ const Layout: React.FC<LayoutProps> = ({
   onClearNotificationHistory,
   hideHeader = false,
   headerDisabled = false,
-  forceHeaderVisible = false
+  forceHeaderVisible = false,
+  hideAmbientGlow = false,
 }) => {
   const { theme } = useThemeContext();
   const isLight = theme === 'light';
@@ -373,16 +375,18 @@ const Layout: React.FC<LayoutProps> = ({
   return (
     <div className="min-h-screen bg-system-bg font-sans overflow-x-hidden" style={{ color: 'var(--color-text-primary)' }}>
 
-      {/* Background ambient glow */}
-      <div className="fixed top-0 left-0 w-full h-full pointer-events-none z-0">
-        <div className="absolute top-[-10%] left-[20%] w-96 h-96 bg-system-accent/10 rounded-full blur-[100px]" />
-        <div className="absolute bottom-[10%] right-[10%] w-96 h-96 bg-system-neon/10 rounded-full blur-[100px]" />
-        {isShadowMonarch && (
-          <div className="absolute inset-0 opacity-30 mix-blend-screen">
-            <div className="absolute inset-0 bg-gradient-to-t from-purple-900/20 to-transparent animate-pulse" />
-          </div>
-        )}
-      </div>
+      {/* Background ambient glow — hidden on tabs that request pitch-black bg (e.g. PROFILE) */}
+      {!hideAmbientGlow && (
+        <div className="fixed top-0 left-0 w-full h-full pointer-events-none z-0">
+          <div className="absolute top-[-10%] left-[20%] w-96 h-96 bg-system-accent/10 rounded-full blur-[100px]" />
+          <div className="absolute bottom-[10%] right-[10%] w-96 h-96 bg-system-neon/10 rounded-full blur-[100px]" />
+          {isShadowMonarch && (
+            <div className="absolute inset-0 opacity-30 mix-blend-screen">
+              <div className="absolute inset-0 bg-gradient-to-t from-purple-900/20 to-transparent animate-pulse" />
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Navigation (Fixed) */}
       {navigation}

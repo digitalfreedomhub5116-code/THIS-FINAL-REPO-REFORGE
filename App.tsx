@@ -178,6 +178,12 @@ const DuskWelcomeScreen = lazy(() => import('./components/DuskWelcomeScreen'));
 
 const ProfileView = lazy(() => import('./components/ProfileView'));
 
+const YouView = lazy(() => import('./components/YouView'));
+
+const DuskFloatingPill = lazy(() => import('./components/DuskFloatingPill'));
+
+const DashboardView = lazy(() => import('./components/DashboardView'));
+
 const RankUpCinematic = lazy(() => import('./components/RankUpCinematic'));
 
 const SystemPactScreen = lazy(() => import('./components/SystemPactScreen'));
@@ -728,7 +734,7 @@ const App: React.FC = () => {
 
   // ── Swipe-to-change-tab ──────────────────────────────────────────────────────
 
-  const NAV_TAB_ORDER: Tab[] = ['DASHBOARD', 'HEALTH', 'QUESTS', 'STORE', 'LEADERBOARD'];
+  const NAV_TAB_ORDER: Tab[] = ['DASHBOARD', 'HEALTH', 'QUESTS', 'LEADERBOARD', 'PROFILE'];
 
   const swipeTouchStart = useRef<{ x: number; y: number; inScrollable: boolean } | null>(null);
 
@@ -4264,7 +4270,7 @@ const App: React.FC = () => {
 
       <Layout
 
-        navigation={shouldShowNav && activeTab !== 'PROFILE' ? (
+        navigation={shouldShowNav ? (
 
           <Navigation
 
@@ -4326,6 +4332,8 @@ const App: React.FC = () => {
 
         forceHeaderVisible={false}
 
+        hideAmbientGlow={activeTab === 'PROFILE'}
+
         onGoldClick={!isDungeonMode ? () => navigateTo('STORE') : undefined}
 
         onLogout={() => setShowLogoutChoice(true)}
@@ -4372,7 +4380,7 @@ const App: React.FC = () => {
 
 
 
-          {/* ── DASHBOARD ── */}
+          {/* ── DASHBOARD (Today) ── */}
 
           {activeTab === 'DASHBOARD' && (
 
@@ -4386,27 +4394,17 @@ const App: React.FC = () => {
 
               exit={{ opacity: 0 }}
 
-              className="space-y-6 md:space-y-8"
-
             >
-
-              {/* Player Status Card (replaces HunterCommandDeck & HunterGrowthTerminal) */}
 
               <Suspense fallback={<SkeletonStatsChart />}>
 
-                <ErrorBoundary fallbackLabel="Status card failed">
+                <ErrorBoundary fallbackLabel="Dashboard failed">
 
-                  <PlayerStatusCard
+                  <DashboardView
 
                     player={player}
 
-                    equippedOutfit={dbOutfits.find(o => o.id === player.equippedOutfitId) || OUTFITS.find(o => o.id === player.equippedOutfitId)}
-
-                    mentorMessages={mentorMessages}
-
-                    onDismissMentorMessage={(id) => setMentorMessages(prev => prev.filter(m => m.id !== id))}
-
-                    history={player.history || []}
+                    onNavigate={navigateTo}
 
                     onOpenDuskChat={() => setShowDuskChat(true)}
 
@@ -4415,117 +4413,6 @@ const App: React.FC = () => {
                 </ErrorBoundary>
 
               </Suspense>
-
-
-
-
-
-              {/* Stat Pillars */}
-
-              <div id="tut-stats" className="responsive-full-span">
-
-                <Suspense fallback={<SkeletonStatBoxes />}>
-
-                  <ErrorBoundary fallbackLabel="Stat boxes failed">
-
-                    <StatBoxes
-
-                      stats={player.stats}
-
-                      dailyStats={player.dailyStats}
-
-                      weeklyStats={player.weeklyStats}
-
-                    />
-
-                  </ErrorBoundary>
-
-                </Suspense>
-
-              </div>
-
-
-
-              {/* ── 2-col responsive grid for mid-section cards ── */}
-
-              <div className="responsive-grid-2">
-
-
-
-              {/* XP Level Progress */}
-
-              <div className="responsive-full-span">
-
-              <Suspense fallback={<SkeletonLevelProgress />}>
-
-                <ErrorBoundary fallbackLabel="Level progress failed">
-
-                  <LevelProgressCard
-
-                    level={player.level}
-
-                    currentXP={player.currentXp}
-
-                    maxXP={player.requiredXp}
-
-                    xpBuff={(() => {
-
-                      const TIER_SIZE = 40;
-
-                      const vals = [player.stats.strength, player.stats.intelligence, player.stats.focus, player.stats.discipline, player.stats.willpower, player.stats.social];
-
-                      const minTier = Math.min(...vals.map(v => {
-
-                        const c = Math.max(0, Math.min(v || 0, 200));
-
-                        return c >= 200 ? 5 : Math.min(5, Math.floor(c / TIER_SIZE) + 1);
-
-                      }));
-
-                      return ({ 1: 0, 2: 10, 3: 30, 4: 50, 5: 100 } as Record<number,number>)[minTier] || 0;
-
-                    })()}
-
-                  />
-
-                </ErrorBoundary>
-
-              </Suspense>
-
-              </div>
-
-              {/* Rank Progression */}
-
-              <Suspense fallback={<SkeletonRankProgression />}>
-
-                <ErrorBoundary fallbackLabel="Rank progression failed">
-
-                  <RankProgressionCard level={player.level} rank={player.rank} />
-
-                </ErrorBoundary>
-
-              </Suspense>
-
-
-
-              {/* Next Up Card — compact schedule preview */}
-              <Suspense fallback={<SkeletonUpcomingQuests />}>
-                <ErrorBoundary fallbackLabel="Next Up failed">
-                  <NextUpCard
-                    scheduleProfile={player.scheduleProfile}
-                    dailySchedule={player.dailySchedules?.find(s => s.date === new Date().toISOString().split('T')[0])}
-                    quests={player.quests}
-                    goals={player.goals || []}
-                    onNavigateToQuests={() => setActiveTab('QUESTS')}
-                  />
-                </ErrorBoundary>
-              </Suspense>
-              {/* End of mid-section cards */}
-
-
-              </div>{/* end responsive-grid-2 */}
-
-
 
             </motion.div>
 
@@ -4892,9 +4779,11 @@ const App: React.FC = () => {
 
                 <ErrorBoundary fallbackLabel="Profile failed to load">
 
-                  <ProfileView
+                  <YouView
 
                     player={player}
+
+                    equippedOutfit={dbOutfits.find(o => o.id === player.equippedOutfitId) || OUTFITS.find(o => o.id === player.equippedOutfitId)}
 
                     onUpdate={updateProfile}
 
@@ -4902,7 +4791,9 @@ const App: React.FC = () => {
 
                     onLogout={() => setShowLogoutChoice(true)}
 
-                    onBack={() => setActiveTab('DASHBOARD')}
+                    onNavigate={(tab) => setActiveTab(tab)}
+
+                    onOpenDusk={() => setShowDuskChat(true)}
 
                     onDeleteAccount={async () => {
 
@@ -5033,6 +4924,28 @@ const App: React.FC = () => {
           />
 
           </ErrorBoundary>
+
+        )}
+
+
+
+        {activeTab === 'DASHBOARD' && !showDuskChat && !showDuskWelcome && (
+
+          <Suspense fallback={null}>
+
+            <ErrorBoundary>
+
+              <DuskFloatingPill
+
+                unreadCount={player.duskUnreadCount || 0}
+
+                onClick={() => setShowDuskChat(true)}
+
+              />
+
+            </ErrorBoundary>
+
+          </Suspense>
 
         )}
 
