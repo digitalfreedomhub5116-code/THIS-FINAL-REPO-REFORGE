@@ -3241,14 +3241,18 @@ const App: React.FC = () => {
                 ssSet(SS_STATS, stats);
 
                 // New flow: user authenticated BEFORE calibration. Finalize registration now and go to APP.
+                // Read from sessionStorage as a fallback in case the React state is stale across the long
+                // AWAKENING animation (closure captured before state hydrated, etc.).
 
-                if (tempAuthProfile && !logoutFlowRef.current) {
+                const authProfile = tempAuthProfile || ssGet<any>(SS_AUTH);
 
-                  const cloudData = (tempAuthProfile as any).raw_data as Partial<PlayerData> | undefined;
+                if (authProfile && !logoutFlowRef.current) {
+
+                  const cloudData = (authProfile as any).raw_data as Partial<PlayerData> | undefined;
 
                   const merged = {
 
-                    ...tempAuthProfile,
+                    ...authProfile,
 
                     ...(tempUserData ? {
 
@@ -3283,6 +3287,8 @@ const App: React.FC = () => {
                 }
 
                 // Legacy path (logout-recalibrate): go back to sign-in
+
+                console.warn('[Calibration] No auth profile found at completion — falling back to AUTH flow');
 
                 setOnboardingPhase(logoutFlowRef.current ? 'AUTH_SIGN_IN_PAGE' : 'AUTH');
 
