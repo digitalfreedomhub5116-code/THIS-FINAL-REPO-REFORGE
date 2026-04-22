@@ -423,12 +423,12 @@ const AwakeningOverlay: React.FC<{ profile: Partial<HealthProfile>; onComplete: 
     };
 
     const statConfig = [
-        { key: 0, label: 'STR', Icon: Dumbbell, color: '#f87171', dataKey: 'str' },
-        { key: 1, label: 'INT', Icon: Brain,    color: '#60a5fa', dataKey: 'int' },
-        { key: 2, label: 'DIS', Icon: Shield,   color: '#c084fc', dataKey: 'dis' },
-        { key: 3, label: 'SOC', Icon: Users,    color: '#facc15', dataKey: 'soc' },
-        { key: 4, label: 'FOC', Icon: Eye,       color: '#34d399', dataKey: 'foc' },
-        { key: 5, label: 'WIL', Icon: Sparkles,  color: '#fb923c', dataKey: 'wil' },
+        { key: 0, label: 'STR', full: 'STRENGTH',     Icon: Dumbbell, color: '#f87171', dataKey: 'str' },
+        { key: 1, label: 'INT', full: 'INTELLIGENCE', Icon: Brain,    color: '#60a5fa', dataKey: 'int' },
+        { key: 2, label: 'DIS', full: 'DISCIPLINE',   Icon: Shield,   color: '#c084fc', dataKey: 'dis' },
+        { key: 3, label: 'SOC', full: 'SOCIAL',       Icon: Users,    color: '#facc15', dataKey: 'soc' },
+        { key: 4, label: 'FOC', full: 'FOCUS',        Icon: Eye,       color: '#34d399', dataKey: 'foc' },
+        { key: 5, label: 'WIL', full: 'WILLPOWER',    Icon: Sparkles,  color: '#fb923c', dataKey: 'wil' },
     ];
 
     const stageLabels = ['CURRENT', 'PHASE I', 'PHASE II', 'POTENTIAL'];
@@ -709,7 +709,7 @@ const AwakeningOverlay: React.FC<{ profile: Partial<HealthProfile>; onComplete: 
 
                     {/* Stat cards — 2 rows of 3 */}
                     <div className="grid grid-cols-3 gap-2 w-full">
-                        {statConfig.map(({ key, label, Icon, color, dataKey }) => {
+                        {statConfig.map(({ key, label, full, Icon, color, dataKey }) => {
                             const current = animatedStats[key];
                             const delta = current - baseStats[key];
                             const visibleVals = visibleData.map(d => (d as any)[dataKey]);
@@ -725,7 +725,7 @@ const AwakeningOverlay: React.FC<{ profile: Partial<HealthProfile>; onComplete: 
                                     transition={{ duration: 0.5, delay: key * 0.08 }}
                                 >
                                     <Icon size={12} style={{ color }} className="mb-1 opacity-80" />
-                                    <div className="text-[8px] font-bold tracking-widest mb-0.5" style={{ color }}>{label}</div>
+                                    <div className="text-[7px] font-bold tracking-[0.08em] mb-0.5 whitespace-nowrap" style={{ color }}>{full}</div>
                                     <div className="text-base font-black font-mono text-white tabular-nums">{current}</div>
                                     <div className="mt-0.5 h-4 flex items-center justify-center">
                                         {stage > 0 && isInDip ? (
@@ -910,8 +910,8 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
   const TOTAL_STEPS = 9;
   
   const [formData, setFormData] = useState<Partial<HealthProfile>>({
-      gender: 'MALE', activityLevel: 'MODERATE', goal: 'RECOMP', equipment: 'GYM', workoutSplit: 'CLASSIC', age: 25, height: 175, weight: 70, targetWeight: 70,
-      energyLevel: 'MODERATE', stressLevel: 'MODERATE', injuries: [],
+      gender: 'MALE', goal: 'RECOMP', equipment: 'GYM', workoutSplit: 'CLASSIC', age: 25, height: 175, weight: 70, targetWeight: 70,
+      injuries: [],
   });
   
   const [baselines, setBaselines] = useState<BaselineStats>({
@@ -1364,7 +1364,11 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
 
                           <motion.div variants={setupItemVariants} className="sticky bottom-0 bg-[#0a0a0a] pt-3 pb-1 flex justify-between mt-4">
                               <button onClick={() => setStep(6)} className="text-gray-600 hover:text-white flex items-center gap-1 font-bold text-xs uppercase"><ChevronLeft size={14} /> BACK</button>
-                              <button onClick={() => setStep(8)} className="bg-system-neon text-black px-10 py-3 rounded-full font-black text-xs shadow-[0_0_15px_#00d2ff] hover:bg-white transition-all uppercase flex items-center gap-2">NEXT <ChevronRight size={14} /></button>
+                              <button
+                                  onClick={() => setStep(8)}
+                                  disabled={!formData.activityLevel || !formData.energyLevel || !formData.stressLevel}
+                                  className="bg-system-neon text-black px-10 py-3 rounded-full font-black text-xs shadow-[0_0_15px_#00d2ff] hover:bg-white transition-all uppercase flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                              >NEXT <ChevronRight size={14} /></button>
                           </motion.div>
                       </motion.div>
                   )}
