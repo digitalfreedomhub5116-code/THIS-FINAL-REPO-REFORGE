@@ -4557,19 +4557,6 @@ const App: React.FC = () => {
 
               </div>
 
-              {/* Rank Progression */}
-
-              <Suspense fallback={<SkeletonRankProgression />}>
-
-                <ErrorBoundary fallbackLabel="Rank progression failed">
-
-                  <RankProgressionCard level={player.level} rank={player.rank} />
-
-                </ErrorBoundary>
-
-              </Suspense>
-
-
 
               {/* Next Up Card — compact schedule preview */}
               <Suspense fallback={<SkeletonUpcomingQuests />}>

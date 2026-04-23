@@ -134,15 +134,19 @@ const RankUpCinematic: React.FC<RankUpCinematicProps> = ({ oldRank, newRank, onC
   const newMeta = RANK_META[newRank];
   const canvasRef = useConfetti(phase === 'celebrate', newRank);
 
+  // Stable ref so the timer effect doesn't restart when parent re-renders
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
+
   useEffect(() => {
     const t1 = setTimeout(() => setPhase('crack'),     900);
     const t2 = setTimeout(() => { setPhase('shatter'); playSystemSoundEffect('RANK_UP'); }, 1500);
     const t3 = setTimeout(() => setPhase('void'),     2100);
     const t4 = setTimeout(() => setPhase('emerge'),   2500);
     const t5 = setTimeout(() => setPhase('celebrate'),2900);
-    const t6 = setTimeout(() => onComplete(),         6200);
+    const t6 = setTimeout(() => onCompleteRef.current(),         6200);
     return () => { [t1,t2,t3,t4,t5,t6].forEach(clearTimeout); };
-  }, [onComplete]);
+  }, []);
 
   const rankOrder: RankType[] = ['UNRANKED','E','D','C','B','A','S'];
   const rankName: Record<RankType, string> = {

@@ -4,11 +4,13 @@ import {
   Settings, Store as StoreIcon, Package, BarChart3, Award,
   Terminal, MessageCircle, User as UserIcon, MoreHorizontal,
   X, Flame, Coins, Key as KeyIcon, ChevronRight, Lock as LockIcon,
+  Swords,
 } from 'lucide-react';
 import { PlayerData, HealthProfile, Outfit, Tab, Rank } from '../types';
 
 // Lazy-load the existing ProfileView — reused as the Config/Logs/More drawer
 const ProfileView = lazy(() => import('./ProfileView'));
+const RankProgressionCard = lazy(() => import('./RankProgressionCard'));
 
 // ─── Rank ladder (mirrors lib/levelSystem.ts) ────────────────────────
 const RANK_LADDER: { rank: Exclude<Rank, 'UNRANKED'>; minLevel: number; color: string }[] = [
@@ -388,6 +390,7 @@ const YouView: React.FC<YouViewProps> = ({
   player, equippedOutfit, onUpdate, onAvatarChange, onLogout, onDeleteAccount, onNavigate, onOpenDusk,
 }) => {
   const [showRank, setShowRank] = useState(false);
+  const [showRankProgression, setShowRankProgression] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
   const [comingSoon, setComingSoon] = useState<string | null>(null);
 
@@ -427,16 +430,16 @@ const YouView: React.FC<YouViewProps> = ({
           onClick={() => setComingSoon('INVENTORY')}
         />
         <ActionTile
+          icon={<Swords size={22} />}
+          label="Rank"
+          accent="#8b5cf6"
+          onClick={() => setShowRankProgression(true)}
+        />
+        <ActionTile
           icon={<BarChart3 size={22} />}
           label="Stats"
           accent="#00d2ff"
           onClick={() => setComingSoon('STATS')}
-        />
-        <ActionTile
-          icon={<Award size={22} />}
-          label="Medals"
-          accent="#f87171"
-          onClick={() => setComingSoon('MEDALS')}
         />
         <ActionTile
           icon={<Terminal size={22} />}
@@ -473,6 +476,26 @@ const YouView: React.FC<YouViewProps> = ({
       {/* Modals */}
       <AnimatePresence>
         {showRank && <RankLadderModal player={player} onClose={() => setShowRank(false)} />}
+        {showRankProgression && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[700] bg-[#05050a] overflow-y-auto"
+          >
+            <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-[#05050a]/95 backdrop-blur-md border-b border-white/5">
+              <div className="text-xs font-mono font-bold text-[#8b5cf6] tracking-widest">RANK PROGRESSION</div>
+              <button onClick={() => setShowRankProgression(false)} className="p-1.5 rounded-full hover:bg-white/5">
+                <X size={18} className="text-gray-400" />
+              </button>
+            </div>
+            <div className="px-4 py-6">
+              <Suspense fallback={<div className="text-gray-500 text-xs text-center py-8 font-mono">Loading rank data...</div>}>
+                <RankProgressionCard level={player.level} rank={player.rank} />
+              </Suspense>
+            </div>
+          </motion.div>
+        )}
         {showConfig && (
           <ProfileDrawer
             player={player}
