@@ -855,65 +855,22 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
 
       </div>
 
-      {/* --- RADAR LEVEL INDICATOR BAR --- */}
-      <div className="w-full bg-[#0A0A0F]/90 border-t border-white/[0.03] px-3 py-4 z-20 shrink-0">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div
-              className="flex items-center justify-center w-5 h-5 rounded"
-              style={{ background: `${TIER_COLORS[overallRadarLevel - 1]}20`, border: `1px solid ${TIER_COLORS[overallRadarLevel - 1]}40` }}
-            >
-              <Layers size={10} style={{ color: TIER_COLORS[overallRadarLevel - 1] }} />
-            </div>
-            <span className="text-[9px] font-mono font-bold text-gray-400 uppercase tracking-widest">RADAR LVL:</span>
-            <span
-              className="text-[11px] font-black font-mono tracking-wider"
-              style={{ color: TIER_COLORS[overallRadarLevel - 1] }}
-            >
-              TIER {TIER_NAMES[overallRadarLevel - 1]}
-            </span>
-            {xpBuffPercent > 0 && (
-              <span
-                className="text-[8px] font-black font-mono px-1.5 py-0.5 rounded-full animate-pulse"
-                style={{
-                  background: 'rgba(34,197,94,0.15)',
-                  border: '1px solid rgba(34,197,94,0.3)',
-                  color: '#4ade80',
-                }}
-              >
-                +{xpBuffPercent}% XP
-              </span>
-            )}
-          </div>
-          <button
-            onClick={() => setShowAllLevels(true)}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[8px] font-black font-mono uppercase tracking-widest transition-all duration-200"
-            style={{
-              background: 'rgba(0,210,255,0.08)',
-              border: '1px solid rgba(0,210,255,0.2)',
-              color: '#00d2ff',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,210,255,0.15)'; e.currentTarget.style.borderColor = 'rgba(0,210,255,0.4)'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,210,255,0.08)'; e.currentTarget.style.borderColor = 'rgba(0,210,255,0.2)'; }}
-          >
-            ALL LEVELS
-          </button>
-        </div>
-        {/* XP Buff Tier Progress */}
-        <div className="flex items-center gap-3 mt-1.5">
-          <div className="flex-1 flex items-center gap-1">
-            {TIER_NAMES.map((name, i) => (
-              <div
-                key={name}
-                className="flex-1 h-1 rounded-full transition-all duration-500"
-                style={{ background: i < overallRadarLevel ? TIER_COLORS[i] : 'rgba(255,255,255,0.05)' }}
-              />
-            ))}
-          </div>
-          <span className="text-[7px] font-mono text-gray-600 shrink-0">
-            {xpBuffPercent > 0 ? `${xpBuffPercent}% XP BUFF ACTIVE` : 'NO XP BUFF'}
-          </span>
-        </div>
+      {/* --- COMPACT ALL LEVELS BUTTON --- */}
+      <div className="w-full bg-[#0A0A0F]/90 border-t border-white/[0.03] px-3 py-2 z-20 shrink-0 flex items-center justify-end">
+        <button
+          onClick={() => setShowAllLevels(true)}
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[8px] font-black font-mono uppercase tracking-widest transition-all duration-200"
+          style={{
+            background: 'rgba(0,210,255,0.08)',
+            border: '1px solid rgba(0,210,255,0.2)',
+            color: '#00d2ff',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,210,255,0.15)'; e.currentTarget.style.borderColor = 'rgba(0,210,255,0.4)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,210,255,0.08)'; e.currentTarget.style.borderColor = 'rgba(0,210,255,0.2)'; }}
+        >
+          <Layers size={9} />
+          ALL LEVELS
+        </button>
       </div>
 
       {/* --- ALL LEVELS POPUP --- */}
@@ -1099,60 +1056,7 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
         />
       </div>
 
-      {/* --- BOTTOM SECTION: TALK TO DUSK BUTTON --- */}
-      <div className="w-full p-3 pt-3 bg-[#0A0A0F] border-t border-white/5 z-20 relative shrink-0">
-        <button
-          onClick={onOpenDuskChat}
-          className="w-full relative rounded-xl overflow-hidden h-[48px] flex items-center justify-center gap-3 px-4 group transition-all duration-300"
-          style={{
-            background: 'linear-gradient(90deg, rgba(8,8,18,0.95), rgba(15,20,35,0.95))',
-            border: '1px solid rgba(0,210,255,0.15)',
-            boxShadow: 'inset 0 0 20px rgba(0,210,255,0.05), 0 4px 15px rgba(0,0,0,0.4)',
-          }}
-          onMouseEnter={e => {
-            e.currentTarget.style.borderColor = 'rgba(0,210,255,0.4)';
-            e.currentTarget.style.boxShadow = 'inset 0 0 20px rgba(0,210,255,0.1), 0 4px 20px rgba(0,210,255,0.15)';
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.borderColor = 'rgba(0,210,255,0.15)';
-            e.currentTarget.style.boxShadow = 'inset 0 0 20px rgba(0,210,255,0.05), 0 4px 15px rgba(0,0,0,0.4)';
-          }}
-        >
-          {/* Animated background glow */}
-          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#00d2ff]/20 via-transparent to-transparent" />
-          
-          <div className="relative z-10 flex items-center justify-center gap-3 w-full">
-            <div className="flex items-center justify-center w-6 h-6 rounded-md bg-[#00d2ff]/10 border border-[#00d2ff]/30 text-[#00d2ff] group-hover:scale-110 group-hover:bg-[#00d2ff]/20 transition-all duration-300">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                <polyline points="9 22 9 12 15 12 15 22"/>
-              </svg>
-            </div>
-            
-            <div className="flex flex-col items-start justify-center pt-0.5">
-              <span className="text-[11px] font-black text-white uppercase tracking-[0.15em] leading-none group-hover:text-system-neon transition-colors duration-300">
-                TALK TO DUSK
-              </span>
-              <span className="text-[8px] text-[#00d2ff]/60 font-mono tracking-wide mt-1 group-hover:text-[#00d2ff]/90 transition-colors duration-300 truncate max-w-[200px] md:max-w-[250px]">
-                {duskContextVoice}
-              </span>
-            </div>
 
-            {(player.duskUnreadCount ?? 0) > 0 && (
-              <div className="ml-auto w-5 h-5 rounded-full bg-red-500/90 border border-red-400 flex items-center justify-center text-[9px] font-black text-white shadow-[0_0_12px_rgba(239,68,68,0.8)] animate-pulse">
-                {player.duskUnreadCount}
-              </div>
-            )}
-          </div>
-          
-          {/* Scanning line effect on hover */}
-          <motion.div 
-            className="absolute left-0 right-0 h-[1px] bg-[#00d2ff]/40 shadow-[0_0_8px_#00d2ff] opacity-0 group-hover:opacity-100"
-            animate={{ top: ['0%', '100%', '0%'] }}
-            transition={{ duration: 2, ease: "linear", repeat: Infinity }}
-          />
-        </button>
-      </div>
 
     </div>
   );
