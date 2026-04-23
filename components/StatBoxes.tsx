@@ -85,7 +85,7 @@ const STAT_CONFIG: StatConfig[] = [
 
 const StatBoxes: React.FC<StatBoxesProps> = ({ stats, dailyStats }) => {
   const [expanded, setExpanded] = useState(false);
-  const visibleStats = expanded ? STAT_CONFIG : STAT_CONFIG.slice(0, 4);
+  const visibleStats = expanded ? STAT_CONFIG : [];
 
   return (
     <div className="flex flex-col gap-3">
