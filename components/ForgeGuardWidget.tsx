@@ -5,9 +5,11 @@ import { ShieldAlert, AlertTriangle, Ban } from 'lucide-react';
 interface ForgeGuardWidgetProps {
   cheatStrikes: number;
   totalStrikesEver: number;
+  hideIfClean?: boolean;
+  compact?: boolean;
 }
 
-const ForgeGuardWidget: React.FC<ForgeGuardWidgetProps> = ({ cheatStrikes, totalStrikesEver }) => {
+const ForgeGuardWidget: React.FC<ForgeGuardWidgetProps> = ({ cheatStrikes, totalStrikesEver, hideIfClean = false, compact = false }) => {
   const prevStrikesRef = useRef(cheatStrikes);
   const isNewStrike = cheatStrikes > prevStrikesRef.current;
 
@@ -18,6 +20,39 @@ const ForgeGuardWidget: React.FC<ForgeGuardWidgetProps> = ({ cheatStrikes, total
   const isBanned = cheatStrikes >= 5;
   const hasStrikes = cheatStrikes > 0;
   const isDanger = cheatStrikes >= 3;
+
+  // Hide entirely if user has no strikes and hideIfClean is true
+  if (hideIfClean && !hasStrikes) return null;
+
+  // Compact mode: show a slim 1-line strip for 1-2 strikes
+  if (compact && hasStrikes && !isDanger) {
+    return (
+      <div
+        className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl"
+        style={{
+          background: 'rgba(251,191,36,0.04)',
+          border: '1px solid rgba(251,191,36,0.12)',
+        }}
+      >
+        <ShieldAlert size={12} className="text-amber-400/70 flex-shrink-0" />
+        <div className="flex items-center gap-1.5">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div
+              key={i}
+              className="w-1.5 h-1.5 rounded-full"
+              style={{
+                background: i < cheatStrikes ? '#f87171' : 'rgba(255,255,255,0.08)',
+                boxShadow: i < cheatStrikes ? '0 0 4px rgba(239,68,68,0.4)' : 'none',
+              }}
+            />
+          ))}
+        </div>
+        <span className="font-mono text-[9px] text-amber-400/60 tracking-wide">
+          {cheatStrikes}/5 strikes
+        </span>
+      </div>
+    );
+  }
 
   // Compute trust score (visual only)
   const trustScore = Math.max(0, 100 - cheatStrikes * 20);

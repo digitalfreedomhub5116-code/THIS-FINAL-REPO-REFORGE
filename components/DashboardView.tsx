@@ -80,29 +80,14 @@ const SLOT_COLORS: Record<string, string> = {
   FREE: '#c084fc',
 };
 
-// ── Greeting Strip ───────────────────────────────────────────
+// ── Greeting Strip (simplified — Lv/Rank/Streak is in header) ─
 const GreetingStrip: React.FC<{ player: PlayerData }> = ({ player }) => {
   const name = player.name?.split(' ')[0] || player.username || 'Hunter';
   return (
-    <div className="flex items-end justify-between mb-1">
-      <div>
-        <div className="text-[11px] font-mono tracking-widest text-gray-500 uppercase">{formatDate()}</div>
-        <div className="text-2xl font-bold text-white leading-tight">
-          {getGreeting()}, <span className="text-system-neon">{name}</span>
-        </div>
-        <div className="flex items-center gap-2 mt-1 text-[11px] font-mono text-gray-400">
-          <span>Lv.{player.level}</span>
-          <span className="text-gray-700">·</span>
-          <span>{player.rank}-Rank</span>
-          {player.streak > 0 && (
-            <>
-              <span className="text-gray-700">·</span>
-              <span className="flex items-center gap-1 text-orange-400">
-                <Flame size={11} className="fill-orange-500" /> {player.streak}
-              </span>
-            </>
-          )}
-        </div>
+    <div className="mb-0.5">
+      <div className="text-[10px] font-mono tracking-[0.2em] text-gray-500 uppercase">{formatDate()}</div>
+      <div className="text-2xl font-bold text-white leading-tight">
+        {getGreeting()}, <span className="text-system-neon">{name}</span>
       </div>
     </div>
   );
@@ -517,6 +502,50 @@ const QuickActionTile: React.FC<{
   </motion.button>
 );
 
+// ── Onboarding CTA (replaces multiple empty states for new users) ─
+const OnboardingHero: React.FC<{ onNavigate: () => void; onAddQuest?: () => void }> = ({ onNavigate, onAddQuest }) => (
+  <div
+    className="rounded-2xl p-5 text-center"
+    style={{
+      background: 'linear-gradient(135deg, rgba(0,210,255,0.06) 0%, rgba(139,92,246,0.04) 100%)',
+      border: '1px solid rgba(0,210,255,0.12)',
+    }}
+  >
+    <div className="w-10 h-10 rounded-xl mx-auto mb-3 flex items-center justify-center"
+      style={{ background: 'rgba(0,210,255,0.1)', border: '1px solid rgba(0,210,255,0.2)' }}>
+      <Target size={18} className="text-cyan-400" />
+    </div>
+    <div className="text-sm font-bold text-white mb-1">Set Up Your Day</div>
+    <div className="text-[11px] text-gray-400 mb-4 leading-relaxed">
+      Add goals and quests to start tracking your progress.
+    </div>
+    <div className="flex items-center gap-2 justify-center">
+      <button
+        onClick={onNavigate}
+        className="px-4 py-2 rounded-lg text-[11px] font-mono font-bold tracking-wide"
+        style={{ background: 'rgba(0,210,255,0.12)', border: '1px solid rgba(0,210,255,0.3)', color: '#00d2ff' }}
+      >
+        Set Goals
+      </button>
+      <button
+        onClick={onAddQuest || onNavigate}
+        className="px-4 py-2 rounded-lg text-[11px] font-mono font-bold tracking-wide"
+        style={{ background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.25)', color: '#a78bfa' }}
+      >
+        Add Quest
+      </button>
+    </div>
+  </div>
+);
+
+// ── Combined Stats Row (Mana + XP side-by-side) ─────────────
+const CombinedStatsRow: React.FC<{ player: PlayerData }> = ({ player }) => (
+  <div className="grid grid-cols-2 gap-2">
+    <ManaBar player={player} />
+    <DailyXPCard player={player} />
+  </div>
+);
+
 // ── Main DashboardView ───────────────────────────────────────
 const DashboardView: React.FC<DashboardViewProps> = ({
   player,
@@ -526,7 +555,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
   onAddQuest,
   onOpenJournal,
 }) => {
-  // Build schedule slots for NOW hero (prefer dailySchedule, fallback to profile default)
+  // Build schedule slots for NOW hero
   const slots = useMemo<ScheduleSlot[]>(() => {
     const today = new Date().toISOString().split('T')[0];
     const daily = player.dailySchedules?.find(s => s.date === today);
@@ -534,43 +563,58 @@ const DashboardView: React.FC<DashboardViewProps> = ({
     return [];
   }, [player.dailySchedules]);
 
+  // Check if user has any content
+  const todaysQuests = player.quests.filter(q => {
+    const d = new Date(q.createdAt);
+    d.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return d.getTime() === today.getTime();
+  });
+  const hasGoals = (player.goals || []).some(g => g.status === 'ACTIVE');
+  const hasSchedule = slots.length > 0;
+  const hasContent = todaysQuests.length > 0 || hasGoals || hasSchedule;
+  const strikes = player.cheatStrikes ?? 0;
+
   return (
     <div className="space-y-3">
+      {/* 1. Greeting */}
       <GreetingStrip player={player} />
-      <ManaBar player={player} />
-      <NowHero slots={slots} onNavigate={() => onNavigate('QUESTS' as Tab)} />
-      <TodaysQuestsList quests={player.quests} onNavigate={() => onNavigate('QUESTS' as Tab)} />
-      <ActiveGoalsStrip goals={player.goals || []} onNavigate={() => onNavigate('QUESTS' as Tab)} />
-      <DailyXPCard player={player} />
-      <ForgeGuardWidget cheatStrikes={player.cheatStrikes ?? 0} totalStrikesEver={player.totalStrikesEver ?? 0} />
 
-      {/* Quick actions */}
-      <div className="grid grid-cols-4 gap-2 pt-1">
-        <QuickActionTile
-          icon={<Utensils size={16} />}
-          label="Meal"
-          accent="#4ade80"
-          onClick={() => onNavigate('HEALTH' as Tab)}
-        />
-        <QuickActionTile
-          icon={<Dumbbell size={16} />}
-          label="Workout"
-          accent="#f87171"
-          onClick={() => onNavigate('HEALTH' as Tab)}
-        />
-        <QuickActionTile
-          icon={<BookOpen size={16} />}
-          label="Journal"
-          accent="#c084fc"
-          onClick={onOpenJournal}
-        />
-        <QuickActionTile
-          icon={<Plus size={16} />}
-          label="Quest"
-          accent="#22d3ee"
-          onClick={onAddQuest || (() => onNavigate('QUESTS' as Tab))}
-        />
+      {/* 2. Quick Actions (moved UP — most actionable) */}
+      <div className="grid grid-cols-4 gap-2">
+        <QuickActionTile icon={<Utensils size={16} />} label="Meal" accent="#4ade80" onClick={() => onNavigate('HEALTH' as Tab)} />
+        <QuickActionTile icon={<Dumbbell size={16} />} label="Workout" accent="#f87171" onClick={() => onNavigate('HEALTH' as Tab)} />
+        <QuickActionTile icon={<BookOpen size={16} />} label="Journal" accent="#c084fc" onClick={onOpenJournal} />
+        <QuickActionTile icon={<Plus size={16} />} label="Quest" accent="#22d3ee" onClick={onAddQuest || (() => onNavigate('QUESTS' as Tab))} />
       </div>
+
+      {/* 3. Show onboarding hero OR real content */}
+      {!hasContent ? (
+        <OnboardingHero onNavigate={() => onNavigate('QUESTS' as Tab)} onAddQuest={onAddQuest} />
+      ) : (
+        <>
+          {/* 4. Now/Next schedule slot */}
+          <NowHero slots={slots} onNavigate={() => onNavigate('QUESTS' as Tab)} />
+
+          {/* 5. Today's Quests */}
+          <TodaysQuestsList quests={player.quests} onNavigate={() => onNavigate('QUESTS' as Tab)} />
+        </>
+      )}
+
+      {/* 6. Mana + XP side-by-side */}
+      <CombinedStatsRow player={player} />
+
+      {/* 7. Active Goals (only if any) */}
+      <ActiveGoalsStrip goals={player.goals || []} onNavigate={() => onNavigate('QUESTS' as Tab)} />
+
+      {/* 8. ForgeGuard — hidden if clean, compact if 1-2 strikes, full if 3+ */}
+      <ForgeGuardWidget
+        cheatStrikes={strikes}
+        totalStrikesEver={player.totalStrikesEver ?? 0}
+        hideIfClean
+        compact={strikes < 3}
+      />
     </div>
   );
 };
