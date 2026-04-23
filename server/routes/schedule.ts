@@ -1,9 +1,88 @@
 import { Router, Request, Response } from 'express';
 import { logUsage } from '../utils/logUsage.js';
 import { getAuthenticatedUserId } from '../lib/playerAuth.js';
+import { supabaseServer } from '../lib/supabase.js';
 import { getSharedAI, generateWithFallback, DEFAULT_MODEL_CHAIN } from '../utils/geminiRetry.js';
 
 const router = Router();
+
+// ── PUT /profile — persist scheduleProfile into players.raw_data ──
+router.put('/profile', async (req: Request, res: Response) => {
+  const userId = getAuthenticatedUserId(req);
+  if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+  const { scheduleProfile } = req.body || {};
+  if (!scheduleProfile || typeof scheduleProfile !== 'object') {
+    return res.status(400).json({ error: 'scheduleProfile is required' });
+  }
+
+  try {
+    const { data, error: readErr } = await (supabaseServer() as any)
+      .from('players')
+      .select('raw_data')
+      .eq('supabase_id', userId)
+      .single();
+    if (readErr) throw readErr;
+
+    const rawData = (data?.raw_data as Record<string, any>) || {};
+    rawData.scheduleProfile = scheduleProfile;
+
+    const { error } = await (supabaseServer() as any)
+      .from('players')
+      .update({ raw_data: rawData, updated_at: new Date().toISOString() })
+      .eq('supabase_id', userId);
+    if (error) throw error;
+
+    return res.json({ success: true });
+  } catch (err: any) {
+    console.error('[Schedule profile save]', err);
+    return res.status(500).json({ error: err.message || 'Failed to save schedule profile' });
+  }
+});
+
+// ── PUT /day — persist/replace a single day's schedule ──
+router.put('/day', async (req: Request, res: Response) => {
+  const userId = getAuthenticatedUserId(req);
+  if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+  const { schedule } = req.body || {};
+  if (!schedule || typeof schedule !== 'object' || !schedule.date) {
+    return res.status(400).json({ error: 'schedule with date is required' });
+  }
+
+  try {
+    const { data, error: readErr } = await (supabaseServer() as any)
+      .from('players')
+      .select('raw_data')
+      .eq('supabase_id', userId)
+      .single();
+    if (readErr) throw readErr;
+
+    const rawData = (data?.raw_data as Record<string, any>) || {};
+    const existing: any[] = Array.isArray(rawData.dailySchedules) ? rawData.dailySchedules : [];
+    const idx = existing.findIndex((s: any) => s.date === schedule.date);
+    if (idx >= 0) existing[idx] = schedule;
+    else existing.push(schedule);
+
+    // Prune to the last 14 days to avoid unbounded growth
+    const cutoff = Date.now() - 14 * 86400_000;
+    rawData.dailySchedules = existing.filter((s: any) => {
+      const t = Date.parse(s.date);
+      return Number.isFinite(t) ? t >= cutoff : true;
+    });
+
+    const { error } = await (supabaseServer() as any)
+      .from('players')
+      .update({ raw_data: rawData, updated_at: new Date().toISOString() })
+      .eq('supabase_id', userId);
+    if (error) throw error;
+
+    return res.json({ success: true, count: rawData.dailySchedules.length });
+  } catch (err: any) {
+    console.error('[Schedule day save]', err);
+    return res.status(500).json({ error: err.message || 'Failed to save daily schedule' });
+  }
+});
 
 function stripMarkdown(text: string): string {
   return text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
