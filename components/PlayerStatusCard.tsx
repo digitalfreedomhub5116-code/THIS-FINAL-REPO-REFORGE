@@ -152,50 +152,7 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
     prevStatsRef.current = { ...player.stats };
   }, [player.stats]);
 
-  // ── Ambient thought box spawning ──
-  const [ambientMessages, setAmbientMessages] = useState<{id: string; text: string}[]>([]);
-  const ambientTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const thoughtIndexRef = useRef(0);
-  
-  const spawnAmbientThought = useCallback(() => {
-    const text = DUSK_THOUGHTS[thoughtIndexRef.current % DUSK_THOUGHTS.length];
-    thoughtIndexRef.current++;
-    const id = `ambient-${Date.now()}`;
-    setAmbientMessages([{ id, text }]);
-  }, []);
-
-  useEffect(() => {
-    // Spawn first thought after 3s, then every 12-20s
-    const firstTimer = setTimeout(() => {
-      spawnAmbientThought();
-      const loop = () => {
-        const delay = 12000 + Math.random() * 8000;
-        ambientTimerRef.current = setTimeout(() => {
-          spawnAmbientThought();
-          loop();
-        }, delay);
-      };
-      loop();
-    }, 3000);
-    return () => {
-      clearTimeout(firstTimer);
-      if (ambientTimerRef.current) clearTimeout(ambientTimerRef.current);
-    };
-  }, [spawnAmbientThought]);
-
-  const dismissAmbient = useCallback((id: string) => {
-    setAmbientMessages(prev => prev.filter(m => m.id !== id));
-  }, []);
-
-  // Merge mentor messages (event-driven) with ambient ones
-  // Priority: mentor messages override ambient
-  const activeMessages = mentorMessages.length > 0 ? mentorMessages : ambientMessages;
-  const activeDismiss = mentorMessages.length > 0 ? onDismissMentorMessage : dismissAmbient;
-
-  // Alternate position between top and bottom to avoid face
-  const thoughtPosition = useMemo(() => {
-    return thoughtIndexRef.current % 2 === 0 ? 'bottom' : 'top';
-  }, [ambientMessages]);
+  // Dusk ambient thought box removed for cleaner UI
 
   // ── History timeline (indexed by date string for calendar lookup) ──
   const historyMap = useMemo(() => {
@@ -844,13 +801,7 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
           <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-[#0A0A0F] via-[#0A0A0F]/60 to-transparent z-10 pointer-events-none" />
           <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-[#0A0A0F] via-[#0A0A0F]/50 to-transparent z-10 pointer-events-none" />
 
-          {/* ── Floating Thought Boxes (Strictly contained in right area, avoiding face center) ── */}
-          <div className="absolute inset-0 z-40 pointer-events-none">
-            <MentorThoughtBox 
-              messages={activeMessages} 
-              onDismiss={activeDismiss} 
-            />
-          </div>
+
         </div>
 
       </div>
