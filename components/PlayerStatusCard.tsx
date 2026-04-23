@@ -544,22 +544,18 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
         </div>
         {/* Hexagonal day strip with smooth scroll on hover/drag */}
         <div 
-          className="flex gap-1.5 overflow-x-auto pb-2 scrollbar-hide snap-x snap-mandatory"
+          className="flex gap-1.5 overflow-x-auto pb-2 scrollbar-hide snap-x snap-mandatory justify-center"
           style={{ scrollBehavior: 'smooth', WebkitOverflowScrolling: 'touch' }}
         >
           {calendarDays.map((day, idx) => {
             const isToday = day.toDateString() === todayDate.toDateString();
             const isSelected = selectedDateIndex === idx;
-            const dateStr = day.toISOString().split('T')[0];
-            const hasData = !!historyMap[dateStr];
-            const isPast = day < todayDate;
             const dayLabel = ['SUN','MON','TUE','WED','THU','FRI','SAT'][day.getDay()];
 
             let borderColor = 'rgba(255,255,255,0.08)';
             let glowShadow = 'none';
             if (isSelected) { borderColor = '#00d2ff'; glowShadow = '0 0 10px rgba(0,210,255,0.4)'; }
             else if (isToday) { borderColor = 'rgba(0,210,255,0.4)'; }
-            else if (hasData && isPast) { borderColor = 'rgba(34,197,94,0.3)'; }
 
             return (
               <button
@@ -594,7 +590,7 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
                   >
                     <span
                       className="font-mono font-black text-xs leading-none"
-                      style={{ color: isSelected ? '#ffffff' : isToday ? '#00d2ff' : hasData && isPast ? '#4ade80' : '#4b5563' }}
+                      style={{ color: isSelected ? '#ffffff' : isToday ? '#00d2ff' : '#4b5563' }}
                     >
                       {day.getDate()}
                     </span>
