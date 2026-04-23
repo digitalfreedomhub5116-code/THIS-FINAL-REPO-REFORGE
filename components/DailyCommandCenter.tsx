@@ -315,10 +315,7 @@ const FuturisticCalendar: React.FC<{ quests: Quest[] }> = ({ quests }) => {
   return (
     <div>
       <style>{`
-        @keyframes pill-float {
-          0%,100% { transform: translateY(0px); }
-          50%      { transform: translateY(-5px); }
-        }
+        /* pill-float animation removed for cleaner look */
       `}</style>
 
       <div className="flex items-center justify-between px-1 pt-1 pb-4">
@@ -386,12 +383,11 @@ const FuturisticCalendar: React.FC<{ quests: Quest[] }> = ({ quests }) => {
           const floatDelay   = i * 0.15;
 
           return (
-            <div key={i} ref={isToday ? todayRef : undefined}
-              className="flex flex-col items-center gap-2 shrink-0"
-              style={{ animation: `pill-float ${floatDuration}s ease-in-out ${floatDelay}s infinite` }}
+              <div key={i} ref={isToday ? todayRef : undefined}
+              className="flex flex-col items-center gap-1.5 shrink-0"
             >
               <div style={{
-                width: 38, height: 80, borderRadius: 9999, overflow: 'hidden', position: 'relative',
+                width: 32, height: 56, borderRadius: 9999, overflow: 'hidden', position: 'relative',
                 background: 'rgba(8,8,18,0.92)', border: `1.5px solid ${borderCol}`,
                 boxShadow: glowFilter === 'none' ? 'inset 0 1px 0 rgba(255,255,255,0.05)' : `${glowFilter}, inset 0 1px 0 rgba(255,255,255,0.07)`,
               }}>
@@ -435,10 +431,9 @@ const ScheduleSlotRow: React.FC<{
 
   return (
     <div className="flex gap-0 relative">
-      {/* Left column: time + timeline */}
-      <div className="flex flex-col items-center w-16 flex-shrink-0">
-        {/* Time label */}
-        <div className={`text-[10px] font-mono font-bold text-right w-full pr-2 pb-1 ${
+      {/* Left column: time */}
+      <div className="flex flex-col items-center w-14 flex-shrink-0">
+        <div className={`text-[9px] font-mono font-bold text-right w-full pr-2 pb-0.5 ${
           isCurrent ? 'text-cyan-400' : isPast ? 'text-gray-700' : 'text-gray-500'
         }`}>
           {formatTime12(slot.startTime).split(' ')[0]}
@@ -447,19 +442,15 @@ const ScheduleSlotRow: React.FC<{
       </div>
 
       {/* Timeline dot + line */}
-      <div className="flex flex-col items-center w-5 flex-shrink-0 relative">
-        {/* Dot */}
+      <div className="flex flex-col items-center w-4 flex-shrink-0 relative">
         {isCurrent ? (
-          <motion.div
-            className="w-3 h-3 rounded-full z-10 mt-1 flex-shrink-0"
-            style={{ background: slotColor, boxShadow: `0 0 10px ${slotColor}` }}
-            animate={{ scale: [1, 1.4, 1] }}
-            transition={{ duration: 2, repeat: Infinity }}
-          />
+          <motion.div className="w-2 h-2 rounded-full z-10 mt-1 flex-shrink-0"
+            style={{ background: slotColor, boxShadow: `0 0 6px ${slotColor}` }}
+            animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 2, repeat: Infinity }} />
         ) : isPast ? (
-          <div className="w-2.5 h-2.5 rounded-full mt-1 flex-shrink-0 z-10" style={{ background: slotColor, opacity: 0.3 }} />
+          <div className="w-2 h-2 rounded-full mt-1 flex-shrink-0 z-10" style={{ background: slotColor, opacity: 0.25 }} />
         ) : (
-          <div className="w-2.5 h-2.5 rounded-full border-2 mt-1 flex-shrink-0 z-10" style={{ borderColor: slotColor + '60' }} />
+          <div className="w-2 h-2 rounded-full border mt-1 flex-shrink-0 z-10" style={{ borderColor: slotColor + '40' }} />
         )}
         {/* Vertical line (extends downward) */}
         {!isLast && (
@@ -467,27 +458,15 @@ const ScheduleSlotRow: React.FC<{
         )}
       </div>
 
-      {/* Content */}
-      <div className={`flex-1 min-w-0 pb-3 pl-2 ${
-        isCurrent ? '' : isPast ? 'opacity-50' : ''
-      }`}>
-        <div className={`flex items-center gap-1.5 py-1.5 px-2.5 rounded-lg ${
-          isCurrent ? 'bg-white/[0.04]' : ''
-        }`}>
-          <div className="flex-shrink-0">{SLOT_ICONS[slot.type]}</div>
-          <span className={`text-[11px] font-mono truncate ${
-            isCurrent ? 'text-white font-bold' : isPast ? 'text-gray-600' : 'text-gray-400'
-          }`}>
+      {/* Content — compact */}
+      <div className={`flex-1 min-w-0 pb-2 pl-1.5 ${isCurrent ? '' : isPast ? 'opacity-40' : ''}`}>
+        <div className={`flex items-center gap-1.5 py-1 px-2 rounded-md ${isCurrent ? 'bg-white/[0.03]' : ''}`}>
+          <div className="flex-shrink-0" style={{ opacity: 0.7 }}>{SLOT_ICONS[slot.type]}</div>
+          <span className={`text-[10px] font-mono truncate ${isCurrent ? 'text-white font-bold' : isPast ? 'text-gray-600' : 'text-gray-400'}`}>
             {slot.label}
           </span>
-          {isCurrent && (
-            <span className="text-[7px] font-black text-cyan-400 px-1.5 py-0.5 rounded bg-cyan-400/10 flex-shrink-0 uppercase tracking-wider ml-auto">Now</span>
-          )}
-          {slot.type === 'BLOCKED' && (
-            <span className="text-[8px] text-gray-700 font-mono ml-auto flex-shrink-0">
-              until {formatTime12(slot.endTime)}
-            </span>
-          )}
+          {isCurrent && <span className="text-[7px] font-black text-cyan-400 px-1 py-0.5 rounded bg-cyan-400/10 flex-shrink-0 uppercase tracking-wider ml-auto">Now</span>}
+          {slot.type === 'BLOCKED' && <span className="text-[8px] text-gray-700 font-mono ml-auto flex-shrink-0">until {formatTime12(slot.endTime)}</span>}
         </div>
       </div>
     </div>
@@ -761,73 +740,45 @@ const QuestTimelineRow: React.FC<{
 
   return (
     <div className="flex gap-0 relative">
-      {/* Left column: time — tappable to reschedule */}
-      <div className="flex flex-col items-center w-16 flex-shrink-0">
+      <div className="flex flex-col items-center w-12 flex-shrink-0">
         <button
           onClick={() => canReschedule && onReschedule(quest)}
           disabled={!canReschedule}
-          className={`text-[10px] font-mono font-bold text-right w-full pr-2 pb-1 transition-colors ${
+          className={`text-[9px] font-mono font-bold text-right w-full pr-1.5 pb-0.5 transition-colors ${
             isCompleted ? 'text-emerald-600' : isFailed ? 'text-red-700' :
-            isTimeLocked ? 'text-gray-700 hover:text-cyan-400' :
-            isCurrent ? 'text-cyan-400 hover:text-cyan-300' : isPast ? 'text-gray-700' : 'text-gray-500 hover:text-cyan-400'
+            isTimeLocked ? 'text-gray-700' :
+            isCurrent ? 'text-cyan-400' : isPast ? 'text-gray-700' : 'text-gray-500'
           } ${canReschedule ? 'cursor-pointer active:scale-95' : 'cursor-default'}`}
-          title={canReschedule ? 'Tap to reschedule' : undefined}
         >
           {formatTime12(scheduledStr).split(' ')[0]}
           <span className="text-[7px] ml-0.5">{formatTime12(scheduledStr).split(' ')[1]}</span>
-          {canReschedule && (
-            <div className="text-[7px] text-cyan-500/40 font-normal mt-0.5">tap ↻</div>
-          )}
         </button>
       </div>
 
-      {/* Timeline dot + line */}
-      <div className="flex flex-col items-center w-5 flex-shrink-0 relative">
+      <div className="flex flex-col items-center w-4 flex-shrink-0 relative">
         {isCompleted ? (
-          <div className="w-3.5 h-3.5 rounded-full bg-emerald-500 flex items-center justify-center mt-1 flex-shrink-0 z-10">
-            <Check className="w-2 h-2 text-black" strokeWidth={3} />
+          <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 flex items-center justify-center mt-1 flex-shrink-0 z-10">
+            <Check className="w-1.5 h-1.5 text-black" strokeWidth={3} />
           </div>
         ) : isFailed ? (
-          <div className="w-3.5 h-3.5 rounded-full bg-red-500 flex items-center justify-center mt-1 flex-shrink-0 z-10">
-            <X className="w-2 h-2 text-black" strokeWidth={3} />
+          <div className="w-2.5 h-2.5 rounded-full bg-red-500 flex items-center justify-center mt-1 flex-shrink-0 z-10">
+            <X className="w-1.5 h-1.5 text-black" strokeWidth={3} />
           </div>
         ) : isOverdue ? (
-          <motion.div className="w-3.5 h-3.5 rounded-full mt-1 flex-shrink-0 z-10"
-            style={{ background: '#fb923c', boxShadow: '0 0 8px #fb923c' }}
-            animate={{ scale: [1, 1.2, 1] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
-          />
+          <div className="w-2.5 h-2.5 rounded-full mt-1 flex-shrink-0 z-10" style={{ background: '#fb923c', boxShadow: '0 0 6px #fb923c' }} />
         ) : isTimeLocked ? (
-          <div className="w-3 h-3 rounded-full mt-1 flex-shrink-0 z-10" style={{ background: '#1a1a2e', border: '2px solid #374151' }} />
+          <div className="w-2 h-2 rounded-full mt-1 flex-shrink-0 z-10" style={{ background: '#1a1a2e', border: '1.5px solid #374151' }} />
         ) : isCurrent ? (
-          <motion.div
-            className="w-3.5 h-3.5 rounded-full mt-1 flex-shrink-0 z-10"
-            style={{ background: '#22d3ee', boxShadow: '0 0 12px #22d3ee' }}
-            animate={{ scale: [1, 1.3, 1] }}
-            transition={{ duration: 2, repeat: Infinity }}
-          />
+          <motion.div className="w-2.5 h-2.5 rounded-full mt-1 flex-shrink-0 z-10"
+            style={{ background: '#22d3ee', boxShadow: '0 0 8px #22d3ee' }}
+            animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 2, repeat: Infinity }} />
         ) : (
-          <div className="w-3 h-3 rounded-full border-2 mt-1 flex-shrink-0 z-10" style={{ borderColor: '#22d3ee40' }} />
+          <div className="w-2 h-2 rounded-full border mt-1 flex-shrink-0 z-10" style={{ borderColor: '#22d3ee30' }} />
         )}
-        {!isLast && (
-          <div className="w-px flex-1 min-h-[12px]" style={{ background: 'rgba(255,255,255,0.06)' }} />
-        )}
+        {!isLast && <div className="w-px flex-1 min-h-[8px]" style={{ background: 'rgba(255,255,255,0.05)' }} />}
       </div>
 
-      {/* Quest Card with swipe */}
-      <div className="flex-1 min-w-0 pb-2 pl-2 relative overflow-hidden">
-        {isOverdue && (
-          <div className="flex items-center gap-1 mb-1">
-            <AlertTriangle className="w-3 h-3 text-amber-400" />
-            <span className="text-[8px] font-mono font-bold text-amber-400 uppercase tracking-wider">Overdue — complete now!</span>
-          </div>
-        )}
-        {!isCompleted && !isFailed && (
-          <div className="flex items-center gap-1 mb-1">
-            <Timer className="w-2.5 h-2.5 text-gray-600" />
-            <span className="text-[8px] font-mono text-gray-600">~{estDuration} min</span>
-          </div>
-        )}
+      <div className="flex-1 min-w-0 pb-1.5 pl-1.5 relative overflow-hidden">
 
         {/* F3: Swipe reveal background */}
         {canSwipeComplete && swipeX > 20 && (

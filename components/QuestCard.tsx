@@ -185,7 +185,7 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
         }}
       />
 
-      <div className="pl-5 pr-4 pt-4 pb-3">
+      <div className="pl-5 pr-4 pt-3 pb-2.5">
 
         {/* Top row: rank + title + XP */}
         <div className="flex items-start gap-3">
@@ -399,116 +399,76 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
           </div>
         </div>
 
-        {/* ── ACTIVE: action buttons ── */}
+        {/* ── ACTIVE: compact inline actions ── */}
         {isActive && !isLocked && (
-          <div className="flex items-center gap-2 mt-3">
-            {/* Sensor tracking: start button or active indicator (no manual stop) */}
+          <div className="flex items-center gap-1.5 mt-2">
+            {/* Sensor tracking */}
             {quest.sensorRequirements && onStartTracking && (
               quest.sensorTracking ? (
-                <div
-                  className="flex items-center justify-center gap-1 h-9 px-3 rounded-xl text-[10px] font-black font-mono uppercase tracking-wide"
-                  style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.3)', color: '#4ade80' }}
-                >
-                  <Activity size={10} />
-                  Tracking...
+                <div className="flex items-center gap-1 h-7 px-2.5 rounded-lg text-[9px] font-bold font-mono uppercase"
+                  style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', color: '#4ade80' }}>
+                  <Activity size={9} /> Tracking
                 </div>
               ) : (
-                <button
-                  onClick={() => onStartTracking(quest.id, quest.sensorRequirements)}
-                  className="flex items-center justify-center gap-1 h-9 px-3 rounded-xl text-[10px] font-black font-mono uppercase tracking-wide transition-all active:scale-95"
-                  style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.3)', color: '#4ade80' }}
-                >
-                  <Play size={10} fill="currentColor" />
-                  Track
+                <button onClick={() => onStartTracking(quest.id, quest.sensorRequirements)}
+                  className="flex items-center gap-1 h-7 px-2.5 rounded-lg text-[9px] font-bold font-mono uppercase active:scale-95"
+                  style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', color: '#4ade80' }}>
+                  <Play size={9} fill="currentColor" /> Track
                 </button>
               )
             )}
-
-            {/* Mini quest toggle */}
+            {/* Mini toggle */}
             {quest.miniQuest && !isMiniActive && (
-              <button
-                onClick={() => setIsMiniView(true)}
-                className="flex items-center justify-center w-9 h-9 rounded-xl transition-all active:scale-95 flex-shrink-0"
-                style={{ background: 'rgba(0,210,255,0.05)', border: '1px solid rgba(0,210,255,0.15)', color: 'rgba(0,210,255,0.5)' }}
-                title="Activation Energy Mode"
-              >
-                <Zap size={13} />
+              <button onClick={() => setIsMiniView(true)} title="Activation Mode"
+                className="w-7 h-7 rounded-lg flex items-center justify-center active:scale-95"
+                style={{ background: 'rgba(0,210,255,0.05)', border: '1px solid rgba(0,210,255,0.15)', color: 'rgba(0,210,255,0.5)' }}>
+                <Zap size={11} />
               </button>
             )}
-
             {isMiniActive && (
-              <button
-                onClick={() => setIsMiniView(false)}
-                className="flex items-center justify-center w-9 h-9 rounded-xl transition-all active:scale-95 flex-shrink-0"
-                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: '#6b7280' }}
-              >
-                <ZapOff size={13} />
+              <button onClick={() => setIsMiniView(false)}
+                className="w-7 h-7 rounded-lg flex items-center justify-center active:scale-95"
+                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: '#6b7280' }}>
+                <ZapOff size={11} />
               </button>
             )}
-
-            {/* Complete button */}
-            <button
-              onClick={handleComplete}
-              className="flex-1 flex items-center justify-center gap-1.5 h-9 rounded-xl text-[11px] font-black font-mono uppercase tracking-wide transition-all active:scale-95 hover:shadow-[0_0_12px_rgba(34,197,94,0.2)]"
+            <div className="flex-1" />
+            {/* Fail — small icon-only */}
+            <button onClick={handleFail}
+              className="w-7 h-7 rounded-lg flex items-center justify-center active:scale-95 transition-colors"
+              style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.15)', color: 'rgba(239,68,68,0.35)' }}>
+              <X size={12} strokeWidth={2.5} />
+            </button>
+            {/* Complete — compact */}
+            <button onClick={handleComplete}
+              className="flex items-center gap-1.5 h-7 px-3.5 rounded-lg text-[10px] font-black font-mono uppercase tracking-wide active:scale-95"
               style={{
-                background: isMiniActive ? 'rgba(0,210,255,0.08)' : 'rgba(34,197,94,0.08)',
+                background: isMiniActive ? 'rgba(0,210,255,0.1)' : 'rgba(34,197,94,0.1)',
                 border: isMiniActive ? '1px solid rgba(0,210,255,0.3)' : '1px solid rgba(34,197,94,0.3)',
                 color: isMiniActive ? '#00d2ff' : '#4ade80',
-              }}
-            >
-              <Check size={13} strokeWidth={2.5} />
-              {isMiniActive ? `+${Math.floor(quest.xpReward * 0.1)} XP` : 'Complete'}
-            </button>
-
-            {/* Fail button */}
-            <button
-              onClick={handleFail}
-              className="flex items-center justify-center gap-1 h-9 px-4 rounded-xl text-[11px] font-bold font-mono uppercase tracking-wide transition-all active:scale-95"
-              style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.2)', color: 'rgba(239,68,68,0.5)' }}
-              onMouseEnter={e => { e.currentTarget.style.color = '#f87171'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.4)'; }}
-              onMouseLeave={e => { e.currentTarget.style.color = 'rgba(239,68,68,0.5)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.2)'; }}
-            >
-              <X size={13} strokeWidth={2.5} />
-              Fail
+              }}>
+              <Check size={11} strokeWidth={3} />
+              {isMiniActive ? `+${Math.floor(quest.xpReward * 0.1)}` : 'Complete'}
             </button>
           </div>
         )}
 
-        {/* ── COMPLETED state ── */}
+        {/* ── COMPLETED — compact 1-line ── */}
         {isCompleted && (
-          <div className="flex items-center gap-1.5 mt-3">
-            <div
-              className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
-              style={{ background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)' }}
-            >
-              <Check size={10} strokeWidth={3} className="text-green-400" />
-            </div>
-            <span className="text-[10px] font-mono font-bold text-green-500/70 tracking-widest uppercase">
-              {quest.completedAsMini ? 'Activation Complete' : 'Quest Complete'}
+          <div className="flex items-center gap-1.5 mt-1.5">
+            <Check size={10} strokeWidth={3} className="text-green-500/50" />
+            <span className="text-[9px] font-mono text-green-500/40 tracking-wide uppercase">
+              {quest.completedAsMini ? 'Activation done' : 'Done'}
             </span>
           </div>
         )}
-
-        {/* ── FAILED state ── */}
+        {/* ── FAILED — compact 1-line ── */}
         {isFailed && !isCompleted && (
-          <div className="flex items-center justify-between mt-3">
-            <div className="flex items-center gap-1.5">
-              <div
-                className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
-                style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)' }}
-              >
-                <X size={10} strokeWidth={3} className="text-red-500" />
-              </div>
-              <span className="text-[10px] font-mono text-red-500/60 tracking-widest uppercase">
-                {isExpired ? 'Expired' : 'Failed'}
-              </span>
-            </div>
-            <button
-              onClick={() => onDelete(quest.id)}
-              className="flex items-center gap-1 text-[9px] font-mono text-gray-700 hover:text-red-500 transition-colors"
-            >
-              <Trash2 size={10} />
-              Delete
+          <div className="flex items-center gap-1.5 mt-1.5">
+            <X size={10} strokeWidth={3} className="text-red-500/40" />
+            <span className="text-[9px] font-mono text-red-500/40 tracking-wide uppercase">{isExpired ? 'Expired' : 'Failed'}</span>
+            <button onClick={() => onDelete(quest.id)} className="ml-auto text-[8px] font-mono text-gray-700 hover:text-red-400 transition-colors">
+              <Trash2 size={9} />
             </button>
           </div>
         )}
