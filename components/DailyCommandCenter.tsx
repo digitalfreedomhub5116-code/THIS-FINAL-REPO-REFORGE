@@ -315,7 +315,10 @@ const FuturisticCalendar: React.FC<{ quests: Quest[] }> = ({ quests }) => {
   return (
     <div>
       <style>{`
-        /* pill-float animation removed for cleaner look */
+        @keyframes pill-float {
+          0%,100% { transform: translateY(0px); }
+          50%      { transform: translateY(-5px); }
+        }
       `}</style>
 
       <div className="flex items-center justify-between px-1 pt-1 pb-4">
@@ -384,10 +387,13 @@ const FuturisticCalendar: React.FC<{ quests: Quest[] }> = ({ quests }) => {
 
           return (
               <div key={i} ref={isToday ? todayRef : undefined}
-              className="flex flex-col items-center gap-1.5 shrink-0"
+              className="flex flex-col items-center gap-2 shrink-0"
+              style={{
+                animation: `pill-float ${floatDuration}s ease-in-out ${floatDelay}s infinite`,
+              }}
             >
               <div style={{
-                width: 32, height: 56, borderRadius: 9999, overflow: 'hidden', position: 'relative',
+                width: 38, height: 80, borderRadius: 9999, overflow: 'hidden', position: 'relative',
                 background: 'rgba(8,8,18,0.92)', border: `1.5px solid ${borderCol}`,
                 boxShadow: glowFilter === 'none' ? 'inset 0 1px 0 rgba(255,255,255,0.05)' : `${glowFilter}, inset 0 1px 0 rgba(255,255,255,0.07)`,
               }}>
