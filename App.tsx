@@ -1892,17 +1892,59 @@ const App: React.FC = () => {
     }
   }, [player.userId]);
 
+  // ── Schedule persistence helpers (mirror goals pattern) ──
+  const saveScheduleProfileToDb = useCallback(async (profile: ScheduleProfile) => {
+    if (!player.userId || isLocalUser(player.userId)) return;
+    try {
+      await fetch(`${API_BASE}/api/schedule/profile`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
+        body: JSON.stringify({ scheduleProfile: profile }),
+      });
+    } catch (e) {
+      console.warn('[Schedule] Failed to save profile to DB:', e);
+    }
+  }, [player.userId]);
+
+  // Debounce per-date to avoid spamming on rapid drag/reorder
+  const scheduleDaySaveTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const saveScheduleDayToDb = useCallback((schedule: { date: string } & Record<string, any>) => {
+    if (!player.userId || isLocalUser(player.userId)) return;
+    if (!schedule || !schedule.date) return;
+    const timers = scheduleDaySaveTimers.current;
+    const existing = timers.get(schedule.date);
+    if (existing) clearTimeout(existing);
+    const t = setTimeout(async () => {
+      try {
+        await fetch(`${API_BASE}/api/schedule/day`, {
+          method: 'PUT',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
+          body: JSON.stringify({ schedule }),
+        });
+      } catch (e) {
+        console.warn('[Schedule] Failed to save day to DB:', e);
+      } finally {
+        timers.delete(schedule.date);
+      }
+    }, 600);
+    timers.set(schedule.date, t);
+  }, [player.userId]);
+
   // ── Schedule Profile save handler ──
   const handleSaveScheduleProfile = useCallback((profile: ScheduleProfile) => {
     setPlayer(prev => ({ ...prev, scheduleProfile: profile }));
     setShowScheduleSetup(false);
+    saveScheduleProfileToDb(profile);
     addNotification('Schedule Protocol activated. Your day is now optimized.', 'SUCCESS');
-  }, [addNotification]);
+  }, [addNotification, saveScheduleProfileToDb]);
 
   // ── Schedule slot action handler (skip/defer from TodayProtocol) ──
   // FIX: No "COMPLETE" action — quests must go through ForgeGuard in QuestsView
   const handleScheduleSlotAction = useCallback((slotId: string, action: 'SKIP' | 'DEFER', updatedSlots: any[]) => {
     const today = new Date().toISOString().split('T')[0];
+    let daySchedule: any = null;
     setPlayer(prev => {
       const schedules = [...(prev.dailySchedules || [])];
       const todayIdx = schedules.findIndex(s => s.date === today);
@@ -1915,48 +1957,59 @@ const App: React.FC = () => {
       if (action === 'DEFER' && defers >= 2) return prev;
 
       if (todayIdx >= 0) {
-        schedules[todayIdx] = { ...schedules[todayIdx], slots: updatedSlots };
+        daySchedule = { ...schedules[todayIdx], slots: updatedSlots };
+        schedules[todayIdx] = daySchedule;
       } else {
-        schedules.push({ date: today, slots: updatedSlots, swapsUsed: 0, restDayUsed: false, generatedAt: Date.now() });
+        daySchedule = { date: today, slots: updatedSlots, swapsUsed: 0, restDayUsed: false, generatedAt: Date.now() };
+        schedules.push(daySchedule);
       }
       return { ...prev, dailySchedules: schedules };
     });
+    if (daySchedule) saveScheduleDayToDb(daySchedule);
     if (action === 'SKIP') {
       addNotification('Quest skipped — costs 10 XP.', 'WARNING');
     } else if (action === 'DEFER') {
       addNotification('Quest deferred to tomorrow. Max 2/day.', 'SYSTEM');
     }
-  }, [addNotification]);
+  }, [addNotification, saveScheduleDayToDb]);
 
   // ── Schedule notification toggle handler ──
   const handleScheduleNotifyToggle = useCallback((_slotId: string, _enabled: boolean, updatedSlots: any[]) => {
     const today = new Date().toISOString().split('T')[0];
+    let daySchedule: any = null;
     setPlayer(prev => {
       const schedules = [...(prev.dailySchedules || [])];
       const todayIdx = schedules.findIndex(s => s.date === today);
       if (todayIdx >= 0) {
-        schedules[todayIdx] = { ...schedules[todayIdx], slots: updatedSlots };
+        daySchedule = { ...schedules[todayIdx], slots: updatedSlots };
+        schedules[todayIdx] = daySchedule;
       } else {
-        schedules.push({ date: today, slots: updatedSlots, swapsUsed: 0, restDayUsed: false, generatedAt: Date.now() });
+        daySchedule = { date: today, slots: updatedSlots, swapsUsed: 0, restDayUsed: false, generatedAt: Date.now() };
+        schedules.push(daySchedule);
       }
       return { ...prev, dailySchedules: schedules };
     });
-  }, []);
+    if (daySchedule) saveScheduleDayToDb(daySchedule);
+  }, [saveScheduleDayToDb]);
 
   // ── Schedule reorder handler (drag-to-reorder flexible slots) ──
   const handleScheduleReorder = useCallback((updatedSlots: any[]) => {
     const today = new Date().toISOString().split('T')[0];
+    let daySchedule: any = null;
     setPlayer(prev => {
       const schedules = [...(prev.dailySchedules || [])];
       const todayIdx = schedules.findIndex(s => s.date === today);
       if (todayIdx >= 0) {
-        schedules[todayIdx] = { ...schedules[todayIdx], slots: updatedSlots };
+        daySchedule = { ...schedules[todayIdx], slots: updatedSlots };
+        schedules[todayIdx] = daySchedule;
       } else {
-        schedules.push({ date: today, slots: updatedSlots, swapsUsed: 0, restDayUsed: false, generatedAt: Date.now() });
+        daySchedule = { date: today, slots: updatedSlots, swapsUsed: 0, restDayUsed: false, generatedAt: Date.now() };
+        schedules.push(daySchedule);
       }
       return { ...prev, dailySchedules: schedules };
     });
-  }, []);
+    if (daySchedule) saveScheduleDayToDb(daySchedule);
+  }, [saveScheduleDayToDb]);
 
   // ── Merge quest-generated schedule slots into the daily schedule ──
   const handleMergeQuestScheduleSlots = useCallback((newSlots: any[]) => {
@@ -1967,6 +2020,7 @@ const App: React.FC = () => {
       const [bh, bm] = b.startTime.split(':').map(Number);
       return (ah * 60 + am) - (bh * 60 + bm);
     };
+    let daySchedule: any = null;
     setPlayer(prev => {
       const schedules = [...(prev.dailySchedules || [])];
       const todayIdx = schedules.findIndex(s => s.date === today);
@@ -1975,13 +2029,16 @@ const App: React.FC = () => {
           (s: any) => s.type !== 'QUEST' || !newSlots.some((ns: any) => ns.goalId === s.goalId)
         );
         const merged = [...existing, ...newSlots].sort(sortByTime);
-        schedules[todayIdx] = { ...schedules[todayIdx], slots: merged };
+        daySchedule = { ...schedules[todayIdx], slots: merged };
+        schedules[todayIdx] = daySchedule;
       } else {
-        schedules.push({ date: today, slots: newSlots.sort(sortByTime), swapsUsed: 0, restDayUsed: false, generatedAt: Date.now() });
+        daySchedule = { date: today, slots: newSlots.sort(sortByTime), swapsUsed: 0, restDayUsed: false, generatedAt: Date.now() };
+        schedules.push(daySchedule);
       }
       return { ...prev, dailySchedules: schedules };
     });
-  }, []);
+    if (daySchedule) saveScheduleDayToDb(daySchedule);
+  }, [saveScheduleDayToDb]);
 
   // Deferred daily login check — persistent guard via localStorage
 
@@ -4380,7 +4437,7 @@ const App: React.FC = () => {
 
 
 
-          {/* ── DASHBOARD (Today) ── */}
+          {/* ── DASHBOARD ── */}
 
           {activeTab === 'DASHBOARD' && (
 
@@ -4394,17 +4451,27 @@ const App: React.FC = () => {
 
               exit={{ opacity: 0 }}
 
+              className="space-y-6 md:space-y-8"
+
             >
+
+              {/* Player Status Card (replaces HunterCommandDeck & HunterGrowthTerminal) */}
 
               <Suspense fallback={<SkeletonStatsChart />}>
 
-                <ErrorBoundary fallbackLabel="Dashboard failed">
+                <ErrorBoundary fallbackLabel="Status card failed">
 
-                  <DashboardView
+                  <PlayerStatusCard
 
                     player={player}
 
-                    onNavigate={navigateTo}
+                    equippedOutfit={dbOutfits.find(o => o.id === player.equippedOutfitId) || OUTFITS.find(o => o.id === player.equippedOutfitId)}
+
+                    mentorMessages={mentorMessages}
+
+                    onDismissMentorMessage={(id) => setMentorMessages(prev => prev.filter(m => m.id !== id))}
+
+                    history={player.history || []}
 
                     onOpenDuskChat={() => setShowDuskChat(true)}
 
@@ -4413,6 +4480,115 @@ const App: React.FC = () => {
                 </ErrorBoundary>
 
               </Suspense>
+
+
+
+              {/* Stat Pillars */}
+
+              <div id="tut-stats" className="responsive-full-span">
+
+                <Suspense fallback={<SkeletonStatBoxes />}>
+
+                  <ErrorBoundary fallbackLabel="Stat boxes failed">
+
+                    <StatBoxes
+
+                      stats={player.stats}
+
+                      dailyStats={player.dailyStats}
+
+                      weeklyStats={player.weeklyStats}
+
+                    />
+
+                  </ErrorBoundary>
+
+                </Suspense>
+
+              </div>
+
+
+
+              {/* ── 2-col responsive grid for mid-section cards ── */}
+
+              <div className="responsive-grid-2">
+
+
+
+              {/* XP Level Progress */}
+
+              <div className="responsive-full-span">
+
+              <Suspense fallback={<SkeletonLevelProgress />}>
+
+                <ErrorBoundary fallbackLabel="Level progress failed">
+
+                  <LevelProgressCard
+
+                    level={player.level}
+
+                    currentXP={player.currentXp}
+
+                    maxXP={player.requiredXp}
+
+                    xpBuff={(() => {
+
+                      const TIER_SIZE = 40;
+
+                      const vals = [player.stats.strength, player.stats.intelligence, player.stats.focus, player.stats.discipline, player.stats.willpower, player.stats.social];
+
+                      const minTier = Math.min(...vals.map(v => {
+
+                        const c = Math.max(0, Math.min(v || 0, 200));
+
+                        return c >= 200 ? 5 : Math.min(5, Math.floor(c / TIER_SIZE) + 1);
+
+                      }));
+
+                      return ({ 1: 0, 2: 10, 3: 30, 4: 50, 5: 100 } as Record<number,number>)[minTier] || 0;
+
+                    })()}
+
+                  />
+
+                </ErrorBoundary>
+
+              </Suspense>
+
+              </div>
+
+              {/* Rank Progression */}
+
+              <Suspense fallback={<SkeletonRankProgression />}>
+
+                <ErrorBoundary fallbackLabel="Rank progression failed">
+
+                  <RankProgressionCard level={player.level} rank={player.rank} />
+
+                </ErrorBoundary>
+
+              </Suspense>
+
+
+
+              {/* Next Up Card — compact schedule preview */}
+              <Suspense fallback={<SkeletonUpcomingQuests />}>
+                <ErrorBoundary fallbackLabel="Next Up failed">
+                  <NextUpCard
+                    scheduleProfile={player.scheduleProfile}
+                    dailySchedule={player.dailySchedules?.find(s => s.date === new Date().toISOString().split('T')[0])}
+                    quests={player.quests}
+                    goals={player.goals || []}
+                    onNavigateToQuests={() => setActiveTab('QUESTS')}
+                  />
+                </ErrorBoundary>
+              </Suspense>
+              {/* End of mid-section cards */}
+
+
+              </div>{/* end responsive-grid-2 */}
+
+
 
             </motion.div>
 
