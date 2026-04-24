@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Castle, X, HelpCircle, Check, Lock, Info, Coins } from 'lucide-react';
+import { Castle, X, HelpCircle, Check, Lock, Info, Coins, Timer, Key, Zap } from 'lucide-react';
 // ChestAnimations SVG fallbacks are used inside ChestLottieOverlays
 import { DailyChestLottie, LegendaryChestLottieV2, AllianceChestLottie, preloadChestLotties } from './ChestLottieOverlays';
 import { getStoneConfig, OUTFIT_STONE_CONFIG } from '../utils/gameData';
@@ -618,7 +618,7 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
           }}
         >
           <button
-            onClick={() => onNavigateToDungeon?.()}
+            onClick={() => setActiveModal('DUNGEON')}
             className="w-12 h-12 bg-black/40 backdrop-blur-md border border-red-600/30 rounded-full flex items-center justify-center active:scale-90 transition-all relative overflow-hidden"
           >
             <img
@@ -821,41 +821,109 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
                   </div>
                 )}
 
-                {/* ── DUNGEON ── */}
-                {activeModal === 'DUNGEON' && (
+                {/* ── DUNGEON TOWER ── */}
+                {activeModal === 'DUNGEON' && (() => {
+                  const DUNGEON_CD = 24 * 60 * 60 * 1000;
+                  const nextFreeAt = lastDungeonEntry + DUNGEON_CD;
+                  const isFreeReady = now >= nextFreeAt;
+                  const timeLeft = Math.max(0, nextFreeAt - now);
+                  const fmtH = Math.floor(timeLeft / 3_600_000);
+                  const fmtM = Math.floor((timeLeft % 3_600_000) / 60_000);
+                  const fmtS = Math.floor((timeLeft % 60_000) / 1000);
+                  const timerStr = `${String(fmtH).padStart(2,'0')}:${String(fmtM).padStart(2,'0')}:${String(fmtS).padStart(2,'0')}`;
+                  const canAffordPaid = keys >= 3;
+                  return (
                   <div className="flex flex-col">
-                    <div className="h-32 bg-red-950/30 relative flex items-center justify-center overflow-hidden border-b border-red-900/50">
-                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(220,38,38,0.2)_0%,transparent_70%)]" />
-                      <Castle size={64} className="text-red-600 relative z-10 drop-shadow-[0_0_15px_rgba(220,38,38,0.8)]" />
-                    </div>
-                    <div className="p-6 text-center space-y-6">
-                      <div>
-                        <h2 className="text-3xl font-black text-white uppercase italic tracking-tighter">DEMON TOWER</h2>
-                        <p className="text-[10px] text-red-400 font-mono uppercase tracking-[0.2em] font-bold">Floor 1 - 100 Available</p>
+                    {/* Banner hero */}
+                    <div className="relative h-44 overflow-hidden">
+                      <img
+                        src="https://i.postimg.cc/zDwVQ9bN/Image-202602141625-tlkmvf.jpg"
+                        alt="Dungeon Tower"
+                        className="absolute inset-0 w-full h-full object-cover"
+                        style={{ objectPosition: 'center 30%' }}
+                      />
+                      <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, #07070f 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.15) 100%)' }} />
+                      {/* Pulsing red glow */}
+                      <motion.div
+                        className="absolute inset-0 pointer-events-none"
+                        animate={{ opacity: [0.05, 0.15, 0.05] }}
+                        transition={{ duration: 3, repeat: Infinity }}
+                        style={{ background: 'radial-gradient(ellipse at center 70%, rgba(220,38,38,0.35) 0%, transparent 65%)' }}
+                      />
+                      {/* Timer pill */}
+                      <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10">
+                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full font-mono text-xs font-bold"
+                          style={{ background: 'rgba(0,0,0,0.7)', border: isFreeReady ? '1px solid rgba(34,197,94,0.5)' : '1px solid rgba(255,255,255,0.12)', backdropFilter: 'blur(8px)' }}>
+                          <Timer size={11} className={isFreeReady ? 'text-emerald-400' : 'text-yellow-400'} />
+                          {isFreeReady
+                            ? <span className="text-emerald-400 tracking-widest uppercase text-[10px]">FREE ENTRY READY</span>
+                            : <><span className="text-gray-400 tracking-widest uppercase text-[10px]">Resets in</span><span className="text-yellow-300 tabular-nums">{timerStr}</span></>
+                          }
+                        </div>
                       </div>
-                      <div className="bg-gray-900/50 rounded-xl p-4 border border-gray-800">
-                        <p className="text-[9px] text-gray-500 uppercase font-bold mb-3 tracking-widest">Potential Acquisition</p>
+                      {/* Title overlay */}
+                      <div className="absolute bottom-3 left-0 right-0 text-center z-10">
+                        <h2 className="text-2xl font-black text-white uppercase italic tracking-tighter font-mono drop-shadow-lg">DEMON TOWER</h2>
+                        <p className="text-[10px] text-red-400 font-mono uppercase tracking-[0.2em] font-bold mt-0.5">Floor 1 – 100 Available</p>
+                      </div>
+                    </div>
+
+                    <div className="p-5 space-y-4">
+                      {/* Rewards preview */}
+                      <div className="rounded-xl p-3.5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                        <p className="text-[9px] text-gray-500 uppercase font-bold mb-3 tracking-widest font-mono text-center">POTENTIAL ACQUISITION</p>
                         <div className="flex justify-center items-center gap-6">
                           <div className="flex flex-col items-center gap-1">
-                            <SystemCoin size={32} />
-                            <span className="text-xs font-bold text-yellow-500">100-5000</span>
+                            <SystemCoin size={28} />
+                            <span className="text-[11px] font-bold text-yellow-500 font-mono">100–5000</span>
                           </div>
-                          <div className="w-px h-8 bg-gray-700" />
+                          <div className="w-px h-8 bg-gray-800" />
                           <div className="flex flex-col items-center gap-1">
-                            <SystemKey size={32} />
-                            <span className="text-xs font-bold text-purple-500">Key Drops</span>
+                            <Zap size={22} className="text-cyan-400" />
+                            <span className="text-[11px] font-bold text-cyan-400 font-mono">XP Drops</span>
+                          </div>
+                          <div className="w-px h-8 bg-gray-800" />
+                          <div className="flex flex-col items-center gap-1">
+                            <SystemKey size={28} />
+                            <span className="text-[11px] font-bold text-purple-400 font-mono">Key Drops</span>
                           </div>
                         </div>
                       </div>
-                      <button
-                        onClick={() => { setActiveModal('NONE'); onEnterDungeon(true); }}
-                        className="w-full py-4 bg-red-600 hover:bg-red-500 text-white font-black uppercase tracking-widest text-sm rounded-xl shadow-[0_0_20px_rgba(220,38,38,0.4)] transition-all active:scale-95 flex items-center justify-center gap-2"
-                      >
-                        ENTER DUNGEON <Castle size={16} />
-                      </button>
+
+                      {/* Entry buttons */}
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => { if (isFreeReady) { setActiveModal('NONE'); onEnterDungeon(true); } }}
+                          disabled={!isFreeReady}
+                          className="flex-1 py-3.5 rounded-xl font-mono font-black text-xs uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2"
+                          style={isFreeReady
+                            ? { background: 'linear-gradient(135deg,#dc2626,#991b1b)', color: '#fff', boxShadow: '0 4px 24px rgba(220,38,38,0.5)', border: '1px solid rgba(220,38,38,0.5)' }
+                            : { background: 'rgba(30,30,30,0.8)', color: '#4b5563', border: '1px solid rgba(100,100,100,0.2)', cursor: 'not-allowed' }
+                          }
+                        >
+                          {isFreeReady ? <><Castle size={14} /> FREE ENTER</> : <><Lock size={12} /> LOCKED</>}
+                        </button>
+                        <button
+                          onClick={() => { if (canAffordPaid) { setActiveModal('NONE'); onEnterDungeon(false); } }}
+                          disabled={!canAffordPaid}
+                          className="py-3.5 px-5 rounded-xl font-mono font-black text-xs uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-1.5 whitespace-nowrap"
+                          style={canAffordPaid
+                            ? { background: 'linear-gradient(135deg,rgba(139,92,246,0.3),rgba(109,40,217,0.5))', color: '#c4b5fd', border: '1px solid rgba(139,92,246,0.5)', boxShadow: '0 4px 20px rgba(139,92,246,0.3)' }
+                            : { background: 'rgba(30,30,30,0.8)', color: '#4b5563', border: '1px solid rgba(100,100,100,0.2)', cursor: 'not-allowed' }
+                          }
+                        >
+                          <Key size={12} /> 3 KEYS
+                        </button>
+                      </div>
+
+                      {/* Info note */}
+                      <p className="text-center text-[9px] font-mono text-gray-600 leading-relaxed">
+                        Survive floors to earn Gold, XP & Keys. Free entry resets every 24h.
+                      </p>
                     </div>
                   </div>
-                )}
+                  );
+                })()}
               </motion.div>
             </motion.div>
           )}
