@@ -16,20 +16,8 @@ const DailyLoginModal: React.FC<DailyLoginModalProps> = ({ onClose, onChestRewar
   const lastLogin = player.lastLoginDate;
   const isClaimed = lastLogin === today;
 
-  let currentStreak = player.streak;
-  if (!isClaimed) {
-    if (lastLogin) {
-      const lastDate = new Date(lastLogin);
-      const currentDate = new Date();
-      lastDate.setHours(0,0,0,0);
-      currentDate.setHours(0,0,0,0);
-      const diffDays = Math.ceil(Math.abs(currentDate.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
-      if (diffDays === 1) currentStreak += 1;
-      else currentStreak = 1;
-    } else {
-      currentStreak = 1;
-    }
-  }
+  // Streak is already computed by auto-streak tracker in useSystem (single source of truth)
+  const currentStreak = player.streak || 1;
 
   const currentCycleDay = ((currentStreak - 1) % 7) + 1;
   const todayReward = !isClaimed ? REWARD_SCHEDULE[currentCycleDay - 1] : null;

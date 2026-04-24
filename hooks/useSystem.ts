@@ -618,9 +618,10 @@ export const useSystem = () => {
     return () => clearTimeout(timer);
   }, [processDailyReset]);
 
-  // ── AUTO STREAK TRACKING ──
-  // Updates streak + lastLoginDate every time the user opens the app on a new day.
-  // This is INDEPENDENT of daily reward claiming — streak should never get stuck.
+  // ── AUTO STREAK TRACKING (24-HOUR RULE) ──
+  // The streak dies if the user misses a full calendar day without opening the app.
+  // When the user logs in again after a break, streak restarts at 1.
+  // This is the SINGLE SOURCE OF TRUTH for streak — no other function should recalculate it.
   useEffect(() => {
     const today = toLocalDateStr();
     const lastLogin = player.lastLoginDate;
@@ -857,27 +858,9 @@ export const useSystem = () => {
     // If already logged in today, no reward
     if (lastLogin === today) return null;
 
-    // Determine streak
-    let nextStreak = 1;
-    if (lastLogin) {
-      const lastDate = new Date(lastLogin);
-      const currentDate = new Date();
-      // Normalize to midnight for accurate diff
-      lastDate.setHours(0,0,0,0);
-      currentDate.setHours(0,0,0,0);
-      
-      const diffMs = currentDate.getTime() - lastDate.getTime();
-      const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
-
-      if (diffDays === 1) {
-        nextStreak = (player.streak || 0) + 1;
-      }
-    } else {
-        // First time login ever starts at Day 1
-        nextStreak = 1;
-    }
-
-    const rewardIndex = (nextStreak - 1) % 7;
+    // Use the authoritative streak from auto-streak tracker (single source of truth)
+    const currentStreak = player.streak || 1;
+    const rewardIndex = (currentStreak - 1) % 7;
     return REWARD_SCHEDULE[rewardIndex];
   }, [player.lastLoginDate, player.streak]);
 
@@ -885,16 +868,8 @@ export const useSystem = () => {
     const today = toLocalDateStr();
     
     setPlayer(prev => {
-      // Recalculate streak to be safe
-      let nextStreak = 1;
-      if (prev.lastLoginDate) {
-          const lastDate = new Date(prev.lastLoginDate);
-          const currentDate = new Date();
-          lastDate.setHours(0,0,0,0);
-          currentDate.setHours(0,0,0,0);
-          const diffDays = Math.ceil(Math.abs(currentDate.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
-          if (diffDays === 1) nextStreak = (prev.streak || 0) + 1;
-      }
+      // Streak is already set by auto-streak tracker — use it directly (single source of truth)
+      const nextStreak = prev.streak || 1;
 
       let { currentXp, requiredXp, level, totalXp, dailyXp, gold, keys, consumables } = prev;
       
