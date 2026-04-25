@@ -166,27 +166,75 @@ const AvatarHero: React.FC<{
   );
 };
 
-// ─── Action tile ─────────────────────────────────────────────────────
+// ─── Action tile — liquid glass ──────────────────────────────────────
 const ActionTile: React.FC<{
   icon: React.ReactNode;
   label: string;
   badge?: string | number;
   accent?: string;
+  isSoon?: boolean;
   onClick: () => void;
-}> = ({ icon, label, badge, accent = '#00d2ff', onClick }) => (
+}> = ({ icon, label, badge, accent = '#00d2ff', isSoon, onClick }) => (
   <button
     onClick={onClick}
-    className="relative flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.07] active:scale-[0.97] transition-all min-h-[74px]"
+    className="group relative flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl active:scale-[0.95] transition-all duration-200 min-h-[78px] overflow-hidden"
+    style={{
+      background: `linear-gradient(145deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 50%, rgba(${parseInt(accent!.slice(1,3),16)},${parseInt(accent!.slice(3,5),16)},${parseInt(accent!.slice(5,7),16)},0.04) 100%)`,
+      border: '1px solid rgba(255,255,255,0.09)',
+      backdropFilter: 'blur(16px)',
+      WebkitBackdropFilter: 'blur(16px)',
+      boxShadow: `inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -1px 0 rgba(0,0,0,0.2), 0 2px 8px rgba(0,0,0,0.3)`,
+    }}
   >
-    <div className="relative">
-      <div style={{ color: accent }}>{icon}</div>
+    {/* Glass highlight — top edge shine */}
+    <div
+      className="absolute top-0 left-[10%] right-[10%] h-[1px] rounded-full"
+      style={{ background: `linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)` }}
+    />
+
+    {/* Shimmer sweep on hover */}
+    <div
+      className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+      style={{
+        background: `linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.06) 45%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.06) 55%, transparent 60%)`,
+        backgroundSize: '200% 100%',
+        animation: 'glass-shimmer 1.6s ease-in-out',
+      }}
+    />
+
+    {/* Accent glow pool at bottom */}
+    <div
+      className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3/4 h-6 rounded-full pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+      style={{ background: accent, filter: 'blur(14px)', opacity: 0 }}
+    />
+
+    {/* Icon with breathing glow */}
+    <div className="relative z-10">
+      <div
+        className="transition-all duration-300 group-hover:drop-shadow-[0_0_8px_var(--glow)]"
+        style={{ color: accent, '--glow': accent } as React.CSSProperties}
+      >
+        {icon}
+      </div>
       {badge !== undefined && badge !== 0 && (
         <div className="absolute -top-2 -right-3 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[9px] font-bold font-mono flex items-center justify-center shadow-[0_0_8px_rgba(239,68,68,0.6)]">
           {badge}
         </div>
       )}
     </div>
-    <div className="text-[10px] font-mono font-bold text-gray-300 tracking-wider uppercase">{label}</div>
+
+    <div className="relative z-10 text-[10px] font-mono font-bold text-gray-300 tracking-wider uppercase group-hover:text-white transition-colors duration-200">
+      {label}
+    </div>
+
+    {/* "SOON" tag for prosthetic tiles */}
+    {isSoon && (
+      <div className="absolute top-1.5 right-1.5 z-10 px-1 py-[1px] rounded text-[6px] font-mono font-bold tracking-widest uppercase"
+        style={{ background: 'rgba(255,255,255,0.06)', color: '#6b7280', border: '1px solid rgba(255,255,255,0.08)' }}
+      >
+        SOON
+      </div>
+    )}
   </button>
 );
 
@@ -427,6 +475,7 @@ const YouView: React.FC<YouViewProps> = ({
           icon={<Package size={22} />}
           label="Inventory"
           accent="#c084fc"
+          isSoon
           onClick={() => setComingSoon('INVENTORY')}
         />
         <ActionTile
@@ -439,6 +488,7 @@ const YouView: React.FC<YouViewProps> = ({
           icon={<BarChart3 size={22} />}
           label="Stats"
           accent="#00d2ff"
+          isSoon
           onClick={() => setComingSoon('STATS')}
         />
         <ActionTile

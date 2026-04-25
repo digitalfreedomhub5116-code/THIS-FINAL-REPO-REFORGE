@@ -8,6 +8,7 @@ import { DailyChestLottie, LegendaryChestLottieV2, AllianceChestLottie, preloadC
 import { getStoneConfig, OUTFIT_STONE_CONFIG } from '../utils/gameData';
 import { SystemCoin } from './icons/SystemCoin';
 import { SystemKey } from './icons/SystemKey';
+import CrystalIcon from './CrystalIcon';
 import { playSystemSoundEffect } from '../utils/soundEngine';
 import { useSystem } from '../hooks/useSystem';
 
@@ -879,8 +880,8 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
                           </div>
                           <div className="w-px h-8 bg-gray-800" />
                           <div className="flex flex-col items-center gap-1">
-                            <Zap size={22} className="text-cyan-400" />
-                            <span className="text-[11px] font-bold text-cyan-400 font-mono">XP Drops</span>
+                            <CrystalIcon color="#60a5fa" glow="rgba(96,165,250,0.5)" size={28} />
+                            <span className="text-[11px] font-bold text-blue-400 font-mono">Crystal Loot</span>
                           </div>
                           <div className="w-px h-8 bg-gray-800" />
                           <div className="flex flex-col items-center gap-1">
