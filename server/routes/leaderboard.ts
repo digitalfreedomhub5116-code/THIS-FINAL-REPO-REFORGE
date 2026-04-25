@@ -72,6 +72,7 @@ router.get('/', async (req: Request, res: Response) => {
         rank: row.rank || 'E',
         streak: row.streak || 0,
         equipped_outfit_id: row.raw_data?.equippedOutfitId || 'outfit_starter',
+        equipped_border: row.raw_data?.equippedBorder || null,
       };
     });
 

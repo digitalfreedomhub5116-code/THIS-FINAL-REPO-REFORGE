@@ -13,6 +13,7 @@ import { playSystemSoundEffect } from '../utils/soundEngine';
 import RankRewardOverlay from './RankRewardOverlay';
 import { OUTFITS } from '../utils/gameData';
 import OutfitHunterBadge, { OUTFIT_BADGE_CONFIG } from './OutfitHunterBadge';
+import AnimatedBorder from './AnimatedBorder';
 
 // ── Types ──
 interface LeaderboardEntry {
@@ -26,6 +27,7 @@ interface LeaderboardEntry {
   rank: string;
   streak: number;
   equipped_outfit_id?: string;
+  equipped_border?: string | null;
 }
 
 interface SimEntry extends LeaderboardEntry {
@@ -35,6 +37,7 @@ interface SimEntry extends LeaderboardEntry {
   computedRank: string;
   outfitId: string;
   streak: number;
+  borderId: string | null;
 }
 
 interface LeaderboardViewProps {
@@ -254,6 +257,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
         computedRank: computeRankFromLevel(isMe ? (player.level || 1) : (e.level || 1)),
         outfitId: isMe ? (player.equippedOutfitId || 'outfit_starter') : (e.equipped_outfit_id || 'outfit_starter'),
         streak: isMe ? (player.streak || 0) : (e.streak || 0),
+        borderId: isMe ? (player.equippedBorder || null) : (e.equipped_border || null),
       };
     }).sort((a, b) => b.dominance - a.dominance);
   }, [entries, player.userId, player.username, player.name, xpField, player.equippedOutfitId, player.totalXp, player.dailyXp, player.level, activeTab]);
@@ -399,8 +403,10 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                       )}
                     </div>
 
-                    {/* Outfit Badge */}
-                    <OutfitHunterBadge outfitId={entry.outfitId} size={32} />
+                    {/* Outfit Badge with Border Ring */}
+                    <AnimatedBorder borderId={entry.borderId} compact className="rounded-full">
+                      <OutfitHunterBadge outfitId={entry.outfitId} size={32} />
+                    </AnimatedBorder>
 
                     {/* Name + title */}
                     <div className="flex-1 min-w-0">
