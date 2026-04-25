@@ -100,6 +100,8 @@ const DEFAULT_PLAYER: PlayerData = {
   unlockedLooks: [],
   activeLookId: '',
   outfitStones: {},
+  ownedBorders: ['border_default'],
+  equippedBorder: null,
   featureUnlocksShown: [],
   rankRevealed: false,
   questOnboardingDone: true,
@@ -156,6 +158,8 @@ function migratePlayerData(raw: Partial<PlayerData>): PlayerData {
   if (!merged.chests) merged.chests = { legendary: 0 };
   else if (merged.chests.legendary === undefined) merged.chests.legendary = 0;
   if (!merged.outfitStones) merged.outfitStones = {};
+  if (!merged.ownedBorders) merged.ownedBorders = ['border_default'];
+  if (merged.equippedBorder === undefined) merged.equippedBorder = null;
   merged.tutorialComplete = (raw as any)?.tutorialComplete ?? false;
   // Feature gate migration — existing configured users get everything unlocked
   if (raw.isConfigured && raw.rank !== 'UNRANKED') {
@@ -1014,6 +1018,24 @@ export const useSystem = () => {
 
   const setActiveOutfit = (outfitId: string) => {
     setPlayer(prev => ({ ...prev, activeOutfit: outfitId }));
+  };
+
+  const purchaseBorder = (borderId: string, cost: number) => {
+    setPlayer(prev => {
+      if ((prev.gold || 0) < cost) return prev;
+      const owned = prev.ownedBorders || ['border_default'];
+      if (owned.includes(borderId)) return prev;
+      return {
+        ...prev,
+        gold: prev.gold - cost,
+        ownedBorders: [...owned, borderId],
+        equippedBorder: borderId, // Auto-equip on purchase
+      };
+    });
+  };
+
+  const equipBorder = (borderId: string | null) => {
+    setPlayer(prev => ({ ...prev, equippedBorder: borderId }));
   };
 
   const addRewards = (gold: number, xp: number, keys: number = 0) => {
@@ -2177,5 +2199,7 @@ export const useSystem = () => {
     updateSkillProgress,
     updateServerBaseline,
     awardRandomStones,
+    purchaseBorder,
+    equipBorder,
   };
 };

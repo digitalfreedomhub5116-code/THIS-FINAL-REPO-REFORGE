@@ -756,6 +756,10 @@ export interface PlayerData {
   // e.g. { "outfit_ghost": 45, "outfit_assassin": 203 }
   outfitStones: Record<string, number>;
 
+  // Animated Profile Borders (cosmetic)
+  ownedBorders: string[];
+  equippedBorder: string | null;
+
   // Feature gate tracking
   featureUnlocksShown?: number[];
   rankRevealed?: boolean;
