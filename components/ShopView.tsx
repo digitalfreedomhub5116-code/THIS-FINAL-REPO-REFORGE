@@ -1,11 +1,13 @@
 
 import React, { useState, useEffect, useRef, lazy, Suspense, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Coins, Timer, Key, CheckCircle2, Lock, ChevronLeft, ChevronRight, Heart, Star, Zap, Ghost, Hexagon, ShoppingBag, Shirt } from 'lucide-react';
+import { Coins, Timer, Key, CheckCircle2, Lock, ChevronLeft, ChevronRight, Heart, Star, Zap, Ghost, Hexagon, ShoppingBag, Shirt, CircleDot } from 'lucide-react';
 import { REWARD_SCHEDULE, DAILY_REWARDS_ENABLED } from '../lib/rewards';
 import { ShopItem, Outfit } from '../types';
 import { API_BASE } from '../lib/apiConfig';
 import ErrorBoundary from './ErrorBoundary';
+import { PROFILE_BORDERS, getBorderConfig } from '../utils/gameData';
+import AnimatedBorder from './AnimatedBorder';
 import OnboardingNotice from './OnboardingNotice';
 import { SystemCoin } from './icons/SystemCoin';
 
@@ -51,6 +53,12 @@ interface ShopViewProps {
   // Chest inventory
   chests?: { legendary: number };
   onOpenChest?: () => void;
+  // Border system
+  ownedBorders?: string[];
+  equippedBorder?: string | null;
+  playerLevel?: number;
+  onPurchaseBorder?: (borderId: string, cost: number) => void;
+  onEquipBorder?: (borderId: string | null) => void;
 }
 
 const DUNGEON_BANNER = 'https://i.postimg.cc/zDwVQ9bN/Image-202602141625-tlkmvf.jpg';
@@ -100,8 +108,13 @@ const ShopView: React.FC<ShopViewProps> = ({
   outfitStones = {},
   chests,
   onOpenChest,
+  ownedBorders = ['border_default'],
+  equippedBorder = null,
+  playerLevel = 1,
+  onPurchaseBorder,
+  onEquipBorder,
 }) => {
-  const [storeTab, setStoreTab] = useState<'OUTFITS' | 'BADGES'>('OUTFITS');
+  const [storeTab, setStoreTab] = useState<'OUTFITS' | 'BADGES' | 'BORDERS'>('OUTFITS');
   const [timeUntilFree, setTimeUntilFree] = useState<number>(0);
   const [buyingItem, setBuyingItem] = useState<string | null>(null);
   const [dungeonHighlightActive, setDungeonHighlightActive] = useState(false);
@@ -209,6 +222,7 @@ const ShopView: React.FC<ShopViewProps> = ({
         {([
           { id: 'OUTFITS' as const, label: 'Outfits', icon: <Shirt size={13} /> },
           { id: 'BADGES' as const, label: 'Badges', icon: <Hexagon size={13} /> },
+          { id: 'BORDERS' as const, label: 'Borders', icon: <CircleDot size={13} /> },
         ]).map(tab => (
           <motion.button
             key={tab.id}
@@ -537,6 +551,145 @@ const ShopView: React.FC<ShopViewProps> = ({
               outfits={wardrobeOutfits}
             />
           </Suspense>
+        </motion.div>
+      )}
+
+      {/* ── TAB: BORDERS ── */}
+      {storeTab === 'BORDERS' && (
+        <motion.div
+          key="borders-tab"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="space-y-4"
+        >
+          {/* Section header */}
+          <div className="flex items-center gap-3">
+            <div className="text-[10px] font-mono font-bold tracking-[0.3em] uppercase text-gray-400">ANIMATED BORDERS</div>
+            <div className="flex-1 h-px bg-system-border" />
+          </div>
+
+          {/* Currently equipped */}
+          <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.15)' }}>
+            <div className="text-[10px] font-mono text-gray-400 uppercase tracking-wider">Equipped:</div>
+            <div className="text-xs font-mono font-bold" style={{ color: getBorderConfig(equippedBorder).accentColor }}>
+              {getBorderConfig(equippedBorder).name}
+            </div>
+            {equippedBorder && equippedBorder !== 'border_default' && (
+              <button
+                onClick={() => onEquipBorder?.(null)}
+                className="ml-auto text-[9px] font-mono font-bold px-2 py-1 rounded-lg uppercase tracking-wider"
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#9ca3af' }}
+              >
+                Unequip
+              </button>
+            )}
+          </div>
+
+          {/* Border cards grid */}
+          <div className="space-y-3">
+            {PROFILE_BORDERS.map(border => {
+              const isOwned = ownedBorders.includes(border.id);
+              const isEquipped = equippedBorder === border.id;
+              const canAfford = gold >= border.cost;
+              const meetsLevel = playerLevel >= border.levelRequired;
+              const isLocked = !isOwned && (!canAfford || !meetsLevel);
+
+              const TIER_COLORS: Record<string, string> = {
+                F: '#6b7280', E: '#f97316', D: '#4ade80', C: '#3b82f6',
+                B: '#7c3aed', A: '#fbbf24', S: '#e879f9',
+              };
+
+              return (
+                <motion.div
+                  key={border.id}
+                  whileTap={{ scale: 0.98 }}
+                  className="relative rounded-2xl overflow-hidden"
+                  style={{
+                    background: isEquipped
+                      ? `linear-gradient(135deg, rgba(${border.accentColor === '#3f3f46' ? '63,63,70' : border.accentColor === '#f97316' ? '249,115,22' : border.accentColor === '#4ade80' ? '74,222,128' : border.accentColor === '#3b82f6' ? '59,130,246' : border.accentColor === '#7c3aed' ? '124,58,237' : border.accentColor === '#fbbf24' ? '251,191,36' : '232,121,249'},0.08) 0%, rgba(0,0,0,0.4) 100%)`
+                      : 'rgba(0,0,0,0.3)',
+                    border: isEquipped
+                      ? `1px solid ${border.accentColor}40`
+                      : '1px solid rgba(255,255,255,0.06)',
+                  }}
+                >
+                  <div className="flex gap-3 p-3">
+                    {/* Preview square — shows the border animation on a small dark box */}
+                    <AnimatedBorder
+                      borderId={border.id}
+                      className="flex-shrink-0 rounded-xl"
+                      style={{ width: 72, height: 72 }}
+                    >
+                      <div className="w-full h-full rounded-xl flex items-center justify-center" style={{ background: '#0a0a12' }}>
+                        <div
+                          className="text-2xl font-black font-mono"
+                          style={{ color: border.accentColor, textShadow: `0 0 12px ${border.accentGlow}` }}
+                        >
+                          {border.tier}
+                        </div>
+                      </div>
+                    </AnimatedBorder>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <div className="text-sm font-black font-mono text-white truncate">{border.name}</div>
+                        <div
+                          className="text-[8px] font-mono font-bold px-1.5 py-0.5 rounded uppercase tracking-widest"
+                          style={{ background: `${TIER_COLORS[border.tier]}15`, color: TIER_COLORS[border.tier], border: `1px solid ${TIER_COLORS[border.tier]}30` }}
+                        >
+                          {border.tier}-Tier
+                        </div>
+                      </div>
+                      <div className="text-[10px] font-mono text-gray-500 leading-tight mb-2 line-clamp-2">{border.description}</div>
+
+                      {/* Price or status */}
+                      <div className="flex items-center gap-2">
+                        {isEquipped ? (
+                          <div className="flex items-center gap-1 text-[10px] font-mono font-bold uppercase tracking-wider" style={{ color: border.accentColor }}>
+                            <CheckCircle2 size={12} /> Equipped
+                          </div>
+                        ) : isOwned ? (
+                          <button
+                            onClick={() => onEquipBorder?.(border.id)}
+                            className="px-3 py-1.5 rounded-lg text-[10px] font-mono font-black uppercase tracking-widest transition-all"
+                            style={{ background: `${border.accentColor}20`, border: `1px solid ${border.accentColor}40`, color: border.accentColor }}
+                          >
+                            Equip
+                          </button>
+                        ) : (
+                          <>
+                            {!meetsLevel ? (
+                              <div className="flex items-center gap-1 text-[10px] font-mono font-bold text-gray-500">
+                                <Lock size={10} /> Lv.{border.levelRequired} Required
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => canAfford && onPurchaseBorder?.(border.id, border.cost)}
+                                disabled={!canAfford}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-mono font-black uppercase tracking-widest transition-all"
+                                style={canAfford
+                                  ? { background: 'linear-gradient(135deg, rgba(234,179,8,0.15), rgba(234,179,8,0.05))', border: '1px solid rgba(234,179,8,0.3)', color: '#fbbf24', boxShadow: '0 0 12px rgba(234,179,8,0.1)' }
+                                  : { background: 'rgba(30,30,30,0.6)', border: '1px solid rgba(100,100,100,0.2)', color: '#4b5563', cursor: 'not-allowed' }
+                                }
+                              >
+                                <Coins size={11} /> {border.cost.toLocaleString()} G
+                              </button>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+
+          {/* Info footer */}
+          <div className="text-center text-[9px] font-mono text-gray-600 pt-2 pb-4">
+            Borders are permanent · Visible on profile & leaderboard
+          </div>
         </motion.div>
       )}
     </div>

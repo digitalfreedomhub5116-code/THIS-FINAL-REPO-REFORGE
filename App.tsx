@@ -301,6 +301,8 @@ const App: React.FC = () => {
 
     updateServerBaseline, awardRandomStones,
 
+    purchaseBorder, equipBorder,
+
   } = useSystem();
 
 
@@ -4783,6 +4785,16 @@ const App: React.FC = () => {
                     chests={player.chests}
 
                     onOpenChest={() => setShowChestOpening(true)}
+
+                    ownedBorders={player.ownedBorders || ['border_default']}
+
+                    equippedBorder={player.equippedBorder}
+
+                    playerLevel={player.level}
+
+                    onPurchaseBorder={purchaseBorder}
+
+                    onEquipBorder={equipBorder}
 
                   />
 
