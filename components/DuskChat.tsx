@@ -6,8 +6,15 @@ import { PlayerData } from '../types';
 import { API_BASE } from '../lib/apiConfig';
 import { getPlayerAuthHeaders } from '../lib/playerApi';
 
+interface DuskAction {
+  tool: string;
+  args: Record<string, any>;
+  label?: string;
+}
+
 interface DuskChatProps {
   player: PlayerData;
+  updatePlayer?: (updater: (prev: PlayerData) => PlayerData) => void;
   onClose: () => void;
   onMarkRead?: () => void;
   onConsumeMana?: (amount: number) => boolean;
@@ -19,6 +26,7 @@ interface Message {
   sender: 'user' | 'dusk';
   text: string;
   timestamp: number;
+  actions?: DuskAction[];
 }
 
 // ── Animated Dusk Avatar (glowing orb with eyes) ──
@@ -166,7 +174,7 @@ const SuggestionChip: React.FC<ChipProps> = ({ icon, label, onClick }) => (
 );
 
 
-const DuskChat: React.FC<DuskChatProps> = ({ player, onClose, onMarkRead, onConsumeMana, onRefundMana }) => {
+const DuskChat: React.FC<DuskChatProps> = ({ player, updatePlayer, onClose, onMarkRead, onConsumeMana, onRefundMana }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -264,38 +272,192 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, onClose, onMarkRead, onCons
     return () => window.removeEventListener('dusk:new_message', handleNewMessage);
   }, []);
 
+  // ── Build full player context for the agent ──
+  const buildPlayerContext = () => {
+    const hp = player.healthProfile;
+    const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+    const todayMeals = (player.nutritionLogs || []).filter(m => m.timestamp >= todayStart.getTime());
+    const macroTarget = hp?.macros?.calories || hp?.customCalorieLimit || 2000;
+    const todayCalories = todayMeals.reduce((s, m) => s + m.totalCalories, 0);
+    const todayStr = new Date().toISOString().split('T')[0];
+    const todaySchedule = (player.dailySchedules || []).find(s => s.date === todayStr);
+    const activeQuests = (player.quests || []).filter(q => !q.isCompleted && !q.failed);
+    const failedQuests = (player.quests || []).filter(q => q.failed);
+
+    return {
+      name: player.name, level: player.level, rank: player.rank,
+      streak: player.streak, gold: player.gold, keys: player.keys,
+      stats: player.stats,
+      health: hp ? {
+        weight: hp.weight, height: hp.height, bmi: hp.bmi,
+        targetWeight: hp.targetWeight, goal: hp.goal,
+        equipment: hp.equipment, injuries: hp.injuries,
+        macros: hp.macros, currentPlan: hp.selectedPlanName,
+        lastWorkoutDate: hp.lastWorkoutDate,
+      } : null,
+      todayNutrition: {
+        mealsLogged: todayMeals.length,
+        totalCalories: todayCalories,
+        totalProtein: todayMeals.reduce((s, m) => s + m.totalProtein, 0),
+        remainingCalories: macroTarget - todayCalories,
+        meals: todayMeals.map(m => ({ label: m.label, calories: m.totalCalories, type: m.mealType })),
+      },
+      todaySchedule: todaySchedule?.slots?.map(s => ({
+        time: `${s.startTime}-${s.endTime}`, label: s.label, status: s.status,
+      })) || [],
+      quests: {
+        active: activeQuests.map(q => ({ id: q.id, title: q.title, scheduledTime: q.scheduledTime })),
+        failed: failedQuests.map(q => q.title),
+      },
+      goals: (player.goals || []).filter(g => g.status === 'ACTIVE').map(g => ({
+        title: g.title, category: g.category,
+        progress: `Day ${g.currentDay || 0}/${g.totalDays || '?'}`,
+      })),
+      workoutPlan: hp?.workoutPlan?.map(d => ({
+        day: d.day, exercises: d.exercises?.map(e => e.name).join(', '),
+      })) || [],
+    };
+  };
+
+  // ── Execute agent actions on player state ──
+  const executeActions = (actions: DuskAction[]) => {
+    if (!updatePlayer || !actions?.length) return;
+    for (const action of actions) {
+      switch (action.tool) {
+        case 'log_meal': {
+          const a = action.args;
+          updatePlayer(prev => ({
+            ...prev,
+            nutritionLogs: [...(prev.nutritionLogs || []), {
+              id: `dusk_${Date.now()}`,
+              label: a.label || 'Meal',
+              items: [{
+                id: `food_${Date.now()}`, name: a.label || 'Food',
+                calories: a.calories || 0, protein: a.protein || 0,
+                carbs: a.carbs || 0, fats: a.fats || 0,
+                servingSize: '1 serving', quantity: 1,
+              }],
+              totalCalories: a.calories || 0,
+              totalProtein: a.protein || 0,
+              totalCarbs: a.carbs || 0,
+              totalFats: a.fats || 0,
+              mealType: a.mealType || 'SNACK',
+              timestamp: Date.now(),
+            }],
+          }));
+          break;
+        }
+        case 'create_workout': {
+          const a = action.args;
+          const workoutDay = {
+            day: a.name || 'Custom Workout',
+            focus: a.focus || 'Full Body',
+            totalDuration: a.totalDuration || 30,
+            exercises: (a.exercises || []).map((e: any, i: number) => ({
+              id: `dusk_ex_${Date.now()}_${i}`,
+              name: e.name, sets: e.sets || 3, reps: e.reps || '10',
+              type: e.type || 'COMPOUND', notes: e.notes || '',
+              duration: 0, completed: false,
+            })),
+          };
+          updatePlayer(prev => ({
+            ...prev,
+            customProtocols: {
+              ...(prev.customProtocols || {}),
+              [a.name || 'Dusk Workout']: [workoutDay],
+            },
+          }));
+          break;
+        }
+        case 'update_schedule': {
+          const a = action.args;
+          const todayStr = new Date().toISOString().split('T')[0];
+          const newSlots = (a.slots || []).map((s: any, i: number) => ({
+            id: `dusk_slot_${Date.now()}_${i}`,
+            startTime: s.startTime, endTime: s.endTime,
+            label: s.label, type: s.type || 'BLOCKED',
+            status: 'PENDING' as const, isFlexible: true, isCarryOver: false,
+          }));
+          updatePlayer(prev => {
+            const existing = (prev.dailySchedules || []).filter(s => s.date !== todayStr);
+            return {
+              ...prev,
+              dailySchedules: [...existing, {
+                date: todayStr, slots: newSlots,
+                swapsUsed: 0, restDayUsed: false, generatedAt: Date.now(),
+              }],
+            };
+          });
+          break;
+        }
+        case 'create_quest': {
+          const a = action.args;
+          const category = a.category || 'discipline';
+          updatePlayer(prev => ({
+            ...prev,
+            quests: [...(prev.quests || []), {
+              id: `dusk_q_${Date.now()}`,
+              title: a.title, xpReward: a.xpReward || 20,
+              categories: [category],
+              rank: prev.rank || 'E',
+              isCompleted: false, failed: false,
+              scheduledTime: a.scheduledTime || undefined,
+              source: 'dusk',
+            } as any],
+          }));
+          break;
+        }
+        case 'navigate_to': {
+          window.dispatchEvent(new CustomEvent('dusk:navigate', {
+            detail: { screen: action.args.screen },
+          }));
+          break;
+        }
+        case 'log_weight': {
+          const w = action.args.weight;
+          if (w && typeof w === 'number') {
+            updatePlayer(prev => ({
+              ...prev,
+              healthProfile: prev.healthProfile ? {
+                ...prev.healthProfile, weight: w,
+                bmi: Math.round((w / ((prev.healthProfile.height / 100) ** 2)) * 10) / 10,
+              } : prev.healthProfile,
+            }));
+          }
+          break;
+        }
+      }
+    }
+  };
+
   const generateResponse = async (userMessage: string) => {
     setIsLoading(true);
     try {
-      const failedQuests = (player.quests || []).filter(q => q.failed).map(q => q.title).join(', ');
-      const activeQuests = (player.quests || []).filter(q => !q.isCompleted && !q.failed).map(q => q.title).join(', ');
-
-      const res = await fetch(`${API_BASE}/api/dusk/chat`, {
+      const res = await fetch(`${API_BASE}/api/dusk/agent-chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
         credentials: 'include',
         body: JSON.stringify({
           message: userMessage,
-          history: messages.slice(-8),
-          playerContext: {
-            name: player.name,
-            level: player.level,
-            rank: player.rank,
-            streak: player.streak,
-            stats: player.stats,
-            failedQuests: failedQuests || 'None',
-            activeQuests: activeQuests || 'None'
-          }
+          history: messages.slice(-8).map(m => ({ sender: m.sender, text: m.text })),
+          playerContext: buildPlayerContext(),
         })
       });
 
       const data = await res.json();
       const text = data.text || 'Something went wrong. Try again.';
+      const actions: DuskAction[] = data.actions || [];
+
+      // Execute any actions the agent returned
+      if (actions.length > 0) {
+        executeActions(actions);
+      }
 
       setMessages(prev => [...prev, {
         id: Date.now().toString(),
         sender: 'dusk',
         text,
+        actions,
         timestamp: Date.now()
       }]);
     } catch (error) {
@@ -517,6 +679,47 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, onClose, onMarkRead, onCons
                         }
                       `}>
                         {msg.text}
+                        {/* ── Action Cards ── */}
+                        {msg.actions && msg.actions.length > 0 && (
+                          <div className="mt-2.5 space-y-2">
+                            {msg.actions.map((action, ai) => (
+                              <motion.div
+                                key={ai}
+                                initial={{ opacity: 0, y: 4 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.2 + ai * 0.1 }}
+                                className="rounded-lg px-3 py-2.5 text-[11px] font-mono cursor-pointer active:scale-[0.98] transition-transform"
+                                style={{
+                                  background: 'rgba(0,210,255,0.06)',
+                                  border: '1px solid rgba(0,210,255,0.15)',
+                                }}
+                                onClick={() => {
+                                  if (action.tool === 'navigate_to') {
+                                    window.dispatchEvent(new CustomEvent('dusk:navigate', {
+                                      detail: { screen: action.args.screen },
+                                    }));
+                                    onClose();
+                                  }
+                                }}
+                              >
+                                <div className="text-cyan-300 font-bold">{action.label || '✅ Action completed'}</div>
+                                {action.tool === 'log_meal' && (
+                                  <div className="text-gray-500 mt-0.5">
+                                    P: {action.args.protein}g · C: {action.args.carbs}g · F: {action.args.fats}g
+                                  </div>
+                                )}
+                                {action.tool === 'create_workout' && (
+                                  <div className="text-gray-500 mt-0.5">
+                                    {action.args.exercises?.length} exercises · ~{action.args.totalDuration} min
+                                  </div>
+                                )}
+                                {(action.tool === 'navigate_to' || action.tool === 'create_workout') && (
+                                  <div className="text-cyan-400/70 mt-1 text-[10px]">Tap to open →</div>
+                                )}
+                              </motion.div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </motion.div>
                   );

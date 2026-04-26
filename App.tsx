@@ -3833,6 +3833,8 @@ const App: React.FC = () => {
 
                   player={player}
 
+                  updatePlayer={setPlayer}
+
                   onClose={() => setShowDuskChat(false)}
 
                   onMarkRead={markDuskMessagesRead}

@@ -42,6 +42,7 @@ async function startServer() {
   const nutritionRouter = await import('./routes/nutrition.js');
   const forgeGuardRouter = await import('./routes/forgeguard.js');
   const duskRouter = await import('./routes/dusk.js');
+  const duskAgentRouter = await import('./routes/duskAgent.js');
   const storeRouter = await import('./routes/store.js');
   const globalConfigRouter = await import('./routes/globalConfig_supabase.js');
   const workoutRouter = await import('./routes/workout.js');
@@ -191,6 +192,7 @@ async function startServer() {
   app.use('/api/admin', adminRouter.default);
   app.use('/api/nutrition', aiRateLimit, nutritionRouter.default);
   app.use('/api/dusk', aiRateLimit, duskRouter.default);
+  app.use('/api/dusk', aiRateLimit, duskAgentRouter.default);
   app.use('/api/store', generalRateLimit, storeRouter.default);
   app.use('/api/global-config', generalRateLimit, globalConfigRouter.default);
   app.use('/api/workout', generalRateLimit, workoutRouter.default);
