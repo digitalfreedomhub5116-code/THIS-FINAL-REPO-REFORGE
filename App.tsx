@@ -637,6 +637,19 @@ const App: React.FC = () => {
 
   }, []);
 
+  // ── Dusk Agent navigation listener ──
+  useEffect(() => {
+    const handleDuskNav = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      const tab = detail?.tab as Tab;
+      if (tab) {
+        navigateTo(tab);
+        setShowDuskChat(false);
+      }
+    };
+    window.addEventListener('dusk:navigate', handleDuskNav);
+    return () => window.removeEventListener('dusk:navigate', handleDuskNav);
+  }, [navigateTo]);
 
 
   // ── Food scan banner (shown on non-HEALTH tabs when scan is running) ──

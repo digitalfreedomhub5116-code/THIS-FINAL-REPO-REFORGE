@@ -323,109 +323,144 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, updatePlayer, onClose, onMa
   const executeActions = (actions: DuskAction[]) => {
     if (!updatePlayer || !actions?.length) return;
     for (const action of actions) {
-      switch (action.tool) {
-        case 'log_meal': {
-          const a = action.args;
-          updatePlayer(prev => ({
-            ...prev,
-            nutritionLogs: [...(prev.nutritionLogs || []), {
-              id: `dusk_${Date.now()}`,
-              label: a.label || 'Meal',
-              items: [{
-                id: `food_${Date.now()}`, name: a.label || 'Food',
-                calories: a.calories || 0, protein: a.protein || 0,
-                carbs: a.carbs || 0, fats: a.fats || 0,
-                servingSize: '1 serving', quantity: 1,
-              }],
-              totalCalories: a.calories || 0,
-              totalProtein: a.protein || 0,
-              totalCarbs: a.carbs || 0,
-              totalFats: a.fats || 0,
-              mealType: a.mealType || 'SNACK',
-              timestamp: Date.now(),
-            }],
-          }));
-          break;
-        }
-        case 'create_workout': {
-          const a = action.args;
-          const workoutDay = {
-            day: a.name || 'Custom Workout',
-            focus: a.focus || 'Full Body',
-            totalDuration: a.totalDuration || 30,
-            exercises: (a.exercises || []).map((e: any, i: number) => ({
-              id: `dusk_ex_${Date.now()}_${i}`,
-              name: e.name, sets: e.sets || 3, reps: e.reps || '10',
-              type: e.type || 'COMPOUND', notes: e.notes || '',
-              duration: 0, completed: false,
-            })),
-          };
-          updatePlayer(prev => ({
-            ...prev,
-            customProtocols: {
-              ...(prev.customProtocols || {}),
-              [a.name || 'Dusk Workout']: [workoutDay],
-            },
-          }));
-          break;
-        }
-        case 'update_schedule': {
-          const a = action.args;
-          const todayStr = new Date().toISOString().split('T')[0];
-          const newSlots = (a.slots || []).map((s: any, i: number) => ({
-            id: `dusk_slot_${Date.now()}_${i}`,
-            startTime: s.startTime, endTime: s.endTime,
-            label: s.label, type: s.type || 'BLOCKED',
-            status: 'PENDING' as const, isFlexible: true, isCarryOver: false,
-          }));
-          updatePlayer(prev => {
-            const existing = (prev.dailySchedules || []).filter(s => s.date !== todayStr);
-            return {
-              ...prev,
-              dailySchedules: [...existing, {
-                date: todayStr, slots: newSlots,
-                swapsUsed: 0, restDayUsed: false, generatedAt: Date.now(),
-              }],
-            };
-          });
-          break;
-        }
-        case 'create_quest': {
-          const a = action.args;
-          const category = a.category || 'discipline';
-          updatePlayer(prev => ({
-            ...prev,
-            quests: [...(prev.quests || []), {
-              id: `dusk_q_${Date.now()}`,
-              title: a.title, xpReward: a.xpReward || 20,
-              categories: [category],
-              rank: prev.rank || 'E',
-              isCompleted: false, failed: false,
-              scheduledTime: a.scheduledTime || undefined,
-              source: 'dusk',
-            } as any],
-          }));
-          break;
-        }
-        case 'navigate_to': {
-          window.dispatchEvent(new CustomEvent('dusk:navigate', {
-            detail: { screen: action.args.screen },
-          }));
-          break;
-        }
-        case 'log_weight': {
-          const w = action.args.weight;
-          if (w && typeof w === 'number') {
+      try {
+        switch (action.tool) {
+          case 'log_meal': {
+            const a = action.args;
             updatePlayer(prev => ({
               ...prev,
-              healthProfile: prev.healthProfile ? {
-                ...prev.healthProfile, weight: w,
-                bmi: Math.round((w / ((prev.healthProfile.height / 100) ** 2)) * 10) / 10,
-              } : prev.healthProfile,
+              nutritionLogs: [...(prev.nutritionLogs || []), {
+                id: `dusk_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+                label: a.label || 'Meal',
+                items: [{
+                  id: `food_${Date.now()}`, name: a.label || 'Food',
+                  calories: a.calories || 0, protein: a.protein || 0,
+                  carbs: a.carbs || 0, fats: a.fats || 0,
+                  servingSize: '1 serving', quantity: 1,
+                }],
+                totalCalories: a.calories || 0,
+                totalProtein: a.protein || 0,
+                totalCarbs: a.carbs || 0,
+                totalFats: a.fats || 0,
+                mealType: a.mealType || 'SNACK',
+                timestamp: Date.now(),
+              }],
             }));
+            console.log('[Dusk Agent] ✅ Meal logged:', a.label);
+            break;
           }
-          break;
+          case 'create_workout': {
+            const a = action.args;
+            const workoutDay = {
+              day: a.name || 'Custom Workout',
+              focus: a.focus || 'Full Body',
+              totalDuration: a.totalDuration || 30,
+              exercises: (a.exercises || []).map((e: any, i: number) => ({
+                id: `dusk_ex_${Date.now()}_${i}`,
+                name: e.name, sets: e.sets || 3, reps: e.reps || '10',
+                type: e.type || 'COMPOUND', notes: e.notes || '',
+                duration: 0, completed: false,
+              })),
+            };
+            updatePlayer(prev => {
+              const updatedProtocols = {
+                ...(prev.customProtocols || {}),
+                [a.name || 'Dusk Workout']: [workoutDay],
+              };
+              return {
+                ...prev,
+                customProtocols: updatedProtocols,
+                // Also set as active workout plan so it shows immediately
+                healthProfile: prev.healthProfile ? {
+                  ...prev.healthProfile,
+                  workoutPlan: [workoutDay, ...(prev.healthProfile.workoutPlan || [])],
+                  selectedPlanName: a.name || 'Dusk Workout',
+                } : prev.healthProfile,
+              };
+            });
+            console.log('[Dusk Agent] ✅ Workout created:', a.name);
+            break;
+          }
+          case 'update_schedule': {
+            const a = action.args;
+            const todayStr = new Date().toISOString().split('T')[0];
+            const newSlots = (a.slots || []).map((s: any, i: number) => ({
+              id: `dusk_slot_${Date.now()}_${i}`,
+              startTime: s.startTime, endTime: s.endTime,
+              label: s.label, type: s.type || 'BLOCKED',
+              status: 'PENDING' as const, isFlexible: true, isCarryOver: false,
+            }));
+            updatePlayer(prev => {
+              const existing = (prev.dailySchedules || []).filter(s => s.date !== todayStr);
+              return {
+                ...prev,
+                dailySchedules: [...existing, {
+                  date: todayStr, slots: newSlots,
+                  swapsUsed: 0, restDayUsed: false, generatedAt: Date.now(),
+                }],
+              };
+            });
+            console.log('[Dusk Agent] ✅ Schedule updated with', newSlots.length, 'slots');
+            break;
+          }
+          case 'create_quest': {
+            const a = action.args;
+            const validCategories = ['strength', 'intelligence', 'discipline', 'focus', 'social', 'willpower'] as const;
+            const category = validCategories.includes(a.category) ? a.category : 'discipline';
+            const questId = `dusk_q_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+            updatePlayer(prev => ({
+              ...prev,
+              quests: [...(prev.quests || []), {
+                id: questId,
+                title: a.title || 'New Quest',
+                description: a.title || 'Quest created by Dusk AI',
+                rank: prev.rank || 'E',
+                priority: 'NORMAL' as any,
+                category: category,
+                categories: [category],
+                xpReward: a.xpReward || 20,
+                isCompleted: false,
+                failed: false,
+                createdAt: Date.now(),
+                isDaily: false,
+                scheduledTime: a.scheduledTime || undefined,
+                aiReasoning: 'Created by Dusk AI agent',
+              } as any],
+            }));
+            console.log('[Dusk Agent] ✅ Quest created:', a.title, 'ID:', questId);
+            break;
+          }
+          case 'navigate_to': {
+            const screenMap: Record<string, string> = {
+              'WORKOUT': 'HEALTH', 'NUTRITION': 'HEALTH', 'HEALTH': 'HEALTH',
+              'SCHEDULE': 'DASHBOARD', 'GOALS': 'QUESTS', 'QUESTS': 'QUESTS',
+              'STORE': 'STORE', 'LEADERBOARD': 'LEADERBOARD',
+            };
+            const tab = screenMap[action.args.screen] || 'DASHBOARD';
+            // Dispatch navigation event that App.tsx can listen to
+            window.dispatchEvent(new CustomEvent('dusk:navigate', {
+              detail: { tab },
+            }));
+            console.log('[Dusk Agent] ✅ Navigate to:', tab);
+            break;
+          }
+          case 'log_weight': {
+            const w = action.args.weight;
+            if (w && typeof w === 'number') {
+              updatePlayer(prev => ({
+                ...prev,
+                healthProfile: prev.healthProfile ? {
+                  ...prev.healthProfile, weight: w,
+                  bmi: Math.round((w / ((prev.healthProfile.height / 100) ** 2)) * 10) / 10,
+                } : prev.healthProfile,
+              }));
+              console.log('[Dusk Agent] ✅ Weight updated:', w, 'kg');
+            }
+            break;
+          }
         }
+      } catch (err) {
+        console.error('[Dusk Agent] Action execution failed:', action.tool, err);
       }
     }
   };
