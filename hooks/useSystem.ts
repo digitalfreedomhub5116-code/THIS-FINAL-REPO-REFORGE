@@ -400,7 +400,7 @@ export const useSystem = () => {
     if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
     syncTimerRef.current = setTimeout(() => {
       syncToCloud(player);
-    }, 2000);
+    }, 5000);
     return () => {
       if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
     };

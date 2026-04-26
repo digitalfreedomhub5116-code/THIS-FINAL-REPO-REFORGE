@@ -189,7 +189,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
   // Poll every 10 seconds
   useEffect(() => {
     fetchLeaderboard();
-    const interval = setInterval(() => fetchLeaderboard(), 10_000);
+    const interval = setInterval(() => fetchLeaderboard(), 60_000);
     return () => clearInterval(interval);
   }, [fetchLeaderboard]);
 
