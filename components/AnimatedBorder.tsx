@@ -352,28 +352,38 @@ const AnimatedBorder: React.FC<AnimatedBorderProps> = ({
   const Renderer = ANIMATION_RENDERERS[border.animationType];
 
   if (compact) {
-    // Compact mode — just a thin glowing ring for small avatars
+    // Compact mode — bold glowing ring for small avatars (leaderboard, etc.)
+    const isDefault = border.animationType === 'none';
+    const isPrismatic = border.animationType === 'prismatic';
     return (
       <div className={`relative ${className}`} style={style}>
-        {border.animationType !== 'none' && (
+        {!isDefault && (
           <motion.div
-            className="absolute -inset-[2px] rounded-full z-0"
+            className="absolute -inset-[3px] rounded-full z-0"
             animate={
-              border.animationType === 'prismatic'
+              isPrismatic
                 ? { rotate: 360 }
-                : { opacity: [0.5, 1, 0.5] }
+                : { opacity: [0.7, 1, 0.7] }
             }
             transition={
-              border.animationType === 'prismatic'
+              isPrismatic
                 ? { duration: 4, repeat: Infinity, ease: 'linear' }
                 : { duration: 2, repeat: Infinity, ease: 'easeInOut' }
             }
             style={{
-              background: border.animationType === 'prismatic'
+              background: isPrismatic
                 ? 'conic-gradient(from 0deg, #f87171, #fbbf24, #4ade80, #06b6d4, #8b5cf6, #ec4899, #f87171)'
                 : `linear-gradient(135deg, ${border.accentColor}, ${border.secondaryColor || border.accentColor})`,
               borderRadius: 'inherit',
+              boxShadow: `0 0 6px ${border.accentGlow}, 0 0 12px ${border.accentGlow}`,
             }}
+          />
+        )}
+        {/* Thin default ring for non-animated borders */}
+        {isDefault && (
+          <div
+            className="absolute -inset-[1px] rounded-full z-0"
+            style={{ border: `1px solid rgba(255,255,255,0.12)` }}
           />
         )}
         <div className="relative z-10">{children}</div>

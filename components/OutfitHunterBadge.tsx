@@ -64,13 +64,11 @@ const OutfitHunterBadge: React.FC<OutfitHunterBadgeProps> = ({ outfitId, size = 
   }
 
   return (
-    <motion.div
-      animate={{ scale: [1, 1.05, 1] }}
-      transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+    <div
       style={{ width: size, height: size, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
     >
       {inner}
-    </motion.div>
+    </div>
   );
 };
 
