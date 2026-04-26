@@ -58,14 +58,14 @@ export const toggleSoundMute = (): boolean => { const next = !isSoundMuted(); se
 // ── Haptic Feedback ──
 // Uses the Vibration API (mobile only, silent fail on desktop)
 const HAPTIC_PATTERNS: Record<string, number | number[]> = {
-    CLICK: 8,
-    SUCCESS: [10, 30, 15],
-    PURCHASE: [15, 20, 10],
-    WARNING: [20, 10, 20, 10, 30],
-    LEVEL_UP: [15, 30, 15, 30, 25, 40, 35],
-    RANK_UP: [20, 30, 20, 30, 20, 40, 40, 50, 60],
-    TAB_SWITCH: 5,
-    TICK: 3,
+    CLICK: 25,
+    SUCCESS: [30, 50, 40],
+    PURCHASE: [35, 40, 30],
+    WARNING: [40, 30, 40, 30, 50],
+    LEVEL_UP: [30, 50, 30, 50, 40, 60, 80],
+    RANK_UP: [40, 50, 40, 50, 40, 60, 60, 80, 100],
+    TAB_SWITCH: 20,
+    TICK: 15,
 };
 
 export const triggerHaptic = (type: string = 'CLICK') => {
