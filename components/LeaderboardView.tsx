@@ -247,7 +247,9 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
     return [...entries].map((e, i) => {
       const isMe = i === meIndex;
 
-      // ── INSTANT LOCAL MERGE: use latest local XP for "me" ──
+      // ── INSTANT LOCAL MERGE: use latest local XP for "me" only ──
+      // All other fields (outfit, border, streak, rank) come from the API
+      // to prevent data leak if match is wrong
       let displayXp: number;
       if (isMe) {
         displayXp = activeTab === 'global' ? (player.totalXp || 0) : (player.dailyXp || 0);
@@ -260,13 +262,13 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
         isMe,
         dominance: displayXp,
         isDebuffed: false,
-        computedRank: computeRankFromLevel(isMe ? (player.level || 1) : (e.level || 1)),
-        outfitId: isMe ? (player.equippedOutfitId || 'outfit_starter') : (e.equipped_outfit_id || 'outfit_starter'),
-        streak: isMe ? (player.streak || 0) : (e.streak || 0),
-        borderId: isMe ? (player.equippedBorder || null) : (e.equipped_border || null),
+        computedRank: computeRankFromLevel(e.level || 1),
+        outfitId: e.equipped_outfit_id || 'outfit_starter',
+        streak: e.streak || 0,
+        borderId: e.equipped_border || null,
       };
     }).sort((a, b) => b.dominance - a.dominance);
-  }, [entries, player.userId, player.username, player.name, xpField, player.equippedOutfitId, player.totalXp, player.dailyXp, player.level, activeTab]);
+  }, [entries, player.userId, player.username, player.name, xpField, player.totalXp, player.dailyXp, activeTab]);
 
   const myIndex = simulatedEntries.findIndex(e => e.isMe);
   const myRank = myIndex >= 0 ? myIndex + 1 : 999;
