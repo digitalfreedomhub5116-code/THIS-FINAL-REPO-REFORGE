@@ -238,15 +238,17 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, onClose, onMarkRead, onCons
     }
   }, []);
 
-  // Auto-scroll
+  // Auto-scroll — fires on new messages AND when loading state changes
+  const bottomRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
+    // Use rAF to wait for DOM to paint, then scroll
+    requestAnimationFrame(() => {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    });
     if (messages.length > 0) {
       localStorage.setItem(`dusk_chat_history_${player.userId || 'local'}`, JSON.stringify(messages));
     }
-  }, [messages, player.userId]);
+  }, [messages, isLoading, player.userId]);
 
   // Listen for autonomous messages
   useEffect(() => {
@@ -532,7 +534,10 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, onClose, onMarkRead, onCons
                         border: '1px solid rgba(0,210,255,0.2)',
                       }}
                     >
-                      <DuskAvatar isThinking={true} />
+                      <div className="flex gap-0.5">
+                        <div className="w-[2px] h-[3px] rounded-full bg-white/80" />
+                        <div className="w-[2px] h-[3px] rounded-full bg-white/80" />
+                      </div>
                     </div>
                     <div className="bg-gray-900/70 border border-gray-800 px-4 py-3 rounded-2xl rounded-tl-md flex items-center gap-2">
                       <div className="flex gap-1">
@@ -549,6 +554,9 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, onClose, onMarkRead, onCons
                     </div>
                   </motion.div>
                 )}
+
+                {/* Scroll anchor — always at the very bottom */}
+                <div ref={bottomRef} className="h-1" />
               </motion.div>
             )}
           </AnimatePresence>
