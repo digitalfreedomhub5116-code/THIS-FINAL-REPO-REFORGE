@@ -352,30 +352,40 @@ const AnimatedBorder: React.FC<AnimatedBorderProps> = ({
   const Renderer = ANIMATION_RENDERERS[border.animationType];
 
   if (compact) {
-    // Compact mode — bold glowing ring for small avatars (leaderboard, etc.)
+    // Compact mode — clean glowing ring for small avatars (leaderboard, etc.)
     const isDefault = border.animationType === 'none';
     const isPrismatic = border.animationType === 'prismatic';
     return (
       <div className={`relative ${className}`} style={style}>
         {!isDefault && (
           <motion.div
-            className="absolute -inset-[3px] rounded-full z-0"
+            className="absolute -inset-[2px] rounded-full z-0"
             animate={
               isPrismatic
                 ? { rotate: 360 }
-                : { opacity: [0.7, 1, 0.7] }
+                : { opacity: [0.6, 1, 0.6] }
             }
             transition={
               isPrismatic
                 ? { duration: 4, repeat: Infinity, ease: 'linear' }
-                : { duration: 2, repeat: Infinity, ease: 'easeInOut' }
+                : { duration: 2.5, repeat: Infinity, ease: 'easeInOut' }
             }
             style={{
+              borderRadius: 'inherit',
+              border: isPrismatic
+                ? 'none'
+                : `2px solid ${border.accentColor}`,
               background: isPrismatic
                 ? 'conic-gradient(from 0deg, #f87171, #fbbf24, #4ade80, #06b6d4, #8b5cf6, #ec4899, #f87171)'
-                : `linear-gradient(135deg, ${border.accentColor}, ${border.secondaryColor || border.accentColor})`,
-              borderRadius: 'inherit',
-              boxShadow: `0 0 6px ${border.accentGlow}, 0 0 12px ${border.accentGlow}`,
+                : 'transparent',
+              boxShadow: `0 0 4px ${border.accentGlow}`,
+              ...(isPrismatic ? {
+                mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+                WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+                maskComposite: 'exclude',
+                WebkitMaskComposite: 'xor',
+                padding: '2px',
+              } as React.CSSProperties : {}),
             }}
           />
         )}

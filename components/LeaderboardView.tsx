@@ -210,36 +210,42 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
   const xpField = activeTab === 'global' ? 'total_xp' : 'daily_xp';
 
   const simulatedEntries: SimEntry[] = useMemo(() => {
-    // ── PRIMARY: Match by player UUID (bulletproof, never collides) ──
     const myPlayerId = player.userId || '';
     const myUsername = (player.username || '').trim().toLowerCase();
     const myName = (player.name || '').trim().toLowerCase();
 
-    return [...entries].map(e => {
-      // Match by player_id (table UUID) or supabase_id (auth ID)
-      let isMe = false;
-      if (myPlayerId) {
-        if (e.player_id === myPlayerId || e.supabase_id === myPlayerId) {
-          isMe = true;
-        }
+    // ── EXCLUSIVE MATCH: find the single best "me" entry ──
+    // Priority: UUID match > username match > name match (only if no username match exists)
+    let meIndex = -1;
+
+    // Pass 1: UUID match (most reliable)
+    if (myPlayerId) {
+      meIndex = entries.findIndex(
+        e => e.player_id === myPlayerId || e.supabase_id === myPlayerId
+      );
+    }
+
+    // Pass 2: username match (if UUID didn't hit)
+    if (meIndex < 0 && myUsername) {
+      meIndex = entries.findIndex(
+        e => (e.username || '').trim().toLowerCase() === myUsername
+      );
+    }
+
+    // Pass 3: name match as last resort (only if no entry matched by username at all)
+    if (meIndex < 0 && myName) {
+      const anyUsernameHit = myUsername && entries.some(
+        e => (e.username || '').trim().toLowerCase() === myUsername
+      );
+      if (!anyUsernameHit) {
+        meIndex = entries.findIndex(
+          e => (e.name || '').trim().toLowerCase() === myName
+        );
       }
-      
-      if (!isMe) {
-        // Last resort fallback for offline/legacy: match by username or name
-        const entryUsername = (e.username || '').trim().toLowerCase();
-        const entryName = (e.name || '').trim().toLowerCase();
-        if (myUsername && entryUsername === myUsername) {
-          isMe = true;
-        } else if (myName && entryName === myName) {
-          // Only match by name if username didn't match ANY entry
-          const usernameMatchExists = entries.some(
-            x => (x.username || '').trim().toLowerCase() === myUsername
-          );
-          if (!usernameMatchExists) {
-            isMe = true;
-          }
-        }
-      }
+    }
+
+    return [...entries].map((e, i) => {
+      const isMe = i === meIndex;
 
       // ── INSTANT LOCAL MERGE: use latest local XP for "me" ──
       let displayXp: number;
