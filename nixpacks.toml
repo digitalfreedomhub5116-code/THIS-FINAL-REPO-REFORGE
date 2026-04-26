@@ -1,5 +1,8 @@
 [phases.install]
-cmds = ["npm ci --ignore-scripts", "npm rebuild bcrypt"]
+cmds = ["npm ci --include=dev --ignore-scripts", "npm rebuild bcrypt"]
 
-[variables]
-NODE_ENV = "development"
+[phases.build]
+cmds = ["npm run build"]
+
+[start]
+cmd = "npm start"
