@@ -4501,29 +4501,8 @@ const App: React.FC = () => {
 
 
 
-              {/* Stat Pillars */}
 
-              <div id="tut-stats" className="responsive-full-span">
 
-                <Suspense fallback={<SkeletonStatBoxes />}>
-
-                  <ErrorBoundary fallbackLabel="Stat boxes failed">
-
-                    <StatBoxes
-
-                      stats={player.stats}
-
-                      dailyStats={player.dailyStats}
-
-                      weeklyStats={player.weeklyStats}
-
-                    />
-
-                  </ErrorBoundary>
-
-                </Suspense>
-
-              </div>
 
 
 
