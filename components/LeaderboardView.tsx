@@ -212,55 +212,33 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
   const simulatedEntries: SimEntry[] = useMemo(() => {
     const myPlayerId = player.userId || '';
     const myUsername = (player.username || '').trim().toLowerCase();
-    const myName = (player.name || '').trim().toLowerCase();
 
-    // ── EXCLUSIVE MATCH: find the single best "me" entry ──
-    // Priority: UUID match > username match > name match (only if no username match exists)
+    // ── EXCLUSIVE MATCH: find the single "me" entry ──
+    // Priority: username match (visible, always correct) > supabase_id match
+    // NEVER use player_id (internal DB UUID ≠ auth ID)
     let meIndex = -1;
 
-    // Pass 1: UUID match (most reliable)
-    if (myPlayerId) {
-      meIndex = entries.findIndex(
-        e => e.player_id === myPlayerId || e.supabase_id === myPlayerId
-      );
-    }
-
-    // Pass 2: username match (if UUID didn't hit)
-    if (meIndex < 0 && myUsername) {
+    // Pass 1: username match (most reliable — what the user sees)
+    if (myUsername) {
       meIndex = entries.findIndex(
         e => (e.username || '').trim().toLowerCase() === myUsername
       );
     }
 
-    // Pass 3: name match as last resort (only if no entry matched by username at all)
-    if (meIndex < 0 && myName) {
-      const anyUsernameHit = myUsername && entries.some(
-        e => (e.username || '').trim().toLowerCase() === myUsername
+    // Pass 2: supabase_id match (if username didn't hit — e.g. username not set yet)
+    if (meIndex < 0 && myPlayerId) {
+      meIndex = entries.findIndex(
+        e => e.supabase_id === myPlayerId
       );
-      if (!anyUsernameHit) {
-        meIndex = entries.findIndex(
-          e => (e.name || '').trim().toLowerCase() === myName
-        );
-      }
     }
 
     return [...entries].map((e, i) => {
       const isMe = i === meIndex;
 
-      // ── INSTANT LOCAL MERGE: use latest local XP for "me" only ──
-      // All other fields (outfit, border, streak, rank) come from the API
-      // to prevent data leak if match is wrong
-      let displayXp: number;
-      if (isMe) {
-        displayXp = activeTab === 'global' ? (player.totalXp || 0) : (player.dailyXp || 0);
-      } else {
-        displayXp = (e as any)[xpField] || 0;
-      }
-
       return {
         ...e,
         isMe,
-        dominance: displayXp,
+        dominance: (e as any)[xpField] || 0,
         isDebuffed: false,
         computedRank: computeRankFromLevel(e.level || 1),
         outfitId: e.equipped_outfit_id || 'outfit_starter',
@@ -268,7 +246,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
         borderId: e.equipped_border || null,
       };
     }).sort((a, b) => b.dominance - a.dominance);
-  }, [entries, player.userId, player.username, player.name, xpField, player.totalXp, player.dailyXp, activeTab]);
+  }, [entries, player.userId, player.username, xpField, activeTab]);
 
   const myIndex = simulatedEntries.findIndex(e => e.isMe);
   const myRank = myIndex >= 0 ? myIndex + 1 : 999;
