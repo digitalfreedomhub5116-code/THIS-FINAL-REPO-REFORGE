@@ -299,7 +299,7 @@ const App: React.FC = () => {
 
     checkDailyLogin, updateSkillProgress,
 
-    updateServerBaseline, markServerPullDone, awardRandomStones,
+    updateServerBaseline, markServerPullDone, setServerUpdatedAt, awardRandomStones,
 
     purchaseBorder, equipBorder,
 
@@ -1205,8 +1205,19 @@ const App: React.FC = () => {
         }
 
         // SYNC GATE: First poll done — open the gate so syncToCloud can push
+
         if (isFirstPoll) {
+
           markServerPullDone();
+
+        }
+
+        // Keep the conflict-detection ref up to date on every poll
+
+        if (row.updatedAt) {
+
+          setServerUpdatedAt(row.updatedAt);
+
         }
 
 

@@ -324,6 +324,11 @@ export const useSystem = () => {
   const markServerPullDone = useCallback(() => {
     serverPullDoneRef.current = true;
   }, []);
+
+  // Called by App.tsx to keep the updated_at ref in sync with the server
+  const setServerUpdatedAt = useCallback((ts: string) => {
+    serverUpdatedAtRef.current = ts;
+  }, []);
   // Track the server's updated_at for optimistic concurrency (Phase 3)
   const serverUpdatedAtRef = useRef<string | null>(null);
 
@@ -351,6 +356,13 @@ export const useSystem = () => {
 
       if (res.status === 409) {
         // Phase 3: Conflict detected — another device updated the DB after us.
+        // Update our ref from the server's response so the NEXT push won't also fail
+        try {
+          const conflictBody = await res.json();
+          if (conflictBody.serverUpdatedAt) {
+            serverUpdatedAtRef.current = conflictBody.serverUpdatedAt;
+          }
+        } catch { /* ignore parse error */ }
         // Trigger an immediate re-fetch instead of pushing stale data.
         console.warn('[Sync] Conflict detected — triggering re-fetch from server');
         window.dispatchEvent(new CustomEvent('reforge:sync-needed'));
@@ -2226,6 +2238,7 @@ export const useSystem = () => {
     updateSkillProgress,
     updateServerBaseline,
     markServerPullDone,
+    setServerUpdatedAt,
     awardRandomStones,
     purchaseBorder,
     equipBorder,

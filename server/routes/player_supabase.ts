@@ -36,7 +36,7 @@ router.get('/:id/sync', async (req: Request, res: Response) => {
   try {
     const { data, error } = await (supabaseServer() as any)
       .from('players')
-      .select('gold, keys, is_banned, cheat_strikes, total_strikes_ever, pending_notifications, level, current_xp, required_xp, total_xp, daily_xp, rank, streak, hp, max_hp, mp, max_mp, raw_data->unlockedOutfits, raw_data->equippedOutfitId, raw_data->outfitStones')
+      .select('gold, keys, is_banned, cheat_strikes, total_strikes_ever, pending_notifications, level, current_xp, required_xp, total_xp, daily_xp, rank, streak, hp, max_hp, mp, max_mp, updated_at, raw_data->unlockedOutfits, raw_data->equippedOutfitId, raw_data->outfitStones')
       .eq('supabase_id', id)
       .single();
 
@@ -66,6 +66,7 @@ router.get('/:id/sync', async (req: Request, res: Response) => {
       maxHp: row.max_hp ?? 100,
       mp: row.mp ?? 100,
       maxMp: row.max_mp ?? 100,
+      updatedAt: row.updated_at || null,
     });
   } catch (err) {
     console.error('[Player SYNC]', err);
@@ -191,17 +192,20 @@ router.put('/:id', async (req: Request, res: Response) => {
     // Helper: merge two arrays by item ID, preferring client items on conflict
     function mergeArraysById(dbArr: any[], clientArr: any[], idKey: string = 'id'): any[] {
       const map = new Map<string, any>();
+      const noIdItems: any[] = [];
       // DB items first (will be overwritten by client if same ID)
       for (const item of (dbArr || [])) {
         const key = item?.[idKey];
-        if (key) map.set(key, item);
+        if (key) { map.set(String(key), item); }
+        else { noIdItems.push(item); }
       }
       // Client items overwrite DB items with same ID, add new ones
       for (const item of (clientArr || [])) {
         const key = item?.[idKey];
-        if (key) map.set(key, item);
+        if (key) { map.set(String(key), item); }
+        // Don't duplicate no-id items from client — client version of raw_data already overwrites
       }
-      return Array.from(map.values());
+      return [...Array.from(map.values()), ...noIdItems];
     }
 
     // Fields with ID-based arrays that need merging
