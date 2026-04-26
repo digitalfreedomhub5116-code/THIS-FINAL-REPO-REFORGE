@@ -67,8 +67,8 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, badges,
         className="hidden md:flex fixed left-0 top-0 h-screen w-64 bg-black/95 backdrop-blur-xl border-r border-gray-800 flex-col z-40"
       >
         <div className="p-8 border-b border-gray-800/50">
-          <h1 className="text-xl font-bold tracking-tighter text-white">
-            <span className="text-system-accent">REFORGE</span>
+          <h1 className="text-xl font-heading font-extrabold tracking-tight text-white">
+            <span className="text-gradient-premium">REFORGE</span>
           </h1>
           <p className="text-[10px] text-gray-500 mt-1 font-mono tracking-[0.2em]">OPERATING SYSTEM</p>
         </div>
@@ -112,7 +112,7 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, badges,
                 <div className={`relative z-10 transition-transform duration-300 ${isLocked ? 'opacity-40' : isActive ? 'scale-110 text-system-neon' : ''}`}>
                   {isLocked ? <Lock size={20} /> : <Icon size={20} />}
                 </div>
-                <span className={`font-mono text-sm tracking-wide relative z-10 font-medium ${isLocked ? 'opacity-40' : ''}`}>{item.label}</span>
+                <span className={`font-heading text-sm tracking-wide relative z-10 font-semibold ${isLocked ? 'opacity-40' : ''}`}>{item.label}</span>
                 {isLocked && (
                   <span className="relative z-10 ml-auto text-[9px] font-mono text-gray-700 tracking-wider">Lv.{lockedTabs[item.id]}</span>
                 )}

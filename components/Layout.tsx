@@ -454,9 +454,9 @@ const Layout: React.FC<LayoutProps> = ({
                         style={isLight ? glassDropdownLight : glassDropdownDark}
                       >
                         <div className="px-4 py-3 border-b border-white/[0.06]">
-                          <div className="text-white font-bold text-sm truncate">{playerName}</div>
+                          <div className="text-white font-heading font-bold text-sm truncate">{playerName}</div>
                           {playerUsername && (
-                            <div className="text-[#00d2ff] text-[10px] font-mono tracking-widest truncate">@{playerUsername}</div>
+                            <div className="text-[#00d2ff] text-[10px] font-medium tracking-widest truncate">@{playerUsername}</div>
                           )}
                           <div className="text-gray-600 text-[10px] font-mono mt-0.5">LVL {playerLevel}</div>
                         </div>
@@ -485,9 +485,9 @@ const Layout: React.FC<LayoutProps> = ({
                 </div>
 
                 <div className="min-w-0">
-                  <div className="hidden sm:block text-[10px] text-gray-500 font-mono tracking-widest leading-none mb-0.5 uppercase">Hello</div>
+                  <div className="hidden sm:block text-[10px] text-gray-500 font-medium tracking-widest leading-none mb-0.5 uppercase">Hello</div>
                   <div className="flex items-center gap-1.5">
-                    <div className="font-black text-base sm:text-lg leading-none tracking-tight truncate max-w-[80px] sm:max-w-[160px] uppercase" style={{ color: 'var(--color-text-heading)' }}>
+                    <div className="font-heading font-extrabold text-base sm:text-lg leading-none tracking-tight truncate max-w-[80px] sm:max-w-[160px] uppercase" style={{ color: 'var(--color-text-heading)' }}>
                       {displayName}
                     </div>
                   </div>
@@ -513,7 +513,7 @@ const Layout: React.FC<LayoutProps> = ({
                   <div className="flex items-center justify-center" style={{ width: 35 }}>
                     <AnimatedCoinIcon size={35} />
                   </div>
-                  <span id="user-wallet-balance" className="font-mono text-[13px] font-bold text-yellow-300 whitespace-nowrap"><AnimatedCounter value={gold} /></span>
+                  <span id="user-wallet-balance" className="font-mono text-[13px] font-bold whitespace-nowrap" style={{ color: '#F0B232', textShadow: '0 0 8px rgba(240,178,50,0.3)' }}><AnimatedCounter value={gold} /></span>
                 </button>
 
                 {/* Bell */}
@@ -543,7 +543,7 @@ const Layout: React.FC<LayoutProps> = ({
                         style={{ ...(isLight ? glassDropdownLight : glassDropdownDark), width: 288 }}
                       >
                         <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
-                          <span className="text-white font-mono text-xs font-bold tracking-widest">NOTIFICATIONS</span>
+                          <span className="text-white font-heading text-xs font-bold tracking-widest">NOTIFICATIONS</span>
                           <div className="flex items-center gap-2">
                             {notificationHistory.length > 0 && (
                               <span className="text-gray-600 text-[9px] font-mono">{notificationHistory.length}</span>

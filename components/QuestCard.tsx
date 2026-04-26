@@ -125,7 +125,7 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
       id={`quest-card-${quest.id}`}
       className="relative rounded-2xl overflow-hidden"
       style={{
-        background: 'linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(6,6,18,0.88) 12%, rgba(3,3,10,0.94) 100%)',
+        background: 'linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(6,6,16,0.90) 12%, rgba(3,3,10,0.95) 100%)',
         backdropFilter: 'blur(20px) saturate(160%)',
         WebkitBackdropFilter: 'blur(20px) saturate(160%)',
         borderTop: isCompleted
@@ -191,7 +191,7 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
         <div className="flex items-start gap-3">
           {/* Rank badge */}
           <div
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-black flex-shrink-0 mt-0.5"
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-heading font-extrabold flex-shrink-0 mt-0.5"
             style={{ background: rankBg, color: rankColor, border: `1px solid ${rankColor}40` }}
           >
             {quest.rank}
@@ -200,7 +200,7 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
           {/* Title block */}
           <div className="flex-1 min-w-0">
             <h3
-              className="font-bold text-sm leading-snug"
+              className="font-heading font-bold text-sm leading-snug"
               style={{ color: isCompleted || isFailed ? '#6b7280' : '#f1f5f9', textDecoration: isCompleted || isFailed ? 'line-through' : 'none' }}
             >
               {isMiniActive ? (quest.miniQuest || 'Activation: Just Start.') : quest.title}
@@ -383,7 +383,7 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
           {/* XP + Gold pills */}
           <div className="flex flex-col items-end flex-shrink-0 gap-1">
             <div
-              className="flex items-center gap-0.5 font-black font-mono text-sm"
+              className="flex items-center gap-0.5 font-heading font-extrabold text-sm"
               style={{ color: isCompleted ? '#22c55e' : isFailed ? '#6b7280' : '#00d2ff' }}
             >
               <Zap size={10} />

@@ -332,7 +332,7 @@ const FuturisticCalendar: React.FC<{ quests: Quest[] }> = ({ quests }) => {
 
         <div className="flex items-center gap-2">
           <CalendarDays size={14} className="text-gray-400" />
-          <span className="text-sm font-black text-white font-mono tracking-widest">
+          <span className="text-sm font-heading font-extrabold text-white tracking-widest">
             {MONTH_NAMES[centerDay.getMonth()]}
           </span>
           <span className="text-sm font-mono" style={{ color: 'rgba(156,163,175,0.7)' }}>
@@ -1259,7 +1259,7 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
         {/* Day header row */}
         <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-3">
-            <span className="text-xs font-black font-mono tracking-[0.25em] text-white uppercase">
+            <span className="text-xs font-heading font-extrabold tracking-[0.25em] text-white uppercase">
               TODAY
             </span>
             {/* F4: Progress Ring */}
@@ -1279,7 +1279,7 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
                 if (tutorialStep === 1 && onTutorialAction) onTutorialAction(2);
               }}
               className="w-11 h-11 md:w-13 md:h-13 rounded-full flex items-center justify-center active:scale-90 transition-all"
-              style={{ background: '#00d4ff', boxShadow: '0 0 22px rgba(0,212,255,0.5), 0 4px 14px rgba(0,0,0,0.35)' }}
+              style={{ background: 'linear-gradient(135deg, #00d4ff, #0099cc)', boxShadow: '0 0 20px rgba(0,212,255,0.4), 0 4px 14px rgba(0,0,0,0.35)' }}
             >
               <Plus size={22} className="text-black" strokeWidth={3} />
             </button>

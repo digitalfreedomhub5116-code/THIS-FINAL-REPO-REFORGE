@@ -15,37 +15,40 @@ const LevelProgressCard: React.FC<LevelProgressCardProps> = ({ level, currentXP,
 
   return (
     <div
-      className="rounded-2xl p-4"
+      className="premium-card rounded-2xl p-4"
       style={{
-        background: 'rgba(15,15,26,0.9)',
-        border: '1px solid rgba(139,92,246,0.2)',
-        boxShadow: '0 0 20px rgba(139,92,246,0.08)',
+        background: 'linear-gradient(160deg, rgba(12,12,24,0.95) 0%, rgba(10,10,20,0.9) 40%, rgba(14,14,28,0.95) 100%)',
+        border: '1px solid rgba(139,92,246,0.15)',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 0 30px rgba(139,92,246,0.06), inset 0 1px 0 rgba(255,255,255,0.03)',
       }}
     >
       {/* Top row: level labels */}
       <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           <div
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-black text-white"
-            style={{ background: 'linear-gradient(135deg, #7c3aed, #8b5cf6)' }}
+            className="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-heading font-extrabold text-white"
+            style={{ 
+              background: 'linear-gradient(135deg, #7c3aed, #8b5cf6)',
+              boxShadow: '0 0 12px rgba(139,92,246,0.3)',
+            }}
           >
             {level}
           </div>
           <div>
-            <div className="text-[9px] font-mono text-gray-500 uppercase tracking-widest">CURRENT</div>
-            <div className="text-xs font-black text-white">LVL {level}</div>
+            <div className="text-[9px] font-medium text-gray-500 uppercase tracking-widest">CURRENT</div>
+            <div className="text-sm font-heading font-extrabold text-white">LVL {level}</div>
           </div>
         </div>
 
         <div className="flex items-center gap-1.5">
           <Zap size={10} className="text-[#00d2ff]" />
-          <span className="font-mono text-[10px] text-gray-400">
-            <span className="text-white font-bold">{currentXP.toLocaleString()}</span>
+          <span className="text-[10px] text-gray-400">
+            <span className="text-white font-bold font-mono">{currentXP.toLocaleString()}</span>
             <span className="text-gray-600"> / {maxXP.toLocaleString()} XP</span>
           </span>
           {xpBuff > 0 && (
             <span
-              className="font-mono text-[9px] font-black px-1.5 py-0.5 rounded-full animate-pulse"
+              className="text-[9px] font-bold px-1.5 py-0.5 rounded-full animate-pulse"
               style={{
                 background: 'rgba(34,197,94,0.15)',
                 border: '1px solid rgba(34,197,94,0.3)',
@@ -60,12 +63,12 @@ const LevelProgressCard: React.FC<LevelProgressCardProps> = ({ level, currentXP,
 
         <div className="flex items-center gap-2">
           <div>
-            <div className="text-[9px] font-mono text-gray-500 uppercase tracking-widest text-right">NEXT</div>
-            <div className="text-xs font-black text-[#8b5cf6]">LVL {level + 1}</div>
+            <div className="text-[9px] font-medium text-gray-500 uppercase tracking-widest text-right">NEXT</div>
+            <div className="text-sm font-heading font-extrabold text-gradient-purple">LVL {level + 1}</div>
           </div>
           <div
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-black text-white/40"
-            style={{ background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.3)' }}
+            className="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-heading font-extrabold text-white/30"
+            style={{ background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)' }}
           >
             {level + 1}
           </div>
@@ -73,23 +76,23 @@ const LevelProgressCard: React.FC<LevelProgressCardProps> = ({ level, currentXP,
       </div>
 
       {/* Progress bar */}
-      <div className="relative h-3 bg-white/5 rounded-full overflow-hidden border border-white/[0.06]">
+      <div className="relative h-3 bg-white/[0.03] rounded-full overflow-hidden border border-white/[0.04]">
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${fillPercent}%` }}
           transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
           className="absolute top-0 left-0 h-full rounded-full"
           style={{
-            background: 'linear-gradient(90deg, #8b5cf6, #7c3aed 50%, #00d2ff)',
-            boxShadow: '0 0 10px rgba(139,92,246,0.6)',
+            background: 'linear-gradient(90deg, #7c3aed 0%, #8b5cf6 40%, #00d2ff 100%)',
+            boxShadow: '0 0 12px rgba(139,92,246,0.5), 0 0 4px rgba(0,210,255,0.3)',
           }}
         >
-          <div className="absolute right-0 top-0 bottom-0 w-2 bg-white/50 blur-[2px] rounded-full" />
+          <div className="absolute right-0 top-0 bottom-0 w-3 bg-white/40 blur-[3px] rounded-full" />
         </motion.div>
 
         {/* Percentage label */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <span className="font-mono text-[8px] font-black text-white/60 mix-blend-overlay">
+          <span className="font-mono text-[8px] font-bold text-white/50 mix-blend-overlay">
             {fillPercent.toFixed(0)}%
           </span>
         </div>
@@ -97,12 +100,12 @@ const LevelProgressCard: React.FC<LevelProgressCardProps> = ({ level, currentXP,
 
       {/* Bottom: XP remaining */}
       <div className="mt-2 flex items-center justify-between">
-        <span className="font-mono text-[9px] text-gray-600">
-          {xpRemaining.toLocaleString()} XP to next level
+        <span className="text-[9px] text-gray-600">
+          <span className="font-mono font-bold text-gray-500">{xpRemaining.toLocaleString()}</span> XP to next level
         </span>
         <div className="flex items-center gap-1">
           <div className="w-1 h-1 rounded-full bg-[#8b5cf6] animate-pulse" />
-          <span className="font-mono text-[9px] text-gray-600">
+          <span className="text-[9px] text-gray-600">
             {xpBuff > 0 ? `RADAR BUFF +${xpBuff}% ACTIVE` : 'EXP ACCUMULATING'}
           </span>
         </div>

@@ -36,6 +36,7 @@ export default {
         'system-warning': '#f59e0b',
         'system-danger':  '#f87171',
         'system-gold':    '#fbbf24',
+        'gold':           { DEFAULT: '#F0B232', dim: 'rgba(240,178,50,0.15)', glow: 'rgba(240,178,50,0.3)' },
         'stat-str':       '#f97066',
         'stat-int':       '#818cf8',
         'stat-dis':       '#c084fc',
@@ -43,14 +44,18 @@ export default {
       },
       fontFamily: {
         sans: ['Inter', 'sans-serif'],
+        heading: ['Outfit', 'Inter', 'sans-serif'],
         mono: ['JetBrains Mono', 'monospace'],
       },
       boxShadow: {
         'neon-blue':   '0 0 10px rgba(0,210,255,0.5), 0 0 30px rgba(0,210,255,0.2)',
         'neon-purple': '0 0 10px rgba(139,92,246,0.5), 0 0 30px rgba(139,92,246,0.2)',
         'neon-red':    '0 0 10px rgba(239,68,68,0.5), 0 0 30px rgba(239,68,68,0.2)',
+        'neon-gold':   '0 0 10px rgba(240,178,50,0.4), 0 0 30px rgba(240,178,50,0.15)',
         'glass':       '0 8px 32px 0 rgba(0,0,0,0.5)',
-        'card':        '0 20px 60px rgba(0,0,0,0.5)',
+        'card':        'var(--shadow-card)',
+        'card-hover':  'var(--shadow-card-hover)',
+        'premium':     '0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.03), inset 0 1px 0 rgba(255,255,255,0.04)',
       },
       backgroundImage: {
         'gradient-neon':   'linear-gradient(135deg, #8b5cf6 0%, #00d2ff 100%)',
