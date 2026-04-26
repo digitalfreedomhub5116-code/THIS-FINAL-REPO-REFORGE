@@ -4,14 +4,15 @@ import {
   Settings, Store as StoreIcon, Package, BarChart3, Award,
   Terminal, MessageCircle, User as UserIcon, MoreHorizontal,
   X, Flame, Coins, Key as KeyIcon, ChevronRight, Lock as LockIcon,
-  Swords,
+  Swords, Dumbbell, Brain, Users, Shield, Target, Zap,
 } from 'lucide-react';
-import { PlayerData, HealthProfile, Outfit, Tab, Rank } from '../types';
+import { PlayerData, HealthProfile, Outfit, Tab, Rank, CoreStats } from '../types';
 import AnimatedBorder from './AnimatedBorder';
 
 // Lazy-load the existing ProfileView — reused as the Config/Logs/More drawer
 const ProfileView = lazy(() => import('./ProfileView'));
 const RankProgressionCard = lazy(() => import('./RankProgressionCard'));
+const EvaluationMatrix = lazy(() => import('./StatsRadar'));
 
 // ─── Rank ladder (mirrors lib/levelSystem.ts) ────────────────────────
 const RANK_LADDER: { rank: Exclude<Rank, 'UNRANKED'>; minLevel: number; color: string }[] = [
@@ -474,6 +475,134 @@ const ComingSoonDrawer: React.FC<{ title: string; onClose: () => void }> = ({ ti
   </motion.div>
 );
 
+// ─── Stat config for the stat cards ─────────────────────────────────
+const STAT_CONFIG: { key: keyof CoreStats; label: string; fullLabel: string; icon: React.ReactNode; color: string; barColor: string; accentRgb: string }[] = [
+  { key: 'strength', label: 'STR', fullLabel: 'STRENGTH', icon: <Dumbbell size={14} />, color: 'text-red-400', barColor: 'bg-red-400', accentRgb: '249,112,102' },
+  { key: 'intelligence', label: 'INT', fullLabel: 'INTELLIGENCE', icon: <Brain size={14} />, color: 'text-indigo-400', barColor: 'bg-indigo-400', accentRgb: '129,140,248' },
+  { key: 'social', label: 'SOC', fullLabel: 'SOCIAL', icon: <Users size={14} />, color: 'text-amber-400', barColor: 'bg-amber-400', accentRgb: '251,191,36' },
+  { key: 'discipline', label: 'DIS', fullLabel: 'DISCIPLINE', icon: <Shield size={14} />, color: 'text-purple-400', barColor: 'bg-purple-400', accentRgb: '192,132,252' },
+  { key: 'focus', label: 'FOC', fullLabel: 'FOCUS', icon: <Target size={14} />, color: 'text-cyan-400', barColor: 'bg-cyan-400', accentRgb: '6,182,212' },
+  { key: 'willpower', label: 'WIL', fullLabel: 'WILLPOWER', icon: <Zap size={14} />, color: 'text-pink-400', barColor: 'bg-pink-400', accentRgb: '236,72,153' },
+];
+
+// ─── Full-screen Stats Drawer ────────────────────────────────────────
+const StatsDrawer: React.FC<{ player: PlayerData; onClose: () => void }> = ({ player, onClose }) => {
+  const totalPoints = useMemo(() => {
+    const s = player.stats || {} as CoreStats;
+    return Math.floor(
+      (s.strength || 0) + (s.intelligence || 0) + (s.social || 0) +
+      (s.discipline || 0) + ((s as any).focus || 0) + ((s as any).willpower || 0)
+    );
+  }, [player.stats]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[700] bg-[#05050a] overflow-y-auto"
+    >
+      {/* Header */}
+      <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-[#05050a]/95 backdrop-blur-md border-b border-white/5">
+        <div>
+          <div className="text-xs font-mono font-bold text-[#00d2ff] tracking-widest">ADVANCED STATS</div>
+          <div className="text-[10px] text-gray-500 font-mono">Total: {totalPoints} pts across 6 attributes</div>
+        </div>
+        <button onClick={onClose} className="p-1.5 rounded-full hover:bg-white/5">
+          <X size={18} className="text-gray-400" />
+        </button>
+      </div>
+
+      <div className="px-4 py-5 space-y-5">
+        {/* ── Radar Chart ── */}
+        <div
+          className="w-full rounded-2xl overflow-hidden relative"
+          style={{
+            background: 'linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(4,4,14,0.95) 100%)',
+            border: '1px solid rgba(255,255,255,0.08)',
+          }}
+        >
+          <div className="aspect-square max-h-[320px] mx-auto">
+            <Suspense fallback={
+              <div className="w-full h-full flex items-center justify-center">
+                <div className="text-gray-600 text-xs font-mono">Loading radar...</div>
+              </div>
+            }>
+              <EvaluationMatrix stats={player.stats} compact maxDomain={200} />
+            </Suspense>
+          </div>
+        </div>
+
+        {/* ── 6 Stat Cards ── */}
+        <div className="grid grid-cols-2 gap-2.5">
+          {STAT_CONFIG.map((config, i) => {
+            const total = Math.floor((player.stats as any)?.[config.key] || 0);
+            const daily = (player.dailyStats as any)?.[config.key] || 0;
+            const maxVal = 200;
+            const pct = Math.min(100, (total / maxVal) * 100);
+
+            return (
+              <motion.div
+                key={config.key}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 + i * 0.05 }}
+                className="relative overflow-hidden rounded-xl p-3.5"
+                style={{
+                  background: 'linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(4,4,14,0.85) 100%)',
+                  border: '1px solid rgba(255,255,255,0.07)',
+                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06), 0 4px 16px rgba(0,0,0,0.35)',
+                }}
+              >
+                {/* Accent wash */}
+                <div className="absolute inset-0 pointer-events-none rounded-xl"
+                  style={{ background: `linear-gradient(135deg, rgba(${config.accentRgb},0.06) 0%, transparent 60%)` }}
+                />
+                {/* Top color bar */}
+                <div className={`absolute top-0 left-0 right-0 h-[2px] ${config.barColor} opacity-50 rounded-t-xl`} />
+
+                {/* Label */}
+                <div className={`flex items-center gap-1.5 mb-2 ${config.color}`}>
+                  {config.icon}
+                  <span className="font-mono text-[9px] font-bold tracking-[0.15em]">{config.fullLabel}</span>
+                </div>
+
+                {/* Value */}
+                <div className="flex items-baseline gap-1 mb-1.5">
+                  <span className="text-white font-mono text-2xl font-black leading-none">{total}</span>
+                  <span className="text-gray-600 font-mono text-[8px] font-bold tracking-widest">/ {maxVal}</span>
+                </div>
+
+                {/* Daily gain */}
+                <div className="mb-2.5 h-3">
+                  {daily > 0 ? (
+                    <div className="flex items-center gap-1">
+                      <span className={`text-[9px] font-mono font-bold ${config.color}`}>+{Math.round(daily)}</span>
+                      <span className="text-gray-600 text-[8px] font-mono">today</span>
+                    </div>
+                  ) : (
+                    <span className="text-gray-700 text-[8px] font-mono">No activity today</span>
+                  )}
+                </div>
+
+                {/* Progress bar */}
+                <div className="h-[3px] bg-white/[0.05] rounded-full overflow-hidden">
+                  <motion.div
+                    className={`h-full ${config.barColor} rounded-full`}
+                    initial={{ width: 0 }}
+                    animate={{ width: `${pct}%` }}
+                    transition={{ delay: 0.3 + i * 0.08, duration: 0.8, type: 'spring' }}
+                  />
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
 // ─── Main YouView ────────────────────────────────────────────────────
 const YouView: React.FC<YouViewProps> = ({
   player, equippedOutfit, onUpdate, onAvatarChange, onLogout, onDeleteAccount, onNavigate, onOpenDusk,
@@ -481,6 +610,7 @@ const YouView: React.FC<YouViewProps> = ({
   const [showRank, setShowRank] = useState(false);
   const [showRankProgression, setShowRankProgression] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
+  const [showStats, setShowStats] = useState(false);
   const [comingSoon, setComingSoon] = useState<string | null>(null);
 
   const duskBadge = player.duskUnreadCount || 0;
@@ -529,8 +659,7 @@ const YouView: React.FC<YouViewProps> = ({
           icon={<BarChart3 size={22} />}
           label="Stats"
           accent="#00d2ff"
-          isSoon
-          onClick={() => setComingSoon('STATS')}
+          onClick={() => setShowStats(true)}
         />
         <ActionTile
           icon={<Terminal size={22} />}
@@ -597,6 +726,7 @@ const YouView: React.FC<YouViewProps> = ({
             onClose={() => setShowConfig(false)}
           />
         )}
+        {showStats && <StatsDrawer player={player} onClose={() => setShowStats(false)} />}
         {comingSoon && <ComingSoonDrawer title={comingSoon} onClose={() => setComingSoon(null)} />}
       </AnimatePresence>
     </div>
