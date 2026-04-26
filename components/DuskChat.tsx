@@ -729,9 +729,26 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, updatePlayer, onClose, onMa
                                   border: '1px solid rgba(0,210,255,0.15)',
                                 }}
                                 onClick={() => {
-                                  if (action.tool === 'navigate_to') {
+                                  // Map action type to the app tab it should navigate to
+                                  const tabMap: Record<string, string> = {
+                                    navigate_to: (() => {
+                                      const screenMap: Record<string, string> = {
+                                        'WORKOUT': 'HEALTH', 'NUTRITION': 'HEALTH', 'HEALTH': 'HEALTH',
+                                        'SCHEDULE': 'DASHBOARD', 'GOALS': 'QUESTS', 'QUESTS': 'QUESTS',
+                                        'STORE': 'STORE', 'LEADERBOARD': 'LEADERBOARD',
+                                      };
+                                      return screenMap[action.args.screen] || 'DASHBOARD';
+                                    })(),
+                                    create_workout: 'HEALTH',
+                                    log_meal: 'HEALTH',
+                                    create_quest: 'QUESTS',
+                                    update_schedule: 'DASHBOARD',
+                                    log_weight: 'HEALTH',
+                                  };
+                                  const tab = tabMap[action.tool];
+                                  if (tab) {
                                     window.dispatchEvent(new CustomEvent('dusk:navigate', {
-                                      detail: { screen: action.args.screen },
+                                      detail: { tab },
                                     }));
                                     onClose();
                                   }
@@ -748,9 +765,7 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, updatePlayer, onClose, onMa
                                     {action.args.exercises?.length} exercises · ~{action.args.totalDuration} min
                                   </div>
                                 )}
-                                {(action.tool === 'navigate_to' || action.tool === 'create_workout') && (
-                                  <div className="text-cyan-400/70 mt-1 text-[10px]">Tap to open →</div>
-                                )}
+                                <div className="text-cyan-400/70 mt-1 text-[10px]">Tap to open →</div>
                               </motion.div>
                             ))}
                           </div>
