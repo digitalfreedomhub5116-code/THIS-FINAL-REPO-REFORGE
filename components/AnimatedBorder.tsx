@@ -47,9 +47,11 @@ const BorderPulse: React.FC<{ color: string; glow: string; secondary?: string }>
 /** D-tier — Flowing sweep animation (conic gradient rotation) */
 const BorderFlow: React.FC<{ color: string; glow: string; secondary?: string }> = ({ color, glow, secondary }) => {
   const id = useMemo(() => `flow-${Math.random().toString(36).slice(2, 6)}`, []);
+  // SVG attributes don't support CSS calc(), so use percentage-based sizing
+  const inset = 0.5; // % inset from each edge
   return (
     <>
-      <svg className="absolute inset-0 w-full h-full pointer-events-none z-20" style={{ overflow: 'visible' }}>
+      <svg className="absolute inset-0 w-full h-full pointer-events-none z-20" viewBox="0 0 100 100" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
         <defs>
           <linearGradient id={`${id}-g`} x1="0" y1="0" x2="1" y2="1">
             <stop offset="0%" stopColor={color} stopOpacity="0.7" />
@@ -58,18 +60,19 @@ const BorderFlow: React.FC<{ color: string; glow: string; secondary?: string }> 
           </linearGradient>
         </defs>
         <rect
-          x="1" y="1"
-          width="calc(100% - 2px)" height="calc(100% - 2px)"
+          x={inset} y={inset}
+          width={100 - inset * 2} height={100 - inset * 2}
           rx="0" ry="0"
           fill="none"
           stroke={`url(#${id}-g)`}
-          strokeWidth="2"
-          strokeDasharray="80 200"
+          strokeWidth="1.2"
+          strokeDasharray="25 60"
           strokeLinecap="round"
+          vectorEffect="non-scaling-stroke"
         >
           <animate
             attributeName="stroke-dashoffset"
-            from="0" to="-560"
+            from="0" to="-170"
             dur="4s"
             repeatCount="indefinite"
           />
