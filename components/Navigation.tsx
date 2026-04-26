@@ -4,6 +4,7 @@ import { LayoutGrid, Activity, Swords, Trophy, User, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Tab } from '../types';
 import SystemGlitchBadge from './SystemGlitchBadge';
+import { triggerHaptic } from '../utils/soundEngine';
 import { getLockedTabs, LockedFeaturePopup, FEATURE_GATES } from './FeatureGate';
 import { useThemeContext } from '../hooks/useTheme';
 
@@ -45,6 +46,7 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, badges,
     if (isGuidedHealthStep && tabId === 'HEALTH' && onGuidedAction) {
       onGuidedAction(7);
     }
+    triggerHaptic('TAB_SWITCH');
     onTabChange(tabId);
   };
 

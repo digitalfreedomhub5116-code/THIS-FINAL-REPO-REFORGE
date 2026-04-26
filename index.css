@@ -747,9 +747,9 @@ video {
 }
 
 /* ── Global responsive scaling via content zoom ── */
-/* Scales ALL elements (text, icons, SVGs, Lottie, buttons, spacing)
-   proportionally on tablet/desktop without editing individual components.
-   zoom affects layout flow (unlike transform:scale), so it works correctly. */
+/* Capacitor WebViews (WKWebView on iOS, Chromium on Android) fully support
+   the zoom property. zoom is layout-aware — content reflows correctly,
+   unlike transform:scale() which only visually scales without affecting layout. */
 @media (min-width: 768px) {
   .tablet-container {
     zoom: 1.05;
@@ -871,4 +871,69 @@ video {
   transition-property: background-color, border-color, color;
   transition-duration: 0.2s;
   transition-timing-function: ease;
+}
+
+/* ════════════════════════════════════════════════════════════
+   TOUCH TARGET + SMOOTHNESS IMPROVEMENTS
+   ════════════════════════════════════════════════════════════ */
+
+/* ── Min 44px touch targets (Apple HIG / Material Design) ── */
+/* Mobile bottom nav bar */
+#tut-nav-mobile button,
+#tut-nav-mobile a {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* ── GPU compositing — opt-in only ── */
+/* Add .gpu-layer to specific high-frequency animated containers.
+   Blanket will-change on .fixed / [style*="transform"] is harmful on mobile:
+   it promotes hundreds of framer-motion elements, eating VRAM and
+   disabling subpixel text rendering on promoted layers. */
+.gpu-layer {
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+
+/* ── Smooth scrolling ── */
+html {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── Reduce motion for users who prefer it ── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ── Prevent text selection on interactive elements ── */
+button, [role="button"], nav, .select-none {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ── Smoother page transitions ── */
+.page-transition-enter {
+  opacity: 0;
+  transform: translateY(8px);
+}
+.page-transition-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 200ms ease-out, transform 200ms ease-out;
+}
+.page-transition-exit {
+  opacity: 1;
+}
+.page-transition-exit-active {
+  opacity: 0;
+  transition: opacity 150ms ease-in;
 }

@@ -77,6 +77,10 @@ const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onAvatarCha
   const [avatarError, setAvatarError] = useState('');
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
+  // Sound & Haptic preferences (backed by localStorage)
+  const [soundMuted, setSoundMuted] = useState(() => localStorage.getItem('system_sound_muted') === 'true');
+  const [hapticDisabled, setHapticDisabled] = useState(() => localStorage.getItem('system_haptic_disabled') === 'true');
+
   const handleAvatarPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -466,6 +470,63 @@ const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onAvatarCha
                       <motion.div
                         className="w-4 h-4 rounded-full bg-white absolute top-0.5"
                         animate={{ left: theme === 'light' ? 22 : 2 }}
+                        transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                        style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.3)' }}
+                      />
+                    </div>
+                  </button>
+                </div>
+
+                {/* ── Sound & Haptic toggles ── */}
+                <div className="space-y-2">
+                  {/* Sound toggle */}
+                  <button
+                    onClick={() => { const next = !soundMuted; setSoundMuted(next); localStorage.setItem('system_sound_muted', next ? 'true' : 'false'); }}
+                    className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.05] transition-all group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: soundMuted ? 'rgba(239,68,68,0.15)' : 'rgba(0,210,255,0.15)' }}>
+                        <Activity size={16} className={soundMuted ? 'text-red-400' : 'text-cyan-400'} />
+                      </div>
+                      <div className="text-left">
+                        <div className="text-[11px] font-bold text-white tracking-wide">{soundMuted ? 'SOUND OFF' : 'SOUND ON'}</div>
+                        <div className="text-[9px] text-gray-500 font-mono">Game audio effects</div>
+                      </div>
+                    </div>
+                    <div
+                      className="w-10 h-5 rounded-full relative transition-colors"
+                      style={{ background: !soundMuted ? '#00d2ff' : 'rgba(255,255,255,0.12)' }}
+                    >
+                      <motion.div
+                        className="w-4 h-4 rounded-full bg-white absolute top-0.5"
+                        animate={{ left: !soundMuted ? 22 : 2 }}
+                        transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                        style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.3)' }}
+                      />
+                    </div>
+                  </button>
+
+                  {/* Haptic toggle */}
+                  <button
+                    onClick={() => { const next = !hapticDisabled; setHapticDisabled(next); localStorage.setItem('system_haptic_disabled', next ? 'true' : 'false'); }}
+                    className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.05] transition-all group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: hapticDisabled ? 'rgba(239,68,68,0.15)' : 'rgba(76,217,100,0.15)' }}>
+                        <Shield size={16} className={hapticDisabled ? 'text-red-400' : 'text-green-400'} />
+                      </div>
+                      <div className="text-left">
+                        <div className="text-[11px] font-bold text-white tracking-wide">{hapticDisabled ? 'HAPTIC OFF' : 'HAPTIC ON'}</div>
+                        <div className="text-[9px] text-gray-500 font-mono">Vibration feedback</div>
+                      </div>
+                    </div>
+                    <div
+                      className="w-10 h-5 rounded-full relative transition-colors"
+                      style={{ background: !hapticDisabled ? '#4ade80' : 'rgba(255,255,255,0.12)' }}
+                    >
+                      <motion.div
+                        className="w-4 h-4 rounded-full bg-white absolute top-0.5"
+                        animate={{ left: !hapticDisabled ? 22 : 2 }}
                         transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                         style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.3)' }}
                       />

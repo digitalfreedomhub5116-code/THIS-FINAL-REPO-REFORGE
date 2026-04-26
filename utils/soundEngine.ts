@@ -13,6 +13,8 @@ const getContext = () => {
 export const speakSystemMessage = (text: string) => {
     try {
         if (!('speechSynthesis' in window)) return;
+        // Respect sound mute
+        if (localStorage.getItem('system_sound_muted') === 'true') return;
         
         // Cancel any existing speech
         window.speechSynthesis.cancel();
@@ -48,8 +50,42 @@ export const speakSystemMessage = (text: string) => {
     }
 };
 
-export const playSystemSoundEffect = (type: string) => {
+// ── Sound Mute Helpers ──
+export const isSoundMuted = (): boolean => localStorage.getItem('system_sound_muted') === 'true';
+export const setSoundMuted = (muted: boolean) => localStorage.setItem('system_sound_muted', muted ? 'true' : 'false');
+export const toggleSoundMute = (): boolean => { const next = !isSoundMuted(); setSoundMuted(next); return next; };
+
+// ── Haptic Feedback ──
+// Uses the Vibration API (mobile only, silent fail on desktop)
+const HAPTIC_PATTERNS: Record<string, number | number[]> = {
+    CLICK: 8,
+    SUCCESS: [10, 30, 15],
+    PURCHASE: [15, 20, 10],
+    WARNING: [20, 10, 20, 10, 30],
+    LEVEL_UP: [15, 30, 15, 30, 25, 40, 35],
+    RANK_UP: [20, 30, 20, 30, 20, 40, 40, 50, 60],
+    TAB_SWITCH: 5,
+    TICK: 3,
+};
+
+export const triggerHaptic = (type: string = 'CLICK') => {
     try {
+        if (!navigator.vibrate) return;
+        // Respect a separate haptic mute flag (defaults to enabled)
+        if (localStorage.getItem('system_haptic_disabled') === 'true') return;
+        const pattern = HAPTIC_PATTERNS[type] || HAPTIC_PATTERNS.CLICK;
+        navigator.vibrate(pattern);
+    } catch { /* silent fail */ }
+};
+
+export const playSystemSoundEffect = (type: string) => {
+    // Always trigger haptic feedback (even when sound is muted)
+    triggerHaptic(type);
+
+    try {
+        // Sound mute toggle — check localStorage
+        if (localStorage.getItem('system_sound_muted') === 'true') return;
+
         const ctx = getContext();
         // Ensure context is running (browser autoplay policy)
         if (ctx.state === 'suspended') {
