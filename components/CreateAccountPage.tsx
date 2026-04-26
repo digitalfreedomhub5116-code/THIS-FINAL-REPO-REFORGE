@@ -26,6 +26,24 @@ const CreateAccountPage: React.FC<CreateAccountPageProps> = ({ onLogin, onNaviga
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // ── OTP VERIFICATION STATE ──
+  const [otpMode, setOtpMode] = useState(false);
+  const [otpEmail, setOtpEmail] = useState('');
+  const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
+  const [otpVerifying, setOtpVerifying] = useState(false);
+  const [otpError, setOtpError] = useState('');
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Resend cooldown timer
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setResendCooldown(prev => Math.max(0, prev - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
+
   useEffect(() => {
     const prevHtmlOverflow = document.documentElement.style.overflow;
     const prevBodyOverflow = document.body.style.overflow;
@@ -41,12 +59,12 @@ const CreateAccountPage: React.FC<CreateAccountPageProps> = ({ onLogin, onNaviga
   const shuffledFacts = useRef(shuffleFacts());
   const [factIndex, setFactIndex] = useState(0);
   useEffect(() => {
-    if (!serverWaking && !loading) return;
+    if (!serverWaking && !loading && !otpVerifying) return;
     const interval = setInterval(() => {
       setFactIndex(i => (i + 1) % shuffledFacts.current.length);
     }, 4500);
     return () => clearInterval(interval);
-  }, [serverWaking, loading]);
+  }, [serverWaking, loading, otpVerifying]);
 
   const [particles] = useState(() =>
     Array.from({ length: 18 }, (_, i) => ({
@@ -168,17 +186,24 @@ const CreateAccountPage: React.FC<CreateAccountPageProps> = ({ onLogin, onNaviga
         setError(data.error || `Registration failed (${res.status})`);
         return;
       }
+
+      // ── Check if OTP verification is required ──
+      if (data.otpRequired) {
+        setOtpEmail(data.email || cleanEmail);
+        setOtpMode(true);
+        setResendCooldown(60);
+        setOtpDigits(['', '', '', '', '', '']);
+        setOtpError('');
+        // Focus first OTP input after transition
+        setTimeout(() => otpInputRefs.current[0]?.focus(), 300);
+        return;
+      }
+
+      // Idempotent recovery — already verified account
       if (data.playerToken) saveAuthNative(data.playerToken);
       await loginWithUser(data.user || data);
     } catch (err: any) {
       console.error('[CreateAccount] Registration network error:', err);
-      // ────────────────────────────────────────────────────────────────────
-      // NETWORK-FAILURE AUTO-RECOVERY
-      // On mobile, the server may have successfully created the account but
-      // the response packet was dropped. Silently attempt to sign in with the
-      // same credentials — if the server did process the register, this
-      // succeeds and the user never notices the hiccup.
-      // ────────────────────────────────────────────────────────────────────
       try {
         const loginRes = await fetchWithRetry(`${API_BASE}/api/auth/local/login`, {
           method: 'POST',
@@ -192,7 +217,7 @@ const CreateAccountPage: React.FC<CreateAccountPageProps> = ({ onLogin, onNaviga
           await loginWithUser(loginData.user || loginData);
           return;
         }
-      } catch { /* recovery failed — fall through to error message */ }
+      } catch { /* recovery failed */ }
       const msg = err?.message || String(err) || 'Unknown network error';
       if (msg.includes('Failed to fetch') || msg.includes('NetworkError') || msg.includes('ERR_CONNECTION')) {
         setError('Network hiccup — please check your internet and tap Create Account again.');
@@ -203,6 +228,95 @@ const CreateAccountPage: React.FC<CreateAccountPageProps> = ({ onLogin, onNaviga
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ── OTP DIGIT HANDLERS ──
+  const handleOtpDigitChange = (index: number, value: string) => {
+    // Only accept digits
+    const digit = value.replace(/\D/g, '').slice(-1);
+    const newDigits = [...otpDigits];
+    newDigits[index] = digit;
+    setOtpDigits(newDigits);
+    setOtpError('');
+
+    // Auto-advance to next input
+    if (digit && index < 5) {
+      otpInputRefs.current[index + 1]?.focus();
+    }
+
+    // Auto-submit when all 6 digits entered
+    if (digit && index === 5 && newDigits.every(d => d)) {
+      submitOtp(newDigits.join(''));
+    }
+  };
+
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
+    if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
+      otpInputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleOtpPaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (pasted.length === 6) {
+      const newDigits = pasted.split('');
+      setOtpDigits(newDigits);
+      otpInputRefs.current[5]?.focus();
+      submitOtp(pasted);
+    }
+  };
+
+  const submitOtp = async (code: string) => {
+    setOtpVerifying(true);
+    setOtpError('');
+    try {
+      const res = await fetchWithRetry(`${API_BASE}/api/auth/local/verify-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email: otpEmail, otp: code }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setOtpError(data.error || 'Invalid verification code');
+        setOtpDigits(['', '', '', '', '', '']);
+        setTimeout(() => otpInputRefs.current[0]?.focus(), 100);
+        return;
+      }
+      // Success — account created
+      if (data.playerToken) saveAuthNative(data.playerToken);
+      await loginWithUser(data.user || data);
+    } catch (err: any) {
+      console.error('[OTP Verify] Error:', err);
+      setOtpError('Verification failed — please try again.');
+      setOtpDigits(['', '', '', '', '', '']);
+    } finally {
+      setOtpVerifying(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (resendCooldown > 0) return;
+    setOtpError('');
+    try {
+      const res = await fetchWithRetry(`${API_BASE}/api/auth/local/resend-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email: otpEmail }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setOtpError(data.error || 'Failed to resend code');
+        return;
+      }
+      setResendCooldown(60);
+      setOtpDigits(['', '', '', '', '', '']);
+      setTimeout(() => otpInputRefs.current[0]?.focus(), 100);
+    } catch {
+      setOtpError('Failed to resend — check your connection.');
     }
   };
 
@@ -359,147 +473,283 @@ const CreateAccountPage: React.FC<CreateAccountPageProps> = ({ onLogin, onNaviga
         />
       ))}
 
-      <motion.div
-        initial={{ opacity: 0, y: 20, scale: 0.97 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: -20, scale: 0.97 }}
-        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-        className="w-full max-w-md relative"
-      >
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-black text-white mb-2 tracking-tighter">Create Account</h1>
-          <p className="text-gray-400 text-sm">Start your journey as a Hunter</p>
-        </div>
+      <AnimatePresence mode="wait">
+        {otpMode ? (
+          /* ══════════════ OTP VERIFICATION SCREEN ══════════════ */
+          <motion.div
+            key="otp-screen"
+            initial={{ opacity: 0, y: 20, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.97 }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            className="w-full max-w-md relative"
+          >
+            {/* Verifying overlay */}
+            <AnimatePresence>
+              {otpVerifying && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="absolute inset-0 z-50 bg-black/90 rounded-2xl flex flex-col items-center justify-center gap-3"
+                >
+                  <motion.div animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 2, repeat: Infinity }} className="text-system-neon text-lg font-black tracking-widest">
+                    REFORGE
+                  </motion.div>
+                  <div className="text-gray-400 text-xs">Verifying code...</div>
+                  <div className="w-48 h-1 bg-gray-800 rounded-full overflow-hidden">
+                    <motion.div className="h-full bg-system-neon/60 rounded-full" animate={{ x: ['-100%', '100%'] }} transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }} style={{ width: '40%' }} />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-        {/* Form */}
-        <form onSubmit={handleCreate} className="space-y-4 mb-6">
-          <div>
-            <input
-              type="text"
-              placeholder="Username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              style={inputStyle}
-              disabled={loading}
-              className="w-full focus:outline-none focus:ring-2 focus:ring-system-neon/50"
-            />
-          </div>
-
-          <div>
-            <input
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              style={inputStyle}
-              disabled={loading}
-              className="w-full focus:outline-none focus:ring-2 focus:ring-system-neon/50"
-            />
-          </div>
-
-          <div className="relative">
-            <input
-              type={showPass ? 'text' : 'password'}
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              style={inputStyle}
-              disabled={loading}
-              className="w-full focus:outline-none focus:ring-2 focus:ring-system-neon/50 pr-12"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPass(!showPass)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
-              disabled={loading}
-            >
-              {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
-            </button>
-          </div>
-
-          <div className="relative">
-            <input
-              type={showConfirm ? 'text' : 'password'}
-              placeholder="Confirm Password"
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-              style={inputStyle}
-              disabled={loading}
-              className="w-full focus:outline-none focus:ring-2 focus:ring-system-neon/50 pr-12"
-            />
-            <button
-              type="button"
-              onClick={() => setShowConfirm(!showConfirm)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
-              disabled={loading}
-            >
-              {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
-            </button>
-          </div>
-
-          <AnimatePresence>
-            {error && (
+            {/* Email icon + header */}
+            <div className="text-center mb-8">
               <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-red-400 text-xs"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.1 }}
+                className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center"
+                style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.15))', border: '1px solid rgba(99,102,241,0.25)' }}
               >
-                {error}
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="2" y="4" width="20" height="16" rx="2" />
+                  <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                </svg>
               </motion.div>
-            )}
-          </AnimatePresence>
+              <h1 className="text-2xl font-black text-white mb-2 tracking-tighter">Verify Your Email</h1>
+              <p className="text-gray-400 text-sm leading-relaxed">
+                We sent a 6-digit code to
+              </p>
+              <p className="text-purple-400 text-sm font-bold mt-1">{otpEmail}</p>
+            </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3.5 rounded-xl font-bold text-sm text-white transition-all duration-200 active:scale-[0.97] disabled:opacity-50"
-            style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
+            {/* 6-digit OTP Input */}
+            <div className="flex justify-center gap-2.5 mb-6" onPaste={handleOtpPaste}>
+              {otpDigits.map((digit, i) => (
+                <motion.input
+                  key={i}
+                  ref={el => { otpInputRefs.current[i] = el; }}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={1}
+                  value={digit}
+                  onChange={e => handleOtpDigitChange(i, e.target.value)}
+                  onKeyDown={e => handleOtpKeyDown(i, e)}
+                  disabled={otpVerifying}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.15 + i * 0.05 }}
+                  className="w-12 h-14 text-center text-xl font-black text-white rounded-xl focus:outline-none transition-all"
+                  style={{
+                    background: digit ? 'rgba(99,102,241,0.12)' : 'rgba(255,255,255,0.04)',
+                    border: digit
+                      ? '2px solid rgba(99,102,241,0.5)'
+                      : otpError
+                        ? '2px solid rgba(239,68,68,0.4)'
+                        : '1px solid rgba(255,255,255,0.08)',
+                    caretColor: '#a78bfa',
+                    boxShadow: digit ? '0 0 12px rgba(99,102,241,0.15)' : 'none',
+                  }}
+                />
+              ))}
+            </div>
+
+            {/* OTP Error */}
+            <AnimatePresence>
+              {otpError && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-red-400 text-xs text-center mb-4"
+                >
+                  {otpError}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Resend + Timer */}
+            <div className="text-center mb-6">
+              {resendCooldown > 0 ? (
+                <p className="text-gray-500 text-xs">
+                  Resend code in <span className="text-purple-400 font-bold">{resendCooldown}s</span>
+                </p>
+              ) : (
+                <button
+                  onClick={handleResendOtp}
+                  className="text-purple-400 hover:text-purple-300 text-xs font-bold transition-colors"
+                >
+                  Didn't receive the code? Resend
+                </button>
+              )}
+            </div>
+
+            {/* Divider */}
+            <div className="flex items-center gap-3 mb-5">
+              <div className="h-px flex-1 bg-white/06" />
+              <span className="text-[10px] font-mono text-white/15 uppercase tracking-widest">or</span>
+              <div className="h-px flex-1 bg-white/06" />
+            </div>
+
+            {/* Back to form */}
+            <div className="text-center">
+              <button
+                onClick={() => { setOtpMode(false); setOtpError(''); }}
+                className="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-sm font-medium"
+              >
+                <ArrowLeft size={16} />
+                Back to registration
+              </button>
+            </div>
+          </motion.div>
+        ) : (
+          /* ══════════════ ORIGINAL REGISTRATION FORM ══════════════ */
+          <motion.div
+            key="register-form"
+            initial={{ opacity: 0, y: 20, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.97 }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            className="w-full max-w-md relative"
           >
-            {loading ? 'Creating account...' : 'Create Account'}
-          </button>
-        </form>
+            {/* Header */}
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-black text-white mb-2 tracking-tighter">Create Account</h1>
+              <p className="text-gray-400 text-sm">Start your journey as a Hunter</p>
+            </div>
 
-        {/* Google Divider */}
-        <div className="flex items-center gap-3 my-5">
-          <div className="h-px flex-1 bg-white/06" />
-          <span className="text-[10px] font-mono text-white/25 uppercase tracking-widest">or</span>
-          <div className="h-px flex-1 bg-white/06" />
-        </div>
+            {/* Form */}
+            <form onSubmit={handleCreate} className="space-y-4 mb-6">
+              <div>
+                <input
+                  type="text"
+                  placeholder="Username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  style={inputStyle}
+                  disabled={loading}
+                  className="w-full focus:outline-none focus:ring-2 focus:ring-system-neon/50"
+                />
+              </div>
 
-        {/* Google Sign Up */}
-        <div className="flex justify-center mb-6">
-          {isNativePlatform ? (
-            <NativeGoogleButton
-              text="signup_with"
-              onIdToken={handleGoogleIdToken}
-              onError={(msg) => setError(msg)}
-            />
-          ) : (
-            <GoogleLogin
-              onSuccess={handleGoogleSuccess}
-              onError={() => setError('Google sign-up was cancelled')}
-              theme="filled_black"
-              shape="pill"
-              size="large"
-              text="signup_with"
-              width="320"
-            />
-          )}
-        </div>
+              <div>
+                <input
+                  type="email"
+                  placeholder="Email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  style={inputStyle}
+                  disabled={loading}
+                  className="w-full focus:outline-none focus:ring-2 focus:ring-system-neon/50"
+                />
+              </div>
 
-        {/* Sign In Link */}
-        <div className="text-center">
-          <button
-            onClick={() => onNavigate?.('AUTH_SIGN_IN_PAGE')}
-            className="inline-flex items-center gap-2 text-system-neon hover:text-white transition-colors text-sm font-medium"
-          >
-            <ArrowLeft size={16} />
-            Already a user? Sign in
-          </button>
-        </div>
-      </motion.div>
+              <div className="relative">
+                <input
+                  type={showPass ? 'text' : 'password'}
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  style={inputStyle}
+                  disabled={loading}
+                  className="w-full focus:outline-none focus:ring-2 focus:ring-system-neon/50 pr-12"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPass(!showPass)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                  disabled={loading}
+                >
+                  {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+
+              <div className="relative">
+                <input
+                  type={showConfirm ? 'text' : 'password'}
+                  placeholder="Confirm Password"
+                  value={confirm}
+                  onChange={(e) => setConfirm(e.target.value)}
+                  style={inputStyle}
+                  disabled={loading}
+                  className="w-full focus:outline-none focus:ring-2 focus:ring-system-neon/50 pr-12"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm(!showConfirm)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                  disabled={loading}
+                >
+                  {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+
+              <AnimatePresence>
+                {error && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-red-400 text-xs"
+                  >
+                    {error}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3.5 rounded-xl font-bold text-sm text-white transition-all duration-200 active:scale-[0.97] disabled:opacity-50"
+                style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
+              >
+                {loading ? 'Creating account...' : 'Create Account'}
+              </button>
+            </form>
+
+            {/* Google Divider */}
+            <div className="flex items-center gap-3 my-5">
+              <div className="h-px flex-1 bg-white/06" />
+              <span className="text-[10px] font-mono text-white/25 uppercase tracking-widest">or</span>
+              <div className="h-px flex-1 bg-white/06" />
+            </div>
+
+            {/* Google Sign Up */}
+            <div className="flex justify-center mb-6">
+              {isNativePlatform ? (
+                <NativeGoogleButton
+                  text="signup_with"
+                  onIdToken={handleGoogleIdToken}
+                  onError={(msg) => setError(msg)}
+                />
+              ) : (
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={() => setError('Google sign-up was cancelled')}
+                  theme="filled_black"
+                  shape="pill"
+                  size="large"
+                  text="signup_with"
+                  width="320"
+                />
+              )}
+            </div>
+
+            {/* Sign In Link */}
+            <div className="text-center">
+              <button
+                onClick={() => onNavigate?.('AUTH_SIGN_IN_PAGE')}
+                className="inline-flex items-center gap-2 text-system-neon hover:text-white transition-colors text-sm font-medium"
+              >
+                <ArrowLeft size={16} />
+                Already a user? Sign in
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 };

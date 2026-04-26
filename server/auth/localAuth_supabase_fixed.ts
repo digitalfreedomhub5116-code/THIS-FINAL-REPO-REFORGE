@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 import { supabaseServer, isSupabaseDown } from '../lib/supabase.js';
 import { generatePlayerToken, getAuthenticatedUserId } from '../lib/playerAuth.js';
+import { generateOtp, storeOtp, sendOtpEmail, verifyOtp } from '../lib/otp.js';
 
 const router = express.Router();
 
@@ -28,28 +29,11 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Codename can only contain letters, numbers, and underscores' });
     }
 
-    // Normalize email for consistent storage + lookups (prevents dup rows differing by case)
     const normalizedEmail = email.trim().toLowerCase();
     const trimmedUsername = username.trim();
 
-    // ──────────────────────────────────────────────────────────────────────
-    // IDEMPOTENT REGISTER RECOVERY
-    // Mobile networks (esp. on Railway cold starts) sometimes drop the HTTP
-    // response AFTER the server has successfully inserted the user. The client
-    // then sees "Connection error" and, on retry, would normally get a 409.
-    // Result: account is actually created, but user thinks signup failed and
-    // uninstalls the app — this is the #1 cause of the 30% signup-failure
-    // complaint.
-    //
-    // To recover: if the (email + password) combination matches an existing
-    // LOCAL account exactly, we treat this retry as a successful login instead
-    // of a duplicate-error. This is safe — we only return the session if the
-    // password actually verifies.
-    // ──────────────────────────────────────────────────────────────────────
+    // ── Check if email already exists as a verified account ──
     try {
-      // Use .ilike() for case-insensitive email match. Paired with the
-      // UNIQUE(LOWER(email)) DB index this guarantees at most one row
-      // regardless of historical case variation.
       const { data: emailExists } = await (supabaseServer() as any)
         .from('players')
         .select('supabase_id, username, name, email, password_hash, level, gold, keys, auth_type')
@@ -57,13 +41,10 @@ router.post('/register', async (req, res) => {
         .limit(1);
       if (emailExists && emailExists.length > 0) {
         const existing: any = emailExists[0];
-        // Only allow recovery for local-auth accounts with a password hash.
+        // Idempotent recovery: if same password, sign them in
         if (existing.password_hash && existing.auth_type === 'local') {
           const pwMatches = await bcrypt.compare(password, existing.password_hash).catch(() => false);
           if (pwMatches) {
-            // Skip req.session write — see note on the success path below.
-            // JWT is the primary auth mechanism; avoiding the session PG write
-            // keeps the response under ~200ms so mobile networks don't drop it.
             const playerToken = generatePlayerToken(existing.supabase_id);
             return res.json({
               message: 'Account already existed — signed in',
@@ -85,10 +66,9 @@ router.post('/register', async (req, res) => {
       }
     } catch (emailCheckErr) {
       console.error('[Auth Register] Email check error:', emailCheckErr);
-      // Continue — username check below will still catch duplicates
     }
 
-    // Check if username is taken — use maybeSingle() so "not found" is not an error
+    // ── Check if username is taken (in verified accounts) ──
     try {
       const { data: existingUser, error: checkError } = await (supabaseServer() as any)
         .from('players')
@@ -104,7 +84,7 @@ router.post('/register', async (req, res) => {
       return res.status(500).json({ error: 'Failed to check user existence' });
     }
 
-    // Hash password
+    // ── Hash password ──
     let hashedPassword;
     try {
       hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
@@ -113,76 +93,185 @@ router.post('/register', async (req, res) => {
       return res.status(500).json({ error: 'Failed to process password' });
     }
 
-    const userId = generateUserId();
+    // ── Store as pending signup (upsert — if they re-register before verifying, update the entry) ──
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString(); // 15 min
 
-    // Create user in Supabase
-    let insertResult;
+    // Delete any existing pending signup for this email or username
+    await (supabaseServer() as any).from('pending_signups').delete().eq('email', normalizedEmail);
+    await (supabaseServer() as any).from('pending_signups').delete().eq('username', trimmedUsername);
+
+    const { error: pendingError } = await (supabaseServer() as any)
+      .from('pending_signups')
+      .insert({
+        email: normalizedEmail,
+        username: trimmedUsername,
+        password_hash: hashedPassword,
+        expires_at: expiresAt,
+      });
+
+    if (pendingError) {
+      console.error('[Auth Register] Failed to store pending signup:', pendingError);
+      return res.status(500).json({ error: 'Registration failed — please try again' });
+    }
+
+    // ── Generate and send OTP ──
     try {
-      insertResult = await supabaseServer()
-        .from('players')
-        .insert({
-          supabase_id: userId,
-          username: trimmedUsername,
-          name: trimmedUsername,
-          email: normalizedEmail,
-          password_hash: hashedPassword,
-          auth_type: 'local',
-          level: 1,
-          current_xp: 0,
-          required_xp: 100,
-          total_xp: 0,
-          daily_xp: 0,
-          rank: 'E',
-          gold: 100,
-          keys: 3,
-          streak: 0,
-          hp: 100,
-          max_hp: 100,
-          mp: 50,
-          max_mp: 50,
-          is_configured: false,
-          is_penalty_active: false,
-          tutorial_step: 0,
-          tutorial_complete: false,
-          daily_quest_complete: false,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        } as any)
-        .select()
-        .single();
-
-    } catch (err) {
-      console.error('[Auth Register] Error inserting user:', err);
-      return res.status(500).json({ error: 'Registration failed during database insert' });
+      const otp = generateOtp();
+      await storeOtp(normalizedEmail, otp);
+      await sendOtpEmail(normalizedEmail, otp, trimmedUsername);
+    } catch (otpErr: any) {
+      console.error('[Auth Register] OTP error:', otpErr);
+      return res.status(500).json({ error: 'Failed to send verification email. Please try again.' });
     }
 
-    if (insertResult.error) {
-      console.error('[Auth Register] Supabase insert error:', JSON.stringify(insertResult.error));
-      if (isSupabaseDown(insertResult.error)) {
-        return res.status(503).json({ error: 'Database temporarily unavailable — please try again in a minute' });
-      }
-      return res.status(500).json({ error: `Registration failed: ${insertResult.error.message || insertResult.error.code || 'database error'}` });
-    }
-
-    // IMPORTANT: We intentionally DO NOT set req.session here.
-    // express-session auto-saves on res.end, which blocks the response on a
-    // Postgres write to the `session` table (1-5s of added latency on a
-    // moderately busy pool). On a flaky mobile network this extra window
-    // is enough for the response packet to get dropped — the classic
-    // "account created but client sees Connection error" failure mode.
-    //
-    // The client already receives `playerToken` (JWT) which is the real
-    // auth token used by `getAuthenticatedUserId` (see playerAuth.ts — JWT
-    // is checked before session). So the session cookie is redundant.
-    const playerToken = generatePlayerToken(userId);
     return res.json({
-      message: 'Account created successfully',
-      user: { id: userId, username: trimmedUsername, name: trimmedUsername, email: normalizedEmail, level: 1, gold: 100, keys: 3 },
-      playerToken,
+      message: 'Verification code sent to your email',
+      otpRequired: true,
+      email: normalizedEmail,
     });
+
   } catch (err: any) {
     console.error('[Local Auth Register] Unexpected error:', err);
     return res.status(500).json({ error: `Registration failed: ${err?.message || err?.code || 'unknown error'}` });
+  }
+});
+
+// ── VERIFY OTP & COMPLETE REGISTRATION ──
+router.post('/verify-otp', async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      return res.status(400).json({ error: 'Email and verification code are required' });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // ── Verify OTP ──
+    const result = await verifyOtp(normalizedEmail, otp);
+    if (!result.valid) {
+      return res.status(400).json({ error: result.error || 'Invalid verification code' });
+    }
+
+    // ── Fetch pending signup ──
+    const { data: pending, error: fetchError } = await (supabaseServer() as any)
+      .from('pending_signups')
+      .select('*')
+      .eq('email', normalizedEmail)
+      .single();
+
+    if (fetchError || !pending) {
+      return res.status(400).json({ error: 'No pending registration found. Please start over.' });
+    }
+
+    // Check if pending signup expired
+    if (new Date(pending.expires_at) < new Date()) {
+      await (supabaseServer() as any).from('pending_signups').delete().eq('email', normalizedEmail);
+      return res.status(400).json({ error: 'Registration expired. Please sign up again.' });
+    }
+
+    // ── Create the actual user account ──
+    const userId = crypto.randomUUID();
+
+    const { error: insertError } = await supabaseServer()
+      .from('players')
+      .insert({
+        supabase_id: userId,
+        username: pending.username,
+        name: pending.username,
+        email: normalizedEmail,
+        password_hash: pending.password_hash,
+        auth_type: 'local',
+        email_verified: true,
+        level: 1,
+        current_xp: 0,
+        required_xp: 100,
+        total_xp: 0,
+        daily_xp: 0,
+        rank: 'E',
+        gold: 100,
+        keys: 3,
+        streak: 0,
+        hp: 100,
+        max_hp: 100,
+        mp: 50,
+        max_mp: 50,
+        is_configured: false,
+        is_penalty_active: false,
+        tutorial_step: 0,
+        tutorial_complete: false,
+        daily_quest_complete: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      } as any);
+
+    if (insertError) {
+      console.error('[Auth Verify-OTP] Insert error:', insertError);
+      return res.status(500).json({ error: 'Failed to create account. Please try again.' });
+    }
+
+    // ── Clean up pending signup ──
+    await (supabaseServer() as any).from('pending_signups').delete().eq('email', normalizedEmail);
+
+    // ── Return session ──
+    const playerToken = generatePlayerToken(userId);
+    return res.json({
+      message: 'Email verified — account created successfully',
+      verified: true,
+      user: {
+        id: userId,
+        username: pending.username,
+        name: pending.username,
+        email: normalizedEmail,
+        level: 1,
+        gold: 100,
+        keys: 3,
+      },
+      playerToken,
+    });
+
+  } catch (err: any) {
+    console.error('[Auth Verify-OTP] Unexpected error:', err);
+    return res.status(500).json({ error: `Verification failed: ${err?.message || 'unknown error'}` });
+  }
+});
+
+// ── RESEND OTP ──
+router.post('/resend-otp', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // Check pending signup exists
+    const { data: pending } = await (supabaseServer() as any)
+      .from('pending_signups')
+      .select('username, expires_at')
+      .eq('email', normalizedEmail)
+      .single();
+
+    if (!pending) {
+      return res.status(400).json({ error: 'No pending registration found. Please start over.' });
+    }
+
+    if (new Date(pending.expires_at) < new Date()) {
+      await (supabaseServer() as any).from('pending_signups').delete().eq('email', normalizedEmail);
+      return res.status(400).json({ error: 'Registration expired. Please sign up again.' });
+    }
+
+    // Generate and send new OTP
+    const otp = generateOtp();
+    await storeOtp(normalizedEmail, otp);
+    await sendOtpEmail(normalizedEmail, otp, pending.username);
+
+    return res.json({ message: 'New verification code sent', otpRequired: true });
+
+  } catch (err: any) {
+    console.error('[Auth Resend-OTP] Error:', err);
+    return res.status(500).json({ error: 'Failed to resend code. Please try again.' });
   }
 });
 
