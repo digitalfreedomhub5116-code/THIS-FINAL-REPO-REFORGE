@@ -745,80 +745,107 @@ const QuestTimelineRow: React.FC<{
   const canReschedule = !isCompleted && !isFailed && onReschedule && (currentMinutes < scheduledMin - 10);
 
   return (
-    <div className="flex gap-0 relative">
-      <div className="flex flex-col items-center w-12 flex-shrink-0">
+    <div className="relative">
+      {/* Time label row with dot */}
+      <div className="flex items-center gap-2 mb-1">
+        {/* Dot */}
+        <div className="relative z-10 flex-shrink-0">
+          {isCompleted ? (
+            <div className="w-[14px] h-[14px] rounded-full bg-emerald-500 flex items-center justify-center">
+              <Check className="w-2 h-2 text-black" strokeWidth={3} />
+            </div>
+          ) : isFailed ? (
+            <div className="w-[14px] h-[14px] rounded-full bg-red-500 flex items-center justify-center">
+              <X className="w-2 h-2 text-black" strokeWidth={3} />
+            </div>
+          ) : isOverdue ? (
+            <div className="w-[14px] h-[14px] rounded-full" style={{ background: '#fb923c', boxShadow: '0 0 6px #fb923c' }} />
+          ) : isTimeLocked ? (
+            <div className="w-[14px] h-[14px] rounded-full" style={{ background: '#1a1a2e', border: '1.5px solid #374151' }} />
+          ) : isCurrent ? (
+            <motion.div className="w-[14px] h-[14px] rounded-full"
+              style={{ background: '#22d3ee', boxShadow: '0 0 8px #22d3ee' }}
+              animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 2, repeat: Infinity }} />
+          ) : (
+            <div className="w-[14px] h-[14px] rounded-full border-2" style={{ borderColor: '#22d3ee30' }} />
+          )}
+        </div>
+        {/* Time label */}
         <button
           onClick={() => canReschedule && onReschedule(quest)}
           disabled={!canReschedule}
-          className={`text-[9px] font-mono font-bold text-right w-full pr-1.5 pb-0.5 transition-colors ${
+          className={`text-[11px] font-mono font-bold transition-colors ${
             isCompleted ? 'text-emerald-600' : isFailed ? 'text-red-700' :
             isTimeLocked ? 'text-gray-700' :
             isCurrent ? 'text-cyan-400' : isPast ? 'text-gray-700' : 'text-gray-500'
           } ${canReschedule ? 'cursor-pointer active:scale-95' : 'cursor-default'}`}
         >
-          {formatTime12(scheduledStr).split(' ')[0]}
-          <span className="text-[7px] ml-0.5">{formatTime12(scheduledStr).split(' ')[1]}</span>
+          {formatTime12(scheduledStr)}
         </button>
+        {isCurrent && <span className="text-[7px] font-black text-cyan-400 px-1.5 py-0.5 rounded-full bg-cyan-400/10 uppercase tracking-wider">Now</span>}
+        {isOverdue && <span className="text-[7px] font-black text-orange-400 px-1.5 py-0.5 rounded-full bg-orange-400/10 uppercase tracking-wider">Overdue</span>}
+        {isTimeLocked && <span className="text-[7px] font-bold text-gray-600 font-mono">{minutesUntilAvailable >= 60 ? `${Math.floor(minutesUntilAvailable / 60)}h ${minutesUntilAvailable % 60}m` : `${minutesUntilAvailable}m`}</span>}
       </div>
 
-      <div className="flex flex-col items-center w-4 flex-shrink-0 relative">
-        {isCompleted ? (
-          <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 flex items-center justify-center mt-1 flex-shrink-0 z-10">
-            <Check className="w-1.5 h-1.5 text-black" strokeWidth={3} />
-          </div>
-        ) : isFailed ? (
-          <div className="w-2.5 h-2.5 rounded-full bg-red-500 flex items-center justify-center mt-1 flex-shrink-0 z-10">
-            <X className="w-1.5 h-1.5 text-black" strokeWidth={3} />
-          </div>
-        ) : isOverdue ? (
-          <div className="w-2.5 h-2.5 rounded-full mt-1 flex-shrink-0 z-10" style={{ background: '#fb923c', boxShadow: '0 0 6px #fb923c' }} />
-        ) : isTimeLocked ? (
-          <div className="w-2 h-2 rounded-full mt-1 flex-shrink-0 z-10" style={{ background: '#1a1a2e', border: '1.5px solid #374151' }} />
-        ) : isCurrent ? (
-          <motion.div className="w-2.5 h-2.5 rounded-full mt-1 flex-shrink-0 z-10"
-            style={{ background: '#22d3ee', boxShadow: '0 0 8px #22d3ee' }}
-            animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 2, repeat: Infinity }} />
-        ) : (
-          <div className="w-2 h-2 rounded-full border mt-1 flex-shrink-0 z-10" style={{ borderColor: '#22d3ee30' }} />
+      {/* Full-width quest card with vertical line on left */}
+      <div className="relative ml-[6px] pl-[18px] pb-3">
+        {/* Vertical connector line */}
+        {!isLast && (
+          <div className="absolute left-[0px] top-0 bottom-0 w-px" style={{ background: 'rgba(255,255,255,0.06)' }} />
         )}
-        {!isLast && <div className="w-px flex-1 min-h-[8px]" style={{ background: 'rgba(255,255,255,0.05)' }} />}
-      </div>
 
-      <div className="flex-1 min-w-0 pb-1.5 pl-1.5 relative overflow-hidden">
-
-        {/* F3: Swipe reveal background */}
-        {canSwipeComplete && swipeX > 20 && (
-          <div className="absolute inset-0 flex items-center pl-4 rounded-xl z-0"
-            style={{ background: `rgba(34,197,94,${Math.min(swipeX / swipeThreshold, 1) * 0.15})` }}
-          >
-            <div className="flex items-center gap-1.5" style={{ opacity: Math.min(swipeX / swipeThreshold, 1) }}>
-              <Check className="w-4 h-4 text-emerald-400" />
-              <span className="text-[10px] font-black text-emerald-400 font-mono uppercase tracking-wider">
-                {swipeX >= swipeThreshold ? 'RELEASE TO COMPLETE' : 'SWIPE TO COMPLETE'}
-              </span>
+        <div className="relative overflow-hidden">
+          {/* F3: Swipe reveal background */}
+          {canSwipeComplete && swipeX > 20 && (
+            <div className="absolute inset-0 flex items-center pl-4 rounded-xl z-0"
+              style={{ background: `rgba(34,197,94,${Math.min(swipeX / swipeThreshold, 1) * 0.15})` }}
+            >
+              <div className="flex items-center gap-1.5" style={{ opacity: Math.min(swipeX / swipeThreshold, 1) }}>
+                <Check className="w-4 h-4 text-emerald-400" />
+                <span className="text-[10px] font-black text-emerald-400 font-mono uppercase tracking-wider">
+                  {swipeX >= swipeThreshold ? 'RELEASE TO COMPLETE' : 'SWIPE TO COMPLETE'}
+                </span>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {canSwipeComplete ? (
-          <motion.div
-            drag="x"
-            dragConstraints={{ left: 0, right: 160 }}
-            dragElastic={0.1}
-            onDrag={(_e, info) => setSwipeX(info.offset.x)}
-            onDragEnd={(_e, info) => {
-              if (info.offset.x >= swipeThreshold) {
-                const el = document.getElementById(`quest-card-${quest.id}`);
-                const rect = el?.getBoundingClientRect() || undefined;
-                onComplete(quest.id, false, rect);
-              }
-              setSwipeX(0);
-            }}
-            className="relative z-10"
-            style={{ touchAction: 'pan-y' }}
-          >
+          {canSwipeComplete ? (
+            <motion.div
+              drag="x"
+              dragConstraints={{ left: 0, right: 160 }}
+              dragElastic={0.1}
+              onDrag={(_e, info) => setSwipeX(info.offset.x)}
+              onDragEnd={(_e, info) => {
+                if (info.offset.x >= swipeThreshold) {
+                  const el = document.getElementById(`quest-card-${quest.id}`);
+                  const rect = el?.getBoundingClientRect() || undefined;
+                  onComplete(quest.id, false, rect);
+                }
+                setSwipeX(0);
+              }}
+              className="relative z-10"
+              style={{ touchAction: 'pan-y' }}
+            >
+              <QuestCard
+                quest={quest}
+                onComplete={(id, asMini) => {
+                  const el = document.getElementById(`quest-card-${id}`);
+                  const rect = el?.getBoundingClientRect() || undefined;
+                  onComplete(id, asMini, rect);
+                }}
+                onFail={onFail}
+                onReset={onReset}
+                onDelete={onDelete}
+                onStartTracking={onStartTracking}
+                onStopTracking={onStopTracking}
+              />
+            </motion.div>
+          ) : (
             <QuestCard
               quest={quest}
+              isLocked={isTimeLocked}
+              lockMessage={lockMessage}
+              onReschedule={isTimeLocked && onReschedule ? () => onReschedule(quest) : undefined}
               onComplete={(id, asMini) => {
                 const el = document.getElementById(`quest-card-${id}`);
                 const rect = el?.getBoundingClientRect() || undefined;
@@ -830,25 +857,8 @@ const QuestTimelineRow: React.FC<{
               onStartTracking={onStartTracking}
               onStopTracking={onStopTracking}
             />
-          </motion.div>
-        ) : (
-          <QuestCard
-            quest={quest}
-            isLocked={isTimeLocked}
-            lockMessage={lockMessage}
-            onReschedule={isTimeLocked && onReschedule ? () => onReschedule(quest) : undefined}
-            onComplete={(id, asMini) => {
-              const el = document.getElementById(`quest-card-${id}`);
-              const rect = el?.getBoundingClientRect() || undefined;
-              onComplete(id, asMini, rect);
-            }}
-            onFail={onFail}
-            onReset={onReset}
-            onDelete={onDelete}
-            onStartTracking={onStartTracking}
-            onStopTracking={onStopTracking}
-          />
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
