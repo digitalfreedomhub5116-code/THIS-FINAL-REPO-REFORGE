@@ -738,37 +738,41 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
                                            </td>
                                            {/* Gold column with custom input */}
                                            <td className="p-3 text-center">
-                                               <div className="flex flex-col items-center gap-1">
+                                               <div className="flex flex-col items-center gap-1.5">
                                                    <span className="text-xs font-mono font-bold text-yellow-400">{user.gold ?? 0}</span>
                                                    <div className="flex items-center gap-1">
-                                                       <button onClick={() => adjustGold(user.supabase_id, -100)} className="w-5 h-5 rounded bg-gray-800 hover:bg-gray-700 text-gray-300 text-[9px] font-black flex items-center justify-center border border-gray-700" title="-100">−</button>
                                                        <input
                                                            type="number"
                                                            value={goldInput[user.supabase_id] ?? ''}
                                                            onChange={e => setGoldInput(prev => ({ ...prev, [user.supabase_id]: e.target.value }))}
-                                                           onKeyDown={e => { if (e.key === 'Enter') { const v = parseInt(goldInput[user.supabase_id]); if (!isNaN(v)) { adjustGold(user.supabase_id, v); setGoldInput(prev => ({ ...prev, [user.supabase_id]: '' })); } } }}
-                                                           placeholder="±"
-                                                           className="w-14 bg-black border border-gray-700 rounded px-1 py-0.5 text-[10px] text-yellow-400 text-center outline-none focus:border-yellow-500 font-mono"
+                                                           onKeyDown={e => { if (e.key === 'Enter') { const v = parseInt(goldInput[user.supabase_id]); if (!isNaN(v) && v !== 0) { adjustGold(user.supabase_id, v); setGoldInput(prev => ({ ...prev, [user.supabase_id]: '' })); } } }}
+                                                           placeholder="±amt"
+                                                           className="w-20 bg-black border border-gray-700 rounded px-2 py-1 text-[10px] text-yellow-400 text-center outline-none focus:border-yellow-500 font-mono [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                                        />
-                                                       <button onClick={() => adjustGold(user.supabase_id, 100)} className="w-5 h-5 rounded bg-yellow-900/40 hover:bg-yellow-900/70 text-yellow-400 text-[9px] font-black flex items-center justify-center border border-yellow-800/50" title="+100">+</button>
+                                                       <button
+                                                           onClick={() => { const v = parseInt(goldInput[user.supabase_id]); if (!isNaN(v) && v !== 0) { adjustGold(user.supabase_id, v); setGoldInput(prev => ({ ...prev, [user.supabase_id]: '' })); } }}
+                                                           className="px-2 py-1 rounded bg-yellow-900/40 hover:bg-yellow-900/70 text-yellow-400 text-[8px] font-black flex items-center justify-center border border-yellow-800/50 tracking-widest"
+                                                       >ADD</button>
                                                    </div>
                                                </div>
                                            </td>
                                            {/* Keys column with custom input */}
                                            <td className="p-3 text-center">
-                                               <div className="flex flex-col items-center gap-1">
+                                               <div className="flex flex-col items-center gap-1.5">
                                                    <span className="text-xs font-mono font-bold text-purple-400">{user.keys ?? 0}</span>
                                                    <div className="flex items-center gap-1">
-                                                       <button onClick={() => adjustKeys(user.supabase_id, -1)} className="w-5 h-5 rounded bg-gray-800 hover:bg-gray-700 text-gray-300 text-[9px] font-black flex items-center justify-center border border-gray-700" title="-1">−</button>
                                                        <input
                                                            type="number"
                                                            value={keysInput[user.supabase_id] ?? ''}
                                                            onChange={e => setKeysInput(prev => ({ ...prev, [user.supabase_id]: e.target.value }))}
-                                                           onKeyDown={e => { if (e.key === 'Enter') { const v = parseInt(keysInput[user.supabase_id]); if (!isNaN(v)) { adjustKeys(user.supabase_id, v); setKeysInput(prev => ({ ...prev, [user.supabase_id]: '' })); } } }}
-                                                           placeholder="±"
-                                                           className="w-14 bg-black border border-gray-700 rounded px-1 py-0.5 text-[10px] text-purple-400 text-center outline-none focus:border-purple-500 font-mono"
+                                                           onKeyDown={e => { if (e.key === 'Enter') { const v = parseInt(keysInput[user.supabase_id]); if (!isNaN(v) && v !== 0) { adjustKeys(user.supabase_id, v); setKeysInput(prev => ({ ...prev, [user.supabase_id]: '' })); } } }}
+                                                           placeholder="±amt"
+                                                           className="w-20 bg-black border border-gray-700 rounded px-2 py-1 text-[10px] text-purple-400 text-center outline-none focus:border-purple-500 font-mono [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                                        />
-                                                       <button onClick={() => adjustKeys(user.supabase_id, 1)} className="w-5 h-5 rounded bg-purple-900/40 hover:bg-purple-900/70 text-purple-400 text-[9px] font-black flex items-center justify-center border border-purple-800/50" title="+1">+</button>
+                                                       <button
+                                                           onClick={() => { const v = parseInt(keysInput[user.supabase_id]); if (!isNaN(v) && v !== 0) { adjustKeys(user.supabase_id, v); setKeysInput(prev => ({ ...prev, [user.supabase_id]: '' })); } }}
+                                                           className="px-2 py-1 rounded bg-purple-900/40 hover:bg-purple-900/70 text-purple-400 text-[8px] font-black flex items-center justify-center border border-purple-800/50 tracking-widest"
+                                                       >ADD</button>
                                                    </div>
                                                </div>
                                            </td>
