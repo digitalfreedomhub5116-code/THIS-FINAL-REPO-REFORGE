@@ -299,7 +299,7 @@ const App: React.FC = () => {
 
     checkDailyLogin, updateSkillProgress,
 
-    updateServerBaseline, awardRandomStones,
+    updateServerBaseline, markServerPullDone, awardRandomStones,
 
     purchaseBorder, equipBorder,
 
@@ -1202,6 +1202,11 @@ const App: React.FC = () => {
 
           updateServerBaseline(dbGold, dbKeys);
 
+        }
+
+        // SYNC GATE: First poll done — open the gate so syncToCloud can push
+        if (isFirstPoll) {
+          markServerPullDone();
         }
 
 

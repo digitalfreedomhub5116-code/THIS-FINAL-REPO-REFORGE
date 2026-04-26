@@ -141,16 +141,30 @@ router.put('/:id', async (req: Request, res: Response) => {
   try {
     // Strip cheatStrikes and isBanned from client data — only admin routes and /record-strike may write these
     // Also extract _serverGold/_serverKeys (client's last-known server values for delta calculation)
-    const { cheatStrikes: _strippedStrikes, isBanned: _strippedBan, _serverGold, _serverKeys, ...cleanData } = data;
+    const { cheatStrikes: _strippedStrikes, isBanned: _strippedBan, _serverGold, _serverKeys, _lastKnownUpdatedAt, ...cleanData } = data;
 
     // ── Delta-based gold/keys merge ──
     // Read current DB state so we can apply only the CLIENT's delta
     const { data: currentRow, error: readError } = await (supabaseServer() as any)
       .from('players')
-      .select('gold, keys')
+      .select('gold, keys, raw_data, updated_at')
       .eq('supabase_id', id)
       .single();
     if (readError) throw readError;
+
+    // ── Phase 3: Optimistic concurrency — reject if DB was updated by another device ──
+    if (_lastKnownUpdatedAt && currentRow?.updated_at) {
+      const dbTime = new Date(currentRow.updated_at).getTime();
+      const clientTime = new Date(_lastKnownUpdatedAt).getTime();
+      // If DB was updated more than 3s after the client's last known state, reject
+      if (dbTime > clientTime + 3000) {
+        return res.status(409).json({
+          error: 'conflict',
+          message: 'Data was updated by another device. Please refresh.',
+          serverUpdatedAt: currentRow.updated_at,
+        });
+      }
+    }
 
     const dbGold = currentRow?.gold ?? 0;
     const dbKeys = currentRow?.keys ?? 0;
@@ -168,8 +182,46 @@ router.put('/:id', async (req: Request, res: Response) => {
     const newGold = Math.max(0, dbGold + goldDelta);
     const newKeys = Math.max(0, dbKeys + keysDelta);
 
-    // Build safe raw_data with corrected gold/keys
-    const safeRawData = { ...cleanData, gold: newGold, keys: newKeys };
+    // ── Phase 1C: DEEP MERGE raw_data instead of overwriting ──
+    // Arrays with IDs (quests, logs, nutritionLogs, history) are merged by ID.
+    // Items from both DB and client are kept; client version wins on conflicts.
+    const dbRaw = (currentRow?.raw_data as Record<string, any>) || {};
+    const clientRaw = { ...cleanData, gold: newGold, keys: newKeys };
+
+    // Helper: merge two arrays by item ID, preferring client items on conflict
+    function mergeArraysById(dbArr: any[], clientArr: any[], idKey: string = 'id'): any[] {
+      const map = new Map<string, any>();
+      // DB items first (will be overwritten by client if same ID)
+      for (const item of (dbArr || [])) {
+        const key = item?.[idKey];
+        if (key) map.set(key, item);
+      }
+      // Client items overwrite DB items with same ID, add new ones
+      for (const item of (clientArr || [])) {
+        const key = item?.[idKey];
+        if (key) map.set(key, item);
+      }
+      return Array.from(map.values());
+    }
+
+    // Fields with ID-based arrays that need merging
+    const MERGE_ARRAY_FIELDS: { key: string; idKey: string }[] = [
+      { key: 'quests', idKey: 'id' },
+      { key: 'logs', idKey: 'id' },
+      { key: 'nutritionLogs', idKey: 'id' },
+      { key: 'history', idKey: 'date' },
+    ];
+
+    const mergedRaw = { ...dbRaw, ...clientRaw };
+    for (const { key, idKey } of MERGE_ARRAY_FIELDS) {
+      const dbArr = Array.isArray(dbRaw[key]) ? dbRaw[key] : [];
+      const clientArr = Array.isArray(clientRaw[key]) ? clientRaw[key] : [];
+      if (dbArr.length > 0 || clientArr.length > 0) {
+        mergedRaw[key] = mergeArraysById(dbArr, clientArr, idKey);
+      }
+    }
+
+    const nowIso = new Date().toISOString();
 
     const playerData: Record<string, any> = {
       username: cleanData.username || cleanData.name || ('u_' + id.slice(-8)),
@@ -199,8 +251,8 @@ router.put('/:id', async (req: Request, res: Response) => {
       identity: data.identity || null,
       gold: newGold,
       keys: newKeys,
-      raw_data: safeRawData,
-      updated_at: new Date().toISOString()
+      raw_data: mergedRaw,
+      updated_at: nowIso,
     };
 
     // Use update (not upsert) to prevent creating duplicate rows
@@ -211,7 +263,7 @@ router.put('/:id', async (req: Request, res: Response) => {
 
     if (error) throw error;
 
-    return res.json({ success: true, _serverGold: newGold, _serverKeys: newKeys });
+    return res.json({ success: true, _serverGold: newGold, _serverKeys: newKeys, _serverUpdatedAt: nowIso });
   } catch (err) {
     console.error('[Player PUT]', err);
     return res.status(500).json({ error: 'Internal server error' });

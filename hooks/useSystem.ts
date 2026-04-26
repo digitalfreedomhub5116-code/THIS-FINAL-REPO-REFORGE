@@ -243,6 +243,10 @@ export const useSystem = () => {
   const notificationTimers = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
   const workoutCompletingRef = useRef(false);
 
+  // ── SYNC GATE: Don't push local data to server until we've pulled server data first ──
+  // This prevents stale localStorage from overwriting newer DB data on a second device.
+  const serverPullDoneRef = useRef(false);
+
   // Track server-authoritative gold/keys for delta-based sync
   const serverGoldRef = useRef(player.gold);
   const serverKeysRef = useRef(player.keys);
@@ -315,14 +319,26 @@ export const useSystem = () => {
     serverKeysRef.current = keys;
   }, []);
 
+  // Called by App.tsx after the first /sync poll completes.
+  // Opens the gate so syncToCloud can start pushing local changes.
+  const markServerPullDone = useCallback(() => {
+    serverPullDoneRef.current = true;
+  }, []);
+  // Track the server's updated_at for optimistic concurrency (Phase 3)
+  const serverUpdatedAtRef = useRef<string | null>(null);
+
   const syncToCloud = useCallback(async (data: PlayerData) => {
     if (!data.userId || isLocalUser(data.userId)) return;
+    // SYNC GATE: Don't push to server until we've pulled at least once.
+    // This prevents stale localStorage from overwriting newer DB values.
+    if (!serverPullDoneRef.current) return;
     try {
       // Include last-known server gold/keys so server can compute delta
       const syncData = {
         ...data,
         _serverGold: serverGoldRef.current,
         _serverKeys: serverKeysRef.current,
+        _lastKnownUpdatedAt: serverUpdatedAtRef.current,
         consumables: data.consumables || {}
       };
       
@@ -332,14 +348,25 @@ export const useSystem = () => {
         credentials: 'include',
         body: JSON.stringify(syncData)
       });
+
+      if (res.status === 409) {
+        // Phase 3: Conflict detected — another device updated the DB after us.
+        // Trigger an immediate re-fetch instead of pushing stale data.
+        console.warn('[Sync] Conflict detected — triggering re-fetch from server');
+        window.dispatchEvent(new CustomEvent('reforge:sync-needed'));
+        return;
+      }
+
       if (res.ok) {
         try {
           const result = await res.json();
           const sGold = result._serverGold as number | undefined;
           const sKeys = result._serverKeys as number | undefined;
+          const sUpdatedAt = result._serverUpdatedAt as string | undefined;
           // Update refs to what the server now has
           if (typeof sGold === 'number') serverGoldRef.current = sGold;
           if (typeof sKeys === 'number') serverKeysRef.current = sKeys;
+          if (sUpdatedAt) serverUpdatedAtRef.current = sUpdatedAt;
           // If server values differ from what we sent (admin changed), update local state
           if ((typeof sGold === 'number' && sGold !== data.gold) || (typeof sKeys === 'number' && sKeys !== data.keys)) {
             setPlayer(prev => ({
@@ -2198,6 +2225,7 @@ export const useSystem = () => {
     addNotification,
     updateSkillProgress,
     updateServerBaseline,
+    markServerPullDone,
     awardRandomStones,
     purchaseBorder,
     equipBorder,

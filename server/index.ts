@@ -50,6 +50,7 @@ async function startServer() {
   const reportsRouter = await import('./routes/reports.js');
   const goalsRouter = await import('./routes/goals.js');
   const scheduleRouter = await import('./routes/schedule.js');
+  const questsRouter = await import('./routes/quests_supabase.js');
 
   const app = express();
   const PORT = process.env.PORT ? parseInt(process.env.PORT) : 8001;
@@ -198,6 +199,7 @@ async function startServer() {
   app.use('/api/audit', generalRateLimit, auditRouter.default);
   app.use('/api/goals', aiRateLimit, goalsRouter.default);
   app.use('/api/schedule', aiRateLimit, scheduleRouter.default);
+  app.use('/api/quests', generalRateLimit, questsRouter.default);
   app.use('/api/auth/local', generalRateLimit, localAuthRouter.default);
 
   // Google OAuth setup
