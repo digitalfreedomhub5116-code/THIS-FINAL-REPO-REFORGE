@@ -93,6 +93,9 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
 
   const [expandedTarget, setExpandedTarget] = useState<string | null>(null);
 
+  // ── Profile Popup State ──
+  const [profileTarget, setProfileTarget] = useState<SimEntry | null>(null);
+
   // ── Report Modal State ──
   const [reportTarget, setReportTarget] = useState<SimEntry | null>(null);
   const [reportChecks, setReportChecks] = useState({ cheating: true, hacking: true, unusualActivity: true });
@@ -372,10 +375,10 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                       ? '1px solid rgba(168,85,247,0.15)'
                       : '1px solid rgba(255,255,255,0.04)',
                   }}
-                >
+                  >
                   <div
                     className="flex items-center gap-2.5 p-2.5 cursor-pointer active:bg-white/[0.02] transition-colors"
-                    onClick={() => setExpandedTarget(isExpanded ? null : entryId)}
+                    onClick={() => setProfileTarget(entry)}
                   >
                     {/* Rank # */}
                     <div className="w-7 text-center">
@@ -431,62 +434,137 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                       </div>
                     </div>
 
-                    <motion.div animate={{ rotate: isExpanded ? 90 : 0 }} transition={{ duration: 0.2 }}>
-                      <ChevronRight size={14} className="text-gray-700 shrink-0" />
-                    </motion.div>
+                    <ChevronRight size={14} className="text-gray-700 shrink-0" />
                   </div>
-
-                  {/* ── Action Drawer ── */}
-                  <AnimatePresence>
-                    {isExpanded && (() => {
-                      const outfitData = OUTFITS.find(o => o.id === entry.outfitId);
-                      const cfg = OUTFIT_CONFIG[entry.outfitId] || DEFAULT_OUTFIT_CFG;
-                      return (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.25, ease: 'easeInOut' }}
-                          className="overflow-hidden"
-                          style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}
-                        >
-                          <div className="p-3 space-y-2">
-                            {/* Outfit info row */}
-                            <div className="flex items-center gap-3 rounded-xl px-3 py-2.5" style={{ background: `${cfg.accent}0d`, border: `1px solid ${cfg.accent}22` }}>
-                              <OutfitHunterBadge outfitId={entry.outfitId} size={48} />
-                              <div className="flex-1 min-w-0">
-                                <div className="text-[9px] font-mono text-gray-500 uppercase tracking-widest">Equipped Outfit</div>
-                                <div className="text-[11px] font-black text-white truncate">{outfitData?.name || cfg.name}</div>
-                                <div className="text-[9px] font-mono mt-0.5" style={{ color: cfg.accent }}>{cfg.tier}-Rank Tier</div>
-                              </div>
-                            </div>
-
-                            {/* Action row */}
-                            {entry.isMe ? (
-                              <div className="py-2.5 rounded-xl flex items-center justify-center gap-1.5 border border-white/5 bg-white/5 opacity-50">
-                                <span className="text-[10px] font-black tracking-widest uppercase text-gray-400">YOUR PROFILE</span>
-                              </div>
-                            ) : (
-                              <button
-                                onClick={(e) => openReport(entry, e)}
-                                className="w-full py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95"
-                                style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171' }}
-                              >
-                                <Flag size={12} />
-                                <span className="text-[10px] font-black tracking-widest uppercase">Report Player</span>
-                              </button>
-                            )}
-                          </div>
-                        </motion.div>
-                      );
-                    })()}
-                  </AnimatePresence>
                 </motion.div>
               );
             })}
           </>
         )}
       </div>
+
+
+      {/* ══════════════ HUNTER PROFILE POPUP ══════════════ */}
+      <AnimatePresence>
+        {profileTarget && (() => {
+          const pEntry = profileTarget;
+          const pCfg = OUTFIT_CONFIG[pEntry.outfitId] || DEFAULT_OUTFIT_CFG;
+          const pOutfit = OUTFITS.find(o => o.id === pEntry.outfitId);
+          const pRankColor = RANK_COLORS[pEntry.computedRank] || '#78716c';
+          const pTitle = getHunterTitle(simulatedEntries.findIndex(e => (e.username || e.name) === (pEntry.username || pEntry.name)) + 1);
+
+          return (
+            <motion.div
+              className="fixed inset-0 z-[9000] flex items-end justify-center"
+              style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)' }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setProfileTarget(null)}
+            >
+              <motion.div
+                className="w-full max-w-sm rounded-t-3xl overflow-hidden"
+                style={{ background: 'linear-gradient(180deg, #0a0a1a 0%, #08081a 100%)', border: '1px solid rgba(255,255,255,0.06)', borderBottom: 'none', maxHeight: '85vh' }}
+                initial={{ y: '100%' }}
+                animate={{ y: 0 }}
+                exit={{ y: '100%' }}
+                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                onClick={e => e.stopPropagation()}
+              >
+                {/* ── Banner ── */}
+                <div className="relative h-28 overflow-hidden">
+                  <img
+                    src="/default_profile_banner.png"
+                    alt="Banner"
+                    className="w-full h-full object-cover"
+                    style={{ filter: 'brightness(0.6) saturate(1.2)' }}
+                  />
+                  {/* Gradient overlay */}
+                  <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, transparent 40%, #0a0a1a 100%)' }} />
+                  {/* Close button */}
+                  <button
+                    onClick={() => setProfileTarget(null)}
+                    className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-90"
+                    style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.1)' }}
+                  >
+                    <X size={14} className="text-white" />
+                  </button>
+                  {/* Username in header */}
+                  <div className="absolute top-3 left-4">
+                    <span className="text-[11px] font-black text-white/80 font-mono tracking-wider">{pEntry.username || pEntry.name}</span>
+                  </div>
+                </div>
+
+                {/* ── Profile Content ── */}
+                <div className="px-5 pb-8 -mt-8 relative z-10">
+                  {/* Avatar + Info */}
+                  <div className="flex items-end gap-4 mb-5">
+                    <AnimatedBorder borderId={pEntry.borderId} className="rounded-full shrink-0" style={{ boxShadow: '0 0 20px rgba(0,0,0,0.8)' }}>
+                      <OutfitHunterBadge outfitId={pEntry.outfitId} size={72} />
+                    </AnimatedBorder>
+                    <div className="pb-1 min-w-0 flex-1">
+                      <div className="text-[10px] font-black uppercase tracking-widest mb-0.5" style={{ color: pRankColor }}>{pTitle}</div>
+                      <div className="text-base font-black text-white truncate">{pEntry.username || pEntry.name}</div>
+                      <div className="text-[10px] text-gray-500 font-mono">@{(pEntry.username || pEntry.name || '').toLowerCase().replace(/\s+/g, '')}</div>
+                    </div>
+                  </div>
+
+                  {/* ── Stats Grid ── */}
+                  <div className="grid grid-cols-4 gap-2 mb-5">
+                    {[
+                      { label: 'LEVEL', value: `${pEntry.level}`, color: '#a78bfa' },
+                      { label: 'RANK', value: pEntry.computedRank, color: pRankColor },
+                      { label: 'XP', value: formatXp(pEntry.dominance), color: '#fbbf24' },
+                      { label: 'STREAK', value: `🔥${pEntry.streak}`, color: '#f97316' },
+                    ].map(s => (
+                      <div key={s.label} className="rounded-xl p-2.5 text-center"
+                        style={{ background: `${s.color}08`, border: `1px solid ${s.color}20` }}>
+                        <div className="text-[13px] font-black font-mono" style={{ color: s.color }}>{s.value}</div>
+                        <div className="text-[7px] font-mono text-gray-600 uppercase tracking-widest mt-0.5">{s.label}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* ── Outfit Info ── */}
+                  <div className="rounded-xl px-4 py-3 mb-4 flex items-center gap-3"
+                    style={{ background: `${pCfg.accent}08`, border: `1px solid ${pCfg.accent}18` }}>
+                    <OutfitHunterBadge outfitId={pEntry.outfitId} size={40} />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[8px] font-mono text-gray-500 uppercase tracking-widest">Equipped Outfit</div>
+                      <div className="text-[12px] font-black text-white truncate">{pOutfit?.name || pCfg.name}</div>
+                      <div className="text-[9px] font-mono" style={{ color: pCfg.accent }}>{pCfg.tier}-Rank • {pCfg.name}</div>
+                    </div>
+                  </div>
+
+                  {/* ── Banner placeholder text ── */}
+                  <div className="rounded-xl px-4 py-3 mb-4 text-center" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
+                    <div className="text-[8px] font-mono text-gray-600 uppercase tracking-widest">🏷️ Banner</div>
+                    <div className="text-[10px] text-gray-500 font-mono mt-1">Default Banner</div>
+                  </div>
+
+                  {/* ── Report Button ── */}
+                  {!pEntry.isMe && (
+                    <button
+                      onClick={() => { setProfileTarget(null); setTimeout(() => openReport(pEntry, { stopPropagation: () => {} } as any), 200); }}
+                      className="w-full py-3 rounded-xl flex items-center justify-center gap-2.5 transition-all active:scale-[0.97]"
+                      style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)', color: '#f87171' }}
+                    >
+                      <Flag size={13} />
+                      <span className="text-[10px] font-black tracking-widest uppercase">Report Player</span>
+                    </button>
+                  )}
+
+                  {pEntry.isMe && (
+                    <div className="w-full py-3 rounded-xl flex items-center justify-center gap-2 border border-purple-500/15 bg-purple-500/5">
+                      <span className="text-[10px] font-black tracking-widest uppercase text-purple-400">Your Profile</span>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            </motion.div>
+          );
+        })()}
+      </AnimatePresence>
 
 
       {/* ── REPORT MODAL ── */}
