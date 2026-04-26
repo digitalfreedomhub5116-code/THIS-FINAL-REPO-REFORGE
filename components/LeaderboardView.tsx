@@ -351,7 +351,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
             {activeTab === 'daily' ? 'No daily XP earned yet today.' : 'No players found.'}
           </div>
         ) : (
-          <AnimatePresence>
+          <>
             {simulatedEntries.map((entry, index) => {
               const entryId = entry.username || entry.name;
               const isExpanded = expandedTarget === entryId;
@@ -359,13 +359,10 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
 
               return (
                 <motion.div
-                  key={entryId}
-                  layoutId={`lb-card-${entryId}`}
-                  layout="position"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ layout: { type: 'spring', stiffness: 300, damping: 30 }, duration: 0.3 }}
+                  key={`${activeTab}-${entryId}`}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.2, delay: index * 0.02 }}
                   className="rounded-2xl overflow-hidden"
                   style={{
                     background: entry.isMe
@@ -487,7 +484,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                 </motion.div>
               );
             })}
-          </AnimatePresence>
+          </>
         )}
       </div>
 
