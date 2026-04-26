@@ -2,21 +2,22 @@ import { Router, Request, Response } from 'express';
 import Groq from 'groq-sdk';
 import { logUsage } from '../utils/logUsage.js';
 import { getAuthenticatedUserId } from '../lib/playerAuth.js';
+import { getSharedAI, generateWithFallback, DEFAULT_MODEL_CHAIN } from '../utils/geminiRetry.js';
 
 const router = Router();
 
 // ── Groq client (lazy init) ──
 let groqClient: Groq | null = null;
-function getGroq(): Groq {
+function getGroq(): Groq | null {
   if (!groqClient) {
     const key = process.env.GROQ_API_KEY;
-    if (!key) throw new Error('GROQ_API_KEY not set');
+    if (!key) return null;
     groqClient = new Groq({ apiKey: key });
   }
   return groqClient;
 }
 
-const AGENT_MODEL = 'llama-3.3-70b-versatile';
+const GROQ_MODELS = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
 
 // ── Tool Definitions ──
 const TOOLS: Groq.Chat.ChatCompletionTool[] = [
@@ -149,7 +150,6 @@ function buildSystemPrompt(ctx: any): string {
   const dayStr = now.toLocaleDateString('en-IN', { weekday: 'long' });
   const hour = now.getHours();
 
-  // Infer default meal type from time
   let defaultMealTime = 'SNACK';
   if (hour >= 5 && hour < 11) defaultMealTime = 'BREAKFAST';
   else if (hour >= 11 && hour < 15) defaultMealTime = 'LUNCH';
@@ -157,6 +157,7 @@ function buildSystemPrompt(ctx: any): string {
   else if (hour >= 18 && hour <= 23) defaultMealTime = 'DINNER';
 
   return `You are DUSK, an AI agent inside a fitness/life-tracking app called REFORGE. You don't just talk — you TAKE ACTIONS using the tools provided.
+IMPORTANT: You MUST always include a text response along with any tool calls. Never return only tool calls without text.
 
 ## CURRENT TIME: ${timeStr}, ${dayStr}
 ## DEFAULT MEAL TYPE (based on time): ${defaultMealTime}
@@ -210,10 +211,94 @@ ${ctx.workoutPlan?.length > 0 ? ctx.workoutPlan.map((d: any) => `- ${d.day}: ${d
 13. When navigating, always add the navigate_to tool call so a clickable button appears in chat.`;
 }
 
+// ── Try Groq with automatic model fallback ──
+async function tryGroq(
+  groq: Groq,
+  messages: Groq.Chat.ChatCompletionMessageParam[],
+): Promise<{ text: string; actions: any[]; model: string } | null> {
+  for (const model of GROQ_MODELS) {
+    try {
+      const completion = await groq.chat.completions.create({
+        model,
+        messages,
+        tools: TOOLS,
+        tool_choice: 'auto',
+        temperature: 0.7,
+        max_tokens: 1024,
+      });
+
+      const choice = completion.choices[0];
+      const responseMessage = choice.message;
+      let text = responseMessage.content || '';
+      const actions: any[] = [];
+
+      if (responseMessage.tool_calls && responseMessage.tool_calls.length > 0) {
+        for (const toolCall of responseMessage.tool_calls) {
+          try {
+            const args = JSON.parse(toolCall.function.arguments);
+            actions.push({
+              tool: toolCall.function.name,
+              args,
+              label: getActionLabel(toolCall.function.name, args),
+            });
+          } catch { /* skip malformed tool call */ }
+        }
+
+        // If no text alongside tool calls, generate a brief confirmation
+        if (!text && actions.length > 0) {
+          const actionSummary = actions.map(a => a.label).join(', ');
+          text = `Done! ${actionSummary}`;
+        }
+      }
+
+      logUsage({
+        route: 'dusk/agent-chat',
+        model,
+        inputTokens: completion.usage?.prompt_tokens ?? 0,
+        outputTokens: completion.usage?.completion_tokens ?? 0,
+        success: true,
+      });
+
+      return { text, actions, model };
+    } catch (err: any) {
+      const status = err?.status || err?.statusCode;
+      console.warn(`[Dusk Agent] Groq ${model} failed (${status}): ${err?.message?.slice(0, 100)}`);
+      if (status === 429 || status >= 500) continue;
+      throw err;
+    }
+  }
+  return null;
+}
+
+// ── Fallback to Gemini (text only, no tool calling) ──
+async function fallbackGemini(
+  systemPrompt: string,
+  userMessage: string,
+  history: any[],
+): Promise<string> {
+  const ai = getSharedAI();
+  const historyContext = history
+    .slice(-6)
+    .map((m: any) => `${m.sender === 'user' ? 'User' : 'DUSK'}: ${m.text}`)
+    .join('\n');
+
+  const fullPrompt = `${systemPrompt}
+
+IMPORTANT: You cannot use tools in this mode. Just respond with text advice.
+
+Chat History:
+${historyContext}
+
+User: ${userMessage}
+DUSK:`;
+
+  const { result } = await generateWithFallback(ai, [...DEFAULT_MODEL_CHAIN], fullPrompt);
+  return result.response.text().trim();
+}
+
 // ── Agent Chat Endpoint ──
 router.post('/agent-chat', async (req: Request, res: Response) => {
   try {
-    const groq = getGroq();
     const { message, playerContext, history } = req.body;
     const userId = getAuthenticatedUserId(req) || null;
 
@@ -223,22 +308,19 @@ router.post('/agent-chat', async (req: Request, res: Response) => {
 
     const systemPrompt = buildSystemPrompt(playerContext || {});
 
-    // Build message history for Groq
-    const messages: Groq.Chat.ChatCompletionMessageParam[] = [
+    const groqMessages: Groq.Chat.ChatCompletionMessageParam[] = [
       { role: 'system', content: systemPrompt },
     ];
 
-    // Add recent chat history
     if (history && Array.isArray(history)) {
       for (const h of history.slice(-8)) {
-        messages.push({
+        groqMessages.push({
           role: h.sender === 'user' ? 'user' : 'assistant',
           content: h.text,
         });
       }
     }
 
-    // Add current user message
     let userMessage = message;
     let isSystemEvent = false;
     if (message.startsWith('[SYSTEM_EVENT]')) {
@@ -246,98 +328,32 @@ router.post('/agent-chat', async (req: Request, res: Response) => {
       userMessage = message.replace('[SYSTEM_EVENT]', '').trim();
     }
 
-    messages.push({
+    groqMessages.push({
       role: 'user',
       content: isSystemEvent
         ? `[SYSTEM NOTIFICATION: ${userMessage}]\nReact to this event naturally.`
         : userMessage,
     });
 
-    // ── Call Groq with tool calling ──
-    const completion = await groq.chat.completions.create({
-      model: AGENT_MODEL,
-      messages,
-      tools: TOOLS,
-      tool_choice: 'auto',
-      temperature: 0.7,
-      max_tokens: 1024,
-    });
-
-    const choice = completion.choices[0];
-    const responseMessage = choice.message;
-
-    let text = responseMessage.content || '';
-    const actions: any[] = [];
-
-    // ── Process tool calls ──
-    if (responseMessage.tool_calls && responseMessage.tool_calls.length > 0) {
-      for (const toolCall of responseMessage.tool_calls) {
-        try {
-          const args = JSON.parse(toolCall.function.arguments);
-          actions.push({
-            tool: toolCall.function.name,
-            args,
-            label: getActionLabel(toolCall.function.name, args),
-          });
-        } catch (parseErr) {
-          console.error('[Dusk Agent] Failed to parse tool args:', parseErr);
-        }
-      }
-
-      // If the model only called tools without text, do a follow-up to get text
-      if (!text && actions.length > 0) {
-        // Build tool results for the follow-up
-        const toolResultMessages: Groq.Chat.ChatCompletionMessageParam[] = [
-          ...messages,
-          responseMessage as any,
-        ];
-
-        for (const toolCall of responseMessage.tool_calls) {
-          toolResultMessages.push({
-            role: 'tool',
-            tool_call_id: toolCall.id,
-            content: JSON.stringify({ success: true, action: toolCall.function.name }),
-          });
-        }
-
-        toolResultMessages.push({
-          role: 'user',
-          content: 'Now give a SHORT conversational response confirming what you just did. 2-3 sentences max.',
-        });
-
-        try {
-          const followUp = await groq.chat.completions.create({
-            model: AGENT_MODEL,
-            messages: toolResultMessages,
-            temperature: 0.7,
-            max_tokens: 256,
-          });
-          text = followUp.choices[0]?.message?.content || 'Done!';
-        } catch {
-          text = 'Done! I\'ve made the changes.';
-        }
+    // ── Try Groq first (with tool calling) ──
+    const groq = getGroq();
+    if (groq) {
+      const result = await tryGroq(groq, groqMessages);
+      if (result) {
+        return res.json({ text: result.text, actions: result.actions });
       }
     }
 
-    // Log usage
-    logUsage({
-      route: 'dusk/agent-chat',
-      model: AGENT_MODEL,
-      inputTokens: completion.usage?.prompt_tokens ?? 0,
-      outputTokens: completion.usage?.completion_tokens ?? 0,
-      success: true,
-      userId: userId || undefined,
-    });
+    // ── Fallback to Gemini (text only) ──
+    console.log('[Dusk Agent] Groq unavailable, falling back to Gemini');
+    const text = await fallbackGemini(systemPrompt, userMessage, history || []);
+    return res.json({ text, actions: [] });
 
-    return res.json({ text, actions });
   } catch (err: any) {
-    console.error('[Dusk Agent]', err);
-
-    // Fallback: if Groq fails, return text-only error
+    console.error('[Dusk Agent] Fatal:', err?.message || err);
     return res.status(500).json({
-      text: 'Oops, something went wrong. Try again in a bit.',
+      text: 'Sorry bro, I\'m having a moment. Try again in a few seconds.',
       actions: [],
-      error: err?.message,
     });
   }
 });
