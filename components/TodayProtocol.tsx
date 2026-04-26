@@ -23,7 +23,7 @@ interface TodayProtocolProps {
   onReorderSlots?: (slots: ScheduleSlot[]) => void;
 }
 
-// ── Anti-cheat limits ──
+// â”€â”€ Anti-cheat limits â”€â”€
 const MAX_SKIPS_PER_DAY = 2;
 const MAX_DEFERS_PER_DAY = 2;
 
@@ -123,7 +123,7 @@ function buildDefaultSlots(profile: ScheduleProfile): ScheduleSlot[] {
 
   const windDownStart = subtractMinutes(profile.bedtime, profile.windDownMinutes);
   slots.push(s(windDownStart, profile.bedtime, 'ROUTINE', 'Wind Down'));
-  // Sleep marker — endTime set to next-day wakeup conceptually
+  // Sleep marker â€” endTime set to next-day wakeup conceptually
   slots.push(s(profile.bedtime, addMinutes(profile.bedtime, 1), 'SLEEP', 'Lights Out'));
 
   slots.sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime));
@@ -178,7 +178,7 @@ function recalculateTimesAfterReorder(slots: ScheduleSlot[]): ScheduleSlot[] {
       gapIdx++;
       gapCursor = gaps[gapIdx]?.start || 0;
     }
-    // No gap found — keep original time
+    // No gap found â€” keep original time
     return slot;
   });
 
@@ -202,7 +202,7 @@ export default function TodayProtocol({
   const [expanded, setExpanded] = useState(false);
   const [actionSlotId, setActionSlotId] = useState<string | null>(null);
 
-  // ── Live clock (updates every 60s) ──
+  // â”€â”€ Live clock (updates every 60s) â”€â”€
   const [currentMinutes, setCurrentMinutes] = useState(() => {
     const now = new Date();
     return now.getHours() * 60 + now.getMinutes();
@@ -224,7 +224,7 @@ export default function TodayProtocol({
     return buildDefaultSlots(scheduleProfile);
   }, [dailySchedule, scheduleProfile]);
 
-  // ── Anti-cheat counters ──
+  // â”€â”€ Anti-cheat counters â”€â”€
   const skipsToday = slots.filter(s => s.status === 'SKIPPED').length;
   const defersToday = slots.filter(s => s.status === 'DEFERRED').length;
   const canSkip = skipsToday < MAX_SKIPS_PER_DAY;
@@ -284,7 +284,7 @@ export default function TodayProtocol({
     setActionSlotId(null);
   }, [slots, onSlotAction, canSkip, canDefer]);
 
-  // ── Drag reorder handler ──
+  // â”€â”€ Drag reorder handler â”€â”€
   const handleReorder = useCallback((newOrder: ScheduleSlot[]) => {
     // Only flexible slots are reorderable, but we need to merge back with fixed
     // Recalculate times after reorder
@@ -314,7 +314,7 @@ export default function TodayProtocol({
             </div>
             <div>
               <h3 className="text-xs font-black text-white uppercase tracking-wider">Today's Protocol</h3>
-              <p className="text-[9px] text-gray-600 font-mono">{dayName} • {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</p>
+              <p className="text-[9px] text-gray-600 font-mono">{dayName} â€¢ {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -364,8 +364,12 @@ export default function TodayProtocol({
       </div>
 
       {/* Timeline */}
+      {/* Timeline — vertical layout: time above card, connected by line */}
       <div className="px-4 pb-2">
-        <div className="space-y-0.5">
+        <div className="relative">
+          {/* Vertical line running down the left edge */}
+          <div className="absolute left-[7px] top-3 bottom-3 w-px" style={{ background: 'rgba(255,255,255,0.06)' }} />
+
           {visibleSlots.map((slot, i) => {
             const slotMinutes = timeToMinutes(slot.startTime);
             const isCurrent = slots[currentSlotIdx]?.id === slot.id;
@@ -378,137 +382,66 @@ export default function TodayProtocol({
             const showActions = actionSlotId === slot.id;
 
             return (
-              <div key={slot.id}>
-                <motion.div
-                  initial={{ opacity: 0, y: 5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.04 }}
-                  className={`flex items-center gap-2.5 py-1.5 rounded-xl px-1.5 transition-colors ${
-                    showActions ? 'bg-white/[0.03]' : ''
-                  } ${isInteractive ? 'cursor-pointer' : ''}`}
-                  onClick={() => isInteractive ? setActionSlotId(showActions ? null : slot.id) : null}
-                >
-                  {/* Drag handle (only for flexible, active slots) */}
-                  {slot.isFlexible && !isCompleted && !isSkipped && !isDeferred && expanded ? (
-                    <GripVertical className="w-3 h-3 text-gray-700 flex-shrink-0 cursor-grab" />
-                  ) : (
-                    <div className="w-3 flex-shrink-0" />
-                  )}
-
-                  {/* Time */}
-                  <div className={`w-12 text-[10px] font-mono font-bold text-right flex-shrink-0 ${
-                    isCurrent ? 'text-cyan-400' : isPast ? 'text-gray-700' : 'text-gray-500'
-                  }`}>
-                    {formatTime(slot.startTime).replace(' ', '\n').split('\n')[0]}
-                    <span className="text-[7px] ml-0.5">{formatTime(slot.startTime).split(' ')[1]}</span>
+              <div key={slot.id} className="relative">
+                <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
+                  {/* Time label row with dot */}
+                  <div className="flex items-center gap-2 mb-1 mt-2">
+                    <div className="relative z-10 flex-shrink-0">
+                      {isCurrent ? (
+                        <motion.div className="w-[15px] h-[15px] rounded-full" style={{ background: slotColor, boxShadow: `0 0 10px ${slotColor}` }} animate={{ scale: [1, 1.25, 1] }} transition={{ duration: 2, repeat: Infinity }} />
+                      ) : isCompleted ? (
+                        <div className="w-[15px] h-[15px] rounded-full bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center"><CheckCircle className="w-2.5 h-2.5 text-emerald-500" /></div>
+                      ) : isSkipped || isDeferred ? (
+                        <div className="w-[15px] h-[15px] rounded-full" style={{ background: isDeferred ? 'rgba(251,191,36,0.2)' : 'rgba(239,68,68,0.2)', border: `1.5px solid ${isDeferred ? 'rgba(251,191,36,0.5)' : 'rgba(239,68,68,0.5)'}` }} />
+                      ) : isPast ? (
+                        <div className="w-[15px] h-[15px] rounded-full bg-gray-800 border border-gray-700" />
+                      ) : (
+                        <div className="w-[15px] h-[15px] rounded-full border-2 border-gray-700 bg-transparent" />
+                      )}
+                    </div>
+                    <span className={`text-[11px] font-mono font-bold tracking-wide ${isCurrent ? 'text-cyan-400' : isPast ? 'text-gray-700' : 'text-gray-500'}`}>{formatTime(slot.startTime)}</span>
+                    {isCurrent && <span className="text-[7px] font-black text-cyan-400 px-1.5 py-0.5 rounded-full bg-cyan-400/10 uppercase tracking-wider">Now</span>}
+                    {isDeferred && <span className="text-[7px] font-bold text-amber-400 px-1.5 py-0.5 rounded-full bg-amber-400/10">DEFER</span>}
+                    {slot.isCarryOver && <span className="text-[7px] font-bold text-amber-400 px-1.5 py-0.5 rounded-full bg-amber-400/10">CARRY</span>}
                   </div>
 
-                  {/* Timeline dot */}
-                  <div className="flex flex-col items-center flex-shrink-0">
-                    {isCurrent ? (
-                      <motion.div
-                        className="w-3 h-3 rounded-full relative"
-                        style={{ background: slotColor, boxShadow: `0 0 8px ${slotColor}` }}
-                        animate={{ scale: [1, 1.3, 1] }}
-                        transition={{ duration: 2, repeat: Infinity }}
-                      />
-                    ) : isCompleted ? (
-                      <CheckCircle className="w-3 h-3 text-emerald-500" />
-                    ) : isSkipped || isDeferred ? (
-                      <div className="w-3 h-3 rounded-full" style={{
-                        background: isDeferred ? 'rgba(251,191,36,0.3)' : 'rgba(239,68,68,0.3)',
-                        border: `1px solid ${isDeferred ? 'rgba(251,191,36,0.5)' : 'rgba(239,68,68,0.5)'}`
-                      }} />
-                    ) : isPast ? (
-                      <div className="w-2.5 h-2.5 rounded-full bg-gray-800 border border-gray-700" />
-                    ) : (
-                      <Circle className="w-2.5 h-2.5 text-gray-700" />
-                    )}
-                  </div>
-
-                  {/* Slot content */}
-                  <div className="flex-1 min-w-0 flex items-center gap-1.5">
-                    <div className="flex-shrink-0">{SLOT_ICONS[slot.type]}</div>
-                    <span className={`text-[11px] font-mono truncate ${
-                      isCurrent ? 'text-white font-bold' :
-                      isCompleted ? 'text-gray-500 line-through' :
-                      isSkipped ? 'text-red-400/50 line-through' :
-                      isDeferred ? 'text-amber-400/60' :
-                      isPast ? 'text-gray-700' :
-                      'text-gray-400'
-                    }`}>
-                      {slot.label}
-                    </span>
-                    {slot.isCarryOver && (
-                      <span className="text-[7px] font-bold text-amber-400 px-1 py-0.5 rounded bg-amber-400/10 flex-shrink-0">CARRY</span>
-                    )}
-                    {isCurrent && (
-                      <span className="text-[7px] font-black text-cyan-400 px-1.5 py-0.5 rounded bg-cyan-400/10 flex-shrink-0 uppercase tracking-wider">Now</span>
-                    )}
-                    {isDeferred && (
-                      <span className="text-[7px] font-bold text-amber-400 px-1 py-0.5 rounded bg-amber-400/10 flex-shrink-0">DEFER</span>
-                    )}
-                  </div>
-
-                  {/* Notification toggle */}
-                  <div className="flex items-center gap-1.5 flex-shrink-0">
-                    {(slot.type === 'QUEST' || slot.type === 'WORKOUT') && !isCompleted && !isSkipped && !isDeferred && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleToggleNotification(slot); }}
-                        className="p-1 rounded-md transition-colors hover:bg-white/5"
-                        title={slot.notifyEnabled ? 'Reminder ON — 15 min before' : 'Reminder OFF'}
-                      >
-                        {slot.notifyEnabled ? (
-                          <Bell className="w-3 h-3 text-cyan-400/70" />
-                        ) : (
-                          <BellOff className="w-3 h-3 text-gray-700" />
-                        )}
-                      </button>
-                    )}
-                    {isCompleted && <span className="text-[8px] text-emerald-500 font-mono font-bold">✓</span>}
-                    {slot.type === 'BLOCKED' && <span className="text-[8px] text-gray-700 font-mono">locked</span>}
-                  </div>
-                </motion.div>
-
-                {/* ── Expanded action panel ── */}
-                <AnimatePresence>
-                  {showActions && isInteractive && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="overflow-hidden"
-                    >
-                      <div className="flex items-center gap-2 py-2 px-4 ml-[66px]">
-                        {/* FIX BUG-2: "Go to Quest" navigates to QuestsView for proper ForgeGuard completion */}
-                        <button
-                          onClick={(e) => { e.stopPropagation(); onNavigateToQuests(); setActionSlotId(null); }}
-                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-bold font-mono uppercase tracking-wider"
-                          style={{ background: 'rgba(34,211,238,0.1)', border: '1px solid rgba(34,211,238,0.2)', color: '#22d3ee' }}
-                        >
-                          <ArrowRight className="w-3 h-3" /> Go to Quest
-                        </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleSlotAction(slot.id, 'SKIP'); }}
-                          disabled={!canSkip}
-                          className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-bold font-mono uppercase tracking-wider ${!canSkip ? 'opacity-30 cursor-not-allowed' : ''}`}
-                          style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)', color: '#f87171' }}
-                        >
-                          <SkipForward className="w-3 h-3" /> Skip {!canSkip ? '(max)' : ''}
-                        </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleSlotAction(slot.id, 'DEFER'); }}
-                          disabled={!canDefer}
-                          className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-bold font-mono uppercase tracking-wider ${!canDefer ? 'opacity-30 cursor-not-allowed' : ''}`}
-                          style={{ background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.15)', color: '#fbbf24' }}
-                        >
-                          <CalendarOff className="w-3 h-3" /> Tomorrow {!canDefer ? '(max)' : ''}
-                        </button>
+                  {/* Slot card */}
+                  <div
+                    className={`ml-[23px] rounded-xl px-3 py-2.5 transition-colors ${isInteractive ? 'cursor-pointer active:scale-[0.98]' : ''} ${showActions ? 'ring-1 ring-white/10' : ''}`}
+                    style={{ background: isCurrent ? `linear-gradient(135deg, ${slotColor}12, ${slotColor}06)` : 'rgba(255,255,255,0.02)', border: `1px solid ${isCurrent ? `${slotColor}30` : 'rgba(255,255,255,0.04)'}` }}
+                    onClick={() => isInteractive ? setActionSlotId(showActions ? null : slot.id) : null}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        {slot.isFlexible && !isCompleted && !isSkipped && !isDeferred && expanded && <GripVertical className="w-3.5 h-3.5 text-gray-700 flex-shrink-0 cursor-grab" />}
+                        <div className="flex-shrink-0">{SLOT_ICONS[slot.type]}</div>
+                        <span className={`text-[12px] font-mono truncate ${isCurrent ? 'text-white font-bold' : isCompleted ? 'text-gray-500 line-through' : isSkipped ? 'text-red-400/50 line-through' : isDeferred ? 'text-amber-400/60' : isPast ? 'text-gray-600' : 'text-gray-300'}`}>{slot.label}</span>
                       </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        {(slot.type === 'QUEST' || slot.type === 'WORKOUT') && !isCompleted && !isSkipped && !isDeferred && (
+                          <button onClick={(e) => { e.stopPropagation(); handleToggleNotification(slot); }} className="p-1 rounded-md transition-colors hover:bg-white/5" title={slot.notifyEnabled ? 'Reminder ON' : 'Reminder OFF'}>
+                            {slot.notifyEnabled ? <Bell className="w-3.5 h-3.5 text-cyan-400/70" /> : <BellOff className="w-3.5 h-3.5 text-gray-700" />}
+                          </button>
+                        )}
+                        {isCompleted && <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />}
+                        {slot.type === 'BLOCKED' && <span className="text-[8px] text-gray-700 font-mono">locked</span>}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Expanded action panel */}
+                  <AnimatePresence>
+                    {showActions && isInteractive && (
+                      <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden ml-[23px]">
+                        <div className="flex items-center gap-2 py-2 px-1">
+                          <button onClick={(e) => { e.stopPropagation(); onNavigateToQuests(); setActionSlotId(null); }} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-bold font-mono uppercase tracking-wider" style={{ background: 'rgba(34,211,238,0.1)', border: '1px solid rgba(34,211,238,0.2)', color: '#22d3ee' }}><ArrowRight className="w-3 h-3" /> Go to Quest</button>
+                          <button onClick={(e) => { e.stopPropagation(); handleSlotAction(slot.id, 'SKIP'); }} disabled={!canSkip} className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-bold font-mono uppercase tracking-wider ${!canSkip ? 'opacity-30 cursor-not-allowed' : ''}`} style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)', color: '#f87171' }}><SkipForward className="w-3 h-3" /> Skip {!canSkip ? '(max)' : ''}</button>
+                          <button onClick={(e) => { e.stopPropagation(); handleSlotAction(slot.id, 'DEFER'); }} disabled={!canDefer} className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-bold font-mono uppercase tracking-wider ${!canDefer ? 'opacity-30 cursor-not-allowed' : ''}`} style={{ background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.15)', color: '#fbbf24' }}><CalendarOff className="w-3 h-3" /> Tmrw {!canDefer ? '(max)' : ''}</button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
               </div>
             );
           })}
@@ -534,13 +467,13 @@ export default function TodayProtocol({
           style={{ background: 'rgba(255,255,255,0.015)', borderTop: '1px solid rgba(255,255,255,0.04)' }}
         >
           <span className="text-[9px] text-gray-500 font-mono">
-            {activeGoals.length} active goal{activeGoals.length > 1 ? 's' : ''} • tap quest to act
+            {activeGoals.length} active goal{activeGoals.length > 1 ? 's' : ''} â€¢ tap quest to act
           </span>
           <button
             onClick={onNavigateToQuests}
             className="text-[9px] font-bold text-cyan-400 font-mono uppercase tracking-wider"
           >
-            View Quests →
+            View Quests â†’
           </button>
         </div>
       )}
