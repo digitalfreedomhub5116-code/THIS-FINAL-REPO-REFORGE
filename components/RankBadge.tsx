@@ -128,304 +128,171 @@ const BadgeUnranked: React.FC<{ s: number; animated: boolean }> = ({ s, animated
 };
 
 const BadgeE: React.FC<{ s: number; animated: boolean }> = ({ s, animated }) => {
-  const cx = s / 2, cy = s / 2;
-  const r = s * 0.42;
-  const m = RANK_META.E;
-  const pts = hexPts(cx, cy, r, -30);
-  const ptsInner = hexPts(cx, cy, r * 0.74, -30);
-
+  const cx = s/2, cy = s/2, r = s*0.44, m = RANK_META.E, id = `e-${s}`;
+  const shield = `M${cx},${cy-r} C${cx-r*0.15},${cy-r*1.02} ${cx-r*0.85},${cy-r*0.7} ${cx-r*0.88},${cy-r*0.25} L${cx-r*0.82},${cy+r*0.35} C${cx-r*0.78},${cy+r*0.65} ${cx-r*0.35},${cy+r*0.92} ${cx},${cy+r*0.98} C${cx+r*0.35},${cy+r*0.92} ${cx+r*0.78},${cy+r*0.65} ${cx+r*0.82},${cy+r*0.35} L${cx+r*0.88},${cy-r*0.25} C${cx+r*0.85},${cy-r*0.7} ${cx+r*0.15},${cy-r*1.02} ${cx},${cy-r}Z`;
+  const shieldInner = `M${cx},${cy-r*0.78} C${cx-r*0.12},${cy-r*0.8} ${cx-r*0.65},${cy-r*0.55} ${cx-r*0.68},${cy-r*0.18} L${cx-r*0.63},${cy+r*0.28} C${cx-r*0.6},${cy+r*0.52} ${cx-r*0.28},${cy+r*0.72} ${cx},${cy+r*0.77} C${cx+r*0.28},${cy+r*0.72} ${cx+r*0.6},${cy+r*0.52} ${cx+r*0.63},${cy+r*0.28} L${cx+r*0.68},${cy-r*0.18} C${cx+r*0.65},${cy-r*0.55} ${cx+r*0.12},${cy-r*0.8} ${cx},${cy-r*0.78}Z`;
+  const gr = s*0.07;
   return (
     <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`} style={{ overflow: 'visible' }}>
       <defs>
-        <radialGradient id="bg-e" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor={m.primary} stopOpacity="0.14" />
-          <stop offset="100%" stopColor="#000" stopOpacity="1" />
-        </radialGradient>
-        <filter id="glow-e" x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur stdDeviation="3" result="blur"/>
-          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-        </filter>
-        {animated && <style>{`
-          @keyframes e-flicker { 0%,100%{opacity:1}48%{opacity:0.82}50%{opacity:1}52%{opacity:0.88} }
-          .badge-e-letter{animation:e-flicker 4s infinite}
-        `}</style>}
+        <linearGradient id={`bdr-${id}`} x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#8a9bb0"/><stop offset="40%" stopColor="#556575"/><stop offset="100%" stopColor="#3a4a58"/></linearGradient>
+        <linearGradient id={`bg-${id}`} x1="0" y1="0" x2="0.3" y2="1"><stop offset="0%" stopColor="#3a4555"/><stop offset="50%" stopColor="#1a2230"/><stop offset="100%" stopColor="#0d1218"/></linearGradient>
+        <linearGradient id={`gem-${id}`} x1="0" y1="0" x2="0.5" y2="1"><stop offset="0%" stopColor="#b0bec5"/><stop offset="50%" stopColor="#78909c"/><stop offset="100%" stopColor="#455a64"/></linearGradient>
+        <linearGradient id={`ltr-${id}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#e0e8f0"/><stop offset="100%" stopColor="#8a9bb0"/></linearGradient>
+        <filter id={`gl-${id}`} x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="2"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        {animated && <style>{`@keyframes ef{0%,100%{opacity:1}50%{opacity:.85}}.be-f{animation:ef 3s infinite}`}</style>}
       </defs>
-      {/* Plate */}
-      <polygon points={pts} fill="url(#bg-e)" stroke={m.border} strokeWidth={s * 0.045} />
-      {/* Crack lines across plate */}
-      <line x1={cx-r*0.55} y1={cy-r*0.35} x2={cx+r*0.15} y2={cy+r*0.6} stroke={m.primary} strokeWidth={s*0.018} opacity="0.22" strokeLinecap="round"/>
-      <line x1={cx+r*0.4} y1={cy-r*0.55} x2={cx-r*0.1} y2={cy+r*0.3} stroke={m.primary} strokeWidth={s*0.014} opacity="0.16" strokeLinecap="round"/>
-      {/* Inner ring */}
-      <polygon points={ptsInner} fill="none" stroke={m.primary} strokeWidth={s*0.016} opacity="0.2" />
-      {/* Letter */}
-      <text className="badge-e-letter" x={cx} y={cy+s*0.15} textAnchor="middle" fontSize={s*0.5} fontWeight="900" fontFamily="'Arial Black',sans-serif" fill={m.letter} filter="url(#glow-e)" opacity="1" stroke={m.primary} strokeWidth={s*0.008}>E</text>
+      <path d={shield} fill={`url(#bg-${id})`} stroke={`url(#bdr-${id})`} strokeWidth={s*0.05}/>
+      <path d={shieldInner} fill="none" stroke="#6a7a8a" strokeWidth={s*0.015} opacity=".35"/>
+      {[[-0.7,-0.1],[0.7,-0.1],[-0.55,0.5],[0.55,0.5]].map(([dx,dy],i)=><circle key={i} cx={cx+r*dx} cy={cy+r*dy} r={s*0.025} fill="#6a7a8a" stroke="#4a5868" strokeWidth={s*0.008}/>)}
+      <path d={`M${cx},${cy-r*0.45-gr} L${cx+gr*0.7},${cy-r*0.45-gr*0.2} L${cx+gr*0.5},${cy-r*0.45+gr*0.4} L${cx},${cy-r*0.45+gr} L${cx-gr*0.5},${cy-r*0.45+gr*0.4} L${cx-gr*0.7},${cy-r*0.45-gr*0.2}Z`} fill={`url(#gem-${id})`} stroke="#90a4ae" strokeWidth={s*0.01}/>
+      <line x1={cx} y1={cy-r*0.45-gr} x2={cx+gr*0.5} y2={cy-r*0.45+gr*0.4} stroke="#cfd8dc" strokeWidth={s*0.006} opacity=".5"/>
+      <line x1={cx} y1={cy-r*0.45-gr} x2={cx-gr*0.5} y2={cy-r*0.45+gr*0.4} stroke="#cfd8dc" strokeWidth={s*0.006} opacity=".5"/>
+      <text className="be-f" x={cx} y={cy+s*0.2} textAnchor="middle" fontSize={s*0.42} fontWeight="900" fontFamily="'Arial Black',sans-serif" fill={`url(#ltr-${id})`} filter={`url(#gl-${id})`} stroke="#556575" strokeWidth={s*0.01}>E</text>
     </svg>
   );
 };
 
 const BadgeD: React.FC<{ s: number; animated: boolean }> = ({ s, animated }) => {
-  const cx = s / 2, cy = s / 2;
-  const r = s * 0.42;
-  const m = RANK_META.D;
-  const pts      = hexPts(cx, cy, r, -30);
-  const ptsInner = hexPts(cx, cy, r * 0.74, -30);
-  const id = `d-${s}`;
-
+  const cx = s/2, cy = s/2, r = s*0.44, m = RANK_META.D, id = `d-${s}`;
+  const shield = `M${cx},${cy-r} C${cx-r*0.15},${cy-r*1.02} ${cx-r*0.85},${cy-r*0.7} ${cx-r*0.88},${cy-r*0.25} L${cx-r*0.82},${cy+r*0.35} C${cx-r*0.78},${cy+r*0.65} ${cx-r*0.35},${cy+r*0.92} ${cx},${cy+r*0.98} C${cx+r*0.35},${cy+r*0.92} ${cx+r*0.78},${cy+r*0.65} ${cx+r*0.82},${cy+r*0.35} L${cx+r*0.88},${cy-r*0.25} C${cx+r*0.85},${cy-r*0.7} ${cx+r*0.15},${cy-r*1.02} ${cx},${cy-r}Z`;
+  const si = `M${cx},${cy-r*0.78} C${cx-r*0.12},${cy-r*0.8} ${cx-r*0.65},${cy-r*0.55} ${cx-r*0.68},${cy-r*0.18} L${cx-r*0.63},${cy+r*0.28} C${cx-r*0.6},${cy+r*0.52} ${cx-r*0.28},${cy+r*0.72} ${cx},${cy+r*0.77} C${cx+r*0.28},${cy+r*0.72} ${cx+r*0.6},${cy+r*0.52} ${cx+r*0.63},${cy+r*0.28} L${cx+r*0.68},${cy-r*0.18} C${cx+r*0.65},${cy-r*0.55} ${cx+r*0.12},${cy-r*0.8} ${cx},${cy-r*0.78}Z`;
+  const gr = s*0.08;
   return (
-    <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`} style={{ overflow: 'visible', filter: `drop-shadow(0 0 ${s*0.13}px ${m.glow})` }}>
+    <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`} style={{ overflow: 'visible', filter: `drop-shadow(0 0 ${s*0.1}px ${m.glow})` }}>
       <defs>
-        <radialGradient id={`bg-${id}`} cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor={m.primary} stopOpacity="0.28" />
-          <stop offset="100%" stopColor={m.bg} stopOpacity="1" />
-        </radialGradient>
-        <filter id={`txt-${id}`} x="-60%" y="-60%" width="220%" height="220%">
-          <feGaussianBlur stdDeviation="2.5" result="blur"/>
-          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-        </filter>
-        {animated && <style>{`
-          @keyframes d-glow{0%,100%{opacity:1;filter:drop-shadow(0 0 ${s*0.12}px ${m.glow})}50%{opacity:0.85;filter:drop-shadow(0 0 ${s*0.22}px ${m.glow})}}
-          .badge-d-wrap{animation:d-glow 2.4s ease-in-out infinite}
-        `}</style>}
+        <linearGradient id={`bdr-${id}`} x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#e8a317"/><stop offset="50%" stopColor="#b47a0a"/><stop offset="100%" stopColor="#8a5c00"/></linearGradient>
+        <linearGradient id={`bg-${id}`} x1="0" y1="0" x2="0.3" y2="1"><stop offset="0%" stopColor="#4a3510"/><stop offset="50%" stopColor="#2a1e08"/><stop offset="100%" stopColor="#1a0e00"/></linearGradient>
+        <linearGradient id={`gem-${id}`} x1="0" y1="0" x2="0.5" y2="1"><stop offset="0%" stopColor="#ffd54f"/><stop offset="40%" stopColor="#ff8f00"/><stop offset="100%" stopColor="#e65100"/></linearGradient>
+        <linearGradient id={`ltr-${id}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#fff8e1"/><stop offset="100%" stopColor="#f5a623"/></linearGradient>
+        <filter id={`gl-${id}`} x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="2.5"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        {animated && <style>{`@keyframes dg{0%,100%{filter:drop-shadow(0 0 ${s*0.1}px ${m.glow})}50%{filter:drop-shadow(0 0 ${s*0.2}px ${m.glow})}}.bd-g{animation:dg 2.4s ease-in-out infinite}`}</style>}
       </defs>
-      <g className="badge-d-wrap">
-        <polygon points={pts} fill={`url(#bg-${id})`} stroke={m.border} strokeWidth={s*0.034} />
-        {/* Inner ring */}
-        <polygon points={ptsInner} fill="none" stroke={m.primary} strokeWidth={s*0.022} opacity="0.55" />
-        {/* 3 bottom dots */}
-        {[-1,0,1].map(i => <circle key={i} cx={cx + i * s*0.12} cy={cy + s*0.22} r={s*0.032} fill={m.primary} opacity="0.9" />)}
-        {/* Letter */}
-        <text x={cx} y={cy+s*0.12} textAnchor="middle" fontSize={s*0.52} fontWeight="900" fontFamily="'Arial Black',sans-serif" fill={m.letter} filter={`url(#txt-${id})`} stroke={m.primary} strokeWidth={s*0.008}>D</text>
+      <g className={animated?"bd-g":""}>
+        <path d={shield} fill={`url(#bg-${id})`} stroke={`url(#bdr-${id})`} strokeWidth={s*0.05}/>
+        <path d={si} fill="none" stroke="#d4880a" strokeWidth={s*0.018} opacity=".45"/>
+        {[[-0.7,-0.1],[0.7,-0.1],[-0.55,0.5],[0.55,0.5],[0,0.85],[-0.8,0.15]].map(([dx,dy],i)=><circle key={i} cx={cx+r*dx} cy={cy+r*dy} r={s*0.022} fill="#e8a317" stroke="#b47a0a" strokeWidth={s*0.007}/>)}
+        <path d={`M${cx},${cy-r*0.45-gr} L${cx+gr*0.75},${cy-r*0.45-gr*0.15} L${cx+gr*0.55},${cy-r*0.45+gr*0.45} L${cx},${cy-r*0.45+gr} L${cx-gr*0.55},${cy-r*0.45+gr*0.45} L${cx-gr*0.75},${cy-r*0.45-gr*0.15}Z`} fill={`url(#gem-${id})`} stroke="#ffd54f" strokeWidth={s*0.01}/>
+        <line x1={cx} y1={cy-r*0.45-gr} x2={cx+gr*0.55} y2={cy-r*0.45+gr*0.45} stroke="#fff8e1" strokeWidth={s*0.005} opacity=".6"/>
+        <line x1={cx} y1={cy-r*0.45-gr} x2={cx-gr*0.55} y2={cy-r*0.45+gr*0.45} stroke="#fff8e1" strokeWidth={s*0.005} opacity=".6"/>
+        <circle cx={cx} cy={cy-r*0.45} r={gr*0.2} fill="#fff8e1" opacity=".4"/>
+        <text x={cx} y={cy+s*0.2} textAnchor="middle" fontSize={s*0.42} fontWeight="900" fontFamily="'Arial Black',sans-serif" fill={`url(#ltr-${id})`} filter={`url(#gl-${id})`} stroke="#b47a0a" strokeWidth={s*0.01}>D</text>
       </g>
     </svg>
   );
 };
 
 const BadgeC: React.FC<{ s: number; animated: boolean }> = ({ s, animated }) => {
-  const cx = s / 2, cy = s / 2;
-  const r = s * 0.42;
-  const m = RANK_META.C;
-  const pts      = hexPts(cx, cy, r, -30);
-  const ptsInner = hexPts(cx, cy, r * 0.74, -30);
-  const id = `c-${s}`;
-
+  const cx=s/2,cy=s/2,r=s*0.44,m=RANK_META.C,id=`c-${s}`,gr=s*0.09;
+  const sh=`M${cx},${cy-r} C${cx-r*.15},${cy-r*1.02} ${cx-r*.85},${cy-r*.7} ${cx-r*.88},${cy-r*.25} L${cx-r*.82},${cy+r*.35} C${cx-r*.78},${cy+r*.65} ${cx-r*.35},${cy+r*.92} ${cx},${cy+r*.98} C${cx+r*.35},${cy+r*.92} ${cx+r*.78},${cy+r*.65} ${cx+r*.82},${cy+r*.35} L${cx+r*.88},${cy-r*.25} C${cx+r*.85},${cy-r*.7} ${cx+r*.15},${cy-r*1.02} ${cx},${cy-r}Z`;
+  const si=`M${cx},${cy-r*.78} C${cx-r*.12},${cy-r*.8} ${cx-r*.65},${cy-r*.55} ${cx-r*.68},${cy-r*.18} L${cx-r*.63},${cy+r*.28} C${cx-r*.6},${cy+r*.52} ${cx-r*.28},${cy+r*.72} ${cx},${cy+r*.77} C${cx+r*.28},${cy+r*.72} ${cx+r*.6},${cy+r*.52} ${cx+r*.63},${cy+r*.28} L${cx+r*.68},${cy-r*.18} C${cx+r*.65},${cy-r*.55} ${cx+r*.12},${cy-r*.8} ${cx},${cy-r*.78}Z`;
   return (
-    <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`} style={{ overflow: 'visible', filter: `drop-shadow(0 0 ${s*0.15}px ${m.glow})` }}>
+    <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`} style={{overflow:'visible',filter:`drop-shadow(0 0 ${s*.12}px ${m.glow})`}}>
       <defs>
-        <radialGradient id={`bg-${id}`} cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor={m.primary} stopOpacity="0.32" />
-          <stop offset="100%" stopColor={m.bg} stopOpacity="1" />
-        </radialGradient>
-        <filter id={`txt-${id}`} x="-60%" y="-60%" width="220%" height="220%">
-          <feGaussianBlur stdDeviation="3" result="blur"/>
-          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-        </filter>
-        {animated && <style>{`
-          @keyframes c-pulse{0%,100%{opacity:0.55}50%{opacity:1}}
-          .badge-c-ring{animation:c-pulse 1.8s ease-in-out infinite}
-          @keyframes c-shimmer{0%{opacity:0.6}50%{opacity:1}100%{opacity:0.6}}
-          .badge-c-bar{animation:c-shimmer 1.4s ease-in-out infinite}
-        `}</style>}
+        <linearGradient id={`bdr-${id}`} x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#a8d8ea"/><stop offset="50%" stopColor="#7EB8D4"/><stop offset="100%" stopColor="#4a8a9e"/></linearGradient>
+        <linearGradient id={`bg-${id}`} x1="0" y1="0" x2=".3" y2="1"><stop offset="0%" stopColor="#1a3040"/><stop offset="50%" stopColor="#0d1e2a"/><stop offset="100%" stopColor="#081418"/></linearGradient>
+        <linearGradient id={`gem-${id}`} x1="0" y1="0" x2=".5" y2="1"><stop offset="0%" stopColor="#b3e5fc"/><stop offset="40%" stopColor="#4fc3f7"/><stop offset="100%" stopColor="#0277bd"/></linearGradient>
+        <linearGradient id={`ltr-${id}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#e0f7fa"/><stop offset="100%" stopColor="#7EB8D4"/></linearGradient>
+        <filter id={`gl-${id}`} x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="3"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        {animated&&<style>{`@keyframes cp{0%,100%{opacity:.7}50%{opacity:1}}.bc-p{animation:cp 1.8s ease-in-out infinite}`}</style>}
       </defs>
-      <polygon points={pts} fill={`url(#bg-${id})`} stroke={m.border} strokeWidth={s*0.036} />
-      <polygon className="badge-c-ring" points={ptsInner} fill="none" stroke={m.primary} strokeWidth={s*0.026} opacity="0.7" />
-      {/* Ice bar accents */}
-      <line className="badge-c-bar" x1={cx - s*0.2} y1={cy - s*0.19} x2={cx + s*0.2} y2={cy - s*0.19} stroke={m.primary} strokeWidth={s*0.028} opacity="0.75" strokeLinecap="round"/>
-      <line className="badge-c-bar" x1={cx - s*0.2} y1={cy + s*0.23} x2={cx + s*0.2} y2={cy + s*0.23} stroke={m.primary} strokeWidth={s*0.028} opacity="0.75" strokeLinecap="round"/>
-      {/* Letter */}
-      <text x={cx} y={cy+s*0.14} textAnchor="middle" fontSize={s*0.52} fontWeight="900" fontFamily="'Arial Black',sans-serif" fill={m.letter} filter={`url(#txt-${id})`} stroke={m.primary} strokeWidth={s*0.01}>C</text>
-    </svg>
-  );
+      <path d={sh} fill={`url(#bg-${id})`} stroke={`url(#bdr-${id})`} strokeWidth={s*.05}/>
+      <path className="bc-p" d={si} fill="none" stroke="#7EB8D4" strokeWidth={s*.018} opacity=".5"/>
+      {[[-0.7,-0.1],[0.7,-0.1],[-0.55,0.5],[0.55,0.5]].map(([dx,dy],i)=><circle key={i} cx={cx+r*dx} cy={cy+r*dy} r={s*.022} fill="#7EB8D4" stroke="#4a8a9e" strokeWidth={s*.007}/>)}
+      <line x1={cx-s*.22} y1={cy-s*.12} x2={cx+s*.22} y2={cy-s*.12} stroke="#7EB8D4" strokeWidth={s*.02} opacity=".5" strokeLinecap="round"/>
+      <line x1={cx-s*.22} y1={cy+s*.28} x2={cx+s*.22} y2={cy+s*.28} stroke="#7EB8D4" strokeWidth={s*.02} opacity=".5" strokeLinecap="round"/>
+      <path d={`M${cx},${cy-r*.42-gr} L${cx+gr*.75},${cy-r*.42-gr*.15} L${cx+gr*.55},${cy-r*.42+gr*.45} L${cx},${cy-r*.42+gr} L${cx-gr*.55},${cy-r*.42+gr*.45} L${cx-gr*.75},${cy-r*.42-gr*.15}Z`} fill={`url(#gem-${id})`} stroke="#4fc3f7" strokeWidth={s*.01}/>
+      <line x1={cx} y1={cy-r*.42-gr} x2={cx+gr*.55} y2={cy-r*.42+gr*.45} stroke="#e0f7fa" strokeWidth={s*.005} opacity=".6"/>
+      <line x1={cx} y1={cy-r*.42-gr} x2={cx-gr*.55} y2={cy-r*.42+gr*.45} stroke="#e0f7fa" strokeWidth={s*.005} opacity=".6"/>
+      <circle cx={cx} cy={cy-r*.42} r={gr*.22} fill="#e0f7fa" opacity=".45"/>
+      <text x={cx} y={cy+s*.2} textAnchor="middle" fontSize={s*.42} fontWeight="900" fontFamily="'Arial Black',sans-serif" fill={`url(#ltr-${id})`} filter={`url(#gl-${id})`} stroke="#4a8a9e" strokeWidth={s*.01}>C</text>
+    </svg>);
 };
 
 const BadgeB: React.FC<{ s: number; animated: boolean }> = ({ s, animated }) => {
-  const cx = s / 2, cy = s / 2;
-  const r = s * 0.42;
-  const m = RANK_META.B;
-  const pts      = hexPts(cx, cy, r, -30);
-  const ptsInner = hexPts(cx, cy, r * 0.74, -30);
-  const id = `b-${s}`;
-  // 3 vertex gems (top, bottom-left, bottom-right)
-  const gems = [90, 210, 330].map(deg => {
-    const a = (deg * Math.PI) / 180;
-    return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
-  });
-
+  const cx=s/2,cy=s/2,r=s*0.44,m=RANK_META.B,id=`b-${s}`,gr=s*0.09;
+  const sh=`M${cx},${cy-r} C${cx-r*.15},${cy-r*1.02} ${cx-r*.85},${cy-r*.7} ${cx-r*.88},${cy-r*.25} L${cx-r*.82},${cy+r*.35} C${cx-r*.78},${cy+r*.65} ${cx-r*.35},${cy+r*.92} ${cx},${cy+r*.98} C${cx+r*.35},${cy+r*.92} ${cx+r*.78},${cy+r*.65} ${cx+r*.82},${cy+r*.35} L${cx+r*.88},${cy-r*.25} C${cx+r*.85},${cy-r*.7} ${cx+r*.15},${cy-r*1.02} ${cx},${cy-r}Z`;
+  const si=`M${cx},${cy-r*.78} C${cx-r*.12},${cy-r*.8} ${cx-r*.65},${cy-r*.55} ${cx-r*.68},${cy-r*.18} L${cx-r*.63},${cy+r*.28} C${cx-r*.6},${cy+r*.52} ${cx-r*.28},${cy+r*.72} ${cx},${cy+r*.77} C${cx+r*.28},${cy+r*.72} ${cx+r*.6},${cy+r*.52} ${cx+r*.63},${cy+r*.28} L${cx+r*.68},${cy-r*.18} C${cx+r*.65},${cy-r*.55} ${cx+r*.12},${cy-r*.8} ${cx},${cy-r*.78}Z`;
   return (
-    <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`} style={{ overflow: 'visible', filter: `drop-shadow(0 0 ${s*0.16}px ${m.glow})` }}>
+    <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`} style={{overflow:'visible',filter:`drop-shadow(0 0 ${s*.14}px ${m.glow})`}}>
       <defs>
-        <radialGradient id={`bg-${id}`} cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor={m.primary} stopOpacity="0.35" />
-          <stop offset="100%" stopColor={m.bg} stopOpacity="1" />
-        </radialGradient>
-        <filter id={`txt-${id}`} x="-60%" y="-60%" width="220%" height="220%">
-          <feGaussianBlur stdDeviation="3.5" result="blur"/>
-          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-        </filter>
-        {animated && <style>{`
-          @keyframes b-arc{0%,100%{opacity:0;stroke-dashoffset:0}40%{opacity:0.9}70%{opacity:0.4}100%{opacity:0;stroke-dashoffset:60}}
-          .badge-b-arc{animation:b-arc 2s ease-in-out infinite;stroke-dasharray:30 60}
-          @keyframes b-gem{0%,100%{opacity:0.8}50%{opacity:1}}
-          .badge-b-gem{animation:b-gem 1.6s ease-in-out infinite}
-        `}</style>}
+        <linearGradient id={`bdr-${id}`} x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#d8a0ff"/><stop offset="50%" stopColor="#9c27b0"/><stop offset="100%" stopColor="#6a1b9a"/></linearGradient>
+        <linearGradient id={`bg-${id}`} x1="0" y1="0" x2=".3" y2="1"><stop offset="0%" stopColor="#2d1050"/><stop offset="50%" stopColor="#180830"/><stop offset="100%" stopColor="#0e0018"/></linearGradient>
+        <linearGradient id={`gem-${id}`} x1="0" y1="0" x2=".5" y2="1"><stop offset="0%" stopColor="#e1bee7"/><stop offset="40%" stopColor="#ab47bc"/><stop offset="100%" stopColor="#6a1b9a"/></linearGradient>
+        <linearGradient id={`ltr-${id}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#f8f0ff"/><stop offset="100%" stopColor="#c96eff"/></linearGradient>
+        <filter id={`gl-${id}`} x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="3.5"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        {animated&&<style>{`@keyframes ba{0%,100%{opacity:0;stroke-dashoffset:0}40%{opacity:.8}100%{stroke-dashoffset:60}}.bb-a{animation:ba 2s ease-in-out infinite;stroke-dasharray:30 60}@keyframes bg2{0%,100%{opacity:.8}50%{opacity:1}}.bb-g{animation:bg2 1.6s ease-in-out infinite}`}</style>}
       </defs>
-      <polygon points={pts} fill={`url(#bg-${id})`} stroke={m.border} strokeWidth={s*0.046} />
-      <polygon points={ptsInner} fill="none" stroke={m.primary} strokeWidth={s*0.024} opacity="0.6" />
-      {/* Lightning arc */}
-      <polygon className="badge-b-arc" points={ptsInner} fill="none" stroke={m.letter} strokeWidth={s*0.02} />
-      {/* Vertex gems */}
-      {gems.map((g, i) => <circle className="badge-b-gem" key={i} cx={g.x} cy={g.y} r={s*0.038} fill={m.primary} stroke={m.letter} strokeWidth={s*0.012} />)}
-      {/* Letter */}
-      <text x={cx} y={cy+s*0.14} textAnchor="middle" fontSize={s*0.52} fontWeight="900" fontFamily="'Arial Black',sans-serif" fill={m.letter} filter={`url(#txt-${id})`} stroke={m.primary} strokeWidth={s*0.01}>B</text>
-    </svg>
-  );
+      <path d={sh} fill={`url(#bg-${id})`} stroke={`url(#bdr-${id})`} strokeWidth={s*.05}/>
+      <path d={si} fill="none" stroke="#c96eff" strokeWidth={s*.02} opacity=".5"/>
+      <path className="bb-a" d={si} fill="none" stroke="#f8f0ff" strokeWidth={s*.016}/>
+      {[[-0.7,-0.1],[0.7,-0.1],[0,0.85]].map(([dx,dy],i)=><circle className="bb-g" key={i} cx={cx+r*dx} cy={cy+r*dy} r={s*.03} fill="#ab47bc" stroke="#f8f0ff" strokeWidth={s*.01}/>)}
+      <path d={`M${cx},${cy-r*.42-gr} L${cx+gr*.75},${cy-r*.42-gr*.15} L${cx+gr*.55},${cy-r*.42+gr*.45} L${cx},${cy-r*.42+gr} L${cx-gr*.55},${cy-r*.42+gr*.45} L${cx-gr*.75},${cy-r*.42-gr*.15}Z`} fill={`url(#gem-${id})`} stroke="#e1bee7" strokeWidth={s*.01}/>
+      <line x1={cx} y1={cy-r*.42-gr} x2={cx+gr*.55} y2={cy-r*.42+gr*.45} stroke="#f3e5f5" strokeWidth={s*.005} opacity=".6"/>
+      <line x1={cx} y1={cy-r*.42-gr} x2={cx-gr*.55} y2={cy-r*.42+gr*.45} stroke="#f3e5f5" strokeWidth={s*.005} opacity=".6"/>
+      <circle cx={cx} cy={cy-r*.42} r={gr*.22} fill="#f3e5f5" opacity=".5"/>
+      <text x={cx} y={cy+s*.2} textAnchor="middle" fontSize={s*.42} fontWeight="900" fontFamily="'Arial Black',sans-serif" fill={`url(#ltr-${id})`} filter={`url(#gl-${id})`} stroke="#6a1b9a" strokeWidth={s*.01}>B</text>
+    </svg>);
 };
 
 const BadgeA: React.FC<{ s: number; animated: boolean }> = ({ s, animated }) => {
-  const cx = s / 2, cy = s / 2;
-  const r = s * 0.42;
-  const m = RANK_META.A;
-  const pts      = hexPts(cx, cy, r, -30);
-  const ptsInner = hexPts(cx, cy, r * 0.74, -30);
-  const id = `a-${s}`;
-  // 6 vertex fire-gems
-  const gems = Array.from({ length: 6 }, (_, i) => {
-    const a = (Math.PI / 180) * (60 * i - 30);
-    return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
-  });
-
+  const cx=s/2,cy=s/2,r=s*0.44,m=RANK_META.A,id=`a-${s}`,gr=s*0.1;
+  const sh=`M${cx},${cy-r} C${cx-r*.15},${cy-r*1.02} ${cx-r*.85},${cy-r*.7} ${cx-r*.88},${cy-r*.25} L${cx-r*.82},${cy+r*.35} C${cx-r*.78},${cy+r*.65} ${cx-r*.35},${cy+r*.92} ${cx},${cy+r*.98} C${cx+r*.35},${cy+r*.92} ${cx+r*.78},${cy+r*.65} ${cx+r*.82},${cy+r*.35} L${cx+r*.88},${cy-r*.25} C${cx+r*.85},${cy-r*.7} ${cx+r*.15},${cy-r*1.02} ${cx},${cy-r}Z`;
+  const si=`M${cx},${cy-r*.78} C${cx-r*.12},${cy-r*.8} ${cx-r*.65},${cy-r*.55} ${cx-r*.68},${cy-r*.18} L${cx-r*.63},${cy+r*.28} C${cx-r*.6},${cy+r*.52} ${cx-r*.28},${cy+r*.72} ${cx},${cy+r*.77} C${cx+r*.28},${cy+r*.72} ${cx+r*.6},${cy+r*.52} ${cx+r*.63},${cy+r*.28} L${cx+r*.68},${cy-r*.18} C${cx+r*.65},${cy-r*.55} ${cx+r*.12},${cy-r*.8} ${cx},${cy-r*.78}Z`;
+  const gems=Array.from({length:6},(_,i)=>{const a=(Math.PI/180)*(60*i-30);return{x:cx+r*.72*Math.cos(a),y:cy+r*.72*Math.sin(a)};});
   return (
-    <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`} style={{ overflow: 'visible', filter: `drop-shadow(0 0 ${s*0.18}px ${m.glow})` }}>
+    <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`} style={{overflow:'visible',filter:`drop-shadow(0 0 ${s*.16}px ${m.glow})`}}>
       <defs>
-        <radialGradient id={`bg-${id}`} cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor={m.primary} stopOpacity="0.38" />
-          <stop offset="100%" stopColor={m.bg} stopOpacity="1" />
-        </radialGradient>
-        <filter id={`txt-${id}`} x="-60%" y="-60%" width="220%" height="220%">
-          <feGaussianBlur stdDeviation="4" result="blur"/>
-          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-        </filter>
-        {animated && <style>{`
-          @keyframes a-burn{0%,100%{filter:drop-shadow(0 0 ${s*0.16}px ${m.glow})}50%{filter:drop-shadow(0 0 ${s*0.3}px ${m.glow})}}
-          .badge-a-outer{animation:a-burn 1.2s ease-in-out infinite}
-          @keyframes a-tri{0%,100%{opacity:0.5}50%{opacity:1}}
-          .badge-a-tri{animation:a-tri 1.4s ease-in-out infinite}
-        `}</style>}
+        <linearGradient id={`bdr-${id}`} x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#ff8a65"/><stop offset="50%" stopColor="#e53935"/><stop offset="100%" stopColor="#b71c1c"/></linearGradient>
+        <linearGradient id={`bg-${id}`} x1="0" y1="0" x2=".3" y2="1"><stop offset="0%" stopColor="#4a1510"/><stop offset="50%" stopColor="#2a0a08"/><stop offset="100%" stopColor="#1a0300"/></linearGradient>
+        <linearGradient id={`gem-${id}`} x1="0" y1="0" x2=".5" y2="1"><stop offset="0%" stopColor="#ff8a80"/><stop offset="40%" stopColor="#f44336"/><stop offset="100%" stopColor="#b71c1c"/></linearGradient>
+        <linearGradient id={`ltr-${id}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#ffd700"/><stop offset="100%" stopColor="#ff6b3d"/></linearGradient>
+        <filter id={`gl-${id}`} x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="4"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        {animated&&<style>{`@keyframes ab{0%,100%{filter:drop-shadow(0 0 ${s*.16}px ${m.glow})}50%{filter:drop-shadow(0 0 ${s*.28}px ${m.glow})}}.ba-o{animation:ab 1.2s ease-in-out infinite}@keyframes at{0%,100%{opacity:.5}50%{opacity:1}}.ba-t{animation:at 1.4s ease-in-out infinite}`}</style>}
       </defs>
-      <g className="badge-a-outer">
-        <polygon points={pts} fill={`url(#bg-${id})`} stroke={m.border} strokeWidth={s*0.05} />
-        <polygon points={ptsInner} fill="none" stroke={m.primary} strokeWidth={s*0.028} opacity="0.7" />
-        {/* Triangle sigil */}
-        <polygon
-          className="badge-a-tri"
-          points={`${cx},${cy-s*0.2} ${cx+s*0.18},${cy+s*0.12} ${cx-s*0.18},${cy+s*0.12}`}
-          fill="none"
-          stroke={m.primary}
-          strokeWidth={s*0.025}
-        />
-        {/* 6 vertex gems */}
-        {gems.map((g, i) => <circle key={i} cx={g.x} cy={g.y} r={s*0.032} fill={m.secondary} stroke={m.primary} strokeWidth={s*0.012} opacity="0.95" />)}
-        {/* Letter */}
-        <text x={cx} y={cy+s*0.14} textAnchor="middle" fontSize={s*0.52} fontWeight="900" fontFamily="'Arial Black',sans-serif" fill={m.letter} filter={`url(#txt-${id})`} stroke={m.primary} strokeWidth={s*0.012}>A</text>
+      <g className={animated?"ba-o":""}>
+        <path d={sh} fill={`url(#bg-${id})`} stroke={`url(#bdr-${id})`} strokeWidth={s*.05}/>
+        <path d={si} fill="none" stroke="#ff5722" strokeWidth={s*.024} opacity=".6"/>
+        <polygon className="ba-t" points={`${cx},${cy-s*.15} ${cx+s*.14},${cy+s*.12} ${cx-s*.14},${cy+s*.12}`} fill="none" stroke="#ff5722" strokeWidth={s*.02}/>
+        {gems.map((g,i)=><circle key={i} cx={g.x} cy={g.y} r={s*.028} fill="#e53935" stroke="#ff8a65" strokeWidth={s*.01} opacity=".9"/>)}
+        <path d={`M${cx},${cy-r*.42-gr} L${cx+gr*.75},${cy-r*.42-gr*.15} L${cx+gr*.55},${cy-r*.42+gr*.45} L${cx},${cy-r*.42+gr} L${cx-gr*.55},${cy-r*.42+gr*.45} L${cx-gr*.75},${cy-r*.42-gr*.15}Z`} fill={`url(#gem-${id})`} stroke="#ff8a80" strokeWidth={s*.012}/>
+        <line x1={cx} y1={cy-r*.42-gr} x2={cx+gr*.55} y2={cy-r*.42+gr*.45} stroke="#ffcdd2" strokeWidth={s*.006} opacity=".6"/>
+        <line x1={cx} y1={cy-r*.42-gr} x2={cx-gr*.55} y2={cy-r*.42+gr*.45} stroke="#ffcdd2" strokeWidth={s*.006} opacity=".6"/>
+        <circle cx={cx} cy={cy-r*.42} r={gr*.25} fill="#ffcdd2" opacity=".5"/>
+        <text x={cx} y={cy+s*.2} textAnchor="middle" fontSize={s*.42} fontWeight="900" fontFamily="'Arial Black',sans-serif" fill={`url(#ltr-${id})`} filter={`url(#gl-${id})`} stroke="#b71c1c" strokeWidth={s*.012}>A</text>
       </g>
-    </svg>
-  );
+    </svg>);
 };
 
 const BadgeS: React.FC<{ s: number; animated: boolean }> = ({ s, animated }) => {
-  const cx = s / 2, cy = s / 2;
-  const r  = s * 0.42;
-  const r2 = r * 1.14; // outer animated ring
-  const m  = RANK_META.S;
-  const pts        = hexPts(cx, cy, r, -30);
-  const ptsInner   = hexPts(cx, cy, r * 0.74, -30);
-  const ptsInner2  = hexPts(cx, cy, r * 0.52, 0);
-  const ptsOuter   = hexPts(cx, cy, r2, -30);
-  const id = `s-${s}`;
-  // All 6 alternate-color gems
-  const gems = Array.from({ length: 6 }, (_, i) => {
-    const a = (Math.PI / 180) * (60 * i - 30);
-    return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a), gold: i % 2 === 0 };
-  });
-
+  const cx=s/2,cy=s/2,r=s*0.44,m=RANK_META.S,id=`s-${s}`,gr=s*0.11;
+  const sh=`M${cx},${cy-r} C${cx-r*.15},${cy-r*1.02} ${cx-r*.85},${cy-r*.7} ${cx-r*.88},${cy-r*.25} L${cx-r*.82},${cy+r*.35} C${cx-r*.78},${cy+r*.65} ${cx-r*.35},${cy+r*.92} ${cx},${cy+r*.98} C${cx+r*.35},${cy+r*.92} ${cx+r*.78},${cy+r*.65} ${cx+r*.82},${cy+r*.35} L${cx+r*.88},${cy-r*.25} C${cx+r*.85},${cy-r*.7} ${cx+r*.15},${cy-r*1.02} ${cx},${cy-r}Z`;
+  const si=`M${cx},${cy-r*.78} C${cx-r*.12},${cy-r*.8} ${cx-r*.65},${cy-r*.55} ${cx-r*.68},${cy-r*.18} L${cx-r*.63},${cy+r*.28} C${cx-r*.6},${cy+r*.52} ${cx-r*.28},${cy+r*.72} ${cx},${cy+r*.77} C${cx+r*.28},${cy+r*.72} ${cx+r*.6},${cy+r*.52} ${cx+r*.63},${cy+r*.28} L${cx+r*.68},${cy-r*.18} C${cx+r*.65},${cy-r*.55} ${cx+r*.12},${cy-r*.8} ${cx},${cy-r*.78}Z`;
+  const gems=Array.from({length:6},(_,i)=>{const a=(Math.PI/180)*(60*i-30);return{x:cx+r*.72*Math.cos(a),y:cy+r*.72*Math.sin(a),gold:i%2===0};});
+  const outerR=r*1.12;
   return (
-    <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`} style={{ overflow: 'visible', filter: `drop-shadow(0 0 ${s*0.2}px ${m.glow})` }}>
+    <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`} style={{overflow:'visible',filter:`drop-shadow(0 0 ${s*.2}px ${m.glow})`}}>
       <defs>
-        <radialGradient id={`bg-${id}`} cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor={m.primary} stopOpacity="0.42" />
-          <stop offset="60%" stopColor="#1a0028" stopOpacity="1" />
-          <stop offset="100%" stopColor={m.bg} stopOpacity="1" />
-        </radialGradient>
-        <filter id={`txt-${id}`} x="-80%" y="-80%" width="260%" height="260%">
-          <feGaussianBlur stdDeviation="5" result="blur"/>
-          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-        </filter>
-        {animated && <style>{`
-          @keyframes s-rotate{from{transform:rotate(0deg);transform-origin:${cx}px ${cy}px}to{transform:rotate(360deg);transform-origin:${cx}px ${cy}px}}
-          .badge-s-ring{animation:s-rotate 6s linear infinite;transform-origin:${cx}px ${cy}px}
-          @keyframes s-glow{0%,100%{opacity:0.55;filter:drop-shadow(0 0 ${s*0.18}px ${m.glow})}50%{opacity:1;filter:drop-shadow(0 0 ${s*0.34}px ${m.glow})}}
-          .badge-s-outer{animation:s-glow 1.8s ease-in-out infinite}
-          @keyframes s-gem{0%,100%{opacity:0.9}50%{opacity:1}}
-          .badge-s-gem{animation:s-gem 1.3s ease-in-out infinite}
-          @keyframes s-inner{0%,100%{opacity:0.4}50%{opacity:0.85}}
-          .badge-s-inner2{animation:s-inner 2.2s ease-in-out infinite}
-        `}</style>}
+        <linearGradient id={`bdr-${id}`} x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#f084ff"/><stop offset="50%" stopColor="#e050ff"/><stop offset="100%" stopColor="#9c27b0"/></linearGradient>
+        <linearGradient id={`bg-${id}`} x1="0" y1="0" x2=".3" y2="1"><stop offset="0%" stopColor="#2d0848"/><stop offset="50%" stopColor="#180030"/><stop offset="100%" stopColor="#0f0018"/></linearGradient>
+        <linearGradient id={`gem-${id}`} x1="0" y1="0" x2=".5" y2="1"><stop offset="0%" stopColor="#f8bbd0"/><stop offset="30%" stopColor="#f084ff"/><stop offset="70%" stopColor="#ffd700"/><stop offset="100%" stopColor="#9c27b0"/></linearGradient>
+        <linearGradient id={`ltr-${id}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#ffffff"/><stop offset="100%" stopColor="#f0abfc"/></linearGradient>
+        <filter id={`gl-${id}`} x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="5"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        {animated&&<style>{`@keyframes sr{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}.bs-r{animation:sr 6s linear infinite;transform-origin:${cx}px ${cy}px}@keyframes sg{0%,100%{opacity:.6;filter:drop-shadow(0 0 ${s*.18}px ${m.glow})}50%{opacity:1;filter:drop-shadow(0 0 ${s*.32}px ${m.glow})}}.bs-o{animation:sg 1.8s ease-in-out infinite}@keyframes sgm{0%,100%{opacity:.85}50%{opacity:1}}.bs-g{animation:sgm 1.3s ease-in-out infinite}`}</style>}
       </defs>
-
-      {/* Rotating outer dashed ring */}
-      <polygon
-        className="badge-s-ring"
-        points={ptsOuter}
-        fill="none"
-        stroke={m.secondary}
-        strokeWidth={s * 0.018}
-        strokeDasharray={`${s*0.09} ${s*0.045}`}
-        opacity="0.7"
-      />
-
-      {/* Main hex */}
-      <g className="badge-s-outer">
-        <polygon points={pts} fill={`url(#bg-${id})`} stroke={m.border} strokeWidth={s*0.055} />
+      <circle className="bs-r" cx={cx} cy={cy} r={outerR} fill="none" stroke="#ffd700" strokeWidth={s*.015} strokeDasharray={`${s*.08} ${s*.04}`} opacity=".6"/>
+      <g className={animated?"bs-o":""}>
+        <path d={sh} fill={`url(#bg-${id})`} stroke={`url(#bdr-${id})`} strokeWidth={s*.055}/>
       </g>
-
-      {/* Inner rings */}
-      <polygon points={ptsInner} fill="none" stroke={m.primary} strokeWidth={s*0.026} opacity="0.7" />
-      <polygon className="badge-s-inner2" points={ptsInner2} fill="none" stroke={m.secondary} strokeWidth={s*0.018} strokeDasharray={`${s*0.07} ${s*0.04}`} />
-
-      {/* 6 vertex gems alternating purple/gold */}
-      {gems.map((g, i) => (
-        <circle
-          className="badge-s-gem"
-          key={i}
-          cx={g.x} cy={g.y}
-          r={s * 0.038}
-          fill={g.gold ? m.secondary : m.primary}
-          stroke="#fff"
-          strokeWidth={s * 0.012}
-        />
-      ))}
-
-      {/* 8-spoke star behind letter */}
-      {Array.from({ length: 8 }, (_, i) => {
-        const a = (Math.PI / 4) * i;
-        return (
-          <line
-            key={i}
-            x1={cx + Math.cos(a) * s * 0.06}
-            y1={cy + Math.sin(a) * s * 0.06}
-            x2={cx + Math.cos(a) * s * 0.22}
-            y2={cy + Math.sin(a) * s * 0.22}
-            stroke={i % 2 === 0 ? m.primary : m.secondary}
-            strokeWidth={s * 0.022}
-            opacity="0.55"
-            strokeLinecap="round"
-          />
-        );
-      })}
-
-      {/* Letter */}
-      <text x={cx} y={cy+s*0.15} textAnchor="middle" fontSize={s*0.55} fontWeight="900" fontFamily="'Arial Black',sans-serif" fill={m.letter} filter={`url(#txt-${id})`} stroke={m.secondary} strokeWidth={s*0.014}>S</text>
-    </svg>
-  );
+      <path d={si} fill="none" stroke="#f084ff" strokeWidth={s*.022} opacity=".6"/>
+      {gems.map((g,i)=><circle className="bs-g" key={i} cx={g.x} cy={g.y} r={s*.032} fill={g.gold?"#ffd700":"#f084ff"} stroke="#fff" strokeWidth={s*.01}/>)}
+      {Array.from({length:8},(_,i)=>{const a=(Math.PI/4)*i;return <line key={i} x1={cx+Math.cos(a)*s*.05} y1={cy+Math.sin(a)*s*.05} x2={cx+Math.cos(a)*s*.18} y2={cy+Math.sin(a)*s*.18} stroke={i%2===0?"#f084ff":"#ffd700"} strokeWidth={s*.018} opacity=".45" strokeLinecap="round"/>;})}
+      <path d={`M${cx},${cy-r*.42-gr} L${cx+gr*.8},${cy-r*.42-gr*.1} L${cx+gr*.6},${cy-r*.42+gr*.5} L${cx},${cy-r*.42+gr*1.05} L${cx-gr*.6},${cy-r*.42+gr*.5} L${cx-gr*.8},${cy-r*.42-gr*.1}Z`} fill={`url(#gem-${id})`} stroke="#f8bbd0" strokeWidth={s*.012}/>
+      <line x1={cx} y1={cy-r*.42-gr} x2={cx+gr*.6} y2={cy-r*.42+gr*.5} stroke="#fff" strokeWidth={s*.006} opacity=".65"/>
+      <line x1={cx} y1={cy-r*.42-gr} x2={cx-gr*.6} y2={cy-r*.42+gr*.5} stroke="#fff" strokeWidth={s*.006} opacity=".65"/>
+      <circle cx={cx} cy={cy-r*.42} r={gr*.28} fill="#fff" opacity=".45"/>
+      <text x={cx} y={cy+s*.2} textAnchor="middle" fontSize={s*.44} fontWeight="900" fontFamily="'Arial Black',sans-serif" fill={`url(#ltr-${id})`} filter={`url(#gl-${id})`} stroke="#ffd700" strokeWidth={s*.014}>S</text>
+    </svg>);
 };
 
 /* ─── Utility ───────────────────────────────────────────────────────────────── */
