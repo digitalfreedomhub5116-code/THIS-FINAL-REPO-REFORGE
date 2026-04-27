@@ -110,7 +110,7 @@ const PlanSelector: React.FC<PlanSelectorProps> = ({ healthProfile, onSelectPlan
                         onClick={() => onSelectPlan(plan)}
                         onMouseEnter={() => setHoveredId(plan.id)}
                         onMouseLeave={() => setHoveredId(null)}
-                        className={`w-full text-left ${dc.bg} border ${isRecommended ? 'border-system-neon/70 ring-1 ring-system-neon/30' : hoveredId === plan.id ? 'border-system-neon/60 shadow-[0_0_20px_rgba(0,210,255,0.1)]' : dc.border} rounded-2xl p-5 transition-all duration-300 group relative`}
+                        className={`w-full text-left ${dc.bg} border ${isRecommended ? 'border-system-neon/70 ring-1 ring-system-neon/30' : hoveredId === plan.id ? 'border-system-neon/60 shadow-[0_0_20px_rgba(126,184,212,0.1)]' : dc.border} rounded-2xl p-5 transition-all duration-300 group relative`}
                       >
                         {isRecommended && (
                           <div className="absolute -top-2 left-4 bg-system-neon text-black text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">Recommended</div>
@@ -163,8 +163,8 @@ const PlanSelector: React.FC<PlanSelectorProps> = ({ healthProfile, onSelectPlan
 
             <div className="space-y-2">
               <div className="flex items-center gap-2 mb-1">
-                <Sparkles size={12} className="text-purple-400" />
-                <span className="text-[10px] text-purple-400 font-bold uppercase tracking-widest">AI Personalized</span>
+                <Sparkles size={12} className="text-[#7EB8D4]" />
+                <span className="text-[10px] text-[#7EB8D4] font-bold uppercase tracking-widest">AI Personalized</span>
               </div>
 
               <motion.button
@@ -173,12 +173,12 @@ const PlanSelector: React.FC<PlanSelectorProps> = ({ healthProfile, onSelectPlan
                 transition={{ delay: filtered.length * 0.07 + 0.1 }}
                 onClick={onGenerateAI}
                 disabled={isGenerating}
-                className="w-full text-left bg-gradient-to-br from-purple-900/20 to-indigo-900/10 border border-purple-800/30 hover:border-purple-600/50 rounded-2xl p-5 transition-all duration-300 group disabled:opacity-60 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(139,92,246,0.03)]"
+                className="w-full text-left bg-gradient-to-br from-purple-900/20 to-indigo-900/10 border border-purple-800/30 hover:border-purple-600/50 rounded-2xl p-5 transition-all duration-300 group disabled:opacity-60 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(126,184,212,0.03)]"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-purple-900/60 text-purple-400">AI GENERATED</span>
+                      <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-purple-900/60 text-[#7EB8D4]">AI GENERATED</span>
                     </div>
                     <div className="text-base font-black text-white tracking-tight leading-tight mb-1">
                       {isGenerating ? 'Generating Your Plan...' : 'Generate My Personalized Plan'}
@@ -190,19 +190,19 @@ const PlanSelector: React.FC<PlanSelectorProps> = ({ healthProfile, onSelectPlan
                     </div>
                     {!isGenerating && healthProfile && (
                       <div className="flex gap-3 flex-wrap">
-                        {healthProfile.goal && <span className="text-[9px] text-purple-400/70 font-mono bg-purple-900/20 px-2 py-0.5 rounded">{healthProfile.goal}</span>}
-                        {healthProfile.equipment && <span className="text-[9px] text-purple-400/70 font-mono bg-purple-900/20 px-2 py-0.5 rounded">{equipmentLabel(healthProfile.equipment)}</span>}
+                        {healthProfile.goal && <span className="text-[9px] text-[#7EB8D4]/70 font-mono bg-purple-900/20 px-2 py-0.5 rounded">{healthProfile.goal}</span>}
+                        {healthProfile.equipment && <span className="text-[9px] text-[#7EB8D4]/70 font-mono bg-purple-900/20 px-2 py-0.5 rounded">{equipmentLabel(healthProfile.equipment)}</span>}
                       </div>
                     )}
                     {isGenerating && (
                       <div className="flex gap-1 mt-3">
                         {[0,1,2].map(i => (
-                          <div key={i} className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+                          <div key={i} className="w-1.5 h-1.5 bg-[#7EB8D4] rounded-full animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
                         ))}
                       </div>
                     )}
                   </div>
-                  <div className="shrink-0 mt-1 text-purple-400 group-hover:translate-x-1 transition-transform">
+                  <div className="shrink-0 mt-1 text-[#7EB8D4] group-hover:translate-x-1 transition-transform">
                     {isGenerating ? <Zap size={20} className="animate-pulse" /> : <ChevronRight size={20} />}
                   </div>
                 </div>

@@ -292,7 +292,7 @@ export const AllianceChestLottie: React.FC<ChestProps> = ({ size = 160, phase = 
     { angle: 120, s: 6, color: '#f43f5e' },
     { angle: 180, s: 5, color: '#a855f7' },
     { angle: 240, s: 6, color: '#e11d48' },
-    { angle: 300, s: 5, color: '#c084fc' },
+    { angle: 300, s: 5, color: '#9ACDE3' },
   ];
 
   return (

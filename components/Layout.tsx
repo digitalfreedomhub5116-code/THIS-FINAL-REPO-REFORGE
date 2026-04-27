@@ -35,11 +35,11 @@ const AnimatedCoinIcon: React.FC<{ size?: number }> = ({ size = 16 }) => {
 const AnimatedKeyIcon: React.FC<{ size?: number }> = ({ size = 16 }) => (
   <svg
     width={size} height={size} viewBox="0 0 14 14"
-    style={{ animation: 'keyWiggle 4s ease-in-out infinite', filter: 'drop-shadow(0 0 4px #8b5cf6)', flexShrink: 0 }}
+    style={{ animation: 'keyWiggle 4s ease-in-out infinite', filter: 'drop-shadow(0 0 4px #7EB8D4)', flexShrink: 0 }}
   >
-    <circle cx="5" cy="5.5" r="3" fill="none" stroke="#a78bfa" strokeWidth="1.4"/>
-    <line x1="7.5" y1="7" x2="12" y2="11.5" stroke="#a78bfa" strokeWidth="1.4" strokeLinecap="round"/>
-    <line x1="9.5" y1="9" x2="9.5" y2="11" stroke="#a78bfa" strokeWidth="1.4" strokeLinecap="round"/>
+    <circle cx="5" cy="5.5" r="3" fill="none" stroke="#9ACDE3" strokeWidth="1.4"/>
+    <line x1="7.5" y1="7" x2="12" y2="11.5" stroke="#9ACDE3" strokeWidth="1.4" strokeLinecap="round"/>
+    <line x1="9.5" y1="9" x2="9.5" y2="11" stroke="#9ACDE3" strokeWidth="1.4" strokeLinecap="round"/>
   </svg>
 );
 
@@ -152,8 +152,8 @@ const Layout: React.FC<LayoutProps> = ({
     WARNING: 'text-yellow-400',
     DANGER: 'text-red-400',
     LEVEL_UP: 'text-yellow-300',
-    SYSTEM: 'text-[#00d2ff]',
-    PURCHASE: 'text-purple-400'
+    SYSTEM: 'text-[#7EB8D4]',
+    PURCHASE: 'text-[#7EB8D4]'
   };
 
   const notifDot: Record<string, string> = {
@@ -161,8 +161,8 @@ const Layout: React.FC<LayoutProps> = ({
     WARNING: 'bg-yellow-400',
     DANGER: 'bg-red-400',
     LEVEL_UP: 'bg-yellow-300',
-    SYSTEM: 'bg-[#00d2ff]',
-    PURCHASE: 'bg-purple-400'
+    SYSTEM: 'bg-[#7EB8D4]',
+    PURCHASE: 'bg-[#7EB8D4]'
   };
 
   useEffect(() => {
@@ -247,7 +247,7 @@ const Layout: React.FC<LayoutProps> = ({
     };
     window.addEventListener('reforge:coin-earned', handleCoinEarned);
 
-    const KEY_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 14 14"><circle cx="5" cy="5.5" r="3" fill="none" stroke="#a78bfa" stroke-width="1.4"/><line x1="7.5" y1="7" x2="12" y2="11.5" stroke="#a78bfa" stroke-width="1.4" stroke-linecap="round"/><line x1="9.5" y1="9" x2="9.5" y2="11" stroke="#a78bfa" stroke-width="1.4" stroke-linecap="round"/></svg>`;
+    const KEY_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 14 14"><circle cx="5" cy="5.5" r="3" fill="none" stroke="#9ACDE3" stroke-width="1.4"/><line x1="7.5" y1="7" x2="12" y2="11.5" stroke="#9ACDE3" stroke-width="1.4" stroke-linecap="round"/><line x1="9.5" y1="9" x2="9.5" y2="11" stroke="#9ACDE3" stroke-width="1.4" stroke-linecap="round"/></svg>`;
     const handleKeyEarned = (e: Event) => {
       const { startRect } = (e as CustomEvent).detail as { amount: number; startRect: DOMRect | null };
       setHeaderVisible(true);
@@ -415,8 +415,8 @@ const Layout: React.FC<LayoutProps> = ({
             }}
           >
             {/* Specular top edge */}
-            <div className="absolute top-0 left-0 right-0 h-px pointer-events-none" style={{ background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.18) 30%, rgba(0,210,255,0.12) 55%, rgba(139,92,246,0.10) 75%, transparent 100%)' }} />
-            <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(135deg, rgba(0,210,255,0.02) 0%, transparent 50%, rgba(139,92,246,0.02) 100%)' }} />
+            <div className="absolute top-0 left-0 right-0 h-px pointer-events-none" style={{ background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.18) 30%, rgba(126,184,212,0.12) 55%, rgba(126,184,212,0.10) 75%, transparent 100%)' }} />
+            <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(135deg, rgba(126,184,212,0.02) 0%, transparent 50%, rgba(126,184,212,0.02) 100%)' }} />
 
             <div className="flex items-center justify-between px-3 py-3 sm:px-6 sm:py-3.5 max-w-7xl mx-auto relative z-10">
 
@@ -432,10 +432,10 @@ const Layout: React.FC<LayoutProps> = ({
                       <img
                         src={avatarUrl}
                         alt={displayName}
-                        className="w-8 h-8 sm:w-11 sm:h-11 rounded-full object-cover border-2 border-[#00d2ff]/40 shadow-[0_0_16px_rgba(0,210,255,0.25)] group-hover:border-[#00d2ff]/70 transition-all"
+                        className="w-8 h-8 sm:w-11 sm:h-11 rounded-full object-cover border-2 border-[#7EB8D4]/40 shadow-[0_0_16px_rgba(126,184,212,0.25)] group-hover:border-[#7EB8D4]/70 transition-all"
                       />
                     ) : (
-                      <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-full bg-gradient-to-br from-[#8b5cf6] to-[#00d2ff] flex items-center justify-center text-white text-sm sm:text-base font-black shadow-[0_0_16px_rgba(0,210,255,0.25)] group-hover:shadow-[0_0_20px_rgba(0,210,255,0.4)] transition-all">
+                      <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-full bg-gradient-to-br from-[#7EB8D4] to-[#7EB8D4] flex items-center justify-center text-white text-sm sm:text-base font-black shadow-[0_0_16px_rgba(126,184,212,0.25)] group-hover:shadow-[0_0_20px_rgba(126,184,212,0.4)] transition-all">
                         {initial}
                       </div>
                     )}
@@ -456,7 +456,7 @@ const Layout: React.FC<LayoutProps> = ({
                         <div className="px-4 py-3 border-b border-white/[0.06]">
                           <div className="text-white font-heading font-bold text-sm truncate">{playerName}</div>
                           {playerUsername && (
-                            <div className="text-[#00d2ff] text-[10px] font-medium tracking-widest truncate">@{playerUsername}</div>
+                            <div className="text-[#7EB8D4] text-[10px] font-medium tracking-widest truncate">@{playerUsername}</div>
                           )}
                           <div className="text-gray-600 text-[10px] font-mono mt-0.5">LVL {playerLevel}</div>
                         </div>
@@ -466,7 +466,7 @@ const Layout: React.FC<LayoutProps> = ({
                               onClick={() => { onEditProfile(); setShowProfileMenu(false); }}
                               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/[0.06] text-gray-300 hover:text-white transition-colors text-xs font-mono group"
                             >
-                              <Edit3 size={13} className="text-[#00d2ff]" />
+                              <Edit3 size={13} className="text-[#7EB8D4]" />
                               <span className="tracking-wide">EDIT PROFILE</span>
                             </button>
                           )}
@@ -500,7 +500,7 @@ const Layout: React.FC<LayoutProps> = ({
                 {/* Keys */}
                 <div id="user-keys-balance" className="flex items-center gap-1">
                   <AnimatedKeyIcon size={15} />
-                  <span className="font-mono text-[13px] font-bold text-purple-300 whitespace-nowrap"><AnimatedCounter value={keys} /></span>
+                  <span className="font-mono text-[13px] font-bold text-[#9ACDE3] whitespace-nowrap"><AnimatedCounter value={keys} /></span>
                 </div>
 
                 {/* Gold */}
@@ -522,7 +522,7 @@ const Layout: React.FC<LayoutProps> = ({
                     onClick={handleOpenNotifications}
                     className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-200 border ${
                       showNotifications
-                        ? 'bg-[#00d2ff]/15 border-[#00d2ff]/40 text-[#00d2ff]'
+                        ? 'bg-[#7EB8D4]/15 border-[#7EB8D4]/40 text-[#7EB8D4]'
                         : 'bg-white/[0.05] border-white/[0.08] text-gray-400 hover:text-white hover:bg-white/10'
                     }`}
                   >
@@ -568,7 +568,7 @@ const Layout: React.FC<LayoutProps> = ({
                           ) : (
                             notificationHistory.slice(0, 20).map(n => (
                               <div key={n.id} className="flex items-start gap-3 px-4 py-3 border-b border-white/[0.04] hover:bg-white/[0.03] transition-colors">
-                                <div className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${notifDot[n.type] || 'bg-[#00d2ff]'}`} />
+                                <div className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${notifDot[n.type] || 'bg-[#7EB8D4]'}`} />
                                 <div className="flex-1 min-w-0">
                                   <p className={`text-xs font-mono leading-relaxed ${notifTypeColor[n.type] || 'text-gray-300'}`}>
                                     {n.message}

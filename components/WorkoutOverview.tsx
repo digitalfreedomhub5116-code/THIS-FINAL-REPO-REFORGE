@@ -62,14 +62,14 @@ const HolographicBody: React.FC<{ focus: string; isCardio: boolean; videos: Reco
     <div className="relative w-full h-[400px] sm:h-[440px] md:h-[480px] flex items-center justify-center overflow-hidden bg-black rounded-lg perspective-1000 group border border-gray-800">
       
       {/* Background Grid */}
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(0,210,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(0,210,255,0.05)_1px,transparent_1px)] bg-[size:30px_30px] opacity-20 pointer-events-none z-10" />
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(126,184,212,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(126,184,212,0.05)_1px,transparent_1px)] bg-[size:30px_30px] opacity-20 pointer-events-none z-10" />
       
       {/* Scanning Line Animation Overlay */}
       <motion.div 
         initial={{ top: "-10%" }}
         animate={{ top: "120%" }}
         transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-        className="absolute w-full h-2 bg-gradient-to-b from-transparent via-system-neon/40 to-transparent z-20 pointer-events-none shadow-[0_0_15px_rgba(0,210,255,0.4)]"
+        className="absolute w-full h-2 bg-gradient-to-b from-transparent via-system-neon/40 to-transparent z-20 pointer-events-none shadow-[0_0_15px_rgba(126,184,212,0.4)]"
       />
 
       {/* Main Video Player */}
@@ -121,7 +121,7 @@ const HolographicBody: React.FC<{ focus: string; isCardio: boolean; videos: Reco
         transition={{ delay: 0.5 }}
         className="absolute top-6 right-6 flex flex-col items-end z-20 pointer-events-none"
       >
-          <div className="flex items-center gap-2 text-[10px] font-mono text-system-neon font-bold bg-black/80 px-3 py-1.5 rounded border border-system-neon/30 backdrop-blur-sm shadow-[0_0_15px_rgba(0,210,255,0.2)]">
+          <div className="flex items-center gap-2 text-[10px] font-mono text-system-neon font-bold bg-black/80 px-3 py-1.5 rounded border border-system-neon/30 backdrop-blur-sm shadow-[0_0_15px_rgba(126,184,212,0.2)]">
               <ScanLine size={12} className="animate-pulse" />
               BIO-SCAN ACTIVE
           </div>
@@ -157,7 +157,7 @@ const ExerciseRow: React.FC<{ exercise: Exercise; calories: number }> = ({ exerc
             className="flex items-center gap-4 p-3 bg-gray-900/50 border border-gray-800 rounded-lg group hover:border-system-neon/30 transition-colors"
         >
             <div className={`w-12 h-12 rounded flex items-center justify-center relative overflow-hidden shrink-0 ${hasVideo ? 'bg-gradient-to-br from-system-neon/20 to-black border border-system-neon/30' : 'bg-black border border-gray-700'}`}>
-                <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(0,210,255,0.08)_50%,transparent_75%)] bg-[length:250%_250%] animate-[shimmer_2s_infinite]" />
+                <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(126,184,212,0.08)_50%,transparent_75%)] bg-[length:250%_250%] animate-[shimmer_2s_infinite]" />
                 {exercise.type === 'CARDIO' || exercise.type === 'STRETCH' ? (
                     <HeartPulse size={18} className={hasVideo ? 'text-system-neon' : 'text-system-accent'} />
                 ) : (
@@ -226,7 +226,7 @@ const WorkoutOverview: React.FC<WorkoutOverviewProps> = ({ plan, focusVideos, on
   // This ensures the modal is always full screen and above navbars
   return createPortal(
     <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4">
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(0,210,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(0,210,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(126,184,212,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(126,184,212,0.03)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none" />
 
         <motion.div 
             initial={{ scale: 0.95, opacity: 0, y: 20 }}
@@ -301,7 +301,7 @@ const WorkoutOverview: React.FC<WorkoutOverviewProps> = ({ plan, focusVideos, on
 
                         <button 
                             onClick={handleStart}
-                            className="w-full py-4 bg-white text-black font-black text-lg uppercase tracking-widest rounded-lg hover:bg-system-neon transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:shadow-[0_0_30px_#00d2ff]"
+                            className="w-full py-4 bg-white text-black font-black text-lg uppercase tracking-widest rounded-lg hover:bg-system-neon transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:shadow-[0_0_30px_#7EB8D4]"
                         >
                             ENTER DUNGEON <ChevronRight size={20} strokeWidth={3} />
                         </button>

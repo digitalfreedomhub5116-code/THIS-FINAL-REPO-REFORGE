@@ -86,7 +86,7 @@ const FoodLibrary: React.FC<FoodLibraryProps> = ({ onClose, onLogFood, selectedM
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search food items..."
-            className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#00d2ff]/40 focus:ring-1 focus:ring-[#00d2ff]/20 transition-all"
+            className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#7EB8D4]/40 focus:ring-1 focus:ring-[#7EB8D4]/20 transition-all"
             autoFocus
           />
           {search && (
@@ -104,7 +104,7 @@ const FoodLibrary: React.FC<FoodLibraryProps> = ({ onClose, onLogFood, selectedM
             onClick={() => setActiveCategory('ALL')}
             className={`px-3 py-1.5 rounded-lg text-[9px] font-bold tracking-widest border transition-all whitespace-nowrap ${
               activeCategory === 'ALL'
-                ? 'border-[#00d2ff]/50 bg-[#00d2ff]/10 text-[#00d2ff]'
+                ? 'border-[#7EB8D4]/50 bg-[#7EB8D4]/10 text-[#7EB8D4]'
                 : 'border-gray-800 text-gray-500 hover:text-gray-300'
             }`}
           >
@@ -116,7 +116,7 @@ const FoodLibrary: React.FC<FoodLibraryProps> = ({ onClose, onLogFood, selectedM
               onClick={() => setActiveCategory(cat.key)}
               className={`px-3 py-1.5 rounded-lg text-[9px] font-bold tracking-widest border transition-all whitespace-nowrap ${
                 activeCategory === cat.key
-                  ? 'border-[#00d2ff]/50 bg-[#00d2ff]/10 text-[#00d2ff]'
+                  ? 'border-[#7EB8D4]/50 bg-[#7EB8D4]/10 text-[#7EB8D4]'
                   : 'border-gray-800 text-gray-500 hover:text-gray-300'
               }`}
             >
@@ -159,7 +159,7 @@ const FoodLibrary: React.FC<FoodLibraryProps> = ({ onClose, onLogFood, selectedM
                     <span className="text-green-400 font-bold">C{item.carbs}</span>
                     <span className="text-yellow-400 font-bold">F{item.fats}</span>
                   </div>
-                  <div className="w-6 h-6 rounded-full border border-[#00d2ff]/30 flex items-center justify-center text-[#00d2ff] opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="w-6 h-6 rounded-full border border-[#7EB8D4]/30 flex items-center justify-center text-[#7EB8D4] opacity-0 group-hover:opacity-100 transition-opacity">
                     <Plus size={12} />
                   </div>
                 </div>
@@ -233,7 +233,7 @@ const FoodLibrary: React.FC<FoodLibraryProps> = ({ onClose, onLogFood, selectedM
                   </div>
                 </div>
                 {selectedItem.fiber > 0 && (
-                  <div className="mt-2 text-center text-[9px] text-purple-400">Fiber: {Math.round(selectedItem.fiber * servings)}g</div>
+                  <div className="mt-2 text-center text-[9px] text-[#7EB8D4]">Fiber: {Math.round(selectedItem.fiber * servings)}g</div>
                 )}
               </div>
 
@@ -260,7 +260,7 @@ const FoodLibrary: React.FC<FoodLibraryProps> = ({ onClose, onLogFood, selectedM
               {/* Log Button */}
               <button
                 onClick={() => logItem(selectedItem, servings)}
-                className="w-full py-3.5 rounded-xl bg-[#00d2ff] text-black font-black text-sm tracking-widest hover:bg-white transition-colors shadow-[0_0_20px_rgba(0,210,255,0.3)] flex items-center justify-center gap-2"
+                className="w-full py-3.5 rounded-xl bg-[#7EB8D4] text-black font-black text-sm tracking-widest hover:bg-white transition-colors shadow-[0_0_20px_rgba(126,184,212,0.3)] flex items-center justify-center gap-2"
               >
                 <Plus size={16} /> LOG {Math.round(selectedItem.calories * servings)} KCAL
               </button>

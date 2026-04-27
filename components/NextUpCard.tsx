@@ -31,14 +31,14 @@ const SLOT_ICONS: Record<string, React.ReactNode> = {
   ROUTINE: <Coffee className="w-3.5 h-3.5 text-orange-400" />,
   BLOCKED: <GraduationCap className="w-3.5 h-3.5 text-gray-400" />,
   WORKOUT: <Dumbbell className="w-3.5 h-3.5 text-red-400" />,
-  QUEST: <Target className="w-3.5 h-3.5 text-cyan-400" />,
+  QUEST: <Target className="w-3.5 h-3.5 text-[#7EB8D4]" />,
   MEAL: <Utensils className="w-3.5 h-3.5 text-green-400" />,
-  FREE: <Zap className="w-3.5 h-3.5 text-purple-400" />,
+  FREE: <Zap className="w-3.5 h-3.5 text-[#7EB8D4]" />,
 };
 
 const SLOT_COLORS: Record<string, string> = {
-  SLEEP: '#818cf8', ROUTINE: '#fb923c', BLOCKED: '#6b7280',
-  WORKOUT: '#f87171', QUEST: '#22d3ee', MEAL: '#4ade80', FREE: '#c084fc',
+  SLEEP: '#7EB8D4', ROUTINE: '#fb923c', BLOCKED: '#6b7280',
+  WORKOUT: '#f87171', QUEST: '#7EB8D4', MEAL: '#4ade80', FREE: '#9ACDE3',
 };
 
 function buildDefaultSlots(profile: ScheduleProfile): ScheduleSlot[] {
@@ -123,7 +123,7 @@ export default function NextUpCard({ scheduleProfile, dailySchedule, quests, goa
           endTime: timeToMinutes(tStr) + (q.estimatedDuration || 20),
           label: q.title,
           type: 'QUEST',
-          icon: <Target className="w-3.5 h-3.5 text-cyan-400" />,
+          icon: <Target className="w-3.5 h-3.5 text-[#7EB8D4]" />,
           isQuest: true,
         });
       });
@@ -168,14 +168,14 @@ export default function NextUpCard({ scheduleProfile, dailySchedule, quests, goa
       whileTap={{ scale: 0.98 }}
     >
       {/* Top accent */}
-      <div className="h-0.5" style={{ background: 'linear-gradient(90deg, #22d3ee44, transparent 60%)' }} />
+      <div className="h-0.5" style={{ background: 'linear-gradient(90deg, #7EB8D444, transparent 60%)' }} />
 
       <div className="p-4 space-y-3">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: 'rgba(34,211,238,0.08)' }}>
-              <Clock className="w-3 h-3 text-cyan-400" />
+              <Clock className="w-3 h-3 text-[#7EB8D4]" />
             </div>
             <span className="text-[10px] font-black font-mono tracking-[0.2em] text-gray-400 uppercase">NEXT UP</span>
           </div>
@@ -195,11 +195,11 @@ export default function NextUpCard({ scheduleProfile, dailySchedule, quests, goa
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5">
-                <motion.div className="w-1.5 h-1.5 rounded-full bg-cyan-400"
+                <motion.div className="w-1.5 h-1.5 rounded-full bg-[#7EB8D4]"
                   animate={{ scale: [1, 1.3, 1], opacity: [1, 0.6, 1] }}
                   transition={{ duration: 2, repeat: Infinity }}
                 />
-                <span className="text-[10px] font-mono text-cyan-400 font-bold uppercase">Now</span>
+                <span className="text-[10px] font-mono text-[#7EB8D4] font-bold uppercase">Now</span>
               </div>
               <p className="text-sm font-bold text-white truncate">{currentItem.label}</p>
             </div>

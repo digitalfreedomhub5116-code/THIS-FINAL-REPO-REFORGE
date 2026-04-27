@@ -65,7 +65,7 @@ const DUNGEON_BANNER = 'https://i.postimg.cc/zDwVQ9bN/Image-202602141625-tlkmvf.
 
 const RARITY_STYLES: Record<string, { label: string; bg: string; text: string; border: string }> = {
   COMMON:    { label: 'COMMON',    bg: 'rgba(107,114,128,0.2)', text: '#9ca3af', border: 'rgba(107,114,128,0.3)' },
-  RARE:      { label: 'RARE',      bg: 'rgba(0,210,255,0.12)',  text: '#00d2ff', border: 'rgba(0,210,255,0.25)' },
+  RARE:      { label: 'RARE',      bg: 'rgba(126,184,212,0.12)',  text: '#7EB8D4', border: 'rgba(126,184,212,0.25)' },
   LEGENDARY: { label: 'LEGENDARY', bg: 'rgba(234,179,8,0.12)',  text: '#eab308', border: 'rgba(234,179,8,0.3)' },
 };
 
@@ -230,7 +230,7 @@ const ShopView: React.FC<ShopViewProps> = ({
             whileTap={{ scale: 0.97 }}
             className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg font-mono font-black text-[10px] uppercase tracking-widest transition-all"
             style={storeTab === tab.id
-              ? { background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.3)', color: '#c4b5fd', boxShadow: '0 0 12px rgba(139,92,246,0.15)' }
+              ? { background: 'rgba(126,184,212,0.15)', border: '1px solid rgba(126,184,212,0.3)', color: '#c4b5fd', boxShadow: '0 0 12px rgba(126,184,212,0.15)' }
               : { background: 'transparent', border: '1px solid transparent', color: '#6b7280' }
             }
           >
@@ -384,7 +384,7 @@ const ShopView: React.FC<ShopViewProps> = ({
                   disabled={!canAffordPaid}
                   className="py-2.5 px-4 rounded-xl font-mono font-black text-xs uppercase tracking-widest transition-all flex items-center gap-1.5 justify-center whitespace-nowrap"
                   style={canAffordPaid
-                    ? { background: 'linear-gradient(135deg,rgba(139,92,246,0.3),rgba(109,40,217,0.5))', color: '#c4b5fd', border: '1px solid rgba(139,92,246,0.5)', boxShadow: '0 4px 20px rgba(139,92,246,0.3)' }
+                    ? { background: 'linear-gradient(135deg,rgba(126,184,212,0.3),rgba(109,40,217,0.5))', color: '#c4b5fd', border: '1px solid rgba(126,184,212,0.5)', boxShadow: '0 4px 20px rgba(126,184,212,0.3)' }
                     : { background: 'rgba(30,30,30,0.8)', color: '#4b5563', border: '1px solid rgba(100,100,100,0.3)', cursor: 'not-allowed' }
                   }
                 >
@@ -401,11 +401,11 @@ const ShopView: React.FC<ShopViewProps> = ({
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.05 }}
             className="relative w-full rounded-2xl overflow-hidden transition-all"
-            style={{ background: 'linear-gradient(135deg, #0a0a1a 0%, #0d0d25 50%, #0a0a1a 100%)', border: '1px solid rgba(139,92,246,0.2)' }}
+            style={{ background: 'linear-gradient(135deg, #0a0a1a 0%, #0d0d25 50%, #0a0a1a 100%)', border: '1px solid rgba(126,184,212,0.2)' }}
           >
             {/* Background glow */}
-            <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(139,92,246,0.12) 0%, transparent 65%)' }} />
-            <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(139,92,246,0.5), rgba(0,210,255,0.5), transparent)' }} />
+            <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(126,184,212,0.12) 0%, transparent 65%)' }} />
+            <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(126,184,212,0.5), rgba(126,184,212,0.5), transparent)' }} />
 
             <div className="relative p-4">
               {/* Header - clickable to open calendar */}
@@ -414,11 +414,11 @@ const ShopView: React.FC<ShopViewProps> = ({
                 onClick={() => onOpenDailyCalendar?.()}
               >
                 <div>
-                  <div className="text-[9px] font-mono font-bold tracking-[0.3em] uppercase text-purple-400 mb-0.5">DAILY LOGIN</div>
+                  <div className="text-[9px] font-mono font-bold tracking-[0.3em] uppercase text-[#7EB8D4] mb-0.5">DAILY LOGIN</div>
                   <h3 className="text-sm font-black text-white font-mono uppercase tracking-wide">Streak Rewards</h3>
                 </div>
                 <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full font-mono text-xs font-bold"
-                  style={{ background: claimedToday ? 'rgba(34,197,94,0.1)' : 'rgba(139,92,246,0.15)', border: claimedToday ? '1px solid rgba(34,197,94,0.3)' : '1px solid rgba(139,92,246,0.3)', color: claimedToday ? '#4ade80' : '#c4b5fd' }}
+                  style={{ background: claimedToday ? 'rgba(34,197,94,0.1)' : 'rgba(126,184,212,0.15)', border: claimedToday ? '1px solid rgba(34,197,94,0.3)' : '1px solid rgba(126,184,212,0.3)', color: claimedToday ? '#4ade80' : '#c4b5fd' }}
                 >
                   {claimedToday ? <><CheckCircle2 size={11} /> Claimed</> : <><span className="text-[10px]">Day</span> {streak || 1}</>}
                 </div>
@@ -433,8 +433,8 @@ const ShopView: React.FC<ShopViewProps> = ({
                     exit={{ opacity: 0, y: -8 }}
                     className="mb-2 px-3 py-2 rounded-lg text-center text-[10px] font-mono font-bold"
                     style={{
-                      background: 'rgba(139,92,246,0.15)',
-                      border: '1px solid rgba(139,92,246,0.3)',
+                      background: 'rgba(126,184,212,0.15)',
+                      border: '1px solid rgba(126,184,212,0.3)',
                       color: '#c4b5fd',
                     }}
                   >
@@ -461,14 +461,14 @@ const ShopView: React.FC<ShopViewProps> = ({
                         background: isClaimed
                           ? 'rgba(34,197,94,0.08)'
                           : isCurrent
-                          ? `rgba(139,92,246,0.2)`
+                          ? `rgba(126,184,212,0.2)`
                           : 'rgba(0,0,0,0.3)',
                         border: isCurrent
-                          ? '1px solid rgba(139,92,246,0.5)'
+                          ? '1px solid rgba(126,184,212,0.5)'
                           : isClaimed
                           ? '1px solid rgba(34,197,94,0.2)'
                           : '1px solid rgba(255,255,255,0.05)',
-                        boxShadow: isCurrent ? '0 0 12px rgba(139,92,246,0.25)' : 'none',
+                        boxShadow: isCurrent ? '0 0 12px rgba(126,184,212,0.25)' : 'none',
                       }}
                     >
                       {isCurrent && (
@@ -476,7 +476,7 @@ const ShopView: React.FC<ShopViewProps> = ({
                           animate={{ opacity: [0.4, 0.8, 0.4] }}
                           transition={{ duration: 2, repeat: Infinity }}
                           className="absolute inset-0 rounded-xl"
-                          style={{ background: 'rgba(139,92,246,0.15)' }}
+                          style={{ background: 'rgba(126,184,212,0.15)' }}
                         />
                       )}
 
@@ -569,7 +569,7 @@ const ShopView: React.FC<ShopViewProps> = ({
           </div>
 
           {/* Currently equipped */}
-          <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.15)' }}>
+          <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: 'rgba(126,184,212,0.06)', border: '1px solid rgba(126,184,212,0.15)' }}>
             <div className="text-[10px] font-mono text-gray-400 uppercase tracking-wider">Equipped:</div>
             <div className="text-xs font-mono font-bold" style={{ color: getBorderConfig(equippedBorder).accentColor }}>
               {getBorderConfig(equippedBorder).name}

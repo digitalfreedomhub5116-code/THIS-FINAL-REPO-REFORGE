@@ -4,7 +4,7 @@ import { Target, Calendar, Flame, ChevronRight, Pause, Trophy } from 'lucide-rea
 import { Goal, Rank } from '../types';
 
 const RANK_COLORS: Record<string, string> = {
-  E: '#9ca3af', D: '#fb923c', C: '#facc15', B: '#4ade80', A: '#22d3ee', S: '#c084fc',
+  E: '#9ca3af', D: '#fb923c', C: '#facc15', B: '#4ade80', A: '#7EB8D4', S: '#9ACDE3',
   UNRANKED: '#6b7280',
 };
 

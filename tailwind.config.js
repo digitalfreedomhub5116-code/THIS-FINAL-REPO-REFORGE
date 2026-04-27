@@ -30,13 +30,14 @@ export default {
         'theme-muted':    'var(--color-text-muted)',
         'theme-heading':  'var(--color-text-heading)',
         // Static accent colors (same in both themes)
-        'system-accent':  '#8b5cf6',
-        'system-neon':    '#00d2ff',
+        'system-accent':  '#7EB8D4',
+        'system-neon':    '#7EB8D4',
         'system-success': '#34d399',
         'system-warning': '#f59e0b',
         'system-danger':  '#f87171',
         'system-gold':    '#fbbf24',
         'gold':           { DEFAULT: '#F0B232', dim: 'rgba(240,178,50,0.15)', glow: 'rgba(240,178,50,0.3)' },
+        'accent':         { DEFAULT: '#7EB8D4', light: '#9ACDE3', dim: 'rgba(126,184,212,0.10)', glow: 'rgba(126,184,212,0.25)' },
         'stat-str':       '#f97066',
         'stat-int':       '#818cf8',
         'stat-dis':       '#c084fc',
@@ -48,8 +49,8 @@ export default {
         mono: ['JetBrains Mono', 'monospace'],
       },
       boxShadow: {
-        'neon-blue':   '0 0 10px rgba(0,210,255,0.5), 0 0 30px rgba(0,210,255,0.2)',
-        'neon-purple': '0 0 10px rgba(139,92,246,0.5), 0 0 30px rgba(139,92,246,0.2)',
+        'neon-blue':   '0 0 10px rgba(126,184,212,0.4), 0 0 30px rgba(126,184,212,0.15)',
+        'neon-purple': '0 0 10px rgba(126,184,212,0.4), 0 0 30px rgba(126,184,212,0.15)',
         'neon-red':    '0 0 10px rgba(239,68,68,0.5), 0 0 30px rgba(239,68,68,0.2)',
         'neon-gold':   '0 0 10px rgba(240,178,50,0.4), 0 0 30px rgba(240,178,50,0.15)',
         'glass':       '0 8px 32px 0 rgba(0,0,0,0.5)',
@@ -58,7 +59,7 @@ export default {
         'premium':     '0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.03), inset 0 1px 0 rgba(255,255,255,0.04)',
       },
       backgroundImage: {
-        'gradient-neon':   'linear-gradient(135deg, #8b5cf6 0%, #00d2ff 100%)',
+        'gradient-neon':   'linear-gradient(135deg, #7EB8D4 0%, #9ACDE3 100%)',
         'gradient-dark':   'linear-gradient(135deg, #0a0a0f 0%, #0e0820 100%)',
       },
       animation: {
@@ -76,12 +77,12 @@ export default {
       },
       keyframes: {
         borderGlow: {
-          '0%, 100%': { boxShadow: '0 0 5px rgba(0,210,255,0.3), inset 0 0 5px rgba(0,210,255,0.04)' },
-          '50%':      { boxShadow: '0 0 20px rgba(0,210,255,0.7), inset 0 0 10px rgba(0,210,255,0.08)' },
+          '0%, 100%': { boxShadow: '0 0 5px rgba(126,184,212,0.3), inset 0 0 5px rgba(126,184,212,0.04)' },
+          '50%':      { boxShadow: '0 0 20px rgba(126,184,212,0.5), inset 0 0 10px rgba(126,184,212,0.08)' },
         },
         neonPulse: {
-          '0%, 100%': { textShadow: '0 0 6px rgba(0,210,255,0.8), 0 0 20px rgba(0,210,255,0.4)' },
-          '50%':      { textShadow: '0 0 14px rgba(0,210,255,1), 0 0 50px rgba(0,210,255,0.7)' },
+          '0%, 100%': { textShadow: '0 0 6px rgba(126,184,212,0.6), 0 0 20px rgba(126,184,212,0.3)' },
+          '50%':      { textShadow: '0 0 14px rgba(126,184,212,0.8), 0 0 50px rgba(126,184,212,0.5)' },
         },
         gradientMove: {
           '0%':   { backgroundPosition: '0% 50%' },

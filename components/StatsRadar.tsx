@@ -17,7 +17,7 @@ const RadarTooltip = ({ active, payload, label }: any) => {
     const value = data.value;
 
     return (
-      <div className="bg-black/95 border border-system-neon/50 backdrop-blur-xl p-4 rounded-lg shadow-[0_0_30px_rgba(0,210,255,0.2)] z-50 pointer-events-none min-w-[140px]">
+      <div className="bg-black/95 border border-system-neon/50 backdrop-blur-xl p-4 rounded-lg shadow-[0_0_30px_rgba(126,184,212,0.2)] z-50 pointer-events-none min-w-[140px]">
         <div className="flex items-center justify-between border-b border-gray-800 pb-2 mb-2">
             <p className="text-system-neon font-mono text-xs font-bold tracking-[0.2em] uppercase">{label}</p>
         </div>
@@ -99,8 +99,8 @@ const CustomRadarChart = ({ data, domainMax, onHover, color1, color2, fillOpacit
     
     const pathD = dataPoints.map((p: any, i: number) => (i === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`)).join(' ') + ' Z';
 
-    const c1 = color1 || "#00d2ff";
-    const c2 = color2 || "#8b5cf6";
+    const c1 = color1 || "#7EB8D4";
+    const c2 = color2 || "#7EB8D4";
 
     // Animation Timings
     const DOT_STAGGER = 0.15;
@@ -266,7 +266,7 @@ const EvaluationMatrix: React.FC<EvaluationMatrixProps> = ({ stats, compact = fa
 
   // Determine dynamic colors - FORCED TO CYAN AS REQUESTED
   const getThemeColors = () => {
-      return { c1: '#00d2ff', c2: '#3b82f6' }; 
+      return { c1: '#7EB8D4', c2: '#3b82f6' }; 
   };
 
   const theme = getThemeColors();
@@ -306,7 +306,7 @@ const EvaluationMatrix: React.FC<EvaluationMatrixProps> = ({ stats, compact = fa
         
         {!compact && (
             <motion.div 
-                className="absolute left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-system-neon/20 to-transparent shadow-[0_0_10px_rgba(0,210,255,0.2)] z-0 pointer-events-none"
+                className="absolute left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-system-neon/20 to-transparent shadow-[0_0_10px_rgba(126,184,212,0.2)] z-0 pointer-events-none"
                 animate={{ top: ['0%', '100%', '0%'] }}
                 transition={{ duration: 5, repeat: Infinity, ease: "linear", repeatDelay: 1 }}
             />

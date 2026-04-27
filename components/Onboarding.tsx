@@ -30,8 +30,8 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 
   return (
     <div className="fixed inset-0 bg-black flex items-center justify-center p-6 z-50">
-      <div className="absolute inset-0 opacity-10 pointer-events-none bg-[linear-gradient(rgba(0,210,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(0,210,255,0.05)_1px,transparent_1px)] bg-[size:40px_40px]" />
-      <div className="absolute top-0 left-0 w-full h-1 bg-system-neon opacity-20 shadow-[0_0_20px_#00d2ff]" />
+      <div className="absolute inset-0 opacity-10 pointer-events-none bg-[linear-gradient(rgba(126,184,212,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(126,184,212,0.05)_1px,transparent_1px)] bg-[size:40px_40px]" />
+      <div className="absolute top-0 left-0 w-full h-1 bg-system-neon opacity-20 shadow-[0_0_20px_#7EB8D4]" />
 
       <motion.div 
         initial={{ opacity: 0, scale: 0.9 }}
@@ -68,7 +68,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                onChange={(e) => setName(e.target.value)}
                placeholder="ENTER CODENAME..."
                disabled={loading}
-               className="w-full bg-black border border-system-border rounded-lg py-4 pl-12 pr-4 text-xl text-white font-mono focus:outline-none focus:border-system-neon focus:shadow-[0_0_20px_rgba(0,210,255,0.15)] transition-all placeholder:text-gray-800 disabled:opacity-50"
+               className="w-full bg-black border border-system-border rounded-lg py-4 pl-12 pr-4 text-xl text-white font-mono focus:outline-none focus:border-system-neon focus:shadow-[0_0_20px_rgba(126,184,212,0.15)] transition-all placeholder:text-gray-800 disabled:opacity-50"
              />
           </div>
 

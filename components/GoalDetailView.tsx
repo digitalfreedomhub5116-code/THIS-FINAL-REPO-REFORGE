@@ -176,7 +176,7 @@ function autoScheduleQuestsIntoGaps(
 }
 
 const RANK_COLORS: Record<string, string> = {
-  E: '#9ca3af', D: '#fb923c', C: '#facc15', B: '#4ade80', A: '#22d3ee', S: '#c084fc',
+  E: '#9ca3af', D: '#fb923c', C: '#facc15', B: '#4ade80', A: '#7EB8D4', S: '#9ACDE3',
   UNRANKED: '#6b7280',
 };
 
@@ -375,7 +375,7 @@ function ReadMore({ text, maxLines = 3 }: { text: string; maxLines?: number }) {
     <div>
       <p className={`text-[13px] text-gray-400 font-mono leading-relaxed ${!expanded && isLong ? 'line-clamp-3' : ''}`}>{text}</p>
       {isLong && (
-        <button onClick={() => setExpanded(!expanded)} className="flex items-center gap-1 mt-1 text-[11px] text-cyan-400 font-mono">
+        <button onClick={() => setExpanded(!expanded)} className="flex items-center gap-1 mt-1 text-[11px] text-[#7EB8D4] font-mono">
           {expanded ? <><ChevronUp className="w-3 h-3" /> Show less</> : <><ChevronDown className="w-3 h-3" /> Read more</>}
         </button>
       )}
@@ -655,7 +655,7 @@ export default function GoalDetailView({
 
           {isGenerating && (
             <div className="flex items-center justify-center py-6 gap-2">
-              <Loader2 className="w-5 h-5 text-cyan-400 animate-spin" />
+              <Loader2 className="w-5 h-5 text-[#7EB8D4] animate-spin" />
               <span className="text-xs text-gray-400 font-mono">Generating resource-rich quests with AI...</span>
             </div>
           )}
@@ -680,7 +680,7 @@ export default function GoalDetailView({
             <div className="space-y-2">
               {todayTasks.dailyNote && (
                 <div className="rounded-lg p-3 mb-2" style={{ background: 'rgba(34,211,238,0.04)', border: '1px solid rgba(34,211,238,0.08)' }}>
-                  <p className="text-[13px] text-cyan-300 font-mono leading-relaxed">{todayTasks.dailyNote}</p>
+                  <p className="text-[13px] text-[#9ACDE3] font-mono leading-relaxed">{todayTasks.dailyNote}</p>
                 </div>
               )}
               <p className="text-[11px] text-gray-600 font-mono">Quests have been added to your main quest feed.</p>

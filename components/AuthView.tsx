@@ -327,14 +327,14 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode = 'SIGN_IN' })
         {particles.map(p => (
           <motion.div
             key={p.id}
-            className="absolute rounded-full bg-[#6366f1]"
+            className="absolute rounded-full bg-[#7EB8D4]"
             style={{ left: `${p.x}%`, top: `${p.y}%`, width: p.size, height: p.size }}
             animate={{ opacity: [0, 0.5, 0], y: [0, -40, -80] }}
             transition={{ duration: p.dur, delay: p.delay, repeat: Infinity, ease: 'easeOut' }}
           />
         ))}
-        <div className="absolute top-[-15%] left-[20%] w-[500px] h-[500px] bg-[#6366f1]/6 rounded-full blur-[140px]" />
-        <div className="absolute bottom-[-10%] right-[10%] w-[400px] h-[400px] bg-[#8b5cf6]/5 rounded-full blur-[120px]" />
+        <div className="absolute top-[-15%] left-[20%] w-[500px] h-[500px] bg-[#7EB8D4]/6 rounded-full blur-[140px]" />
+        <div className="absolute bottom-[-10%] right-[10%] w-[400px] h-[400px] bg-[#7EB8D4]/5 rounded-full blur-[120px]" />
         <div className="absolute top-[40%] left-[-10%] w-[300px] h-[300px] bg-[#4f46e5]/4 rounded-full blur-[100px]" />
       </div>
 
@@ -348,13 +348,13 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode = 'SIGN_IN' })
         <div className="text-center mb-8">
           <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
             <h1 className="text-4xl font-black tracking-tight text-white mb-1">
-              RE<span style={{ color: '#6366f1' }}>FORGE</span>
+              RE<span style={{ color: '#7EB8D4' }}>FORGE</span>
             </h1>
             <h2 className="text-xl font-black tracking-[0.2em] text-white/70 uppercase">SYSTEM</h2>
             <div className="mt-3 flex items-center justify-center gap-2">
-              <div className="h-px w-12 bg-gradient-to-r from-transparent to-[#6366f1]/40" />
-              <div className="w-1 h-1 rounded-full bg-[#6366f1]/60" />
-              <div className="h-px w-12 bg-gradient-to-l from-transparent to-[#6366f1]/40" />
+              <div className="h-px w-12 bg-gradient-to-r from-transparent to-[#7EB8D4]/40" />
+              <div className="w-1 h-1 rounded-full bg-[#7EB8D4]/60" />
+              <div className="h-px w-12 bg-gradient-to-l from-transparent to-[#7EB8D4]/40" />
             </div>
           </motion.div>
         </div>
@@ -435,7 +435,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode = 'SIGN_IN' })
                     type="submit"
                     disabled={loading}
                     className="w-full py-3.5 rounded-xl font-bold text-sm text-white transition-all duration-200 active:scale-[0.97] disabled:opacity-50 mt-1"
-                    style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
+                    style={{ background: 'linear-gradient(135deg, #7EB8D4, #7EB8D4)' }}
                   >
                     {loading ? 'Signing In...' : 'Sign In'}
                   </button>
@@ -508,7 +508,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode = 'SIGN_IN' })
                 <form onSubmit={handleCreate} className="flex flex-col gap-3">
                   <div>
                     <label className={labelClass}>
-                      Codename <span className="text-[#6366f1]">*</span>
+                      Codename <span className="text-[#7EB8D4]">*</span>
                     </label>
                     <input
                       type="text"
@@ -527,7 +527,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode = 'SIGN_IN' })
 
                   <div>
                     <label className={labelClass}>
-                      Email <span className="text-[#6366f1]">*</span>
+                      Email <span className="text-[#7EB8D4]">*</span>
                     </label>
                     <input
                       type="email"
@@ -544,7 +544,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode = 'SIGN_IN' })
 
                   <div>
                     <label className={labelClass}>
-                      Password <span className="text-[#6366f1]">*</span>
+                      Password <span className="text-[#7EB8D4]">*</span>
                     </label>
                     <div className="relative">
                       <input
@@ -570,7 +570,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode = 'SIGN_IN' })
 
                   <div>
                     <label className={labelClass}>
-                      Confirm Password <span className="text-[#6366f1]">*</span>
+                      Confirm Password <span className="text-[#7EB8D4]">*</span>
                     </label>
                     <div className="relative">
                       <input
@@ -600,7 +600,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode = 'SIGN_IN' })
                     type="submit"
                     disabled={loading}
                     className="w-full py-3.5 rounded-xl font-bold text-sm text-white transition-all duration-200 active:scale-[0.97] disabled:opacity-50 mt-1"
-                    style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
+                    style={{ background: 'linear-gradient(135deg, #7EB8D4, #7EB8D4)' }}
                   >
                     {loading ? 'Creating...' : 'Create Account'}
                   </button>
@@ -636,7 +636,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode = 'SIGN_IN' })
                   Already have an account?{' '}
                   <button
                     onClick={() => switchMode('SIGN_IN')}
-                    className="text-[#6366f1] hover:text-[#818cf8] transition-colors font-medium"
+                    className="text-[#7EB8D4] hover:text-[#7EB8D4] transition-colors font-medium"
                   >
                     Sign in
                   </button>

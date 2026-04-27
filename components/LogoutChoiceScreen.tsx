@@ -22,7 +22,7 @@ const LogoutChoiceScreen: React.FC<LogoutChoiceScreenProps> = ({ onSelect, onCan
       {/* Subtle radial glow */}
       <div
         className="absolute inset-0 pointer-events-none"
-        style={{ background: 'radial-gradient(ellipse at 50% 40%, rgba(0,210,255,0.05) 0%, transparent 65%)' }}
+        style={{ background: 'radial-gradient(ellipse at 50% 40%, rgba(126,184,212,0.05) 0%, transparent 65%)' }}
       />
 
       <motion.div
@@ -68,16 +68,16 @@ const LogoutChoiceScreen: React.FC<LogoutChoiceScreenProps> = ({ onSelect, onCan
             whileTap={{ scale: 0.97 }}
             className="w-full flex items-center gap-4 p-4 rounded-2xl text-left transition-colors"
             style={{
-              background: 'rgba(0,210,255,0.06)',
-              border: '1.5px solid rgba(0,210,255,0.35)',
-              boxShadow: '0 0 20px rgba(0,210,255,0.07)',
+              background: 'rgba(126,184,212,0.06)',
+              border: '1.5px solid rgba(126,184,212,0.35)',
+              boxShadow: '0 0 20px rgba(126,184,212,0.07)',
             }}
           >
             <div
               className="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center"
-              style={{ background: 'rgba(0,210,255,0.12)', border: '1px solid rgba(0,210,255,0.3)' }}
+              style={{ background: 'rgba(126,184,212,0.12)', border: '1px solid rgba(126,184,212,0.3)' }}
             >
-              <RefreshCw size={16} style={{ color: '#00d2ff' }} />
+              <RefreshCw size={16} style={{ color: '#7EB8D4' }} />
             </div>
             <div>
               <div className="text-[11px] font-black uppercase tracking-[0.2em] text-white mb-0.5">

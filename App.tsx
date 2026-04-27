@@ -4094,13 +4094,13 @@ const App: React.FC = () => {
 
                   background: 'linear-gradient(135deg, rgba(12,12,30,0.98) 0%, rgba(6,6,20,0.98) 100%)',
 
-                  boxShadow: '0 0 40px rgba(0,210,255,0.18), 0 10px 40px rgba(0,0,0,0.6)',
+                  boxShadow: '0 0 40px rgba(126,184,212,0.18), 0 10px 40px rgba(0,0,0,0.6)',
 
                 }}
 
               >
 
-                <div className="h-1 w-full" style={{ background: 'linear-gradient(90deg, transparent, rgba(0,210,255,0.9), transparent)' }} />
+                <div className="h-1 w-full" style={{ background: 'linear-gradient(90deg, transparent, rgba(126,184,212,0.9), transparent)' }} />
 
                 <div className="p-5">
 
@@ -4130,7 +4130,7 @@ const App: React.FC = () => {
 
                       className="px-5 py-2.5 rounded-xl text-xs font-black font-mono tracking-widest"
 
-                      style={{ background: '#00d4ff', color: '#000', boxShadow: '0 0 18px rgba(0,210,255,0.35)' }}
+                      style={{ background: '#00d4ff', color: '#000', boxShadow: '0 0 18px rgba(126,184,212,0.35)' }}
 
                     >
 
@@ -4440,7 +4440,7 @@ const App: React.FC = () => {
 
             className="fixed top-20 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 rounded-full text-xs font-mono font-bold cursor-pointer"
 
-            style={{ background: 'rgba(0,210,255,0.12)', border: '1px solid rgba(0,210,255,0.4)', color: '#00d2ff', backdropFilter: 'blur(12px)' }}
+            style={{ background: 'rgba(126,184,212,0.12)', border: '1px solid rgba(126,184,212,0.4)', color: '#7EB8D4', backdropFilter: 'blur(12px)' }}
 
             onClick={() => navigateTo('HEALTH')}
 
@@ -5322,7 +5322,7 @@ const App: React.FC = () => {
 
                 onClick={e => e.stopPropagation()}
 
-                className="w-full max-w-sm bg-[#0a0a14] border border-[#00d2ff]/30 rounded-2xl p-6 space-y-4"
+                className="w-full max-w-sm bg-[#0a0a14] border border-[#7EB8D4]/30 rounded-2xl p-6 space-y-4"
 
               >
 
@@ -5358,7 +5358,7 @@ const App: React.FC = () => {
 
                     onClick={() => handleNotifOptIn(true)}
 
-                    className="py-3 rounded-xl bg-[#00d2ff] text-black font-bold text-xs tracking-widest hover:bg-white transition-colors"
+                    className="py-3 rounded-xl bg-[#7EB8D4] text-black font-bold text-xs tracking-widest hover:bg-white transition-colors"
 
                   >
 

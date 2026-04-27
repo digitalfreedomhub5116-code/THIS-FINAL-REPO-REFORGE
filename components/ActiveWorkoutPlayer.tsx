@@ -408,7 +408,7 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
                                 onClick={() => { if (opt !== setTimerSec) { setPendingTimer(opt); } else { setShowTimerPicker(false); } }}
                                 className={`px-3 py-2 rounded-lg text-xs font-mono font-bold transition-all ${
                                     setTimerSec === opt
-                                        ? 'bg-system-neon text-black shadow-[0_0_12px_rgba(0,210,255,0.4)]'
+                                        ? 'bg-system-neon text-black shadow-[0_0_12px_rgba(126,184,212,0.4)]'
                                         : 'bg-gray-900 text-gray-400 border border-gray-800 hover:border-gray-600'
                                 }`}
                             >
@@ -429,7 +429,7 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
                         initial={{ scale: 0.9, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         exit={{ scale: 0.9, opacity: 0 }}
-                        className="bg-[#0a0a0a] border border-system-neon/30 w-full max-w-xs rounded-2xl p-6 text-center shadow-[0_0_40px_rgba(0,210,255,0.15)]"
+                        className="bg-[#0a0a0a] border border-system-neon/30 w-full max-w-xs rounded-2xl p-6 text-center shadow-[0_0_40px_rgba(126,184,212,0.15)]"
                     >
                         <div className="w-12 h-12 bg-system-neon/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-system-neon/30">
                             <Clock size={24} className="text-system-neon" />
@@ -567,7 +567,7 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
             {/* Progress Bar Line */}
             <div className="w-full h-1 bg-gray-900 overflow-hidden">
                 <motion.div 
-                    className="h-full bg-system-neon shadow-[0_0_10px_#00d2ff] origin-left"
+                    className="h-full bg-system-neon shadow-[0_0_10px_#7EB8D4] origin-left"
                     initial={{ scaleX: 0 }}
                     animate={{ scaleX: progressPercent / 100 }}
                     transition={{ ease: "linear", duration: 0.5 }}
@@ -640,7 +640,7 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
                         <>
                             <button 
                                 onClick={completeSet}
-                                className="col-span-3 h-14 md:h-16 bg-system-neon text-black font-black text-lg rounded-xl flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(0,210,255,0.4)] hover:bg-white transition-all active:scale-95 group"
+                                className="col-span-3 h-14 md:h-16 bg-system-neon text-black font-black text-lg rounded-xl flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(126,184,212,0.4)] hover:bg-white transition-all active:scale-95 group"
                             >
                                 <Check size={24} strokeWidth={3} />
                                 <span>COMPLETE SET</span>

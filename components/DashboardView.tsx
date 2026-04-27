@@ -71,13 +71,13 @@ const SLOT_ICONS: Record<string, React.ReactNode> = {
   FREE: <Sparkles size={14} />,
 };
 const SLOT_COLORS: Record<string, string> = {
-  SLEEP: '#818cf8',
+  SLEEP: '#7EB8D4',
   ROUTINE: '#fb923c',
   BLOCKED: '#9ca3af',
   WORKOUT: '#f87171',
-  QUEST: '#22d3ee',
+  QUEST: '#7EB8D4',
   MEAL: '#4ade80',
-  FREE: '#c084fc',
+  FREE: '#9ACDE3',
 };
 
 // ── Greeting Strip (simplified — Lv/Rank/Streak is in header) ─
@@ -98,8 +98,8 @@ const ManaBar: React.FC<{ player: PlayerData }> = ({ player }) => {
   const mana = player.mp ?? 100;
   const maxMana = player.maxMp ?? 100;
   const pct = maxMana > 0 ? Math.max(0, Math.min(100, (mana / maxMana) * 100)) : 0;
-  const color = pct > 75 ? '#00d2ff' : pct > 50 ? '#eab308' : pct > 10 ? '#f97316' : '#ef4444';
-  const glow = pct > 75 ? 'rgba(0,210,255,0.3)' : pct > 50 ? 'rgba(234,179,8,0.25)' : pct > 10 ? 'rgba(249,115,22,0.3)' : 'rgba(239,68,68,0.4)';
+  const color = pct > 75 ? '#7EB8D4' : pct > 50 ? '#eab308' : pct > 10 ? '#f97316' : '#ef4444';
+  const glow = pct > 75 ? 'rgba(126,184,212,0.3)' : pct > 50 ? 'rgba(234,179,8,0.25)' : pct > 10 ? 'rgba(249,115,22,0.3)' : 'rgba(239,68,68,0.4)';
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
@@ -242,7 +242,7 @@ const TodaysQuestsList: React.FC<{
         className="w-full rounded-xl p-3 text-left hover:bg-white/[0.03] transition"
         style={{ border: '1px dashed rgba(255,255,255,0.08)' }}>
         <div className="flex items-center gap-1.5 text-[10px] font-mono text-gray-500">
-          <Target size={10} className="text-cyan-400/50" /> No quests today — tap to add
+          <Target size={10} className="text-[#7EB8D4]/50" /> No quests today — tap to add
         </div>
       </button>
     );
@@ -252,11 +252,11 @@ const TodaysQuestsList: React.FC<{
     <button onClick={onNavigate} className="w-full text-left group">
       <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center gap-1.5">
-          <Target size={10} className="text-cyan-400" />
+          <Target size={10} className="text-[#7EB8D4]" />
           <span className="text-[9px] font-mono font-bold tracking-wider text-gray-500 uppercase">Quests</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="text-[9px] font-mono font-bold" style={{ color: completed === total ? '#4ade80' : '#22d3ee' }}>
+          <span className="text-[9px] font-mono font-bold" style={{ color: completed === total ? '#4ade80' : '#7EB8D4' }}>
             {completed}/{total}
           </span>
           <ChevronRight size={10} className="text-gray-600 group-hover:text-gray-400 transition" />
@@ -350,15 +350,15 @@ const DailyXPCard: React.FC<{ player: PlayerData }> = ({ player }) => {
     <div>
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-1.5">
-          <TrendingUp size={10} className="text-violet-400" />
+          <TrendingUp size={10} className="text-[#7EB8D4]" />
           <span className="text-[9px] font-mono font-bold tracking-wider text-gray-500 uppercase">Lv.{level}</span>
         </div>
-        <span className="text-[10px] font-bold font-mono tabular-nums text-violet-300">{totalXp.toLocaleString()} XP</span>
+        <span className="text-[10px] font-bold font-mono tabular-nums text-[#9ACDE3]">{totalXp.toLocaleString()} XP</span>
       </div>
       <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
         <motion.div className="h-full rounded-full"
           initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 1, ease: 'easeOut' }}
-          style={{ background: 'linear-gradient(90deg, #8b5cf6, #c084fc)', boxShadow: '0 0 6px rgba(139,92,246,0.4)' }} />
+          style={{ background: 'linear-gradient(90deg, #7EB8D4, #9ACDE3)', boxShadow: '0 0 6px rgba(126,184,212,0.4)' }} />
       </div>
       <div className="text-[8px] font-mono text-gray-600 mt-0.5 text-right">{currentXp}/{xpForNext} to Lv.{level + 1}</div>
     </div>
@@ -388,13 +388,13 @@ const OnboardingHero: React.FC<{ onNavigate: () => void; onAddQuest?: () => void
   <div
     className="rounded-2xl p-5 text-center"
     style={{
-      background: 'linear-gradient(135deg, rgba(0,210,255,0.06) 0%, rgba(139,92,246,0.04) 100%)',
-      border: '1px solid rgba(0,210,255,0.12)',
+      background: 'linear-gradient(135deg, rgba(126,184,212,0.06) 0%, rgba(126,184,212,0.04) 100%)',
+      border: '1px solid rgba(126,184,212,0.12)',
     }}
   >
     <div className="w-10 h-10 rounded-xl mx-auto mb-3 flex items-center justify-center"
-      style={{ background: 'rgba(0,210,255,0.1)', border: '1px solid rgba(0,210,255,0.2)' }}>
-      <Target size={18} className="text-cyan-400" />
+      style={{ background: 'rgba(126,184,212,0.1)', border: '1px solid rgba(126,184,212,0.2)' }}>
+      <Target size={18} className="text-[#7EB8D4]" />
     </div>
     <div className="text-sm font-bold text-white mb-1">Set Up Your Day</div>
     <div className="text-[11px] text-gray-400 mb-4 leading-relaxed">
@@ -404,14 +404,14 @@ const OnboardingHero: React.FC<{ onNavigate: () => void; onAddQuest?: () => void
       <button
         onClick={onNavigate}
         className="px-4 py-2 rounded-lg text-[11px] font-mono font-bold tracking-wide"
-        style={{ background: 'rgba(0,210,255,0.12)', border: '1px solid rgba(0,210,255,0.3)', color: '#00d2ff' }}
+        style={{ background: 'rgba(126,184,212,0.12)', border: '1px solid rgba(126,184,212,0.3)', color: '#7EB8D4' }}
       >
         Set Goals
       </button>
       <button
         onClick={onAddQuest || onNavigate}
         className="px-4 py-2 rounded-lg text-[11px] font-mono font-bold tracking-wide"
-        style={{ background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.25)', color: '#a78bfa' }}
+        style={{ background: 'rgba(126,184,212,0.1)', border: '1px solid rgba(126,184,212,0.25)', color: '#9ACDE3' }}
       >
         Add Quest
       </button>
@@ -468,8 +468,8 @@ const DashboardView: React.FC<DashboardViewProps> = ({
       <div className="grid grid-cols-4 gap-2">
         <QuickActionTile icon={<Utensils size={16} />} label="Meal" accent="#4ade80" onClick={() => onNavigate('HEALTH' as Tab)} />
         <QuickActionTile icon={<Dumbbell size={16} />} label="Workout" accent="#f87171" onClick={() => onNavigate('HEALTH' as Tab)} />
-        <QuickActionTile icon={<BookOpen size={16} />} label="Journal" accent="#c084fc" onClick={onOpenJournal} />
-        <QuickActionTile icon={<Plus size={16} />} label="Quest" accent="#22d3ee" onClick={onAddQuest || (() => onNavigate('QUESTS' as Tab))} />
+        <QuickActionTile icon={<BookOpen size={16} />} label="Journal" accent="#9ACDE3" onClick={onOpenJournal} />
+        <QuickActionTile icon={<Plus size={16} />} label="Quest" accent="#7EB8D4" onClick={onAddQuest || (() => onNavigate('QUESTS' as Tab))} />
       </div>
 
       {/* 3. Show onboarding hero OR real content */}

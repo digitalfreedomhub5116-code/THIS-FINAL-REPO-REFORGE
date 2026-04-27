@@ -38,11 +38,11 @@ const TypewriterText: React.FC<{ text: string }> = ({ text }) => {
   return (
     <span style={{ 
       opacity: glitch ? 0.4 : 1, 
-      textShadow: glitch ? '2px 0 #00d2ff, -2px 0 #ff0040' : 'none',
+      textShadow: glitch ? '2px 0 #7EB8D4, -2px 0 #ff0040' : 'none',
       transition: 'all 0.05s'
     }}>
       {displayed}
-      <span className="animate-pulse text-[#00d2ff]">_</span>
+      <span className="animate-pulse text-[#7EB8D4]">_</span>
     </span>
   );
 };
@@ -79,9 +79,9 @@ const MentorThoughtBox: React.FC<MentorThoughtBoxProps> = ({ messages, onDismiss
             onClick={() => onDismiss(currentMessage.id)}
           >
             <div className="relative">
-              <div className="bg-[#0A0A0F]/90 border border-[#00d2ff]/30 px-3 py-2 rounded-lg shadow-[0_0_20px_rgba(0,210,255,0.15)] backdrop-blur-md">
-                <div className="text-[8px] text-[#00d2ff]/80 font-black font-mono tracking-[0.3em] uppercase mb-1 flex items-center gap-1">
-                  <div className="w-1 h-1 bg-[#00d2ff] rounded-full animate-pulse shadow-[0_0_4px_#00d2ff]" />
+              <div className="bg-[#0A0A0F]/90 border border-[#7EB8D4]/30 px-3 py-2 rounded-lg shadow-[0_0_20px_rgba(126,184,212,0.15)] backdrop-blur-md">
+                <div className="text-[8px] text-[#7EB8D4]/80 font-black font-mono tracking-[0.3em] uppercase mb-1 flex items-center gap-1">
+                  <div className="w-1 h-1 bg-[#7EB8D4] rounded-full animate-pulse shadow-[0_0_4px_#7EB8D4]" />
                   DUSK
                 </div>
                 <div className="text-[10px] text-white/90 font-mono leading-relaxed">
@@ -89,7 +89,7 @@ const MentorThoughtBox: React.FC<MentorThoughtBoxProps> = ({ messages, onDismiss
                 </div>
               </div>
               {/* Tail pointing left towards the character */}
-              <div className="absolute -left-2 bottom-4 w-4 h-4 bg-[#0A0A0F]/90 border-b border-l border-[#00d2ff]/30 transform rotate-45 backdrop-blur-md -z-10" />
+              <div className="absolute -left-2 bottom-4 w-4 h-4 bg-[#0A0A0F]/90 border-b border-l border-[#7EB8D4]/30 transform rotate-45 backdrop-blur-md -z-10" />
             </div>
           </motion.div>
         )}

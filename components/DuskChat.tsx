@@ -37,7 +37,7 @@ const DuskAvatar: React.FC<{ isThinking: boolean }> = ({ isThinking }) => (
       className="absolute rounded-full"
       style={{
         width: 130, height: 130,
-        background: 'radial-gradient(circle, rgba(0,210,255,0.08) 0%, transparent 70%)',
+        background: 'radial-gradient(circle, rgba(126,184,212,0.08) 0%, transparent 70%)',
       }}
       animate={{ scale: [1, 1.15, 1], opacity: [0.5, 0.8, 0.5] }}
       transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
@@ -46,7 +46,7 @@ const DuskAvatar: React.FC<{ isThinking: boolean }> = ({ isThinking }) => (
       className="absolute rounded-full"
       style={{
         width: 100, height: 100,
-        background: 'radial-gradient(circle, rgba(0,210,255,0.12) 0%, transparent 70%)',
+        background: 'radial-gradient(circle, rgba(126,184,212,0.12) 0%, transparent 70%)',
       }}
       animate={{ scale: [1, 1.1, 1], opacity: [0.6, 1, 0.6] }}
       transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
@@ -58,8 +58,8 @@ const DuskAvatar: React.FC<{ isThinking: boolean }> = ({ isThinking }) => (
       style={{
         width: 72, height: 72,
         background: 'radial-gradient(circle at 35% 35%, rgba(0,230,255,0.6), rgba(0,180,220,0.4) 50%, rgba(0,100,140,0.3) 100%)',
-        boxShadow: '0 0 40px rgba(0,210,255,0.35), 0 0 80px rgba(0,210,255,0.15), inset 0 -8px 20px rgba(0,0,0,0.3)',
-        border: '1px solid rgba(0,210,255,0.25)',
+        boxShadow: '0 0 40px rgba(126,184,212,0.35), 0 0 80px rgba(126,184,212,0.15), inset 0 -8px 20px rgba(0,0,0,0.3)',
+        border: '1px solid rgba(126,184,212,0.25)',
       }}
       animate={isThinking
         ? { scale: [1, 1.08, 1], rotate: [0, 3, -3, 0] }
@@ -130,8 +130,8 @@ const BackgroundParticles: React.FC = () => {
           style={{
             left: p.left, bottom: '10%',
             width: p.size, height: p.size,
-            background: '#00d2ff',
-            boxShadow: `0 0 ${p.size * 3}px rgba(0,210,255,0.4)`,
+            background: '#7EB8D4',
+            boxShadow: `0 0 ${p.size * 3}px rgba(126,184,212,0.4)`,
           }}
           animate={{
             y: [0, -(150 + Math.random() * 200)],
@@ -162,13 +162,13 @@ const SuggestionChip: React.FC<ChipProps> = ({ icon, label, onClick }) => (
     className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-[11px] font-mono font-semibold text-gray-300 transition-all active:scale-95"
     style={{
       background: 'rgba(255,255,255,0.04)',
-      border: '1px solid rgba(0,210,255,0.15)',
+      border: '1px solid rgba(126,184,212,0.15)',
       backdropFilter: 'blur(8px)',
     }}
-    whileHover={{ scale: 1.03, borderColor: 'rgba(0,210,255,0.4)' }}
+    whileHover={{ scale: 1.03, borderColor: 'rgba(126,184,212,0.4)' }}
     whileTap={{ scale: 0.97 }}
   >
-    <span className="text-cyan-400 flex-shrink-0">{icon}</span>
+    <span className="text-[#7EB8D4] flex-shrink-0">{icon}</span>
     <span className="truncate">{label}</span>
   </motion.button>
 );
@@ -549,11 +549,11 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, updatePlayer, onClose, onMa
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
         transition={{ duration: 0.3 }}
-        className="w-full h-full sm:h-[85vh] sm:max-w-lg bg-[#060608] sm:border sm:border-cyan-500/20 sm:rounded-2xl shadow-[0_0_60px_rgba(0,210,255,0.1)] flex flex-col overflow-hidden relative"
+        className="w-full h-full sm:h-[85vh] sm:max-w-lg bg-[#060608] sm:border sm:border-[#7EB8D4]/20 sm:rounded-2xl shadow-[0_0_60px_rgba(126,184,212,0.1)] flex flex-col overflow-hidden relative"
       >
         {/* Background effects */}
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(0,210,255,0.04)_0%,transparent_60%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(126,184,212,0.04)_0%,transparent_60%)]" />
           <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:24px_24px] opacity-30" />
           <BackgroundParticles />
         </div>
@@ -563,9 +563,9 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, updatePlayer, onClose, onMa
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-full flex items-center justify-center relative"
               style={{
-                background: 'radial-gradient(circle at 40% 40%, rgba(0,210,255,0.3), rgba(0,120,160,0.2))',
-                border: '1px solid rgba(0,210,255,0.3)',
-                boxShadow: '0 0 12px rgba(0,210,255,0.15)',
+                background: 'radial-gradient(circle at 40% 40%, rgba(126,184,212,0.3), rgba(0,120,160,0.2))',
+                border: '1px solid rgba(126,184,212,0.3)',
+                boxShadow: '0 0 12px rgba(126,184,212,0.15)',
               }}
             >
               {/* Mini eyes */}
@@ -577,7 +577,7 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, updatePlayer, onClose, onMa
             </div>
             <div>
               <h3 className="text-white text-sm font-bold font-mono tracking-wide">DUSK</h3>
-              <p className="text-[8px] text-cyan-500/70 font-mono tracking-[0.2em] uppercase">Online • AI Buddy</p>
+              <p className="text-[8px] text-[#7EB8D4]/70 font-mono tracking-[0.2em] uppercase">Online • AI Buddy</p>
             </div>
           </div>
           <div className="flex items-center gap-1">
@@ -643,8 +643,8 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, updatePlayer, onClose, onMa
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.4 }}
                 >
-                  <Zap size={10} className={hasMana ? 'text-cyan-500/60' : 'text-red-500'} />
-                  <span className={`text-[9px] font-mono font-bold ${hasMana ? 'text-cyan-500/50' : 'text-red-500'}`}>
+                  <Zap size={10} className={hasMana ? 'text-[#7EB8D4]/60' : 'text-red-500'} />
+                  <span className={`text-[9px] font-mono font-bold ${hasMana ? 'text-[#7EB8D4]/50' : 'text-red-500'}`}>
                     {hasMana ? `${player.mp ?? 100} MANA • 5 / msg` : 'NO MANA'}
                   </span>
                 </motion.div>
@@ -696,8 +696,8 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, updatePlayer, onClose, onMa
                       {isDusk && (
                         <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mr-2 mt-1"
                           style={{
-                            background: 'radial-gradient(circle, rgba(0,210,255,0.2), rgba(0,100,140,0.15))',
-                            border: '1px solid rgba(0,210,255,0.2)',
+                            background: 'radial-gradient(circle, rgba(126,184,212,0.2), rgba(0,100,140,0.15))',
+                            border: '1px solid rgba(126,184,212,0.2)',
                           }}
                         >
                           <div className="flex gap-0.5">
@@ -710,7 +710,7 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, updatePlayer, onClose, onMa
                         max-w-[78%] px-3.5 py-2.5 text-[13px] leading-relaxed
                         ${isDusk
                           ? 'bg-gray-900/70 border border-gray-800 text-gray-200 rounded-2xl rounded-tl-md'
-                          : 'bg-gradient-to-br from-cyan-500 to-cyan-600 text-black font-semibold rounded-2xl rounded-tr-md shadow-[0_2px_12px_rgba(0,210,255,0.2)]'
+                          : 'bg-gradient-to-br from-cyan-500 to-cyan-600 text-black font-semibold rounded-2xl rounded-tr-md shadow-[0_2px_12px_rgba(126,184,212,0.2)]'
                         }
                       `}>
                         {msg.text}
@@ -725,8 +725,8 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, updatePlayer, onClose, onMa
                                 transition={{ delay: 0.2 + ai * 0.1 }}
                                 className="rounded-lg px-3 py-2.5 text-[11px] font-mono cursor-pointer active:scale-[0.98] transition-transform"
                                 style={{
-                                  background: 'rgba(0,210,255,0.06)',
-                                  border: '1px solid rgba(0,210,255,0.15)',
+                                  background: 'rgba(126,184,212,0.06)',
+                                  border: '1px solid rgba(126,184,212,0.15)',
                                 }}
                                 onClick={() => {
                                   // Map action type to the app tab it should navigate to
@@ -754,7 +754,7 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, updatePlayer, onClose, onMa
                                   }
                                 }}
                               >
-                                <div className="text-cyan-300 font-bold">{action.label || '✅ Action completed'}</div>
+                                <div className="text-[#9ACDE3] font-bold">{action.label || '✅ Action completed'}</div>
                                 {action.tool === 'log_meal' && (
                                   <div className="text-gray-500 mt-0.5">
                                     P: {action.args.protein}g · C: {action.args.carbs}g · F: {action.args.fats}g
@@ -765,7 +765,7 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, updatePlayer, onClose, onMa
                                     {action.args.exercises?.length} exercises · ~{action.args.totalDuration} min
                                   </div>
                                 )}
-                                <div className="text-cyan-400/70 mt-1 text-[10px]">Tap to open →</div>
+                                <div className="text-[#7EB8D4]/70 mt-1 text-[10px]">Tap to open →</div>
                               </motion.div>
                             ))}
                           </div>
@@ -783,8 +783,8 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, updatePlayer, onClose, onMa
                   >
                     <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mr-2 mt-1"
                       style={{
-                        background: 'radial-gradient(circle, rgba(0,210,255,0.2), rgba(0,100,140,0.15))',
-                        border: '1px solid rgba(0,210,255,0.2)',
+                        background: 'radial-gradient(circle, rgba(126,184,212,0.2), rgba(0,100,140,0.15))',
+                        border: '1px solid rgba(126,184,212,0.2)',
                       }}
                     >
                       <div className="flex gap-0.5">
@@ -797,13 +797,13 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, updatePlayer, onClose, onMa
                         {[0, 1, 2].map(i => (
                           <motion.div
                             key={i}
-                            className="w-1.5 h-1.5 rounded-full bg-cyan-400"
+                            className="w-1.5 h-1.5 rounded-full bg-[#7EB8D4]"
                             animate={{ opacity: [0.3, 1, 0.3], scale: [0.8, 1, 0.8] }}
                             transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
                           />
                         ))}
                       </div>
-                      <span className="text-[10px] text-cyan-400/60 font-mono">thinking</span>
+                      <span className="text-[10px] text-[#7EB8D4]/60 font-mono">thinking</span>
                     </div>
                   </motion.div>
                 )}
@@ -824,7 +824,7 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, updatePlayer, onClose, onMa
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
               placeholder="Ask me anything..."
-              className="flex-1 bg-gray-900/80 border border-gray-800 rounded-xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-cyan-500/40 focus:shadow-[0_0_15px_rgba(0,210,255,0.08)] transition-all placeholder:text-gray-600"
+              className="flex-1 bg-gray-900/80 border border-gray-800 rounded-xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-[#7EB8D4]/40 focus:shadow-[0_0_15px_rgba(126,184,212,0.08)] transition-all placeholder:text-gray-600"
               disabled={isLoading}
             />
             <motion.button
@@ -833,9 +833,9 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, updatePlayer, onClose, onMa
               className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
               style={{
                 background: inputValue.trim() && hasMana
-                  ? 'linear-gradient(135deg, #00d2ff, #00b4dc)'
+                  ? 'linear-gradient(135deg, #7EB8D4, #7EB8D4)'
                   : 'rgba(255,255,255,0.05)',
-                boxShadow: inputValue.trim() && hasMana ? '0 0 15px rgba(0,210,255,0.25)' : 'none',
+                boxShadow: inputValue.trim() && hasMana ? '0 0 15px rgba(126,184,212,0.25)' : 'none',
               }}
               whileTap={{ scale: 0.92 }}
             >
@@ -846,7 +846,7 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, updatePlayer, onClose, onMa
           {/* Mana footer — only when in chat mode */}
           {hasStartedChat && (
             <div className="mt-1.5 flex items-center justify-center gap-2">
-              <span className={`text-[8px] font-mono font-bold flex items-center gap-0.5 ${hasMana ? 'text-cyan-500/40' : 'text-red-500/70'}`}>
+              <span className={`text-[8px] font-mono font-bold flex items-center gap-0.5 ${hasMana ? 'text-[#7EB8D4]/40' : 'text-red-500/70'}`}>
                 <Zap size={7} /> {hasMana ? '5 MANA per message' : 'NOT ENOUGH MANA'}
               </span>
             </div>

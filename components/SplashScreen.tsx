@@ -25,8 +25,8 @@ const DARK_COLORS = {
   letterColor: '#e5e5e5',
   subLabel: '#777777',
   progressTrack: 'rgba(255,255,255,0.08)',
-  progressFill: 'linear-gradient(90deg, #8b5cf6, #00d2ff)',
-  sparkColor: '#00d2ff',
+  progressFill: 'linear-gradient(90deg, #7EB8D4, #7EB8D4)',
+  sparkColor: '#7EB8D4',
 };
 
 const LIGHT_COLORS = {

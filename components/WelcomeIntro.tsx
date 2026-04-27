@@ -50,7 +50,7 @@ const WelcomeIntro: React.FC<WelcomeIntroProps> = ({ onComplete }) => {
             {particles.map((p) => (
               <motion.div
                 key={p.id}
-                className="absolute w-1 h-1 bg-system-neon rounded-full shadow-[0_0_5px_#00d2ff]"
+                className="absolute w-1 h-1 bg-system-neon rounded-full shadow-[0_0_5px_#7EB8D4]"
                 initial={{ opacity: 0, top: `${p.y}%`, left: `${p.x}%` }}
                 animate={{ 
                   opacity: [0, 1, 0],
@@ -67,7 +67,7 @@ const WelcomeIntro: React.FC<WelcomeIntroProps> = ({ onComplete }) => {
           </div>
 
           {/* Grid Overlay */}
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(0,210,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(0,210,255,0.03)_1px,transparent_1px)] bg-[size:50px_50px] pointer-events-none" />
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(126,184,212,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(126,184,212,0.03)_1px,transparent_1px)] bg-[size:50px_50px] pointer-events-none" />
 
           {/* Glitch Text Container */}
           <div className="relative z-10 text-center px-4">

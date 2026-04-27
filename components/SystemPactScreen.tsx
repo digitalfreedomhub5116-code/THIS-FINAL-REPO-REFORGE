@@ -332,7 +332,7 @@ const SystemPactScreen: React.FC<SystemPactScreenProps> = ({
             >
               <PactSeal flare={flare} rankColor={rankColor} />
               <div className="text-center mt-4">
-                <p className="text-[10px] font-black tracking-[0.4em] text-purple-500/70 uppercase font-mono">
+                <p className="text-[10px] font-black tracking-[0.4em] text-[#7EB8D4]/70 uppercase font-mono">
                   SYSTEM PACT
                 </p>
                 <p className="text-[9px] text-gray-600 font-mono mt-1 max-w-[260px] leading-relaxed">

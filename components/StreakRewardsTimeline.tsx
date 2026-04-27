@@ -76,7 +76,7 @@ const REWARD_CONFIG: Record<StreakRewardType, { icon: React.ReactNode; color: st
   },
   STONES: {
     icon: <Gem size={18} />,
-    color: '#c084fc',
+    color: '#9ACDE3',
     glow: 'rgba(192,132,252,0.5)',
     bg: 'radial-gradient(circle, rgba(192,132,252,0.25) 0%, rgba(192,132,252,0.05) 70%)',
     emoji: '💎',
@@ -353,9 +353,9 @@ const AvatarMarker: React.FC<{ progress: number }> = ({ progress }) => (
     <div
       className="w-7 h-7 rounded-full flex items-center justify-center"
       style={{
-        background: 'linear-gradient(135deg, #00d2ff, #0088cc)',
-        border: '2px solid #00d2ff',
-        boxShadow: '0 0 15px rgba(0,210,255,0.5), 0 0 30px rgba(0,210,255,0.2)',
+        background: 'linear-gradient(135deg, #7EB8D4, #0088cc)',
+        border: '2px solid #7EB8D4',
+        boxShadow: '0 0 15px rgba(126,184,212,0.5), 0 0 30px rgba(126,184,212,0.2)',
       }}
     >
       <span className="text-xs">⚡</span>
@@ -363,7 +363,7 @@ const AvatarMarker: React.FC<{ progress: number }> = ({ progress }) => (
     {/* Trail glow */}
     <div
       className="absolute top-1/2 -translate-y-1/2 -left-4 w-6 h-3 rounded-full"
-      style={{ background: 'linear-gradient(90deg, transparent, rgba(0,210,255,0.3))', filter: 'blur(4px)' }}
+      style={{ background: 'linear-gradient(90deg, transparent, rgba(126,184,212,0.3))', filter: 'blur(4px)' }}
     />
   </motion.div>
 );
@@ -455,14 +455,14 @@ const StreakRewardsTimeline: React.FC<StreakRewardsTimelineProps> = ({
       className="relative rounded-2xl overflow-hidden"
       style={{
         background: '#0B1015',
-        border: '1px solid rgba(0, 210, 255, 0.1)',
+        border: '1px solid rgba(126, 184, 212, 0.1)',
         boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
       }}
     >
       {/* Header */}
       <div className="px-5 pt-4 pb-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="text-[10px] font-black tracking-[0.2em] text-[#00d2ff]">
+          <div className="text-[10px] font-black tracking-[0.2em] text-[#7EB8D4]">
             STREAK REWARDS
           </div>
           {unclaimedCount > 0 && (
@@ -493,7 +493,7 @@ const StreakRewardsTimeline: React.FC<StreakRewardsTimelineProps> = ({
               transition={{ x: { duration: 1, repeat: Infinity } }}
               className="absolute right-2 top-1/2 -translate-y-1/2 z-30 pointer-events-none"
             >
-              <ChevronRight size={16} style={{ color: 'rgba(0,210,255,0.4)' }} />
+              <ChevronRight size={16} style={{ color: 'rgba(126,184,212,0.4)' }} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -519,8 +519,8 @@ const StreakRewardsTimeline: React.FC<StreakRewardsTimelineProps> = ({
               style={{
                 width: `${(getAvatarProgress() / 100) * (checkpoints.length * 80 - 72)}px`,
                 maxWidth: `calc(100% - 72px)`,
-                background: 'linear-gradient(90deg, #00d2ff, #0088cc)',
-                boxShadow: '0 0 8px rgba(0,210,255,0.4)',
+                background: 'linear-gradient(90deg, #7EB8D4, #0088cc)',
+                boxShadow: '0 0 8px rgba(126,184,212,0.4)',
                 transition: 'width 0.5s ease',
               }}
             />

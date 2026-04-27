@@ -12,7 +12,7 @@ export const OUTFIT_BADGE_CONFIG: Record<string, {
   outfit_starter: { name: 'Venus',   accent: '#9ca3af', eyeColor: '#60a5fa', hoodColor: '#374151', armorColor: '#1f2937', tier: 'E' },
   outfit_ghost:   { name: 'Ghost',   accent: '#4ade80', eyeColor: '#4ade80', hoodColor: '#14532d', armorColor: '#166534', tier: 'D' },
   outfit_knight:  { name: 'Ninja',   accent: '#60a5fa', eyeColor: '#f87171', hoodColor: '#1e293b', armorColor: '#334155', tier: 'C' },
-  outfit_assassin:{ name: 'Mars',    accent: '#c084fc', eyeColor: '#00d2ff', hoodColor: '#581c87', armorColor: '#7e22ce', tier: 'B' },
+  outfit_assassin:{ name: 'Mars',    accent: '#9ACDE3', eyeColor: '#7EB8D4', hoodColor: '#581c87', armorColor: '#7e22ce', tier: 'B' },
   outfit_vanguard:{ name: 'Jupiter', accent: '#facc15', eyeColor: '#60a5fa', hoodColor: '#713f12', armorColor: '#92400e', tier: 'A' },
   outfit_monarch: { name: 'Monarch', accent: '#f87171', eyeColor: '#60a5fa', hoodColor: '#450a0a', armorColor: '#991b1b', tier: 'S' },
 };

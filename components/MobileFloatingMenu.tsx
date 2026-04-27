@@ -72,7 +72,7 @@ const REWARD_POOLS: Record<'DAILY' | 'LEGENDARY' | 'ALLIANCE', WeightedReward[]>
     { reward: { type: 'STONE', amount: 2,    label: 'outfit_starter',  color: '#9ca3af' }, weight: 15 },
     { reward: { type: 'STONE', amount: 2,    label: 'outfit_ghost',    color: '#4ade80' }, weight: 12 },
     { reward: { type: 'STONE', amount: 1,    label: 'outfit_knight',   color: '#60a5fa' }, weight: 10 },
-    { reward: { type: 'STONE', amount: 1,    label: 'outfit_assassin',  color: '#c084fc' }, weight: 8 },
+    { reward: { type: 'STONE', amount: 1,    label: 'outfit_assassin',  color: '#9ACDE3' }, weight: 8 },
   ],
   ALLIANCE: [
     { reward: { type: 'GOLD',  amount: 600,  label: 'GOLD',            color: '#eab308' }, weight: 18 },
@@ -81,7 +81,7 @@ const REWARD_POOLS: Record<'DAILY' | 'LEGENDARY' | 'ALLIANCE', WeightedReward[]>
     { reward: { type: 'STONE', amount: 3,    label: 'outfit_starter',  color: '#9ca3af' }, weight: 8 },
     { reward: { type: 'STONE', amount: 3,    label: 'outfit_ghost',    color: '#4ade80' }, weight: 8 },
     { reward: { type: 'STONE', amount: 2,    label: 'outfit_knight',   color: '#60a5fa' }, weight: 8 },
-    { reward: { type: 'STONE', amount: 2,    label: 'outfit_assassin',  color: '#c084fc' }, weight: 8 },
+    { reward: { type: 'STONE', amount: 2,    label: 'outfit_assassin',  color: '#9ACDE3' }, weight: 8 },
     { reward: { type: 'STONE', amount: 1,    label: 'outfit_vanguard', color: '#facc15' }, weight: 6 },
     { reward: { type: 'STONE', amount: 1,    label: 'outfit_monarch',  color: '#f87171' }, weight: 4 },
   ],
@@ -138,7 +138,7 @@ const CHEST_CFG = {
     rewards: [
       { type: 'GOLD' as const,  amount: 800,  label: 'GOLD',   color: '#eab308' },
       { type: 'KEYS' as const,  amount: 5,    label: 'KEYS',   color: '#a855f7' },
-      { type: 'STONE' as const, amount: 3,    label: 'SHARDS', color: '#c084fc' },
+      { type: 'STONE' as const, amount: 3,    label: 'SHARDS', color: '#9ACDE3' },
     ],
     contents: [
       { icon: '🪙', text: 'Gold — Very High' },
@@ -306,7 +306,7 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
       ? (isDailyReady
           ? <span className="flex items-center gap-1 text-[10px] font-black text-emerald-400"><Check size={10}/> READY</span>
           : <span className="flex items-center gap-1 text-[10px] font-bold" style={{ color: cfg.color }}><Check size={10}/> CLAIMED</span>)
-      : <span className="flex items-center gap-1 text-[10px] font-bold text-purple-300"><SystemKey size={10}/> {cfg.cost}</span>;
+      : <span className="flex items-center gap-1 text-[10px] font-bold text-[#9ACDE3]"><SystemKey size={10}/> {cfg.cost}</span>;
 
     return (
       <div
@@ -585,11 +585,11 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
         >
           <button
             onClick={() => setActiveModal('REWARDS')}
-            className="w-10 h-10 bg-black/40 backdrop-blur-md border border-purple-500/40 rounded-full flex items-center justify-center active:scale-90 transition-all relative overflow-hidden"
+            className="w-10 h-10 bg-black/40 backdrop-blur-md border border-[#7EB8D4]/40 rounded-full flex items-center justify-center active:scale-90 transition-all relative overflow-hidden"
           >
             {!isChestLoaded && (
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-6 h-6 bg-purple-500/20 rounded-full animate-pulse" />
+                <div className="w-6 h-6 bg-[#7EB8D4]/20 rounded-full animate-pulse" />
               </div>
             )}
             <img
@@ -681,7 +681,7 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
                               <SystemCoin size={35} />
                             </div> {gold}
                           </div>
-                          <div className="flex items-center gap-1 text-xs font-mono font-bold text-purple-300">
+                          <div className="flex items-center gap-1 text-xs font-mono font-bold text-[#9ACDE3]">
                             <SystemKey size={13} /> {keys}
                           </div>
                         </div>
@@ -886,7 +886,7 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
                           <div className="w-px h-8 bg-gray-800" />
                           <div className="flex flex-col items-center gap-1">
                             <SystemKey size={28} />
-                            <span className="text-[11px] font-bold text-purple-400 font-mono">Key Drops</span>
+                            <span className="text-[11px] font-bold text-[#7EB8D4] font-mono">Key Drops</span>
                           </div>
                         </div>
                       </div>
@@ -909,7 +909,7 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
                           disabled={!canAffordPaid}
                           className="py-3.5 px-5 rounded-xl font-mono font-black text-xs uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-1.5 whitespace-nowrap"
                           style={canAffordPaid
-                            ? { background: 'linear-gradient(135deg,rgba(139,92,246,0.3),rgba(109,40,217,0.5))', color: '#c4b5fd', border: '1px solid rgba(139,92,246,0.5)', boxShadow: '0 4px 20px rgba(139,92,246,0.3)' }
+                            ? { background: 'linear-gradient(135deg,rgba(126,184,212,0.3),rgba(109,40,217,0.5))', color: '#c4b5fd', border: '1px solid rgba(126,184,212,0.5)', boxShadow: '0 4px 20px rgba(126,184,212,0.3)' }
                             : { background: 'rgba(30,30,30,0.8)', color: '#4b5563', border: '1px solid rgba(100,100,100,0.2)', cursor: 'not-allowed' }
                           }
                         >

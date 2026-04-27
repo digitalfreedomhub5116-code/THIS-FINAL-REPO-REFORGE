@@ -28,11 +28,11 @@ const DuskFloatingPill: React.FC<DuskFloatingPillProps> = ({ unreadCount = 0, on
       className="fixed left-4 md:left-6 z-[79] md:hidden flex items-center gap-2 pl-2.5 pr-3.5 py-2 rounded-full group"
       style={{
         bottom: 'calc(env(safe-area-inset-bottom, 0px) + 6.5rem)',
-        background: 'linear-gradient(135deg, rgba(139,92,246,0.95) 0%, rgba(109,40,217,0.9) 100%)',
+        background: 'linear-gradient(135deg, rgba(126,184,212,0.95) 0%, rgba(109,40,217,0.9) 100%)',
         border: '1px solid rgba(167,139,250,0.4)',
         boxShadow: hasUnread
-          ? '0 0 24px rgba(139,92,246,0.7), 0 4px 16px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.2)'
-          : '0 0 14px rgba(139,92,246,0.35), 0 4px 12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.15)',
+          ? '0 0 24px rgba(126,184,212,0.7), 0 4px 16px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.2)'
+          : '0 0 14px rgba(126,184,212,0.35), 0 4px 12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.15)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
       }}

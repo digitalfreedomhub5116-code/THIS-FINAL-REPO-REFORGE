@@ -52,7 +52,7 @@ export const RANK_META: Record<RankType, {
     primary:    '#00d4ff',
     secondary:  '#0284c7',
     letter:     '#e0f9ff',
-    border:     '#06b6d4',
+    border:     '#7EB8D4',
     glow:       'rgba(0,212,255,0.8)',
     bg:         '#00131a',
     labelColor: '#00d4ff',

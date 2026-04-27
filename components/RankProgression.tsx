@@ -14,7 +14,7 @@ const RANK_CONFIG: { id: Rank; label: string; minLevel: number; color: string }[
     { id: 'E', label: 'Awakened', minLevel: 1, color: '#78716c' },
     { id: 'D', label: 'Rookie', minLevel: 11, color: '#c2410c' },
     { id: 'C', label: 'Soldier', minLevel: 27, color: '#60a5fa' },
-    { id: 'B', label: 'Elite', minLevel: 39, color: '#06b6d4' },
+    { id: 'B', label: 'Elite', minLevel: 39, color: '#7EB8D4' },
     { id: 'A', label: 'Sovereign', minLevel: 55, color: '#eab308' },
     { id: 'S', label: 'Overlord', minLevel: 80, color: '#a855f7' },
 ];
@@ -37,7 +37,7 @@ const RankProgression: React.FC<RankProgressionProps> = ({ player }) => {
     <div className="w-full h-[600px] bg-black/40 border border-gray-800 rounded-xl overflow-hidden relative flex flex-col">
         
         {/* Background Effect */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(0,210,255,0.05)_0%,transparent_60%)] pointer-events-none" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(126,184,212,0.05)_0%,transparent_60%)] pointer-events-none" />
 
         <div className="p-6 border-b border-gray-800 bg-gray-900/50 relative z-10">
             <h2 className="text-2xl font-black text-white italic uppercase tracking-tighter">HUNTER RANKING</h2>
@@ -119,7 +119,7 @@ const RankProgression: React.FC<RankProgressionProps> = ({ player }) => {
                                         initial={{ height: 0 }}
                                         animate={{ height: `${progressToNext}%` }}
                                         transition={{ duration: 1.5, delay: 0.2 }}
-                                        className="w-full bg-system-neon shadow-[0_0_10px_#00d2ff]"
+                                        className="w-full bg-system-neon shadow-[0_0_10px_#7EB8D4]"
                                     />
                                 </div>
                             )}

@@ -64,7 +64,7 @@ const SystemPersonalizationScreen: React.FC<SystemPersonalizationScreenProps> = 
         className="absolute inset-0 pointer-events-none"
         animate={{ opacity: [0.4, 0.7, 0.4] }}
         transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-        style={{ background: 'radial-gradient(ellipse at 50% 45%, rgba(99,102,241,0.12) 0%, rgba(139,92,246,0.06) 35%, transparent 70%)' }}
+        style={{ background: 'radial-gradient(ellipse at 50% 45%, rgba(99,102,241,0.12) 0%, rgba(126,184,212,0.06) 35%, transparent 70%)' }}
       />
 
       {/* Floating ember particles */}
@@ -103,7 +103,7 @@ const SystemPersonalizationScreen: React.FC<SystemPersonalizationScreenProps> = 
           className="absolute rounded-full border"
           style={{
             width: 200, height: 200,
-            borderColor: 'rgba(139,92,246,0.15)',
+            borderColor: 'rgba(126,184,212,0.15)',
             top: '50%', left: '50%',
             transform: 'translate(-50%, -50%)',
           }}
@@ -131,7 +131,7 @@ const SystemPersonalizationScreen: React.FC<SystemPersonalizationScreenProps> = 
             width: 60, height: 200,
             top: '50%', left: '50%',
             transform: 'translate(-50%, -55%)',
-            background: 'linear-gradient(180deg, rgba(99,102,241,0.25) 0%, rgba(139,92,246,0.15) 50%, transparent 100%)',
+            background: 'linear-gradient(180deg, rgba(99,102,241,0.25) 0%, rgba(126,184,212,0.15) 50%, transparent 100%)',
             filter: 'blur(25px)',
             borderRadius: '50%',
           }}
@@ -151,8 +151,8 @@ const SystemPersonalizationScreen: React.FC<SystemPersonalizationScreenProps> = 
             </linearGradient>
             {/* Blade edge glow */}
             <linearGradient id="edgeGlow" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#818cf8" stopOpacity="0.9" />
-              <stop offset="50%" stopColor="#6366f1" stopOpacity="0.6" />
+              <stop offset="0%" stopColor="#7EB8D4" stopOpacity="0.9" />
+              <stop offset="50%" stopColor="#7EB8D4" stopOpacity="0.6" />
               <stop offset="100%" stopColor="#4f46e5" stopOpacity="0.3" />
             </linearGradient>
             {/* Guard gradient */}
@@ -223,7 +223,7 @@ const SystemPersonalizationScreen: React.FC<SystemPersonalizationScreenProps> = 
             {/* Guard center gem */}
             <motion.circle
               cx="50" cy="84" r="2"
-              fill="#818cf8"
+              fill="#7EB8D4"
               initial={{ opacity: 0, scale: 0 }}
               animate={{ opacity: [0, 1, 1], scale: [0, 1.3, 1] }}
               transition={{ duration: 0.5, delay: 1.4 }}
@@ -295,7 +295,7 @@ const SystemPersonalizationScreen: React.FC<SystemPersonalizationScreenProps> = 
             className="absolute inset-y-0 left-0 rounded-full"
             style={{
               width: `${progress}%`,
-              background: 'linear-gradient(90deg, #6366f1, #818cf8, #a78bfa)',
+              background: 'linear-gradient(90deg, #7EB8D4, #7EB8D4, #9ACDE3)',
               boxShadow: '0 0 12px rgba(99,102,241,0.5)',
             }}
           />

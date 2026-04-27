@@ -19,7 +19,7 @@ const RANK_LADDER: { rank: Exclude<Rank, 'UNRANKED'>; minLevel: number; color: s
   { rank: 'E', minLevel: 1,  color: '#9ca3af' },
   { rank: 'D', minLevel: 11, color: '#4ade80' },
   { rank: 'C', minLevel: 27, color: '#60a5fa' },
-  { rank: 'B', minLevel: 39, color: '#c084fc' },
+  { rank: 'B', minLevel: 39, color: '#9ACDE3' },
   { rank: 'A', minLevel: 55, color: '#facc15' },
   { rank: 'S', minLevel: 80, color: '#f87171' },
 ];
@@ -42,16 +42,16 @@ const TopBar: React.FC<{ player: PlayerData; onSettings: () => void }> = ({ play
     <div className="flex items-center justify-between gap-3 px-1 pt-2 pb-3">
       <div className="flex items-center gap-2 min-w-0 flex-1">
         <div className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-black/40 border border-white/10">
-          <div className="text-[10px] font-mono font-bold text-[#00d2ff] tracking-wider">Lv.{player.level}</div>
+          <div className="text-[10px] font-mono font-bold text-[#7EB8D4] tracking-wider">Lv.{player.level}</div>
           <div className="w-16 h-1.5 bg-black/60 rounded-full overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-[#00d2ff] to-[#8b5cf6]" style={{ width: `${xpPct}%` }} />
+            <div className="h-full bg-gradient-to-r from-[#7EB8D4] to-[#7EB8D4]" style={{ width: `${xpPct}%` }} />
           </div>
         </div>
       </div>
       <div className="flex items-center gap-3 text-[11px] font-mono font-bold">
         <div className="flex items-center gap-1 text-orange-400" title="Streak"><Flame size={13} /> {player.streak || 0}</div>
         <div className="flex items-center gap-1 text-yellow-400" title="Gold"><Coins size={13} /> {player.gold || 0}</div>
-        <div className="flex items-center gap-1 text-cyan-300" title="Keys"><KeyIcon size={13} /> {player.keys || 0}</div>
+        <div className="flex items-center gap-1 text-[#9ACDE3]" title="Keys"><KeyIcon size={13} /> {player.keys || 0}</div>
       </div>
       <button onClick={onSettings} className="p-1.5 rounded-full hover:bg-white/5 transition" aria-label="Settings">
         <Settings size={16} className="text-gray-400" />
@@ -216,7 +216,7 @@ const ActionTile: React.FC<{
   accent?: string;
   isSoon?: boolean;
   onClick: () => void;
-}> = ({ icon, label, badge, accent = '#00d2ff', isSoon, onClick }) => (
+}> = ({ icon, label, badge, accent = '#7EB8D4', isSoon, onClick }) => (
   <button
     onClick={onClick}
     className="group relative flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl active:scale-[0.95] transition-all duration-200 min-h-[78px] overflow-hidden"
@@ -311,18 +311,18 @@ const JourneyLog: React.FC<{ player: PlayerData }> = ({ player }) => {
     <div className="w-full rounded-2xl p-4 bg-white/[0.03] border border-white/[0.06]">
       <div className="flex items-center justify-between mb-3">
         <div className="text-[11px] font-mono font-bold text-gray-300 tracking-widest">JOURNEY LOG</div>
-        <button className="text-[10px] font-mono text-[#00d2ff] hover:text-white transition flex items-center gap-0.5">
+        <button className="text-[10px] font-mono text-[#7EB8D4] hover:text-white transition flex items-center gap-0.5">
           View All <ChevronRight size={11} />
         </button>
       </div>
       <div className="grid grid-cols-7 gap-1.5">
         {days.map((d, i) => (
           <div key={i} className="flex flex-col items-center gap-1">
-            <div className={`text-[9px] font-mono tracking-widest ${d.isToday ? 'text-[#00d2ff]' : 'text-gray-600'}`}>{d.label}</div>
+            <div className={`text-[9px] font-mono tracking-widest ${d.isToday ? 'text-[#7EB8D4]' : 'text-gray-600'}`}>{d.label}</div>
             <div
               className={`w-full aspect-square rounded-lg flex items-center justify-center text-[11px] font-mono font-bold border transition ${
                 d.isToday
-                  ? 'border-[#00d2ff] text-[#00d2ff] bg-[#00d2ff]/10'
+                  ? 'border-[#7EB8D4] text-[#7EB8D4] bg-[#7EB8D4]/10'
                   : d.hasActivity
                     ? 'border-white/15 text-white bg-white/[0.05]'
                     : 'border-white/5 text-gray-600 bg-transparent'
@@ -332,7 +332,7 @@ const JourneyLog: React.FC<{ player: PlayerData }> = ({ player }) => {
             </div>
             <div className="h-1.5 flex items-center">
               {d.hasActivity ? (
-                <div className="w-1.5 h-1.5 rounded-full" style={{ background: d.isToday ? '#00d2ff' : '#4ade80' }} />
+                <div className="w-1.5 h-1.5 rounded-full" style={{ background: d.isToday ? '#7EB8D4' : '#4ade80' }} />
               ) : (
                 <div className="w-1.5 h-1.5 rounded-full bg-transparent" />
               )}
@@ -362,7 +362,7 @@ const RankLadderModal: React.FC<{ player: PlayerData; onClose: () => void }> = (
     >
       <div className="flex items-center justify-between">
         <div>
-          <div className="text-xs font-mono text-[#00d2ff] tracking-widest">RANK PROGRESSION</div>
+          <div className="text-xs font-mono text-[#7EB8D4] tracking-widest">RANK PROGRESSION</div>
           <div className="text-[10px] text-gray-500 font-mono">Level {player.level} · Current Rank: {player.rank}</div>
         </div>
         <button onClick={onClose} className="p-1 rounded-full hover:bg-white/5"><X size={16} className="text-gray-400" /></button>
@@ -377,7 +377,7 @@ const RankLadderModal: React.FC<{ player: PlayerData; onClose: () => void }> = (
               key={r.rank}
               className={`flex items-center gap-3 p-3 rounded-xl border transition ${
                 isCurrent
-                  ? 'border-[#00d2ff] bg-[#00d2ff]/5'
+                  ? 'border-[#7EB8D4] bg-[#7EB8D4]/5'
                   : reached
                     ? 'border-white/10 bg-white/[0.03]'
                     : 'border-white/5 bg-transparent opacity-50'
@@ -400,7 +400,7 @@ const RankLadderModal: React.FC<{ player: PlayerData; onClose: () => void }> = (
                 </div>
               </div>
               {isCurrent && (
-                <div className="text-[9px] font-mono text-[#00d2ff] font-bold tracking-widest px-2 py-1 rounded bg-[#00d2ff]/10 border border-[#00d2ff]/30">
+                <div className="text-[9px] font-mono text-[#7EB8D4] font-bold tracking-widest px-2 py-1 rounded bg-[#7EB8D4]/10 border border-[#7EB8D4]/30">
                   YOU
                 </div>
               )}
@@ -434,7 +434,7 @@ const ProfileDrawer: React.FC<{
     className="fixed inset-0 z-[700] bg-[#05050a] overflow-y-auto"
   >
     <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-[#05050a]/95 backdrop-blur-md border-b border-white/5">
-      <div className="text-xs font-mono font-bold text-[#00d2ff] tracking-widest">ACCOUNT & CONFIG</div>
+      <div className="text-xs font-mono font-bold text-[#7EB8D4] tracking-widest">ACCOUNT & CONFIG</div>
       <button onClick={onClose} className="p-1.5 rounded-full hover:bg-white/5"><X size={18} className="text-gray-400" /></button>
     </div>
     <div className="px-4 py-6">
@@ -466,7 +466,7 @@ const ComingSoonDrawer: React.FC<{ title: string; onClose: () => void }> = ({ ti
       onClick={e => e.stopPropagation()}
       className="max-w-sm w-full bg-[#0a0a14] border border-white/10 rounded-2xl p-6 text-center"
     >
-      <div className="text-xs font-mono text-[#00d2ff] tracking-widest mb-2">{title}</div>
+      <div className="text-xs font-mono text-[#7EB8D4] tracking-widest mb-2">{title}</div>
       <div className="text-sm text-gray-300 font-mono mb-4">Coming soon in the full release.</div>
       <button onClick={onClose} className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-[11px] font-mono tracking-widest text-gray-300 hover:bg-white/10">
         CLOSE
@@ -480,8 +480,8 @@ const STAT_CONFIG: { key: keyof CoreStats; label: string; fullLabel: string; ico
   { key: 'strength', label: 'STR', fullLabel: 'STRENGTH', icon: <Dumbbell size={14} />, color: 'text-red-400', barColor: 'bg-red-400', accentRgb: '249,112,102' },
   { key: 'intelligence', label: 'INT', fullLabel: 'INTELLIGENCE', icon: <Brain size={14} />, color: 'text-indigo-400', barColor: 'bg-indigo-400', accentRgb: '129,140,248' },
   { key: 'social', label: 'SOC', fullLabel: 'SOCIAL', icon: <Users size={14} />, color: 'text-amber-400', barColor: 'bg-amber-400', accentRgb: '251,191,36' },
-  { key: 'discipline', label: 'DIS', fullLabel: 'DISCIPLINE', icon: <Shield size={14} />, color: 'text-purple-400', barColor: 'bg-purple-400', accentRgb: '192,132,252' },
-  { key: 'focus', label: 'FOC', fullLabel: 'FOCUS', icon: <Target size={14} />, color: 'text-cyan-400', barColor: 'bg-cyan-400', accentRgb: '6,182,212' },
+  { key: 'discipline', label: 'DIS', fullLabel: 'DISCIPLINE', icon: <Shield size={14} />, color: 'text-[#7EB8D4]', barColor: 'bg-[#7EB8D4]', accentRgb: '192,132,252' },
+  { key: 'focus', label: 'FOC', fullLabel: 'FOCUS', icon: <Target size={14} />, color: 'text-[#7EB8D4]', barColor: 'bg-[#7EB8D4]', accentRgb: '6,182,212' },
   { key: 'willpower', label: 'WIL', fullLabel: 'WILLPOWER', icon: <Zap size={14} />, color: 'text-pink-400', barColor: 'bg-pink-400', accentRgb: '236,72,153' },
 ];
 
@@ -505,7 +505,7 @@ const StatsDrawer: React.FC<{ player: PlayerData; onClose: () => void }> = ({ pl
       {/* Header */}
       <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-[#05050a]/95 backdrop-blur-md border-b border-white/5">
         <div>
-          <div className="text-xs font-mono font-bold text-[#00d2ff] tracking-widest">ADVANCED STATS</div>
+          <div className="text-xs font-mono font-bold text-[#7EB8D4] tracking-widest">ADVANCED STATS</div>
           <div className="text-[10px] text-gray-500 font-mono">Total: {totalPoints} pts across 6 attributes</div>
         </div>
         <button onClick={onClose} className="p-1.5 rounded-full hover:bg-white/5">
@@ -645,20 +645,20 @@ const YouView: React.FC<YouViewProps> = ({
         <ActionTile
           icon={<Package size={22} />}
           label="Inventory"
-          accent="#c084fc"
+          accent="#9ACDE3"
           isSoon
           onClick={() => setComingSoon('INVENTORY')}
         />
         <ActionTile
           icon={<Swords size={22} />}
           label="Rank"
-          accent="#8b5cf6"
+          accent="#7EB8D4"
           onClick={() => setShowRankProgression(true)}
         />
         <ActionTile
           icon={<BarChart3 size={22} />}
           label="Stats"
-          accent="#00d2ff"
+          accent="#7EB8D4"
           onClick={() => setShowStats(true)}
         />
         <ActionTile
@@ -670,7 +670,7 @@ const YouView: React.FC<YouViewProps> = ({
         <ActionTile
           icon={<MessageCircle size={22} />}
           label="Dusk"
-          accent="#8b5cf6"
+          accent="#7EB8D4"
           badge={duskBadge || undefined}
           onClick={() => onOpenDusk?.()}
         />
@@ -704,7 +704,7 @@ const YouView: React.FC<YouViewProps> = ({
             className="fixed inset-0 z-[700] bg-[#05050a] overflow-y-auto"
           >
             <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-[#05050a]/95 backdrop-blur-md border-b border-white/5">
-              <div className="text-xs font-mono font-bold text-[#8b5cf6] tracking-widest">RANK PROGRESSION</div>
+              <div className="text-xs font-mono font-bold text-[#7EB8D4] tracking-widest">RANK PROGRESSION</div>
               <button onClick={() => setShowRankProgression(false)} className="p-1.5 rounded-full hover:bg-white/5">
                 <X size={18} className="text-gray-400" />
               </button>

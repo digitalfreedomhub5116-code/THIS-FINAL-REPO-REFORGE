@@ -26,7 +26,7 @@ const SystemGlitchBadge: React.FC<SystemGlitchBadgeProps> = ({ className }) => {
         x: [0, -2, 2, -1, 1, 0],
         backgroundColor: [
           "#7c3aed", // Violet (Base)
-          "#06b6d4", // Cyan
+          "#7EB8D4", // Cyan
           "#d946ef", // Magenta
           "#7c3aed"  // Back to Violet
         ],
@@ -46,7 +46,7 @@ const SystemGlitchBadge: React.FC<SystemGlitchBadgeProps> = ({ className }) => {
   return (
     <motion.div 
       animate={controls}
-      className={`absolute -top-1 -right-1 z-50 flex h-4 w-4 items-center justify-center rounded-full bg-violet-600 ring-1 ring-violet-400 shadow-[0_0_8px_rgba(139,92,246,0.8)] ${className || ''}`}
+      className={`absolute -top-1 -right-1 z-50 flex h-4 w-4 items-center justify-center rounded-full bg-violet-600 ring-1 ring-violet-400 shadow-[0_0_8px_rgba(126,184,212,0.8)] ${className || ''}`}
     >
       <span className="font-mono text-[10px] font-black text-white leading-none select-none">
         !

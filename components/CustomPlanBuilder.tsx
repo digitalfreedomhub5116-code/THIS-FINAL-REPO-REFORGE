@@ -352,7 +352,7 @@ const CustomPlanBuilder: React.FC<CustomPlanBuilderProps> = ({ onClose, onStartW
             <motion.button
               whileTap={{ scale: 0.97 }}
               onClick={startWorkout}
-              className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-system-neon text-black rounded-xl text-sm font-black uppercase tracking-widest hover:bg-white transition-all shadow-[0_0_20px_rgba(0,210,255,0.3)]"
+              className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-system-neon text-black rounded-xl text-sm font-black uppercase tracking-widest hover:bg-white transition-all shadow-[0_0_20px_rgba(126,184,212,0.3)]"
             >
               <Play size={16} fill="currentColor" />
               START WORKOUT

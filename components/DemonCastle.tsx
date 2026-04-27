@@ -17,7 +17,7 @@ const STONE_REWARD_CONFIG: Record<StoneRewardType, { outfitId: string; color: st
   STONE_ASH:      { outfitId: 'outfit_starter',  color: '#9ca3af', glow: 'rgba(156,163,175,0.5)', name: 'Ash Crystal',      shortName: 'ASH' },
   STONE_PLUTON:   { outfitId: 'outfit_ghost',     color: '#4ade80', glow: 'rgba(74,222,128,0.5)',  name: 'Pluton Crystal',   shortName: 'PLUTON' },
   STONE_SATURN:   { outfitId: 'outfit_knight',    color: '#60a5fa', glow: 'rgba(96,165,250,0.5)',  name: 'Saturn Crystal',   shortName: 'SATURN' },
-  STONE_MARS:     { outfitId: 'outfit_assassin',  color: '#c084fc', glow: 'rgba(192,132,252,0.5)', name: 'Mars Crystal',     shortName: 'MARS' },
+  STONE_MARS:     { outfitId: 'outfit_assassin',  color: '#9ACDE3', glow: 'rgba(192,132,252,0.5)', name: 'Mars Crystal',     shortName: 'MARS' },
   STONE_JUPITER:  { outfitId: 'outfit_vanguard',  color: '#facc15', glow: 'rgba(250,204,21,0.5)',  name: 'Jupiter Crystal',  shortName: 'JUPITER' },
   STONE_OVERLORD: { outfitId: 'outfit_monarch',   color: '#f87171', glow: 'rgba(248,113,113,0.5)', name: 'Overlord Crystal', shortName: 'OVERLORD' },
 };
@@ -242,7 +242,7 @@ const VintageCardFront = ({ data }: { data: FloorCardData }) => {
   const theme = isTrap
     ? { bg: "bg-[#0f0f0f] border-red-900", corner: '', cornerColor: '' }
     : isRare
-      ? { bg: "bg-[#1a0b2e] border-purple-500", corner: 'border-current', cornerColor: '#a855f7' }
+      ? { bg: "bg-[#1a0b2e] border-[#7EB8D4]", corner: 'border-current', cornerColor: '#a855f7' }
       : stoneConf
         ? { bg: `bg-[#0a0a14] border-[${stoneConf.color}]/40`, corner: 'border-current', cornerColor: stoneConf.color }
         : { bg: "bg-[#f5e6ca] border-[#c2a168]", corner: 'border-current', cornerColor: '#854d0e' };
@@ -294,8 +294,8 @@ const VintageCardFront = ({ data }: { data: FloorCardData }) => {
                <motion.div animate={{ rotateY: 360 }} transition={{ duration: 5, repeat: Infinity, ease: "linear" }} className="text-purple-600 drop-shadow-[0_0_15px_rgba(147,51,234,0.4)] mb-2 relative z-10">
                    <Key size={48} strokeWidth={1.5} fill="#a855f7" className="text-purple-800" />
                </motion.div>
-               <div className="font-black text-purple-300 uppercase tracking-widest text-xl font-serif relative z-10 drop-shadow-sm">+1 KEY</div>
-               <div className="text-[8px] text-purple-400/70 font-bold uppercase tracking-widest relative z-10">RARE DROP</div>
+               <div className="font-black text-[#9ACDE3] uppercase tracking-widest text-xl font-serif relative z-10 drop-shadow-sm">+1 KEY</div>
+               <div className="text-[8px] text-[#7EB8D4]/70 font-bold uppercase tracking-widest relative z-10">RARE DROP</div>
             </>
 
         ) : stoneConf ? (
@@ -416,7 +416,7 @@ const FlyingLoot: React.FC<{ lootType: RewardType; startRect: DOMRect | null }> 
     if (!startRect) return null;
 
     const stoneConf = isStoneType(lootType) ? STONE_REWARD_CONFIG[lootType] : null;
-    const bg = lootType === 'KEY' ? 'bg-purple-500 border-white' : stoneConf ? 'bg-gray-800 border-white' : 'bg-yellow-400 border-white';
+    const bg = lootType === 'KEY' ? 'bg-[#7EB8D4] border-white' : stoneConf ? 'bg-gray-800 border-white' : 'bg-yellow-400 border-white';
     const icon = lootType === 'KEY' ? <Key size={20} color="white" fill="currentColor" />
         : stoneConf ? <CrystalIcon color={stoneConf.color} glow={stoneConf.glow} size={20} />
         : <div className="flex items-center justify-center -mx-2 -my-2" style={{ width: 35, flexShrink: 0 }}><SystemCoin size={35} /></div>;
@@ -607,7 +607,7 @@ const SequentialReward: React.FC<{
   const colorStyles = {
     'yellow-500': { text: 'text-yellow-500', border: 'border-yellow-500/30', bg: 'bg-yellow-500/5', shadow: 'shadow-[0_0_15px_rgba(234,179,8,0.2)]' },
     'blue-500': { text: 'text-blue-500', border: 'border-blue-500/30', bg: 'bg-blue-500/5', shadow: 'shadow-[0_0_15px_rgba(59,130,246,0.2)]' },
-    'purple-500': { text: 'text-purple-500', border: 'border-purple-500/30', bg: 'bg-purple-500/5', shadow: 'shadow-[0_0_15px_rgba(168,85,247,0.2)]' },
+    'purple-500': { text: 'text-[#7EB8D4]', border: 'border-[#7EB8D4]/30', bg: 'bg-[#7EB8D4]/5', shadow: 'shadow-[0_0_15px_rgba(168,85,247,0.2)]' },
     'red-500': { text: 'text-red-500', border: 'border-red-500/30', bg: 'bg-red-500/5', shadow: 'shadow-[0_0_15px_rgba(239,68,68,0.2)]' },
     'indigo-500': { text: 'text-indigo-500', border: 'border-indigo-500/30', bg: 'bg-indigo-500/5', shadow: 'shadow-[0_0_15px_rgba(99,102,241,0.2)]' },
     'orange-500': { text: 'text-orange-500', border: 'border-orange-500/30', bg: 'bg-orange-500/5', shadow: 'shadow-[0_0_15px_rgba(249,115,22,0.2)]' },
@@ -752,7 +752,7 @@ const VictoryScreen: React.FC<{
             initial={{ width: 0 }}
             animate={{ width: "100px" }}
             transition={{ delay: 0.5, duration: 0.8 }}
-            className="h-0.5 bg-gradient-to-r from-blue-500 to-purple-500 mx-auto mt-3 rounded-full shadow-[0_0_12px_rgba(139,92,246,0.8)]" 
+            className="h-0.5 bg-gradient-to-r from-blue-500 to-purple-500 mx-auto mt-3 rounded-full shadow-[0_0_12px_rgba(126,184,212,0.8)]" 
           />
         </div>
 
@@ -1416,7 +1416,7 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
                           {isFree ? (
                               <span className="text-system-success font-bold animate-pulse">FREE (DAILY)</span>
                           ) : (
-                              <span className={canAfford ? "text-purple-500 font-bold" : "text-gray-600 font-bold"}>
+                              <span className={canAfford ? "text-[#7EB8D4] font-bold" : "text-gray-600 font-bold"}>
                                   {PAID_ENTRY_COST} KEYS
                               </span>
                           )}
@@ -1444,7 +1444,7 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
                           ${isFree
                               ? 'bg-gradient-to-r from-red-700 to-red-600 text-white hover:scale-[1.02] border border-red-500 shadow-[0_0_30px_rgba(220,38,38,0.4)]' 
                               : canAfford 
-                                  ? 'bg-purple-900/50 border border-purple-500 text-purple-200 hover:bg-purple-900 hover:text-white shadow-[0_0_20px_rgba(168,85,247,0.3)]'
+                                  ? 'bg-purple-900/50 border border-[#7EB8D4] text-purple-200 hover:bg-purple-900 hover:text-white shadow-[0_0_20px_rgba(168,85,247,0.3)]'
                                   : 'bg-gray-900 text-gray-600 cursor-not-allowed border border-gray-800'}
                       `}
                   >
@@ -1491,8 +1491,8 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
                           <div className="flex items-center justify-center -mx-2 -my-2" style={{ width: 35, flexShrink: 0 }}><SystemCoin size={35} /></div> <CountingNumber value={lootBag.gold} />
                       </div>
                       <div className="flex items-center justify-end gap-3 mt-0.5">
-                          <div id="loot-bag-keys" className="flex items-center gap-1 text-xs font-bold text-purple-400 font-mono">
-                              <Key size={11} className="text-purple-500" /> <CountingNumber value={lootBag.keys} />
+                          <div id="loot-bag-keys" className="flex items-center gap-1 text-xs font-bold text-[#7EB8D4] font-mono">
+                              <Key size={11} className="text-[#7EB8D4]" /> <CountingNumber value={lootBag.keys} />
                           </div>
                           <div className="flex items-center gap-1 text-xs font-bold text-blue-400 font-mono">
                               <CrystalIcon color="#60a5fa" glow="rgba(96,165,250,0.5)" size={11} /> <CountingNumber value={Object.values(lootBag.stones).reduce((s, v) => s + v, 0)} />

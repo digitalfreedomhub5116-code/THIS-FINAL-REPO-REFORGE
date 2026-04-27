@@ -49,7 +49,7 @@ type TabMode = 'global' | 'daily';
 
 // ── Constants ──
 const RANK_COLORS: Record<string, string> = {
-  E: '#78716c', D: '#f97316', C: '#60a5fa', B: '#06b6d4', A: '#eab308', S: '#a855f7',
+  E: '#78716c', D: '#f97316', C: '#60a5fa', B: '#7EB8D4', A: '#eab308', S: '#a855f7',
 };
 
 const RANK_GLOW: Record<string, string> = {
@@ -279,7 +279,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                 ? (tab === 'daily' ? 'linear-gradient(135deg, rgba(168,85,247,0.15), rgba(168,85,247,0.05))' : 'linear-gradient(135deg, rgba(234,179,8,0.12), rgba(234,179,8,0.04))')
                 : 'transparent',
               color: activeTab === tab
-                ? (tab === 'daily' ? '#c084fc' : '#fbbf24')
+                ? (tab === 'daily' ? '#9ACDE3' : '#fbbf24')
                 : 'rgba(255,255,255,0.25)',
               borderBottom: activeTab === tab
                 ? `2px solid ${tab === 'daily' ? '#a855f7' : '#eab308'}`
@@ -296,7 +296,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
       {/* ── HEADER ── */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <Trophy size={16} className="text-purple-500" />
+          <Trophy size={16} className="text-[#7EB8D4]" />
           <h2 className="text-sm font-black text-white tracking-wider uppercase">
             {activeTab === 'daily' ? 'Daily Arena' : 'All-Time Ranks'}
           </h2>
@@ -401,7 +401,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                           {entry.username || entry.name}
                         </span>
                         {entry.isMe && (
-                          <span className="text-[7px] px-1.5 py-0.5 rounded-full bg-purple-500/20 text-purple-400 font-black">YOU</span>
+                          <span className="text-[7px] px-1.5 py-0.5 rounded-full bg-[#7EB8D4]/20 text-[#7EB8D4] font-black">YOU</span>
                         )}
                       </div>
                       <div className="flex items-center gap-2">
@@ -512,7 +512,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                   {/* ── Stats Grid ── */}
                   <div className="grid grid-cols-4 gap-2 mb-5">
                     {[
-                      { label: 'LEVEL', value: `${pEntry.level}`, color: '#a78bfa' },
+                      { label: 'LEVEL', value: `${pEntry.level}`, color: '#9ACDE3' },
                       { label: 'RANK', value: pEntry.computedRank, color: pRankColor },
                       { label: 'XP', value: formatXp(pEntry.dominance), color: '#fbbf24' },
                       { label: 'STREAK', value: `🔥${pEntry.streak}`, color: '#f97316' },
@@ -555,8 +555,8 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                   )}
 
                   {pEntry.isMe && (
-                    <div className="w-full py-3 rounded-xl flex items-center justify-center gap-2 border border-purple-500/15 bg-purple-500/5">
-                      <span className="text-[10px] font-black tracking-widest uppercase text-purple-400">Your Profile</span>
+                    <div className="w-full py-3 rounded-xl flex items-center justify-center gap-2 border border-[#7EB8D4]/15 bg-[#7EB8D4]/5">
+                      <span className="text-[10px] font-black tracking-widest uppercase text-[#7EB8D4]">Your Profile</span>
                     </div>
                   )}
                 </div>

@@ -16,7 +16,7 @@ const RewardIcon = ({ type, size = 24 }: { type: DailyRewardType; size?: number 
     case 'GOLD': return <Coins size={size} className="text-yellow-400" />;
     case 'XP': return <Zap size={size} className="text-blue-400" />;
     case 'KEYS':
-    case 'WELCOME_KEYS': return <Key size={size} className="text-purple-300" />;
+    case 'WELCOME_KEYS': return <Key size={size} className="text-[#9ACDE3]" />;
     case 'DUNGEON_PASS': return <Ghost size={size} className="text-red-500" />;
     case 'CHEST_LEGENDARY': return <span style={{ fontSize: size * 0.9 }}>📦</span>;
     case 'VENUS_SHARDS': return <span style={{ fontSize: size * 0.9 }}>🩶</span>;
@@ -83,7 +83,7 @@ const DailyRewardCalendar: React.FC<DailyRewardCalendarProps> = ({
         className="w-full max-w-md rounded-3xl overflow-hidden shadow-2xl relative flex flex-col max-h-[90vh]"
         style={{
           background: 'linear-gradient(180deg, #0d0d1a 0%, #080810 50%, #050508 100%)',
-          border: '1px solid rgba(139,92,246,0.15)',
+          border: '1px solid rgba(126,184,212,0.15)',
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -102,26 +102,26 @@ const DailyRewardCalendar: React.FC<DailyRewardCalendarProps> = ({
             className="rounded-2xl p-5 relative overflow-hidden"
             style={{
               background: 'linear-gradient(135deg, rgba(88,28,135,0.6) 0%, rgba(49,10,101,0.7) 50%, rgba(30,10,60,0.8) 100%)',
-              border: '1px solid rgba(139,92,246,0.2)',
+              border: '1px solid rgba(126,184,212,0.2)',
               boxShadow: '0 8px 30px rgba(88,28,135,0.3), inset 0 1px 0 rgba(255,255,255,0.05)',
             }}
           >
             {/* Decorative elements */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl" />
+            <div className="absolute top-0 right-0 w-32 h-32 bg-[#7EB8D4]/10 rounded-full blur-3xl" />
             <div className="absolute bottom-0 left-0 w-24 h-24 bg-indigo-500/10 rounded-full blur-2xl" />
             
             <div className="relative z-10 flex items-start justify-between">
               <div className="flex-1">
                 <h2 className="text-white text-lg font-black mb-1 flex items-center gap-2">
-                  <Gift size={20} className="text-purple-300" />
+                  <Gift size={20} className="text-[#9ACDE3]" />
                   Daily Reward
                 </h2>
-                <p className="text-purple-300/70 text-xs leading-relaxed mb-3">
+                <p className="text-[#9ACDE3]/70 text-xs leading-relaxed mb-3">
                   Day {currentCycleDay} of 30 · Streak: {streak}
                 </p>
-                <div className="inline-flex items-center gap-2 bg-black/30 backdrop-blur-sm px-3 py-1.5 rounded-full border border-purple-500/20">
+                <div className="inline-flex items-center gap-2 bg-black/30 backdrop-blur-sm px-3 py-1.5 rounded-full border border-[#7EB8D4]/20">
                   <span className="text-white font-black text-sm">{todayReward?.amount || claimedReward?.amount || 0}</span>
-                  <span className="text-purple-300/60 text-xs font-bold">
+                  <span className="text-[#9ACDE3]/60 text-xs font-bold">
                     {todayReward?.type.replace(/_/g, ' ') || claimedReward?.type.replace(/_/g, ' ') || 'REWARD'}
                   </span>
                 </div>
@@ -132,7 +132,7 @@ const DailyRewardCalendar: React.FC<DailyRewardCalendarProps> = ({
                 className="rounded-2xl p-4"
                 style={{
                   background: 'rgba(0,0,0,0.3)',
-                  border: '1px solid rgba(139,92,246,0.2)',
+                  border: '1px solid rgba(126,184,212,0.2)',
                 }}
               >
                 <RewardIcon type={todayReward?.type || claimedReward?.type || 'GOLD'} size={36} />
@@ -150,8 +150,8 @@ const DailyRewardCalendar: React.FC<DailyRewardCalendarProps> = ({
               exit={{ opacity: 0, y: -10 }}
               className="mx-5 mb-2 px-4 py-2.5 rounded-xl text-center text-xs font-mono font-bold"
               style={{
-                background: 'rgba(139,92,246,0.15)',
-                border: '1px solid rgba(139,92,246,0.3)',
+                background: 'rgba(126,184,212,0.15)',
+                border: '1px solid rgba(126,184,212,0.3)',
                 color: '#c4b5fd',
               }}
             >
@@ -200,7 +200,7 @@ const DailyRewardCalendar: React.FC<DailyRewardCalendarProps> = ({
                       ? 'rgba(255,255,255,0.03)'
                       : 'rgba(255,255,255,0.015)',
                     border: isCurrent
-                      ? '1.5px solid rgba(139,92,246,0.5)'
+                      ? '1.5px solid rgba(126,184,212,0.5)'
                       : isClaimed
                       ? '1px solid rgba(34,197,94,0.15)'
                       : '1px solid rgba(255,255,255,0.04)',
@@ -210,7 +210,7 @@ const DailyRewardCalendar: React.FC<DailyRewardCalendarProps> = ({
                   }}
                 >
                   {/* Day label */}
-                  <div className={`text-[10px] font-mono font-bold uppercase tracking-wider ${isCurrent ? 'text-purple-300' : 'text-gray-500'}`}>
+                  <div className={`text-[10px] font-mono font-bold uppercase tracking-wider ${isCurrent ? 'text-[#9ACDE3]' : 'text-gray-500'}`}>
                     Day {dayNum}
                   </div>
 
@@ -239,7 +239,7 @@ const DailyRewardCalendar: React.FC<DailyRewardCalendarProps> = ({
                   {isCurrent && !isClaiming && (
                     <motion.div
                       className="absolute inset-0 rounded-xl"
-                      style={{ border: '1.5px solid rgba(139,92,246,0.4)' }}
+                      style={{ border: '1.5px solid rgba(126,184,212,0.4)' }}
                       animate={{ opacity: [0.4, 0.8, 0.4] }}
                       transition={{ duration: 2, repeat: Infinity }}
                     />
@@ -251,7 +251,7 @@ const DailyRewardCalendar: React.FC<DailyRewardCalendarProps> = ({
                       className="absolute -top-1.5 left-1/2 -translate-x-1/2 text-[7px] font-black font-mono uppercase tracking-wider px-2 py-0.5 rounded-full"
                       style={{
                         background: 'rgba(88,28,135,0.8)',
-                        border: '1px solid rgba(139,92,246,0.4)',
+                        border: '1px solid rgba(126,184,212,0.4)',
                         color: '#c4b5fd',
                       }}
                     >
@@ -279,7 +279,7 @@ const DailyRewardCalendar: React.FC<DailyRewardCalendarProps> = ({
                 className="w-full text-white font-black text-base py-4 rounded-2xl transition-all"
                 style={{
                   background: 'linear-gradient(135deg, rgba(88,28,135,0.9) 0%, rgba(67,20,110,0.95) 50%, rgba(49,10,101,0.9) 100%)',
-                  border: '1px solid rgba(139,92,246,0.3)',
+                  border: '1px solid rgba(126,184,212,0.3)',
                   boxShadow: '0 8px 30px rgba(88,28,135,0.4), inset 0 1px 0 rgba(255,255,255,0.1)',
                 }}
               >
@@ -295,8 +295,8 @@ const DailyRewardCalendar: React.FC<DailyRewardCalendarProps> = ({
                 className="w-full font-black text-base py-4 rounded-2xl text-center"
                 style={{
                   background: 'rgba(88,28,135,0.3)',
-                  border: '1px solid rgba(139,92,246,0.2)',
-                  color: '#a78bfa',
+                  border: '1px solid rgba(126,184,212,0.2)',
+                  color: '#9ACDE3',
                 }}
               >
                 Claiming...

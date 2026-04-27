@@ -288,7 +288,7 @@ export const PlanCreator: React.FC<PlanCreatorProps> = ({
                         </button>
                         <button 
                             onClick={() => handleSaveSession(false)}
-                            className="py-4 bg-system-neon text-black font-black text-xs uppercase tracking-widest rounded-xl hover:bg-white transition-all flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(0,210,255,0.3)]"
+                            className="py-4 bg-system-neon text-black font-black text-xs uppercase tracking-widest rounded-xl hover:bg-white transition-all flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(126,184,212,0.3)]"
                         >
                             <Save size={16} strokeWidth={2.5} />
                             SAVE SESSION

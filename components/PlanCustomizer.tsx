@@ -298,7 +298,7 @@ const PlanCustomizer: React.FC<PlanCustomizerProps> = ({ planName, days: initial
           disabled={!hasChanges || saving}
           className={`w-full py-3.5 rounded-xl text-sm font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${
             hasChanges && !saving
-              ? 'bg-system-neon text-black shadow-[0_0_20px_rgba(0,210,255,0.3)] hover:bg-white'
+              ? 'bg-system-neon text-black shadow-[0_0_20px_rgba(126,184,212,0.3)] hover:bg-white'
               : 'bg-gray-900 text-gray-700 cursor-not-allowed border border-gray-800'
           }`}
         >

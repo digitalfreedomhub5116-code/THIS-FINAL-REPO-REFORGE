@@ -395,9 +395,9 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({ currentStep, onNext, 
         {/* Inject Styles */}
         <style>{`
             @keyframes tutorial-pulse-aggressive {
-                0% { box-shadow: 0 0 0 2px #00d2ff, 0 0 15px rgba(0,210,255,0.3); }
-                50% { box-shadow: 0 0 0 2px #ffffff, 0 0 30px rgba(0,210,255,0.6); }
-                100% { box-shadow: 0 0 0 2px #00d2ff, 0 0 15px rgba(0,210,255,0.3); }
+                0% { box-shadow: 0 0 0 2px #7EB8D4, 0 0 15px rgba(126,184,212,0.3); }
+                50% { box-shadow: 0 0 0 2px #ffffff, 0 0 30px rgba(126,184,212,0.6); }
+                100% { box-shadow: 0 0 0 2px #7EB8D4, 0 0 15px rgba(126,184,212,0.3); }
             }
             .tutorial-highlight {
                 animation: tutorial-pulse-aggressive 2s infinite !important;
@@ -418,7 +418,7 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({ currentStep, onNext, 
                 style={{
                     ...spotlightStyles,
                     // Use a subtle border on the spotlight itself to define the hole
-                    border: '1px solid rgba(0, 210, 255, 0.3)',
+                    border: '1px solid rgba(126, 184, 212, 0.3)',
                 }}
             />
         ) : (
@@ -446,7 +446,7 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({ currentStep, onNext, 
                 transition={{ type: "spring", stiffness: 200, damping: 25 }}
                 className={`absolute left-4 right-4 md:left-auto md:right-auto md:w-[400px] pointer-events-auto ${positionClasses[dialogPosition]}`}
             >
-                <div className={`bg-[#0a0a0a] border rounded-xl shadow-2xl overflow-hidden flex flex-col transition-colors ${isError ? 'border-red-500 shadow-[0_0_30px_rgba(220,38,38,0.5)]' : analysisFailed ? 'border-amber-500 shadow-[0_0_30px_rgba(245,158,11,0.5)]' : 'border-system-neon shadow-[0_0_30px_rgba(0,210,255,0.3)]'}`}>
+                <div className={`bg-[#0a0a0a] border rounded-xl shadow-2xl overflow-hidden flex flex-col transition-colors ${isError ? 'border-red-500 shadow-[0_0_30px_rgba(220,38,38,0.5)]' : analysisFailed ? 'border-amber-500 shadow-[0_0_30px_rgba(245,158,11,0.5)]' : 'border-system-neon shadow-[0_0_30px_rgba(126,184,212,0.3)]'}`}>
                     
                     {/* Header Line */}
                     <motion.div 
@@ -525,7 +525,7 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({ currentStep, onNext, 
                                             initial={{ opacity: 0, scale: 0.8 }}
                                             animate={{ opacity: 1, scale: 1 }}
                                             onClick={onComplete}
-                                            className="bg-system-neon text-black px-5 py-2 rounded font-bold font-mono text-xs hover:bg-white transition-colors flex items-center gap-2 shadow-[0_0_15px_rgba(0,210,255,0.4)]"
+                                            className="bg-system-neon text-black px-5 py-2 rounded font-bold font-mono text-xs hover:bg-white transition-colors flex items-center gap-2 shadow-[0_0_15px_rgba(126,184,212,0.4)]"
                                         >
                                             {stepData.buttonText} <CheckCircle size={14} />
                                         </motion.button>
@@ -568,7 +568,7 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({ currentStep, onNext, 
                             <motion.div 
                                 key={i}
                                 layout 
-                                className={`h-1 rounded-full ${i === currentStep ? 'bg-system-neon shadow-[0_0_8px_#00d2ff]' : 'bg-gray-800'}`}
+                                className={`h-1 rounded-full ${i === currentStep ? 'bg-system-neon shadow-[0_0_8px_#7EB8D4]' : 'bg-gray-800'}`}
                                 animate={{ 
                                     width: i === currentStep ? 24 : 8,
                                     opacity: i <= currentStep ? 1 : 0.5 

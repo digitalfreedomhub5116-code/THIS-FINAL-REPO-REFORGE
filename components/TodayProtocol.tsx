@@ -60,19 +60,19 @@ const SLOT_ICONS: Record<string, React.ReactNode> = {
   ROUTINE: <Coffee className="w-3 h-3 text-orange-400" />,
   BLOCKED: <GraduationCap className="w-3 h-3 text-gray-400" />,
   WORKOUT: <Dumbbell className="w-3 h-3 text-red-400" />,
-  QUEST: <Target className="w-3 h-3 text-cyan-400" />,
+  QUEST: <Target className="w-3 h-3 text-[#7EB8D4]" />,
   MEAL: <Utensils className="w-3 h-3 text-green-400" />,
-  FREE: <Zap className="w-3 h-3 text-purple-400" />,
+  FREE: <Zap className="w-3 h-3 text-[#7EB8D4]" />,
 };
 
 const SLOT_COLORS: Record<string, string> = {
-  SLEEP: '#818cf8',
+  SLEEP: '#7EB8D4',
   ROUTINE: '#fb923c',
   BLOCKED: '#6b7280',
   WORKOUT: '#f87171',
-  QUEST: '#22d3ee',
+  QUEST: '#7EB8D4',
   MEAL: '#4ade80',
-  FREE: '#c084fc',
+  FREE: '#9ACDE3',
 };
 
 function buildDefaultSlots(profile: ScheduleProfile): ScheduleSlot[] {
@@ -310,7 +310,7 @@ export default function TodayProtocol({
               className="w-7 h-7 rounded-lg flex items-center justify-center"
               style={{ background: 'rgba(34,211,238,0.1)', border: '1px solid rgba(34,211,238,0.2)' }}
             >
-              <Zap className="w-3.5 h-3.5 text-cyan-400" />
+              <Zap className="w-3.5 h-3.5 text-[#7EB8D4]" />
             </div>
             <div>
               <h3 className="text-xs font-black text-white uppercase tracking-wider">Today's Protocol</h3>
@@ -335,7 +335,7 @@ export default function TodayProtocol({
               <Settings className="w-3.5 h-3.5 text-gray-600" />
             </button>
             <div className="text-right">
-              <div className="text-xs font-black text-cyan-400 font-mono">{completedQuests}/{totalQuests}</div>
+              <div className="text-xs font-black text-[#7EB8D4] font-mono">{completedQuests}/{totalQuests}</div>
               <div className="text-[8px] text-gray-600 font-mono">TASKS</div>
             </div>
           </div>
@@ -345,7 +345,7 @@ export default function TodayProtocol({
         <div className="h-1.5 rounded-full bg-white/5 overflow-hidden mb-1">
           <motion.div
             className="h-full rounded-full"
-            style={{ background: progress >= 100 ? 'linear-gradient(90deg, #4ade80, #22c55e)' : 'linear-gradient(90deg, #22d3ee88, #22d3ee)' }}
+            style={{ background: progress >= 100 ? 'linear-gradient(90deg, #4ade80, #22c55e)' : 'linear-gradient(90deg, #7EB8D488, #7EB8D4)' }}
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
             transition={{ duration: 0.8, ease: 'easeOut' }}
@@ -399,8 +399,8 @@ export default function TodayProtocol({
                         <div className="w-[15px] h-[15px] rounded-full border-2 border-gray-700 bg-transparent" />
                       )}
                     </div>
-                    <span className={`text-[11px] font-mono font-bold tracking-wide ${isCurrent ? 'text-cyan-400' : isPast ? 'text-gray-700' : 'text-gray-500'}`}>{formatTime(slot.startTime)}</span>
-                    {isCurrent && <span className="text-[7px] font-black text-cyan-400 px-1.5 py-0.5 rounded-full bg-cyan-400/10 uppercase tracking-wider">Now</span>}
+                    <span className={`text-[11px] font-mono font-bold tracking-wide ${isCurrent ? 'text-[#7EB8D4]' : isPast ? 'text-gray-700' : 'text-gray-500'}`}>{formatTime(slot.startTime)}</span>
+                    {isCurrent && <span className="text-[7px] font-black text-[#7EB8D4] px-1.5 py-0.5 rounded-full bg-[#7EB8D4]/10 uppercase tracking-wider">Now</span>}
                     {isDeferred && <span className="text-[7px] font-bold text-amber-400 px-1.5 py-0.5 rounded-full bg-amber-400/10">DEFER</span>}
                     {slot.isCarryOver && <span className="text-[7px] font-bold text-amber-400 px-1.5 py-0.5 rounded-full bg-amber-400/10">CARRY</span>}
                   </div>
@@ -420,7 +420,7 @@ export default function TodayProtocol({
                       <div className="flex items-center gap-1.5 flex-shrink-0">
                         {(slot.type === 'QUEST' || slot.type === 'WORKOUT') && !isCompleted && !isSkipped && !isDeferred && (
                           <button onClick={(e) => { e.stopPropagation(); handleToggleNotification(slot); }} className="p-1 rounded-md transition-colors hover:bg-white/5" title={slot.notifyEnabled ? 'Reminder ON' : 'Reminder OFF'}>
-                            {slot.notifyEnabled ? <Bell className="w-3.5 h-3.5 text-cyan-400/70" /> : <BellOff className="w-3.5 h-3.5 text-gray-700" />}
+                            {slot.notifyEnabled ? <Bell className="w-3.5 h-3.5 text-[#7EB8D4]/70" /> : <BellOff className="w-3.5 h-3.5 text-gray-700" />}
                           </button>
                         )}
                         {isCompleted && <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />}
@@ -434,7 +434,7 @@ export default function TodayProtocol({
                     {showActions && isInteractive && (
                       <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden ml-[23px]">
                         <div className="flex items-center gap-2 py-2 px-1">
-                          <button onClick={(e) => { e.stopPropagation(); onNavigateToQuests(); setActionSlotId(null); }} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-bold font-mono uppercase tracking-wider" style={{ background: 'rgba(34,211,238,0.1)', border: '1px solid rgba(34,211,238,0.2)', color: '#22d3ee' }}><ArrowRight className="w-3 h-3" /> Go to Quest</button>
+                          <button onClick={(e) => { e.stopPropagation(); onNavigateToQuests(); setActionSlotId(null); }} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-bold font-mono uppercase tracking-wider" style={{ background: 'rgba(34,211,238,0.1)', border: '1px solid rgba(34,211,238,0.2)', color: '#7EB8D4' }}><ArrowRight className="w-3 h-3" /> Go to Quest</button>
                           <button onClick={(e) => { e.stopPropagation(); handleSlotAction(slot.id, 'SKIP'); }} disabled={!canSkip} className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-bold font-mono uppercase tracking-wider ${!canSkip ? 'opacity-30 cursor-not-allowed' : ''}`} style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)', color: '#f87171' }}><SkipForward className="w-3 h-3" /> Skip {!canSkip ? '(max)' : ''}</button>
                           <button onClick={(e) => { e.stopPropagation(); handleSlotAction(slot.id, 'DEFER'); }} disabled={!canDefer} className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-bold font-mono uppercase tracking-wider ${!canDefer ? 'opacity-30 cursor-not-allowed' : ''}`} style={{ background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.15)', color: '#fbbf24' }}><CalendarOff className="w-3 h-3" /> Tmrw {!canDefer ? '(max)' : ''}</button>
                         </div>
@@ -471,7 +471,7 @@ export default function TodayProtocol({
           </span>
           <button
             onClick={onNavigateToQuests}
-            className="text-[9px] font-bold text-cyan-400 font-mono uppercase tracking-wider"
+            className="text-[9px] font-bold text-[#7EB8D4] font-mono uppercase tracking-wider"
           >
             View Quests â†’
           </button>

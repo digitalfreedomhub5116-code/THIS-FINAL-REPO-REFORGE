@@ -243,7 +243,7 @@ const OutfitPurchaseModal: React.FC<Props> = ({
   };
 
   const tierColors: Record<string, string> = {
-    S: '#f87171', A: '#facc15', B: '#c084fc',
+    S: '#f87171', A: '#facc15', B: '#9ACDE3',
     C: '#60a5fa', D: '#4ade80', E: '#9ca3af',
   };
   const tierColor = tierColors[outfit.tier || 'E'] || '#9ca3af';
@@ -453,7 +453,7 @@ const OutfitPurchaseModal: React.FC<Props> = ({
                   )}
                   {keyCost > 0 && (
                     <div className="flex items-center gap-1.5">
-                      <Key size={14} className={canAffordKeys ? 'text-purple-400' : 'text-red-400'} />
+                      <Key size={14} className={canAffordKeys ? 'text-[#7EB8D4]' : 'text-red-400'} />
                       <span className={`text-lg font-black ${canAffordKeys ? 'text-white' : 'text-red-400'}`}>{keyCost}</span>
                       <span className="text-xs text-gray-500 font-mono">key{keyCost !== 1 ? 's' : ''}</span>
                     </div>

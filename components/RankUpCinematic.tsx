@@ -32,7 +32,7 @@ const CONFETTI_COLORS_BY_RANK: Record<RankType, string[]> = {
   C: ['#38bdf8', '#7dd3fc', '#0ea5e9', '#e0f2fe', '#ffffff'],
   B: ['#a855f7', '#d8b4fe', '#9333ea', '#c4b5fd', '#e9d5ff'],
   A: ['#f97316', '#fdba74', '#ef4444', '#fca5a5', '#fbbf24'],
-  S: ['#c084fc', '#f0abfc', '#eab308', '#fde68a', '#ffffff', '#a855f7', '#f59e0b'],
+  S: ['#9ACDE3', '#f0abfc', '#eab308', '#fde68a', '#ffffff', '#a855f7', '#f59e0b'],
 };
 
 const useConfetti = (active: boolean, newRank: RankType) => {

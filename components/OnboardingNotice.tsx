@@ -96,7 +96,7 @@ const OnboardingNotice: React.FC<OnboardingNoticeProps> = ({ page }) => {
             transition={{ type: 'spring', stiffness: 300, damping: 25 }}
             onClick={e => e.stopPropagation()}
             className="w-full max-w-sm rounded-2xl overflow-hidden relative"
-            style={{ background: '#0a0a14', border: '1px solid rgba(139,92,246,0.25)', maxHeight: '80vh' }}
+            style={{ background: '#0a0a14', border: '1px solid rgba(126,184,212,0.25)', maxHeight: '80vh' }}
           >
             {/* Close button */}
             <button
@@ -108,14 +108,14 @@ const OnboardingNotice: React.FC<OnboardingNoticeProps> = ({ page }) => {
 
             {/* Header */}
             <div className="px-5 pt-5 pb-3 relative">
-              <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(139,92,246,0.12) 0%, transparent 65%)' }} />
-              <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(139,92,246,0.5), transparent)' }} />
+              <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(126,184,212,0.12) 0%, transparent 65%)' }} />
+              <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(126,184,212,0.5), transparent)' }} />
               <div className="relative flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-purple-500/15 border border-purple-500/30 flex items-center justify-center">
-                  <Info size={16} className="text-purple-400" />
+                <div className="w-8 h-8 rounded-lg bg-[#7EB8D4]/15 border border-[#7EB8D4]/30 flex items-center justify-center">
+                  <Info size={16} className="text-[#7EB8D4]" />
                 </div>
                 <div>
-                  <div className="text-[9px] font-mono font-bold tracking-[0.3em] uppercase text-purple-400/70">GUIDE</div>
+                  <div className="text-[9px] font-mono font-bold tracking-[0.3em] uppercase text-[#7EB8D4]/70">GUIDE</div>
                   <h2 className="text-sm font-black text-white uppercase tracking-tight font-mono">{content.title}</h2>
                 </div>
               </div>
@@ -149,7 +149,7 @@ const OnboardingNotice: React.FC<OnboardingNoticeProps> = ({ page }) => {
                   className="flex items-center gap-1.5 text-[10px] font-mono text-gray-500 hover:text-gray-300 transition-colors"
                 >
                   {dontShowAgain
-                    ? <CheckSquare size={14} className="text-purple-400" />
+                    ? <CheckSquare size={14} className="text-[#7EB8D4]" />
                     : <Square size={14} className="text-gray-600" />
                   }
                   Don't show again
@@ -157,7 +157,7 @@ const OnboardingNotice: React.FC<OnboardingNoticeProps> = ({ page }) => {
                 <button
                   onClick={handleClose}
                   className="px-5 py-2 rounded-xl text-xs font-black tracking-widest uppercase font-mono transition-all"
-                  style={{ background: 'linear-gradient(135deg, rgba(139,92,246,0.3), rgba(109,40,217,0.5))', color: '#c4b5fd', border: '1px solid rgba(139,92,246,0.4)' }}
+                  style={{ background: 'linear-gradient(135deg, rgba(126,184,212,0.3), rgba(109,40,217,0.5))', color: '#c4b5fd', border: '1px solid rgba(126,184,212,0.4)' }}
                 >
                   GOT IT
                 </button>

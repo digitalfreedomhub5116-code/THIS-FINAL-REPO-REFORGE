@@ -74,7 +74,7 @@ const AuditTheater: React.FC<AuditTheaterProps> = ({
   
   // Theme colors based on outcome for Phase 2
   const themeColor = phase === 'SCANNING' 
-    ? { border: 'border-cyan-500/50', text: 'text-cyan-400', glow: 'shadow-[0_0_20px_rgba(6,182,212,0.3)]', bg: 'bg-cyan-950/20' }
+    ? { border: 'border-[#7EB8D4]/50', text: 'text-[#7EB8D4]', glow: 'shadow-[0_0_20px_rgba(6,182,212,0.3)]', bg: 'bg-cyan-950/20' }
     : isVerified 
       ? { border: 'border-green-500/50', text: 'text-green-400', glow: 'shadow-[0_0_25px_rgba(34,197,94,0.3)]', bg: 'bg-green-950/20' }
       : { border: 'border-amber-500/60', text: 'text-amber-500', glow: 'shadow-[0_0_25px_rgba(245,158,11,0.3)]', bg: 'bg-amber-950/20' };
@@ -150,12 +150,12 @@ const AuditTheater: React.FC<AuditTheaterProps> = ({
                                 />
                             </svg>
                             {/* Fixed icon */}
-                            <div className="text-cyan-400 drop-shadow-[0_0_15px_rgba(6,182,212,0.6)]">
+                            <div className="text-[#7EB8D4] drop-shadow-[0_0_15px_rgba(6,182,212,0.6)]">
                                 <ScanSearch size={36} strokeWidth={1.5} />
                             </div>
                         </div>
                         
-                        <h2 className="text-cyan-400 text-lg font-black tracking-[0.2em] mb-2 uppercase text-center">
+                        <h2 className="text-[#7EB8D4] text-lg font-black tracking-[0.2em] mb-2 uppercase text-center">
                             FORGEGUARD AUDIT
                         </h2>
                         
@@ -169,7 +169,7 @@ const AuditTheater: React.FC<AuditTheaterProps> = ({
                                 initial={{ opacity: 0, y: 5 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -5 }}
-                                className="text-[10px] text-cyan-300/80 font-mono tracking-widest uppercase"
+                                className="text-[10px] text-[#9ACDE3]/80 font-mono tracking-widest uppercase"
                             >
                                 {scanLines[scanTextIndex]}
                             </motion.span>
@@ -178,7 +178,7 @@ const AuditTheater: React.FC<AuditTheaterProps> = ({
                         {/* Progress Bar visual */}
                         <div className="w-full h-1 bg-black/60 rounded-full mt-6 overflow-hidden">
                             <motion.div 
-                                className="h-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.8)]"
+                                className="h-full bg-[#7EB8D4] shadow-[0_0_10px_rgba(6,182,212,0.8)]"
                                 initial={{ width: "0%" }}
                                 animate={{ width: ["0%", "60%", "65%", "95%", "100%"] }}
                                 transition={{ 

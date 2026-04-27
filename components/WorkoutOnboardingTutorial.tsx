@@ -203,7 +203,7 @@ const WorkoutOnboardingTutorial: React.FC<WorkoutOnboardingProps> = ({ currentSt
               }}
             >
               <div className="flex items-center gap-2 mb-3">
-                <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(34,211,238,0.15)', color: '#22d3ee' }}>
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(34,211,238,0.15)', color: '#7EB8D4' }}>
                   {step.icon}
                 </div>
                 <div className="text-[9px] font-mono text-gray-600 tracking-[0.2em] uppercase">
@@ -211,7 +211,7 @@ const WorkoutOnboardingTutorial: React.FC<WorkoutOnboardingProps> = ({ currentSt
                 </div>
                 <div className="flex gap-1 ml-auto">
                   {W_STEPS.map((_, i) => (
-                    <div key={i} className="w-1.5 h-1.5 rounded-full" style={{ background: i < currentStep ? '#22d3ee' : 'rgba(100,100,140,0.3)', boxShadow: i === stepIndex ? '0 0 6px rgba(34,211,238,0.6)' : 'none' }} />
+                    <div key={i} className="w-1.5 h-1.5 rounded-full" style={{ background: i < currentStep ? '#7EB8D4' : 'rgba(100,100,140,0.3)', boxShadow: i === stepIndex ? '0 0 6px rgba(34,211,238,0.6)' : 'none' }} />
                   ))}
                 </div>
               </div>
@@ -224,7 +224,7 @@ const WorkoutOnboardingTutorial: React.FC<WorkoutOnboardingProps> = ({ currentSt
                   if (stepIndex >= W_STEPS.length - 1) onComplete();
                   else onStepComplete(currentStep);
                 }}
-                className="mt-3 flex items-center gap-1 text-[10px] font-bold tracking-wider text-cyan-400 hover:text-cyan-300 transition-colors"
+                className="mt-3 flex items-center gap-1 text-[10px] font-bold tracking-wider text-[#7EB8D4] hover:text-[#9ACDE3] transition-colors"
               >
                 {stepIndex >= W_STEPS.length - 1 ? 'FINISH' : 'NEXT'} <ChevronRight size={12} />
               </button>

@@ -11,7 +11,7 @@ export const ShadowLoading: React.FC = () => {
          transition={{ duration: 0.8, repeat: Infinity, repeatType: "reverse" }}
          className="flex flex-col items-center gap-4"
        >
-          <Database size={32} className="text-system-accent drop-shadow-[0_0_10px_rgba(139,92,246,0.5)]" />
+          <Database size={32} className="text-system-accent drop-shadow-[0_0_10px_rgba(126,184,212,0.5)]" />
           <div className="text-system-accent font-mono text-[10px] font-bold tracking-[0.3em]">
             SYNCHRONIZING...
           </div>

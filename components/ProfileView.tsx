@@ -233,13 +233,13 @@ const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onAvatarCha
             <motion.div
               animate={{ top: ['0%', '100%', '0%'] }}
               transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
-              className="absolute left-0 w-full h-[1px] bg-system-neon shadow-[0_0_10px_#00d2ff] z-20 opacity-30"
+              className="absolute left-0 w-full h-[1px] bg-system-neon shadow-[0_0_10px_#7EB8D4] z-20 opacity-30"
             />
           </div>
           <div className="flex-1 p-4 font-mono flex flex-col justify-between relative z-30">
             <div>
               <h2 className="text-white font-bold text-lg tracking-tight uppercase truncate">{name || player.name}</h2>
-              {player.username && <div className="text-[#00d2ff] text-[10px] tracking-widest">@{player.username}</div>}
+              {player.username && <div className="text-[#7EB8D4] text-[10px] tracking-widest">@{player.username}</div>}
               <div className="text-xs text-system-accent font-bold truncate">{job || player.job}</div>
               <div className="text-[10px] text-gray-500 mt-1 truncate">TITLE: {title || player.title}</div>
             </div>
@@ -268,7 +268,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onAvatarCha
               key={t}
               onClick={() => setActiveTab(t)}
               className={`flex-1 py-3 text-xs font-mono font-bold tracking-widest transition-colors flex items-center justify-center gap-2 ${
-                activeTab === t ? 'text-[#00d2ff] border-b-2 border-[#00d2ff]' : 'text-gray-600 hover:text-gray-300'
+                activeTab === t ? 'text-[#7EB8D4] border-b-2 border-[#7EB8D4]' : 'text-gray-600 hover:text-gray-300'
               }`}
             >
               {t === 'LOGS' && <Terminal size={13} />}
@@ -297,7 +297,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onAvatarCha
                       </div>
                       <div className={
                         log.type === 'PENALTY' ? 'text-red-400' :
-                        log.type === 'LEVEL_UP' ? 'text-[#00d2ff] font-bold' :
+                        log.type === 'LEVEL_UP' ? 'text-[#7EB8D4] font-bold' :
                         log.type === 'PURCHASE' ? 'text-yellow-500' : 'text-gray-300'
                       }>{log.message}</div>
                     </div>
@@ -314,7 +314,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onAvatarCha
 
                 {/* Identity */}
                 <div className="space-y-3">
-                  <div className="text-[10px] text-[#00d2ff] font-mono tracking-widest mb-2">IDENTITY</div>
+                  <div className="text-[10px] text-[#7EB8D4] font-mono tracking-widest mb-2">IDENTITY</div>
 
                   <div>
                     <label className={labelClass}>Username (Codename)</label>
@@ -328,7 +328,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onAvatarCha
                       {usernameStatus !== 'idle' && (
                         <div className="absolute right-3 top-2.5">
                           {usernameStatus === 'checking' && (
-                            <div className="w-4 h-4 border-2 border-gray-600 border-t-[#00d2ff] rounded-full animate-spin" />
+                            <div className="w-4 h-4 border-2 border-gray-600 border-t-[#7EB8D4] rounded-full animate-spin" />
                           )}
                           {usernameStatus === 'available' && <CheckCircle size={14} className="text-green-400" />}
                           {usernameStatus === 'taken' && <XCircle size={14} className="text-red-400" />}
@@ -371,7 +371,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onAvatarCha
                 {/* Biometrics — only if health profile exists */}
                 {hp && (
                   <div className="space-y-3 pt-3 border-t border-white/[0.06]">
-                    <div className="text-[10px] text-[#00d2ff] font-mono tracking-widest mb-2">BIOMETRICS</div>
+                    <div className="text-[10px] text-[#7EB8D4] font-mono tracking-widest mb-2">BIOMETRICS</div>
 
                     <div className="grid grid-cols-2 gap-3">
                       <div>
@@ -401,7 +401,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onAvatarCha
                             onClick={() => setGender(g)}
                             className={`flex-1 py-2 rounded-lg text-xs font-mono font-bold transition-all border ${
                               gender === g
-                                ? 'bg-[#00d2ff]/15 border-[#00d2ff]/50 text-[#00d2ff]'
+                                ? 'bg-[#7EB8D4]/15 border-[#7EB8D4]/50 text-[#7EB8D4]'
                                 : 'bg-black/40 border-white/10 text-gray-500 hover:text-gray-300'
                             }`}
                           >{g}</button>
@@ -461,8 +461,8 @@ const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onAvatarCha
                     className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.05] transition-all group"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: theme === 'dark' ? 'rgba(139,92,246,0.15)' : 'rgba(250,204,21,0.15)' }}>
-                        {theme === 'dark' ? <Moon size={16} className="text-purple-400" /> : <Sun size={16} className="text-yellow-400" />}
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: theme === 'dark' ? 'rgba(126,184,212,0.15)' : 'rgba(250,204,21,0.15)' }}>
+                        {theme === 'dark' ? <Moon size={16} className="text-[#7EB8D4]" /> : <Sun size={16} className="text-yellow-400" />}
                       </div>
                       <div className="text-left">
                         <div className="text-[11px] font-bold text-white tracking-wide">{theme === 'dark' ? 'DARK MODE' : 'LIGHT MODE'}</div>
@@ -471,7 +471,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onAvatarCha
                     </div>
                     <div
                       className="w-10 h-5 rounded-full relative transition-colors"
-                      style={{ background: theme === 'light' ? '#8b5cf6' : 'rgba(255,255,255,0.12)' }}
+                      style={{ background: theme === 'light' ? '#7EB8D4' : 'rgba(255,255,255,0.12)' }}
                     >
                       <motion.div
                         className="w-4 h-4 rounded-full bg-white absolute top-0.5"
@@ -491,8 +491,8 @@ const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onAvatarCha
                     className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.05] transition-all group"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: soundMuted ? 'rgba(239,68,68,0.15)' : 'rgba(0,210,255,0.15)' }}>
-                        <Activity size={16} className={soundMuted ? 'text-red-400' : 'text-cyan-400'} />
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: soundMuted ? 'rgba(239,68,68,0.15)' : 'rgba(126,184,212,0.15)' }}>
+                        <Activity size={16} className={soundMuted ? 'text-red-400' : 'text-[#7EB8D4]'} />
                       </div>
                       <div className="text-left">
                         <div className="text-[11px] font-bold text-white tracking-wide">{soundMuted ? 'SOUND OFF' : 'SOUND ON'}</div>
@@ -501,7 +501,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onAvatarCha
                     </div>
                     <div
                       className="w-10 h-5 rounded-full relative transition-colors"
-                      style={{ background: !soundMuted ? '#00d2ff' : 'rgba(255,255,255,0.12)' }}
+                      style={{ background: !soundMuted ? '#7EB8D4' : 'rgba(255,255,255,0.12)' }}
                     >
                       <motion.div
                         className="w-4 h-4 rounded-full bg-white absolute top-0.5"

@@ -71,7 +71,7 @@ const HunterCommandDeck: React.FC<HunterCommandDeckProps> = ({ player, triggerAc
   const statConfig = [
       { key: 'strength', label: 'STR', icon: Dumbbell, color: 'text-red-400', glow: '#f87171' },
       { key: 'intelligence', label: 'INT', icon: Brain, color: 'text-blue-400', glow: '#60a5fa' },
-      { key: 'discipline', label: 'DIS', icon: Shield, color: 'text-purple-400', glow: '#c084fc' },
+      { key: 'discipline', label: 'DIS', icon: Shield, color: 'text-[#7EB8D4]', glow: '#9ACDE3' },
       { key: 'social', label: 'SOC', icon: Users, color: 'text-yellow-400', glow: '#facc15' },
   ];
 
@@ -92,7 +92,7 @@ const HunterCommandDeck: React.FC<HunterCommandDeckProps> = ({ player, triggerAc
           <div className="flex justify-between items-start p-6 pb-2 shrink-0">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                    <div className="w-1.5 h-1.5 bg-system-neon rounded-full animate-pulse shadow-[0_0_5px_#00d2ff]" />
+                    <div className="w-1.5 h-1.5 bg-system-neon rounded-full animate-pulse shadow-[0_0_5px_#7EB8D4]" />
                     <span className="text-[10px] text-gray-400 tracking-[0.2em] font-mono uppercase">System Active</span>
                 </div>
                 <h2 className="text-2xl font-black italic tracking-tighter text-white uppercase leading-none drop-shadow-md">
@@ -133,7 +133,7 @@ const HunterCommandDeck: React.FC<HunterCommandDeckProps> = ({ player, triggerAc
                   <Radar
                     name="Stats"
                     dataKey="A"
-                    stroke="#c084fc" /* Purple-400 */
+                    stroke="#9ACDE3" /* Purple-400 */
                     strokeWidth={2}
                     fill="#a855f7" /* Purple-500 */
                     fillOpacity={0.4}
@@ -193,7 +193,7 @@ const HunterCommandDeck: React.FC<HunterCommandDeckProps> = ({ player, triggerAc
             initial={{ top: '-10%' }}
             animate={{ top: '110%' }}
             transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
-            className="absolute left-0 w-full h-[2px] bg-purple-500/50 shadow-[0_0_15px_#a855f7] z-20 pointer-events-none"
+            className="absolute left-0 w-full h-[2px] bg-[#7EB8D4]/50 shadow-[0_0_15px_#a855f7] z-20 pointer-events-none"
          />
 
          {/* Corner Brackets */}
@@ -206,8 +206,8 @@ const HunterCommandDeck: React.FC<HunterCommandDeckProps> = ({ player, triggerAc
          <div className="absolute top-6 right-6 z-20">
              <div className="flex items-center gap-2 px-3 py-1.5 bg-black/60 border border-white/10 rounded-full backdrop-blur-md">
                  <div className="relative">
-                    <Activity size={12} className="text-purple-400" />
-                    <div className="absolute inset-0 bg-purple-500 blur-sm opacity-50 animate-pulse" />
+                    <Activity size={12} className="text-[#7EB8D4]" />
+                    <div className="absolute inset-0 bg-[#7EB8D4] blur-sm opacity-50 animate-pulse" />
                  </div>
                  <span className="text-[9px] font-mono font-bold text-white tracking-widest uppercase">LIVE LINK</span>
              </div>

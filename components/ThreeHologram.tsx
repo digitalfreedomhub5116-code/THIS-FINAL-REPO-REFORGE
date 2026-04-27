@@ -19,7 +19,7 @@ const HologramMaterial = {
   uniforms: {
     uTime: { value: 0 },
     uColor: { value: new THREE.Color('#001e36') },
-    uGlowColor: { value: new THREE.Color('#00d2ff') },
+    uGlowColor: { value: new THREE.Color('#7EB8D4') },
     uActive: { value: 0.0 },
   },
   vertexShader: `
@@ -80,7 +80,7 @@ const BodyPart: React.FC<BodyPartProps> = ({ geometry, position, activeTarget, p
             uTime: { value: 0 },
             uActive: { value: isActive },
             uColor: { value: new THREE.Color('#001e36') },
-            uGlowColor: { value: new THREE.Color('#00d2ff') }
+            uGlowColor: { value: new THREE.Color('#7EB8D4') }
         }
     }), [isActive]);
 
@@ -117,11 +117,11 @@ const ThreeHologram: React.FC<{ activeMuscle: string }> = ({ activeMuscle }) => 
     <div className="w-full h-full relative">
         <Canvas camera={{ position: [0, 1, 5], fov: 45 }}>
             <ambientLight intensity={0.5} />
-            <pointLight position={[10, 10, 10]} intensity={1} color="#00d2ff" />
+            <pointLight position={[10, 10, 10]} intensity={1} color="#7EB8D4" />
             <ProceduralModel activeTarget={activeMuscle} />
             <Environment preset="city" />
         </Canvas>
-        <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(0,210,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(0,210,255,0.05)_1px,transparent_1px)] bg-[size:40px_40px] opacity-20" />
+        <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(126,184,212,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(126,184,212,0.05)_1px,transparent_1px)] bg-[size:40px_40px] opacity-20" />
     </div>
 );
 

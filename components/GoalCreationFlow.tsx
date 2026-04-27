@@ -7,7 +7,7 @@ import { API_BASE } from '../lib/apiConfig';
 import { getPlayerAuthHeaders } from '../lib/playerApi';
 
 const RANK_COLORS: Record<string, string> = {
-  E: '#9ca3af', D: '#fb923c', C: '#facc15', B: '#4ade80', A: '#22d3ee', S: '#c084fc',
+  E: '#9ca3af', D: '#fb923c', C: '#facc15', B: '#4ade80', A: '#7EB8D4', S: '#9ACDE3',
   UNRANKED: '#6b7280',
 };
 
@@ -289,15 +289,15 @@ export default function GoalCreationFlow({
                 <div className="rounded-xl p-3 mb-4" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
                   <div className="text-[9px] font-mono text-gray-500 space-y-1">
                     <div className="flex items-center gap-2">
-                      <Target className="w-3 h-3 text-cyan-500 flex-shrink-0" />
+                      <Target className="w-3 h-3 text-[#7EB8D4] flex-shrink-0" />
                       <span>Be specific — "Lose 15kg" not "Lose weight"</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Calendar className="w-3 h-3 text-cyan-500 flex-shrink-0" />
+                      <Calendar className="w-3 h-3 text-[#7EB8D4] flex-shrink-0" />
                       <span>Goals must be achievable within 1 year (365 days)</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Shield className="w-3 h-3 text-cyan-500 flex-shrink-0" />
+                      <Shield className="w-3 h-3 text-[#7EB8D4] flex-shrink-0" />
                       <span>AI will calculate realistic timeline for you</span>
                     </div>
                   </div>
@@ -318,7 +318,7 @@ export default function GoalCreationFlow({
                       ? 'bg-white/5 text-gray-600 cursor-not-allowed'
                       : 'text-black'
                   }`}
-                  style={goalText.trim().length >= 5 ? { background: 'linear-gradient(135deg, #22d3ee, #06b6d4)' } : undefined}
+                  style={goalText.trim().length >= 5 ? { background: 'linear-gradient(135deg, #7EB8D4, #7EB8D4)' } : undefined}
                 >
                   Analyze Goal — {MANA_COST} Mana
                 </button>
@@ -328,7 +328,7 @@ export default function GoalCreationFlow({
             {/* ── ANALYZING STEP ── */}
             {step === 'ANALYZING' && (
               <motion.div key="analyzing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center py-12">
-                <Loader2 className="w-8 h-8 text-cyan-400 animate-spin mb-4" />
+                <Loader2 className="w-8 h-8 text-[#7EB8D4] animate-spin mb-4" />
                 <p className="text-xs text-gray-400 font-mono">ForgeGuard is analyzing your goal...</p>
                 <p className="text-[9px] text-gray-600 font-mono mt-1">Using advanced reasoning</p>
               </motion.div>
@@ -339,7 +339,7 @@ export default function GoalCreationFlow({
               <motion.div key="interview" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
                 {/* Assessment */}
                 <div className="rounded-xl p-3 mb-4" style={{ background: 'rgba(34,211,238,0.05)', border: '1px solid rgba(34,211,238,0.12)' }}>
-                  <div className="text-[9px] font-mono text-cyan-400 uppercase mb-1">Initial Assessment</div>
+                  <div className="text-[9px] font-mono text-[#7EB8D4] uppercase mb-1">Initial Assessment</div>
                   <p className="text-[11px] text-gray-300 font-mono leading-relaxed">{initialAssessment}</p>
                   {timelineOverride && (
                     <p className="text-[10px] text-amber-400 font-mono mt-2 flex items-start gap-1.5">
@@ -386,7 +386,7 @@ export default function GoalCreationFlow({
                 <button
                   onClick={handleSubmitInterview}
                   className="w-full py-3.5 rounded-xl text-xs font-black uppercase tracking-widest text-black"
-                  style={{ background: 'linear-gradient(135deg, #22d3ee, #06b6d4)' }}
+                  style={{ background: 'linear-gradient(135deg, #7EB8D4, #7EB8D4)' }}
                 >
                   Generate Mission Plan
                 </button>
@@ -396,7 +396,7 @@ export default function GoalCreationFlow({
             {/* ── PLANNING STEP ── */}
             {step === 'PLANNING' && (
               <motion.div key="planning" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center py-12">
-                <Loader2 className="w-8 h-8 text-cyan-400 animate-spin mb-4" />
+                <Loader2 className="w-8 h-8 text-[#7EB8D4] animate-spin mb-4" />
                 <p className="text-xs text-gray-400 font-mono">Generating your mission plan...</p>
                 <p className="text-[9px] text-gray-600 font-mono mt-1">Creating milestones & daily strategy</p>
               </motion.div>
@@ -425,17 +425,17 @@ export default function GoalCreationFlow({
                 {/* Key stats */}
                 <div className="grid grid-cols-3 gap-2 mb-4">
                   <div className="rounded-xl p-2.5 text-center" style={{ background: 'rgba(255,255,255,0.02)' }}>
-                    <Calendar className="w-3.5 h-3.5 text-cyan-400 mx-auto mb-1" />
+                    <Calendar className="w-3.5 h-3.5 text-[#7EB8D4] mx-auto mb-1" />
                     <div className="text-xs font-bold text-white">{planData.totalDurationDays}d</div>
                     <div className="text-[8px] text-gray-600 font-mono">DURATION</div>
                   </div>
                   <div className="rounded-xl p-2.5 text-center" style={{ background: 'rgba(255,255,255,0.02)' }}>
-                    <Clock className="w-3.5 h-3.5 text-cyan-400 mx-auto mb-1" />
+                    <Clock className="w-3.5 h-3.5 text-[#7EB8D4] mx-auto mb-1" />
                     <div className="text-xs font-bold text-white">{planData.dailyCommitmentMinutes}m</div>
                     <div className="text-[8px] text-gray-600 font-mono">PER DAY</div>
                   </div>
                   <div className="rounded-xl p-2.5 text-center" style={{ background: 'rgba(255,255,255,0.02)' }}>
-                    <TrendingUp className="w-3.5 h-3.5 text-cyan-400 mx-auto mb-1" />
+                    <TrendingUp className="w-3.5 h-3.5 text-[#7EB8D4] mx-auto mb-1" />
                     <div className="text-xs font-bold text-white">{planData.milestones?.length || 0}</div>
                     <div className="text-[8px] text-gray-600 font-mono">PHASES</div>
                   </div>
@@ -465,7 +465,7 @@ export default function GoalCreationFlow({
 
                 {/* AI Reasoning */}
                 <div className="rounded-xl p-3 mb-3" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
-                  <div className="text-[9px] font-mono text-cyan-400 uppercase mb-1">AI Assessment</div>
+                  <div className="text-[9px] font-mono text-[#7EB8D4] uppercase mb-1">AI Assessment</div>
                   <p className="text-[10px] text-gray-300 font-mono leading-relaxed">{planData.reasoning}</p>
                 </div>
 
