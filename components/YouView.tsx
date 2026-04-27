@@ -153,7 +153,7 @@ const AvatarHero: React.FC<{
         className="absolute top-3 right-3 z-10 flex flex-col items-center gap-0.5 group"
         aria-label="View rank progression"
       >
-        <RankBadge rank={(player.rank || 'E') as RankType} size={56} animated showLabel />
+        <RankBadge rank={(player.rank || 'E') as RankType} size={72} animated showLabel />
       </button>
     </div>
     </AnimatedBorder>
@@ -335,7 +335,7 @@ const RankLadderModal: React.FC<{ player: PlayerData; onClose: () => void }> = (
                     : 'border-white/5 bg-transparent opacity-50'
               }`}
             >
-              <RankBadge rank={r.rank as RankType} size={40} animated={isCurrent} />
+              <RankBadge rank={r.rank as RankType} size={56} animated={isCurrent} />
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-bold text-white font-mono tracking-wide">RANK {r.rank}</div>
                 <div className="text-[10px] font-mono text-gray-500">

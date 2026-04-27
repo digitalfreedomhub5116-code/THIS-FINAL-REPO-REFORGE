@@ -6,7 +6,7 @@ export type RankType = 'UNRANKED' | 'E' | 'D' | 'C' | 'B' | 'A' | 'S';
 
 interface RankBadgeProps {
   rank: RankType;
-  size?: number;
+  size?: number; // default 80
   animated?: boolean;
   showLabel?: boolean;
   className?: string;
@@ -128,10 +128,10 @@ const BadgeUnranked: React.FC<{ s: number; animated: boolean }> = ({ s, animated
 };
 
 const BadgeE: React.FC<{ s: number; animated: boolean }> = ({ s, animated }) => {
-  const cx = s/2, cy = s/2, r = s*0.44, m = RANK_META.E, id = `e-${s}`;
-  const shield = `M${cx},${cy-r} C${cx-r*0.15},${cy-r*1.02} ${cx-r*0.85},${cy-r*0.7} ${cx-r*0.88},${cy-r*0.25} L${cx-r*0.82},${cy+r*0.35} C${cx-r*0.78},${cy+r*0.65} ${cx-r*0.35},${cy+r*0.92} ${cx},${cy+r*0.98} C${cx+r*0.35},${cy+r*0.92} ${cx+r*0.78},${cy+r*0.65} ${cx+r*0.82},${cy+r*0.35} L${cx+r*0.88},${cy-r*0.25} C${cx+r*0.85},${cy-r*0.7} ${cx+r*0.15},${cy-r*1.02} ${cx},${cy-r}Z`;
-  const shieldInner = `M${cx},${cy-r*0.78} C${cx-r*0.12},${cy-r*0.8} ${cx-r*0.65},${cy-r*0.55} ${cx-r*0.68},${cy-r*0.18} L${cx-r*0.63},${cy+r*0.28} C${cx-r*0.6},${cy+r*0.52} ${cx-r*0.28},${cy+r*0.72} ${cx},${cy+r*0.77} C${cx+r*0.28},${cy+r*0.72} ${cx+r*0.6},${cy+r*0.52} ${cx+r*0.63},${cy+r*0.28} L${cx+r*0.68},${cy-r*0.18} C${cx+r*0.65},${cy-r*0.55} ${cx+r*0.12},${cy-r*0.8} ${cx},${cy-r*0.78}Z`;
-  const gr = s*0.07;
+  const cx = s/2, cy = s/2, r = s*0.38, m = RANK_META.E, id = `e-${s}`;
+  const shield = `M${cx},${cy-r} C${cx-r*.15},${cy-r*1.02} ${cx-r*.85},${cy-r*.7} ${cx-r*.88},${cy-r*.25} L${cx-r*.82},${cy+r*.35} C${cx-r*.78},${cy+r*.65} ${cx-r*.35},${cy+r*.92} ${cx},${cy+r*.98} C${cx+r*.35},${cy+r*.92} ${cx+r*.78},${cy+r*.65} ${cx+r*.82},${cy+r*.35} L${cx+r*.88},${cy-r*.25} C${cx+r*.85},${cy-r*.7} ${cx+r*.15},${cy-r*1.02} ${cx},${cy-r}Z`;
+  const shieldInner = `M${cx},${cy-r*.78} C${cx-r*.12},${cy-r*.8} ${cx-r*.65},${cy-r*.55} ${cx-r*.68},${cy-r*.18} L${cx-r*.63},${cy+r*.28} C${cx-r*.6},${cy+r*.52} ${cx-r*.28},${cy+r*.72} ${cx},${cy+r*.77} C${cx+r*.28},${cy+r*.72} ${cx+r*.6},${cy+r*.52} ${cx+r*.63},${cy+r*.28} L${cx+r*.68},${cy-r*.18} C${cx+r*.65},${cy-r*.55} ${cx+r*.12},${cy-r*.8} ${cx},${cy-r*.78}Z`;
+  const gr = s*0.065;
   return (
     <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`} style={{ overflow: 'visible' }}>
       <defs>
@@ -139,16 +139,25 @@ const BadgeE: React.FC<{ s: number; animated: boolean }> = ({ s, animated }) => 
         <linearGradient id={`bg-${id}`} x1="0" y1="0" x2="0.3" y2="1"><stop offset="0%" stopColor="#3a4555"/><stop offset="50%" stopColor="#1a2230"/><stop offset="100%" stopColor="#0d1218"/></linearGradient>
         <linearGradient id={`gem-${id}`} x1="0" y1="0" x2="0.5" y2="1"><stop offset="0%" stopColor="#b0bec5"/><stop offset="50%" stopColor="#78909c"/><stop offset="100%" stopColor="#455a64"/></linearGradient>
         <linearGradient id={`ltr-${id}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#e0e8f0"/><stop offset="100%" stopColor="#8a9bb0"/></linearGradient>
-        <filter id={`gl-${id}`} x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="2"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id={`gl-${id}`} x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
         {animated && <style>{`@keyframes ef{0%,100%{opacity:1}50%{opacity:.85}}.be-f{animation:ef 3s infinite}`}</style>}
       </defs>
-      <path d={shield} fill={`url(#bg-${id})`} stroke={`url(#bdr-${id})`} strokeWidth={s*0.05}/>
-      <path d={shieldInner} fill="none" stroke="#6a7a8a" strokeWidth={s*0.015} opacity=".35"/>
-      {[[-0.7,-0.1],[0.7,-0.1],[-0.55,0.5],[0.55,0.5]].map(([dx,dy],i)=><circle key={i} cx={cx+r*dx} cy={cy+r*dy} r={s*0.025} fill="#6a7a8a" stroke="#4a5868" strokeWidth={s*0.008}/>)}
-      <path d={`M${cx},${cy-r*0.45-gr} L${cx+gr*0.7},${cy-r*0.45-gr*0.2} L${cx+gr*0.5},${cy-r*0.45+gr*0.4} L${cx},${cy-r*0.45+gr} L${cx-gr*0.5},${cy-r*0.45+gr*0.4} L${cx-gr*0.7},${cy-r*0.45-gr*0.2}Z`} fill={`url(#gem-${id})`} stroke="#90a4ae" strokeWidth={s*0.01}/>
-      <line x1={cx} y1={cy-r*0.45-gr} x2={cx+gr*0.5} y2={cy-r*0.45+gr*0.4} stroke="#cfd8dc" strokeWidth={s*0.006} opacity=".5"/>
-      <line x1={cx} y1={cy-r*0.45-gr} x2={cx-gr*0.5} y2={cy-r*0.45+gr*0.4} stroke="#cfd8dc" strokeWidth={s*0.006} opacity=".5"/>
-      <text className="be-f" x={cx} y={cy+s*0.2} textAnchor="middle" fontSize={s*0.42} fontWeight="900" fontFamily="'Arial Black',sans-serif" fill={`url(#ltr-${id})`} filter={`url(#gl-${id})`} stroke="#556575" strokeWidth={s*0.01}>E</text>
+      {/* Outer ring for presence */}
+      <circle cx={cx} cy={cy} r={s*.46} fill="none" stroke="#6a7a8a" strokeWidth={s*.02} opacity=".3"/>
+      <circle cx={cx} cy={cy} r={s*.43} fill="none" stroke="#4a5868" strokeWidth={s*.008} opacity=".2"/>
+      {/* Shield */}
+      <path d={shield} fill={`url(#bg-${id})`} stroke={`url(#bdr-${id})`} strokeWidth={s*0.04}/>
+      <path d={shieldInner} fill="none" stroke="#6a7a8a" strokeWidth={s*0.012} opacity=".35"/>
+      {/* Rivets */}
+      {[[-0.72,-0.08],[0.72,-0.08],[-0.58,0.48],[0.58,0.48],[-0.35,0.78],[0.35,0.78]].map(([dx,dy],i)=><circle key={i} cx={cx+r*dx} cy={cy+r*dy} r={s*0.02} fill="#6a7a8a" stroke="#4a5868" strokeWidth={s*0.006}/>)}
+      {/* Ruby gem */}
+      <path d={`M${cx},${cy-r*.42-gr} L${cx+gr*.7},${cy-r*.42-gr*.2} L${cx+gr*.5},${cy-r*.42+gr*.4} L${cx},${cy-r*.42+gr} L${cx-gr*.5},${cy-r*.42+gr*.4} L${cx-gr*.7},${cy-r*.42-gr*.2}Z`} fill={`url(#gem-${id})`} stroke="#90a4ae" strokeWidth={s*0.008}/>
+      <line x1={cx} y1={cy-r*.42-gr} x2={cx+gr*.5} y2={cy-r*.42+gr*.4} stroke="#cfd8dc" strokeWidth={s*0.005} opacity=".5"/>
+      <line x1={cx} y1={cy-r*.42-gr} x2={cx-gr*.5} y2={cy-r*.42+gr*.4} stroke="#cfd8dc" strokeWidth={s*0.005} opacity=".5"/>
+      <line x1={cx-gr*.7} y1={cy-r*.42-gr*.2} x2={cx+gr*.7} y2={cy-r*.42-gr*.2} stroke="#cfd8dc" strokeWidth={s*0.004} opacity=".3"/>
+      <circle cx={cx} cy={cy-r*.42} r={gr*0.18} fill="#cfd8dc" opacity=".4"/>
+      {/* Letter */}
+      <text className="be-f" x={cx} y={cy+s*0.18} textAnchor="middle" fontSize={s*0.36} fontWeight="900" fontFamily="'Arial Black',sans-serif" fill={`url(#ltr-${id})`} filter={`url(#gl-${id})`} stroke="#556575" strokeWidth={s*0.008}>E</text>
     </svg>
   );
 };
@@ -319,7 +328,7 @@ const BADGE_COMPONENTS: Record<RankType, React.FC<{ s: number; animated: boolean
 
 const RankBadge: React.FC<RankBadgeProps> = ({
   rank,
-  size = 56,
+  size = 80,
   animated = true,
   showLabel = false,
   className = '',
