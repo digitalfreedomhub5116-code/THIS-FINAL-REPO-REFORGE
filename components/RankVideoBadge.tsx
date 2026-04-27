@@ -69,7 +69,7 @@ const RankVideoBadge: React.FC<RankVideoBadgeProps> = ({ rank, className }) => {
         src={media.image}
         alt={`Rank ${rankKey}`}
         className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-500 drop-shadow-[0_0_12px_rgba(126,184,212,0.3)] ${isActive ? 'opacity-0' : 'opacity-100'}`}
-        style={{ mixBlendMode: 'lighten' }}
+        style={{ mixBlendMode: 'screen' }}
         loading="lazy"
       />
 
