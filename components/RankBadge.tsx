@@ -438,16 +438,16 @@ function hexPts(cx: number, cy: number, r: number, offsetDeg = 0): string {
 }
 
 
-/* ─── Rank image paths ─────────────────────────────────────────────────────── */
+/* ─── Main export ───────────────────────────────────────────────────────────── */
 
-const RANK_IMAGES: Record<RankType, string> = {
-  UNRANKED: '/images/ranks/e-rank.png',
-  E: '/images/ranks/e-rank.png',
-  D: '/images/ranks/d-rank.png',
-  C: '/images/ranks/c-rank.png',
-  B: '/images/ranks/b-rank.png',
-  A: '/images/ranks/a-rank.png',
-  S: '/images/ranks/s-rank.png',
+const BADGE_COMPONENTS: Record<RankType, React.FC<{ s: number; animated: boolean }>> = {
+  UNRANKED: BadgeUnranked,
+  E: BadgeE,
+  D: BadgeD,
+  C: BadgeC,
+  B: BadgeB,
+  A: BadgeA,
+  S: BadgeS,
 };
 
 const RankBadge: React.FC<RankBadgeProps> = ({
@@ -458,7 +458,7 @@ const RankBadge: React.FC<RankBadgeProps> = ({
   className = '',
 }) => {
   const meta = RANK_META[rank];
-  const imgSrc = RANK_IMAGES[rank];
+  const BadgeComp = BADGE_COMPONENTS[rank];
 
   return (
     <motion.div
@@ -466,32 +466,7 @@ const RankBadge: React.FC<RankBadgeProps> = ({
       whileHover={{ scale: 1.1 }}
       transition={{ type: 'spring', stiffness: 380, damping: 22 }}
     >
-      <div
-        className="relative flex items-center justify-center"
-        style={{ width: size, height: size }}
-      >
-        <img
-          src={imgSrc}
-          alt={`${rank} Rank`}
-          className="w-full h-full object-contain"
-          style={{
-            filter: rank === 'UNRANKED' ? 'grayscale(1) opacity(0.4)' : `drop-shadow(0 0 ${size * 0.12}px ${meta.glow})`,
-            clipPath: 'circle(42% at 50% 48%)',
-          }}
-          loading="lazy"
-          draggable={false}
-        />
-        {animated && rank !== 'UNRANKED' && (
-          <motion.div
-            className="absolute inset-0 rounded-full pointer-events-none"
-            animate={{ opacity: [0, 0.3, 0] }}
-            transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-            style={{
-              boxShadow: `0 0 ${size * 0.3}px ${meta.glow}`,
-            }}
-          />
-        )}
-      </div>
+      <BadgeComp s={size} animated={animated} />
       {showLabel && (
         <div
           className="mt-1 text-[9px] font-black tracking-[0.22em] font-mono uppercase"
