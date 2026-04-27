@@ -6,27 +6,27 @@ import React, { useState, useRef, useCallback } from 'react';
 const RANK_MEDIA: Record<string, { video: string; image: string }> = {
   'E': {
     video: '/assets/videos/ranks/rank-e.webm',
-    image: '/images/ranks/e-rank.jpg' 
+    image: '/images/ranks/e-rank.png' 
   },
   'D': {
     video: '/assets/videos/ranks/rank-d.webm',
-    image: '/images/ranks/d-rank.jpg' 
+    image: '/images/ranks/d-rank.png' 
   },
   'C': {
     video: '/assets/videos/ranks/rank-c.mp4',
-    image: '/images/ranks/c-rank.jpg' 
+    image: '/images/ranks/c-rank.png' 
   },
   'B': {
     video: '/assets/videos/ranks/rank-b.mp4',
-    image: '/images/ranks/b-rank.jpg' 
+    image: '/images/ranks/b-rank.png' 
   },
   'A': {
     video: '/assets/videos/ranks/rank-a.mp4',
-    image: '/images/ranks/a-rank.jpg' 
+    image: '/images/ranks/a-rank.png' 
   },
   'S': {
     video: '/assets/videos/ranks/rank-s.mp4',
-    image: '/images/ranks/s-rank.jpg' 
+    image: '/images/ranks/s-rank.png' 
   },
 };
 
@@ -59,7 +59,6 @@ const RankVideoBadge: React.FC<RankVideoBadgeProps> = ({ rank, className }) => {
   return (
     <div 
         className={`relative flex items-center justify-center overflow-hidden ${containerClass}`}
-        style={{ boxShadow: '0 0 15px rgba(0,0,0,0.5)' }}
         onMouseEnter={handleToggle}
         onMouseLeave={() => { if (isActive) handleToggle(); }}
         onClick={handleToggle} // Toggle for mobile
@@ -69,7 +68,7 @@ const RankVideoBadge: React.FC<RankVideoBadgeProps> = ({ rank, className }) => {
       <img 
         src={media.image}
         alt={`Rank ${rankKey}`}
-        className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-500 ${isActive ? 'opacity-0' : 'opacity-100'}`}
+        className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-500 drop-shadow-[0_0_12px_rgba(126,184,212,0.3)] ${isActive ? 'opacity-0' : 'opacity-100'}`}
         loading="lazy"
       />
 
@@ -87,10 +86,6 @@ const RankVideoBadge: React.FC<RankVideoBadgeProps> = ({ rank, className }) => {
             transform: 'translateZ(0)',
         }}
       />
-      
-      {/* Blending Shadows (Top and Bottom) */}
-      <div className="absolute top-0 left-0 w-full h-[20%] bg-gradient-to-b from-[#000709] to-transparent z-10 pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-full h-[20%] bg-gradient-to-t from-[#000709] to-transparent z-10 pointer-events-none" />
 
       {/* Fallback for missing media (Text Badge) */}
       {!media && (
