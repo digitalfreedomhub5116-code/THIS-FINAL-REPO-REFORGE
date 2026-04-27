@@ -476,6 +476,7 @@ const RankBadge: React.FC<RankBadgeProps> = ({
           className="w-full h-full object-contain"
           style={{
             filter: rank === 'UNRANKED' ? 'grayscale(1) opacity(0.4)' : `drop-shadow(0 0 ${size * 0.12}px ${meta.glow})`,
+            mixBlendMode: 'lighten',
           }}
           loading="lazy"
           draggable={false}

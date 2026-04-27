@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 import { PlayerData, HealthProfile, Outfit, Tab, Rank, CoreStats } from '../types';
 import AnimatedBorder from './AnimatedBorder';
+import RankBadge from './RankBadge';
+import type { RankType } from './RankBadge';
 
 // Lazy-load the existing ProfileView — reused as the Config/Logs/More drawer
 const ProfileView = lazy(() => import('./ProfileView'));
@@ -151,57 +153,7 @@ const AvatarHero: React.FC<{
         className="absolute top-3 right-3 z-10 flex flex-col items-center gap-0.5 group"
         aria-label="View rank progression"
       >
-        <div className="relative w-16 h-16 flex items-center justify-center transition-transform group-active:scale-95">
-          {/* Outer glow pulse */}
-          <div
-            className="absolute inset-0"
-            style={{
-              filter: `drop-shadow(0 0 10px ${rankColor}80) drop-shadow(0 0 20px ${rankColor}40)`,
-            }}
-          >
-            <svg viewBox="0 0 100 100" className="w-full h-full">
-              {/* Border hex — slightly larger stroke */}
-              <polygon
-                points="50,2 93,27 93,73 50,98 7,73 7,27"
-                fill="none"
-                stroke={rankColor}
-                strokeWidth="3"
-                strokeLinejoin="round"
-                opacity="0.8"
-              />
-            </svg>
-          </div>
-          {/* Inner fill hex */}
-          <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full">
-            <defs>
-              <linearGradient id="rank-hex-grad" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stopColor={rankColor} stopOpacity="0.5" />
-                <stop offset="100%" stopColor={rankColor} stopOpacity="0.15" />
-              </linearGradient>
-            </defs>
-            <polygon
-              points="50,6 90,29 90,71 50,94 10,71 10,29"
-              fill="url(#rank-hex-grad)"
-              stroke={rankColor}
-              strokeWidth="1.5"
-              strokeLinejoin="round"
-              opacity="0.9"
-            />
-            {/* Inner highlight line */}
-            <polygon
-              points="50,14 82,33 82,67 50,86 18,67 18,33"
-              fill="none"
-              stroke="rgba(255,255,255,0.1)"
-              strokeWidth="0.8"
-              strokeLinejoin="round"
-            />
-          </svg>
-          {/* Rank letter */}
-          <div className="relative z-10 text-white font-black text-xl" style={{ textShadow: `0 0 12px ${rankColor}, 0 2px 4px rgba(0,0,0,0.6)` }}>
-            {player.rank === 'UNRANKED' ? '–' : player.rank}
-          </div>
-        </div>
-        <div className="text-[8px] font-mono tracking-widest uppercase" style={{ color: rankColor, opacity: 0.7 }}>RANK</div>
+        <RankBadge rank={(player.rank || 'E') as RankType} size={56} animated showLabel />
       </button>
     </div>
     </AnimatedBorder>
@@ -383,16 +335,7 @@ const RankLadderModal: React.FC<{ player: PlayerData; onClose: () => void }> = (
                     : 'border-white/5 bg-transparent opacity-50'
               }`}
             >
-              <div
-                className="w-10 h-10 flex items-center justify-center shrink-0"
-                style={{
-                  clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
-                  background: reached ? `linear-gradient(135deg, ${r.color}cc 0%, ${r.color}66 100%)` : '#1a1a2a',
-                  boxShadow: isCurrent ? `0 0 16px ${r.color}80` : 'none',
-                }}
-              >
-                <div className="text-white font-black text-base">{r.rank}</div>
-              </div>
+              <RankBadge rank={r.rank as RankType} size={40} animated={isCurrent} />
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-bold text-white font-mono tracking-wide">RANK {r.rank}</div>
                 <div className="text-[10px] font-mono text-gray-500">
