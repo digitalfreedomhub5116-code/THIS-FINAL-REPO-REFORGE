@@ -10,8 +10,39 @@ const LOOP_VIDEO  = "https://res.cloudinary.com/dcnqnbvp0/video/upload/v17723840
 
 const LETTERS = ['R','E','F','O','R','G','E'];
 
+// Read theme directly from localStorage (SplashScreen renders before ThemeContext)
+function getTheme(): 'dark' | 'light' {
+  try {
+    const stored = localStorage.getItem('reforge_theme');
+    if (stored === 'light') return 'light';
+  } catch { /* SSR */ }
+  return 'dark';
+}
+
+const DARK_COLORS = {
+  bg: '#000000',
+  stroke: '#e5e5e5',
+  letterColor: '#e5e5e5',
+  subLabel: '#777777',
+  progressTrack: 'rgba(255,255,255,0.08)',
+  progressFill: 'linear-gradient(90deg, #8b5cf6, #00d2ff)',
+  sparkColor: '#00d2ff',
+};
+
+const LIGHT_COLORS = {
+  bg: '#ffffff',
+  stroke: '#111111',
+  letterColor: '#111111',
+  subLabel: '#aaaaaa',
+  progressTrack: '#e5e7eb',
+  progressFill: '#111111',
+  sparkColor: '#d97706',
+};
+
 const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
   const [progress, setProgress] = useState(0);
+  const theme = getTheme();
+  const C = theme === 'light' ? LIGHT_COLORS : DARK_COLORS;
 
   const doneRef         = useRef(false);
   const animDoneRef     = useRef(false);
@@ -65,12 +96,12 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
   const textDelay  = 2.2;
   const lineDelay  = textDelay + LETTERS.length * 0.075 + 0.1;
 
-  const STROKE = '#111111';
+  const STROKE = C.stroke;
 
   return (
     <div
       className="fixed inset-0 z-50 flex flex-col items-center justify-center select-none"
-      style={{ background: '#ffffff' }}
+      style={{ background: C.bg }}
     >
       {/* Hidden video preloaders */}
       <video
@@ -167,7 +198,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
           {/* Tip spark */}
           <motion.circle
             cx="60" cy="7" r="4"
-            fill="#d97706"
+            fill={C.sparkColor}
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: [0, 5, 0], opacity: [0, 0.9, 0] }}
             transition={{ delay: 1.25, duration: 0.42, ease: 'easeOut' }}
@@ -329,7 +360,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
               fontWeight: 900,
               fontSize: 'clamp(48px, 12vw, 72px)',
               lineHeight: 1,
-              color: '#111111',
+              color: C.letterColor,
               letterSpacing: '-0.02em',
               display: 'inline-block',
             }}
@@ -346,7 +377,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
         transition={{ delay: lineDelay, duration: 0.38, ease: 'easeOut' }}
         style={{
           height: '2px',
-          background: '#111111',
+          background: C.stroke,
           width: '100%',
           maxWidth: '300px',
           transformOrigin: 'left center',
@@ -364,7 +395,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
           fontSize: '11px',
           letterSpacing: '0.55em',
           textTransform: 'uppercase',
-          color: '#aaaaaa',
+          color: C.subLabel,
           marginTop: '6px',
         }}
       >
@@ -379,11 +410,11 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
           left: 0,
           right: 0,
           height: '3px',
-          background: '#e5e7eb',
+          background: C.progressTrack,
         }}
       >
         <motion.div
-          style={{ height: '100%', background: '#111111' }}
+          style={{ height: '100%', background: C.progressFill }}
           animate={{ width: `${progress}%` }}
           transition={{ duration: 0.08, ease: 'linear' }}
         />

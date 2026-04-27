@@ -17,17 +17,22 @@ interface ProfileViewProps {
 }
 
 const glassPanel = {
-  background: 'linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(8,8,20,0.80) 12%, rgba(4,4,14,0.90) 100%)',
+  background: 'var(--glass-panel-bg)',
   backdropFilter: 'blur(20px) saturate(180%)',
   WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-  borderTop: '1px solid rgba(255,255,255,0.10)',
-  borderLeft: '1px solid rgba(255,255,255,0.07)',
-  borderRight: '1px solid rgba(255,255,255,0.04)',
-  borderBottom: '1px solid rgba(255,255,255,0.03)',
-  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06), 0 8px 32px rgba(0,0,0,0.4)',
+  borderTop: 'var(--glass-panel-border-t)',
+  borderLeft: 'var(--glass-panel-border-l)',
+  borderRight: 'var(--glass-panel-border-r)',
+  borderBottom: 'var(--glass-panel-border-b)',
+  boxShadow: 'var(--glass-panel-shadow)',
 };
 
-const inputClass = "w-full bg-black/60 border border-white/10 rounded-lg px-3 py-2.5 text-sm font-mono text-white focus:border-[#00d2ff]/50 focus:outline-none focus:ring-1 focus:ring-[#00d2ff]/20 transition-all placeholder-gray-700";
+const inputClass = "w-full border rounded-lg px-3 py-2.5 text-sm font-mono focus:outline-none focus:ring-1 transition-all placeholder-gray-700";
+const inputClassStyle: React.CSSProperties = {
+  background: 'var(--color-input-bg)',
+  borderColor: 'var(--color-input-border)',
+  color: 'var(--color-text-heading)',
+};
 const labelClass = "block text-[10px] text-gray-500 mb-1.5 font-mono tracking-widest uppercase";
 
 // Compress & resize image to max 512x512 webp, returns base64 data URL
@@ -440,16 +445,17 @@ const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onAvatarCha
                   disabled={!canSave}
                   className={`w-full py-3 rounded-xl flex items-center justify-center gap-2 font-bold text-xs font-mono tracking-widest transition-all ${
                     canSave
-                      ? 'bg-white text-black hover:bg-gray-100 active:scale-[0.98]'
+                      ? 'hover:opacity-90 active:scale-[0.98]'
                       : 'bg-gray-800 text-gray-600 cursor-not-allowed'
                   }`}
+                  style={canSave ? { background: 'var(--color-btn-save-bg)', color: 'var(--color-btn-save-text)' } : undefined}
                 >
                   <Save size={14} />
                   SAVE CHANGES
                 </button>
 
                 {/* ── Theme Toggle ── */}
-                <div className="pt-3 border-t border-white/[0.06]" style={{ display: 'none' }}>
+                <div className="pt-3 border-t border-white/[0.06]">
                   <button
                     onClick={toggleTheme}
                     className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.05] transition-all group"

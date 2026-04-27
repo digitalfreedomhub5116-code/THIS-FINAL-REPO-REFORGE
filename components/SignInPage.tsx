@@ -204,9 +204,9 @@ const SignInPage: React.FC<SignInPageProps> = ({ onLogin, onNavigate }) => {
   };
 
   const inputStyle: React.CSSProperties = {
-    background: 'rgba(255,255,255,0.04)',
-    border: '1px solid rgba(255,255,255,0.08)',
-    color: 'white',
+    background: 'var(--color-input-bg)',
+    border: '1px solid var(--color-input-border)',
+    color: 'var(--color-text-heading)',
     borderRadius: '12px',
     padding: '12px 16px',
     fontSize: '14px',
@@ -215,7 +215,7 @@ const SignInPage: React.FC<SignInPageProps> = ({ onLogin, onNavigate }) => {
 
   if (checking) {
     return (
-      <div className="fixed inset-0 z-[500] bg-black flex flex-col items-center justify-center font-mono gap-4 px-6">
+      <div className="fixed inset-0 z-[500] flex flex-col items-center justify-center font-mono gap-4 px-6" style={{ background: 'var(--color-auth-bg)' }}>
         <motion.div animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 2, repeat: Infinity }} className="text-system-neon text-lg font-black tracking-widest">
           REFORGE
         </motion.div>
@@ -251,8 +251,8 @@ const SignInPage: React.FC<SignInPageProps> = ({ onLogin, onNavigate }) => {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.3 }}
-      className="fixed inset-0 z-[500] bg-black flex items-center justify-center p-4 sm:p-6 font-mono overflow-y-auto"
-      style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)' }}
+      className="fixed inset-0 z-[500] flex items-center justify-center p-4 sm:p-6 font-mono overflow-y-auto"
+      style={{ background: 'var(--color-auth-bg)', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)' }}
     >
       {/* Loading overlay with fun facts */}
       <AnimatePresence>
@@ -261,7 +261,8 @@ const SignInPage: React.FC<SignInPageProps> = ({ onLogin, onNavigate }) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 z-50 bg-black/90 flex flex-col items-center justify-center gap-4 px-6"
+            className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-4 px-6"
+            style={{ background: 'var(--color-overlay-heavy)' }}
           >
             <motion.div animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 2, repeat: Infinity }} className="text-system-neon text-lg font-black tracking-widest">
               REFORGE
@@ -290,12 +291,13 @@ const SignInPage: React.FC<SignInPageProps> = ({ onLogin, onNavigate }) => {
       {particles.map((p) => (
         <motion.div
           key={p.id}
-          className="absolute rounded-full bg-white"
+          className="absolute rounded-full"
           style={{
             left: `${p.x}%`,
             top: `${p.y}%`,
             width: `${p.size}px`,
             height: `${p.size}px`,
+            background: 'var(--color-particle)',
           }}
           animate={{
             y: [0, -20, 0],
@@ -319,8 +321,8 @@ const SignInPage: React.FC<SignInPageProps> = ({ onLogin, onNavigate }) => {
       >
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-black text-white mb-2 tracking-tighter">Welcome Back</h1>
-          <p className="text-gray-400 text-sm">Sign in to continue your journey</p>
+          <h1 className="text-3xl font-black mb-2 tracking-tighter" style={{ color: 'var(--color-text-heading)' }}>Welcome Back</h1>
+          <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Sign in to continue your journey</p>
         </div>
 
         {/* Form */}
@@ -374,7 +376,7 @@ const SignInPage: React.FC<SignInPageProps> = ({ onLogin, onNavigate }) => {
             type="submit"
             disabled={loading}
             className="w-full py-3.5 rounded-xl font-bold text-sm text-white transition-all duration-200 active:scale-[0.97] disabled:opacity-50"
-            style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
+            style={{ background: `linear-gradient(135deg, var(--color-btn-primary-from), var(--color-btn-primary-to))` }}
           >
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
