@@ -31,22 +31,22 @@ export const RANK_META: Record<RankType, {
     labelColor: '#5a5a6a',
   },
   E: {
-    primary:    '#8892a4',
-    secondary:  '#4a5568',
-    letter:     '#c0c8d8',
-    border:     '#5a6478',
-    glow:       'rgba(136,146,164,0.0)',
+    primary:    '#9eaabb',
+    secondary:  '#5a6b80',
+    letter:     '#dce4f0',
+    border:     '#7a8a9e',
+    glow:       'rgba(158,170,187,0.5)',
     bg:         '#0e0f14',
-    labelColor: '#8892a4',
+    labelColor: '#9eaabb',
   },
   D: {
-    primary:    '#f59e0b',
-    secondary:  '#b45309',
-    letter:     '#fde68a',
-    border:     '#d97706',
-    glow:       'rgba(245,158,11,0.7)',
+    primary:    '#f5a623',
+    secondary:  '#d4880a',
+    letter:     '#fff2cc',
+    border:     '#e8a317',
+    glow:       'rgba(245,166,35,0.85)',
     bg:         '#1a0e00',
-    labelColor: '#f59e0b',
+    labelColor: '#f5a623',
   },
   C: {
     primary:    '#7EB8D4',
@@ -58,29 +58,29 @@ export const RANK_META: Record<RankType, {
     labelColor: '#7EB8D4',
   },
   B: {
-    primary:    '#bf5eff',
-    secondary:  '#7c3aed',
-    letter:     '#f3e8ff',
-    border:     '#a855f7',
-    glow:       'rgba(191,94,255,0.85)',
+    primary:    '#c96eff',
+    secondary:  '#8b45f0',
+    letter:     '#f8f0ff',
+    border:     '#b860f8',
+    glow:       'rgba(201,110,255,0.9)',
     bg:         '#0e0018',
-    labelColor: '#bf5eff',
+    labelColor: '#c96eff',
   },
   A: {
-    primary:    '#ff4500',
-    secondary:  '#dc2626',
-    letter:     '#fff1ee',
-    border:     '#ef4444',
-    glow:       'rgba(255,69,0,0.9)',
+    primary:    '#ff5722',
+    secondary:  '#e53935',
+    letter:     '#ffffff',
+    border:     '#ff6644',
+    glow:       'rgba(255,87,34,0.95)',
     bg:         '#1a0300',
     labelColor: '#ff6b3d',
   },
   S: {
-    primary:    '#e879f9',
-    secondary:  '#fbbf24',
+    primary:    '#f084ff',
+    secondary:  '#ffd700',
     letter:     '#ffffff',
-    border:     '#d946ef',
-    glow:       'rgba(232,121,249,0.95)',
+    border:     '#e050ff',
+    glow:       'rgba(240,132,255,1)',
     bg:         '#0f0018',
     labelColor: '#f0abfc',
   },
@@ -142,7 +142,7 @@ const BadgeE: React.FC<{ s: number; animated: boolean }> = ({ s, animated }) => 
           <stop offset="100%" stopColor="#000" stopOpacity="1" />
         </radialGradient>
         <filter id="glow-e" x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur stdDeviation="1.5" result="blur"/>
+          <feGaussianBlur stdDeviation="3" result="blur"/>
           <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
         </filter>
         {animated && <style>{`
@@ -151,14 +151,14 @@ const BadgeE: React.FC<{ s: number; animated: boolean }> = ({ s, animated }) => 
         `}</style>}
       </defs>
       {/* Plate */}
-      <polygon points={pts} fill="url(#bg-e)" stroke={m.border} strokeWidth={s * 0.032} />
+      <polygon points={pts} fill="url(#bg-e)" stroke={m.border} strokeWidth={s * 0.045} />
       {/* Crack lines across plate */}
       <line x1={cx-r*0.55} y1={cy-r*0.35} x2={cx+r*0.15} y2={cy+r*0.6} stroke={m.primary} strokeWidth={s*0.018} opacity="0.22" strokeLinecap="round"/>
       <line x1={cx+r*0.4} y1={cy-r*0.55} x2={cx-r*0.1} y2={cy+r*0.3} stroke={m.primary} strokeWidth={s*0.014} opacity="0.16" strokeLinecap="round"/>
       {/* Inner ring */}
       <polygon points={ptsInner} fill="none" stroke={m.primary} strokeWidth={s*0.016} opacity="0.2" />
       {/* Letter */}
-      <text className="badge-e-letter" x={cx} y={cy+s*0.15} textAnchor="middle" fontSize={s*0.42} fontWeight="900" fontFamily="'Arial Black',sans-serif" fill={m.letter} filter="url(#glow-e)" opacity="0.95">E</text>
+      <text className="badge-e-letter" x={cx} y={cy+s*0.15} textAnchor="middle" fontSize={s*0.5} fontWeight="900" fontFamily="'Arial Black',sans-serif" fill={m.letter} filter="url(#glow-e)" opacity="1" stroke={m.primary} strokeWidth={s*0.008}>E</text>
     </svg>
   );
 };
@@ -194,7 +194,7 @@ const BadgeD: React.FC<{ s: number; animated: boolean }> = ({ s, animated }) => 
         {/* 3 bottom dots */}
         {[-1,0,1].map(i => <circle key={i} cx={cx + i * s*0.12} cy={cy + s*0.22} r={s*0.032} fill={m.primary} opacity="0.9" />)}
         {/* Letter */}
-        <text x={cx} y={cy+s*0.12} textAnchor="middle" fontSize={s*0.45} fontWeight="900" fontFamily="'Arial Black',sans-serif" fill={m.letter} filter={`url(#txt-${id})`}>D</text>
+        <text x={cx} y={cy+s*0.12} textAnchor="middle" fontSize={s*0.52} fontWeight="900" fontFamily="'Arial Black',sans-serif" fill={m.letter} filter={`url(#txt-${id})`} stroke={m.primary} strokeWidth={s*0.008}>D</text>
       </g>
     </svg>
   );
@@ -232,7 +232,7 @@ const BadgeC: React.FC<{ s: number; animated: boolean }> = ({ s, animated }) => 
       <line className="badge-c-bar" x1={cx - s*0.2} y1={cy - s*0.19} x2={cx + s*0.2} y2={cy - s*0.19} stroke={m.primary} strokeWidth={s*0.028} opacity="0.75" strokeLinecap="round"/>
       <line className="badge-c-bar" x1={cx - s*0.2} y1={cy + s*0.23} x2={cx + s*0.2} y2={cy + s*0.23} stroke={m.primary} strokeWidth={s*0.028} opacity="0.75" strokeLinecap="round"/>
       {/* Letter */}
-      <text x={cx} y={cy+s*0.14} textAnchor="middle" fontSize={s*0.44} fontWeight="900" fontFamily="'Arial Black',sans-serif" fill={m.letter} filter={`url(#txt-${id})`}>C</text>
+      <text x={cx} y={cy+s*0.14} textAnchor="middle" fontSize={s*0.52} fontWeight="900" fontFamily="'Arial Black',sans-serif" fill={m.letter} filter={`url(#txt-${id})`} stroke={m.primary} strokeWidth={s*0.01}>C</text>
     </svg>
   );
 };
@@ -268,14 +268,14 @@ const BadgeB: React.FC<{ s: number; animated: boolean }> = ({ s, animated }) => 
           .badge-b-gem{animation:b-gem 1.6s ease-in-out infinite}
         `}</style>}
       </defs>
-      <polygon points={pts} fill={`url(#bg-${id})`} stroke={m.border} strokeWidth={s*0.036} />
+      <polygon points={pts} fill={`url(#bg-${id})`} stroke={m.border} strokeWidth={s*0.046} />
       <polygon points={ptsInner} fill="none" stroke={m.primary} strokeWidth={s*0.024} opacity="0.6" />
       {/* Lightning arc */}
       <polygon className="badge-b-arc" points={ptsInner} fill="none" stroke={m.letter} strokeWidth={s*0.02} />
       {/* Vertex gems */}
       {gems.map((g, i) => <circle className="badge-b-gem" key={i} cx={g.x} cy={g.y} r={s*0.038} fill={m.primary} stroke={m.letter} strokeWidth={s*0.012} />)}
       {/* Letter */}
-      <text x={cx} y={cy+s*0.14} textAnchor="middle" fontSize={s*0.44} fontWeight="900" fontFamily="'Arial Black',sans-serif" fill={m.letter} filter={`url(#txt-${id})`}>B</text>
+      <text x={cx} y={cy+s*0.14} textAnchor="middle" fontSize={s*0.52} fontWeight="900" fontFamily="'Arial Black',sans-serif" fill={m.letter} filter={`url(#txt-${id})`} stroke={m.primary} strokeWidth={s*0.01}>B</text>
     </svg>
   );
 };
@@ -312,7 +312,7 @@ const BadgeA: React.FC<{ s: number; animated: boolean }> = ({ s, animated }) => 
         `}</style>}
       </defs>
       <g className="badge-a-outer">
-        <polygon points={pts} fill={`url(#bg-${id})`} stroke={m.border} strokeWidth={s*0.038} />
+        <polygon points={pts} fill={`url(#bg-${id})`} stroke={m.border} strokeWidth={s*0.05} />
         <polygon points={ptsInner} fill="none" stroke={m.primary} strokeWidth={s*0.028} opacity="0.7" />
         {/* Triangle sigil */}
         <polygon
@@ -325,7 +325,7 @@ const BadgeA: React.FC<{ s: number; animated: boolean }> = ({ s, animated }) => 
         {/* 6 vertex gems */}
         {gems.map((g, i) => <circle key={i} cx={g.x} cy={g.y} r={s*0.032} fill={m.secondary} stroke={m.primary} strokeWidth={s*0.012} opacity="0.95" />)}
         {/* Letter */}
-        <text x={cx} y={cy+s*0.14} textAnchor="middle" fontSize={s*0.44} fontWeight="900" fontFamily="'Arial Black',sans-serif" fill={m.letter} filter={`url(#txt-${id})`}>A</text>
+        <text x={cx} y={cy+s*0.14} textAnchor="middle" fontSize={s*0.52} fontWeight="900" fontFamily="'Arial Black',sans-serif" fill={m.letter} filter={`url(#txt-${id})`} stroke={m.primary} strokeWidth={s*0.012}>A</text>
       </g>
     </svg>
   );
@@ -384,7 +384,7 @@ const BadgeS: React.FC<{ s: number; animated: boolean }> = ({ s, animated }) => 
 
       {/* Main hex */}
       <g className="badge-s-outer">
-        <polygon points={pts} fill={`url(#bg-${id})`} stroke={m.border} strokeWidth={s*0.04} />
+        <polygon points={pts} fill={`url(#bg-${id})`} stroke={m.border} strokeWidth={s*0.055} />
       </g>
 
       {/* Inner rings */}
@@ -423,7 +423,7 @@ const BadgeS: React.FC<{ s: number; animated: boolean }> = ({ s, animated }) => 
       })}
 
       {/* Letter */}
-      <text x={cx} y={cy+s*0.15} textAnchor="middle" fontSize={s*0.46} fontWeight="900" fontFamily="'Arial Black',sans-serif" fill={m.letter} filter={`url(#txt-${id})`}>S</text>
+      <text x={cx} y={cy+s*0.15} textAnchor="middle" fontSize={s*0.55} fontWeight="900" fontFamily="'Arial Black',sans-serif" fill={m.letter} filter={`url(#txt-${id})`} stroke={m.secondary} strokeWidth={s*0.014}>S</text>
     </svg>
   );
 };
