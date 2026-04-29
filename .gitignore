@@ -33,5 +33,3 @@ mcp-setup.md
 
 # Test screenshots
 test-results/
-*.png
-!public/**/*.png
