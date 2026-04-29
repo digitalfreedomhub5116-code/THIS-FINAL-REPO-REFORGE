@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Trophy, Sparkles, RefreshCw, Zap,
-  Crown, FlaskConical, ChevronRight,
-  Infinity as InfinityIcon, Users, X, Globe, CalendarDays, Flag, AlertTriangle, CheckSquare, Square, Send, Flame,
+  RefreshCw,
+  X, Globe, CalendarDays, Flag, AlertTriangle, CheckSquare, Square, Send, Flame,
 } from 'lucide-react';
 import { PlayerData, Outfit } from '../types';
 import { API_BASE } from '../lib/apiConfig';
@@ -26,6 +25,7 @@ interface LeaderboardEntry {
   level: number;
   rank: string;
   streak: number;
+  avatar_url?: string | null;
   equipped_outfit_id?: string;
   equipped_border?: string | null;
 }
@@ -37,6 +37,7 @@ interface SimEntry extends LeaderboardEntry {
   computedRank: string;
   outfitId: string;
   streak: number;
+  avatar_url?: string | null;
   borderId: string | null;
 }
 
@@ -248,7 +249,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
         streak: e.streak || 0,
         borderId: e.equipped_border || null,
       };
-    }).sort((a, b) => b.dominance - a.dominance);
+    }).sort((a, b) => b.streak - a.streak || b.dominance - a.dominance);
   }, [entries, player.userId, player.username, xpField, activeTab]);
 
   const myIndex = simulatedEntries.findIndex(e => e.isMe);
@@ -265,25 +266,39 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
 
 
   return (
-    <div className="min-h-screen pb-24 px-3 md:px-4 pt-3" style={{ background: 'linear-gradient(180deg, #08081a 0%, #0d0d20 100%)' }}>
+    <div className="min-h-screen pb-24 px-0 pt-0" style={{ background: '#08081a' }}>
+
+      {/* ── HEADER ── */}
+      <div className="px-4 pt-4 pb-2">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-black text-white tracking-tight">Leaderboard</h1>
+            <div className="text-xs text-gray-400 mt-0.5">
+              Top players by streak {myIndex >= 0 ? <span className="text-[#7EB8D4] font-bold">— You're #{myRank}</span> : ''}
+            </div>
+          </div>
+          <motion.button
+            whileTap={{ rotate: 360 }}
+            transition={{ duration: 0.5 }}
+            onClick={() => fetchLeaderboard(true)}
+            className="w-9 h-9 rounded-full flex items-center justify-center"
+            style={{ background: 'rgba(255,255,255,0.06)' }}
+          >
+            <RefreshCw size={14} className={`text-gray-400 ${refreshing ? 'animate-spin' : ''}`} />
+          </motion.button>
+        </div>
+      </div>
 
       {/* ── TAB SWITCHER ── */}
-      <div className="flex rounded-2xl overflow-hidden mb-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+      <div className="flex px-4 mb-4 gap-2">
         {(['daily', 'global'] as TabMode[]).map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className="flex-1 py-2.5 flex items-center justify-center gap-1.5 transition-all text-xs font-black tracking-widest uppercase"
+            className="flex-1 py-2 flex items-center justify-center gap-1.5 rounded-xl transition-all text-xs font-black tracking-widest uppercase"
             style={{
-              background: activeTab === tab
-                ? (tab === 'daily' ? 'linear-gradient(135deg, rgba(168,85,247,0.15), rgba(168,85,247,0.05))' : 'linear-gradient(135deg, rgba(234,179,8,0.12), rgba(234,179,8,0.04))')
-                : 'transparent',
-              color: activeTab === tab
-                ? (tab === 'daily' ? '#9ACDE3' : '#fbbf24')
-                : 'rgba(255,255,255,0.25)',
-              borderBottom: activeTab === tab
-                ? `2px solid ${tab === 'daily' ? '#a855f7' : '#eab308'}`
-                : '2px solid transparent',
+              background: activeTab === tab ? 'rgba(255,255,255,0.08)' : 'transparent',
+              color: activeTab === tab ? '#ffffff' : 'rgba(255,255,255,0.3)',
             }}
           >
             {tab === 'daily' ? <CalendarDays size={13} /> : <Globe size={13} />}
@@ -292,156 +307,174 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
         ))}
       </div>
 
-
-      {/* ── HEADER ── */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <Trophy size={16} className="text-[#7EB8D4]" />
-          <h2 className="text-sm font-black text-white tracking-wider uppercase">
-            {activeTab === 'daily' ? 'Daily Arena' : 'All-Time Ranks'}
-          </h2>
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.5, repeat: Infinity }} className="text-gray-600 text-xs font-mono">
+            Loading...
+          </motion.div>
         </div>
-        <motion.button
-          whileTap={{ rotate: 360 }}
-          transition={{ duration: 0.5 }}
-          onClick={() => fetchLeaderboard(true)}
-          className="p-2 rounded-xl"
-          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
-        >
-          <RefreshCw size={13} className={`text-gray-500 ${refreshing ? 'animate-spin' : ''}`} />
-        </motion.button>
-      </div>
-
-      {/* ── MY STATS BANNER ── */}
-      {myIndex >= 0 && (
-        <div className="rounded-2xl p-3 mb-3" style={{
-          background: 'linear-gradient(135deg, rgba(168,85,247,0.08), rgba(10,10,26,0.95))',
-          border: '1px solid rgba(168,85,247,0.15)',
-        }}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-black"
-                style={{ background: `linear-gradient(135deg, ${RANK_COLORS[simulatedEntries[myIndex].computedRank]}, transparent)` }}>
-                #{myRank}
-              </div>
-              <div>
-                <div className="text-xs font-black text-white">{player.username || player.name}</div>
-                <div className="text-[9px] text-gray-500 font-mono">{getHunterTitle(myRank)}</div>
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="flex items-center gap-1 justify-end">
-                <Zap size={11} className="text-yellow-400" />
-                <span className="text-sm font-black text-white">{formatXp(simulatedEntries[myIndex].dominance)}</span>
-              </div>
-              <span className="text-[8px] text-gray-600 font-mono">{activeTab === 'daily' ? 'TODAY' : 'LIFETIME'}</span>
-            </div>
-          </div>
+      ) : simulatedEntries.length === 0 ? (
+        <div className="text-center py-20 text-gray-600 text-sm font-mono">
+          {activeTab === 'daily' ? 'No activity yet today.' : 'No players found.'}
         </div>
-      )}
+      ) : (
+        <>
+          {/* ── TOP 3 PODIUM ── */}
+          {simulatedEntries.length >= 3 && (
+            <div className="flex items-end justify-center gap-3 px-4 pt-2 pb-6">
+              {/* 2nd place (left) */}
+              {(() => {
+                const e = simulatedEntries[1];
+                return (
+                  <div className="flex flex-col items-center gap-1.5 flex-1" onClick={() => setProfileTarget(e)}>
+                    <div className="text-lg">🥈</div>
+                    <div className="relative">
+                      <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-gray-600"
+                        style={{ background: '#1a1a2e' }}>
+                        {e.avatar_url ? (
+                          <img src={e.avatar_url} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-xl font-black text-gray-400">
+                            {(e.username || e.name || '?')[0].toUpperCase()}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-[11px] font-black text-white truncate max-w-[80px] text-center">
+                      {e.username || e.name}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Flame size={13} className="text-orange-400" />
+                      <span className="text-sm font-black text-orange-400">{e.streak}</span>
+                    </div>
+                  </div>
+                );
+              })()}
 
+              {/* 1st place (center, elevated) */}
+              {(() => {
+                const e = simulatedEntries[0];
+                return (
+                  <div className="flex flex-col items-center gap-1.5 flex-1 -mt-4" onClick={() => setProfileTarget(e)}>
+                    <div className="text-2xl">👑</div>
+                    <div className="relative">
+                      <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-yellow-500/50"
+                        style={{ background: '#1a1a2e', boxShadow: '0 0 20px rgba(234,179,8,0.2)' }}>
+                        {e.avatar_url ? (
+                          <img src={e.avatar_url} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-2xl font-black text-yellow-400">
+                            {(e.username || e.name || '?')[0].toUpperCase()}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-xs font-black text-white truncate max-w-[90px] text-center">
+                      {e.username || e.name}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Flame size={14} className="text-orange-400" />
+                      <span className="text-base font-black text-orange-400">{e.streak}</span>
+                    </div>
+                  </div>
+                );
+              })()}
 
-      {/* ── LEADERBOARD LIST ── */}
-      <div className="space-y-1.5">
-        {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.5, repeat: Infinity }} className="text-gray-600 text-xs font-mono">
-              Loading...
-            </motion.div>
-          </div>
-        ) : simulatedEntries.length === 0 ? (
-          <div className="text-center py-16 text-gray-600 text-xs font-mono">
-            {activeTab === 'daily' ? 'No daily XP earned yet today.' : 'No players found.'}
-          </div>
-        ) : (
-          <>
-            {simulatedEntries.map((entry, index) => {
-              const entryId = entry.username || entry.name;
-              const isExpanded = expandedTarget === entryId;
-              const rankColor = RANK_COLORS[entry.computedRank] || '#78716c';
+              {/* 3rd place (right) */}
+              {(() => {
+                const e = simulatedEntries[2];
+                return (
+                  <div className="flex flex-col items-center gap-1.5 flex-1" onClick={() => setProfileTarget(e)}>
+                    <div className="text-lg">🥉</div>
+                    <div className="relative">
+                      <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-amber-700/50"
+                        style={{ background: '#1a1a2e' }}>
+                        {e.avatar_url ? (
+                          <img src={e.avatar_url} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-xl font-black text-gray-400">
+                            {(e.username || e.name || '?')[0].toUpperCase()}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-[11px] font-black text-white truncate max-w-[80px] text-center">
+                      {e.username || e.name}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Flame size={13} className="text-orange-400" />
+                      <span className="text-sm font-black text-orange-400">{e.streak}</span>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
 
+          {/* ── REMAINING PLAYERS (4th onward) ── */}
+          <div className="px-4 space-y-2">
+            {simulatedEntries.slice(3).map((entry, index) => {
+              const actualRank = index + 4;
               return (
                 <motion.div
-                  key={`${activeTab}-${entryId}`}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
+                  key={`${activeTab}-${entry.username || entry.name}`}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.2, delay: index * 0.02 }}
-                  className="rounded-2xl overflow-hidden"
+                  className="flex items-center gap-3 px-4 py-3.5 rounded-2xl cursor-pointer active:scale-[0.98] transition-transform"
                   style={{
                     background: entry.isMe
-                      ? 'linear-gradient(135deg, rgba(168,85,247,0.06), rgba(10,10,26,0.9))'
-                      : 'rgba(255,255,255,0.02)',
-                    border: entry.isMe
-                      ? '1px solid rgba(168,85,247,0.15)'
-                      : '1px solid rgba(255,255,255,0.04)',
+                      ? 'rgba(126,184,212,0.08)'
+                      : 'rgba(255,255,255,0.03)',
                   }}
-                  >
-                  <div
-                    className="flex items-center gap-2.5 p-2.5 cursor-pointer active:bg-white/[0.02] transition-colors"
-                    onClick={() => setProfileTarget(entry)}
-                  >
-                    {/* Rank # */}
-                    <div className="w-7 text-center">
-                      {index < 3 ? (
-                        <span className="text-base">{['👑', '🥈', '🥉'][index]}</span>
-                      ) : (
-                        <span className="text-[11px] font-black text-gray-500 font-mono">#{index + 1}</span>
+                  onClick={() => setProfileTarget(entry)}
+                >
+                  {/* Rank number */}
+                  <div className="w-7 text-center">
+                    <span className="text-sm font-black text-gray-500 font-mono">{actualRank}</span>
+                  </div>
+
+                  {/* Avatar */}
+                  <div className="w-11 h-11 rounded-full overflow-hidden shrink-0"
+                    style={{ background: '#1a1a2e' }}>
+                    {entry.avatar_url ? (
+                      <img src={entry.avatar_url} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-base font-black text-gray-500">
+                        {(entry.username || entry.name || '?')[0].toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Name + YOU tag */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-black text-white truncate">
+                        {entry.username || entry.name}
+                      </span>
+                      {entry.isMe && (
+                        <span className="text-[8px] px-1.5 py-0.5 rounded bg-[#7EB8D4]/15 text-[#7EB8D4] font-black tracking-wider">you</span>
                       )}
                     </div>
+                  </div>
 
-                    {/* Outfit Badge with Border Ring */}
-                    <AnimatedBorder borderId={entry.borderId} compact className="rounded-full">
-                      <OutfitHunterBadge outfitId={entry.outfitId} size={32} />
-                    </AnimatedBorder>
-
-                    {/* Name + title */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[11px] font-black text-white truncate">
-                          {entry.username || entry.name}
-                        </span>
-                        {entry.isMe && (
-                          <span className="text-[7px] px-1.5 py-0.5 rounded-full bg-[#7EB8D4]/20 text-[#7EB8D4] font-black">YOU</span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[9px] text-gray-600 font-mono">Lv.{entry.level}</span>
-                        {entry.streak > 0 && (
-                          <span className="flex items-center gap-0.5">
-                            <Flame size={9} style={{ color: entry.streak >= 7 ? '#f97316' : entry.streak >= 3 ? '#fb923c' : '#fbbf24' }} />
-                            <span className="text-[9px] font-black font-mono" style={{ color: entry.streak >= 7 ? '#f97316' : entry.streak >= 3 ? '#fb923c' : '#fbbf24' }}>{entry.streak}</span>
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* XP + Rank badge */}
-                    <div className="flex items-center gap-2">
-                      <div className="text-right">
-                        <div className="flex items-center gap-0.5 justify-end">
-                          <Zap size={9} className="text-yellow-400/70" />
-                          <span className="text-[11px] font-black text-white font-mono">{formatXp(entry.dominance)}</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-center w-6 h-6 rounded-lg text-[9px] font-black"
-                        style={{
-                          background: `${rankColor}15`,
-                          border: `1px solid ${rankColor}40`,
-                          color: rankColor,
-                          boxShadow: `0 0 8px ${RANK_GLOW[entry.computedRank] || 'transparent'}`,
-                        }}>
-                        {entry.computedRank}
-                      </div>
-                    </div>
-
-                    <ChevronRight size={14} className="text-gray-700 shrink-0" />
+                  {/* Streak */}
+                  <div className="flex items-center gap-1 shrink-0">
+                    <span className="text-base font-black text-orange-400">{entry.streak}</span>
+                    <Flame size={15} className="text-orange-400" />
                   </div>
                 </motion.div>
               );
             })}
-          </>
-        )}
-      </div>
+          </div>
+
+          {/* Footer */}
+          <div className="text-center py-4 mt-2">
+            <span className="text-[10px] text-gray-600 font-mono">Updated every 60 seconds · Top 50 players</span>
+          </div>
+        </>
+      )}
+
 
 
       {/* ══════════════ HUNTER PROFILE POPUP ══════════════ */}
