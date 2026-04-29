@@ -1171,3 +1171,7 @@ button, [role="button"], nav, .select-none {
   0%, 100% { box-shadow: 0 0 12px var(--primary-glow), 0 0 24px var(--primary-glow); }
   50% { box-shadow: 0 0 24px var(--primary-glow), 0 0 48px var(--primary-glow); }
 }
+
+/* Hide scrollbar for store nav */
+.store-nav-scroll::-webkit-scrollbar { display: none; }
+.store-nav-scroll { -ms-overflow-style: none; scrollbar-width: none; }

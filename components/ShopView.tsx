@@ -249,30 +249,38 @@ const ShopView: React.FC<ShopViewProps> = ({
     <div id="tut-store" className="space-y-5 md:space-y-6 pb-10">
       <OnboardingNotice page="STORE" />
 
-      {/* ── 2-TAB NAVIGATION ── */}
-      <div className="flex gap-1 p-1 rounded-xl overflow-x-auto" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+      {/* ── STORE TAB NAVIGATION ── */}
+      <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 8, marginBottom: 4, WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
         {([
           { id: 'OUTFITS' as const, label: 'Outfits', icon: <Shirt size={13} /> },
-          { id: 'BADGES' as const, label: 'Badges', icon: <Hexagon size={13} /> },
-          { id: 'BORDERS' as const, label: 'Borders', icon: <CircleDot size={13} /> },
+          { id: 'BORDERS' as const, label: 'Borders', icon: <Frame size={13} /> },
           { id: 'DEALS' as const, label: 'Deals', icon: <Clock size={13} /> },
           { id: 'THEMES' as const, label: 'Themes', icon: <Palette size={13} /> },
           { id: 'BANNERS_SHOP' as const, label: 'Banners', icon: <ImageIcon size={13} /> },
-        ]).map(tab => (
-          <motion.button
-            key={tab.id}
-            onClick={() => setStoreTab(tab.id)}
-            whileTap={{ scale: 0.97 }}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg font-mono font-black text-[10px] uppercase tracking-widest transition-all whitespace-nowrap"
-            style={storeTab === tab.id
-              ? { background: 'rgba(126,184,212,0.15)', border: '1px solid rgba(126,184,212,0.3)', color: '#c4b5fd', boxShadow: '0 0 12px rgba(126,184,212,0.15)', minWidth: 'fit-content' }
-              : { background: 'transparent', border: '1px solid transparent', color: '#6b7280', minWidth: 'fit-content' }
-            }
-          >
-            {tab.icon}
-            {tab.label}
-          </motion.button>
-        ))}
+          { id: 'BADGES' as const, label: 'Badges', icon: <Hexagon size={13} /> },
+        ]).map(tab => {
+          const isActive = storeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setStoreTab(tab.id)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 5,
+                padding: '8px 14px', borderRadius: 10,
+                background: isActive ? 'rgba(126,184,212,0.15)' : 'rgba(255,255,255,0.03)',
+                color: isActive ? '#c4b5fd' : '#6b7280',
+                fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                border: isActive ? '1.5px solid rgba(126,184,212,0.3)' : '1.5px solid transparent',
+                transition: 'all 0.2s', whiteSpace: 'nowrap',
+                boxShadow: isActive ? '0 0 12px rgba(126,184,212,0.15)' : 'none',
+                flexShrink: 0,
+              }}
+            >
+              {tab.icon}
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* ── TAB: OUTFITS ── */}
@@ -589,139 +597,25 @@ const ShopView: React.FC<ShopViewProps> = ({
         </motion.div>
       )}
 
-      {/* ── TAB: BORDERS ── */}
+      {/* ── TAB: BORDERS (Kit-style) ── */}
       {storeTab === 'BORDERS' && (
-        <motion.div
-          key="borders-tab"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="space-y-4"
-        >
-          {/* Section header */}
+        <motion.div key="borders-tab" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
           <div className="flex items-center gap-3">
-            <div className="text-[10px] font-mono font-bold tracking-[0.3em] uppercase text-gray-400">ANIMATED BORDERS</div>
+            <div className="text-[10px] font-mono font-bold tracking-[0.3em] uppercase text-gray-400">AVATAR BORDERS</div>
             <div className="flex-1 h-px bg-system-border" />
           </div>
-
-          {/* Currently equipped */}
-          <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: 'rgba(126,184,212,0.06)', border: '1px solid rgba(126,184,212,0.15)' }}>
-            <div className="text-[10px] font-mono text-gray-400 uppercase tracking-wider">Equipped:</div>
-            <div className="text-xs font-mono font-bold" style={{ color: getBorderConfig(equippedBorder).accentColor }}>
-              {getBorderConfig(equippedBorder).name}
-            </div>
-            {equippedBorder && equippedBorder !== 'border_default' && (
-              <button
-                onClick={() => onEquipBorder?.(null)}
-                className="ml-auto text-[9px] font-mono font-bold px-2 py-1 rounded-lg uppercase tracking-wider"
-                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#9ca3af' }}
-              >
-                Unequip
-              </button>
-            )}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            {getItemsByCategory('border').map(item => (
+              <KitGlowCard key={item.id} item={item}
+                owned={DEV_UNLOCK_ALL || kitEconomy.owned.includes(item.id)}
+                equipped={kitEconomy.equipped.border === item.id}
+                canAfford={DEV_UNLOCK_ALL || gold >= item.price}
+                onBuy={() => { const p = kitPurchaseItem(item.id, item.price); if (p) { setKitEconomy(p); } }}
+                onEquip={() => handleKitEquip('border', item.id)}
+                onInfo={() => setKitInfoItem(item)}
+              />
+            ))}
           </div>
-
-          {/* Border cards grid */}
-          <div className="space-y-3">
-            {PROFILE_BORDERS.map(border => {
-              const isOwned = ownedBorders.includes(border.id);
-              const isEquipped = equippedBorder === border.id;
-              const canAfford = gold >= border.cost;
-              const meetsLevel = playerLevel >= border.levelRequired;
-              const isLocked = !isOwned && (!canAfford || !meetsLevel);
-
-              const TIER_COLORS: Record<string, string> = {
-                F: '#6b7280', E: '#f97316', D: '#4ade80', C: '#3b82f6',
-                B: '#7c3aed', A: '#fbbf24', S: '#e879f9',
-              };
-
-              return (
-                <motion.div
-                  key={border.id}
-                  whileTap={{ scale: 0.98 }}
-                  className="relative rounded-2xl overflow-hidden"
-                  style={{
-                    background: isEquipped
-                      ? `linear-gradient(135deg, rgba(${border.accentColor === '#3f3f46' ? '63,63,70' : border.accentColor === '#f97316' ? '249,115,22' : border.accentColor === '#4ade80' ? '74,222,128' : border.accentColor === '#3b82f6' ? '59,130,246' : border.accentColor === '#7c3aed' ? '124,58,237' : border.accentColor === '#fbbf24' ? '251,191,36' : '232,121,249'},0.08) 0%, rgba(0,0,0,0.4) 100%)`
-                      : 'rgba(0,0,0,0.3)',
-                    border: isEquipped
-                      ? `1px solid ${border.accentColor}40`
-                      : '1px solid rgba(255,255,255,0.06)',
-                  }}
-                >
-                  <div className="flex gap-3 p-3">
-                    {/* Preview square — shows the border animation on a small dark box */}
-                    <AnimatedBorder
-                      borderId={border.id}
-                      className="flex-shrink-0 rounded-xl"
-                      style={{ width: 72, height: 72 }}
-                    >
-                      <div className="w-full h-full rounded-xl flex items-center justify-center" style={{ background: '#0a0a12' }}>
-                        <div
-                          className="text-2xl font-black font-mono"
-                          style={{ color: border.accentColor, textShadow: `0 0 12px ${border.accentGlow}` }}
-                        >
-                          {border.tier}
-                        </div>
-                      </div>
-                    </AnimatedBorder>
-
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <div className="text-sm font-black font-mono text-white truncate">{border.name}</div>
-                        <div
-                          className="text-[8px] font-mono font-bold px-1.5 py-0.5 rounded uppercase tracking-widest"
-                          style={{ background: `${TIER_COLORS[border.tier]}15`, color: TIER_COLORS[border.tier], border: `1px solid ${TIER_COLORS[border.tier]}30` }}
-                        >
-                          {border.tier}-Tier
-                        </div>
-                      </div>
-                      <div className="text-[10px] font-mono text-gray-500 leading-tight mb-2 line-clamp-2">{border.description}</div>
-
-                      {/* Price or status */}
-                      <div className="flex items-center gap-2">
-                        {isEquipped ? (
-                          <div className="flex items-center gap-1 text-[10px] font-mono font-bold uppercase tracking-wider" style={{ color: border.accentColor }}>
-                            <CheckCircle2 size={12} /> Equipped
-                          </div>
-                        ) : isOwned ? (
-                          <button
-                            onClick={() => onEquipBorder?.(border.id)}
-                            className="px-3 py-1.5 rounded-lg text-[10px] font-mono font-black uppercase tracking-widest transition-all"
-                            style={{ background: `${border.accentColor}20`, border: `1px solid ${border.accentColor}40`, color: border.accentColor }}
-                          >
-                            Equip
-                          </button>
-                        ) : (
-                          <>
-                            {!meetsLevel ? (
-                              <div className="flex items-center gap-1 text-[10px] font-mono font-bold text-gray-500">
-                                <Lock size={10} /> Lv.{border.levelRequired} Required
-                              </div>
-                            ) : (
-                              <button
-                                onClick={() => canAfford && onPurchaseBorder?.(border.id, border.cost)}
-                                disabled={!canAfford}
-                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-mono font-black uppercase tracking-widest transition-all"
-                                style={canAfford
-                                  ? { background: 'linear-gradient(135deg, rgba(234,179,8,0.15), rgba(234,179,8,0.05))', border: '1px solid rgba(234,179,8,0.3)', color: '#fbbf24', boxShadow: '0 0 12px rgba(234,179,8,0.1)' }
-                                  : { background: 'rgba(30,30,30,0.6)', border: '1px solid rgba(100,100,100,0.2)', color: '#4b5563', cursor: 'not-allowed' }
-                                }
-                              >
-                                <Coins size={11} /> {border.cost.toLocaleString()} G
-                              </button>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
-
-          {/* Info footer */}
           <div className="text-center text-[9px] font-mono text-gray-600 pt-2 pb-4">
             Borders are permanent · Visible on profile & leaderboard
           </div>
@@ -828,6 +722,53 @@ const ShopView: React.FC<ShopViewProps> = ({
 export default ShopView;
 
 
+/* ═══ Store Lottie Border Preview ═══ */
+const storeLottieCache: Record<string, any> = {};
+
+function StoreLottieBorder({ src, glow }: { src: string; glow: string }) {
+  const [data, setData] = useState<any>(storeLottieCache[src] || null);
+
+  useEffect(() => {
+    if (storeLottieCache[src]) { setData(storeLottieCache[src]); return; }
+    fetch(src).then(r => r.json()).then(d => { storeLottieCache[src] = d; setData(d); }).catch(() => {});
+  }, [src]);
+
+  return (
+    <div style={{ position: 'relative', width: 110, height: 110 }}>
+      {/* Avatar */}
+      <div style={{
+        position: 'absolute', top: '50%', left: '50%',
+        width: 72, height: 72, borderRadius: '50%',
+        background: 'radial-gradient(circle, #3a3a4a, #1a1a24)',
+        transform: 'translate(-50%, -50%)', zIndex: 1,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        overflow: 'hidden',
+      }}>
+        <svg width="56" height="56" viewBox="0 0 40 40">
+          <circle cx="20" cy="16" r="7" fill="#555568" />
+          <ellipse cx="20" cy="35" rx="13" ry="10" fill="#4a4a5a" />
+        </svg>
+      </div>
+      {/* Lottie overlay */}
+      {data && (
+        <div style={{
+          position: 'absolute', top: '50%', left: '50%',
+          width: 110, height: 110, borderRadius: '50%', overflow: 'hidden',
+          transform: 'translate(-50%, -50%)', zIndex: 2, pointerEvents: 'none',
+          mixBlendMode: 'screen', filter: 'brightness(1.1)',
+        }}>
+          <div style={{
+            position: 'absolute', width: '100%', height: '200%',
+            top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+          }}>
+            <Lottie animationData={data} loop autoplay style={{ width: '100%', height: '100%' }} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ═══════════════════════════════════
    KitGlowCard — Premium card for kit items
    ═══════════════════════════════════ */
@@ -885,13 +826,47 @@ function KitGlowCard({ item, discount, owned, equipped, canAfford, onBuy, onEqui
       </div>
 
       {/* Preview */}
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', zIndex: 2, width: '100%', minHeight: 80 }}>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', zIndex: 2, width: '100%', minHeight: 110, overflow: 'visible' }}>
+        {/* Radial glow behind preview */}
+        <div style={{ position: 'absolute', top: '50%', left: '50%', width: 110, height: 110, borderRadius: '50%', background: `radial-gradient(circle, ${catColor}25 0%, ${catColor}08 50%, transparent 70%)`, transform: 'translate(-50%, -50%)' }} />
+
+        {/* ── BORDER: Image-based (PNG) ── */}
+        {item.category === 'border' && item.imageBorder ? (
+          <div style={{ position: 'relative', width: 100, height: 100, overflow: 'visible' }}>
+            {/* Avatar center */}
+            <div style={{ position: 'absolute', top: '50%', left: '50%', width: 64, height: 64, borderRadius: '50%', background: 'radial-gradient(circle, #3a3a4a, #1a1a24)', transform: 'translate(-50%, -50%)', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+              <svg width="46" height="46" viewBox="0 0 40 40"><circle cx="20" cy="16" r="7" fill="#555568" /><ellipse cx="20" cy="35" rx="13" ry="10" fill="#4a4a5a" /></svg>
+            </div>
+            {/* PNG border overlay */}
+            {item.imageAnimated && item.imageAnimationType === 'pulse' ? (
+              <div style={{ position: 'absolute', top: '50%', left: '50%', width: `${(item.imageScale || 1) * 100}%`, height: `${(item.imageScale || 1) * 100}%`, zIndex: 2, pointerEvents: 'none', animation: 'border-breathe-centered 3s ease-in-out infinite' }}>
+                <img src={item.imageBorder} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+              </div>
+            ) : (
+              <img src={item.imageBorder} alt={item.name} style={{ position: 'absolute', top: '50%', left: '50%', width: `${(item.imageScale || 1) * 100}%`, height: `${(item.imageScale || 1) * 100}%`, transform: `translate(-50%, calc(-50% + ${item.imageOffsetY || 0}px))`, objectFit: 'contain', zIndex: 2, pointerEvents: 'none', ...(item.imageAnimated ? { animation: 'spin-clockwise 10s linear infinite' } : {}) }} />
+            )}
+          </div>
+        ) : item.category === 'border' && item.lottieBorder ? (
+          /* ── BORDER: Lottie animated ── */
+          <StoreLottieBorder src={item.lottieBorder} glow={item.borderConfig?.glowColor || 'rgba(200,168,78,0.3)'} />
+        ) : item.category === 'border' && item.auraConfig ? (
+          /* ── BORDER: CSS Aura glow ── */
+          <div style={{ position: 'relative', width: 100, height: 100, overflow: 'visible' }}>
+            <div style={{ position: 'absolute', top: '50%', left: '50%', width: 82, height: 82, borderRadius: '50%', transform: 'translate(-50%, -50%)', border: `3px solid ${item.auraConfig.colors[0]}CC`, boxShadow: `0 0 6px 2px ${item.auraConfig.colors[0]}AA, 0 0 14px 4px ${item.auraConfig.colors[0]}70, 0 0 24px 6px ${(item.auraConfig.colors[1] || item.auraConfig.colors[0])}50`, animation: item.auraConfig.animated ? 'aura-rotate 8s linear infinite' : undefined, zIndex: 1 }} />
+            <div style={{ position: 'absolute', top: '50%', left: '50%', width: 64, height: 64, borderRadius: '50%', background: 'radial-gradient(circle, #2a2a3a, #1a1a24)', transform: 'translate(-50%, -50%)', zIndex: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+              <svg width="46" height="46" viewBox="0 0 40 40"><circle cx="20" cy="16" r="7" fill="#555568" /><ellipse cx="20" cy="35" rx="13" ry="10" fill="#4a4a5a" /></svg>
+            </div>
+          </div>
+        ) : item.category === 'border' && item.borderConfig ? (
+          /* ── BORDER: SVG ring ── */
+          <BorderRing config={item.borderConfig} size={90} />
+        ) : null}
+
+        {/* ── THEME swatch ── */}
         {item.category === 'theme' && item.themeVars && (
           <div style={{ width: '90%' }}><ThemeSwatch themeVars={item.themeVars} /></div>
         )}
-        {item.category === 'border' && item.borderConfig && (
-          <BorderRing config={item.borderConfig} size={80} />
-        )}
+        {/* ── BANNER image ── */}
         {item.category === 'banner' && item.bannerImage && (
           <div style={{ width: '90%', aspectRatio: '16/9', borderRadius: 10, overflow: 'hidden', border: `1px solid ${catColor}30` }}>
             <img src={item.bannerImage} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
