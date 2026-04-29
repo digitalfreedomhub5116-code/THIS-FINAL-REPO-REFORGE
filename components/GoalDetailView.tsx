@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Calendar, Clock, Target, Flame, TrendingUp, Pause, Play, Trash2, Loader2, CheckCircle, Circle, AlertTriangle, ExternalLink, BookOpen, Youtube, Search, ChevronDown, ChevronUp, RefreshCw, CalendarOff } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, Target, Flame, TrendingUp, Pause, Play, Trash2, Loader2, CheckCircle, Circle, AlertTriangle, ExternalLink, BookOpen, Youtube, Search, ChevronDown, ChevronUp, RefreshCw, CalendarOff, Zap } from 'lucide-react';
 import { Goal, GoalDailyTask, GoalQuest, GoalQuestResource, PlayerData, Quest, Rank } from '../types';
 import { playSystemSoundEffect } from '../utils/soundEngine';
 import { API_BASE } from '../lib/apiConfig';
@@ -646,10 +646,16 @@ export default function GoalDetailView({
           {!todayTasks && !isGenerating && (
             <button
               onClick={generateDailyQuests}
-              className="w-full py-3.5 rounded-xl text-sm font-bold text-black uppercase tracking-wider"
-              style={{ background: `linear-gradient(135deg, ${rankColor}, ${rankColor}cc)` }}
+              className="w-full py-3.5 rounded-xl text-xs font-black uppercase tracking-[0.2em] flex items-center justify-center gap-2 transition-all active:scale-95"
+              style={{
+                background: 'rgba(126,184,212,0.08)',
+                border: '1px solid rgba(126,184,212,0.25)',
+                color: '#9ACDE3',
+                boxShadow: '0 0 20px rgba(126,184,212,0.08)',
+              }}
             >
-              Generate Today's Quests (Free)
+              <Zap className="w-4 h-4" />
+              Generate Today's Quests
             </button>
           )}
 
@@ -668,9 +674,14 @@ export default function GoalDetailView({
               </div>
               <button
                 onClick={generateDailyQuests}
-                className="w-full py-2.5 rounded-lg text-xs font-bold text-white uppercase tracking-wider mt-1"
-                style={{ background: 'rgba(239,68,68,0.15)' }}
+                className="w-full py-2.5 rounded-lg text-xs font-black uppercase tracking-[0.15em] mt-1 flex items-center justify-center gap-2 transition-all active:scale-95"
+                style={{
+                  background: 'rgba(239,68,68,0.08)',
+                  border: '1px solid rgba(239,68,68,0.2)',
+                  color: '#f87171',
+                }}
               >
+                <RefreshCw className="w-3.5 h-3.5" />
                 Retry Generation
               </button>
             </div>

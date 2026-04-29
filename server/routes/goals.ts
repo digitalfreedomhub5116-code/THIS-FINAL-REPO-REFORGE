@@ -7,7 +7,33 @@ import { getSharedAI, generateWithFallback, DEFAULT_MODEL_CHAIN } from '../utils
 const router = Router();
 
 function stripMarkdown(text: string): string {
-  return text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+  let cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+  // Gemini sometimes appends explanation text after the JSON.
+  // Extract only the first valid JSON object/array.
+  const firstBrace = cleaned.indexOf('{');
+  const firstBracket = cleaned.indexOf('[');
+  const startIdx = firstBrace >= 0 && (firstBracket < 0 || firstBrace < firstBracket) ? firstBrace : firstBracket;
+  if (startIdx < 0) return cleaned;
+  cleaned = cleaned.slice(startIdx);
+  // Find the matching closing brace/bracket
+  const openChar = cleaned[0];
+  const closeChar = openChar === '{' ? '}' : ']';
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+  for (let i = 0; i < cleaned.length; i++) {
+    const c = cleaned[i];
+    if (escape) { escape = false; continue; }
+    if (c === '\\') { escape = true; continue; }
+    if (c === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (c === openChar) depth++;
+    else if (c === closeChar) {
+      depth--;
+      if (depth === 0) return cleaned.slice(0, i + 1);
+    }
+  }
+  return cleaned; // fallback: return as-is
 }
 
 function addMin(time: string, mins: number): string {
