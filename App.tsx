@@ -1839,7 +1839,12 @@ const App: React.FC = () => {
 
         });
 
-        setDbOutfits(converted);
+        // Merge in any local-only outfits not present in the DB (e.g. test outfits)
+        const dbKeys = new Set(converted.map(o => o.id));
+        const localOnly = OUTFITS.filter(o => !dbKeys.has(o.id));
+        const merged = [...converted, ...localOnly];
+
+        setDbOutfits(merged);
 
       })
 
