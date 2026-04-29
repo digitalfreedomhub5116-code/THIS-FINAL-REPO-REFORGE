@@ -1098,3 +1098,76 @@ button, [role="button"], nav, .select-none {
   opacity: 0;
   transition: opacity 150ms ease-in;
 }
+/* ═══ Lynx Store — Required CSS Keyframes ═══
+   Copy these into your app's main CSS file.
+   These are ALL the animations used by the Store page. */
+
+/* General */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Border ring animations (SVG-based borders) */
+@keyframes borderRotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes borderPulse {
+  0%, 100% { opacity: 0.7; filter: brightness(1); }
+  50% { opacity: 1; filter: brightness(1.3); }
+}
+@keyframes borderDash {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: 24; }
+}
+@keyframes borderShimmer {
+  0%, 100% { opacity: 0.6; filter: brightness(1); }
+  50% { opacity: 1; filter: brightness(1.4) drop-shadow(0 0 4px currentColor); }
+}
+@keyframes borderHueRotate {
+  from { filter: hue-rotate(0deg); }
+  to { filter: hue-rotate(360deg); }
+}
+
+/* Image border (PNG) animations */
+@keyframes spin-clockwise {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes border-breathe-centered {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); }
+  50% { transform: translate(-50%, -50%) scale(1.08); }
+}
+@keyframes border-breathe-simple {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+@keyframes border-breathe {
+  0%, 100% { scale: 1; }
+  50% { scale: 1.08; }
+}
+
+/* Aura border animations */
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.65; filter: brightness(0.9); }
+  50% { opacity: 1; filter: brightness(1.3); }
+}
+@keyframes aura-rotate {
+  from { filter: hue-rotate(0deg) brightness(1.1); }
+  to { filter: hue-rotate(360deg) brightness(1.1); }
+}
+
+/* Plan card animation */
+@keyframes plan-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.015); }
+}
+@keyframes border-pulse {
+  0%, 100% { box-shadow: 0 0 12px var(--primary-glow), 0 0 24px var(--primary-glow); }
+  50% { box-shadow: 0 0 24px var(--primary-glow), 0 0 48px var(--primary-glow); }
+}

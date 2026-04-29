@@ -1,7 +1,8 @@
 
-import React, { useState, useEffect, useRef, lazy, Suspense, useCallback } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense, useCallback, type CSSProperties } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Coins, Timer, Key, CheckCircle2, Lock, ChevronLeft, ChevronRight, Heart, Star, Zap, Ghost, Hexagon, ShoppingBag, Shirt, CircleDot } from 'lucide-react';
+import { Coins, Timer, Key, CheckCircle2, Lock, ChevronLeft, ChevronRight, Heart, Star, Zap, Ghost, Hexagon, ShoppingBag, Shirt, CircleDot, Palette, Frame, Clock, ImageIcon, Flame } from 'lucide-react';
+import Lottie from 'lottie-react';
 import { REWARD_SCHEDULE, DAILY_REWARDS_ENABLED } from '../lib/rewards';
 import { ShopItem, Outfit } from '../types';
 import { API_BASE } from '../lib/apiConfig';
@@ -10,6 +11,9 @@ import { PROFILE_BORDERS, getBorderConfig } from '../utils/gameData';
 import AnimatedBorder from './AnimatedBorder';
 import OnboardingNotice from './OnboardingNotice';
 import { SystemCoin } from './icons/SystemCoin';
+import { getItemsByCategory, getTodaysDeals, type StoreItem as KitStoreItem, ALL_STORE_ITEMS } from '../utils/storeItems';
+import { getEconomy, purchaseItem as kitPurchaseItem, equipItem as kitEquipItem, applyThemeVars, DEV_UNLOCK_ALL, type EquippedItems } from '../utils/storeEconomy';
+import { LynxCoin, BorderRing, ThemeSwatch } from './StoreComponents';
 
 const WardrobePreviewCard = lazy(() => import('./WardrobePreviewCard'));
 const BadgesSection = lazy(() => import('./BadgesSection'));
@@ -114,7 +118,11 @@ const ShopView: React.FC<ShopViewProps> = ({
   onPurchaseBorder,
   onEquipBorder,
 }) => {
-  const [storeTab, setStoreTab] = useState<'OUTFITS' | 'BADGES' | 'BORDERS'>('OUTFITS');
+  const [storeTab, setStoreTab] = useState<'OUTFITS' | 'BADGES' | 'BORDERS' | 'DEALS' | 'THEMES' | 'BANNERS_SHOP'>('OUTFITS');
+  const [kitEconomy, setKitEconomy] = useState(getEconomy());
+  const [dealTimer, setDealTimer] = useState('');
+  const [kitInfoItem, setKitInfoItem] = useState<KitStoreItem | null>(null);
+  const [kitPurchasedId, setKitPurchasedId] = useState<string | null>(null);
   const [timeUntilFree, setTimeUntilFree] = useState<number>(0);
   const [buyingItem, setBuyingItem] = useState<string | null>(null);
   const [dungeonHighlightActive, setDungeonHighlightActive] = useState(false);
@@ -213,25 +221,52 @@ const ShopView: React.FC<ShopViewProps> = ({
     }
   };
 
+  // Deal timer for the DEALS tab
+  useEffect(() => {
+    const tick = () => {
+      const now = new Date();
+      const next = new Date(now);
+      next.setHours(next.getHours() + 8 - (next.getHours() % 8), 0, 0, 0);
+      const diff = next.getTime() - now.getTime();
+      setDealTimer(`${Math.floor(diff / 3600000)}h ${String(Math.floor((diff % 3600000) / 60000)).padStart(2, '0')}m ${String(Math.floor((diff % 60000) / 1000)).padStart(2, '0')}s`);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const handleKitEquip = (slot: keyof EquippedItems, itemId: string) => {
+    const newId = kitEconomy.equipped[slot] === itemId ? null : itemId;
+    const newEco = kitEquipItem(slot, newId);
+    setKitEconomy(newEco);
+    if (slot === 'theme') {
+      const themeItem = newId ? ALL_STORE_ITEMS.find(i => i.id === newId) : null;
+      applyThemeVars(themeItem?.themeVars || null);
+    }
+  };
+
   return (
     <div id="tut-store" className="space-y-5 md:space-y-6 pb-10">
       <OnboardingNotice page="STORE" />
 
       {/* ── 2-TAB NAVIGATION ── */}
-      <div className="flex gap-1 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+      <div className="flex gap-1 p-1 rounded-xl overflow-x-auto" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
         {([
           { id: 'OUTFITS' as const, label: 'Outfits', icon: <Shirt size={13} /> },
           { id: 'BADGES' as const, label: 'Badges', icon: <Hexagon size={13} /> },
           { id: 'BORDERS' as const, label: 'Borders', icon: <CircleDot size={13} /> },
+          { id: 'DEALS' as const, label: 'Deals', icon: <Clock size={13} /> },
+          { id: 'THEMES' as const, label: 'Themes', icon: <Palette size={13} /> },
+          { id: 'BANNERS_SHOP' as const, label: 'Banners', icon: <ImageIcon size={13} /> },
         ]).map(tab => (
           <motion.button
             key={tab.id}
             onClick={() => setStoreTab(tab.id)}
             whileTap={{ scale: 0.97 }}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg font-mono font-black text-[10px] uppercase tracking-widest transition-all"
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg font-mono font-black text-[10px] uppercase tracking-widest transition-all whitespace-nowrap"
             style={storeTab === tab.id
-              ? { background: 'rgba(126,184,212,0.15)', border: '1px solid rgba(126,184,212,0.3)', color: '#c4b5fd', boxShadow: '0 0 12px rgba(126,184,212,0.15)' }
-              : { background: 'transparent', border: '1px solid transparent', color: '#6b7280' }
+              ? { background: 'rgba(126,184,212,0.15)', border: '1px solid rgba(126,184,212,0.3)', color: '#c4b5fd', boxShadow: '0 0 12px rgba(126,184,212,0.15)', minWidth: 'fit-content' }
+              : { background: 'transparent', border: '1px solid transparent', color: '#6b7280', minWidth: 'fit-content' }
             }
           >
             {tab.icon}
@@ -692,9 +727,314 @@ const ShopView: React.FC<ShopViewProps> = ({
           </div>
         </motion.div>
       )}
+
+      {/* ── TAB: DEALS ── */}
+      {storeTab === 'DEALS' && (
+        <motion.div key="deals-tab" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+          <div className="flex items-center justify-center gap-2 py-2 rounded-xl" style={{ background: 'rgba(126,184,212,0.06)', border: '1px solid rgba(126,184,212,0.1)' }}>
+            <Clock size={13} style={{ color: '#7EB8D4' }} />
+            <span className="text-[11px] font-mono font-bold text-gray-400">Refreshes in <span style={{ color: '#7EB8D4' }}>{dealTimer || '...'}</span></span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            {getTodaysDeals().map(d => (
+              <KitGlowCard key={d.item.id} item={d.item} discount={d.discount}
+                owned={DEV_UNLOCK_ALL || kitEconomy.owned.includes(d.item.id)}
+                equipped={kitEconomy.equipped[d.item.category as keyof EquippedItems] === d.item.id}
+                canAfford={DEV_UNLOCK_ALL || gold >= Math.round(d.item.price * (1 - d.discount / 100))}
+                onBuy={() => { const p = kitPurchaseItem(d.item.id, Math.round(d.item.price * (1 - d.discount / 100))); if (p) { setKitEconomy(p); setKitPurchasedId(d.item.id); setTimeout(() => setKitPurchasedId(null), 1500); } }}
+                onEquip={d.item.category !== 'consumable' ? () => handleKitEquip(d.item.category as keyof EquippedItems, d.item.id) : undefined}
+                onInfo={() => setKitInfoItem(d.item)}
+              />
+            ))}
+          </div>
+        </motion.div>
+      )}
+
+      {/* ── TAB: THEMES ── */}
+      {storeTab === 'THEMES' && (
+        <motion.div key="themes-tab" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="text-[10px] font-mono font-bold tracking-[0.3em] uppercase text-gray-400">APP THEMES</div>
+            <div className="flex-1 h-px bg-system-border" />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            {getItemsByCategory('theme').map(item => (
+              <KitGlowCard key={item.id} item={item}
+                owned={DEV_UNLOCK_ALL || kitEconomy.owned.includes(item.id)}
+                equipped={kitEconomy.equipped.theme === item.id}
+                canAfford={DEV_UNLOCK_ALL || gold >= item.price}
+                onBuy={() => { const p = kitPurchaseItem(item.id, item.price); if (p) { setKitEconomy(p); } }}
+                onEquip={() => handleKitEquip('theme', item.id)}
+                onInfo={() => setKitInfoItem(item)}
+              />
+            ))}
+          </div>
+        </motion.div>
+      )}
+
+      {/* ── TAB: BANNERS_SHOP ── */}
+      {storeTab === 'BANNERS_SHOP' && (
+        <motion.div key="banners-shop-tab" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="text-[10px] font-mono font-bold tracking-[0.3em] uppercase text-gray-400">PROFILE BANNERS</div>
+            <div className="flex-1 h-px bg-system-border" />
+          </div>
+          <div className="space-y-4">
+            {getItemsByCategory('banner').map(item => {
+              const isEquipped = kitEconomy.equipped.banner === item.id;
+              return (
+                <div key={item.id} className="relative rounded-2xl overflow-hidden" style={{ border: isEquipped ? '2px solid rgba(126,184,212,0.4)' : '1px solid rgba(255,255,255,0.06)' }}>
+                  {item.bannerImage && (
+                    <img src={item.bannerImage} alt={item.name} style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover', display: 'block' }} />
+                  )}
+                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '50%', background: 'linear-gradient(transparent, rgba(0,0,0,0.85))', pointerEvents: 'none' }} />
+                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                      <div className="text-sm font-black text-white">{item.name}</div>
+                      {item.price > 0 && <div className="text-[11px] text-gray-400 font-mono mt-0.5">{item.price} G</div>}
+                    </div>
+                    <button
+                      onClick={() => handleKitEquip('banner', item.id)}
+                      className="px-5 py-2 rounded-xl font-mono font-black text-[11px] uppercase tracking-wider transition-all"
+                      style={{
+                        background: isEquipped ? 'rgba(255,255,255,0.1)' : 'linear-gradient(135deg, #7EB8D4, #5a9ab5)',
+                        color: isEquipped ? 'rgba(255,255,255,0.5)' : '#fff',
+                        border: 'none', cursor: 'pointer',
+                      }}
+                    >
+                      {isEquipped ? '✓ EQUIPPED' : 'EQUIP'}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </motion.div>
+      )}
+
+      {/* ── THEME PREVIEW MODAL ── */}
+      {kitInfoItem && kitInfoItem.category === 'theme' && (
+        <KitThemePreviewModal item={kitInfoItem} onClose={() => setKitInfoItem(null)} />
+      )}
+
+      {/* ── BORDER PREVIEW MODAL ── */}
+      {kitInfoItem && kitInfoItem.category === 'border' && (
+        <KitBorderPreviewModal item={kitInfoItem} onClose={() => setKitInfoItem(null)} />
+      )}
     </div>
   );
 };
 
 export default ShopView;
 
+
+/* ═══════════════════════════════════
+   KitGlowCard — Premium card for kit items
+   ═══════════════════════════════════ */
+const KIT_CAT_COLORS: Record<string, string> = {
+  border: '#705820', theme: '#8B5CF6', deals: '#8d702d', banner: '#06B6D4', consumable: '#22C55E', title: '#F59E0B',
+};
+
+function KitGlowCard({ item, discount, owned, equipped, canAfford, onBuy, onEquip, onInfo }: {
+  item: KitStoreItem; discount?: number; owned?: boolean; equipped?: boolean;
+  canAfford: boolean; onBuy: () => void; onEquip?: () => void; onInfo?: () => void;
+}) {
+  const catColor = KIT_CAT_COLORS[item.category] || '#7EB8D4';
+  const finalPrice = discount ? Math.round(item.price * (1 - discount / 100)) : item.price;
+
+  return (
+    <div style={{
+      borderRadius: 16, overflow: 'hidden', position: 'relative',
+      background: `linear-gradient(160deg, ${catColor}22 0%, #111828 55%, #0d1118 100%)`,
+      border: `1.5px solid ${catColor}40`,
+      textAlign: 'center', padding: '16px 10px 14px',
+      minHeight: 210, display: 'flex', flexDirection: 'column', alignItems: 'center',
+    }}>
+      {/* Discount badge */}
+      {discount && (
+        <div style={{
+          position: 'absolute', top: 8, left: 8, zIndex: 3,
+          padding: '3px 8px', borderRadius: 6,
+          background: '#22C55E', fontSize: 9, fontWeight: 900, color: '#000',
+        }}>
+          -{discount}%
+        </div>
+      )}
+
+      {/* Info icon */}
+      {onInfo && (
+        <div onClick={(e) => { e.stopPropagation(); onInfo(); }} style={{
+          position: 'absolute', top: 8, right: 8, zIndex: 3,
+          width: 22, height: 22, borderRadius: 6,
+          background: `${catColor}30`, border: `1px solid ${catColor}50`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 11, fontWeight: 900, color: catColor, cursor: 'pointer',
+        }}>
+          i
+        </div>
+      )}
+
+      {/* Name */}
+      <div style={{ position: 'relative', zIndex: 2, marginBottom: 10, marginTop: discount ? 18 : 0 }}>
+        <div style={{ fontSize: 15, fontWeight: 900, color: '#fff', lineHeight: 1.2, marginBottom: 3 }}>
+          {item.name}
+        </div>
+        <div style={{ fontSize: 11, fontWeight: 600, color: catColor, textTransform: 'capitalize', opacity: 0.9 }}>
+          {item.tier} {item.category}
+        </div>
+      </div>
+
+      {/* Preview */}
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', zIndex: 2, width: '100%', minHeight: 80 }}>
+        {item.category === 'theme' && item.themeVars && (
+          <div style={{ width: '90%' }}><ThemeSwatch themeVars={item.themeVars} /></div>
+        )}
+        {item.category === 'border' && item.borderConfig && (
+          <BorderRing config={item.borderConfig} size={80} />
+        )}
+        {item.category === 'banner' && item.bannerImage && (
+          <div style={{ width: '90%', aspectRatio: '16/9', borderRadius: 10, overflow: 'hidden', border: `1px solid ${catColor}30` }}>
+            <img src={item.bannerImage} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          </div>
+        )}
+      </div>
+
+      {/* Price / Equip */}
+      <div style={{ position: 'relative', zIndex: 2, marginTop: 10, width: '100%' }}>
+        {owned ? (
+          onEquip ? (
+            <button onClick={onEquip} style={{
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+              padding: '8px 24px', border: 'none', cursor: 'pointer', borderRadius: 20,
+              background: equipped ? `linear-gradient(135deg, ${catColor}, ${catColor}CC)` : 'rgba(255,255,255,0.08)',
+              color: equipped ? '#000' : catColor, fontSize: 11, fontWeight: 800,
+            }}>
+              {equipped ? '✓ EQUIPPED' : 'EQUIP'}
+            </button>
+          ) : (
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#22C55E' }}>✓ Owned</span>
+          )
+        ) : (
+          <button onClick={onBuy} disabled={!canAfford} style={{
+            display: 'inline-flex', alignItems: 'center', gap: 5,
+            padding: '8px 22px', borderRadius: 20, cursor: canAfford ? 'pointer' : 'default',
+            background: canAfford ? `linear-gradient(135deg, ${catColor}35, ${catColor}15)` : 'rgba(255,255,255,0.04)',
+            border: canAfford ? `2px solid ${catColor}60` : '2px solid rgba(255,255,255,0.08)',
+            color: canAfford ? '#fff' : 'rgba(255,255,255,0.35)', fontSize: 13, fontWeight: 800,
+          }}>
+            {discount && <span style={{ textDecoration: 'line-through', opacity: 0.35, fontSize: 10 }}>{item.price}</span>}
+            {canAfford ? <LynxCoin size={15} /> : <Lock size={12} />}
+            <span style={{ fontSize: 14 }}>{finalPrice}</span>
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+
+/* ═══════════════════════════════════
+   KitThemePreviewModal
+   ═══════════════════════════════════ */
+function KitThemePreviewModal({ item, onClose }: { item: KitStoreItem; onClose: () => void }) {
+  const tv = item.themeVars;
+  if (!tv) return null;
+  const primary = tv['--primary'] || '#C8A84E';
+  const surface = tv['--surface'] || '#12141a';
+  const bg = tv['--bg'] || '#0a0a0f';
+  const border = tv['--border'] || 'rgba(200,168,78,0.08)';
+  const mockCard: CSSProperties = { background: surface, borderRadius: 12, padding: '12px 14px', border: `1px solid ${border}` };
+
+  return (
+    <div onClick={onClose} style={{
+      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+      background: 'rgba(0,0,0,0.92)', zIndex: 9999,
+      display: 'flex', flexDirection: 'column', alignItems: 'center',
+      overflow: 'auto', paddingTop: 40, paddingBottom: 60,
+      animation: 'fadeIn 0.25s ease-out', backdropFilter: 'blur(12px)',
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{ width: '90%', maxWidth: 360 }}>
+        <div style={{ textAlign: 'center', marginBottom: 20 }}>
+          <div style={{ fontSize: 20, fontWeight: 900, color: '#fff' }}>{item.name}</div>
+          <div style={{ fontSize: 12, color: primary, fontWeight: 700, opacity: 0.8, marginTop: 2 }}>{item.tier} Theme Preview</div>
+        </div>
+
+        {/* HOME mockup */}
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 10, fontWeight: 800, color: primary, letterSpacing: 1.5, marginBottom: 8 }}>HOME</div>
+          <div style={{ background: bg, borderRadius: 16, padding: 16, border: `1px solid ${border}` }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14 }}>
+              <div style={{ width: 56, height: 56, borderRadius: '50%', border: `3px solid ${primary}`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 0 12px ${primary}40` }}>
+                <span style={{ fontSize: 18, fontWeight: 900, color: '#fff' }}>82</span>
+              </div>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>Overall Score</div>
+                <div style={{ fontSize: 10, color: primary, fontWeight: 600 }}>Top 15% — Above Average</div>
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+              {['Jawline', 'Skin', 'Eyes'].map((label, i) => (
+                <div key={label} style={mockCard}>
+                  <div style={{ fontSize: 18, fontWeight: 900, color: primary }}>{[78, 85, 90][i]}</div>
+                  <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', fontWeight: 700, marginTop: 2 }}>{label.toUpperCase()}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div style={{ textAlign: 'center', marginTop: 24 }}>
+          <button onClick={onClose} style={{
+            padding: '10px 36px', borderRadius: 12,
+            background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
+            color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+          }}>
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+/* ═══════════════════════════════════
+   KitBorderPreviewModal
+   ═══════════════════════════════════ */
+function KitBorderPreviewModal({ item, onClose }: { item: KitStoreItem; onClose: () => void }) {
+  const glow = item.borderConfig?.glowColor || 'rgba(200,168,78,0.4)';
+  const size = 220;
+
+  return (
+    <div onClick={onClose} style={{
+      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+      background: 'rgba(0,0,0,0.92)', zIndex: 9999,
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      animation: 'fadeIn 0.25s ease-out', backdropFilter: 'blur(12px)',
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{ textAlign: 'center', maxWidth: 300, width: '80%' }}>
+        <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', marginBottom: 4 }}>{item.name}</div>
+        <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'capitalize', marginBottom: 24, color: item.borderConfig?.colors?.[0] || '#C8A84E', opacity: 0.8 }}>
+          {item.tier} Border
+        </div>
+
+        <div style={{ position: 'relative', width: size, height: size, margin: '0 auto', overflow: 'visible' }}>
+          <div style={{ position: 'absolute', top: '50%', left: '50%', width: size + 60, height: size + 60, borderRadius: '50%', background: `radial-gradient(circle, ${glow} 0%, transparent 70%)`, transform: 'translate(-50%, -50%)' }} />
+          {item.borderConfig && <BorderRing config={item.borderConfig} size={size * 0.8} />}
+        </div>
+
+        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 28, maxWidth: 260, margin: '28px auto 0', lineHeight: 1.4 }}>
+          {item.description}
+        </div>
+
+        <button onClick={onClose} style={{
+          marginTop: 32, padding: '10px 36px', borderRadius: 12,
+          background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
+          color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+        }}>
+          Close
+        </button>
+      </div>
+    </div>
+  );
+}
