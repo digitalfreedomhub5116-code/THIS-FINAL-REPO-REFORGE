@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Settings, Store as StoreIcon, Package, BarChart3, Award,
   Terminal, MessageCircle, User as UserIcon, MoreHorizontal,
-  X, Flame, Coins, ChevronRight, Lock as LockIcon,
+  X, ChevronRight, Lock as LockIcon,
   Swords, Dumbbell, Brain, Users, Shield, Target, Zap,
 } from 'lucide-react';
 import { PlayerData, HealthProfile, Outfit, Tab, Rank, CoreStats } from '../types';
@@ -40,29 +40,8 @@ interface YouViewProps {
   onTestSetRank?: (rank: string) => void;
 }
 
-// ─── Top bar ─────────────────────────────────────────────────────────
-const TopBar: React.FC<{ player: PlayerData; onSettings: () => void }> = ({ player, onSettings }) => {
-  const xpPct = Math.min(100, Math.round((player.currentXp / Math.max(1, player.requiredXp)) * 100));
-  return (
-    <div className="flex items-center justify-between gap-3 px-1 pt-2 pb-3">
-      <div className="flex items-center gap-2 min-w-0 flex-1">
-        <div className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-black/40 border border-white/10">
-          <div className="text-[10px] font-mono font-bold text-[#7EB8D4] tracking-wider">Lv.{player.level}</div>
-          <div className="w-16 h-1.5 bg-black/60 rounded-full overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-[#7EB8D4] to-[#7EB8D4]" style={{ width: `${xpPct}%` }} />
-          </div>
-        </div>
-      </div>
-      <div className="flex items-center gap-3 text-[11px] font-mono font-bold">
-        <div className="flex items-center gap-1 text-orange-400" title="Streak"><Flame size={15} /> <span className="text-[13px] font-black">{player.streak || 0}</span></div>
-        <div className="flex items-center gap-1 text-yellow-400" title="Gold"><Coins size={13} /> <span className="text-[13px] font-black">{player.gold || 0}</span></div>
-      </div>
-      <button onClick={onSettings} className="p-1.5 rounded-full hover:bg-white/5 transition" aria-label="Settings">
-        <Settings size={16} className="text-gray-400" />
-      </button>
-    </div>
-  );
-};
+
+
 
 // ─── Avatar hero zone ────────────────────────────────────────────────
 const AvatarHero: React.FC<{
@@ -588,7 +567,6 @@ const YouView: React.FC<YouViewProps> = ({
           paddingRight: 'calc(50vw - 50%)',
         }}
       >
-        <TopBar player={player} onSettings={() => setShowConfig(true)} />
 
         {/* Avatar hero */}
         <AvatarHero player={player} outfit={equippedOutfit} onRankTap={() => setShowRank(true)} />

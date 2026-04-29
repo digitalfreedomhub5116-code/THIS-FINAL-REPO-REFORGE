@@ -32,16 +32,7 @@ const AnimatedCoinIcon: React.FC<{ size?: number }> = ({ size = 16 }) => {
   return <_CoinSVGFallback size={Math.min(size, 18)} />;
 };
 
-const AnimatedKeyIcon: React.FC<{ size?: number }> = ({ size = 16 }) => (
-  <svg
-    width={size} height={size} viewBox="0 0 14 14"
-    style={{ animation: 'keyWiggle 4s ease-in-out infinite', filter: 'drop-shadow(0 0 4px #7EB8D4)', flexShrink: 0 }}
-  >
-    <circle cx="5" cy="5.5" r="3" fill="none" stroke="#9ACDE3" strokeWidth="1.4"/>
-    <line x1="7.5" y1="7" x2="12" y2="11.5" stroke="#9ACDE3" strokeWidth="1.4" strokeLinecap="round"/>
-    <line x1="9.5" y1="9" x2="9.5" y2="11" stroke="#9ACDE3" strokeWidth="1.4" strokeLinecap="round"/>
-  </svg>
-);
+
 
 const AnimatedCounter: React.FC<{ value: number }> = ({ value }) => {
   const [display, setDisplay] = useState(value);
@@ -77,7 +68,7 @@ interface LayoutProps {
   playerRank?: string;
   streak?: number;
   gold?: number;
-  keys?: number;
+
   consumables?: Record<string, never>;
   replitUser?: ReplitUser;
   notificationHistory?: StoredNotification[];
@@ -117,7 +108,7 @@ const Layout: React.FC<LayoutProps> = ({
   playerUsername,
   streak = 0,
   gold = 0,
-  keys = 0,
+
   consumables,
   replitUser,
   playerAvatarUrl,
@@ -456,13 +447,16 @@ const Layout: React.FC<LayoutProps> = ({
                 </div>
               </div>
 
-              {/* RIGHT: Keys + Gold + Bell */}
-              <div id="tut-gold-display" className="flex items-center gap-2.5 flex-shrink-0">
+              {/* RIGHT: Streak + Gold + Bell */}
+              <div id="tut-gold-display" className="flex items-center gap-3.5 flex-shrink-0">
 
-                {/* Keys */}
-                <div id="user-keys-balance" className="flex items-center gap-1">
-                  <AnimatedKeyIcon size={15} />
-                  <span className="font-mono text-[13px] font-bold text-[#9ACDE3] whitespace-nowrap"><AnimatedCounter value={keys} /></span>
+                {/* Streak */}
+                <div id="user-streak-count" className="flex items-center gap-1.5">
+                  <svg width={18} height={18} viewBox="0 0 24 24" fill="none" style={{ filter: 'drop-shadow(0 0 5px rgba(249,115,22,0.6))', flexShrink: 0 }}>
+                    <path d="M12 2C6.5 8.5 4 12 4 15a8 8 0 0 0 16 0c0-3-2.5-6.5-8-13z" fill="#f97316" stroke="#fb923c" strokeWidth="0.5"/>
+                    <path d="M12 9c-2 3-3 5-3 7a3 3 0 0 0 6 0c0-2-1-4-3-7z" fill="#fbbf24"/>
+                  </svg>
+                  <span className="font-mono text-[15px] font-black text-orange-400 whitespace-nowrap" style={{ textShadow: '0 0 8px rgba(249,115,22,0.4)' }}><AnimatedCounter value={streak} /></span>
                 </div>
 
                 {/* Gold */}
@@ -470,12 +464,12 @@ const Layout: React.FC<LayoutProps> = ({
                   id="gold-header-btn"
                   onClick={!headerDisabled ? onGoldClick : undefined}
                   disabled={headerDisabled}
-                  className="flex items-center gap-0.5 transition-all active:scale-95"
+                  className="flex items-center gap-1 transition-all active:scale-95"
                 >
-                  <div className="flex items-center justify-center" style={{ width: 35 }}>
-                    <AnimatedCoinIcon size={35} />
+                  <div className="flex items-center justify-center" style={{ width: 38 }}>
+                    <AnimatedCoinIcon size={38} />
                   </div>
-                  <span id="user-wallet-balance" className="font-mono text-[13px] font-bold whitespace-nowrap" style={{ color: '#F0B232', textShadow: '0 0 8px rgba(240,178,50,0.3)' }}><AnimatedCounter value={gold} /></span>
+                  <span id="user-wallet-balance" className="font-mono text-[15px] font-black whitespace-nowrap" style={{ color: '#F0B232', textShadow: '0 0 8px rgba(240,178,50,0.3)' }}><AnimatedCounter value={gold} /></span>
                 </button>
 
                 {/* Bell */}
