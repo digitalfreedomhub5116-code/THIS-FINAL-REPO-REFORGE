@@ -104,7 +104,7 @@ async function startServer() {
     },
   };
 
-  if (process.env.DATABASE_URL) {
+  if (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('postgresql')) {
     const pgPool = new Pool({ connectionString: process.env.DATABASE_URL, connectionTimeoutMillis: 10000, family: 4 });
     pgPool.query(`
       CREATE TABLE IF NOT EXISTS session (
