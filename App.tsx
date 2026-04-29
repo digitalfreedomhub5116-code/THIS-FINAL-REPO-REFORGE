@@ -5060,6 +5060,8 @@ const App: React.FC = () => {
 
                     }}
 
+                    onTestSetRank={(rank) => setPlayer(prev => ({ ...prev, rank }))}
+
                   />
 
                 </ErrorBoundary>

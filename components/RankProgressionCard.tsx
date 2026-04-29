@@ -7,6 +7,8 @@ import type { RankType } from './RankBadge';
 interface RankProgressionCardProps {
   level: number;
   rank: string;
+  /** [TEST] Callback to override rank for testing. Remove after testing. */
+  onTestSetRank?: (rank: string) => void;
 }
 
 const RANKS = [
@@ -182,7 +184,7 @@ const BADGE_AREA   = 70;
 const CONTAINER_H  = TRACK_HEIGHT + BADGE_AREA * 2;
 const CHECKPOINT_COUNT = 5;
 
-const RankProgressionCard: React.FC<RankProgressionCardProps> = ({ level, rank }) => {
+const RankProgressionCard: React.FC<RankProgressionCardProps> = ({ level, rank, onTestSetRank }) => {
   const [scrollFill, setScrollFill]     = useState(0);
   const [showAllRanks, setShowAllRanks] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -568,7 +570,7 @@ const RankProgressionCard: React.FC<RankProgressionCardProps> = ({ level, rank }
                 <div>
                   <div className="text-white font-black text-sm tracking-tight">ALL RANKS</div>
                   <div className="text-gray-600 font-mono text-[10px] tracking-widest mt-0.5">
-                    HUNTER PROGRESSION SYSTEM
+                    {onTestSetRank ? '⚠ TAP TO SET RANK (TEST MODE)' : 'HUNTER PROGRESSION SYSTEM'}
                   </div>
                 </div>
                 <button
@@ -596,7 +598,9 @@ const RankProgressionCard: React.FC<RankProgressionCardProps> = ({ level, rank }
                         background: isCurrent ? `${r.color}12` : 'rgba(255,255,255,0.015)',
                         border: isCurrent ? `1px solid ${r.color}55` : '1px solid rgba(255,255,255,0.04)',
                         boxShadow: isCurrent ? `0 0 14px ${r.glow}30` : 'none',
+                        cursor: onTestSetRank ? 'pointer' : 'default',
                       }}
+                      onClick={() => onTestSetRank?.(r.id)}
                     >
                       <RankBadge rank={r} unlocked={unlocked} />
                       <div className="flex-1 min-w-0">
