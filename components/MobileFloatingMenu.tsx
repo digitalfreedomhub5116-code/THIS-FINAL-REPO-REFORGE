@@ -551,13 +551,17 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
       {/* FABs */}
       <div className="fixed right-4 z-[80] flex flex-col gap-3.5 md:hidden" style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 6.5rem)' }}>
 
-        {/* Dusk Chat FAB — 3D icon with pulsing ring */}
+        {/* Dusk Chat FAB — 3D icon with floating + notification */}
         {onOpenDuskChat && (
           <motion.div
             className="relative"
             initial={{ x: 100, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ type: 'spring', stiffness: 200, damping: 20, delay: 0.3 }}
+            animate={{ x: 0, opacity: 1, y: [0, -8, 0] }}
+            transition={{
+              x: { type: 'spring', stiffness: 200, damping: 20, delay: 0.3 },
+              opacity: { duration: 0.5, delay: 0.3 },
+              y: { duration: 3, repeat: Infinity, ease: 'easeInOut', delay: 0.3 },
+            }}
           >
             <button
               onClick={onOpenDuskChat}
@@ -577,6 +581,15 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
                 className="w-full h-full object-cover rounded-full"
               />
             </button>
+            {/* Unread notification pip */}
+            {(player.duskUnreadCount || 0) > 0 && (
+              <span className="pointer-events-none absolute -top-0.5 -right-0.5 flex h-4 w-4">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 bg-red-500" />
+                <span className="relative inline-flex rounded-full h-4 w-4 bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)] items-center justify-center text-[8px] font-black text-white">
+                  {player.duskUnreadCount > 9 ? '9+' : player.duskUnreadCount}
+                </span>
+              </span>
+            )}
           </motion.div>
         )}
 
