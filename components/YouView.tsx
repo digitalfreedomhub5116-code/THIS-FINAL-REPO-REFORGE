@@ -73,12 +73,11 @@ const AvatarHero: React.FC<{
   };
 
   return (
-    <AnimatedBorder borderId={player.equippedBorder} className="w-full" style={{ aspectRatio: '4 / 5' }}>
-    <div className="relative w-full h-full overflow-hidden" style={{ background: '#000' }}>
+    <div className="relative w-full overflow-hidden rounded-2xl" style={{ aspectRatio: '3 / 4', background: '#000' }}>
       {/* Accent radial glow (behind avatar) */}
       <div
         className="absolute inset-0 pointer-events-none"
-        style={{ background: `radial-gradient(ellipse 55% 50% at 50% 45%, ${accent}33 0%, transparent 65%)` }}
+        style={{ background: `radial-gradient(ellipse 55% 50% at 50% 45%, ${accent}22 0%, transparent 65%)` }}
       />
 
       {/* Loop video — waist-up cropped */}
@@ -116,32 +115,39 @@ const AvatarHero: React.FC<{
         </div>
       )}
 
-      {/* Codename + title — floating top-left */}
-      <div className="absolute top-3 left-3 right-20 z-10">
-        <div className="text-white font-bold text-xl leading-tight truncate" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.8)' }}>
-          {player.username ? `@${player.username}` : player.name || 'Player'}
+      {/* Bottom gradient fade for text readability */}
+      <div className="absolute bottom-0 left-0 right-0 h-28 pointer-events-none" style={{ background: 'linear-gradient(to top, rgba(5,5,10,0.95) 0%, transparent 100%)' }} />
+
+      {/* Name + title — bottom-left, compact */}
+      <div className="absolute bottom-4 left-4 right-20 z-10">
+        <div className="text-white font-bold text-lg leading-tight truncate" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.8)' }}>
+          {player.name || 'Player'}
         </div>
+        {player.username && (
+          <div className="text-[11px] font-mono text-gray-400 truncate mt-0.5" style={{ textShadow: '0 2px 10px rgba(0,0,0,0.9)' }}>
+            @{player.username}
+          </div>
+        )}
         {(player.title || player.job) && (
-          <div className="text-xs font-mono tracking-wide truncate" style={{ color: accent, textShadow: '0 2px 10px rgba(0,0,0,0.9)' }}>
+          <div className="text-[10px] font-mono tracking-wide truncate mt-1" style={{ color: accent, textShadow: '0 2px 10px rgba(0,0,0,0.9)' }}>
             {player.title || player.job}
           </div>
         )}
       </div>
 
-      {/* Rank emblem — floating top-right, tappable */}
+      {/* Rank emblem — bottom-right, tappable */}
       <button
         onClick={onRankTap}
-        className="absolute top-3 right-3 z-10 flex flex-col items-center gap-0.5 group"
+        className="absolute bottom-3 right-3 z-10 flex flex-col items-center gap-0.5 group"
         aria-label="View rank progression"
       >
-        <RankBadge rank={(player.rank || 'E') as RankType} size={72} animated showLabel />
+        <RankBadge rank={(player.rank || 'E') as RankType} size={56} animated showLabel />
       </button>
     </div>
-    </AnimatedBorder>
   );
 };
 
-// ─── Action tile — liquid glass ──────────────────────────────────────
+// ─── Action tile — clean minimal icon ────────────────────────────────
 const ActionTile: React.FC<{
   icon: React.ReactNode;
   label: string;
@@ -152,61 +158,26 @@ const ActionTile: React.FC<{
 }> = ({ icon, label, badge, accent = '#7EB8D4', isSoon, onClick }) => (
   <button
     onClick={onClick}
-    className="group relative flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl active:scale-[0.95] transition-all duration-200 min-h-[78px] overflow-hidden"
-    style={{
-      background: `linear-gradient(145deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 50%, rgba(${parseInt(accent!.slice(1,3),16)},${parseInt(accent!.slice(3,5),16)},${parseInt(accent!.slice(5,7),16)},0.04) 100%)`,
-      border: '1px solid rgba(255,255,255,0.09)',
-      backdropFilter: 'blur(16px)',
-      WebkitBackdropFilter: 'blur(16px)',
-      boxShadow: `inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -1px 0 rgba(0,0,0,0.2), 0 2px 8px rgba(0,0,0,0.3)`,
-    }}
+    className="group relative flex flex-col items-center justify-center gap-1.5 py-3 active:scale-[0.92] transition-all duration-200"
   >
-    {/* Glass highlight — top edge shine */}
-    <div
-      className="absolute top-0 left-[10%] right-[10%] h-[1px] rounded-full"
-      style={{ background: `linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)` }}
-    />
-
-    {/* Shimmer sweep on hover */}
-    <div
-      className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
-      style={{
-        background: `linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.06) 45%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.06) 55%, transparent 60%)`,
-        backgroundSize: '200% 100%',
-        animation: 'glass-shimmer 1.6s ease-in-out',
-      }}
-    />
-
-    {/* Accent glow pool at bottom */}
-    <div
-      className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3/4 h-6 rounded-full pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-      style={{ background: accent, filter: 'blur(14px)', opacity: 0 }}
-    />
-
-    {/* Icon with breathing glow */}
-    <div className="relative z-10">
-      <div
-        className="transition-all duration-300 group-hover:drop-shadow-[0_0_8px_var(--glow)]"
-        style={{ color: accent, '--glow': accent } as React.CSSProperties}
-      >
-        {icon}
-      </div>
+    {/* Icon */}
+    <div className="relative w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200"
+      style={{ background: `${accent}12`, color: accent }}
+    >
+      {icon}
       {badge !== undefined && badge !== 0 && (
-        <div className="absolute -top-2 -right-3 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[9px] font-bold font-mono flex items-center justify-center shadow-[0_0_8px_rgba(239,68,68,0.6)]">
+        <div className="absolute -top-1.5 -right-1.5 min-w-[16px] h-[16px] px-1 rounded-full bg-red-500 text-white text-[8px] font-bold font-mono flex items-center justify-center">
           {badge}
         </div>
       )}
     </div>
 
-    <div className="relative z-10 text-[10px] font-mono font-bold text-gray-300 tracking-wider uppercase group-hover:text-white transition-colors duration-200">
+    <div className="text-[9px] font-mono font-bold text-gray-400 tracking-wider uppercase">
       {label}
     </div>
 
-    {/* "SOON" tag for prosthetic tiles */}
     {isSoon && (
-      <div className="absolute top-1.5 right-1.5 z-10 px-1 py-[1px] rounded text-[6px] font-mono font-bold tracking-widest uppercase"
-        style={{ background: 'rgba(255,255,255,0.06)', color: '#6b7280', border: '1px solid rgba(255,255,255,0.08)' }}
-      >
+      <div className="absolute top-1 right-0 px-1 py-[1px] rounded text-[5px] font-mono font-bold tracking-widest uppercase text-gray-600">
         SOON
       </div>
     )}
@@ -556,24 +527,14 @@ const YouView: React.FC<YouViewProps> = ({
 
   return (
     <div className="w-full max-w-2xl mx-auto pb-24">
-      {/* ── Full-bleed BLACK hero section (breaks out of parent padding) ── */}
-      <div
-        className="relative"
-        style={{
-          background: '#000',
-          marginLeft: 'calc(50% - 50vw)',
-          marginRight: 'calc(50% - 50vw)',
-          paddingLeft: 'calc(50vw - 50%)',
-          paddingRight: 'calc(50vw - 50%)',
-        }}
-      >
-
+      {/* ── Hero section ── */}
+      <div className="relative mb-5">
         {/* Avatar hero */}
         <AvatarHero player={player} outfit={equippedOutfit} onRankTap={() => setShowRank(true)} />
       </div>
 
-      {/* Action grid */}
-      <div className="grid grid-cols-4 gap-2 mt-4">
+      {/* Action grid — clean 4-col */}
+      <div className="grid grid-cols-4 gap-1 px-2">
         <ActionTile
           icon={<StoreIcon size={22} />}
           label="Store"
