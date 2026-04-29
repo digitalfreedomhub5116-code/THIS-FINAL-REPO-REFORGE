@@ -14,7 +14,7 @@ export const FEATURE_GATES: Record<string, FeatureGateConfig> = {
   HEALTH_CUSTOM_WORKOUT: { level: 5, label: 'AI Workout Generator', description: 'Generate personalized workout protocols.' },
   HEALTH_CALORIE_LIMIT: { level: 5, label: 'Custom Calorie Limit', description: 'Set a custom daily calorie target.' },
   STORE: { level: 1, label: 'Armory & Store', description: 'Unlock outfits, chests, and more.' },
-  LEADERBOARD: { level: 3, label: 'Hunter Rankings', description: 'Unlock the global leaderboard at level 3 and compete with others.' },
+  LEADERBOARD: { level: 1, label: 'Hunter Rankings', description: 'Compete on the global leaderboard.' },
   MOBILE_CHESTS: { level: 5, label: 'Chest Vault', description: 'Open legendary and alliance chests using gold.' },
 };
 
@@ -35,7 +35,6 @@ export function useFeatureGate(featureKey: string, playerLevel: number): { locke
 // ── Nav locked tabs by level ──
 export function getLockedTabs(playerLevel: number): Record<string, number> {
   const locked: Record<string, number> = {};
-  if (playerLevel < 3) locked['LEADERBOARD'] = 3;
   return locked;
 }
 
