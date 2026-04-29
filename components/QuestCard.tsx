@@ -186,10 +186,10 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
         }}
       />
 
-      <div className="pl-5 pr-4 pt-3 pb-2.5">
+      <div className="pl-5 pr-4 pt-4 pb-3.5">
 
         {/* Top row: rank + title + XP */}
-        <div className="flex items-start gap-3">
+        <div className="flex items-start gap-3.5">
           {/* Rank badge */}
           <div
             className="w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-heading font-extrabold flex-shrink-0 mt-0.5"
@@ -231,68 +231,9 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
               );
             })()}
 
-            {/* Meta row: category pillars + daily badge */}
-            <div className="flex items-center gap-2 mt-1 flex-wrap">
-              {(quest.categories || (quest.category ? [quest.category] : [])).map((cat) => (
-                <span key={cat} className="flex items-center gap-1 text-[9px] font-mono font-bold uppercase tracking-wide" style={{ color: CAT_COLOR[cat] }}>
-                  {CAT_ICON[cat]}
-                  {cat}
-                </span>
-              ))}
-              {quest.isDaily && (
-                <span
-                  className="text-[8px] font-black font-mono tracking-widest px-1.5 py-0.5 rounded"
-                  style={{ color: '#7EB8D4', background: 'rgba(126,184,212,0.08)', border: '1px solid rgba(126,184,212,0.2)' }}
-                >
-                  DAILY
-                </span>
-              )}
-              {quest.goalId && (
-                <span
-                  className="flex items-center gap-0.5 text-[8px] font-black font-mono tracking-widest px-1.5 py-0.5 rounded"
-                  style={{ color: '#9ACDE3', background: 'rgba(192,132,252,0.08)', border: '1px solid rgba(192,132,252,0.2)' }}
-                >
-                  <Target size={8} /> GOAL
-                </span>
-              )}
-              {isMiniActive && (
-                <span className="text-[8px] font-mono text-[#7EB8D4]/60">↯ ACTIVATION MODE</span>
-              )}
-            </div>
-
-            {/* Pact badge */}
-            {quest.hasPact && quest.pactAmount && quest.pactAmount > 0 && (
-              <div className="flex items-center gap-1.5 mt-1">
-                {quest.pactStatus === 'active' && (
-                  <span
-                    className="flex items-center gap-1 text-[8px] font-black font-mono tracking-widest px-1.5 py-0.5 rounded"
-                    style={{ color: '#fbbf24', background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)' }}
-                  >
-                    <Coins size={10} /> {quest.pactAmount}G PLEDGED
-                  </span>
-                )}
-                {quest.pactStatus === 'honored' && (
-                  <span
-                    className="flex items-center gap-1 text-[8px] font-black font-mono tracking-widest px-1.5 py-0.5 rounded"
-                    style={{ color: '#4ade80', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)' }}
-                  >
-                    <Check size={8} /> {quest.pactAmount}G RETURNED · 1.25x XP
-                  </span>
-                )}
-                {quest.pactStatus === 'burned' && (
-                  <span
-                    className="flex items-center gap-1 text-[8px] font-black font-mono tracking-widest px-1.5 py-0.5 rounded"
-                    style={{ color: '#f87171', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}
-                  >
-                    <Flame size={8} /> {quest.pactAmount}G BURNED
-                  </span>
-                )}
-              </div>
-            )}
-
             {/* Goal title link */}
             {quest.goalTitle && (
-              <p className="text-[10px] text-[#7EB8D4]/60 font-mono mt-1 truncate">
+              <p className="text-[10px] text-[#7EB8D4]/60 font-mono mt-2 truncate">
                 Mission: {quest.goalTitle}
               </p>
             )}
@@ -426,7 +367,7 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
 
         {/* ── ACTIVE: compact inline actions ── */}
         {isActive && !isLocked && (
-          <div className="flex items-center gap-1.5 mt-2">
+          <div className="flex items-center gap-1.5 mt-3">
             {/* Sensor tracking */}
             {quest.sensorRequirements && onStartTracking && (
               quest.sensorTracking ? (
