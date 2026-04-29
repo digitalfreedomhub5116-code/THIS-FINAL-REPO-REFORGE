@@ -136,16 +136,8 @@ const RankBadge: React.FC<RankBadgeProps> = ({
           objectFit: 'contain',
           position: 'relative',
           zIndex: 1,
-          filter: rank === 'UNRANKED' ? 'grayscale(0.7) brightness(0.5)' : `drop-shadow(0 0 ${size * 0.08}px ${meta.glow})`,
+          filter: rank === 'UNRANKED' ? 'grayscale(0.7) brightness(0.5)' : 'none',
         }}
-        {...(animated && rank !== 'UNRANKED' ? {
-          animate: { filter: [
-            `drop-shadow(0 0 ${size * 0.06}px ${meta.glow})`,
-            `drop-shadow(0 0 ${size * 0.14}px ${meta.glow})`,
-            `drop-shadow(0 0 ${size * 0.06}px ${meta.glow})`,
-          ]},
-          transition: { duration: 2.8, repeat: Infinity, ease: 'easeInOut' },
-        } : {})}
       />
 
       {showLabel && (

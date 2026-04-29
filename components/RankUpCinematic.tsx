@@ -249,15 +249,15 @@ const RankUpCinematic: React.FC<RankUpCinematicProps> = ({ oldRank, newRank, onC
       <div className="relative z-10 flex flex-col items-center gap-6">
         <div className="relative flex items-center justify-center" style={{ width: badgeSize * 2, height: badgeSize * 2 }}>
 
-          {/* Ambient aura */}
+          {/* Ambient aura — no looping */}
           <motion.div
             className="absolute rounded-full pointer-events-none"
             style={{
               width: badgeSize * 1.5, height: badgeSize * 1.5,
               background: `radial-gradient(circle, ${phase === 'celebrate' ? newMeta.primary : oldMeta.primary}25, transparent 70%)`,
             }}
-            animate={phase === 'celebrate' ? { scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] } : {}}
-            transition={{ duration: 2.2, repeat: Infinity }}
+            animate={phase === 'celebrate' ? { scale: [1, 1.4, 1.1], opacity: [0.3, 0.9, 0.6] } : {}}
+            transition={{ duration: 2.2 }}
           />
 
           {/* ── Phase 1 & 2: OLD badge ── */}
@@ -269,12 +269,17 @@ const RankUpCinematic: React.FC<RankUpCinematicProps> = ({ oldRank, newRank, onC
                 initial={{ scale: 0.5, opacity: 0 }}
                 animate={
                   phase === 'crack'
-                    ? { scale: 1.15, opacity: 1, x: [0, -3, 3, -4, 4, -2, 2, 0], y: [0, 2, -2, 3, -3, 1, -1, 0] }
+                    ? {
+                        scale: [1, 1.05, 0.97, 1.08, 0.95, 1.1, 0.93, 1.15],
+                        x: [0, -6, 8, -10, 12, -8, 10, -5, 7, -12, 6, 0],
+                        y: [0, 4, -6, 8, -10, 5, -7, 9, -4, 6, -8, 0],
+                        rotate: [0, -2, 3, -4, 3, -2, 4, -3, 2, 0],
+                      }
                     : { scale: 1, opacity: 1 }
                 }
                 exit={{ scale: 1.5, opacity: 0, filter: 'blur(12px) brightness(2)', transition: { duration: 0.3 } }}
                 transition={phase === 'crack'
-                  ? { scale: { duration: 0.4 }, x: { duration: 0.6, repeat: Infinity }, y: { duration: 0.5, repeat: Infinity } }
+                  ? { duration: 0.8, ease: 'easeInOut' }
                   : { type: 'spring', stiffness: 200, damping: 18 }
                 }
               >
@@ -286,33 +291,8 @@ const RankUpCinematic: React.FC<RankUpCinematicProps> = ({ oldRank, newRank, onC
                     width: badgeSize - 20,
                     height: badgeSize - 20,
                     objectFit: 'contain',
-                    filter: `drop-shadow(0 0 ${badgeSize * 0.1}px ${oldMeta.glow})`,
                   }}
                 />
-
-                {/* Crack overlay (phase 2) */}
-                {phase === 'crack' && (
-                  <motion.svg
-                    className="absolute"
-                    width={badgeSize} height={badgeSize}
-                    viewBox="0 0 140 140"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: [0, 0.6, 0.9, 1] }}
-                    transition={{ duration: 0.6 }}
-                    style={{ pointerEvents: 'none' }}
-                  >
-                    <motion.line x1="70" y1="20" x2="45" y2="75" stroke="white" strokeWidth="2.5" strokeLinecap="round"
-                      initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.3 }} />
-                    <motion.line x1="70" y1="20" x2="95" y2="65" stroke="white" strokeWidth="2" strokeLinecap="round"
-                      initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.35, delay: 0.1 }} />
-                    <motion.line x1="45" y1="75" x2="30" y2="120" stroke="white" strokeWidth="2" strokeLinecap="round"
-                      initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.3, delay: 0.15 }} />
-                    <motion.line x1="95" y1="65" x2="110" y2="115" stroke="white" strokeWidth="1.5" strokeLinecap="round"
-                      initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.25, delay: 0.2 }} />
-                    <motion.line x1="70" y1="20" x2="70" y2="90" stroke="white" strokeWidth="1.5" strokeLinecap="round"
-                      initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.3, delay: 0.25 }} />
-                  </motion.svg>
-                )}
               </motion.div>
             )}
           </AnimatePresence>
@@ -343,7 +323,6 @@ const RankUpCinematic: React.FC<RankUpCinematicProps> = ({ oldRank, newRank, onC
                       style={{
                         width: '100%', height: '100%', objectFit: 'contain',
                         clipPath: shard.clip,
-                        filter: `drop-shadow(0 0 6px ${oldMeta.glow})`,
                       }}
                     />
                   </motion.div>
@@ -423,21 +402,9 @@ const RankUpCinematic: React.FC<RankUpCinematicProps> = ({ oldRank, newRank, onC
                       height: badgeSize,
                       objectFit: 'contain',
                     }}
-                    initial={{ filter: `brightness(3) drop-shadow(0 0 20px ${newMeta.glow})` }}
-                    animate={phase === 'celebrate'
-                      ? {
-                          filter: [
-                            `brightness(1) drop-shadow(0 0 12px ${newMeta.glow})`,
-                            `brightness(1.2) drop-shadow(0 0 28px ${newMeta.glow})`,
-                            `brightness(1) drop-shadow(0 0 12px ${newMeta.glow})`,
-                          ],
-                        }
-                      : { filter: `brightness(1) drop-shadow(0 0 14px ${newMeta.glow})` }
-                    }
-                    transition={phase === 'celebrate'
-                      ? { duration: 2, repeat: Infinity }
-                      : { duration: 0.8, ease: 'easeOut' }
-                    }
+                    initial={{ filter: 'brightness(3)' }}
+                    animate={{ filter: 'brightness(1)' }}
+                    transition={{ duration: 0.8, ease: 'easeOut' }}
                   />
                 </motion.div>
               </motion.div>
