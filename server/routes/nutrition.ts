@@ -1,16 +1,9 @@
 import { Router, Request, Response } from 'express';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { logUsage } from '../utils/logUsage.js';
 import { getAuthenticatedUserId } from '../lib/playerAuth.js';
-import { generateWithRetry } from '../utils/geminiRetry.js';
+import { getSharedAI, generateWithFallback, DEFAULT_MODEL_CHAIN } from '../utils/geminiRetry.js';
 
 const router = Router();
-
-// Primary 2.0-flash (cheaper); 2.5-flash as fallback when 2.0 is capacity-throttled.
-const MODELS_TO_TRY = [
-  'gemini-2.0-flash',
-  'gemini-2.5-flash',
-];
 
 const NUTRITION_PROMPT = `You are a strict, professional nutritionist AI.
 
@@ -67,59 +60,49 @@ router.post('/analyze', async (req: Request, res: Response) => {
     },
   };
 
-  const genAI = new GoogleGenerativeAI(apiKey);
-  let lastError = '';
+  try {
+    const ai = getSharedAI();
+    const { result, modelName } = await generateWithFallback(
+      ai,
+      [...DEFAULT_MODEL_CHAIN],
+      [NUTRITION_PROMPT, imagePart]
+    );
 
-  for (const modelName of MODELS_TO_TRY) {
+    const text = result.response.text().trim();
+    const cleaned = text
+      .replace(/^```json\s*/i, '')
+      .replace(/^```\s*/i, '')
+      .replace(/```\s*$/i, '')
+      .trim();
+
+    let nutrition: Record<string, unknown>;
     try {
-      console.log(`[Nutrition] Trying model: ${modelName}`);
-      const model = genAI.getGenerativeModel({ model: modelName });
-      const result = await generateWithRetry(model, [NUTRITION_PROMPT, imagePart]);
-      const text = result.response.text().trim();
-
-      const cleaned = text
-        .replace(/^```json\s*/i, '')
-        .replace(/^```\s*/i, '')
-        .replace(/```\s*$/i, '')
-        .trim();
-
-      let nutrition: Record<string, unknown>;
-      try {
-        nutrition = JSON.parse(cleaned);
-      } catch {
-        console.error(`[Nutrition] ${modelName} returned non-JSON:`, text.substring(0, 200));
-        lastError = 'Could not parse AI response. Try a clearer food photo.';
-        continue;
-      }
-
-      if (nutrition.error === "NOT_FOOD") {
-        console.log(`[Nutrition] Image rejected as non-food by ${modelName}`);
-        return res.status(400).json({ error: "No food detected. Please scan a clear image of a meal or ingredients." });
-      }
-
-      console.log(`[Nutrition] Success with model: ${modelName}`);
-      logUsage({
-        route: 'nutrition/analyze',
-        model: modelName,
-        inputTokens: result.response.usageMetadata?.promptTokenCount ?? 0,
-        outputTokens: result.response.usageMetadata?.candidatesTokenCount ?? 0,
-        success: true,
-        userId: userId || undefined,
-      });
-      return res.json({ success: true, data: nutrition, model: modelName });
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
-      console.warn(`[Nutrition] Model ${modelName} failed: ${message.substring(0, 120)}`);
-      lastError = message;
-
-      const isNotFound = message.includes('404') || message.includes('not found') || message.includes('not supported');
-      if (!isNotFound) {
-        return res.status(500).json({ error: `AI analysis failed: ${message}` });
-      }
+      nutrition = JSON.parse(cleaned);
+    } catch {
+      console.error(`[Nutrition] ${modelName} returned non-JSON:`, text.substring(0, 200));
+      return res.status(500).json({ error: 'Could not parse AI response. Try a clearer food photo.' });
     }
-  }
 
-  return res.status(500).json({ error: `No available Gemini model could process this request. Last error: ${lastError}` });
+    if (nutrition.error === "NOT_FOOD") {
+      console.log(`[Nutrition] Image rejected as non-food by ${modelName}`);
+      return res.status(400).json({ error: "No food detected. Please scan a clear image of a meal or ingredients." });
+    }
+
+    console.log(`[Nutrition] Success with model: ${modelName}`);
+    logUsage({
+      route: 'nutrition/analyze',
+      model: modelName,
+      inputTokens: result.response.usageMetadata?.promptTokenCount ?? 0,
+      outputTokens: result.response.usageMetadata?.candidatesTokenCount ?? 0,
+      success: true,
+      userId: userId || undefined,
+    });
+    return res.json({ success: true, data: nutrition, model: modelName });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    console.error(`[Nutrition] All models failed:`, message.substring(0, 200));
+    return res.status(500).json({ error: 'AI analysis temporarily unavailable. Please try again in a moment.' });
+  }
 });
 
 export default router;
