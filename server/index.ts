@@ -100,7 +100,7 @@ async function startServer() {
   };
 
   if (process.env.DATABASE_URL) {
-    const pgPool = new Pool({ connectionString: process.env.DATABASE_URL });
+    const pgPool = new Pool({ connectionString: process.env.DATABASE_URL, connectionTimeoutMillis: 10000, family: 4 });
     pgPool.query(`
       CREATE TABLE IF NOT EXISTS session (
         sid varchar NOT NULL COLLATE "default",
