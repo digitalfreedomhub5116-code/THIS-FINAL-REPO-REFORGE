@@ -105,6 +105,43 @@ export const OUTFITS: Outfit[] = [
       { label: 'Nutrition Boost',    color: '#60a5fa' },
     ],
   },
+  // ── TEST: Duolingo-style flat character outfits ──
+  {
+    id: 'outfit_duo_cyber',
+    name: 'Duo Cyber',
+    tier: 'C',
+    description: '[TEST] Flat Duolingo-style cyber warrior. Green owl mascot in sleek teal armor.',
+    image: '/assets/outfits/duo_cyber.png',
+    baseStats: { attack: 120, boost: 80, ultimate: 60, extraction: 40 },
+    cost: 0,
+    keyCost: 0,
+    accentColor: '#2dd4bf',
+    buffs: [{ label: 'TEST', color: '#2dd4bf' }],
+  },
+  {
+    id: 'outfit_duo_ninja',
+    name: 'Duo Shadow',
+    tier: 'B',
+    description: '[TEST] Flat Duolingo-style shadow ninja. Purple stealth assassin with half-mask.',
+    image: '/assets/outfits/duo_ninja.png',
+    baseStats: { attack: 200, boost: 150, ultimate: 180, extraction: 120 },
+    cost: 0,
+    keyCost: 0,
+    accentColor: '#a855f7',
+    buffs: [{ label: 'TEST', color: '#a855f7' }],
+  },
+  {
+    id: 'outfit_duo_king',
+    name: 'Duo King',
+    tier: 'A',
+    description: '[TEST] Flat Duolingo-style golden king. Royal knight with crown and cape.',
+    image: '/assets/outfits/duo_king.png',
+    baseStats: { attack: 500, boost: 400, ultimate: 450, extraction: 350 },
+    cost: 0,
+    keyCost: 0,
+    accentColor: '#f59e0b',
+    buffs: [{ label: 'TEST', color: '#f59e0b' }],
+  },
 ];
 
 export const SHADOWS: Shadow[] = [
@@ -184,6 +221,10 @@ export const OUTFIT_STONE_CONFIG: OutfitStoneConfig[] = [
   { outfitId: 'outfit_assassin', stoneName: 'Mars Crystal',     stoneColor: '#c084fc', stoneGlow: 'rgba(192,132,252,0.5)', stoneEmoji: '💜' },
   { outfitId: 'outfit_vanguard', stoneName: 'Jupiter Crystal',  stoneColor: '#facc15', stoneGlow: 'rgba(250,204,21,0.5)',  stoneEmoji: '💛' },
   { outfitId: 'outfit_monarch',  stoneName: 'Overlord Crystal', stoneColor: '#f87171', stoneGlow: 'rgba(248,113,113,0.5)', stoneEmoji: '❤️' },
+  // TEST: Duo outfits
+  { outfitId: 'outfit_duo_cyber', stoneName: 'Teal Crystal',   stoneColor: '#2dd4bf', stoneGlow: 'rgba(45,212,191,0.5)',  stoneEmoji: '💎' },
+  { outfitId: 'outfit_duo_ninja', stoneName: 'Violet Crystal', stoneColor: '#a855f7', stoneGlow: 'rgba(168,85,247,0.5)',  stoneEmoji: '🔮' },
+  { outfitId: 'outfit_duo_king',  stoneName: 'Amber Crystal',  stoneColor: '#f59e0b', stoneGlow: 'rgba(245,158,11,0.5)',  stoneEmoji: '👑' },
 ];
 
 /** Get stone config for an outfit, with fallback */

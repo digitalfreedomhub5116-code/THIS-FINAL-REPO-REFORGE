@@ -15,6 +15,10 @@ export const OUTFIT_BADGE_CONFIG: Record<string, {
   outfit_assassin:{ name: 'Mars',    accent: '#9ACDE3', eyeColor: '#7EB8D4', hoodColor: '#581c87', armorColor: '#7e22ce', tier: 'B' },
   outfit_vanguard:{ name: 'Jupiter', accent: '#facc15', eyeColor: '#60a5fa', hoodColor: '#713f12', armorColor: '#92400e', tier: 'A' },
   outfit_monarch: { name: 'Monarch', accent: '#f87171', eyeColor: '#60a5fa', hoodColor: '#450a0a', armorColor: '#991b1b', tier: 'S' },
+  // TEST: Duolingo flat characters
+  outfit_duo_cyber: { name: 'Duo Cyber',  accent: '#2dd4bf', eyeColor: '#2dd4bf', hoodColor: '#134e4a', armorColor: '#0f766e', tier: 'C' },
+  outfit_duo_ninja: { name: 'Duo Shadow', accent: '#a855f7', eyeColor: '#e879f9', hoodColor: '#3b0764', armorColor: '#6b21a8', tier: 'B' },
+  outfit_duo_king:  { name: 'Duo King',   accent: '#f59e0b', eyeColor: '#fbbf24', hoodColor: '#78350f', armorColor: '#b45309', tier: 'A' },
 };
 
 const DEFAULT_CFG = OUTFIT_BADGE_CONFIG.outfit_starter;

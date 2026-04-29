@@ -43,7 +43,7 @@ router.get('/', async (req: Request, res: Response) => {
       .from('players')
       .select('id, supabase_id, username, name, total_xp, daily_xp, level, rank, streak, raw_data, updated_at')
       .eq('is_banned', false)
-      .order(type === 'daily' ? 'daily_xp' : 'total_xp', { ascending: false })
+      .order('streak', { ascending: false })
       .limit(100);
 
     if (error) {
@@ -78,7 +78,7 @@ router.get('/', async (req: Request, res: Response) => {
 
     // For daily tab, re-sort since we may have zeroed out some daily_xp values
     if (type === 'daily') {
-      entries.sort((a: any, b: any) => b.daily_xp - a.daily_xp);
+      entries.sort((a: any, b: any) => b.streak - a.streak);
     }
 
     return res.json(entries);
