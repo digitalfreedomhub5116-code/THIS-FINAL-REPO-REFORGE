@@ -408,7 +408,7 @@ const WardrobePreviewCard: React.FC<WardrobePreviewCardProps> = ({
           className="relative overflow-hidden"
           style={{ width: '60%', height: '100%' }}
         >
-          {/* Avatar fallback — always show HunterBadge instead of real photo */}
+          {/* Avatar fallback — show real image if available, else HunterBadge */}
           <AnimatePresence>
             {(!hasVideo || videoPhase === 'image') && (
               <motion.div
@@ -423,9 +423,22 @@ const WardrobePreviewCard: React.FC<WardrobePreviewCardProps> = ({
                   className="absolute inset-0"
                   style={{ background: `radial-gradient(ellipse at 50% 55%, ${accent}30 0%, transparent 65%), #0A0A0F` }}
                 />
-                <div style={{ opacity: isUnlocked ? 1 : 0.3, filter: isUnlocked ? 'none' : 'grayscale(0.7)', position: 'relative', zIndex: 1 }}>
-                  <OutfitHunterBadge outfitId={outfit.id} size={120} />
-                </div>
+                {/* Show actual image if outfit has one, otherwise SVG badge */}
+                {outfit.image && outfit.image.startsWith('http') ? (
+                  <div style={{ opacity: isUnlocked ? 1 : 0.3, filter: isUnlocked ? 'none' : 'grayscale(0.7)', position: 'relative', zIndex: 1 }}>
+                    <img
+                      src={outfit.image}
+                      alt={outfit.name}
+                      className="w-full h-full object-contain"
+                      style={{ maxWidth: 180, maxHeight: 220 }}
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    />
+                  </div>
+                ) : (
+                  <div style={{ opacity: isUnlocked ? 1 : 0.3, filter: isUnlocked ? 'none' : 'grayscale(0.7)', position: 'relative', zIndex: 1 }}>
+                    <OutfitHunterBadge outfitId={outfit.id} size={120} />
+                  </div>
+                )}
                 {isUnlocked && [0, 1, 2].map(i => (
                   <motion.div
                     key={i}
