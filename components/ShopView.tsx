@@ -604,7 +604,7 @@ const ShopView: React.FC<ShopViewProps> = ({
             <div className="text-[10px] font-mono font-bold tracking-[0.3em] uppercase text-gray-400">AVATAR BORDERS</div>
             <div className="flex-1 h-px bg-system-border" />
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
             {getItemsByCategory('border').map(item => (
               <KitGlowCard key={item.id} item={item}
                 owned={DEV_UNLOCK_ALL || kitEconomy.owned.includes(item.id)}
@@ -629,7 +629,7 @@ const ShopView: React.FC<ShopViewProps> = ({
             <Clock size={13} style={{ color: '#7EB8D4' }} />
             <span className="text-[11px] font-mono font-bold text-gray-400">Refreshes in <span style={{ color: '#7EB8D4' }}>{dealTimer || '...'}</span></span>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
             {getTodaysDeals().map(d => (
               <KitGlowCard key={d.item.id} item={d.item} discount={d.discount}
                 owned={DEV_UNLOCK_ALL || kitEconomy.owned.includes(d.item.id)}
@@ -651,7 +651,7 @@ const ShopView: React.FC<ShopViewProps> = ({
             <div className="text-[10px] font-mono font-bold tracking-[0.3em] uppercase text-gray-400">APP THEMES</div>
             <div className="flex-1 h-px bg-system-border" />
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
             {getItemsByCategory('theme').map(item => (
               <KitGlowCard key={item.id} item={item}
                 owned={DEV_UNLOCK_ALL || kitEconomy.owned.includes(item.id)}
@@ -782,126 +782,164 @@ function KitGlowCard({ item, discount, owned, equipped, canAfford, onBuy, onEqui
 }) {
   const catColor = KIT_CAT_COLORS[item.category] || '#7EB8D4';
   const finalPrice = discount ? Math.round(item.price * (1 - discount / 100)) : item.price;
+  const chipSize = 14;
+  const clipPath = `polygon(0 0, calc(100% - ${chipSize}px) 0, 100% ${chipSize}px, 100% 100%, ${chipSize}px 100%, 0 calc(100% - ${chipSize}px))`;
 
   return (
+    /* Layer 1: Outer Glow Wrapper */
     <div style={{
-      borderRadius: 16, overflow: 'hidden', position: 'relative',
-      background: `linear-gradient(160deg, ${catColor}22 0%, #111828 55%, #0d1118 100%)`,
-      border: `1.5px solid ${catColor}40`,
-      textAlign: 'center', padding: '16px 10px 14px',
-      minHeight: 210, display: 'flex', flexDirection: 'column', alignItems: 'center',
+      filter: `drop-shadow(0 0 12px ${catColor}40) drop-shadow(0 4px 16px rgba(0,0,0,0.6))`,
     }}>
-      {/* Discount badge */}
-      {discount && (
+      {/* Layer 2: Gradient Border Frame (3px visible border) */}
+      <div style={{
+        clipPath,
+        padding: 3,
+        background: `linear-gradient(160deg, ${catColor}CC, ${catColor}50 40%, ${catColor}90 80%, ${catColor}CC)`,
+      }}>
+        {/* Layer 3: Inner Card Body */}
         <div style={{
-          position: 'absolute', top: 8, left: 8, zIndex: 3,
-          padding: '3px 8px', borderRadius: 6,
-          background: '#22C55E', fontSize: 9, fontWeight: 900, color: '#000',
+          clipPath,
+          background: `linear-gradient(160deg, ${catColor}40 0%, ${catColor}22 25%, #111828 55%, #0d1118 100%)`,
+          position: 'relative', textAlign: 'center',
+          padding: '16px 10px 14px',
+          minHeight: 210, display: 'flex', flexDirection: 'column', alignItems: 'center',
         }}>
-          -{discount}%
-        </div>
-      )}
 
-      {/* Info icon */}
-      {onInfo && (
-        <div onClick={(e) => { e.stopPropagation(); onInfo(); }} style={{
-          position: 'absolute', top: 8, right: 8, zIndex: 3,
-          width: 22, height: 22, borderRadius: 6,
-          background: `${catColor}30`, border: `1px solid ${catColor}50`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 11, fontWeight: 900, color: catColor, cursor: 'pointer',
-        }}>
-          i
-        </div>
-      )}
+          {/* ── Diagonal Shine Streaks ── */}
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none', zIndex: 1, overflow: 'hidden' }}>
+            {/* Primary Shine */}
+            <div style={{ position: 'absolute', top: '-80%', left: '-25%', width: '55%', height: '260%', background: 'linear-gradient(72deg, transparent 36%, rgba(255,255,255,0.06) 42%, rgba(255,255,255,0.14) 46%, rgba(255,255,255,0.22) 48%, rgba(255,255,255,0.14) 50%, rgba(255,255,255,0.06) 54%, transparent 60%)', transform: 'rotate(25deg)' }} />
+            {/* Secondary Shine */}
+            <div style={{ position: 'absolute', top: '-80%', left: '12%', width: '40%', height: '260%', background: 'linear-gradient(72deg, transparent 40%, rgba(255,255,255,0.04) 44%, rgba(255,255,255,0.12) 47%, rgba(255,255,255,0.18) 49%, rgba(255,255,255,0.12) 51%, rgba(255,255,255,0.04) 54%, transparent 58%)', transform: 'rotate(25deg)' }} />
+            {/* Tertiary Shine */}
+            <div style={{ position: 'absolute', top: '-80%', left: '42%', width: '28%', height: '260%', background: 'linear-gradient(72deg, transparent 44%, rgba(255,255,255,0.03) 47%, rgba(255,255,255,0.08) 49%, rgba(255,255,255,0.03) 51%, transparent 54%)', transform: 'rotate(25deg)' }} />
+          </div>
 
-      {/* Name */}
-      <div style={{ position: 'relative', zIndex: 2, marginBottom: 10, marginTop: discount ? 18 : 0 }}>
-        <div style={{ fontSize: 15, fontWeight: 900, color: '#fff', lineHeight: 1.2, marginBottom: 3 }}>
-          {item.name}
-        </div>
-        <div style={{ fontSize: 11, fontWeight: 600, color: catColor, textTransform: 'capitalize', opacity: 0.9 }}>
-          {item.tier} {item.category}
-        </div>
-      </div>
+          {/* ── Top Edge Glow Line ── */}
+          <div style={{ position: 'absolute', top: 0, left: chipSize, right: chipSize, height: 1.5, background: `linear-gradient(90deg, transparent, ${catColor}BB, transparent)`, zIndex: 2 }} />
 
-      {/* Preview */}
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', zIndex: 2, width: '100%', minHeight: 110, overflow: 'visible' }}>
-        {/* Radial glow behind preview */}
-        <div style={{ position: 'absolute', top: '50%', left: '50%', width: 110, height: 110, borderRadius: '50%', background: `radial-gradient(circle, ${catColor}25 0%, ${catColor}08 50%, transparent 70%)`, transform: 'translate(-50%, -50%)' }} />
-
-        {/* ── BORDER: Image-based (PNG) ── */}
-        {item.category === 'border' && item.imageBorder ? (
-          <div style={{ position: 'relative', width: 100, height: 100, overflow: 'visible' }}>
-            {/* Avatar center */}
-            <div style={{ position: 'absolute', top: '50%', left: '50%', width: 64, height: 64, borderRadius: '50%', background: 'radial-gradient(circle, #3a3a4a, #1a1a24)', transform: 'translate(-50%, -50%)', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-              <svg width="46" height="46" viewBox="0 0 40 40"><circle cx="20" cy="16" r="7" fill="#555568" /><ellipse cx="20" cy="35" rx="13" ry="10" fill="#4a4a5a" /></svg>
+          {/* ── Discount Badge ── */}
+          {discount && (
+            <div style={{
+              position: 'absolute', top: 8, left: 8, zIndex: 3,
+              padding: '3px 8px', borderRadius: 6,
+              background: '#22C55E', fontSize: 9, fontWeight: 900, color: '#000',
+              boxShadow: '0 0 10px rgba(34,197,94,0.5)',
+            }}>
+              -{discount}%
             </div>
-            {/* PNG border overlay */}
-            {item.imageAnimated && item.imageAnimationType === 'pulse' ? (
-              <div style={{ position: 'absolute', top: '50%', left: '50%', width: `${(item.imageScale || 1) * 100}%`, height: `${(item.imageScale || 1) * 100}%`, zIndex: 2, pointerEvents: 'none', animation: 'border-breathe-centered 3s ease-in-out infinite' }}>
-                <img src={item.imageBorder} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+          )}
+
+          {/* ── Info Button ── */}
+          {onInfo && (
+            <div onClick={(e) => { e.stopPropagation(); onInfo(); }} style={{
+              position: 'absolute', top: 8, right: 8, zIndex: 3,
+              width: 22, height: 22, borderRadius: 6,
+              background: `${catColor}30`, border: `1px solid ${catColor}50`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 11, fontWeight: 900, color: catColor, cursor: 'pointer',
+            }}>
+              i
+            </div>
+          )}
+
+          {/* ── Name & Category ── */}
+          <div style={{ position: 'relative', zIndex: 2, marginBottom: 10, marginTop: discount ? 18 : 0 }}>
+            <div style={{ fontSize: 15, fontWeight: 900, color: '#fff', lineHeight: 1.2, marginBottom: 3, textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
+              {item.name}
+            </div>
+            <div style={{ fontSize: 11, fontWeight: 600, color: catColor, textTransform: 'capitalize', opacity: 0.9 }}>
+              {item.tier} {item.category}
+            </div>
+          </div>
+
+          {/* ── Preview Area ── */}
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', zIndex: 2, width: '100%', minHeight: 110, overflow: 'visible' }}>
+            {/* Radial glow behind preview */}
+            <div style={{ position: 'absolute', top: '50%', left: '50%', width: 110, height: 110, borderRadius: '50%', background: `radial-gradient(circle, ${catColor}25 0%, ${catColor}08 50%, transparent 70%)`, transform: 'translate(-50%, -50%)' }} />
+
+            {/* ── BORDER: Image-based (PNG) ── */}
+            {item.category === 'border' && item.imageBorder ? (
+              <div style={{ position: 'relative', width: 100, height: 100, overflow: 'visible' }}>
+                <div style={{ position: 'absolute', top: '50%', left: '50%', width: 64, height: 64, borderRadius: '50%', background: 'radial-gradient(circle, #3a3a4a, #1a1a24)', transform: 'translate(-50%, -50%)', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                  <svg width="46" height="46" viewBox="0 0 40 40"><circle cx="20" cy="16" r="7" fill="#555568" /><ellipse cx="20" cy="35" rx="13" ry="10" fill="#4a4a5a" /></svg>
+                </div>
+                {item.imageAnimated && item.imageAnimationType === 'pulse' ? (
+                  <div style={{ position: 'absolute', top: '50%', left: '50%', width: `${(item.imageScale || 1) * 100}%`, height: `${(item.imageScale || 1) * 100}%`, zIndex: 2, pointerEvents: 'none', animation: 'border-breathe-centered 3s ease-in-out infinite' }}>
+                    <img src={item.imageBorder} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                  </div>
+                ) : (
+                  <img src={item.imageBorder} alt={item.name} style={{ position: 'absolute', top: '50%', left: '50%', width: `${(item.imageScale || 1) * 100}%`, height: `${(item.imageScale || 1) * 100}%`, transform: `translate(-50%, calc(-50% + ${item.imageOffsetY || 0}px))`, objectFit: 'contain', zIndex: 2, pointerEvents: 'none', ...(item.imageAnimated ? { animation: 'spin-clockwise 10s linear infinite' } : {}) }} />
+                )}
               </div>
-            ) : (
-              <img src={item.imageBorder} alt={item.name} style={{ position: 'absolute', top: '50%', left: '50%', width: `${(item.imageScale || 1) * 100}%`, height: `${(item.imageScale || 1) * 100}%`, transform: `translate(-50%, calc(-50% + ${item.imageOffsetY || 0}px))`, objectFit: 'contain', zIndex: 2, pointerEvents: 'none', ...(item.imageAnimated ? { animation: 'spin-clockwise 10s linear infinite' } : {}) }} />
+            ) : item.category === 'border' && item.lottieBorder ? (
+              <StoreLottieBorder src={item.lottieBorder} glow={item.borderConfig?.glowColor || 'rgba(200,168,78,0.3)'} />
+            ) : item.category === 'border' && item.auraConfig ? (
+              /* ── BORDER: CSS Aura glow (full spec) ── */
+              <div style={{ position: 'relative', width: 110, height: 110, overflow: 'visible' }}>
+                {/* Ambient glow */}
+                <div style={{ position: 'absolute', top: '50%', left: '50%', width: 120, height: 120, borderRadius: '50%', background: `radial-gradient(circle, ${item.auraConfig.colors[0]}30 0%, ${(item.auraConfig.colors[1] || item.auraConfig.colors[0])}15 40%, transparent 70%)`, transform: 'translate(-50%, -50%)', animation: item.auraConfig.animated ? `pulse-glow ${item.auraConfig.pulseSpeed || 3}s ease-in-out infinite` : undefined }} />
+                {/* Main aura ring */}
+                <div style={{ position: 'absolute', top: '50%', left: '50%', width: 82, height: 82, borderRadius: '50%', transform: 'translate(-50%, -50%)', border: `3px solid ${item.auraConfig.colors[0]}CC`, boxShadow: `0 0 6px 2px ${item.auraConfig.colors[0]}AA, 0 0 14px 4px ${item.auraConfig.colors[0]}70, 0 0 24px 6px ${(item.auraConfig.colors[1] || item.auraConfig.colors[0])}50, 0 0 40px 10px ${(item.auraConfig.colors[2] || item.auraConfig.colors[0])}35, 0 0 60px 14px ${(item.auraConfig.colors[3] || item.auraConfig.colors[1] || item.auraConfig.colors[0])}20, inset 0 0 10px 3px ${item.auraConfig.colors[0]}40, inset 0 0 20px 6px ${(item.auraConfig.colors[1] || item.auraConfig.colors[0])}25`, animation: item.auraConfig.animated ? 'aura-rotate 8s linear infinite' : undefined, zIndex: 1 }} />
+                {/* Outer glow ring */}
+                <div style={{ position: 'absolute', top: '50%', left: '50%', width: 90, height: 90, borderRadius: '50%', transform: 'translate(-50%, -50%)', border: `1.5px solid ${(item.auraConfig.colors[1] || item.auraConfig.colors[0])}50`, boxShadow: `0 0 12px 3px ${(item.auraConfig.colors[1] || item.auraConfig.colors[0])}40, 0 0 30px 8px ${(item.auraConfig.colors[2] || item.auraConfig.colors[0])}20`, animation: item.auraConfig.animated ? `pulse-glow ${item.auraConfig.pulseSpeed || 3}s ease-in-out infinite` : undefined, zIndex: 1 }} />
+                {/* Center avatar */}
+                <div style={{ position: 'absolute', top: '50%', left: '50%', width: 72, height: 72, borderRadius: '50%', background: 'radial-gradient(circle, #2a2a3a, #1a1a24)', transform: 'translate(-50%, -50%)', zIndex: 3, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 0 8px ${item.auraConfig.colors[0]}80, inset 0 0 6px ${item.auraConfig.colors[0]}30` }}>
+                  <svg width="56" height="56" viewBox="0 0 40 40"><circle cx="20" cy="16" r="7" fill="#555568" /><ellipse cx="20" cy="35" rx="13" ry="10" fill="#4a4a5a" /></svg>
+                </div>
+              </div>
+            ) : item.category === 'border' && item.borderConfig ? (
+              <BorderRing config={item.borderConfig} size={90} />
+            ) : null}
+
+            {/* ── THEME swatch ── */}
+            {item.category === 'theme' && item.themeVars && (
+              <div style={{ width: '90%' }}><ThemeSwatch themeVars={item.themeVars} /></div>
+            )}
+            {/* ── BANNER image ── */}
+            {item.category === 'banner' && item.bannerImage && (
+              <div style={{ width: '90%', aspectRatio: '16/9', borderRadius: 10, overflow: 'hidden', border: `1px solid ${catColor}30` }}>
+                <img src={item.bannerImage} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              </div>
             )}
           </div>
-        ) : item.category === 'border' && item.lottieBorder ? (
-          /* ── BORDER: Lottie animated ── */
-          <StoreLottieBorder src={item.lottieBorder} glow={item.borderConfig?.glowColor || 'rgba(200,168,78,0.3)'} />
-        ) : item.category === 'border' && item.auraConfig ? (
-          /* ── BORDER: CSS Aura glow ── */
-          <div style={{ position: 'relative', width: 100, height: 100, overflow: 'visible' }}>
-            <div style={{ position: 'absolute', top: '50%', left: '50%', width: 82, height: 82, borderRadius: '50%', transform: 'translate(-50%, -50%)', border: `3px solid ${item.auraConfig.colors[0]}CC`, boxShadow: `0 0 6px 2px ${item.auraConfig.colors[0]}AA, 0 0 14px 4px ${item.auraConfig.colors[0]}70, 0 0 24px 6px ${(item.auraConfig.colors[1] || item.auraConfig.colors[0])}50`, animation: item.auraConfig.animated ? 'aura-rotate 8s linear infinite' : undefined, zIndex: 1 }} />
-            <div style={{ position: 'absolute', top: '50%', left: '50%', width: 64, height: 64, borderRadius: '50%', background: 'radial-gradient(circle, #2a2a3a, #1a1a24)', transform: 'translate(-50%, -50%)', zIndex: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-              <svg width="46" height="46" viewBox="0 0 40 40"><circle cx="20" cy="16" r="7" fill="#555568" /><ellipse cx="20" cy="35" rx="13" ry="10" fill="#4a4a5a" /></svg>
-            </div>
-          </div>
-        ) : item.category === 'border' && item.borderConfig ? (
-          /* ── BORDER: SVG ring ── */
-          <BorderRing config={item.borderConfig} size={90} />
-        ) : null}
 
-        {/* ── THEME swatch ── */}
-        {item.category === 'theme' && item.themeVars && (
-          <div style={{ width: '90%' }}><ThemeSwatch themeVars={item.themeVars} /></div>
-        )}
-        {/* ── BANNER image ── */}
-        {item.category === 'banner' && item.bannerImage && (
-          <div style={{ width: '90%', aspectRatio: '16/9', borderRadius: 10, overflow: 'hidden', border: `1px solid ${catColor}30` }}>
-            <img src={item.bannerImage} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          {/* ── Bottom Action Button ── */}
+          <div style={{ position: 'relative', zIndex: 2, marginTop: 10, width: '100%' }}>
+            {owned ? (
+              onEquip ? (
+                <button onClick={onEquip} style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 4,
+                  padding: '8px 24px', border: 'none', cursor: 'pointer', borderRadius: 20,
+                  background: equipped ? `linear-gradient(135deg, ${catColor}, ${catColor}CC)` : 'rgba(255,255,255,0.08)',
+                  color: equipped ? '#000' : catColor,
+                  fontSize: 11, fontWeight: 800, letterSpacing: 0.5,
+                  boxShadow: equipped ? `0 0 14px ${catColor}50` : 'none',
+                  transition: 'all 0.2s',
+                }}>
+                  {equipped ? '✓ EQUIPPED' : 'EQUIP'}
+                </button>
+              ) : (
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#22C55E' }}>✓ Owned</span>
+              )
+            ) : (
+              <button onClick={onBuy} disabled={!canAfford} style={{
+                display: 'inline-flex', alignItems: 'center', gap: 5,
+                padding: '8px 22px', borderRadius: 20, cursor: canAfford ? 'pointer' : 'default',
+                background: canAfford ? `linear-gradient(135deg, ${catColor}35, ${catColor}15)` : 'rgba(255,255,255,0.04)',
+                border: canAfford ? `2px solid ${catColor}60` : '2px solid rgba(255,255,255,0.08)',
+                color: canAfford ? '#fff' : 'rgba(255,255,255,0.35)',
+                fontSize: 13, fontWeight: 800,
+                boxShadow: canAfford ? `0 0 12px ${catColor}25` : 'none',
+                transition: 'all 0.2s',
+              }}>
+                {discount && <span style={{ textDecoration: 'line-through', opacity: 0.35, fontSize: 10 }}>{item.price}</span>}
+                {canAfford ? <LynxCoin size={15} /> : <Lock size={12} />}
+                <span style={{ fontSize: 14 }}>{finalPrice}</span>
+              </button>
+            )}
           </div>
-        )}
-      </div>
-
-      {/* Price / Equip */}
-      <div style={{ position: 'relative', zIndex: 2, marginTop: 10, width: '100%' }}>
-        {owned ? (
-          onEquip ? (
-            <button onClick={onEquip} style={{
-              display: 'inline-flex', alignItems: 'center', gap: 4,
-              padding: '8px 24px', border: 'none', cursor: 'pointer', borderRadius: 20,
-              background: equipped ? `linear-gradient(135deg, ${catColor}, ${catColor}CC)` : 'rgba(255,255,255,0.08)',
-              color: equipped ? '#000' : catColor, fontSize: 11, fontWeight: 800,
-            }}>
-              {equipped ? '✓ EQUIPPED' : 'EQUIP'}
-            </button>
-          ) : (
-            <span style={{ fontSize: 11, fontWeight: 700, color: '#22C55E' }}>✓ Owned</span>
-          )
-        ) : (
-          <button onClick={onBuy} disabled={!canAfford} style={{
-            display: 'inline-flex', alignItems: 'center', gap: 5,
-            padding: '8px 22px', borderRadius: 20, cursor: canAfford ? 'pointer' : 'default',
-            background: canAfford ? `linear-gradient(135deg, ${catColor}35, ${catColor}15)` : 'rgba(255,255,255,0.04)',
-            border: canAfford ? `2px solid ${catColor}60` : '2px solid rgba(255,255,255,0.08)',
-            color: canAfford ? '#fff' : 'rgba(255,255,255,0.35)', fontSize: 13, fontWeight: 800,
-          }}>
-            {discount && <span style={{ textDecoration: 'line-through', opacity: 0.35, fontSize: 10 }}>{item.price}</span>}
-            {canAfford ? <LynxCoin size={15} /> : <Lock size={12} />}
-            <span style={{ fontSize: 14 }}>{finalPrice}</span>
-          </button>
-        )}
+        </div>
       </div>
     </div>
   );
