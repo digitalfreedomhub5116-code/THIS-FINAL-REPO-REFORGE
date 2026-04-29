@@ -5,14 +5,15 @@ import Lottie from 'lottie-react';
 import { SystemNotification, ReplitUser } from '../types';
 import { useThemeContext } from '../hooks/useTheme';
 
-const _CoinSVGFallback: React.FC<{ size: number }> = ({ size }) => (
-  <svg
-    width={size} height={size} viewBox="0 0 14 14"
-    style={{ animation: 'coinFlip 3s ease-in-out infinite', filter: 'drop-shadow(0 0 5px #eab308)', flexShrink: 0 }}
-  >
-    <circle cx="7" cy="7" r="6" fill="none" stroke="#eab308" strokeWidth="1.5"/>
-    <text x="7" y="10.5" textAnchor="middle" fontSize="6" fontWeight="900" fill="#eab308" fontFamily="monospace">◈</text>
-  </svg>
+const _CoinSkeleton: React.FC<{ size: number }> = ({ size }) => (
+  <div
+    style={{
+      width: size, height: size, borderRadius: '50%', flexShrink: 0,
+      background: 'linear-gradient(135deg, rgba(240,178,50,0.15) 0%, rgba(240,178,50,0.05) 50%, rgba(240,178,50,0.15) 100%)',
+      backgroundSize: '200% 200%',
+      animation: 'gradientMove 1.5s ease infinite',
+    }}
+  />
 );
 
 let _layoutCoinData: object | null | false = null;
@@ -29,7 +30,7 @@ const AnimatedCoinIcon: React.FC<{ size?: number }> = ({ size = 16 }) => {
   if (data) {
     return <div style={{ width: size, height: size, flexShrink: 0 }}><Lottie animationData={data} loop autoplay style={{ width: '100%', height: '100%' }} /></div>;
   }
-  return <_CoinSVGFallback size={Math.min(size, 18)} />;
+  return <_CoinSkeleton size={size} />;
 };
 
 
@@ -466,8 +467,8 @@ const Layout: React.FC<LayoutProps> = ({
                   disabled={headerDisabled}
                   className="flex items-center gap-1.5 transition-all active:scale-95"
                 >
-                  <div className="flex items-center justify-center" style={{ width: 30 }}>
-                    <AnimatedCoinIcon size={30} />
+                  <div className="flex items-center justify-center" style={{ width: 40 }}>
+                    <AnimatedCoinIcon size={40} />
                   </div>
                   <span id="user-wallet-balance" className="font-mono text-[18px] font-black whitespace-nowrap" style={{ color: '#F0B232', textShadow: '0 0 8px rgba(240,178,50,0.3)' }}><AnimatedCounter value={gold} /></span>
                 </button>
