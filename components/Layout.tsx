@@ -465,7 +465,7 @@ const Layout: React.FC<LayoutProps> = ({
                   id="gold-header-btn"
                   onClick={!headerDisabled ? onGoldClick : undefined}
                   disabled={headerDisabled}
-                  className="flex items-center gap-0.5 transition-all active:scale-95"
+                  className="flex items-center gap-px transition-all active:scale-95"
                 >
                   <div className="flex items-center justify-center" style={{ width: 45 }}>
                     <AnimatedCoinIcon size={45} />
