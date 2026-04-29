@@ -176,13 +176,6 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
         style={{
           background: isCompleted ? '#22c55e' : isFailed ? '#ef4444'
             : (isActive && quest.hasPact && quest.pactStatus === 'active') ? '#fbbf24' : rankColor,
-          boxShadow: isCompleted
-            ? '0 0 8px rgba(34,197,94,0.4)'
-            : isFailed
-            ? '0 0 8px rgba(239,68,68,0.3)'
-            : (isActive && quest.hasPact && quest.pactStatus === 'active')
-            ? '0 0 10px rgba(251,191,36,0.4)'
-            : `0 0 8px ${rankColor}60`,
         }}
       />
 

@@ -736,10 +736,8 @@ const QuestTimelineRow: React.FC<{
       : `Scheduled at ${formatTime12(scheduledStr)} • Available in ${minutesUntilAvailable}m`
     : undefined;
 
-  // F3: Swipe-to-complete for E/D rank only — NOT when time-locked
-  const canSwipeComplete = !isCompleted && !isFailed && !isTimeLocked && (quest.rank === 'E' || quest.rank === 'D');
-  const [swipeX, setSwipeX] = useState(0);
-  const swipeThreshold = 120;
+  // F3: Removed swipe-to-complete
+
 
   // Can't reschedule: if completed/failed, or within 10 min of scheduled time, or past scheduled time
   const canReschedule = !isCompleted && !isFailed && onReschedule && (currentMinutes < scheduledMin - 10);
@@ -795,69 +793,22 @@ const QuestTimelineRow: React.FC<{
         )}
 
         <div className="relative overflow-hidden">
-          {/* F3: Swipe reveal background */}
-          {canSwipeComplete && swipeX > 20 && (
-            <div className="absolute inset-0 flex items-center pl-4 rounded-xl z-0"
-              style={{ background: `rgba(34,197,94,${Math.min(swipeX / swipeThreshold, 1) * 0.15})` }}
-            >
-              <div className="flex items-center gap-1.5" style={{ opacity: Math.min(swipeX / swipeThreshold, 1) }}>
-                <Check className="w-4 h-4 text-emerald-400" />
-                <span className="text-[10px] font-black text-emerald-400 font-mono uppercase tracking-wider">
-                  {swipeX >= swipeThreshold ? 'RELEASE TO COMPLETE' : 'SWIPE TO COMPLETE'}
-                </span>
-              </div>
-            </div>
-          )}
-
-          {canSwipeComplete ? (
-            <motion.div
-              drag="x"
-              dragConstraints={{ left: 0, right: 160 }}
-              dragElastic={0.1}
-              onDrag={(_e, info) => setSwipeX(info.offset.x)}
-              onDragEnd={(_e, info) => {
-                if (info.offset.x >= swipeThreshold) {
-                  const el = document.getElementById(`quest-card-${quest.id}`);
-                  const rect = el?.getBoundingClientRect() || undefined;
-                  onComplete(quest.id, false, rect);
-                }
-                setSwipeX(0);
-              }}
-              className="relative z-10"
-              style={{ touchAction: 'pan-y' }}
-            >
-              <QuestCard
-                quest={quest}
-                onComplete={(id, asMini) => {
-                  const el = document.getElementById(`quest-card-${id}`);
-                  const rect = el?.getBoundingClientRect() || undefined;
-                  onComplete(id, asMini, rect);
-                }}
-                onFail={onFail}
-                onReset={onReset}
-                onDelete={onDelete}
-                onStartTracking={onStartTracking}
-                onStopTracking={onStopTracking}
-              />
-            </motion.div>
-          ) : (
-            <QuestCard
-              quest={quest}
-              isLocked={isTimeLocked}
-              lockMessage={lockMessage}
-              onReschedule={isTimeLocked && onReschedule ? () => onReschedule(quest) : undefined}
-              onComplete={(id, asMini) => {
-                const el = document.getElementById(`quest-card-${id}`);
-                const rect = el?.getBoundingClientRect() || undefined;
-                onComplete(id, asMini, rect);
-              }}
-              onFail={onFail}
-              onReset={onReset}
-              onDelete={onDelete}
-              onStartTracking={onStartTracking}
-              onStopTracking={onStopTracking}
-            />
-          )}
+          <QuestCard
+            quest={quest}
+            isLocked={isTimeLocked}
+            lockMessage={lockMessage}
+            onReschedule={isTimeLocked && onReschedule ? () => onReschedule(quest) : undefined}
+            onComplete={(id, asMini) => {
+              const el = document.getElementById(`quest-card-${id}`);
+              const rect = el?.getBoundingClientRect() || undefined;
+              onComplete(id, asMini, rect);
+            }}
+            onFail={onFail}
+            onReset={onReset}
+            onDelete={onDelete}
+            onStartTracking={onStartTracking}
+            onStopTracking={onStopTracking}
+          />
         </div>
       </div>
     </div>
