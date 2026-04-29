@@ -452,11 +452,11 @@ const Layout: React.FC<LayoutProps> = ({
 
                 {/* Streak */}
                 <div id="user-streak-count" className="flex items-center gap-1.5">
-                  <svg width={20} height={20} viewBox="0 0 24 24" fill="none" style={{ filter: 'drop-shadow(0 0 6px rgba(249,115,22,0.7))', flexShrink: 0 }}>
+                  <svg width={22} height={22} viewBox="0 0 24 24" fill="none" style={{ filter: 'drop-shadow(0 0 6px rgba(249,115,22,0.7))', flexShrink: 0 }}>
                     <path d="M12 2C6.5 8.5 4 12 4 15a8 8 0 0 0 16 0c0-3-2.5-6.5-8-13z" fill="#f97316" stroke="#fb923c" strokeWidth="0.5"/>
                     <path d="M12 9c-2 3-3 5-3 7a3 3 0 0 0 6 0c0-2-1-4-3-7z" fill="#fbbf24"/>
                   </svg>
-                  <span className="font-mono text-[16px] font-black text-orange-400 whitespace-nowrap" style={{ textShadow: '0 0 8px rgba(249,115,22,0.4)' }}><AnimatedCounter value={streak} /></span>
+                  <span className="font-mono text-[18px] font-black text-orange-400 whitespace-nowrap" style={{ textShadow: '0 0 8px rgba(249,115,22,0.4)' }}><AnimatedCounter value={streak} /></span>
                 </div>
 
                 {/* Gold */}
@@ -466,23 +466,23 @@ const Layout: React.FC<LayoutProps> = ({
                   disabled={headerDisabled}
                   className="flex items-center gap-1.5 transition-all active:scale-95"
                 >
-                  <div className="flex items-center justify-center" style={{ width: 28 }}>
-                    <AnimatedCoinIcon size={28} />
+                  <div className="flex items-center justify-center" style={{ width: 22 }}>
+                    <AnimatedCoinIcon size={22} />
                   </div>
-                  <span id="user-wallet-balance" className="font-mono text-[16px] font-black whitespace-nowrap" style={{ color: '#F0B232', textShadow: '0 0 8px rgba(240,178,50,0.3)' }}><AnimatedCounter value={gold} /></span>
+                  <span id="user-wallet-balance" className="font-mono text-[18px] font-black whitespace-nowrap" style={{ color: '#F0B232', textShadow: '0 0 8px rgba(240,178,50,0.3)' }}><AnimatedCounter value={gold} /></span>
                 </button>
 
                 {/* Bell */}
                 <div className="relative ml-1" ref={notifRef}>
                   <button
                     onClick={handleOpenNotifications}
-                    className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-200 border ${
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 border ${
                       showNotifications
                         ? 'bg-[#7EB8D4]/15 border-[#7EB8D4]/40 text-[#7EB8D4]'
                         : 'bg-white/[0.05] border-white/[0.08] text-gray-400 hover:text-white hover:bg-white/10'
                     }`}
                   >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
                     {hasUnreadNotifications && (
                       <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 rounded-full border-2 border-black shadow-[0_0_6px_rgba(239,68,68,0.8)]" />
                     )}
