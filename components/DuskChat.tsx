@@ -311,7 +311,7 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, updatePlayer, onClose, onMa
       },
       goals: (player.goals || []).filter(g => g.status === 'ACTIVE').map(g => ({
         title: g.title, category: g.category,
-        progress: `Day ${g.currentDay || 0}/${g.totalDays || '?'}`,
+        progress: `Day ${Math.max(0, Math.floor((Date.now() - g.startDate) / 86400000))}/${g.totalDurationDays || '?'}`,
       })),
       workoutPlan: hp?.workoutPlan?.map(d => ({
         day: d.day, exercises: d.exercises?.map(e => e.name).join(', '),
