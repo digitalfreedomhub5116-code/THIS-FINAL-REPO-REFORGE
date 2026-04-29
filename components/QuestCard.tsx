@@ -86,6 +86,7 @@ const SensorBar: React.FC<{
 const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDelete, isLocked, lockMessage, onReschedule, onStartTracking, onStopTracking }) => {
   const [isMiniView, setIsMiniView] = useState(false);
   const [showResources, setShowResources] = useState(false);
+  const [titleExpanded, setTitleExpanded] = useState(false);
   const completingRef = useRef(false);
 
   const isExpired = quest.expiresAt ? Date.now() > quest.expiresAt : false;
@@ -199,12 +200,36 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
 
           {/* Title block */}
           <div className="flex-1 min-w-0">
-            <h3
-              className="font-heading font-bold text-sm leading-snug"
-              style={{ color: isCompleted || isFailed ? '#6b7280' : '#f1f5f9', textDecoration: isCompleted || isFailed ? 'line-through' : 'none' }}
-            >
-              {isMiniActive ? (quest.miniQuest || 'Activation: Just Start.') : quest.title}
-            </h3>
+            {(() => {
+              const titleText = isMiniActive ? (quest.miniQuest || 'Activation: Just Start.') : quest.title;
+              const isLongTitle = titleText.length > 55;
+              return (
+                <div>
+                  <h3
+                    className={`font-heading font-bold text-sm leading-snug ${!titleExpanded && isLongTitle ? 'line-clamp-2' : ''}`}
+                    style={{ color: isCompleted || isFailed ? '#6b7280' : '#f1f5f9', textDecoration: isCompleted || isFailed ? 'line-through' : 'none' }}
+                  >
+                    {titleText}
+                  </h3>
+                  {isLongTitle && !titleExpanded && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setTitleExpanded(true); }}
+                      className="text-[9px] font-mono text-gray-600 hover:text-gray-400 transition-colors mt-0.5"
+                    >
+                      ...more
+                    </button>
+                  )}
+                  {isLongTitle && titleExpanded && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setTitleExpanded(false); }}
+                      className="text-[9px] font-mono text-gray-600 hover:text-gray-400 transition-colors mt-0.5"
+                    >
+                      show less
+                    </button>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Meta row: category pillars + daily badge */}
             <div className="flex items-center gap-2 mt-1 flex-wrap">
