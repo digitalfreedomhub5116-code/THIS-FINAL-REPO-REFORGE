@@ -6,11 +6,6 @@ import { dirname, join } from 'path';
 import { existsSync, readFileSync } from 'fs';
 import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
-import dns from 'dns';
-
-// Force IPv4 DNS resolution — Railway containers don't support IPv6,
-// and Supabase direct DB hosts resolve to IPv6 by default.
-dns.setDefaultResultOrder('ipv4first');
 
 // Import session using createRequire for ES modules
 import { createRequire } from 'module';
@@ -105,7 +100,7 @@ async function startServer() {
   };
 
   if (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('postgresql')) {
-    const pgPool = new Pool({ connectionString: process.env.DATABASE_URL, connectionTimeoutMillis: 10000, family: 4 });
+    const pgPool = new Pool({ connectionString: process.env.DATABASE_URL });
     pgPool.query(`
       CREATE TABLE IF NOT EXISTS session (
         sid varchar NOT NULL COLLATE "default",
@@ -270,8 +265,8 @@ async function startServer() {
         { rank: 1, gold: 500, xp: 300, keys: 1 },
         { rank: 2, gold: 300, xp: 200, keys: 0 },
         { rank: 3, gold: 200, xp: 150, keys: 0 },
-        { rank: 4, gold: 100, xp: 75,  keys: 0 },
-        { rank: 5, gold: 100, xp: 50,  keys: 0 },
+        { rank: 4, gold: 100, xp: 75, keys: 0 },
+        { rank: 5, gold: 100, xp: 50, keys: 0 },
       ];
 
       let lastCronDate = '';
