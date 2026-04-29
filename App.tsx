@@ -5010,6 +5010,8 @@ const App: React.FC = () => {
 
             onAddNotification={(msg: string, type: any) => addNotification(msg, type)}
 
+            onOpenDuskChat={() => setShowDuskChat(true)}
+
           />
 
           </ErrorBoundary>
@@ -5018,25 +5020,6 @@ const App: React.FC = () => {
 
 
 
-        {activeTab === 'DASHBOARD' && !showDuskChat && !showDuskWelcome && (
-
-          <Suspense fallback={null}>
-
-            <ErrorBoundary>
-
-              <DuskFloatingPill
-
-                unreadCount={player.duskUnreadCount || 0}
-
-                onClick={() => setShowDuskChat(true)}
-
-              />
-
-            </ErrorBoundary>
-
-          </Suspense>
-
-        )}
 
 
 

@@ -16,6 +16,7 @@ interface MobileFloatingMenuProps {
   gold: number;
   onAddRewards: (gold: number, xp: number) => void;
   onAddNotification: (msg: string, type: any) => void;
+  onOpenDuskChat?: () => void;
 }
 
 type ChestType = 'DAILY' | 'LEGENDARY' | 'ALLIANCE';
@@ -160,6 +161,7 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
   gold,
   onAddRewards,
   onAddNotification,
+  onOpenDuskChat,
 }) => {
   const { player, awardRandomStones } = useSystem();
   const DAILY_CHEST_KEY = `reforge_daily_chest_time_${player.userId || 'local'}`;
@@ -547,7 +549,45 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
   return (
     <>
       {/* FABs */}
-      <div className="fixed right-4 z-[80] flex flex-col gap-4 md:hidden" style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 6.5rem)' }}>
+      <div className="fixed right-4 z-[80] flex flex-col gap-3.5 md:hidden" style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 6.5rem)' }}>
+
+        {/* Dusk Chat FAB — eye-blink animation */}
+        {onOpenDuskChat && (
+          <motion.div
+            className="relative"
+            initial={{ x: 100, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ type: 'spring', stiffness: 200, damping: 20, delay: 0.3 }}
+          >
+            <button
+              onClick={onOpenDuskChat}
+              className="w-14 h-14 rounded-full flex items-center justify-center active:scale-90 transition-all relative"
+              style={{
+                background: 'radial-gradient(circle at 50% 40%, #3b82f6 0%, #1d4ed8 60%, #1e3a5f 100%)',
+                boxShadow: '0 0 20px rgba(59,130,246,0.4), 0 0 40px rgba(59,130,246,0.15), inset 0 1px 0 rgba(255,255,255,0.2)',
+              }}
+            >
+              {/* Pulsing ring */}
+              <span className="absolute inset-[-3px] rounded-full border-2 border-blue-400/60" style={{
+                animation: 'duskRingPulse 3s ease-in-out infinite',
+              }} />
+              {/* Chat icon with eyes */}
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+                {/* Speech bubble */}
+                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" fill="rgba(255,255,255,0.15)" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                {/* Left eye */}
+                <ellipse cx="9.5" cy="11" rx="1.2" ry="1.5" fill="white">
+                  <animate attributeName="ry" values="1.5;0.15;1.5" dur="4s" repeatCount="indefinite" keyTimes="0;0.03;0.06" keySplines="0.4 0 0.2 1;0.4 0 0.2 1" calcMode="spline" begin="2s"/>
+                </ellipse>
+                {/* Right eye */}
+                <ellipse cx="14.5" cy="11" rx="1.2" ry="1.5" fill="white">
+                  <animate attributeName="ry" values="1.5;0.15;1.5" dur="4s" repeatCount="indefinite" keyTimes="0;0.03;0.06" keySplines="0.4 0 0.2 1;0.4 0 0.2 1" calcMode="spline" begin="2s"/>
+                </ellipse>
+              </svg>
+            </button>
+          </motion.div>
+        )}
+
         {/* Chest FAB — notification pip floats with the button */}
         <motion.div
           className="relative"

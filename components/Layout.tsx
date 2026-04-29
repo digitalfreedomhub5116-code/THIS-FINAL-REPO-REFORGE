@@ -371,7 +371,7 @@ const Layout: React.FC<LayoutProps> = ({
             <div className="absolute top-0 left-0 right-0 h-px pointer-events-none" style={{ background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.18) 30%, rgba(126,184,212,0.12) 55%, rgba(126,184,212,0.10) 75%, transparent 100%)' }} />
             <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(135deg, rgba(126,184,212,0.02) 0%, transparent 50%, rgba(126,184,212,0.02) 100%)' }} />
 
-            <div className="flex items-center justify-between px-3 py-3 sm:px-6 sm:py-3.5 max-w-7xl mx-auto relative z-10">
+            <div className="flex items-center justify-between px-4 py-3.5 sm:px-6 sm:py-4 max-w-7xl mx-auto relative z-10">
 
               {/* LEFT: Avatar + Greeting + Username */}
               <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1" ref={profileMenuRef}>
@@ -385,10 +385,10 @@ const Layout: React.FC<LayoutProps> = ({
                       <img
                         src={avatarUrl}
                         alt={displayName}
-                        className="w-8 h-8 sm:w-11 sm:h-11 rounded-full object-cover border-2 border-[#7EB8D4]/40 shadow-[0_0_16px_rgba(126,184,212,0.25)] group-hover:border-[#7EB8D4]/70 transition-all"
+                        className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border-2 border-[#7EB8D4]/40 shadow-[0_0_16px_rgba(126,184,212,0.25)] group-hover:border-[#7EB8D4]/70 transition-all"
                       />
                     ) : (
-                      <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-full bg-gradient-to-br from-[#7EB8D4] to-[#7EB8D4] flex items-center justify-center text-white text-sm sm:text-base font-black shadow-[0_0_16px_rgba(126,184,212,0.25)] group-hover:shadow-[0_0_20px_rgba(126,184,212,0.4)] transition-all">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-[#7EB8D4] to-[#7EB8D4] flex items-center justify-center text-white text-base sm:text-lg font-black shadow-[0_0_16px_rgba(126,184,212,0.25)] group-hover:shadow-[0_0_20px_rgba(126,184,212,0.4)] transition-all">
                         {initial}
                       </div>
                     )}
@@ -440,7 +440,7 @@ const Layout: React.FC<LayoutProps> = ({
                 <div className="min-w-0">
                   <div className="hidden sm:block text-[10px] text-gray-500 font-medium tracking-widest leading-none mb-0.5 uppercase">Hello</div>
                   <div className="flex items-center gap-1.5">
-                    <div className="font-heading font-extrabold text-base sm:text-lg leading-none tracking-tight truncate max-w-[80px] sm:max-w-[160px] uppercase" style={{ color: 'var(--color-text-heading)' }}>
+                    <div className="font-heading font-extrabold text-lg sm:text-xl leading-none tracking-tight truncate max-w-[100px] sm:max-w-[160px] uppercase" style={{ color: 'var(--color-text-heading)' }}>
                       {displayName}
                     </div>
                   </div>
@@ -448,15 +448,15 @@ const Layout: React.FC<LayoutProps> = ({
               </div>
 
               {/* RIGHT: Streak + Gold + Bell */}
-              <div id="tut-gold-display" className="flex items-center gap-3.5 flex-shrink-0">
+              <div id="tut-gold-display" className="flex items-center gap-4 flex-shrink-0">
 
                 {/* Streak */}
                 <div id="user-streak-count" className="flex items-center gap-1.5">
-                  <svg width={18} height={18} viewBox="0 0 24 24" fill="none" style={{ filter: 'drop-shadow(0 0 5px rgba(249,115,22,0.6))', flexShrink: 0 }}>
+                  <svg width={20} height={20} viewBox="0 0 24 24" fill="none" style={{ filter: 'drop-shadow(0 0 6px rgba(249,115,22,0.7))', flexShrink: 0 }}>
                     <path d="M12 2C6.5 8.5 4 12 4 15a8 8 0 0 0 16 0c0-3-2.5-6.5-8-13z" fill="#f97316" stroke="#fb923c" strokeWidth="0.5"/>
                     <path d="M12 9c-2 3-3 5-3 7a3 3 0 0 0 6 0c0-2-1-4-3-7z" fill="#fbbf24"/>
                   </svg>
-                  <span className="font-mono text-[15px] font-black text-orange-400 whitespace-nowrap" style={{ textShadow: '0 0 8px rgba(249,115,22,0.4)' }}><AnimatedCounter value={streak} /></span>
+                  <span className="font-mono text-[16px] font-black text-orange-400 whitespace-nowrap" style={{ textShadow: '0 0 8px rgba(249,115,22,0.4)' }}><AnimatedCounter value={streak} /></span>
                 </div>
 
                 {/* Gold */}
@@ -464,25 +464,25 @@ const Layout: React.FC<LayoutProps> = ({
                   id="gold-header-btn"
                   onClick={!headerDisabled ? onGoldClick : undefined}
                   disabled={headerDisabled}
-                  className="flex items-center gap-1 transition-all active:scale-95"
+                  className="flex items-center gap-1.5 transition-all active:scale-95"
                 >
-                  <div className="flex items-center justify-center" style={{ width: 38 }}>
-                    <AnimatedCoinIcon size={38} />
+                  <div className="flex items-center justify-center" style={{ width: 28 }}>
+                    <AnimatedCoinIcon size={28} />
                   </div>
-                  <span id="user-wallet-balance" className="font-mono text-[15px] font-black whitespace-nowrap" style={{ color: '#F0B232', textShadow: '0 0 8px rgba(240,178,50,0.3)' }}><AnimatedCounter value={gold} /></span>
+                  <span id="user-wallet-balance" className="font-mono text-[16px] font-black whitespace-nowrap" style={{ color: '#F0B232', textShadow: '0 0 8px rgba(240,178,50,0.3)' }}><AnimatedCounter value={gold} /></span>
                 </button>
 
                 {/* Bell */}
-                <div className="relative ml-2" ref={notifRef}>
+                <div className="relative ml-1" ref={notifRef}>
                   <button
                     onClick={handleOpenNotifications}
-                    className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-200 border ${
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-200 border ${
                       showNotifications
                         ? 'bg-[#7EB8D4]/15 border-[#7EB8D4]/40 text-[#7EB8D4]'
                         : 'bg-white/[0.05] border-white/[0.08] text-gray-400 hover:text-white hover:bg-white/10'
                     }`}
                   >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
                     {hasUnreadNotifications && (
                       <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 rounded-full border-2 border-black shadow-[0_0_6px_rgba(239,68,68,0.8)]" />
                     )}

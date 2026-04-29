@@ -256,6 +256,11 @@ video {
   50%       { transform: rotate(12deg); }
 }
 
+@keyframes duskRingPulse {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50%      { opacity: 0.9; transform: scale(1.06); }
+}
+
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(20px); }
   to   { opacity: 1; transform: translateY(0); }
