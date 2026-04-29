@@ -11,7 +11,6 @@ interface ChestOpeningOverlayProps {
 
 const REWARD_ICONS: Record<string, string> = {
   GOLD: '🪙',
-  KEYS: '�️',
   STONE: '💎',
 };
 
@@ -62,19 +61,18 @@ export default function ChestOpeningOverlay({ onClose, chestType }: ChestOpening
       onClose();
       return;
     }
-    const { gold, keys, stones } = result;
+    const { gold, stones } = result;
 
     // Wait for the lottie animation to finish (inferred from frame count), then show cards
     // legendary_chest.json is ~90 frames at default speed ≈ 3s; we use onComplete via lottieRef
     const showRewards = () => {
       window.dispatchEvent(new CustomEvent('reforge:coin-earned', { detail: { goldGained: gold, startRect: null } }));
-      if (keys > 0) window.dispatchEvent(new CustomEvent('reforge:key-earned', { detail: { amount: keys, startRect: null } }));
+
       window.dispatchEvent(new CustomEvent('stone:earned', {
         detail: { outfitId: 'outfit_starter', amount: stones, oldCount: 0, newCount: stones, color: '#9ca3af', glow: 'rgba(156,163,175,0.5)', badgeUnlocked: false },
       }));
       setRewards([
         { amount: gold, type: 'GOLD', label: 'Gold', color: '#facc15' },
-        ...(keys > 0 ? [{ amount: keys, type: 'KEYS', label: 'Keys', color: '#a855f7' }] : []),
         { amount: stones, type: 'STONE', label: 'Outfit Stones', color: '#9ca3af' },
       ]);
       setPhase('OPENED');

@@ -247,44 +247,6 @@ const Layout: React.FC<LayoutProps> = ({
     };
     window.addEventListener('reforge:coin-earned', handleCoinEarned);
 
-    const KEY_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 14 14"><circle cx="5" cy="5.5" r="3" fill="none" stroke="#9ACDE3" stroke-width="1.4"/><line x1="7.5" y1="7" x2="12" y2="11.5" stroke="#9ACDE3" stroke-width="1.4" stroke-linecap="round"/><line x1="9.5" y1="9" x2="9.5" y2="11" stroke="#9ACDE3" stroke-width="1.4" stroke-linecap="round"/></svg>`;
-    const handleKeyEarned = (e: Event) => {
-      const { startRect } = (e as CustomEvent).detail as { amount: number; startRect: DOMRect | null };
-      setHeaderVisible(true);
-      if (!startRect) return;
-      const destEl = document.getElementById('user-keys-balance');
-      if (!destEl) return;
-      const destRect = destEl.getBoundingClientRect();
-      const startX = startRect.left + startRect.width / 2;
-      const startY = startRect.top + startRect.height / 2;
-      const endX = destRect.left + destRect.width / 2;
-      const endY = destRect.top + destRect.height / 2;
-      const ITEM_COUNT = 5;
-      for (let i = 0; i < ITEM_COUNT; i++) {
-        setTimeout(() => {
-          const item = document.createElement('div');
-          item.style.cssText = `position:fixed;width:18px;height:18px;left:${startX - 9}px;top:${startY - 9}px;z-index:9999;pointer-events:none;`;
-          item.innerHTML = KEY_SVG;
-          document.body.appendChild(item);
-          const scatterX = (Math.random() - 0.5) * 60;
-          const scatterY = (Math.random() - 0.5) * 60;
-          const midX = (startX + endX) / 2 - startX + (Math.random() - 0.5) * 60;
-          const midY = Math.min(startY, endY) - 80 - Math.random() * 60 - startY;
-          item.animate([
-            { transform: 'translate(0,0) scale(0.5)', opacity: 0 },
-            { transform: `translate(${scatterX}px,${scatterY}px) scale(1)`, opacity: 1, offset: 0.12 },
-            { transform: `translate(${midX}px,${midY}px) scale(1.1)`, offset: 0.5 },
-            { transform: `translate(${endX - startX}px,${endY - startY}px) scale(0.5)`, opacity: 0 },
-          ], {
-            duration: 900 + Math.random() * 300,
-            easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
-            fill: 'forwards',
-          }).onfinish = () => item.remove();
-        }, i * 60);
-      }
-    };
-    window.addEventListener('reforge:key-earned', handleKeyEarned);
-
 
     const COIN_LOST_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="none" stroke="#ef4444" stroke-width="1.5"/><text x="7" y="10.5" text-anchor="middle" font-size="6" font-weight="900" fill="#ef4444" font-family="monospace">◈</text></svg>`;
     const handleCoinLost = (e: Event) => {
@@ -346,7 +308,7 @@ const Layout: React.FC<LayoutProps> = ({
 
     return () => {
       window.removeEventListener('reforge:coin-earned', handleCoinEarned);
-      window.removeEventListener('reforge:key-earned', handleKeyEarned);
+      window.removeEventListener('reforge:coin-lost', handleCoinLost);
       window.removeEventListener('reforge:coin-lost', handleCoinLost);
     };
   }, []);

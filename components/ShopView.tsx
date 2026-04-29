@@ -36,9 +36,7 @@ interface ShopViewProps {
   purchaseItem: (item: ShopItem) => void;
   addItem?: (item: ShopItem) => void;
   removeItem?: (id: string) => void;
-  keys?: number;
-  lastDungeonEntry?: number;
-  onStartDungeon?: (isFree: boolean) => void;
+
   consumables?: Consumables;
   streak?: number;
   lastLoginDate?: string;
@@ -65,7 +63,7 @@ interface ShopViewProps {
   onEquipBorder?: (borderId: string | null) => void;
 }
 
-const DUNGEON_BANNER = 'https://i.postimg.cc/zDwVQ9bN/Image-202602141625-tlkmvf.jpg';
+
 
 const RARITY_STYLES: Record<string, { label: string; bg: string; text: string; border: string }> = {
   COMMON:    { label: 'COMMON',    bg: 'rgba(107,114,128,0.2)', text: '#9ca3af', border: 'rgba(107,114,128,0.3)' },
@@ -85,8 +83,8 @@ const REWARD_RARITY: Record<string, string> = {
   CHEST_LEGENDARY: 'LEGENDARY', VENUS_SHARDS: 'RARE', NONE: 'COMMON',
 };
 const REWARD_SHORT: Record<string, (a: number) => string> = {
-  GOLD: a => `${a} G`, XP: a => `${a} XP`, KEYS: a => a === 1 ? 'Key' : `${a} Keys`,
-  WELCOME_KEYS: a => `${a} Keys`, DUNGEON_PASS: a => `${a} Pass`,
+  GOLD: a => `${a} G`, XP: a => `${a} XP`,
+  DUNGEON_PASS: a => `${a} Pass`,
   CHEST_LEGENDARY: () => 'Chest', VENUS_SHARDS: a => `${a} Shards`, NONE: () => '—',
 };
 
@@ -94,9 +92,6 @@ const ShopView: React.FC<ShopViewProps> = ({
   gold,
   items,
   purchaseItem,
-  keys = 0,
-  lastDungeonEntry = 0,
-  onStartDungeon,
   consumables = { },
   streak = 0,
   lastLoginDate = '',
@@ -123,10 +118,9 @@ const ShopView: React.FC<ShopViewProps> = ({
   const [dealTimer, setDealTimer] = useState('');
   const [kitInfoItem, setKitInfoItem] = useState<KitStoreItem | null>(null);
   const [kitPurchasedId, setKitPurchasedId] = useState<string | null>(null);
-  const [timeUntilFree, setTimeUntilFree] = useState<number>(0);
+
   const [buyingItem, setBuyingItem] = useState<string | null>(null);
-  const [dungeonHighlightActive, setDungeonHighlightActive] = useState(false);
-  const dungeonRef = useRef<HTMLDivElement>(null);
+
 
   // Event Banner Carousel
   const [banners, setBanners] = useState<EventBanner[]>([]);
@@ -154,36 +148,8 @@ const ShopView: React.FC<ShopViewProps> = ({
 
   useEffect(() => {
     if (!highlightDungeon) return;
-    setDungeonHighlightActive(true);
-    const timer = setTimeout(() => {
-      setDungeonHighlightActive(false);
-      onHighlightConsumed?.();
-    }, 2800);
-    setTimeout(() => {
-      dungeonRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 120);
-    return () => clearTimeout(timer);
+    onHighlightConsumed?.();
   }, [highlightDungeon]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    const check = () => {
-      const next = lastDungeonEntry + 24 * 60 * 60 * 1000;
-      setTimeUntilFree(Math.max(0, next - Date.now()));
-    };
-    check();
-    const iv = setInterval(check, 1000);
-    return () => clearInterval(iv);
-  }, [lastDungeonEntry]);
-
-  const formatTime = (ms: number) => {
-    const h = Math.floor(ms / 3_600_000);
-    const m = Math.floor((ms % 3_600_000) / 60_000);
-    const s = Math.floor((ms % 60_000) / 1000);
-    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-  };
-
-  const isFreeReady  = timeUntilFree <= 0;
-  const canAffordPaid = keys >= 3;
 
   const todayStr = new Date().toISOString().split('T')[0];
   const claimedToday = lastLoginDate === todayStr;
@@ -363,80 +329,8 @@ const ShopView: React.FC<ShopViewProps> = ({
             </div>
           )}
 
-          {/* ── DUNGEON TOWER BANNER ── */}
-          {onStartDungeon && (
-            <motion.div
-              ref={dungeonRef}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="relative w-full rounded-2xl overflow-hidden"
-              style={{
-                minHeight: 200,
-                transition: 'box-shadow 0.3s ease',
-                boxShadow: dungeonHighlightActive
-                  ? '0 0 0 3px #ef4444, 0 0 32px rgba(239,68,68,0.6), 0 0 64px rgba(239,68,68,0.25)'
-                  : 'none',
-              }}
-            >
-              {dungeonHighlightActive && (
-                <motion.div
-                  className="absolute inset-0 z-10 rounded-2xl pointer-events-none"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: [0, 0.18, 0, 0.14, 0] }}
-                  transition={{ duration: 2.8, ease: 'easeInOut' }}
-                  style={{ background: 'radial-gradient(ellipse at center, rgba(239,68,68,0.5) 0%, transparent 70%)' }}
-                />
-              )}
-              <img
-                src={DUNGEON_BANNER}
-                alt="Dungeon Tower"
-                className="absolute inset-0 w-full h-full object-cover"
-                style={{ objectPosition: 'center 30%' }}
-              />
-              <div className="absolute inset-0 bg-black/30" />
-              <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.35) 50%, rgba(0,0,0,0.15) 100%)' }} />
 
-              {/* Reset timer */}
-              <div className="absolute top-0 left-0 right-0 flex justify-center pt-3">
-                <div
-                  className="flex items-center gap-2 px-3 py-1 rounded-full font-mono text-xs font-bold"
-                  style={{ background: 'rgba(0,0,0,0.65)', border: '1px solid rgba(255,255,255,0.12)', backdropFilter: 'blur(8px)' }}
-                >
-                  <Timer size={11} className="text-yellow-400" />
-                  <span className="text-gray-300 tracking-widest uppercase text-[10px]">Resets in</span>
-                  <span className="text-yellow-300">{isFreeReady ? '00:00:00' : formatTime(timeUntilFree)}</span>
-                </div>
-              </div>
 
-              {/* Buttons */}
-              <div className="absolute bottom-0 left-0 right-0 p-3 flex gap-2">
-                <button
-                  onClick={() => onStartDungeon(true)}
-                  disabled={!isFreeReady}
-                  className="flex-1 py-2.5 rounded-xl font-mono font-black text-xs uppercase tracking-widest transition-all"
-                  style={isFreeReady
-                    ? { background: 'linear-gradient(135deg,#dc2626,#991b1b)', color: '#fff', boxShadow: '0 4px 20px rgba(220,38,38,0.5)', border: '1px solid rgba(220,38,38,0.5)' }
-                    : { background: 'rgba(30,30,30,0.8)', color: '#6b7280', border: '1px solid rgba(100,100,100,0.3)', cursor: 'not-allowed' }
-                  }
-                >
-                  {isFreeReady ? 'ENTER' : 'LOCKED'}
-                </button>
-
-                <button
-                  onClick={() => onStartDungeon(false)}
-                  disabled={!canAffordPaid}
-                  className="py-2.5 px-4 rounded-xl font-mono font-black text-xs uppercase tracking-widest transition-all flex items-center gap-1.5 justify-center whitespace-nowrap"
-                  style={canAffordPaid
-                    ? { background: 'linear-gradient(135deg,rgba(126,184,212,0.3),rgba(109,40,217,0.5))', color: '#c4b5fd', border: '1px solid rgba(126,184,212,0.5)', boxShadow: '0 4px 20px rgba(126,184,212,0.3)' }
-                    : { background: 'rgba(30,30,30,0.8)', color: '#4b5563', border: '1px solid rgba(100,100,100,0.3)', cursor: 'not-allowed' }
-                  }
-                >
-                  <Key size={12} />
-                  3 KEYS
-                </button>
-              </div>
-            </motion.div>
-          )}
 
           {/* ── LOGIN REWARDS BANNER ── */}
           {false && <motion.div
@@ -564,7 +458,7 @@ const ShopView: React.FC<ShopViewProps> = ({
               <ErrorBoundary fallbackLabel="Wardrobe preview failed">
                 <WardrobePreviewCard
                   gold={wardrobeGold ?? gold}
-                  keys={keys}
+
                   unlockedOutfits={wardrobeUnlockedOutfits || ['outfit_starter']}
                   equippedOutfitId={wardrobeEquippedOutfitId || 'outfit_starter'}
                   outfits={wardrobeOutfits}

@@ -132,7 +132,7 @@ const TournamentResultModal = lazy(() => import('./components/TournamentResultMo
 
 const TutorialOverlay = lazy(() => import('./components/TutorialOverlay'));
 
-const DemonCastle = lazy(() => import('./components/DemonCastle'));
+
 
 const UpcomingQuests = lazy(() => import('./components/UpcomingQuests'));
 
@@ -287,9 +287,9 @@ const App: React.FC = () => {
 
     advanceTutorial, completeTutorial, resetTutorial, resetPlayer, resolvePenalty, reducePenalty,
 
-    claimTournamentReward, consumeKey, consumeMana, refundMana,
+    claimTournamentReward, consumeMana, refundMana,
 
-    deductGold, enterDungeon, addRewards,
+    deductGold, addRewards,
 
     recordStrike, removeStrike, markDuskMessagesRead,
 
@@ -682,9 +682,9 @@ const App: React.FC = () => {
 
 
 
-  const [isDungeonMode, setIsDungeonMode] = useState(false);
+  const [isDungeonMode] = useState(false);
 
-  const [dungeonSession, setDungeonSession] = useState(0);
+
 
   const [tutorialTarget, setTutorialTarget] = useState<string | null>(null);
 
@@ -1045,7 +1045,7 @@ const App: React.FC = () => {
 
   const lastKnownDbGold = useRef<number | null>(null);
 
-  const lastKnownDbKeys = useRef<number | null>(null);
+
 
   const lastKnownDbLevel = useRef<number | null>(null);
 
@@ -1079,7 +1079,7 @@ const App: React.FC = () => {
 
     lastKnownDbGold.current = null;
 
-    lastKnownDbKeys.current = null;
+
 
     lastKnownDbLevel.current = null;
 
@@ -1121,7 +1121,6 @@ const App: React.FC = () => {
 
         const dbGold    = row.gold           ?? 0;
 
-        const dbKeys    = row.keys           ?? 0;
 
         const dbTotalStrikes = row.totalStrikesEver ?? 0;
 
@@ -1157,7 +1156,7 @@ const App: React.FC = () => {
 
         const goldChangedInDb = lastKnownDbGold.current !== null && dbGold !== lastKnownDbGold.current;
 
-        const keysChangedInDb = lastKnownDbKeys.current !== null && dbKeys !== lastKnownDbKeys.current;
+
 
         const levelChangedInDb = lastKnownDbLevel.current !== null && dbLevel !== lastKnownDbLevel.current;
 
@@ -1179,7 +1178,7 @@ const App: React.FC = () => {
 
         lastKnownDbGold.current = dbGold;
 
-        lastKnownDbKeys.current = dbKeys;
+
 
         lastKnownDbLevel.current = dbLevel;
 
@@ -1205,17 +1204,13 @@ const App: React.FC = () => {
 
 
 
-        // KEY FIX: When admin changes gold/keys in DB, update the server
-
+        // KEY FIX: When admin changes gold in DB, update the server
         // baseline refs so the debounced sync in useSystem won't compute
-
         // a wrong delta and double-count the admin adjustment.
-
-        if (isFirstPoll || goldChangedInDb || keysChangedInDb) {
-
-          updateServerBaseline(dbGold, dbKeys);
-
+        if (isFirstPoll || goldChangedInDb) {
+          updateServerBaseline(dbGold);
         }
+
 
         // SYNC GATE: First poll done — open the gate so syncToCloud can push
 
@@ -1267,7 +1262,6 @@ const App: React.FC = () => {
 
             if (dbGold !== prev.gold) updates.gold = dbGold;
 
-            if (dbKeys !== prev.keys) updates.keys = dbKeys;
 
             if (dbLevel !== prev.level) updates.level = dbLevel;
 
@@ -1349,7 +1343,6 @@ const App: React.FC = () => {
 
             if (goldChangedInDb && dbGold !== prev.gold) updates.gold = dbGold;
 
-            if (keysChangedInDb && dbKeys !== prev.keys) updates.keys = dbKeys;
 
             if (levelChangedInDb && dbLevel !== prev.level) updates.level = dbLevel;
 
@@ -1713,7 +1706,7 @@ const App: React.FC = () => {
 
             if (rawData?.isConfigured || rawData?.avatarUrl) {
 
-              registerUser({ id: uid, name: user.firstName || user.name || rawData.name, username: rawData.username, keys: rawData.keys, raw_data: rawData });
+              registerUser({ id: uid, name: user.firstName || user.name || rawData.name, username: rawData.username, raw_data: rawData });
 
               return;
 
@@ -2689,21 +2682,7 @@ const App: React.FC = () => {
 
 
 
-  const handleStartDungeon = async (isFree: boolean) => {
 
-    const allowed = await enterDungeon(isFree);
-
-    if (allowed) {
-
-      setDungeonSession(prev => prev + 1);
-
-      setIsDungeonMode(true);
-
-      setActiveTab('CASTLE');
-
-    }
-
-  };
 
 
 
@@ -4402,7 +4381,6 @@ const App: React.FC = () => {
 
         gold={player.gold}
 
-        keys={player.keys}
 
         consumables={player.consumables}
 
@@ -4595,57 +4573,7 @@ const App: React.FC = () => {
 
 
 
-          {/* ── CASTLE ── */}
 
-          {activeTab === 'CASTLE' && (
-
-            <motion.div key="castle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-
-              <Suspense fallback={<SkeletonCastlePage />}>
-
-                <ErrorBoundary fallbackLabel="Demon Castle failed to load">
-
-                  <DemonCastle
-
-                    key={`dungeon-${dungeonSession}`}
-
-                    gold={player.gold}
-
-                    keys={player.keys}
-
-                    lastDungeonEntry={player.lastDungeonEntry ?? 0}
-
-                    onDeductGold={deductGold}
-
-                    onConsumeKey={consumeKey}
-
-                    onEnterDungeon={enterDungeon}
-
-                    onAddRewards={addRewards}
-
-                    onAwardStones={(outfitId, amount) => awardRandomStones(amount, amount, 'dungeon')}
-
-                    onPlayStateChange={setIsDungeonMode}
-
-                    initialMode="PLAYING"
-
-                    onExit={() => {
-
-                      setIsDungeonMode(false);
-
-                      setActiveTab('STORE');
-
-                    }}
-
-                  />
-
-                </ErrorBoundary>
-
-              </Suspense>
-
-            </motion.div>
-
-          )}
 
 
 
@@ -4760,11 +4688,6 @@ const App: React.FC = () => {
 
                     purchaseItem={purchaseItem}
 
-                    keys={player.keys}
-
-                    lastDungeonEntry={player.lastDungeonEntry ?? 0}
-
-                    onStartDungeon={handleStartDungeon}
 
                     consumables={player.consumables}
 
@@ -4864,11 +4787,6 @@ const App: React.FC = () => {
 
                     purchaseItem={purchaseItem}
 
-                    keys={player.keys}
-
-                    lastDungeonEntry={player.lastDungeonEntry ?? 0}
-
-                    onStartDungeon={handleStartDungeon}
 
                     consumables={player.consumables}
 
@@ -4926,7 +4844,6 @@ const App: React.FC = () => {
 
                     onToggleNav={handleToggleNav}
 
-                    onConsumeKey={consumeKey}
 
                     onConsumeMana={consumeMana}
 
@@ -5088,21 +5005,6 @@ const App: React.FC = () => {
 
             gold={player.gold}
 
-            keys={player.keys}
-
-            lastDungeonEntry={player.lastDungeonEntry ?? 0}
-
-            onConsumeKey={consumeKey}
-
-            onEnterDungeon={handleStartDungeon}
-
-            onNavigateToDungeon={() => {
-
-              setHighlightDungeon(true);
-
-              setActiveTab('STORE');
-
-            }}
 
             onAddRewards={addRewards}
 

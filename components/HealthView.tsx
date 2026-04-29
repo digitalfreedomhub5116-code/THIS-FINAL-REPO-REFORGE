@@ -74,17 +74,17 @@ interface HealthViewProps {
   onTutorialAction?: (step: number) => void;
   tutorialStep?: number;
   onToggleNav?: (visible: boolean) => void;
-  onConsumeKey: (amount?: number) => Promise<boolean>;
+
   onConsumeMana: (amount: number) => boolean;
   onRefundMana: (amount: number) => void;
-  onAddRewards?: (gold: number, xp: number, keys?: number) => void;
+  onAddRewards?: (gold: number, xp: number) => void;
   onUpdateSkillProgress?: (progress: import('../types').SkillProgress[]) => void;
   playerLevel?: number;
 }
 
 
 export const HealthView: React.FC<HealthViewProps> = ({ 
-  healthProfile, onSaveProfile, onCompleteWorkout, onFailWorkout, onLogMeal, onDeleteMeal: _onDeleteMeal, playerData, onToggleNav, onConsumeKey, onConsumeMana, onRefundMana, onAddRewards, onUpdateSkillProgress, playerLevel = 99
+  healthProfile, onSaveProfile, onCompleteWorkout, onFailWorkout, onLogMeal, onDeleteMeal: _onDeleteMeal, playerData, onToggleNav, onConsumeMana, onRefundMana, onAddRewards, onUpdateSkillProgress, playerLevel = 99
 }) => {
   const [viewMode, setViewMode] = useState<'MAP' | 'OVERVIEW' | 'ACTIVE' | 'SETUP' | 'PROCESSING' | 'DIAGNOSIS' | 'PROJECTION' | 'FINALIZING' | 'PLAN_SELECT'>('MAP');
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
@@ -1590,8 +1590,6 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                                         const val = parseInt(calorieLimitInput);
                                                         if (!val || val < 800 || val > 10000) return;
                                                         if (!healthProfile) return;
-                                                        const consumed = await onConsumeKey(5);
-                                                        if (!consumed) { setShowManaAlert(true); return; }
                                                         const updated = { ...healthProfile, customCalorieLimit: val };
                                                         onSaveProfile(updated, updated.category || 'Hunter');
                                                         setShowCalorieEditor(false);
@@ -1599,15 +1597,13 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                                     }}
                                                     className="px-3 py-2 rounded-lg bg-purple-900/40 hover:bg-purple-900/70 border border-purple-700/50 text-[#9ACDE3] text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 whitespace-nowrap"
                                                 >
-                                                    <Key size={10} /> 5 Keys
+                                                    SET
                                                 </button>
                                             </div>
                                             {healthProfile?.customCalorieLimit && (
                                                 <button
                                                     onClick={async () => {
                                                         if (!healthProfile) return;
-                                                        const consumed = await onConsumeKey(5);
-                                                        if (!consumed) { setShowManaAlert(true); return; }
                                                         const updated = { ...healthProfile, customCalorieLimit: undefined };
                                                         onSaveProfile(updated, updated.category || 'Hunter');
                                                         setShowCalorieEditor(false);

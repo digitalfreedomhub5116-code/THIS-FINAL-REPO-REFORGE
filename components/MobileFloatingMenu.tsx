@@ -2,19 +2,17 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Castle, X, HelpCircle, Check, Lock, Info, Coins, Timer, Zap } from 'lucide-react';
+import { X, HelpCircle, Check, Lock, Info, Coins, Timer, Zap } from 'lucide-react';
 // ChestAnimations SVG fallbacks are used inside ChestLottieOverlays
 import { DailyChestLottie, LegendaryChestLottieV2, AllianceChestLottie, preloadChestLotties } from './ChestLottieOverlays';
 import { getStoneConfig, OUTFIT_STONE_CONFIG } from '../utils/gameData';
 import { SystemCoin } from './icons/SystemCoin';
-import { SystemKey } from './icons/SystemKey';
+
 import CrystalIcon from './CrystalIcon';
 import { playSystemSoundEffect } from '../utils/soundEngine';
 import { useSystem } from '../hooks/useSystem';
 
 interface MobileFloatingMenuProps {
-  onEnterDungeon: (isFree: boolean) => void;
-  onNavigateToDungeon?: () => void;
   gold: number;
   onAddRewards: (gold: number, xp: number) => void;
   onAddNotification: (msg: string, type: any) => void;
@@ -159,11 +157,7 @@ const CARD_POSITIONS = [
 const DAILY_CHEST_CD = 30 * 60 * 1000; // 30 minutes
 
 const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
-  onEnterDungeon,
-  onNavigateToDungeon,
   gold,
-
-  lastDungeonEntry,
   onAddRewards,
   onAddNotification,
 }) => {
@@ -218,8 +212,7 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
   }, []);
 
   const isDailyReady   = now >= lastDailyChest + DAILY_CHEST_CD;
-  const DUNGEON_CD     = 24 * 60 * 60 * 1000;
-  const isDungeonReady = now >= (lastDungeonEntry + DUNGEON_CD);
+
 
   const isLocked = (t: ChestType) => {
     if (t === 'DAILY')     return !isDailyReady;
@@ -289,7 +282,7 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
       ? (isDailyReady
           ? <span className="flex items-center gap-1 text-[10px] font-black text-emerald-400"><Check size={10}/> READY</span>
           : <span className="flex items-center gap-1 text-[10px] font-bold" style={{ color: cfg.color }}><Check size={10}/> CLAIMED</span>)
-      : <span className="flex items-center gap-1 text-[10px] font-bold text-[#9ACDE3]"><SystemKey size={10}/> {cfg.cost}</span>;
+      : <span className="flex items-center gap-1 text-[10px] font-bold text-yellow-400"><SystemCoin size={10}/> {cfg.cost}</span>;
 
     return (
       <div
@@ -590,34 +583,6 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
           )}
         </motion.div>
 
-        {/* Dungeon FAB — notification pip floats with the button */}
-        <motion.div
-          className="relative"
-          initial={{ x: 100, opacity: 0 }}
-          animate={{ x: 0, opacity: 1, y: [0, -8, 0] }}
-          transition={{
-            x: { type: 'spring', stiffness: 200, damping: 20, delay: 0.7 },
-            opacity: { duration: 0.5, delay: 0.7 },
-            y: { duration: 4, repeat: Infinity, ease: 'easeInOut', delay: 0.7 },
-          }}
-        >
-          <button
-            onClick={() => setActiveModal('DUNGEON')}
-            className="w-12 h-12 bg-black/40 backdrop-blur-md border border-red-600/30 rounded-full flex items-center justify-center active:scale-90 transition-all relative overflow-hidden"
-          >
-            <img
-              src="/images/ui/dungeon-bg.jpg"
-              alt="Dungeon"
-              className="w-full h-full object-cover opacity-80"
-            />
-          </button>
-          {isDungeonReady && (
-            <span className="pointer-events-none absolute -top-0.5 -right-0.5 flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: '#ff4500' }} />
-              <span className="relative inline-flex rounded-full h-3 w-3" style={{ background: '#ff4500', boxShadow: '0 0 6px #ff4500' }} />
-            </span>
-          )}
-        </motion.div>
       </div>
 
       {/* Modal portal — renders above everything including the navbar */}
@@ -802,109 +767,7 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
                   </div>
                 )}
 
-                {/* ── DUNGEON TOWER ── */}
-                {activeModal === 'DUNGEON' && (() => {
-                  const DUNGEON_CD = 24 * 60 * 60 * 1000;
-                  const nextFreeAt = lastDungeonEntry + DUNGEON_CD;
-                  const isFreeReady = now >= nextFreeAt;
-                  const timeLeft = Math.max(0, nextFreeAt - now);
-                  const fmtH = Math.floor(timeLeft / 3_600_000);
-                  const fmtM = Math.floor((timeLeft % 3_600_000) / 60_000);
-                  const fmtS = Math.floor((timeLeft % 60_000) / 1000);
-                  const timerStr = `${String(fmtH).padStart(2,'0')}:${String(fmtM).padStart(2,'0')}:${String(fmtS).padStart(2,'0')}`;
-                  const canAffordPaid = keys >= 3;
-                  return (
-                  <div className="flex flex-col">
-                    {/* Banner hero */}
-                    <div className="relative h-44 overflow-hidden">
-                      <img
-                        src="https://i.postimg.cc/zDwVQ9bN/Image-202602141625-tlkmvf.jpg"
-                        alt="Dungeon Tower"
-                        className="absolute inset-0 w-full h-full object-cover"
-                        style={{ objectPosition: 'center 30%' }}
-                      />
-                      <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, #07070f 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.15) 100%)' }} />
-                      {/* Pulsing red glow */}
-                      <motion.div
-                        className="absolute inset-0 pointer-events-none"
-                        animate={{ opacity: [0.05, 0.15, 0.05] }}
-                        transition={{ duration: 3, repeat: Infinity }}
-                        style={{ background: 'radial-gradient(ellipse at center 70%, rgba(220,38,38,0.35) 0%, transparent 65%)' }}
-                      />
-                      {/* Timer pill */}
-                      <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10">
-                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full font-mono text-xs font-bold"
-                          style={{ background: 'rgba(0,0,0,0.7)', border: isFreeReady ? '1px solid rgba(34,197,94,0.5)' : '1px solid rgba(255,255,255,0.12)', backdropFilter: 'blur(8px)' }}>
-                          <Timer size={11} className={isFreeReady ? 'text-emerald-400' : 'text-yellow-400'} />
-                          {isFreeReady
-                            ? <span className="text-emerald-400 tracking-widest uppercase text-[10px]">FREE ENTRY READY</span>
-                            : <><span className="text-gray-400 tracking-widest uppercase text-[10px]">Resets in</span><span className="text-yellow-300 tabular-nums">{timerStr}</span></>
-                          }
-                        </div>
-                      </div>
-                      {/* Title overlay */}
-                      <div className="absolute bottom-3 left-0 right-0 text-center z-10">
-                        <h2 className="text-2xl font-black text-white uppercase italic tracking-tighter font-mono drop-shadow-lg">DEMON TOWER</h2>
-                        <p className="text-[10px] text-red-400 font-mono uppercase tracking-[0.2em] font-bold mt-0.5">Floor 1 – 100 Available</p>
-                      </div>
-                    </div>
 
-                    <div className="p-5 space-y-4">
-                      {/* Rewards preview */}
-                      <div className="rounded-xl p-3.5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                        <p className="text-[9px] text-gray-500 uppercase font-bold mb-3 tracking-widest font-mono text-center">POTENTIAL ACQUISITION</p>
-                        <div className="flex justify-center items-center gap-6">
-                          <div className="flex flex-col items-center gap-1">
-                            <SystemCoin size={28} />
-                            <span className="text-[11px] font-bold text-yellow-500 font-mono">100–5000</span>
-                          </div>
-                          <div className="w-px h-8 bg-gray-800" />
-                          <div className="flex flex-col items-center gap-1">
-                            <CrystalIcon color="#60a5fa" glow="rgba(96,165,250,0.5)" size={28} />
-                            <span className="text-[11px] font-bold text-blue-400 font-mono">Crystal Loot</span>
-                          </div>
-                          <div className="w-px h-8 bg-gray-800" />
-                          <div className="flex flex-col items-center gap-1">
-                            <SystemKey size={28} />
-                            <span className="text-[11px] font-bold text-[#7EB8D4] font-mono">Key Drops</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Entry buttons */}
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => { if (isFreeReady) { setActiveModal('NONE'); onEnterDungeon(true); } }}
-                          disabled={!isFreeReady}
-                          className="flex-1 py-3.5 rounded-xl font-mono font-black text-xs uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2"
-                          style={isFreeReady
-                            ? { background: 'linear-gradient(135deg,#dc2626,#991b1b)', color: '#fff', boxShadow: '0 4px 24px rgba(220,38,38,0.5)', border: '1px solid rgba(220,38,38,0.5)' }
-                            : { background: 'rgba(30,30,30,0.8)', color: '#4b5563', border: '1px solid rgba(100,100,100,0.2)', cursor: 'not-allowed' }
-                          }
-                        >
-                          {isFreeReady ? <><Castle size={14} /> FREE ENTER</> : <><Lock size={12} /> LOCKED</>}
-                        </button>
-                        <button
-                          onClick={() => { if (canAffordPaid) { setActiveModal('NONE'); onEnterDungeon(false); } }}
-                          disabled={!canAffordPaid}
-                          className="py-3.5 px-5 rounded-xl font-mono font-black text-xs uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-1.5 whitespace-nowrap"
-                          style={canAffordPaid
-                            ? { background: 'linear-gradient(135deg,rgba(126,184,212,0.3),rgba(109,40,217,0.5))', color: '#c4b5fd', border: '1px solid rgba(126,184,212,0.5)', boxShadow: '0 4px 20px rgba(126,184,212,0.3)' }
-                            : { background: 'rgba(30,30,30,0.8)', color: '#4b5563', border: '1px solid rgba(100,100,100,0.2)', cursor: 'not-allowed' }
-                          }
-                        >
-                          <Key size={12} /> 3 KEYS
-                        </button>
-                      </div>
-
-                      {/* Info note */}
-                      <p className="text-center text-[9px] font-mono text-gray-600 leading-relaxed">
-                        Survive floors to earn Gold, XP & Keys. Free entry resets every 24h.
-                      </p>
-                    </div>
-                  </div>
-                  );
-                })()}
               </motion.div>
             </motion.div>
           )}

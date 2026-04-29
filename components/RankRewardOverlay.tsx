@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, Crown, Key, Zap, Coins } from 'lucide-react';
+import { Trophy, Crown, Zap, Coins } from 'lucide-react';
 import { SystemCoin } from './icons/SystemCoin';
 
 
@@ -8,7 +8,7 @@ interface RankRewardOverlayProps {
   rank: number;        // 1-5
   gold: number;
   xp: number;
-  keys: number;
+
   username: string;
   onClaim: () => void; // Called after user taps Claim
 }
@@ -23,7 +23,7 @@ const RANK_CONFIG: Record<number, { emoji: string; title: string; color: string;
 };
 
 // ── Sound Effects ──
-function playRewardSound(type: 'rank' | 'coin' | 'xp' | 'key' | 'claim') {
+function playRewardSound(type: 'rank' | 'coin' | 'xp' | 'claim') {
   try {
     const ac = new (window.AudioContext || (window as any).webkitAudioContext)();
     const now = ac.currentTime;
@@ -66,19 +66,6 @@ function playRewardSound(type: 'rank' | 'coin' | 'xp' | 'key' | 'claim') {
       osc.connect(gain).connect(ac.destination);
       osc.start(now);
       osc.stop(now + 0.5);
-    } else if (type === 'key') {
-      // Metallic clink
-      [2000, 2500, 3000, 2200].forEach((freq, i) => {
-        const osc = ac.createOscillator();
-        const gain = ac.createGain();
-        osc.type = 'square';
-        osc.frequency.value = freq;
-        gain.gain.setValueAtTime(0.06, now + i * 0.04);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.04 + 0.2);
-        osc.connect(gain).connect(ac.destination);
-        osc.start(now + i * 0.04);
-        osc.stop(now + i * 0.04 + 0.2);
-      });
     } else if (type === 'claim') {
       // Triumphant ascending
       [523, 659, 784, 1047].forEach((freq, i) => {
@@ -191,9 +178,9 @@ const AnimatedCounter: React.FC<{ value: number; prefix?: string; suffix?: strin
 //  MAIN COMPONENT
 // ═══════════════════════════════════════════════════════
 const RankRewardOverlay: React.FC<RankRewardOverlayProps> = ({
-  rank, gold, xp, keys, username, onClaim,
+  rank, gold, xp, username, onClaim,
 }) => {
-  const [phase, setPhase] = useState(0); // 0=entering, 1=rank, 2=rewards, 3=key, 4=claim
+  const [phase, setPhase] = useState(0); // 0=entering, 1=rank, 2=rewards, 3=claim
   const cfg = RANK_CONFIG[rank] || RANK_CONFIG[5];
 
   // Phase progression
@@ -203,15 +190,10 @@ const RankRewardOverlay: React.FC<RankRewardOverlayProps> = ({
     timers.push(setTimeout(() => { setPhase(1); playRewardSound('rank'); }, 400));
     // Phase 1 → 2 (Reward cascade)
     timers.push(setTimeout(() => { setPhase(2); playRewardSound('coin'); }, 2200));
-    // Phase 2 → 3 (Key drop, or skip to 4)
-    if (keys > 0) {
-      timers.push(setTimeout(() => { setPhase(3); playRewardSound('key'); }, 4200));
-      timers.push(setTimeout(() => setPhase(4), 5500));
-    } else {
-      timers.push(setTimeout(() => setPhase(4), 4400));
-    }
+    // Phase 2 → 3 (Claim)
+    timers.push(setTimeout(() => setPhase(3), 4400));
     return () => timers.forEach(clearTimeout);
-  }, [keys]);
+  }, []);
 
   const handleClaim = useCallback(() => {
     playRewardSound('claim');
@@ -448,56 +430,11 @@ const RankRewardOverlay: React.FC<RankRewardOverlayProps> = ({
         </div>
       )}
 
-      {/* ── PHASE 3: Key Drop (Rank 1 only) ── */}
-      <AnimatePresence>
-        {phase >= 3 && keys > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: -80, scale: 0.5 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ type: 'spring', stiffness: 150, damping: 12 }}
-            style={{
-              marginTop: 16,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              position: 'relative',
-              zIndex: 20,
-            }}
-          >
-            {/* Key shimmer trail */}
-            <motion.div
-              animate={{ opacity: [0, 0.4, 0] }}
-              transition={{ duration: 1.5, repeat: Infinity }}
-              style={{
-                position: 'absolute',
-                width: 60,
-                height: 80,
-                top: -10,
-                left: -10,
-                background: 'linear-gradient(180deg, rgba(251,191,36,0.3), transparent)',
-                filter: 'blur(15px)',
-                borderRadius: '50%',
-              }}
-            />
-            <div style={{
-              width: 40, height: 40, borderRadius: 12,
-              background: 'rgba(251,191,36,0.15)', border: '1px solid rgba(251,191,36,0.3)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 0 20px rgba(251,191,36,0.2)',
-            }}>
-              <Key size={20} color="#fbbf24" />
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.15em' }}>DUNGEON KEY</span>
-              <AnimatedCounter value={keys} prefix="+" color="#fbbf24" delay={200} />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+
 
       {/* ── PHASE 4: Claim Button ── */}
       <AnimatePresence>
-        {phase >= 4 && (
+        {phase >= 3 && (
           <motion.button
             initial={{ opacity: 0, y: 30, scale: 0.8 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}

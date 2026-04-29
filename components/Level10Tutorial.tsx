@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, Castle, Users, ChevronRight } from 'lucide-react';
+import { Trophy, Users, ChevronRight } from 'lucide-react';
 import { playSystemSoundEffect } from '../utils/soundEngine';
 
 interface Level10TutorialProps {
@@ -30,13 +30,6 @@ const LVL10_STEPS: TStepConfig[] = [
     title: 'Alliance Warfare',
     subtitle: 'Join or create alliances. Challenge others for ranking supremacy.',
     color: '#f59e0b',
-    autoAdvanceMs: 4500,
-  },
-  {
-    icon: <Castle size={20} />,
-    title: 'Demon Castle',
-    subtitle: 'Enter dangerous dungeons for powerful rewards. Earn Gold, XP, and Crystal Shards.',
-    color: '#ef4444',
     autoAdvanceMs: 4500,
   },
 ];

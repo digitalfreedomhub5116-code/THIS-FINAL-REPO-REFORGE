@@ -45,7 +45,6 @@ const DEFAULT_PLAYER: PlayerData = {
   dailyXp: 0,
   rank: 'UNRANKED',
   gold: 0,
-  keys: 0,
   streak: 0,
   stats: { strength: 10, intelligence: 10, discipline: 10, social: 10, focus: 10, willpower: 10 },
   dailyStats: { strength: 0, intelligence: 0, discipline: 0, social: 0, focus: 0, willpower: 0 },
@@ -68,7 +67,7 @@ const DEFAULT_PLAYER: PlayerData = {
   lastWorkoutDate: '',
   dailyQuestComplete: false,
   isPenaltyActive: false,
-  lastDungeonEntry: 0,
+
   logs: [],
   quests: [],
   shopItems: [],
@@ -247,9 +246,8 @@ export const useSystem = () => {
   // This prevents stale localStorage from overwriting newer DB data on a second device.
   const serverPullDoneRef = useRef(false);
 
-  // Track server-authoritative gold/keys for delta-based sync
+  // Track server-authoritative gold for delta-based sync
   const serverGoldRef = useRef(player.gold);
-  const serverKeysRef = useRef(player.keys);
 
   useEffect(() => {
     try { localStorage.setItem(`reforge_player_v2_${player.userId || 'local'}`, JSON.stringify(player)); } catch { /* quota exceeded or private mode */ }
@@ -314,9 +312,8 @@ export const useSystem = () => {
   // Expose a function that lets App.tsx update the server baseline refs
   // when it detects an admin change via polling. This prevents the sync
   // from computing a wrong delta and double-counting admin adjustments.
-  const updateServerBaseline = useCallback((gold: number, keys: number) => {
+  const updateServerBaseline = useCallback((gold: number) => {
     serverGoldRef.current = gold;
-    serverKeysRef.current = keys;
   }, []);
 
   // Called by App.tsx after the first /sync poll completes.
@@ -338,11 +335,10 @@ export const useSystem = () => {
     // This prevents stale localStorage from overwriting newer DB values.
     if (!serverPullDoneRef.current) return;
     try {
-      // Include last-known server gold/keys so server can compute delta
+      // Include last-known server gold so server can compute delta
       const syncData = {
         ...data,
         _serverGold: serverGoldRef.current,
-        _serverKeys: serverKeysRef.current,
         _lastKnownUpdatedAt: serverUpdatedAtRef.current,
         consumables: data.consumables || {}
       };
@@ -373,18 +369,15 @@ export const useSystem = () => {
         try {
           const result = await res.json();
           const sGold = result._serverGold as number | undefined;
-          const sKeys = result._serverKeys as number | undefined;
           const sUpdatedAt = result._serverUpdatedAt as string | undefined;
           // Update refs to what the server now has
           if (typeof sGold === 'number') serverGoldRef.current = sGold;
-          if (typeof sKeys === 'number') serverKeysRef.current = sKeys;
           if (sUpdatedAt) serverUpdatedAtRef.current = sUpdatedAt;
           // If server values differ from what we sent (admin changed), update local state
-          if ((typeof sGold === 'number' && sGold !== data.gold) || (typeof sKeys === 'number' && sKeys !== data.keys)) {
+          if (typeof sGold === 'number' && sGold !== data.gold) {
             setPlayer(prev => ({
               ...prev,
               gold: typeof sGold === 'number' ? sGold : prev.gold,
-              keys: typeof sKeys === 'number' ? sKeys : prev.keys,
             }));
           }
         } catch { /* response parse error, non-critical */ }
@@ -705,10 +698,10 @@ export const useSystem = () => {
     }));
   }, [player.lastLoginDate]);
 
-  const registerUser = (profile: { id?: string; name?: string; username?: string; keys?: number; raw_data?: Partial<PlayerData>; replitUser?: ReplitUser }) => {
+  const registerUser = (profile: { id?: string; name?: string; username?: string; raw_data?: Partial<PlayerData>; replitUser?: ReplitUser }) => {
     setPlayer(prev => {
       const cloudData = (profile.raw_data || {}) as Partial<PlayerData>;
-      const currentKeys = profile.keys !== undefined ? profile.keys : (cloudData.keys ?? prev.keys);
+
 
       let currentQuests = (cloudData.quests ?? prev.quests) || [];
       if (!profile.raw_data && currentQuests.length === 0) {
@@ -792,7 +785,7 @@ export const useSystem = () => {
         name: (profile.name as string) || (cloudData.name as string) || prev.name,
         username: (profile.username as string) || (cloudData.username as string) || prev.username,
         gold: currentGold,
-        keys: currentKeys,
+
         quests: currentQuests,
         isConfigured: true,
         replitUser: profile.replitUser || prev.replitUser,
@@ -817,7 +810,7 @@ export const useSystem = () => {
 
       // Set server refs to the authoritative values from the server
       serverGoldRef.current = currentGold;
-      serverKeysRef.current = currentKeys;
+
 
       return updated;
     });
@@ -840,14 +833,6 @@ export const useSystem = () => {
     window.location.reload();
   };
 
-  const consumeKey = async (amount: number = 1): Promise<boolean> => {
-    if (player.keys >= amount) {
-      setPlayer(prev => ({ ...prev, keys: prev.keys - amount }));
-      return true;
-    }
-    return false;
-  };
-
   const consumeMana = (amount: number): boolean => {
     if ((player.mp ?? 100) >= amount) {
       setPlayer(prev => ({ ...prev, mp: Math.max(0, (prev.mp ?? 100) - amount) }));
@@ -860,36 +845,6 @@ export const useSystem = () => {
     setPlayer(prev => ({ ...prev, mp: Math.min(prev.maxMp ?? 100, (prev.mp ?? 100) + amount) }));
   };
 
-  const enterDungeon = async (isFree: boolean): Promise<boolean> => {
-    let newState: PlayerData | null = null;
-    if (isFree) {
-      setPlayer(prev => {
-        newState = { ...prev, lastDungeonEntry: Date.now() };
-        return newState;
-      });
-    } else {
-      const COST = 3;
-      if (player.keys >= COST) {
-        setPlayer(prev => {
-          newState = {
-            ...prev,
-            keys: prev.keys - COST,
-            logs: [createLog(`Dungeon Access Purchased (-${COST} Keys)`, 'PURCHASE'), ...prev.logs]
-          };
-          return newState;
-        });
-      } else {
-        return false;
-      }
-    }
-    
-    // Force immediate sync to prevent refresh reset
-    if (newState) {
-      await syncToCloud(newState);
-    }
-    
-    return true;
-  };
 
   // --- DAILY REWARDS SYSTEM (30-Day Cycle) ---
   // REWARD_SCHEDULE imported from lib/rewards
@@ -914,7 +869,7 @@ export const useSystem = () => {
       // Streak is already set by auto-streak tracker — use it directly (single source of truth)
       const nextStreak = prev.streak || 1;
 
-      let { currentXp, requiredXp, level, totalXp, dailyXp, gold, keys, consumables } = prev;
+      let { currentXp, requiredXp, level, totalXp, dailyXp, gold, consumables } = prev;
       
       const safeConsumables = consumables || {};
       const safeChests = prev.chests || { legendary: 0 };
@@ -925,13 +880,6 @@ export const useSystem = () => {
         currentXp += reward.amount;
         totalXp += reward.amount;
         dailyXp += reward.amount;
-      }
-      if (reward.type === 'WELCOME_KEYS' || reward.type === 'KEYS' || reward.type === 'DUNGEON_PASS') {
-        keys += reward.amount;
-        if (reward.type === 'KEYS' && ((nextStreak - 1) % 7) + 1 === 7) {
-          // Day 7 also grants a legendary chest
-          safeChests.legendary += 1;
-        }
       }
       
       if (reward.type === 'CHEST_LEGENDARY') safeChests.legendary += reward.amount;
@@ -962,7 +910,7 @@ export const useSystem = () => {
         lastLoginDate: today,
         streak: nextStreak,
         gold,
-        keys,
+
         currentXp,
         requiredXp,
         level,
@@ -987,7 +935,7 @@ export const useSystem = () => {
       const claimed = prev.claimedStreakRewards || [];
       if (claimed.includes(day)) return prev; // Already claimed
 
-      let { gold, keys, currentXp, requiredXp, level, totalXp, dailyXp } = prev;
+      let { gold, currentXp, requiredXp, level, totalXp, dailyXp } = prev;
       const safeChests = { ...(prev.chests || { legendary: 0 }) };
       const safeStones = { ...(prev.outfitStones || {}) };
 
@@ -1008,13 +956,9 @@ export const useSystem = () => {
         case 'LEGENDARY_CHEST':
           safeChests.legendary = (safeChests.legendary || 0) + reward.amount;
           break;
-        case 'KEY':
-          keys += reward.amount;
-          break;
         case 'ALLIANCE_CHEST':
-          // Alliance chests are special — award gold + keys + stones combo
+          // Alliance chests are special — award gold + stones combo
           gold += 600;
-          keys += 5;
           safeChests.legendary = (safeChests.legendary || 0) + 1;
           break;
       }
@@ -1024,7 +968,7 @@ export const useSystem = () => {
       return {
         ...prev,
         gold,
-        keys,
+
         currentXp,
         requiredXp,
         level,
@@ -1077,7 +1021,7 @@ export const useSystem = () => {
     setPlayer(prev => ({ ...prev, equippedBorder: borderId }));
   };
 
-  const addRewards = (gold: number, xp: number, keys: number = 0) => {
+  const addRewards = (gold: number, xp: number) => {
     setPlayer(prev => {
       let { currentXp, requiredXp, level, totalXp, dailyXp } = prev;
       currentXp += xp;
@@ -1089,7 +1033,7 @@ export const useSystem = () => {
       const leveledUp = lu.leveledUp;
 
       const newLogs = [...prev.logs];
-      if (gold > 0 || keys > 0) newLogs.unshift(createLog(`Loot Acquired: ${gold} G, ${keys} Keys, ${xp} XP`, 'LOOT'));
+      if (gold > 0) newLogs.unshift(createLog(`Loot Acquired: ${gold} G, ${xp} XP`, 'LOOT'));
       if (leveledUp) {
         newLogs.unshift(createLog(`LEVEL UP! REACHED LEVEL ${level}`, 'LEVEL_UP'));
         addNotification(`LEVEL UP! You are now Level ${level}`, 'LEVEL_UP');
@@ -1099,7 +1043,6 @@ export const useSystem = () => {
       return {
         ...prev,
         gold: prev.gold + gold,
-        keys: prev.keys + keys,
         currentXp,
         requiredXp,
         level,
@@ -1112,11 +1055,10 @@ export const useSystem = () => {
     });
   };
 
-  const openLegendaryChest = (): { gold: number; keys: number; stones: number } | null => {
+  const openLegendaryChest = (): { gold: number; stones: number } | null => {
     const legendary = player.chests?.legendary ?? 0;
     if (legendary <= 0) return null;
     const gold = Math.floor(Math.random() * 500) + 300;
-    const keys = Math.random() < 0.4 ? Math.floor(Math.random() * 3) + 1 : 0;
     const stones = Math.floor(Math.random() * 50) + 50;
     setPlayer(prev => {
       const safeChests = { ...(prev.chests || { legendary: 0 }) };
@@ -1131,12 +1073,11 @@ export const useSystem = () => {
       return {
         ...prev,
         gold: prev.gold + gold + goldToConvert,
-        keys: prev.keys + keys,
         chests: safeChests,
         outfitStones: updatedStones,
       };
     });
-    return { gold, keys, stones };
+    return { gold, stones };
   };
 
   const updateFocusVideos = (videos: Record<string, string>) => {
@@ -1632,13 +1573,13 @@ export const useSystem = () => {
       // Sum up XP and Gold from rewards
       let xpReward = 0;
       let goldReward = 0;
-      let keyReward = 0;
+
 
       for (const r of rewards) {
         switch (r.type) {
           case 'XP': xpReward += r.amount; break;
           case 'GOLD': goldReward += r.amount; break;
-          case 'KEYS': keyReward += r.amount; break;
+
         }
       }
 
@@ -1703,7 +1644,7 @@ export const useSystem = () => {
         stats,
         personalBests: newPBs,
         gold: prev.gold + totalGoldGain,
-        keys: prev.keys + keyReward,
+
         logs: newLogs,
         lastWorkoutDate: today,
         ...(leveledUp ? { hp: prev.maxHp, mp: prev.maxMp } : {})
@@ -2071,22 +2012,14 @@ export const useSystem = () => {
         addNotification('Insufficient Gold.', 'DANGER');
         return prev;
       }
-      const keyCost = outfit.keyCost ?? 0;
-      if (keyCost > 0 && (prev.keys || 0) < keyCost) {
-        addNotification('Insufficient Keys.', 'DANGER');
-        return prev;
-      }
       const unlocked = prev.unlockedOutfits || ['outfit_starter'];
       if (unlocked.includes(outfit.id)) return prev;
       playSystemSoundEffect('PURCHASE');
-      const costLabel = outfit.cost > 0 && keyCost > 0
-        ? `-${outfit.cost}G, -${keyCost} Key${keyCost !== 1 ? 's' : ''}`
-        : outfit.cost > 0 ? `-${outfit.cost}G` : keyCost > 0 ? `-${keyCost} Key${keyCost !== 1 ? 's' : ''}` : 'FREE';
+      const costLabel = outfit.cost > 0 ? `-${outfit.cost}G` : 'FREE';
       addNotification(`${outfit.name} Unlocked!`, 'PURCHASE');
       return {
         ...prev,
         gold: prev.gold - outfit.cost,
-        keys: (prev.keys || 0) - keyCost,
         unlockedOutfits: [...unlocked, outfit.id],
         logs: [createLog(`Purchased: ${outfit.name} (${costLabel})`, 'PURCHASE'), ...prev.logs]
       };
@@ -2212,7 +2145,7 @@ export const useSystem = () => {
     updateFocusVideos,
     updateCustomProtocols,
     addXp,
-    consumeKey,
+
     consumeMana,
     refundMana,
     checkDailyLogin,
@@ -2221,7 +2154,7 @@ export const useSystem = () => {
     deductGold,
     addRewards,
     openLegendaryChest,
-    enterDungeon,
+
     unlockOutfit,
     setActiveOutfit,
     recordStrike,

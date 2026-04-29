@@ -116,7 +116,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode = 'SIGN_IN' })
       id: user.id,
       name: playerData?.name || user.firstName || 'Hunter',
       username: (user as any).username || playerData?.username,
-      keys: playerData?.keys,
+
       raw_data: playerData || undefined,
       replitUser: user,
     } as any);

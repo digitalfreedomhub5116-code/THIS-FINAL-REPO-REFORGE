@@ -11,12 +11,11 @@ export interface FeatureGateConfig {
 
 export const FEATURE_GATES: Record<string, FeatureGateConfig> = {
   HEALTH_NUTRITION: { level: 5, label: 'Nutrition Scanner', description: 'Scan food, log meals, and track macros with AI.' },
-  HEALTH_CUSTOM_WORKOUT: { level: 5, label: 'AI Workout Generator', description: 'Generate personalized workout protocols using keys.' },
+  HEALTH_CUSTOM_WORKOUT: { level: 5, label: 'AI Workout Generator', description: 'Generate personalized workout protocols.' },
   HEALTH_CALORIE_LIMIT: { level: 5, label: 'Custom Calorie Limit', description: 'Set a custom daily calorie target.' },
-  STORE: { level: 1, label: 'Armory & Store', description: 'Unlock outfits, chests, and dungeon access.' },
+  STORE: { level: 1, label: 'Armory & Store', description: 'Unlock outfits, chests, and more.' },
   LEADERBOARD: { level: 3, label: 'Hunter Rankings', description: 'Unlock the global leaderboard at level 3 and compete with others.' },
-  DEMON_CASTLE: { level: 10, label: 'Demon Castle', description: 'Enter dangerous dungeons for powerful rewards.' },
-  MOBILE_CHESTS: { level: 5, label: 'Chests & Keys', description: 'Open legendary and alliance chests using keys.' },
+  MOBILE_CHESTS: { level: 5, label: 'Chest Vault', description: 'Open legendary and alliance chests using gold.' },
 };
 
 // ── Level gate thresholds for feature unlocks ──

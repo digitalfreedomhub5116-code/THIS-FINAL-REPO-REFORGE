@@ -128,7 +128,7 @@ export interface Outfit {
   image: string;
   baseStats: CombatStats;
   cost: number;
-  keyCost?: number;
+
   buffs?: { label: string; color: string }[];
   accentColor?: string;
   introVideoUrl?: string;
@@ -666,7 +666,6 @@ export interface PlayerData {
   rank: Rank;
   trustScore: number;
   gold: number;
-  keys: number;
   streak: number;
   startDate: number;
 
@@ -712,7 +711,7 @@ export interface PlayerData {
   isPenaltyActive: boolean;
   penaltyEndTime?: number;
   penaltyTask?: PenaltyTask;
-  lastDungeonEntry?: number;
+
   logs: ActivityLog[];
   quests: Quest[];
   questHistory?: Record<string, number>;

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Store, Utensils, Trophy, Castle, Sparkles, Unlock } from 'lucide-react';
+import { Store, Utensils, Trophy, Sparkles, Unlock } from 'lucide-react';
 import { playSystemSoundEffect } from '../utils/soundEngine';
 
 interface FeatureUnlockConfig {
@@ -15,11 +15,10 @@ const UNLOCK_CONFIGS: Record<number, FeatureUnlockConfig[]> = {
   5: [
     { icon: <Store size={32} />, title: 'ARMORY & STORE', subtitle: 'New Store content is now available.', color: '#9ACDE3', glow: 'rgba(192,132,252,0.6)' },
     { icon: <Utensils size={32} />, title: 'NUTRITION SCANNER', subtitle: 'Nutrition tools are now available in Health → Nutrition.', color: '#7EB8D4', glow: 'rgba(34,211,238,0.6)' },
-    { icon: <Sparkles size={32} />, title: 'AI PROTOCOL GENERATOR', subtitle: 'Generate custom workout plans with keys.', color: '#9ACDE3', glow: 'rgba(167,139,250,0.6)' },
+    { icon: <Sparkles size={32} />, title: 'AI PROTOCOL GENERATOR', subtitle: 'Generate custom workout plans.', color: '#9ACDE3', glow: 'rgba(167,139,250,0.6)' },
   ],
   10: [
     { icon: <Trophy size={32} />, title: 'HUNTER RANKINGS', subtitle: 'Climb higher and earn bigger rank rewards.', color: '#fbbf24', glow: 'rgba(251,191,36,0.6)' },
-    { icon: <Castle size={32} />, title: 'DEMON CASTLE', subtitle: 'Enter dangerous dungeons for powerful rewards.', color: '#ef4444', glow: 'rgba(239,68,68,0.6)' },
   ],
 };
 

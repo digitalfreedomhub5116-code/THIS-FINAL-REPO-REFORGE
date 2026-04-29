@@ -9,7 +9,7 @@ import OutfitHunterBadge from './OutfitHunterBadge';
 
 interface WardrobePreviewCardProps {
   gold: number;
-  keys?: number;
+
   unlockedOutfits: string[];
   equippedOutfitId: string;
   outfits?: Outfit[];
@@ -156,7 +156,7 @@ const OutfitCard: React.FC<{
 // ── Main component ────────────────────────────────────────────────────────────
 const WardrobePreviewCard: React.FC<WardrobePreviewCardProps> = ({
   gold,
-  keys = 0,
+
   unlockedOutfits = [],
   equippedOutfitId,
   outfits: propOutfits,
@@ -568,7 +568,7 @@ const WardrobePreviewCard: React.FC<WardrobePreviewCardProps> = ({
       <OutfitPurchaseModal
         outfit={outfit}
         gold={gold}
-        keys={keys}
+
         isUnlocked={isUnlocked}
         onPurchase={(o) => { onPurchase?.(o); }}
         onEquip={onEquip}

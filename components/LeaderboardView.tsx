@@ -722,7 +722,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                     setPlayer(prev => ({
                       ...prev,
                       gold: p.gold,
-                      keys: p.keys,
+
                       currentXp: p.currentXp,
                       requiredXp: p.requiredXp,
                       level: p.level,
@@ -731,7 +731,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                       dailyXp: p.dailyXp,
                     }));
                     // Update server baseline so the sync loop doesn't compute wrong deltas
-                    updateServerBaseline(p.gold, p.keys);
+                    updateServerBaseline(p.gold);
                   }
                 }
                 // Also trigger sync to catch any other pending changes
