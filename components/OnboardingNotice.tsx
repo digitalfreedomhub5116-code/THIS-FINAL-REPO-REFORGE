@@ -19,10 +19,10 @@ const PAGE_CONTENT: Record<PageKey, { title: string; sections: { icon: string; h
   STORE: {
     title: 'Welcome to the Store',
     sections: [
-      { icon: '🏰', heading: 'Dungeon Tower', text: 'A survival reward zone — flip cards to earn Gold, XP, and Keys. Free entry resets every 24 hours, or spend 3 Keys for instant access.' },
-      { icon: '📦', heading: 'Chest Vault', text: 'Open chests to win random rewards. Free Chest resets every 30 minutes. Legendary and Alliance chests cost Keys but have better loot.' },
+      { icon: '🏰', heading: 'Dungeon Tower', text: 'A survival reward zone — flip cards to earn Gold, XP, and Stones. Free entry resets every 24 hours.' },
+      { icon: '📦', heading: 'Chest Vault', text: 'Open chests to win random rewards. Free Chest resets every 30 minutes. Legendary and Alliance chests cost Gold but have better loot.' },
       { icon: '👔', heading: 'Wardrobe', text: 'Purchase and equip outfits to boost your stats. Each outfit has unique Attack, Boost, Extraction, and Ultimate bonuses.' },
-      { icon: '📅', heading: 'Daily Login', text: 'Log in every day to build your streak and earn escalating rewards including Gold, Keys, Outfit Stones, and Legendary Chests.' },
+      { icon: '📅', heading: 'Daily Login', text: 'Log in every day to build your streak and earn escalating rewards including Gold, Outfit Stones, and Legendary Chests.' },
     ],
   },
   QUEST: {

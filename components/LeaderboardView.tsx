@@ -145,7 +145,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
 
   // ── Rank Reward State ──
   const [pendingReward, setPendingReward] = useState<{
-    id: string; rank: number; reward_gold: number; reward_xp: number; reward_keys: number;
+    id: string; rank: number; reward_gold: number; reward_xp: number;
   } | null>(null);
   const [showRewardOverlay, setShowRewardOverlay] = useState(false);
   const rewardCheckedRef = useRef(false);
@@ -698,12 +698,12 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
             rank={pendingReward.rank}
             gold={pendingReward.reward_gold}
             xp={pendingReward.reward_xp}
-            keys={pendingReward.reward_keys}
+
             username={player.username || player.name || 'Hunter'}
             onClaim={async () => {
               setShowRewardOverlay(false);
               addNotification(
-                `Leaderboard Reward: Rank #${pendingReward.rank} — +${pendingReward.reward_gold}G, +${pendingReward.reward_xp}XP${pendingReward.reward_keys > 0 ? `, +${pendingReward.reward_keys} Key` : ''}`,
+                `Leaderboard Reward: Rank #${pendingReward.rank} — +${pendingReward.reward_gold}G, +${pendingReward.reward_xp}XP`,
                 'SUCCESS'
               );
               // Claim on server — server credits rewards and returns authoritative values

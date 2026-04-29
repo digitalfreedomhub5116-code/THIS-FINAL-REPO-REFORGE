@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, animate } from 'framer-motion';
-import { Ghost, Key, Coins, Skull, LogOut, Timer, AlertOctagon, Sparkles, Crown } from 'lucide-react';
+import { Ghost, Coins, Skull, LogOut, Timer, AlertOctagon, Sparkles, Crown } from 'lucide-react';
 import CrystalIcon from './CrystalIcon';
 import { playSystemSoundEffect } from '../utils/soundEngine';
 import { useCoinReward } from '../hooks/useCoinReward';
@@ -11,7 +11,7 @@ import { SystemCoin } from './icons/SystemCoin';
 
 type CardType = 'SAFE' | 'TRAP' | 'JACKPOT';
 type StoneRewardType = 'STONE_ASH' | 'STONE_PLUTON' | 'STONE_SATURN' | 'STONE_MARS' | 'STONE_JUPITER' | 'STONE_OVERLORD';
-type RewardType = 'GOLD' | 'KEY' | StoneRewardType;
+type RewardType = 'GOLD' | StoneRewardType;
 
 const STONE_REWARD_CONFIG: Record<StoneRewardType, { outfitId: string; color: string; glow: string; name: string; shortName: string }> = {
   STONE_ASH:      { outfitId: 'outfit_starter',  color: '#9ca3af', glow: 'rgba(156,163,175,0.5)', name: 'Ash Crystal',      shortName: 'ASH' },
@@ -35,14 +35,13 @@ interface FloorCardData {
   id: string;
   type: CardType;
   rewardType?: RewardType;
-  reward: { gold: number; xp: number; keys: number; stoneAmount?: number };
+  reward: { gold: number; xp: number; stoneAmount?: number };
 }
 
 /** Pick a single reward type from weighted pool */
 const rollRewardType = (): RewardType => {
   const pool: { type: RewardType; weight: number }[] = [
-    { type: 'GOLD',          weight: 22 },
-    { type: 'KEY',           weight: 4  },
+    { type: 'GOLD',          weight: 26 },
     { type: 'STONE_ASH',     weight: 12 },
     { type: 'STONE_PLUTON',  weight: 12 },
     { type: 'STONE_SATURN',  weight: 12 },
@@ -61,12 +60,12 @@ const rollRewardType = (): RewardType => {
 
 interface DemonCastleProps {
   gold: number;
-  keys: number;
+
   lastDungeonEntry: number | undefined;
   onDeductGold: (amount: number) => boolean;
   onConsumeKey: (amount?: number) => Promise<boolean>;
   onEnterDungeon: (isFree: boolean) => Promise<boolean>;
-  onAddRewards: (gold: number, xp: number, keys?: number) => void;
+  onAddRewards: (gold: number, xp: number) => void;
   onAwardStones: (outfitId: string, amount: number) => void;
   onPlayStateChange: (isPlaying: boolean) => void; 
   initialMode?: 'LOBBY' | 'PLAYING';
@@ -282,22 +281,6 @@ const VintageCardFront = ({ data }: { data: FloorCardData }) => {
                <div className="text-[8px] text-red-500/70 font-mono tracking-widest">SYSTEM LOCK</div>
             </>
 
-        ) : rt === 'KEY' ? (
-            <>
-               <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                  {sparkleParticles.map((p, i) => (
-                      <motion.div key={i} initial={{ opacity: 0, scale: 0 }} animate={{ opacity: [0, 1, 0], scale: [0, 1, 0], x: p.x, y: p.y }} transition={{ duration: 2, repeat: Infinity, delay: p.delay }} className="absolute top-1/2 left-1/2">
-                          <Sparkles size={8} className="text-purple-200" />
-                      </motion.div>
-                  ))}
-               </div>
-               <motion.div animate={{ rotateY: 360 }} transition={{ duration: 5, repeat: Infinity, ease: "linear" }} className="text-purple-600 drop-shadow-[0_0_15px_rgba(147,51,234,0.4)] mb-2 relative z-10">
-                   <Key size={48} strokeWidth={1.5} fill="#a855f7" className="text-purple-800" />
-               </motion.div>
-               <div className="font-black text-[#9ACDE3] uppercase tracking-widest text-xl font-serif relative z-10 drop-shadow-sm">+1 KEY</div>
-               <div className="text-[8px] text-[#7EB8D4]/70 font-bold uppercase tracking-widest relative z-10">RARE DROP</div>
-            </>
-
         ) : stoneConf ? (
             <>
                {/* Stone sparkle particles */}
@@ -416,9 +399,8 @@ const FlyingLoot: React.FC<{ lootType: RewardType; startRect: DOMRect | null }> 
     if (!startRect) return null;
 
     const stoneConf = isStoneType(lootType) ? STONE_REWARD_CONFIG[lootType] : null;
-    const bg = lootType === 'KEY' ? 'bg-[#7EB8D4] border-white' : stoneConf ? 'bg-gray-800 border-white' : 'bg-yellow-400 border-white';
-    const icon = lootType === 'KEY' ? <Key size={20} color="white" fill="currentColor" />
-        : stoneConf ? <CrystalIcon color={stoneConf.color} glow={stoneConf.glow} size={20} />
+    const bg = stoneConf ? 'bg-gray-800 border-white' : 'bg-yellow-400 border-white';
+    const icon = stoneConf ? <CrystalIcon color={stoneConf.color} glow={stoneConf.glow} size={20} />
         : <div className="flex items-center justify-center -mx-2 -my-2" style={{ width: 35, flexShrink: 0 }}><SystemCoin size={35} /></div>;
 
     return (
@@ -634,7 +616,7 @@ const SequentialReward: React.FC<{
 
 // --- SUB-COMPONENT: VICTORY SCREEN (PREMIUM) ---
 const VictoryScreen: React.FC<{ 
-  loot: { gold: number; xp: number; keys: number; stones: Record<string, number> };
+  loot: { gold: number; xp: number; stones: Record<string, number> };
   onClose: () => void;
 }> = ({ loot, onClose }) => {
   const [stage, setStage] = useState<'intro' | 'rewards' | 'done'>('intro');
@@ -643,7 +625,7 @@ const VictoryScreen: React.FC<{
   const [shake, setShake] = useState(false);
 
   const collectedStones = Object.entries(loot.stones).filter(([, v]) => v > 0);
-  const totalStages = 2 + collectedStones.length; // gold, keys, + each stone type
+  const totalStages = 1 + collectedStones.length; // gold + each stone type
 
   useEffect(() => {
     // Start rewards after intro
@@ -655,7 +637,7 @@ const VictoryScreen: React.FC<{
     if (stage === 'rewards' && rewardStage === totalStages) {
       setTimeout(() => {
         setStage('done');
-        if (loot.gold > 0 || loot.keys > 0 || Object.values(loot.stones).some(v => v > 0)) {
+        if (loot.gold > 0 || Object.values(loot.stones).some(v => v > 0)) {
             setShowConfetti(true);
             setShake(true);
             playSystemSoundEffect('VICTORY_BURST'); 
@@ -765,26 +747,16 @@ const VictoryScreen: React.FC<{
              icon={<div className="flex items-center justify-center -mx-2 -my-2" style={{ width: 35, flexShrink: 0 }}><SystemCoin size={35} /></div>} 
              delay={0}
              color="yellow-500"
-             onComplete={() => setRewardStage(prev => Math.max(prev, 1))}
-           />
-           <SequentialReward 
-             start={rewardStage >= 1}
-             value={loot.keys} 
-             label="Keys" 
-             icon={<Key size={22} />} 
-             delay={0.15} 
-             color="purple-500"
-             onComplete={() => setRewardStage(prev => Math.max(prev, 2))}
            />
            {collectedStones.length === 0 && (
              <SequentialReward 
-               start={rewardStage >= 2}
+               start={rewardStage >= 1}
                value={0} 
                label="Stones" 
                icon={<CrystalIcon color="#9ca3af" glow="rgba(156,163,175,0.5)" size={22} />} 
                delay={0.15} 
                color="gray-500"
-               onComplete={() => setRewardStage(prev => Math.max(prev, 3))}
+               onComplete={() => setRewardStage(prev => Math.max(prev, 2))}
              />
            )}
         </div>
@@ -840,7 +812,7 @@ const VictoryScreen: React.FC<{
 
 // --- SUB-COMPONENT: GAME OVER SCREEN (PREMIUM) ---
 const GameOverScreen: React.FC<{ 
-  lostLoot: { gold: number; xp: number; keys: number; stones: Record<string, number> };
+  lostLoot: { gold: number; xp: number; stones: Record<string, number> };
   onClose: () => void;
 }> = ({ lostLoot, onClose }) => {
   const [screenShake, setScreenShake] = useState(true);
@@ -954,11 +926,6 @@ const GameOverScreen: React.FC<{
                     <div className="text-xs font-bold text-red-800 font-mono line-through">{lostLoot.gold}</div>
                     <div className="text-[8px] font-bold uppercase tracking-wider text-gray-800">GOLD</div>
                 </div>
-                <div className="flex flex-col items-center gap-1.5 opacity-50 grayscale">
-                    <Key size={18} className="text-gray-600" />
-                    <div className="text-xs font-bold text-red-800 font-mono line-through">{lostLoot.keys}</div>
-                    <div className="text-[8px] font-bold uppercase tracking-wider text-gray-800">KEYS</div>
-                </div>
             </div>
             {Object.entries(lostLoot.stones).filter(([, v]) => v > 0).length > 0 && (
               <div className="bg-black/40 border border-red-900/30 rounded-xl p-4 grid grid-cols-3 gap-3 mb-10 relative">
@@ -993,7 +960,7 @@ const GameOverScreen: React.FC<{
 // --- MAIN COMPONENT ---
 
 const DemonCastle: React.FC<DemonCastleProps> = ({ 
-    keys, 
+
     lastDungeonEntry, 
     onConsumeKey, 
     onAddRewards, 
@@ -1018,7 +985,7 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
 
   // Data
   const [floor, setFloor] = useState(1);
-  const [lootBag, setLootBag] = useState({ gold: 0, xp: 0, keys: 0, stones: {} as Record<string, number> });
+  const [lootBag, setLootBag] = useState({ gold: 0, xp: 0, stones: {} as Record<string, number> });
   const [cards, setCards] = useState<FloorCardData[]>([]);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   
@@ -1034,7 +1001,7 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
   const [isScreenShaking, setIsScreenShaking] = useState(false);
 
   // Track lost loot for game over display
-  const [lostLoot, setLostLoot] = useState({ gold: 0, xp: 0, keys: 0, stones: {} as Record<string, number> });
+  const [lostLoot, setLostLoot] = useState({ gold: 0, xp: 0, stones: {} as Record<string, number> });
 
   const PAID_ENTRY_COST = 3;
 
@@ -1062,7 +1029,7 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
                   id: `key-${i}-${floorNum}-${ts}`,
                   type: 'JACKPOT',
                   rewardType: 'KEY',
-                  reward: { gold: 0, xp: 0, keys: 1 }
+                  reward: { gold: 0, xp: 0 }
               });
           }
           for (let i = 0; i < 2; i++) {
@@ -1071,7 +1038,7 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
                   id: `stone-${i}-${floorNum}-${ts}`,
                   type: 'JACKPOT',
                   rewardType: stoneType,
-                  reward: { gold: 0, xp: 0, keys: 0, stoneAmount: rollStoneAmount(floorNum, true) }
+                  reward: { gold: 0, xp: 0, stoneAmount: rollStoneAmount(floorNum, true) }
               });
           }
       } else {
@@ -1081,7 +1048,7 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
               newCards.push({
                   id: `trap-0-${floorNum}-${ts}`,
                   type: 'TRAP',
-                  reward: { gold: 0, xp: 0, keys: 0 }
+                  reward: { gold: 0, xp: 0 }
               });
           }
 
@@ -1093,20 +1060,17 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
               let reward: FloorCardData['reward'];
               switch (rt) {
                   case 'GOLD':
-                      reward = { gold: 10 + Math.floor(Math.random() * 21), xp: 0, keys: 0 };
-                      break;
-                  case 'KEY':
-                      reward = { gold: 0, xp: 0, keys: 1 };
+                      reward = { gold: 10 + Math.floor(Math.random() * 21), xp: 0 };
                       break;
                   default:
                       // Stone type
-                      reward = { gold: 0, xp: 0, keys: 0, stoneAmount: rollStoneAmount(floorNum, false) };
+                      reward = { gold: 0, xp: 0, stoneAmount: rollStoneAmount(floorNum, false) };
                       break;
               }
 
               newCards.push({
                   id: `safe-${i}-${floorNum}-${ts}`,
-                  type: isRare ? 'JACKPOT' : 'SAFE',
+                  type: 'SAFE',
                   rewardType: rt,
                   reward,
               });
@@ -1121,7 +1085,7 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
       if (initialMode === 'PLAYING') {
           // Initialize game state logic that normally happens in handleStartRun
           setFloor(1);
-          setLootBag({ gold: 0, xp: 0, keys: 0, stones: {} });
+          setLootBag({ gold: 0, xp: 0, stones: {} });
           setCards(generateFloor(1));
           setTurnState('IDLE');
           setSelectedCardId(null);
@@ -1164,7 +1128,7 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
   const handleStartRun = async () => {
       const isFree = timeUntilFree <= 0;
       
-      if (!isFree && keys < PAID_ENTRY_COST) {
+      if (!isFree) {
           playSystemSoundEffect('DANGER');
           return;
       }
@@ -1176,7 +1140,7 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
           onPlayStateChange(true); // Lock Navigation
           setMode('PLAYING');
           setFloor(1);
-          setLootBag({ gold: 0, xp: 0, keys: 0, stones: {} });
+          setLootBag({ gold: 0, xp: 0, stones: {} });
           setCards(generateFloor(1));
           setTurnState('IDLE');
           setSelectedCardId(null);
@@ -1249,7 +1213,7 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
                       return {
                           gold: prev.gold + card.reward.gold,
                           xp: prev.xp + card.reward.xp,
-                          keys: prev.keys + card.reward.keys,
+
                           stones: newStones,
                       };
                   });
@@ -1272,10 +1236,8 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
                           const fakeRt = fakeTypes[Math.floor(Math.random() * fakeTypes.length)];
                           const isRareFake = fakeRt === 'KEY';
                           const fakeReward: FloorCardData['reward'] = fakeRt === 'GOLD' 
-                              ? { gold: 10 + Math.floor(Math.random() * 21), xp: 0, keys: 0 } 
-                              : fakeRt === 'KEY' 
-                                  ? { gold: 0, xp: 0, keys: 1 } 
-                                  : { gold: 0, xp: 0, keys: 0, stoneAmount: 5 };
+                              ? { gold: 10 + Math.floor(Math.random() * 21), xp: 0 } 
+                              : { gold: 0, xp: 0, stoneAmount: 5 };
                           return { ...c, type: (isRareFake ? 'JACKPOT' : 'SAFE') as CardType, rewardType: fakeRt, reward: fakeReward };
                       }));
 
@@ -1360,12 +1322,12 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
       setIsTrapped(false);
       setLostLoot({ ...lootBag }); // Save what was lost before zeroing
       setMode('GAMEOVER');
-      setLootBag({ gold: 0, xp: 0, keys: 0, stones: {} });
+      setLootBag({ gold: 0, xp: 0, stones: {} });
       playSystemSoundEffect('DANGER');
   };
 
   const handleCashOut = () => {
-      onAddRewards(lootBag.gold, lootBag.xp, lootBag.keys);
+      onAddRewards(lootBag.gold, lootBag.xp);
       // Award collected stones to their respective outfits
       Object.entries(lootBag.stones).forEach(([stoneKey, amount]) => {
           if (amount > 0) {
@@ -1397,7 +1359,7 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
 
   if (mode === 'LOBBY') {
       const isFree = timeUntilFree <= 0;
-      const canAfford = keys >= PAID_ENTRY_COST;
+      const canAfford = true;
 
       return (
           <div className="min-h-[70vh] flex flex-col items-center justify-center p-6 relative overflow-hidden bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-gray-900 to-black">
@@ -1451,11 +1413,9 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
                       {isFree ? (
                           'ENTER THE ELEVATOR' 
                       ) : canAfford ? (
-                          <>
-                             <Key size={16} /> REPLAY ({PAID_ENTRY_COST} KEYS)
-                          </>
+                           <> REPLAY ({PAID_ENTRY_COST}G)</>
                       ) : (
-                          'INSUFFICIENT KEYS'
+                          'INSUFFICIENT GOLD'
                       )}
                   </button>
               </div>
@@ -1491,9 +1451,6 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
                           <div className="flex items-center justify-center -mx-2 -my-2" style={{ width: 35, flexShrink: 0 }}><SystemCoin size={35} /></div> <CountingNumber value={lootBag.gold} />
                       </div>
                       <div className="flex items-center justify-end gap-3 mt-0.5">
-                          <div id="loot-bag-keys" className="flex items-center gap-1 text-xs font-bold text-[#7EB8D4] font-mono">
-                              <Key size={11} className="text-[#7EB8D4]" /> <CountingNumber value={lootBag.keys} />
-                          </div>
                           <div className="flex items-center gap-1 text-xs font-bold text-blue-400 font-mono">
                               <CrystalIcon color="#60a5fa" glow="rgba(96,165,250,0.5)" size={11} /> <CountingNumber value={Object.values(lootBag.stones).reduce((s, v) => s + v, 0)} />
                           </div>
@@ -1651,14 +1608,12 @@ const DemonCastle: React.FC<DemonCastleProps> = ({
                                   <div className="grid grid-cols-2 gap-3 w-full">
                                       <button 
                                           onClick={handleSuppressBreak}
-                                          disabled={keys < getReviveCost(floor)}
-                                          className={`py-4 rounded-xl font-black text-xs uppercase tracking-widest flex flex-col items-center gap-1 transition-all ${keys >= getReviveCost(floor) ? 'bg-white text-black shadow-[0_0_20px_white] hover:scale-105' : 'bg-gray-800 text-gray-500 cursor-not-allowed border border-gray-700'}`}
+                                          className="py-4 rounded-xl font-black text-xs uppercase tracking-widest flex flex-col items-center gap-1 transition-all bg-white text-black shadow-[0_0_20px_white] hover:scale-105"
                                       >
                                           <div className="flex items-center gap-2">
                                               <span>REVIVE</span>
-                                              <Key size={14} className={keys >= getReviveCost(floor) ? "text-purple-600" : "text-gray-600"} />
                                           </div>
-                                          <span className="text-[9px] opacity-70">COST: {getReviveCost(floor)} KEYS</span>
+                                          <span className="text-[9px] opacity-70">COST: {getReviveCost(floor)}G</span>
                                       </button>
 
                                       <button 

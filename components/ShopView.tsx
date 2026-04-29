@@ -77,11 +77,11 @@ const CONSUMABLE_ITEMS: any[] = [];
 
 // Build 7-day login preview from the real REWARD_SCHEDULE so store stays synced with the popup
 const REWARD_EMOJI: Record<string, string> = {
-  GOLD: '🪙', XP: '⚡', KEYS: '🗝️', WELCOME_KEYS: '🗝️', DUNGEON_PASS: '👻',
+  GOLD: '🪙', XP: '⚡', DUNGEON_PASS: '👻',
   CHEST_LEGENDARY: '📦', VENUS_SHARDS: '🩶', NONE: '—',
 };
 const REWARD_RARITY: Record<string, string> = {
-  GOLD: 'COMMON', XP: 'COMMON', KEYS: 'RARE', WELCOME_KEYS: 'RARE', DUNGEON_PASS: 'RARE',
+  GOLD: 'COMMON', XP: 'COMMON', DUNGEON_PASS: 'RARE',
   CHEST_LEGENDARY: 'LEGENDARY', VENUS_SHARDS: 'RARE', NONE: 'COMMON',
 };
 const REWARD_SHORT: Record<string, (a: number) => string> = {

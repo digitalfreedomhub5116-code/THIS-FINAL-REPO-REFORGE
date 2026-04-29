@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Loader2, Sword, ScrollText, Target, BarChart3, Clock, CheckCircle, XCircle, AlertTriangle, Zap, Coins, Key, Shield, TrendingUp, ChevronDown, ChevronUp } from 'lucide-react';
+import { X, Loader2, Sword, ScrollText, Target, BarChart3, Clock, CheckCircle, XCircle, AlertTriangle, Zap, Coins, Shield, TrendingUp, ChevronDown, ChevronUp } from 'lucide-react';
 import { API_BASE } from '../lib/apiConfig';
 
 type TabKey = 'OVERVIEW' | 'QUESTS' | 'ACTIVITY' | 'GOALS' | 'RAW';
@@ -174,7 +174,6 @@ export default function AdminUserProfileModal({ userId, adminToken, onClose, ini
                     {[
                       { label: 'Total XP', value: data.summary.totalXp?.toLocaleString() || '0', icon: <Zap size={14} />, color: '#7EB8D4' },
                       { label: 'Gold', value: data.summary.gold?.toLocaleString() || '0', icon: <Coins size={14} />, color: '#fbbf24' },
-                      { label: 'Keys', value: data.summary.keys || 0, icon: <Key size={14} />, color: '#9ACDE3' },
                       { label: 'Streak', value: `${data.summary.streak || 0} days`, icon: <TrendingUp size={14} />, color: '#fb923c' },
                     ].map(s => (
                       <div key={s.label} className="bg-white/[0.02] border border-white/5 rounded-xl p-3">

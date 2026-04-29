@@ -286,7 +286,7 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, updatePlayer, onClose, onMa
 
     return {
       name: player.name, level: player.level, rank: player.rank,
-      streak: player.streak, gold: player.gold, keys: player.keys,
+      streak: player.streak, gold: player.gold,
       stats: player.stats,
       health: hp ? {
         weight: hp.weight, height: hp.height, bmi: hp.bmi,

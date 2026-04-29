@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Castle, X, HelpCircle, Check, Lock, Info, Coins, Timer, Key, Zap } from 'lucide-react';
+import { Castle, X, HelpCircle, Check, Lock, Info, Coins, Timer, Zap } from 'lucide-react';
 // ChestAnimations SVG fallbacks are used inside ChestLottieOverlays
 import { DailyChestLottie, LegendaryChestLottieV2, AllianceChestLottie, preloadChestLotties } from './ChestLottieOverlays';
 import { getStoneConfig, OUTFIT_STONE_CONFIG } from '../utils/gameData';
@@ -16,10 +16,7 @@ interface MobileFloatingMenuProps {
   onEnterDungeon: (isFree: boolean) => void;
   onNavigateToDungeon?: () => void;
   gold: number;
-  keys: number;
-  lastDungeonEntry: number;
-  onConsumeKey: (amount: number) => Promise<boolean>;
-  onAddRewards: (gold: number, xp: number, keys?: number) => void;
+  onAddRewards: (gold: number, xp: number) => void;
   onAddNotification: (msg: string, type: any) => void;
 }
 
@@ -28,7 +25,7 @@ type Phase = 'SELECTION' | 'HERO';
 type HeroStep = 'FLY_IN' | 'VIBRATE' | 'OPEN' | 'CARDS_OUT';
 
 interface RewardCard {
-  type: 'GOLD' | 'XP' | 'KEYS' | 'ITEM' | 'STONE';
+  type: 'GOLD' | 'XP' | 'ITEM' | 'STONE';
   amount: number;
   label: string;
   color: string;
@@ -62,13 +59,11 @@ const REWARD_POOLS: Record<'DAILY' | 'LEGENDARY' | 'ALLIANCE', WeightedReward[]>
   DAILY: [
     { reward: { type: 'GOLD', amount: 150,  label: 'GOLD',    color: '#eab308' }, weight: 35 },
     { reward: { type: 'GOLD', amount: 300,  label: 'GOLD',    color: '#eab308' }, weight: 25 },
-    { reward: { type: 'KEYS', amount: 1,     label: 'KEY',     color: '#a855f7' }, weight: 20 },
-    { reward: { type: 'STONE', amount: 1,    label: 'outfit_starter',  color: '#9ca3af' }, weight: 20 },
+    { reward: { type: 'STONE', amount: 2,    label: 'outfit_starter',  color: '#9ca3af' }, weight: 30 },
   ],
   LEGENDARY: [
     { reward: { type: 'GOLD',  amount: 800,  label: 'GOLD',            color: '#eab308' }, weight: 25 },
-    { reward: { type: 'GOLD',  amount: 1500, label: 'GOLD',            color: '#eab308' }, weight: 12 },
-    { reward: { type: 'KEYS',  amount: 3,    label: 'KEYS',            color: '#a855f7' }, weight: 18 },
+    { reward: { type: 'GOLD',  amount: 1500, label: 'GOLD',            color: '#eab308' }, weight: 15 },
     { reward: { type: 'STONE', amount: 2,    label: 'outfit_starter',  color: '#9ca3af' }, weight: 15 },
     { reward: { type: 'STONE', amount: 2,    label: 'outfit_ghost',    color: '#4ade80' }, weight: 12 },
     { reward: { type: 'STONE', amount: 1,    label: 'outfit_knight',   color: '#60a5fa' }, weight: 10 },
@@ -76,8 +71,7 @@ const REWARD_POOLS: Record<'DAILY' | 'LEGENDARY' | 'ALLIANCE', WeightedReward[]>
   ],
   ALLIANCE: [
     { reward: { type: 'GOLD',  amount: 600,  label: 'GOLD',            color: '#eab308' }, weight: 18 },
-    { reward: { type: 'GOLD',  amount: 1200, label: 'GOLD',            color: '#eab308' }, weight: 12 },
-    { reward: { type: 'KEYS',  amount: 5,    label: 'KEYS',            color: '#a855f7' }, weight: 14 },
+    { reward: { type: 'GOLD',  amount: 1200, label: 'GOLD',            color: '#eab308' }, weight: 15 },
     { reward: { type: 'STONE', amount: 3,    label: 'outfit_starter',  color: '#9ca3af' }, weight: 8 },
     { reward: { type: 'STONE', amount: 3,    label: 'outfit_ghost',    color: '#4ade80' }, weight: 8 },
     { reward: { type: 'STONE', amount: 2,    label: 'outfit_knight',   color: '#60a5fa' }, weight: 8 },
@@ -97,12 +91,10 @@ const CHEST_CFG = {
     bg: 'linear-gradient(135deg, #001a22 0%, #002233 100%)',
     rewards: [
       { type: 'GOLD' as const, amount: 200,  label: 'GOLD',   color: '#eab308' },
-      { type: 'KEYS' as const, amount: 1,    label: 'KEYS',   color: '#a855f7' },
       { type: 'STONE' as const, amount: 1,   label: 'STONES', color: '#9ca3af' },
     ],
     contents: [
       { icon: '🪙', text: 'Gold — Low' },
-      { icon: '🗝️', text: 'Key — Rare' },
       { icon: '💎', text: 'Outfit Stones' },
     ],
     cost: 'FREE',
@@ -117,16 +109,14 @@ const CHEST_CFG = {
     bg: 'linear-gradient(135deg, #1a1200 0%, #2a1e00 100%)',
     rewards: [
       { type: 'GOLD' as const,  amount: 1000, label: 'GOLD',   color: '#eab308' },
-      { type: 'KEYS' as const,  amount: 3,    label: 'KEYS',   color: '#a855f7' },
       { type: 'STONE' as const, amount: 2,    label: 'SHARDS', color: '#60a5fa' },
     ],
     contents: [
       { icon: '🪙', text: 'Gold — High' },
-      { icon: '🗝️', text: 'Keys — 2–4' },
       { icon: '💎', text: 'Stone Shards' },
     ],
-    cost: '7 Keys',
-    costType: 'keys' as const,
+    cost: '500 Gold',
+    costType: 'gold' as const,
   },
   ALLIANCE: {
     label: 'Alliance Chest',
@@ -137,16 +127,14 @@ const CHEST_CFG = {
     bg: 'linear-gradient(135deg, #0e0018 0%, #180028 100%)',
     rewards: [
       { type: 'GOLD' as const,  amount: 800,  label: 'GOLD',   color: '#eab308' },
-      { type: 'KEYS' as const,  amount: 5,    label: 'KEYS',   color: '#a855f7' },
       { type: 'STONE' as const, amount: 3,    label: 'SHARDS', color: '#9ACDE3' },
     ],
     contents: [
       { icon: '🪙', text: 'Gold — Very High' },
-      { icon: '🗝️', text: 'Keys — 4–6' },
       { icon: '💎', text: 'All Crystal Shards' },
     ],
-    cost: '36 Keys',
-    costType: 'keys' as const,
+    cost: '1500 Gold',
+    costType: 'gold' as const,
   },
 } as const;
 
@@ -155,7 +143,6 @@ const CHEST_TYPES: ChestType[] = ['DAILY', 'LEGENDARY', 'ALLIANCE'];
 const getRewardIcon = (type: RewardCard['type']) => {
   switch (type) {
     case 'GOLD': return <SystemCoin size={26} />;
-    case 'KEYS': return <SystemKey size={26} />;
     case 'XP':   return <span className="text-xl leading-none">⚡</span>;
     case 'ITEM':  return <span className="text-xl leading-none">🧪</span>;
     case 'STONE': return <span className="text-xl leading-none">💎</span>;
@@ -175,9 +162,8 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
   onEnterDungeon,
   onNavigateToDungeon,
   gold,
-  keys,
+
   lastDungeonEntry,
-  onConsumeKey,
   onAddRewards,
   onAddNotification,
 }) => {
@@ -237,8 +223,8 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
 
   const isLocked = (t: ChestType) => {
     if (t === 'DAILY')     return !isDailyReady;
-    if (t === 'LEGENDARY') return keys < 7;
-    return keys < 36;
+    if (t === 'LEGENDARY') return gold < 500;
+    return gold < 1500;
   };
 
   const handleClaim = async (type: ChestType) => {
@@ -248,11 +234,9 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
       localStorage.setItem(DAILY_CHEST_KEY, Date.now().toString());
       setLastDailyChest(Date.now());
     } else if (type === 'LEGENDARY') {
-      const ok = await onConsumeKey(7);
-      if (!ok) { onAddNotification('Need 7 Keys', 'WARNING'); return; }
+      if (gold < 500) { onAddNotification('Need 500 Gold', 'WARNING'); return; }
     } else if (type === 'ALLIANCE') {
-      const ok = await onConsumeKey(36);
-      if (!ok) { onAddNotification('Need 36 Keys', 'WARNING'); return; }
+      if (gold < 1500) { onAddNotification('Need 1500 Gold', 'WARNING'); return; }
     }
     playSystemSoundEffect('PURCHASE');
     const pool = pickWeightedRandom(REWARD_POOLS[type], 4);
@@ -288,7 +272,6 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
       onAddRewards(
         card.type === 'GOLD' ? card.amount : 0,
         card.type === 'XP'   ? card.amount : 0,
-        card.type === 'KEYS' ? card.amount : 0,
       );
     }
     playSystemSoundEffect('LEVEL_UP');
@@ -336,7 +319,7 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
               <div className="absolute inset-0 z-20 bg-black/60 flex flex-col items-center justify-center gap-2 backdrop-blur-[2px]">
                 <Lock size={28} style={{ color: cfg.color, opacity: 0.75 }} />
                 <span className="text-[10px] font-mono font-bold uppercase tracking-widest" style={{ color: cfg.color, opacity: 0.75 }}>
-                  {type === 'DAILY' ? 'ON COOLDOWN' : 'INSUFFICIENT KEYS'}
+                  {type === 'DAILY' ? 'ON COOLDOWN' : 'INSUFFICIENT GOLD'}
                 </span>
               </div>
             )}
@@ -680,9 +663,6 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
                             <div className="flex items-center justify-center -mx-2 -my-2" style={{ width: 35, flexShrink: 0 }}>
                               <SystemCoin size={35} />
                             </div> {gold}
-                          </div>
-                          <div className="flex items-center gap-1 text-xs font-mono font-bold text-[#9ACDE3]">
-                            <SystemKey size={13} /> {keys}
                           </div>
                         </div>
                       </div>

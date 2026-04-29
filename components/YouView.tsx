@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Settings, Store as StoreIcon, Package, BarChart3, Award,
   Terminal, MessageCircle, User as UserIcon, MoreHorizontal,
-  X, Flame, Coins, Key as KeyIcon, ChevronRight, Lock as LockIcon,
+  X, Flame, Coins, ChevronRight, Lock as LockIcon,
   Swords, Dumbbell, Brain, Users, Shield, Target, Zap,
 } from 'lucide-react';
 import { PlayerData, HealthProfile, Outfit, Tab, Rank, CoreStats } from '../types';
@@ -54,9 +54,8 @@ const TopBar: React.FC<{ player: PlayerData; onSettings: () => void }> = ({ play
         </div>
       </div>
       <div className="flex items-center gap-3 text-[11px] font-mono font-bold">
-        <div className="flex items-center gap-1 text-orange-400" title="Streak"><Flame size={13} /> {player.streak || 0}</div>
-        <div className="flex items-center gap-1 text-yellow-400" title="Gold"><Coins size={13} /> {player.gold || 0}</div>
-        <div className="flex items-center gap-1 text-[#9ACDE3]" title="Keys"><KeyIcon size={13} /> {player.keys || 0}</div>
+        <div className="flex items-center gap-1 text-orange-400" title="Streak"><Flame size={15} /> <span className="text-[13px] font-black">{player.streak || 0}</span></div>
+        <div className="flex items-center gap-1 text-yellow-400" title="Gold"><Coins size={13} /> <span className="text-[13px] font-black">{player.gold || 0}</span></div>
       </div>
       <button onClick={onSettings} className="p-1.5 rounded-full hover:bg-white/5 transition" aria-label="Settings">
         <Settings size={16} className="text-gray-400" />

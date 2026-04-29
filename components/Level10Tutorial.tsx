@@ -35,7 +35,7 @@ const LVL10_STEPS: TStepConfig[] = [
   {
     icon: <Castle size={20} />,
     title: 'Demon Castle',
-    subtitle: 'Enter dangerous dungeons for powerful rewards. Spend keys to raid floors.',
+    subtitle: 'Enter dangerous dungeons for powerful rewards. Earn Gold, XP, and Crystal Shards.',
     color: '#ef4444',
     autoAdvanceMs: 4500,
   },

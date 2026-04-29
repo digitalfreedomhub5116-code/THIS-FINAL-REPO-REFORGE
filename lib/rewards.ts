@@ -10,5 +10,5 @@ export const REWARD_SCHEDULE: DailyReward[] = [
   { type: 'VENUS_SHARDS', amount: 30, message: 'Day 4: 30 Venus Shards' },
   { type: 'GOLD', amount: 450, message: 'Day 5: 450 Gold' },
   { type: 'CHEST_LEGENDARY', amount: 1, message: 'Day 6: Legendary Chest' },
-  { type: 'KEYS', amount: 1, message: 'Day 7: 1 Key & Legendary Chest' }, // The system will award both in the claim logic
+  { type: 'GOLD', amount: 600, message: 'Day 7: 600 Gold & Legendary Chest' }, // The system will award both in the claim logic
 ];

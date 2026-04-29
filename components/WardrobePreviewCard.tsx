@@ -145,8 +145,8 @@ const OutfitCard: React.FC<{
       <div className="absolute bottom-0 inset-x-0 px-1.5 pb-1.5">
         <div className="text-[6px] font-black text-white truncate leading-tight">{outfit.name}</div>
         <div className="text-[5.5px] font-mono" style={{ color: accent + 'cc' }}>
-          {outfit.cost === 0 && (outfit.keyCost ?? 0) === 0 ? 'FREE'
-            : [outfit.cost > 0 ? `${outfit.cost.toLocaleString()}G` : '', (outfit.keyCost ?? 0) > 0 ? `${outfit.keyCost}🗝️` : ''].filter(Boolean).join(' + ')}
+          {outfit.cost === 0 ? 'FREE'
+            : `${outfit.cost.toLocaleString()}G`}
         </div>
       </div>
     </motion.button>
