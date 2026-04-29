@@ -6,27 +6,27 @@ import React, { useState, useRef, useCallback } from 'react';
 const RANK_MEDIA: Record<string, { video: string; image: string }> = {
   'E': {
     video: '/assets/videos/ranks/rank-e.webm',
-    image: '/images/ranks/e-rank.png' 
+    image: '/images/ranks/e-rank-removebg-preview.png' 
   },
   'D': {
     video: '/assets/videos/ranks/rank-d.webm',
-    image: '/images/ranks/d-rank.png' 
+    image: '/images/ranks/d-rank-removebg-preview.png' 
   },
   'C': {
     video: '/assets/videos/ranks/rank-c.mp4',
-    image: '/images/ranks/c-rank.png' 
+    image: '/images/ranks/c-rank-removebg-preview.png' 
   },
   'B': {
     video: '/assets/videos/ranks/rank-b.mp4',
-    image: '/images/ranks/b-rank.png' 
+    image: '/images/ranks/b-rank-removebg-preview.png' 
   },
   'A': {
     video: '/assets/videos/ranks/rank-a.mp4',
-    image: '/images/ranks/a-rank.png' 
+    image: '/images/ranks/a-rank-removebg-preview.png' 
   },
   'S': {
     video: '/assets/videos/ranks/rank-s.mp4',
-    image: '/images/ranks/s-rank.png' 
+    image: '/images/ranks/s-rank-removebg-preview.png' 
   },
 };
 
@@ -69,7 +69,6 @@ const RankVideoBadge: React.FC<RankVideoBadgeProps> = ({ rank, className }) => {
         src={media.image}
         alt={`Rank ${rankKey}`}
         className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-500 drop-shadow-[0_0_12px_rgba(126,184,212,0.3)] ${isActive ? 'opacity-0' : 'opacity-100'}`}
-        style={{ clipPath: 'circle(42% at 50% 48%)' }}
         loading="lazy"
       />
 
