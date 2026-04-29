@@ -11,7 +11,8 @@ import { PLEDGE_AMOUNTS, MANDATORY_RANKS } from './SystemPactScreen';
 import { playSystemSoundEffect } from '../utils/soundEngine';
 import { API_BASE } from '../lib/apiConfig';
 import { getPlayerAuthHeaders } from '../lib/playerApi';
-import OnboardingNotice from './OnboardingNotice';
+
+
 
 interface ForgeGuardResult {
   rank: Rank;
@@ -266,7 +267,6 @@ const QuestsView: React.FC<QuestsViewProps> = ({
 
   return (
     <div className="space-y-4 md:space-y-6">
-      <OnboardingNotice page="QUEST" />
 
       <div className="flex items-center gap-1 px-1">
         {(['QUESTS', 'GOALS'] as const).map(tab => (
