@@ -1084,24 +1084,6 @@ export const HealthView: React.FC<HealthViewProps> = ({
                             {/* ── STREAK REWARDS TIMELINE (hidden for now) ── */}
                             {/* <StreakRewardsTimelineWrapper playerData={playerData} /> */}
 
-                            {/* ── STATS GRID ── */}
-                            <div className="grid grid-cols-2 gap-4">
-                                {/* Weeks Left Card */}
-                                <div className="rounded-2xl p-5 flex flex-col items-center justify-center"
-                                     style={{ background: '#0B1015', border: '1px solid rgba(126, 184, 212, 0.15)' }}>
-                                    <div className="text-[10px] font-black tracking-[0.2em] text-[#7EB8D4] mb-2">WEEKS LEFT</div>
-                                    <div className="text-5xl font-semibold text-[#7EB8D4] leading-none mb-2">{weeksLeft}</div>
-                                    <div className="text-[10px] font-mono font-bold text-gray-500 uppercase tracking-widest">Week {Math.min(weeksCompleted + 1, totalWeeks)} of {totalWeeks}</div>
-                                </div>
-
-                                {/* Workouts Done Card */}
-                                <div className="rounded-2xl p-5 flex flex-col items-center justify-center"
-                                     style={{ background: '#100B15', border: '1px solid rgba(192, 132, 252, 0.15)' }}>
-                                    <div className="text-[10px] font-black tracking-[0.2em] text-[#9ACDE3] mb-2 uppercase text-center w-full">WORKOUTS DONE</div>
-                                    <div className="text-5xl font-semibold text-[#9ACDE3] leading-none mb-2">{completedWorkouts}</div>
-                                    <div className="text-[10px] font-mono font-bold text-gray-500 uppercase tracking-widest">Goal Reached</div>
-                                </div>
-                            </div>
 
                             {/* ── PLANS SECTION (above map) ── */}
                             <div>
