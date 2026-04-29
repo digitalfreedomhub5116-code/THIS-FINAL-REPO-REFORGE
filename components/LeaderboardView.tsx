@@ -266,7 +266,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
 
 
   return (
-    <div className="min-h-screen pb-24" style={{ background: '#08081a', margin: '-1rem', marginTop: '-1rem', width: 'calc(100% + 2rem)' }}>
+    <div className="min-h-screen pb-24" style={{ background: 'var(--color-bg-primary)', margin: '-1rem', marginTop: '-1rem', width: 'calc(100% + 2rem)' }}>
 
       {/* ── HEADER ── */}
       <div className="px-4 pt-4 pb-2">

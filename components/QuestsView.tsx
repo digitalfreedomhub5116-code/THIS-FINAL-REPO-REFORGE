@@ -55,7 +55,7 @@ interface QuestsViewProps {
   onUpdateGoals?: (goals: Goal[]) => void;
   onDeleteGoal?: (goalId: string) => void;
   onDeductGold?: (amount: number) => void;
-  onUpdateScheduleSlots?: (slots: any[]) => void;
+
 }
 
 const RANK_COLORS: Record<Rank, { bg: string; text: string; border: string; glow: string }> = {
@@ -76,246 +76,20 @@ function getUserTimezone(): string {
   }
 }
 
-function todayStr(): string {
-  return new Date().toISOString().split('T')[0];
-}
-
-/* ─────────────────────────────────────────────────────────────────────────
-   Futuristic Hexagonal Calendar
-──────────────────────────────────────────────────────────────────────────── */
-const DAY_LABELS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
-const MONTH_NAMES = [
-  'JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE',
-  'JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER',
-];
-const WATER_GRADIENT = 'linear-gradient(0deg, #7EB8D4 0%, #3b82f6 55%, #7EB8D4 100%)';
-
-const FuturisticCalendar: React.FC<{ quests: Quest[] }> = ({ quests }) => {
-  const [offset, setOffset] = useState(0);
-  const todayRef = useRef<HTMLDivElement>(null);
-  const stripRef = useRef<HTMLDivElement>(null);
-
-  const todayDate = new Date();
-  todayDate.setHours(0, 0, 0, 0);
-  const todayDayStr = todayDate.toDateString();
-
-  const days = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(todayDate);
-    d.setDate(todayDate.getDate() + offset * 7 - 3 + i);
-    return d;
-  });
-
-  const centerDay = days[3];
-
-  useEffect(() => {
-    todayRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-  }, [offset]);
-
-  return (
-    <div>
-      <style>{`
-        @keyframes pill-float {
-          0%,100% { transform: translateY(0px); }
-          50%      { transform: translateY(-5px); }
-        }
-      `}</style>
-
-      {/* Month / Year nav */}
-      <div className="flex items-center justify-between px-1 pt-1 pb-4">
-        <button
-          onClick={() => setOffset(o => o - 1)}
-          className="w-7 h-7 rounded-full flex items-center justify-center active:scale-90 transition-all"
-          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
-        >
-          <ChevronLeft size={12} className="text-gray-400" />
-        </button>
-
-        <div className="flex items-center gap-2">
-          <CalendarDays size={14} className="text-gray-400" />
-          <span className="text-sm font-black text-white font-mono tracking-widest">
-            {MONTH_NAMES[centerDay.getMonth()]}
-          </span>
-          <span className="text-sm font-mono" style={{ color: 'rgba(156,163,175,0.7)' }}>
-            {centerDay.getFullYear()}
-          </span>
-        </div>
-
-        <button
-          onClick={() => setOffset(o => o + 1)}
-          className="w-7 h-7 rounded-full flex items-center justify-center active:scale-90 transition-all"
-          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
-        >
-          <ChevronRight size={12} className="text-gray-400" />
-        </button>
-      </div>
-
-      {/* Pill day strip */}
-      <div
-        ref={stripRef}
-        className="flex justify-center pb-3 gap-3"
-        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-      >
-        {days.map((day, i) => {
-          const dayStr = day.toDateString();
-          const isToday = dayStr === todayDayStr;
-          const isPast  = day < todayDate;
-
-          const questsOnDay = quests.filter(q => {
-            const d = new Date(q.createdAt);
-            d.setHours(0, 0, 0, 0);
-            return d.toDateString() === dayStr;
-          });
-          const totalOnDay = questsOnDay.length;
-          const doneOnDay  = questsOnDay.filter(q => q.isCompleted).length;
-          const fillPct    = (isPast || isToday) && totalOnDay > 0
-            ? Math.round((doneOnDay / totalOnDay) * 100)
-            : 0;
-
-          let borderCol: string;
-          let glowFilter: string;
-
-          if (isToday) {
-            borderCol  = '#00d4ff';
-            glowFilter = '0 0 10px rgba(0,212,255,0.5)';
-          } else if (isPast) {
-            if (totalOnDay === 0) {
-              borderCol  = '#252525';
-              glowFilter = 'none';
-            } else if (doneOnDay === totalOnDay) {
-              borderCol  = '#16a34a';
-              glowFilter = '0 0 8px rgba(22,163,74,0.4)';
-            } else if (doneOnDay === 0) {
-              borderCol  = '#dc2626';
-              glowFilter = '0 0 8px rgba(220,38,38,0.4)';
-            } else {
-              borderCol  = '#3b82f6';
-              glowFilter = '0 0 8px rgba(59,130,246,0.4)';
-            }
-          } else {
-            borderCol  = '#252525';
-            glowFilter = 'none';
-          }
-
-          const showCheck   = (isPast && doneOnDay > 0 && doneOnDay === totalOnDay) || (isToday && fillPct === 100);
-          const showX       = isPast && totalOnDay > 0 && doneOnDay === 0;
-          const showNumber  = !showCheck && !showX;
-
-          const floatDuration = 2.4 + (i % 3) * 0.35;
-          const floatDelay   = i * 0.15;
-
-          return (
-            <div
-              key={i}
-              ref={isToday ? todayRef : undefined}
-              className="flex flex-col items-center gap-2 shrink-0"
-              style={{
-                animation: `pill-float ${floatDuration}s ease-in-out ${floatDelay}s infinite`,
-              }}
-            >
-              {/* Pill */}
-              <div
-                style={{
-                  width: 38,
-                  height: 80,
-                  borderRadius: 9999,
-                  overflow: 'hidden',
-                  position: 'relative',
-                  background: 'rgba(8,8,18,0.92)',
-                  border: `1.5px solid ${borderCol}`,
-                  boxShadow: glowFilter === 'none'
-                    ? 'inset 0 1px 0 rgba(255,255,255,0.05)'
-                    : `${glowFilter}, inset 0 1px 0 rgba(255,255,255,0.07)`,
-                }}
-              >
-                {/* Water fill */}
-                <div
-                  style={{
-                    position: 'absolute',
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    height: `${fillPct}%`,
-                    background: WATER_GRADIENT,
-                    opacity: 0.82,
-                    transition: 'height 0.85s cubic-bezier(0.34,1.56,0.64,1)',
-                    borderRadius: fillPct >= 100 ? 9999 : '0 0 9999px 9999px',
-                  }}
-                />
-
-                {/* Icon / number — above water */}
-                <div
-                  style={{
-                    position: 'absolute',
-                    inset: 0,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 1,
-                  }}
-                >
-                  {showCheck ? (
-                    <Check size={16} color="#ffffff" strokeWidth={2.5} />
-                  ) : showX ? (
-                    <XCircle size={16} color="#ef4444" strokeWidth={1.8} />
-                  ) : showNumber ? (
-                    <span style={{
-                      color: isToday ? '#ffffff' : fillPct > 0 ? '#e5e7eb' : '#4b5563',
-                      fontSize: 13,
-                      fontWeight: 800,
-                      fontFamily: 'monospace',
-                    }}>
-                      {day.getDate()}
-                    </span>
-                  ) : null}
-                </div>
-              </div>
-
-              {/* Day label */}
-              <span
-                className="text-[9px] font-black font-mono tracking-wider"
-                style={{ color: isToday ? '#00d4ff' : 'rgba(75,85,99,0.6)' }}
-              >
-                {DAY_LABELS[day.getDay()]}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-};
-
 const QuestsView: React.FC<QuestsViewProps> = ({
-  quests, addQuest, completeQuest, failQuest, resetQuest, deleteQuest,
-  tutorialStep, onTutorialAction, onTutorialAnalysisFail, playerData, onToggleNav, onShowPact,
-  onStartTracking, onStopTracking, onConsumeMana, onRefundMana,
-  isQuestOnboarding, onTutorialManaOut,
-  goals, onUpdateGoals, onDeleteGoal, onDeductGold, onUpdateScheduleSlots,
+  quests, addQuest, completeQuest, failQuest, resetQuest, deleteQuest, tutorialStep, onTutorialAction, onTutorialAnalysisFail, playerData, onToggleNav, onShowPact, onStartTracking, onStopTracking, onConsumeMana, onRefundMana, isQuestOnboarding, onTutorialManaOut, goals, onUpdateGoals, onDeleteGoal, onDeductGold,
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<'QUESTS' | 'GOALS'>('QUESTS');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [error, setError] = useState<string | null>(null);
-
-  const [scheduleTime, setScheduleTime] = useState('');
-  const [autoScheduled, setAutoScheduled] = useState(false);
   const [isDaily, setIsDaily] = useState(false);
-
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [forgeResult, setForgeResult] = useState<ForgeGuardResult | null>(null);
   const [forgeError, setForgeError] = useState<string | null>(null);
   const [analysisCount, setAnalysisCount] = useState(0);
 
   const userTimezone = getUserTimezone();
-
-  const setCurrentTime = () => {
-    const now = new Date();
-    const hh = String(now.getHours()).padStart(2, '0');
-    const mm = String(now.getMinutes()).padStart(2, '0');
-    setScheduleTime(`${hh}:${mm}`);
-    setAutoScheduled(false);
-    playSystemSoundEffect('SYSTEM');
-  };
 
   useEffect(() => {
     onToggleNav?.(!isModalOpen);
@@ -344,10 +118,8 @@ const QuestsView: React.FC<QuestsViewProps> = ({
     const tutFreeUsed = parseInt(localStorage.getItem(tutFreeKey) || '0', 10);
 
     if (isQuestOnboarding && tutFreeUsed < 2) {
-      // First 2 analyses during tutorial are free — no mana deducted
       localStorage.setItem(tutFreeKey, String(tutFreeUsed + 1));
     } else if (isQuestOnboarding && tutFreeUsed >= 2 && (playerData?.mp ?? 100) < manaCost) {
-      // 3rd+ attempt but mana too low — end tutorial gracefully
       onTutorialManaOut?.();
       return;
     } else {
@@ -361,8 +133,6 @@ const QuestsView: React.FC<QuestsViewProps> = ({
     setIsAnalyzing(true);
     setForgeResult(null);
     setForgeError(null);
-    setAutoScheduled(false);
-    setScheduleTime('');
     playSystemSoundEffect('SYSTEM');
     try {
       const res = await fetch(`${API_BASE}/api/forge-guard/analyze-quest`, {
@@ -384,12 +154,10 @@ const QuestsView: React.FC<QuestsViewProps> = ({
         );
         playSystemSoundEffect('WARNING');
         if (tutorialStep === 3 && onTutorialAnalysisFail) {
-          setTitle(''); // Clear title so they have to type again
+          setTitle('');
           onTutorialAnalysisFail();
         }
       } else {
-        // Client-side safety net: if the AI approved a physical/exercise quest
-        // but the title has NO number (time, distance, reps), reject it
         const hasNumber = /\d/.test(title.trim());
         const cats = (data.categories || []) as string[];
         const isPhysical = !!data.sensorRequirements || ['strength', 'willpower'].every(c => cats.includes(c));
@@ -404,10 +172,6 @@ const QuestsView: React.FC<QuestsViewProps> = ({
           }
         } else {
           setForgeResult(data);
-          if (data.autoDetectedTime) {
-            setScheduleTime(data.autoDetectedTime);
-            setAutoScheduled(true);
-          }
           playSystemSoundEffect('PURCHASE');
           if (tutorialStep === 3 && onTutorialAction) onTutorialAction(4);
         }
@@ -428,11 +192,6 @@ const QuestsView: React.FC<QuestsViewProps> = ({
   const handleCreate = () => {
     setError(null);
     if (!forgeResult || !title.trim()) return;
-    if (!scheduleTime) {
-      setError('SET A TIME — When are you doing this quest today?');
-      return;
-    }
-    // Skip duplicate check during quest onboarding tutorial so user doesn't get stuck
     if (playerData?.questOnboardingDone !== false) {
       const isDuplicate = quests.some(
         q => q.title.toLowerCase().trim() === title.toLowerCase().trim() && !q.isCompleted && !q.failed
@@ -444,7 +203,6 @@ const QuestsView: React.FC<QuestsViewProps> = ({
       }
     }
 
-    // Mandatory pact gold check — block quest creation if player can't afford (skip during tutorial)
     if (tutorialStep !== 4 && !isQuestOnboarding) {
       const rank = forgeResult.rank;
       const pledgeAmount = PLEDGE_AMOUNTS[rank];
@@ -455,7 +213,6 @@ const QuestsView: React.FC<QuestsViewProps> = ({
       }
     }
 
-    const scheduledTimestamp = new Date(`${todayStr()}T${scheduleTime}`).toISOString();
     const newQuest: Quest = {
       id: Math.random().toString(36).substr(2, 9),
       title: title.trim(),
@@ -472,11 +229,9 @@ const QuestsView: React.FC<QuestsViewProps> = ({
       estimatedDuration: forgeResult.estimatedDuration,
       minDurationMinutes: forgeResult.minDurationMinutes,
       aiReasoning: forgeResult.reasoning,
-      scheduledTime: scheduledTimestamp,
       ...(forgeResult.sensorRequirements ? { sensorRequirements: forgeResult.sensorRequirements } : {}),
     };
 
-    // During tutorial, skip pact (user has 0 gold)
     if (tutorialStep === 4 || isQuestOnboarding) {
       addQuest(newQuest);
       resetForm();
@@ -497,8 +252,6 @@ const QuestsView: React.FC<QuestsViewProps> = ({
     setError(null);
     setForgeResult(null);
     setForgeError(null);
-    setScheduleTime('');
-    setAutoScheduled(false);
     setIsDaily(false);
     setAnalysisCount(0);
   };
@@ -510,13 +263,11 @@ const QuestsView: React.FC<QuestsViewProps> = ({
   };
 
   const rk = forgeResult ? RANK_COLORS[forgeResult.rank] : null;
-  const scheduleReady = !!scheduleTime;
 
   return (
     <div className="space-y-4 md:space-y-6">
       <OnboardingNotice page="QUEST" />
 
-      {/* ── Sub-Tab Switcher ── */}
       <div className="flex items-center gap-1 px-1">
         {(['QUESTS', 'GOALS'] as const).map(tab => (
           <button
@@ -541,7 +292,6 @@ const QuestsView: React.FC<QuestsViewProps> = ({
         ))}
       </div>
 
-      {/* ── Goals Tab ── */}
       {activeSubTab === 'GOALS' && (
         <GoalsView
           goals={goals || []}
@@ -552,18 +302,12 @@ const QuestsView: React.FC<QuestsViewProps> = ({
           onRefundMana={onRefundMana}
           onDeductGold={onDeductGold}
           onAddQuestToFeed={addQuest}
-          onUpdateScheduleSlots={onUpdateScheduleSlots}
+
         />
       )}
 
-      {/* ── Quests Tab ── */}
       {activeSubTab === 'QUESTS' && <>
-      {/* ── Futuristic Calendar Header ── */}
-      <div
-        className="sticky top-0 z-20 space-y-3 pt-2 pb-3 px-0"
-        style={{ backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}
-      >
-        <FuturisticCalendar quests={quests} />
+
 
         {/* TODAY TASKS row */}
         <div className="flex items-center justify-between px-1">
@@ -600,7 +344,6 @@ const QuestsView: React.FC<QuestsViewProps> = ({
             <Plus size={22} className="text-black" strokeWidth={3} />
           </button>
         </div>
-      </div>
 
       {/* Quest List */}
       <div id="quest-list-container" className="space-y-4 md:space-y-5 min-h-[50vh] pb-20 relative">
@@ -706,7 +449,7 @@ const QuestsView: React.FC<QuestsViewProps> = ({
                     onChange={e => { 
                       setTitle(e.target.value); 
                       if (forgeError) setForgeError(null);
-                      if (forgeResult) { setForgeResult(null); setScheduleTime(''); setAutoScheduled(false); } 
+                      if (forgeResult) { setForgeResult(null); } 
                     }}
                     onKeyDown={e => { const wc = title.trim().split(/\s+/).filter(w=>w.length>0).length; if (e.key === 'Enter' && wc >= 2 && !isAnalyzing && !forgeResult) handleForgeAnalyze(); }}
                     placeholder="e.g. Run 5km, Read 30 pages, Cook dinner at 7pm"
@@ -847,72 +590,7 @@ const QuestsView: React.FC<QuestsViewProps> = ({
                   )}
                 </AnimatePresence>
 
-                {/* Scheduling — MANDATORY, always shown after ForgeGuard result */}
-                <AnimatePresence>
-                  {forgeResult && (
-                    <motion.div
-                      id="tut-schedule"
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="space-y-3"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Clock size={12} className={scheduleReady ? 'text-[#7EB8D4]' : 'text-gray-500'} />
-                        <span className="text-[10px] font-black uppercase tracking-widest font-mono text-gray-400">
-                          Schedule
-                        </span>
-                        {!scheduleReady && (
-                          <span className="text-[9px] text-amber-500/70 font-mono ml-auto">REQUIRED</span>
-                        )}
-                        {scheduleReady && autoScheduled && (
-                          <span className="text-[9px] text-[#7EB8D4]/60 font-mono ml-auto">AUTO-DETECTED</span>
-                        )}
-                      </div>
-                      <div className="flex gap-2">
-                        <input
-                          type="time"
-                          value={scheduleTime}
-                          onChange={e => { setScheduleTime(e.target.value); setAutoScheduled(false); }}
-                          className="flex-1 rounded-xl p-2.5 text-white text-xs focus:outline-none transition-all font-mono"
-                          style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}
-                        />
-                        <button
-                          onClick={setCurrentTime}
-                          className="px-4 rounded-xl text-[10px] font-black font-mono uppercase tracking-wider transition-all flex items-center gap-1.5"
-                          style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', color: '#9ca3af' }}
-                        >
-                          <Zap size={10} />
-                          NOW
-                        </button>
-                      </div>
 
-                      {/* Loop Daily toggle */}
-                      <button
-                        onClick={() => setIsDaily(!isDaily)}
-                        className="w-full flex items-center gap-3 p-3 rounded-xl transition-all"
-                        style={{
-                          background: isDaily ? 'rgba(126,184,212,0.04)' : 'rgba(255,255,255,0.02)',
-                          border: isDaily ? '1px solid rgba(126,184,212,0.15)' : '1px solid rgba(255,255,255,0.05)',
-                        }}
-                      >
-                        <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-colors ${
-                          isDaily ? 'bg-[#7EB8D4] border-[#7EB8D4]' : 'bg-transparent border-gray-700'
-                        }`}>
-                          {isDaily && <Repeat size={9} className="text-black" />}
-                        </div>
-                        <div className="text-left">
-                          <p className={`text-[10px] font-black uppercase tracking-widest font-mono ${isDaily ? 'text-[#7EB8D4]' : 'text-gray-500'}`}>
-                            Repeat Daily
-                          </p>
-                          <p className="text-[9px] text-gray-600 font-mono">
-                            {isDaily ? 'Resets at midnight every day' : 'One-time quest'}
-                          </p>
-                        </div>
-                      </button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
 
               </div>
 
@@ -924,12 +602,12 @@ const QuestsView: React.FC<QuestsViewProps> = ({
                 <button
                   id="tut-confirm-quest"
                   onClick={handleCreate}
-                  disabled={!forgeResult || !title.trim() || !scheduleReady}
+                  disabled={!forgeResult || !title.trim()}
                   className="px-6 py-2.5 font-black rounded-xl text-xs font-mono transition-all disabled:opacity-20 disabled:cursor-not-allowed"
                   style={{
-                    background: (!forgeResult || !scheduleReady) ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg, #00d4ff 0%, #0099cc 100%)',
-                    color: (!forgeResult || !scheduleReady) ? '#4b5563' : '#000',
-                    boxShadow: (!forgeResult || !scheduleReady) ? 'none' : '0 0 20px rgba(126,184,212,0.2)',
+                    background: !forgeResult ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg, #00d4ff 0%, #0099cc 100%)',
+                    color: !forgeResult ? '#4b5563' : '#000',
+                    boxShadow: !forgeResult ? 'none' : '0 0 20px rgba(126,184,212,0.2)',
                   }}
                 >
                   CONFIRM PROTOCOL

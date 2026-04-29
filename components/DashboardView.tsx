@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
   Zap,
@@ -12,14 +12,9 @@ import {
   BookOpen,
   ChevronRight,
   Check,
-  Moon,
-  Coffee,
-  GraduationCap,
-  Circle,
   Sparkles,
-  Calendar,
 } from 'lucide-react';
-import { PlayerData, Tab, ScheduleSlot, Quest, Goal } from '../types';
+import { PlayerData, Tab, Quest, Goal } from '../types';
 import ForgeGuardWidget from './ForgeGuardWidget';
 
 interface DashboardViewProps {
@@ -61,25 +56,6 @@ const formatDate = (): string => {
   return d.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' });
 };
 
-const SLOT_ICONS: Record<string, React.ReactNode> = {
-  SLEEP: <Moon size={14} />,
-  ROUTINE: <Coffee size={14} />,
-  BLOCKED: <GraduationCap size={14} />,
-  WORKOUT: <Dumbbell size={14} />,
-  QUEST: <Target size={14} />,
-  MEAL: <Utensils size={14} />,
-  FREE: <Sparkles size={14} />,
-};
-const SLOT_COLORS: Record<string, string> = {
-  SLEEP: '#7EB8D4',
-  ROUTINE: '#fb923c',
-  BLOCKED: '#9ca3af',
-  WORKOUT: '#f87171',
-  QUEST: '#7EB8D4',
-  MEAL: '#4ade80',
-  FREE: '#9ACDE3',
-};
-
 // ── Greeting Strip (simplified — Lv/Rank/Streak is in header) ─
 const GreetingStrip: React.FC<{ player: PlayerData }> = ({ player }) => {
   const name = player.name?.split(' ')[0] || player.username || 'Hunter';
@@ -117,99 +93,6 @@ const ManaBar: React.FC<{ player: PlayerData }> = ({ player }) => {
   );
 };
 
-// ── NOW Hero (current schedule slot) ─────────────────────────
-const NowHero: React.FC<{
-  slots: ScheduleSlot[];
-  onNavigate: () => void;
-}> = ({ slots, onNavigate }) => {
-  const [nowMinutes, setNowMinutes] = useState(() => {
-    const n = new Date();
-    return n.getHours() * 60 + n.getMinutes();
-  });
-  useEffect(() => {
-    const t = setInterval(() => {
-      const n = new Date();
-      setNowMinutes(n.getHours() * 60 + n.getMinutes());
-    }, 30_000);
-    return () => clearInterval(t);
-  }, []);
-
-  const currentSlot = useMemo(() => {
-    for (const s of slots) {
-      const start = timeToMinutes(s.startTime);
-      const end = timeToMinutes(s.endTime);
-      if (nowMinutes >= start && nowMinutes < end) return s;
-    }
-    return null;
-  }, [slots, nowMinutes]);
-
-  const nextSlot = useMemo(() => {
-    const upcoming = slots
-      .filter(s => timeToMinutes(s.startTime) > nowMinutes)
-      .sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime));
-    return upcoming[0] || null;
-  }, [slots, nowMinutes]);
-
-  if (!currentSlot && !nextSlot) {
-    return (
-      <button onClick={onNavigate}
-        className="w-full rounded-xl p-3 text-left hover:bg-white/[0.03] transition"
-        style={{ background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.06)' }}>
-        <div className="flex items-center gap-2 text-[10px] font-mono text-gray-500">
-          <Calendar size={12} /> No schedule yet — tap to set up
-        </div>
-      </button>
-    );
-  }
-
-  const slot = currentSlot || nextSlot!;
-  const isLive = !!currentSlot;
-  const color = SLOT_COLORS[slot.type] || '#888';
-  const startMin = timeToMinutes(slot.startTime);
-  const endMin = timeToMinutes(slot.endTime);
-  const remainingMin = isLive ? Math.max(0, endMin - nowMinutes) : startMin - nowMinutes;
-  const durationMin = endMin - startMin;
-  const progressPct = isLive && durationMin > 0 ? Math.min(100, ((nowMinutes - startMin) / durationMin) * 100) : 0;
-  const timeStr = remainingMin > 60 ? `${Math.floor(remainingMin / 60)}h ${remainingMin % 60}m` : `${remainingMin}m`;
-
-  return (
-    <motion.button onClick={onNavigate} whileTap={{ scale: 0.98 }}
-      className="w-full rounded-xl overflow-hidden text-left relative"
-      style={{ background: `linear-gradient(135deg, ${color}0a 0%, rgba(6,6,18,0.95) 70%)`, border: `1px solid ${color}20` }}>
-      <div className="h-px" style={{ background: `linear-gradient(90deg, ${color}70, transparent 50%)` }} />
-      <div className="px-3.5 py-2.5">
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5">
-            <Clock size={10} style={{ color }} />
-            <span className="text-[9px] font-mono font-bold tracking-wider text-gray-500 uppercase">
-              {isLive ? 'Now' : 'Next Up'}
-            </span>
-          </div>
-          <span className="text-[12px] font-bold text-white truncate flex-1">{slot.label}</span>
-          <ChevronRight size={12} className="text-gray-600 flex-shrink-0" />
-        </div>
-        <div className="flex items-center gap-2 mt-1 pl-5">
-          <span className="text-[10px] font-mono text-gray-500">
-            {formatTime12h(slot.startTime)} — {formatTime12h(slot.endTime)}
-          </span>
-          <span className="text-[9px] font-mono font-bold" style={{ color }}>
-            {isLive ? `${timeStr} left` : `in ${timeStr}`}
-          </span>
-          {isLive && (
-            <motion.div className="w-1 h-1 rounded-full ml-auto flex-shrink-0" style={{ background: color }}
-              animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 1.5, repeat: Infinity }} />
-          )}
-        </div>
-        {isLive && (
-          <div className="mt-1.5 h-1 rounded-full bg-white/5 overflow-hidden">
-            <motion.div className="h-full rounded-full" animate={{ width: `${progressPct}%` }}
-              transition={{ duration: 0.5 }} style={{ background: color, boxShadow: `0 0 4px ${color}80` }} />
-          </div>
-        )}
-      </div>
-    </motion.button>
-  );
-};
 
 // ── Today's Quests Mini List ─────────────────────────────────
 const TodaysQuestsList: React.FC<{
@@ -438,14 +321,6 @@ const DashboardView: React.FC<DashboardViewProps> = ({
   onAddQuest,
   onOpenJournal,
 }) => {
-  // Build schedule slots for NOW hero
-  const slots = useMemo<ScheduleSlot[]>(() => {
-    const today = new Date().toISOString().split('T')[0];
-    const daily = player.dailySchedules?.find(s => s.date === today);
-    if (daily?.slots?.length) return daily.slots;
-    return [];
-  }, [player.dailySchedules]);
-
   // Check if user has any content
   const todaysQuests = player.quests.filter(q => {
     const d = new Date(q.createdAt);
@@ -455,8 +330,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
     return d.getTime() === today.getTime();
   });
   const hasGoals = (player.goals || []).some(g => g.status === 'ACTIVE');
-  const hasSchedule = slots.length > 0;
-  const hasContent = todaysQuests.length > 0 || hasGoals || hasSchedule;
+  const hasContent = todaysQuests.length > 0 || hasGoals;
   const strikes = player.cheatStrikes ?? 0;
 
   return (
@@ -477,10 +351,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
         <OnboardingHero onNavigate={() => onNavigate('QUESTS' as Tab)} onAddQuest={onAddQuest} />
       ) : (
         <>
-          {/* 4. Now/Next schedule slot */}
-          <NowHero slots={slots} onNavigate={() => onNavigate('QUESTS' as Tab)} />
-
-          {/* 5. Today's Quests */}
+          {/* Today's Quests */}
           <TodaysQuestsList quests={player.quests} onNavigate={() => onNavigate('QUESTS' as Tab)} />
         </>
       )}
