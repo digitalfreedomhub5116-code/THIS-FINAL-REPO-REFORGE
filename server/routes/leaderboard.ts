@@ -41,7 +41,7 @@ router.get('/', async (req: Request, res: Response) => {
     // For daily: we need updated_at to check if daily_xp is stale
     const { data, error } = await (supabaseServer() as any)
       .from('players')
-      .select('id, supabase_id, username, name, total_xp, daily_xp, level, rank, streak, avatar_url, raw_data, updated_at')
+      .select('id, supabase_id, username, name, total_xp, daily_xp, level, rank, streak, avatar_url, raw_data, equipped_border, updated_at')
       .eq('is_banned', false)
       .order('streak', { ascending: false })
       .limit(100);
@@ -73,7 +73,8 @@ router.get('/', async (req: Request, res: Response) => {
         streak: row.streak || 0,
         avatar_url: row.avatar_url || null,
         equipped_outfit_id: row.raw_data?.equippedOutfitId || 'outfit_starter',
-        equipped_border: row.raw_data?.equippedBorder || null,
+        // Prefer dedicated column (instant PATCH) → fallback to raw_data
+        equipped_border: row.equipped_border || row.raw_data?.equippedBorder || null,
       };
     });
 

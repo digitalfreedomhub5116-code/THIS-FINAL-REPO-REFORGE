@@ -13,6 +13,7 @@ import OnboardingNotice from './OnboardingNotice';
 import { SystemCoin } from './icons/SystemCoin';
 import { getItemsByCategory, getTodaysDeals, type StoreItem as KitStoreItem, ALL_STORE_ITEMS } from '../utils/storeItems';
 import { getEconomy, purchaseItem as kitPurchaseItem, equipItem as kitEquipItem, applyThemeVars, DEV_UNLOCK_ALL, type EquippedItems } from '../utils/storeEconomy';
+import { syncBorderToPlayers } from '../lib/borderSync';
 import { LynxCoin, BorderRing, ThemeSwatch } from './StoreComponents';
 
 const WardrobePreviewCard = lazy(() => import('./WardrobePreviewCard'));
@@ -210,10 +211,14 @@ const ShopView: React.FC<ShopViewProps> = ({
       applyThemeVars(themeItem?.themeVars || null);
     }
     // Sync border to player state → Supabase → leaderboard
-    if (slot === 'border' && onEquipBorder) {
-      onEquipBorder(newId);
-      // Dispatch refresh event so leaderboard re-fetches after sync
-      window.dispatchEvent(new Event('leaderboard:refresh'));
+    if (slot === 'border') {
+      // 1. Update player state (debounced cloud sync)
+      if (onEquipBorder) onEquipBorder(newId);
+      // 2. INSTANT direct Supabase PATCH (Lynx AI approach — no debounce)
+      syncBorderToPlayers(newId).then(() => {
+        // 3. Dispatch refresh event so leaderboard re-fetches
+        window.dispatchEvent(new Event('leaderboard:refresh'));
+      }).catch(() => {});
     }
   };
 
