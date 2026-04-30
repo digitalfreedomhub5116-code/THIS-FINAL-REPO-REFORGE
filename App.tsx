@@ -186,6 +186,7 @@ const DuskFloatingPill = lazy(() => import('./components/DuskFloatingPill'));
 const DashboardView = lazy(() => import('./components/DashboardView'));
 
 const GoalHeroSection = lazy(() => import('./components/GoalHeroSection'));
+const GoalCreationFlow = lazy(() => import('./components/GoalCreationFlow'));
 
 const RankUpCinematic = lazy(() => import('./components/RankUpCinematic'));
 
@@ -689,6 +690,7 @@ const App: React.FC = () => {
   const [tutorialAnalysisFailed, setTutorialAnalysisFailed] = useState(false);
 
   const [showDuskChat, setShowDuskChat] = useState(false);
+  const [showGoalCreate, setShowGoalCreate] = useState(false);
 
   const [showBanReversalNotice, setShowBanReversalNotice] = useState(false);
 
@@ -3695,6 +3697,22 @@ const App: React.FC = () => {
 
           )}
 
+          {showGoalCreate && (
+            <Suspense fallback={null}>
+              <GoalCreationFlow
+                playerData={player}
+                existingGoals={player.goals || []}
+                onClose={() => setShowGoalCreate(false)}
+                onGoalCreated={(newGoal) => {
+                  handleUpdateGoals([...(player.goals || []), newGoal]);
+                  setShowGoalCreate(false);
+                }}
+                onConsumeMana={consumeMana}
+                onRefundMana={refundMana}
+              />
+            </Suspense>
+          )}
+
           {xpCollection && (
 
             <Suspense fallback={null}>
@@ -4349,10 +4367,7 @@ const App: React.FC = () => {
                 <ErrorBoundary fallbackLabel="Goals failed">
                   <GoalHeroSection
                     goals={player.goals || []}
-                    onCreateGoal={() => {
-                      const el = document.getElementById('daily-command-center');
-                      if (el) el.scrollIntoView({ behavior: 'smooth' });
-                    }}
+                    onCreateGoal={() => setShowGoalCreate(true)}
                   />
                 </ErrorBoundary>
               </Suspense>

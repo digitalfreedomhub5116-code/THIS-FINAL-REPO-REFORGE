@@ -139,7 +139,7 @@ const GoalHeroSection: React.FC<GoalHeroSectionProps> = ({ goals, onCreateGoal, 
           {/* Main heading */}
           <h2 className="text-[28px] font-black text-white leading-none mb-2"
             style={{ textShadow: '0 4px 20px rgba(0,0,0,0.8)' }}>
-            Create Goal
+            Create your new goal
           </h2>
 
           {/* Description */}
@@ -159,7 +159,7 @@ const GoalHeroSection: React.FC<GoalHeroSectionProps> = ({ goals, onCreateGoal, 
             }}
           >
             <Target size={16} />
-            Create Goal
+            Create your new goal
           </motion.button>
         </div>
       </motion.div>
