@@ -1073,8 +1073,8 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                                     }}
                                                     className="relative shrink-0 w-44 h-56 rounded-2xl overflow-hidden transition-all"
                                                     style={{
-                                                        border: isAiActive ? '1px solid rgba(168,85,247,0.7)' : '1px solid rgba(168,85,247,0.3)',
-                                                        boxShadow: isAiActive ? '0 0 30px rgba(168,85,247,0.4), 0 0 8px rgba(168,85,247,0.2)' : '0 4px 20px rgba(0,0,0,0.4)',
+                                                        border: isAiActive ? '1px solid rgba(126,184,212,0.5)' : '1px solid rgba(168,85,247,0.3)',
+                                                        boxShadow: isAiActive ? '0 0 24px rgba(126,184,212,0.2), 0 0 8px rgba(126,184,212,0.1)' : '0 4px 20px rgba(0,0,0,0.4)',
                                                         filter: isAiActive ? 'none' : 'grayscale(1) brightness(0.8)',
                                                         transition: 'filter 0.5s ease, border 0.3s ease, box-shadow 0.3s ease',
                                                     }}
@@ -1102,10 +1102,10 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                     {premadePlans.map(plan => {
                                         const isActive = (healthProfile as any)?.selectedPlanId === plan.id;
                                         const dc = plan.difficulty === 'BEGINNER'
-                                            ? { badge: 'bg-green-900/80 text-green-300', glow: 'rgba(74,222,128,0.18)', border: 'rgba(74,222,128,0.3)' }
+                                            ? { badge: 'bg-green-900/80 text-green-300', glow: 'rgba(126,184,212,0.18)', border: 'rgba(126,184,212,0.35)' }
                                             : plan.difficulty === 'INTERMEDIATE'
-                                            ? { badge: 'bg-yellow-900/80 text-yellow-300', glow: 'rgba(250,204,21,0.18)', border: 'rgba(250,204,21,0.3)' }
-                                            : { badge: 'bg-red-900/80 text-red-300', glow: 'rgba(239,68,68,0.18)', border: 'rgba(239,68,68,0.3)' };
+                                            ? { badge: 'bg-yellow-900/80 text-yellow-300', glow: 'rgba(126,184,212,0.18)', border: 'rgba(126,184,212,0.35)' }
+                                            : { badge: 'bg-red-900/80 text-red-300', glow: 'rgba(126,184,212,0.18)', border: 'rgba(126,184,212,0.35)' };
                                         return (
                                             <div key={plan.id} className="relative shrink-0">
                                                 <motion.button
