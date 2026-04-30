@@ -325,14 +325,9 @@ const GoalHeroSection: React.FC<GoalHeroSectionProps> = ({ goals, onCreateGoal, 
           boxShadow: '0 16px 48px rgba(0,0,0,0.6)',
         }}
       >
-        {/* Background image — 100% B&W */}
+        {/* Background image — 100% B&W with skeleton loading */}
         <div className="relative w-full" style={{ height: 200 }}>
-          <img
-            src="/goals/hero-dart.png"
-            alt=""
-            className="w-full h-full object-cover"
-            style={{ filter: 'grayscale(100%) brightness(0.35) contrast(1.15)' }}
-          />
+          <GoalHeroImg />
           <div className="absolute inset-0" style={{
             background: 'linear-gradient(180deg, rgba(10,10,20,0.2) 0%, rgba(10,10,20,0.6) 50%, rgba(10,10,20,0.95) 100%)',
           }} />
@@ -508,5 +503,36 @@ const GoalHeroSection: React.FC<GoalHeroSectionProps> = ({ goals, onCreateGoal, 
     </div>
   );
 };
+
+/** Skeleton-loaded hero background image */
+function GoalHeroImg() {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <>
+      {!loaded && (
+        <div
+          className="absolute inset-0"
+          style={{
+            background: 'linear-gradient(110deg, rgba(255,255,255,0.03) 30%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.03) 70%)',
+            backgroundSize: '200% 100%',
+            animation: 'goal-shimmer 1.5s ease-in-out infinite',
+          }}
+        />
+      )}
+      <img
+        src="/goals/hero-dart.webp"
+        alt=""
+        className="w-full h-full object-cover"
+        style={{
+          filter: 'grayscale(100%) brightness(0.35) contrast(1.15)',
+          opacity: loaded ? 1 : 0,
+          transition: 'opacity 0.4s ease',
+        }}
+        onLoad={() => setLoaded(true)}
+      />
+      <style>{`@keyframes goal-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
+    </>
+  );
+}
 
 export default GoalHeroSection;

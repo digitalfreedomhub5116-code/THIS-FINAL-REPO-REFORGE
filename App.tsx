@@ -216,6 +216,33 @@ const Level10Tutorial = lazy(() => import('./components/Level10Tutorial'));
 
 
 
+/** Skeleton-loaded promo card background image */
+function PromoImg({ src, alt, style }: { src: string; alt: string; style?: React.CSSProperties }) {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <>
+      {!loaded && (
+        <div
+          className="absolute inset-0"
+          style={{
+            background: 'linear-gradient(110deg, rgba(255,255,255,0.03) 30%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.03) 70%)',
+            backgroundSize: '200% 100%',
+            animation: 'promo-shimmer 1.5s ease-in-out infinite',
+          }}
+        />
+      )}
+      <img
+        src={src}
+        alt={alt}
+        className="absolute inset-0 w-full h-full object-cover"
+        style={{ ...style, opacity: loaded ? 1 : 0, transition: 'opacity 0.4s ease' }}
+        onLoad={() => setLoaded(true)}
+      />
+      <style>{`@keyframes promo-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
+    </>
+  );
+}
+
 // ── Types ──
 
 type OnboardingPhase = 'SPLASH' | 'WELCOME' | 'AGREEMENT' | 'NAMING' | 'CALIBRATION' | 'AUTH' | 'AUTH_SIGN_IN_PAGE' | 'AUTH_CREATE_PAGE' | 'APP' | 'LOGOUT_CHOICE';
@@ -4399,10 +4426,9 @@ const App: React.FC = () => {
                     border: '1px solid rgba(126,184,212,0.3)',
                   }}
                 >
-                  <img
-                    src="/images/ui/food-scanner-promo.png"
+                  <PromoImg
+                    src="/images/ui/food-scanner-promo.webp"
                     alt="Food Scanner"
-                    className="absolute inset-0 w-full h-full object-cover"
                     style={{ filter: 'grayscale(0.85) brightness(0.4)' }}
                   />
                   <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.35) 55%, rgba(0,0,0,0.15) 100%)' }} />
@@ -4426,10 +4452,9 @@ const App: React.FC = () => {
                     border: '1px solid rgba(126,184,212,0.3)',
                   }}
                 >
-                  <img
-                    src="/images/ui/store-deals-promo.png"
+                  <PromoImg
+                    src="/images/ui/store-deals-promo.webp"
                     alt="Store Deals"
-                    className="absolute inset-0 w-full h-full object-cover"
                     style={{ filter: 'grayscale(0.85) brightness(0.4)' }}
                   />
                   <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.35) 55%, rgba(0,0,0,0.15) 100%)' }} />
