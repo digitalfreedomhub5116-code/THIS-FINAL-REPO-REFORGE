@@ -4364,7 +4364,21 @@ const App: React.FC = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="space-y-6 md:space-y-8"
-            >              {/* ── 1. Goal Hero + Pinned Goals (TOP) ── */}
+            >              {/* ── 1. Growth Terminal (Radar + Calendar + Mana + ForgeGuard) ── */}
+              <Suspense fallback={<SkeletonStatsChart />}>
+                <ErrorBoundary fallbackLabel="Status card failed">
+                  <PlayerStatusCard
+                    player={player}
+                    equippedOutfit={dbOutfits.find(o => o.id === player.equippedOutfitId) || OUTFITS.find(o => o.id === player.equippedOutfitId)}
+                    mentorMessages={mentorMessages}
+                    onDismissMentorMessage={(id) => setMentorMessages(prev => prev.filter(m => m.id !== id))}
+                    history={player.history || []}
+                    onOpenDuskChat={() => setShowDuskChat(true)}
+                  />
+                </ErrorBoundary>
+              </Suspense>
+
+              {/* ── 2. Goal Hero + Pinned Goals ── */}
               <Suspense fallback={null}>
                 <ErrorBoundary fallbackLabel="Goals failed">
                   <GoalHeroSection
@@ -4389,8 +4403,7 @@ const App: React.FC = () => {
                 </ErrorBoundary>
               </Suspense>
 
-
-              {/* ── 2. Daily Quests ── */}
+              {/* ── 3. Daily Quests ── */}
               <div id="daily-command-center">
               <Suspense fallback={<SkeletonQuestsPage />}>
                 <ErrorBoundary fallbackLabel="Quests failed to load">
@@ -4422,20 +4435,6 @@ const App: React.FC = () => {
                 </ErrorBoundary>
               </Suspense>
               </div>
-
-              {/* ── 3. System Mana + ForgeGuard (BOTTOM) ── */}
-              <Suspense fallback={<SkeletonStatsChart />}>
-                <ErrorBoundary fallbackLabel="Status card failed">
-                  <PlayerStatusCard
-                    player={player}
-                    equippedOutfit={dbOutfits.find(o => o.id === player.equippedOutfitId) || OUTFITS.find(o => o.id === player.equippedOutfitId)}
-                    mentorMessages={mentorMessages}
-                    onDismissMentorMessage={(id) => setMentorMessages(prev => prev.filter(m => m.id !== id))}
-                    history={player.history || []}
-                    onOpenDuskChat={() => setShowDuskChat(true)}
-                  />
-                </ErrorBoundary>
-              </Suspense>
 
             </motion.div>
 
