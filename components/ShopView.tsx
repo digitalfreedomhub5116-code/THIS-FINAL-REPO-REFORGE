@@ -62,6 +62,7 @@ interface ShopViewProps {
   playerLevel?: number;
   onPurchaseBorder?: (borderId: string, cost: number) => void;
   onEquipBorder?: (borderId: string | null) => void;
+  onEquipBanner?: (bannerId: string | null) => void;
 }
 
 
@@ -113,6 +114,7 @@ const ShopView: React.FC<ShopViewProps> = ({
   playerLevel = 1,
   onPurchaseBorder,
   onEquipBorder,
+  onEquipBanner,
 }) => {
   const [storeTab, setStoreTab] = useState<'OUTFITS' | 'BADGES' | 'BORDERS' | 'DEALS' | 'THEMES' | 'BANNERS_SHOP'>('OUTFITS');
   const [kitEconomy, setKitEconomy] = useState(getEconomy());
@@ -219,6 +221,10 @@ const ShopView: React.FC<ShopViewProps> = ({
         // 3. Dispatch refresh event so leaderboard re-fetches
         window.dispatchEvent(new Event('leaderboard:refresh'));
       }).catch(() => {});
+    }
+    // Sync banner to player state → raw_data → leaderboard popup
+    if (slot === 'banner') {
+      if (onEquipBanner) onEquipBanner(newId);
     }
   };
 

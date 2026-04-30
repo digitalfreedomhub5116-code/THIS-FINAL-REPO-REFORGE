@@ -94,7 +94,7 @@ const ProfileHero: React.FC<{
   onRankTap: () => void;
 }> = ({ player, onRankTap }) => {
   const economy = getEconomy();
-  const bannerItemId = economy.equipped.banner;
+  const bannerItemId = player.equippedBanner || economy.equipped.banner;
   const bannerItem = bannerItemId ? getItemById(bannerItemId) : null;
   const bannerSrc = bannerItem?.bannerImage || '/banners/default.jpg';
   const borderId = player.equippedBorder || economy.equipped.border || null;

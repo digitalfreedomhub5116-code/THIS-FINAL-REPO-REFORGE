@@ -1032,6 +1032,10 @@ export const useSystem = () => {
     setPlayer(prev => ({ ...prev, equippedBorder: borderId }));
   };
 
+  const equipBanner = (bannerId: string | null) => {
+    setPlayer(prev => ({ ...prev, equippedBanner: bannerId }));
+  };
+
   const addRewards = (gold: number, xp: number) => {
     setPlayer(prev => {
       let { currentXp, requiredXp, level, totalXp, dailyXp } = prev;
@@ -2186,5 +2190,6 @@ export const useSystem = () => {
     awardRandomStones,
     purchaseBorder,
     equipBorder,
+    equipBanner,
   };
 };

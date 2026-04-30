@@ -1,16 +1,11 @@
 /**
- * AvatarWithBorder — Unified border renderer that handles both:
- * 1. Store image borders (imageBorder PNGs from storeItems.ts)
- * 2. Code-animated borders (from PROFILE_BORDERS / AnimatedBorder)
- *
- * This bridges the gap between the two border systems so that borders
- * equipped from the Store are visible on Profile + Leaderboard.
+ * AvatarWithBorder — Renders avatar with image-based store borders only.
+ * Old AnimatedBorder/SVG system has been removed.
+ * Only supports PNG image borders from storeItems.ts.
  */
 import React from 'react';
 import { User as UserIcon } from 'lucide-react';
 import { getItemById } from '../utils/storeItems';
-import AnimatedBorder from './AnimatedBorder';
-import { PROFILE_BORDERS } from '../utils/gameData';
 
 interface AvatarWithBorderProps {
   avatarUrl?: string | null;
@@ -30,20 +25,19 @@ const AvatarWithBorder: React.FC<AvatarWithBorderProps> = ({
   className = '',
   style,
 }) => {
-  // 1. Try to resolve as a Store item (image-based border)
+  // Resolve as a Store item (image-based border)
   const storeItem = borderId ? getItemById(borderId) : null;
   const hasImageBorder = !!storeItem?.imageBorder;
 
-  // 2. Check if it's a code-animated border from PROFILE_BORDERS
-  const isAnimatedBorder = borderId
-    ? PROFILE_BORDERS.some(b => b.id === borderId)
-    : false;
-
-  // Avatar element (reused in both paths) — clean circular, no boxy border
+  // Avatar element — perfectly circular, transparent background (no dark square)
   const avatarElement = (
     <div
-      className="rounded-full overflow-hidden bg-[#0d0d1a] flex items-center justify-center"
-      style={{ width: size, height: size }}
+      className="rounded-full overflow-hidden flex items-center justify-center"
+      style={{
+        width: size,
+        height: size,
+        background: avatarUrl ? 'transparent' : '#0d0d1a',
+      }}
     >
       {avatarUrl ? (
         <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
@@ -53,7 +47,7 @@ const AvatarWithBorder: React.FC<AvatarWithBorderProps> = ({
     </div>
   );
 
-  // ── Path A: Store image border (PNG wrapping avatar) ──
+  // ── Image border (PNG wrapping avatar) ──
   if (hasImageBorder && storeItem) {
     const cfg = storeItem.borderConfig;
     const glow = cfg?.glowColor || 'rgba(126,184,212,0.3)';
@@ -123,21 +117,7 @@ const AvatarWithBorder: React.FC<AvatarWithBorderProps> = ({
     );
   }
 
-  // ── Path B: Code-animated border (AnimatedBorder component) ──
-  if (isAnimatedBorder) {
-    return (
-      <AnimatedBorder
-        borderId={borderId || null}
-        compact
-        className={`rounded-full ${className}`}
-        style={{ boxShadow: '0 0 24px rgba(0,0,0,0.9)', ...style }}
-      >
-        {avatarElement}
-      </AnimatedBorder>
-    );
-  }
-
-  // ── Path C: No border — just avatar with subtle default ring ──
+  // ── No border — just avatar with subtle ring ──
   return (
     <div className={`relative ${className}`} style={style}>
       <div

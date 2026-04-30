@@ -297,7 +297,7 @@ const App: React.FC = () => {
 
     updateServerBaseline, markServerPullDone, setServerUpdatedAt, awardRandomStones,
 
-    purchaseBorder, equipBorder,
+    purchaseBorder, equipBorder, equipBanner,
 
   } = useSystem();
 
@@ -4544,6 +4544,8 @@ const App: React.FC = () => {
                     onPurchaseBorder={purchaseBorder}
 
                     onEquipBorder={equipBorder}
+
+                    onEquipBanner={equipBanner}
 
                   />
 
