@@ -7,7 +7,7 @@ import {
   Swords, Dumbbell, Brain, Users, Shield, Target, Zap,
 } from 'lucide-react';
 import { PlayerData, HealthProfile, Outfit, Tab, Rank, CoreStats } from '../types';
-import AnimatedBorder from './AnimatedBorder';
+import AvatarWithBorder from './AvatarWithBorder';
 import RankBadge from './RankBadge';
 import type { RankType } from './RankBadge';
 import { getItemById } from '../utils/storeItems';
@@ -136,15 +136,12 @@ const ProfileHero: React.FC<{
 
       {/* ── Centered Avatar with equipped border — overlaps banner ── */}
       <div className="flex justify-center" style={{ marginTop: -44 }}>
-        <AnimatedBorder borderId={borderId} compact className="rounded-full" style={{ boxShadow: '0 0 24px rgba(0,0,0,0.9)' }}>
-          <div className="w-[88px] h-[88px] rounded-full overflow-hidden bg-[#0d0d1a] flex items-center justify-center" style={{ border: '3px solid #0a0a14' }}>
-            {player.avatarUrl ? (
-              <img src={player.avatarUrl} alt="" className="w-full h-full object-cover" />
-            ) : (
-              <UserIcon size={32} className="text-gray-500" />
-            )}
-          </div>
-        </AnimatedBorder>
+        <AvatarWithBorder
+          avatarUrl={player.avatarUrl}
+          borderId={borderId}
+          size={88}
+          style={{ boxShadow: '0 0 24px rgba(0,0,0,0.9)' }}
+        />
       </div>
 
       {/* ── 6 Stat Circles (mono cyan) ── */}

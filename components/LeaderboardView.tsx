@@ -12,7 +12,7 @@ import { playSystemSoundEffect } from '../utils/soundEngine';
 import RankRewardOverlay from './RankRewardOverlay';
 import { OUTFITS } from '../utils/gameData';
 import OutfitHunterBadge, { OUTFIT_BADGE_CONFIG } from './OutfitHunterBadge';
-import AnimatedBorder from './AnimatedBorder';
+import AvatarWithBorder from './AvatarWithBorder';
 
 // ── Types ──
 interface LeaderboardEntry {
@@ -349,18 +349,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                 return (
                   <div className="flex flex-col items-center gap-1.5 flex-1" onClick={() => setProfileTarget(e)}>
                     <div className="text-lg">🥈</div>
-                    <AnimatedBorder borderId={e.equipped_border || null} compact className="rounded-full">
-                      <div className="w-16 h-16 rounded-full overflow-hidden"
-                        style={{ background: '#1a1a2e' }}>
-                        {e.avatar_url ? (
-                          <img src={e.avatar_url} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-xl font-black text-gray-400">
-                            {(e.username || e.name || '?')[0].toUpperCase()}
-                          </div>
-                        )}
-                      </div>
-                    </AnimatedBorder>
+                    <AvatarWithBorder avatarUrl={e.avatar_url} borderId={e.equipped_border || null} size={64} />
                     <div className="text-[11px] font-black text-white truncate max-w-[80px] text-center">
                       {e.username || e.name}
                     </div>
@@ -378,18 +367,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                 return (
                   <div className="flex flex-col items-center gap-1.5 flex-1 -mt-4" onClick={() => setProfileTarget(e)}>
                     <div className="text-2xl">👑</div>
-                    <AnimatedBorder borderId={e.equipped_border || null} compact className="rounded-full" style={{ boxShadow: '0 0 20px rgba(234,179,8,0.2)' }}>
-                      <div className="w-20 h-20 rounded-full overflow-hidden"
-                        style={{ background: '#1a1a2e' }}>
-                        {e.avatar_url ? (
-                          <img src={e.avatar_url} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-2xl font-black text-yellow-400">
-                            {(e.username || e.name || '?')[0].toUpperCase()}
-                          </div>
-                        )}
-                      </div>
-                    </AnimatedBorder>
+                    <AvatarWithBorder avatarUrl={e.avatar_url} borderId={e.equipped_border || null} size={80} style={{ boxShadow: '0 0 20px rgba(234,179,8,0.2)' }} />
                     <div className="text-xs font-black text-white truncate max-w-[90px] text-center">
                       {e.username || e.name}
                     </div>
@@ -407,18 +385,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                 return (
                   <div className="flex flex-col items-center gap-1.5 flex-1" onClick={() => setProfileTarget(e)}>
                     <div className="text-lg">🥉</div>
-                    <AnimatedBorder borderId={e.equipped_border || null} compact className="rounded-full">
-                      <div className="w-16 h-16 rounded-full overflow-hidden"
-                        style={{ background: '#1a1a2e' }}>
-                        {e.avatar_url ? (
-                          <img src={e.avatar_url} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-xl font-black text-gray-400">
-                            {(e.username || e.name || '?')[0].toUpperCase()}
-                          </div>
-                        )}
-                      </div>
-                    </AnimatedBorder>
+                    <AvatarWithBorder avatarUrl={e.avatar_url} borderId={e.equipped_border || null} size={64} />
                     <div className="text-[11px] font-black text-white truncate max-w-[80px] text-center">
                       {e.username || e.name}
                     </div>
@@ -456,18 +423,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                   </div>
 
                   {/* Avatar with border */}
-                  <AnimatedBorder borderId={entry.equipped_border || null} compact className="rounded-full shrink-0">
-                    <div className="w-11 h-11 rounded-full overflow-hidden"
-                      style={{ background: '#1a1a2e' }}>
-                      {entry.avatar_url ? (
-                        <img src={entry.avatar_url} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-base font-black text-gray-500">
-                          {(entry.username || entry.name || '?')[0].toUpperCase()}
-                        </div>
-                      )}
-                    </div>
-                  </AnimatedBorder>
+                  <AvatarWithBorder avatarUrl={entry.avatar_url} borderId={entry.equipped_border || null} size={44} className="shrink-0" />
 
                   {/* Name + YOU tag */}
                   <div className="flex-1 min-w-0">
@@ -555,9 +511,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                 <div className="px-5 pb-8 -mt-8 relative z-10">
                   {/* Avatar + Info */}
                   <div className="flex items-end gap-4 mb-5">
-                    <AnimatedBorder borderId={pEntry.borderId} className="rounded-full shrink-0" style={{ boxShadow: '0 0 20px rgba(0,0,0,0.8)' }}>
-                      <OutfitHunterBadge outfitId={pEntry.outfitId} size={72} />
-                    </AnimatedBorder>
+                    <AvatarWithBorder avatarUrl={pEntry.avatar_url} borderId={pEntry.borderId} size={72} className="shrink-0" style={{ boxShadow: '0 0 20px rgba(0,0,0,0.8)' }} />
                     <div className="pb-1 min-w-0 flex-1">
                       <div className="text-[10px] font-black uppercase tracking-widest mb-0.5" style={{ color: pRankColor }}>{pTitle}</div>
                       <div className="text-base font-black text-white truncate">{pEntry.username || pEntry.name}</div>
