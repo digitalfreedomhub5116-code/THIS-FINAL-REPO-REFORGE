@@ -16,21 +16,21 @@ const setupItemVariants: Variants = { hidden: { opacity: 0, y: 20 }, visible: { 
 
 
 const BMIGauge = ({ value }: { value: number }) => {
-    // Simple Linear Gauge
+    // Simple Linear Gauge — monochromatic grey/cyan
     const percent = Math.min(100, Math.max(0, ((value - 15) / (40 - 15)) * 100));
 
     return (
         <div className="w-24 mt-3 flex flex-col gap-1">
             <div className="h-1.5 w-full bg-gray-800 rounded-full relative overflow-visible">
-                {/* Gradient Background */}
-                <div className="absolute inset-0 rounded-full bg-gradient-to-r from-emerald-500 via-yellow-500 to-red-500" />
+                {/* Monochromatic gradient: dark grey → cyan → light grey */}
+                <div className="absolute inset-0 rounded-full" style={{ background: 'linear-gradient(to right, #3a3a4a, #5a7a88, #7EB8D4, #5a7a88, #3a3a4a)' }} />
                 
                 {/* Marker */}
                 <motion.div 
                     initial={{ left: 0 }}
                     animate={{ left: `${percent}%` }}
                     transition={{ delay: 0.5, duration: 1, type: "spring" }}
-                    className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-white border-2 border-black rounded-full shadow-[0_0_5px_white] z-10"
+                    className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-white border-2 border-[#0a0a14] rounded-full shadow-[0_0_5px_rgba(126,184,212,0.5)] z-10"
                     style={{ marginLeft: '-5px' }} 
                 />
             </div>
