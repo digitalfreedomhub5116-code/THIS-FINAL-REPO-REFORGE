@@ -75,6 +75,7 @@ router.get('/', async (req: Request, res: Response) => {
         equipped_outfit_id: row.raw_data?.equippedOutfitId || 'outfit_starter',
         // Prefer dedicated column (instant PATCH) → fallback to raw_data
         equipped_border: row.equipped_border || row.raw_data?.equippedBorder || null,
+        equipped_banner: row.raw_data?.equippedBanner || null,
       };
     });
 

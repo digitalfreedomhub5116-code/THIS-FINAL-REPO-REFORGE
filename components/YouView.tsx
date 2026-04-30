@@ -120,7 +120,7 @@ const ProfileHero: React.FC<{
     <div className="relative" style={{ marginBottom: 16 }}>
       {/* ── Banner ── */}
       <div className="relative w-full overflow-hidden" style={{ height: 160, borderRadius: '0 0 16px 16px', background: '#000' }}>
-        <img src={bannerSrc} alt="" className="w-full h-full object-cover" style={{ objectPosition: 'center 40%' }} />
+        <img src={bannerSrc} alt="" className="w-full h-full object-cover" style={{ objectPosition: 'center center' }} />
         <div className="absolute bottom-0 left-0 right-0 pointer-events-none" style={{ height: 100, background: 'linear-gradient(to top, rgba(5,5,10,0.95) 0%, transparent 100%)' }} />
         {/* Name — bottom left */}
         <div className="absolute bottom-3 left-4 z-10" style={{ maxWidth: 'calc(50% - 60px)' }}>

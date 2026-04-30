@@ -39,11 +39,11 @@ const AvatarWithBorder: React.FC<AvatarWithBorderProps> = ({
     ? PROFILE_BORDERS.some(b => b.id === borderId)
     : false;
 
-  // Avatar element (reused in both paths)
+  // Avatar element (reused in both paths) — clean circular, no boxy border
   const avatarElement = (
     <div
       className="rounded-full overflow-hidden bg-[#0d0d1a] flex items-center justify-center"
-      style={{ width: size, height: size, border: '3px solid #0a0a14' }}
+      style={{ width: size, height: size }}
     >
       {avatarUrl ? (
         <img src={avatarUrl} alt="" className="w-full h-full object-cover" />

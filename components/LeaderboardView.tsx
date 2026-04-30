@@ -13,6 +13,7 @@ import RankRewardOverlay from './RankRewardOverlay';
 import { OUTFITS } from '../utils/gameData';
 import OutfitHunterBadge, { OUTFIT_BADGE_CONFIG } from './OutfitHunterBadge';
 import AvatarWithBorder from './AvatarWithBorder';
+import { getItemById } from '../utils/storeItems';
 
 // ── Types ──
 interface LeaderboardEntry {
@@ -28,6 +29,7 @@ interface LeaderboardEntry {
   avatar_url?: string | null;
   equipped_outfit_id?: string;
   equipped_border?: string | null;
+  equipped_banner?: string | null;
 }
 
 interface SimEntry extends LeaderboardEntry {
@@ -39,6 +41,7 @@ interface SimEntry extends LeaderboardEntry {
   streak: number;
   avatar_url?: string | null;
   borderId: string | null;
+  bannerId: string | null;
 }
 
 interface LeaderboardViewProps {
@@ -269,6 +272,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
         outfitId: e.equipped_outfit_id || 'outfit_starter',
         streak: e.streak || 0,
         borderId: e.equipped_border || null,
+        bannerId: e.equipped_banner || null,
       };
     }).sort((a, b) => b.streak - a.streak || b.dominance - a.dominance);
   }, [entries, player.userId, player.username, xpField, activeTab]);
@@ -483,29 +487,35 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                 transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                 onClick={e => e.stopPropagation()}
               >
-                {/* ── Banner ── */}
-                <div className="relative h-28 overflow-hidden">
-                  <img
-                    src="/default_profile_banner.png"
-                    alt="Banner"
-                    className="w-full h-full object-cover"
-                    style={{ filter: 'brightness(0.6) saturate(1.2)' }}
-                  />
-                  {/* Gradient overlay */}
-                  <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, transparent 40%, #0a0a1a 100%)' }} />
-                  {/* Close button */}
-                  <button
-                    onClick={() => setProfileTarget(null)}
-                    className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-90"
-                    style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.1)' }}
-                  >
-                    <X size={14} className="text-white" />
-                  </button>
-                  {/* Username in header */}
-                  <div className="absolute top-3 left-4">
-                    <span className="text-[11px] font-black text-white/80 font-mono tracking-wider">{pEntry.username || pEntry.name}</span>
-                  </div>
-                </div>
+                {/* ── Banner — shows player's real equipped banner ── */}
+                {(() => {
+                  const bannerStoreItem = pEntry.bannerId ? getItemById(pEntry.bannerId) : null;
+                  const bannerSrc = bannerStoreItem?.bannerImage || '/banners/default.jpg';
+                  return (
+                    <div className="relative h-32 overflow-hidden">
+                      <img
+                        src={bannerSrc}
+                        alt="Banner"
+                        className="w-full h-full object-cover"
+                        style={{ objectPosition: 'center center' }}
+                      />
+                      {/* Gradient overlay */}
+                      <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, transparent 30%, #0a0a1a 100%)' }} />
+                      {/* Close button */}
+                      <button
+                        onClick={() => setProfileTarget(null)}
+                        className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-90"
+                        style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.08)' }}
+                      >
+                        <X size={14} className="text-white" />
+                      </button>
+                      {/* Username in header */}
+                      <div className="absolute top-3 left-4">
+                        <span className="text-[11px] font-black text-white/80 font-mono tracking-wider">{pEntry.username || pEntry.name}</span>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* ── Profile Content ── */}
                 <div className="px-5 pb-8 -mt-8 relative z-10">
@@ -519,37 +529,42 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                     </div>
                   </div>
 
-                  {/* ── Stats Grid ── */}
-                  <div className="grid grid-cols-4 gap-2 mb-5">
+                  {/* ── Stats — 3 column, liquid glass, monochromatic pale cyan ── */}
+                  <div className="grid grid-cols-3 gap-2.5 mb-5">
                     {[
-                      { label: 'LEVEL', value: `${pEntry.level}`, color: '#9ACDE3' },
-                      { label: 'RANK', value: pEntry.computedRank, color: pRankColor },
-                      { label: 'XP', value: formatXp(pEntry.dominance), color: '#fbbf24' },
-                      { label: 'STREAK', value: `🔥${pEntry.streak}`, color: '#f97316' },
+                      { label: 'LEVEL', value: `${pEntry.level}` },
+                      { label: 'RANK', value: pEntry.computedRank },
+                      { label: 'STREAK', value: `🔥${pEntry.streak}` },
                     ].map(s => (
-                      <div key={s.label} className="rounded-xl p-2.5 text-center"
-                        style={{ background: `${s.color}08`, border: `1px solid ${s.color}20` }}>
-                        <div className="text-[13px] font-black font-mono" style={{ color: s.color }}>{s.value}</div>
-                        <div className="text-[7px] font-mono text-gray-600 uppercase tracking-widest mt-0.5">{s.label}</div>
+                      <div key={s.label} className="rounded-2xl p-3 text-center"
+                        style={{
+                          background: 'rgba(126,184,212,0.06)',
+                          backdropFilter: 'blur(12px)',
+                          WebkitBackdropFilter: 'blur(12px)',
+                          border: '1px solid rgba(126,184,212,0.12)',
+                          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.3)',
+                        }}>
+                        <div className="text-[15px] font-black font-mono" style={{ color: '#9ACDE3' }}>{s.value}</div>
+                        <div className="text-[7px] font-mono uppercase tracking-[0.18em] mt-1" style={{ color: 'rgba(126,184,212,0.5)' }}>{s.label}</div>
                       </div>
                     ))}
                   </div>
 
-                  {/* ── Outfit Info ── */}
-                  <div className="rounded-xl px-4 py-3 mb-4 flex items-center gap-3"
-                    style={{ background: `${pCfg.accent}08`, border: `1px solid ${pCfg.accent}18` }}>
+                  {/* ── Outfit Info — liquid glass ── */}
+                  <div className="rounded-2xl px-4 py-3 mb-4 flex items-center gap-3"
+                    style={{
+                      background: 'rgba(126,184,212,0.04)',
+                      backdropFilter: 'blur(12px)',
+                      WebkitBackdropFilter: 'blur(12px)',
+                      border: '1px solid rgba(126,184,212,0.08)',
+                      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03)',
+                    }}>
                     <OutfitHunterBadge outfitId={pEntry.outfitId} size={40} />
                     <div className="flex-1 min-w-0">
-                      <div className="text-[8px] font-mono text-gray-500 uppercase tracking-widest">Equipped Outfit</div>
+                      <div className="text-[8px] font-mono uppercase tracking-widest" style={{ color: 'rgba(126,184,212,0.45)' }}>Equipped Outfit</div>
                       <div className="text-[12px] font-black text-white truncate">{pOutfit?.name || pCfg.name}</div>
-                      <div className="text-[9px] font-mono" style={{ color: pCfg.accent }}>{pCfg.tier}-Rank • {pCfg.name}</div>
+                      <div className="text-[9px] font-mono" style={{ color: '#7EB8D4' }}>{pCfg.tier}-Rank • {pCfg.name}</div>
                     </div>
-                  </div>
-
-                  {/* ── Banner placeholder text ── */}
-                  <div className="rounded-xl px-4 py-3 mb-4 text-center" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
-                    <div className="text-[8px] font-mono text-gray-600 uppercase tracking-widest">🏷️ Banner</div>
-                    <div className="text-[10px] text-gray-500 font-mono mt-1">Default Banner</div>
                   </div>
 
                   {/* ── Report Button ── */}
