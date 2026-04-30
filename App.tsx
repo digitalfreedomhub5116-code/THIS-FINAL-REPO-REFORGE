@@ -4378,6 +4378,63 @@ const App: React.FC = () => {
                 </ErrorBoundary>
               </Suspense>
 
+              {/* ── Promo Banners: Food Scanner & Store Deals ── */}
+              <div className="grid grid-cols-2 gap-3 px-1">
+                {/* Food Scanner Card */}
+                <button
+                  onClick={() => setActiveTab('HEALTH' as Tab)}
+                  className="relative overflow-hidden rounded-2xl active:scale-[0.97] transition-transform"
+                  style={{
+                    height: 160,
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)',
+                    border: '1px solid rgba(126,184,212,0.12)',
+                  }}
+                >
+                  <img
+                    src="/images/ui/food-scanner-promo.png"
+                    alt="Food Scanner"
+                    className="absolute inset-0 w-full h-full object-cover"
+                    style={{ filter: 'grayscale(0.85) brightness(0.45)', }}
+                  />
+                  <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.15) 100%)' }} />
+                  <div className="absolute inset-0 p-3.5 flex flex-col justify-end">
+                    <div className="text-[8px] font-mono font-bold tracking-[0.2em] text-[#7EB8D4] uppercase mb-1">Nutrition</div>
+                    <div className="text-[13px] font-black text-white leading-tight mb-1">Scan Your Food</div>
+                    <div className="text-[9px] text-gray-400 font-mono leading-snug">Log calories & macros instantly with AI scan</div>
+                    <div className="mt-2 flex items-center gap-1">
+                      <span className="text-[8px] font-mono font-bold text-[#7EB8D4] bg-[#7EB8D4]/10 px-2 py-0.5 rounded-full border border-[#7EB8D4]/20 uppercase tracking-wider">Coming Soon</span>
+                    </div>
+                  </div>
+                </button>
+
+                {/* Store Deals Card */}
+                <button
+                  onClick={() => setActiveTab('STORE' as Tab)}
+                  className="relative overflow-hidden rounded-2xl active:scale-[0.97] transition-transform"
+                  style={{
+                    height: 160,
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)',
+                    border: '1px solid rgba(126,184,212,0.12)',
+                  }}
+                >
+                  <img
+                    src="/images/ui/store-deals-promo.png"
+                    alt="Store Deals"
+                    className="absolute inset-0 w-full h-full object-cover"
+                    style={{ filter: 'grayscale(0.85) brightness(0.45)', }}
+                  />
+                  <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.15) 100%)' }} />
+                  <div className="absolute inset-0 p-3.5 flex flex-col justify-end">
+                    <div className="text-[8px] font-mono font-bold tracking-[0.2em] text-[#facc15] uppercase mb-1">Store</div>
+                    <div className="text-[13px] font-black text-white leading-tight mb-1">Today's Deals</div>
+                    <div className="text-[9px] text-gray-400 font-mono leading-snug">Exclusive borders, banners & cosmetics on sale</div>
+                    <div className="mt-2 flex items-center gap-1">
+                      <span className="text-[8px] font-mono font-bold text-[#facc15] bg-[#facc15]/10 px-2 py-0.5 rounded-full border border-[#facc15]/20 uppercase tracking-wider">Browse Now</span>
+                    </div>
+                  </div>
+                </button>
+              </div>
+
               {/* ── 2. Goal Hero + Pinned Goals ── */}
               <Suspense fallback={null}>
                 <ErrorBoundary fallbackLabel="Goals failed">
