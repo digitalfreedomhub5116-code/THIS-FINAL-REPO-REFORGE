@@ -1165,9 +1165,7 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
     if (tutorialStep === 4 || isQuestOnboarding) {
       addQuest(newQuest); resetForm();
       if (onTutorialAction) onTutorialAction(5);
-    } else if (onShowPact) {
-      onShowPact(newQuest); setIsModalOpen(false); resetForm();
-    } else { addQuest(newQuest); resetForm(); }
+    } else { addQuest(newQuest); setIsModalOpen(false); resetForm(); }
   };
 
   const resetForm = () => {

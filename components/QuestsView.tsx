@@ -7,7 +7,7 @@ import GoalsView from './GoalsView';
 import RankBadge from './RankBadge';
 import type { RankType } from './RankBadge';
 import QuestCard from './QuestCard';
-import { PLEDGE_AMOUNTS, MANDATORY_RANKS } from './SystemPactScreen';
+
 import { playSystemSoundEffect } from '../utils/soundEngine';
 import { API_BASE } from '../lib/apiConfig';
 import { getPlayerAuthHeaders } from '../lib/playerApi';
@@ -204,16 +204,6 @@ const QuestsView: React.FC<QuestsViewProps> = ({
       }
     }
 
-    if (tutorialStep !== 4 && !isQuestOnboarding) {
-      const rank = forgeResult.rank;
-      const pledgeAmount = PLEDGE_AMOUNTS[rank];
-      if (MANDATORY_RANKS.has(rank) && (playerData?.gold ?? 0) < pledgeAmount) {
-        setError(`INSUFFICIENT GOLD — ${rank}-Rank quests require ${pledgeAmount}G Shadow Pledge. Earn more Gold before attempting this rank.`);
-        playSystemSoundEffect('WARNING');
-        return;
-      }
-    }
-
     const newQuest: Quest = {
       id: Math.random().toString(36).substr(2, 9),
       title: title.trim(),
@@ -237,12 +227,9 @@ const QuestsView: React.FC<QuestsViewProps> = ({
       addQuest(newQuest);
       resetForm();
       if (onTutorialAction) onTutorialAction(5);
-    } else if (onShowPact) {
-      onShowPact(newQuest);
-      setIsModalOpen(false);
-      resetForm();
     } else {
       addQuest(newQuest);
+      setIsModalOpen(false);
       resetForm();
     }
   };

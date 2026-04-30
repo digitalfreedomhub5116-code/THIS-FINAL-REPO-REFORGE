@@ -192,7 +192,7 @@ import { startQuestGeneration, onQuestGenStoreUpdate } from './components/GoalDe
 
 const RankUpCinematic = lazy(() => import('./components/RankUpCinematic'));
 
-const SystemPactScreen = lazy(() => import('./components/SystemPactScreen'));
+
 
 const ConfettiOverlay = lazy(() => import('./components/ConfettiOverlay'));
 
@@ -1592,10 +1592,6 @@ const App: React.FC = () => {
 
 
 
-  const [showPactScreen, setShowPactScreen] = useState(false);
-
-  const [pendingPactQuest, setPendingPactQuest] = useState<Quest | null>(null);
-
   const [sensorBlockedQuestId, setSensorBlockedQuestId] = useState<string | null>(null);
 
 
@@ -1622,11 +1618,6 @@ const App: React.FC = () => {
 
       if (pendingPenalty || showAuditTheater) return;
 
-
-
-      // 3. Close any open popup/modal/overlay (most intrusive first)
-
-      if (showPactScreen)       { setShowPactScreen(false); setPendingPactQuest(null); return; }
 
       if (showDuskChat)         { setShowDuskChat(false); return; }
 
@@ -1694,7 +1685,7 @@ const App: React.FC = () => {
 
     return () => { handler.then(h => h.remove()); };
 
-  }, [isDungeonMode, pendingPenalty, showAuditTheater, showPactScreen, showDuskChat,
+  }, [isDungeonMode, pendingPenalty, showAuditTheater, showDuskChat,
 
       showChestOpening, showDailyLogin, showStreakCelebration, showLevelUp, showLevelDown,
 
@@ -2825,8 +2816,6 @@ const App: React.FC = () => {
 
     const quest = player.quests.find(q => q.id === id);
 
-    const hasPact = quest?.hasPact && quest?.pactStatus === 'active';
-
     completeQuest(id, asMini);
 
     if (rect) {
@@ -2835,19 +2824,13 @@ const App: React.FC = () => {
 
     }
 
-    // Confetti — large for pact-honored, small for regular
+    // Confetti on quest completion
 
     window.dispatchEvent(new CustomEvent('reforge:confetti', {
 
-      detail: { intensity: hasPact ? 'large' : 'small', origin: rect ?? null }
+      detail: { intensity: 'small', origin: rect ?? null }
 
     }));
-
-    if (hasPact) {
-
-      addNotification(`Pact Honored. ${quest?.pactAmount ?? 0}G Returned. +1.25x XP Bonus.`, 'SUCCESS');
-
-    }
 
     // Welcome quest tutorial advances removed (6-step tutorial)
 
@@ -2969,101 +2952,7 @@ const App: React.FC = () => {
 
 
 
-  // ── System Pact handlers ──
 
-  const handleShowPact = useCallback((quest: Quest) => {
-
-    setPendingPactQuest(quest);
-
-    setShowPactScreen(true);
-
-  }, []);
-
-
-
-  const handlePactAccept = useCallback((pledgeAmount: number) => {
-
-    if (!pendingPactQuest) return;
-
-    const deducted = deductGold(pledgeAmount);
-
-    if (!deducted) return;
-
-    const questWithPact: Quest = {
-
-      ...pendingPactQuest,
-
-      hasPact: true,
-
-      pactAmount: pledgeAmount,
-
-      pactStatus: 'active',
-
-    };
-
-    addQuest(questWithPact);
-
-    addNotification(`Shadow Pledge Sealed: ${pledgeAmount}G Locked`, 'SYSTEM');
-
-    fetch(`${API_BASE}/api/system-pact/create`, {
-
-      method: 'POST',
-
-      headers: { 'Content-Type': 'application/json' },
-
-      credentials: 'include',
-
-      body: JSON.stringify({
-
-        quest_id: questWithPact.id,
-
-        quest_title: questWithPact.title,
-
-        quest_rank: questWithPact.rank,
-
-        pledge_amount: pledgeAmount,
-
-      }),
-
-    }).catch(() => {});
-
-    setShowPactScreen(false);
-
-    setPendingPactQuest(null);
-
-    if (player.tutorialStep === 4) advanceTutorial(5);
-
-  }, [pendingPactQuest, deductGold, addQuest, addNotification, player.tutorialStep, advanceTutorial]);
-
-
-
-  const handlePactDecline = useCallback(() => {
-
-    if (!pendingPactQuest) return;
-
-    const questNoPact: Quest = {
-
-      ...pendingPactQuest,
-
-      hasPact: false,
-
-      pactAmount: 0,
-
-      pactStatus: 'none',
-
-    };
-
-    addQuest(questNoPact);
-
-    addNotification('Quest activated without pledge.', 'SYSTEM');
-
-    setShowPactScreen(false);
-
-    setPendingPactQuest(null);
-
-    if (player.tutorialStep === 4) advanceTutorial(5);
-
-  }, [pendingPactQuest, addQuest, addNotification, player.tutorialStep, advanceTutorial]);
 
 
 
@@ -4260,27 +4149,7 @@ const App: React.FC = () => {
 
 
 
-      {/* System Pact Screen — rendered at App level to cover navbar */}
 
-      <Suspense fallback={null}>
-
-        <SystemPactScreen
-
-          visible={showPactScreen}
-
-          questRank={pendingPactQuest?.rank ?? 'E'}
-
-          questTitle={pendingPactQuest?.title ?? ''}
-
-          playerGold={player.gold}
-
-          onAcceptPact={handlePactAccept}
-
-          onDeclinePact={handlePactDecline}
-
-        />
-
-      </Suspense>
 
 
 
@@ -4509,7 +4378,7 @@ const App: React.FC = () => {
                     playerData={player}
                     onToggleNav={handleToggleNav}
                     recordStrike={recordStrike}
-                    onShowPact={handleShowPact}
+
                     onStartTracking={handleStartTracking}
                     onStopTracking={handleStopTracking}
                     onConsumeMana={consumeMana}
