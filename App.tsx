@@ -743,7 +743,7 @@ const App: React.FC = () => {
 
   // ── Swipe-to-change-tab ──────────────────────────────────────────────────────
 
-  const NAV_TAB_ORDER: Tab[] = ['DASHBOARD', 'HEALTH', 'QUESTS', 'LEADERBOARD', 'PROFILE'];
+  const NAV_TAB_ORDER: Tab[] = ['DASHBOARD', 'HEALTH', 'LEADERBOARD', 'STORE', 'PROFILE'];
 
   const swipeTouchStart = useRef<{ x: number; y: number; inScrollable: boolean } | null>(null);
 
@@ -2344,7 +2344,7 @@ const App: React.FC = () => {
 
       setQuestOnboardingStep(2);
 
-      setActiveTab('QUESTS');
+      setActiveTab('DASHBOARD');
 
     } else if (step === 4 && isFailure) {
 
@@ -2504,7 +2504,7 @@ const App: React.FC = () => {
 
     const nextStep = player.tutorialStep + 1;
 
-    if (nextStep === 1) setActiveTab('QUESTS');
+    if (nextStep === 1) setActiveTab('DASHBOARD');
 
     advanceTutorial(nextStep);
 
@@ -4405,84 +4405,43 @@ const App: React.FC = () => {
               </div>{/* end responsive-grid-2 */}
 
 
-
-            </motion.div>
-
-          )}
-
-
-
-
-
-
-
-          {/* ── QUESTS ── */}
-
-          {activeTab === 'QUESTS' && (
-
-            <motion.div key="quests" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-
+              {/* ── Quests & Goals (moved from QUESTS tab) ── */}
               <Suspense fallback={<SkeletonQuestsPage />}>
-
                 <ErrorBoundary fallbackLabel="Quests failed to load">
-
                   <DailyCommandCenter
-
                     quests={player.quests}
-
                     addQuest={addQuest}
-
                     completeQuest={handleQuestComplete}
-
                     failQuest={failQuest}
-
                     resetQuest={resetQuest}
-
                     deleteQuest={deleteQuest}
-
                     tutorialStep={player.tutorialStep}
-
                     onTutorialAction={advanceTutorial}
-
                     onTutorialAnalysisFail={() => setTutorialAnalysisFailed(true)}
-
                     playerData={player}
-
                     onToggleNav={handleToggleNav}
-
                     recordStrike={recordStrike}
-
                     onShowPact={handleShowPact}
-
                     onStartTracking={handleStartTracking}
-
                     onStopTracking={handleStopTracking}
-
                     onConsumeMana={consumeMana}
-
                     onRefundMana={refundMana}
-
                     isQuestOnboarding={showQuestOnboarding && questOnboardingStep > 0}
-
                     onTutorialManaOut={handleTutorialManaOut}
-
                     goals={player.goals || []}
-
                     onUpdateGoals={handleUpdateGoals}
-
                     onDeleteGoal={handleDeleteGoal}
-
                     onDeductGold={(amount) => setPlayer(prev => ({ ...prev, gold: Math.max(0, prev.gold - amount) }))}
-
                   />
-
                 </ErrorBoundary>
-
               </Suspense>
 
             </motion.div>
 
           )}
+
+
+
 
 
 

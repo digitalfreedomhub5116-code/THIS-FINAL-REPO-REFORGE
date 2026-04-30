@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { LayoutGrid, Activity, Swords, Trophy, User, Lock } from 'lucide-react';
+import { LayoutGrid, Activity, Trophy, ShoppingBag, User, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Tab } from '../types';
 import SystemGlitchBadge from './SystemGlitchBadge';
@@ -19,9 +19,9 @@ interface NavigationProps {
 
 const NAV_ITEMS = [
   { id: 'DASHBOARD' as Tab, label: 'Today', icon: LayoutGrid },
-  { id: 'HEALTH' as Tab, label: 'Health', icon: Activity },
-  { id: 'QUESTS' as Tab, label: 'Quests', icon: Swords },
+  { id: 'HEALTH' as Tab, label: 'Workout', icon: Activity },
   { id: 'LEADERBOARD' as Tab, label: 'Ranks', icon: Trophy },
+  { id: 'STORE' as Tab, label: 'Store', icon: ShoppingBag },
   { id: 'PROFILE' as Tab, label: 'You', icon: User },
 ];
 
@@ -30,7 +30,6 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, badges,
   const isLight = theme === 'light';
   const [lockedPopup, setLockedPopup] = useState<{ label: string; level: number } | null>(null);
   const lockedTabs = getLockedTabs(playerLevel);
-  const isGuidedQuestStep = guidedStep === 1;
   const isGuidedHealthStep = guidedStep === 7;
 
   const handleTabClick = (tabId: Tab) => {
@@ -39,9 +38,6 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, badges,
       const gate = FEATURE_GATES[gateKey];
       setLockedPopup({ label: gate?.label || tabId, level: lockedTabs[tabId] });
       return;
-    }
-    if (isGuidedQuestStep && tabId === 'QUESTS' && onGuidedAction) {
-      onGuidedAction(1);
     }
     if (isGuidedHealthStep && tabId === 'HEALTH' && onGuidedAction) {
       onGuidedAction(7);
@@ -78,7 +74,7 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, badges,
             const isActive = activeTab === item.id;
             const isLocked = !!lockedTabs[item.id];
             const Icon = item.icon;
-            const isGuidedHighlight = (isGuidedQuestStep && item.id === 'QUESTS') || (isGuidedHealthStep && item.id === 'HEALTH');
+            const isGuidedHighlight = (isGuidedHealthStep && item.id === 'HEALTH');
             return (
               <button
                 key={item.id}
@@ -169,10 +165,10 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, badges,
 
           {NAV_ITEMS.map((item) => {
             const isActive = activeTab === item.id;
-            const isQuest = item.id === 'QUESTS';
+            const isCenter = item.id === 'LEADERBOARD';
             const isLocked = !!lockedTabs[item.id];
             const Icon = item.icon;
-            const isGuidedHighlight = (isGuidedQuestStep && item.id === 'QUESTS') || (isGuidedHealthStep && item.id === 'HEALTH');
+            const isGuidedHighlight = (isGuidedHealthStep && item.id === 'HEALTH');
             return (
               <button
                 key={item.id}
@@ -185,11 +181,11 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, badges,
                     layoutId="active-nav-pill"
                     className="absolute inset-0 rounded-full"
                     style={{
-                      background: isQuest
-                        ? 'linear-gradient(135deg, rgba(126,184,212,0.25) 0%, rgba(0,160,200,0.15) 100%)'
+                      background: isCenter
+                        ? 'linear-gradient(135deg, rgba(234,179,8,0.25) 0%, rgba(251,146,60,0.15) 100%)'
                         : 'linear-gradient(135deg, rgba(126,184,212,0.3) 0%, rgba(109,40,217,0.2) 100%)',
-                      boxShadow: isQuest
-                        ? 'inset 0 1px 0 rgba(255,255,255,0.15), 0 0 14px rgba(126,184,212,0.4), 0 2px 8px rgba(0,0,0,0.4)'
+                      boxShadow: isCenter
+                        ? 'inset 0 1px 0 rgba(255,255,255,0.15), 0 0 14px rgba(234,179,8,0.4), 0 2px 8px rgba(0,0,0,0.4)'
                         : 'inset 0 1px 0 rgba(255,255,255,0.12), 0 0 12px rgba(126,184,212,0.5), 0 2px 8px rgba(0,0,0,0.4)',
                     }}
                     transition={{ type: 'spring', stiffness: 400, damping: 30 }}
@@ -209,19 +205,19 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, badges,
                     color: isLocked
                       ? '#2a2a3a'
                       : isActive
-                        ? (isQuest ? '#7EB8D4' : '#ffffff')
-                        : isQuest
-                          ? '#7EB8D4'
+                        ? (isCenter ? '#fbbf24' : '#ffffff')
+                        : isCenter
+                          ? '#fbbf24'
                           : '#6b7280',
                     transform: isActive && !isLocked ? 'scale(1.15)' : 'scale(1)',
                     filter: isLocked
                       ? 'none'
-                      : isQuest
-                        ? `drop-shadow(0 0 ${isActive ? '8px' : '5px'} rgba(126,184,212,${isActive ? '0.8' : '0.55'}))`
+                      : isCenter
+                        ? `drop-shadow(0 0 ${isActive ? '8px' : '5px'} rgba(234,179,8,${isActive ? '0.8' : '0.55'}))`
                         : 'none',
                   }}
                 >
-                  {isLocked ? <Lock size={16} /> : <Icon size={18} />}
+                  {isLocked ? <Lock size={16} /> : <Icon size={isCenter ? 20 : 18} />}
                 </div>
                 {/* Label removed - icons only */}
                 {isLocked && (

@@ -1375,45 +1375,59 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
       </div>
 
       {/* ── GOALS SECTION ── */}
-      {((activeGoals.length > 0) || (completedGoals.length > 0)) && (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between px-1">
-            <div className="flex items-center gap-2">
-              <Target className="w-3.5 h-3.5 text-[#7EB8D4]" />
-              <span className="text-[10px] font-black font-mono tracking-[0.2em] text-gray-400 uppercase">
-                Active Goals
-              </span>
-              {activeGoals.length > 0 && (
-                <span className="text-[9px] font-mono text-gray-600">({activeGoals.length})</span>
-              )}
-            </div>
-            {activeGoals.length < 3 && (
-              <button
-                onClick={() => setShowGoalCreate(true)}
-                className="text-[9px] font-bold text-[#7EB8D4] font-mono uppercase tracking-wider"
-              >
-                + New Goal
-              </button>
+      <div className="space-y-3">
+        <div className="flex items-center justify-between px-1">
+          <div className="flex items-center gap-2">
+            <Target className="w-3.5 h-3.5 text-[#7EB8D4]" />
+            <span className="text-[10px] font-black font-mono tracking-[0.2em] text-gray-400 uppercase">
+              Shadow Missions
+            </span>
+            {activeGoals.length > 0 && (
+              <span className="text-[9px] font-mono text-gray-600">({activeGoals.length})</span>
             )}
           </div>
-
-          {activeGoals.map(goal => (
-            <GoalCard key={goal.id} goal={goal} onTap={(g) => setSelectedGoal(g)} />
-          ))}
-
-          {completedGoals.length > 0 && (
-            <div className="mt-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Trophy className="w-3 h-3 text-amber-400" />
-                <span className="text-[9px] font-mono text-gray-600 uppercase tracking-wider">Completed</span>
-              </div>
-              {completedGoals.map(goal => (
-                <GoalCard key={goal.id} goal={goal} onTap={(g) => setSelectedGoal(g)} />
-              ))}
-            </div>
+          {activeGoals.length < 3 && (
+            <button
+              onClick={() => setShowGoalCreate(true)}
+              className="text-[9px] font-bold text-[#7EB8D4] font-mono uppercase tracking-wider hover:text-white transition-colors"
+            >
+              + New Goal
+            </button>
           )}
         </div>
-      )}
+
+        {activeGoals.length === 0 && completedGoals.length === 0 && (
+          <button
+            onClick={() => setShowGoalCreate(true)}
+            className="w-full py-6 rounded-xl text-center transition-all hover:bg-white/[0.03] active:scale-[0.98] group"
+            style={{ border: '1.5px dashed rgba(126,184,212,0.15)', background: 'rgba(126,184,212,0.02)' }}
+          >
+            <Target className="w-5 h-5 text-[#7EB8D4]/40 mx-auto mb-2 group-hover:text-[#7EB8D4]/70 transition-colors" />
+            <p className="text-[11px] font-mono font-bold text-gray-500 group-hover:text-gray-300 transition-colors">
+              Set a long-term goal
+            </p>
+            <p className="text-[9px] font-mono text-gray-700 mt-1">
+              AI will generate daily quests to keep you on track
+            </p>
+          </button>
+        )}
+
+        {activeGoals.map(goal => (
+          <GoalCard key={goal.id} goal={goal} onTap={(g) => setSelectedGoal(g)} />
+        ))}
+
+        {completedGoals.length > 0 && (
+          <div className="mt-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Trophy className="w-3 h-3 text-amber-400" />
+              <span className="text-[9px] font-mono text-gray-600 uppercase tracking-wider">Completed</span>
+            </div>
+            {completedGoals.map(goal => (
+              <GoalCard key={goal.id} goal={goal} onTap={(g) => setSelectedGoal(g)} />
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Spacing for nav */}
       <div className="h-20" />
