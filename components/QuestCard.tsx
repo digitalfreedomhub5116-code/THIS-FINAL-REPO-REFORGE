@@ -174,7 +174,7 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
       <div
         className="absolute left-0 top-0 bottom-0 w-[3px]"
         style={{
-          background: isCompleted ? '#22c55e' : isFailed ? '#ef4444'
+          background: isCompleted ? '#7EB8D4' : isFailed ? '#4a6670'
             : (isActive && quest.hasPact && quest.pactStatus === 'active') ? '#fbbf24' : rankColor,
         }}
       />
@@ -200,7 +200,7 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
                 <div>
                   <h3
                     className={`font-heading font-bold text-sm leading-snug ${!titleExpanded && isLongTitle ? 'line-clamp-2' : ''}`}
-                    style={{ color: isCompleted || isFailed ? '#6b7280' : '#f1f5f9', textDecoration: isCompleted || isFailed ? 'line-through' : 'none' }}
+                    style={{ color: isCompleted || isFailed ? '#6b7280' : '#f1f5f9' }}
                   >
                     {titleText}
                   </h3>
