@@ -457,7 +457,7 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
   }, []);
 
   return (
-    <div className="w-full relative rounded-2xl overflow-hidden flex flex-col group border border-white/[0.06] shadow-[0_20px_60px_rgba(0,0,0,0.7)] bg-[#0A0A0F]">
+    <div className="w-full relative rounded-2xl overflow-hidden flex flex-col group shadow-[0_20px_60px_rgba(0,0,0,0.7)] bg-[#0A0A0F]" style={{ border: '1px solid rgba(126,184,212,0.3)' }}>
 
       {/* --- TOP HEADER --- */}
       <div className="w-full flex items-center justify-between px-4 py-2 bg-gradient-to-b from-[#0A0A0F] to-transparent z-30 absolute top-0 left-0 right-0 pointer-events-none">
