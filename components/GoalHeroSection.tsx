@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Target, Pin, ChevronRight, ArrowLeft, Calendar, Clock, TrendingUp, Zap, Flame, Loader2, CheckCircle } from 'lucide-react';
+import { Plus, Target, Pin, ChevronRight, ArrowLeft, Calendar, Clock, TrendingUp, Zap, Flame, Loader2, CheckCircle, Info, X } from 'lucide-react';
 import { Goal, GoalCategory } from '../types';
 
 // ── Category → banner image mapping ──
@@ -309,6 +309,7 @@ const GoalHeroSection: React.FC<GoalHeroSectionProps> = ({ goals, onCreateGoal, 
     [goals]
   );
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
+  const [showGoalInfo, setShowGoalInfo] = useState(false);
 
   return (
     <div className="space-y-3">
@@ -336,6 +337,22 @@ const GoalHeroSection: React.FC<GoalHeroSectionProps> = ({ goals, onCreateGoal, 
             background: 'linear-gradient(180deg, rgba(10,10,20,0.2) 0%, rgba(10,10,20,0.6) 50%, rgba(10,10,20,0.95) 100%)',
           }} />
         </div>
+
+        {/* Info button — top right */}
+        <button
+          onClick={() => setShowGoalInfo(true)}
+          className="absolute top-3 right-3 z-20 flex items-center justify-center"
+          style={{
+            width: 30, height: 30, borderRadius: 8,
+            background: 'rgba(0,0,0,0.55)',
+            backdropFilter: 'blur(8px)',
+            border: '1px solid rgba(126,184,212,0.3)',
+            color: '#7EB8D4',
+            cursor: 'pointer',
+          }}
+        >
+          <Info size={14} />
+        </button>
 
         {/* Text overlay */}
         <div className="absolute bottom-0 left-0 right-0 px-5 pb-5">
@@ -422,6 +439,70 @@ const GoalHeroSection: React.FC<GoalHeroSectionProps> = ({ goals, onCreateGoal, 
             goal={selectedGoal}
             onClose={() => setSelectedGoal(null)}
           />
+        )}
+      </AnimatePresence>
+
+      {/* ── Goal Info Popup ── */}
+      <AnimatePresence>
+        {showGoalInfo && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[9999] flex items-center justify-center px-4"
+            style={{ background: 'rgba(0,0,0,0.85)' }}
+            onClick={() => setShowGoalInfo(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.92, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.92, opacity: 0 }}
+              className="w-full max-w-sm rounded-2xl overflow-hidden"
+              style={{ background: '#0d0d18', border: '1px solid rgba(126,184,212,0.15)' }}
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Close */}
+              <div className="flex justify-end px-4 pt-3">
+                <button
+                  onClick={() => setShowGoalInfo(false)}
+                  className="w-6 h-6 flex items-center justify-center rounded-md text-gray-500 hover:text-white transition-colors"
+                  style={{ background: 'rgba(255,255,255,0.05)' }}
+                >
+                  <X size={12} />
+                </button>
+              </div>
+
+              {/* Yellow highlighted question */}
+              <div className="mx-4 mb-5 px-4 py-3 rounded-xl" style={{ background: 'rgba(250,204,21,0.08)', border: '1px solid rgba(250,204,21,0.2)' }}>
+                <p className="text-[13px] font-bold leading-snug" style={{ color: '#facc15' }}>
+                  What would happen if your long-term goals were broken into daily, resource-rich quests?
+                </p>
+              </div>
+
+              {/* Steps */}
+              <div className="px-5 pb-6 space-y-4">
+                {[
+                  { num: 1, title: 'Name Your Goal', desc: 'Give your mission a clear, measurable objective.' },
+                  { num: 2, title: 'Fill the Details', desc: 'Set duration, category, and daily commitment.' },
+                  { num: 3, title: 'Review & Accept', desc: 'The system builds a phased plan — approve it to begin.' },
+                  { num: 4, title: 'Generate Daily Quests', desc: 'Each day, generate resource-rich quests tailored to your goal.' },
+                ].map(step => (
+                  <div key={step.num} className="flex items-start gap-3">
+                    <div
+                      className="w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-black font-mono flex-shrink-0 mt-0.5"
+                      style={{ background: 'rgba(126,184,212,0.1)', border: '1px solid rgba(126,184,212,0.2)', color: '#7EB8D4' }}
+                    >
+                      {step.num}
+                    </div>
+                    <div>
+                      <div className="text-[12px] font-bold text-white leading-tight">{step.title}</div>
+                      <div className="text-[10px] text-gray-500 font-mono leading-relaxed mt-0.5">{step.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
