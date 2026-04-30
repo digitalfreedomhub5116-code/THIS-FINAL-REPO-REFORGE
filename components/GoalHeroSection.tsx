@@ -320,7 +320,7 @@ const GoalHeroSection: React.FC<GoalHeroSectionProps> = ({ goals, onCreateGoal, 
         className="relative w-full rounded-2xl overflow-hidden"
         style={{
           background: '#0a0a14',
-          border: '1px solid rgba(126,184,212,0.1)',
+          border: '1px solid rgba(126,184,212,0.3)',
           boxShadow: '0 16px 48px rgba(0,0,0,0.6)',
         }}
       >

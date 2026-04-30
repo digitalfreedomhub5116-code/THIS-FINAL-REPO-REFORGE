@@ -63,6 +63,7 @@ interface ShopViewProps {
   onPurchaseBorder?: (borderId: string, cost: number) => void;
   onEquipBorder?: (borderId: string | null) => void;
   onEquipBanner?: (bannerId: string | null) => void;
+  initialStoreTab?: 'OUTFITS' | 'BADGES' | 'BORDERS' | 'DEALS' | 'THEMES' | 'BANNERS_SHOP';
 }
 
 
@@ -115,8 +116,9 @@ const ShopView: React.FC<ShopViewProps> = ({
   onPurchaseBorder,
   onEquipBorder,
   onEquipBanner,
+  initialStoreTab,
 }) => {
-  const [storeTab, setStoreTab] = useState<'OUTFITS' | 'BADGES' | 'BORDERS' | 'DEALS' | 'THEMES' | 'BANNERS_SHOP'>('OUTFITS');
+  const [storeTab, setStoreTab] = useState<'OUTFITS' | 'BADGES' | 'BORDERS' | 'DEALS' | 'THEMES' | 'BANNERS_SHOP'>(initialStoreTab || 'OUTFITS');
   const [kitEconomy, setKitEconomy] = useState(getEconomy());
   const [dealTimer, setDealTimer] = useState('');
   const [kitInfoItem, setKitInfoItem] = useState<KitStoreItem | null>(null);
