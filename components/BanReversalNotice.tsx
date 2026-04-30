@@ -17,7 +17,7 @@ const BanReversalNotice: React.FC<BanReversalNoticeProps> = ({ onClose }) => {
         className="relative max-w-lg w-full"
       >
         {/* Card */}
-        <div className="bg-[#080808] border border-gray-800 rounded-2xl overflow-hidden shadow-[0_0_60px_rgba(0,0,0,0.8)]">
+        <div className="bg-[#080808] border border-gray-800 rounded-2xl overflow-hidden shadow-[0_0_60px_rgba(0,0,0,0.8)] max-h-[85vh] overflow-y-auto">
 
           {/* Top accent bar */}
           <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-emerald-500 to-transparent" />
