@@ -207,23 +207,23 @@ const GoalDetailsPopup: React.FC<{
 
 // ── Tilted pinned goal card ──
 const PinnedGoalCard: React.FC<{
-  goal: Goal; index: number; onClick?: () => void;
-}> = ({ goal, index, onClick }) => {
+  goal: Goal; index: number; onClick?: () => void; onGenerate?: () => void;
+}> = ({ goal, index, onClick, onGenerate }) => {
   const rotation = index % 2 === 0 ? -2.5 : 2.5;
   const daysElapsed = Math.max(1, Math.floor((Date.now() - goal.startDate) / 86400000) + 1);
   const totalDays = goal.totalDurationDays || 60;
   const currentDay = Math.min(daysElapsed, totalDays);
   const pct = totalDays > 0 ? Math.min(100, (currentDay / totalDays) * 100) : 0;
   const catColor = getCategoryColor(goal.category);
+  const todayStr = new Date().toISOString().split('T')[0];
+  const hasQuestsToday = goal.dailyTasks?.some(t => t.date === todayStr);
 
   return (
-    <motion.button
-      onClick={onClick}
+    <motion.div
       initial={{ opacity: 0, y: 20, rotate: 0 }}
       animate={{ opacity: 1, y: 0, rotate: rotation }}
       transition={{ delay: 0.1 + index * 0.08, duration: 0.5 }}
       whileHover={{ scale: 1.04, rotate: 0 }}
-      whileTap={{ scale: 0.97 }}
       className="relative w-full text-left rounded-xl overflow-visible"
       style={{
         background: '#0d0d18',
@@ -231,48 +231,67 @@ const PinnedGoalCard: React.FC<{
         boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
       }}
     >
-      {/* Pin icon — CENTERED at top, not cut off */}
+      {/* Pin icon — cyan blue */}
       <div
         className="absolute z-20 flex items-center justify-center w-6 h-6 rounded-full"
         style={{
           top: -10,
           left: '50%',
           transform: 'translateX(-50%)',
-          background: catColor,
-          boxShadow: `0 3px 10px ${catColor}50`,
+          background: '#7EB8D4',
+          boxShadow: '0 3px 10px rgba(126,184,212,0.5)',
         }}
       >
         <Pin size={10} className="text-white" style={{ transform: 'rotate(45deg)' }} />
       </div>
 
-      {/* Banner image — 100% B&W */}
-      <div className="relative w-full h-16 overflow-hidden rounded-t-xl">
-        <img src={getCategoryBanner(goal.category)} alt="" className="w-full h-full object-cover"
-          style={{ filter: 'grayscale(100%) brightness(0.4)' }} />
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, transparent 30%, #0d0d18 100%)' }} />
-        <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded text-[7px] font-mono font-bold tracking-widest uppercase"
-          style={{ background: `${catColor}25`, color: catColor, border: `1px solid ${catColor}40` }}>
-          {goal.category}
-        </div>
-      </div>
-      <div className="px-3 pb-3 pt-1">
-        <div className="text-[11px] font-bold text-white/90 truncate leading-tight mb-1.5">{goal.title}</div>
-        <div className="flex items-center gap-2">
-          <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
-            <motion.div className="h-full rounded-full" initial={{ width: 0 }}
-              animate={{ width: `${pct}%` }} transition={{ duration: 0.8, delay: 0.2 + index * 0.1 }}
-              style={{ background: catColor, boxShadow: `0 0 4px ${catColor}40` }} />
+      {/* Clickable card area */}
+      <button onClick={onClick} className="w-full text-left">
+        {/* Banner image — 100% B&W */}
+        <div className="relative w-full h-16 overflow-hidden rounded-t-xl">
+          <img src={getCategoryBanner(goal.category)} alt="" className="w-full h-full object-cover"
+            style={{ filter: 'grayscale(100%) brightness(0.4)' }} />
+          <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, transparent 30%, #0d0d18 100%)' }} />
+          <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded text-[7px] font-mono font-bold tracking-widest uppercase"
+            style={{ background: `${catColor}25`, color: catColor, border: `1px solid ${catColor}40` }}>
+            {goal.category}
           </div>
-          <span className="text-[8px] font-mono font-bold tabular-nums" style={{ color: catColor }}>
-            {Math.round(pct)}%
-          </span>
         </div>
-        <div className="flex items-center justify-between mt-1">
-          <span className="text-[8px] font-mono text-gray-600">Day {currentDay}/{totalDays}</span>
-          <span className="text-[7px] font-mono text-gray-600 uppercase">{goal.goalRank} Rank</span>
+        <div className="px-3 pb-1 pt-1">
+          <div className="text-[11px] font-bold text-white/90 truncate leading-tight mb-1.5">{goal.title}</div>
+          <div className="flex items-center gap-2">
+            <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+              <motion.div className="h-full rounded-full" initial={{ width: 0 }}
+                animate={{ width: `${pct}%` }} transition={{ duration: 0.8, delay: 0.2 + index * 0.1 }}
+                style={{ background: catColor, boxShadow: `0 0 4px ${catColor}40` }} />
+            </div>
+            <span className="text-[8px] font-mono font-bold tabular-nums" style={{ color: catColor }}>
+              {Math.round(pct)}%
+            </span>
+          </div>
+          <div className="flex items-center justify-between mt-1">
+            <span className="text-[8px] font-mono text-gray-600">Day {currentDay}/{totalDays}</span>
+            <span className="text-[7px] font-mono text-gray-600 uppercase">{goal.goalRank} Rank</span>
+          </div>
         </div>
-      </div>
-    </motion.button>
+      </button>
+
+      {/* Per-goal Generate Quests button */}
+      {onGenerate && !hasQuestsToday && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onGenerate(); }}
+          className="w-full flex items-center justify-center gap-1.5 py-2 rounded-b-xl text-[9px] font-mono font-bold uppercase tracking-wider transition-all active:scale-95"
+          style={{
+            background: 'rgba(126,184,212,0.08)',
+            borderTop: '1px solid rgba(126,184,212,0.15)',
+            color: '#7EB8D4',
+          }}
+        >
+          <Zap size={10} />
+          Generate Quests
+        </button>
+      )}
+    </motion.div>
   );
 };
 
@@ -385,28 +404,13 @@ const GoalHeroSection: React.FC<GoalHeroSectionProps> = ({ goals, onCreateGoal, 
           <div className="grid grid-cols-2 gap-3 px-1 pt-3">
             {activeGoals.map((goal, i) => (
               <PinnedGoalCard key={goal.id} goal={goal} index={i}
-                onClick={() => setSelectedGoal(goal)} />
+                onClick={() => setSelectedGoal(goal)}
+                onGenerate={onGenerateQuests ? () => onGenerateQuests(goal.id) : undefined}
+              />
             ))}
           </div>
 
-          {/* Generate Quests button */}
-          <motion.button
-            whileTap={{ scale: 0.96 }}
-            onClick={() => {
-              if (activeGoals.length > 0 && onGenerateQuests) {
-                onGenerateQuests(activeGoals[0].id);
-              }
-            }}
-            className="w-full flex items-center justify-center gap-2 mt-4 py-2.5 rounded-xl font-mono font-bold text-[11px] tracking-wider uppercase transition-all"
-            style={{
-              background: 'rgba(126,184,212,0.08)',
-              border: '1px solid rgba(126,184,212,0.2)',
-              color: '#7EB8D4',
-            }}
-          >
-            <Zap size={14} />
-            Generate Today's Quests
-          </motion.button>
+
         </div>
       )}
 

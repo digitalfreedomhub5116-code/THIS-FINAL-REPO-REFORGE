@@ -211,7 +211,7 @@ function updateQuestGenStore(patch: Partial<QuestGenStore>) {
 }
 
 // Module-level fetch — runs independently of component lifecycle
-function startQuestGeneration(params: {
+export function startQuestGeneration(params: {
   goal: Goal;
   allGoals: Goal[];
   playerData?: PlayerData;

@@ -187,6 +187,7 @@ const DashboardView = lazy(() => import('./components/DashboardView'));
 
 const GoalHeroSection = lazy(() => import('./components/GoalHeroSection'));
 const GoalCreationFlow = lazy(() => import('./components/GoalCreationFlow'));
+import { startQuestGeneration } from './components/GoalDetailView';
 
 const RankUpCinematic = lazy(() => import('./components/RankUpCinematic'));
 
@@ -4332,6 +4333,18 @@ const App: React.FC = () => {
                     goals={player.goals || []}
                     onCreateGoal={() => setShowGoalCreate(true)}
                     onGenerateQuests={(goalId) => {
+                      const goal = (player.goals || []).find(g => g.id === goalId);
+                      if (!goal) return;
+                      const todayStr = new Date().toISOString().split('T')[0];
+                      const currentDay = Math.max(1, Math.floor((Date.now() - goal.startDate) / (1000 * 60 * 60 * 24)) + 1);
+                      startQuestGeneration({
+                        goal,
+                        allGoals: player.goals || [],
+                        playerData: player,
+                        todayStr,
+                        currentDay,
+                        existingQuests: player.quests,
+                      });
                       const el = document.getElementById('daily-command-center');
                       if (el) el.scrollIntoView({ behavior: 'smooth' });
                     }}
