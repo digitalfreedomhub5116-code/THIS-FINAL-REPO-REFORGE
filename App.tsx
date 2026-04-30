@@ -1071,7 +1071,9 @@ const App: React.FC = () => {
 
     if (!player.userId || isLocalUser(player.userId)) return;
 
-    banReversalShownRef.current = false;
+    // Check localStorage to see if ban reversal was already shown for this user
+    const seenKey = `banReversalSeen_${player.userId}`;
+    banReversalShownRef.current = !!localStorage.getItem(seenKey);
 
     // Reset tracking refs on user change
 
@@ -1239,9 +1241,14 @@ const App: React.FC = () => {
             if (!dbBanned && prev.isBanned && !banReversalShownRef.current) {
 
               banReversalShownRef.current = true;
-
+              // Persist so it only shows once per ban lift, survives reloads
+              try { localStorage.setItem(`banReversalSeen_${prev.userId}`, String(Date.now())); } catch {}
               setTimeout(() => setShowBanReversalNotice(true), 50);
 
+            } else if (dbBanned && !prev.isBanned) {
+              // User just got banned — clear the seen flag so notice shows on next unban
+              banReversalShownRef.current = false;
+              try { localStorage.removeItem(`banReversalSeen_${prev.userId}`); } catch {}
             }
 
           }
