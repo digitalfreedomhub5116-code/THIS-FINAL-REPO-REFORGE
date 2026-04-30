@@ -18,6 +18,7 @@ const ProfileView = lazy(() => import('./ProfileView'));
 const RankProgressionCard = lazy(() => import('./RankProgressionCard'));
 const EvaluationMatrix = lazy(() => import('./StatsRadar'));
 const RankUpCinematic = lazy(() => import('./RankUpCinematic'));
+const HunterGrowthTerminal = lazy(() => import('./HunterGrowthTerminal'));
 
 // ─── Rank ladder (mirrors lib/levelSystem.ts) ────────────────────────
 const RANK_LADDER: { rank: Exclude<Rank, 'UNRANKED'>; minLevel: number; color: string }[] = [
@@ -32,6 +33,7 @@ const RANK_LADDER: { rank: Exclude<Rank, 'UNRANKED'>; minLevel: number; color: s
 interface YouViewProps {
   player: PlayerData;
   equippedOutfit?: Outfit;
+  history?: import('../types').HistoryEntry[];
   onUpdate: (data: { name: string; username: string; job: string; title: string; healthProfile?: HealthProfile }) => void;
   onAvatarChange?: (newUrl: string) => void;
   onLogout: () => void;
@@ -477,7 +479,7 @@ const STAT_CONFIG: { key: keyof CoreStats; label: string; fullLabel: string; ico
 ];
 
 // ─── Full-screen Stats Drawer ────────────────────────────────────────
-const StatsDrawer: React.FC<{ player: PlayerData; onClose: () => void }> = ({ player, onClose }) => {
+const StatsDrawer: React.FC<{ player: PlayerData; history?: import('../types').HistoryEntry[]; onClose: () => void }> = ({ player, history, onClose }) => {
   const totalPoints = useMemo(() => {
     const s = player.stats || {} as CoreStats;
     return Math.floor(
@@ -505,6 +507,19 @@ const StatsDrawer: React.FC<{ player: PlayerData; onClose: () => void }> = ({ pl
       </div>
 
       <div className="px-4 py-5 space-y-5">
+        {/* ── Growth Terminal ── */}
+        <Suspense fallback={<div className="text-gray-600 text-xs font-mono text-center py-4">Loading terminal...</div>}>
+          <HunterGrowthTerminal
+            dailyXp={player.dailyXp || 0}
+            dailyStats={player.dailyStats || {} as CoreStats}
+            weeklyStats={player.weeklyStats || {} as CoreStats}
+            history={history || player.history || []}
+            streak={player.streak || 0}
+            playerLevel={player.level || 1}
+            quests={player.quests || []}
+          />
+        </Suspense>
+
         {/* ── Radar Chart ── */}
         <div
           className="w-full rounded-2xl overflow-hidden relative"
@@ -596,7 +611,7 @@ const StatsDrawer: React.FC<{ player: PlayerData; onClose: () => void }> = ({ pl
 
 // ─── Main YouView ────────────────────────────────────────────────────
 const YouView: React.FC<YouViewProps> = ({
-  player, equippedOutfit, onUpdate, onAvatarChange, onLogout, onDeleteAccount, onNavigate, onOpenDusk, onTestSetRank,
+  player, equippedOutfit, history, onUpdate, onAvatarChange, onLogout, onDeleteAccount, onNavigate, onOpenDusk, onTestSetRank,
 }) => {
   const [showRank, setShowRank] = useState(false);
   const [showRankProgression, setShowRankProgression] = useState(false);
@@ -714,7 +729,7 @@ const YouView: React.FC<YouViewProps> = ({
             onClose={() => setShowConfig(false)}
           />
         )}
-        {showStats && <StatsDrawer player={player} onClose={() => setShowStats(false)} />}
+        {showStats && <StatsDrawer player={player} history={history} onClose={() => setShowStats(false)} />}
         {comingSoon && <ComingSoonDrawer title={comingSoon} onClose={() => setComingSoon(null)} />}
       </AnimatePresence>
 

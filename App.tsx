@@ -4664,6 +4664,8 @@ const App: React.FC = () => {
 
                     equippedOutfit={dbOutfits.find(o => o.id === player.equippedOutfitId) || OUTFITS.find(o => o.id === player.equippedOutfitId)}
 
+                    history={player.history || []}
+
                     onUpdate={updateProfile}
 
                     onAvatarChange={(newUrl) => setPlayer(prev => ({ ...prev, avatarUrl: newUrl }))}
