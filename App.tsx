@@ -4389,14 +4389,6 @@ const App: React.FC = () => {
                 </ErrorBoundary>
               </Suspense>
 
-              {/* ── 1b. Hunter Command Deck (Radar + Dusk Video) ── */}
-              <Suspense fallback={null}>
-                <ErrorBoundary fallbackLabel="Command deck failed">
-                  <HunterCommandDeck
-                    player={player}
-                  />
-                </ErrorBoundary>
-              </Suspense>
 
               {/* ── 2. Daily Quests ── */}
               <div id="daily-command-center">
