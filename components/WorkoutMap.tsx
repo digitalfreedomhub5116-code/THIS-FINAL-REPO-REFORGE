@@ -318,7 +318,7 @@ const WorkoutMap: React.FC<WorkoutMapProps> = ({
                                         ${point.isBoss ? 'w-16 h-16 md:w-20 md:h-20' : 'w-12 h-12 md:w-14 md:h-14'}
                                         ${isCheated ? 'bg-amber-600 border-amber-500 text-black shadow-[0_0_20px_rgba(245,158,11,0.6)]' : ''}
                                         ${isCompleted && !isCheated ? 'bg-emerald-500 border-emerald-400 text-black shadow-[0_0_20px_rgba(16,185,129,0.6)]' : ''}
-                                        ${isMissed && !isCheated ? 'bg-red-600 border-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.5)]' : ''}
+                                        ${isMissed && !isCheated ? 'bg-gray-700 border-gray-600 text-gray-300 shadow-none' : ''}
                                         ${isCurrent && !isCompleted && !isCheated ? 'bg-black border-system-neon text-system-neon shadow-[0_0_40px_rgba(126,184,212,0.5)] animate-pulse' : ''}
                                         ${isLocked && !isMissed && !isCheated ? 'bg-gray-900 border-gray-800 text-gray-600' : ''}
                                         ${isSelected ? 'ring-4 ring-white/50' : ''}
@@ -336,7 +336,7 @@ const WorkoutMap: React.FC<WorkoutMapProps> = ({
                                     {point.isFinal ? (
                                         <Flag size={24} className="md:w-8 md:h-8" />
                                     ) : point.isBoss ? (
-                                        isCompleted && !isCheated ? <Crown size={32} className="md:w-10 md:h-10" /> : isMissed ? <Skull size={32} className="md:w-10 md:h-10 text-red-200" /> : isCheated ? <AlertCircle size={32} className="md:w-10 md:h-10 text-amber-200" /> : <Skull size={32} className="md:w-10 md:h-10" />
+                                        isCompleted && !isCheated ? <Crown size={32} className="md:w-10 md:h-10" /> : isMissed ? <Skull size={32} className="md:w-10 md:h-10 text-gray-400" /> : isCheated ? <AlertCircle size={32} className="md:w-10 md:h-10 text-amber-200" /> : <Skull size={32} className="md:w-10 md:h-10" />
                                     ) : (
                                         isCheated ? <AlertCircle size={20} className="md:w-6 md:h-6" /> :
                                         isCompleted ? <Check size={20} className="md:w-6 md:h-6" /> : 
@@ -453,7 +453,7 @@ const WorkoutMap: React.FC<WorkoutMapProps> = ({
                                                     <div key={si} className={`text-[7px] font-mono px-1.5 py-0.5 rounded flex items-center gap-1 truncate max-w-full ${
                                                         s.status === 'completed' ? 'text-emerald-400 bg-emerald-950/70 border border-emerald-800/50' :
                                                         s.status === 'cheated' ? 'text-amber-400 bg-amber-950/70 border border-amber-800/50' :
-                                                        'text-red-400 bg-red-950/70 border border-red-800/50'
+                                                        'text-gray-400 bg-gray-950/70 border border-gray-800/50'
                                                     }`}>
                                                         {s.status === 'completed' ? <Check size={7} /> : s.status === 'cheated' ? <AlertCircle size={7} /> : <X size={7} />}
                                                         <span className="truncate">{s.source === 'CUSTOM' ? '⚡' : ''}{s.name}</span>
@@ -466,7 +466,7 @@ const WorkoutMap: React.FC<WorkoutMapProps> = ({
                                     if (isMissed && !isCurrent) {
                                         return (
                                             <div className="absolute top-full mt-2">
-                                                <div className="text-[8px] text-red-400 font-mono bg-red-950/80 px-2 py-0.5 rounded border border-red-800 flex items-center gap-1">
+                                                <div className="text-[8px] text-gray-400 font-mono bg-gray-900/80 px-2 py-0.5 rounded border border-gray-700 flex items-center gap-1">
                                                     <AlertTriangle size={8} /> MISSED
                                                 </div>
                                             </div>
@@ -612,8 +612,8 @@ const WorkoutMap: React.FC<WorkoutMapProps> = ({
                           return (
                           <>
                         <div className="mb-6 relative">
-                            <div className={`w-16 h-16 rounded-full border-2 bg-black flex items-center justify-center relative z-10 ${previewOutcome === 'completed' ? 'border-emerald-500' : previewOutcome === 'cheated' ? 'border-amber-500' : previewOutcome === 'missed' ? 'border-red-600' : 'border-gray-800'}`}>
-                                {previewOutcome === 'completed' ? <Check size={28} className="text-emerald-400" /> : previewOutcome === 'cheated' ? <AlertCircle size={28} className="text-amber-400" /> : previewOutcome === 'missed' ? <X size={28} className="text-red-400" /> : <Lock size={28} className="text-gray-500" />}
+                            <div className={`w-16 h-16 rounded-full border-2 bg-black flex items-center justify-center relative z-10 ${previewOutcome === 'completed' ? 'border-emerald-500' : previewOutcome === 'cheated' ? 'border-amber-500' : previewOutcome === 'missed' ? 'border-gray-600' : 'border-gray-800'}`}>
+                                {previewOutcome === 'completed' ? <Check size={28} className="text-emerald-400" /> : previewOutcome === 'cheated' ? <AlertCircle size={28} className="text-amber-400" /> : previewOutcome === 'missed' ? <X size={28} className="text-gray-500" /> : <Lock size={28} className="text-gray-500" />}
                             </div>
                         </div>
 
