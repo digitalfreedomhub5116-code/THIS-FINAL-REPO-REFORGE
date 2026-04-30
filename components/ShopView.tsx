@@ -213,7 +213,7 @@ const ShopView: React.FC<ShopViewProps> = ({
 
   return (
     <div id="tut-store" className="space-y-5 md:space-y-6 pb-10">
-      <OnboardingNotice page="STORE" />
+      {/* OnboardingNotice removed — not needed */}
 
       {/* ── STORE TAB NAVIGATION ── */}
       <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 8, marginBottom: 4, WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>

@@ -891,7 +891,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
 
   return (
     <>
-        <OnboardingNotice page="HEALTH" />
+        {/* OnboardingNotice removed — not needed */}
         <AnimatePresence>
             {showManaAlert && (
                 <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/90 backdrop-blur-md">
