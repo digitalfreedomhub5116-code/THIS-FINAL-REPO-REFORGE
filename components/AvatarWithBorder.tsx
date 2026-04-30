@@ -73,6 +73,7 @@ const AvatarWithBorder: React.FC<AvatarWithBorderProps> = ({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          overflow: 'visible',
           ...style,
         }}
       >

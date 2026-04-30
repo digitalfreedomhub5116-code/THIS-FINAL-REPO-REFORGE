@@ -256,6 +256,8 @@ router.put('/:id', async (req: Request, res: Response) => {
       gold: newGold,
       keys: newKeys,
       raw_data: mergedRaw,
+      // Keep dedicated border column in sync with raw_data (for leaderboard reads)
+      equipped_border: mergedRaw.equippedBorder || null,
       updated_at: nowIso,
     };
 
