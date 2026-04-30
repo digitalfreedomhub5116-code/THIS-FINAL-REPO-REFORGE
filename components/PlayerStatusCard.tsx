@@ -804,25 +804,28 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
 
         </div>
 
+        {/* ── ALL LEVELS BUTTON (overlaid bottom-right of content area) ── */}
+        <div className="absolute bottom-3 right-3 z-30">
+          <button
+            onClick={() => setShowAllLevels(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[8px] font-black font-mono uppercase tracking-widest transition-all duration-200"
+            style={{
+              background: 'rgba(10,10,15,0.75)',
+              backdropFilter: 'blur(8px)',
+              border: '1px solid rgba(126,184,212,0.2)',
+              color: '#7EB8D4',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(126,184,212,0.15)'; e.currentTarget.style.borderColor = 'rgba(126,184,212,0.4)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(10,10,15,0.75)'; e.currentTarget.style.borderColor = 'rgba(126,184,212,0.2)'; }}
+          >
+            <Layers size={9} />
+            ALL LEVELS
+          </button>
+        </div>
+
       </div>
 
-      {/* --- COMPACT ALL LEVELS BUTTON --- */}
-      <div className="w-full bg-[#0A0A0F]/90 border-t border-white/[0.03] px-3 py-2 z-20 shrink-0 flex items-center justify-end">
-        <button
-          onClick={() => setShowAllLevels(true)}
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[8px] font-black font-mono uppercase tracking-widest transition-all duration-200"
-          style={{
-            background: 'rgba(126,184,212,0.08)',
-            border: '1px solid rgba(126,184,212,0.2)',
-            color: '#7EB8D4',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(126,184,212,0.15)'; e.currentTarget.style.borderColor = 'rgba(126,184,212,0.4)'; }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(126,184,212,0.08)'; e.currentTarget.style.borderColor = 'rgba(126,184,212,0.2)'; }}
-        >
-          <Layers size={9} />
-          ALL LEVELS
-        </button>
-      </div>
+
 
       {/* --- ALL LEVELS POPUP --- */}
       <AnimatePresence>
@@ -953,7 +956,7 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
         const manaColor = pct > 75 ? '#7EB8D4' : pct > 50 ? '#eab308' : pct > 10 ? '#f97316' : '#ef4444';
         const manaGlow = pct > 75 ? 'rgba(126,184,212,0.3)' : pct > 50 ? 'rgba(234,179,8,0.25)' : pct > 10 ? 'rgba(249,115,22,0.25)' : 'rgba(239,68,68,0.4)';
         return (
-          <div className="w-full bg-[#0A0A0F]/90 border-t border-white/[0.03] px-3 py-4 z-20 shrink-0">
+          <div className="w-full bg-[#0A0A0F]/90 border-t border-white/[0.03] px-3 pt-3 pb-4 z-20 shrink-0">
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-2">
                 <div
