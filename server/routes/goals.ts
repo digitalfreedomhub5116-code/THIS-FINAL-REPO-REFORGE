@@ -90,28 +90,46 @@ Timezone: ${timezone || 'unknown'}
 === GOAL TEXT ===
 "${goalText.trim()}"
 
-=== HARD REJECTION RULES ===
-REJECT (isInvalid: true) if the goal is:
-1. Physically/scientifically impossible (fly unaided, grow taller as adult, time travel, climb to moon, become immortal)
-2. Would realistically take >365 days for THIS user given their profile
-3. Too short (<7 days) — suggest using a regular quest instead
-4. Too vague to create a plan ("be happy", "be successful", "get better", "improve myself")
-5. Harmful, illegal, dangerous, or self-destructive
-6. Nonsense, gibberish, or random characters
+=== ACCEPTANCE PHILOSOPHY (CRITICAL) ===
+You are EXTREMELY ACCEPTING of goals. Your job is to HELP the user succeed, NOT to gatekeep.
+If a goal is even remotely achievable by a real human, you MUST accept it.
+When in doubt, ACCEPT the goal and generate a plan for it.
 
-If the user's stated timeline is unrealistic but the goal itself is valid, do NOT reject — instead flag it and calculate the REAL timeline.
+=== HARD REJECTION RULES (ONLY reject if ALL of these are true) ===
+REJECT (isInvalid: true) ONLY if the goal is:
+1. Physically/scientifically IMPOSSIBLE (fly unaided, grow taller as adult, time travel, become immortal, teleport)
+2. Harmful, illegal, dangerous, or explicitly self-destructive
+3. Actual nonsense/gibberish — random characters with zero meaning ("asdfghjkl", "xyzxyz")
+
+=== DO NOT REJECT THESE (common mistakes) ===
+- "Complete NEET syllabus" → ACCEPT. Cap at 365 days, focus on the most critical portions.
+- "Complete Class 11 study" → ACCEPT. This is a standard academic goal.
+- "Earn 10000 rupees" → ACCEPT. This is a simple financial goal achievable in weeks.
+- "Earn 1 lakh" → ACCEPT. Achievable through freelancing/part-time work.
+- "Learn to code" → ACCEPT. Beginner coding is achievable in 60-90 days.
+- "Lose 30kg" → ACCEPT. Cap at 365 days, plan progressive weight loss.
+- "Get 6 pack abs" → ACCEPT. Fitness transformation goal, 120-300 days.
+- "Score 600+ in NEET" → ACCEPT. Academic preparation goal.
+- Large academic syllabi → ALWAYS ACCEPT. If it would take >365 days for the FULL syllabus, narrow the scope automatically (e.g., "Cover the highest-yield 70% of the syllabus in 365 days") and set estimatedDurationDays to 365.
+
+=== DURATION RULES ===
+- Maximum duration: 365 days. If the goal TRULY needs more, set it to 365 and explain in the assessment that the plan will cover the most important portions.
+- Minimum duration: 7 days. If shorter, suggest a regular quest instead.
+- For academic goals: Assume 2-4 hours/day of study time unless user specifies otherwise.
+- For financial goals: Focus on actionable steps, not arbitrary earning calculations. Even small amounts are valid goals.
+- Be REALISTIC but OPTIMISTIC. Err on the side of shorter estimates.
 
 === TYPO TOLERANCE ===
 Users type on mobile. If the goal has typos but intent is clear, interpret correctly. Only reject truly random gibberish.
 
 === TASK ===
-1. Validate the goal against rejection rules
+1. Validate the goal ONLY against the hard rejection rules above
 2. If valid, classify: ACADEMIC | FITNESS | FINANCIAL | SKILL | CAREER | HEALTH | CREATIVE
-3. Estimate a SMART duration in days based on the user's actual capabilities:
-   - Weight loss: safe rate is 0.5-1kg/week. Calculate from current weight to target.
-   - Academic exams: count syllabus size vs hours/day available
-   - Financial: assess realistic earning trajectory
-   - Fitness: progressive overload timelines based on current baseline
+3. Estimate a SMART duration in days (max 365):
+   - Academic exams: syllabus coverage at 2-4 hrs/day
+   - Financial: realistic but optimistic earning/saving timeline
+   - Fitness: progressive overload with rest built in
+   - Skills: structured learning path
 4. Generate 3-5 interview questions to refine the plan. Pre-fill answers from calibration data where possible.
 
 === RESPONSE FORMAT (JSON only, no markdown) ===
@@ -146,10 +164,10 @@ Users type on mobile. If the goal has typos but intent is clear, interpret corre
     const cleaned = stripMarkdown(text);
     const parsed = JSON.parse(cleaned);
 
-    // Enforce 365-day max
+    // Cap at 365 days — DON'T reject, just cap
     if (!parsed.isInvalid && parsed.estimatedDurationDays > 365) {
-      parsed.isInvalid = true;
-      parsed.invalidReason = `This goal would take ~${parsed.estimatedDurationDays} days (${Math.round(parsed.estimatedDurationDays / 30)} months). Maximum allowed is 365 days. Try narrowing the scope.`;
+      parsed.estimatedDurationDays = 365;
+      parsed.initialAssessment = (parsed.initialAssessment || '') + ' (Duration capped at 365 days — the plan will focus on the most impactful portions.)';
     }
 
     return res.json(parsed);
