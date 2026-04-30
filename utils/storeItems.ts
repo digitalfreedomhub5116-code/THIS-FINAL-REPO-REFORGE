@@ -428,6 +428,31 @@ const BANNERS: StoreItem[] = [
     description: 'Chico Lachowski — the face that broke the internet.',
     bannerImage: '/banners/banner6.jpg',
   },
+  {
+    id: 'banner-shadowmonarch', name: 'Shadow Monarch', category: 'banner', tier: 'legendary', price: 500,
+    description: 'Sung Jinwoo — A Shadow Monarch. The one who commands the abyss.',
+    bannerImage: '/banners/reforgebanner1.jpeg',
+  },
+  {
+    id: 'banner-igris', name: 'Igris', category: 'banner', tier: 'legendary', price: 450,
+    description: 'The Greatest Warrior Alive — Igris, the crimson knight.',
+    bannerImage: '/banners/reforgebanner2.jpeg',
+  },
+  {
+    id: 'banner-chahaein', name: 'Cha Hae In', category: 'banner', tier: 'special', price: 350,
+    description: "Everyone's Wifey — Cha Hae In in casual mode.",
+    bannerImage: '/banners/reforgebanner3.jpeg',
+  },
+  {
+    id: 'banner-getup', name: 'Get Up', category: 'banner', tier: 'premium', price: 300,
+    description: 'Get up. No excuses. No mercy. Just action.',
+    bannerImage: '/banners/reforgebanner4.jpeg',
+  },
+  {
+    id: 'banner-keepgoing', name: 'I Keep Going', category: 'banner', tier: 'legendary', price: 400,
+    description: 'Even at my worst — I keep going. Dark manga motivation.',
+    bannerImage: '/banners/reforgebanner5.jpeg',
+  },
 ];
 
 /* ═══ ALL ITEMS ═══ */
