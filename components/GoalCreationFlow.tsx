@@ -176,8 +176,11 @@ export default function GoalCreationFlow({
 
   // ── Step 2: Submit Interview Answers ──
   const handleSubmitInterview = useCallback(async () => {
-    // Validate all questions answered
-    const unanswered = questions.filter(q => !q.answer && q.answer !== 0);
+    // Validate all questions answered (accept prefilled values as valid answers)
+    const unanswered = questions.filter(q => {
+      const val = q.answer ?? q.prefilled;
+      return val === null || val === undefined || val === '';
+    });
     if (unanswered.length > 0) {
       setError('Please answer all questions before proceeding.');
       return;
@@ -196,7 +199,7 @@ export default function GoalCreationFlow({
           goalText: goalText.trim(),
           category,
           estimatedDurationDays: estimatedDays,
-          interviewAnswers: questions.map(q => ({ question: q.question, answer: q.answer })),
+          interviewAnswers: questions.map(q => ({ question: q.question, answer: q.answer ?? q.prefilled })),
           playerStats: playerData?.stats,
           healthProfile: playerData?.healthProfile,
           otherGoals: existingGoals.filter(g => g.status === 'ACTIVE').map(g => ({
