@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { 
   Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer, PolarRadiusAxis 
 } from 'recharts';
-import { Dumbbell, Brain, Users, Shield, Activity, ScanLine } from 'lucide-react';
+import { Dumbbell, Brain, Users, Shield, Activity, ScanLine, Zap } from 'lucide-react';
 import { PlayerData, CoreStats } from '../types';
 
 interface HunterCommandDeckProps {
@@ -59,20 +59,24 @@ const HunterCommandDeck: React.FC<HunterCommandDeckProps> = ({ player, triggerAc
   // Use core stats for the hexagonal chart
   const stats: CoreStats = player.stats;
 
-  // 4-Point Diamond Chart Data
+  // 6-Point Hexagonal Chart Data (matches screenshot)
   const chartData = [
     { subject: 'STR', A: stats.strength, fullMark: 100 },
     { subject: 'INT', A: stats.intelligence, fullMark: 100 },
+    { subject: 'FOC', A: stats.focus, fullMark: 100 },
     { subject: 'DIS', A: stats.discipline, fullMark: 100 },
+    { subject: 'WIL', A: stats.willpower, fullMark: 100 },
     { subject: 'SOC', A: stats.social, fullMark: 100 },
   ];
 
-  // 4-Stat Icons configuration
+  // 6-Stat Icons configuration — cyan/grey theme
   const statConfig = [
-      { key: 'strength', label: 'STR', icon: Dumbbell, color: 'text-red-400', glow: '#f87171' },
-      { key: 'intelligence', label: 'INT', icon: Brain, color: 'text-blue-400', glow: '#60a5fa' },
-      { key: 'discipline', label: 'DIS', icon: Shield, color: 'text-[#7EB8D4]', glow: '#9ACDE3' },
-      { key: 'social', label: 'SOC', icon: Users, color: 'text-yellow-400', glow: '#facc15' },
+      { key: 'strength', label: 'STR', icon: Dumbbell, color: 'text-[#7EB8D4]', glow: '#7EB8D4' },
+      { key: 'intelligence', label: 'INT', icon: Brain, color: 'text-[#9ACDE3]', glow: '#9ACDE3' },
+      { key: 'focus', label: 'FOC', icon: Activity, color: 'text-[#7EB8D4]', glow: '#7EB8D4' },
+      { key: 'discipline', label: 'DIS', icon: Shield, color: 'text-[#9ACDE3]', glow: '#9ACDE3' },
+      { key: 'willpower', label: 'WIL', icon: Zap, color: 'text-[#7EB8D4]', glow: '#7EB8D4' },
+      { key: 'social', label: 'SOC', icon: Users, color: 'text-[#9ACDE3]', glow: '#9ACDE3' },
   ];
 
   const defaultVideo = "https://res.cloudinary.com/dcnqnbvp0/video/upload/v1769167952/Subject_animestyle_shadow_202601231701_vl45_ayicwk.mp4";
@@ -82,8 +86,8 @@ const HunterCommandDeck: React.FC<HunterCommandDeckProps> = ({ player, triggerAc
     <div className="w-full relative rounded-[2rem] overflow-hidden flex flex-col md:flex-row group border border-white/10 shadow-2xl backdrop-blur-xl bg-black/40">
       
       {/* Background Ambient Glows */}
-      <div className="absolute top-[-50%] left-[-10%] w-[500px] h-[500px] bg-purple-900/20 rounded-full blur-[100px] pointer-events-none" />
-      <div className="absolute bottom-[-20%] right-[-10%] w-[400px] h-[400px] bg-blue-900/10 rounded-full blur-[80px] pointer-events-none" />
+      <div className="absolute top-[-50%] left-[-10%] w-[500px] h-[500px] bg-[#7EB8D4]/10 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-[-20%] right-[-10%] w-[400px] h-[400px] bg-[#7EB8D4]/5 rounded-full blur-[80px] pointer-events-none" />
 
       {/* --- LEFT CONTAINER (DATA) --- */}
       <div className="w-full md:w-1/2 flex flex-col relative z-10 shrink-0 md:border-r border-white/5">
@@ -133,10 +137,10 @@ const HunterCommandDeck: React.FC<HunterCommandDeckProps> = ({ player, triggerAc
                   <Radar
                     name="Stats"
                     dataKey="A"
-                    stroke="#9ACDE3" /* Purple-400 */
+                    stroke="#7EB8D4"
                     strokeWidth={2}
-                    fill="#a855f7" /* Purple-500 */
-                    fillOpacity={0.4}
+                    fill="#7EB8D4"
+                    fillOpacity={0.25}
                     isAnimationActive={true}
                     // Glowing Dots
                     dot={((props: any) => {
@@ -144,7 +148,7 @@ const HunterCommandDeck: React.FC<HunterCommandDeckProps> = ({ player, triggerAc
                         if (!Number.isFinite(cx) || !Number.isFinite(cy)) return <g></g>;
                         return (
                             <svg x={cx - 3} y={cy - 3} width={6} height={6} className="overflow-visible">
-                                <circle cx="3" cy="3" r="3" fill="#fff" className="drop-shadow-[0_0_5px_rgba(192,132,252,1)]" />
+                                <circle cx="3" cy="3" r="3" fill="#fff" className="drop-shadow-[0_0_5px_rgba(126,184,212,1)]" />
                             </svg>
                         );
                     }) as any}
@@ -154,7 +158,7 @@ const HunterCommandDeck: React.FC<HunterCommandDeckProps> = ({ player, triggerAc
           </div>
 
           {/* Stats Grid */}
-          <div className="grid grid-cols-4 gap-y-6 gap-x-2 px-6 pb-8 pt-2 justify-items-center mt-auto shrink-0 border-t border-white/5 bg-black/20">
+          <div className="grid grid-cols-6 gap-y-4 gap-x-1 px-4 pb-6 pt-2 justify-items-center mt-auto shrink-0 border-t border-white/5 bg-black/20">
               {statConfig.map((conf) => (
                   <MiniCircularStat 
                     key={conf.key}
@@ -185,7 +189,7 @@ const HunterCommandDeck: React.FC<HunterCommandDeckProps> = ({ player, triggerAc
          </video>
          
          {/* Holographic Overlays */}
-         <div className="absolute inset-0 bg-[linear-gradient(rgba(168,85,247,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(168,85,247,0.05)_1px,transparent_1px)] bg-[size:20px_20px] pointer-events-none z-10" />
+         <div className="absolute inset-0 bg-[linear-gradient(rgba(126,184,212,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(126,184,212,0.04)_1px,transparent_1px)] bg-[size:20px_20px] pointer-events-none z-10" />
          <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/50 z-10 pointer-events-none" />
          
          {/* Scanning Line */}
@@ -193,7 +197,7 @@ const HunterCommandDeck: React.FC<HunterCommandDeckProps> = ({ player, triggerAc
             initial={{ top: '-10%' }}
             animate={{ top: '110%' }}
             transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
-            className="absolute left-0 w-full h-[2px] bg-[#7EB8D4]/50 shadow-[0_0_15px_#a855f7] z-20 pointer-events-none"
+            className="absolute left-0 w-full h-[2px] bg-[#7EB8D4]/50 shadow-[0_0_15px_#7EB8D4] z-20 pointer-events-none"
          />
 
          {/* Corner Brackets */}

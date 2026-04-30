@@ -187,6 +187,7 @@ const DashboardView = lazy(() => import('./components/DashboardView'));
 
 const GoalHeroSection = lazy(() => import('./components/GoalHeroSection'));
 const GoalCreationFlow = lazy(() => import('./components/GoalCreationFlow'));
+const HunterCommandDeck = lazy(() => import('./components/HunterCommandDeck'));
 import { startQuestGeneration, onQuestGenStoreUpdate } from './components/GoalDetailView';
 
 const RankUpCinematic = lazy(() => import('./components/RankUpCinematic'));
@@ -4382,6 +4383,15 @@ const App: React.FC = () => {
                         existingQuests: player.quests,
                       });
                     }}
+                  />
+                </ErrorBoundary>
+              </Suspense>
+
+              {/* ── 1b. Hunter Command Deck (Radar + Dusk Video) ── */}
+              <Suspense fallback={null}>
+                <ErrorBoundary fallbackLabel="Command deck failed">
+                  <HunterCommandDeck
+                    player={player}
                   />
                 </ErrorBoundary>
               </Suspense>
