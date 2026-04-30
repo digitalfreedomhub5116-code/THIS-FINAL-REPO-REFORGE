@@ -45,13 +45,23 @@ interface YouViewProps {
 
 
 
+// ─── Mono-cyan color based on stat value ─────────────────────────────
+function getCyanShade(value: number, max: number): string {
+  const pct = Math.min(1, value / max);
+  if (pct < 0.25) return '#3a6b7a';       // dull/dark cyan
+  if (pct < 0.5) return '#5a9aad';        // medium dull cyan
+  if (pct < 0.75) return '#7EB8D4';       // standard cyan
+  return '#a8e0f5';                        // bright cyan
+}
+
 // ─── Mini circular stat ring ─────────────────────────────────────────
 const StatCircle: React.FC<{
-  label: string; value: number; max: number; color: string; icon: React.ReactNode; delay: number;
-}> = ({ label, value, max, color, icon, delay }) => {
+  label: string; value: number; max: number; icon: React.ReactNode; delay: number;
+}> = ({ label, value, max, icon, delay }) => {
   const pct = Math.min(100, (value / max) * 100);
   const r = 18; const circ = 2 * Math.PI * r;
   const offset = circ - (pct / 100) * circ;
+  const color = getCyanShade(value, max);
   return (
     <motion.div
       className="flex flex-col items-center gap-0.5"
@@ -60,7 +70,7 @@ const StatCircle: React.FC<{
     >
       <div className="relative w-11 h-11">
         <svg className="w-full h-full -rotate-90" viewBox="0 0 44 44">
-          <circle cx="22" cy="22" r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="3" />
+          <circle cx="22" cy="22" r={r} fill="none" stroke="rgba(126,184,212,0.08)" strokeWidth="3" />
           <motion.circle
             cx="22" cy="22" r={r} fill="none" stroke={color} strokeWidth="3"
             strokeLinecap="round" strokeDasharray={circ} initial={{ strokeDashoffset: circ }}
@@ -78,17 +88,16 @@ const StatCircle: React.FC<{
   );
 };
 
-// ─── Profile hero: Banner + Avatar + Stats + Forge Score ─────────────
+// ─── Profile hero: Banner → Avatar → Stats → Score → Glass Curve ─────
 const ProfileHero: React.FC<{
   player: PlayerData;
   onRankTap: () => void;
 }> = ({ player, onRankTap }) => {
   const economy = getEconomy();
-  const borderItemId = economy.equipped.border;
   const bannerItemId = economy.equipped.banner;
   const bannerItem = bannerItemId ? getItemById(bannerItemId) : null;
   const bannerSrc = bannerItem?.bannerImage || '/banners/default.jpg';
-  const rankColor = RANK_LADDER.find(r => r.rank === player.rank)?.color || '#9ca3af';
+  const borderId = player.equippedBorder || economy.equipped.border || null;
 
   const stats = player.stats || {} as CoreStats;
   const statValues = [
@@ -99,57 +108,49 @@ const ProfileHero: React.FC<{
   const maxStat = 200;
 
   const STATS_RING = [
-    { key: 'STR', value: stats.strength || 0, icon: <Dumbbell size={11} />, color: '#f87171' },
-    { key: 'INT', value: stats.intelligence || 0, icon: <Brain size={11} />, color: '#818cf8' },
-    { key: 'DIS', value: stats.discipline || 0, icon: <Shield size={11} />, color: '#7EB8D4' },
-    { key: 'SOC', value: stats.social || 0, icon: <Users size={11} />, color: '#fbbf24' },
-    { key: 'FOC', value: stats.focus || 0, icon: <Target size={11} />, color: '#06b6d4' },
-    { key: 'WIL', value: stats.willpower || 0, icon: <Zap size={11} />, color: '#ec4899' },
+    { key: 'STR', value: stats.strength || 0, icon: <Dumbbell size={11} /> },
+    { key: 'INT', value: stats.intelligence || 0, icon: <Brain size={11} /> },
+    { key: 'DIS', value: stats.discipline || 0, icon: <Shield size={11} /> },
+    { key: 'SOC', value: stats.social || 0, icon: <Users size={11} /> },
+    { key: 'FOC', value: stats.focus || 0, icon: <Target size={11} /> },
+    { key: 'WIL', value: stats.willpower || 0, icon: <Zap size={11} /> },
   ];
 
   return (
     <div className="relative" style={{ marginBottom: 16 }}>
       {/* ── Banner ── */}
-      <div className="relative w-full overflow-hidden" style={{ height: 200, borderRadius: '0 0 16px 16px', background: '#000' }}>
+      <div className="relative w-full overflow-hidden" style={{ height: 160, borderRadius: '0 0 16px 16px', background: '#000' }}>
         <img src={bannerSrc} alt="" className="w-full h-full object-cover" style={{ objectPosition: 'center 40%' }} />
-        <div className="absolute bottom-0 left-0 right-0 pointer-events-none" style={{ height: 120, background: 'linear-gradient(to top, rgba(5,5,10,0.95) 0%, transparent 100%)' }} />
+        <div className="absolute bottom-0 left-0 right-0 pointer-events-none" style={{ height: 100, background: 'linear-gradient(to top, rgba(5,5,10,0.95) 0%, transparent 100%)' }} />
         {/* Name — bottom left */}
         <div className="absolute bottom-3 left-4 z-10" style={{ maxWidth: 'calc(50% - 60px)' }}>
           <div className="text-white font-bold text-lg leading-tight truncate" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.8)' }}>
             {player.name || 'Player'}
           </div>
-          {player.username && (
-            <div className="text-[11px] font-mono text-gray-400 truncate mt-0.5" style={{ textShadow: '0 2px 10px rgba(0,0,0,0.9)' }}>
-              @{player.username}
-            </div>
-          )}
         </div>
         {/* Rank badge — bottom right */}
         <button onClick={onRankTap} className="absolute bottom-2 right-3 z-10" aria-label="View rank">
-          <RankBadge rank={(player.rank || 'E') as RankType} size={48} animated showLabel />
+          <RankBadge rank={(player.rank || 'E') as RankType} size={44} animated showLabel />
         </button>
       </div>
 
-      {/* ── Centered Avatar with border — overlapping banner bottom ── */}
-      <div className="absolute z-20" style={{ bottom: -44, left: '50%', transform: 'translateX(-50%)' }}>
-        <AnimatedBorder borderId={borderItemId || player.equippedBorder} compact className="rounded-full" style={{ boxShadow: '0 0 20px rgba(0,0,0,0.8)' }}>
-          <div className="w-[88px] h-[88px] rounded-full overflow-hidden bg-[#1a1a2e] flex items-center justify-center">
+      {/* ── Centered Avatar with equipped border — overlaps banner ── */}
+      <div className="flex justify-center" style={{ marginTop: -44 }}>
+        <AnimatedBorder borderId={borderId} compact className="rounded-full" style={{ boxShadow: '0 0 24px rgba(0,0,0,0.9)' }}>
+          <div className="w-[88px] h-[88px] rounded-full overflow-hidden bg-[#0d0d1a] flex items-center justify-center" style={{ border: '3px solid #0a0a14' }}>
             {player.avatarUrl ? (
               <img src={player.avatarUrl} alt="" className="w-full h-full object-cover" />
             ) : (
-              <UserIcon size={32} className="text-gray-400" />
+              <UserIcon size={32} className="text-gray-500" />
             )}
           </div>
         </AnimatedBorder>
       </div>
 
-      {/* ── Spacer for avatar overlap ── */}
-      <div style={{ height: 52 }} />
-
-      {/* ── 6 Stat Circles in a row ── */}
-      <div className="flex justify-center gap-3 px-4 mt-2">
+      {/* ── 6 Stat Circles (mono cyan) ── */}
+      <div className="flex justify-center gap-3 px-4 mt-5">
         {STATS_RING.map((s, i) => (
-          <StatCircle key={s.key} label={s.key} value={s.value} max={maxStat} color={s.color} icon={s.icon} delay={0.1 + i * 0.06} />
+          <StatCircle key={s.key} label={s.key} value={s.value} max={maxStat} icon={s.icon} delay={0.1 + i * 0.06} />
         ))}
       </div>
 
@@ -157,32 +158,52 @@ const ProfileHero: React.FC<{
       <div className="flex flex-col items-center mt-4">
         <motion.div
           className="font-black leading-none"
-          style={{ fontSize: 52, color: '#7EB8D4', textShadow: '0 0 30px rgba(126,184,212,0.3)', letterSpacing: '-0.03em' }}
+          style={{ fontSize: 48, color: '#7EB8D4', textShadow: '0 0 30px rgba(126,184,212,0.3)', letterSpacing: '-0.03em' }}
           initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3, duration: 0.5 }}
         >
           {forgeScore}
         </motion.div>
-        <div className="text-[8px] font-mono font-bold tracking-[0.2em] text-gray-500 mt-1">FORGE SCORE</div>
+        <div className="text-[8px] font-mono font-bold tracking-[0.25em] text-gray-500 mt-1">FORGE SCORE</div>
       </div>
 
-      {/* ── Potential Curve (bell curve) ── */}
-      <div className="px-6 mt-3">
-        <ForgeScoreCurve score={forgeScore} primary="#7EB8D4" />
+      {/* ── Potential Distribution — Liquid Glass Panel ── */}
+      <div className="px-4 mt-5">
+        <div style={{
+          background: 'linear-gradient(135deg, rgba(126,184,212,0.06) 0%, rgba(10,10,20,0.7) 50%, rgba(126,184,212,0.04) 100%)',
+          border: '1px solid rgba(126,184,212,0.12)',
+          borderRadius: 16,
+          padding: '20px 16px 14px',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          boxShadow: 'inset 0 1px 0 rgba(126,184,212,0.08), 0 8px 32px rgba(0,0,0,0.3)',
+          position: 'relative',
+          overflow: 'hidden',
+        }}>
+          {/* Glass shine overlay */}
+          <div style={{
+            position: 'absolute', top: 0, left: 0, right: 0, height: '1px',
+            background: 'linear-gradient(90deg, transparent 10%, rgba(126,184,212,0.2) 50%, transparent 90%)',
+          }} />
+          <div className="text-[8px] font-mono font-bold tracking-[0.2em] text-gray-500 text-center mb-3">
+            POTENTIAL DISTRIBUTION
+          </div>
+          <ForgeScoreCurve score={forgeScore} primary="#7EB8D4" />
+        </div>
       </div>
     </div>
   );
 };
 
-// ─── Bell Curve SVG (adapted from LYNX AI) ───────────────────────────
+// ─── Bell Curve SVG (liquid glass style) ─────────────────────────────
 function ForgeScoreCurve({ score, primary = '#7EB8D4' }: { score: number; primary?: string }) {
-  const W = 300, H = 110, pad = 24, bot = 24;
+  const W = 300, H = 100, pad = 20, bot = 20;
   const curveH = H - bot;
   const pts: string[] = [];
   for (let i = 0; i <= 80; i++) {
     const t = i / 80;
     const x = pad + t * (W - pad * 2);
     const g = Math.exp(-0.5 * Math.pow((t - 0.5) / 0.17, 2));
-    pts.push(`${x},${curveH - g * (curveH - 14)}`);
+    pts.push(`${x},${curveH - g * (curveH - 10)}`);
   }
   const poly = pts.join(' ');
   const fill = `${pad},${curveH} ${poly} ${W - pad},${curveH}`;
@@ -190,7 +211,7 @@ function ForgeScoreCurve({ score, primary = '#7EB8D4' }: { score: number; primar
   const sT = clamped / 200;
   const sX = pad + sT * (W - pad * 2);
   const sG = Math.exp(-0.5 * Math.pow((sT - 0.5) / 0.17, 2));
-  const sY = curveH - sG * (curveH - 14);
+  const sY = curveH - sG * (curveH - 10);
   const toRgba = (hex: string, a: number) => {
     const c = hex.replace('#', '');
     return `rgba(${parseInt(c.substring(0, 2), 16)},${parseInt(c.substring(2, 4), 16)},${parseInt(c.substring(4, 6), 16)},${a})`;
@@ -199,23 +220,23 @@ function ForgeScoreCurve({ score, primary = '#7EB8D4' }: { score: number; primar
     <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: 'block' }}>
       <defs>
         <linearGradient id="fsc-fill" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={toRgba(primary, 0.18)} /><stop offset="100%" stopColor={toRgba(primary, 0)} />
+          <stop offset="0%" stopColor={toRgba(primary, 0.15)} /><stop offset="100%" stopColor={toRgba(primary, 0)} />
         </linearGradient>
         <linearGradient id="fsc-stroke" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor={toRgba(primary, 0.15)} /><stop offset="30%" stopColor={primary} />
-          <stop offset="70%" stopColor={primary} /><stop offset="100%" stopColor={toRgba(primary, 0.15)} />
+          <stop offset="0%" stopColor={toRgba(primary, 0.1)} /><stop offset="30%" stopColor={primary} />
+          <stop offset="70%" stopColor={primary} /><stop offset="100%" stopColor={toRgba(primary, 0.1)} />
         </linearGradient>
         <filter id="fsc-glow"><feGaussianBlur stdDeviation="3" result="cb" /><feMerge><feMergeNode in="cb" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
       </defs>
       <polygon points={fill} fill="url(#fsc-fill)" />
-      <polyline points={poly} fill="none" stroke="url(#fsc-stroke)" strokeWidth="2.5" strokeLinejoin="round" filter="url(#fsc-glow)" />
-      <line x1={sX} y1={sY} x2={sX} y2={curveH} stroke={primary} strokeWidth="1" strokeDasharray="3 3" opacity="0.5" />
-      <circle cx={sX} cy={sY} r="5" fill={primary} stroke="#000" strokeWidth="2" filter="url(#fsc-glow)" />
-      <circle cx={sX} cy={sY} r="2.5" fill={primary} />
-      <text x={sX} y={sY - 12} textAnchor="middle" fill={primary} fontSize="8" fontWeight="800" fontFamily="monospace">YOU</text>
-      <text x={pad} y={H - 6} fill="rgba(255,255,255,0.15)" fontSize="7" fontFamily="monospace">0</text>
-      <text x={W / 2} y={H - 6} textAnchor="middle" fill="rgba(255,255,255,0.15)" fontSize="7" fontFamily="monospace">100</text>
-      <text x={W - pad} y={H - 6} textAnchor="end" fill="rgba(255,255,255,0.15)" fontSize="7" fontFamily="monospace">200</text>
+      <polyline points={poly} fill="none" stroke="url(#fsc-stroke)" strokeWidth="2" strokeLinejoin="round" filter="url(#fsc-glow)" />
+      <line x1={sX} y1={sY} x2={sX} y2={curveH} stroke={primary} strokeWidth="1" strokeDasharray="3 3" opacity="0.4" />
+      <circle cx={sX} cy={sY} r="4.5" fill={primary} stroke="#0a0a14" strokeWidth="2" filter="url(#fsc-glow)" />
+      <circle cx={sX} cy={sY} r="2" fill={primary} />
+      <text x={sX} y={sY - 10} textAnchor="middle" fill={primary} fontSize="7" fontWeight="800" fontFamily="monospace">YOU</text>
+      <text x={pad} y={H - 4} fill="rgba(255,255,255,0.2)" fontSize="7" fontFamily="monospace">0</text>
+      <text x={W / 2} y={H - 4} textAnchor="middle" fill="rgba(255,255,255,0.2)" fontSize="7" fontFamily="monospace">100</text>
+      <text x={W - pad} y={H - 4} textAnchor="end" fill="rgba(255,255,255,0.2)" fontSize="7" fontFamily="monospace">200</text>
     </svg>
   );
 }
