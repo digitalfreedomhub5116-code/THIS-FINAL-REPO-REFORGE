@@ -201,7 +201,7 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
                 <div>
                   <h3
                     className={`font-heading font-bold text-sm leading-snug ${!titleExpanded && isLongTitle ? 'line-clamp-2' : ''}`}
-                    style={{ color: isCompleted || isFailed ? '#6b7280' : '#f1f5f9' }}
+                    style={{ color: isCompleted ? '#f1f5f9' : isFailed ? '#6b7280' : '#f1f5f9' }}
                   >
                     {titleText}
                   </h3>
