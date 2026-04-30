@@ -68,6 +68,34 @@ interface ShopViewProps {
 
 
 
+/** Skeleton-loaded image: shows shimmer then fades in */
+function FadeImg({ src, alt, style, className, ...rest }: React.ImgHTMLAttributes<HTMLImageElement>) {
+  const [loaded, setLoaded] = React.useState(false);
+  return (
+    <>
+      {!loaded && (
+        <div
+          style={{
+            position: 'absolute', inset: 0,
+            background: 'linear-gradient(110deg, rgba(255,255,255,0.03) 30%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.03) 70%)',
+            backgroundSize: '200% 100%',
+            animation: 'skel-shimmer 1.5s ease-in-out infinite',
+          }}
+        />
+      )}
+      <img
+        src={src}
+        alt={alt}
+        className={className}
+        style={{ ...style, opacity: loaded ? 1 : 0, transition: 'opacity 0.35s ease' }}
+        onLoad={() => setLoaded(true)}
+        {...rest}
+      />
+      <style>{`@keyframes skel-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
+    </>
+  );
+}
+
 const RARITY_STYLES: Record<string, { label: string; bg: string; text: string; border: string }> = {
   COMMON:    { label: 'COMMON',    bg: 'rgba(107,114,128,0.2)', text: '#9ca3af', border: 'rgba(107,114,128,0.3)' },
   RARE:      { label: 'RARE',      bg: 'rgba(126,184,212,0.12)',  text: '#7EB8D4', border: 'rgba(126,184,212,0.25)' },
@@ -295,7 +323,7 @@ const ShopView: React.FC<ShopViewProps> = ({
                   className="relative w-full"
                   style={{ minHeight: 200 }}
                 >
-                  <img
+                  <FadeImg
                     src={banners[bannerIdx % banners.length]?.image_url}
                     alt={banners[bannerIdx % banners.length]?.title}
                     className="w-full h-full object-cover rounded-2xl"
@@ -594,7 +622,7 @@ const ShopView: React.FC<ShopViewProps> = ({
                 <div key={item.id} className="relative rounded-2xl overflow-hidden" style={{ border: isEquipped ? '2px solid rgba(126,184,212,0.4)' : '1px solid rgba(255,255,255,0.06)' }}>
                   {item.bannerImage && (
                     <div style={{ width: '100%', aspectRatio: '3 / 1', position: 'relative', overflow: 'hidden' }}>
-                      <img src={item.bannerImage} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block' }} />
+                      <FadeImg src={item.bannerImage} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block' }} />
                     </div>
                   )}
                   <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '60%', background: 'linear-gradient(transparent, rgba(0,0,0,0.85))', pointerEvents: 'none' }} />
@@ -795,10 +823,10 @@ function KitGlowCard({ item, discount, owned, equipped, canAfford, onBuy, onEqui
                 </div>
                 {item.imageAnimated && item.imageAnimationType === 'pulse' ? (
                   <div style={{ position: 'absolute', top: '50%', left: '50%', width: `${(item.imageScale || 1) * 100}%`, height: `${(item.imageScale || 1) * 100}%`, zIndex: 2, pointerEvents: 'none', animation: 'border-breathe-centered 3s ease-in-out infinite' }}>
-                    <img src={item.imageBorder} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                    <FadeImg src={item.imageBorder} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                   </div>
                 ) : (
-                  <img src={item.imageBorder} alt={item.name} style={{ position: 'absolute', top: '50%', left: '50%', width: `${(item.imageScale || 1) * 100}%`, height: `${(item.imageScale || 1) * 100}%`, transform: `translate(-50%, calc(-50% + ${item.imageOffsetY || 0}px))`, objectFit: 'contain', zIndex: 2, pointerEvents: 'none', ...(item.imageAnimated ? { animation: 'spin-clockwise 10s linear infinite' } : {}) }} />
+                  <FadeImg src={item.imageBorder} alt={item.name} style={{ position: 'absolute', top: '50%', left: '50%', width: `${(item.imageScale || 1) * 100}%`, height: `${(item.imageScale || 1) * 100}%`, transform: `translate(-50%, calc(-50% + ${item.imageOffsetY || 0}px))`, objectFit: 'contain', zIndex: 2, pointerEvents: 'none', ...(item.imageAnimated ? { animation: 'spin-clockwise 10s linear infinite' } : {}) }} />
                 )}
               </div>
             ) : item.category === 'border' && item.lottieBorder ? (
@@ -828,7 +856,7 @@ function KitGlowCard({ item, discount, owned, equipped, canAfford, onBuy, onEqui
             {/* ── BANNER image ── */}
             {item.category === 'banner' && item.bannerImage && (
               <div style={{ width: '90%', aspectRatio: '16/9', borderRadius: 10, overflow: 'hidden', border: `1px solid ${catColor}30` }}>
-                <img src={item.bannerImage} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <FadeImg src={item.bannerImage} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               </div>
             )}
           </div>
@@ -973,10 +1001,10 @@ function KitBorderPreviewModal({ item, onClose }: { item: KitStoreItem; onClose:
               </div>
               {item.imageAnimated && item.imageAnimationType === 'pulse' ? (
                 <div style={{ position: 'absolute', top: '50%', left: '50%', width: `${(item.imageScale || 1) * 100}%`, height: `${(item.imageScale || 1) * 100}%`, zIndex: 2, pointerEvents: 'none', animation: 'border-breathe-centered 3s ease-in-out infinite' }}>
-                  <img src={item.imageBorder} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                  <FadeImg src={item.imageBorder} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                 </div>
               ) : (
-                <img src={item.imageBorder} alt={item.name} style={{ position: 'absolute', top: '50%', left: '50%', width: `${(item.imageScale || 1) * 100}%`, height: `${(item.imageScale || 1) * 100}%`, transform: `translate(-50%, calc(-50% + ${item.imageOffsetY || 0}px))`, objectFit: 'contain', zIndex: 2, pointerEvents: 'none', ...(item.imageAnimated ? { animation: 'spin-clockwise 10s linear infinite' } : {}) }} />
+                <FadeImg src={item.imageBorder} alt={item.name} style={{ position: 'absolute', top: '50%', left: '50%', width: `${(item.imageScale || 1) * 100}%`, height: `${(item.imageScale || 1) * 100}%`, transform: `translate(-50%, calc(-50% + ${item.imageOffsetY || 0}px))`, objectFit: 'contain', zIndex: 2, pointerEvents: 'none', ...(item.imageAnimated ? { animation: 'spin-clockwise 10s linear infinite' } : {}) }} />
               )}
             </div>
           ) : item.lottieBorder ? (

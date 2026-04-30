@@ -3,7 +3,7 @@
  * Old AnimatedBorder/SVG system has been removed.
  * Only supports PNG image borders from storeItems.ts.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { User as UserIcon } from 'lucide-react';
 import { getItemById } from '../utils/storeItems';
 
@@ -40,7 +40,7 @@ const AvatarWithBorder: React.FC<AvatarWithBorderProps> = ({
       }}
     >
       {avatarUrl ? (
-        <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+        <AvatarImage src={avatarUrl} size={size} />
       ) : (
         <UserIcon size={size * 0.36} className="text-gray-500" />
       )}
@@ -98,19 +98,10 @@ const AvatarWithBorder: React.FC<AvatarWithBorderProps> = ({
             filter: `drop-shadow(0 0 6px ${glow})`,
           }}
         >
-          <img
-            src={storeItem.imageBorder}
-            alt=""
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'contain',
-              animation: isAnimated
-                ? animType === 'pulse'
-                  ? 'pulse 2s ease-in-out infinite'
-                  : 'spin 8s linear infinite'
-                : 'none',
-            }}
+          <BorderImage
+            src={storeItem.imageBorder!}
+            isAnimated={isAnimated}
+            animType={animType}
           />
         </div>
       </div>
@@ -128,5 +119,74 @@ const AvatarWithBorder: React.FC<AvatarWithBorderProps> = ({
     </div>
   );
 };
+
+
+/** Internal avatar image with skeleton loading */
+function AvatarImage({ src, size }: { src: string; size: number }) {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <>
+      {!loaded && (
+        <div
+          className="absolute inset-0 rounded-full"
+          style={{
+            background: 'linear-gradient(110deg, rgba(255,255,255,0.03) 30%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.03) 70%)',
+            backgroundSize: '200% 100%',
+            animation: 'skeleton-shimmer 1.5s ease-in-out infinite',
+          }}
+        />
+      )}
+      <img
+        src={src}
+        alt=""
+        className="w-full h-full object-cover"
+        style={{ opacity: loaded ? 1 : 0, transition: 'opacity 0.3s ease' }}
+        onLoad={() => setLoaded(true)}
+      />
+    </>
+  );
+}
+
+/** Internal border image with skeleton loading */
+function BorderImage({ src, isAnimated, animType }: { src: string; isAnimated?: boolean; animType?: string }) {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <>
+      {!loaded && (
+        <div
+          className="absolute inset-0 rounded-full"
+          style={{
+            background: 'linear-gradient(110deg, rgba(126,184,212,0.04) 30%, rgba(126,184,212,0.1) 50%, rgba(126,184,212,0.04) 70%)',
+            backgroundSize: '200% 100%',
+            animation: 'skeleton-shimmer 1.5s ease-in-out infinite',
+          }}
+        />
+      )}
+      <img
+        src={src}
+        alt=""
+        style={{
+          width: '100%',
+          height: '100%',
+          objectFit: 'contain',
+          opacity: loaded ? 1 : 0,
+          transition: 'opacity 0.3s ease',
+          animation: isAnimated
+            ? animType === 'pulse'
+              ? 'pulse 2s ease-in-out infinite'
+              : 'spin 8s linear infinite'
+            : 'none',
+        }}
+        onLoad={() => setLoaded(true)}
+      />
+      <style>{`
+        @keyframes skeleton-shimmer {
+          0%   { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+      `}</style>
+    </>
+  );
+}
 
 export default AvatarWithBorder;
