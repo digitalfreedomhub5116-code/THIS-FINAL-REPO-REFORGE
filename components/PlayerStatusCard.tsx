@@ -999,13 +999,6 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
         );
       })()}
 
-      {/* --- FORGEGUARD INTEGRITY: Strikes counter (below mana, above Dusk) --- */}
-      <div className="w-full py-2.5 px-3">
-        <ForgeGuardWidget
-          cheatStrikes={player.cheatStrikes ?? 0}
-          totalStrikesEver={player.totalStrikesEver}
-        />
-      </div>
 
 
 
