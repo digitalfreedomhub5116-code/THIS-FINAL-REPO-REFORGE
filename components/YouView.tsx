@@ -48,10 +48,10 @@ interface YouViewProps {
 // ─── Mono-cyan color based on stat value ─────────────────────────────
 function getCyanShade(value: number, max: number): string {
   const pct = Math.min(1, value / max);
-  if (pct < 0.25) return '#3a6b7a';       // dull/dark cyan
-  if (pct < 0.5) return '#5a9aad';        // medium dull cyan
-  if (pct < 0.75) return '#7EB8D4';       // standard cyan
-  return '#a8e0f5';                        // bright cyan
+  if (pct < 0.25) return '#5a9ab0';       // dull cyan
+  if (pct < 0.5) return '#7EB8D4';        // medium cyan
+  if (pct < 0.75) return '#9ad0e8';       // bright cyan
+  return '#bce8fa';                        // vivid cyan
 }
 
 // ─── Mini circular stat ring ─────────────────────────────────────────

@@ -209,6 +209,10 @@ const ShopView: React.FC<ShopViewProps> = ({
       const themeItem = newId ? ALL_STORE_ITEMS.find(i => i.id === newId) : null;
       applyThemeVars(themeItem?.themeVars || null);
     }
+    // Sync border to player state → Supabase
+    if (slot === 'border' && onEquipBorder) {
+      onEquipBorder(newId);
+    }
   };
 
   return (
