@@ -475,17 +475,17 @@ const GoalHeroSection: React.FC<GoalHeroSectionProps> = ({ goals, onCreateGoal, 
               {/* Yellow highlighted question */}
               <div className="mx-4 mb-5 px-4 py-3 rounded-xl" style={{ background: 'rgba(250,204,21,0.08)', border: '1px solid rgba(250,204,21,0.2)' }}>
                 <p className="text-[13px] font-bold leading-snug" style={{ color: '#facc15' }}>
-                  What would happen if your long-term goals were broken into daily, resource-rich quests?
+                  What would happen if your long-term goals like (Crack my Dream Exam) were broken into daily, resource-rich quests?
                 </p>
               </div>
 
               {/* Steps */}
               <div className="px-5 pb-6 space-y-4">
                 {[
-                  { num: 1, title: 'Name Your Goal', desc: 'Give your mission a clear, measurable objective.' },
-                  { num: 2, title: 'Fill the Details', desc: 'Set duration, category, and daily commitment.' },
+                  { num: 1, title: 'Name Your Goal', desc: 'Give your long term mission/goal a clear, measurable objective.' },
+                  { num: 2, title: 'Fill the Details asked by system', desc: 'Set duration, category, and daily commitment.' },
                   { num: 3, title: 'Review & Accept', desc: 'The system builds a phased plan — approve it to begin.' },
-                  { num: 4, title: 'Generate Daily Quests', desc: 'Each day, generate resource-rich quests tailored to your goal.' },
+                  { num: 4, title: 'Generate Daily Quests', desc: 'Each day, generate resource-rich quests personalized for you to acheive your goal.' },
                 ].map(step => (
                   <div key={step.num} className="flex items-start gap-3">
                     <div
