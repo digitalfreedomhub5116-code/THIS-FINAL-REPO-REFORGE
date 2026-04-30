@@ -460,7 +460,7 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
     <div className="w-full relative rounded-2xl overflow-hidden flex flex-col group shadow-[0_20px_60px_rgba(0,0,0,0.7)] bg-[#0A0A0F]" style={{ border: '1px solid rgba(126,184,212,0.3)' }}>
 
       {/* --- TOP HEADER --- */}
-      <div className="w-full flex items-center justify-between px-4 py-2 bg-gradient-to-b from-[#0A0A0F] to-transparent z-30 absolute top-0 left-0 right-0 pointer-events-none">
+      <div className="w-full flex items-center justify-between px-4 pt-3.5 pb-2 bg-gradient-to-b from-[#0A0A0F] to-transparent z-30 absolute top-0 left-0 right-0 pointer-events-none">
         <div className="flex items-center gap-2">
           <div className="w-1 h-3.5 bg-system-neon rounded-full shadow-[0_0_8px_#7EB8D4]" />
           <h2 className="text-[10px] font-black tracking-[0.2em] text-white uppercase opacity-90 font-mono">Growth Terminal</h2>
@@ -468,7 +468,7 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
       </div>
 
       {/* --- TOP HEXAGONAL CALENDAR --- */}
-      <div className="w-full border-b border-white/5 bg-[#0A0A0F] z-20 shrink-0 px-2 py-2 pt-9 relative">
+      <div className="w-full border-b border-white/5 bg-[#0A0A0F] z-20 shrink-0 px-2 py-2 pt-11 relative">
         {/* Cybernetic Background grid behind calendar */}
         <div 
           className="absolute inset-0 pointer-events-none opacity-20"
@@ -766,7 +766,7 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
         </div>
 
         {/* ── RIGHT CONTAINER: VIDEO ── */}
-        <div className="w-[55%] md:w-[58%] relative z-10 shrink-0 bg-[#0A0A0F]">
+        <div className="w-[55%] md:w-[58%] relative z-10 shrink-0 bg-[#0A0A0F] overflow-hidden">
           <div className="absolute inset-0 w-full h-full">
             <video
               ref={introRef}
