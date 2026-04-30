@@ -1143,6 +1143,8 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                                     style={{
                                                         border: isAiActive ? '1px solid rgba(168,85,247,0.7)' : '1px solid rgba(168,85,247,0.3)',
                                                         boxShadow: isAiActive ? '0 0 30px rgba(168,85,247,0.4), 0 0 8px rgba(168,85,247,0.2)' : '0 4px 20px rgba(0,0,0,0.4)',
+                                                        filter: isAiActive ? 'grayscale(0.4) brightness(1.05)' : 'grayscale(1) brightness(0.8)',
+                                                        transition: 'filter 0.5s ease, border 0.3s ease, box-shadow 0.3s ease',
                                                     }}
                                                 >
                                                     <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, #1a0533 0%, #2d0a5e 40%, #0d0018 100%)' }} />
@@ -1196,7 +1198,12 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                                         }, 800);
                                                     }}
                                                     className="relative w-44 h-56 rounded-2xl overflow-hidden transition-all"
-                                                    style={{ border: `1px solid ${isActive ? dc.border : 'rgba(255,255,255,0.08)'}`, boxShadow: isActive ? `0 0 24px ${dc.glow}, 0 0 8px ${dc.glow}` : `0 4px 20px rgba(0,0,0,0.4)` }}
+                                                    style={{
+                                                        border: `1px solid ${isActive ? dc.border : 'rgba(255,255,255,0.08)'}`,
+                                                        boxShadow: isActive ? `0 0 24px ${dc.glow}, 0 0 8px ${dc.glow}` : `0 4px 20px rgba(0,0,0,0.4)`,
+                                                        filter: isActive ? 'grayscale(0.4) brightness(1.05)' : 'grayscale(1) brightness(0.8)',
+                                                        transition: 'filter 0.5s ease, border 0.3s ease, box-shadow 0.3s ease',
+                                                    }}
                                                 >
                                                     {plan.image_url ? (
                                                         <img src={plan.image_url} alt={plan.name} className="absolute inset-0 w-full h-full object-cover" onError={e => { (e.target as any).style.display = 'none'; }} />
@@ -1267,7 +1274,12 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                                         }, 800);
                                                     }}
                                                     className="relative w-44 h-56 rounded-2xl overflow-hidden transition-all"
-                                                    style={{ border: isActive ? '1px solid rgba(126,184,212,0.6)' : '1px solid rgba(255,255,255,0.08)', boxShadow: isActive ? '0 0 24px rgba(126,184,212,0.25)' : '0 4px 20px rgba(0,0,0,0.4)' }}
+                                                    style={{
+                                                        border: isActive ? '1px solid rgba(126,184,212,0.6)' : '1px solid rgba(255,255,255,0.08)',
+                                                        boxShadow: isActive ? '0 0 24px rgba(126,184,212,0.25)' : '0 4px 20px rgba(0,0,0,0.4)',
+                                                        filter: isActive ? 'grayscale(0.4) brightness(1.05)' : 'grayscale(1) brightness(0.8)',
+                                                        transition: 'filter 0.5s ease, border 0.3s ease, box-shadow 0.3s ease',
+                                                    }}
                                                 >
                                                     <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, #001a1f 0%, #003040 40%, #000d14 100%)' }} />
                                                     <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(126,184,212,0.2) 0%, transparent 65%)' }} />
