@@ -187,7 +187,7 @@ const DashboardView = lazy(() => import('./components/DashboardView'));
 
 const GoalHeroSection = lazy(() => import('./components/GoalHeroSection'));
 const GoalCreationFlow = lazy(() => import('./components/GoalCreationFlow'));
-import { startQuestGeneration } from './components/GoalDetailView';
+import { startQuestGeneration, onQuestGenStoreUpdate } from './components/GoalDetailView';
 
 const RankUpCinematic = lazy(() => import('./components/RankUpCinematic'));
 
@@ -692,6 +692,33 @@ const App: React.FC = () => {
 
   const [showDuskChat, setShowDuskChat] = useState(false);
   const [showGoalCreate, setShowGoalCreate] = useState(false);
+  const [generatingGoalId, setGeneratingGoalId] = useState<string | null>(null);
+
+  // Listen for quest generation results from pinned goal card buttons
+  useEffect(() => {
+    const unsub = onQuestGenStoreUpdate((store) => {
+      if (store.state === 'GENERATING' && store.goalId) {
+        setGeneratingGoalId(store.goalId);
+      } else if (store.state === 'DONE' && store.goalId) {
+        setGeneratingGoalId(null);
+        // Apply pending updates to player state
+        if (store.pendingGoalUpdate) {
+          setPlayer((prev: any) => ({
+            ...prev,
+            goals: (prev.goals || []).map((g: any) =>
+              g.id === store.pendingGoalUpdate!.id ? store.pendingGoalUpdate : g
+            ),
+          }));
+        }
+        if (store.pendingFeedQuests && store.pendingFeedQuests.length > 0) {
+          store.pendingFeedQuests.forEach((q: any) => addQuest(q));
+        }
+      } else if (store.state === 'ERROR') {
+        setGeneratingGoalId(null);
+      }
+    });
+    return unsub;
+  }, [addQuest, setPlayer]);
 
   const [showBanReversalNotice, setShowBanReversalNotice] = useState(false);
 
@@ -4332,6 +4359,7 @@ const App: React.FC = () => {
                   <GoalHeroSection
                     goals={player.goals || []}
                     onCreateGoal={() => setShowGoalCreate(true)}
+                    generatingGoalId={generatingGoalId}
                     onGenerateQuests={(goalId) => {
                       const goal = (player.goals || []).find(g => g.id === goalId);
                       if (!goal) return;
@@ -4345,8 +4373,6 @@ const App: React.FC = () => {
                         currentDay,
                         existingQuests: player.quests,
                       });
-                      const el = document.getElementById('daily-command-center');
-                      if (el) el.scrollIntoView({ behavior: 'smooth' });
                     }}
                   />
                 </ErrorBoundary>

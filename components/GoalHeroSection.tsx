@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Target, Pin, ChevronRight, ArrowLeft, Calendar, Clock, TrendingUp, Zap, Flame } from 'lucide-react';
+import { Plus, Target, Pin, ChevronRight, ArrowLeft, Calendar, Clock, TrendingUp, Zap, Flame, Loader2, CheckCircle } from 'lucide-react';
 import { Goal, GoalCategory } from '../types';
 
 // ── Category → banner image mapping ──
@@ -207,8 +207,8 @@ const GoalDetailsPopup: React.FC<{
 
 // ── Tilted pinned goal card ──
 const PinnedGoalCard: React.FC<{
-  goal: Goal; index: number; onClick?: () => void; onGenerate?: () => void;
-}> = ({ goal, index, onClick, onGenerate }) => {
+  goal: Goal; index: number; onClick?: () => void; onGenerate?: () => void; isGenerating?: boolean;
+}> = ({ goal, index, onClick, onGenerate, isGenerating }) => {
   const rotation = index % 2 === 0 ? -2.5 : 2.5;
   const daysElapsed = Math.max(1, Math.floor((Date.now() - goal.startDate) / 86400000) + 1);
   const totalDays = goal.totalDurationDays || 60;
@@ -231,7 +231,7 @@ const PinnedGoalCard: React.FC<{
         boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
       }}
     >
-      {/* Pin icon — cyan blue */}
+      {/* Pin icon — cyan blue + red notification dot when quests not yet generated */}
       <div
         className="absolute z-20 flex items-center justify-center w-6 h-6 rounded-full"
         style={{
@@ -243,6 +243,13 @@ const PinnedGoalCard: React.FC<{
         }}
       >
         <Pin size={10} className="text-white" style={{ transform: 'rotate(45deg)' }} />
+        {/* Red notification dot when today's quests haven't been generated */}
+        {!hasQuestsToday && !isGenerating && (
+          <div
+            className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full"
+            style={{ background: '#ef4444', border: '2px solid #0d0d18', boxShadow: '0 0 6px rgba(239,68,68,0.6)' }}
+          />
+        )}
       </div>
 
       {/* Clickable card area */}
@@ -277,18 +284,26 @@ const PinnedGoalCard: React.FC<{
       </button>
 
       {/* Per-goal Generate Quests button */}
-      {onGenerate && !hasQuestsToday && (
+      {onGenerate && (
         <button
-          onClick={(e) => { e.stopPropagation(); onGenerate(); }}
-          className="w-full flex items-center justify-center gap-1.5 py-2 rounded-b-xl text-[9px] font-mono font-bold uppercase tracking-wider transition-all active:scale-95"
+          onClick={(e) => { e.stopPropagation(); if (!hasQuestsToday && !isGenerating) onGenerate(); }}
+          disabled={hasQuestsToday || isGenerating}
+          className="w-full flex items-center justify-center gap-1.5 py-2 rounded-b-xl text-[9px] font-mono font-bold uppercase tracking-wider transition-all"
           style={{
-            background: 'rgba(126,184,212,0.08)',
-            borderTop: '1px solid rgba(126,184,212,0.15)',
-            color: '#7EB8D4',
+            background: hasQuestsToday ? 'rgba(34,197,94,0.06)' : isGenerating ? 'rgba(126,184,212,0.12)' : 'rgba(126,184,212,0.08)',
+            borderTop: `1px solid ${hasQuestsToday ? 'rgba(34,197,94,0.15)' : 'rgba(126,184,212,0.15)'}`,
+            color: hasQuestsToday ? '#4ade80' : '#7EB8D4',
+            opacity: hasQuestsToday ? 0.7 : 1,
+            cursor: hasQuestsToday ? 'default' : isGenerating ? 'wait' : 'pointer',
           }}
         >
-          <Zap size={10} />
-          Generate Quests
+          {isGenerating ? (
+            <><Loader2 size={10} className="animate-spin" /> Generating...</>
+          ) : hasQuestsToday ? (
+            <><CheckCircle size={10} /> Quests Generated</>
+          ) : (
+            <><Zap size={10} /> Generate Quests</>
+          )}
         </button>
       )}
     </motion.div>
@@ -301,9 +316,10 @@ interface GoalHeroSectionProps {
   onCreateGoal: () => void;
   onGoalTap?: (goalId: string) => void;
   onGenerateQuests?: (goalId: string) => void;
+  generatingGoalId?: string | null;
 }
 
-const GoalHeroSection: React.FC<GoalHeroSectionProps> = ({ goals, onCreateGoal, onGoalTap, onGenerateQuests }) => {
+const GoalHeroSection: React.FC<GoalHeroSectionProps> = ({ goals, onCreateGoal, onGoalTap, onGenerateQuests, generatingGoalId }) => {
   const activeGoals = useMemo(
     () => (goals || []).filter(g => g.status === 'ACTIVE').slice(0, 6),
     [goals]
@@ -406,6 +422,7 @@ const GoalHeroSection: React.FC<GoalHeroSectionProps> = ({ goals, onCreateGoal, 
               <PinnedGoalCard key={goal.id} goal={goal} index={i}
                 onClick={() => setSelectedGoal(goal)}
                 onGenerate={onGenerateQuests ? () => onGenerateQuests(goal.id) : undefined}
+                isGenerating={generatingGoalId === goal.id}
               />
             ))}
           </div>

@@ -202,12 +202,22 @@ const _questGenStore: QuestGenStore = {
   pendingScheduleSlots: [],
 };
 
-// Callback the currently-mounted GoalDetailView registers to receive live updates
-let _onQuestGenUpdate: ((s: QuestGenStore) => void) | null = null;
+// Multi-listener system: both GoalDetailView and App.tsx can listen for updates
+const _questGenListeners = new Set<(s: QuestGenStore) => void>();
+
+export function onQuestGenStoreUpdate(cb: (s: QuestGenStore) => void): () => void {
+  _questGenListeners.add(cb);
+  return () => { _questGenListeners.delete(cb); };
+}
+
+export function getQuestGenStore(): QuestGenStore {
+  return { ..._questGenStore };
+}
 
 function updateQuestGenStore(patch: Partial<QuestGenStore>) {
   Object.assign(_questGenStore, patch);
-  _onQuestGenUpdate?.({ ..._questGenStore });
+  const snapshot = { ..._questGenStore };
+  _questGenListeners.forEach(cb => cb(snapshot));
 }
 
 // Module-level fetch — runs independently of component lifecycle
@@ -427,10 +437,10 @@ export default function GoalDetailView({
 
   // Register live-update callback so in-flight fetches update this mounted component
   useEffect(() => {
-    _onQuestGenUpdate = (s) => setGenStore(s);
+    const unsub = onQuestGenStoreUpdate((s) => setGenStore(s));
     // Sync on mount in case generation completed while unmounted
     setGenStore({ ..._questGenStore });
-    return () => { _onQuestGenUpdate = null; };
+    return unsub;
   }, []);
 
   // Check if today's tasks already exist in goal data
