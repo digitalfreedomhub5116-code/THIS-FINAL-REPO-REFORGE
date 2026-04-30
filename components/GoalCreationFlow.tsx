@@ -56,6 +56,37 @@ interface GoalCreationFlowProps {
 
 type Step = 'INPUT' | 'ANALYZING' | 'INTERVIEW' | 'PLANNING' | 'REVIEW' | 'ERROR';
 
+// Sanitize raw server/network errors into user-friendly messages
+function friendlyError(raw: string): string {
+  const lower = raw.toLowerCase();
+  if (lower.includes('fetch') || lower.includes('network') || lower.includes('failed to fetch') || lower.includes('aborted')) {
+    return 'Connection lost. Check your internet and try again.';
+  }
+  if (lower.includes('timeout') || lower.includes('timed out')) {
+    return 'Server took too long to respond. Try again in a moment.';
+  }
+  if (lower.includes('429') || lower.includes('rate limit') || lower.includes('too many')) {
+    return 'Too many requests. Wait a moment before trying again.';
+  }
+  if (lower.includes('500') || lower.includes('internal server')) {
+    return 'Server error. Our systems are recovering — try again shortly.';
+  }
+  if (lower.includes('502') || lower.includes('503') || lower.includes('bad gateway') || lower.includes('unavailable')) {
+    return 'Server is temporarily unavailable. Please try again in a few seconds.';
+  }
+  if (lower.includes('401') || lower.includes('unauthorized') || lower.includes('auth')) {
+    return 'Session expired. Please refresh the page and try again.';
+  }
+  if (lower.includes('json') || lower.includes('parse') || lower.includes('unexpected token')) {
+    return 'Received an unexpected response. Try again.';
+  }
+  // If the message looks like a clean user-facing message (no codes, no stack), pass it through
+  if (raw.length < 200 && !raw.includes('Error:') && !raw.includes('at ') && !/\d{3}/.test(raw)) {
+    return raw;
+  }
+  return 'Something went wrong. Please try again.';
+}
+
 export default function GoalCreationFlow({
   playerData,
   existingGoals,
@@ -116,7 +147,7 @@ export default function GoalCreationFlow({
 
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || `Analysis failed (${res.status})`);
+        throw new Error(errData.error || 'Analysis failed');
       }
       const data = await res.json();
 
@@ -137,7 +168,7 @@ export default function GoalCreationFlow({
       playSystemSoundEffect('PURCHASE');
     } catch (err: any) {
       console.error('[GoalCreation] Analyze error:', err);
-      setError(err?.message || 'ForgeGuard is offline. Try again later.');
+      setError(friendlyError(err?.message || 'ForgeGuard is offline. Try again later.'));
       setStep('ERROR');
       if (onRefundMana) onRefundMana(MANA_COST);
     }
@@ -304,9 +335,9 @@ export default function GoalCreationFlow({
                 </div>
 
                 {error && (
-                  <div className="rounded-xl p-3 mb-4 flex items-start gap-2" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
-                    <AlertTriangle className="w-3.5 h-3.5 text-red-400 flex-shrink-0 mt-0.5" />
-                    <span className="text-[10px] text-red-300 font-mono">{error}</span>
+                  <div className="rounded-xl p-3 mb-4 flex items-start gap-2" style={{ background: 'rgba(126,184,212,0.06)', border: '1px solid rgba(126,184,212,0.15)' }}>
+                    <AlertTriangle className="w-3.5 h-3.5 text-[#7EB8D4] flex-shrink-0 mt-0.5" />
+                    <span className="text-[10px] text-gray-300 font-mono">{error}</span>
                   </div>
                 )}
 
@@ -377,9 +408,9 @@ export default function GoalCreationFlow({
                 </div>
 
                 {error && (
-                  <div className="rounded-xl p-3 mb-4 flex items-start gap-2" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
-                    <AlertTriangle className="w-3.5 h-3.5 text-red-400 flex-shrink-0 mt-0.5" />
-                    <span className="text-[10px] text-red-300 font-mono">{error}</span>
+                  <div className="rounded-xl p-3 mb-4 flex items-start gap-2" style={{ background: 'rgba(126,184,212,0.06)', border: '1px solid rgba(126,184,212,0.15)' }}>
+                    <AlertTriangle className="w-3.5 h-3.5 text-[#7EB8D4] flex-shrink-0 mt-0.5" />
+                    <span className="text-[10px] text-gray-300 font-mono">{error}</span>
                   </div>
                 )}
 
@@ -571,21 +602,30 @@ export default function GoalCreationFlow({
 
             {/* ── ERROR STEP ── */}
             {step === 'ERROR' && (
-              <motion.div key="error" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="py-8">
-                <div className="rounded-xl p-4 mb-4 flex items-start gap-3" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
-                  <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <div className="text-xs font-bold text-red-300 mb-1">Mission Rejected</div>
-                    <p className="text-[10px] text-red-200/70 font-mono leading-relaxed">{error}</p>
+              <motion.div key="error" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="py-8">
+                <div className="flex flex-col items-center text-center mb-6">
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center mb-3" style={{ background: 'rgba(126,184,212,0.1)', border: '1px solid rgba(126,184,212,0.2)' }}>
+                    <AlertTriangle className="w-5 h-5 text-[#7EB8D4]" />
                   </div>
+                  <div className="text-sm font-bold text-white mb-2">Could Not Process Goal</div>
+                  <p className="text-[11px] text-gray-400 font-mono leading-relaxed max-w-xs">{error}</p>
                 </div>
-                <button
-                  onClick={() => { setStep('INPUT'); setError(null); }}
-                  className="w-full py-3 rounded-xl text-xs font-bold text-gray-300 uppercase tracking-wider"
-                  style={{ background: 'rgba(255,255,255,0.05)' }}
-                >
-                  Try Another Goal
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { setStep('INPUT'); setError(null); handleAnalyze(); }}
+                    className="flex-1 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all active:scale-95"
+                    style={{ background: 'rgba(126,184,212,0.1)', border: '1px solid rgba(126,184,212,0.2)', color: '#7EB8D4' }}
+                  >
+                    ↻ Retry
+                  </button>
+                  <button
+                    onClick={() => { setStep('INPUT'); setError(null); }}
+                    className="flex-1 py-3 rounded-xl text-xs font-bold text-gray-400 uppercase tracking-wider transition-all active:scale-95"
+                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+                  >
+                    Try Different Goal
+                  </button>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>

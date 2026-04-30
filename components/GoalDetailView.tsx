@@ -181,6 +181,28 @@ const RANK_COLORS: Record<string, string> = {
 };
 
 // ── Module-level quest generation store (survives tab switches / component remounts) ──
+// Sanitize raw errors into user-friendly messages
+function friendlyError(raw: string): string {
+  const lower = raw.toLowerCase();
+  if (lower.includes('fetch') || lower.includes('network') || lower.includes('failed to fetch') || lower.includes('aborted'))
+    return 'Connection lost. Check your internet and try again.';
+  if (lower.includes('timeout') || lower.includes('timed out'))
+    return 'Server took too long to respond. Try again in a moment.';
+  if (lower.includes('429') || lower.includes('rate limit') || lower.includes('too many'))
+    return 'Too many requests. Wait a moment before trying again.';
+  if (lower.includes('500') || lower.includes('internal server'))
+    return 'Server error. Our systems are recovering — try again shortly.';
+  if (lower.includes('502') || lower.includes('503') || lower.includes('bad gateway') || lower.includes('unavailable'))
+    return 'Server is temporarily unavailable. Please try again in a few seconds.';
+  if (lower.includes('401') || lower.includes('unauthorized') || lower.includes('auth'))
+    return 'Session expired. Please refresh the page and try again.';
+  if (lower.includes('json') || lower.includes('parse') || lower.includes('unexpected token'))
+    return 'Received an unexpected response. Try again.';
+  if (raw.length < 200 && !raw.includes('Error:') && !raw.includes('at ') && !/\d{3}/.test(raw))
+    return raw;
+  return 'Something went wrong. Please try again.';
+}
+
 interface QuestGenStore {
   state: 'IDLE' | 'GENERATING' | 'DONE' | 'ERROR';
   goalId: string | null;
@@ -282,7 +304,7 @@ export function startQuestGeneration(params: {
     .then(async res => {
       if (!res.ok) {
         const errBody = await res.json().catch(() => ({}));
-        throw new Error(errBody.error || `Server error (${res.status})`);
+        throw new Error(errBody.error || 'Server error');
       }
       return res.json();
     })
@@ -372,7 +394,7 @@ export function startQuestGeneration(params: {
       console.error('[GoalDetail] Failed to generate daily quests:', err);
       updateQuestGenStore({
         state: 'ERROR',
-        error: err.message || 'Failed to generate quests. Please try again.',
+        error: friendlyError(err.message || 'Failed to generate quests. Please try again.'),
       });
     });
 }
@@ -677,18 +699,18 @@ export default function GoalDetailView({
           )}
 
           {generateError && !isGenerating && !todayTasks && (
-            <div className="rounded-xl p-3 mb-2" style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)' }}>
+            <div className="rounded-xl p-3 mb-2" style={{ background: 'rgba(126,184,212,0.06)', border: '1px solid rgba(126,184,212,0.15)' }}>
               <div className="flex items-start gap-2 mb-2">
-                <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
-                <p className="text-[12px] text-red-300 font-mono leading-relaxed">{generateError}</p>
+                <AlertTriangle className="w-4 h-4 text-[#7EB8D4] flex-shrink-0 mt-0.5" />
+                <p className="text-[12px] text-gray-300 font-mono leading-relaxed">{generateError}</p>
               </div>
               <button
                 onClick={generateDailyQuests}
                 className="w-full py-2.5 rounded-lg text-xs font-black uppercase tracking-[0.15em] mt-1 flex items-center justify-center gap-2 transition-all active:scale-95"
                 style={{
-                  background: 'rgba(239,68,68,0.08)',
-                  border: '1px solid rgba(239,68,68,0.2)',
-                  color: '#f87171',
+                  background: 'rgba(126,184,212,0.08)',
+                  border: '1px solid rgba(126,184,212,0.2)',
+                  color: '#7EB8D4',
                 }}
               >
                 <RefreshCw className="w-3.5 h-3.5" />
