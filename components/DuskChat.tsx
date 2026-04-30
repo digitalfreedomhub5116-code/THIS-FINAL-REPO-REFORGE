@@ -159,7 +159,7 @@ interface ChipProps {
 const SuggestionChip: React.FC<ChipProps> = ({ icon, label, onClick }) => (
   <motion.button
     onClick={onClick}
-    className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-[11px] font-mono font-semibold text-gray-300 transition-all active:scale-95"
+    className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-[10px] font-mono font-semibold text-gray-300 transition-all active:scale-95 whitespace-nowrap"
     style={{
       background: 'rgba(255,255,255,0.04)',
       border: '1px solid rgba(126,184,212,0.15)',
@@ -168,8 +168,8 @@ const SuggestionChip: React.FC<ChipProps> = ({ icon, label, onClick }) => (
     whileHover={{ scale: 1.03, borderColor: 'rgba(126,184,212,0.4)' }}
     whileTap={{ scale: 0.97 }}
   >
-    <span className="text-[#7EB8D4] flex-shrink-0">{icon}</span>
-    <span className="truncate">{label}</span>
+    <span className="text-[#7EB8D4] flex-shrink-0">{React.cloneElement(icon as React.ReactElement, { size: 12 })}</span>
+    <span className="truncate max-w-[140px]">{label}</span>
   </motion.button>
 );
 
@@ -649,9 +649,9 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, updatePlayer, onClose, onMa
                   </span>
                 </motion.div>
 
-                {/* Suggestion Chips Grid */}
+                {/* Suggestion Chips */}
                 <motion.div
-                  className="w-full grid grid-cols-2 gap-2 max-w-sm"
+                  className="w-full flex flex-wrap gap-2 justify-center max-w-sm px-2"
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: 0.5 }}
