@@ -133,7 +133,7 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
         borderTop: isCompleted
           ? '1px solid rgba(34,197,94,0.22)'
           : isFailed
-          ? '1px solid rgba(239,68,68,0.18)'
+          ? '1px solid rgba(107,114,128,0.18)'
           : isMiniActive
           ? '1px solid rgba(126,184,212,0.22)'
           : '1px solid rgba(255,255,255,0.10)',
@@ -149,7 +149,7 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
           background: isCompleted
             ? 'linear-gradient(135deg, rgba(34,197,94,0.04) 0%, transparent 60%)'
             : isFailed
-            ? 'linear-gradient(135deg, rgba(239,68,68,0.04) 0%, transparent 60%)'
+            ? 'linear-gradient(135deg, rgba(107,114,128,0.04) 0%, transparent 60%)'
             : 'linear-gradient(135deg, rgba(126,184,212,0.05) 0%, transparent 60%)',
         }} />
       )}

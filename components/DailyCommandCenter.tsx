@@ -375,7 +375,7 @@ const FuturisticCalendar: React.FC<{ quests: Quest[] }> = ({ quests }) => {
           } else if (isPast) {
             if (totalOnDay === 0) { borderCol = '#252525'; glowFilter = 'none'; }
             else if (doneOnDay === totalOnDay) { borderCol = '#16a34a'; glowFilter = '0 0 8px rgba(22,163,74,0.4)'; }
-            else if (doneOnDay === 0) { borderCol = '#dc2626'; glowFilter = '0 0 8px rgba(220,38,38,0.4)'; }
+            else if (doneOnDay === 0) { borderCol = '#4b5563'; glowFilter = 'none'; }
             else { borderCol = '#3b82f6'; glowFilter = '0 0 8px rgba(59,130,246,0.4)'; }
           } else { borderCol = '#252525'; glowFilter = 'none'; }
 
@@ -405,7 +405,7 @@ const FuturisticCalendar: React.FC<{ quests: Quest[] }> = ({ quests }) => {
                 }} />
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}>
                   {showCheck ? <Check size={16} color="#ffffff" strokeWidth={2.5} />
-                   : showX ? <XCircle size={16} color="#ef4444" strokeWidth={1.8} />
+                   : showX ? <XCircle size={16} color="#6b7280" strokeWidth={1.8} />
                    : showNumber ? <span style={{ color: isToday ? '#ffffff' : fillPct > 0 ? '#e5e7eb' : '#4b5563', fontSize: 13, fontWeight: 800, fontFamily: 'monospace' }}>{day.getDate()}</span>
                    : null}
                 </div>
