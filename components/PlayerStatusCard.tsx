@@ -405,7 +405,7 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
   }, [activeStats, historyMap, isViewingPast, player.stats, player.dailyXp, selectedDate, tierUpStats]);
   const introRef = useRef<HTMLVideoElement>(null);
   const loopRef = useRef<HTMLVideoElement>(null);
-  const [videoPhase, setVideoPhase] = useState<'intro' | 'loop' | 'image'>('image');
+  const [videoPhase, setVideoPhase] = useState<'intro' | 'crossfade' | 'loop' | 'image'>('image');
 
   const hasVideo = !!(equippedOutfit?.introVideoUrl || equippedOutfit?.loopVideoUrl);
 
@@ -436,8 +436,17 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
       loop.src = equippedOutfit.loopVideoUrl;
       loop.load();
       loop.loop = true;
-      setVideoPhase('loop');
+      // Start crossfade — both videos visible, opacity transitions
+      setVideoPhase('crossfade');
       loop.play().catch(() => setVideoPhase('image'));
+      // After crossfade completes, fully switch to loop
+      setTimeout(() => {
+        setVideoPhase('loop');
+        // Pause intro to free resources
+        if (introRef.current) {
+          introRef.current.pause();
+        }
+      }, 600);
     } else {
       setVideoPhase('image');
     }
@@ -773,14 +782,21 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
               muted playsInline preload="auto"
               poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
               className="absolute inset-0 w-full h-full object-cover object-center bg-transparent"
-              style={{ display: videoPhase === 'intro' ? 'block' : 'none' }}
+              style={{
+                opacity: videoPhase === 'intro' ? 1 : videoPhase === 'crossfade' ? 0 : 0,
+                transition: 'opacity 0.6s ease-in-out',
+                pointerEvents: videoPhase === 'intro' || videoPhase === 'crossfade' ? 'auto' : 'none',
+              }}
             />
             <video
               ref={loopRef}
               muted playsInline loop preload="auto"
               poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
               className="absolute inset-0 w-full h-full object-cover object-center bg-transparent"
-              style={{ display: videoPhase === 'loop' ? 'block' : 'none' }}
+              style={{
+                opacity: videoPhase === 'loop' || videoPhase === 'crossfade' ? 1 : 0,
+                transition: 'opacity 0.6s ease-in-out',
+              }}
             />
             {videoPhase === 'image' && equippedOutfit?.image && (
               <img src={equippedOutfit.image} alt={equippedOutfit.name} className="absolute inset-0 w-full h-full object-cover object-center brightness-75" />
