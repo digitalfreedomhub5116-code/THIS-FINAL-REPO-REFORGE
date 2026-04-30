@@ -1027,7 +1027,7 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                       <motion.div key="s1" variants={setupContainerVariants} initial="hidden" animate="visible" exit="exit" className="space-y-6">
                           <motion.div variants={setupItemVariants} className="bg-red-900/10 border border-red-500/30 p-6 rounded-xl text-center">
                               <AlertTriangle className="text-red-500 mx-auto mb-4" size={40} />
-                              <h3 className="text-white font-black uppercase text-lg mb-2">⚠️ System Warning</h3>
+                              <h3 className="text-white font-black uppercase text-lg mb-2">System Warning</h3>
                               <p className="text-gray-400 text-xs leading-relaxed">
                                   ForgeGuard is active. Falsifying biometric data or capability baselines will result in inaccurate difficulty scaling and potential System Lockout.
                               </p>
@@ -1053,7 +1053,7 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                                   <User className="text-system-neon" size={18} />
                                   <span className="text-xs text-gray-500 uppercase tracking-widest font-bold">Hunter Identity</span>
                               </div>
-                              <p className="text-gray-600 text-[11px]">Tell us about yourself so we can calibrate your stats. 🧬</p>
+                              <p className="text-gray-600 text-[11px]">Tell us about yourself so we can calibrate your stats.</p>
                           </motion.div>
 
                           {/* Gender */}
@@ -1109,7 +1109,7 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                                   <Ruler className="text-system-neon" size={18} />
                                   <span className="text-xs text-gray-500 uppercase tracking-widest font-bold">Body Metrics</span>
                               </div>
-                              <p className="text-gray-600 text-[11px]">Used to calculate your body composition and calibration graph. 📊</p>
+                              <p className="text-gray-600 text-[11px]">Used to calculate your body composition and calibration graph.</p>
                           </motion.div>
 
                           {/* Unit toggles */}
@@ -1126,7 +1126,7 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
 
                           {/* Height */}
                           <motion.div variants={setupItemVariants}>
-                              <p className="text-[10px] text-gray-500 uppercase font-bold mb-2 tracking-widest">📏 Height</p>
+                              <p className="text-[10px] text-gray-500 uppercase font-bold mb-2 tracking-widest">Height</p>
                               {heightUnit === 'CM' ? (
                                   <input
                                       type="number"
@@ -1151,7 +1151,7 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
 
                           {/* Current Weight */}
                           <motion.div variants={setupItemVariants}>
-                              <p className="text-[10px] text-gray-500 uppercase font-bold mb-2 tracking-widest">⚖️ Current Weight</p>
+                              <p className="text-[10px] text-gray-500 uppercase font-bold mb-2 tracking-widest">Current Weight</p>
                               <div className="relative">
                                   <input
                                       type="number"
@@ -1166,7 +1166,7 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
 
                           {/* Target Weight */}
                           <motion.div variants={setupItemVariants}>
-                              <p className="text-[10px] text-system-accent uppercase font-bold mb-2 tracking-widest">🎯 Target Weight</p>
+                              <p className="text-[10px] text-system-accent uppercase font-bold mb-2 tracking-widest">Target Weight</p>
                               <div className="relative">
                                   <input
                                       type="number"
@@ -1194,21 +1194,20 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                                   <Target className="text-system-accent" size={18} />
                                   <span className="text-xs text-gray-500 uppercase tracking-widest font-bold">Primary Directive</span>
                               </div>
-                              <p className="text-gray-600 text-[11px]">What's your main mission right now? This shapes your quest difficulty. 🎯</p>
+                              <p className="text-gray-600 text-[11px]">What's your main mission right now? This shapes your quest difficulty.</p>
                           </motion.div>
                           <motion.div variants={setupItemVariants} className="grid gap-3">
                               {([
-                                  { val: 'LOSE_WEIGHT', label: '🔥 Lose Weight', sub: 'Burn fat, lean down' },
-                                  { val: 'BUILD_MUSCLE', label: '💪 Build Muscle', sub: 'Gain strength and size' },
-                                  { val: 'RECOMP', label: '⚡ Recomp', sub: 'Lose fat + build muscle simultaneously' },
+                                  { val: 'LOSE_WEIGHT', label: 'Lose Weight' },
+                                  { val: 'BUILD_MUSCLE', label: 'Build Muscle' },
+                                  { val: 'RECOMP', label: 'Recomp' },
                               ] as const).map(opt => (
                                   <button
                                       key={opt.val}
                                       onClick={() => { setFormData({ ...formData, goal: opt.val }); setStep(5); }}
-                                      className="w-full py-4 px-4 border border-gray-800 rounded-xl font-bold text-sm text-gray-300 hover:bg-white hover:text-black transition-all text-left flex justify-between items-center"
+                                      className="w-full py-4 px-4 border border-gray-800 rounded-xl font-bold text-sm text-gray-300 hover:bg-white hover:text-black transition-all text-left"
                                   >
-                                      <span>{opt.label}</span>
-                                      <span className="text-[10px] text-gray-600 font-normal normal-case">{opt.sub}</span>
+                                      {opt.label}
                                   </button>
                               ))}
                           </motion.div>
@@ -1224,21 +1223,20 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                                   <Dumbbell className="text-system-neon" size={18} />
                                   <span className="text-xs text-gray-500 uppercase tracking-widest font-bold">Equipment Access</span>
                               </div>
-                              <p className="text-gray-600 text-[11px]">What training resources do you have? Your workout plan is built around this. 🏋️</p>
+                              <p className="text-gray-600 text-[11px]">What training resources do you have? Your workout plan is built around this.</p>
                           </motion.div>
                           <motion.div variants={setupItemVariants} className="grid gap-3">
                               {([
-                                  { val: 'GYM', label: '🏟️ Full Gym', sub: 'Access to machines, barbells, cables' },
-                                  { val: 'HOME_DUMBBELLS', label: '🏠 Home Dumbbells', sub: 'Dumbbells and free weights at home' },
-                                  { val: 'BODYWEIGHT', label: '🤸 Bodyweight Only', sub: 'No equipment — just your body' },
+                                  { val: 'GYM', label: 'Full Gym' },
+                                  { val: 'HOME_DUMBBELLS', label: 'Home Dumbbells' },
+                                  { val: 'BODYWEIGHT', label: 'Bodyweight Only' },
                               ] as const).map(opt => (
                                   <button
                                       key={opt.val}
                                       onClick={() => { setFormData({ ...formData, equipment: opt.val }); setStep(6); }}
-                                      className="w-full py-4 px-4 border border-gray-800 rounded-xl font-bold text-sm text-gray-300 hover:bg-white hover:text-black transition-all text-left flex justify-between items-center"
+                                      className="w-full py-4 px-4 border border-gray-800 rounded-xl font-bold text-sm text-gray-300 hover:bg-white hover:text-black transition-all text-left"
                                   >
-                                      <span>{opt.label}</span>
-                                      <span className="text-[10px] text-gray-600 font-normal normal-case">{opt.sub}</span>
+                                      {opt.label}
                                   </button>
                               ))}
                           </motion.div>
@@ -1254,11 +1252,11 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                                   <Heart className="text-red-400" size={18} />
                                   <span className="text-xs text-gray-500 uppercase tracking-widest font-bold">Health & Injuries</span>
                               </div>
-                              <p className="text-gray-600 text-[11px]">Any current injuries or health issues? This helps us customize your workout plan safely. 🏥</p>
+                              <p className="text-gray-600 text-[11px]">Any current injuries or health issues? This helps us customize your workout plan safely.</p>
                           </motion.div>
 
                           <motion.div variants={setupItemVariants} className="space-y-3">
-                              <p className="text-[10px] text-gray-500 uppercase font-bold mb-2 tracking-widest">📝 Describe any issues (max 10 words)</p>
+                              <p className="text-[10px] text-gray-500 uppercase font-bold mb-2 tracking-widest">Describe any issues (max 10 words)</p>
                               <input
                                   type="text"
                                   value={formData.injuries?.[0] || ''}
@@ -1284,7 +1282,7 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                                   }}
                                   className="flex-1 py-3 px-4 border border-gray-800 rounded-xl font-bold text-sm text-gray-300 hover:bg-white hover:text-black transition-all"
                               >
-                                  ✅ No Issues / Skip
+                                  No Issues / Skip
                               </button>
                           </motion.div>
 
@@ -1311,18 +1309,17 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                               <p className="text-[10px] text-gray-500 uppercase font-bold mb-2 tracking-widest">Lifestyle Activity</p>
                               <div className="grid grid-cols-2 gap-2">
                                   {([
-                                      { val: 'SEDENTARY', label: 'Sedentary', sub: 'Mostly sitting' },
-                                      { val: 'LIGHT', label: 'Light', sub: 'Some movement' },
-                                      { val: 'MODERATE', label: 'Moderate', sub: 'Regular activity' },
-                                      { val: 'VERY_ACTIVE', label: 'Very Active', sub: 'Always moving' },
+                                      { val: 'SEDENTARY', label: 'Sedentary' },
+                                      { val: 'LIGHT', label: 'Light' },
+                                      { val: 'MODERATE', label: 'Moderate' },
+                                      { val: 'VERY_ACTIVE', label: 'Very Active' },
                                   ] as const).map(opt => (
                                       <button
                                           key={opt.val}
                                           onClick={() => setFormData({ ...formData, activityLevel: opt.val })}
-                                          className={`py-2.5 px-3 rounded-xl border text-left transition-all ${formData.activityLevel === opt.val ? 'bg-white text-black border-white' : 'border-gray-800 text-gray-400 hover:border-gray-600'}`}
+                                          className={`py-3 px-3 rounded-xl border text-center transition-all ${formData.activityLevel === opt.val ? 'bg-white text-black border-white' : 'border-gray-800 text-gray-400 hover:border-gray-600'}`}
                                       >
                                           <div className="font-bold text-[11px]">{opt.label}</div>
-                                          <div className="text-[9px] opacity-60 normal-case font-normal">{opt.sub}</div>
                                       </button>
                                   ))}
                               </div>
@@ -1355,18 +1352,17 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                               <p className="text-[10px] text-gray-500 uppercase font-bold mb-2 tracking-widest">Stress Level</p>
                               <div className="grid grid-cols-2 gap-2">
                                   {([
-                                      { val: 'LOW', label: 'Calm', sub: 'All good' },
-                                      { val: 'MODERATE', label: 'Moderate', sub: 'Some pressure' },
-                                      { val: 'HIGH', label: 'High', sub: 'Overwhelmed' },
-                                      { val: 'BURNOUT', label: 'Burnout', sub: 'At capacity' },
+                                      { val: 'LOW', label: 'Calm' },
+                                      { val: 'MODERATE', label: 'Moderate' },
+                                      { val: 'HIGH', label: 'High' },
+                                      { val: 'BURNOUT', label: 'Burnout' },
                                   ] as const).map(opt => (
                                       <button
                                           key={opt.val}
                                           onClick={() => setFormData({ ...formData, stressLevel: opt.val })}
-                                          className={`py-2.5 px-3 rounded-xl border text-left transition-all ${formData.stressLevel === opt.val ? 'bg-white text-black border-white' : 'border-gray-800 text-gray-400 hover:border-gray-600'}`}
+                                          className={`py-3 px-3 rounded-xl border text-center transition-all ${formData.stressLevel === opt.val ? 'bg-white text-black border-white' : 'border-gray-800 text-gray-400 hover:border-gray-600'}`}
                                       >
                                           <div className="font-bold text-[11px]">{opt.label}</div>
-                                          <div className="text-[9px] opacity-60 normal-case font-normal">{opt.sub}</div>
                                       </button>
                                   ))}
                               </div>
@@ -1399,15 +1395,14 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                               <p className="text-[10px] text-gray-500 uppercase font-bold mb-2 tracking-widest">Max Push-ups (one set)</p>
                               <div className="grid grid-cols-2 gap-2">
                                   {([
-                                      { label: '0 – 5', sub: 'Beginner', val: 5 },
-                                      { label: '10 – 20', sub: 'Intermediate', val: 15 },
-                                      { label: '30 – 50', sub: 'Advanced', val: 40 },
-                                      { label: '50+', sub: 'Elite', val: 60 },
+                                      { label: '0 – 5', val: 5 },
+                                      { label: '10 – 20', val: 15 },
+                                      { label: '30 – 50', val: 40 },
+                                      { label: '50+', val: 60 },
                                   ]).map(opt => (
                                       <button key={opt.val} onClick={() => setBaselines({ ...baselines, pushups: opt.val })}
-                                          className={`py-2.5 px-3 rounded-xl border text-left transition-all ${baselines.pushups === opt.val ? 'bg-system-neon text-black border-system-neon' : 'border-gray-800 text-gray-400 hover:border-gray-600'}`}>
+                                          className={`py-3 px-3 rounded-xl border text-center transition-all ${baselines.pushups === opt.val ? 'bg-system-neon text-black border-system-neon' : 'border-gray-800 text-gray-400 hover:border-gray-600'}`}>
                                           <div className="font-bold text-[11px]">{opt.label}</div>
-                                          <div className="text-[9px] opacity-60 normal-case font-normal">{opt.sub}</div>
                                       </button>
                                   ))}
                               </div>
@@ -1418,16 +1413,15 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                               <p className="text-[10px] text-gray-500 uppercase font-bold mb-2 tracking-widest">Focus & Learning Habit</p>
                               <div className="grid grid-cols-2 gap-2">
                                   {([
-                                      { label: 'Easily Distracted', sub: 'Rarely reads or focuses', focus: 15, reading: 0 },
-                                      { label: 'Light Focus', sub: '~30 min / light reader', focus: 30, reading: 15 },
-                                      { label: 'Consistent', sub: '~1 hr / regular reader', focus: 60, reading: 45 },
-                                      { label: 'Deep Learner', sub: '2+ hrs / heavy reader', focus: 120, reading: 90 },
+                                      { label: 'Easily Distracted', focus: 15, reading: 0 },
+                                      { label: 'Light Focus', focus: 30, reading: 15 },
+                                      { label: 'Consistent', focus: 60, reading: 45 },
+                                      { label: 'Deep Learner', focus: 120, reading: 90 },
                                   ]).map(opt => (
                                       <button key={opt.label}
                                           onClick={() => setBaselines({ ...baselines, focusDuration: opt.focus, readingTime: opt.reading })}
-                                          className={`py-2.5 px-3 rounded-xl border text-left transition-all ${baselines.focusDuration === opt.focus ? 'bg-[#7EB8D4] text-white border-[#7EB8D4]' : 'border-gray-800 text-gray-400 hover:border-gray-600'}`}>
+                                          className={`py-3 px-3 rounded-xl border text-center transition-all ${baselines.focusDuration === opt.focus ? 'bg-[#7EB8D4] text-white border-[#7EB8D4]' : 'border-gray-800 text-gray-400 hover:border-gray-600'}`}>
                                           <div className="font-bold text-[11px]">{opt.label}</div>
-                                          <div className="text-[9px] opacity-60 normal-case font-normal">{opt.sub}</div>
                                       </button>
                                   ))}
                               </div>
@@ -1438,15 +1432,14 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                               <p className="text-[10px] text-gray-500 uppercase font-bold mb-2 tracking-widest">Average Sleep</p>
                               <div className="grid grid-cols-2 gap-2">
                                   {([
-                                      { label: '< 5 hrs', sub: 'Critical', val: 4 },
-                                      { label: '5–6 hrs', sub: 'Low', val: 5.5 },
-                                      { label: '7–8 hrs', sub: 'Optimal', val: 7.5 },
-                                      { label: '9+ hrs', sub: 'High', val: 9 },
+                                      { label: '< 5 hrs', val: 4 },
+                                      { label: '5–6 hrs', val: 5.5 },
+                                      { label: '7–8 hrs', val: 7.5 },
+                                      { label: '9+ hrs', val: 9 },
                                   ]).map(opt => (
                                       <button key={opt.val} onClick={() => setBaselines({ ...baselines, sleepAvg: opt.val })}
-                                          className={`py-2.5 px-3 rounded-xl border text-left transition-all ${baselines.sleepAvg === opt.val ? 'bg-indigo-500 text-white border-indigo-500' : 'border-gray-800 text-gray-400 hover:border-gray-600'}`}>
+                                          className={`py-3 px-3 rounded-xl border text-center transition-all ${baselines.sleepAvg === opt.val ? 'bg-indigo-500 text-white border-indigo-500' : 'border-gray-800 text-gray-400 hover:border-gray-600'}`}>
                                           <div className="font-bold text-[11px]">{opt.label}</div>
-                                          <div className="text-[9px] opacity-60 normal-case font-normal">{opt.sub}</div>
                                       </button>
                                   ))}
                               </div>
@@ -1478,36 +1471,36 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                   {step === 9 && (
                       <motion.div key="s8" variants={setupContainerVariants} initial="hidden" animate="visible" exit="exit" className="space-y-6 text-center">
                           <motion.div variants={setupItemVariants}>
-                              <h3 className="text-xl text-white font-black">✅ Confirm Configuration</h3>
+                              <h3 className="text-xl text-white font-black">Confirm Configuration</h3>
                               <p className="text-gray-500 text-xs mt-1">Review your data before uploading to the System.</p>
                           </motion.div>
                           <motion.div variants={setupItemVariants} className="bg-gray-900/50 p-5 rounded-xl border border-gray-800 text-left space-y-2.5 font-mono text-xs">
-                              <div className="flex justify-between"><span className="text-gray-500">👤 Profile</span><span className="text-white">{formData.gender}, {formData.age}y</span></div>
+                              <div className="flex justify-between"><span className="text-gray-500">Profile</span><span className="text-white">{formData.gender}, {formData.age}y</span></div>
                               <div className="flex justify-between">
-                                  <span className="text-gray-500">📏 Height</span>
+                                  <span className="text-gray-500">Height</span>
                                   <span className="text-white">{heightUnit === 'FT' ? `${toFtIn(formData.height || 0).ft}'${toFtIn(formData.height || 0).inches}"` : `${formData.height}cm`}</span>
                               </div>
                               <div className="flex justify-between">
-                                  <span className="text-gray-500">⚖️ Weight → Target</span>
+                                  <span className="text-gray-500">Weight → Target</span>
                                   <span className="text-white">
                                       {weightUnit === 'LBS' ? `${toLbs(formData.weight || 0)}` : formData.weight}{weightUnit.toLowerCase()} → {weightUnit === 'LBS' ? `${toLbs(formData.targetWeight || 0)}` : formData.targetWeight}{weightUnit.toLowerCase()}
                                   </span>
                               </div>
-                              <div className="flex justify-between"><span className="text-gray-500">🎯 Goal</span><span className="text-white">{formData.goal === 'RECOMP' ? 'Recomp' : formData.goal?.replace('_', ' ')}</span></div>
-                              <div className="flex justify-between"><span className="text-gray-500">🏋️ Equipment</span><span className="text-white">{formData.equipment?.replace('_', ' ')}</span></div>
-                              <div className="flex justify-between"><span className="text-gray-500">🩹 Injuries</span><span className="text-white">{formData.injuries?.length ? formData.injuries.join(', ') : 'None'}</span></div>
-                              <div className="flex justify-between"><span className="text-gray-500">🏃 Activity</span><span className="text-white">{formData.activityLevel}</span></div>
-                              <div className="flex justify-between"><span className="text-gray-500">⚡ Energy</span><span className="text-white">{formData.energyLevel}</span></div>
-                              <div className="flex justify-between"><span className="text-gray-500">🧠 Stress</span><span className="text-white">{formData.stressLevel}</span></div>
-                              <div className="flex justify-between"><span className="text-gray-500">💪 Pushups</span><span className="text-white">{baselines.pushups}</span></div>
-                              <div className="flex justify-between"><span className="text-gray-500">😴 Sleep</span><span className="text-white">{baselines.sleepAvg}h avg</span></div>
+                              <div className="flex justify-between"><span className="text-gray-500">Goal</span><span className="text-white">{formData.goal === 'RECOMP' ? 'Recomp' : formData.goal?.replace('_', ' ')}</span></div>
+                              <div className="flex justify-between"><span className="text-gray-500">Equipment</span><span className="text-white">{formData.equipment?.replace('_', ' ')}</span></div>
+                              <div className="flex justify-between"><span className="text-gray-500">Injuries</span><span className="text-white">{formData.injuries?.length ? formData.injuries.join(', ') : 'None'}</span></div>
+                              <div className="flex justify-between"><span className="text-gray-500">Activity</span><span className="text-white">{formData.activityLevel}</span></div>
+                              <div className="flex justify-between"><span className="text-gray-500">Energy</span><span className="text-white">{formData.energyLevel}</span></div>
+                              <div className="flex justify-between"><span className="text-gray-500">Stress</span><span className="text-white">{formData.stressLevel}</span></div>
+                              <div className="flex justify-between"><span className="text-gray-500">Pushups</span><span className="text-white">{baselines.pushups}</span></div>
+                              <div className="flex justify-between"><span className="text-gray-500">Sleep</span><span className="text-white">{baselines.sleepAvg}h avg</span></div>
                           </motion.div>
                           <motion.button
                               variants={setupItemVariants}
                               onClick={handleFinish}
                               className="w-full bg-system-neon text-black font-black py-5 rounded-xl shadow-[0_0_30px_#7EB8D4] hover:scale-105 transition-transform uppercase tracking-widest"
                           >
-                              🚀 Upload Biometrics
+                              Upload Biometrics
                           </motion.button>
                           <motion.button variants={setupItemVariants} onClick={() => setStep(8)} className="text-gray-600 hover:text-white flex items-center gap-1 font-bold text-xs uppercase mx-auto"><ChevronLeft size={14} /> BACK</motion.button>
                       </motion.div>

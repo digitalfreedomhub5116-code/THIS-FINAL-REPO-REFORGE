@@ -2058,7 +2058,10 @@ const App: React.FC = () => {
 
     setShowStreakCelebration(true);
 
-    enqueueOverlay('streak');
+    // Only enqueue if not already active to prevent double-show
+    if (activeOverlay !== 'streak') {
+      enqueueOverlay('streak');
+    }
 
   }, [player.isConfigured, player.lastLoginDate, player.userId]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -2318,17 +2321,13 @@ const App: React.FC = () => {
 
 
 
-    const shownLevels = player.featureUnlocksShown || [];
-
-    if (curr >= 5 && !shownLevels.includes(5) && prev < 5) {
-
-      setTimeout(() => setShowFeatureUnlock(5), 1500);
-
-    } else if (curr >= 10 && !shownLevels.includes(10) && prev < 10) {
-
-      setTimeout(() => setShowFeatureUnlock(10), 1500);
-
-    }
+    // Feature unlock cinematics disabled — only streak and rank popups are shown
+    // const shownLevels = player.featureUnlocksShown || [];
+    // if (curr >= 5 && !shownLevels.includes(5) && prev < 5) {
+    //   setTimeout(() => setShowFeatureUnlock(5), 1500);
+    // } else if (curr >= 10 && !shownLevels.includes(10) && prev < 10) {
+    //   setTimeout(() => setShowFeatureUnlock(10), 1500);
+    // }
 
   }, [player.level, player.isConfigured]); // eslint-disable-line react-hooks/exhaustive-deps
 

@@ -350,7 +350,8 @@ const StreakCelebration: React.FC<StreakCelebrationProps> = ({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.35 }}
-      className="fixed inset-0 z-[300] flex flex-col items-center justify-center overflow-hidden"
+      className="fixed inset-0 z-[300] flex flex-col items-center justify-center overflow-hidden cursor-pointer"
+      onClick={phase >= 4 ? onComplete : undefined}
       style={{ background: '#0a0a0f' }}
     >
       {/* ── Background radial glow ── */}
