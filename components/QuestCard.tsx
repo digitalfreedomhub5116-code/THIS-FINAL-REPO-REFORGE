@@ -38,6 +38,16 @@ const RANK_LABEL: Record<Rank, string> = {
   E: 'rgba(107,114,128,0.1)',
 };
 
+const RANK_IMAGE: Record<Rank, string> = {
+  UNRANKED: '/images/ranks/e-rank-removebg-preview.png',
+  E: '/images/ranks/e-rank-removebg-preview.png',
+  D: '/images/ranks/d-rank-removebg-preview.png',
+  C: '/images/ranks/c-rank-removebg-preview.png',
+  B: '/images/ranks/b-rank-removebg-preview.png',
+  A: '/images/ranks/a-rank-removebg-preview.png',
+  S: '/images/ranks/s-rank-removebg-preview.png',
+};
+
 const CAT_ICON: Record<keyof CoreStats, React.ReactNode> = {
   strength:     <Dumbbell size={10} />,
   intelligence: <Brain size={10} />,
@@ -86,6 +96,7 @@ const SensorBar: React.FC<{
 const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDelete, isLocked, lockMessage, onReschedule, onStartTracking, onStopTracking }) => {
   const [isMiniView, setIsMiniView] = useState(false);
   const [showResources, setShowResources] = useState(false);
+  const [rankImgLoaded, setRankImgLoaded] = useState(false);
   const [titleExpanded, setTitleExpanded] = useState(false);
   const completingRef = useRef(false);
 
@@ -183,12 +194,24 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
 
         {/* Top row: rank + title + XP */}
         <div className="flex items-start gap-3.5">
-          {/* Rank badge */}
+          {/* Rank badge — real image with skeleton */}
           <div
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-heading font-extrabold flex-shrink-0 mt-0.5"
-            style={{ background: rankBg, color: rankColor, border: `1px solid ${rankColor}40` }}
+            className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 relative overflow-hidden"
+            style={{ background: rankBg, border: `1px solid ${rankColor}30` }}
           >
-            {quest.rank}
+            {/* Skeleton shimmer while loading */}
+            {!rankImgLoaded && (
+              <div className="absolute inset-0 rounded-lg overflow-hidden">
+                <div className="w-full h-full animate-pulse" style={{ background: `linear-gradient(110deg, ${rankColor}15 30%, ${rankColor}30 50%, ${rankColor}15 70%)`, backgroundSize: '200% 100%' }} />
+              </div>
+            )}
+            <img
+              src={RANK_IMAGE[quest.rank]}
+              alt={`Rank ${quest.rank}`}
+              className={`w-6 h-6 object-contain transition-opacity duration-300 ${rankImgLoaded ? 'opacity-100' : 'opacity-0'}`}
+              onLoad={() => setRankImgLoaded(true)}
+              loading="lazy"
+            />
           </div>
 
           {/* Title block */}
