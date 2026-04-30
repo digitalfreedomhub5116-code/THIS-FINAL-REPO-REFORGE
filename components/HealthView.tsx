@@ -253,20 +253,9 @@ export const HealthView: React.FC<HealthViewProps> = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [journeyStartDate, playerData.userId]);
 
-  // Check for saved workout session on mount (allow resume even if today has prior sessions)
+  // Auto-clear any saved workout session on mount — no resume prompts
   useEffect(() => {
-    const session = loadWorkoutSession(playerData.userId || 'local');
-    if (session) {
-      const sessionDate = new Date(session.timestamp).toISOString().split('T')[0];
-      const today = new Date().toISOString().split('T')[0];
-      if (sessionDate === today) {
-        setSavedSession(session);
-        setShowResumePrompt(true);
-      } else {
-        // Session is stale (previous day) — clear
-        clearWorkoutSession(playerData.userId || 'local');
-      }
-    }
+    clearWorkoutSession(playerData.userId || 'local');
   }, [playerData.userId]);
 
   const projectedIncrease = useMemo(() => {
@@ -926,65 +915,8 @@ export const HealthView: React.FC<HealthViewProps> = ({
             )}
         </AnimatePresence>
 
-        {/* Resume Workout Prompt */}
-        <AnimatePresence>
-            {showResumePrompt && savedSession && (
-                <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/90 backdrop-blur-md">
-                    <motion.div
-                        initial={{ scale: 0.8, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        exit={{ scale: 0.8, opacity: 0 }}
-                        className="bg-[#0a0a0a] border border-yellow-500/50 w-full max-w-sm rounded-2xl p-8 text-center shadow-[0_0_50px_rgba(234,179,8,0.2)] relative overflow-hidden"
-                    >
-                        <div className="relative z-10 flex flex-col items-center">
-                            <div className="w-16 h-16 rounded-full bg-black border border-yellow-500 flex items-center justify-center mb-6 shadow-[0_0_20px_rgba(234,179,8,0.5)]">
-                                <Activity size={32} className="text-yellow-500" />
-                            </div>
-                            <h2 className="text-xl font-black text-white font-mono uppercase tracking-tighter mb-2">PAUSED SESSION</h2>
-                            <p className="text-xs text-yellow-300 font-mono mb-2 leading-relaxed">
-                                You have an incomplete workout from earlier today.
-                            </p>
-                            <p className="text-[10px] text-gray-500 font-mono mb-6">
-                                Day: {savedSession.planDay} &bull; Exercise {savedSession.currentIdx + 1} &bull; Set {savedSession.currentSet}
-                            </p>
-                            <div className="flex flex-col gap-3 w-full">
-                                <button
-                                    onClick={() => {
-                                        setShowResumePrompt(false);
-                                        // Find the matching plan day and launch active mode
-                                        const days = playerData.healthProfile?.workoutPlan;
-                                        if (days && days.length > 0) {
-                                            const matchDay = days.find((d: WorkoutDay) => d.day === savedSession.planDay);
-                                            if (matchDay) {
-                                                setActivePlan(matchDay);
-                                                setViewMode('ACTIVE');
-                                                return;
-                                            }
-                                        }
-                                        // If no match found, clear session
-                                        clearWorkoutSession(playerData.userId || 'local');
-                                        setSavedSession(null);
-                                    }}
-                                    className="w-full py-4 bg-yellow-600 text-black font-black rounded-xl hover:bg-yellow-500 transition-colors uppercase tracking-widest text-xs font-mono shadow-lg"
-                                >
-                                    RESUME WORKOUT
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        setShowResumePrompt(false);
-                                        clearWorkoutSession(playerData.userId || 'local');
-                                        setSavedSession(null);
-                                    }}
-                                    className="w-full py-3 bg-transparent border border-gray-700 text-gray-400 font-bold rounded-xl hover:bg-gray-900 transition-colors uppercase tracking-widest text-[10px] font-mono"
-                                >
-                                    DISCARD & START FRESH
-                                </button>
-                            </div>
-                        </div>
-                    </motion.div>
-                </div>
-            )}
-        </AnimatePresence>
+
+
 
         <div id="tut-health" className="flex flex-col gap-6 font-mono">
             <div className="flex gap-2 sticky top-20 z-30 pt-1 pb-2 bg-transparent">
