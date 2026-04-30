@@ -545,7 +545,7 @@ const RankProgressionCard: React.FC<RankProgressionCardProps> = ({ level, rank, 
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.18 }}
-            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+            className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-4"
             style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)' }}
             onClick={e => { if (e.target === e.currentTarget) setShowAllRanks(false); }}
           >

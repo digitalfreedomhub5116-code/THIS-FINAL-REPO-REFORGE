@@ -238,7 +238,10 @@ const WorkoutOverview: React.FC<WorkoutOverviewProps> = ({ plan, focusVideos, on
                     <div className="text-[10px] text-system-neon font-mono tracking-[0.3em] uppercase mb-1">Dungeon Gate</div>
                     <h2 className="text-2xl md:text-3xl font-black italic text-white tracking-tighter uppercase">{plan.focus} INSTANCE</h2>
                 </div>
-                <button onClick={onCancel} className="text-gray-500 hover:text-white font-mono text-xs border border-gray-700 hover:border-gray-500 px-3 py-1.5 rounded transition-all">[ ESCAPE ]</button>
+                <button onClick={onCancel} className="flex items-center gap-2 px-4 py-2 rounded-lg font-mono text-[10px] font-bold uppercase tracking-widest transition-all hover:bg-red-500/10 hover:border-red-500/40 hover:text-red-400 active:scale-95" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', color: '#9ca3af' }}>
+                  <X size={12} strokeWidth={2.5} />
+                  ESCAPE
+                </button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 scrollbar-hide">
