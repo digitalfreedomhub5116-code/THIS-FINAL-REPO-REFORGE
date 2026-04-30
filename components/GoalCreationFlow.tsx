@@ -592,8 +592,12 @@ export default function GoalCreationFlow({
                 {/* Accept button */}
                 <button
                   onClick={handleAcceptMission}
-                  className="w-full py-4 rounded-xl text-xs font-black uppercase tracking-widest text-black"
-                  style={{ background: `linear-gradient(135deg, ${rankColor}, ${rankColor}cc)` }}
+                  className="w-full py-4 rounded-xl text-xs font-black uppercase tracking-widest"
+                  style={{
+                    background: 'linear-gradient(135deg, #7EB8D4 0%, #5a9ab5 100%)',
+                    color: '#0a0a14',
+                    boxShadow: '0 4px 20px rgba(126,184,212,0.35), 0 0 0 1px rgba(126,184,212,0.2)',
+                  }}
                 >
                   Accept Mission
                 </button>
