@@ -6,6 +6,11 @@ import { dirname, join } from 'path';
 import { existsSync, readFileSync } from 'fs';
 import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
+import dns from 'dns';
+
+// Force IPv4 DNS resolution — Railway containers don't support IPv6,
+// and Supabase direct DB hosts resolve to IPv6 by default.
+dns.setDefaultResultOrder('ipv4first');
 
 // Import session using createRequire for ES modules
 import { createRequire } from 'module';
