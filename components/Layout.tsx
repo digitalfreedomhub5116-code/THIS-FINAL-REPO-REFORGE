@@ -379,66 +379,86 @@ const Layout: React.FC<LayoutProps> = ({
 
             <div className="flex items-center justify-between px-4 py-2.5 sm:px-6 sm:py-3 max-w-7xl mx-auto relative z-10">
 
-              {/* LEFT: Avatar wrapped around Level Progress Bar */}
+              {/* LEFT: Avatar with Duolingo-style Level Progress Bar */}
               <div className="flex items-center min-w-0 flex-1" ref={profileMenuRef}>
-                <div className="relative flex items-center">
-                  {/* Avatar button — overlaps the left edge of the bar */}
+                <div className="relative flex items-start">
+                  {/* Avatar with ring border */}
                   <button
                     onClick={() => { setShowProfileMenu(v => !v); setShowNotifications(false); }}
                     className="relative flex-shrink-0 focus:outline-none group z-20"
                     aria-label="Profile menu"
                   >
-                    {avatarUrl ? (
-                      <img
-                        src={avatarUrl}
-                        alt={displayName}
-                        className="w-10 h-10 sm:w-11 sm:h-11 rounded-full object-cover border-2 border-[#7EB8D4]/50 shadow-[0_0_16px_rgba(126,184,212,0.25)] group-hover:border-[#7EB8D4]/70 transition-all"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-gradient-to-br from-[#7EB8D4] to-[#5a9ab5] flex items-center justify-center text-white text-base font-black shadow-[0_0_16px_rgba(126,184,212,0.25)] group-hover:shadow-[0_0_20px_rgba(126,184,212,0.4)] transition-all">
-                        {initial}
-                      </div>
-                    )}
-                    <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 border-2 border-black rounded-full z-30" />
-                  </button>
-
-                  {/* Level Progress Bar — extends behind and to the right of the avatar */}
-                  <div
-                    className="relative z-10"
-                    style={{ marginLeft: -14, width: 130 }}
-                  >
-                    {/* Track */}
                     <div
-                      className="relative h-[22px] rounded-full overflow-hidden"
+                      className="rounded-full"
                       style={{
-                        background: 'rgba(255,255,255,0.07)',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.3)',
+                        width: 44, height: 44,
+                        padding: 2,
+                        border: '2.5px solid #7EB8D4',
+                        boxShadow: '0 0 12px rgba(126,184,212,0.2)',
                       }}
                     >
-                      {/* Cyan fill */}
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${levelFillPercent}%` }}
-                        transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
-                        className="absolute top-0 left-0 h-full rounded-full"
+                      {avatarUrl ? (
+                        <img
+                          src={avatarUrl}
+                          alt={displayName}
+                          className="w-full h-full rounded-full object-cover group-hover:brightness-110 transition-all"
+                        />
+                      ) : (
+                        <div className="w-full h-full rounded-full bg-gradient-to-br from-[#7EB8D4] to-[#5a9ab5] flex items-center justify-center text-white text-sm font-black group-hover:brightness-110 transition-all">
+                          {initial}
+                        </div>
+                      )}
+                    </div>
+                  </button>
+
+                  {/* Lv label + thin bar (to the right of avatar, bottom-aligned) */}
+                  <div style={{ marginLeft: -4, paddingTop: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    {/* Level label */}
+                    <span
+                      className="font-mono font-black text-white"
+                      style={{ fontSize: 12, marginLeft: 12, textShadow: '0 1px 4px rgba(0,0,0,0.6)', letterSpacing: '0.02em' }}
+                    >
+                      Lv.{playerLevel}
+                    </span>
+
+                    {/* Bar row with connecting dot */}
+                    <div className="flex items-center">
+                      {/* Connecting dot — visually links avatar ring to bar */}
+                      <div
                         style={{
-                          background: 'linear-gradient(90deg, #5a9ab5 0%, #7EB8D4 40%, #00d4ff 100%)',
-                          boxShadow: '0 0 10px rgba(0,212,255,0.35), 0 0 4px rgba(126,184,212,0.3)',
+                          width: 11, height: 11, borderRadius: '50%',
+                          background: '#7EB8D4',
+                          border: '2.5px solid rgba(6,6,16,0.95)',
+                          flexShrink: 0,
+                          marginRight: -4,
+                          position: 'relative',
+                          zIndex: 5,
+                          boxShadow: '0 0 6px rgba(126,184,212,0.3)',
+                        }}
+                      />
+
+                      {/* Thin progress track */}
+                      <div
+                        style={{
+                          width: 100, height: 10, borderRadius: 999,
+                          background: 'rgba(126,184,212,0.10)',
+                          border: '2.5px solid rgba(126,184,212,0.30)',
+                          overflow: 'hidden',
+                          position: 'relative',
                         }}
                       >
-                        {/* Leading edge glow */}
-                        <div className="absolute right-0 top-0 bottom-0 w-3 bg-white/30 blur-[3px] rounded-full" />
-                      </motion.div>
-
-                      {/* Level label inside bar */}
-                      <div className="absolute inset-0 flex items-center z-10 pointer-events-none" style={{ paddingLeft: 18 }}>
-                        <span
-                          className="font-mono font-black text-white drop-shadow-sm"
-                          style={{ fontSize: 10, letterSpacing: '0.04em', textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}
-                        >
-                          Lv.{playerLevel}
-                        </span>
+                        {/* Cyan fill */}
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${levelFillPercent}%` }}
+                          transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
+                          style={{
+                            position: 'absolute', top: 0, left: 0, height: '100%',
+                            borderRadius: 999,
+                            background: 'linear-gradient(90deg, #5a9ab5 0%, #7EB8D4 40%, #00d4ff 100%)',
+                            boxShadow: '0 0 8px rgba(0,212,255,0.3)',
+                          }}
+                        />
                       </div>
                     </div>
                   </div>
