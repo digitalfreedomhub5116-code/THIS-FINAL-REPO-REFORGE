@@ -1,6 +1,6 @@
-import React, { useMemo } from 'react';
-import { motion } from 'framer-motion';
-import { Plus, Target, Pin, ChevronRight } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Plus, Target, Pin, ChevronRight, ArrowLeft, Calendar, Clock, TrendingUp, Zap, Flame } from 'lucide-react';
 import { Goal, GoalCategory } from '../types';
 
 // ── Category → banner image mapping ──
@@ -25,6 +25,186 @@ const getCategoryColor = (cat: GoalCategory | string): string => {
   return map[cat] || '#7EB8D4';
 };
 
+// ══════════════════════════════════════════════════════════════
+// Goal Details Popup
+// ══════════════════════════════════════════════════════════════
+const GoalDetailsPopup: React.FC<{
+  goal: Goal;
+  onClose: () => void;
+  onGenerateQuests?: (goalId: string) => void;
+}> = ({ goal, onClose, onGenerateQuests }) => {
+  const catColor = getCategoryColor(goal.category);
+  const daysElapsed = Math.max(1, Math.floor((Date.now() - goal.startDate) / 86400000) + 1);
+  const totalDays = goal.totalDurationDays || 60;
+  const currentDay = Math.min(daysElapsed, totalDays);
+  const pct = totalDays > 0 ? Math.min(100, (currentDay / totalDays) * 100) : 0;
+  const currentMilestone = goal.milestones?.[goal.currentMilestone || 0];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center"
+      style={{ background: 'rgba(0,0,0,0.85)' }}
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ y: 60, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 60, opacity: 0 }}
+        className="w-full max-w-md max-h-[85vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl"
+        style={{ background: '#0a0a0f', border: '1px solid rgba(255,255,255,0.06)', marginBottom: 80 }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Banner */}
+        <div className="relative w-full h-32 overflow-hidden rounded-t-3xl">
+          <img
+            src={getCategoryBanner(goal.category)}
+            alt=""
+            className="w-full h-full object-cover"
+            style={{ filter: 'grayscale(100%) brightness(0.35)' }}
+          />
+          <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, transparent 0%, #0a0a0f 100%)' }} />
+          {/* Back button */}
+          <button
+            onClick={onClose}
+            className="absolute top-4 left-4 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-mono font-bold text-gray-300 transition-all hover:bg-white/10"
+            style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.1)' }}
+          >
+            <ArrowLeft size={12} />
+            Back
+          </button>
+          {/* Category tag */}
+          <div
+            className="absolute top-4 right-4 px-2 py-1 rounded-lg text-[8px] font-mono font-bold tracking-widest uppercase"
+            style={{ background: `${catColor}20`, color: catColor, border: `1px solid ${catColor}30` }}
+          >
+            {goal.category}
+          </div>
+        </div>
+
+        <div className="px-5 pb-6 -mt-4">
+          {/* Title + rank */}
+          <h3 className="text-lg font-black text-white leading-tight mb-1">{goal.title}</h3>
+          <div className="flex items-center gap-3 mb-4">
+            <span className="text-[9px] font-mono font-bold" style={{ color: catColor }}>{goal.goalRank}-Rank Mission</span>
+            <span className="text-[9px] font-mono text-gray-600">{goal.successProbability}% odds</span>
+          </div>
+
+          {/* Stats row */}
+          <div className="grid grid-cols-3 gap-2 mb-4">
+            <div className="rounded-xl p-2.5 text-center" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <Calendar size={14} className="mx-auto mb-1" style={{ color: '#7EB8D4' }} />
+              <div className="text-xs font-bold text-white">{totalDays}d</div>
+              <div className="text-[7px] text-gray-600 font-mono uppercase">Duration</div>
+            </div>
+            <div className="rounded-xl p-2.5 text-center" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <Clock size={14} className="mx-auto mb-1" style={{ color: '#7EB8D4' }} />
+              <div className="text-xs font-bold text-white">{goal.dailyCommitmentMin}m</div>
+              <div className="text-[7px] text-gray-600 font-mono uppercase">Per Day</div>
+            </div>
+            <div className="rounded-xl p-2.5 text-center" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <Flame size={14} className="mx-auto mb-1" style={{ color: '#7EB8D4' }} />
+              <div className="text-xs font-bold text-white">{goal.streak || 0}</div>
+              <div className="text-[7px] text-gray-600 font-mono uppercase">Streak</div>
+            </div>
+          </div>
+
+          {/* Progress */}
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[9px] font-mono text-gray-500 uppercase tracking-wider">Progress</span>
+              <span className="text-[10px] font-mono font-bold" style={{ color: catColor }}>Day {currentDay} / {totalDays}</span>
+            </div>
+            <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+              <motion.div
+                className="h-full rounded-full"
+                initial={{ width: 0 }}
+                animate={{ width: `${pct}%` }}
+                transition={{ duration: 1, ease: 'easeOut' }}
+                style={{ background: catColor, boxShadow: `0 0 8px ${catColor}40` }}
+              />
+            </div>
+            <div className="text-right mt-1">
+              <span className="text-[10px] font-mono font-bold" style={{ color: catColor }}>{Math.round(pct)}%</span>
+            </div>
+          </div>
+
+          {/* Current milestone */}
+          {currentMilestone && (
+            <div className="rounded-xl p-3 mb-4" style={{ background: 'rgba(126,184,212,0.05)', border: '1px solid rgba(126,184,212,0.1)' }}>
+              <div className="text-[8px] font-mono text-[#7EB8D4] uppercase tracking-wider mb-1">
+                Phase {currentMilestone.phase} — Current
+              </div>
+              <div className="text-[12px] font-bold text-white mb-0.5">{currentMilestone.title}</div>
+              <div className="text-[10px] text-gray-400 font-mono leading-relaxed">{currentMilestone.description}</div>
+              <div className="text-[8px] text-gray-600 font-mono mt-1.5">
+                Day {currentMilestone.startDay}–{currentMilestone.endDay} • {currentMilestone.targetOutcome}
+              </div>
+            </div>
+          )}
+
+          {/* All milestones */}
+          {goal.milestones && goal.milestones.length > 0 && (
+            <div className="mb-4">
+              <div className="text-[9px] font-mono text-gray-500 uppercase tracking-wider mb-2">All Phases</div>
+              <div className="space-y-1.5">
+                {goal.milestones.map((m, i) => (
+                  <div
+                    key={m.phase}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl"
+                    style={{
+                      background: i === (goal.currentMilestone || 0) ? 'rgba(126,184,212,0.08)' : 'rgba(255,255,255,0.02)',
+                      border: `1px solid ${i === (goal.currentMilestone || 0) ? 'rgba(126,184,212,0.15)' : 'rgba(255,255,255,0.04)'}`,
+                    }}
+                  >
+                    <div
+                      className="w-5 h-5 rounded-md flex items-center justify-center text-[8px] font-black flex-shrink-0"
+                      style={{ background: `${catColor}15`, color: catColor }}
+                    >
+                      {m.phase}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[10px] text-white font-medium truncate">{m.title}</div>
+                      <div className="text-[8px] text-gray-600 font-mono">Day {m.startDay}–{m.endDay}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Reasoning */}
+          {goal.reasoning && (
+            <div className="rounded-xl p-3 mb-4" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
+              <div className="text-[8px] font-mono text-gray-500 uppercase tracking-wider mb-1">AI Assessment</div>
+              <p className="text-[10px] text-gray-400 font-mono leading-relaxed">{goal.reasoning}</p>
+            </div>
+          )}
+
+          {/* Generate Quests button */}
+          {onGenerateQuests && (
+            <motion.button
+              whileTap={{ scale: 0.96 }}
+              onClick={() => onGenerateQuests(goal.id)}
+              className="w-full flex items-center justify-center gap-2.5 py-3 rounded-xl font-bold text-sm tracking-wide transition-all"
+              style={{
+                background: 'linear-gradient(135deg, #7EB8D4 0%, #5a9ab5 100%)',
+                color: '#0a0a14',
+                boxShadow: '0 4px 20px rgba(126,184,212,0.3)',
+              }}
+            >
+              <Zap size={16} />
+              Generate Today's Quests
+            </motion.button>
+          )}
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
 // ── Tilted pinned goal card ──
 const PinnedGoalCard: React.FC<{
   goal: Goal; index: number; onClick?: () => void;
@@ -44,20 +224,31 @@ const PinnedGoalCard: React.FC<{
       transition={{ delay: 0.1 + index * 0.08, duration: 0.5 }}
       whileHover={{ scale: 1.04, rotate: 0 }}
       whileTap={{ scale: 0.97 }}
-      className="relative w-full text-left rounded-xl overflow-hidden"
+      className="relative w-full text-left rounded-xl overflow-visible"
       style={{
         background: '#0d0d18',
         border: '1px solid rgba(255,255,255,0.08)',
         boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
       }}
     >
-      <div className="absolute -top-1 right-3 z-20 w-5 h-5 rounded-full flex items-center justify-center"
-        style={{ background: catColor, boxShadow: `0 2px 8px ${catColor}50` }}>
-        <Pin size={9} className="text-white" style={{ transform: 'rotate(45deg)' }} />
+      {/* Pin icon — CENTERED at top, not cut off */}
+      <div
+        className="absolute z-20 flex items-center justify-center w-6 h-6 rounded-full"
+        style={{
+          top: -10,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: catColor,
+          boxShadow: `0 3px 10px ${catColor}50`,
+        }}
+      >
+        <Pin size={10} className="text-white" style={{ transform: 'rotate(45deg)' }} />
       </div>
-      <div className="relative w-full h-16 overflow-hidden">
+
+      {/* Banner image — 100% B&W */}
+      <div className="relative w-full h-16 overflow-hidden rounded-t-xl">
         <img src={getCategoryBanner(goal.category)} alt="" className="w-full h-full object-cover"
-          style={{ filter: 'brightness(0.5) saturate(0.7)' }} />
+          style={{ filter: 'grayscale(100%) brightness(0.4)' }} />
         <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, transparent 30%, #0d0d18 100%)' }} />
         <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded text-[7px] font-mono font-bold tracking-widest uppercase"
           style={{ background: `${catColor}25`, color: catColor, border: `1px solid ${catColor}40` }}>
@@ -90,20 +281,20 @@ interface GoalHeroSectionProps {
   goals: Goal[];
   onCreateGoal: () => void;
   onGoalTap?: (goalId: string) => void;
+  onGenerateQuests?: (goalId: string) => void;
 }
 
-const GoalHeroSection: React.FC<GoalHeroSectionProps> = ({ goals, onCreateGoal, onGoalTap }) => {
+const GoalHeroSection: React.FC<GoalHeroSectionProps> = ({ goals, onCreateGoal, onGoalTap, onGenerateQuests }) => {
   const activeGoals = useMemo(
     () => (goals || []).filter(g => g.status === 'ACTIVE').slice(0, 6),
     [goals]
   );
+  const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
 
   return (
     <div className="space-y-3">
 
-      {/* ══════════════════════════════════════════════════════════
-          HERO CARD — matches the "Get Rated" layout exactly
-          ══════════════════════════════════════════════════════════ */}
+      {/* ── HERO CARD ── */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -114,40 +305,33 @@ const GoalHeroSection: React.FC<GoalHeroSectionProps> = ({ goals, onCreateGoal, 
           boxShadow: '0 16px 48px rgba(0,0,0,0.6)',
         }}
       >
-        {/* ── Background image (dart) with B&W + dark overlay ── */}
+        {/* Background image — 100% B&W */}
         <div className="relative w-full" style={{ height: 200 }}>
           <img
             src="/goals/hero-dart.png"
             alt=""
             className="w-full h-full object-cover"
-            style={{ filter: 'grayscale(50%) brightness(0.4) contrast(1.15)' }}
+            style={{ filter: 'grayscale(100%) brightness(0.35) contrast(1.15)' }}
           />
-          {/* Heavy bottom shadow for text readability */}
           <div className="absolute inset-0" style={{
             background: 'linear-gradient(180deg, rgba(10,10,20,0.2) 0%, rgba(10,10,20,0.6) 50%, rgba(10,10,20,0.95) 100%)',
           }} />
         </div>
 
-        {/* ── Text overlay — bottom-left aligned like the reference ── */}
+        {/* Text overlay */}
         <div className="absolute bottom-0 left-0 right-0 px-5 pb-5">
-          {/* Subtitle */}
           <div className="text-[10px] font-mono font-bold tracking-[0.2em] uppercase mb-1"
             style={{ color: '#7EB8D4' }}>
             Shadow Mission
           </div>
-
-          {/* Main heading */}
           <h2 className="text-[28px] font-black text-white leading-none mb-2"
             style={{ textShadow: '0 4px 20px rgba(0,0,0,0.8)' }}>
             Create your new goal
           </h2>
-
-          {/* Description */}
           <p className="text-[12px] text-gray-400 leading-relaxed mb-5 max-w-[300px]">
             Set a long-term goal. The system generates daily quests to keep you on track every single day.
           </p>
 
-          {/* ── CTA Button (full width, matches "Start Face Scan" style) ── */}
           <motion.button
             onClick={onCreateGoal}
             whileTap={{ scale: 0.96 }}
@@ -164,11 +348,8 @@ const GoalHeroSection: React.FC<GoalHeroSectionProps> = ({ goals, onCreateGoal, 
         </div>
       </motion.div>
 
-      {/* ══════════════════════════════════════════════════════════
-          BELOW ROW — "Your created goals will appear here" OR pinned goals
-          ══════════════════════════════════════════════════════════ */}
+      {/* ── GOALS SECTION ── */}
       {activeGoals.length === 0 ? (
-        /* Empty state — matches "Generate Your First Report" row */
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -179,24 +360,19 @@ const GoalHeroSection: React.FC<GoalHeroSectionProps> = ({ goals, onCreateGoal, 
             border: '1px solid rgba(255,255,255,0.06)',
           }}
         >
-          {/* Icon */}
           <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
             style={{ background: 'rgba(126,184,212,0.1)', border: '1px solid rgba(126,184,212,0.15)' }}>
             <Target size={18} style={{ color: '#7EB8D4' }} />
           </div>
-
-          {/* Text */}
           <div className="flex-1 min-w-0">
             <div className="text-[13px] font-bold text-white/90">Your created goals will appear here</div>
             <div className="text-[11px] text-gray-500 font-mono">Create a goal to get started</div>
           </div>
-
           <ChevronRight size={16} className="text-gray-600 flex-shrink-0" />
         </motion.div>
       ) : (
-        /* Active goals — pinned cards */
         <div>
-          <div className="flex items-center gap-1.5 mb-2.5 px-1">
+          <div className="flex items-center gap-1.5 mb-3 px-1">
             <Pin size={10} className="text-[#7EB8D4]" style={{ transform: 'rotate(45deg)' }} />
             <span className="text-[9px] font-mono font-bold tracking-[0.2em] text-gray-500 uppercase">
               Active Goals
@@ -205,14 +381,45 @@ const GoalHeroSection: React.FC<GoalHeroSectionProps> = ({ goals, onCreateGoal, 
               {activeGoals.length} pinned
             </span>
           </div>
-          <div className="grid grid-cols-2 gap-3 px-1">
+          {/* Extra top padding so centered pins aren't cut */}
+          <div className="grid grid-cols-2 gap-3 px-1 pt-3">
             {activeGoals.map((goal, i) => (
               <PinnedGoalCard key={goal.id} goal={goal} index={i}
-                onClick={() => onGoalTap?.(goal.id)} />
+                onClick={() => setSelectedGoal(goal)} />
             ))}
           </div>
+
+          {/* Generate Quests button */}
+          <motion.button
+            whileTap={{ scale: 0.96 }}
+            onClick={() => {
+              if (activeGoals.length > 0 && onGenerateQuests) {
+                onGenerateQuests(activeGoals[0].id);
+              }
+            }}
+            className="w-full flex items-center justify-center gap-2 mt-4 py-2.5 rounded-xl font-mono font-bold text-[11px] tracking-wider uppercase transition-all"
+            style={{
+              background: 'rgba(126,184,212,0.08)',
+              border: '1px solid rgba(126,184,212,0.2)',
+              color: '#7EB8D4',
+            }}
+          >
+            <Zap size={14} />
+            Generate Today's Quests
+          </motion.button>
         </div>
       )}
+
+      {/* ── Goal Details Popup ── */}
+      <AnimatePresence>
+        {selectedGoal && (
+          <GoalDetailsPopup
+            goal={selectedGoal}
+            onClose={() => setSelectedGoal(null)}
+            onGenerateQuests={onGenerateQuests}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };

@@ -4303,135 +4303,36 @@ const App: React.FC = () => {
 
 
         {/* Main content wrapper with swipe-to-change-tab */}
-
         <div
-
           onTouchStart={handleSwipeTouchStart}
-
           onTouchEnd={handleSwipeTouchEnd}
-
           style={{ minHeight: 0 }}
-
         >
-
         <AnimatePresence mode="wait">
 
-
-
           {/* ── DASHBOARD ── */}
-
           {activeTab === 'DASHBOARD' && (
-
             <motion.div
-
               key="dashboard"
-
               initial={{ opacity: 0 }}
-
               animate={{ opacity: 1 }}
-
               exit={{ opacity: 0 }}
-
               className="space-y-6 md:space-y-8"
-
-            >
-
-              {/* Player Status Card (replaces HunterCommandDeck & HunterGrowthTerminal) */}
-
-              <Suspense fallback={<SkeletonStatsChart />}>
-
-                <ErrorBoundary fallbackLabel="Status card failed">
-
-                  <PlayerStatusCard
-
-                    player={player}
-
-                    equippedOutfit={dbOutfits.find(o => o.id === player.equippedOutfitId) || OUTFITS.find(o => o.id === player.equippedOutfitId)}
-
-                    mentorMessages={mentorMessages}
-
-                    onDismissMentorMessage={(id) => setMentorMessages(prev => prev.filter(m => m.id !== id))}
-
-                    history={player.history || []}
-
-                    onOpenDuskChat={() => setShowDuskChat(true)}
-
-                  />
-
-                </ErrorBoundary>
-
-              </Suspense>
-
-              {/* ── Goal Hero + Pinned Goals ── */}
+            >              {/* ── 1. Goal Hero + Pinned Goals (TOP) ── */}
               <Suspense fallback={null}>
                 <ErrorBoundary fallbackLabel="Goals failed">
                   <GoalHeroSection
                     goals={player.goals || []}
                     onCreateGoal={() => setShowGoalCreate(true)}
+                    onGenerateQuests={(goalId) => {
+                      const el = document.getElementById('daily-command-center');
+                      if (el) el.scrollIntoView({ behavior: 'smooth' });
+                    }}
                   />
                 </ErrorBoundary>
               </Suspense>
 
-
-
-
-              {/* ── 2-col responsive grid for mid-section cards ── */}
-
-              <div className="responsive-grid-2">
-
-
-
-              {/* XP Level Progress */}
-
-              <div className="responsive-full-span">
-
-              <Suspense fallback={<SkeletonLevelProgress />}>
-
-                <ErrorBoundary fallbackLabel="Level progress failed">
-
-                  <LevelProgressCard
-
-                    level={player.level}
-
-                    currentXP={player.currentXp}
-
-                    maxXP={player.requiredXp}
-
-                    xpBuff={(() => {
-
-                      const TIER_SIZE = 40;
-
-                      const vals = [player.stats.strength, player.stats.intelligence, player.stats.focus, player.stats.discipline, player.stats.willpower, player.stats.social];
-
-                      const minTier = Math.min(...vals.map(v => {
-
-                        const c = Math.max(0, Math.min(v || 0, 200));
-
-                        return c >= 200 ? 5 : Math.min(5, Math.floor(c / TIER_SIZE) + 1);
-
-                      }));
-
-                      return ({ 1: 0, 2: 10, 3: 30, 4: 50, 5: 100 } as Record<number,number>)[minTier] || 0;
-
-                    })()}
-
-                  />
-
-                </ErrorBoundary>
-
-              </Suspense>
-
-              </div>
-
-
-
-
-
-
-              </div>{/* end responsive-grid-2 */}
-
-
-              {/* ── Quests & Goals (moved from QUESTS tab) ── */}
+              {/* ── 2. Daily Quests ── */}
               <div id="daily-command-center">
               <Suspense fallback={<SkeletonQuestsPage />}>
                 <ErrorBoundary fallbackLabel="Quests failed to load">
@@ -4462,12 +4363,45 @@ const App: React.FC = () => {
                   />
                 </ErrorBoundary>
               </Suspense>
-              </div>{/* end daily-command-center */}
+              </div>
+
+              {/* ── 3. XP Level Progress (BOTTOM AREA) ── */}
+              <Suspense fallback={<SkeletonLevelProgress />}>
+                <ErrorBoundary fallbackLabel="Level progress failed">
+                  <LevelProgressCard
+                    level={player.level}
+                    currentXP={player.currentXp}
+                    maxXP={player.requiredXp}
+                    xpBuff={(() => {
+                      const TIER_SIZE = 40;
+                      const vals = [player.stats.strength, player.stats.intelligence, player.stats.focus, player.stats.discipline, player.stats.willpower, player.stats.social];
+                      const minTier = Math.min(...vals.map(v => {
+                        const c = Math.max(0, Math.min(v || 0, 200));
+                        return c >= 200 ? 5 : Math.min(5, Math.floor(c / TIER_SIZE) + 1);
+                      }));
+                      return ({ 1: 0, 2: 10, 3: 30, 4: 50, 5: 100 } as Record<number,number>)[minTier] || 0;
+                    })()}
+                  />
+                </ErrorBoundary>
+              </Suspense>
+
+              {/* ── 4. System Mana + ForgeGuard (VERY BOTTOM) ── */}
+              <Suspense fallback={<SkeletonStatsChart />}>
+                <ErrorBoundary fallbackLabel="Status card failed">
+                  <PlayerStatusCard
+                    player={player}
+                    equippedOutfit={dbOutfits.find(o => o.id === player.equippedOutfitId) || OUTFITS.find(o => o.id === player.equippedOutfitId)}
+                    mentorMessages={mentorMessages}
+                    onDismissMentorMessage={(id) => setMentorMessages(prev => prev.filter(m => m.id !== id))}
+                    history={player.history || []}
+                    onOpenDuskChat={() => setShowDuskChat(true)}
+                  />
+                </ErrorBoundary>
+              </Suspense>
 
             </motion.div>
 
           )}
-
 
 
 
