@@ -324,18 +324,8 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
   }, [currentIdx, currentSet, timeLeft, phase, results, anomalyPoints, plan.day, player.userId]);
 
   const confirmQuit = () => {
-    // Save session so user can resume later instead of losing progress
-    saveWorkoutSession({
-      currentIdx,
-      currentSet,
-      timeLeft,
-      phase,
-      results,
-      anomalyPoints,
-      planDay: plan.day,
-      timestamp: Date.now(),
-    }, player.userId || 'local');
-    SpeechService.announceFailure();
+    // Clear the saved session so there's no resume prompt later
+    clearWorkoutSession(player.userId || 'local');
     onFail();
   };
 
@@ -676,27 +666,27 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
                     initial={{ scale: 0.9, opacity: 0 }} 
                     animate={{ scale: 1, opacity: 1 }} 
                     exit={{ scale: 0.9, opacity: 0 }} 
-                    className="bg-[#0a0a0a] border border-red-900/50 w-full max-w-sm rounded-2xl p-6 text-center shadow-[0_0_50px_rgba(220,38,38,0.2)]"
+                    className="bg-[#0a0a0a] border border-gray-700/50 w-full max-w-sm rounded-2xl p-6 text-center shadow-[0_0_50px_rgba(0,0,0,0.4)]"
                  >
-                    <div className="w-16 h-16 bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-900/50">
-                        <AlertOctagon size={32} className="text-red-500" />
+                    <div className="w-16 h-16 bg-gray-800/50 rounded-full flex items-center justify-center mx-auto mb-4 border border-gray-700/50">
+                        <X size={32} className="text-gray-400" />
                     </div>
-                    <h2 className="text-xl font-bold text-white mb-2 font-mono">ABORT MISSION?</h2>
-                    <p className="text-xs text-red-400 font-mono mb-8 leading-relaxed">
-                        WARNING: Leaving the instance early will result in a penalty. XP will be deducted and your streak may be broken.
+                    <h2 className="text-xl font-bold text-white mb-2 font-mono">END WORKOUT?</h2>
+                    <p className="text-xs text-gray-400 font-mono mb-8 leading-relaxed">
+                        Your current session will end. You can start a fresh workout anytime.
                     </p>
                     <div className="flex flex-col gap-3">
                        <button 
                            onClick={() => setShowQuitConfirm(false)} 
-                           className="w-full py-4 rounded-xl bg-gray-800 text-white font-bold text-sm hover:bg-gray-700 transition-colors"
+                           className="w-full py-4 rounded-xl bg-system-neon text-black font-bold text-sm hover:bg-white transition-colors"
                        >
-                           RESUME PROTOCOL
+                           CONTINUE WORKOUT
                        </button>
                        <button 
                            onClick={confirmQuit} 
-                           className="w-full py-4 rounded-xl bg-transparent border border-red-900/50 text-red-500 font-bold text-sm hover:bg-red-900/10 transition-colors"
+                           className="w-full py-4 rounded-xl bg-transparent border border-gray-700 text-gray-400 font-bold text-sm hover:bg-gray-900 transition-colors"
                        >
-                           ACCEPT PENALTY & QUIT
+                           END SESSION
                        </button>
                     </div>
                  </motion.div>

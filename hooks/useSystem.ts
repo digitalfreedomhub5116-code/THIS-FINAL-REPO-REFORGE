@@ -1850,7 +1850,7 @@ export const useSystem = () => {
   };
 
   const failWorkout = () => {
-    addNotification('Workout Aborted. No Rewards.', 'WARNING');
+    // Silent abort — no penalty, no notification
   };
 
   const advanceTutorial = (step: number) => {
