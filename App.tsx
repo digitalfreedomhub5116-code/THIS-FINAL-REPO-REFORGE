@@ -185,6 +185,8 @@ const DuskFloatingPill = lazy(() => import('./components/DuskFloatingPill'));
 
 const DashboardView = lazy(() => import('./components/DashboardView'));
 
+const GoalHeroSection = lazy(() => import('./components/GoalHeroSection'));
+
 const RankUpCinematic = lazy(() => import('./components/RankUpCinematic'));
 
 const SystemPactScreen = lazy(() => import('./components/SystemPactScreen'));
@@ -4342,9 +4344,18 @@ const App: React.FC = () => {
 
               </Suspense>
 
-
-
-
+              {/* ── Goal Hero + Pinned Goals ── */}
+              <Suspense fallback={null}>
+                <ErrorBoundary fallbackLabel="Goals failed">
+                  <GoalHeroSection
+                    goals={player.goals || []}
+                    onCreateGoal={() => {
+                      const el = document.getElementById('daily-command-center');
+                      if (el) el.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                  />
+                </ErrorBoundary>
+              </Suspense>
 
 
 
@@ -4406,6 +4417,7 @@ const App: React.FC = () => {
 
 
               {/* ── Quests & Goals (moved from QUESTS tab) ── */}
+              <div id="daily-command-center">
               <Suspense fallback={<SkeletonQuestsPage />}>
                 <ErrorBoundary fallbackLabel="Quests failed to load">
                   <DailyCommandCenter
@@ -4435,6 +4447,7 @@ const App: React.FC = () => {
                   />
                 </ErrorBoundary>
               </Suspense>
+              </div>{/* end daily-command-center */}
 
             </motion.div>
 
