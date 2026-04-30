@@ -4295,6 +4295,8 @@ const App: React.FC = () => {
 
         gold={player.gold}
 
+        currentXp={player.currentXp}
+        requiredXp={player.requiredXp}
 
         consumables={player.consumables}
 

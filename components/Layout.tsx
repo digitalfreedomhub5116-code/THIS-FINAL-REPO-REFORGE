@@ -69,6 +69,8 @@ interface LayoutProps {
   playerRank?: string;
   streak?: number;
   gold?: number;
+  currentXp?: number;
+  requiredXp?: number;
 
   consumables?: Record<string, never>;
   replitUser?: ReplitUser;
@@ -109,6 +111,8 @@ const Layout: React.FC<LayoutProps> = ({
   playerUsername,
   streak = 0,
   gold = 0,
+  currentXp = 0,
+  requiredXp = 100,
 
   consumables,
   replitUser,
@@ -138,6 +142,7 @@ const Layout: React.FC<LayoutProps> = ({
   const displayName = playerUsername || playerName || replitUser?.firstName || 'Hunter';
   const avatarUrl = playerAvatarUrl || replitUser?.profileImageUrl;
   const initial = (playerName || displayName).charAt(0).toUpperCase();
+  const levelFillPercent = Math.min(100, (currentXp / Math.max(1, requiredXp)) * 100);
 
   const notifTypeColor: Record<string, string> = {
     SUCCESS: 'text-green-400',
@@ -374,27 +379,69 @@ const Layout: React.FC<LayoutProps> = ({
 
             <div className="flex items-center justify-between px-4 py-2.5 sm:px-6 sm:py-3 max-w-7xl mx-auto relative z-10">
 
-              {/* LEFT: Avatar + Greeting + Username */}
-              <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1" ref={profileMenuRef}>
-                <div className="relative">
+              {/* LEFT: Avatar wrapped around Level Progress Bar */}
+              <div className="flex items-center min-w-0 flex-1" ref={profileMenuRef}>
+                <div className="relative flex items-center">
+                  {/* Avatar button — overlaps the left edge of the bar */}
                   <button
                     onClick={() => { setShowProfileMenu(v => !v); setShowNotifications(false); }}
-                    className="relative flex-shrink-0 focus:outline-none group"
+                    className="relative flex-shrink-0 focus:outline-none group z-20"
                     aria-label="Profile menu"
                   >
                     {avatarUrl ? (
                       <img
                         src={avatarUrl}
                         alt={displayName}
-                        className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border-2 border-[#7EB8D4]/40 shadow-[0_0_16px_rgba(126,184,212,0.25)] group-hover:border-[#7EB8D4]/70 transition-all"
+                        className="w-10 h-10 sm:w-11 sm:h-11 rounded-full object-cover border-2 border-[#7EB8D4]/50 shadow-[0_0_16px_rgba(126,184,212,0.25)] group-hover:border-[#7EB8D4]/70 transition-all"
                       />
                     ) : (
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-[#7EB8D4] to-[#7EB8D4] flex items-center justify-center text-white text-base sm:text-lg font-black shadow-[0_0_16px_rgba(126,184,212,0.25)] group-hover:shadow-[0_0_20px_rgba(126,184,212,0.4)] transition-all">
+                      <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-gradient-to-br from-[#7EB8D4] to-[#5a9ab5] flex items-center justify-center text-white text-base font-black shadow-[0_0_16px_rgba(126,184,212,0.25)] group-hover:shadow-[0_0_20px_rgba(126,184,212,0.4)] transition-all">
                         {initial}
                       </div>
                     )}
-                    <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 border-2 border-black rounded-full" />
+                    <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 border-2 border-black rounded-full z-30" />
                   </button>
+
+                  {/* Level Progress Bar — extends behind and to the right of the avatar */}
+                  <div
+                    className="relative z-10"
+                    style={{ marginLeft: -14, width: 130 }}
+                  >
+                    {/* Track */}
+                    <div
+                      className="relative h-[22px] rounded-full overflow-hidden"
+                      style={{
+                        background: 'rgba(255,255,255,0.07)',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.3)',
+                      }}
+                    >
+                      {/* Cyan fill */}
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${levelFillPercent}%` }}
+                        transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
+                        className="absolute top-0 left-0 h-full rounded-full"
+                        style={{
+                          background: 'linear-gradient(90deg, #5a9ab5 0%, #7EB8D4 40%, #00d4ff 100%)',
+                          boxShadow: '0 0 10px rgba(0,212,255,0.35), 0 0 4px rgba(126,184,212,0.3)',
+                        }}
+                      >
+                        {/* Leading edge glow */}
+                        <div className="absolute right-0 top-0 bottom-0 w-3 bg-white/30 blur-[3px] rounded-full" />
+                      </motion.div>
+
+                      {/* Level label inside bar */}
+                      <div className="absolute inset-0 flex items-center z-10 pointer-events-none" style={{ paddingLeft: 18 }}>
+                        <span
+                          className="font-mono font-black text-white drop-shadow-sm"
+                          style={{ fontSize: 10, letterSpacing: '0.04em', textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}
+                        >
+                          Lv.{playerLevel}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
 
                   {/* Profile dropdown */}
                   <AnimatePresence>
@@ -436,15 +483,6 @@ const Layout: React.FC<LayoutProps> = ({
                       </motion.div>
                     )}
                   </AnimatePresence>
-                </div>
-
-                <div className="min-w-0">
-                  <div className="hidden sm:block text-[10px] text-gray-500 font-medium tracking-widest leading-none mb-0.5 uppercase">Hello</div>
-                  <div className="flex items-center gap-1.5">
-                    <div className="font-heading font-extrabold text-sm sm:text-base leading-none tracking-tight truncate max-w-[100px] sm:max-w-[160px] uppercase" style={{ color: 'var(--color-text-heading)' }}>
-                      {displayName}
-                    </div>
-                  </div>
                 </div>
               </div>
 
