@@ -549,7 +549,7 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
   return (
     <>
       {/* FABs */}
-      <div className="fixed right-4 z-[80] flex flex-col gap-3.5 md:hidden" style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 6.5rem)' }}>
+      <div className="fixed right-4 z-[80] flex flex-col gap-3.5 md:hidden" style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 5.5rem)' }}>
 
         {/* Dusk Chat FAB — 3D icon with floating + notification */}
         {onOpenDuskChat && (
@@ -574,11 +574,12 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
               <span className="absolute inset-[-3px] rounded-full border-[2.5px] border-blue-400/50" style={{
                 animation: 'duskRingPulse 3s ease-in-out infinite',
               }} />
-              {/* 3D Chat Icon */}
+              {/* 3D Chat Icon — 50% B&W */}
               <img
                 src="/images/ui/dusk-chat-icon.png"
                 alt="Dusk Chat"
                 className="w-full h-full object-cover rounded-full"
+                style={{ filter: 'grayscale(50%)' }}
               />
             </button>
             {/* Unread notification pip */}
@@ -592,41 +593,6 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
             )}
           </motion.div>
         )}
-
-        {/* Chest FAB — notification pip floats with the button */}
-        <motion.div
-          className="relative"
-          initial={{ x: 100, opacity: 0 }}
-          animate={{ x: 0, opacity: 1, y: [0, -8, 0] }}
-          transition={{
-            x: { type: 'spring', stiffness: 200, damping: 20, delay: 0.5 },
-            opacity: { duration: 0.5, delay: 0.5 },
-            y: { duration: 3, repeat: Infinity, ease: 'easeInOut', delay: 0.5 },
-          }}
-        >
-          <button
-            onClick={() => setActiveModal('REWARDS')}
-            className="w-10 h-10 bg-black/40 backdrop-blur-md border border-[#7EB8D4]/40 rounded-full flex items-center justify-center active:scale-90 transition-all relative overflow-hidden"
-          >
-            {!isChestLoaded && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-6 h-6 bg-[#7EB8D4]/20 rounded-full animate-pulse" />
-              </div>
-            )}
-            <img
-              src="/images/ui/chest-icon.png"
-              alt="Chest"
-              className={`w-full h-full object-cover transition-opacity duration-500 ${isChestLoaded ? 'opacity-100' : 'opacity-0'}`}
-              onLoad={() => setIsChestLoaded(true)}
-            />
-          </button>
-          {isDailyReady && (
-            <span className="pointer-events-none absolute -top-0.5 -right-0.5 flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 bg-red-500" />
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.8)]" />
-            </span>
-          )}
-        </motion.div>
 
       </div>
 
