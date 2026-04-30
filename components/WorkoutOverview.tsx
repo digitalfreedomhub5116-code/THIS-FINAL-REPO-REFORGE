@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
-import { Clock, Flame, Dumbbell, Activity, HeartPulse, Fingerprint, ScanLine, Video, AlertTriangle, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { Clock, Flame, Dumbbell, Activity, HeartPulse, Fingerprint, ScanLine, Video, AlertTriangle, ChevronRight, CheckCircle2, X } from 'lucide-react';
 import { WorkoutDay, Exercise } from '../types';
 import { isEmbed } from '../hooks/useSystem';
 import { EXERCISE_VIDEOS, fixVideoPath } from '../lib/exerciseVideos';
