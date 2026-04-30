@@ -9,6 +9,7 @@ import { getPlayerAuthHeaders } from '../lib/playerApi';
 import { clearAuthNative } from '../lib/nativeAuth';
 import { REWARD_SCHEDULE } from '../lib/rewards';
 import { API_BASE } from '../lib/apiConfig';
+import { initEconomyForUser, clearEconomySession } from '../utils/storeEconomy';
 import { fixVideoPath } from '../lib/exerciseVideos';
 import { OUTFITS, getOutfitXpBoost, getStoneConfig, getUnlockedBadgeCount, BADGE_TIERS } from '../utils/gameData';
 import { scheduleQuestDeadline, cancelDailyReminders } from './useLocalNotifications';
@@ -196,6 +197,10 @@ const getActiveUserScope = (): string => {
 function loadFromStorage(): PlayerData {
   try {
     const scope = getActiveUserScope();
+    // Scope economy to this user immediately on app load
+    if (scope && scope !== 'local') {
+      initEconomyForUser(scope);
+    }
     const saved = localStorage.getItem(`reforge_player_v2_${scope}`);
     if (!saved) return DEFAULT_PLAYER;
     const parsed = JSON.parse(saved) as Partial<PlayerData>;
@@ -759,6 +764,11 @@ export const useSystem = () => {
       const incomingUserId = (profile.id as string) || '';
       const isUserSwitch = !!(prev.userId && incomingUserId && prev.userId !== incomingUserId);
 
+      // ── Scope economy (banners/borders/themes) to this user ──
+      if (incomingUserId) {
+        initEconomyForUser(incomingUserId);
+      }
+
       // ── Union helper: merge unlockedOutfits (additive — never lose a purchase) ──
       const mergedUnlockedOutfits: string[] = isUserSwitch
         ? (cloudData.unlockedOutfits || ['outfit_starter'])   // switching user: server only, no bleed
@@ -829,6 +839,7 @@ export const useSystem = () => {
       await fetch(`${API_BASE}/api/auth/local/logout`, { method: 'POST', credentials: 'include' });
     } catch { /* ignore */ }
     localStorage.removeItem(`reforge_player_v2_${player.userId || 'local'}`);
+    clearEconomySession(); // Clear per-user economy session
     clearAuthNative(); // Clear JWT from both localStorage and native Preferences
     window.location.reload();
   };

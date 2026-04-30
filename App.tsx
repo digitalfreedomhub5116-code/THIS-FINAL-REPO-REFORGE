@@ -69,6 +69,7 @@ import { DAILY_REWARDS_ENABLED } from './lib/rewards';
 import { getPlayerAuthHeaders, getOrRefreshPlayerHeaders } from './lib/playerApi';
 
 import { saveAuthNative, clearAuthNative } from './lib/nativeAuth';
+import { clearEconomySession } from './utils/storeEconomy';
 
 import { Terminal } from 'lucide-react';
 
@@ -4857,6 +4858,8 @@ const App: React.FC = () => {
               const prevPlayer = { ...player };
 
               clearAuthNative();
+
+              clearEconomySession(); // Clear per-user economy on logout
 
               localStorage.removeItem('reforge_player_v2');
 
