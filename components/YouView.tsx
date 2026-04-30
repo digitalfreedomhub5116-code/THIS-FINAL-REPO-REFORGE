@@ -10,6 +10,8 @@ import { PlayerData, HealthProfile, Outfit, Tab, Rank, CoreStats } from '../type
 import AnimatedBorder from './AnimatedBorder';
 import RankBadge from './RankBadge';
 import type { RankType } from './RankBadge';
+import { getItemById } from '../utils/storeItems';
+import { getEconomy } from '../utils/storeEconomy';
 
 // Lazy-load the existing ProfileView — reused as the Config/Logs/More drawer
 const ProfileView = lazy(() => import('./ProfileView'));
@@ -43,109 +45,181 @@ interface YouViewProps {
 
 
 
-// ─── Avatar hero zone ────────────────────────────────────────────────
-const AvatarHero: React.FC<{
+// ─── Mini circular stat ring ─────────────────────────────────────────
+const StatCircle: React.FC<{
+  label: string; value: number; max: number; color: string; icon: React.ReactNode; delay: number;
+}> = ({ label, value, max, color, icon, delay }) => {
+  const pct = Math.min(100, (value / max) * 100);
+  const r = 18; const circ = 2 * Math.PI * r;
+  const offset = circ - (pct / 100) * circ;
+  return (
+    <motion.div
+      className="flex flex-col items-center gap-0.5"
+      initial={{ opacity: 0, scale: 0.7 }} animate={{ opacity: 1, scale: 1 }}
+      transition={{ delay, duration: 0.4 }}
+    >
+      <div className="relative w-11 h-11">
+        <svg className="w-full h-full -rotate-90" viewBox="0 0 44 44">
+          <circle cx="22" cy="22" r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="3" />
+          <motion.circle
+            cx="22" cy="22" r={r} fill="none" stroke={color} strokeWidth="3"
+            strokeLinecap="round" strokeDasharray={circ} initial={{ strokeDashoffset: circ }}
+            animate={{ strokeDashoffset: offset }}
+            transition={{ delay: delay + 0.2, duration: 0.8, ease: 'easeOut' }}
+          />
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center" style={{ color }}>
+          {icon}
+        </div>
+      </div>
+      <div className="text-[8px] font-mono font-bold tracking-wider text-gray-500">{label}</div>
+      <div className="text-[9px] font-mono font-black" style={{ color }}>{Math.floor(value)}</div>
+    </motion.div>
+  );
+};
+
+// ─── Profile hero: Banner + Avatar + Stats + Forge Score ─────────────
+const ProfileHero: React.FC<{
   player: PlayerData;
-  outfit?: Outfit;
   onRankTap: () => void;
-}> = ({ player, outfit, onRankTap }) => {
-  const loopRef = useRef<HTMLVideoElement>(null);
-  const [videoFailed, setVideoFailed] = useState(false);
-  const accent = outfit?.accentColor || '#9ca3af';
-  const loopUrl = outfit?.loopVideoUrl;
-  const fallbackImg = outfit?.image;
+}> = ({ player, onRankTap }) => {
+  const economy = getEconomy();
+  const borderItemId = economy.equipped.border;
+  const bannerItemId = economy.equipped.banner;
+  const bannerItem = bannerItemId ? getItemById(bannerItemId) : null;
+  const bannerSrc = bannerItem?.bannerImage || '/banners/default.jpg';
   const rankColor = RANK_LADDER.find(r => r.rank === player.rank)?.color || '#9ca3af';
 
-  // Force play on mount (autoplay may be blocked without user gesture on some browsers)
-  useEffect(() => {
-    const v = loopRef.current;
-    if (!v || !loopUrl) return;
-    setVideoFailed(false);
-    const tryPlay = () => v.play().catch(() => { /* keep showing poster; no fallback switch */ });
-    if (v.readyState >= 2) tryPlay();
-    else v.addEventListener('loadeddata', tryPlay, { once: true });
-    return () => v.removeEventListener('loadeddata', tryPlay);
-  }, [loopUrl]);
+  const stats = player.stats || {} as CoreStats;
+  const statValues = [
+    stats.strength || 0, stats.intelligence || 0, stats.discipline || 0,
+    stats.social || 0, stats.focus || 0, stats.willpower || 0,
+  ];
+  const forgeScore = Math.floor(statValues.reduce((a, b) => a + b, 0) / 6);
+  const maxStat = 200;
 
-  const mediaStyle: React.CSSProperties = {
-    objectFit: 'cover',
-    objectPosition: 'center top',
-  };
+  const STATS_RING = [
+    { key: 'STR', value: stats.strength || 0, icon: <Dumbbell size={11} />, color: '#f87171' },
+    { key: 'INT', value: stats.intelligence || 0, icon: <Brain size={11} />, color: '#818cf8' },
+    { key: 'DIS', value: stats.discipline || 0, icon: <Shield size={11} />, color: '#7EB8D4' },
+    { key: 'SOC', value: stats.social || 0, icon: <Users size={11} />, color: '#fbbf24' },
+    { key: 'FOC', value: stats.focus || 0, icon: <Target size={11} />, color: '#06b6d4' },
+    { key: 'WIL', value: stats.willpower || 0, icon: <Zap size={11} />, color: '#ec4899' },
+  ];
 
   return (
-    <div className="relative w-full overflow-hidden rounded-2xl" style={{ aspectRatio: '3 / 4', background: '#000' }}>
-      {/* Accent radial glow (behind avatar) */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{ background: `radial-gradient(ellipse 55% 50% at 50% 45%, ${accent}22 0%, transparent 65%)` }}
-      />
-
-      {/* Loop video — waist-up cropped */}
-      {loopUrl && !videoFailed && (
-        <video
-          ref={loopRef}
-          src={loopUrl}
-          muted
-          playsInline
-          loop
-          autoPlay
-          preload="auto"
-          className="absolute inset-0 w-full h-full"
-          style={mediaStyle}
-          onError={() => setVideoFailed(true)}
-        />
-      )}
-
-      {/* Static fallback */}
-      {(!loopUrl || videoFailed) && fallbackImg && (
-        <img
-          src={fallbackImg}
-          alt={outfit?.name || 'avatar'}
-          className="absolute inset-0 w-full h-full"
-          style={mediaStyle}
-        />
-      )}
-
-      {/* Empty state */}
-      {!loopUrl && !fallbackImg && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-24 h-24 rounded-full border-2 border-dashed border-white/20 flex items-center justify-center">
-            <UserIcon size={32} className="text-white/30" />
+    <div className="relative" style={{ marginBottom: 16 }}>
+      {/* ── Banner ── */}
+      <div className="relative w-full overflow-hidden" style={{ height: 200, borderRadius: '0 0 16px 16px', background: '#000' }}>
+        <img src={bannerSrc} alt="" className="w-full h-full object-cover" style={{ objectPosition: 'center 40%' }} />
+        <div className="absolute bottom-0 left-0 right-0 pointer-events-none" style={{ height: 120, background: 'linear-gradient(to top, rgba(5,5,10,0.95) 0%, transparent 100%)' }} />
+        {/* Name — bottom left */}
+        <div className="absolute bottom-3 left-4 z-10" style={{ maxWidth: 'calc(50% - 60px)' }}>
+          <div className="text-white font-bold text-lg leading-tight truncate" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.8)' }}>
+            {player.name || 'Player'}
           </div>
+          {player.username && (
+            <div className="text-[11px] font-mono text-gray-400 truncate mt-0.5" style={{ textShadow: '0 2px 10px rgba(0,0,0,0.9)' }}>
+              @{player.username}
+            </div>
+          )}
         </div>
-      )}
-
-      {/* Bottom gradient fade for text readability */}
-      <div className="absolute bottom-0 left-0 right-0 h-28 pointer-events-none" style={{ background: 'linear-gradient(to top, rgba(5,5,10,0.95) 0%, transparent 100%)' }} />
-
-      {/* Name + title — bottom-left, compact */}
-      <div className="absolute bottom-4 left-4 right-20 z-10">
-        <div className="text-white font-bold text-lg leading-tight truncate" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.8)' }}>
-          {player.name || 'Player'}
-        </div>
-        {player.username && (
-          <div className="text-[11px] font-mono text-gray-400 truncate mt-0.5" style={{ textShadow: '0 2px 10px rgba(0,0,0,0.9)' }}>
-            @{player.username}
-          </div>
-        )}
-        {(player.title || player.job) && (
-          <div className="text-[10px] font-mono tracking-wide truncate mt-1" style={{ color: accent, textShadow: '0 2px 10px rgba(0,0,0,0.9)' }}>
-            {player.title || player.job}
-          </div>
-        )}
+        {/* Rank badge — bottom right */}
+        <button onClick={onRankTap} className="absolute bottom-2 right-3 z-10" aria-label="View rank">
+          <RankBadge rank={(player.rank || 'E') as RankType} size={48} animated showLabel />
+        </button>
       </div>
 
-      {/* Rank emblem — bottom-right, tappable */}
-      <button
-        onClick={onRankTap}
-        className="absolute bottom-3 right-3 z-10 flex flex-col items-center gap-0.5 group"
-        aria-label="View rank progression"
-      >
-        <RankBadge rank={(player.rank || 'E') as RankType} size={56} animated showLabel />
-      </button>
+      {/* ── Centered Avatar with border — overlapping banner bottom ── */}
+      <div className="absolute z-20" style={{ bottom: -44, left: '50%', transform: 'translateX(-50%)' }}>
+        <AnimatedBorder borderId={borderItemId || player.equippedBorder} compact className="rounded-full" style={{ boxShadow: '0 0 20px rgba(0,0,0,0.8)' }}>
+          <div className="w-[88px] h-[88px] rounded-full overflow-hidden bg-[#1a1a2e] flex items-center justify-center">
+            {player.avatarUrl ? (
+              <img src={player.avatarUrl} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <UserIcon size={32} className="text-gray-400" />
+            )}
+          </div>
+        </AnimatedBorder>
+      </div>
+
+      {/* ── Spacer for avatar overlap ── */}
+      <div style={{ height: 52 }} />
+
+      {/* ── 6 Stat Circles in a row ── */}
+      <div className="flex justify-center gap-3 px-4 mt-2">
+        {STATS_RING.map((s, i) => (
+          <StatCircle key={s.key} label={s.key} value={s.value} max={maxStat} color={s.color} icon={s.icon} delay={0.1 + i * 0.06} />
+        ))}
+      </div>
+
+      {/* ── Forge Score ── */}
+      <div className="flex flex-col items-center mt-4">
+        <motion.div
+          className="font-black leading-none"
+          style={{ fontSize: 52, color: '#7EB8D4', textShadow: '0 0 30px rgba(126,184,212,0.3)', letterSpacing: '-0.03em' }}
+          initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3, duration: 0.5 }}
+        >
+          {forgeScore}
+        </motion.div>
+        <div className="text-[8px] font-mono font-bold tracking-[0.2em] text-gray-500 mt-1">FORGE SCORE</div>
+      </div>
+
+      {/* ── Potential Curve (bell curve) ── */}
+      <div className="px-6 mt-3">
+        <ForgeScoreCurve score={forgeScore} primary="#7EB8D4" />
+      </div>
     </div>
   );
 };
+
+// ─── Bell Curve SVG (adapted from LYNX AI) ───────────────────────────
+function ForgeScoreCurve({ score, primary = '#7EB8D4' }: { score: number; primary?: string }) {
+  const W = 300, H = 110, pad = 24, bot = 24;
+  const curveH = H - bot;
+  const pts: string[] = [];
+  for (let i = 0; i <= 80; i++) {
+    const t = i / 80;
+    const x = pad + t * (W - pad * 2);
+    const g = Math.exp(-0.5 * Math.pow((t - 0.5) / 0.17, 2));
+    pts.push(`${x},${curveH - g * (curveH - 14)}`);
+  }
+  const poly = pts.join(' ');
+  const fill = `${pad},${curveH} ${poly} ${W - pad},${curveH}`;
+  const clamped = Math.max(0, Math.min(200, score));
+  const sT = clamped / 200;
+  const sX = pad + sT * (W - pad * 2);
+  const sG = Math.exp(-0.5 * Math.pow((sT - 0.5) / 0.17, 2));
+  const sY = curveH - sG * (curveH - 14);
+  const toRgba = (hex: string, a: number) => {
+    const c = hex.replace('#', '');
+    return `rgba(${parseInt(c.substring(0, 2), 16)},${parseInt(c.substring(2, 4), 16)},${parseInt(c.substring(4, 6), 16)},${a})`;
+  };
+  return (
+    <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: 'block' }}>
+      <defs>
+        <linearGradient id="fsc-fill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={toRgba(primary, 0.18)} /><stop offset="100%" stopColor={toRgba(primary, 0)} />
+        </linearGradient>
+        <linearGradient id="fsc-stroke" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor={toRgba(primary, 0.15)} /><stop offset="30%" stopColor={primary} />
+          <stop offset="70%" stopColor={primary} /><stop offset="100%" stopColor={toRgba(primary, 0.15)} />
+        </linearGradient>
+        <filter id="fsc-glow"><feGaussianBlur stdDeviation="3" result="cb" /><feMerge><feMergeNode in="cb" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
+      </defs>
+      <polygon points={fill} fill="url(#fsc-fill)" />
+      <polyline points={poly} fill="none" stroke="url(#fsc-stroke)" strokeWidth="2.5" strokeLinejoin="round" filter="url(#fsc-glow)" />
+      <line x1={sX} y1={sY} x2={sX} y2={curveH} stroke={primary} strokeWidth="1" strokeDasharray="3 3" opacity="0.5" />
+      <circle cx={sX} cy={sY} r="5" fill={primary} stroke="#000" strokeWidth="2" filter="url(#fsc-glow)" />
+      <circle cx={sX} cy={sY} r="2.5" fill={primary} />
+      <text x={sX} y={sY - 12} textAnchor="middle" fill={primary} fontSize="8" fontWeight="800" fontFamily="monospace">YOU</text>
+      <text x={pad} y={H - 6} fill="rgba(255,255,255,0.15)" fontSize="7" fontFamily="monospace">0</text>
+      <text x={W / 2} y={H - 6} textAnchor="middle" fill="rgba(255,255,255,0.15)" fontSize="7" fontFamily="monospace">100</text>
+      <text x={W - pad} y={H - 6} textAnchor="end" fill="rgba(255,255,255,0.15)" fontSize="7" fontFamily="monospace">200</text>
+    </svg>
+  );
+}
+
 
 // ─── Action tile — clean minimal icon ────────────────────────────────
 const ActionTile: React.FC<{
@@ -527,11 +601,8 @@ const YouView: React.FC<YouViewProps> = ({
 
   return (
     <div className="w-full max-w-2xl mx-auto pb-24">
-      {/* ── Hero section ── */}
-      <div className="relative mb-5">
-        {/* Avatar hero */}
-        <AvatarHero player={player} outfit={equippedOutfit} onRankTap={() => setShowRank(true)} />
-      </div>
+      {/* ── Hero section — Banner + Avatar + Stats + Forge Score ── */}
+      <ProfileHero player={player} onRankTap={() => setShowRank(true)} />
 
       {/* Action grid — clean 4-col */}
       <div className="grid grid-cols-4 gap-1 px-2">

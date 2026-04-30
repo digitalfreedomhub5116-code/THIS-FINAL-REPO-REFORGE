@@ -328,8 +328,8 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                 return (
                   <div className="flex flex-col items-center gap-1.5 flex-1" onClick={() => setProfileTarget(e)}>
                     <div className="text-lg">🥈</div>
-                    <div className="relative">
-                      <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-gray-600"
+                    <AnimatedBorder borderId={e.equipped_border || null} compact className="rounded-full">
+                      <div className="w-16 h-16 rounded-full overflow-hidden"
                         style={{ background: '#1a1a2e' }}>
                         {e.avatar_url ? (
                           <img src={e.avatar_url} alt="" className="w-full h-full object-cover" />
@@ -339,7 +339,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                           </div>
                         )}
                       </div>
-                    </div>
+                    </AnimatedBorder>
                     <div className="text-[11px] font-black text-white truncate max-w-[80px] text-center">
                       {e.username || e.name}
                     </div>
@@ -357,9 +357,9 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                 return (
                   <div className="flex flex-col items-center gap-1.5 flex-1 -mt-4" onClick={() => setProfileTarget(e)}>
                     <div className="text-2xl">👑</div>
-                    <div className="relative">
-                      <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-yellow-500/50"
-                        style={{ background: '#1a1a2e', boxShadow: '0 0 20px rgba(234,179,8,0.2)' }}>
+                    <AnimatedBorder borderId={e.equipped_border || null} compact className="rounded-full" style={{ boxShadow: '0 0 20px rgba(234,179,8,0.2)' }}>
+                      <div className="w-20 h-20 rounded-full overflow-hidden"
+                        style={{ background: '#1a1a2e' }}>
                         {e.avatar_url ? (
                           <img src={e.avatar_url} alt="" className="w-full h-full object-cover" />
                         ) : (
@@ -368,7 +368,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                           </div>
                         )}
                       </div>
-                    </div>
+                    </AnimatedBorder>
                     <div className="text-xs font-black text-white truncate max-w-[90px] text-center">
                       {e.username || e.name}
                     </div>
@@ -386,8 +386,8 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                 return (
                   <div className="flex flex-col items-center gap-1.5 flex-1" onClick={() => setProfileTarget(e)}>
                     <div className="text-lg">🥉</div>
-                    <div className="relative">
-                      <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-amber-700/50"
+                    <AnimatedBorder borderId={e.equipped_border || null} compact className="rounded-full">
+                      <div className="w-16 h-16 rounded-full overflow-hidden"
                         style={{ background: '#1a1a2e' }}>
                         {e.avatar_url ? (
                           <img src={e.avatar_url} alt="" className="w-full h-full object-cover" />
@@ -397,7 +397,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                           </div>
                         )}
                       </div>
-                    </div>
+                    </AnimatedBorder>
                     <div className="text-[11px] font-black text-white truncate max-w-[80px] text-center">
                       {e.username || e.name}
                     </div>
@@ -434,17 +434,19 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                     <span className="text-sm font-black text-gray-500 font-mono">{actualRank}</span>
                   </div>
 
-                  {/* Avatar */}
-                  <div className="w-11 h-11 rounded-full overflow-hidden shrink-0"
-                    style={{ background: '#1a1a2e' }}>
-                    {entry.avatar_url ? (
-                      <img src={entry.avatar_url} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-base font-black text-gray-500">
-                        {(entry.username || entry.name || '?')[0].toUpperCase()}
-                      </div>
-                    )}
-                  </div>
+                  {/* Avatar with border */}
+                  <AnimatedBorder borderId={entry.equipped_border || null} compact className="rounded-full shrink-0">
+                    <div className="w-11 h-11 rounded-full overflow-hidden"
+                      style={{ background: '#1a1a2e' }}>
+                      {entry.avatar_url ? (
+                        <img src={entry.avatar_url} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-base font-black text-gray-500">
+                          {(entry.username || entry.name || '?')[0].toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+                  </AnimatedBorder>
 
                   {/* Name + YOU tag */}
                   <div className="flex-1 min-w-0">

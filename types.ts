@@ -759,6 +759,10 @@ export interface PlayerData {
   ownedBorders: string[];
   equippedBorder: string | null;
 
+  // Profile Banners (cosmetic)
+  ownedBanners?: string[];
+  equippedBanner?: string | null;
+
   // Feature gate tracking
   featureUnlocksShown?: number[];
   rankRevealed?: boolean;
