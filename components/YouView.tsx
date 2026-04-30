@@ -153,18 +153,6 @@ const ProfileHero: React.FC<{
         ))}
       </div>
 
-      {/* ── Forge Score ── */}
-      <div className="flex flex-col items-center mt-4">
-        <motion.div
-          className="font-black leading-none"
-          style={{ fontSize: 48, color: '#7EB8D4', textShadow: '0 0 30px rgba(126,184,212,0.3)', letterSpacing: '-0.03em' }}
-          initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3, duration: 0.5 }}
-        >
-          {forgeScore}
-        </motion.div>
-        <div className="text-[8px] font-mono font-bold tracking-[0.25em] text-gray-500 mt-1">FORGE SCORE</div>
-      </div>
-
       {/* ── Potential Distribution — Liquid Glass Panel ── */}
       <div className="px-4 mt-5">
         <div style={{
@@ -188,6 +176,18 @@ const ProfileHero: React.FC<{
           </div>
           <ForgeScoreCurve score={forgeScore} primary="#7EB8D4" />
         </div>
+      </div>
+
+      {/* ── Forge Score ── */}
+      <div className="flex flex-col items-center mt-4">
+        <motion.div
+          className="font-black leading-none"
+          style={{ fontSize: 48, color: '#7EB8D4', textShadow: '0 0 30px rgba(126,184,212,0.3)', letterSpacing: '-0.03em' }}
+          initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3, duration: 0.5 }}
+        >
+          {forgeScore}
+        </motion.div>
+        <div className="text-[8px] font-mono font-bold tracking-[0.25em] text-gray-500 mt-1">FORGE SCORE</div>
       </div>
     </div>
   );
