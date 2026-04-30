@@ -694,6 +694,9 @@ const App: React.FC = () => {
   const [showGoalCreate, setShowGoalCreate] = useState(false);
   const [generatingGoalId, setGeneratingGoalId] = useState<string | null>(null);
 
+  // Ref-based save so the quest gen listener can access saveGoalToDb without circular deps
+  const saveGoalToDbRef = useRef<(goal: any) => void>(() => {});
+
   // Listen for quest generation results from pinned goal card buttons
   useEffect(() => {
     const unsub = onQuestGenStoreUpdate((store) => {
@@ -709,6 +712,8 @@ const App: React.FC = () => {
               g.id === store.pendingGoalUpdate!.id ? store.pendingGoalUpdate : g
             ),
           }));
+          // Also persist to database
+          saveGoalToDbRef.current(store.pendingGoalUpdate);
         }
         if (store.pendingFeedQuests && store.pendingFeedQuests.length > 0) {
           store.pendingFeedQuests.forEach((q: any) => addQuest(q));
@@ -1922,6 +1927,9 @@ const App: React.FC = () => {
       console.warn('[Goals] Failed to save to DB:', e);
     }
   }, [player.userId]);
+
+  // Keep the ref in sync so the quest gen listener can call it
+  useEffect(() => { saveGoalToDbRef.current = saveGoalToDb; }, [saveGoalToDb]);
 
   const handleUpdateGoals = useCallback((updatedGoals: any[]) => {
     setPlayer(prev => {

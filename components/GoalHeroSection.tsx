@@ -31,8 +31,7 @@ const getCategoryColor = (cat: GoalCategory | string): string => {
 const GoalDetailsPopup: React.FC<{
   goal: Goal;
   onClose: () => void;
-  onGenerateQuests?: (goalId: string) => void;
-}> = ({ goal, onClose, onGenerateQuests }) => {
+}> = ({ goal, onClose }) => {
   const catColor = getCategoryColor(goal.category);
   const daysElapsed = Math.max(1, Math.floor((Date.now() - goal.startDate) / 86400000) + 1);
   const totalDays = goal.totalDurationDays || 60;
@@ -58,14 +57,14 @@ const GoalDetailsPopup: React.FC<{
         onClick={e => e.stopPropagation()}
       >
         {/* Banner */}
-        <div className="relative w-full h-32 overflow-hidden rounded-t-3xl">
+        <div className="relative w-full h-40 overflow-hidden rounded-t-3xl">
           <img
             src={getCategoryBanner(goal.category)}
             alt=""
             className="w-full h-full object-cover"
             style={{ filter: 'grayscale(100%) brightness(0.35)' }}
           />
-          <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, transparent 0%, #0a0a0f 100%)' }} />
+          <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, transparent 0%, rgba(10,10,15,0.6) 50%, #0a0a0f 100%)' }} />
           {/* Back button */}
           <button
             onClick={onClose}
@@ -84,9 +83,9 @@ const GoalDetailsPopup: React.FC<{
           </div>
         </div>
 
-        <div className="px-5 pb-6 -mt-4">
+        <div className="px-5 pb-6 -mt-6 relative z-10">
           {/* Title + rank */}
-          <h3 className="text-lg font-black text-white leading-tight mb-1">{goal.title}</h3>
+          <h3 className="text-lg font-black text-white leading-tight mb-1" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.9)' }}>{goal.title}</h3>
           <div className="flex items-center gap-3 mb-4">
             <span className="text-[9px] font-mono font-bold" style={{ color: catColor }}>{goal.goalRank}-Rank Mission</span>
             <span className="text-[9px] font-mono text-gray-600">{goal.successProbability}% odds</span>
@@ -183,22 +182,7 @@ const GoalDetailsPopup: React.FC<{
             </div>
           )}
 
-          {/* Generate Quests button */}
-          {onGenerateQuests && (
-            <motion.button
-              whileTap={{ scale: 0.96 }}
-              onClick={() => onGenerateQuests(goal.id)}
-              className="w-full flex items-center justify-center gap-2.5 py-3 rounded-xl font-bold text-sm tracking-wide transition-all"
-              style={{
-                background: 'linear-gradient(135deg, #7EB8D4 0%, #5a9ab5 100%)',
-                color: '#0a0a14',
-                boxShadow: '0 4px 20px rgba(126,184,212,0.3)',
-              }}
-            >
-              <Zap size={16} />
-              Generate Today's Quests
-            </motion.button>
-          )}
+
         </div>
       </motion.div>
     </motion.div>
@@ -437,7 +421,6 @@ const GoalHeroSection: React.FC<GoalHeroSectionProps> = ({ goals, onCreateGoal, 
           <GoalDetailsPopup
             goal={selectedGoal}
             onClose={() => setSelectedGoal(null)}
-            onGenerateQuests={onGenerateQuests}
           />
         )}
       </AnimatePresence>
