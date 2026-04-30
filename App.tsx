@@ -621,6 +621,7 @@ const App: React.FC = () => {
   const tabHistoryRef = useRef<Tab[]>(['DASHBOARD']);
 
   const [healthViewKey, setHealthViewKey] = useState(0);
+  const [healthSubTab, setHealthSubTab] = useState<'WORKOUT' | 'NUTRITION' | 'SKILLS' | undefined>(undefined);
 
 
 
@@ -635,6 +636,9 @@ const App: React.FC = () => {
       return tab;
 
     });
+
+    // Clear health sub-tab override when navigating away from Health
+    if (tab !== 'HEALTH') setHealthSubTab(undefined);
 
   }, []);
 
@@ -4382,7 +4386,10 @@ const App: React.FC = () => {
               <div className="grid grid-cols-2 gap-3 px-1">
                 {/* Food Scanner Card */}
                 <button
-                  onClick={() => setActiveTab('HEALTH' as Tab)}
+                  onClick={() => {
+                    setHealthSubTab('NUTRITION');
+                    setActiveTab('HEALTH' as Tab);
+                  }}
                   className="relative overflow-hidden rounded-2xl active:scale-[0.97] transition-transform"
                   style={{
                     height: 160,
@@ -4687,6 +4694,8 @@ const App: React.FC = () => {
                     playerLevel={player.level}
 
                     onAddRewards={addRewards}
+
+                    initialSubTab={healthSubTab}
 
                   />
 
