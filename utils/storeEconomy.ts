@@ -116,8 +116,8 @@ function defaultState(): EconomyState {
     aiCredits: 0,
     plan: 'free',
     streak: { current: 0, longest: 0, lastActiveDate: '', shieldsRemaining: 0, milestonesClaimed: [] },
-    owned: [],
-    equipped: { border: null, theme: null, banner: null, title: null },
+    owned: ['banner-reforge-default'],
+    equipped: { border: null, theme: null, banner: 'banner-reforge-default', title: null },
     purchaseHistory: [],
     freeCreditsGranted: false,
   };

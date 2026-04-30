@@ -587,16 +587,32 @@ const ShopView: React.FC<ShopViewProps> = ({
           <div className="space-y-4">
             {getItemsByCategory('banner').map(item => {
               const isEquipped = kitEconomy.equipped.banner === item.id;
+              const isDefault = item.id === 'banner-reforge-default';
               return (
                 <div key={item.id} className="relative rounded-2xl overflow-hidden" style={{ border: isEquipped ? '2px solid rgba(126,184,212,0.4)' : '1px solid rgba(255,255,255,0.06)' }}>
                   {item.bannerImage && (
-                    <img src={item.bannerImage} alt={item.name} style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover', display: 'block' }} />
+                    <div style={{ width: '100%', aspectRatio: '3 / 1', position: 'relative', overflow: 'hidden' }}>
+                      <img src={item.bannerImage} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block' }} />
+                    </div>
                   )}
-                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '50%', background: 'linear-gradient(transparent, rgba(0,0,0,0.85))', pointerEvents: 'none' }} />
+                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '60%', background: 'linear-gradient(transparent, rgba(0,0,0,0.85))', pointerEvents: 'none' }} />
+                  {/* DEFAULT badge */}
+                  {isDefault && (
+                    <div style={{
+                      position: 'absolute', top: 10, left: 10, zIndex: 3,
+                      padding: '3px 10px', borderRadius: 6,
+                      background: 'rgba(126,184,212,0.2)', border: '1px solid rgba(126,184,212,0.4)',
+                      fontSize: 9, fontWeight: 900, color: '#7EB8D4',
+                      letterSpacing: '0.1em', textTransform: 'uppercase',
+                    }}>
+                      DEFAULT
+                    </div>
+                  )}
                   <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div>
                       <div className="text-sm font-black text-white">{item.name}</div>
                       {item.price > 0 && <div className="text-[11px] text-gray-400 font-mono mt-0.5">{item.price} G</div>}
+                      {item.price === 0 && <div className="text-[11px] font-mono mt-0.5" style={{ color: '#7EB8D4' }}>FREE</div>}
                     </div>
                     <button
                       onClick={() => handleKitEquip('banner', item.id)}

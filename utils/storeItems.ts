@@ -394,19 +394,14 @@ const TITLES: StoreItem[] = [
 /* ═══ BANNERS ═══ */
 const BANNERS: StoreItem[] = [
   {
-    id: 'banner-default', name: 'Lynx Default', category: 'banner', tier: 'basic', price: 0,
-    description: 'The official Lynx AI banner — included free for all users.',
-    bannerImage: '/banners/default.jpg',
+    id: 'banner-reforge-default', name: 'Reforge Default', category: 'banner', tier: 'basic', price: 0,
+    description: 'The official Reforge AI banner — equipped by default for all hunters.',
+    bannerImage: '/banners/defaultreforgebanner.jpeg',
   },
   {
     id: 'banner-mclaren', name: 'McLaren Senna', category: 'banner', tier: 'premium', price: 300,
     description: 'White McLaren Senna — pure speed, pure elegance.',
     bannerImage: '/banners/banner1.jpg',
-  },
-  {
-    id: 'banner-hotlooks', name: 'He Looks Hot', category: 'banner', tier: 'special', price: 200,
-    description: 'Damn — turn heads wherever you go.',
-    bannerImage: '/banners/banner2.jpg',
   },
   {
     id: 'banner-noenemies', name: 'No Enemies', category: 'banner', tier: 'special', price: 250,
@@ -422,11 +417,6 @@ const BANNERS: StoreItem[] = [
     id: 'banner-fineshyt', name: 'Fine Shyt', category: 'banner', tier: 'premium', price: 300,
     description: 'Dark anime aesthetic — you already know.',
     bannerImage: '/banners/banner5.jpg',
-  },
-  {
-    id: 'banner-chico', name: 'Model of the Year', category: 'banner', tier: 'legendary', price: 400,
-    description: 'Chico Lachowski — the face that broke the internet.',
-    bannerImage: '/banners/banner6.jpg',
   },
   {
     id: 'banner-shadowmonarch', name: 'Shadow Monarch', category: 'banner', tier: 'legendary', price: 500,
