@@ -59,7 +59,7 @@ const StatCircle: React.FC<{
   label: string; value: number; max: number; icon: React.ReactNode; delay: number;
 }> = ({ label, value, max, icon, delay }) => {
   const pct = Math.min(100, (value / max) * 100);
-  const r = 18; const circ = 2 * Math.PI * r;
+  const r = 22; const circ = 2 * Math.PI * r;
   const offset = circ - (pct / 100) * circ;
   const color = getCyanShade(value, max);
   return (
@@ -68,11 +68,11 @@ const StatCircle: React.FC<{
       initial={{ opacity: 0, scale: 0.7 }} animate={{ opacity: 1, scale: 1 }}
       transition={{ delay, duration: 0.4 }}
     >
-      <div className="relative w-11 h-11">
-        <svg className="w-full h-full -rotate-90" viewBox="0 0 44 44">
-          <circle cx="22" cy="22" r={r} fill="none" stroke="rgba(126,184,212,0.08)" strokeWidth="3" />
+      <div className="relative" style={{ width: 52, height: 52 }}>
+        <svg className="w-full h-full -rotate-90" viewBox="0 0 52 52">
+          <circle cx="26" cy="26" r={r} fill="none" stroke="rgba(126,184,212,0.1)" strokeWidth="3.5" />
           <motion.circle
-            cx="22" cy="22" r={r} fill="none" stroke={color} strokeWidth="3"
+            cx="26" cy="26" r={r} fill="none" stroke={color} strokeWidth="3.5"
             strokeLinecap="round" strokeDasharray={circ} initial={{ strokeDashoffset: circ }}
             animate={{ strokeDashoffset: offset }}
             transition={{ delay: delay + 0.2, duration: 0.8, ease: 'easeOut' }}
@@ -82,8 +82,8 @@ const StatCircle: React.FC<{
           {icon}
         </div>
       </div>
-      <div className="text-[8px] font-mono font-bold tracking-wider text-gray-500">{label}</div>
-      <div className="text-[9px] font-mono font-black" style={{ color }}>{Math.floor(value)}</div>
+      <div className="text-[9px] font-mono font-bold tracking-wider text-gray-500">{label}</div>
+      <div className="text-[10px] font-mono font-black" style={{ color }}>{Math.floor(value)}</div>
     </motion.div>
   );
 };
@@ -108,12 +108,12 @@ const ProfileHero: React.FC<{
   const maxStat = 200;
 
   const STATS_RING = [
-    { key: 'STR', value: stats.strength || 0, icon: <Dumbbell size={11} /> },
-    { key: 'INT', value: stats.intelligence || 0, icon: <Brain size={11} /> },
-    { key: 'DIS', value: stats.discipline || 0, icon: <Shield size={11} /> },
-    { key: 'SOC', value: stats.social || 0, icon: <Users size={11} /> },
-    { key: 'FOC', value: stats.focus || 0, icon: <Target size={11} /> },
-    { key: 'WIL', value: stats.willpower || 0, icon: <Zap size={11} /> },
+    { key: 'STR', value: stats.strength || 0, icon: <Dumbbell size={14} /> },
+    { key: 'INT', value: stats.intelligence || 0, icon: <Brain size={14} /> },
+    { key: 'DIS', value: stats.discipline || 0, icon: <Shield size={14} /> },
+    { key: 'SOC', value: stats.social || 0, icon: <Users size={14} /> },
+    { key: 'FOC', value: stats.focus || 0, icon: <Target size={14} /> },
+    { key: 'WIL', value: stats.willpower || 0, icon: <Zap size={14} /> },
   ];
 
   return (
@@ -128,9 +128,9 @@ const ProfileHero: React.FC<{
             {player.name || 'Player'}
           </div>
         </div>
-        {/* Rank badge — bottom right */}
-        <button onClick={onRankTap} className="absolute bottom-2 right-3 z-10" aria-label="View rank">
-          <RankBadge rank={(player.rank || 'E') as RankType} size={44} animated showLabel />
+        {/* Rank badge — center-right of banner */}
+        <button onClick={onRankTap} className="absolute right-3 z-10" style={{ top: '50%', transform: 'translateY(-50%)' }} aria-label="View rank">
+          <RankBadge rank={(player.rank || 'E') as RankType} size={54} animated showLabel />
         </button>
       </div>
 
@@ -145,7 +145,7 @@ const ProfileHero: React.FC<{
       </div>
 
       {/* ── 6 Stat Circles (mono cyan) ── */}
-      <div className="flex justify-center gap-3 px-4 mt-5">
+      <div className="flex justify-center gap-2 px-2 mt-5">
         {STATS_RING.map((s, i) => (
           <StatCircle key={s.key} label={s.key} value={s.value} max={maxStat} icon={s.icon} delay={0.1 + i * 0.06} />
         ))}
