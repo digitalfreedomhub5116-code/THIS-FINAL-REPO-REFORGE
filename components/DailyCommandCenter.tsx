@@ -749,11 +749,11 @@ const QuestTimelineRow: React.FC<{
         {/* Dot */}
         <div className="relative z-10 flex-shrink-0">
           {isCompleted ? (
-            <div className="w-[14px] h-[14px] rounded-full bg-emerald-500 flex items-center justify-center">
+            <div className="w-[14px] h-[14px] rounded-full flex items-center justify-center" style={{ background: '#7EB8D4' }}>
               <Check className="w-2 h-2 text-black" strokeWidth={3} />
             </div>
           ) : isFailed ? (
-            <div className="w-[14px] h-[14px] rounded-full bg-red-500 flex items-center justify-center">
+            <div className="w-[14px] h-[14px] rounded-full flex items-center justify-center" style={{ background: '#4a6670' }}>
               <X className="w-2 h-2 text-black" strokeWidth={3} />
             </div>
           ) : isOverdue ? (
@@ -773,7 +773,7 @@ const QuestTimelineRow: React.FC<{
           onClick={() => canReschedule && onReschedule(quest)}
           disabled={!canReschedule}
           className={`text-[11px] font-mono font-bold transition-colors ${
-            isCompleted ? 'text-emerald-600' : isFailed ? 'text-red-700' :
+            isCompleted ? 'text-[#7EB8D4]' : isFailed ? 'text-[#4a6670]' :
             isTimeLocked ? 'text-gray-700' :
             isCurrent ? 'text-[#7EB8D4]' : isPast ? 'text-gray-700' : 'text-gray-500'
           } ${canReschedule ? 'cursor-pointer active:scale-95' : 'cursor-default'}`}

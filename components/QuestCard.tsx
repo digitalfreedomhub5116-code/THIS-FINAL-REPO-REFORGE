@@ -438,8 +438,8 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
         {/* ── COMPLETED — compact 1-line ── */}
         {isCompleted && (
           <div className="flex items-center gap-1.5 mt-1.5">
-            <Check size={10} strokeWidth={3} className="text-green-500/50" />
-            <span className="text-[9px] font-mono text-green-500/40 tracking-wide uppercase">
+            <Check size={10} strokeWidth={3} style={{ color: 'rgba(126,184,212,0.5)' }} />
+            <span className="text-[9px] font-mono tracking-wide uppercase" style={{ color: 'rgba(126,184,212,0.4)' }}>
               {quest.completedAsMini ? 'Activation done' : 'Done'}
             </span>
           </div>
@@ -447,8 +447,8 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
         {/* ── FAILED — compact 1-line ── */}
         {isFailed && !isCompleted && (
           <div className="flex items-center gap-1.5 mt-1.5">
-            <X size={10} strokeWidth={3} className="text-red-500/40" />
-            <span className="text-[9px] font-mono text-red-500/40 tracking-wide uppercase">{isExpired ? 'Expired' : 'Failed'}</span>
+            <X size={10} strokeWidth={3} style={{ color: 'rgba(74,102,112,0.6)' }} />
+            <span className="text-[9px] font-mono tracking-wide uppercase" style={{ color: 'rgba(74,102,112,0.6)' }}>{isExpired ? 'Expired' : 'Failed'}</span>
             <button onClick={() => onDelete(quest.id)} className="ml-auto text-[8px] font-mono text-gray-700 hover:text-red-400 transition-colors">
               <Trash2 size={9} />
             </button>
