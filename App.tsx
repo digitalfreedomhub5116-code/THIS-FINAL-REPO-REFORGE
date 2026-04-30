@@ -4406,11 +4406,6 @@ const App: React.FC = () => {
                     style={{ filter: 'grayscale(0.85) brightness(0.4)' }}
                   />
                   <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.35) 55%, rgba(0,0,0,0.15) 100%)' }} />
-                  {/* Trending fire icon */}
-                  <div className="absolute top-3 left-3 z-10 flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)', border: '1px solid rgba(251,146,60,0.3)' }}>
-                    <Flame size={12} style={{ color: '#fb923c', filter: 'drop-shadow(0 0 4px rgba(251,146,60,0.6))' }} />
-                    <span className="text-[7px] font-mono font-bold text-orange-400 uppercase tracking-wider">Trending</span>
-                  </div>
                   <div className="absolute inset-0 p-4 flex flex-col justify-end">
                     <div className="text-[8px] font-mono font-bold tracking-[0.25em] text-[#7EB8D4] uppercase mb-1.5">Nutrition</div>
                     <div className="text-[14px] font-black text-white leading-tight mb-1.5">Scan Your Food</div>
