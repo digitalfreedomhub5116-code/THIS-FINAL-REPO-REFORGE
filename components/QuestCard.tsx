@@ -19,23 +19,23 @@ interface QuestCardProps {
 }
 
 const RANK_BAR: Record<Rank, string> = {
-  UNRANKED: '#4a4a5a',
-  S: '#a855f7',
-  A: '#eab308',
-  B: '#3b82f6',
-  C: '#22c55e',
-  D: '#f97316',
-  E: '#6b7280',
+  UNRANKED: '#4a6670',
+  S: '#7EB8D4',
+  A: '#7EB8D4',
+  B: '#7EB8D4',
+  C: '#7EB8D4',
+  D: '#7EB8D4',
+  E: '#4a6670',
 };
 
 const RANK_LABEL: Record<Rank, string> = {
-  UNRANKED: 'rgba(74,74,90,0.08)',
-  S: 'rgba(168,85,247,0.15)',
-  A: 'rgba(234,179,8,0.12)',
-  B: 'rgba(59,130,246,0.12)',
-  C: 'rgba(34,197,94,0.12)',
-  D: 'rgba(249,115,22,0.12)',
-  E: 'rgba(107,114,128,0.1)',
+  UNRANKED: 'rgba(74,102,112,0.08)',
+  S: 'rgba(126,184,212,0.15)',
+  A: 'rgba(126,184,212,0.12)',
+  B: 'rgba(126,184,212,0.12)',
+  C: 'rgba(126,184,212,0.12)',
+  D: 'rgba(126,184,212,0.10)',
+  E: 'rgba(74,102,112,0.10)',
 };
 
 
@@ -49,12 +49,12 @@ const CAT_ICON: Record<keyof CoreStats, React.ReactNode> = {
 };
 
 const CAT_COLOR: Record<keyof CoreStats, string> = {
-  strength:     '#f97066',
+  strength:     '#7EB8D4',
   intelligence: '#7EB8D4',
   discipline:   '#9ACDE3',
-  social:       '#fbbf24',
-  focus:        '#34d399',
-  willpower:    '#fb923c',
+  social:       '#7EB8D4',
+  focus:        '#9ACDE3',
+  willpower:    '#7EB8D4',
 };
 
 const SensorBar: React.FC<{

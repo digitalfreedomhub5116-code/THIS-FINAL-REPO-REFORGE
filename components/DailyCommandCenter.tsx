@@ -757,7 +757,7 @@ const QuestTimelineRow: React.FC<{
               <X className="w-2 h-2 text-black" strokeWidth={3} />
             </div>
           ) : isOverdue ? (
-            <div className="w-[14px] h-[14px] rounded-full" style={{ background: '#fb923c', boxShadow: '0 0 6px #fb923c' }} />
+            <div className="w-[14px] h-[14px] rounded-full" style={{ background: '#7EB8D4', boxShadow: '0 0 6px #7EB8D480' }} />
           ) : isTimeLocked ? (
             <div className="w-[14px] h-[14px] rounded-full" style={{ background: '#1a1a2e', border: '1.5px solid #374151' }} />
           ) : isCurrent ? (
@@ -774,6 +774,7 @@ const QuestTimelineRow: React.FC<{
           disabled={!canReschedule}
           className={`text-[11px] font-mono font-bold transition-colors ${
             isCompleted ? 'text-[#7EB8D4]' : isFailed ? 'text-[#4a6670]' :
+            isOverdue ? 'text-[#7EB8D4]' :
             isTimeLocked ? 'text-gray-700' :
             isCurrent ? 'text-[#7EB8D4]' : isPast ? 'text-gray-700' : 'text-gray-500'
           } ${canReschedule ? 'cursor-pointer active:scale-95' : 'cursor-default'}`}
@@ -781,7 +782,7 @@ const QuestTimelineRow: React.FC<{
           {formatTime12(scheduledStr)}
         </button>
         {isCurrent && <span className="text-[7px] font-black text-[#7EB8D4] px-1.5 py-0.5 rounded-full bg-[#7EB8D4]/10 uppercase tracking-wider">Now</span>}
-        {isOverdue && <span className="text-[7px] font-black text-orange-400 px-1.5 py-0.5 rounded-full bg-orange-400/10 uppercase tracking-wider">Overdue</span>}
+        {isOverdue && <span className="text-[7px] font-black text-[#7EB8D4] px-1.5 py-0.5 rounded-full bg-[#7EB8D4]/10 uppercase tracking-wider">Overdue</span>}
         {isTimeLocked && <span className="text-[7px] font-bold text-gray-600 font-mono">{minutesUntilAvailable >= 60 ? `${Math.floor(minutesUntilAvailable / 60)}h ${minutesUntilAvailable % 60}m` : `${minutesUntilAvailable}m`}</span>}
       </div>
 
