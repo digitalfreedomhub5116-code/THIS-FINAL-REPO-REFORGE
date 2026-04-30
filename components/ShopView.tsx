@@ -209,9 +209,11 @@ const ShopView: React.FC<ShopViewProps> = ({
       const themeItem = newId ? ALL_STORE_ITEMS.find(i => i.id === newId) : null;
       applyThemeVars(themeItem?.themeVars || null);
     }
-    // Sync border to player state → Supabase
+    // Sync border to player state → Supabase → leaderboard
     if (slot === 'border' && onEquipBorder) {
       onEquipBorder(newId);
+      // Dispatch refresh event so leaderboard re-fetches after sync
+      window.dispatchEvent(new Event('leaderboard:refresh'));
     }
   };
 

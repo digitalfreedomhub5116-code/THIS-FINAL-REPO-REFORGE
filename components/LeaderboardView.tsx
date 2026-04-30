@@ -208,6 +208,27 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
     };
   }, [fetchLeaderboard]);
 
+  // ── Instant refresh when border is changed in Store ──
+  useEffect(() => {
+    const onBorderRefresh = () => {
+      // Delay to let cloud sync complete
+      setTimeout(() => fetchLeaderboard(true), 3000);
+    };
+    window.addEventListener('leaderboard:refresh', onBorderRefresh);
+    return () => window.removeEventListener('leaderboard:refresh', onBorderRefresh);
+  }, [fetchLeaderboard]);
+
+  // ── Refresh on tab visibility change (user switches back) ──
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        setTimeout(() => fetchLeaderboard(), 1500);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [fetchLeaderboard]);
+
   // ── Build entries with INSTANT local XP merge ──
   // When YOU earn XP, your card moves immediately without waiting for server refresh
   const entries = activeTab === 'global' ? globalEntries : dailyEntries;
