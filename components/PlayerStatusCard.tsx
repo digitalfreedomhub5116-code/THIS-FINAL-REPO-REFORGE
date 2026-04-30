@@ -981,7 +981,7 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
                 >
                   <Zap size={8} style={{ color: manaColor }} />
                 </div>
-                <span className="text-[9px] font-mono font-bold text-gray-400 uppercase tracking-widest">SYSTEM MANA</span>
+                <span className="text-[9px] font-mono font-bold text-gray-400 uppercase tracking-widest">AI SYSTEM MANA</span>
               </div>
               <span className="text-[10px] font-black font-mono" style={{ color: manaColor }}>
                 {Math.floor(mana)} / {maxMana}
@@ -999,6 +999,7 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
                 transition={{ duration: 0.6, ease: 'easeOut' }}
               />
             </div>
+            <span className="text-[8px] font-mono text-gray-600 mt-1 block">All your AI features are regulated by mana crystals.</span>
             {pct <= 10 && pct > 0 && (
               <motion.span
                 className="text-[7px] font-mono font-bold mt-1 block text-center"
