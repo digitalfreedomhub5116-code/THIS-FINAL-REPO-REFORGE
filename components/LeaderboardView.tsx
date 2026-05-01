@@ -789,7 +789,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                 {/* ── Banner — shows player's real equipped banner ── */}
                 {(() => {
                   const bannerStoreItem = pEntry.bannerId ? getItemById(pEntry.bannerId) : null;
-                  const bannerSrc = bannerStoreItem?.bannerImage || '/banners/defaultreforgebanner.jpeg';
+                  const bannerSrc = bannerStoreItem?.bannerImage || '/banners/defaultreforgebanner.webp';
                   return (
                     <div className="relative h-32 overflow-hidden">
                       <img

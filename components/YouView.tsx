@@ -99,7 +99,7 @@ const ProfileHero: React.FC<{
   const economy = getEconomy();
   const bannerItemId = player.equippedBanner || economy.equipped.banner;
   const bannerItem = bannerItemId ? getItemById(bannerItemId) : null;
-  const bannerSrc = bannerItem?.bannerImage || '/banners/default.jpg';
+  const bannerSrc = bannerItem?.bannerImage || '/banners/defaultreforgebanner.webp';
   const borderId = player.equippedBorder || economy.equipped.border || null;
 
   const stats = player.stats || {} as CoreStats;
