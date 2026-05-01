@@ -333,21 +333,7 @@ const GoalHeroSection: React.FC<GoalHeroSectionProps> = ({ goals, onCreateGoal, 
           }} />
         </div>
 
-        {/* Info button — top right */}
-        <button
-          onClick={() => setShowGoalInfo(true)}
-          className="absolute top-3 right-3 z-20 flex items-center justify-center"
-          style={{
-            width: 30, height: 30, borderRadius: 8,
-            background: 'rgba(0,0,0,0.55)',
-            backdropFilter: 'blur(8px)',
-            border: '1px solid rgba(126,184,212,0.3)',
-            color: '#7EB8D4',
-            cursor: 'pointer',
-          }}
-        >
-          <Info size={14} />
-        </button>
+
 
         {/* Text overlay */}
         <div className="absolute bottom-0 left-0 right-0 px-5 pb-5">
@@ -374,8 +360,24 @@ const GoalHeroSection: React.FC<GoalHeroSectionProps> = ({ goals, onCreateGoal, 
             }}
           >
             <Target size={16} />
-            Create your new goal
+            Create New Goal
           </motion.button>
+
+          {/* HOW TO USE? button */}
+          <button
+            onClick={() => setShowGoalInfo(true)}
+            className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg font-mono text-[10px] font-bold tracking-[0.15em] uppercase transition-all"
+            style={{
+              background: 'rgba(126,184,212,0.06)',
+              border: '1px solid rgba(126,184,212,0.12)',
+              color: 'rgba(126,184,212,0.5)',
+              cursor: 'pointer',
+              marginTop: 8,
+            }}
+          >
+            <Info size={12} />
+            How To Use?
+          </button>
         </div>
       </motion.div>
 
@@ -469,7 +471,7 @@ const GoalHeroSection: React.FC<GoalHeroSectionProps> = ({ goals, onCreateGoal, 
 
               {/* Yellow highlighted question */}
               <div className="mx-4 mb-5 px-4 py-3 rounded-xl" style={{ background: 'rgba(250,204,21,0.08)', border: '1px solid rgba(250,204,21,0.2)' }}>
-                <p className="text-[13px] font-bold leading-snug" style={{ color: '#facc15' }}>
+                <p className="text-[11px] font-bold leading-snug uppercase" style={{ color: '#facc15', fontStyle: 'italic', letterSpacing: '0.04em' }}>
                   What would happen if your long-term goals like (Crack my Dream Exam) were broken into daily, resource-rich quests?
                 </p>
               </div>
