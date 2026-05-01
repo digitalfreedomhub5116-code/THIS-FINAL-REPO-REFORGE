@@ -328,6 +328,7 @@ router.put('/:id', async (req: Request, res: Response) => {
     return res.status(403).json({ error: 'Forbidden' });
   }
   const data = req.body;
+  console.log(`[Player PUT] ${id.slice(-8)}: received PUT, syncVersion=${data._syncVersion}, quests=${Array.isArray(data.quests) ? data.quests.length : 'N/A'}, dailyStats=${JSON.stringify(data.dailyStats)}`);
   if (!data || typeof data !== 'object') {
     return res.status(400).json({ error: 'Invalid body' });
   }
@@ -521,6 +522,7 @@ router.put('/:id', async (req: Request, res: Response) => {
 
     if (error) throw error;
 
+    console.log(`[Player PUT] ${id.slice(-8)}: SUCCESS — version ${dbVersion} → ${dbVersion + 1}, gold=${newGold}`);
     return res.json({ success: true, _serverGold: newGold, _serverKeys: newKeys, _serverUpdatedAt: nowIso, _serverSyncVersion: dbVersion + 1 });
   } catch (err) {
     console.error('[Player PUT]', err);
