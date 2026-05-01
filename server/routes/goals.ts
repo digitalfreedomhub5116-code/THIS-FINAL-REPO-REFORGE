@@ -296,7 +296,8 @@ router.post('/daily-quests', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Goal data is required' });
     }
 
-    const currentDay = Math.max(1, Math.floor((Date.now() - goal.startDate) / (1000 * 60 * 60 * 24)) + 1);
+    const goalStartTime = goal.startDate || goal.createdAt || Date.now();
+    const currentDay = Math.max(1, Math.floor((Date.now() - goalStartTime) / (1000 * 60 * 60 * 24)) + 1);
     const totalDays = goal.totalDurationDays;
     const percentComplete = Math.min(100, Math.round((currentDay / totalDays) * 100));
 

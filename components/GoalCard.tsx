@@ -19,7 +19,8 @@ interface GoalCardProps {
 }
 
 export default function GoalCard({ goal, onTap }: GoalCardProps) {
-  const currentDay = Math.max(1, Math.floor((Date.now() - goal.startDate) / (1000 * 60 * 60 * 24)) + 1);
+  const goalStartTime = goal.startDate || goal.createdAt || Date.now();
+  const currentDay = Math.max(1, Math.floor((Date.now() - goalStartTime) / (1000 * 60 * 60 * 24)) + 1);
   const totalDays = goal.totalDurationDays || 1;
   const daysRemaining = Math.max(0, totalDays - currentDay);
   const progress = Math.min(100, Math.round((currentDay / totalDays) * 100));

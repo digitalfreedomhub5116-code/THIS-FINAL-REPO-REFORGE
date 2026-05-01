@@ -98,7 +98,8 @@ export default function GoalsView({
         setAutoGenProgress({ current: i + 1, total: goalsNeedingGen.length });
 
         try {
-          const currentDay = Math.max(1, Math.floor((Date.now() - goal.startDate) / (1000 * 60 * 60 * 24)) + 1);
+          const goalStartTime = goal.startDate || goal.createdAt || Date.now();
+          const currentDay = Math.max(1, Math.floor((Date.now() - goalStartTime) / (1000 * 60 * 60 * 24)) + 1);
 
           const otherGoalTasksToday = goals
             .filter(g => g.id !== goal.id && g.status === 'ACTIVE')
