@@ -227,6 +227,41 @@ router.put('/:id', async (req: Request, res: Response) => {
 
     const nowIso = new Date().toISOString();
 
+    // ── Weekly XP accumulation for leaderboard ──
+    // Read the current DB state for weekly XP tracking
+    let weeklyXp = 0;
+    let weekStartDate = nowIso;
+    try {
+      const { data: weekRow } = await (supabaseServer() as any)
+        .from('players')
+        .select('weekly_xp, week_start_date, daily_xp')
+        .eq('supabase_id', id)
+        .single();
+      
+      if (weekRow) {
+        const now = new Date();
+        const dayOfWeek = now.getUTCDay();
+        const currentMonday = new Date(now);
+        currentMonday.setUTCDate(now.getUTCDate() - ((dayOfWeek + 6) % 7));
+        currentMonday.setUTCHours(0, 0, 0, 0);
+
+        const playerWeekStart = weekRow.week_start_date ? new Date(weekRow.week_start_date) : new Date(0);
+        
+        if (playerWeekStart.getTime() < currentMonday.getTime()) {
+          // New week! Reset weekly_xp, start fresh with this sync's dailyXp
+          weeklyXp = cleanData.dailyXp || 0;
+          weekStartDate = currentMonday.toISOString();
+        } else {
+          // Same week — add the delta between new and old daily_xp
+          const oldDailyXp = weekRow.daily_xp || 0;
+          const newDailyXp = cleanData.dailyXp || 0;
+          const dailyDelta = Math.max(0, newDailyXp - oldDailyXp);
+          weeklyXp = (weekRow.weekly_xp || 0) + dailyDelta;
+          weekStartDate = weekRow.week_start_date || currentMonday.toISOString();
+        }
+      }
+    } catch { /* weekly_xp column may not exist yet — ignore */ }
+
     const playerData: Record<string, any> = {
       username: cleanData.username || cleanData.name || ('u_' + id.slice(-8)),
       name: cleanData.name || 'Hunter',
@@ -235,6 +270,8 @@ router.put('/:id', async (req: Request, res: Response) => {
       required_xp: cleanData.requiredXp || 100,
       total_xp: cleanData.totalXp || 0,
       daily_xp: cleanData.dailyXp || 0,
+      weekly_xp: weeklyXp,
+      week_start_date: weekStartDate,
       rank: cleanData.rank || 'E',
       streak: data.streak || 0,
       hp: data.hp ?? 100,

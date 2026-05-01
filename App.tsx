@@ -331,6 +331,8 @@ const App: React.FC = () => {
 
     purchaseBorder, equipBorder, equipBanner,
 
+    dataReady, markDataReady,
+
   } = useSystem();
 
 
@@ -1136,7 +1138,11 @@ const App: React.FC = () => {
 
   useEffect(() => {
 
-    if (!player.userId || isLocalUser(player.userId)) return;
+    if (!player.userId || isLocalUser(player.userId)) {
+      // No Supabase account — use localStorage immediately, skip loading screen
+      markDataReady();
+      return;
+    }
 
     // Check localStorage to see if ban reversal was already shown for this user
     const seenKey = `banReversalSeen_${player.userId}`;
@@ -1284,6 +1290,9 @@ const App: React.FC = () => {
         if (isFirstPoll) {
 
           markServerPullDone();
+
+          // Supabase-first: server data arrived — dismiss loading screen
+          markDataReady();
 
         }
 
@@ -3467,6 +3476,26 @@ const App: React.FC = () => {
 
     <ThemeContext.Provider value={themeCtx}>
 
+    {/* ── SUPABASE-FIRST LOADING GATE ── */}
+    {!dataReady ? (
+      <div style={{
+        position: 'fixed', inset: 0, zIndex: 99999,
+        background: 'linear-gradient(180deg, #06060f 0%, #0a0a1a 50%, #06060f 100%)',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16,
+      }}>
+        <div style={{
+          width: 48, height: 48, borderRadius: '50%',
+          border: '3px solid rgba(126,184,212,0.15)',
+          borderTopColor: '#7EB8D4',
+          animation: 'spin 0.8s linear infinite',
+        }} />
+        <div style={{ color: '#7EB8D4', fontSize: 12, fontFamily: 'monospace', fontWeight: 700, letterSpacing: '0.15em', opacity: 0.7 }}>
+          SYNCING DATA
+        </div>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    ) : (
+
     <>
 
       <SystemMessage notifications={notifications} removeNotification={removeNotification} />
@@ -4304,7 +4333,7 @@ const App: React.FC = () => {
                   <PromoImg
                     src="/images/ui/food-scanner-promo.webp"
                     alt="Food Scanner"
-                    style={{ filter: 'brightness(0.5)' }}
+                    style={{ filter: 'grayscale(0.85) brightness(0.4)' }}
                   />
                   <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.35) 55%, rgba(0,0,0,0.15) 100%)' }} />
                   <div className="absolute inset-0 p-4 flex flex-col justify-end">
@@ -4330,7 +4359,7 @@ const App: React.FC = () => {
                   <PromoImg
                     src="/images/ui/store-deals-promo.webp"
                     alt="Store Deals"
-                    style={{ filter: 'brightness(0.5)' }}
+                    style={{ filter: 'grayscale(0.85) brightness(0.4)' }}
                   />
                   <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.35) 55%, rgba(0,0,0,0.15) 100%)' }} />
 
@@ -5020,6 +5049,8 @@ const App: React.FC = () => {
 
     <SystemToastOverlay />
     </>
+
+    )}
 
     </ThemeContext.Provider>
 

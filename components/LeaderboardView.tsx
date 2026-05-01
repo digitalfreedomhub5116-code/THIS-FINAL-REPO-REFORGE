@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   RefreshCw,
-  X, Globe, CalendarDays, Flag, AlertTriangle, CheckSquare, Square, Send, Flame,
+  X, Zap, Flag, AlertTriangle, CheckSquare, Square, Send, Flame, Clock,
 } from 'lucide-react';
 import { PlayerData, Outfit } from '../types';
 import { API_BASE } from '../lib/apiConfig';
@@ -23,6 +23,7 @@ interface LeaderboardEntry {
   name: string;
   total_xp: number;
   daily_xp: number;
+  weekly_xp: number;
   level: number;
   rank: string;
   streak: number;
@@ -49,7 +50,7 @@ interface LeaderboardViewProps {
   equippedOutfit?: Outfit;
 }
 
-type TabMode = 'global' | 'daily';
+type TabMode = 'xp' | 'streak';
 
 // ── Constants ──
 const RANK_COLORS: Record<string, string> = {
@@ -87,11 +88,13 @@ const DEFAULT_OUTFIT_CFG = OUTFIT_CONFIG.outfit_starter;
 //  MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════
 const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfit }) => {
-  const [globalEntries, setGlobalEntries] = useState<LeaderboardEntry[]>([]);
-  const [dailyEntries, setDailyEntries] = useState<LeaderboardEntry[]>([]);
-  const [activeTab, setActiveTab] = useState<TabMode>('daily');
+  const [xpEntries, setXpEntries] = useState<LeaderboardEntry[]>([]);
+  const [streakEntries, setStreakEntries] = useState<LeaderboardEntry[]>([]);
+  const [activeTab, setActiveTab] = useState<TabMode>('xp');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [weekEnd, setWeekEnd] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState('');
 
   const { addNotification, setPlayer, updateServerBaseline } = useSystem();
 
@@ -178,12 +181,19 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
   const fetchLeaderboard = useCallback(async (showRefresh = false) => {
     if (showRefresh) setRefreshing(true);
     try {
-      const [globalRes, dailyRes] = await Promise.all([
-        fetch(`${API_BASE}/api/leaderboard?type=global`, { credentials: 'include', headers: { ...getPlayerAuthHeaders() } }),
-        fetch(`${API_BASE}/api/leaderboard?type=daily`, { credentials: 'include', headers: { ...getPlayerAuthHeaders() } }),
+      const [xpRes, streakRes] = await Promise.all([
+        fetch(`${API_BASE}/api/leaderboard?type=xp`, { credentials: 'include', headers: { ...getPlayerAuthHeaders() } }),
+        fetch(`${API_BASE}/api/leaderboard?type=streak`, { credentials: 'include', headers: { ...getPlayerAuthHeaders() } }),
       ]);
-      if (globalRes.ok) setGlobalEntries(await globalRes.json());
-      if (dailyRes.ok) setDailyEntries(await dailyRes.json());
+      if (xpRes.ok) {
+        const xpData = await xpRes.json();
+        setXpEntries(xpData.entries || []);
+        if (xpData.weekEnd) setWeekEnd(xpData.weekEnd);
+      }
+      if (streakRes.ok) {
+        const streakData = await streakRes.json();
+        setStreakEntries(streakData.entries || []);
+      }
     } catch { /* offline */ } finally {
       setLoading(false);
       setRefreshing(false);
@@ -234,26 +244,18 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
 
   // ── Build entries with INSTANT local XP merge ──
   // When YOU earn XP, your card moves immediately without waiting for server refresh
-  const entries = activeTab === 'global' ? globalEntries : dailyEntries;
-  const xpField = activeTab === 'global' ? 'total_xp' : 'daily_xp';
+  const entries = activeTab === 'xp' ? xpEntries : streakEntries;
 
   const simulatedEntries: SimEntry[] = useMemo(() => {
     const myPlayerId = player.userId || '';
     const myUsername = (player.username || '').trim().toLowerCase();
 
-    // ── EXCLUSIVE MATCH: find the single "me" entry ──
-    // Priority: username match (visible, always correct) > supabase_id match
-    // NEVER use player_id (internal DB UUID ≠ auth ID)
     let meIndex = -1;
-
-    // Pass 1: username match (most reliable — what the user sees)
     if (myUsername) {
       meIndex = entries.findIndex(
         e => (e.username || '').trim().toLowerCase() === myUsername
       );
     }
-
-    // Pass 2: supabase_id match (if username didn't hit — e.g. username not set yet)
     if (meIndex < 0 && myPlayerId) {
       meIndex = entries.findIndex(
         e => e.supabase_id === myPlayerId
@@ -262,11 +264,12 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
 
     return [...entries].map((e, i) => {
       const isMe = i === meIndex;
+      const dominanceValue = activeTab === 'xp' ? (e.weekly_xp || 0) : (e.streak || 0);
 
       return {
         ...e,
         isMe,
-        dominance: (e as any)[xpField] || 0,
+        dominance: dominanceValue,
         isDebuffed: false,
         computedRank: computeRankFromLevel(e.level || 1),
         outfitId: e.equipped_outfit_id || 'outfit_starter',
@@ -274,8 +277,8 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
         borderId: e.equipped_border || null,
         bannerId: e.equipped_banner || null,
       };
-    }).sort((a, b) => b.streak - a.streak || b.dominance - a.dominance);
-  }, [entries, player.userId, player.username, xpField, activeTab]);
+    }).sort((a, b) => b.dominance - a.dominance);
+  }, [entries, player.userId, player.username, activeTab]);
 
   const myIndex = simulatedEntries.findIndex(e => e.isMe);
   const myRank = myIndex >= 0 ? myIndex + 1 : 999;
@@ -289,6 +292,24 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
     return xp.toString();
   };
 
+  // ── Countdown timer for weekly reset ──
+  useEffect(() => {
+    if (!weekEnd) return;
+    const tick = () => {
+      const now = Date.now();
+      const end = new Date(weekEnd).getTime();
+      const diff = Math.max(0, end - now);
+      const d = Math.floor(diff / 86400000);
+      const h = Math.floor((diff % 86400000) / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      setCountdown(`${d}d ${h}h ${m}m ${s}s`);
+    };
+    tick();
+    const iv = setInterval(tick, 1000);
+    return () => clearInterval(iv);
+  }, [weekEnd]);
+
 
   return (
     <div className="min-h-screen pb-24">
@@ -299,7 +320,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
           <div>
             <h1 className="text-2xl font-black text-white tracking-tight">Leaderboard</h1>
             <div className="text-xs text-gray-400 mt-0.5">
-              Top players by streak {myIndex >= 0 ? <span className="text-[#7EB8D4] font-bold">— You're #{myRank}</span> : ''}
+              {activeTab === 'xp' ? 'Weekly XP rankings' : 'Top players by streak'} {myIndex >= 0 ? <span className="text-[#7EB8D4] font-bold">— You're #{myRank}</span> : ''}
             </div>
           </div>
           <motion.button
@@ -314,9 +335,17 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
         </div>
       </div>
 
+      {/* ── COUNTDOWN TIMER (XP tab only) ── */}
+      {activeTab === 'xp' && countdown && (
+        <div className="mx-4 mb-3 px-3 py-2 rounded-xl flex items-center gap-2" style={{ background: 'rgba(126,184,212,0.06)', border: '1px solid rgba(126,184,212,0.12)' }}>
+          <Clock size={13} className="text-[#7EB8D4]" />
+          <span className="text-[10px] font-mono font-bold text-[#7EB8D4] tracking-wider">RESETS IN {countdown}</span>
+        </div>
+      )}
+
       {/* ── TAB SWITCHER ── */}
       <div className="flex px-4 mb-4 gap-2">
-        {(['daily', 'global'] as TabMode[]).map(tab => (
+        {(['xp', 'streak'] as TabMode[]).map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -326,8 +355,8 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
               color: activeTab === tab ? '#ffffff' : 'rgba(255,255,255,0.3)',
             }}
           >
-            {tab === 'daily' ? <CalendarDays size={13} /> : <Globe size={13} />}
-            {tab === 'daily' ? 'DAILY' : 'GLOBAL'}
+            {tab === 'xp' ? <Zap size={13} /> : <Flame size={13} />}
+            {tab === 'xp' ? 'XP' : 'STREAK'}
           </button>
         ))}
       </div>
@@ -340,7 +369,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
         </div>
       ) : simulatedEntries.length === 0 ? (
         <div className="text-center py-20 text-gray-600 text-sm font-mono">
-          {activeTab === 'daily' ? 'No activity yet today.' : 'No players found.'}
+          {activeTab === 'xp' ? 'No XP earned this week yet.' : 'No active streaks.'}
         </div>
       ) : (
         <>
@@ -358,8 +387,11 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                       {e.username || e.name}
                     </div>
                     <div className="flex items-center gap-1">
-                      <Flame size={13} className="text-orange-400" />
-                      <span className="text-sm font-black text-orange-400">{e.streak}</span>
+                      {activeTab === 'xp' ? (
+                        <><Zap size={13} className="text-cyan-400" /><span className="text-sm font-black text-cyan-400">{formatXp(e.weekly_xp || 0)}</span></>
+                      ) : (
+                        <><Flame size={13} className="text-orange-400" /><span className="text-sm font-black text-orange-400">{e.streak}</span></>
+                      )}
                     </div>
                   </div>
                 );
@@ -376,8 +408,11 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                       {e.username || e.name}
                     </div>
                     <div className="flex items-center gap-1">
-                      <Flame size={14} className="text-orange-400" />
-                      <span className="text-base font-black text-orange-400">{e.streak}</span>
+                      {activeTab === 'xp' ? (
+                        <><Zap size={14} className="text-cyan-400" /><span className="text-base font-black text-cyan-400">{formatXp(e.weekly_xp || 0)}</span></>
+                      ) : (
+                        <><Flame size={14} className="text-orange-400" /><span className="text-base font-black text-orange-400">{e.streak}</span></>
+                      )}
                     </div>
                   </div>
                 );
@@ -394,8 +429,11 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                       {e.username || e.name}
                     </div>
                     <div className="flex items-center gap-1">
-                      <Flame size={13} className="text-orange-400" />
-                      <span className="text-sm font-black text-orange-400">{e.streak}</span>
+                      {activeTab === 'xp' ? (
+                        <><Zap size={13} className="text-cyan-400" /><span className="text-sm font-black text-cyan-400">{formatXp(e.weekly_xp || 0)}</span></>
+                      ) : (
+                        <><Flame size={13} className="text-orange-400" /><span className="text-sm font-black text-orange-400">{e.streak}</span></>
+                      )}
                     </div>
                   </div>
                 );
@@ -441,10 +479,13 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                     </div>
                   </div>
 
-                  {/* Streak */}
+                  {/* Value — XP or Streak */}
                   <div className="flex items-center gap-1 shrink-0">
-                    <span className="text-base font-black text-orange-400">{entry.streak}</span>
-                    <Flame size={15} className="text-orange-400" />
+                    {activeTab === 'xp' ? (
+                      <><span className="text-base font-black text-cyan-400">{formatXp(entry.weekly_xp || 0)}</span><Zap size={15} className="text-cyan-400" /></>
+                    ) : (
+                      <><span className="text-base font-black text-orange-400">{entry.streak}</span><Flame size={15} className="text-orange-400" /></>
+                    )}
                   </div>
                 </motion.div>
               );

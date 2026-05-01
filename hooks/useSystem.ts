@@ -251,6 +251,29 @@ export const useSystem = () => {
   // This prevents stale localStorage from overwriting newer DB data on a second device.
   const serverPullDoneRef = useRef(false);
 
+  // ── SUPABASE-FIRST: App shows loading screen until server data arrives ──
+  // Falls back to localStorage after 5 seconds if Supabase is unreachable.
+  const [dataReady, setDataReady] = useState(false);
+  const dataReadyRef = useRef(false);
+
+  const markDataReady = useCallback(() => {
+    if (!dataReadyRef.current) {
+      dataReadyRef.current = true;
+      setDataReady(true);
+    }
+  }, []);
+
+  // Fallback: if Supabase doesn't respond within 5s, use localStorage data
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (!dataReadyRef.current) {
+        console.warn('[System] Supabase fetch timed out after 5s — falling back to localStorage');
+        markDataReady();
+      }
+    }, 5000);
+    return () => clearTimeout(timeout);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Track server-authoritative gold for delta-based sync
   const serverGoldRef = useRef(player.gold);
 
@@ -2188,5 +2211,7 @@ export const useSystem = () => {
     purchaseBorder,
     equipBorder,
     equipBanner,
+    dataReady,
+    markDataReady,
   };
 };

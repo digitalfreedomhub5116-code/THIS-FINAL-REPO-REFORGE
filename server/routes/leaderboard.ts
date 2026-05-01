@@ -25,66 +25,117 @@ function safeLevelUp(currentXp: number, requiredXp: number, level: number) {
   return { currentXp, requiredXp, level, leveledUp, rank: computeRank(level) };
 }
 
-const router = Router();
-
-// Get today's date string in UTC (midnight boundary)
-function todayStartUTC(): string {
+// ── Week boundary helpers ──
+function getWeekStartMonday(): Date {
   const now = new Date();
-  now.setUTCHours(0, 0, 0, 0);
-  return now.toISOString();
+  const dayOfWeek = now.getUTCDay(); // 0=Sun, 1=Mon...
+  const monday = new Date(now);
+  monday.setUTCDate(now.getUTCDate() - ((dayOfWeek + 6) % 7));
+  monday.setUTCHours(0, 0, 0, 0);
+  return monday;
 }
 
+function getWeekEndSunday(): Date {
+  const monday = getWeekStartMonday();
+  const sunday = new Date(monday);
+  sunday.setUTCDate(monday.getUTCDate() + 7);
+  return sunday;
+}
+
+const router = Router();
+
+// ── GET /api/leaderboard?type=xp|streak ──
 router.get('/', async (req: Request, res: Response) => {
-  const type = (req.query.type as string) || 'global';
+  const type = (req.query.type as string) || 'xp';
 
   try {
-    // For daily: we need updated_at to check if daily_xp is stale
-    const { data, error } = await (supabaseServer() as any)
-      .from('players')
-      .select('id, supabase_id, username, name, total_xp, daily_xp, level, rank, streak, avatar_url, raw_data, equipped_border, updated_at')
-      .eq('is_banned', false)
-      .order('streak', { ascending: false })
-      .limit(100);
+    const weekStart = getWeekStartMonday();
+    const weekEnd = getWeekEndSunday();
 
-    if (error) {
-      console.error('[Leaderboard GET]', error);
-      return res.status(500).json({ error: 'Internal server error' });
-    }
+    if (type === 'xp') {
+      // ── XP LEADERBOARD: weekly_xp, resets every Monday ──
+      const { data, error } = await (supabaseServer() as any)
+        .from('players')
+        .select('id, supabase_id, username, name, total_xp, daily_xp, weekly_xp, week_start_date, level, rank, streak, avatar_url, raw_data, equipped_border, updated_at')
+        .eq('is_banned', false)
+        .order('weekly_xp', { ascending: false })
+        .limit(50);
 
-    const todayStart = new Date();
-    todayStart.setUTCHours(0, 0, 0, 0);
-    const todayStartMs = todayStart.getTime();
+      if (error) {
+        console.error('[Leaderboard GET xp]', error);
+        return res.status(500).json({ error: 'Internal server error' });
+      }
 
-    const entries = (data || []).map((row: any) => {
-      // If player hasn't synced today, their daily_xp is stale → treat as 0
-      const lastUpdated = row.updated_at ? new Date(row.updated_at).getTime() : 0;
-      const isSyncedToday = lastUpdated >= todayStartMs;
-      const effectiveDailyXp = isSyncedToday ? (row.daily_xp || 0) : 0;
+      const entries = (data || []).map((row: any) => {
+        // Check if this player's weekly_xp is from the current week
+        const playerWeekStart = row.week_start_date ? new Date(row.week_start_date).getTime() : 0;
+        const currentWeekStart = weekStart.getTime();
+        // If the player's week_start_date is before this Monday, their weekly_xp is stale
+        const isCurrentWeek = playerWeekStart >= currentWeekStart;
+        const effectiveWeeklyXp = isCurrentWeek ? (row.weekly_xp || 0) : 0;
 
-      return {
+        return {
+          player_id: row.id,
+          supabase_id: row.supabase_id,
+          username: row.username,
+          name: row.name,
+          total_xp: row.total_xp || 0,
+          daily_xp: row.daily_xp || 0,
+          weekly_xp: effectiveWeeklyXp,
+          level: row.level || 1,
+          rank: row.rank || 'E',
+          streak: row.streak || 0,
+          avatar_url: row.avatar_url || null,
+          equipped_outfit_id: row.raw_data?.equippedOutfitId || 'outfit_starter',
+          equipped_border: row.equipped_border || row.raw_data?.equippedBorder || null,
+          equipped_banner: row.raw_data?.equippedBanner || null,
+        };
+      });
+
+      // Re-sort by effective weekly XP (after stale detection)
+      entries.sort((a: any, b: any) => b.weekly_xp - a.weekly_xp);
+
+      // Add week timing info
+      return res.json({
+        entries,
+        weekStart: weekStart.toISOString(),
+        weekEnd: weekEnd.toISOString(),
+      });
+
+    } else {
+      // ── STREAK LEADERBOARD: constant, sorted by streak ──
+      const { data, error } = await (supabaseServer() as any)
+        .from('players')
+        .select('id, supabase_id, username, name, total_xp, daily_xp, weekly_xp, level, rank, streak, avatar_url, raw_data, equipped_border, updated_at')
+        .eq('is_banned', false)
+        .gt('streak', 0)
+        .order('streak', { ascending: false })
+        .limit(50);
+
+      if (error) {
+        console.error('[Leaderboard GET streak]', error);
+        return res.status(500).json({ error: 'Internal server error' });
+      }
+
+      const entries = (data || []).map((row: any) => ({
         player_id: row.id,
         supabase_id: row.supabase_id,
         username: row.username,
         name: row.name,
         total_xp: row.total_xp || 0,
-        daily_xp: effectiveDailyXp,
+        daily_xp: row.daily_xp || 0,
+        weekly_xp: row.weekly_xp || 0,
         level: row.level || 1,
         rank: row.rank || 'E',
         streak: row.streak || 0,
         avatar_url: row.avatar_url || null,
         equipped_outfit_id: row.raw_data?.equippedOutfitId || 'outfit_starter',
-        // Prefer dedicated column (instant PATCH) → fallback to raw_data
         equipped_border: row.equipped_border || row.raw_data?.equippedBorder || null,
         equipped_banner: row.raw_data?.equippedBanner || null,
-      };
-    });
+      }));
 
-    // For daily tab, re-sort since we may have zeroed out some daily_xp values
-    if (type === 'daily') {
-      entries.sort((a: any, b: any) => b.streak - a.streak);
+      return res.json({ entries });
     }
-
-    return res.json(entries);
   } catch (err) {
     console.error('[Leaderboard GET]', err);
     return res.status(500).json({ error: 'Internal server error' });
