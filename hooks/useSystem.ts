@@ -1212,13 +1212,35 @@ export const useSystem = () => {
       const dailyStats = { ...prev.dailyStats };
       const weeklyStats = { ...prev.weeklyStats };
       const monthlyStats = { ...prev.monthlyStats };
-      const questCategories = quest.categories || (quest.category ? [quest.category] : []);
-      const statGain = asMini ? 0.2 : 1;
-      for (const cat of questCategories) {
-        stats[cat] = (stats[cat] || 0) + statGain;
-        dailyStats[cat] = (dailyStats[cat] || 0) + statGain;
-        weeklyStats[cat] = (weeklyStats[cat] || 0) + statGain;
-        monthlyStats[cat] = (monthlyStats[cat] || 0) + statGain;
+
+      // Single-tag stat award with 5/day cap + overflow
+      const STAT_DAILY_CAP = 5;
+      const OVERFLOW_ORDER: (keyof typeof dailyStats)[] = ['discipline','focus','willpower','social','intelligence','strength'];
+      const primaryCat = quest.category || (quest.categories ? quest.categories[0] : 'discipline');
+      const statGain = asMini ? 0 : 1; // Mini quests don't award stat points
+
+      if (statGain > 0) {
+        let awarded = false;
+        // Try primary stat first
+        if ((dailyStats[primaryCat] || 0) < STAT_DAILY_CAP) {
+          stats[primaryCat] = (stats[primaryCat] || 0) + 1;
+          dailyStats[primaryCat] = (dailyStats[primaryCat] || 0) + 1;
+          weeklyStats[primaryCat] = (weeklyStats[primaryCat] || 0) + 1;
+          monthlyStats[primaryCat] = (monthlyStats[primaryCat] || 0) + 1;
+          awarded = true;
+        } else {
+          // Overflow: find first non-full stat
+          for (const overflowStat of OVERFLOW_ORDER) {
+            if (overflowStat !== primaryCat && (dailyStats[overflowStat] || 0) < STAT_DAILY_CAP) {
+              stats[overflowStat] = (stats[overflowStat] || 0) + 1;
+              dailyStats[overflowStat] = (dailyStats[overflowStat] || 0) + 1;
+              weeklyStats[overflowStat] = (weeklyStats[overflowStat] || 0) + 1;
+              monthlyStats[overflowStat] = (monthlyStats[overflowStat] || 0) + 1;
+              awarded = true;
+              break;
+            }
+          }
+        }
       }
 
       let { currentXp, requiredXp, level, totalXp, dailyXp } = prev;
@@ -1604,9 +1626,28 @@ export const useSystem = () => {
       }
 
       const stats = { ...prev.stats };
-      stats.strength += 2;
-      stats.discipline += 1;
-      if (intensityModifier) stats.strength += 1;
+      const dailyStats = { ...prev.dailyStats };
+      const weeklyStats = { ...prev.weeklyStats };
+      const monthlyStats = { ...prev.monthlyStats };
+      const STAT_DAILY_CAP = 5;
+
+      // Award STR (capped)
+      const strGain = intensityModifier ? 2 : 1;
+      for (let i = 0; i < strGain; i++) {
+        if ((dailyStats.strength || 0) < STAT_DAILY_CAP) {
+          stats.strength = (stats.strength || 0) + 1;
+          dailyStats.strength = (dailyStats.strength || 0) + 1;
+          weeklyStats.strength = (weeklyStats.strength || 0) + 1;
+          monthlyStats.strength = (monthlyStats.strength || 0) + 1;
+        }
+      }
+      // Award DIS (capped)
+      if ((dailyStats.discipline || 0) < STAT_DAILY_CAP) {
+        stats.discipline = (stats.discipline || 0) + 1;
+        dailyStats.discipline = (dailyStats.discipline || 0) + 1;
+        weeklyStats.discipline = (weeklyStats.discipline || 0) + 1;
+        monthlyStats.discipline = (monthlyStats.discipline || 0) + 1;
+      }
 
       const newPBs = { ...prev.personalBests };
       Object.entries(results).forEach(([key, val]) => {
@@ -1648,6 +1689,9 @@ export const useSystem = () => {
         totalXp,
         dailyXp,
         stats,
+        dailyStats,
+        weeklyStats,
+        monthlyStats,
         personalBests: newPBs,
         gold: prev.gold + totalGoldGain,
 

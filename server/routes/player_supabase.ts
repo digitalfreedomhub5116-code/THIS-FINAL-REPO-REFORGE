@@ -38,7 +38,7 @@ router.get('/:id/sync', async (req: Request, res: Response) => {
   try {
     const { data, error } = await (supabaseServer() as any)
       .from('players')
-      .select('gold, keys, is_banned, cheat_strikes, total_strikes_ever, pending_notifications, level, current_xp, required_xp, total_xp, daily_xp, rank, streak, last_login_date, streak_shields, streak_before_break, streak_broken_at, hp, max_hp, mp, max_mp, updated_at, raw_data->unlockedOutfits, raw_data->equippedOutfitId, raw_data->outfitStones')
+      .select('gold, keys, is_banned, cheat_strikes, total_strikes_ever, pending_notifications, level, current_xp, required_xp, total_xp, daily_xp, rank, streak, last_login_date, streak_shields, streak_before_break, streak_broken_at, hp, max_hp, mp, max_mp, updated_at, daily_stats, weekly_stats, monthly_stats, last_daily_reset, last_weekly_reset, last_monthly_reset, raw_data->unlockedOutfits, raw_data->equippedOutfitId, raw_data->outfitStones')
       .eq('supabase_id', id)
       .single();
 
@@ -183,6 +183,52 @@ router.get('/:id/sync', async (req: Request, res: Response) => {
       }
     }
 
+    // ── SERVER-SIDE D/W/M STAT RESETS ──
+    const ZERO_STATS = {strength:0,intelligence:0,discipline:0,social:0,focus:0,willpower:0};
+    let serverDailyStats = row.daily_stats || ZERO_STATS;
+    let serverWeeklyStats = row.weekly_stats || ZERO_STATS;
+    let serverMonthlyStats = row.monthly_stats || ZERO_STATS;
+    const statResetFields: Record<string, any> = {};
+
+    // Daily reset — check against today's date string
+    const lastDailyReset = row.last_daily_reset || '';
+    if (lastDailyReset !== todayStr) {
+      serverDailyStats = { ...ZERO_STATS };
+      statResetFields.daily_stats = ZERO_STATS;
+      statResetFields.last_daily_reset = todayStr;
+    }
+
+    // Weekly reset — Monday UTC
+    const nowUtc = new Date();
+    const dayOfWeekUtc = nowUtc.getUTCDay();
+    const mondayUtc = new Date(nowUtc);
+    mondayUtc.setUTCDate(nowUtc.getUTCDate() - ((dayOfWeekUtc + 6) % 7));
+    const mondayStr = `${mondayUtc.getUTCFullYear()}-${String(mondayUtc.getUTCMonth()+1).padStart(2,'0')}-${String(mondayUtc.getUTCDate()).padStart(2,'0')}`;
+    const lastWeeklyReset = row.last_weekly_reset || '';
+    if (lastWeeklyReset !== mondayStr) {
+      serverWeeklyStats = { ...ZERO_STATS };
+      statResetFields.weekly_stats = ZERO_STATS;
+      statResetFields.last_weekly_reset = mondayStr;
+    }
+
+    // Monthly reset — 1st of month
+    const monthStr = `${nowUtc.getFullYear()}-${String(nowUtc.getMonth()+1).padStart(2,'0')}`;
+    const lastMonthlyReset = row.last_monthly_reset || '';
+    if (lastMonthlyReset !== monthStr) {
+      serverMonthlyStats = { ...ZERO_STATS };
+      statResetFields.monthly_stats = ZERO_STATS;
+      statResetFields.last_monthly_reset = monthStr;
+    }
+
+    // Persist any resets
+    if (Object.keys(statResetFields).length > 0) {
+      await (supabaseServer() as any)
+        .from('players')
+        .update(statResetFields)
+        .eq('supabase_id', id);
+      console.log(`[Stats Reset] ${id.slice(-8)}: Reset ${Object.keys(statResetFields).filter(k => k.includes('stats')).join(', ')}`);
+    }
+
     return res.json({
       gold: row.gold,
       keys: row.keys,
@@ -212,6 +258,10 @@ router.get('/:id/sync', async (req: Request, res: Response) => {
       mp: row.mp ?? 100,
       maxMp: row.max_mp ?? 100,
       updatedAt: row.updated_at || null,
+      // D/W/M stats (server-authoritative after resets)
+      dailyStats: serverDailyStats,
+      weeklyStats: serverWeeklyStats,
+      monthlyStats: serverMonthlyStats,
     });
   } catch (err) {
     console.error('[Player SYNC]', err);
@@ -227,7 +277,7 @@ router.get('/:id', async (req: Request, res: Response) => {
   try {
     const { data, error } = await (supabaseServer() as any)
       .from('players')
-      .select('supabase_id, username, name, level, current_xp, required_xp, total_xp, daily_xp, rank, streak, hp, max_hp, mp, max_mp, gold, keys, is_configured, is_banned, is_penalty_active, penalty_end_time, cheat_strikes, total_strikes_ever, last_login_date, last_dungeon_entry, tutorial_step, tutorial_complete, daily_quest_complete, last_daily_reset, last_weekly_reset, last_monthly_reset, avatar_url, pending_notifications, raw_data, updated_at')
+      .select('supabase_id, username, name, level, current_xp, required_xp, total_xp, daily_xp, rank, streak, hp, max_hp, mp, max_mp, gold, keys, is_configured, is_banned, is_penalty_active, penalty_end_time, cheat_strikes, total_strikes_ever, last_login_date, last_dungeon_entry, tutorial_step, tutorial_complete, daily_quest_complete, last_daily_reset, last_weekly_reset, last_monthly_reset, daily_stats, weekly_stats, monthly_stats, avatar_url, pending_notifications, raw_data, updated_at')
       .eq('supabase_id', id)
       .single();
     
@@ -435,6 +485,10 @@ router.put('/:id', async (req: Request, res: Response) => {
       last_daily_reset: data.lastDailyReset || null,
       last_weekly_reset: data.lastWeeklyReset || null,
       last_monthly_reset: data.lastMonthlyReset || null,
+      // D/W/M stats — written from client state (server resets happen in /sync)
+      daily_stats: data.dailyStats || null,
+      weekly_stats: data.weeklyStats || null,
+      monthly_stats: data.monthlyStats || null,
       identity: data.identity || null,
       gold: newGold,
       keys: newKeys,

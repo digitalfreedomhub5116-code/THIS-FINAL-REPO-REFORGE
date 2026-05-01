@@ -1,28 +1,14 @@
-import React, { useMemo, useState, useRef, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { 
   Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer, PolarRadiusAxis 
 } from 'recharts';
-import { ChevronLeft, ChevronRight, Terminal, Zap, X, Layers } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Zap } from 'lucide-react';
 import { PlayerData, CoreStats, Outfit, HistoryEntry } from '../types';
 import MentorThoughtBox from './MentorThoughtBox';
 import ForgeGuardWidget from './ForgeGuardWidget';
 
-// ── Tiered Scaling System ──
-const TIER_SIZE = 40;
-const MAX_TIERS = 5;
-const TIER_NAMES = ['I', 'II', 'III', 'IV', 'V'];
-const TIER_COLORS = ['#6b7280', '#3b82f6', '#7EB8D4', '#f59e0b', '#ef4444'];
-const XP_BUFF_MAP: Record<number, number> = { 1: 0, 2: 10, 3: 30, 4: 50, 5: 100 };
 
-function getTierInfo(value: number) {
-  const safeValue = typeof value === 'number' && !isNaN(value) ? value : 0;
-  const clamped = Math.max(0, Math.min(safeValue, 200));
-  if (clamped >= 200) return { tier: 5, progress: TIER_SIZE, tierName: 'V', pct: 1 };
-  const tier = Math.min(MAX_TIERS, Math.floor(clamped / TIER_SIZE) + 1);
-  const progress = clamped % TIER_SIZE;
-  return { tier, progress, tierName: TIER_NAMES[tier - 1], pct: progress / TIER_SIZE };
-}
 
 // ── Dusk thought pool for ambient floating messages ──
 const DUSK_THOUGHTS = [
@@ -63,14 +49,7 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
   const [selectedDateIndex, setSelectedDateIndex] = useState<number>(3);
   const [showAllLevels, setShowAllLevels] = useState(false);
   const [weekOffset, setWeekOffset] = useState(0);
-
-  // ── Chart Level-Up System ──
-  const [displayedChartLevel, setDisplayedChartLevel] = useState<number | null>(null);
-  const [pendingLevelUp, setPendingLevelUp] = useState(false);
-  const [isLevelingUp, setIsLevelingUp] = useState(false);
-  const [animMultiplier, setAnimMultiplier] = useState(1);
-  const [levelUpParticles, setLevelUpParticles] = useState<{id: number; x: number; y: number; delay: number}[]>([]);
-  const levelUpAnimRef = useRef<number | null>(null);
+  const [chartMode, setChartMode] = useState<'D' | 'W' | 'M'>('D');
 
   useEffect(() => {
     if (weekOffset === 0) {
@@ -114,43 +93,7 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
     return () => dotTimers.forEach(clearTimeout);
   }, [selectedDateIndex]);
 
-  // ── Tier transition & point gain detection ──
-  const prevStatsRef = useRef<CoreStats | null>(null);
-  const [tierUpStats, setTierUpStats] = useState<Set<string>>(new Set());
-  const [pointGainStats, setPointGainStats] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    const prev = prevStatsRef.current;
-    if (prev) {
-      const statKeys: (keyof CoreStats)[] = ['strength', 'intelligence', 'focus', 'discipline', 'willpower', 'social'];
-      const keyToLabel: Record<string, string> = { strength: 'STR', intelligence: 'INT', focus: 'FOC', discipline: 'DIS', willpower: 'WIL', social: 'SOC' };
-      const newTierUps = new Set<string>();
-      const newPointGains = new Set<string>();
-
-      for (const key of statKeys) {
-        const prevVal = prev[key] || 0;
-        const curVal = player.stats[key] || 0;
-        if (curVal > prevVal) {
-          newPointGains.add(keyToLabel[key]);
-          const prevTier = getTierInfo(prevVal).tier;
-          const curTier = getTierInfo(curVal).tier;
-          if (curTier > prevTier) {
-            newTierUps.add(keyToLabel[key]);
-          }
-        }
-      }
-
-      if (newTierUps.size > 0) {
-        setTierUpStats(newTierUps);
-        setTimeout(() => setTierUpStats(new Set()), 3000);
-      }
-      if (newPointGains.size > 0) {
-        setPointGainStats(newPointGains);
-        setTimeout(() => setPointGainStats(new Set()), 1500);
-      }
-    }
-    prevStatsRef.current = { ...player.stats };
-  }, [player.stats]);
 
   // Dusk ambient thought box removed for cleaner UI
 
@@ -184,225 +127,102 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
   }, [todayDate, weekOffset]);
 
   const selectedDate = calendarDays[selectedDateIndex] || todayDate;
-
-  // ── Historical Comparison Ghosting ──
-  const todayStats: CoreStats = useMemo(() => {
-    const dateStr = todayDate.toISOString().split('T')[0];
-    return historyMap[dateStr]?.stats || player.stats;
-  }, [historyMap, todayDate, player.stats]);
-
-  const activeStats: CoreStats = useMemo(() => {
-    const dateStr = selectedDate.toISOString().split('T')[0];
-    return historyMap[dateStr]?.stats || player.stats;
-  }, [historyMap, selectedDate, player.stats]);
   
   const isViewingPast = selectedDate < todayDate;
 
-  // Cumulative radar domain: chart shows 0–200 absolute stat values (tier labels still shown)
-  const chartData = useMemo(() => {
-    const raw = [
-      { subject: 'STR', active: activeStats.strength, today: todayStats.strength },
-      { subject: 'INT', active: activeStats.intelligence, today: todayStats.intelligence },
-      { subject: 'FOC', active: activeStats.focus, today: todayStats.focus },
-      { subject: 'DIS', active: activeStats.discipline, today: todayStats.discipline },
-      { subject: 'WIL', active: activeStats.willpower, today: todayStats.willpower },
-      { subject: 'SOC', active: activeStats.social, today: todayStats.social },
-    ];
-    return raw.map(s => {
-      const info = getTierInfo(s.active);
-      const todayInfo = getTierInfo(s.today);
-      return {
-        subject: s.subject,
-        A: Math.max(0, Math.min(s.active, 200)) * animMultiplier,
-        Today: Math.max(0, Math.min(s.today, 200)),
-        fullMark: 200,
-        tier: info.tier,
-        tierName: info.tierName,
-        rawValue: s.active,
-        todayTier: todayInfo.tier,
-      };
-    });
-  }, [activeStats, todayStats, animMultiplier]);
+  // D/W/M chart domains
+  const CHART_DOMAINS = { D: 5, W: 35, M: 155 } as const;
+  const chartDomain = CHART_DOMAINS[chartMode];
 
-  // ── Overall Radar Level & Stat Details ──
-  const statTierDetails = useMemo(() => {
-    const stats = [
-      { key: 'STR', label: 'Strength', val: activeStats.strength },
-      { key: 'INT', label: 'Intelligence', val: activeStats.intelligence },
-      { key: 'FOC', label: 'Focus', val: activeStats.focus },
-      { key: 'DIS', label: 'Discipline', val: activeStats.discipline },
-      { key: 'WIL', label: 'Willpower', val: activeStats.willpower },
-      { key: 'SOC', label: 'Social', val: activeStats.social },
-    ];
-    return stats.map(s => ({ ...s, ...getTierInfo(s.val) }));
-  }, [activeStats]);
-
-  const computedChartLevel = useMemo(() => {
-    return Math.min(...statTierDetails.map(s => s.tier));
-  }, [statTierDetails]);
-
-  // Initialize displayed chart level on first render; detect level-up thereafter
-  useEffect(() => {
-    if (displayedChartLevel === null) {
-      setDisplayedChartLevel(computedChartLevel);
-    } else if (computedChartLevel > displayedChartLevel && !isLevelingUp) {
-      setPendingLevelUp(true);
+  // Active stats for the current chart mode
+  const activeDisplayStats: CoreStats = useMemo(() => {
+    if (chartMode === 'D') {
+      const dateStr = selectedDate.toISOString().split('T')[0];
+      const todayStr = todayDate.toISOString().split('T')[0];
+      if (dateStr === todayStr) return player.dailyStats || { strength:0, intelligence:0, discipline:0, social:0, focus:0, willpower:0 };
+      // Past day — look up from history (use cumulative stats difference or zeros)
+      return historyMap[dateStr]?.stats || { strength:0, intelligence:0, discipline:0, social:0, focus:0, willpower:0 };
     }
-  }, [computedChartLevel, displayedChartLevel, isLevelingUp]);
+    if (chartMode === 'W') return player.weeklyStats || { strength:0, intelligence:0, discipline:0, social:0, focus:0, willpower:0 };
+    return player.monthlyStats || { strength:0, intelligence:0, discipline:0, social:0, focus:0, willpower:0 };
+  }, [chartMode, player.dailyStats, player.weeklyStats, player.monthlyStats, selectedDate, todayDate, historyMap]);
 
-  const effectiveChartLevel = displayedChartLevel ?? computedChartLevel;
-  const xpBuffPercent = XP_BUFF_MAP[effectiveChartLevel] || 0;
+  const chartData = useMemo(() => {
+    return [
+      { subject: 'STR', A: activeDisplayStats.strength || 0, fullMark: chartDomain },
+      { subject: 'INT', A: activeDisplayStats.intelligence || 0, fullMark: chartDomain },
+      { subject: 'FOC', A: activeDisplayStats.focus || 0, fullMark: chartDomain },
+      { subject: 'DIS', A: activeDisplayStats.discipline || 0, fullMark: chartDomain },
+      { subject: 'WIL', A: activeDisplayStats.willpower || 0, fullMark: chartDomain },
+      { subject: 'SOC', A: activeDisplayStats.social || 0, fullMark: chartDomain },
+    ];
+  }, [activeDisplayStats, chartDomain]);
 
-  const handleLevelUp = useCallback(() => {
-    if (!pendingLevelUp || isLevelingUp) return;
-    setIsLevelingUp(true);
-    setPendingLevelUp(false);
 
-    const particles = Array.from({ length: 24 }, (_, i) => ({
-      id: i,
-      x: 15 + Math.random() * 70,
-      y: 15 + Math.random() * 70,
-      delay: Math.random() * 0.6,
-    }));
-    setLevelUpParticles(particles);
-
-    const startTime = performance.now();
-    const SHRINK = 800, PAUSE = 600, EXPAND = 800;
-    let levelUpdated = false;
-
-    const tick = (now: number) => {
-      const elapsed = now - startTime;
-      if (elapsed < SHRINK) {
-        const t = elapsed / SHRINK;
-        setAnimMultiplier(1 - t * t);
-      } else if (elapsed < SHRINK + PAUSE) {
-        setAnimMultiplier(0);
-        if (!levelUpdated) {
-          setDisplayedChartLevel(computedChartLevel);
-          levelUpdated = true;
-        }
-      } else if (elapsed < SHRINK + PAUSE + EXPAND) {
-        const t = (elapsed - SHRINK - PAUSE) / EXPAND;
-        setAnimMultiplier(1 - Math.pow(1 - t, 3));
-      } else {
-        setAnimMultiplier(1);
-        setIsLevelingUp(false);
-        setTimeout(() => setLevelUpParticles([]), 300);
-        return;
-      }
-      levelUpAnimRef.current = requestAnimationFrame(tick);
-    };
-    levelUpAnimRef.current = requestAnimationFrame(tick);
-  }, [pendingLevelUp, isLevelingUp, computedChartLevel]);
-
-  useEffect(() => {
-    return () => { if (levelUpAnimRef.current) cancelAnimationFrame(levelUpAnimRef.current); };
-  }, []);
-
-  const overallRadarLevel = effectiveChartLevel;
-
-  // ── Dusk Contextual Voice (Tier-Aware) ──
+  // ── Dusk Contextual Voice ──
   const duskContextVoice = useMemo(() => {
+    const ds = player.dailyStats || { strength:0, intelligence:0, discipline:0, social:0, focus:0, willpower:0 };
     const stats = [
-      { name: 'strength', label: 'STR', val: player.stats.strength },
-      { name: 'intelligence', label: 'INT', val: player.stats.intelligence },
-      { name: 'focus', label: 'FOC', val: player.stats.focus },
-      { name: 'discipline', label: 'DIS', val: player.stats.discipline },
-      { name: 'willpower', label: 'WIL', val: player.stats.willpower },
-      { name: 'social', label: 'SOC', val: player.stats.social },
+      { name: 'strength', label: 'STR', val: ds.strength || 0 },
+      { name: 'intelligence', label: 'INT', val: ds.intelligence || 0 },
+      { name: 'focus', label: 'FOC', val: ds.focus || 0 },
+      { name: 'discipline', label: 'DIS', val: ds.discipline || 0 },
+      { name: 'willpower', label: 'WIL', val: ds.willpower || 0 },
+      { name: 'social', label: 'SOC', val: ds.social || 0 },
     ];
     stats.sort((a, b) => a.val - b.val);
     const lowest = stats[0];
     const highest = stats[5];
-    const lowestTier = getTierInfo(lowest.val);
-    const highestTier = getTierInfo(highest.val);
-
-    const nearBreak = stats.find(s => {
-      const info = getTierInfo(s.val);
-      return info.tier < MAX_TIERS && (TIER_SIZE - info.progress) <= 5;
-    });
+    const total = stats.reduce((s, x) => s + x.val, 0);
 
     const messages = [
-      `Your ${lowest.name} is stuck at Tier ${lowestTier.tierName}. Break through.`,
-      nearBreak
-        ? `${nearBreak.label} is ${TIER_SIZE - getTierInfo(nearBreak.val).progress} points from the next Tier.`
-        : `I see you've been building ${highest.name}. Don't neglect the rest.`,
+      lowest.val === 0 ? `${lowest.label} is at 0 today. Time to act.` : `${lowest.label} needs more attention. Only ${lowest.val}/5.`,
+      total >= 25 ? `Outstanding day. ${total}/30 stat points earned.` : `${highest.label} leads today at ${highest.val}/5. Keep pushing.`,
       `The System requires balance. Focus on ${lowest.name}.`,
-      `${highest.label} leads at Tier ${highestTier.tierName}. But ${lowest.label} falls behind.`,
+      total === 0 ? `No stats earned yet. Begin your quests.` : `${total}/30 total today. ${30 - total} remaining.`,
       `I am waiting for your next command.`,
     ];
 
     const daySeed = new Date().getDate();
     return messages[daySeed % messages.length];
-  }, [player.stats]);
+  }, [player.dailyStats]);
+
   const dailyInsight = useMemo(() => {
-    if (!historyMap) return "System initialized. Awaiting commands.";
+    const ds = player.dailyStats || { strength:0, intelligence:0, discipline:0, social:0, focus:0, willpower:0 };
+    const modeLabel = chartMode === 'D' ? 'today' : chartMode === 'W' ? 'this week' : 'this month';
+    const src = activeDisplayStats;
 
-    if (!isViewingPast) {
-      const stats = [
-        { name: 'STR', val: player.stats.strength },
-        { name: 'INT', val: player.stats.intelligence },
-        { name: 'FOC', val: player.stats.focus },
-        { name: 'DIS', val: player.stats.discipline },
-        { name: 'WIL', val: player.stats.willpower },
-        { name: 'SOC', val: player.stats.social },
-      ];
-
-      // Tier breach events (highest priority)
-      for (const s of stats) {
-        if (tierUpStats.has(s.name)) {
-          const info = getTierInfo(s.val);
-          return `TIER BREACH: ${s.name} has reached Tier ${info.tierName}. New power unlocked.`;
-        }
-      }
-
-      // Near-breakthrough warning (within 3 points)
-      const nearBreak = stats.find(s => {
-        const info = getTierInfo(s.val);
-        return info.tier < MAX_TIERS && (TIER_SIZE - info.progress) <= 3;
-      });
-      if (nearBreak) {
-        const info = getTierInfo(nearBreak.val);
-        const remaining = TIER_SIZE - info.progress;
-        return `${nearBreak.name} approaching Tier ${TIER_NAMES[info.tier]} boundary. ${remaining} point${remaining !== 1 ? 's' : ''} to breakthrough.`;
-      }
-
-      stats.sort((a, b) => b.val - a.val);
-      const highest = stats[0];
-      const lowest = stats[5];
-
-      if (player.dailyXp > 500) return `Peak performance detected. Daily XP at ${player.dailyXp}.`;
-      if (lowest.val < 15) return `Low ${lowest.name} detected. Recommend targeting ${lowest.name} protocols.`;
-      return `Current focus: ${highest.name} [Tier ${getTierInfo(highest.val).tierName}]. Maintain momentum.`;
-    }
-
-    // Viewing past day
-    const prevDate = new Date(selectedDate);
-    prevDate.setDate(prevDate.getDate() - 1);
-    const prevDateStr = prevDate.toISOString().split('T')[0];
-    const prevStats = historyMap[prevDateStr]?.stats;
-
-    if (!prevStats) {
+    if (chartMode === 'D' && isViewingPast) {
+      // Viewing past day
       const xp = historyMap[selectedDate.toISOString().split('T')[0]]?.dailyXp || 0;
       return xp > 0 ? `Historical record: ${xp} XP gained.` : `Historical record analyzed.`;
     }
 
-    const diffs = [
-      { name: 'STR', diff: activeStats.strength - prevStats.strength },
-      { name: 'INT', diff: activeStats.intelligence - prevStats.intelligence },
-      { name: 'FOC', diff: activeStats.focus - prevStats.focus },
-      { name: 'DIS', diff: activeStats.discipline - prevStats.discipline },
-      { name: 'WIL', diff: activeStats.willpower - prevStats.willpower },
-      { name: 'SOC', diff: activeStats.social - prevStats.social },
+    const statArr = [
+      { name: 'STR', val: src.strength || 0 },
+      { name: 'INT', val: src.intelligence || 0 },
+      { name: 'FOC', val: src.focus || 0 },
+      { name: 'DIS', val: src.discipline || 0 },
+      { name: 'WIL', val: src.willpower || 0 },
+      { name: 'SOC', val: src.social || 0 },
     ];
-    diffs.sort((a, b) => b.diff - a.diff);
-    const bestGrowth = diffs[0];
+    statArr.sort((a, b) => b.val - a.val);
+    const highest = statArr[0];
+    const lowest = statArr[5];
+    const total = statArr.reduce((s, x) => s + x.val, 0);
+    const cap = chartDomain;
 
-    if (bestGrowth.diff > 0) {
-      return `${bestGrowth.name} +${bestGrowth.diff} on this day. Growth was accelerating.`;
+    if (chartMode === 'D') {
+      const maxedStats = statArr.filter(s => s.val >= 5);
+      if (maxedStats.length === 6) return `All stats maxed ${modeLabel}. Perfect discipline.`;
+      if (total === 0) return `No stats earned yet. Complete quests to grow.`;
+      if (highest.val >= 5) return `${highest.name} maxed at 5/5 ${modeLabel}. Focus on ${lowest.name} (${lowest.val}/5).`;
+      return `${highest.name} leads at ${highest.val}/5 ${modeLabel}. ${lowest.name} at ${lowest.val}/5.`;
     }
-    return `Maintenance phase recorded on this day.`;
-  }, [activeStats, historyMap, isViewingPast, player.stats, player.dailyXp, selectedDate, tierUpStats]);
+
+    if (total === 0) return `No stats recorded ${modeLabel} yet.`;
+    return `${highest.name} leads at ${highest.val}/${cap} ${modeLabel}. Total: ${total}/${cap * 6}.`;
+  }, [activeDisplayStats, chartMode, chartDomain, isViewingPast, historyMap, selectedDate, player.dailyStats]);
   const introRef = useRef<HTMLVideoElement>(null);
   const loopRef = useRef<HTMLVideoElement>(null);
   const [videoPhase, setVideoPhase] = useState<'intro' | 'crossfade' | 'loop' | 'image'>('image');
@@ -581,7 +401,7 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
           <Zap size={10} className="text-[#7EB8D4]" />
           <span className="text-[8px] font-mono text-[#7EB8D4] uppercase font-bold tracking-widest shrink-0">SYS_LOG:</span>
           <motion.div 
-            key={selectedDateIndex}
+            key={`${selectedDateIndex}-${chartMode}`}
             initial={{ opacity: 0, x: 5 }}
             animate={{ opacity: 1, x: 0 }}
             className="text-[9px] text-gray-400 font-mono truncate overflow-hidden"
@@ -589,6 +409,33 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
             {dailyInsight}
           </motion.div>
         </div>
+      </div>
+
+      {/* --- D/W/M TOGGLE --- */}
+      <div className="w-full flex items-center justify-center gap-2 py-1.5 bg-[#0A0A0F]/80 border-b border-white/[0.02] z-20 shrink-0">
+        {(['D', 'W', 'M'] as const).map(mode => {
+          const active = chartMode === mode;
+          const labels = { D: 'Daily', W: 'Weekly', M: 'Monthly' };
+          return (
+            <button
+              key={mode}
+              onClick={() => setChartMode(mode)}
+              className="px-4 py-1 rounded-lg text-[9px] font-black font-mono uppercase tracking-widest transition-all duration-200"
+              style={active ? {
+                background: 'rgba(126,184,212,0.15)',
+                border: '1px solid rgba(126,184,212,0.4)',
+                color: '#7EB8D4',
+                boxShadow: '0 0 8px rgba(126,184,212,0.15)',
+              } : {
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid rgba(255,255,255,0.06)',
+                color: '#4b5563',
+              }}
+            >
+              {labels[mode]}
+            </button>
+          );
+        })}
       </div>
 
       {/* --- MAIN CONTENT (side by side) --- */}
@@ -607,39 +454,26 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
                   tick={(props: any) => {
                     const { x, y, payload } = props;
                     const item = chartData.find((d: any) => d.subject === payload.value);
-                    const tier = item?.tier || 1;
-                    const tierName = item?.tierName || 'I';
-                    const tierColor = TIER_COLORS[tier - 1];
+                    const val = item?.A || 0;
                     return (
                       <g>
                         <text x={x} y={y - 4} textAnchor="middle" dominantBaseline="middle" fill="#7EB8D4" fontSize={10} fontWeight={900} fontFamily="monospace">
                           {payload.value}
                         </text>
-                        <text x={x} y={y + 9} textAnchor="middle" dominantBaseline="middle" fill={tierColor} fontSize={7} fontWeight={700} fontFamily="monospace" opacity={0.9}>
-                          T{tierName}
+                        <text x={x} y={y + 9} textAnchor="middle" dominantBaseline="middle" fill="#6b7280" fontSize={7} fontWeight={700} fontFamily="monospace">
+                          {val}/{chartDomain}
                         </text>
                       </g>
                     );
                   }}
                 />
                 <PolarRadiusAxis 
-                  domain={[0, 200]} 
+                  domain={[0, chartDomain]} 
                   tick={false} 
                   axisLine={false} 
                 />
                 
-                {/* Historical Ghost Shape (Today's Stats) - Only visible when viewing past days */}
-                {isViewingPast && (
-                  <Radar
-                    name="Today"
-                    dataKey="Today"
-                    stroke="rgba(255,255,255,0.3)"
-                    strokeWidth={1}
-                    fill="transparent"
-                    strokeDasharray="3 3"
-                    isAnimationActive={false}
-                  />
-                )}
+
 
                 {/* Main Stats Shape */}
                 <Radar 
@@ -655,42 +489,15 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
                     const { cx, cy, index } = props;
                     const isVisible = index < visibleDots || radarPhase !== 'dots';
                     if (!cx || !cy) return null;
-                    const subject = chartData[index]?.subject;
-                    const hasTierUp = tierUpStats.has(subject);
-                    const hasPointGain = pointGainStats.has(subject);
                     const ctr = 15;
                     return (
                       <svg x={cx - ctr} y={cy - ctr} width={ctr * 2} height={ctr * 2} className="overflow-visible" key={`dot-${index}`}>
-                        {/* Tier-up burst rings */}
-                        {hasTierUp && isVisible && (
-                          <>
-                            <circle cx={ctr} cy={ctr} r="4" fill="none" stroke="#f59e0b" strokeWidth="2">
-                              <animate attributeName="r" values="4;20;24" dur="1.5s" fill="freeze" />
-                              <animate attributeName="opacity" values="1;0.5;0" dur="1.5s" fill="freeze" />
-                              <animate attributeName="stroke-width" values="2;1;0" dur="1.5s" fill="freeze" />
-                            </circle>
-                            <circle cx={ctr} cy={ctr} r="4" fill="none" stroke="#fbbf24" strokeWidth="1.5">
-                              <animate attributeName="r" values="4;14;18" dur="1.2s" fill="freeze" />
-                              <animate attributeName="opacity" values="0.8;0.3;0" dur="1.2s" fill="freeze" />
-                            </circle>
-                            <circle cx={ctr} cy={ctr} r="3" fill="#f59e0b" opacity="0">
-                              <animate attributeName="opacity" values="0;0.8;0" dur="0.6s" fill="freeze" />
-                            </circle>
-                          </>
-                        )}
-                        {/* Point gain pulse */}
-                        {hasPointGain && !hasTierUp && isVisible && (
-                          <circle cx={ctr} cy={ctr} r="4" fill="none" stroke="#7EB8D4" strokeWidth="1.5">
-                            <animate attributeName="r" values="4;12;4" dur="0.8s" repeatCount="2" />
-                            <animate attributeName="opacity" values="0.8;0.15;0.8" dur="0.8s" repeatCount="2" />
-                          </circle>
-                        )}
                         {/* Base dot */}
-                        <circle cx={ctr} cy={ctr} r="3" fill={hasTierUp ? '#f59e0b' : '#fff'} opacity={isVisible ? 0.95 : 0}>
+                        <circle cx={ctr} cy={ctr} r="3" fill="#fff" opacity={isVisible ? 0.95 : 0}>
                           {isVisible && <animate attributeName="opacity" values="0;0.95" dur="0.2s" fill="freeze" />}
                         </circle>
                         {/* Ambient pulse ring */}
-                        <circle cx={ctr} cy={ctr} r="5" fill="none" stroke={hasTierUp ? '#f59e0b' : '#7EB8D4'} strokeWidth="1" opacity={isVisible ? 0.5 : 0}>
+                        <circle cx={ctr} cy={ctr} r="5" fill="none" stroke="#7EB8D4" strokeWidth="1" opacity={isVisible ? 0.5 : 0}>
                           {isVisible && (
                             <>
                               <animate attributeName="r" values="5;8;5" dur="2s" repeatCount="indefinite" />
@@ -712,66 +519,7 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
             </ResponsiveContainer>
           </div>
 
-          {/* Level Up Button Overlay */}
-          <AnimatePresence>
-            {pendingLevelUp && !isLevelingUp && (
-              <motion.div
-                className="absolute inset-0 z-40 flex items-center justify-center"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.5 }}
-              >
-                <motion.button
-                  onClick={handleLevelUp}
-                  className="px-5 py-2.5 rounded-xl font-black font-mono text-sm uppercase tracking-wider border-2 cursor-pointer"
-                  style={{
-                    background: 'linear-gradient(135deg, rgba(34,197,94,0.9), rgba(22,163,74,0.9))',
-                    color: '#fff',
-                    borderColor: 'rgba(74,222,128,0.6)',
-                    boxShadow: '0 0 30px rgba(34,197,94,0.5), 0 0 60px rgba(34,197,94,0.2)',
-                    textShadow: '0 0 10px rgba(255,255,255,0.5)',
-                  }}
-                  animate={{ scale: [1, 1.05, 1], boxShadow: ['0 0 30px rgba(34,197,94,0.5)', '0 0 50px rgba(34,197,94,0.8)', '0 0 30px rgba(34,197,94,0.5)'] }}
-                  transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-                >
-                  ⬆ CHART LEVEL UP
-                </motion.button>
-              </motion.div>
-            )}
-          </AnimatePresence>
 
-          {/* Level Up Particles */}
-          <AnimatePresence>
-            {isLevelingUp && levelUpParticles.length > 0 && (
-              <motion.div
-                className="absolute inset-0 z-50 pointer-events-none overflow-hidden"
-                initial={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
-                {levelUpParticles.map(p => (
-                  <motion.span
-                    key={p.id}
-                    className="absolute font-black font-mono text-green-400 text-sm drop-shadow-[0_0_8px_rgba(34,197,94,0.8)]"
-                    style={{ left: `${p.x}%`, top: `${p.y}%` }}
-                    initial={{ opacity: 0, y: 10, scale: 0.3 }}
-                    animate={{ opacity: [0, 1, 1, 0], y: -50, scale: [0.3, 1.3, 1, 0.6] }}
-                    transition={{ duration: 2, delay: p.delay, ease: 'easeOut' }}
-                  >
-                    +1
-                  </motion.span>
-                ))}
-                {/* Central flash */}
-                <motion.div
-                  className="absolute inset-0 flex items-center justify-center"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: [0, 0.8, 0] }}
-                  transition={{ duration: 1.2, delay: 0.4 }}
-                >
-                  <div className="w-20 h-20 rounded-full bg-green-400/30 blur-xl" />
-                </motion.div>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
 
         {/* ── RIGHT CONTAINER: VIDEO ── */}
@@ -818,151 +566,10 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
           <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-[#0A0A0F] via-[#0A0A0F]/50 to-transparent z-10 pointer-events-none" />
 
 
-        </div>
 
-        {/* ── ALL LEVELS BUTTON (overlaid bottom-right of content area) ── */}
-        <div className="absolute bottom-3 right-3 z-30">
-          <button
-            onClick={() => setShowAllLevels(true)}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[8px] font-black font-mono uppercase tracking-widest transition-all duration-200"
-            style={{
-              background: 'rgba(10,10,15,0.75)',
-              backdropFilter: 'blur(8px)',
-              border: '1px solid rgba(126,184,212,0.2)',
-              color: '#7EB8D4',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(126,184,212,0.15)'; e.currentTarget.style.borderColor = 'rgba(126,184,212,0.4)'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(10,10,15,0.75)'; e.currentTarget.style.borderColor = 'rgba(126,184,212,0.2)'; }}
-          >
-            <Layers size={9} />
-            ALL LEVELS
-          </button>
         </div>
 
       </div>
-
-
-
-      {/* --- ALL LEVELS POPUP --- */}
-      <AnimatePresence>
-        {showAllLevels && (
-          <motion.div
-            className="absolute inset-0 z-[100] flex items-center justify-center"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            {/* Backdrop */}
-            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowAllLevels(false)} />
-
-            {/* Panel */}
-            <motion.div
-              className="relative w-[92%] max-w-[380px] max-h-[85%] overflow-y-auto rounded-2xl"
-              style={{
-                background: 'linear-gradient(180deg, #0d0d1a 0%, #080812 100%)',
-                border: '1px solid rgba(126,184,212,0.15)',
-                boxShadow: '0 0 40px rgba(126,184,212,0.08), 0 20px 60px rgba(0,0,0,0.6)',
-              }}
-              initial={{ scale: 0.9, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 20 }}
-            >
-              {/* Header */}
-              <div className="flex items-center justify-between px-4 pt-4 pb-2">
-                <div className="flex items-center gap-2">
-                  <Layers size={14} className="text-[#7EB8D4]" />
-                  <span className="text-[11px] font-black text-white uppercase tracking-[0.2em] font-mono">STAT TIER BREAKDOWN</span>
-                </div>
-                <button onClick={() => setShowAllLevels(false)} className="w-6 h-6 flex items-center justify-center rounded-md bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
-                  <X size={12} />
-                </button>
-              </div>
-
-              {/* Overall Level */}
-              <div className="mx-4 mb-3 px-3 py-2 rounded-lg" style={{ background: `${TIER_COLORS[overallRadarLevel - 1]}10`, border: `1px solid ${TIER_COLORS[overallRadarLevel - 1]}25` }}>
-                <div className="flex items-center justify-between">
-                  <span className="text-[9px] font-mono font-bold text-gray-400 uppercase tracking-widest">Overall Radar Level</span>
-                  <span className="text-[13px] font-black font-mono" style={{ color: TIER_COLORS[overallRadarLevel - 1] }}>TIER {TIER_NAMES[overallRadarLevel - 1]}</span>
-                </div>
-                <div className="flex items-center gap-2 mt-1.5">
-                  <div className="flex-1 h-1 rounded-full bg-white/5 overflow-hidden">
-                    <div className="h-full rounded-full transition-all duration-500" style={{ width: `${(statTierDetails.reduce((s, d) => s + d.val, 0) / 1200) * 100}%`, background: `linear-gradient(90deg, ${TIER_COLORS[0]}, ${TIER_COLORS[overallRadarLevel - 1]})` }} />
-                  </div>
-                  <span className="text-[8px] font-mono text-gray-500">{statTierDetails.reduce((s, d) => s + d.val, 0)}/1200</span>
-                </div>
-              </div>
-
-              {/* XP Buff Info */}
-              <div className="mx-4 mb-3 px-3 py-2 rounded-lg" style={{ background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.15)' }}>
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[9px] font-mono font-bold text-gray-400 uppercase tracking-widest">XP Buff from Radar Level</span>
-                  <span className="text-[11px] font-black font-mono" style={{ color: xpBuffPercent > 0 ? '#4ade80' : '#6b7280' }}>
-                    {xpBuffPercent > 0 ? `+${xpBuffPercent}%` : 'NONE'}
-                  </span>
-                </div>
-                <div className="grid grid-cols-5 gap-1">
-                  {TIER_NAMES.map((name, i) => {
-                    const buff = XP_BUFF_MAP[i + 1] || 0;
-                    const isActive = (i + 1) <= overallRadarLevel;
-                    const isCurrent = (i + 1) === overallRadarLevel;
-                    return (
-                      <div key={name} className="flex flex-col items-center gap-0.5 py-1 rounded" style={{ background: isCurrent ? 'rgba(34,197,94,0.12)' : 'transparent', border: isCurrent ? '1px solid rgba(34,197,94,0.25)' : '1px solid transparent' }}>
-                        <span className="text-[8px] font-mono font-bold" style={{ color: isActive ? TIER_COLORS[i] : '#374151' }}>T{name}</span>
-                        <span className="text-[7px] font-mono" style={{ color: isActive ? '#4ade80' : '#4b5563' }}>+{buff}%</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Individual Stats */}
-              <div className="px-4 space-y-2 pb-3">
-                {statTierDetails.map(stat => (
-                  <div key={stat.key} className="rounded-lg px-3 py-2.5" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-black font-mono text-[#7EB8D4] tracking-wider">{stat.key}</span>
-                        <span className="text-[8px] font-mono text-gray-500">{stat.label}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] font-black font-mono" style={{ color: TIER_COLORS[stat.tier - 1] }}>T{stat.tierName}</span>
-                        <span className="text-[8px] font-mono text-gray-600">{stat.val}/200</span>
-                      </div>
-                    </div>
-                    {/* Progress within current tier */}
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 h-1.5 rounded-full bg-white/5 overflow-hidden">
-                        <motion.div
-                          className="h-full rounded-full"
-                          style={{ background: TIER_COLORS[stat.tier - 1] }}
-                          initial={{ width: 0 }}
-                          animate={{ width: `${(stat.progress / TIER_SIZE) * 100}%` }}
-                          transition={{ duration: 0.6, ease: 'easeOut' }}
-                        />
-                      </div>
-                      <span className="text-[7px] font-mono text-gray-500 w-8 text-right">{stat.progress}/{TIER_SIZE}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Tier Legend */}
-              <div className="mx-4 mb-4 px-3 py-2.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.03)' }}>
-                <span className="text-[8px] font-mono font-bold text-gray-500 uppercase tracking-widest block mb-2">Tier Scale</span>
-                <div className="grid grid-cols-5 gap-1">
-                  {TIER_NAMES.map((name, i) => (
-                    <div key={name} className="flex flex-col items-center gap-0.5">
-                      <div className="w-full h-1 rounded-full" style={{ background: TIER_COLORS[i], opacity: i < overallRadarLevel ? 1 : 0.3 }} />
-                      <span className="text-[7px] font-mono font-bold" style={{ color: TIER_COLORS[i], opacity: i < overallRadarLevel ? 1 : 0.4 }}>T{name}</span>
-                      <span className="text-[6px] font-mono text-gray-600">{i * TIER_SIZE}-{(i + 1) * TIER_SIZE === 200 ? 200 : (i + 1) * TIER_SIZE - 1}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* --- MANA BAR --- */}
       {(() => {

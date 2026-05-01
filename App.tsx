@@ -1388,6 +1388,19 @@ const App: React.FC = () => {
 
             if (dbMaxMp !== prev.maxMp) updates.maxMp = dbMaxMp;
 
+            // D/W/M stats: server-authoritative (handles resets)
+            const dbDailyStats = row.dailyStats;
+            const dbWeeklyStats = row.weeklyStats;
+            const dbMonthlyStats = row.monthlyStats;
+            if (dbDailyStats && JSON.stringify(dbDailyStats) !== JSON.stringify(prev.dailyStats)) {
+              updates.dailyStats = dbDailyStats;
+            }
+            if (dbWeeklyStats && JSON.stringify(dbWeeklyStats) !== JSON.stringify(prev.weeklyStats)) {
+              updates.weeklyStats = dbWeeklyStats;
+            }
+            if (dbMonthlyStats && JSON.stringify(dbMonthlyStats) !== JSON.stringify(prev.monthlyStats)) {
+              updates.monthlyStats = dbMonthlyStats;
+            }
 
 
             // ── Outfit persistence: restore from server on first poll ──
@@ -1466,6 +1479,20 @@ const App: React.FC = () => {
             // Also sync requiredXp when level changes (admin may have adjusted it)
 
             if (levelChangedInDb && dbRequiredXp !== prev.requiredXp) updates.requiredXp = dbRequiredXp;
+
+            // D/W/M stats: always server-authoritative (handles resets)
+            const dbDailyStats2 = row.dailyStats;
+            const dbWeeklyStats2 = row.weeklyStats;
+            const dbMonthlyStats2 = row.monthlyStats;
+            if (dbDailyStats2 && JSON.stringify(dbDailyStats2) !== JSON.stringify(prev.dailyStats)) {
+              updates.dailyStats = dbDailyStats2;
+            }
+            if (dbWeeklyStats2 && JSON.stringify(dbWeeklyStats2) !== JSON.stringify(prev.weeklyStats)) {
+              updates.weeklyStats = dbWeeklyStats2;
+            }
+            if (dbMonthlyStats2 && JSON.stringify(dbMonthlyStats2) !== JSON.stringify(prev.monthlyStats)) {
+              updates.monthlyStats = dbMonthlyStats2;
+            }
 
           }
 
