@@ -2002,6 +2002,9 @@ const App: React.FC = () => {
 
     if (!DAILY_REWARDS_ENABLED) return;
 
+    // Wait for Supabase data before computing daily reward (streak-based tiers)
+    if (!dataReady) return;
+
     // Wait until configured and tutorial is complete before showing daily login
 
     if (!player.isConfigured) return;
@@ -2034,7 +2037,7 @@ const App: React.FC = () => {
 
     }
 
-  }, [player.isConfigured, player.tutorialComplete, isNewUserOnboarding, checkDailyLogin]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [player.isConfigured, player.tutorialComplete, isNewUserOnboarding, checkDailyLogin, dataReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
 
 
@@ -2048,7 +2051,9 @@ const App: React.FC = () => {
 
     // Must be configured with a real user
 
-    if (!player.isConfigured || !player.userId) return;
+    // Must be configured with a real user + wait for Supabase data
+
+    if (!player.isConfigured || !player.userId || !dataReady) return;
 
 
 

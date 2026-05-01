@@ -666,6 +666,11 @@ export const useSystem = () => {
   }, []);
 
   useEffect(() => {
+    // Don't run daily reset until server data has arrived (or 5s fallback).
+    // Otherwise, stale localStorage dailyXp/quests get snapshotted into history,
+    // and dailyXp gets wiped to 0 before the real value arrives from Supabase.
+    if (!dataReady) return;
+
     processDailyReset();
     const scheduleNextReset = () => {
       const next = new Date();
@@ -680,7 +685,7 @@ export const useSystem = () => {
     };
     const timer = scheduleNextReset();
     return () => clearTimeout(timer);
-  }, [processDailyReset]);
+  }, [processDailyReset, dataReady]);
 
   // ── AUTO STREAK TRACKING (24-HOUR RULE) ──
   // The streak dies if the user misses a full calendar day without opening the app.
