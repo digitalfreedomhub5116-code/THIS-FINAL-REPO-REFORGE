@@ -140,7 +140,7 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, badges,
         style={{ bottom: 'calc(12px + env(safe-area-inset-bottom, 0px))' }}
       >
         <div
-          className="relative flex items-center justify-around rounded-full px-1.5 py-1 overflow-hidden"
+          className="relative flex items-center justify-around rounded-[28px] px-1.5 py-1.5 overflow-hidden"
           style={isLight ? {
             background: 'rgba(255,255,255,0.88)',
             backdropFilter: 'blur(28px) saturate(180%)',
@@ -174,12 +174,12 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, badges,
                 key={item.id}
                 id={item.id === 'HEALTH' ? 'tut-nav-health' : item.id === 'QUESTS' ? 'nav-quests-btn' : undefined}
                 onClick={() => handleTabClick(item.id)}
-                className="relative flex flex-col items-center justify-center w-10 h-10"
+                className="relative flex flex-col items-center justify-center w-12 h-12 gap-0.5"
               >
                 {isActive && !isLocked && (
                   <motion.div
                     layoutId="active-nav-pill"
-                    className="absolute inset-0 rounded-full"
+                    className="absolute inset-0 rounded-2xl"
                     style={{
                       background: isCenter
                         ? 'linear-gradient(135deg, rgba(234,179,8,0.25) 0%, rgba(251,146,60,0.15) 100%)'
@@ -219,7 +219,24 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, badges,
                 >
                   {isLocked ? <Lock size={16} /> : <Icon size={isCenter ? 20 : 18} />}
                 </div>
-                {/* Label removed - icons only */}
+                {/* Tab label */}
+                {!isLocked && (
+                  <span
+                    className="relative z-10 font-mono font-bold uppercase tracking-wider"
+                    style={{
+                      fontSize: 7,
+                      lineHeight: 1,
+                      color: isActive
+                        ? (isCenter ? '#fbbf24' : 'rgba(255,255,255,0.9)')
+                        : isCenter
+                          ? 'rgba(251,191,36,0.55)'
+                          : 'rgba(255,255,255,0.3)',
+                      marginTop: 1,
+                    }}
+                  >
+                    {item.label}
+                  </span>
+                )}
                 {isLocked && (
                   <div
                     className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full flex items-center justify-center z-20"
