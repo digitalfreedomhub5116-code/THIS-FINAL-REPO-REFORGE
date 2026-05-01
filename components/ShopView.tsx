@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef, lazy, Suspense, useCallback, type CSSProperties } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Coins, Timer, Key, CheckCircle2, Lock, ChevronLeft, ChevronRight, Heart, Star, Zap, Ghost, Hexagon, ShoppingBag, Shirt, CircleDot, Palette, Frame, Clock, ImageIcon, Flame } from 'lucide-react';
+import { Coins, Timer, Key, CheckCircle2, Lock, ChevronLeft, ChevronRight, Heart, Star, Zap, Ghost, Hexagon, ShoppingBag, Shirt, CircleDot, Palette, Frame, Clock, ImageIcon, Flame, Shield, Wrench } from 'lucide-react';
 import Lottie from 'lottie-react';
 import { REWARD_SCHEDULE, DAILY_REWARDS_ENABLED } from '../lib/rewards';
 import { ShopItem, Outfit } from '../types';
@@ -119,6 +119,223 @@ const REWARD_SHORT: Record<string, (a: number) => string> = {
   CHEST_LEGENDARY: () => 'Chest', VENUS_SHARDS: a => `${a} Shards`, NONE: () => '—',
 };
 
+// ── ITEMS TAB: Streak Shield & Repair ──
+import { getPlayerAuthHeaders } from '../lib/playerApi';
+
+const ItemsTab: React.FC<{ gold: number }> = ({ gold }) => {
+  const [shieldCount, setShieldCount] = useState(0);
+  const [streakBeforeBreak, setStreakBeforeBreak] = useState(0);
+  const [brokenAt, setBrokenAt] = useState<string | null>(null);
+  const [buying, setBuying] = useState<string | null>(null);
+  const [timeLeft, setTimeLeft] = useState('');
+  const [localGold, setLocalGold] = useState(gold);
+
+  // Fetch current streak data
+  useEffect(() => {
+    setLocalGold(gold);
+  }, [gold]);
+
+  useEffect(() => {
+    // Get streak data from the latest sync
+    const fetchData = async () => {
+      try {
+        const userId = localStorage.getItem('reforge_userId') || '';
+        if (!userId) return;
+        const res = await fetch(`${API_BASE}/api/player/${userId}/sync`, {
+          credentials: 'include',
+          headers: { ...getPlayerAuthHeaders() },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setShieldCount(data.streakShields ?? 0);
+          setStreakBeforeBreak(data.streakBeforeBreak ?? 0);
+          setBrokenAt(data.streakBrokenAt || null);
+        }
+      } catch { /* offline */ }
+    };
+    fetchData();
+  }, []);
+
+  // Repair countdown
+  useEffect(() => {
+    if (!brokenAt) return;
+    const tick = () => {
+      const expires = new Date(brokenAt).getTime() + 48 * 60 * 60 * 1000;
+      const diff = Math.max(0, expires - Date.now());
+      if (diff <= 0) { setTimeLeft('Expired'); return; }
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      setTimeLeft(`${h}h ${m}m`);
+    };
+    tick();
+    const iv = setInterval(tick, 60000);
+    return () => clearInterval(iv);
+  }, [brokenAt]);
+
+  const handleBuyShield = async () => {
+    setBuying('shield');
+    try {
+      const res = await fetch(`${API_BASE}/api/players/streak-shield`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setShieldCount(data.newShieldCount);
+        setLocalGold(data.newGold);
+        window.dispatchEvent(new Event('reforge:sync-needed'));
+      }
+    } catch { /* offline */ }
+    setBuying(null);
+  };
+
+  const handleRepair = async () => {
+    setBuying('repair');
+    try {
+      const res = await fetch(`${API_BASE}/api/players/streak-repair`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setLocalGold(data.newGold);
+        setStreakBeforeBreak(0);
+        setBrokenAt(null);
+        window.dispatchEvent(new Event('reforge:sync-needed'));
+      }
+    } catch { /* offline */ }
+    setBuying(null);
+  };
+
+  const repairCost = Math.min(300, 50 + streakBeforeBreak * 5);
+  const canAffordShield = localGold >= 75;
+  const canAffordRepair = localGold >= repairCost;
+  const hasBreak = brokenAt && streakBeforeBreak > 1 && timeLeft !== 'Expired';
+
+  return (
+    <motion.div key="items-tab" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+      <div className="flex items-center gap-3">
+        <div className="text-[10px] font-mono font-bold tracking-[0.3em] uppercase text-gray-400">STREAK ITEMS</div>
+        <div className="flex-1 h-px bg-system-border" />
+      </div>
+
+      {/* Streak Shield Card */}
+      <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(126,184,212,0.04)', border: '1px solid rgba(126,184,212,0.12)' }}>
+        <div className="p-4">
+          <div className="flex items-start gap-3">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(126,184,212,0.1)', border: '1px solid rgba(126,184,212,0.2)' }}>
+              <Shield size={24} className="text-[#7EB8D4]" />
+            </div>
+            <div className="flex-1">
+              <div className="text-sm font-black text-white font-mono tracking-wider">STREAK SHIELD</div>
+              <p className="text-[10px] text-gray-400 font-mono mt-0.5">
+                Protects your streak for 1 missed day. Auto-activates when you miss a login.
+              </p>
+              <div className="flex items-center gap-2 mt-2">
+                <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded" style={{ background: 'rgba(126,184,212,0.1)', color: '#7EB8D4' }}>
+                  Owned: {shieldCount}/2
+                </span>
+                <span className="text-[9px] font-mono text-gray-600">Max 2 at a time</span>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center justify-between mt-3 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+            <div className="flex items-center gap-1.5">
+              <div className="flex items-center" style={{ width: 20 }}><SystemCoin size={20} /></div>
+              <span className="text-sm font-black text-[#7EB8D4] font-mono">75</span>
+            </div>
+            <button
+              onClick={handleBuyShield}
+              disabled={!canAffordShield || shieldCount >= 2 || buying === 'shield'}
+              className="px-5 py-2 rounded-xl text-[10px] font-black tracking-wider font-mono transition-all active:scale-95"
+              style={{
+                background: canAffordShield && shieldCount < 2
+                  ? 'linear-gradient(135deg, #7EB8D4, #5A9AB5)'
+                  : 'rgba(255,255,255,0.06)',
+                color: canAffordShield && shieldCount < 2 ? '#0a0a14' : 'rgba(255,255,255,0.3)',
+                opacity: buying === 'shield' ? 0.5 : 1,
+              }}
+            >
+              {buying === 'shield' ? 'BUYING...' : shieldCount >= 2 ? 'MAX OWNED' : !canAffordShield ? 'NOT ENOUGH GOLD' : 'BUY SHIELD'}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Streak Repair Card */}
+      <div className="rounded-2xl overflow-hidden" style={{
+        background: hasBreak ? 'rgba(249,115,22,0.04)' : 'rgba(255,255,255,0.02)',
+        border: `1px solid ${hasBreak ? 'rgba(249,115,22,0.15)' : 'rgba(255,255,255,0.06)'}`,
+        opacity: hasBreak ? 1 : 0.5,
+      }}>
+        <div className="p-4">
+          <div className="flex items-start gap-3">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" style={{
+              background: hasBreak ? 'rgba(249,115,22,0.1)' : 'rgba(255,255,255,0.04)',
+              border: `1px solid ${hasBreak ? 'rgba(249,115,22,0.2)' : 'rgba(255,255,255,0.08)'}`,
+            }}>
+              <Wrench size={24} className={hasBreak ? 'text-orange-400' : 'text-gray-600'} />
+            </div>
+            <div className="flex-1">
+              <div className="text-sm font-black text-white font-mono tracking-wider">STREAK REPAIR</div>
+              {hasBreak ? (
+                <>
+                  <p className="text-[10px] text-orange-400 font-mono mt-0.5">
+                    Restore your streak to {streakBeforeBreak} days
+                  </p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded" style={{ background: 'rgba(249,115,22,0.1)', color: '#F97316' }}>
+                      ⏰ Expires: {timeLeft}
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <p className="text-[10px] text-gray-600 font-mono mt-0.5">
+                  Available when your streak breaks. Restores your previous streak count.
+                </p>
+              )}
+            </div>
+          </div>
+          {hasBreak && (
+            <div className="flex items-center justify-between mt-3 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+              <div className="flex items-center gap-1.5">
+                <div className="flex items-center" style={{ width: 20 }}><SystemCoin size={20} /></div>
+                <span className="text-sm font-black text-orange-400 font-mono">{repairCost}</span>
+              </div>
+              <button
+                onClick={handleRepair}
+                disabled={!canAffordRepair || buying === 'repair'}
+                className="px-5 py-2 rounded-xl text-[10px] font-black tracking-wider font-mono transition-all active:scale-95"
+                style={{
+                  background: canAffordRepair
+                    ? 'linear-gradient(135deg, #F97316, #EA580C)'
+                    : 'rgba(255,255,255,0.06)',
+                  color: canAffordRepair ? '#0a0a14' : 'rgba(255,255,255,0.3)',
+                  opacity: buying === 'repair' ? 0.5 : 1,
+                }}
+              >
+                {buying === 'repair' ? 'REPAIRING...' : !canAffordRepair ? 'NOT ENOUGH GOLD' : 'REPAIR STREAK'}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Info section */}
+      <div className="rounded-xl px-4 py-3" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
+        <div className="text-[9px] font-mono text-gray-600 space-y-1">
+          <div>🛡️ <span className="text-gray-500">Shields</span> auto-activate when you miss a day</div>
+          <div>🔧 <span className="text-gray-500">Repair</span> is available for 48 hours after a break</div>
+          <div>💰 <span className="text-gray-500">Repair cost</span> = 50 + (streak × 5), max 300 Gold</div>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+
 const ShopView: React.FC<ShopViewProps> = ({
   gold,
   items,
@@ -146,7 +363,7 @@ const ShopView: React.FC<ShopViewProps> = ({
   onEquipBanner,
   initialStoreTab,
 }) => {
-  const [storeTab, setStoreTab] = useState<'OUTFITS' | 'BADGES' | 'BORDERS' | 'DEALS' | 'THEMES' | 'BANNERS_SHOP'>(initialStoreTab || 'OUTFITS');
+  const [storeTab, setStoreTab] = useState<'OUTFITS' | 'BADGES' | 'BORDERS' | 'DEALS' | 'ITEMS' | 'THEMES' | 'BANNERS_SHOP'>(initialStoreTab || 'OUTFITS');
   const [kitEconomy, setKitEconomy] = useState(getEconomy());
   const [dealTimer, setDealTimer] = useState('');
   const [kitInfoItem, setKitInfoItem] = useState<KitStoreItem | null>(null);
@@ -268,6 +485,7 @@ const ShopView: React.FC<ShopViewProps> = ({
           { id: 'OUTFITS' as const, label: 'Outfits', icon: <Shirt size={13} /> },
           { id: 'BORDERS' as const, label: 'Borders', icon: <Frame size={13} /> },
           { id: 'DEALS' as const, label: 'Deals', icon: <Clock size={13} /> },
+          { id: 'ITEMS' as const, label: 'Items', icon: <Shield size={13} /> },
           { id: 'THEMES' as const, label: 'Themes', icon: <Palette size={13} /> },
           { id: 'BANNERS_SHOP' as const, label: 'Banners', icon: <ImageIcon size={13} /> },
           { id: 'BADGES' as const, label: 'Badges', icon: <Hexagon size={13} /> },
@@ -583,6 +801,11 @@ const ShopView: React.FC<ShopViewProps> = ({
             ))}
           </div>
         </motion.div>
+      )}
+
+      {/* ── TAB: ITEMS (Streak Shield & Repair) ── */}
+      {storeTab === 'ITEMS' && (
+        <ItemsTab gold={gold} />
       )}
 
       {/* ── TAB: THEMES ── */}

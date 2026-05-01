@@ -95,11 +95,107 @@ router.get('/', async (req: Request, res: Response) => {
       // Re-sort by effective weekly XP (after stale detection)
       entries.sort((a: any, b: any) => b.weekly_xp - a.weekly_xp);
 
+      // ── Neighborhood View: find user's position if not in top results ──
+      const userId = req.query.userId as string;
+      let yourRank: number | null = null;
+      let yourEntry: any = null;
+      let neighborhood: { above: any[]; below: any[] } | null = null;
+
+      if (userId) {
+        const isInList = entries.some((e: any) => e.supabase_id === userId);
+        if (!isInList) {
+          try {
+            const { data: me } = await (supabaseServer() as any)
+              .from('players')
+              .select('id, supabase_id, username, name, total_xp, daily_xp, weekly_xp, week_start_date, level, rank, streak, avatar_url, raw_data, equipped_border')
+              .eq('supabase_id', userId)
+              .eq('is_banned', false)
+              .single();
+
+            if (me) {
+              const myWeekStart = me.week_start_date ? new Date(me.week_start_date).getTime() : 0;
+              const myWeeklyXp = myWeekStart >= weekStart.getTime() ? (me.weekly_xp || 0) : 0;
+
+              // Count players above
+              const { count } = await (supabaseServer() as any)
+                .from('players')
+                .select('id', { count: 'exact', head: true })
+                .eq('is_banned', false)
+                .gt('weekly_xp', myWeeklyXp);
+
+              yourRank = (count || 0) + 1;
+              yourEntry = {
+                player_id: me.id,
+                supabase_id: me.supabase_id,
+                username: me.username,
+                name: me.name,
+                total_xp: me.total_xp || 0,
+                daily_xp: me.daily_xp || 0,
+                weekly_xp: myWeeklyXp,
+                level: me.level || 1,
+                rank: me.rank || 'E',
+                streak: me.streak || 0,
+                avatar_url: me.avatar_url || null,
+                equipped_outfit_id: me.raw_data?.equippedOutfitId || 'outfit_starter',
+                equipped_border: me.equipped_border || me.raw_data?.equippedBorder || null,
+                equipped_banner: me.raw_data?.equippedBanner || null,
+              };
+
+              // Get 2 players just above (higher weekly_xp)
+              const { data: aboveData } = await (supabaseServer() as any)
+                .from('players')
+                .select('id, supabase_id, username, name, total_xp, daily_xp, weekly_xp, level, rank, streak, avatar_url, raw_data, equipped_border')
+                .eq('is_banned', false)
+                .gt('weekly_xp', myWeeklyXp)
+                .order('weekly_xp', { ascending: true })
+                .limit(2);
+
+              // Get 2 players just below (lower weekly_xp)
+              const { data: belowData } = await (supabaseServer() as any)
+                .from('players')
+                .select('id, supabase_id, username, name, total_xp, daily_xp, weekly_xp, level, rank, streak, avatar_url, raw_data, equipped_border')
+                .eq('is_banned', false)
+                .lt('weekly_xp', myWeeklyXp)
+                .order('weekly_xp', { ascending: false })
+                .limit(2);
+
+              const mapEntry = (row: any) => ({
+                player_id: row.id,
+                supabase_id: row.supabase_id,
+                username: row.username,
+                name: row.name,
+                total_xp: row.total_xp || 0,
+                daily_xp: row.daily_xp || 0,
+                weekly_xp: row.weekly_xp || 0,
+                level: row.level || 1,
+                rank: row.rank || 'E',
+                streak: row.streak || 0,
+                avatar_url: row.avatar_url || null,
+                equipped_outfit_id: row.raw_data?.equippedOutfitId || 'outfit_starter',
+                equipped_border: row.equipped_border || row.raw_data?.equippedBorder || null,
+                equipped_banner: row.raw_data?.equippedBanner || null,
+              });
+
+              neighborhood = {
+                above: (aboveData || []).reverse().map(mapEntry),
+                below: (belowData || []).map(mapEntry),
+              };
+            }
+          } catch (nErr) {
+            console.error('[Leaderboard] Neighborhood query failed:', nErr);
+            // Non-fatal: continue without neighborhood
+          }
+        }
+      }
+
       // Add week timing info
       return res.json({
         entries,
         weekStart: weekStart.toISOString(),
         weekEnd: weekEnd.toISOString(),
+        yourRank,
+        yourEntry,
+        neighborhood,
       });
 
     } else {
@@ -168,7 +264,61 @@ router.get('/', async (req: Request, res: Response) => {
           });
       }
 
-      return res.json({ entries });
+      // ── Neighborhood View for streak tab ──
+      const userId = req.query.userId as string;
+      let yourRank: number | null = null;
+      let yourEntry: any = null;
+      let neighborhood: { above: any[]; below: any[] } | null = null;
+
+      if (userId) {
+        const isInList = entries.some((e: any) => e.supabase_id === userId);
+        if (!isInList) {
+          try {
+            const { data: me } = await (supabaseServer() as any)
+              .from('players')
+              .select('id, supabase_id, username, name, total_xp, daily_xp, weekly_xp, level, rank, streak, last_login_date, avatar_url, raw_data, equipped_border')
+              .eq('supabase_id', userId)
+              .eq('is_banned', false)
+              .single();
+
+            if (me) {
+              const myLastLogin = me.last_login_date as string | null;
+              const isActive = myLastLogin === todayStr || myLastLogin === yesterdayStr;
+              const myStreak = isActive ? (me.streak || 0) : 0;
+
+              if (myStreak > 0) {
+                const { count } = await (supabaseServer() as any)
+                  .from('players')
+                  .select('id', { count: 'exact', head: true })
+                  .eq('is_banned', false)
+                  .gt('streak', myStreak);
+
+                yourRank = (count || 0) + 1;
+                yourEntry = {
+                  player_id: me.id,
+                  supabase_id: me.supabase_id,
+                  username: me.username,
+                  name: me.name,
+                  total_xp: me.total_xp || 0,
+                  daily_xp: me.daily_xp || 0,
+                  weekly_xp: me.weekly_xp || 0,
+                  level: me.level || 1,
+                  rank: me.rank || 'E',
+                  streak: myStreak,
+                  avatar_url: me.avatar_url || null,
+                  equipped_outfit_id: me.raw_data?.equippedOutfitId || 'outfit_starter',
+                  equipped_border: me.equipped_border || me.raw_data?.equippedBorder || null,
+                  equipped_banner: me.raw_data?.equippedBanner || null,
+                };
+              }
+            }
+          } catch (nErr) {
+            console.error('[Leaderboard] Streak neighborhood failed:', nErr);
+          }
+        }
+      }
+
+      return res.json({ entries, yourRank, yourEntry, neighborhood });
     }
   } catch (err) {
     console.error('[Leaderboard GET]', err);

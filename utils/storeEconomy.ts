@@ -238,6 +238,15 @@ export function ownsItem(itemId: string): boolean {
   return getEconomy().owned.includes(itemId);
 }
 
+/** Unlock an item for free (used by milestone rewards, league rewards, etc.) */
+export function unlockItem(itemId: string): EconomyState {
+  const s = getEconomy();
+  if (!s.owned.includes(itemId)) {
+    s.owned.push(itemId);
+  }
+  return save(s);
+}
+
 /* ═══ Equip / Unequip ═══ */
 export function equipItem(slot: keyof EquippedItems, itemId: string | null): EconomyState {
   const s = getEconomy();
@@ -274,7 +283,7 @@ export function applyThemeVars(themeVars?: Record<string, string> | null): void 
 }
 
 /** DEV FLAG: Set to true to auto-unlock all items for testing */
-export const DEV_UNLOCK_ALL = true;
+export const DEV_UNLOCK_ALL = false;
 
 export function getEquipped(): EquippedItems {
   return getEconomy().equipped;

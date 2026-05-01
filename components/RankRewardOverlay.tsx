@@ -22,6 +22,16 @@ const RANK_CONFIG: Record<number, { emoji: string; title: string; color: string;
   5: { emoji: '🏅', title: 'S-RANK ELITE', color: '#a855f7', glow: 'rgba(168,85,247,0.4)', bgGrad: 'radial-gradient(ellipse at center, rgba(168,85,247,0.06) 0%, rgba(10,10,26,0.98) 70%)' },
 };
 
+// Fallback configs for participation tiers (ranks 6+)
+const HUNTER_CONFIG = { emoji: '⚔️', title: 'HUNTER CLASS', color: '#7EB8D4', glow: 'rgba(126,184,212,0.4)', bgGrad: 'radial-gradient(ellipse at center, rgba(126,184,212,0.06) 0%, rgba(10,10,26,0.98) 70%)' };
+const PARTICIPANT_CONFIG = { emoji: '🛡️', title: 'ACTIVE HUNTER', color: 'rgba(255,255,255,0.6)', glow: 'rgba(255,255,255,0.2)', bgGrad: 'radial-gradient(ellipse at center, rgba(255,255,255,0.03) 0%, rgba(10,10,26,0.98) 70%)' };
+
+function getRankConfig(rank: number) {
+  if (RANK_CONFIG[rank]) return RANK_CONFIG[rank];
+  if (rank <= 10) return HUNTER_CONFIG;
+  return PARTICIPANT_CONFIG;
+}
+
 // ── Sound Effects ──
 function playRewardSound(type: 'rank' | 'coin' | 'xp' | 'claim') {
   try {
@@ -181,7 +191,7 @@ const RankRewardOverlay: React.FC<RankRewardOverlayProps> = ({
   rank, gold, xp, username, onClaim,
 }) => {
   const [phase, setPhase] = useState(0); // 0=entering, 1=rank, 2=rewards, 3=claim
-  const cfg = RANK_CONFIG[rank] || RANK_CONFIG[5];
+  const cfg = getRankConfig(rank);
 
   // Phase progression
   useEffect(() => {
@@ -482,7 +492,7 @@ const RankRewardOverlay: React.FC<RankRewardOverlayProps> = ({
           textAlign: 'center',
         }}
       >
-        DAILY LEADERBOARD REWARD
+        WEEKLY LEADERBOARD REWARD
       </motion.div>
     </motion.div>
   );

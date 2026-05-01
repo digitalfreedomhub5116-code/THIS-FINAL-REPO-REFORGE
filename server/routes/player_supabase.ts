@@ -38,7 +38,7 @@ router.get('/:id/sync', async (req: Request, res: Response) => {
   try {
     const { data, error } = await (supabaseServer() as any)
       .from('players')
-      .select('gold, keys, is_banned, cheat_strikes, total_strikes_ever, pending_notifications, level, current_xp, required_xp, total_xp, daily_xp, rank, streak, last_login_date, hp, max_hp, mp, max_mp, updated_at, raw_data->unlockedOutfits, raw_data->equippedOutfitId, raw_data->outfitStones')
+      .select('gold, keys, is_banned, cheat_strikes, total_strikes_ever, pending_notifications, level, current_xp, required_xp, total_xp, daily_xp, rank, streak, last_login_date, streak_shields, streak_before_break, streak_broken_at, hp, max_hp, mp, max_mp, updated_at, raw_data->unlockedOutfits, raw_data->equippedOutfitId, raw_data->outfitStones')
       .eq('supabase_id', id)
       .single();
 
@@ -59,10 +59,15 @@ router.get('/:id/sync', async (req: Request, res: Response) => {
     const lastLogin = row.last_login_date as string | null;
     let currentStreak = row.streak ?? 0;
     let streakUpdated = false;
+    let streakShieldUsed = false;
+    let streakBroke = false;
+    let currentShields = row.streak_shields ?? 0;
 
     if (lastLogin !== todayStr) {
       // First login of the day — compute new streak
       let newStreak = 1;
+      const updateFields: Record<string, any> = { last_login_date: todayStr };
+
       if (lastLogin) {
         const lastDate = new Date(lastLogin + 'T00:00:00');
         const todayDate = new Date(todayStr + 'T00:00:00');
@@ -76,21 +81,105 @@ router.get('/:id/sync', async (req: Request, res: Response) => {
           // Same day edge case (timezone) — keep
           newStreak = currentStreak || 1;
         } else {
-          // Missed >1 day — streak broken
-          newStreak = 1;
+          // Missed >1 day — check for streak shield
+          if (currentShields > 0) {
+            // Shield absorbs the break! Keep streak, decrement shield
+            newStreak = (currentStreak || 0) + 1;
+            currentShields -= 1;
+            updateFields.streak_shields = currentShields;
+            streakShieldUsed = true;
+            console.log(`[Streak] ${id.slice(-8)}: Shield activated! Shields remaining: ${currentShields}`);
+          } else {
+            // No shield — streak breaks
+            const previousStreak = currentStreak || 0;
+            newStreak = 1;
+            if (previousStreak > 1) {
+              updateFields.streak_before_break = previousStreak;
+              updateFields.streak_broken_at = new Date().toISOString();
+              streakBroke = true;
+              console.log(`[Streak] ${id.slice(-8)}: Streak BROKEN ${previousStreak} → 1`);
+            }
+          }
         }
       }
+
+      updateFields.streak = newStreak;
 
       // Update streak + last_login_date atomically in Supabase
       const { error: updateErr } = await (supabaseServer() as any)
         .from('players')
-        .update({ streak: newStreak, last_login_date: todayStr })
+        .update(updateFields)
         .eq('supabase_id', id);
 
       if (!updateErr) {
         currentStreak = newStreak;
         streakUpdated = true;
         console.log(`[Streak] ${id.slice(-8)}: ${lastLogin || 'null'} → ${todayStr} | streak: ${row.streak} → ${newStreak}`);
+      }
+    }
+
+    // ── STREAK MILESTONE DETECTION ──
+    const STREAK_MILESTONES = [
+      { days: 7,   gold: 50,   keys: 0,  title: null,           border: null,                         banner: 'banner-streak-7day' },
+      { days: 14,  gold: 100,  keys: 0,  title: null,           border: 'border-streak-silver',       banner: 'banner-streak-14day' },
+      { days: 30,  gold: 200,  keys: 1,  title: 'Iron Will',    border: 'border-streak-gold',         banner: 'banner-streak-30day' },
+      { days: 60,  gold: 400,  keys: 1,  title: null,           border: 'border-streak-inferno',      banner: 'banner-streak-60day' },
+      { days: 100, gold: 1000, keys: 3,  title: 'Eternal Flame', border: 'border-streak-eternal',     banner: 'banner-streak-100day' },
+      { days: 365, gold: 5000, keys: 10, title: 'Legendary',    border: 'border-streak-legendary',    banner: 'banner-streak-365day' },
+    ];
+
+    let streakMilestone: any = null;
+
+    if (streakUpdated && currentStreak > 1 && !streakBroke) {
+      const milestone = STREAK_MILESTONES.find(m => m.days === currentStreak);
+      if (milestone) {
+        // Award gold + keys directly
+        const newGold = (row.gold || 0) + milestone.gold;
+        const newKeys = (row.keys || 0) + milestone.keys;
+        const milestoneUpdate: Record<string, any> = {
+          gold: newGold,
+          keys: newKeys,
+        };
+
+        await (supabaseServer() as any)
+          .from('players')
+          .update(milestoneUpdate)
+          .eq('supabase_id', id);
+
+        // Update local row values so response reflects new amounts
+        row.gold = newGold;
+        row.keys = newKeys;
+
+        // Unlock milestone items (border + banner) in raw_data.ownedItems
+        const unlockIds: string[] = [];
+        if (milestone.border) unlockIds.push(milestone.border);
+        if (milestone.banner) unlockIds.push(milestone.banner);
+
+        if (unlockIds.length > 0) {
+          const currentRawData = row.raw_data || {};
+          const currentOwned: string[] = currentRawData.ownedItems || [];
+          const newOwned = [...new Set([...currentOwned, ...unlockIds])];
+          const updatedRawData = { ...currentRawData, ownedItems: newOwned };
+
+          await (supabaseServer() as any)
+            .from('players')
+            .update({ raw_data: updatedRawData })
+            .eq('supabase_id', id);
+
+          row.raw_data = updatedRawData;
+        }
+
+        streakMilestone = {
+          days: milestone.days,
+          gold: milestone.gold,
+          keys: milestone.keys,
+          title: milestone.title,
+          border: milestone.border,
+          banner: milestone.banner,
+          unlockedItems: unlockIds,
+        };
+
+        console.log(`[Streak] ${id.slice(-8)}: 🎉 Milestone ${milestone.days} days! +${milestone.gold}G +${milestone.keys}K, unlocked: ${unlockIds.join(', ')}`);
       }
     }
 
@@ -112,6 +201,12 @@ router.get('/:id/sync', async (req: Request, res: Response) => {
       rank: row.rank ?? 'E',
       streak: currentStreak,
       streakUpdated,
+      streakShieldUsed,
+      streakBroke,
+      streakShields: currentShields,
+      streakBeforeBreak: streakBroke ? (row.streak_before_break ?? row.streak ?? 0) : (row.streak_before_break ?? 0),
+      streakBrokenAt: row.streak_broken_at || null,
+      streakMilestone,
       hp: row.hp ?? 100,
       maxHp: row.max_hp ?? 100,
       mp: row.mp ?? 100,
@@ -619,6 +714,131 @@ router.post('/:id/avatar', async (req: Request, res: Response) => {
     return res.json({ success: true, avatarUrl: publicUrl });
   } catch (err) {
     console.error('[Avatar Upload]', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ── STREAK SHIELD PURCHASE ──
+// Cost: 75 Gold, Max 2 shields at a time
+router.post('/streak-shield', async (req: Request, res: Response) => {
+  const authUserId = getAuthenticatedUserId(req);
+  if (!authUserId) return res.status(401).json({ error: 'Unauthorized' });
+
+  try {
+    const db = supabaseServer() as any;
+    const { data: player, error: fetchErr } = await db
+      .from('players')
+      .select('gold, streak_shields')
+      .eq('supabase_id', authUserId)
+      .single();
+
+    if (fetchErr || !player) {
+      return res.status(404).json({ error: 'Player not found' });
+    }
+
+    const currentShields = player.streak_shields ?? 0;
+    const currentGold = player.gold ?? 0;
+    const SHIELD_COST = 75;
+    const MAX_SHIELDS = 2;
+
+    if (currentShields >= MAX_SHIELDS) {
+      return res.status(400).json({ error: 'You already have the maximum number of shields (2)' });
+    }
+    if (currentGold < SHIELD_COST) {
+      return res.status(400).json({ error: `Not enough gold. Need ${SHIELD_COST}, have ${currentGold}` });
+    }
+
+    const { error: updateErr } = await db
+      .from('players')
+      .update({
+        gold: currentGold - SHIELD_COST,
+        streak_shields: currentShields + 1,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('supabase_id', authUserId);
+
+    if (updateErr) {
+      console.error('[Streak Shield] Update error:', updateErr);
+      return res.status(500).json({ error: 'Failed to purchase shield' });
+    }
+
+    console.log(`[Streak Shield] ${authUserId.slice(-8)}: Purchased shield (${currentShields} → ${currentShields + 1}), Gold: ${currentGold} → ${currentGold - SHIELD_COST}`);
+    return res.json({
+      success: true,
+      newGold: currentGold - SHIELD_COST,
+      newShieldCount: currentShields + 1,
+    });
+  } catch (err) {
+    console.error('[Streak Shield]', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ── STREAK REPAIR PURCHASE ──
+// Cost: min(300, 50 + streak_before_break × 5), available for 48h after break
+router.post('/streak-repair', async (req: Request, res: Response) => {
+  const authUserId = getAuthenticatedUserId(req);
+  if (!authUserId) return res.status(401).json({ error: 'Unauthorized' });
+
+  try {
+    const db = supabaseServer() as any;
+    const { data: player, error: fetchErr } = await db
+      .from('players')
+      .select('gold, streak, streak_before_break, streak_broken_at')
+      .eq('supabase_id', authUserId)
+      .single();
+
+    if (fetchErr || !player) {
+      return res.status(404).json({ error: 'Player not found' });
+    }
+
+    const previousStreak = player.streak_before_break ?? 0;
+    const brokenAt = player.streak_broken_at ? new Date(player.streak_broken_at) : null;
+    const currentGold = player.gold ?? 0;
+
+    // Validate: must have a broken streak
+    if (!brokenAt || previousStreak <= 1) {
+      return res.status(400).json({ error: 'No broken streak to repair' });
+    }
+
+    // Validate: within 48-hour window
+    const hoursSinceBreak = (Date.now() - brokenAt.getTime()) / (1000 * 60 * 60);
+    if (hoursSinceBreak > 48) {
+      return res.status(400).json({ error: 'Repair window expired (48 hours)' });
+    }
+
+    // Calculate cost: 50 base + 5 per streak day, capped at 300
+    const repairCost = Math.min(300, 50 + previousStreak * 5);
+
+    if (currentGold < repairCost) {
+      return res.status(400).json({ error: `Not enough gold. Need ${repairCost}, have ${currentGold}` });
+    }
+
+    const { error: updateErr } = await db
+      .from('players')
+      .update({
+        gold: currentGold - repairCost,
+        streak: previousStreak,
+        streak_before_break: 0,
+        streak_broken_at: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('supabase_id', authUserId);
+
+    if (updateErr) {
+      console.error('[Streak Repair] Update error:', updateErr);
+      return res.status(500).json({ error: 'Failed to repair streak' });
+    }
+
+    console.log(`[Streak Repair] ${authUserId.slice(-8)}: Restored streak to ${previousStreak}, Cost: ${repairCost}, Gold: ${currentGold} → ${currentGold - repairCost}`);
+    return res.json({
+      success: true,
+      restoredStreak: previousStreak,
+      newGold: currentGold - repairCost,
+      cost: repairCost,
+    });
+  } catch (err) {
+    console.error('[Streak Repair]', err);
     return res.status(500).json({ error: 'Internal server error' });
   }
 });

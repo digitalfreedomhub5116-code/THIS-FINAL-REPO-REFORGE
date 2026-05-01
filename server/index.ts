@@ -57,6 +57,7 @@ async function startServer() {
   const goalsRouter = await import('./routes/goals.js');
   const scheduleRouter = await import('./routes/schedule.js');
   const questsRouter = await import('./routes/quests_supabase.js');
+  const leagueRouter = await import('./routes/league.js');
 
   const app = express();
   const PORT = process.env.PORT ? parseInt(process.env.PORT) : 8001;
@@ -208,6 +209,7 @@ async function startServer() {
   app.use('/api/schedule', aiRateLimit, scheduleRouter.default);
   app.use('/api/quests', generalRateLimit, questsRouter.default);
   app.use('/api/auth/local', generalRateLimit, localAuthRouter.default);
+  app.use('/api/league', generalRateLimit, leagueRouter.default);
 
   // Google OAuth setup
   setupGoogleAuth(app);
@@ -353,6 +355,51 @@ async function startServer() {
 
             console.log(`[Cron] Rank #${tier.rank} → ${player.username || player.name}: snapshot created (${tier.gold}G, ${tier.xp}XP, ${tier.keys}K — pending claim)`);
           }
+
+          // ── Participation Rewards: everyone with weekly_xp > 0 who isn't top 5 ──
+          const topPlayerIds = topPlayers.slice(0, 5).map((p: any) => p.id);
+
+          const { data: participants } = await db
+            .from('players')
+            .select('id, username, name, weekly_xp')
+            .eq('is_banned', false)
+            .gt('weekly_xp', 0)
+            .order('weekly_xp', { ascending: false });
+
+          // Filter out top-5 players (they already got rewards)
+          const eligibleParticipants = (participants || []).filter(
+            (p: any) => !topPlayerIds.includes(p.id)
+          );
+
+          if (eligibleParticipants.length > 0) {
+            const participantSnapshots = eligibleParticipants.map((p: any, i: number) => {
+              const actualRank = i + 6; // starts after top 5
+              const isHunterTier = actualRank <= 10; // ranks 6-10 get more
+              return {
+                snapshot_date: lastMondayStr,
+                rank: actualRank,
+                player_id: p.id,
+                username: p.username || p.name,
+                daily_xp: p.weekly_xp,
+                reward_gold: isHunterTier ? 50 : 25,
+                reward_xp: isHunterTier ? 25 : 0,
+                reward_keys: 0,
+                claimed: false,
+              };
+            });
+
+            // Batch insert (Supabase handles arrays)
+            const { error: partErr } = await db
+              .from('daily_rank_snapshots')
+              .insert(participantSnapshots);
+
+            if (partErr) {
+              console.error('[Cron] Participation rewards insert error:', partErr);
+            } else {
+              const hunterCount = eligibleParticipants.filter((_: any, i: number) => i + 6 <= 10).length;
+              console.log(`[Cron] Participation rewards: ${hunterCount} hunters (50G), ${eligibleParticipants.length - hunterCount} participants (25G)`);
+            }
+          }
         }
 
         // Reset ALL players' weekly_xp to 0 for the new week
@@ -369,8 +416,16 @@ async function startServer() {
           console.log('[Cron] All players weekly_xp reset to 0');
         }
 
+        // ── League Assignment: finalize last week + create new leagues ──
+        try {
+          const { runLeagueAssignmentCron } = await import('./routes/league.js');
+          await runLeagueAssignmentCron(db);
+        } catch (leagueErr) {
+          console.error('[Cron] League assignment failed:', leagueErr);
+        }
+
         lastCronWeek = thisMonday;
-        console.log(`[Cron] Weekly reward distribution complete for week of ${lastMondayStr}`);
+        console.log(`[Cron] Weekly reward distribution + league assignment complete for week of ${lastMondayStr}`);
       };
 
       // Run immediately on startup (catches up if server was down at Monday)

@@ -159,6 +159,41 @@ const BORDERS: StoreItem[] = [
   },
 ];
 
+/* ═══ STREAK MILESTONE BORDERS (exclusive — not purchasable) ═══ */
+const STREAK_BORDERS: StoreItem[] = [
+  {
+    id: 'border-streak-silver', name: 'Forged in Fire', category: 'border', tier: 'special', price: 0,
+    description: '14-day streak milestone — silver frost ring of dedication.',
+    imageBorder: '/borders/border-streak-silver.png',
+    borderConfig: { colors: ['#C0C0C0', '#E0E0E0'], strokeWidth: 3, animated: false, glowColor: 'rgba(192,192,192,0.4)', glowIntensity: 0.6 },
+  },
+  {
+    id: 'border-streak-gold', name: 'Iron Will', category: 'border', tier: 'premium', price: 0,
+    description: '30-day streak milestone — golden rune ring of iron will.',
+    imageBorder: '/borders/border-streak-gold.png',
+    borderConfig: { colors: ['#EAB308', '#F59E0B'], strokeWidth: 3, animated: false, glowColor: 'rgba(234,179,8,0.5)', glowIntensity: 0.7 },
+  },
+  {
+    id: 'border-streak-inferno', name: 'Inferno', category: 'border', tier: 'legendary', price: 0,
+    description: '60-day streak milestone — cyan inferno flames of relentless dedication.',
+    imageBorder: '/borders/border-streak-inferno.png',
+    borderConfig: { colors: ['#7EB8D4', '#06B6D4'], strokeWidth: 3, animated: false, glowColor: 'rgba(126,184,212,0.5)', glowIntensity: 0.8 },
+  },
+  {
+    id: 'border-streak-eternal', name: 'Eternal Flame', category: 'border', tier: 'legendary', price: 0,
+    description: '100-day streak milestone — purple arcane flames of eternal power.',
+    imageBorder: '/borders/border-streak-eternal.png',
+    borderConfig: { colors: ['#A855F7', '#7C3AED'], strokeWidth: 3, animated: false, glowColor: 'rgba(168,85,247,0.5)', glowIntensity: 0.9 },
+  },
+  {
+    id: 'border-streak-legendary', name: 'Legendary', category: 'border', tier: 'legendary', price: 0,
+    description: '365-day streak milestone — divine golden ring of legendary status.',
+    imageBorder: '/borders/border-streak-legendary.png',
+    imageScale: 1.05,
+    borderConfig: { colors: ['#EAB308', '#A855F7', '#EF4444'], strokeWidth: 3, animated: false, glowColor: 'rgba(234,179,8,0.6)', glowIntensity: 1.0 },
+  },
+];
+
 
 
 /* ═══ THEMES ═══ */
@@ -445,13 +480,49 @@ const BANNERS: StoreItem[] = [
   },
 ];
 
+/* ═══ STREAK MILESTONE BANNERS (exclusive — not purchasable) ═══ */
+const STREAK_BANNERS: StoreItem[] = [
+  {
+    id: 'banner-streak-7day', name: 'Week Warrior', category: 'banner', tier: 'special', price: 0,
+    description: '7-day streak milestone — the first step of your journey.',
+    bannerImage: '/banners/streak-7day.png',
+  },
+  {
+    id: 'banner-streak-14day', name: 'Forged in Fire', category: 'banner', tier: 'special', price: 0,
+    description: '14-day streak milestone — two weeks of unwavering dedication.',
+    bannerImage: '/banners/streak-14day.png',
+  },
+  {
+    id: 'banner-streak-30day', name: 'Iron Will', category: 'banner', tier: 'premium', price: 0,
+    description: '30-day streak milestone — a month of iron will.',
+    bannerImage: '/banners/streak-30day.png',
+  },
+  {
+    id: 'banner-streak-60day', name: 'Inferno', category: 'banner', tier: 'legendary', price: 0,
+    description: '60-day streak milestone — the inferno burns within.',
+    bannerImage: '/banners/streak-60day.png',
+  },
+  {
+    id: 'banner-streak-100day', name: 'Eternal Flame', category: 'banner', tier: 'legendary', price: 0,
+    description: '100-day streak milestone — your flame is eternal.',
+    bannerImage: '/banners/streak-100day.png',
+  },
+  {
+    id: 'banner-streak-365day', name: 'Legendary', category: 'banner', tier: 'legendary', price: 0,
+    description: '365-day streak milestone — the ultimate achievement. You are LEGENDARY.',
+    bannerImage: '/banners/streak-365day.png',
+  },
+];
+
 /* ═══ ALL ITEMS ═══ */
 export const ALL_STORE_ITEMS: StoreItem[] = [
   ...BORDERS,
+  ...STREAK_BORDERS,
   ...THEMES,
   ...CONSUMABLES,
   ...TITLES,
   ...BANNERS,
+  ...STREAK_BANNERS,
 ];
 
 export function getItemsByCategory(cat: StoreCategory): StoreItem[] {

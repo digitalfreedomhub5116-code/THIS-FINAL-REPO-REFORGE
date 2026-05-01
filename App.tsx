@@ -31,6 +31,9 @@ import SystemMessage from './components/SystemMessage';
 import SystemToastOverlay from './components/SystemToast';
 
 import ErrorBoundary from './components/ErrorBoundary';
+import StreakMilestoneOverlay from './components/StreakMilestoneOverlay';
+import LeaguePromotionOverlay from './components/LeaguePromotionOverlay';
+import { unlockItem } from './utils/storeEconomy';
 
 import {
 
@@ -201,6 +204,8 @@ const StrikeLiftedModal = lazy(() => import('./components/StrikeLiftedModal'));
 const ForgeGuardWidget = lazy(() => import('./components/ForgeGuardWidget'));
 
 const StreakCelebration = lazy(() => import('./components/StreakCelebration'));
+
+const StreakBreakPrompt = lazy(() => import('./components/StreakBreakPrompt'));
 
 const ChestOpeningOverlay = lazy(() => import('./components/ChestOpeningOverlay'));
 
@@ -1032,6 +1037,23 @@ const App: React.FC = () => {
 
   const [showStreakCelebration, setShowStreakCelebration] = useState(false);
 
+  // ── Streak Break Prompt ──
+  const [showStreakBreakPrompt, setShowStreakBreakPrompt] = useState(false);
+  const [streakBreakData, setStreakBreakData] = useState<{
+    previousStreak: number; brokenAt: string; shieldCount: number;
+  } | null>(null);
+  const streakBreakCheckedRef = useRef(false);
+
+  // ── Streak Milestone Overlay ──
+  const [showStreakMilestone, setShowStreakMilestone] = useState(false);
+  const [streakMilestoneData, setStreakMilestoneData] = useState<any>(null);
+  const streakMilestoneCheckedRef = useRef(false);
+
+  // ── League Promotion/Relegation Overlay ──
+  const [showLeaguePromotion, setShowLeaguePromotion] = useState(false);
+  const [leaguePromotionData, setLeaguePromotionData] = useState<any>(null);
+  const leaguePromotionCheckedRef = useRef(false);
+
   const [streakAnimData, setStreakAnimData] = useState<{
 
     oldStreak: number; newStreak: number; weeklyActivity: boolean[]; streakBroken: boolean;
@@ -1511,6 +1533,66 @@ const App: React.FC = () => {
 
           setStrikeLiftedNotifId(strikeLiftedNotif.id);
 
+        }
+
+        // ── Streak Break Detection: show prompt if streak just broke ──
+        if (isFirstPoll && !streakBreakCheckedRef.current) {
+          streakBreakCheckedRef.current = true;
+          const brokenAt = row.streakBrokenAt;
+          const prevStreak = row.streakBeforeBreak ?? 0;
+          const shields = row.streakShields ?? 0;
+
+          if (brokenAt && prevStreak > 1) {
+            // Check if within 48h window
+            const hoursSince = (Date.now() - new Date(brokenAt).getTime()) / (1000 * 60 * 60);
+            if (hoursSince < 48) {
+              setTimeout(() => {
+                setStreakBreakData({ previousStreak: prevStreak, brokenAt, shieldCount: shields });
+                setShowStreakBreakPrompt(true);
+              }, 2000); // Delay so other overlays don't clash
+            }
+          }
+
+          // Show shield activation notification
+          if (row.streakShieldUsed) {
+            setTimeout(() => {
+              addNotification('🛡️ Streak Shield activated! Your streak was saved.', 'SUCCESS');
+            }, 1500);
+          }
+
+          // ── Streak Milestone Detection ──
+          if (row.streakMilestone && !streakMilestoneCheckedRef.current) {
+            streakMilestoneCheckedRef.current = true;
+            setTimeout(() => {
+              setStreakMilestoneData(row.streakMilestone);
+              setShowStreakMilestone(true);
+            }, 3000); // Delay to not clash with other overlays
+          }
+
+          // ── League Promotion/Relegation Check (once) ──
+          if (isFirstPoll && !leaguePromotionCheckedRef.current) {
+            leaguePromotionCheckedRef.current = true;
+            (async () => {
+              try {
+                const promoRes = await fetch(`${API_BASE}/api/league/promotion-status`, {
+                  credentials: 'include', headers: { ...getPlayerAuthHeaders() },
+                });
+                if (promoRes.ok) {
+                  const promoData = await promoRes.json();
+                  if (promoData.promoted || promoData.relegated) {
+                    const seenKey = `leaguePromo_${player.userId}_${promoData.previousTier}_${promoData.currentTier}`;
+                    if (!localStorage.getItem(seenKey)) {
+                      localStorage.setItem(seenKey, String(Date.now()));
+                      setTimeout(() => {
+                        setLeaguePromotionData(promoData);
+                        setShowLeaguePromotion(true);
+                      }, 5000); // Show after other overlays
+                    }
+                  }
+                }
+              } catch { /* offline */ }
+            })();
+          }
         }
 
       } catch { /* ignore */ }
@@ -3589,6 +3671,74 @@ const App: React.FC = () => {
 
             </Suspense>
 
+          )}
+
+          {/* ── Streak Break Prompt ── */}
+          {showStreakBreakPrompt && streakBreakData && (
+            <Suspense fallback={null}>
+              <ErrorBoundary>
+                <StreakBreakPrompt
+                  previousStreak={streakBreakData.previousStreak}
+                  brokenAt={streakBreakData.brokenAt}
+                  shieldCount={streakBreakData.shieldCount}
+                  playerGold={player.gold}
+                  onRepairSuccess={(restoredStreak, newGold) => {
+                    setPlayer(prev => ({ ...prev, streak: restoredStreak, gold: newGold }));
+                    addNotification(`🔧 Streak restored to ${restoredStreak} days!`, 'SUCCESS');
+                    setShowStreakBreakPrompt(false);
+                    setStreakBreakData(null);
+                  }}
+                  onShieldSuccess={(newShieldCount, newGold) => {
+                    setPlayer(prev => ({ ...prev, gold: newGold }));
+                    addNotification(`🛡️ Shield purchased! You now have ${newShieldCount}/2 shields.`, 'SUCCESS');
+                    setStreakBreakData(prev => prev ? { ...prev, shieldCount: newShieldCount } : null);
+                  }}
+                  onDismiss={() => {
+                    setShowStreakBreakPrompt(false);
+                    setStreakBreakData(null);
+                  }}
+                />
+              </ErrorBoundary>
+            </Suspense>
+          )}
+
+          {/* ── Streak Milestone Overlay ── */}
+          {showStreakMilestone && streakMilestoneData && (
+            <StreakMilestoneOverlay
+              milestone={streakMilestoneData}
+              onClaim={() => {
+                // Unlock milestone items in local store economy
+                if (streakMilestoneData.unlockedItems && Array.isArray(streakMilestoneData.unlockedItems)) {
+                  for (const itemId of streakMilestoneData.unlockedItems) {
+                    unlockItem(itemId);
+                  }
+                }
+                setShowStreakMilestone(false);
+                const itemNames = [
+                  streakMilestoneData.border ? 'Border' : '',
+                  streakMilestoneData.banner ? 'Banner' : '',
+                ].filter(Boolean).join(' + ');
+                setStreakMilestoneData(null);
+                addNotification(
+                  `🎉 ${streakMilestoneData.days}-day milestone! +${streakMilestoneData.gold}G${streakMilestoneData.keys > 0 ? ` +${streakMilestoneData.keys}K` : ''}${itemNames ? ` · ${itemNames} unlocked!` : ''}`,
+                  'SUCCESS'
+                );
+              }}
+            />
+          )}
+
+          {/* ── League Promotion/Relegation Overlay ── */}
+          {showLeaguePromotion && leaguePromotionData && (
+            <LeaguePromotionOverlay
+              promoted={leaguePromotionData.promoted}
+              relegated={leaguePromotionData.relegated}
+              previousTier={leaguePromotionData.previousTier}
+              currentTier={leaguePromotionData.currentTier}
+              onDismiss={() => {
+                setShowLeaguePromotion(false);
+                setLeaguePromotionData(null);
+              }}
+            />
           )}
 
           {showChestOpening && (
