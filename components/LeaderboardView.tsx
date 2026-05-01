@@ -456,8 +456,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                 return (
                   <div key={m.player_id} className={`flex flex-col items-center gap-1.5 flex-1 ${isCenter ? '-mt-4' : ''}`}>
                     <div className={isCenter ? 'text-2xl' : 'text-lg'}>{medal}</div>
-                    <AvatarWithBorder avatarUrl={m.avatar_url} borderId={m.equipped_border || null} size={isCenter ? 80 : 64}
-                      style={isCenter ? { boxShadow: `0 0 20px ${leagueData.tierConfig?.glow || 'rgba(234,179,8,0.2)'}` } : undefined} />
+                    <AvatarWithBorder avatarUrl={m.avatar_url} borderId={m.equipped_border || null} size={isCenter ? 80 : 64} />
                     <div className="text-[11px] font-black text-white truncate max-w-[80px] text-center">
                       {m.username || m.name}{isMe ? ' ●' : ''}
                     </div>
@@ -565,7 +564,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                 return (
                   <div className="flex flex-col items-center gap-1.5 flex-1 -mt-4" onClick={() => setProfileTarget(e)}>
                     <div className="text-2xl">👑</div>
-                    <AvatarWithBorder avatarUrl={e.avatar_url} borderId={e.equipped_border || null} size={80} style={{ boxShadow: '0 0 20px rgba(234,179,8,0.2)' }} />
+                    <AvatarWithBorder avatarUrl={e.avatar_url} borderId={e.equipped_border || null} size={80} />
                     <div className="text-xs font-black text-white truncate max-w-[90px] text-center">
                       {e.username || e.name}
                     </div>
