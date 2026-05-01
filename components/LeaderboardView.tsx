@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   RefreshCw,
   X, Zap, Flag, AlertTriangle, CheckSquare, Square, Send, Flame, Clock,
-  Shield,
 } from 'lucide-react';
 import { PlayerData, Outfit } from '../types';
 import { API_BASE } from '../lib/apiConfig';
@@ -51,7 +50,8 @@ interface LeaderboardViewProps {
   equippedOutfit?: Outfit;
 }
 
-type TabMode = 'league' | 'streak';
+type TabMode = 'xp' | 'streak';
+type XpMode = 'daily' | 'global';
 
 // ── Constants ──
 const RANK_COLORS: Record<string, string> = {
@@ -91,7 +91,8 @@ const DEFAULT_OUTFIT_CFG = OUTFIT_CONFIG.outfit_starter;
 const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfit }) => {
   const [xpEntries, setXpEntries] = useState<LeaderboardEntry[]>([]);
   const [streakEntries, setStreakEntries] = useState<LeaderboardEntry[]>([]);
-  const [activeTab, setActiveTab] = useState<TabMode>('league');
+  const [activeTab, setActiveTab] = useState<TabMode>('xp');
+  const [xpMode, setXpMode] = useState<XpMode>('daily');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [weekEnd, setWeekEnd] = useState<string | null>(null);
@@ -103,10 +104,6 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
     below: LeaderboardEntry[];
   } | null>(null);
   const [yourEntry, setYourEntry] = useState<LeaderboardEntry | null>(null);
-
-  // League state
-  const [leagueData, setLeagueData] = useState<any>(null);
-  const [leagueLoading, setLeagueLoading] = useState(false);
 
   const { addNotification, setPlayer, updateServerBaseline } = useSystem();
 
@@ -193,17 +190,15 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
   const fetchLeaderboard = useCallback(async (showRefresh = false) => {
     if (showRefresh) setRefreshing(true);
     try {
-      const [xpRes, streakRes, leagueRes] = await Promise.all([
+      const [xpRes, streakRes] = await Promise.all([
         fetch(`${API_BASE}/api/leaderboard?type=xp&userId=${encodeURIComponent(player.userId || '')}`, { credentials: 'include', headers: { ...getPlayerAuthHeaders() } }),
         fetch(`${API_BASE}/api/leaderboard?type=streak&userId=${encodeURIComponent(player.userId || '')}`, { credentials: 'include', headers: { ...getPlayerAuthHeaders() } }),
-        fetch(`${API_BASE}/api/league/current`, { credentials: 'include', headers: { ...getPlayerAuthHeaders() } }).catch(() => null),
       ]);
       if (xpRes.ok) {
         const xpData = await xpRes.json();
         setXpEntries(xpData.entries || []);
         if (xpData.weekEnd) setWeekEnd(xpData.weekEnd);
-        // Store neighborhood data for XP tab
-        if (activeTab === 'league') {
+        if (activeTab === 'xp') {
           setYourRank(xpData.yourRank || null);
           setYourEntry(xpData.yourEntry || null);
           setNeighborhood(xpData.neighborhood || null);
@@ -212,18 +207,11 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
       if (streakRes.ok) {
         const streakData = await streakRes.json();
         setStreakEntries(streakData.entries || []);
-        // Store neighborhood data for streak tab
         if (activeTab === 'streak') {
           setYourRank(streakData.yourRank || null);
           setYourEntry(streakData.yourEntry || null);
           setNeighborhood(streakData.neighborhood || null);
         }
-      }
-      // League data
-      if (leagueRes && leagueRes.ok) {
-        const ld = await leagueRes.json();
-        setLeagueData(ld);
-        if (ld.weekEnd) setWeekEnd(ld.weekEnd);
       }
     } catch { /* offline */ } finally {
       setLoading(false);
@@ -275,7 +263,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
 
   // ── Build entries with INSTANT local XP merge ──
   // When YOU earn XP, your card moves immediately without waiting for server refresh
-  const entries = activeTab === 'league' ? xpEntries : streakEntries;
+  const entries = activeTab === 'xp' ? xpEntries : streakEntries;
 
   const simulatedEntries: SimEntry[] = useMemo(() => {
     const myPlayerId = player.userId || '';
@@ -295,7 +283,12 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
 
     return [...entries].map((e, i) => {
       const isMe = i === meIndex;
-      const dominanceValue = activeTab === 'league' ? (e.weekly_xp || 0) : (e.streak || 0);
+      let dominanceValue: number;
+      if (activeTab === 'xp') {
+        dominanceValue = xpMode === 'daily' ? (e.daily_xp || 0) : (e.total_xp || 0);
+      } else {
+        dominanceValue = e.streak || 0;
+      }
 
       return {
         ...e,
@@ -309,14 +302,11 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
         bannerId: e.equipped_banner || null,
       };
     }).sort((a, b) => b.dominance - a.dominance);
-  }, [entries, player.userId, player.username, activeTab]);
+  }, [entries, player.userId, player.username, activeTab, xpMode]);
 
   const myIndex = simulatedEntries.findIndex(e => e.isMe);
   const globalMyRank = myIndex >= 0 ? myIndex + 1 : 999;
-  // In league mode, use league-specific position; in streak mode, use global rank
-  const myRank = activeTab === 'league' && leagueData?.yourPosition
-    ? leagueData.yourPosition
-    : globalMyRank;
+  const myRank = globalMyRank;
 
 
   // ── Format XP ──
@@ -354,7 +344,9 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
           <div>
             <h1 className="text-2xl font-black text-white tracking-tight">Leaderboard</h1>
             <div className="text-xs text-gray-400 mt-0.5">
-              {activeTab === 'league' ? 'League XP rankings' : 'Top players by streak'} {myIndex >= 0 ? <span className="text-[#7EB8D4] font-bold">— You're #{myRank}</span> : ''}
+              {activeTab === 'xp'
+              ? (xpMode === 'daily' ? 'Daily XP rankings' : 'All-time XP rankings')
+              : 'Top players by streak'} {myIndex >= 0 ? <span className="text-[#7EB8D4] font-bold">— You're #{myRank}</span> : ''}
             </div>
           </div>
           <motion.button
@@ -369,57 +361,44 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
         </div>
       </div>
 
-      {/* ── LEAGUE HEADER (league tab only) ── */}
-      {activeTab === 'league' && leagueData?.league && (
+      {/* ── DAILY REWARDS CARD (xp tab, daily mode only) ── */}
+      {activeTab === 'xp' && xpMode === 'daily' && (
         <div className="mx-4 mb-3 px-4 py-3 rounded-xl" style={{
-          background: `${leagueData.tierConfig?.color || '#78716C'}08`,
-          border: `1px solid ${leagueData.tierConfig?.color || '#78716C'}20`,
+          background: 'linear-gradient(135deg, rgba(234,179,8,0.06) 0%, rgba(168,85,247,0.06) 100%)',
+          border: '1px solid rgba(234,179,8,0.15)',
         }}>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <span className="text-xl">{leagueData.tierConfig?.icon || '⚔️'}</span>
-              <div>
-                <span className="text-sm font-black tracking-wider uppercase" style={{ color: leagueData.tierConfig?.color || '#78716C' }}>
-                  {leagueData.tierConfig?.name || 'E-Rank'} League
-                </span>
-                <div className="text-[10px] text-gray-500 font-mono">
-                  {leagueData.league.totalMembers} Hunters · Group #{leagueData.league.groupNumber}
-                </div>
-              </div>
+              <span className="text-base">🏆</span>
+              <span className="text-[10px] font-black tracking-widest uppercase text-yellow-400">Daily Prizes</span>
             </div>
             {countdown && (
-              <div className="flex items-center gap-1.5" style={{ background: 'rgba(126,184,212,0.06)', border: '1px solid rgba(126,184,212,0.12)', borderRadius: 8, padding: '4px 8px' }}>
-                <Clock size={10} className="text-[#7EB8D4]" />
-                <span className="text-[9px] font-mono font-bold text-[#7EB8D4] tracking-wider">{countdown}</span>
+              <div className="flex items-center gap-1.5" style={{ background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.15)', borderRadius: 8, padding: '3px 8px' }}>
+                <Clock size={9} className="text-yellow-400" />
+                <span className="text-[8px] font-mono font-bold text-yellow-400 tracking-wider">RESETS {countdown}</span>
               </div>
             )}
           </div>
-
-          {/* Zone legend */}
-          <div className="flex items-center gap-4 mt-2">
-            <div className="flex items-center gap-1">
-              <div style={{ width: 8, height: 8, borderRadius: 2, background: '#22C55E' }} />
-              <span className="text-[9px] text-gray-500 font-mono">Top {leagueData.promotionLine} promote</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <div style={{ width: 8, height: 8, borderRadius: 2, background: '#EF4444' }} />
-              <span className="text-[9px] text-gray-500 font-mono">Bottom {leagueData.league.totalMembers - leagueData.relegationLine + 1} relegate</span>
-            </div>
+          <div className="flex items-center gap-3 text-[9px] font-mono text-gray-400">
+            <span>🥇 50G + 🎁 Chest + 🛡️</span>
+            <span>🥈 35G + 🎁</span>
+            <span>🥉 25G + 🎁</span>
+            <span className="text-gray-600">All: 3-15G</span>
           </div>
         </div>
       )}
 
-      {/* ── COUNTDOWN TIMER (league tab, no league data) ── */}
-      {activeTab === 'league' && !leagueData?.league && countdown && (
+      {/* ── COUNTDOWN (xp tab, global mode) ── */}
+      {activeTab === 'xp' && xpMode === 'global' && countdown && (
         <div className="mx-4 mb-3 px-3 py-2 rounded-xl flex items-center gap-2" style={{ background: 'rgba(126,184,212,0.06)', border: '1px solid rgba(126,184,212,0.12)' }}>
           <Clock size={13} className="text-[#7EB8D4]" />
-          <span className="text-[10px] font-mono font-bold text-[#7EB8D4] tracking-wider">RESETS IN {countdown}</span>
+          <span className="text-[10px] font-mono font-bold text-[#7EB8D4] tracking-wider">WEEKLY RESET {countdown}</span>
         </div>
       )}
 
       {/* ── TAB SWITCHER ── */}
-      <div className="flex px-4 mb-4 gap-2">
-        {(['league', 'streak'] as TabMode[]).map(tab => (
+      <div className="flex px-4 mb-2 gap-2">
+        {(['xp', 'streak'] as TabMode[]).map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -429,11 +408,31 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
               color: activeTab === tab ? '#ffffff' : 'rgba(255,255,255,0.3)',
             }}
           >
-            {tab === 'league' ? <Shield size={13} /> : <Flame size={13} />}
-            {tab === 'league' ? 'LEAGUE' : 'STREAK'}
+            {tab === 'xp' ? <Zap size={13} /> : <Flame size={13} />}
+            {tab === 'xp' ? 'XP' : 'STREAK'}
           </button>
         ))}
       </div>
+
+      {/* ── XP SUB-TOGGLE (Daily / Global) ── */}
+      {activeTab === 'xp' && (
+        <div className="flex px-4 mb-4 gap-1.5">
+          {(['daily', 'global'] as XpMode[]).map(mode => (
+            <button
+              key={mode}
+              onClick={() => setXpMode(mode)}
+              className="flex-1 py-1.5 rounded-lg transition-all text-[10px] font-black tracking-widest uppercase"
+              style={{
+                background: xpMode === mode ? 'rgba(234,179,8,0.12)' : 'transparent',
+                color: xpMode === mode ? '#fbbf24' : 'rgba(255,255,255,0.2)',
+                border: xpMode === mode ? '1px solid rgba(234,179,8,0.25)' : '1px solid transparent',
+              }}
+            >
+              {mode === 'daily' ? '⚡ TODAY' : '🌐 ALL TIME'}
+            </button>
+          ))}
+        </div>
+      )}
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
@@ -441,77 +440,109 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
             Loading...
           </motion.div>
         </div>
-      ) : activeTab === 'league' && leagueData?.members?.length > 0 ? (
-        /* ═══ LEAGUE COHORT RENDERING ═══ */
+      ) : activeTab === 'xp' && simulatedEntries.length === 0 ? (
+        <div className="text-center py-16 px-6">
+          <div className="text-3xl mb-3">⚡</div>
+          <div className="text-sm font-black text-white mb-1">{xpMode === 'daily' ? 'No XP Earned Today Yet' : 'No Players Found'}</div>
+          <div className="text-xs text-gray-500 font-mono">Complete quests to start climbing the leaderboard.</div>
+        </div>
+      ) : activeTab === 'xp' ? (
         <>
-          {/* Podium — only if 3+ members */}
-          {leagueData.members.length >= 3 && (
-            <div className="flex items-end justify-center gap-3 px-4 pt-2 pb-6">
-              {[1, 0, 2].map((pos) => {
-                const m = leagueData.members[pos];
-                if (!m) return null;
-                const isCenter = pos === 0;
-                const medal = pos === 0 ? '👑' : pos === 1 ? '🥈' : '🥉';
-                const isMe = m.player_id === player.userId || (m.username || '').toLowerCase() === (player.username || '').toLowerCase();
+          {/* ── PODIUM — Laurel Wreath Style ── */}
+          {simulatedEntries.length >= 3 && (
+            <div className="flex items-end justify-center gap-2 px-4 pt-2 pb-6">
+              {/* 2nd place (left) */}
+              {(() => {
+                const e = simulatedEntries[1];
                 return (
-                  <div key={m.player_id} className={`flex flex-col items-center gap-1.5 flex-1 ${isCenter ? '-mt-4' : ''}`}>
-                    <div className={isCenter ? 'text-2xl' : 'text-lg'}>{medal}</div>
-                    <AvatarWithBorder avatarUrl={m.avatar_url} borderId={m.equipped_border || null} size={isCenter ? 80 : 64} />
-                    <div className="text-[11px] font-black text-white truncate max-w-[80px] text-center">
-                      {m.username || m.name}{isMe ? ' ●' : ''}
+                  <div className="flex flex-col items-center gap-1 flex-1 cursor-pointer" onClick={() => setProfileTarget(e)}>
+                    <div className="relative">
+                      <div className="absolute -inset-2 flex items-center justify-center" style={{ filter: 'drop-shadow(0 0 4px rgba(192,192,192,0.3))' }}>
+                        <svg width="76" height="76" viewBox="0 0 80 80"><circle cx="40" cy="40" r="36" fill="none" stroke="#C0C0C0" strokeWidth="2" strokeDasharray="4 3" opacity="0.5"/><text x="40" y="14" textAnchor="middle" fill="#C0C0C0" fontSize="11" fontWeight="900">2nd</text></svg>
+                      </div>
+                      <AvatarWithBorder avatarUrl={e.avatar_url} borderId={e.equipped_border || null} size={56} />
                     </div>
+                    <div className="text-[10px] font-black text-white truncate max-w-[75px] text-center mt-1">{e.username || e.name}</div>
                     <div className="flex items-center gap-1">
-                      <Zap size={isCenter ? 14 : 13} className="text-cyan-400" />
-                      <span className={`${isCenter ? 'text-base' : 'text-sm'} font-black text-cyan-400`}>{formatXp(m.weekly_xp || 0)}</span>
+                      <Zap size={12} className="text-cyan-400" />
+                      <span className="text-sm font-black text-cyan-400">{formatXp(e.dominance)}</span>
                     </div>
                   </div>
                 );
-              })}
+              })()}
+
+              {/* 1st place (center, elevated) */}
+              {(() => {
+                const e = simulatedEntries[0];
+                return (
+                  <div className="flex flex-col items-center gap-1 flex-1 -mt-6 cursor-pointer" onClick={() => setProfileTarget(e)}>
+                    <div className="text-xl mb-0.5">👑</div>
+                    <div className="relative">
+                      <div className="absolute -inset-3 flex items-center justify-center" style={{ filter: 'drop-shadow(0 0 6px rgba(234,179,8,0.4))' }}>
+                        <svg width="92" height="92" viewBox="0 0 96 96"><circle cx="48" cy="48" r="42" fill="none" stroke="#EAB308" strokeWidth="2.5" strokeDasharray="5 3" opacity="0.6"/><text x="48" y="16" textAnchor="middle" fill="#EAB308" fontSize="12" fontWeight="900">1st</text></svg>
+                      </div>
+                      <AvatarWithBorder avatarUrl={e.avatar_url} borderId={e.equipped_border || null} size={68} />
+                    </div>
+                    <div className="text-[11px] font-black text-white truncate max-w-[85px] text-center mt-1">{e.username || e.name}</div>
+                    <div className="flex items-center gap-1">
+                      <Zap size={14} className="text-yellow-400" />
+                      <span className="text-base font-black text-yellow-400">{formatXp(e.dominance)}</span>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* 3rd place (right) */}
+              {(() => {
+                const e = simulatedEntries[2];
+                return (
+                  <div className="flex flex-col items-center gap-1 flex-1 cursor-pointer" onClick={() => setProfileTarget(e)}>
+                    <div className="relative">
+                      <div className="absolute -inset-2 flex items-center justify-center" style={{ filter: 'drop-shadow(0 0 4px rgba(205,127,50,0.3))' }}>
+                        <svg width="76" height="76" viewBox="0 0 80 80"><circle cx="40" cy="40" r="36" fill="none" stroke="#CD7F32" strokeWidth="2" strokeDasharray="4 3" opacity="0.5"/><text x="40" y="14" textAnchor="middle" fill="#CD7F32" fontSize="11" fontWeight="900">3rd</text></svg>
+                      </div>
+                      <AvatarWithBorder avatarUrl={e.avatar_url} borderId={e.equipped_border || null} size={56} />
+                    </div>
+                    <div className="text-[10px] font-black text-white truncate max-w-[75px] text-center mt-1">{e.username || e.name}</div>
+                    <div className="flex items-center gap-1">
+                      <Zap size={12} className="text-cyan-400" />
+                      <span className="text-sm font-black text-cyan-400">{formatXp(e.dominance)}</span>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           )}
 
-          {/* League rows (4th onward, or all if <3 members) */}
+          {/* ── REMAINING PLAYERS (4th onward) ── */}
           <div className="px-4 space-y-2">
-            {leagueData.members.slice(leagueData.members.length >= 3 ? 3 : 0).map((m: any, index: number) => {
-              const actualRank = leagueData.members.length >= 3 ? index + 4 : index + 1;
-              const isMe = m.player_id === player.userId || (m.username || '').toLowerCase() === (player.username || '').toLowerCase();
-              const zone = m.zone || 'safe';
-              const zoneBorder = zone === 'promotion' ? '3px solid #22C55E' : zone === 'relegation' ? '3px solid #EF4444' : '3px solid transparent';
+            {simulatedEntries.slice(simulatedEntries.length >= 3 ? 3 : 0).map((entry, index) => {
+              const actualRank = simulatedEntries.length >= 3 ? index + 4 : index + 1;
               return (
                 <motion.div
-                  key={`league-${m.player_id}`}
+                  key={`xp-${entry.username || entry.name}`}
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.2, delay: index * 0.02 }}
                   className="flex items-center gap-3 px-4 py-3.5 rounded-2xl cursor-pointer active:scale-[0.98] transition-transform"
                   style={{
-                    background: isMe ? 'rgba(126,184,212,0.08)' : 'rgba(255,255,255,0.03)',
-                    borderLeft: zoneBorder,
-                    ...(isMe ? { border: '1.5px solid rgba(126,184,212,0.25)', borderLeft: zoneBorder, boxShadow: '0 0 16px rgba(126,184,212,0.1)' } : {}),
+                    background: entry.isMe ? 'rgba(126,184,212,0.08)' : 'rgba(255,255,255,0.03)',
+                    ...(entry.isMe ? { border: '1.5px solid rgba(126,184,212,0.25)', boxShadow: '0 0 16px rgba(126,184,212,0.1)' } : {}),
                   }}
-                  onClick={() => {
-                    const simEntry: SimEntry = {
-                      ...m, isMe, dominance: m.weekly_xp || 0, isDebuffed: false,
-                      computedRank: computeRankFromLevel(m.level || 1),
-                      outfitId: m.equipped_outfit_id || 'outfit_starter',
-                      borderId: m.equipped_border || null, bannerId: null,
-                      total_xp: 0, daily_xp: 0,
-                    };
-                    setProfileTarget(simEntry);
-                  }}
+                  onClick={() => setProfileTarget(entry)}
                 >
                   <div className="w-7 text-center">
-                    <span className={`text-sm font-black font-mono ${isMe ? 'text-[#7EB8D4]' : 'text-gray-500'}`}>{actualRank}</span>
+                    <span className={`text-sm font-black font-mono ${entry.isMe ? 'text-[#7EB8D4]' : 'text-gray-500'}`}>{actualRank}</span>
                   </div>
-                  <AvatarWithBorder avatarUrl={m.avatar_url} borderId={m.equipped_border || null} size={44} className="shrink-0" />
+                  <AvatarWithBorder avatarUrl={entry.avatar_url} borderId={entry.equipped_border || null} size={44} className="shrink-0" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-black text-white truncate">{m.username || m.name}</span>
-                      {isMe && <span className="text-[8px] px-1.5 py-0.5 rounded bg-[#7EB8D4]/15 text-[#7EB8D4] font-black tracking-wider">you</span>}
+                      <span className="text-sm font-black text-white truncate">{entry.username || entry.name}</span>
+                      {entry.isMe && <span className="text-[8px] px-1.5 py-0.5 rounded bg-[#7EB8D4]/15 text-[#7EB8D4] font-black tracking-wider">you</span>}
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    <span className="text-base font-black text-cyan-400">{formatXp(m.weekly_xp || 0)}</span>
+                    <span className="text-base font-black text-cyan-400">{formatXp(entry.dominance)}</span>
                     <Zap size={15} className="text-cyan-400" />
                   </div>
                 </motion.div>
@@ -519,19 +550,12 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
             })}
           </div>
 
-          {/* League Footer */}
           <div className="text-center py-4 mt-2">
             <span className="text-[10px] text-gray-600 font-mono">
-              Your league · {leagueData.league.totalMembers} Hunters · Group #{leagueData.league.groupNumber}
+              {xpMode === 'daily' ? 'Daily XP · Resets at midnight UTC' : 'All-time total XP'} · Top hunters
             </span>
           </div>
         </>
-      ) : activeTab === 'league' ? (
-        <div className="text-center py-16 px-6">
-          <div className="text-3xl mb-3">⚔️</div>
-          <div className="text-sm font-black text-white mb-1">Your League is Being Prepared</div>
-          <div className="text-xs text-gray-500 font-mono">Earn XP this week to get placed in a league.<br/>Leagues reset every Monday UTC.</div>
-        </div>
       ) : simulatedEntries.length === 0 ? (
         <div className="text-center py-20 text-gray-600 text-sm font-mono">
           No active streaks.
