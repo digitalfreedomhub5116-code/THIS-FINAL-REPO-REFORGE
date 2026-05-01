@@ -495,9 +495,10 @@ router.put('/:id', async (req: Request, res: Response) => {
       tutorial_step: data.tutorialStep || 0,
       tutorial_complete: data.tutorialComplete || false,
       daily_quest_complete: data.dailyQuestComplete || false,
-      last_daily_reset: data.lastDailyReset || null,
-      last_weekly_reset: data.lastWeeklyReset || null,
-      last_monthly_reset: data.lastMonthlyReset || null,
+      // NOTE: last_daily_reset, last_weekly_reset, last_monthly_reset are SERVER-AUTHORITATIVE.
+      // They are set by GET /sync's reset logic using date strings (e.g. '2026-05-01').
+      // The client uses epoch timestamps internally — sending them here causes format mismatch
+      // which triggers infinite stat resets. DO NOT overwrite these fields from the client.
       // D/W/M stats — written from client state (server resets happen in /sync)
       daily_stats: data.dailyStats || null,
       weekly_stats: data.weeklyStats || null,
