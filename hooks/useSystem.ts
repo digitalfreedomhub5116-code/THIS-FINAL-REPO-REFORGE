@@ -1883,17 +1883,14 @@ export const useSystem = () => {
         return { ...prev, cheatStrikes: strikes, isBanned: true, logs };
       }
       if (strikes >= 3) {
-        const deduction = Math.floor(currentXp * 0.2);
+        // Strikes 3-4: serious — deduct 15% XP
+        const deduction = Math.floor(currentXp * 0.15);
         currentXp -= deduction;
-        logs.unshift(createLog(`Anomaly Strike ${strikes}/5: -20% XP. ${5 - strikes} violation(s) remaining before permanent ban.`, 'WARNING'));
-        playSystemSoundEffect('DANGER');
-      } else if (strikes >= 2) {
-        const deduction = Math.floor(currentXp * 0.1);
-        currentXp -= deduction;
-        logs.unshift(createLog(`Anomaly Strike ${strikes}/5: -10% XP. ${5 - strikes} violation(s) remaining before permanent ban.`, 'WARNING'));
+        logs.unshift(createLog(`Anomaly Strike ${strikes}/5: -15% XP (${deduction} XP lost). ${5 - strikes} violation(s) remaining before permanent ban.`, 'WARNING'));
         playSystemSoundEffect('DANGER');
       } else {
-        logs.unshift(createLog(`Anomaly Strike ${strikes}/5 issued. ${5 - strikes} violation(s) remaining before permanent ban.`, 'WARNING'));
+        // Strikes 1-2: warnings only — no XP loss (prevents death spiral from random flags)
+        logs.unshift(createLog(`Anomaly Strike ${strikes}/5 issued. Warning only — no penalty yet. ${5 - strikes} violation(s) remaining before permanent ban.`, 'WARNING'));
         playSystemSoundEffect('DANGER');
       }
       addNotification(`Anomaly Strike ${strikes}/5 — ${5 - strikes} remaining`, 'DANGER');

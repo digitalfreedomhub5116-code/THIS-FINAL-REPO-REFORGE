@@ -2715,12 +2715,16 @@ const App: React.FC = () => {
 
 
     // -- Audit Theater Interception --
+    // Fair audit system: tiered trigger rates by rank, no first-S punishment,
+    // low random flag chance (5%), and strike auto-flag only at 3+.
 
     const isTutorialQuest = quest.id.startsWith('init_');
 
     const rank = quest.rank;
 
     const isHighRank = rank === 'A' || rank === 'S';
+
+    const isMidRank = rank === 'B' || rank === 'C';
 
     
 
@@ -2730,11 +2734,15 @@ const App: React.FC = () => {
 
       if (isHighRank) {
 
-        triggerAudit = true;
+        triggerAudit = true;                   // A/S rank: always audited
 
-      } else if (Math.random() < 0.4) {
+      } else if (isMidRank && Math.random() < 0.20) {
 
-        triggerAudit = true;
+        triggerAudit = true;                   // B/C rank: 20% chance
+
+      } else if (!isMidRank && Math.random() < 0.10) {
+
+        triggerAudit = true;                   // E/D rank: 10% chance
 
       }
 
@@ -2758,21 +2766,19 @@ const App: React.FC = () => {
 
       ).length;
 
-
-
-      const isFirstS = rank === 'S' && !player.quests.some(q => q.rank === 'S' && q.isCompleted);
-
       
 
-      const hasCheatStrikes = player.cheatStrikes >= 2;
+      // Only auto-flag if user has a pattern of cheating (3+ strikes = death spiral prevention)
+      const hasCheatStrikes = player.cheatStrikes >= 3;
 
+      // Abuse guard: 3+ high-rank completions in a single day is suspicious
       const tooManyHighRanksToday = isHighRank && todayHighRankCompletions >= 3;
 
 
 
       let outcome: 'verified' | 'flagged' = 'verified';
 
-      if (hasCheatStrikes || tooManyHighRanksToday || isFirstS || Math.random() < 0.15) {
+      if (hasCheatStrikes || tooManyHighRanksToday || Math.random() < 0.05) {
 
         outcome = 'flagged';
 
