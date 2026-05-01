@@ -19,7 +19,7 @@ interface NavigationProps {
 
 const NAV_ITEMS = [
   { id: 'DASHBOARD' as Tab, label: 'Today', icon: LayoutGrid },
-  { id: 'HEALTH' as Tab, label: 'Workout', icon: Activity },
+  { id: 'HEALTH' as Tab, label: 'Health', icon: Activity },
   { id: 'LEADERBOARD' as Tab, label: 'Ranks', icon: Trophy },
   { id: 'STORE' as Tab, label: 'Store', icon: ShoppingBag },
   { id: 'PROFILE' as Tab, label: 'You', icon: User },
