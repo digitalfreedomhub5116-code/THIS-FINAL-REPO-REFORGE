@@ -1,16 +1,104 @@
-import { GoogleGenerativeAI, GenerativeModel, GenerateContentResult } from '@google/generative-ai';
+import { GoogleGenAI, type GenerateContentResponse } from '@google/genai';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
 
-// ── Shared Gemini client (singleton per API key) ──
-let _cachedAI: GoogleGenerativeAI | null = null;
-let _cachedKey: string | null = null;
+// ── Write credentials file from env var (for Railway/CI deployments) ──
+// Railway can't store files, so we store the JSON as an env var and
+// write it to a temp file at startup for the Google SDK to find.
+const credsJson = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
+if (credsJson && !process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+  try {
+    const tmpPath = path.join(os.tmpdir(), 'gcp-credentials.json');
+    fs.writeFileSync(tmpPath, credsJson, { mode: 0o600 });
+    process.env.GOOGLE_APPLICATION_CREDENTIALS = tmpPath;
+  } catch (err: any) {
+    console.warn('[GeminiRetry] Could not write credentials file:', err?.message);
+  }
+}
 
-export function getSharedAI(): GoogleGenerativeAI {
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) throw new Error('GEMINI_API_KEY not set');
-  if (_cachedAI && _cachedKey === key) return _cachedAI;
-  _cachedAI = new GoogleGenerativeAI(key);
-  _cachedKey = key;
-  return _cachedAI;
+// ── Backward-compatible result wrapper ──
+// OLD SDK: result.response.text()  ← method call
+// NEW SDK: response.text           ← property
+// This wrapper lets all route files keep using result.response.text()
+// without ANY changes.
+export interface CompatResponse {
+  text(): string;
+  usageMetadata?: {
+    promptTokenCount?: number;
+    candidatesTokenCount?: number;
+  };
+}
+
+export interface CompatResult {
+  response: CompatResponse;
+}
+
+function wrapResult(response: GenerateContentResponse): CompatResult {
+  return {
+    response: {
+      text: () => response.text || '',
+      usageMetadata: response.usageMetadata ? {
+        promptTokenCount: response.usageMetadata.promptTokenCount,
+        candidatesTokenCount: response.usageMetadata.candidatesTokenCount,
+      } : undefined,
+    },
+  };
+}
+
+// ── Convert prompt format ──
+// OLD SDK: prompt can be string or [string, { inlineData: ... }]
+// NEW SDK: contents is string or [{ text: ... }, { inlineData: ... }]
+function convertPrompt(
+  prompt: string | Array<string | { inlineData: { data: string; mimeType: string } }>
+): any {
+  if (typeof prompt === 'string') return prompt;
+  return prompt.map(part => {
+    if (typeof part === 'string') return { text: part };
+    return part;
+  });
+}
+
+// ── Shared Gemini client (singleton) ──
+let _cachedAI: GoogleGenAI | null = null;
+let _usingVertexAI = false;
+
+export function getSharedAI(): GoogleGenAI {
+  if (_cachedAI) return _cachedAI;
+
+  const project = process.env.GOOGLE_CLOUD_PROJECT;
+  const location = process.env.GOOGLE_CLOUD_LOCATION || 'us-central1';
+  const hasVertexCreds = !!process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  const apiKey = process.env.GEMINI_API_KEY;
+
+  // ── Prefer Vertex AI (uses ₹90,957 free credits!) ──
+  if (project && hasVertexCreds) {
+    _cachedAI = new GoogleGenAI({
+      vertexai: true,
+      project,
+      location,
+    });
+    _usingVertexAI = true;
+    console.log(`[GeminiRetry] ✅ Using Vertex AI (project: ${project}, location: ${location}) — FREE CREDITS ACTIVE`);
+    return _cachedAI;
+  }
+
+  // ── Fallback to standard API key ──
+  if (apiKey) {
+    _cachedAI = new GoogleGenAI({ apiKey });
+    _usingVertexAI = false;
+    console.log('[GeminiRetry] Using standard Gemini API key (no free credits)');
+    return _cachedAI;
+  }
+
+  throw new Error(
+    'No Gemini credentials configured. Set GOOGLE_CLOUD_PROJECT + GOOGLE_APPLICATION_CREDENTIALS_JSON for Vertex AI, or GEMINI_API_KEY for standard API.'
+  );
+}
+
+/** Whether the client is using Vertex AI (free credits) or standard API key */
+export function isUsingVertexAI(): boolean {
+  return _usingVertexAI;
 }
 
 // ── Retry configuration ──
@@ -67,38 +155,37 @@ export function markModelThrottled(modelName: string, ms: number = CIRCUIT_OPEN_
 }
 
 /**
- * Calls model.generateContent() with a single retry on transient (503) errors ONLY.
+ * Calls ai.models.generateContent() with a single retry on transient (503) errors ONLY.
  * Quota errors (429) are thrown immediately so the caller can fail over to a
  * different model — retrying the same model when Google is capacity-throttling
- * it only makes the situation worse (each retry burns a quota slot and extends
- * the throttle window).
+ * it only makes the situation worse.
  */
-export async function generateWithRetry(
-  model: GenerativeModel,
+async function generateWithRetrySingle(
+  ai: GoogleGenAI,
+  modelName: string,
   prompt: string | Array<string | { inlineData: { data: string; mimeType: string } }>,
   options: RetryOptions = {}
-): Promise<GenerateContentResult> {
+): Promise<CompatResult> {
   const { maxRetries = 1, baseDelayMs = 1500, maxDelayMs = 5000 } = options;
-
   let lastError: Error | null = null;
+  const contents = convertPrompt(prompt);
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      return await model.generateContent(prompt as any);
+      const response = await ai.models.generateContent({
+        model: modelName,
+        contents: contents,
+      });
+      return wrapResult(response);
     } catch (err: any) {
       lastError = err;
       const kind = classifyError(err);
 
-      // Quota/capacity errors: do NOT retry the same model — bubble up so the
-      // caller can fail over to a different model immediately.
-      if (kind === 'quota' || kind === 'not_found') {
-        throw err;
-      }
+      // Quota/capacity errors: do NOT retry — bubble up for failover.
+      if (kind === 'quota' || kind === 'not_found') throw err;
 
       // Only 'transient' (503/UNAVAILABLE) gets a single quick retry.
-      if (kind !== 'transient' || attempt === maxRetries) {
-        throw err;
-      }
+      if (kind !== 'transient' || attempt === maxRetries) throw err;
 
       const delay = Math.min(baseDelayMs * Math.pow(2, attempt) + Math.random() * 500, maxDelayMs);
       console.warn(`[GeminiRetry] Transient 503 on attempt ${attempt + 1}/${maxRetries + 1}. Retrying in ${Math.round(delay)}ms...`);
@@ -108,6 +195,11 @@ export async function generateWithRetry(
 
   throw lastError || new Error('generateWithRetry: unreachable');
 }
+
+// ── Legacy export: generateWithRetry (kept for any direct callers) ──
+// In the new SDK, model is created inline, so we accept ai + modelName instead of a GenerativeModel.
+// However, no route currently calls this directly — they all use generateWithFallback.
+export const generateWithRetry = generateWithRetrySingle;
 
 /**
  * Tries multiple model names in order with fast failover.
@@ -121,11 +213,11 @@ export async function generateWithRetry(
  * Google-side capacity throttling of popular models like gemini-2.0-flash.
  */
 export async function generateWithFallback(
-  ai: GoogleGenerativeAI,
+  ai: GoogleGenAI,
   modelNames: string[],
   prompt: string | Array<string | { inlineData: { data: string; mimeType: string } }>,
   retryOptions?: RetryOptions
-): Promise<{ result: GenerateContentResult; modelName: string }> {
+): Promise<{ result: CompatResult; modelName: string }> {
   let lastError: Error | null = null;
   const attempted: string[] = [];
 
@@ -137,8 +229,7 @@ export async function generateWithFallback(
     }
 
     try {
-      const model = ai.getGenerativeModel({ model: modelName });
-      const result = await generateWithRetry(model, prompt, retryOptions);
+      const result = await generateWithRetrySingle(ai, modelName, prompt, retryOptions);
       attempted.push(`${modelName}(ok)`);
       if (attempted.length > 1) {
         console.log(`[GeminiRetry] Fallback succeeded via ${modelName}. Path: ${attempted.join(' -> ')}`);
@@ -174,8 +265,8 @@ export async function generateWithFallback(
  * Exported so routes have a single source of truth.
  */
 export const DEFAULT_MODEL_CHAIN: readonly string[] = [
-  'gemini-2.0-flash',
   'gemini-2.5-flash',
+  'gemini-2.5-flash-lite',
 ];
 
 function sleep(ms: number): Promise<void> {

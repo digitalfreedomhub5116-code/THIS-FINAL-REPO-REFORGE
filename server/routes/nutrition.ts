@@ -41,9 +41,9 @@ Rules:
 - Return ONLY raw JSON, no markdown formatting (\`\`\`json ... \`\`\`), no conversational text.`;
 
 router.post('/analyze', async (req: Request, res: Response) => {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return res.status(500).json({ error: 'Gemini API key not configured. Add GEMINI_API_KEY to environment secrets.' });
+  const hasCredentials = process.env.GEMINI_API_KEY || (process.env.GOOGLE_CLOUD_PROJECT && process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
+  if (!hasCredentials) {
+    return res.status(500).json({ error: 'Gemini credentials not configured. Add GEMINI_API_KEY or Vertex AI credentials to environment secrets.' });
   }
 
   const { imageBase64, mimeType } = req.body as { imageBase64?: string; mimeType?: string };
