@@ -97,6 +97,13 @@ router.post('/generate', async (req: Request, res: Response) => {
     if (!userId) {
       return res.status(401).json({ error: 'Authentication required' });
     }
+
+    // ── KEY GATE: 2 keys per schedule generation ──
+    const keyResult = await deductKeys(userId, 2);
+    if (!keyResult.success) {
+      return res.status(402).json({ error: 'Not enough keys', keysRemaining: keyResult.remaining, keysRequired: 2 });
+    }
+
     const { scheduleProfile, goals, existingQuests, date } = req.body;
 
     if (!scheduleProfile) {

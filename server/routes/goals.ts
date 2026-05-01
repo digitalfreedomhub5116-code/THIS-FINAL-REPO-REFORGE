@@ -300,7 +300,14 @@ ${otherGoalsContext}
 // ── POST /daily-quests — Generate today's quests for an active goal ──
 router.post('/daily-quests', async (req: Request, res: Response) => {
   try {
-    const authUserId = getAuthenticatedUserId(req) || 'anonymous';
+    const authUserId = getAuthenticatedUserId(req) || null;
+    if (!authUserId) return res.status(401).json({ error: 'Unauthorized' });
+
+    // ── KEY GATE: 1 key per daily quest generation ──
+    const keyResult = await deductKeys(authUserId, 1);
+    if (!keyResult.success) {
+      return res.status(402).json({ error: 'Not enough keys', keysRemaining: keyResult.remaining, keysRequired: 1 });
+    }
 
     const ai = getSharedAI();
     const { goal, recentTasks, playerStats, otherGoalTasksToday, remainingMinutes, dayOfWeek, scheduleProfile } = req.body;

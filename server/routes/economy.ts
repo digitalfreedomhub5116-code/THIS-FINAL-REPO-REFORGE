@@ -193,4 +193,34 @@ router.post('/exchange', async (req: Request, res: Response) => {
   }
 });
 
+// ── POST /grant-keys — Server-validated key granting (for workout rewards, etc.) ──
+router.post('/grant-keys', async (req: Request, res: Response) => {
+  const userId = getAuthenticatedUserId(req);
+  if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+  const { amount, source } = req.body;
+  if (typeof amount !== 'number' || amount <= 0 || amount > 5) {
+    return res.status(400).json({ error: 'Invalid key amount (1-5)' });
+  }
+
+  // Validate source to prevent abuse
+  const VALID_SOURCES = ['workout_reward', 'leaderboard_reward', 'achievement'];
+  if (!source || !VALID_SOURCES.includes(source)) {
+    return res.status(400).json({ error: 'Invalid source' });
+  }
+
+  try {
+    const result = await grantKeys(userId, amount);
+    if (!result.success) {
+      return res.status(500).json({ error: 'Failed to grant keys' });
+    }
+
+    console.log(`[Economy] ${userId.slice(-8)}: +${amount}🔑 (${source}) → ${result.newBalance} total`);
+    return res.json({ success: true, keys: result.newBalance, granted: amount });
+  } catch (err) {
+    console.error('[Economy grant-keys]', err);
+    return res.status(500).json({ error: 'Failed to grant keys' });
+  }
+});
+
 export default router;

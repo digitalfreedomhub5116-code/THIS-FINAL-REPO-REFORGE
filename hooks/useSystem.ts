@@ -454,7 +454,7 @@ export const useSystem = () => {
       const xpReward = xp || 50;
       const RANK_GOLD: Record<string, number> = { E: 10, D: 20, C: 40, B: 80, A: 150, S: 300 };
       const goldReward = RANK_GOLD[rank] || 20;
-      const primaryCat = category || 'discipline';
+      const primaryCat = (category || 'discipline') as keyof PlayerData['stats'];
 
       setPlayer(prev => {
         const stats = { ...prev.stats };
@@ -1824,6 +1824,19 @@ export const useSystem = () => {
           xp_gained: exercisesCompleted * 50 + (intensityModifier ? 100 : 0),
         }),
       }).catch(() => {});
+
+      // ── SERVER-SIDE KEY GRANT for workout KEYS rewards ──
+      // Keys are server-authoritative — the PUT /player/:id endpoint ignores client keys.
+      // We must call the economy/grant-keys endpoint to persist key rewards to Supabase.
+      const keyReward = rewards.find(r => r.type === 'KEYS');
+      if (keyReward && keyReward.amount > 0) {
+        fetch(`${API_BASE}/api/economy/grant-keys`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ amount: keyReward.amount, source: 'workout_reward' }),
+        }).catch(() => {});
+      }
     }
 
     return rewards;
