@@ -2,18 +2,32 @@ import { Router, Request, Response } from 'express';
 import { logUsage } from '../utils/logUsage.js';
 import { getAuthenticatedUserId } from '../lib/playerAuth.js';
 import { getSharedAI, generateWithFallback, DEFAULT_MODEL_CHAIN } from '../utils/geminiRetry.js';
+import { deductKeys } from '../lib/keyGate.js';
 
 const router = Router();
 
 router.post('/chat', async (req: Request, res: Response) => {
   try {
+    // ── KEY GATE: 1 key per message ──
+    const userId = getAuthenticatedUserId(req) || null;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const keyResult = await deductKeys(userId, 1);
+    if (!keyResult.success) {
+      return res.status(402).json({ 
+        error: 'Not enough keys',
+        keysRemaining: keyResult.remaining,
+        keysRequired: 1,
+      });
+    }
+
     let ai: ReturnType<typeof getSharedAI>;
     try { ai = getSharedAI(); } catch {
       return res.status(500).json({ error: 'GEMINI_API_KEY not set' });
     }
 
     const { message, playerContext, history } = req.body;
-    const userId = getAuthenticatedUserId(req) || null;
     if (!message) {
       return res.status(400).json({ error: 'message is required' });
     }

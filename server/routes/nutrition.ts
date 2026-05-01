@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { logUsage } from '../utils/logUsage.js';
 import { getAuthenticatedUserId } from '../lib/playerAuth.js';
 import { getSharedAI, generateWithFallback, DEFAULT_MODEL_CHAIN } from '../utils/geminiRetry.js';
+import { deductKeys } from '../lib/keyGate.js';
 
 const router = Router();
 
@@ -46,8 +47,21 @@ router.post('/analyze', async (req: Request, res: Response) => {
     return res.status(500).json({ error: 'Gemini credentials not configured. Add GEMINI_API_KEY or Vertex AI credentials to environment secrets.' });
   }
 
-  const { imageBase64, mimeType } = req.body as { imageBase64?: string; mimeType?: string };
+  // ── KEY GATE: 3 keys per nutrition scan ──
   const userId = getAuthenticatedUserId(req) || null;
+  if (!userId) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  const keyResult = await deductKeys(userId, 3);
+  if (!keyResult.success) {
+    return res.status(402).json({
+      error: 'Not enough keys',
+      keysRemaining: keyResult.remaining,
+      keysRequired: 3,
+    });
+  }
+
+  const { imageBase64, mimeType } = req.body as { imageBase64?: string; mimeType?: string };
 
   if (!imageBase64) {
     return res.status(400).json({ error: 'imageBase64 is required' });

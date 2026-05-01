@@ -3,6 +3,7 @@ import { logUsage } from '../utils/logUsage.js';
 import { getAuthenticatedUserId } from '../lib/playerAuth.js';
 import { supabaseServer } from '../lib/supabase.js';
 import { getSharedAI, generateWithFallback, DEFAULT_MODEL_CHAIN } from '../utils/geminiRetry.js';
+import { deductKeys } from '../lib/keyGate.js';
 
 const router = Router();
 
@@ -52,7 +53,13 @@ function subtractMin(time: string, mins: number): string {
 // ── POST /analyze — Step 1: Validate goal + generate interview questions ──
 router.post('/analyze', async (req: Request, res: Response) => {
   try {
-    const authUserId = getAuthenticatedUserId(req) || 'anonymous';
+    // ── KEY GATE: 2 keys per goal analysis ──
+    const authUserId = getAuthenticatedUserId(req) || null;
+    if (!authUserId) return res.status(401).json({ error: 'Unauthorized' });
+    const keyResult = await deductKeys(authUserId, 2);
+    if (!keyResult.success) {
+      return res.status(402).json({ error: 'Not enough keys', keysRemaining: keyResult.remaining, keysRequired: 2 });
+    }
 
     const ai = getSharedAI();
     const { goalText, playerStats, healthProfile, activeGoalsCount, timezone } = req.body;
@@ -180,7 +187,13 @@ Users type on mobile. If the goal has typos but intent is clear, interpret corre
 // ── POST /plan — Step 2: Generate feasibility report + milestone plan ──
 router.post('/plan', async (req: Request, res: Response) => {
   try {
-    const authUserId = getAuthenticatedUserId(req) || 'anonymous';
+    // ── KEY GATE: 2 keys per goal plan ──
+    const authUserId = getAuthenticatedUserId(req) || null;
+    if (!authUserId) return res.status(401).json({ error: 'Unauthorized' });
+    const keyResult = await deductKeys(authUserId, 2);
+    if (!keyResult.success) {
+      return res.status(402).json({ error: 'Not enough keys', keysRemaining: keyResult.remaining, keysRequired: 2 });
+    }
 
     const ai = getSharedAI();
     const { goalText, category, estimatedDurationDays, interviewAnswers, playerStats, healthProfile, otherGoals, timezone } = req.body;

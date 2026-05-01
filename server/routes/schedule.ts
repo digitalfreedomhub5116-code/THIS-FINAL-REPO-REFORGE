@@ -3,6 +3,7 @@ import { logUsage } from '../utils/logUsage.js';
 import { getAuthenticatedUserId } from '../lib/playerAuth.js';
 import { supabaseServer } from '../lib/supabase.js';
 import { getSharedAI, generateWithFallback, DEFAULT_MODEL_CHAIN } from '../utils/geminiRetry.js';
+import { deductKeys } from '../lib/keyGate.js';
 
 const router = Router();
 
@@ -257,6 +258,13 @@ router.post('/swap', async (req: Request, res: Response) => {
     if (!userId) {
       return res.status(401).json({ error: 'Authentication required' });
     }
+
+    // ── KEY GATE: 1 key per schedule swap ──
+    const keyResult = await deductKeys(userId, 1);
+    if (!keyResult.success) {
+      return res.status(402).json({ error: 'Not enough keys', keysRemaining: keyResult.remaining, keysRequired: 1 });
+    }
+
     const { currentQuest, goalContext, scheduleProfile, swapsUsedToday } = req.body;
 
     if (!currentQuest) {

@@ -3877,10 +3877,6 @@ const App: React.FC = () => {
 
                   onMarkRead={markDuskMessagesRead}
 
-                  onConsumeMana={consumeMana}
-
-                  onRefundMana={refundMana}
-
                 />
 
               </ErrorBoundary>

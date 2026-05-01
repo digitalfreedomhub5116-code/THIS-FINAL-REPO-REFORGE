@@ -12,8 +12,6 @@ interface DuskChatProps {
   updatePlayer?: (updater: (prev: PlayerData) => PlayerData) => void;
   onClose: () => void;
   onMarkRead?: () => void;
-  onConsumeMana?: (amount: number) => boolean;
-  onRefundMana?: (amount: number) => void;
 }
 
 interface Message {
@@ -168,7 +166,7 @@ const SuggestionChip: React.FC<ChipProps> = ({ icon, label, onClick }) => (
 );
 
 
-const DuskChat: React.FC<DuskChatProps> = ({ player, updatePlayer, onClose, onMarkRead, onConsumeMana, onRefundMana }) => {
+const DuskChat: React.FC<DuskChatProps> = ({ player, updatePlayer, onClose, onMarkRead }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -330,6 +328,15 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, updatePlayer, onClose, onMa
       });
 
       const data = await res.json();
+      
+      // Server returns 402 when not enough keys
+      if (res.status === 402) {
+        const err: any = new Error('Not enough keys');
+        err.keysError = true;
+        err.keysRemaining = data.keysRemaining || 0;
+        throw err;
+      }
+      
       const text = data.text || 'Something went wrong. Try again.';
 
       setMessages(prev => [...prev, {
@@ -338,13 +345,16 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, updatePlayer, onClose, onMa
         text,
         timestamp: Date.now()
       }]);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Dusk AI Error:', error);
-      if (onRefundMana) onRefundMana(5);
+      // Handle 402 (not enough keys) — show specific message
+      const errMsg = error?.keysError
+        ? `Not enough keys! You need 1 🔑 per message. You have ${error.keysRemaining || 0} left.`
+        : 'Oops, something went wrong. Try again in a bit.';
       setMessages(prev => [...prev, {
         id: Date.now().toString(),
         sender: 'dusk',
-        text: 'Oops, something went wrong. Try again in a bit.',
+        text: errMsg,
         timestamp: Date.now()
       }]);
     } finally {
@@ -352,12 +362,11 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, updatePlayer, onClose, onMa
     }
   };
 
-  const hasMana = (player.mp ?? 100) >= 5;
+  const hasKeys = (player.keys ?? 10) >= 1;
 
   const handleSend = (overrideText?: string) => {
     const text = overrideText || inputValue.trim();
-    if (!text) return;
-    if (onConsumeMana && !onConsumeMana(5)) return;
+    if (!text || !hasKeys) return;
 
     setHasStartedChat(true);
 
@@ -479,16 +488,16 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, updatePlayer, onClose, onMa
                   </p>
                 </motion.div>
 
-                {/* Mana indicator */}
+                {/* Key indicator */}
                 <motion.div
                   className="flex items-center gap-1.5 mt-2 mb-5"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.4 }}
                 >
-                  <Zap size={10} className={hasMana ? 'text-[#7EB8D4]/60' : 'text-red-500'} />
-                  <span className={`text-[9px] font-mono font-bold ${hasMana ? 'text-[#7EB8D4]/50' : 'text-red-500'}`}>
-                    {hasMana ? `${player.mp ?? 100} MANA • 5 / msg` : 'NO MANA'}
+                  <Zap size={10} className={hasKeys ? 'text-[#7EB8D4]/60' : 'text-red-500'} />
+                  <span className={`text-[9px] font-mono font-bold ${hasKeys ? 'text-[#7EB8D4]/50' : 'text-red-500'}`}>
+                    {hasKeys ? `${player.keys ?? 10} 🔑 KEYS • 1 / msg` : 'NO KEYS'}
                   </span>
                 </motion.div>
 
@@ -617,25 +626,25 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, updatePlayer, onClose, onMa
             />
             <motion.button
               onClick={() => handleSend()}
-              disabled={!inputValue.trim() || isLoading || !hasMana}
+              disabled={!inputValue.trim() || isLoading || !hasKeys}
               className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
               style={{
-                background: inputValue.trim() && hasMana
+                background: inputValue.trim() && hasKeys
                   ? 'linear-gradient(135deg, #7EB8D4, #7EB8D4)'
                   : 'rgba(255,255,255,0.05)',
-                boxShadow: inputValue.trim() && hasMana ? '0 0 15px rgba(126,184,212,0.25)' : 'none',
+                boxShadow: inputValue.trim() && hasKeys ? '0 0 15px rgba(126,184,212,0.25)' : 'none',
               }}
               whileTap={{ scale: 0.92 }}
             >
-              <Send size={16} className={inputValue.trim() && hasMana ? 'text-black' : 'text-gray-600'} />
+              <Send size={16} className={inputValue.trim() && hasKeys ? 'text-black' : 'text-gray-600'} />
             </motion.button>
           </div>
 
-          {/* Mana footer — only when in chat mode */}
+          {/* Key footer — only when in chat mode */}
           {hasStartedChat && (
             <div className="mt-1.5 flex items-center justify-center gap-2">
-              <span className={`text-[8px] font-mono font-bold flex items-center gap-0.5 ${hasMana ? 'text-[#7EB8D4]/40' : 'text-red-500/70'}`}>
-                <Zap size={7} /> {hasMana ? '5 MANA per message' : 'NOT ENOUGH MANA'}
+              <span className={`text-[8px] font-mono font-bold flex items-center gap-0.5 ${hasKeys ? 'text-[#7EB8D4]/40' : 'text-red-500/70'}`}>
+                <Zap size={7} /> {hasKeys ? '1 🔑 per message' : 'NOT ENOUGH KEYS'}
               </span>
             </div>
           )}
