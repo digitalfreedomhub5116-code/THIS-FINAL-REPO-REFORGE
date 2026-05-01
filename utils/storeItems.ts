@@ -71,20 +71,20 @@ const BORDERS: StoreItem[] = [
 
   // Image-Based Borders
   {
-    id: 'border-ice-img', name: 'Ice Crown', category: 'border', tier: 'elemental', price: 350,
+    id: 'border-ice-img', name: 'Ice Crown', category: 'border', tier: 'elemental', price: 600,
     description: 'Frozen crystalline frost wrapping your avatar.',
     imageBorder: '/borders/ice-transparent.png',
     imageAnimated: true,
     borderConfig: { colors: ['#00BFFF', '#E0FFFF'], strokeWidth: 3, animated: false, glowColor: 'rgba(0,191,255,0.4)', glowIntensity: 0.6 },
   },
   {
-    id: 'border-dragon-img', name: 'Dragon Coil', category: 'border', tier: 'legendary', price: 500,
+    id: 'border-dragon-img', name: 'Dragon Coil', category: 'border', tier: 'legendary', price: 1200,
     description: 'A mythic water dragon coils around your profile.',
     imageBorder: '/borders/dragon.png',
     borderConfig: { colors: ['#60A5FA', '#93C5FD'], strokeWidth: 3, animated: false, glowColor: 'rgba(96,165,250,0.4)', glowIntensity: 0.7 },
   },
   {
-    id: 'border-starcrown-img', name: 'Star Crown', category: 'border', tier: 'premium', price: 400,
+    id: 'border-starcrown-img', name: 'Star Crown', category: 'border', tier: 'premium', price: 900,
     description: 'Celestial stars orbiting your portrait like a crown.',
     imageBorder: '/borders/rotate.png',
     imageAnimated: true,
@@ -92,7 +92,7 @@ const BORDERS: StoreItem[] = [
     borderConfig: { colors: ['#E2E8F0', '#94A3B8'], strokeWidth: 3, animated: false, glowColor: 'rgba(226,232,240,0.4)', glowIntensity: 0.5 },
   },
   {
-    id: 'border-shadowthrone-img', name: 'Shadow Throne', category: 'border', tier: 'legendary', price: 500,
+    id: 'border-shadowthrone-img', name: 'Shadow Throne', category: 'border', tier: 'legendary', price: 1500,
     description: 'Ornate dark-magic thorns weaving a royal frame.',
     imageBorder: '/borders/purple.png',
     borderConfig: { colors: ['#C084FC', '#A855F7'], strokeWidth: 3, animated: false, glowColor: 'rgba(192,132,252,0.4)', glowIntensity: 0.7 },
@@ -102,34 +102,34 @@ const BORDERS: StoreItem[] = [
 
   // Lottie Animated Borders
   {
-    id: 'border-lottie-celestial', name: 'Celestial Flame', category: 'border', tier: 'legendary', price: 800,
+    id: 'border-lottie-celestial', name: 'Celestial Flame', category: 'border', tier: 'legendary', price: 4500,
     description: 'A mesmerizing animated flame ring from another realm.',
     lottieBorder: '/borders/lottie-border.json',
     borderConfig: { colors: ['#F59E0B', '#EF4444', '#C8A84E'], strokeWidth: 3, animated: false, glowColor: 'rgba(245,158,11,0.5)', glowIntensity: 0.8 },
   },
 
   {
-    id: 'border-elemental-tide', name: 'Elemental Tide', category: 'border', tier: 'legendary', price: 700,
+    id: 'border-elemental-tide', name: 'Elemental Tide', category: 'border', tier: 'legendary', price: 2800,
     description: 'Japanese waves and sacred flames entwine around your avatar.',
     imageBorder: '/borders/border-mixed.png',
     imageScale: 0.9,
     borderConfig: { colors: ['#1E90FF', '#FF6347', '#C8A84E'], strokeWidth: 3, animated: false, glowColor: 'rgba(30,144,255,0.4)', glowIntensity: 0.7 },
   },
   {
-    id: 'border-gold-dragon', name: 'Gold Dragon', category: 'border', tier: 'legendary', price: 900,
+    id: 'border-gold-dragon', name: 'Gold Dragon', category: 'border', tier: 'legendary', price: 5500,
     description: 'An ancient golden dragon coils around your avatar — ultimate power.',
     imageBorder: '/borders/border-golddragon.png',
     borderConfig: { colors: ['#C8A84E', '#F59E0B', '#DAA520'], strokeWidth: 3, animated: false, glowColor: 'rgba(200,168,78,0.5)', glowIntensity: 0.8 },
   },
   {
-    id: 'border-gold-lion', name: 'Gold Lion', category: 'border', tier: 'legendary', price: 850,
+    id: 'border-gold-lion', name: 'Gold Lion', category: 'border', tier: 'legendary', price: 4800,
     description: 'A majestic golden lion crowns your avatar — royalty unleashed.',
     imageBorder: '/borders/border-goldlion.png',
     imageScale: 1.5,
     borderConfig: { colors: ['#C8A84E', '#0E8585', '#DAA520'], strokeWidth: 3, animated: false, glowColor: 'rgba(200,168,78,0.45)', glowIntensity: 0.8 },
   },
   {
-    id: 'border-gold-eagle', name: 'Golden Eagle', category: 'border', tier: 'legendary', price: 950,
+    id: 'border-gold-eagle', name: 'Golden Eagle', category: 'border', tier: 'legendary', price: 6200,
     description: 'Bronze wings of an apex predator crown your avatar — soar above all.',
     imageBorder: '/borders/border-eagle.png',
     imageScale: 1.4,
@@ -137,21 +137,21 @@ const BORDERS: StoreItem[] = [
     borderConfig: { colors: ['#B87333', '#C8A84E', '#DAA520'], strokeWidth: 3, animated: false, glowColor: 'rgba(184,115,51,0.5)', glowIntensity: 0.8 },
   },
   {
-    id: 'border-phoenix', name: 'Phoenix Blaze', category: 'border', tier: 'legendary', price: 900,
+    id: 'border-phoenix', name: 'Phoenix Blaze', category: 'border', tier: 'legendary', price: 7400,
     description: 'A golden phoenix rises from the flames — reborn in glory.',
     imageBorder: '/borders/border-phoenix.png',
     imageScale: 1.05,
     borderConfig: { colors: ['#DAA520', '#FF8C00', '#FFD700'], strokeWidth: 3, animated: false, glowColor: 'rgba(218,165,32,0.5)', glowIntensity: 0.8 },
   },
   {
-    id: 'border-stitched-dragon', name: 'Stitched Dragon', category: 'border', tier: 'legendary', price: 850,
+    id: 'border-stitched-dragon', name: 'Stitched Dragon', category: 'border', tier: 'legendary', price: 3600,
     description: 'A crimson dragon coils in stitched leather and gold — ancient fury.',
     imageBorder: '/borders/border-stitched-dragon.png',
     imageScale: 1.08,
     borderConfig: { colors: ['#8B0000', '#C8A84E', '#FF4500'], strokeWidth: 3, animated: false, glowColor: 'rgba(139,0,0,0.5)', glowIntensity: 0.8 },
   },
   {
-    id: 'border-frost-tech', name: 'Frost Tech', category: 'border', tier: 'legendary', price: 800,
+    id: 'border-frost-tech', name: 'Frost Tech', category: 'border', tier: 'legendary', price: 8900,
     description: 'Cryo-tech crystals and snowflakes forge a futuristic ice frame.',
     imageBorder: '/borders/border-frost-tech.png',
     imageScale: 1.1,

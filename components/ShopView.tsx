@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect, useRef, lazy, Suspense, useCallback, type CSSProperties } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Coins, Timer, Key, CheckCircle2, Lock, ChevronLeft, ChevronRight, Heart, Star, Zap, Ghost, Hexagon, ShoppingBag, Shirt, CircleDot, Palette, Frame, Clock, ImageIcon, Flame, Shield, Wrench } from 'lucide-react';
+import { Coins, Timer, Key, CheckCircle2, Lock, ChevronLeft, ChevronRight, Heart, Star, Zap, Ghost, Hexagon, ShoppingBag, Shirt, CircleDot, Palette, Frame, Clock, ImageIcon, Flame, Shield, Wrench, Eye } from 'lucide-react';
+import BorderEquipOverlay from './BorderEquipOverlay';
 import Lottie from 'lottie-react';
 import { REWARD_SCHEDULE, DAILY_REWARDS_ENABLED } from '../lib/rewards';
 import { ShopItem, Outfit } from '../types';
@@ -64,6 +65,7 @@ interface ShopViewProps {
   onEquipBorder?: (borderId: string | null) => void;
   onEquipBanner?: (bannerId: string | null) => void;
   initialStoreTab?: 'OUTFITS' | 'BADGES' | 'BORDERS' | 'DEALS' | 'THEMES' | 'BANNERS_SHOP';
+  playerAvatarUrl?: string | null;
 }
 
 
@@ -362,6 +364,7 @@ const ShopView: React.FC<ShopViewProps> = ({
   onEquipBorder,
   onEquipBanner,
   initialStoreTab,
+  playerAvatarUrl,
 }) => {
   const [storeTab, setStoreTab] = useState<'OUTFITS' | 'BADGES' | 'BORDERS' | 'DEALS' | 'ITEMS' | 'THEMES' | 'BANNERS_SHOP'>(initialStoreTab || 'OUTFITS');
   const [kitEconomy, setKitEconomy] = useState(getEconomy());
@@ -370,6 +373,11 @@ const ShopView: React.FC<ShopViewProps> = ({
   const [kitPurchasedId, setKitPurchasedId] = useState<string | null>(null);
 
   const [buyingItem, setBuyingItem] = useState<string | null>(null);
+
+  // ── Border equip animation state ──
+  const [equipAnimItem, setEquipAnimItem] = useState<KitStoreItem | null>(null);
+  const [equipAnimOldBorder, setEquipAnimOldBorder] = useState<string | null>(null);
+  const [showEquipAnim, setShowEquipAnim] = useState(false);
 
 
   // Event Banner Carousel
@@ -769,9 +777,28 @@ const ShopView: React.FC<ShopViewProps> = ({
                 owned={DEV_UNLOCK_ALL || kitEconomy.owned.includes(item.id)}
                 equipped={kitEconomy.equipped.border === item.id}
                 canAfford={DEV_UNLOCK_ALL || gold >= item.price}
-                onBuy={() => { const p = kitPurchaseItem(item.id, item.price); if (p) { setKitEconomy(p); } }}
-                onEquip={() => handleKitEquip('border', item.id)}
+                onBuy={() => {
+                  const oldBorder = kitEconomy.equipped.border;
+                  const p = kitPurchaseItem(item.id, item.price);
+                  if (p) {
+                    setKitEconomy(p);
+                    // Trigger equip animation after purchase
+                    setEquipAnimOldBorder(oldBorder);
+                    setEquipAnimItem(item);
+                    setShowEquipAnim(true);
+                    // Also equip it immediately
+                    handleKitEquip('border', item.id);
+                  }
+                }}
+                onEquip={() => {
+                  const oldBorder = kitEconomy.equipped.border;
+                  setEquipAnimOldBorder(oldBorder);
+                  setEquipAnimItem(item);
+                  setShowEquipAnim(true);
+                  handleKitEquip('border', item.id);
+                }}
                 onInfo={() => setKitInfoItem(item)}
+                onView={item.category === 'border' ? () => setKitInfoItem(item) : undefined}
               />
             ))}
           </div>
@@ -895,6 +922,19 @@ const ShopView: React.FC<ShopViewProps> = ({
       {kitInfoItem && kitInfoItem.category === 'border' && (
         <KitBorderPreviewModal item={kitInfoItem} onClose={() => setKitInfoItem(null)} />
       )}
+
+      {/* ── BORDER EQUIP ANIMATION OVERLAY ── */}
+      <BorderEquipOverlay
+        show={showEquipAnim}
+        borderItem={equipAnimItem}
+        avatarUrl={playerAvatarUrl}
+        oldBorderId={equipAnimOldBorder}
+        onComplete={() => {
+          setShowEquipAnim(false);
+          setEquipAnimItem(null);
+          setEquipAnimOldBorder(null);
+        }}
+      />
     </div>
   );
 };
@@ -956,9 +996,9 @@ const KIT_CAT_COLORS: Record<string, string> = {
   border: '#705820', theme: '#8B5CF6', deals: '#8d702d', banner: '#06B6D4', consumable: '#22C55E', title: '#F59E0B',
 };
 
-function KitGlowCard({ item, discount, owned, equipped, canAfford, onBuy, onEquip, onInfo }: {
+function KitGlowCard({ item, discount, owned, equipped, canAfford, onBuy, onEquip, onInfo, onView }: {
   item: KitStoreItem; discount?: number; owned?: boolean; equipped?: boolean;
-  canAfford: boolean; onBuy: () => void; onEquip?: () => void; onInfo?: () => void;
+  canAfford: boolean; onBuy: () => void; onEquip?: () => void; onInfo?: () => void; onView?: () => void;
 }) {
   const catColor = KIT_CAT_COLORS[item.category] || '#7EB8D4';
   const finalPrice = discount ? Math.round(item.price * (1 - discount / 100)) : item.price;
@@ -1020,6 +1060,19 @@ function KitGlowCard({ item, discount, owned, equipped, canAfford, onBuy, onEqui
               fontSize: 11, fontWeight: 900, color: catColor, cursor: 'pointer',
             }}>
               i
+            </div>
+          )}
+
+          {/* ── View Button (borders only) ── */}
+          {onView && item.category === 'border' && (
+            <div onClick={(e) => { e.stopPropagation(); onView(); }} style={{
+              position: 'absolute', top: 8, right: onInfo ? 36 : 8, zIndex: 3,
+              width: 22, height: 22, borderRadius: 6,
+              background: `${catColor}30`, border: `1px solid ${catColor}50`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer',
+            }}>
+              <Eye size={11} color={catColor} />
             </div>
           )}
 

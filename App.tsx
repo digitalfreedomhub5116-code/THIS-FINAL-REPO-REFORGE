@@ -4687,6 +4687,8 @@ const App: React.FC = () => {
 
                     initialStoreTab={storeInitialTab}
 
+                    playerAvatarUrl={player.avatarUrl}
+
                   />
 
                 </ErrorBoundary>
@@ -4757,6 +4759,8 @@ const App: React.FC = () => {
                     chests={player.chests}
 
                     onOpenChest={() => setShowChestOpening(true)}
+
+                    playerAvatarUrl={player.avatarUrl}
 
                   />
 
