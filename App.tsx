@@ -4298,7 +4298,7 @@ const App: React.FC = () => {
                   <PromoImg
                     src="/images/ui/food-scanner-promo.webp"
                     alt="Food Scanner"
-                    style={{ filter: 'grayscale(0.85) brightness(0.4)' }}
+                    style={{ filter: 'brightness(0.5)' }}
                   />
                   <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.35) 55%, rgba(0,0,0,0.15) 100%)' }} />
                   <div className="absolute inset-0 p-4 flex flex-col justify-end">
@@ -4324,7 +4324,7 @@ const App: React.FC = () => {
                   <PromoImg
                     src="/images/ui/store-deals-promo.webp"
                     alt="Store Deals"
-                    style={{ filter: 'grayscale(0.85) brightness(0.4)' }}
+                    style={{ filter: 'brightness(0.5)' }}
                   />
                   <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.35) 55%, rgba(0,0,0,0.15) 100%)' }} />
 
