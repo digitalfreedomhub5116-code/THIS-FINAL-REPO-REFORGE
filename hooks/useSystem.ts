@@ -687,53 +687,12 @@ export const useSystem = () => {
     return () => clearTimeout(timer);
   }, [processDailyReset, dataReady]);
 
-  // ── AUTO STREAK TRACKING (24-HOUR RULE) ──
-  // The streak dies if the user misses a full calendar day without opening the app.
-  // When the user logs in again after a break, streak restarts at 1.
-  // IMPORTANT: Waits for dataReady (Supabase-first) so it uses the server's streak
-  // as the base, not stale localStorage.
-  useEffect(() => {
-    // Don't compute streak until server data has arrived (or 5s fallback)
-    if (!dataReady) return;
-
-    const today = toLocalDateStr();
-    const lastLogin = player.lastLoginDate;
-
-    // Already logged in today — nothing to do
-    if (lastLogin === today) return;
-
-    // Calculate new streak
-    let newStreak = 1;
-    if (lastLogin) {
-      const lastDate = new Date(lastLogin);
-      const currentDate = new Date();
-      lastDate.setHours(0, 0, 0, 0);
-      currentDate.setHours(0, 0, 0, 0);
-      const diffMs = currentDate.getTime() - lastDate.getTime();
-      const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
-
-      if (diffDays === 1) {
-        // Logged in yesterday — continue streak
-        newStreak = (player.streak || 0) + 1;
-      } else if (diffDays === 0) {
-        // Same day (edge case with timezone) — keep current
-        newStreak = player.streak || 1;
-      } else {
-        // Missed more than 1 day — reset streak
-        newStreak = 1;
-      }
-    }
-
-    setPlayer(prev => ({
-      ...prev,
-      lastLoginDate: today,
-      streak: newStreak,
-      stats: {
-        ...prev.stats,
-        discipline: (prev.stats?.discipline || 0) + 1,
-      },
-    }));
-  }, [player.lastLoginDate, dataReady]);
+  // ── STREAK TRACKING ──
+  // Streak is now computed SERVER-SIDE in the /sync endpoint (player_supabase.ts).
+  // The server reads last_login_date, computes the new streak, updates Supabase
+  // atomically, and returns the authoritative value. This eliminates all race
+  // conditions between localStorage and Supabase, and ensures inactive players
+  // get their streaks broken even if they never open the app (via leaderboard decay).
 
   const registerUser = (profile: { id?: string; name?: string; username?: string; raw_data?: Partial<PlayerData>; replitUser?: ReplitUser }) => {
     setPlayer(prev => {

@@ -27,7 +27,9 @@ router.get('/codename/check', async (req: Request, res: Response) => {
 });
 
 // Lightweight sync endpoint — returns ONLY fields needed for polling (~1KB vs ~50KB)
-// Used by the 15s polling loop in App.tsx instead of the full GET
+// Used by the 30s polling loop in App.tsx instead of the full GET
+// ALSO: computes streak server-side (authoritative). If the user hasn't logged in
+// today, the server updates streak + last_login_date atomically in Supabase.
 router.get('/:id/sync', async (req: Request, res: Response) => {
   const { id } = req.params;
   const authUserId = getAuthenticatedUserId(req);
@@ -36,7 +38,7 @@ router.get('/:id/sync', async (req: Request, res: Response) => {
   try {
     const { data, error } = await (supabaseServer() as any)
       .from('players')
-      .select('gold, keys, is_banned, cheat_strikes, total_strikes_ever, pending_notifications, level, current_xp, required_xp, total_xp, daily_xp, rank, streak, hp, max_hp, mp, max_mp, updated_at, raw_data->unlockedOutfits, raw_data->equippedOutfitId, raw_data->outfitStones')
+      .select('gold, keys, is_banned, cheat_strikes, total_strikes_ever, pending_notifications, level, current_xp, required_xp, total_xp, daily_xp, rank, streak, last_login_date, hp, max_hp, mp, max_mp, updated_at, raw_data->unlockedOutfits, raw_data->equippedOutfitId, raw_data->outfitStones')
       .eq('supabase_id', id)
       .single();
 
@@ -45,6 +47,53 @@ router.get('/:id/sync', async (req: Request, res: Response) => {
     }
 
     const row = data as any;
+
+    // ── SERVER-SIDE STREAK COMPUTATION ──
+    // The server is the SINGLE SOURCE OF TRUTH for streak.
+    // On each sync, check if today's date differs from last_login_date.
+    // If the user logged in yesterday → increment streak.
+    // If the user missed >1 day → reset streak to 1.
+    // If same day → keep current streak.
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const lastLogin = row.last_login_date as string | null;
+    let currentStreak = row.streak ?? 0;
+    let streakUpdated = false;
+
+    if (lastLogin !== todayStr) {
+      // First login of the day — compute new streak
+      let newStreak = 1;
+      if (lastLogin) {
+        const lastDate = new Date(lastLogin + 'T00:00:00');
+        const todayDate = new Date(todayStr + 'T00:00:00');
+        const diffMs = todayDate.getTime() - lastDate.getTime();
+        const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+        if (diffDays === 1) {
+          // Logged in yesterday — continue streak
+          newStreak = (currentStreak || 0) + 1;
+        } else if (diffDays === 0) {
+          // Same day edge case (timezone) — keep
+          newStreak = currentStreak || 1;
+        } else {
+          // Missed >1 day — streak broken
+          newStreak = 1;
+        }
+      }
+
+      // Update streak + last_login_date atomically in Supabase
+      const { error: updateErr } = await (supabaseServer() as any)
+        .from('players')
+        .update({ streak: newStreak, last_login_date: todayStr })
+        .eq('supabase_id', id);
+
+      if (!updateErr) {
+        currentStreak = newStreak;
+        streakUpdated = true;
+        console.log(`[Streak] ${id.slice(-8)}: ${lastLogin || 'null'} → ${todayStr} | streak: ${row.streak} → ${newStreak}`);
+      }
+    }
+
     return res.json({
       gold: row.gold,
       keys: row.keys,
@@ -61,7 +110,8 @@ router.get('/:id/sync', async (req: Request, res: Response) => {
       totalXp: row.total_xp ?? 0,
       dailyXp: row.daily_xp ?? 0,
       rank: row.rank ?? 'E',
-      streak: row.streak ?? 0,
+      streak: currentStreak,
+      streakUpdated,
       hp: row.hp ?? 100,
       maxHp: row.max_hp ?? 100,
       mp: row.mp ?? 100,
@@ -273,7 +323,8 @@ router.put('/:id', async (req: Request, res: Response) => {
       weekly_xp: weeklyXp,
       week_start_date: weekStartDate,
       rank: cleanData.rank || 'E',
-      streak: data.streak || 0,
+      // NOTE: streak and last_login_date are NOT set here — they are server-authoritative.
+      // The /sync endpoint computes streak from last_login_date and updates Supabase atomically.
       hp: data.hp ?? 100,
       max_hp: data.maxHp ?? 100,
       mp: data.mp ?? 100,
@@ -281,7 +332,7 @@ router.put('/:id', async (req: Request, res: Response) => {
       is_configured: data.isConfigured || false,
       is_penalty_active: data.isPenaltyActive || false,
       penalty_end_time: data.penaltyEndTime || null,
-      last_login_date: data.lastLoginDate || null,
+      // last_login_date is server-authoritative (set by /sync endpoint)
       last_dungeon_entry: data.lastDungeonEntry || null,
       tutorial_step: data.tutorialStep || 0,
       tutorial_complete: data.tutorialComplete || false,

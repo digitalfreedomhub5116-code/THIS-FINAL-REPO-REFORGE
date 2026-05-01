@@ -103,10 +103,11 @@ router.get('/', async (req: Request, res: Response) => {
       });
 
     } else {
-      // ── STREAK LEADERBOARD: constant, sorted by streak ──
+      // ── STREAK LEADERBOARD: sorted by streak, with server-side decay ──
+      // Players who haven't logged in for >1 day have their streak broken.
       const { data, error } = await (supabaseServer() as any)
         .from('players')
-        .select('id, supabase_id, username, name, total_xp, daily_xp, weekly_xp, level, rank, streak, avatar_url, raw_data, equipped_border, updated_at')
+        .select('id, supabase_id, username, name, total_xp, daily_xp, weekly_xp, level, rank, streak, last_login_date, avatar_url, raw_data, equipped_border, updated_at')
         .eq('is_banned', false)
         .gt('streak', 0)
         .order('streak', { ascending: false })
@@ -117,22 +118,55 @@ router.get('/', async (req: Request, res: Response) => {
         return res.status(500).json({ error: 'Internal server error' });
       }
 
-      const entries = (data || []).map((row: any) => ({
-        player_id: row.id,
-        supabase_id: row.supabase_id,
-        username: row.username,
-        name: row.name,
-        total_xp: row.total_xp || 0,
-        daily_xp: row.daily_xp || 0,
-        weekly_xp: row.weekly_xp || 0,
-        level: row.level || 1,
-        rank: row.rank || 'E',
-        streak: row.streak || 0,
-        avatar_url: row.avatar_url || null,
-        equipped_outfit_id: row.raw_data?.equippedOutfitId || 'outfit_starter',
-        equipped_border: row.equipped_border || row.raw_data?.equippedBorder || null,
-        equipped_banner: row.raw_data?.equippedBanner || null,
-      }));
+      // Compute effective streak: if last_login_date is >1 day ago, streak is broken
+      const now = new Date();
+      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const yesterdayDate = new Date(now);
+      yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+      const yesterdayStr = `${yesterdayDate.getFullYear()}-${String(yesterdayDate.getMonth() + 1).padStart(2, '0')}-${String(yesterdayDate.getDate()).padStart(2, '0')}`;
+
+      const stalePlayerIds: string[] = [];
+
+      const entries = (data || []).map((row: any) => {
+        const lastLogin = row.last_login_date as string | null;
+        const isActive = lastLogin === todayStr || lastLogin === yesterdayStr;
+        const effectiveStreak = isActive ? (row.streak || 0) : 0;
+
+        // Track stale players for batch DB reset
+        if (!isActive && (row.streak || 0) > 1) {
+          stalePlayerIds.push(row.id);
+        }
+
+        return {
+          player_id: row.id,
+          supabase_id: row.supabase_id,
+          username: row.username,
+          name: row.name,
+          total_xp: row.total_xp || 0,
+          daily_xp: row.daily_xp || 0,
+          weekly_xp: row.weekly_xp || 0,
+          level: row.level || 1,
+          rank: row.rank || 'E',
+          streak: effectiveStreak,
+          avatar_url: row.avatar_url || null,
+          equipped_outfit_id: row.raw_data?.equippedOutfitId || 'outfit_starter',
+          equipped_border: row.equipped_border || row.raw_data?.equippedBorder || null,
+          equipped_banner: row.raw_data?.equippedBanner || null,
+        };
+      }).filter((e: any) => e.streak > 0) // Remove broken streaks from results
+        .sort((a: any, b: any) => b.streak - a.streak);
+
+      // Batch-reset stale streaks in DB (fire-and-forget, don't block response)
+      if (stalePlayerIds.length > 0) {
+        (supabaseServer() as any)
+          .from('players')
+          .update({ streak: 1 })
+          .in('id', stalePlayerIds)
+          .then(({ error: resetErr }: any) => {
+            if (resetErr) console.error('[Leaderboard] Failed to reset stale streaks:', resetErr);
+            else console.log(`[Leaderboard] Reset ${stalePlayerIds.length} stale streaks to 1`);
+          });
+      }
 
       return res.json({ entries });
     }
