@@ -66,6 +66,8 @@ interface ShopViewProps {
   onEquipBanner?: (bannerId: string | null) => void;
   initialStoreTab?: 'OUTFITS' | 'BADGES' | 'BORDERS' | 'DEALS' | 'THEMES' | 'BANNERS_SHOP';
   playerAvatarUrl?: string | null;
+  /** Called after a server-confirmed purchase to update parent gold state */
+  onGoldUpdate?: (newGold: number) => void;
 }
 
 
@@ -365,6 +367,7 @@ const ShopView: React.FC<ShopViewProps> = ({
   onEquipBanner,
   initialStoreTab,
   playerAvatarUrl,
+  onGoldUpdate,
 }) => {
   const [storeTab, setStoreTab] = useState<'OUTFITS' | 'BADGES' | 'BORDERS' | 'DEALS' | 'ITEMS' | 'THEMES' | 'BANNERS_SHOP'>(initialStoreTab || 'OUTFITS');
   const [kitEconomy, setKitEconomy] = useState(getEconomy());
@@ -777,16 +780,36 @@ const ShopView: React.FC<ShopViewProps> = ({
                 owned={DEV_UNLOCK_ALL || kitEconomy.owned.includes(item.id)}
                 equipped={kitEconomy.equipped.border === item.id}
                 canAfford={DEV_UNLOCK_ALL || gold >= item.price}
-                onBuy={() => {
+                onBuy={async () => {
                   const oldBorder = kitEconomy.equipped.border;
+                  // 1. Server-side gold deduction
+                  try {
+                    const headers = getPlayerAuthHeaders();
+                    const resp = await fetch(`${API_BASE}/api/economy/spend`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', ...headers },
+                      credentials: 'include',
+                      body: JSON.stringify({ action: 'cosmetic_purchase', amount: item.price, itemId: item.id }),
+                    });
+                    if (!resp.ok) {
+                      const err = await resp.json().catch(() => ({}));
+                      console.error('[Shop] Purchase failed:', err);
+                      return;
+                    }
+                    const { gold: newGold } = await resp.json();
+                    // 2. Update parent gold
+                    if (onGoldUpdate) onGoldUpdate(newGold);
+                  } catch (e) {
+                    console.error('[Shop] Purchase network error:', e);
+                    return;
+                  }
+                  // 3. Local economy update
                   const p = kitPurchaseItem(item.id, item.price);
                   if (p) {
                     setKitEconomy(p);
-                    // Trigger equip animation after purchase
                     setEquipAnimOldBorder(oldBorder);
                     setEquipAnimItem(item);
                     setShowEquipAnim(true);
-                    // Also equip it immediately
                     handleKitEquip('border', item.id);
                   }
                 }}
@@ -1167,7 +1190,7 @@ function KitGlowCard({ item, discount, owned, equipped, canAfford, onBuy, onEqui
                 transition: 'all 0.2s',
               }}>
                 {discount && <span style={{ textDecoration: 'line-through', opacity: 0.35, fontSize: 10 }}>{item.price}</span>}
-                {canAfford ? <LynxCoin size={15} /> : <Lock size={12} />}
+                {canAfford ? <SystemCoin size={15} /> : <Lock size={12} />}
                 <span style={{ fontSize: 14 }}>{finalPrice}</span>
               </button>
             )}

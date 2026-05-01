@@ -4689,6 +4689,8 @@ const App: React.FC = () => {
 
                     playerAvatarUrl={player.avatarUrl}
 
+                    onGoldUpdate={(newGold) => setPlayer(prev => ({ ...prev, gold: newGold }))}
+
                   />
 
                 </ErrorBoundary>
@@ -4761,6 +4763,8 @@ const App: React.FC = () => {
                     onOpenChest={() => setShowChestOpening(true)}
 
                     playerAvatarUrl={player.avatarUrl}
+
+                    onGoldUpdate={(newGold) => setPlayer(prev => ({ ...prev, gold: newGold }))}
 
                   />
 

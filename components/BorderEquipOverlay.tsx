@@ -1,40 +1,36 @@
 /**
- * BorderEquipOverlay — Premium 4-phase equip animation for avatar borders.
+ * BorderEquipOverlay — GSAP-powered equip animation for avatar borders.
  *
- * Phases:
- *   1. Reveal   (0–800ms)  — Dark backdrop fades in, avatar scales up from center
- *   2. Dissolve (800–1800ms) — Old border disintegrates with particle-ring scatter
- *   3. Materialize (1800–3200ms) — New border assembles with energy burst + glow rings
- *   4. Confirm  (3200–4400ms) — Flash pulse + "EQUIPPED" text + bounce settle
+ * Flow:
+ *   1. Backdrop fades in
+ *   2. User's PFP scales up from center
+ *   3. Border "stamps" around PFP with an elastic snap
+ *   4. Subtle glow pulses from behind the PFP
+ *   5. "Continue" button fades in
  *
- * Uses only CSS keyframe animations + framer-motion for choreography.
- * Zero external dependencies beyond what the project already uses.
+ * ─── GSAP vs Framer Motion ───
+ * GSAP offers:
+ *   • Timelines — chain multiple animations in precise sequence
+ *   • Elastic/bounce eases built-in (no physics sim needed)
+ *   • .fromTo() — explicit start+end states (no unmount issues)
+ *   • ScrollTrigger plugin — scroll-driven animations
+ *   • Stagger — animate arrays of elements with delay offsets
+ *   • MorphSVG — morph between SVG shapes
+ *   • MotionPath — animate along bezier curves
+ *   • Better performance for complex sequences (direct DOM mutation)
+ *   • Framework-agnostic — works in React, Vue, vanilla, etc.
  */
-import React, { useEffect, useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useEffect, useRef, useCallback, useState } from 'react';
+import gsap from 'gsap';
 import { getItemById, type StoreItem } from '../utils/storeItems';
 
 interface BorderEquipOverlayProps {
-  /** Whether the overlay is visible */
   show: boolean;
-  /** The border item being equipped */
   borderItem: StoreItem | null;
-  /** The user's avatar URL */
   avatarUrl?: string | null;
-  /** The old border ID being replaced (null if none) */
   oldBorderId?: string | null;
-  /** Called when animation completes */
   onComplete: () => void;
 }
-
-/* ── Particle ring for dissolve/materialize ── */
-const PARTICLE_COUNT = 16;
-const generateParticles = (color: string) =>
-  Array.from({ length: PARTICLE_COUNT }, (_, i) => {
-    const angle = (i / PARTICLE_COUNT) * 360;
-    const delay = Math.random() * 0.3;
-    return { angle, delay, color };
-  });
 
 const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
   show,
@@ -43,451 +39,346 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
   oldBorderId,
   onComplete,
 }) => {
-  const [phase, setPhase] = useState<0 | 1 | 2 | 3 | 4>(0);
-  const oldItem = oldBorderId ? getItemById(oldBorderId) : null;
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const avatarRef = useRef<HTMLDivElement>(null);
+  const borderRef = useRef<HTMLDivElement>(null);
+  const glowRef = useRef<HTMLDivElement>(null);
+  const glowRingRef = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const nameRef = useRef<HTMLDivElement>(null);
+  const checkRef = useRef<HTMLDivElement>(null);
+  const tlRef = useRef<gsap.core.Timeline | null>(null);
+  const [visible, setVisible] = useState(false);
 
-  const glowColor = useMemo(() => {
-    if (!borderItem) return '#C8A84E';
-    return (
-      borderItem.auraConfig?.colors?.[0] ||
-      borderItem.borderConfig?.glowColor ||
-      borderItem.borderConfig?.colors?.[0] ||
-      '#C8A84E'
-    );
-  }, [borderItem]);
+  const glowColor = borderItem?.auraConfig?.colors?.[0] ||
+    borderItem?.borderConfig?.glowColor ||
+    borderItem?.borderConfig?.colors?.[0] ||
+    '#C8A84E';
 
-  const oldGlowColor = useMemo(() => {
-    if (!oldItem) return 'rgba(255,255,255,0.3)';
-    return (
-      oldItem.auraConfig?.colors?.[0] ||
-      oldItem.borderConfig?.glowColor ||
-      oldItem.borderConfig?.colors?.[0] ||
-      'rgba(255,255,255,0.3)'
-    );
-  }, [oldItem]);
-
-  const particles = useMemo(() => generateParticles(glowColor), [glowColor]);
-  const dissolveParticles = useMemo(() => generateParticles(oldGlowColor), [oldGlowColor]);
+  const handleComplete = useCallback(() => {
+    // Kill timeline and fade out
+    if (tlRef.current) tlRef.current.kill();
+    gsap.to(overlayRef.current, {
+      opacity: 0,
+      duration: 0.3,
+      onComplete: () => {
+        setVisible(false);
+        onComplete();
+      },
+    });
+  }, [onComplete]);
 
   useEffect(() => {
-    if (!show) {
-      setPhase(0);
+    if (!show || !borderItem) {
+      setVisible(false);
       return;
     }
-    // Phase 1: Reveal
-    setPhase(1);
-    const t2 = setTimeout(() => setPhase(2), 800);   // Phase 2: Dissolve
-    const t3 = setTimeout(() => setPhase(3), 1800);  // Phase 3: Materialize
-    const t4 = setTimeout(() => setPhase(4), 3200);  // Phase 4: Confirm
-    const tEnd = setTimeout(() => onComplete(), 4400); // Auto-close
+
+    setVisible(true);
+
+    // Wait a tick for DOM to mount
+    const raf = requestAnimationFrame(() => {
+      const overlay = overlayRef.current;
+      const avatar = avatarRef.current;
+      const border = borderRef.current;
+      const glow = glowRef.current;
+      const glowRing = glowRingRef.current;
+      const btn = btnRef.current;
+      const name = nameRef.current;
+      const check = checkRef.current;
+
+      if (!overlay || !avatar || !border || !glow || !btn || !name || !check) return;
+
+      // Reset all elements
+      gsap.set(overlay, { opacity: 0 });
+      gsap.set(avatar, { scale: 0, opacity: 0 });
+      gsap.set(border, { scale: 0.3, opacity: 0, rotation: -20 });
+      gsap.set(glow, { scale: 0.5, opacity: 0 });
+      if (glowRing) gsap.set(glowRing, { scale: 0.6, opacity: 0 });
+      gsap.set(btn, { opacity: 0, y: 20 });
+      gsap.set(name, { opacity: 0, y: 15 });
+      gsap.set(check, { scale: 0, opacity: 0 });
+
+      // ═══ GSAP Timeline — the magic ═══
+      const tl = gsap.timeline();
+      tlRef.current = tl;
+
+      // Phase 1: Backdrop fades in
+      tl.to(overlay, {
+        opacity: 1,
+        duration: 0.35,
+        ease: 'power2.out',
+      });
+
+      // Phase 2: Avatar PFP scales up
+      tl.to(avatar, {
+        scale: 1,
+        opacity: 1,
+        duration: 0.5,
+        ease: 'back.out(1.7)', // overshoot then settle
+      }, '-=0.1');
+
+      // Phase 3: Border STAMPS around PFP (elastic snap!)
+      tl.to(border, {
+        scale: 1,
+        opacity: 1,
+        rotation: 0,
+        duration: 0.6,
+        ease: 'elastic.out(1.2, 0.5)', // elastic snap — GSAP's signature
+      }, '-=0.15');
+
+      // Phase 4: Glow blooms from behind
+      tl.to(glow, {
+        scale: 1.3,
+        opacity: 0.7,
+        duration: 0.8,
+        ease: 'power2.out',
+      }, '-=0.4');
+
+      // Glow ring expands
+      if (glowRing) {
+        tl.to(glowRing, {
+          scale: 1,
+          opacity: 0.5,
+          duration: 0.6,
+          ease: 'power2.out',
+        }, '-=0.6');
+      }
+
+      // Glow pulses (repeat)
+      tl.to(glow, {
+        scale: 1.1,
+        opacity: 0.5,
+        duration: 1.5,
+        ease: 'sine.inOut',
+        yoyo: true,
+        repeat: -1,
+      }, '-=0.3');
+
+      // Phase 5: Name + checkmark appear
+      tl.to(check, {
+        scale: 1,
+        opacity: 1,
+        duration: 0.35,
+        ease: 'back.out(2)',
+      }, '-=1.2');
+
+      tl.to(name, {
+        opacity: 1,
+        y: 0,
+        duration: 0.4,
+        ease: 'power3.out',
+      }, '-=1.0');
+
+      // Phase 6: Continue button
+      tl.to(btn, {
+        opacity: 1,
+        y: 0,
+        duration: 0.4,
+        ease: 'power3.out',
+      }, '-=0.6');
+    });
 
     return () => {
-      clearTimeout(t2);
-      clearTimeout(t3);
-      clearTimeout(t4);
-      clearTimeout(tEnd);
+      cancelAnimationFrame(raf);
+      if (tlRef.current) tlRef.current.kill();
     };
-  }, [show, onComplete]);
+  }, [show, borderItem, glowColor]);
 
-  if (!show || !borderItem) return null;
+  if (!visible || !borderItem) return null;
 
   const borderImgSrc = borderItem.imageBorder;
-  const oldBorderImgSrc = oldItem?.imageBorder;
   const borderScale = borderItem.imageScale || 1.0;
   const borderOffsetY = (borderItem as any).imageOffsetY || 0;
   const isAnimated = borderItem.imageAnimated;
   const animType = (borderItem as any).imageAnimationType;
-  const avatarSize = 120;
+  const avatarSize = 130;
   const borderSize = avatarSize + 50;
 
   return (
-    <AnimatePresence>
-      {show && (
-        <motion.div
-          key="border-equip-overlay"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.35 }}
+    <div
+      ref={overlayRef}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 100000,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'rgba(0,0,0,0.92)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        opacity: 0,
+      }}
+    >
+      {/* ── Glow behind PFP ── */}
+      <div
+        ref={glowRef}
+        style={{
+          position: 'absolute',
+          width: 320,
+          height: 320,
+          borderRadius: '50%',
+          background: `radial-gradient(circle, ${glowColor}50 0%, ${glowColor}20 40%, transparent 70%)`,
+          pointerEvents: 'none',
+        }}
+      />
+
+      {/* ── Glow ring ── */}
+      <div
+        ref={glowRingRef}
+        style={{
+          position: 'absolute',
+          width: borderSize * borderScale + 30,
+          height: borderSize * borderScale + 30,
+          borderRadius: '50%',
+          border: `1.5px solid ${glowColor}40`,
+          boxShadow: `0 0 30px ${glowColor}25, inset 0 0 20px ${glowColor}15`,
+          pointerEvents: 'none',
+        }}
+      />
+
+      {/* ── Avatar + Border container ── */}
+      <div style={{ position: 'relative', width: borderSize * borderScale + 40, height: borderSize * borderScale + 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {/* Avatar circle */}
+        <div
+          ref={avatarRef}
           style={{
-            position: 'fixed',
-            top: 0, left: 0, right: 0, bottom: 0,
-            zIndex: 100000,
+            position: 'absolute',
+            width: avatarSize,
+            height: avatarSize,
+            borderRadius: '50%',
+            overflow: 'hidden',
+            background: avatarUrl ? 'transparent' : '#0d0d1a',
             display: 'flex',
-            flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            background: 'rgba(0,0,0,0.92)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
+            zIndex: 10,
+            boxShadow: `0 0 25px rgba(0,0,0,0.6)`,
           }}
-          onClick={() => onComplete()}
         >
-          {/* ── Ambient radial glow (matches new border color) ── */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.5 }}
-            animate={{
-              opacity: phase >= 3 ? 0.6 : 0.15,
-              scale: phase >= 3 ? 1.2 : 0.8,
-            }}
-            transition={{ duration: 1.2, ease: 'easeOut' }}
+          {avatarUrl ? (
+            <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          ) : (
+            <svg width={avatarSize * 0.6} height={avatarSize * 0.6} viewBox="0 0 40 40">
+              <circle cx="20" cy="16" r="7" fill="#555568" />
+              <ellipse cx="20" cy="35" rx="13" ry="10" fill="#4a4a5a" />
+            </svg>
+          )}
+        </div>
+
+        {/* Border image — stamps around PFP */}
+        {borderImgSrc && (
+          <div
+            ref={borderRef}
             style={{
               position: 'absolute',
-              width: 400,
-              height: 400,
-              borderRadius: '50%',
-              background: `radial-gradient(circle, ${glowColor}40 0%, ${glowColor}15 35%, transparent 70%)`,
+              width: borderSize * borderScale,
+              height: borderSize * borderScale,
+              transform: `translateY(${borderOffsetY}px)`,
+              zIndex: 11,
               pointerEvents: 'none',
-            }}
-          />
-
-          {/* ── Phase 1+: Avatar appear ── */}
-          <motion.div
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{
-              scale: phase >= 1 ? 1 : 0,
-              opacity: phase >= 1 ? 1 : 0,
-            }}
-            transition={{
-              type: 'spring',
-              stiffness: 260,
-              damping: 20,
-              delay: 0.1,
-            }}
-            style={{
-              position: 'relative',
-              width: borderSize * borderScale + 40,
-              height: borderSize * borderScale + 40,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
-            {/* Avatar circle */}
-            <div
+            <img
+              src={borderImgSrc}
+              alt=""
               style={{
-                position: 'absolute',
-                width: avatarSize,
-                height: avatarSize,
-                borderRadius: '50%',
-                overflow: 'hidden',
-                background: avatarUrl ? 'transparent' : '#0d0d1a',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                zIndex: 10,
-                boxShadow: phase >= 3
-                  ? `0 0 30px ${glowColor}60, 0 0 60px ${glowColor}30`
-                  : '0 0 20px rgba(0,0,0,0.5)',
-                transition: 'box-shadow 0.6s ease',
-              }}
-            >
-              {avatarUrl ? (
-                <img
-                  src={avatarUrl}
-                  alt=""
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
-              ) : (
-                <svg width={avatarSize * 0.6} height={avatarSize * 0.6} viewBox="0 0 40 40">
-                  <circle cx="20" cy="16" r="7" fill="#555568" />
-                  <ellipse cx="20" cy="35" rx="13" ry="10" fill="#4a4a5a" />
-                </svg>
-              )}
-            </div>
-
-            {/* ── Phase 2: Old border dissolves ── */}
-            {phase >= 2 && oldBorderImgSrc && (
-              <motion.div
-                initial={{ opacity: 1, scale: 1, filter: 'brightness(1)' }}
-                animate={{
-                  opacity: 0,
-                  scale: 1.6,
-                  filter: 'brightness(2) blur(6px)',
-                }}
-                transition={{ duration: 0.8, ease: 'easeOut' }}
-                style={{
-                  position: 'absolute',
-                  width: borderSize * (oldItem?.imageScale || 1.0),
-                  height: borderSize * (oldItem?.imageScale || 1.0),
-                  zIndex: 11,
-                  pointerEvents: 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <img
-                  src={oldBorderImgSrc}
-                  alt=""
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'contain',
-                    mixBlendMode: 'screen',
-                  }}
-                />
-              </motion.div>
-            )}
-
-            {/* ── Phase 2: Dissolve particles scatter outward ── */}
-            {phase >= 2 && oldBorderImgSrc && dissolveParticles.map((p, i) => (
-              <motion.div
-                key={`dissolve-${i}`}
-                initial={{
-                  x: Math.cos((p.angle * Math.PI) / 180) * 50,
-                  y: Math.sin((p.angle * Math.PI) / 180) * 50,
-                  opacity: 0.9,
-                  scale: 1,
-                }}
-                animate={{
-                  x: Math.cos((p.angle * Math.PI) / 180) * 150,
-                  y: Math.sin((p.angle * Math.PI) / 180) * 150,
-                  opacity: 0,
-                  scale: 0.2,
-                }}
-                transition={{ duration: 0.8, delay: p.delay, ease: 'easeOut' }}
-                style={{
-                  position: 'absolute',
-                  width: 4,
-                  height: 4,
-                  borderRadius: '50%',
-                  background: p.color,
-                  boxShadow: `0 0 6px ${p.color}`,
-                  zIndex: 20,
-                  pointerEvents: 'none',
-                }}
-              />
-            ))}
-
-            {/* ── Phase 3: Energy ring pulse before new border ── */}
-            {phase >= 3 && (
-              <>
-                <motion.div
-                  initial={{ scale: 0.4, opacity: 0 }}
-                  animate={{ scale: 1.8, opacity: 0 }}
-                  transition={{ duration: 0.8, ease: 'easeOut' }}
-                  style={{
-                    position: 'absolute',
-                    width: borderSize,
-                    height: borderSize,
-                    borderRadius: '50%',
-                    border: `2px solid ${glowColor}`,
-                    boxShadow: `0 0 20px ${glowColor}80`,
-                    zIndex: 12,
-                    pointerEvents: 'none',
-                  }}
-                />
-                <motion.div
-                  initial={{ scale: 0.3, opacity: 0 }}
-                  animate={{ scale: 2.2, opacity: 0 }}
-                  transition={{ duration: 1.0, delay: 0.15, ease: 'easeOut' }}
-                  style={{
-                    position: 'absolute',
-                    width: borderSize * 0.8,
-                    height: borderSize * 0.8,
-                    borderRadius: '50%',
-                    border: `1.5px solid ${glowColor}80`,
-                    zIndex: 12,
-                    pointerEvents: 'none',
-                  }}
-                />
-              </>
-            )}
-
-            {/* ── Phase 3: Materialize particles converge inward ── */}
-            {phase >= 3 && particles.map((p, i) => (
-              <motion.div
-                key={`materialize-${i}`}
-                initial={{
-                  x: Math.cos((p.angle * Math.PI) / 180) * 160,
-                  y: Math.sin((p.angle * Math.PI) / 180) * 160,
-                  opacity: 0,
-                  scale: 0.3,
-                }}
-                animate={{
-                  x: Math.cos((p.angle * Math.PI) / 180) * (borderSize / 2.3),
-                  y: Math.sin((p.angle * Math.PI) / 180) * (borderSize / 2.3),
-                  opacity: [0, 1, 0.8],
-                  scale: [0.3, 1.2, 0.6],
-                }}
-                transition={{ duration: 0.7, delay: p.delay * 0.6, ease: 'easeInOut' }}
-                style={{
-                  position: 'absolute',
-                  width: 5,
-                  height: 5,
-                  borderRadius: '50%',
-                  background: p.color,
-                  boxShadow: `0 0 8px ${p.color}, 0 0 16px ${p.color}60`,
-                  zIndex: 20,
-                  pointerEvents: 'none',
-                }}
-              />
-            ))}
-
-            {/* ── Phase 3: New border materializes ── */}
-            {phase >= 3 && borderImgSrc && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.5, rotate: -30 }}
-                animate={{
-                  opacity: 1,
-                  scale: 1,
-                  rotate: 0,
-                }}
-                transition={{
-                  type: 'spring',
-                  stiffness: 200,
-                  damping: 16,
-                  delay: 0.3,
-                }}
-                style={{
-                  position: 'absolute',
-                  width: borderSize * borderScale,
-                  height: borderSize * borderScale,
-                  transform: `translateY(${borderOffsetY}px)`,
-                  zIndex: 11,
-                  pointerEvents: 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <img
-                  src={borderImgSrc}
-                  alt=""
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'contain',
-                    mixBlendMode: 'screen',
-                    filter: `drop-shadow(0 0 12px ${glowColor}90)`,
-                    animation: isAnimated
-                      ? animType === 'pulse'
-                        ? 'equip-breathe 2.5s ease-in-out infinite'
-                        : 'equip-spin 10s linear infinite'
-                      : 'none',
-                  }}
-                />
-              </motion.div>
-            )}
-          </motion.div>
-
-          {/* ── Phase 4: Confirmation flash ── */}
-          {phase >= 4 && (
-            <motion.div
-              initial={{ opacity: 0.9, scale: 0.8 }}
-              animate={{ opacity: 0, scale: 2.5 }}
-              transition={{ duration: 0.6, ease: 'easeOut' }}
-              style={{
-                position: 'absolute',
-                width: 200,
-                height: 200,
-                borderRadius: '50%',
-                background: `radial-gradient(circle, ${glowColor}50, transparent)`,
-                pointerEvents: 'none',
+                width: '100%',
+                height: '100%',
+                objectFit: 'contain',
+                mixBlendMode: 'screen',
+                filter: `drop-shadow(0 0 14px ${glowColor}90)`,
+                animation: isAnimated
+                  ? animType === 'pulse'
+                    ? 'equip-breathe 2.5s ease-in-out infinite'
+                    : 'equip-spin 10s linear infinite'
+                  : 'none',
               }}
             />
-          )}
+          </div>
+        )}
+      </div>
 
-          {/* ── Phase 4: "EQUIPPED" label ── */}
-          {phase >= 4 && (
-            <motion.div
-              initial={{ opacity: 0, y: 30, scale: 0.7 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{
-                type: 'spring',
-                stiffness: 300,
-                damping: 20,
-                delay: 0.15,
-              }}
-              style={{
-                marginTop: 28,
-                textAlign: 'center',
-                pointerEvents: 'none',
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 13,
-                  fontWeight: 900,
-                  letterSpacing: '0.35em',
-                  color: glowColor,
-                  textShadow: `0 0 20px ${glowColor}80, 0 0 40px ${glowColor}40`,
-                  marginBottom: 6,
-                  fontFamily: 'Inter, system-ui, sans-serif',
-                  textTransform: 'uppercase',
-                }}
-              >
-                ✓ Equipped
-              </div>
-              <div
-                style={{
-                  fontSize: 18,
-                  fontWeight: 900,
-                  color: '#fff',
-                  textShadow: '0 2px 12px rgba(0,0,0,0.6)',
-                  fontFamily: 'Inter, system-ui, sans-serif',
-                }}
-              >
-                {borderItem.name}
-              </div>
-            </motion.div>
-          )}
+      {/* ── Checkmark + Name ── */}
+      <div style={{ marginTop: 24, textAlign: 'center' }}>
+        <div
+          ref={checkRef}
+          style={{
+            fontSize: 13,
+            fontWeight: 900,
+            letterSpacing: '0.35em',
+            color: glowColor,
+            textShadow: `0 0 20px ${glowColor}80, 0 0 40px ${glowColor}40`,
+            marginBottom: 6,
+            fontFamily: 'Inter, system-ui, sans-serif',
+            textTransform: 'uppercase' as const,
+          }}
+        >
+          ✓ Equipped
+        </div>
+        <div
+          ref={nameRef}
+          style={{
+            fontSize: 20,
+            fontWeight: 900,
+            color: '#fff',
+            textShadow: '0 2px 12px rgba(0,0,0,0.6)',
+            fontFamily: 'Inter, system-ui, sans-serif',
+          }}
+        >
+          {borderItem.name}
+        </div>
+      </div>
 
-          {/* ── Border name label (early phases) ── */}
-          {phase >= 1 && phase < 4 && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 0.5, y: 0 }}
-              transition={{ delay: 0.4, duration: 0.5 }}
-              style={{
-                marginTop: 28,
-                fontSize: 12,
-                fontWeight: 700,
-                color: 'rgba(255,255,255,0.4)',
-                letterSpacing: '0.2em',
-                fontFamily: 'Inter, system-ui, sans-serif',
-                textTransform: 'uppercase',
-                pointerEvents: 'none',
-              }}
-            >
-              {phase === 2 ? 'Dissolving...' : phase === 3 ? 'Forging...' : borderItem.name}
-            </motion.div>
-          )}
+      {/* ── Continue button ── */}
+      <button
+        ref={btnRef}
+        onClick={handleComplete}
+        style={{
+          marginTop: 32,
+          padding: '12px 48px',
+          borderRadius: 14,
+          background: `linear-gradient(135deg, ${glowColor}30, ${glowColor}15)`,
+          border: `1.5px solid ${glowColor}50`,
+          color: '#fff',
+          fontSize: 13,
+          fontWeight: 800,
+          letterSpacing: '0.15em',
+          cursor: 'pointer',
+          fontFamily: 'Inter, system-ui, sans-serif',
+          textTransform: 'uppercase' as const,
+          boxShadow: `0 0 20px ${glowColor}20`,
+          transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'scale(1.05)';
+          e.currentTarget.style.boxShadow = `0 0 30px ${glowColor}40`;
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'scale(1)';
+          e.currentTarget.style.boxShadow = `0 0 20px ${glowColor}20`;
+        }}
+      >
+        Continue
+      </button>
 
-          {/* ── Tap to skip hint ── */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.25 }}
-            transition={{ delay: 1.5 }}
-            style={{
-              position: 'absolute',
-              bottom: 40,
-              fontSize: 10,
-              fontWeight: 600,
-              color: 'rgba(255,255,255,0.4)',
-              letterSpacing: '0.15em',
-              fontFamily: 'Inter, system-ui, sans-serif',
-              pointerEvents: 'none',
-            }}
-          >
-            TAP TO SKIP
-          </motion.div>
-
-          {/* ── Keyframe animations ── */}
-          <style>{`
-            @keyframes equip-breathe {
-              0%, 100% { transform: scale(1); }
-              50% { transform: scale(1.04); }
-            }
-            @keyframes equip-spin {
-              from { transform: rotate(0deg); }
-              to { transform: rotate(360deg); }
-            }
-          `}</style>
-        </motion.div>
-      )}
-    </AnimatePresence>
+      {/* ── Keyframe animations for animated borders ── */}
+      <style>{`
+        @keyframes equip-breathe {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.04); }
+        }
+        @keyframes equip-spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
+    </div>
   );
 };
 
