@@ -25,6 +25,10 @@ const AvatarWithBorder: React.FC<AvatarWithBorderProps> = ({
   className = '',
   style,
 }) => {
+  // CRITICAL: Strip boxShadow from style — it creates a rectangular shadow
+  // on a component that renders circular/irregular PNG borders.
+  // Callers should NEVER pass boxShadow; use CSS filter: drop-shadow instead.
+  const { boxShadow: _stripped, ...safeStyle } = (style || {}) as any;
   // Resolve as a Store item (image-based border)
   const storeItem = borderId ? getItemById(borderId) : null;
   const hasImageBorder = !!storeItem?.imageBorder;
@@ -68,7 +72,7 @@ const AvatarWithBorder: React.FC<AvatarWithBorderProps> = ({
           alignItems: 'center',
           justifyContent: 'center',
           overflow: 'visible',
-          ...style,
+          ...safeStyle,
         }}
       >
         {/* Avatar (centred) */}
@@ -110,7 +114,7 @@ const AvatarWithBorder: React.FC<AvatarWithBorderProps> = ({
 
   // ── No border — just avatar with subtle ring ──
   return (
-    <div className={`relative ${className}`} style={style}>
+    <div className={`relative ${className}`} style={safeStyle}>
       <div
         className="absolute -inset-[1px] rounded-full z-0"
         style={{ border: '1px solid rgba(255,255,255,0.12)' }}
@@ -171,6 +175,9 @@ function BorderImage({ src, isAnimated, animType, glowColor }: { src: string; is
           objectFit: 'contain',
           opacity: loaded ? 1 : 0,
           transition: 'opacity 0.3s ease',
+          // mix-blend-mode: screen makes white pixels invisible on dark backgrounds.
+          // Many border PNGs have white backgrounds instead of true transparency.
+          mixBlendMode: 'screen',
           filter: glowColor ? `drop-shadow(0 0 6px ${glowColor})` : undefined,
           animation: isAnimated
             ? animType === 'pulse'
