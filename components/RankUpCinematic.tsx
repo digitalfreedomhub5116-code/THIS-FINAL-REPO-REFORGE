@@ -11,12 +11,13 @@ interface RankUpCinematicProps {
   onComplete: () => void;
 }
 
-/* ─── Confetti Canvas ─────────────────────────────────────────────── */
+/* ─── Premium Particle System ────────────────────────────────────── */
 
 interface Particle {
-  id: number; x: number; y: number; vx: number; vy: number;
+  x: number; y: number; vx: number; vy: number;
   color: string; size: number; rotation: number; rotSpeed: number;
-  shape: 'rect' | 'circle' | 'diamond'; alpha: number;
+  shape: 'rect' | 'circle' | 'diamond' | 'star' | 'ring';
+  alpha: number; life: number; maxLife: number; flutter: number;
 }
 
 const CONFETTI_COLORS: Record<RankType, string[]> = {
@@ -29,11 +30,111 @@ const CONFETTI_COLORS: Record<RankType, string[]> = {
   S: ['#9ACDE3', '#f0abfc', '#eab308', '#fde68a', '#ffffff', '#a855f7', '#f59e0b'],
 };
 
+const SHAPES: Particle['shape'][] = ['rect', 'circle', 'diamond', 'star', 'ring'];
+
+const drawStar = (ctx: CanvasRenderingContext2D, r: number) => {
+  ctx.beginPath();
+  for (let i = 0; i < 5; i++) {
+    const a = (i * 4 * Math.PI) / 5 - Math.PI / 2;
+    const method = i === 0 ? 'moveTo' : 'lineTo';
+    ctx[method](Math.cos(a) * r, Math.sin(a) * r);
+  }
+  ctx.closePath(); ctx.fill();
+};
+
 const useConfetti = (active: boolean, newRank: RankType) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const particles = useRef<Particle[]>([]);
   const animFrame = useRef<number>(0);
+  const emitTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const colors = CONFETTI_COLORS[newRank];
+  const startTime = useRef(0);
+
+  useEffect(() => {
+    if (!active) { particles.current = []; return; }
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    startTime.current = Date.now();
+
+    const emit = (count: number, fromTop: boolean, spread = 1) => {
+      const cx = canvas.width / 2;
+      for (let i = 0; i < count; i++) {
+        const originX = fromTop ? Math.random() * canvas.width : cx + (Math.random() - 0.5) * 200;
+        const originY = fromTop ? -10 : canvas.height * 0.38;
+        const angle = fromTop
+          ? Math.PI / 2 + (Math.random() - 0.5) * 0.8
+          : (Math.random() - 0.5) * Math.PI * spread - Math.PI / 2;
+        const speed = fromTop ? 1 + Math.random() * 3 : 4 + Math.random() * 12;
+        const maxLife = fromTop ? 120 + Math.random() * 80 : 80 + Math.random() * 60;
+        particles.current.push({
+          x: originX, y: originY,
+          vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          size: 3 + Math.random() * 8, rotation: Math.random() * 360,
+          rotSpeed: (Math.random() - 0.5) * 15,
+          shape: SHAPES[Math.floor(Math.random() * SHAPES.length)],
+          alpha: 1, life: 0, maxLife,
+          flutter: 0.5 + Math.random() * 2,
+        });
+      }
+    };
+
+    // Initial burst — center explosion
+    emit(60, false, 1.8);
+    // Continuous rain from top + periodic side bursts
+    emitTimer.current = setInterval(() => {
+      const elapsed = Date.now() - startTime.current;
+      if (elapsed > 3200) { if (emitTimer.current) clearInterval(emitTimer.current); return; }
+      emit(8, true);  // gentle rain
+      if (Math.random() > 0.5) emit(12, false, 1.2); // occasional center pops
+    }, 180);
+
+    const draw = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      particles.current = particles.current.filter(p => p.life < p.maxLife && p.y < canvas.height + 20);
+      particles.current.forEach(p => {
+        p.life++;
+        p.x += p.vx + Math.sin(p.life * 0.05 * p.flutter) * 0.8; // flutter side-to-side
+        p.y += p.vy;
+        p.vy += 0.12; // lighter gravity = floatier
+        p.vx *= 0.985; // air resistance
+        p.rotation += p.rotSpeed;
+        p.rotSpeed *= 0.995; // slow rotation over time
+        const fadeStart = p.maxLife * 0.6;
+        p.alpha = p.life > fadeStart ? 1 - (p.life - fadeStart) / (p.maxLife - fadeStart) : 1;
+
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, p.alpha);
+        ctx.translate(p.x, p.y);
+        ctx.rotate((p.rotation * Math.PI) / 180);
+        ctx.fillStyle = p.color;
+        ctx.shadowBlur = 4; ctx.shadowColor = p.color;
+        const s = p.size;
+        if (p.shape === 'rect') ctx.fillRect(-s / 2, -s / 4, s, s / 2);
+        else if (p.shape === 'circle') { ctx.beginPath(); ctx.arc(0, 0, s / 2.5, 0, Math.PI * 2); ctx.fill(); }
+        else if (p.shape === 'diamond') { ctx.beginPath(); ctx.moveTo(0, -s / 2); ctx.lineTo(s / 3, 0); ctx.lineTo(0, s / 2); ctx.lineTo(-s / 3, 0); ctx.closePath(); ctx.fill(); }
+        else if (p.shape === 'star') drawStar(ctx, s / 2.5);
+        else { ctx.beginPath(); ctx.arc(0, 0, s / 3, 0, Math.PI * 2); ctx.strokeStyle = p.color; ctx.lineWidth = 1.5; ctx.stroke(); }
+        ctx.restore();
+      });
+      animFrame.current = requestAnimationFrame(draw);
+    };
+    animFrame.current = requestAnimationFrame(draw);
+    return () => { cancelAnimationFrame(animFrame.current); if (emitTimer.current) clearInterval(emitTimer.current); };
+  }, [active, newRank]);
+
+  return canvasRef;
+};
+
+/* ─── Rising Embers (glowing dots float upward) ──────────────────── */
+
+const useEmbers = (active: boolean, color: string) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const animFrame = useRef<number>(0);
 
   useEffect(() => {
     if (!active) return;
@@ -44,48 +145,37 @@ const useConfetti = (active: boolean, newRank: RankType) => {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    const burst = (count: number, centerX: number, fromTop: boolean) => {
-      for (let i = 0; i < count; i++) {
-        const angle = fromTop
-          ? Math.random() * Math.PI + Math.PI * 0.1
-          : (Math.random() - 0.5) * Math.PI * 1.8 - Math.PI / 2;
-        const speed = 3 + Math.random() * 14;
-        particles.current.push({
-          id: Math.random(), x: centerX, y: fromTop ? 0 : canvas.height * 0.45,
-          vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
-          color: colors[Math.floor(Math.random() * colors.length)],
-          size: 5 + Math.random() * 10, rotation: Math.random() * 360,
-          rotSpeed: (Math.random() - 0.5) * 12,
-          shape: (['rect', 'circle', 'diamond'] as const)[Math.floor(Math.random() * 3)],
-          alpha: 1,
-        });
-      }
+    const embers: { x: number; y: number; vx: number; vy: number; size: number; life: number; maxLife: number }[] = [];
+    const spawnEmber = () => {
+      embers.push({
+        x: Math.random() * canvas.width,
+        y: canvas.height + 10,
+        vx: (Math.random() - 0.5) * 0.6,
+        vy: -(1 + Math.random() * 2.5),
+        size: 1 + Math.random() * 2.5,
+        life: 0, maxLife: 100 + Math.random() * 100,
+      });
     };
-    burst(80, canvas.width * 0.2, true);
-    burst(80, canvas.width * 0.8, true);
-    burst(100, canvas.width * 0.5, false);
+    for (let i = 0; i < 25; i++) spawnEmber(); // initial batch
+    const interval = setInterval(() => { for (let i = 0; i < 3; i++) spawnEmber(); }, 200);
 
     const draw = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      particles.current = particles.current.filter(p => p.alpha > 0.02);
-      particles.current.forEach(p => {
-        p.x += p.vx; p.y += p.vy; p.vy += 0.28; p.vx *= 0.99;
-        p.rotation += p.rotSpeed;
-        if (p.y > canvas.height * 0.6) p.alpha -= 0.015;
-        if (p.y > canvas.height) p.alpha = 0;
-        ctx.save(); ctx.globalAlpha = p.alpha;
-        ctx.translate(p.x, p.y); ctx.rotate((p.rotation * Math.PI) / 180);
-        ctx.fillStyle = p.color; ctx.shadowBlur = 6; ctx.shadowColor = p.color;
-        if (p.shape === 'rect') ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
-        else if (p.shape === 'circle') { ctx.beginPath(); ctx.arc(0, 0, p.size / 2.5, 0, Math.PI * 2); ctx.fill(); }
-        else { ctx.beginPath(); ctx.moveTo(0, -p.size / 2); ctx.lineTo(p.size / 2, 0); ctx.lineTo(0, p.size / 2); ctx.lineTo(-p.size / 2, 0); ctx.closePath(); ctx.fill(); }
+      for (let i = embers.length - 1; i >= 0; i--) {
+        const e = embers[i];
+        e.life++; e.x += e.vx + Math.sin(e.life * 0.03) * 0.3; e.y += e.vy;
+        if (e.life >= e.maxLife) { embers.splice(i, 1); continue; }
+        const alpha = e.life < 20 ? e.life / 20 : e.life > e.maxLife * 0.7 ? 1 - (e.life - e.maxLife * 0.7) / (e.maxLife * 0.3) : 1;
+        ctx.save(); ctx.globalAlpha = alpha * 0.7;
+        ctx.fillStyle = color; ctx.shadowBlur = 10; ctx.shadowColor = color;
+        ctx.beginPath(); ctx.arc(e.x, e.y, e.size, 0, Math.PI * 2); ctx.fill();
         ctx.restore();
-      });
+      }
       animFrame.current = requestAnimationFrame(draw);
     };
     animFrame.current = requestAnimationFrame(draw);
-    return () => cancelAnimationFrame(animFrame.current);
-  }, [active, newRank]);
+    return () => { cancelAnimationFrame(animFrame.current); clearInterval(interval); };
+  }, [active, color]);
 
   return canvasRef;
 };
@@ -184,6 +274,7 @@ const RankUpCinematic: React.FC<RankUpCinematicProps> = ({ oldRank, newRank, onC
   const newMeta = RANK_META[newRank];
   const canvasRef = useConfetti(phase === 'celebrate', newRank);
   const forgeRef = useForgeParticles(phase === 'emerge', newMeta.primary);
+  const embersRef = useEmbers(phase === 'emerge' || phase === 'celebrate', newMeta.primary);
 
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
@@ -213,6 +304,9 @@ const RankUpCinematic: React.FC<RankUpCinematicProps> = ({ oldRank, newRank, onC
 
       {/* Forge particles canvas */}
       <canvas ref={forgeRef} className="absolute inset-0 pointer-events-none" style={{ zIndex: 15 }} />
+
+      {/* Rising embers canvas */}
+      <canvas ref={embersRef} className="absolute inset-0 pointer-events-none" style={{ zIndex: 12 }} />
 
       {/* Grid lines */}
       <div
@@ -383,9 +477,9 @@ const RankUpCinematic: React.FC<RankUpCinematicProps> = ({ oldRank, newRank, onC
               <motion.div
                 key="new-badge"
                 className="absolute flex items-center justify-center"
-                initial={{ opacity: 0, scale: 0.7 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ type: 'spring', stiffness: 250, damping: 20, delay: 0.1 }}
+                initial={{ opacity: 0, scale: 0.3, y: 40 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ type: 'spring', stiffness: 200, damping: 16, delay: 0.1 }}
               >
                 {/* Reveal mask: bottom to top */}
                 <motion.div
@@ -401,28 +495,70 @@ const RankUpCinematic: React.FC<RankUpCinematicProps> = ({ oldRank, newRank, onC
                       width: badgeSize,
                       height: badgeSize,
                       objectFit: 'contain',
+                      filter: 'drop-shadow(0 0 20px ' + newMeta.primary + '60)',
                     }}
-                    initial={{ filter: 'brightness(3)' }}
-                    animate={{ filter: 'brightness(1)' }}
-                    transition={{ duration: 0.8, ease: 'easeOut' }}
+                    initial={{ filter: 'brightness(3) drop-shadow(0 0 40px ' + newMeta.primary + ')' }}
+                    animate={{
+                      filter: 'brightness(1) drop-shadow(0 0 20px ' + newMeta.primary + '60)',
+                      scale: [1, 1.04, 1],
+                    }}
+                    transition={{
+                      filter: { duration: 0.8, ease: 'easeOut' },
+                      scale: { duration: 2.5, repeat: Infinity, ease: 'easeInOut' },
+                    }}
                   />
                 </motion.div>
               </motion.div>
             )}
           </AnimatePresence>
 
-          {/* ── Celebrate rings ── */}
+          {/* ── Celebrate rings (staggered expanding) ── */}
           <AnimatePresence>
             {phase === 'celebrate' && (
               <>
-                {[1, 1.8, 2.8].map((s, i) => (
+                {[1, 1.8, 2.8, 3.8].map((s, i) => (
                   <motion.div
                     key={`ring-${i}`}
                     className="absolute rounded-full pointer-events-none"
-                    style={{ width: 100, height: 100, border: `2px solid ${newMeta.primary}` }}
+                    style={{ width: 100, height: 100, border: `${2 - i * 0.3}px solid ${newMeta.primary}` }}
                     initial={{ scale: 0, opacity: 0.9 }}
                     animate={{ scale: s * 2.5, opacity: 0 }}
-                    transition={{ duration: 1.2 + i * 0.3, delay: i * 0.18, ease: 'easeOut' }}
+                    transition={{ duration: 1.4 + i * 0.25, delay: i * 0.22, ease: 'easeOut' }}
+                  />
+                ))}
+
+                {/* Rotating light rays */}
+                <motion.div
+                  key="light-rays"
+                  className="absolute pointer-events-none"
+                  style={{
+                    width: 400, height: 400,
+                    background: `conic-gradient(from 0deg, transparent, ${newMeta.primary}15, transparent, ${newMeta.primary}10, transparent, ${newMeta.primary}15, transparent, ${newMeta.primary}10, transparent)`,
+                    borderRadius: '50%',
+                    filter: 'blur(8px)',
+                  }}
+                  initial={{ opacity: 0, rotate: 0, scale: 0.5 }}
+                  animate={{ opacity: [0, 0.8, 0.6], rotate: 180, scale: [0.5, 1.5] }}
+                  transition={{ duration: 3.5, ease: 'linear' }}
+                />
+
+                {/* Orbital dots */}
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <motion.div
+                    key={`orbit-${i}`}
+                    className="absolute rounded-full pointer-events-none"
+                    style={{
+                      width: 4, height: 4,
+                      background: newMeta.primary,
+                      boxShadow: `0 0 8px ${newMeta.primary}`,
+                    }}
+                    initial={{ opacity: 0 }}
+                    animate={{
+                      opacity: [0, 1, 0.6],
+                      x: [0, Math.cos((i / 6) * Math.PI * 2) * 110],
+                      y: [0, Math.sin((i / 6) * Math.PI * 2) * 110],
+                    }}
+                    transition={{ duration: 1.5, delay: 0.1 + i * 0.08, ease: 'easeOut' }}
                   />
                 ))}
               </>
@@ -448,16 +584,24 @@ const RankUpCinematic: React.FC<RankUpCinematicProps> = ({ oldRank, newRank, onC
 
                 <motion.div
                   key="rank-up-label"
-                  initial={{ opacity: 0, scale: 0.7 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ type: 'spring', stiffness: 300, damping: 22, delay: 0.15 }}
+                  initial={{ opacity: 0, scale: 0.5, y: 10 }}
+                  animate={{ opacity: 1, scale: [0.5, 1.15, 1], y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.15, ease: [0.22, 1.2, 0.36, 1] }}
                   className="text-4xl font-black tracking-wider font-mono"
                   style={{
                     color: '#ffffff',
-                    textShadow: `0 0 20px ${newMeta.primary}, 0 0 40px ${newMeta.glow}`,
+                    textShadow: `0 0 20px ${newMeta.primary}, 0 0 40px ${newMeta.glow}, 0 0 80px ${newMeta.primary}40`,
                   }}
                 >
-                  {oldRank === 'UNRANKED' ? 'RANK ASSIGNED' : 'RANK UP'}
+                  {(oldRank === 'UNRANKED' ? 'RANK ASSIGNED' : 'RANK UP').split('').map((ch, i) => (
+                    <motion.span
+                      key={i}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2 + i * 0.04 }}
+                      style={{ display: 'inline-block', minWidth: ch === ' ' ? '0.3em' : undefined }}
+                    >{ch}</motion.span>
+                  ))}
                 </motion.div>
 
                 <motion.div
