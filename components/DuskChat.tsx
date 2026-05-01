@@ -6,11 +6,6 @@ import { PlayerData } from '../types';
 import { API_BASE } from '../lib/apiConfig';
 import { getPlayerAuthHeaders } from '../lib/playerApi';
 
-interface DuskAction {
-  tool: string;
-  args: Record<string, any>;
-  label?: string;
-}
 
 interface DuskChatProps {
   player: PlayerData;
@@ -26,7 +21,6 @@ interface Message {
   sender: 'user' | 'dusk';
   text: string;
   timestamp: number;
-  actions?: DuskAction[];
 }
 
 // ── Animated Dusk Avatar (glowing orb with eyes) ──
@@ -319,156 +313,12 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, updatePlayer, onClose, onMa
     };
   };
 
-  // ── Execute agent actions on player state ──
-  const executeActions = (actions: DuskAction[]) => {
-    if (!updatePlayer || !actions?.length) return;
-    for (const action of actions) {
-      try {
-        switch (action.tool) {
-          case 'log_meal': {
-            const a = action.args;
-            updatePlayer(prev => ({
-              ...prev,
-              nutritionLogs: [...(prev.nutritionLogs || []), {
-                id: `dusk_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-                label: a.label || 'Meal',
-                items: [{
-                  id: `food_${Date.now()}`, name: a.label || 'Food',
-                  calories: a.calories || 0, protein: a.protein || 0,
-                  carbs: a.carbs || 0, fats: a.fats || 0,
-                  servingSize: '1 serving', quantity: 1,
-                }],
-                totalCalories: a.calories || 0,
-                totalProtein: a.protein || 0,
-                totalCarbs: a.carbs || 0,
-                totalFats: a.fats || 0,
-                mealType: a.mealType || 'SNACK',
-                timestamp: Date.now(),
-              }],
-            }));
-            console.log('[Dusk Agent] ✅ Meal logged:', a.label);
-            break;
-          }
-          case 'create_workout': {
-            const a = action.args;
-            const workoutDay = {
-              day: a.name || 'Custom Workout',
-              focus: a.focus || 'Full Body',
-              totalDuration: a.totalDuration || 30,
-              exercises: (a.exercises || []).map((e: any, i: number) => ({
-                id: `dusk_ex_${Date.now()}_${i}`,
-                name: e.name, sets: e.sets || 3, reps: e.reps || '10',
-                type: e.type || 'COMPOUND', notes: e.notes || '',
-                duration: 0, completed: false,
-              })),
-            };
-            updatePlayer(prev => {
-              const updatedProtocols = {
-                ...(prev.customProtocols || {}),
-                [a.name || 'Dusk Workout']: [workoutDay],
-              };
-              return {
-                ...prev,
-                customProtocols: updatedProtocols,
-                // Also set as active workout plan so it shows immediately
-                healthProfile: prev.healthProfile ? {
-                  ...prev.healthProfile,
-                  workoutPlan: [workoutDay, ...(prev.healthProfile.workoutPlan || [])],
-                  selectedPlanName: a.name || 'Dusk Workout',
-                } : prev.healthProfile,
-              };
-            });
-            console.log('[Dusk Agent] ✅ Workout created:', a.name);
-            break;
-          }
-          case 'update_schedule': {
-            const a = action.args;
-            const todayStr = new Date().toISOString().split('T')[0];
-            const newSlots = (a.slots || []).map((s: any, i: number) => ({
-              id: `dusk_slot_${Date.now()}_${i}`,
-              startTime: s.startTime, endTime: s.endTime,
-              label: s.label, type: s.type || 'BLOCKED',
-              status: 'PENDING' as const, isFlexible: true, isCarryOver: false,
-            }));
-            updatePlayer(prev => {
-              const existing = (prev.dailySchedules || []).filter(s => s.date !== todayStr);
-              return {
-                ...prev,
-                dailySchedules: [...existing, {
-                  date: todayStr, slots: newSlots,
-                  swapsUsed: 0, restDayUsed: false, generatedAt: Date.now(),
-                }],
-              };
-            });
-            console.log('[Dusk Agent] ✅ Schedule updated with', newSlots.length, 'slots');
-            break;
-          }
-          case 'create_quest': {
-            const a = action.args;
-            const validCategories = ['strength', 'intelligence', 'discipline', 'focus', 'social', 'willpower'] as const;
-            const category = validCategories.includes(a.category) ? a.category : 'discipline';
-            const questId = `dusk_q_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
-            updatePlayer(prev => ({
-              ...prev,
-              quests: [...(prev.quests || []), {
-                id: questId,
-                title: a.title || 'New Quest',
-                description: a.title || 'Quest created by Dusk AI',
-                rank: prev.rank || 'E',
-                priority: 'NORMAL' as any,
-                category: category,
-                categories: [category],
-                xpReward: a.xpReward || 20,
-                isCompleted: false,
-                failed: false,
-                createdAt: Date.now(),
-                isDaily: false,
-                scheduledTime: a.scheduledTime || undefined,
-                aiReasoning: 'Created by Dusk AI agent',
-              } as any],
-            }));
-            console.log('[Dusk Agent] ✅ Quest created:', a.title, 'ID:', questId);
-            break;
-          }
-          case 'navigate_to': {
-            const screenMap: Record<string, string> = {
-              'WORKOUT': 'HEALTH', 'NUTRITION': 'HEALTH', 'HEALTH': 'HEALTH',
-              'SCHEDULE': 'DASHBOARD', 'GOALS': 'QUESTS', 'QUESTS': 'QUESTS',
-              'STORE': 'STORE', 'LEADERBOARD': 'LEADERBOARD',
-            };
-            const tab = screenMap[action.args.screen] || 'DASHBOARD';
-            // Dispatch navigation event that App.tsx can listen to
-            window.dispatchEvent(new CustomEvent('dusk:navigate', {
-              detail: { tab },
-            }));
-            console.log('[Dusk Agent] ✅ Navigate to:', tab);
-            break;
-          }
-          case 'log_weight': {
-            const w = action.args.weight;
-            if (w && typeof w === 'number') {
-              updatePlayer(prev => ({
-                ...prev,
-                healthProfile: prev.healthProfile ? {
-                  ...prev.healthProfile, weight: w,
-                  bmi: Math.round((w / ((prev.healthProfile.height / 100) ** 2)) * 10) / 10,
-                } : prev.healthProfile,
-              }));
-              console.log('[Dusk Agent] ✅ Weight updated:', w, 'kg');
-            }
-            break;
-          }
-        }
-      } catch (err) {
-        console.error('[Dusk Agent] Action execution failed:', action.tool, err);
-      }
-    }
-  };
+
 
   const generateResponse = async (userMessage: string) => {
     setIsLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/dusk/agent-chat`, {
+      const res = await fetch(`${API_BASE}/api/dusk/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
         credentials: 'include',
@@ -481,18 +331,11 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, updatePlayer, onClose, onMa
 
       const data = await res.json();
       const text = data.text || 'Something went wrong. Try again.';
-      const actions: DuskAction[] = data.actions || [];
-
-      // Execute any actions the agent returned
-      if (actions.length > 0) {
-        executeActions(actions);
-      }
 
       setMessages(prev => [...prev, {
         id: Date.now().toString(),
         sender: 'dusk',
         text,
-        actions,
         timestamp: Date.now()
       }]);
     } catch (error) {
@@ -714,62 +557,7 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, updatePlayer, onClose, onMa
                         }
                       `}>
                         {msg.text}
-                        {/* ── Action Cards ── */}
-                        {msg.actions && msg.actions.length > 0 && (
-                          <div className="mt-2.5 space-y-2">
-                            {msg.actions.map((action, ai) => (
-                              <motion.div
-                                key={ai}
-                                initial={{ opacity: 0, y: 4 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.2 + ai * 0.1 }}
-                                className="rounded-lg px-3 py-2.5 text-[11px] font-mono cursor-pointer active:scale-[0.98] transition-transform"
-                                style={{
-                                  background: 'rgba(126,184,212,0.06)',
-                                  border: '1px solid rgba(126,184,212,0.15)',
-                                }}
-                                onClick={() => {
-                                  // Map action type to the app tab it should navigate to
-                                  const tabMap: Record<string, string> = {
-                                    navigate_to: (() => {
-                                      const screenMap: Record<string, string> = {
-                                        'WORKOUT': 'HEALTH', 'NUTRITION': 'HEALTH', 'HEALTH': 'HEALTH',
-                                        'SCHEDULE': 'DASHBOARD', 'GOALS': 'QUESTS', 'QUESTS': 'QUESTS',
-                                        'STORE': 'STORE', 'LEADERBOARD': 'LEADERBOARD',
-                                      };
-                                      return screenMap[action.args.screen] || 'DASHBOARD';
-                                    })(),
-                                    create_workout: 'HEALTH',
-                                    log_meal: 'HEALTH',
-                                    create_quest: 'QUESTS',
-                                    update_schedule: 'DASHBOARD',
-                                    log_weight: 'HEALTH',
-                                  };
-                                  const tab = tabMap[action.tool];
-                                  if (tab) {
-                                    window.dispatchEvent(new CustomEvent('dusk:navigate', {
-                                      detail: { tab },
-                                    }));
-                                    onClose();
-                                  }
-                                }}
-                              >
-                                <div className="text-[#9ACDE3] font-bold">{action.label || '✅ Action completed'}</div>
-                                {action.tool === 'log_meal' && (
-                                  <div className="text-gray-500 mt-0.5">
-                                    P: {action.args.protein}g · C: {action.args.carbs}g · F: {action.args.fats}g
-                                  </div>
-                                )}
-                                {action.tool === 'create_workout' && (
-                                  <div className="text-gray-500 mt-0.5">
-                                    {action.args.exercises?.length} exercises · ~{action.args.totalDuration} min
-                                  </div>
-                                )}
-                                <div className="text-[#7EB8D4]/70 mt-1 text-[10px]">Tap to open →</div>
-                              </motion.div>
-                            ))}
-                          </div>
-                        )}
+
                       </div>
                     </motion.div>
                   );
