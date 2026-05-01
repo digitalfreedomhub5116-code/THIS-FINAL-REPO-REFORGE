@@ -196,6 +196,14 @@ router.get('/:id/sync', async (req: Request, res: Response) => {
       serverDailyStats = { ...ZERO_STATS };
       statResetFields.daily_stats = ZERO_STATS;
       statResetFields.last_daily_reset = todayStr;
+      statResetFields.daily_xp = 0; // Reset daily XP for daily leaderboard
+
+      // ── DAILY KEY GRANT: 10 free keys per day ──
+      const DAILY_KEY_GRANT = 10;
+      const currentKeys = row.keys ?? 0;
+      statResetFields.keys = currentKeys + DAILY_KEY_GRANT;
+      row.keys = statResetFields.keys; // Update local row so response reflects new amount
+      console.log(`[Keys] ${id.slice(-8)}: Daily grant +${DAILY_KEY_GRANT}🔑 → ${statResetFields.keys} total`);
     }
 
     // Weekly reset — Monday UTC
@@ -379,24 +387,21 @@ router.put('/:id', async (req: Request, res: Response) => {
     const dbGold = currentRow?.gold ?? 0;
     const dbKeys = currentRow?.keys ?? 0;
 
-    // The client sends its current gold/keys AND what it believes the server had (_serverGold/_serverKeys).
-    // Delta = what the client changed locally. We apply that delta to the CURRENT DB value.
-    const clientGold = cleanData.gold ?? 0;
-    const clientKeys = cleanData.keys ?? 0;
-    const baseGold = (typeof _serverGold === 'number') ? _serverGold : dbGold;
-    const baseKeys = (typeof _serverKeys === 'number') ? _serverKeys : dbKeys;
-
-    const goldDelta = clientGold - baseGold;
-    const keysDelta = clientKeys - baseKeys;
-
-    const newGold = Math.max(0, dbGold + goldDelta);
-    const newKeys = Math.max(0, dbKeys + keysDelta);
+    // ── SERVER-AUTHORITATIVE GOLD & KEYS ──
+    // Gold and Keys are NEVER set by the client. The server is the single source of truth.
+    // Gold changes: streak milestones, store purchases, leaderboard rewards, quest completion rewards
+    // Key changes: keyGate.ts (AI deductions), daily grants, leaderboard rewards
+    // The client's gold/keys values are completely IGNORED.
+    const newGold = dbGold;
+    const newKeys = dbKeys;
 
     // ── Phase 1C: DEEP MERGE raw_data instead of overwriting ──
     // Arrays with IDs (quests, logs, nutritionLogs, history) are merged by ID.
     // Items from both DB and client are kept; client version wins on conflicts.
     const dbRaw = (currentRow?.raw_data as Record<string, any>) || {};
-    const clientRaw = { ...cleanData, gold: newGold, keys: newKeys };
+    // Strip gold/keys from client raw data to prevent tampering
+    const { gold: _cGold, keys: _cKeys, ...cleanClientData } = cleanData;
+    const clientRaw = { ...cleanClientData, gold: newGold, keys: newKeys };
 
     // Helper: merge two arrays by item ID, preferring client items on conflict
     function mergeArraysById(dbArr: any[], clientArr: any[], idKey: string = 'id'): any[] {

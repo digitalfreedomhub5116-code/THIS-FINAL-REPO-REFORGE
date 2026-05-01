@@ -666,6 +666,7 @@ export interface PlayerData {
   rank: Rank;
   trustScore: number;
   gold: number;
+  keys: number;
   streak: number;
   startDate: number;
 

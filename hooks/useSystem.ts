@@ -46,6 +46,7 @@ const DEFAULT_PLAYER: PlayerData = {
   dailyXp: 0,
   rank: 'UNRANKED',
   gold: 0,
+  keys: 0,
   streak: 0,
   stats: { strength: 10, intelligence: 10, discipline: 10, social: 10, focus: 10, willpower: 10 },
   dailyStats: { strength: 0, intelligence: 0, discipline: 0, social: 0, focus: 0, willpower: 0 },
