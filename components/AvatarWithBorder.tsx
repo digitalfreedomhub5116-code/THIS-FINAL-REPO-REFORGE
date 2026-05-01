@@ -95,13 +95,13 @@ const AvatarWithBorder: React.FC<AvatarWithBorderProps> = ({
             transform: `translate(-50%, calc(-50% + ${offsetY}px))`,
             pointerEvents: 'none',
             zIndex: 2,
-            filter: `drop-shadow(0 0 6px ${glow})`,
           }}
         >
           <BorderImage
             src={storeItem.imageBorder!}
             isAnimated={isAnimated}
             animType={animType}
+            glowColor={glow}
           />
         </div>
       </div>
@@ -148,7 +148,7 @@ function AvatarImage({ src, size }: { src: string; size: number }) {
 }
 
 /** Internal border image with skeleton loading */
-function BorderImage({ src, isAnimated, animType }: { src: string; isAnimated?: boolean; animType?: string }) {
+function BorderImage({ src, isAnimated, animType, glowColor }: { src: string; isAnimated?: boolean; animType?: string; glowColor?: string }) {
   const [loaded, setLoaded] = useState(false);
   return (
     <>
@@ -171,6 +171,7 @@ function BorderImage({ src, isAnimated, animType }: { src: string; isAnimated?: 
           objectFit: 'contain',
           opacity: loaded ? 1 : 0,
           transition: 'opacity 0.3s ease',
+          filter: glowColor ? `drop-shadow(0 0 6px ${glowColor})` : undefined,
           animation: isAnimated
             ? animType === 'pulse'
               ? 'pulse 2s ease-in-out infinite'
