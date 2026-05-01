@@ -326,26 +326,25 @@ const GoalHeroSection: React.FC<GoalHeroSectionProps> = ({ goals, onCreateGoal, 
         }}
       >
         {/* Background image — 100% B&W with skeleton loading */}
-        <div className="relative w-full" style={{ height: 200 }}>
+        <div className="relative w-full" style={{ height: 270 }}>
           <GoalHeroImg />
           <div className="absolute inset-0" style={{
-            background: 'linear-gradient(180deg, rgba(10,10,20,0.2) 0%, rgba(10,10,20,0.6) 50%, rgba(10,10,20,0.95) 100%)',
+            background: 'linear-gradient(180deg, rgba(10,10,20,0.1) 0%, rgba(10,10,20,0.35) 35%, rgba(10,10,20,0.75) 55%, rgba(10,10,20,0.95) 72%, #0a0a14 100%)',
           }} />
         </div>
 
 
-
         {/* Text overlay */}
         <div className="absolute bottom-0 left-0 right-0 px-5 pb-5">
-          <div className="text-[10px] font-mono font-bold tracking-[0.2em] uppercase mb-1"
+          <div className="text-[10px] font-mono font-bold tracking-[0.2em] uppercase mb-1.5"
             style={{ color: '#7EB8D4' }}>
             Shadow Mission
           </div>
-          <h2 className="text-[28px] font-black text-white leading-none mb-2"
+          <h2 className="text-[28px] font-black text-white leading-none mb-2.5"
             style={{ textShadow: '0 4px 20px rgba(0,0,0,0.8)' }}>
             Create your new goal
           </h2>
-          <p className="text-[12px] text-gray-400 leading-relaxed mb-5 max-w-[300px]">
+          <p className="text-[12px] text-gray-400 leading-relaxed mb-4 max-w-[300px]">
             Set a long-term goal. The system generates daily quests to keep you on track every single day.
           </p>
 
@@ -372,7 +371,7 @@ const GoalHeroSection: React.FC<GoalHeroSectionProps> = ({ goals, onCreateGoal, 
               border: '1px solid rgba(126,184,212,0.12)',
               color: 'rgba(126,184,212,0.5)',
               cursor: 'pointer',
-              marginTop: 8,
+              marginTop: 10,
             }}
           >
             <Info size={12} />

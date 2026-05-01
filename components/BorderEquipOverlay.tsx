@@ -11,6 +11,7 @@
  */
 import React, { useEffect, useRef, useCallback, useState } from 'react';
 import gsap from 'gsap';
+import confetti from 'canvas-confetti';
 import type { StoreItem } from '../utils/storeItems';
 
 interface BorderEquipOverlayProps {
@@ -97,6 +98,58 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
           tl.to(border, {
             y: 0, scale: 1, opacity: 1, duration: 0.45,
             ease: 'back.out(2.5)',
+            onComplete: () => {
+              // ── Confetti celebration burst ──
+              const cyanGrey = ['#7EB8D4', '#9ACDE3', '#5a9ab5', '#c0c0c0', '#808080', '#d4d4d4'];
+              // Left corner burst
+              confetti({
+                particleCount: 70,
+                angle: 55,
+                spread: 65,
+                origin: { x: 0.05, y: 1 },
+                colors: cyanGrey,
+                startVelocity: 40,
+                gravity: 1.1,
+                drift: 0.4,
+                scalar: 1.05,
+                ticks: 180,
+                decay: 0.92,
+                shapes: ['circle', 'square'],
+                disableForReducedMotion: true,
+              });
+              // Right corner burst
+              confetti({
+                particleCount: 70,
+                angle: 125,
+                spread: 65,
+                origin: { x: 0.95, y: 1 },
+                colors: cyanGrey,
+                startVelocity: 40,
+                gravity: 1.1,
+                drift: -0.4,
+                scalar: 1.05,
+                ticks: 180,
+                decay: 0.92,
+                shapes: ['circle', 'square'],
+                disableForReducedMotion: true,
+              });
+              // Center sparkle — slightly delayed
+              setTimeout(() => {
+                confetti({
+                  particleCount: 25,
+                  spread: 90,
+                  origin: { x: 0.5, y: 0.55 },
+                  colors: ['#9ACDE3', '#d4d4d4', '#ffffff'],
+                  startVelocity: 20,
+                  gravity: 0.9,
+                  scalar: 0.85,
+                  ticks: 140,
+                  decay: 0.9,
+                  shapes: ['circle'],
+                  disableForReducedMotion: true,
+                });
+              }, 80);
+            },
           }, '-=0.1');
         }
 
