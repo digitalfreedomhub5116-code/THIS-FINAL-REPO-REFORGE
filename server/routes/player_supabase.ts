@@ -38,7 +38,7 @@ router.get('/:id/sync', async (req: Request, res: Response) => {
   try {
     const { data, error } = await (supabaseServer() as any)
       .from('players')
-      .select('gold, keys, is_banned, cheat_strikes, total_strikes_ever, pending_notifications, level, current_xp, required_xp, total_xp, daily_xp, rank, streak, last_login_date, streak_shields, streak_before_break, streak_broken_at, hp, max_hp, mp, max_mp, updated_at, daily_stats, weekly_stats, monthly_stats, last_daily_reset, last_weekly_reset, last_monthly_reset, raw_data->unlockedOutfits, raw_data->equippedOutfitId, raw_data->outfitStones')
+      .select('gold, keys, is_banned, cheat_strikes, total_strikes_ever, pending_notifications, level, current_xp, required_xp, total_xp, daily_xp, rank, streak, last_login_date, streak_shields, streak_before_break, streak_broken_at, hp, max_hp, mp, max_mp, updated_at, sync_version, daily_stats, weekly_stats, monthly_stats, last_daily_reset, last_weekly_reset, last_monthly_reset, raw_data->unlockedOutfits, raw_data->equippedOutfitId, raw_data->outfitStones')
       .eq('supabase_id', id)
       .single();
 
@@ -229,17 +229,17 @@ router.get('/:id/sync', async (req: Request, res: Response) => {
       console.log(`[Stats Reset] ${id.slice(-8)}: Reset ${Object.keys(statResetFields).filter(k => k.includes('stats')).join(', ')}`);
     }
 
-    // Re-read updated_at AFTER all writes (streak, milestones, stat resets)
-    // so the client gets the ACTUAL current timestamp — prevents 409 conflicts
-    let finalUpdatedAt = row.updated_at || null;
+    // Re-read sync_version AFTER all writes (streak, milestones, stat resets)
+    // so the client gets the ACTUAL current version — prevents self-conflicts
+    let finalSyncVersion = row.sync_version ?? 0;
     if (streakUpdated || Object.keys(statResetFields).length > 0 || streakMilestone) {
       try {
         const { data: refreshed } = await (supabaseServer() as any)
           .from('players')
-          .select('updated_at')
+          .select('sync_version')
           .eq('supabase_id', id)
           .single();
-        if (refreshed?.updated_at) finalUpdatedAt = refreshed.updated_at;
+        if (typeof refreshed?.sync_version === 'number') finalSyncVersion = refreshed.sync_version;
       } catch { /* non-critical */ }
     }
 
@@ -271,7 +271,8 @@ router.get('/:id/sync', async (req: Request, res: Response) => {
       maxHp: row.max_hp ?? 100,
       mp: row.mp ?? 100,
       maxMp: row.max_mp ?? 100,
-      updatedAt: finalUpdatedAt,
+      updatedAt: row.updated_at || null,
+      syncVersion: finalSyncVersion,
       // D/W/M stats (server-authoritative after resets)
       dailyStats: serverDailyStats,
       weeklyStats: serverWeeklyStats,
@@ -351,29 +352,27 @@ router.put('/:id', async (req: Request, res: Response) => {
   try {
     // Strip cheatStrikes and isBanned from client data — only admin routes and /record-strike may write these
     // Also extract _serverGold/_serverKeys (client's last-known server values for delta calculation)
-    const { cheatStrikes: _strippedStrikes, isBanned: _strippedBan, _serverGold, _serverKeys, _lastKnownUpdatedAt, ...cleanData } = data;
+    const { cheatStrikes: _strippedStrikes, isBanned: _strippedBan, _serverGold, _serverKeys, _lastKnownUpdatedAt, _syncVersion, ...cleanData } = data;
 
     // ── Delta-based gold/keys merge ──
     // Read current DB state so we can apply only the CLIENT's delta
     const { data: currentRow, error: readError } = await (supabaseServer() as any)
       .from('players')
-      .select('gold, keys, raw_data, updated_at')
+      .select('gold, keys, raw_data, updated_at, sync_version')
       .eq('supabase_id', id)
       .single();
     if (readError) throw readError;
 
-    // ── Phase 3: Optimistic concurrency — reject if DB was updated by another device ──
-    if (_lastKnownUpdatedAt && currentRow?.updated_at) {
-      const dbTime = new Date(currentRow.updated_at).getTime();
-      const clientTime = new Date(_lastKnownUpdatedAt).getTime();
-      // If DB was updated more than 3s after the client's last known state, reject
-      if (dbTime > clientTime + 3000) {
-        return res.status(409).json({
-          error: 'conflict',
-          message: 'Data was updated by another device. Please refresh.',
-          serverUpdatedAt: currentRow.updated_at,
-        });
-      }
+    // ── Optimistic concurrency via integer version (industry standard) ──
+    // Only reject if client sends a version AND it doesn't match DB.
+    // This catches real multi-device conflicts but never self-conflicts.
+    const dbVersion = currentRow?.sync_version ?? 0;
+    if (typeof _syncVersion === 'number' && _syncVersion !== dbVersion) {
+      return res.status(409).json({
+        error: 'conflict',
+        message: 'Data was updated by another device. Please refresh.',
+        serverSyncVersion: dbVersion,
+      });
     }
 
     const dbGold = currentRow?.gold ?? 0;
@@ -510,6 +509,7 @@ router.put('/:id', async (req: Request, res: Response) => {
       // Keep dedicated border column in sync with raw_data (for leaderboard reads)
       equipped_border: mergedRaw.equippedBorder || null,
       updated_at: nowIso,
+      sync_version: dbVersion + 1,
     };
 
     // Use update (not upsert) to prevent creating duplicate rows
@@ -520,7 +520,7 @@ router.put('/:id', async (req: Request, res: Response) => {
 
     if (error) throw error;
 
-    return res.json({ success: true, _serverGold: newGold, _serverKeys: newKeys, _serverUpdatedAt: nowIso });
+    return res.json({ success: true, _serverGold: newGold, _serverKeys: newKeys, _serverUpdatedAt: nowIso, _serverSyncVersion: dbVersion + 1 });
   } catch (err) {
     console.error('[Player PUT]', err);
     return res.status(500).json({ error: 'Internal server error' });

@@ -354,8 +354,16 @@ export const useSystem = () => {
   const setServerUpdatedAt = useCallback((ts: string) => {
     serverUpdatedAtRef.current = ts;
   }, []);
-  // Track the server's updated_at for optimistic concurrency (Phase 3)
+  // Track the server's updated_at (kept for backward compat)
   const serverUpdatedAtRef = useRef<string | null>(null);
+
+  // ── Integer-based optimistic concurrency (production-grade) ──
+  // Replaces fragile timestamp comparison with deterministic integer version
+  const syncVersionRef = useRef<number | null>(null);
+
+  const setSyncVersion = useCallback((v: number) => {
+    syncVersionRef.current = v;
+  }, []);
 
   const syncToCloud = useCallback(async (data: PlayerData) => {
     if (!data.userId || isLocalUser(data.userId)) return;
@@ -363,11 +371,12 @@ export const useSystem = () => {
     // This prevents stale localStorage from overwriting newer DB values.
     if (!serverPullDoneRef.current) return;
     try {
-      // Include last-known server gold so server can compute delta
+      // Include last-known server gold + sync version so server can detect conflicts
       const syncData = {
         ...data,
         _serverGold: serverGoldRef.current,
         _lastKnownUpdatedAt: serverUpdatedAtRef.current,
+        _syncVersion: syncVersionRef.current,
         consumables: data.consumables || {}
       };
       
@@ -379,10 +388,13 @@ export const useSystem = () => {
       });
 
       if (res.status === 409) {
-        // Phase 3: Conflict detected — another device updated the DB after us.
-        // Update our ref from the server's response so the NEXT push won't also fail
+        // Conflict detected — another device updated the DB after us.
+        // Update our refs from the server's response so the NEXT push won't also fail
         try {
           const conflictBody = await res.json();
+          if (typeof conflictBody.serverSyncVersion === 'number') {
+            syncVersionRef.current = conflictBody.serverSyncVersion;
+          }
           if (conflictBody.serverUpdatedAt) {
             serverUpdatedAtRef.current = conflictBody.serverUpdatedAt;
           }
@@ -398,9 +410,11 @@ export const useSystem = () => {
           const result = await res.json();
           const sGold = result._serverGold as number | undefined;
           const sUpdatedAt = result._serverUpdatedAt as string | undefined;
+          const sVersion = result._serverSyncVersion as number | undefined;
           // Update refs to what the server now has
           if (typeof sGold === 'number') serverGoldRef.current = sGold;
           if (sUpdatedAt) serverUpdatedAtRef.current = sUpdatedAt;
+          if (typeof sVersion === 'number') syncVersionRef.current = sVersion;
           // If server values differ from what we sent (admin changed), update local state
           if (typeof sGold === 'number' && sGold !== data.gold) {
             setPlayer(prev => ({
@@ -2219,6 +2233,7 @@ export const useSystem = () => {
     updateServerBaseline,
     markServerPullDone,
     setServerUpdatedAt,
+    setSyncVersion,
     awardRandomStones,
     purchaseBorder,
     equipBorder,

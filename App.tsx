@@ -332,7 +332,7 @@ const App: React.FC = () => {
 
     checkDailyLogin, updateSkillProgress,
 
-    updateServerBaseline, markServerPullDone, setServerUpdatedAt, awardRandomStones,
+    updateServerBaseline, markServerPullDone, setServerUpdatedAt, setSyncVersion, awardRandomStones,
 
     purchaseBorder, equipBorder, equipBanner,
 
@@ -1318,12 +1318,17 @@ const App: React.FC = () => {
 
         }
 
-        // Keep the conflict-detection ref up to date on every poll
+        // Keep the conflict-detection refs up to date on every poll
 
         if (row.updatedAt) {
 
           setServerUpdatedAt(row.updatedAt);
 
+        }
+
+        // Integer version for optimistic concurrency (production-grade)
+        if (typeof row.syncVersion === 'number') {
+          setSyncVersion(row.syncVersion);
         }
 
 
