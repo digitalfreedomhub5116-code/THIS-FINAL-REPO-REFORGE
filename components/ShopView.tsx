@@ -379,8 +379,10 @@ const ShopView: React.FC<ShopViewProps> = ({
 
   // ── Border equip animation state ──
   const [equipAnimItem, setEquipAnimItem] = useState<KitStoreItem | null>(null);
-  const [equipAnimOldBorder, setEquipAnimOldBorder] = useState<string | null>(null);
   const [showEquipAnim, setShowEquipAnim] = useState(false);
+  // ── Confirm purchase modal ──
+  const [confirmPurchaseItem, setConfirmPurchaseItem] = useState<KitStoreItem | null>(null);
+  const [purchasing, setPurchasing] = useState(false);
 
 
   // Event Banner Carousel
@@ -780,48 +782,14 @@ const ShopView: React.FC<ShopViewProps> = ({
                 owned={DEV_UNLOCK_ALL || kitEconomy.owned.includes(item.id)}
                 equipped={kitEconomy.equipped.border === item.id}
                 canAfford={DEV_UNLOCK_ALL || gold >= item.price}
-                onBuy={async () => {
-                  const oldBorder = kitEconomy.equipped.border;
-                  // 1. Server-side gold deduction
-                  try {
-                    const headers = getPlayerAuthHeaders();
-                    const resp = await fetch(`${API_BASE}/api/economy/spend`, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json', ...headers },
-                      credentials: 'include',
-                      body: JSON.stringify({ action: 'cosmetic_purchase', amount: item.price, itemId: item.id }),
-                    });
-                    if (!resp.ok) {
-                      const err = await resp.json().catch(() => ({}));
-                      console.error('[Shop] Purchase failed:', err);
-                      return;
-                    }
-                    const { gold: newGold } = await resp.json();
-                    // 2. Update parent gold
-                    if (onGoldUpdate) onGoldUpdate(newGold);
-                  } catch (e) {
-                    console.error('[Shop] Purchase network error:', e);
-                    return;
-                  }
-                  // 3. Local economy update
-                  const p = kitPurchaseItem(item.id, item.price);
-                  if (p) {
-                    setKitEconomy(p);
-                    setEquipAnimOldBorder(oldBorder);
-                    setEquipAnimItem(item);
-                    setShowEquipAnim(true);
-                    handleKitEquip('border', item.id);
-                  }
-                }}
+                onBuy={() => setConfirmPurchaseItem(item)}
                 onEquip={() => {
-                  const oldBorder = kitEconomy.equipped.border;
-                  setEquipAnimOldBorder(oldBorder);
                   setEquipAnimItem(item);
                   setShowEquipAnim(true);
                   handleKitEquip('border', item.id);
                 }}
                 onInfo={() => setKitInfoItem(item)}
-                onView={item.category === 'border' ? () => setKitInfoItem(item) : undefined}
+                onView={() => setKitInfoItem(item)}
               />
             ))}
           </div>
@@ -946,16 +914,119 @@ const ShopView: React.FC<ShopViewProps> = ({
         <KitBorderPreviewModal item={kitInfoItem} onClose={() => setKitInfoItem(null)} />
       )}
 
+      {/* ── CONFIRM PURCHASE MODAL ── */}
+      {confirmPurchaseItem && (
+        <div onClick={() => { if (!purchasing) setConfirmPurchaseItem(null); }} style={{
+          position: 'fixed', inset: 0, zIndex: 99999,
+          background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 24,
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: 'linear-gradient(180deg, #14161e 0%, #0c0d14 100%)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: 20, padding: '28px 24px', width: '100%', maxWidth: 320,
+            textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
+          }}>
+            {/* Border preview */}
+            {confirmPurchaseItem.imageBorder && (
+              <div style={{ width: 80, height: 80, margin: '0 auto 16px', position: 'relative' }}>
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#1a1a2a' }} />
+                </div>
+                <img src={confirmPurchaseItem.imageBorder} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', mixBlendMode: 'screen', position: 'relative', zIndex: 1 }} />
+              </div>
+            )}
+            <div style={{ fontSize: 16, fontWeight: 900, color: '#fff', marginBottom: 4, fontFamily: 'Inter, system-ui, sans-serif' }}>
+              {confirmPurchaseItem.name}
+            </div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 20, fontFamily: 'Inter, system-ui, sans-serif' }}>
+              Confirm purchase?
+            </div>
+            {/* Price */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 20 }}>
+              <SystemCoin size={22} />
+              <span style={{ fontSize: 20, fontWeight: 900, color: '#fbbf24', fontFamily: 'Inter, system-ui, sans-serif' }}>
+                {confirmPurchaseItem.price}
+              </span>
+            </div>
+            {/* Buttons */}
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+              <button
+                disabled={purchasing}
+                onClick={() => setConfirmPurchaseItem(null)}
+                style={{
+                  padding: '10px 28px', borderRadius: 12, cursor: 'pointer',
+                  background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+                  color: 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: 700,
+                  fontFamily: 'Inter, system-ui, sans-serif',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                disabled={purchasing}
+                onClick={async () => {
+                  const item = confirmPurchaseItem;
+                  setPurchasing(true);
+                  // 1. Server-side gold deduction
+                  try {
+                    const headers = getPlayerAuthHeaders();
+                    const resp = await fetch(`${API_BASE}/api/economy/spend`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', ...headers },
+                      credentials: 'include',
+                      body: JSON.stringify({ action: 'cosmetic_purchase', amount: item.price, itemId: item.id }),
+                    });
+                    if (!resp.ok) {
+                      console.error('[Shop] Purchase failed');
+                      setPurchasing(false);
+                      setConfirmPurchaseItem(null);
+                      return;
+                    }
+                    const { gold: newGold } = await resp.json();
+                    if (onGoldUpdate) onGoldUpdate(newGold);
+                  } catch (e) {
+                    console.error('[Shop] Purchase error:', e);
+                    setPurchasing(false);
+                    setConfirmPurchaseItem(null);
+                    return;
+                  }
+                  // 2. Local economy
+                  const p = kitPurchaseItem(item.id, item.price);
+                  if (p) setKitEconomy(p);
+                  // 3. Equip
+                  handleKitEquip('border', item.id);
+                  // 4. Close confirm, show animation
+                  setConfirmPurchaseItem(null);
+                  setPurchasing(false);
+                  setEquipAnimItem(item);
+                  setShowEquipAnim(true);
+                }}
+                style={{
+                  padding: '10px 28px', borderRadius: 12, cursor: purchasing ? 'wait' : 'pointer',
+                  background: 'linear-gradient(135deg, #fbbf24, #d97706)',
+                  border: 'none', color: '#000', fontSize: 12, fontWeight: 900,
+                  fontFamily: 'Inter, system-ui, sans-serif',
+                  boxShadow: '0 0 20px rgba(251,191,36,0.3)',
+                  opacity: purchasing ? 0.6 : 1,
+                }}
+              >
+                {purchasing ? 'Buying...' : 'Buy Now'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── BORDER EQUIP ANIMATION OVERLAY ── */}
       <BorderEquipOverlay
         show={showEquipAnim}
         borderItem={equipAnimItem}
         avatarUrl={playerAvatarUrl}
-        oldBorderId={equipAnimOldBorder}
         onComplete={() => {
           setShowEquipAnim(false);
           setEquipAnimItem(null);
-          setEquipAnimOldBorder(null);
         }}
       />
     </div>
@@ -1086,19 +1157,6 @@ function KitGlowCard({ item, discount, owned, equipped, canAfford, onBuy, onEqui
             </div>
           )}
 
-          {/* ── View Button (borders only) ── */}
-          {onView && item.category === 'border' && (
-            <div onClick={(e) => { e.stopPropagation(); onView(); }} style={{
-              position: 'absolute', top: 8, right: onInfo ? 36 : 8, zIndex: 3,
-              width: 22, height: 22, borderRadius: 6,
-              background: `${catColor}30`, border: `1px solid ${catColor}50`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer',
-            }}>
-              <Eye size={11} color={catColor} />
-            </div>
-          )}
-
           {/* ── Name & Category ── */}
           <div style={{ position: 'relative', zIndex: 2, marginBottom: 10, marginTop: discount ? 18 : 0 }}>
             <div style={{ fontSize: 15, fontWeight: 900, color: '#fff', lineHeight: 1.2, marginBottom: 3, textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
@@ -1160,8 +1218,8 @@ function KitGlowCard({ item, discount, owned, equipped, canAfford, onBuy, onEqui
             )}
           </div>
 
-          {/* ── Bottom Action Button ── */}
-          <div style={{ position: 'relative', zIndex: 2, marginTop: 10, width: '100%' }}>
+          {/* ── Bottom: Buy + View ── */}
+          <div style={{ position: 'relative', zIndex: 2, marginTop: 10, width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
             {owned ? (
               onEquip ? (
                 <button onClick={onEquip} style={{
@@ -1180,7 +1238,7 @@ function KitGlowCard({ item, discount, owned, equipped, canAfford, onBuy, onEqui
               )
             ) : (
               <button onClick={onBuy} disabled={!canAfford} style={{
-                display: 'inline-flex', alignItems: 'center', gap: 5,
+                display: 'inline-flex', alignItems: 'center', gap: 6,
                 padding: '8px 22px', borderRadius: 20, cursor: canAfford ? 'pointer' : 'default',
                 background: canAfford ? `linear-gradient(135deg, ${catColor}35, ${catColor}15)` : 'rgba(255,255,255,0.04)',
                 border: canAfford ? `2px solid ${catColor}60` : '2px solid rgba(255,255,255,0.08)',
@@ -1190,8 +1248,29 @@ function KitGlowCard({ item, discount, owned, equipped, canAfford, onBuy, onEqui
                 transition: 'all 0.2s',
               }}>
                 {discount && <span style={{ textDecoration: 'line-through', opacity: 0.35, fontSize: 10 }}>{item.price}</span>}
-                {canAfford ? <SystemCoin size={15} /> : <Lock size={12} />}
+                {canAfford ? (
+                  <Lock size={13} color="#fbbf24" />
+                ) : (
+                  <Lock size={12} />
+                )}
+                <SystemCoin size={20} />
                 <span style={{ fontSize: 14 }}>{finalPrice}</span>
+              </button>
+            )}
+
+            {/* ── View button (below buy, always visible for borders) ── */}
+            {item.category === 'border' && onView && (
+              <button onClick={(e) => { e.stopPropagation(); onView(); }} style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                padding: '5px 16px', borderRadius: 14, cursor: 'pointer',
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                color: 'rgba(255,255,255,0.45)',
+                fontSize: 10, fontWeight: 700, letterSpacing: 0.5,
+                transition: 'all 0.2s',
+              }}>
+                <Eye size={11} />
+                View
               </button>
             )}
           </div>
