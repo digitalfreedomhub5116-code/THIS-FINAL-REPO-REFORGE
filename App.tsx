@@ -1480,17 +1480,21 @@ const App: React.FC = () => {
 
             if (levelChangedInDb && dbRequiredXp !== prev.requiredXp) updates.requiredXp = dbRequiredXp;
 
-            // D/W/M stats: always server-authoritative (handles resets)
+            // D/W/M stats: only overwrite local if server performed a RESET
+            // (server sum < local sum = period reset happened)
+            // Don't overwrite when server has stale data from a failed PUT
+            const sumStats = (s: any) => s ? (s.strength||0)+(s.intelligence||0)+(s.discipline||0)+(s.social||0)+(s.focus||0)+(s.willpower||0) : 0;
             const dbDailyStats2 = row.dailyStats;
             const dbWeeklyStats2 = row.weeklyStats;
             const dbMonthlyStats2 = row.monthlyStats;
-            if (dbDailyStats2 && JSON.stringify(dbDailyStats2) !== JSON.stringify(prev.dailyStats)) {
+            // Only apply if server has LESS (reset happened) — never overwrite higher local values
+            if (dbDailyStats2 && sumStats(dbDailyStats2) < sumStats(prev.dailyStats)) {
               updates.dailyStats = dbDailyStats2;
             }
-            if (dbWeeklyStats2 && JSON.stringify(dbWeeklyStats2) !== JSON.stringify(prev.weeklyStats)) {
+            if (dbWeeklyStats2 && sumStats(dbWeeklyStats2) < sumStats(prev.weeklyStats)) {
               updates.weeklyStats = dbWeeklyStats2;
             }
-            if (dbMonthlyStats2 && JSON.stringify(dbMonthlyStats2) !== JSON.stringify(prev.monthlyStats)) {
+            if (dbMonthlyStats2 && sumStats(dbMonthlyStats2) < sumStats(prev.monthlyStats)) {
               updates.monthlyStats = dbMonthlyStats2;
             }
 

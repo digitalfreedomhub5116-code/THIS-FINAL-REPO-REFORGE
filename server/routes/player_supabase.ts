@@ -229,6 +229,20 @@ router.get('/:id/sync', async (req: Request, res: Response) => {
       console.log(`[Stats Reset] ${id.slice(-8)}: Reset ${Object.keys(statResetFields).filter(k => k.includes('stats')).join(', ')}`);
     }
 
+    // Re-read updated_at AFTER all writes (streak, milestones, stat resets)
+    // so the client gets the ACTUAL current timestamp — prevents 409 conflicts
+    let finalUpdatedAt = row.updated_at || null;
+    if (streakUpdated || Object.keys(statResetFields).length > 0 || streakMilestone) {
+      try {
+        const { data: refreshed } = await (supabaseServer() as any)
+          .from('players')
+          .select('updated_at')
+          .eq('supabase_id', id)
+          .single();
+        if (refreshed?.updated_at) finalUpdatedAt = refreshed.updated_at;
+      } catch { /* non-critical */ }
+    }
+
     return res.json({
       gold: row.gold,
       keys: row.keys,
@@ -257,7 +271,7 @@ router.get('/:id/sync', async (req: Request, res: Response) => {
       maxHp: row.max_hp ?? 100,
       mp: row.mp ?? 100,
       maxMp: row.max_mp ?? 100,
-      updatedAt: row.updated_at || null,
+      updatedAt: finalUpdatedAt,
       // D/W/M stats (server-authoritative after resets)
       dailyStats: serverDailyStats,
       weeklyStats: serverWeeklyStats,
