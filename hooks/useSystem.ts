@@ -685,8 +685,12 @@ export const useSystem = () => {
   // ── AUTO STREAK TRACKING (24-HOUR RULE) ──
   // The streak dies if the user misses a full calendar day without opening the app.
   // When the user logs in again after a break, streak restarts at 1.
-  // This is the SINGLE SOURCE OF TRUTH for streak — no other function should recalculate it.
+  // IMPORTANT: Waits for dataReady (Supabase-first) so it uses the server's streak
+  // as the base, not stale localStorage.
   useEffect(() => {
+    // Don't compute streak until server data has arrived (or 5s fallback)
+    if (!dataReady) return;
+
     const today = toLocalDateStr();
     const lastLogin = player.lastLoginDate;
 
@@ -724,7 +728,7 @@ export const useSystem = () => {
         discipline: (prev.stats?.discipline || 0) + 1,
       },
     }));
-  }, [player.lastLoginDate]);
+  }, [player.lastLoginDate, dataReady]);
 
   const registerUser = (profile: { id?: string; name?: string; username?: string; raw_data?: Partial<PlayerData>; replitUser?: ReplitUser }) => {
     setPlayer(prev => {
