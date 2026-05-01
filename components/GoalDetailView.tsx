@@ -507,6 +507,10 @@ export default function GoalDetailView({
   const toggleQuestComplete = useCallback((questId: string) => {
     if (!todayTasks) return;
 
+    // Check if this quest is being completed (was not completed before)
+    const originalQuest = todayTasks.quests.find(q => q.id === questId);
+    const isBeingCompleted = originalQuest && !originalQuest.completed;
+
     const updatedQuests = todayTasks.quests.map(q =>
       q.id === questId ? { ...q, completed: !q.completed } : q
     );
@@ -525,6 +529,24 @@ export default function GoalDetailView({
       dailyTasks: [...(goal.dailyTasks || []).filter(t => t.date !== todayStr), updatedDailyTask],
     };
     onUpdateGoal(updatedGoal);
+
+    // ── CRITICAL: Dispatch event to grant XP, stats, and gold ──
+    // Goal quests live in a separate data structure from player.quests.
+    // Without this event, completing goal quests never awards any rewards,
+    // dailyXp stays 0, dailyStats stay empty, and the Growth Terminal graph never grows.
+    if (isBeingCompleted && originalQuest) {
+      window.dispatchEvent(new CustomEvent('goal-quest:completed', {
+        detail: {
+          id: originalQuest.id,
+          title: originalQuest.title,
+          xp: originalQuest.xp || 50,
+          category: originalQuest.categories?.[0] || 'discipline',
+          rank: originalQuest.rank || 'E',
+          goalId: goal.id,
+          goalTitle: goal.title,
+        }
+      }));
+    }
 
     if (allCompleted) {
       playSystemSoundEffect('PURCHASE');

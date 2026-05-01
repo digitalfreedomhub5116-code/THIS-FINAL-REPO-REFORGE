@@ -441,6 +441,89 @@ export const useSystem = () => {
     };
   }, [player, syncToCloud]);
 
+  // ── Goal Quest Completion Listener ──
+  // Goal quests live in goal.dailyTasks[].quests[] — a separate data structure
+  // from player.quests[]. When GoalDetailView toggles a goal quest as completed,
+  // it dispatches 'goal-quest:completed'. We listen here to award XP, stats, gold.
+  useEffect(() => {
+    const handleGoalQuestComplete = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (!detail) return;
+      const { id, title, xp, category, rank, goalTitle } = detail;
+      const xpReward = xp || 50;
+      const RANK_GOLD: Record<string, number> = { E: 10, D: 20, C: 40, B: 80, A: 150, S: 300 };
+      const goldReward = RANK_GOLD[rank] || 20;
+      const primaryCat = category || 'discipline';
+
+      setPlayer(prev => {
+        const stats = { ...prev.stats };
+        const dailyStats = { ...prev.dailyStats };
+        const weeklyStats = { ...prev.weeklyStats };
+        const monthlyStats = { ...prev.monthlyStats };
+
+        // Award +1 stat point (same logic as completeQuest)
+        const STAT_DAILY_CAP = 5;
+        const OVERFLOW_ORDER: (keyof typeof dailyStats)[] = ['discipline','focus','willpower','social','intelligence','strength'];
+        if ((dailyStats[primaryCat] || 0) < STAT_DAILY_CAP) {
+          stats[primaryCat] = (stats[primaryCat] || 0) + 1;
+          dailyStats[primaryCat] = (dailyStats[primaryCat] || 0) + 1;
+          weeklyStats[primaryCat] = (weeklyStats[primaryCat] || 0) + 1;
+          monthlyStats[primaryCat] = (monthlyStats[primaryCat] || 0) + 1;
+        } else {
+          for (const overflowStat of OVERFLOW_ORDER) {
+            if (overflowStat !== primaryCat && (dailyStats[overflowStat] || 0) < STAT_DAILY_CAP) {
+              stats[overflowStat] = (stats[overflowStat] || 0) + 1;
+              dailyStats[overflowStat] = (dailyStats[overflowStat] || 0) + 1;
+              weeklyStats[overflowStat] = (weeklyStats[overflowStat] || 0) + 1;
+              monthlyStats[overflowStat] = (monthlyStats[overflowStat] || 0) + 1;
+              break;
+            }
+          }
+        }
+
+        // Award XP
+        let { currentXp, requiredXp, level, totalXp, dailyXp } = prev;
+        currentXp += xpReward;
+        totalXp += xpReward;
+        dailyXp += xpReward;
+
+        // Level up check
+        const lu = safeLevelUp(currentXp, requiredXp, level);
+        currentXp = lu.currentXp; requiredXp = lu.requiredXp; level = lu.level;
+        const leveledUp = lu.leveledUp;
+
+        // Award gold
+        const gold = prev.gold + goldReward;
+
+        const logMsg = `Goal Quest Complete: ${title} (+${xpReward} XP, +${goldReward}G) [${goalTitle}]`;
+        const newLogs = [createLog(logMsg, 'XP'), ...prev.logs];
+        if (leveledUp) {
+          newLogs.unshift(createLog(`LEVEL UP! REACHED LEVEL ${level}`, 'LEVEL_UP'));
+          playSystemSoundEffect('LEVEL_UP');
+          window.dispatchEvent(new CustomEvent('player:levelup', { detail: { level } }));
+        } else {
+          playSystemSoundEffect('SUCCESS');
+        }
+
+        // Dispatch quest:completed for leaderboard refresh etc.
+        window.dispatchEvent(new CustomEvent('quest:completed', { detail: { id, title } }));
+        // Trigger Dusk reaction
+        triggerDuskMessage(`Goal Quest Completed: "${title}" (+${xpReward} XP)`);
+
+        return {
+          ...prev,
+          stats, dailyStats, weeklyStats, monthlyStats,
+          currentXp, requiredXp, level, rank: lu.rank, totalXp, dailyXp,
+          gold, logs: newLogs,
+          ...(leveledUp ? { hp: prev.maxHp, mp: prev.maxMp } : {}),
+        };
+      });
+    };
+
+    window.addEventListener('goal-quest:completed', handleGoalQuestComplete);
+    return () => window.removeEventListener('goal-quest:completed', handleGoalQuestComplete);
+  }, []);
+
   const addNotification = useCallback((message: string, type: NotificationType) => {
     const id = Date.now().toString();
     setNotifications(prev => [...prev, { id, message, type }]);
