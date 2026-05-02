@@ -59,6 +59,7 @@ async function startServer() {
   const questsRouter = await import('./routes/quests_supabase.js');
   const leagueRouter = await import('./routes/league.js');
   const economyRouter = await import('./routes/economy.js');
+  const inventoryRouter = await import('./routes/inventory.js');
 
   const app = express();
   const PORT = process.env.PORT ? parseInt(process.env.PORT) : 8001;
@@ -212,6 +213,7 @@ async function startServer() {
   app.use('/api/auth/local', generalRateLimit, localAuthRouter.default);
   app.use('/api/league', generalRateLimit, leagueRouter.default);
   app.use('/api/economy', generalRateLimit, economyRouter.default);
+  app.use('/api/inventory', generalRateLimit, inventoryRouter.default);
 
   // Google OAuth setup
   setupGoogleAuth(app);

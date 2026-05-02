@@ -17,6 +17,7 @@ import { getItemsByCategory, getTodaysDeals, type StoreItem as KitStoreItem, ALL
 import { getEconomy, purchaseItem as kitPurchaseItem, equipItem as kitEquipItem, applyThemeVars, DEV_UNLOCK_ALL, type EquippedItems } from '../utils/storeEconomy';
 import { syncBorderToPlayers } from '../lib/borderSync';
 import { LynxCoin, BorderRing, ThemeSwatch } from './StoreComponents';
+import { Package } from 'lucide-react';
 
 const WardrobePreviewCard = lazy(() => import('./WardrobePreviewCard'));
 const BadgesSection = lazy(() => import('./BadgesSection'));
@@ -389,6 +390,55 @@ const ShopView: React.FC<ShopViewProps> = ({
   const [confirmPurchaseItem, setConfirmPurchaseItem] = useState<KitStoreItem | null>(null);
   const [purchasing, setPurchasing] = useState(false);
 
+  // ── Server-authoritative inventory ──
+  interface InventoryItem { item_id: string; item_type: string; source: string; }
+  const [serverInventory, setServerInventory] = useState<InventoryItem[]>([]);
+  const [inventoryLoaded, setInventoryLoaded] = useState(false);
+  const [showInventoryPanel, setShowInventoryPanel] = useState(false);
+
+  // Helper: check if item is owned (server inventory)
+  const isItemOwned = useCallback((itemId: string) => {
+    if (DEV_UNLOCK_ALL) return true;
+    return serverInventory.some(i => i.item_id === itemId);
+  }, [serverInventory]);
+
+  // Fetch inventory on mount
+  useEffect(() => {
+    const headers = getPlayerAuthHeaders();
+    fetch(`${API_BASE}/api/inventory`, { credentials: 'include', headers })
+      .then(r => r.ok ? r.json() : { items: [] })
+      .then(data => {
+        if (Array.isArray(data.items)) {
+          setServerInventory(data.items);
+          // Migrate localStorage owned items to server (one-time)
+          const localEco = getEconomy();
+          const serverIds = new Set(data.items.map((i: InventoryItem) => i.item_id));
+          const missingItems = localEco.owned
+            .filter(id => !serverIds.has(id))
+            .map(id => {
+              const item = ALL_STORE_ITEMS.find(si => si.id === id);
+              return item ? { itemId: id, itemType: item.category } : null;
+            })
+            .filter(Boolean);
+          if (missingItems.length > 0) {
+            fetch(`${API_BASE}/api/inventory/migrate`, {
+              method: 'POST', headers: { 'Content-Type': 'application/json', ...headers },
+              credentials: 'include', body: JSON.stringify({ items: missingItems }),
+            }).then(r => r.ok ? r.json() : null).then(res => {
+              if (res?.migrated > 0) {
+                // Re-fetch inventory after migration
+                fetch(`${API_BASE}/api/inventory`, { credentials: 'include', headers })
+                  .then(r => r.ok ? r.json() : { items: [] })
+                  .then(d => { if (Array.isArray(d.items)) setServerInventory(d.items); });
+              }
+            }).catch(() => {});
+          }
+        }
+        setInventoryLoaded(true);
+      })
+      .catch(() => setInventoryLoaded(true));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
 
   // Event Banner Carousel
   const [banners, setBanners] = useState<EventBanner[]>([]);
@@ -496,6 +546,176 @@ const ShopView: React.FC<ShopViewProps> = ({
   return (
     <div id="tut-store" className="space-y-7 pb-24">
 
+      {/* ═══ INVENTORY BUTTON (top bar) ═══ */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <SystemCoin size={18} />
+          <span style={{ fontSize: 14, fontWeight: 900, color: '#fbbf24', fontFamily: 'monospace' }}>{(gold || 0).toLocaleString()}</span>
+        </div>
+        <button
+          onClick={() => setShowInventoryPanel(!showInventoryPanel)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: '6px 14px', borderRadius: 10,
+            background: showInventoryPanel ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.04)',
+            border: showInventoryPanel ? '1px solid rgba(139,92,246,0.3)' : '1px solid rgba(255,255,255,0.08)',
+            color: showInventoryPanel ? '#a78bfa' : 'rgba(255,255,255,0.5)',
+            fontSize: 11, fontWeight: 800, cursor: 'pointer',
+            letterSpacing: '0.05em', textTransform: 'uppercase' as const,
+            transition: 'all 0.2s',
+          }}
+        >
+          <Package size={13} />
+          Inventory
+          {serverInventory.length > 0 && (
+            <span style={{
+              fontSize: 9, fontWeight: 900, padding: '1px 6px', borderRadius: 6,
+              background: 'rgba(139,92,246,0.2)', color: '#a78bfa',
+            }}>{serverInventory.length}</span>
+          )}
+        </button>
+      </div>
+
+      {/* ═══ INVENTORY PANEL (collapsible) ═══ */}
+      <AnimatePresence>
+        {showInventoryPanel && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            style={{ overflow: 'hidden' }}
+          >
+            <div style={{
+              background: 'linear-gradient(180deg, rgba(139,92,246,0.06) 0%, rgba(10,10,15,0.95) 100%)',
+              border: '1px solid rgba(139,92,246,0.12)',
+              borderRadius: 16, padding: '16px 14px', marginBottom: 8,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                <div style={{ fontSize: 13, fontWeight: 900, color: '#a78bfa', letterSpacing: '0.05em' }}>📦 MY INVENTORY</div>
+                <button onClick={() => setShowInventoryPanel(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', fontSize: 16 }}>✕</button>
+              </div>
+
+              {/* Borders */}
+              {(() => {
+                const ownedBorderItems = serverInventory.filter(i => i.item_type === 'border');
+                if (ownedBorderItems.length === 0) return null;
+                return (
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>
+                      BORDERS ({ownedBorderItems.length})
+                    </div>
+                    <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4 }}>
+                      {ownedBorderItems.map(inv => {
+                        const storeItem = ALL_STORE_ITEMS.find(s => s.id === inv.item_id);
+                        if (!storeItem) return null;
+                        const isEquipped = kitEconomy.equipped.border === inv.item_id;
+                        return (
+                          <div key={inv.item_id} onClick={() => handleKitEquip('border', inv.item_id)} style={{
+                            flexShrink: 0, width: 80, textAlign: 'center', cursor: 'pointer',
+                            padding: 8, borderRadius: 12,
+                            background: isEquipped ? 'rgba(139,92,246,0.12)' : 'rgba(255,255,255,0.02)',
+                            border: isEquipped ? '1.5px solid rgba(139,92,246,0.3)' : '1px solid rgba(255,255,255,0.06)',
+                            transition: 'all 0.2s',
+                          }}>
+                            {storeItem.imageBorder && (
+                              <img src={storeItem.imageBorder} alt="" style={{ width: 50, height: 50, objectFit: 'contain', margin: '0 auto 6px', display: 'block', mixBlendMode: 'screen' }} />
+                            )}
+                            <div style={{ fontSize: 9, fontWeight: 700, color: isEquipped ? '#a78bfa' : 'rgba(255,255,255,0.5)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {storeItem.name}
+                            </div>
+                            {isEquipped && <div style={{ fontSize: 7, color: '#22c55e', fontWeight: 900, marginTop: 2 }}>✓ ON</div>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Banners */}
+              {(() => {
+                const ownedBannerItems = serverInventory.filter(i => i.item_type === 'banner');
+                if (ownedBannerItems.length === 0) return null;
+                return (
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>
+                      BANNERS ({ownedBannerItems.length})
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {ownedBannerItems.map(inv => {
+                        const storeItem = ALL_STORE_ITEMS.find(s => s.id === inv.item_id);
+                        if (!storeItem) return null;
+                        const isEquipped = kitEconomy.equipped.banner === inv.item_id;
+                        return (
+                          <div key={inv.item_id} onClick={() => handleKitEquip('banner', inv.item_id)} style={{
+                            display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
+                            padding: '8px 10px', borderRadius: 10,
+                            background: isEquipped ? 'rgba(6,182,212,0.08)' : 'rgba(255,255,255,0.02)',
+                            border: isEquipped ? '1px solid rgba(6,182,212,0.2)' : '1px solid rgba(255,255,255,0.05)',
+                            transition: 'all 0.2s',
+                          }}>
+                            {storeItem.bannerImage && (
+                              <img src={storeItem.bannerImage} alt="" style={{ width: 60, height: 34, borderRadius: 6, objectFit: 'cover' }} />
+                            )}
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 11, fontWeight: 800, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{storeItem.name}</div>
+                              <div style={{ fontSize: 8, color: isEquipped ? '#06B6D4' : 'rgba(255,255,255,0.3)' }}>
+                                {isEquipped ? '✓ EQUIPPED' : 'Tap to equip'}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Outfits */}
+              {(() => {
+                const ownedOutfitItems = serverInventory.filter(i => i.item_type === 'outfit');
+                if (ownedOutfitItems.length === 0) return null;
+                return (
+                  <div>
+                    <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>
+                      OUTFITS ({ownedOutfitItems.length})
+                    </div>
+                    <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4 }}>
+                      {ownedOutfitItems.map(inv => {
+                        const isEquipped = wardrobeEquippedOutfitId === inv.item_id;
+                        return (
+                          <div key={inv.item_id} style={{
+                            flexShrink: 0, width: 80, textAlign: 'center',
+                            padding: 8, borderRadius: 12,
+                            background: isEquipped ? 'rgba(139,92,246,0.12)' : 'rgba(255,255,255,0.02)',
+                            border: isEquipped ? '1.5px solid rgba(139,92,246,0.3)' : '1px solid rgba(255,255,255,0.06)',
+                          }}>
+                            <div style={{ width: 40, height: 40, margin: '0 auto 6px', borderRadius: '50%', background: isEquipped ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>
+                              ⚔️
+                            </div>
+                            <div style={{ fontSize: 9, fontWeight: 700, color: isEquipped ? '#a78bfa' : 'rgba(255,255,255,0.5)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {inv.item_id.replace('outfit_', '').replace(/_/g, ' ')}
+                            </div>
+                            {isEquipped && <div style={{ fontSize: 7, color: '#22c55e', fontWeight: 900, marginTop: 2 }}>✓ ON</div>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {serverInventory.length === 0 && (
+                <div style={{ textAlign: 'center', padding: '20px 0', color: 'rgba(255,255,255,0.25)', fontSize: 12 }}>
+                  No items yet — visit the shop below!
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* ═══════════════════════════════════════════
            EVENT BANNER CAROUSEL (top hero)
          ═══════════════════════════════════════════ */}
@@ -565,13 +785,25 @@ const ShopView: React.FC<ShopViewProps> = ({
           {getTodaysDeals(4).map(d => (
             <div key={d.item.id}>
                <KitGlowCard item={d.item} discount={d.discount}
-                owned={DEV_UNLOCK_ALL || kitEconomy.owned.includes(d.item.id)}
+                owned={isItemOwned(d.item.id)}
                 equipped={kitEconomy.equipped[d.item.category as keyof EquippedItems] === d.item.id}
                 canAfford={DEV_UNLOCK_ALL || gold >= Math.round(d.item.price * (1 - d.discount / 100))}
-                onBuy={() => {
+                onBuy={async () => {
                   if (d.item.category === 'border') { setConfirmPurchaseItem(d.item); return; }
-                  const p = kitPurchaseItem(d.item.id, Math.round(d.item.price * (1 - d.discount / 100)));
-                  if (p) { setKitEconomy(p); setKitPurchasedId(d.item.id); setTimeout(() => setKitPurchasedId(null), 1500); }
+                  const dealPrice = Math.round(d.item.price * (1 - d.discount / 100));
+                  try {
+                    const headers = getPlayerAuthHeaders();
+                    const resp = await fetch(`${API_BASE}/api/inventory/purchase`, {
+                      method: 'POST', headers: { 'Content-Type': 'application/json', ...headers },
+                      credentials: 'include', body: JSON.stringify({ itemId: d.item.id, itemType: d.item.category, price: dealPrice }),
+                    });
+                    if (!resp.ok) return;
+                    const { gold: newGold } = await resp.json();
+                    if (onGoldUpdate) onGoldUpdate(newGold);
+                    setServerInventory(prev => [...prev, { item_id: d.item.id, item_type: d.item.category, source: 'purchase' }]);
+                    const p = kitPurchaseItem(d.item.id, dealPrice);
+                    if (p) { setKitEconomy(p); setKitPurchasedId(d.item.id); setTimeout(() => setKitPurchasedId(null), 1500); }
+                  } catch { /* network error */ }
                 }}
                 onEquip={d.item.category !== 'consumable' ? () => handleKitEquip(d.item.category as keyof EquippedItems, d.item.id) : undefined}
                 onInfo={() => setKitInfoItem(d.item)}
@@ -596,6 +828,8 @@ const ShopView: React.FC<ShopViewProps> = ({
           {getItemsByCategory('banner').map(item => {
             const isEquipped = kitEconomy.equipped.banner === item.id;
             const isDefault = item.id === 'banner-reforge-default';
+            const isOwned = isItemOwned(item.id);
+            const canBuy = !isOwned && item.price > 0;
             return (
               <div key={item.id} style={{ flexShrink: 0, width: 260, borderRadius: 16, overflow: 'hidden', position: 'relative', border: isEquipped ? '2px solid rgba(6,182,212,0.5)' : '1px solid rgba(255,255,255,0.06)', boxShadow: isEquipped ? '0 0 20px rgba(6,182,212,0.15)' : 'none' }}>
                 {item.bannerImage && (
@@ -610,12 +844,33 @@ const ShopView: React.FC<ShopViewProps> = ({
                 <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '10px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 2 }}>
                   <div>
                     <div style={{ fontSize: 12, fontWeight: 900, color: '#fff' }}>{item.name}</div>
-                    {item.price > 0 && <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontFamily: 'monospace' }}>{item.price} G</div>}
+                    {canBuy && <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontFamily: 'monospace' }}>{item.price} G</div>}
                     {item.price === 0 && <div style={{ fontSize: 10, color: '#06B6D4', fontFamily: 'monospace', fontWeight: 700 }}>FREE</div>}
+                    {isOwned && item.price > 0 && <div style={{ fontSize: 9, color: '#22c55e', fontWeight: 700 }}>OWNED</div>}
                   </div>
-                  <button onClick={() => handleKitEquip('banner', item.id)} style={{ padding: '6px 14px', borderRadius: 10, fontSize: 10, fontWeight: 900, letterSpacing: '0.05em', border: 'none', cursor: 'pointer', background: isEquipped ? 'rgba(255,255,255,0.1)' : 'linear-gradient(135deg, #06B6D4, #0891b2)', color: isEquipped ? 'rgba(255,255,255,0.5)' : '#fff', textTransform: 'uppercase' }}>
-                    {isEquipped ? '✓ EQUIPPED' : 'EQUIP'}
-                  </button>
+                  {canBuy ? (
+                    <button onClick={async () => {
+                      try {
+                        const headers = getPlayerAuthHeaders();
+                        const resp = await fetch(`${API_BASE}/api/inventory/purchase`, {
+                          method: 'POST', headers: { 'Content-Type': 'application/json', ...headers },
+                          credentials: 'include', body: JSON.stringify({ itemId: item.id, itemType: 'banner', price: item.price }),
+                        });
+                        if (!resp.ok) return;
+                        const { gold: newGold } = await resp.json();
+                        if (onGoldUpdate) onGoldUpdate(newGold);
+                        setServerInventory(prev => [...prev, { item_id: item.id, item_type: 'banner', source: 'purchase' }]);
+                        kitPurchaseItem(item.id, item.price);
+                        setKitEconomy(getEconomy());
+                      } catch { /* network */ }
+                    }} disabled={gold < item.price} style={{ padding: '6px 14px', borderRadius: 10, fontSize: 10, fontWeight: 900, letterSpacing: '0.05em', border: 'none', cursor: gold >= item.price ? 'pointer' : 'not-allowed', background: gold >= item.price ? 'linear-gradient(135deg, #fbbf24, #d97706)' : 'rgba(255,255,255,0.06)', color: gold >= item.price ? '#000' : 'rgba(255,255,255,0.3)', textTransform: 'uppercase' as const }}>
+                      BUY
+                    </button>
+                  ) : (
+                    <button onClick={() => handleKitEquip('banner', item.id)} style={{ padding: '6px 14px', borderRadius: 10, fontSize: 10, fontWeight: 900, letterSpacing: '0.05em', border: 'none', cursor: 'pointer', background: isEquipped ? 'rgba(255,255,255,0.1)' : 'linear-gradient(135deg, #06B6D4, #0891b2)', color: isEquipped ? 'rgba(255,255,255,0.5)' : '#fff', textTransform: 'uppercase' as const }}>
+                      {isEquipped ? '✓ EQUIPPED' : 'EQUIP'}
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -641,7 +896,7 @@ const ShopView: React.FC<ShopViewProps> = ({
           {BORDERS_ELEMENTS.map(item => (
             <div key={item.id} style={{ flexShrink: 0, width: 170 }}>
               <KitGlowCard item={item}
-                owned={DEV_UNLOCK_ALL || kitEconomy.owned.includes(item.id)}
+                owned={isItemOwned(item.id)}
                 equipped={kitEconomy.equipped.border === item.id}
                 canAfford={DEV_UNLOCK_ALL || gold >= item.price}
                 onBuy={() => setConfirmPurchaseItem(item)}
@@ -673,7 +928,7 @@ const ShopView: React.FC<ShopViewProps> = ({
           {BORDERS_BEASTS.map(item => (
             <div key={item.id} style={{ flexShrink: 0, width: 170 }}>
               <KitGlowCard item={item}
-                owned={DEV_UNLOCK_ALL || kitEconomy.owned.includes(item.id)}
+                owned={isItemOwned(item.id)}
                 equipped={kitEconomy.equipped.border === item.id}
                 canAfford={DEV_UNLOCK_ALL || gold >= item.price}
                 onBuy={() => setConfirmPurchaseItem(item)}
@@ -705,7 +960,7 @@ const ShopView: React.FC<ShopViewProps> = ({
           {BORDERS_SHIELDS.map(item => (
             <div key={item.id} style={{ flexShrink: 0, width: 170 }}>
               <KitGlowCard item={item}
-                owned={DEV_UNLOCK_ALL || kitEconomy.owned.includes(item.id)}
+                owned={isItemOwned(item.id)}
                 equipped={kitEconomy.equipped.border === item.id}
                 canAfford={DEV_UNLOCK_ALL || gold >= item.price}
                 onBuy={() => setConfirmPurchaseItem(item)}
@@ -737,7 +992,7 @@ const ShopView: React.FC<ShopViewProps> = ({
           {BORDERS_EXCLUSIVE.map(item => (
             <div key={item.id} style={{ flexShrink: 0, width: 170 }}>
               <KitGlowCard item={item}
-                owned={DEV_UNLOCK_ALL || kitEconomy.owned.includes(item.id)}
+                owned={isItemOwned(item.id)}
                 equipped={kitEconomy.equipped.border === item.id}
                 canAfford={DEV_UNLOCK_ALL || gold >= item.price}
                 onBuy={() => setConfirmPurchaseItem(item)}
@@ -974,7 +1229,7 @@ const ShopView: React.FC<ShopViewProps> = ({
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
             {getItemsByCategory('theme').map(item => (
               <KitGlowCard key={item.id} item={item}
-                owned={DEV_UNLOCK_ALL || kitEconomy.owned.includes(item.id)}
+                owned={isItemOwned(item.id)}
                 equipped={kitEconomy.equipped.theme === item.id}
                 canAfford={DEV_UNLOCK_ALL || gold >= item.price}
                 onBuy={() => { const p = kitPurchaseItem(item.id, item.price); if (p) { setKitEconomy(p); } }}
@@ -996,7 +1251,7 @@ const ShopView: React.FC<ShopViewProps> = ({
         <KitBorderPreviewModal
           item={kitInfoItem}
           onClose={() => setKitInfoItem(null)}
-          owned={DEV_UNLOCK_ALL || kitEconomy.owned.includes(kitInfoItem.id)}
+          owned={isItemOwned(kitInfoItem.id)}
           equipped={kitEconomy.equipped.border === kitInfoItem.id}
           canAfford={DEV_UNLOCK_ALL || gold >= kitInfoItem.price}
           onBuy={() => { setKitInfoItem(null); setConfirmPurchaseItem(kitInfoItem); }}
@@ -1043,16 +1298,24 @@ const ShopView: React.FC<ShopViewProps> = ({
                 setPurchasing(true);
                 try {
                   const headers = getPlayerAuthHeaders();
-                  const resp = await fetch(`${API_BASE}/api/economy/spend`, {
+                  // Server-authoritative purchase: atomic gold deduct + inventory insert
+                  const resp = await fetch(`${API_BASE}/api/inventory/purchase`, {
                     method: 'POST', headers: { 'Content-Type': 'application/json', ...headers },
-                    credentials: 'include', body: JSON.stringify({ action: 'cosmetic_purchase', amount: item.price, itemId: item.id }),
+                    credentials: 'include', body: JSON.stringify({ itemId: item.id, itemType: item.category, price: item.price }),
                   });
-                  if (!resp.ok) { setPurchasing(false); setConfirmPurchaseItem(null); return; }
+                  if (!resp.ok) {
+                    const errData = await resp.json().catch(() => ({}));
+                    console.error('[Store] Purchase failed:', errData);
+                    setPurchasing(false); setConfirmPurchaseItem(null); return;
+                  }
                   const { gold: newGold } = await resp.json();
                   if (onGoldUpdate) onGoldUpdate(newGold);
-                } catch (e) { setPurchasing(false); setConfirmPurchaseItem(null); return; }
-                const p = kitPurchaseItem(item.id, item.price);
-                if (p) setKitEconomy(p);
+                  // Update server inventory locally
+                  setServerInventory(prev => [...prev, { item_id: item.id, item_type: item.category, source: 'purchase' }]);
+                  // Also update localStorage for backward compat
+                  const p = kitPurchaseItem(item.id, item.price);
+                  if (p) setKitEconomy(p);
+                } catch (e) { console.error('[Store] Purchase error:', e); setPurchasing(false); setConfirmPurchaseItem(null); return; }
                 handleKitEquip('border', item.id);
                 setConfirmPurchaseItem(null);
                 setPurchasing(false);

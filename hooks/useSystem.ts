@@ -2164,24 +2164,56 @@ export const useSystem = () => {
     }
   }, [removeStrike, addNotification]);
 
-  const purchaseOutfit = useCallback((outfit: { id: string; name: string; cost: number; keyCost?: number }) => {
-    setPlayer(prev => {
-      if ((prev.gold || 0) < outfit.cost) {
-        addNotification('Insufficient Gold.', 'DANGER');
-        return prev;
+  const purchaseOutfit = useCallback(async (outfit: { id: string; name: string; cost: number; keyCost?: number }) => {
+    // Server-authoritative purchase: atomic gold deduction + inventory write
+    try {
+      const headers = getPlayerAuthHeaders();
+      const resp = await fetch(`${API_BASE}/api/inventory/purchase`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...headers },
+        credentials: 'include',
+        body: JSON.stringify({ itemId: outfit.id, itemType: 'outfit', price: outfit.cost }),
+      });
+      if (!resp.ok) {
+        const errData = await resp.json().catch(() => ({}));
+        if (errData.error === 'Not enough gold') {
+          addNotification('Insufficient Gold.', 'DANGER');
+        } else if (errData.alreadyOwned) {
+          addNotification('Already owned.', 'WARNING');
+        } else {
+          addNotification('Purchase failed. Try again.', 'DANGER');
+        }
+        return;
       }
-      const unlocked = prev.unlockedOutfits || ['outfit_starter'];
-      if (unlocked.includes(outfit.id)) return prev;
+      const { gold: newGold } = await resp.json();
+      // Server confirmed purchase — update local state
       playSystemSoundEffect('PURCHASE');
-      const costLabel = outfit.cost > 0 ? `-${outfit.cost}G` : 'FREE';
       addNotification(`${outfit.name} Unlocked!`, 'PURCHASE');
-      return {
+      setPlayer(prev => ({
         ...prev,
-        gold: prev.gold - outfit.cost,
-        unlockedOutfits: [...unlocked, outfit.id],
-        logs: [createLog(`Purchased: ${outfit.name} (${costLabel})`, 'PURCHASE'), ...prev.logs]
-      };
-    });
+        gold: newGold,
+        unlockedOutfits: [...(prev.unlockedOutfits || ['outfit_starter']), outfit.id],
+        logs: [createLog(`Purchased: ${outfit.name} (-${outfit.cost}G)`, 'PURCHASE'), ...prev.logs],
+      }));
+    } catch {
+      // Network error — fall back to client-side for offline resilience
+      setPlayer(prev => {
+        if ((prev.gold || 0) < outfit.cost) {
+          addNotification('Insufficient Gold.', 'DANGER');
+          return prev;
+        }
+        const unlocked = prev.unlockedOutfits || ['outfit_starter'];
+        if (unlocked.includes(outfit.id)) return prev;
+        playSystemSoundEffect('PURCHASE');
+        addNotification(`${outfit.name} Unlocked!`, 'PURCHASE');
+        return {
+          ...prev,
+          gold: prev.gold - outfit.cost,
+          unlockedOutfits: [...unlocked, outfit.id],
+          logs: [createLog(`Purchased: ${outfit.name} (-${outfit.cost}G)`, 'PURCHASE'), ...prev.logs],
+        };
+      });
+    }
   }, [addNotification]);
 
   const equipOutfit = useCallback((outfitId: string) => {
