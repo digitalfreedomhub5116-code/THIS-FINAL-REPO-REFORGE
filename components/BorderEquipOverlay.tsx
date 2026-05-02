@@ -272,37 +272,6 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
         opacity: 0,
       }}
     >
-      {/* ── Sun Ray Starburst Glow behind ── */}
-      <div
-        ref={glowRef}
-        style={{
-          position: 'absolute', width: 360, height: 360,
-          borderRadius: '50%', pointerEvents: 'none',
-        }}
-      >
-        {/* Base radial glow */}
-        <div style={{
-          position: 'absolute', inset: 0,
-          borderRadius: '50%',
-          background: `radial-gradient(circle, ${glowColor}55 0%, ${glowColor}25 45%, transparent 72%)`,
-        }} />
-        {/* Rotating thick sun rays */}
-        <div style={{
-          position: 'absolute', inset: '-25%',
-          background: sunRayGradient,
-          borderRadius: '50%',
-          animation: 'sunray-rotate 25s linear infinite',
-          filter: 'blur(5px)',
-          opacity: 0.75,
-        }} />
-        {/* Inner bright glow */}
-        <div style={{
-          position: 'absolute', inset: '15%',
-          borderRadius: '50%',
-          background: `radial-gradient(circle, ${glowColor}40 0%, transparent 70%)`,
-        }} />
-      </div>
-
       {/* ── Avatar + Border container ── */}
       <div style={{
         position: 'relative',
@@ -310,6 +279,45 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
         height: borderSize * borderScale + 20,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
+        {/* ── Sun Ray Starburst Glow (behind avatar, centered) ── */}
+        <div style={{
+          position: 'absolute',
+          width: 420, height: 420,
+          top: '50%', left: '50%',
+          transform: 'translate(-50%, -50%)',
+          pointerEvents: 'none',
+          zIndex: 0,
+        }}>
+          <div
+            ref={glowRef}
+            style={{
+              width: '100%', height: '100%',
+              borderRadius: '50%',
+            }}
+          >
+            {/* Base radial glow */}
+            <div style={{
+              position: 'absolute', inset: 0,
+              borderRadius: '50%',
+              background: `radial-gradient(circle, ${glowColor}55 0%, ${glowColor}25 45%, transparent 72%)`,
+            }} />
+            {/* Rotating thick sun rays */}
+            <div style={{
+              position: 'absolute', inset: '-25%',
+              background: sunRayGradient,
+              borderRadius: '50%',
+              animation: 'sunray-rotate 25s linear infinite',
+              filter: 'blur(6px)',
+              opacity: 0.8,
+            }} />
+            {/* Inner bright glow */}
+            <div style={{
+              position: 'absolute', inset: '15%',
+              borderRadius: '50%',
+              background: `radial-gradient(circle, ${glowColor}50 0%, transparent 70%)`,
+            }} />
+          </div>
+        </div>
         {/* Avatar */}
         <div
           ref={avatarRef}
