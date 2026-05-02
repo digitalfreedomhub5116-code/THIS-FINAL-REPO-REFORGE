@@ -554,12 +554,12 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
         onClick={handleComplete}
         style={{
           marginTop: 28, padding: '14px 56px', borderRadius: 16,
-          background: `linear-gradient(135deg, ${glowColor}40, ${glowColor}18)`,
-          border: `1.5px solid ${glowColor}50`, color: '#fff',
+          background: `linear-gradient(135deg, ${glowColor}, ${colorShade(glowColor, -0.2)})`,
+          border: `1.5px solid ${colorShade(glowColor, 0.15)}`, color: '#000',
           fontSize: 13, fontWeight: 800, letterSpacing: '0.18em',
           cursor: 'pointer', fontFamily: 'Inter, system-ui, sans-serif',
           textTransform: 'uppercase',
-          boxShadow: `0 0 24px ${glowColor}25, 0 4px 20px rgba(0,0,0,0.3)`,
+          boxShadow: `0 0 30px ${glowColor}60, 0 4px 20px rgba(0,0,0,0.4)`,
           transition: 'transform 0.15s, box-shadow 0.15s',
           position: 'relative', zIndex: 2,
         }}
