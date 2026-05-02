@@ -1290,7 +1290,7 @@ function KitGlowCard({ item, discount, owned, equipped, canAfford, onBuy, onEqui
           <div style={{ position: 'relative', zIndex: 2, marginTop: 10, width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
             {owned ? (
               onEquip ? (
-                <button onClick={onEquip} style={{
+                <button onClick={(e) => { e.stopPropagation(); onEquip(); }} style={{
                   display: 'inline-flex', alignItems: 'center', gap: 4,
                   padding: '8px 24px', border: 'none', cursor: 'pointer', borderRadius: 20,
                   background: equipped ? `linear-gradient(135deg, ${catColor}, ${catColor}CC)` : 'rgba(255,255,255,0.08)',
@@ -1305,7 +1305,7 @@ function KitGlowCard({ item, discount, owned, equipped, canAfford, onBuy, onEqui
                 <span style={{ fontSize: 11, fontWeight: 700, color: '#22C55E' }}>✓ Owned</span>
               )
             ) : (
-              <button onClick={onBuy} disabled={!canAfford} style={{
+              <button onClick={(e) => { e.stopPropagation(); onBuy(); }} disabled={!canAfford} style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6,
                 padding: '8px 22px', borderRadius: 20, cursor: canAfford ? 'pointer' : 'default',
                 background: canAfford ? `linear-gradient(135deg, ${catColor}35, ${catColor}15)` : 'rgba(255,255,255,0.04)',
