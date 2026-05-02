@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useRef, lazy, Suspense, useCallback, type CSSProperties } from 'react';
+import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Coins, Timer, Key, CheckCircle2, Lock, ChevronLeft, ChevronRight, Heart, Star, Zap, Ghost, Hexagon, ShoppingBag, Shirt, CircleDot, Palette, Frame, Clock, ImageIcon, Flame, Shield, Wrench, Eye } from 'lucide-react';
 import BorderEquipOverlay from './BorderEquipOverlay';
@@ -896,9 +897,9 @@ const ShopView: React.FC<ShopViewProps> = ({
       )}
 
       {/* ── CONFIRM PURCHASE MODAL ── */}
-      {confirmPurchaseItem && (
-        <div onClick={() => { if (!purchasing) setConfirmPurchaseItem(null); }} style={{
-          position: 'fixed', inset: 0, zIndex: 99999,
+      {confirmPurchaseItem &&
+        ReactDOM.createPortal(<div onClick={() => { if (!purchasing) setConfirmPurchaseItem(null); }} style={{
+          position: 'fixed', inset: 0, zIndex: 100000,
           background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
         }}>
@@ -954,8 +955,8 @@ const ShopView: React.FC<ShopViewProps> = ({
               </button>
             </div>
           </div>
-        </div>
-      )}
+        </div>, document.body)}
+
 
       {/* ── BORDER EQUIP ANIMATION OVERLAY ── */}
       <BorderEquipOverlay
@@ -1232,13 +1233,15 @@ function KitThemePreviewModal({ item, onClose }: { item: KitStoreItem; onClose: 
   const border = tv['--border'] || 'rgba(200,168,78,0.08)';
   const mockCard: CSSProperties = { background: surface, borderRadius: 12, padding: '12px 14px', border: `1px solid ${border}` };
 
-  return (
+  return ReactDOM.createPortal(
     <div onClick={onClose} style={{
-      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      background: 'rgba(0,0,0,0.92)', zIndex: 9999,
+      position: 'fixed', inset: 0, zIndex: 100000,
       display: 'flex', flexDirection: 'column', alignItems: 'center',
       overflow: 'auto', paddingTop: 40, paddingBottom: 60,
-      animation: 'fadeIn 0.25s ease-out', backdropFilter: 'blur(12px)',
+      background: 'rgba(0,0,0,0.92)',
+      backdropFilter: 'blur(12px)',
+      WebkitBackdropFilter: 'blur(12px)',
+      animation: 'fadeIn 0.25s ease-out',
     }}>
       <div onClick={e => e.stopPropagation()} style={{ width: '90%', maxWidth: 360 }}>
         <div style={{ textAlign: 'center', marginBottom: 20 }}>
@@ -1280,7 +1283,8 @@ function KitThemePreviewModal({ item, onClose }: { item: KitStoreItem; onClose: 
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -1292,12 +1296,16 @@ function KitBorderPreviewModal({ item, onClose }: { item: KitStoreItem; onClose:
   const glow = item.borderConfig?.glowColor || item.auraConfig?.colors?.[0] || '#C8A84E';
   const size = 200;
 
-  return (
+  return ReactDOM.createPortal(
     <div onClick={onClose} style={{
-      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      background: 'rgba(0,0,0,0.95)', zIndex: 99999,
-      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-      animation: 'fadeIn 0.25s ease-out', backdropFilter: 'blur(16px)',
+      position: 'fixed', inset: 0, zIndex: 100000,
+      display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center',
+      background: 'rgba(0,0,0,0.95)',
+      backdropFilter: 'blur(16px)',
+      WebkitBackdropFilter: 'blur(16px)',
+      animation: 'fadeIn 0.25s ease-out',
+      overflow: 'hidden',
     }}>
       <div onClick={e => e.stopPropagation()} style={{ textAlign: 'center', maxWidth: 320, width: '85%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', marginBottom: 4 }}>{item.name}</div>
@@ -1355,6 +1363,7 @@ function KitBorderPreviewModal({ item, onClose }: { item: KitStoreItem; onClose:
           Close
         </button>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
