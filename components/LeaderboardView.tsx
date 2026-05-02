@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   RefreshCw,
@@ -698,7 +699,9 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
 
 
 
-      {/* ══════════════ HUNTER PROFILE POPUP ══════════════ */}
+      {/* ══════════════ HUNTER PROFILE POPUP (portal to escape stacking context) ══════════════ */}
+      {ReactDOM.createPortal(
+      <>
       <AnimatePresence>
         {profileTarget && (() => {
           const pEntry = profileTarget;
@@ -834,7 +837,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
       <AnimatePresence>
         {reportTarget && (
           <motion.div
-            className="fixed inset-0 z-[9000] flex items-end justify-center"
+            className="fixed inset-0 z-[100001] flex items-end justify-center"
             style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -920,6 +923,9 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
           </motion.div>
         )}
       </AnimatePresence>
+      </>,
+      document.body
+      )}
 
       {/* ── RANK REWARD OVERLAY ── */}
       <AnimatePresence>
