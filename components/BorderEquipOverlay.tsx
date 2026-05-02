@@ -367,9 +367,11 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
         flexShrink: 0,
       }}>
         {/* ── Sun Ray Starburst Glow (behind everything) ── */}
+        {/* Use 150vmax so the circle's diameter always exceeds the screen diagonal,
+            guaranteeing full-screen coverage on any phone/tablet/desktop */}
         <div style={{
           position: 'absolute',
-          width: 480, height: 480,
+          width: '150vmax', height: '150vmax',
           top: '50%', left: '50%',
           transform: 'translate(-50%, -50%)',
           pointerEvents: 'none',
@@ -393,7 +395,7 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
             }} />
             {/* Rotating thick sun rays */}
             <div style={{
-              position: 'absolute', inset: '-30%',
+              position: 'absolute', inset: '-35%',
               background: sunRayGradient,
               borderRadius: '50%',
               animation: 'sunray-rotate 25s linear infinite',
