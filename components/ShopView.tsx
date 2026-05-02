@@ -561,10 +561,10 @@ const ShopView: React.FC<ShopViewProps> = ({
           </div>
           <div className="hdr-line" />
         </div>
-        <div className="store-hscroll">
-          {getTodaysDeals(6).map(d => (
-            <div key={d.item.id} style={{ flexShrink: 0, width: 170 }}>
-              <KitGlowCard item={d.item} discount={d.discount}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, padding: '0 4px' }}>
+          {getTodaysDeals(4).map(d => (
+            <div key={d.item.id}>
+              <KitGlowCard item={d.item} discount={d.discount} dealColor="#F59E0B"
                 owned={DEV_UNLOCK_ALL || kitEconomy.owned.includes(d.item.id)}
                 equipped={kitEconomy.equipped[d.item.category as keyof EquippedItems] === d.item.id}
                 canAfford={DEV_UNLOCK_ALL || gold >= Math.round(d.item.price * (1 - d.discount / 100))}
@@ -1030,11 +1030,12 @@ const KIT_CAT_COLORS: Record<string, string> = {
   border: '#7EB8D4', theme: '#8B5CF6', deals: '#F59E0B', banner: '#06B6D4', consumable: '#22C55E', title: '#F59E0B',
 };
 
-function KitGlowCard({ item, discount, owned, equipped, canAfford, onBuy, onEquip, onInfo, onView }: {
+function KitGlowCard({ item, discount, owned, equipped, canAfford, onBuy, onEquip, onInfo, onView, dealColor }: {
   item: KitStoreItem; discount?: number; owned?: boolean; equipped?: boolean;
   canAfford: boolean; onBuy: () => void; onEquip?: () => void; onInfo?: () => void; onView?: () => void;
+  dealColor?: string;
 }) {
-  const catColor = KIT_CAT_COLORS[item.category] || '#7EB8D4';
+  const catColor = dealColor || KIT_CAT_COLORS[item.category] || '#7EB8D4';
   const finalPrice = discount ? Math.round(item.price * (1 - discount / 100)) : item.price;
   const chipSize = 14;
   const clipPath = `polygon(0 0, calc(100% - ${chipSize}px) 0, 100% ${chipSize}px, 100% 100%, ${chipSize}px 100%, 0 calc(100% - ${chipSize}px))`;
@@ -1081,6 +1082,19 @@ function KitGlowCard({ item, discount, owned, equipped, canAfford, onBuy, onEqui
               boxShadow: '0 0 10px rgba(34,197,94,0.5)',
             }}>
               -{discount}%
+            </div>
+          )}
+
+          {/* ── Owned Badge ── */}
+          {owned && !equipped && (
+            <div style={{
+              position: 'absolute', top: 8, left: 8, zIndex: 3,
+              padding: '3px 8px', borderRadius: 6,
+              background: '#22C55E', fontSize: 8, fontWeight: 900, color: '#000',
+              boxShadow: '0 0 10px rgba(34,197,94,0.4)',
+              letterSpacing: '0.05em',
+            }}>
+              OWNED
             </div>
           )}
 
