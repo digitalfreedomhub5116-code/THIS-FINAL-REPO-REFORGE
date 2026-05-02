@@ -13,47 +13,95 @@ const router = Router();
  * Server-side store price catalog.
  * Mirrors prices from utils/storeItems.ts so the server never trusts client prices.
  * If an item is NOT in this map, we fall back to DB lookup (store_outfits table).
+ *
+ * KEEP IN SYNC with utils/storeItems.ts — every purchasable item must be listed here.
  */
 const STORE_PRICES: Record<string, number> = {
-  // ── Borders ──
-  'border_default': 0,
-  'border_cyan_pulse': 150,
-  'border_gold_ring': 300,
-  'border_ember': 400,
-  'border_shadow_veil': 500,
-  'border_frost_ring': 350,
-  'border_neon_glitch': 600,
-  'border_blood_moon': 750,
-  'border_dragon_flame': 1500,
-  'border_void_rift': 2000,
-  'border_sakura_bloom': 500,
-  'border_thunder_crown': 800,
-  'border_ice_crown': 900,
-  'border_solar_flare': 1200,
-  'border_toxic_haze': 450,
-  'border_phantom_edge': 650,
-  'border_cosmic_dust': 1100,
-  'border_infernal_chain': 1800,
-  'border_arctic_aurora': 1400,
-  'border_obsidian_fracture': 1600,
-  'border_divine_halo': 2500,
-  'border_emerald_serpent': 700,
-  'border_crimson_thorns': 550,
-  'border_steel_fortress': 800,
-  'border_amber_shield': 600,
-  'border_silver_beast': 900,
+  // ── Borders: ELEMENTS ──
+  'border-ice-img': 600,
+  'border-starcrown-img': 900,
+  'border-elemental-tide': 2800,
+  'border-frost-tech': 8900,
+  // ── Borders: BEASTS ──
+  'border-dragon-img': 1200,
+  'border-stitched-dragon': 3600,
+  'border-gold-lion': 4800,
+  'border-gold-dragon': 5500,
+  'border-gold-eagle': 6200,
+  'border-phoenix': 7400,
+  // ── Borders: SHIELDS ──
+  'border-podium-bronze': 1200,
+  'border-streak-silver': 1500,
+  'border-shadowthrone-img': 1500,
+  'border-podium-silver': 1800,
+  'border-streak-legendary': 2200,
+  // ── Borders: EXCLUSIVE ──
+  'border-streak-gold': 3000,
+  'border-podium-gold': 3500,
+  'border-streak-inferno': 5000,
+  'border-streak-eternal': 7500,
+  // ── Themes ──
+  'theme-default': 0,
+  'theme-crimson': 100,
+  'theme-emerald': 100,
+  'theme-sapphire': 100,
+  'theme-amber': 100,
+  'theme-rose': 100,
+  'theme-violet': 100,
+  'theme-ocean': 100,
+  'theme-silver': 100,
+  'theme-dusty-rose': 100,
+  'theme-sage': 100,
+  'theme-lavender': 100,
+  'theme-powder-blue': 100,
+  'theme-sand': 100,
+  'theme-carbon': 200,
+  'theme-platinum': 200,
+  'theme-obsidian': 200,
+  'theme-chrome': 200,
+  'theme-aurora': 400,
+  'theme-neon': 400,
+  'theme-solar': 400,
+  'theme-cosmic': 400,
+  'theme-winter': 150,
+  'theme-spring': 150,
+  'theme-summer': 150,
+  'theme-autumn': 150,
+  'theme-grad-inferno': 600,
+  'theme-grad-ocean': 600,
+  'theme-grad-aurora': 600,
+  'theme-grad-sunset': 600,
+  'theme-grad-toxic': 600,
+  // ── Consumables ──
+  'boost-2x': 75,
+  'boost-3x': 150,
+  'streak-shield': 100,
+  'scan-token': 50,
+  'spotlight': 200,
+  // ── Titles ──
+  'title-grinder': 100,
+  'title-sigma': 150,
+  'title-beast': 200,
+  'title-ascended': 300,
+  'title-elite': 500,
   // ── Banners ──
   'banner-reforge-default': 0,
-  'banner-shadow-monarch': 800,
-  'banner-iron-will': 400,
-  'banner-crimson-dungeon': 600,
-  'banner-neon-grid': 500,
-  'banner-starfall': 1000,
-  'banner-void-abyss': 1200,
-  'banner-golden-triumph': 900,
-  'banner-frozen-summit': 700,
-  'banner-emerald-jungle': 550,
-  'banner-cyber-nexus': 1500,
+  'banner-mclaren': 300,
+  'banner-noenemies': 250,
+  'banner-porsche': 350,
+  'banner-fineshyt': 300,
+  'banner-shadowmonarch': 500,
+  'banner-igris': 450,
+  'banner-chahaein': 350,
+  'banner-getup': 300,
+  'banner-keepgoing': 400,
+  // ── Streak Banners (free milestone rewards) ──
+  'banner-streak-7day': 0,
+  'banner-streak-14day': 0,
+  'banner-streak-30day': 0,
+  'banner-streak-60day': 0,
+  'banner-streak-100day': 0,
+  'banner-streak-365day': 0,
 };
 
 // Max discount % any daily deal can offer (anti-cheat ceiling)
@@ -102,7 +150,7 @@ router.post('/purchase', async (req: Request, res: Response) => {
   if (!itemId || typeof itemId !== 'string') {
     return res.status(400).json({ error: 'Missing or invalid itemId' });
   }
-  if (!itemType || !['border', 'banner', 'outfit', 'theme'].includes(itemType)) {
+  if (!itemType || !['border', 'banner', 'outfit', 'theme', 'consumable', 'title'].includes(itemType)) {
     return res.status(400).json({ error: 'Invalid itemType' });
   }
   if (typeof price !== 'number' || price < 0) {
@@ -225,7 +273,7 @@ router.post('/equip', async (req: Request, res: Response) => {
 
   const { itemType, itemId } = req.body;
 
-  if (!itemType || !['border', 'banner', 'outfit', 'theme'].includes(itemType)) {
+  if (!itemType || !['border', 'banner', 'outfit', 'theme', 'consumable', 'title'].includes(itemType)) {
     return res.status(400).json({ error: 'Invalid itemType' });
   }
 
