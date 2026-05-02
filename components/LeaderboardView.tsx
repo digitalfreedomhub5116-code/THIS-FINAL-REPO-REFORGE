@@ -403,7 +403,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                 return (
                   <div className="flex flex-col items-center gap-1.5 flex-1 cursor-pointer" onClick={() => setProfileTarget(e)}>
                     <div className="text-lg">🥈</div>
-                    <AvatarWithBorder avatarUrl={e.avatar_url} borderId="border-podium-silver" size={64} />
+                    <AvatarWithBorder avatarUrl={e.avatar_url} borderId={e.equipped_border || null} size={64} />
                     <div className="text-[11px] font-black text-white truncate max-w-[80px] text-center">
                       {e.username || e.name}
                     </div>
@@ -421,7 +421,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                 return (
                   <div className="flex flex-col items-center gap-1.5 flex-1 -mt-4 cursor-pointer" onClick={() => setProfileTarget(e)}>
                     <div className="text-2xl">👑</div>
-                    <AvatarWithBorder avatarUrl={e.avatar_url} borderId="border-podium-gold" size={80} />
+                    <AvatarWithBorder avatarUrl={e.avatar_url} borderId={e.equipped_border || null} size={80} />
                     <div className="text-xs font-black text-white truncate max-w-[90px] text-center">
                       {e.username || e.name}
                     </div>
@@ -439,7 +439,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                 return (
                   <div className="flex flex-col items-center gap-1.5 flex-1 cursor-pointer" onClick={() => setProfileTarget(e)}>
                     <div className="text-lg">🥉</div>
-                    <AvatarWithBorder avatarUrl={e.avatar_url} borderId="border-podium-bronze" size={64} />
+                    <AvatarWithBorder avatarUrl={e.avatar_url} borderId={e.equipped_border || null} size={64} />
                     <div className="text-[11px] font-black text-white truncate max-w-[80px] text-center">
                       {e.username || e.name}
                     </div>
@@ -709,7 +709,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
 
           return (
             <motion.div
-              className="fixed inset-0 z-[9000] flex items-end justify-center"
+              className="fixed inset-0 z-[100000] flex items-end justify-center"
               style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)' }}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}

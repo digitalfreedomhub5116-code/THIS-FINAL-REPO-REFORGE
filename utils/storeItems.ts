@@ -514,28 +514,28 @@ const STREAK_BANNERS: StoreItem[] = [
   },
 ];
 
-/* ═══ LEADERBOARD PODIUM BORDERS (position-locked — not purchasable) ═══ */
+/* ═══ LEADERBOARD PODIUM BORDERS (now purchasable in the store) ═══ */
 const RANK_BORDERS: StoreItem[] = [
   {
-    id: 'border-podium-gold', name: 'Gold Rank', category: 'border',
-    tier: 'rank-gated', price: 0,
-    description: '1st place daily XP — awarded automatically on the podium.',
+    id: 'border-podium-gold', name: "Sovereign's Crown", category: 'border',
+    tier: 'legendary', price: 2500,
+    description: 'A regal golden frame befitting a true champion.',
     imageBorder: '/borders/goldrank-Photoroom.webp',
     imageScale: 1.1,
     borderConfig: { colors: ['#FFD700', '#DAA520'], strokeWidth: 3, animated: false, glowColor: '#FFD700', glowIntensity: 0.8 },
   },
   {
-    id: 'border-podium-silver', name: 'Silver Rank', category: 'border',
-    tier: 'rank-gated', price: 0,
-    description: '2nd place daily XP — awarded automatically on the podium.',
+    id: 'border-podium-silver', name: 'Silversteel Aegis', category: 'border',
+    tier: 'premium', price: 1800,
+    description: 'Forged from silversteel — a shield of honor.',
     imageBorder: '/borders/silverrank-Photoroom.webp',
     imageScale: 1.1,
     borderConfig: { colors: ['#C0C0C0', '#E0E0E0'], strokeWidth: 3, animated: false, glowColor: '#C0C0C0', glowIntensity: 0.6 },
   },
   {
-    id: 'border-podium-bronze', name: 'Bronze Rank', category: 'border',
-    tier: 'rank-gated', price: 0,
-    description: '3rd place daily XP — awarded automatically on the podium.',
+    id: 'border-podium-bronze', name: 'Bronze Vanguard', category: 'border',
+    tier: 'premium', price: 1200,
+    description: 'A weathered bronze frame — earned through battle.',
     imageBorder: '/borders/bronzerank-Photoroom.webp',
     imageScale: 1.1,
     borderConfig: { colors: ['#CD7F32', '#B87333'], strokeWidth: 3, animated: false, glowColor: '#CD7F32', glowIntensity: 0.6 },
@@ -555,7 +555,7 @@ export const ALL_STORE_ITEMS: StoreItem[] = [
 ];
 
 export function getItemsByCategory(cat: StoreCategory): StoreItem[] {
-  return ALL_STORE_ITEMS.filter(i => i.category === cat && i.tier !== 'rank-gated');
+  return ALL_STORE_ITEMS.filter(i => i.category === cat);
 }
 
 export function getItemById(id: string): StoreItem | undefined {
@@ -567,7 +567,7 @@ export function getTodaysDeals(count = 4): { item: StoreItem; discount: number }
   // Seed based on date so deals are consistent throughout the day
   const seed = parseInt(new Date().toISOString().split('T')[0].replace(/-/g, ''), 10);
   const shuffled = [...ALL_STORE_ITEMS]
-    .filter(i => i.category !== 'consumable' && i.tier !== 'rank-gated') // consumables always available, rank borders not for sale
+    .filter(i => i.category !== 'consumable') // consumables are always available
     .sort((a, b) => {
       const hashA = (seed * 31 + a.id.charCodeAt(0)) % 1000;
       const hashB = (seed * 31 + b.id.charCodeAt(0)) % 1000;
