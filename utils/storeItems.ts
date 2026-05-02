@@ -92,12 +92,7 @@ export const BORDERS_ELEMENTS: StoreItem[] = [
     imageScale: 0.9,
     borderConfig: { colors: ['#1E90FF', '#FF6347', '#C8A84E'], strokeWidth: 3, animated: false, glowColor: '#1E90FF', glowIntensity: 0.7 },
   },
-  {
-    id: 'border-lottie-celestial', name: 'Celestial Flame', category: 'border', tier: 'legendary', price: 4500,
-    description: 'A mesmerizing animated flame ring from another realm.',
-    lottieBorder: '/borders/lottie-border.json',
-    borderConfig: { colors: ['#F59E0B', '#EF4444', '#C8A84E'], strokeWidth: 3, animated: false, glowColor: '#F59E0B', glowIntensity: 0.8 },
-  },
+
   {
     id: 'border-frost-tech', name: 'Frost Tech', category: 'border', tier: 'legendary', price: 8900,
     description: 'Cryo-tech crystals and snowflakes forge a futuristic ice frame.',
