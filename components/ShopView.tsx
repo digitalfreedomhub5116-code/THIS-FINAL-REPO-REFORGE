@@ -561,7 +561,7 @@ const ShopView: React.FC<ShopViewProps> = ({
           </div>
           <div className="hdr-line" />
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, padding: '0 4px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, padding: '0 16px', overflow: 'hidden' }}>
           {getTodaysDeals(4).map(d => (
             <div key={d.item.id}>
               <KitGlowCard item={d.item} discount={d.discount} dealColor="#F59E0B"
