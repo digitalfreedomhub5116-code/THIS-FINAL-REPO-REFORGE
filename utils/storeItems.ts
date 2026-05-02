@@ -514,10 +514,39 @@ const STREAK_BANNERS: StoreItem[] = [
   },
 ];
 
+/* ═══ LEADERBOARD PODIUM BORDERS (position-locked — not purchasable) ═══ */
+const RANK_BORDERS: StoreItem[] = [
+  {
+    id: 'border-podium-gold', name: 'Gold Rank', category: 'border',
+    tier: 'rank-gated', price: 0,
+    description: '1st place daily XP — awarded automatically on the podium.',
+    imageBorder: '/borders/goldrank-Photoroom.webp',
+    imageScale: 1.1,
+    borderConfig: { colors: ['#FFD700', '#DAA520'], strokeWidth: 3, animated: false, glowColor: '#FFD700', glowIntensity: 0.8 },
+  },
+  {
+    id: 'border-podium-silver', name: 'Silver Rank', category: 'border',
+    tier: 'rank-gated', price: 0,
+    description: '2nd place daily XP — awarded automatically on the podium.',
+    imageBorder: '/borders/silverrank-Photoroom.webp',
+    imageScale: 1.1,
+    borderConfig: { colors: ['#C0C0C0', '#E0E0E0'], strokeWidth: 3, animated: false, glowColor: '#C0C0C0', glowIntensity: 0.6 },
+  },
+  {
+    id: 'border-podium-bronze', name: 'Bronze Rank', category: 'border',
+    tier: 'rank-gated', price: 0,
+    description: '3rd place daily XP — awarded automatically on the podium.',
+    imageBorder: '/borders/bronzerank-Photoroom.webp',
+    imageScale: 1.1,
+    borderConfig: { colors: ['#CD7F32', '#B87333'], strokeWidth: 3, animated: false, glowColor: '#CD7F32', glowIntensity: 0.6 },
+  },
+];
+
 /* ═══ ALL ITEMS ═══ */
 export const ALL_STORE_ITEMS: StoreItem[] = [
   ...BORDERS,
   ...STREAK_BORDERS,
+  ...RANK_BORDERS,
   ...THEMES,
   ...CONSUMABLES,
   ...TITLES,
@@ -526,7 +555,7 @@ export const ALL_STORE_ITEMS: StoreItem[] = [
 ];
 
 export function getItemsByCategory(cat: StoreCategory): StoreItem[] {
-  return ALL_STORE_ITEMS.filter(i => i.category === cat);
+  return ALL_STORE_ITEMS.filter(i => i.category === cat && i.tier !== 'rank-gated');
 }
 
 export function getItemById(id: string): StoreItem | undefined {
@@ -538,7 +567,7 @@ export function getTodaysDeals(count = 4): { item: StoreItem; discount: number }
   // Seed based on date so deals are consistent throughout the day
   const seed = parseInt(new Date().toISOString().split('T')[0].replace(/-/g, ''), 10);
   const shuffled = [...ALL_STORE_ITEMS]
-    .filter(i => i.category !== 'consumable') // consumables are always available
+    .filter(i => i.category !== 'consumable' && i.tier !== 'rank-gated') // consumables always available, rank borders not for sale
     .sort((a, b) => {
       const hashA = (seed * 31 + a.id.charCodeAt(0)) % 1000;
       const hashB = (seed * 31 + b.id.charCodeAt(0)) % 1000;

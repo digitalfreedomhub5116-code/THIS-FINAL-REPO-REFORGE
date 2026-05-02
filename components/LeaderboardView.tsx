@@ -285,7 +285,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
       const isMe = i === meIndex;
       let dominanceValue: number;
       if (activeTab === 'xp') {
-        dominanceValue = xpMode === 'daily' ? (e.daily_xp || 0) : (e.total_xp || 0);
+        dominanceValue = xpMode === 'daily' ? (e.weekly_xp || e.daily_xp || 0) : (e.total_xp || 0);
       } else {
         dominanceValue = e.streak || 0;
       }
@@ -403,7 +403,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                 return (
                   <div className="flex flex-col items-center gap-1.5 flex-1 cursor-pointer" onClick={() => setProfileTarget(e)}>
                     <div className="text-lg">🥈</div>
-                    <AvatarWithBorder avatarUrl={e.avatar_url} borderId={e.equipped_border || null} size={64} />
+                    <AvatarWithBorder avatarUrl={e.avatar_url} borderId="border-podium-silver" size={64} />
                     <div className="text-[11px] font-black text-white truncate max-w-[80px] text-center">
                       {e.username || e.name}
                     </div>
@@ -421,7 +421,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                 return (
                   <div className="flex flex-col items-center gap-1.5 flex-1 -mt-4 cursor-pointer" onClick={() => setProfileTarget(e)}>
                     <div className="text-2xl">👑</div>
-                    <AvatarWithBorder avatarUrl={e.avatar_url} borderId={e.equipped_border || null} size={80} />
+                    <AvatarWithBorder avatarUrl={e.avatar_url} borderId="border-podium-gold" size={80} />
                     <div className="text-xs font-black text-white truncate max-w-[90px] text-center">
                       {e.username || e.name}
                     </div>
@@ -439,7 +439,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                 return (
                   <div className="flex flex-col items-center gap-1.5 flex-1 cursor-pointer" onClick={() => setProfileTarget(e)}>
                     <div className="text-lg">🥉</div>
-                    <AvatarWithBorder avatarUrl={e.avatar_url} borderId={e.equipped_border || null} size={64} />
+                    <AvatarWithBorder avatarUrl={e.avatar_url} borderId="border-podium-bronze" size={64} />
                     <div className="text-[11px] font-black text-white truncate max-w-[80px] text-center">
                       {e.username || e.name}
                     </div>
