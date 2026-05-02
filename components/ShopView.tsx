@@ -924,23 +924,7 @@ const ShopView: React.FC<ShopViewProps> = ({
                 owned={isItemOwned(d.item.id)}
                 equipped={kitEconomy.equipped[d.item.category as keyof EquippedItems] === d.item.id}
                 canAfford={DEV_UNLOCK_ALL || gold >= Math.round(d.item.price * (1 - d.discount / 100))}
-                onBuy={async () => {
-                  if (d.item.category === 'border') { setConfirmPurchaseItem(d.item); return; }
-                  const dealPrice = Math.round(d.item.price * (1 - d.discount / 100));
-                  try {
-                    const headers = getPlayerAuthHeaders();
-                    const resp = await fetch(`${API_BASE}/api/inventory/purchase`, {
-                      method: 'POST', headers: { 'Content-Type': 'application/json', ...headers },
-                      credentials: 'include', body: JSON.stringify({ itemId: d.item.id, itemType: d.item.category, price: dealPrice }),
-                    });
-                    if (!resp.ok) return;
-                    const { gold: newGold } = await resp.json();
-                    if (onGoldUpdate) onGoldUpdate(newGold);
-                    setServerInventory(prev => [...prev, { item_id: d.item.id, item_type: d.item.category, source: 'purchase' }]);
-                    const p = kitPurchaseItem(d.item.id, dealPrice);
-                    if (p) { setKitEconomy(p); setKitPurchasedId(d.item.id); setTimeout(() => setKitPurchasedId(null), 1500); }
-                  } catch { /* network error */ }
-                }}
+                onBuy={() => setConfirmPurchaseItem(d.item)}
                 onEquip={d.item.category !== 'consumable' ? () => handleKitEquip(d.item.category as keyof EquippedItems, d.item.id) : undefined}
                 onInfo={() => setKitInfoItem(d.item)}
               />
@@ -985,21 +969,7 @@ const ShopView: React.FC<ShopViewProps> = ({
                     {isOwned && item.price > 0 && <div style={{ fontSize: 9, color: '#22c55e', fontWeight: 700 }}>OWNED</div>}
                   </div>
                   {canBuy ? (
-                    <button onClick={async () => {
-                      try {
-                        const headers = getPlayerAuthHeaders();
-                        const resp = await fetch(`${API_BASE}/api/inventory/purchase`, {
-                          method: 'POST', headers: { 'Content-Type': 'application/json', ...headers },
-                          credentials: 'include', body: JSON.stringify({ itemId: item.id, itemType: 'banner', price: item.price }),
-                        });
-                        if (!resp.ok) return;
-                        const { gold: newGold } = await resp.json();
-                        if (onGoldUpdate) onGoldUpdate(newGold);
-                        setServerInventory(prev => [...prev, { item_id: item.id, item_type: 'banner', source: 'purchase' }]);
-                        kitPurchaseItem(item.id, item.price);
-                        setKitEconomy(getEconomy());
-                      } catch { /* network */ }
-                    }} disabled={gold < item.price} style={{ padding: '6px 14px', borderRadius: 10, fontSize: 10, fontWeight: 900, letterSpacing: '0.05em', border: 'none', cursor: gold >= item.price ? 'pointer' : 'not-allowed', background: gold >= item.price ? 'linear-gradient(135deg, #fbbf24, #d97706)' : 'rgba(255,255,255,0.06)', color: gold >= item.price ? '#000' : 'rgba(255,255,255,0.3)', textTransform: 'uppercase' as const }}>
+                    <button onClick={() => setConfirmPurchaseItem(item)} disabled={gold < item.price} style={{ padding: '6px 14px', borderRadius: 10, fontSize: 10, fontWeight: 900, letterSpacing: '0.05em', border: 'none', cursor: gold >= item.price ? 'pointer' : 'not-allowed', background: gold >= item.price ? 'linear-gradient(135deg, #fbbf24, #d97706)' : 'rgba(255,255,255,0.06)', color: gold >= item.price ? '#000' : 'rgba(255,255,255,0.3)', textTransform: 'uppercase' as const }}>
                       BUY
                     </button>
                   ) : (
@@ -1400,7 +1370,7 @@ const ShopView: React.FC<ShopViewProps> = ({
         />
       )}
 
-      {/* ── CONFIRM PURCHASE MODAL ── */}
+      {/* ── CONFIRM PURCHASE MODAL (works for borders, banners, themes, titles, consumables) ── */}
       {confirmPurchaseItem &&
         ReactDOM.createPortal(<div onClick={() => { if (!purchasing) setConfirmPurchaseItem(null); }} style={{
           position: 'fixed', inset: 0, zIndex: 100000,
@@ -1413,6 +1383,7 @@ const ShopView: React.FC<ShopViewProps> = ({
             borderRadius: 20, padding: '28px 24px', width: '100%', maxWidth: 320,
             textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
           }}>
+            {/* ── Item Preview (adaptive per category) ── */}
             {confirmPurchaseItem.imageBorder && (
               <div style={{ width: 80, height: 80, margin: '0 auto 16px', position: 'relative' }}>
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1421,8 +1392,21 @@ const ShopView: React.FC<ShopViewProps> = ({
                 <img src={confirmPurchaseItem.imageBorder} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', mixBlendMode: 'screen', position: 'relative', zIndex: 1 }} />
               </div>
             )}
+            {confirmPurchaseItem.category === 'banner' && confirmPurchaseItem.bannerImage && (
+              <div style={{ width: '100%', borderRadius: 12, overflow: 'hidden', margin: '0 auto 16px', aspectRatio: '16 / 9', position: 'relative' }}>
+                <img src={confirmPurchaseItem.bannerImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+              </div>
+            )}
+            {confirmPurchaseItem.category === 'theme' && confirmPurchaseItem.themeVars && (
+              <div style={{
+                width: 56, height: 56, borderRadius: '50%', margin: '0 auto 16px',
+                background: `linear-gradient(135deg, ${confirmPurchaseItem.themeVars['--primary'] || '#9ca3af'}, ${confirmPurchaseItem.themeVars['--primary'] || '#9ca3af'}80)`,
+                boxShadow: `0 0 24px ${confirmPurchaseItem.themeVars['--primary'] || '#9ca3af'}40`,
+              }} />
+            )}
             <div style={{ fontSize: 16, fontWeight: 900, color: '#fff', marginBottom: 4 }}>{confirmPurchaseItem.name}</div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 20 }}>Confirm purchase?</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>Confirm purchase?</div>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginBottom: 16, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{confirmPurchaseItem.category}</div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 20 }}>
               <SystemCoin size={22} />
               <span style={{ fontSize: 20, fontWeight: 900, color: '#fbbf24' }}>{confirmPurchaseItem.price}</span>
@@ -1434,7 +1418,6 @@ const ShopView: React.FC<ShopViewProps> = ({
                 setPurchasing(true);
                 try {
                   const headers = getPlayerAuthHeaders();
-                  // Server-authoritative purchase: atomic gold deduct + inventory insert
                   const resp = await fetch(`${API_BASE}/api/inventory/purchase`, {
                     method: 'POST', headers: { 'Content-Type': 'application/json', ...headers },
                     credentials: 'include', body: JSON.stringify({ itemId: item.id, itemType: item.category, price: item.price }),
@@ -1446,17 +1429,22 @@ const ShopView: React.FC<ShopViewProps> = ({
                   }
                   const { gold: newGold } = await resp.json();
                   if (onGoldUpdate) onGoldUpdate(newGold);
-                  // Update server inventory locally
                   setServerInventory(prev => [...prev, { item_id: item.id, item_type: item.category, source: 'purchase' }]);
-                  // Also update localStorage for backward compat
                   const p = kitPurchaseItem(item.id, item.price);
                   if (p) setKitEconomy(p);
                 } catch (e) { console.error('[Store] Purchase error:', e); setPurchasing(false); setConfirmPurchaseItem(null); return; }
-                handleKitEquip('border', item.id);
+                // Category-specific post-purchase logic
+                if (item.category === 'border') {
+                  handleKitEquip('border', item.id);
+                  setEquipAnimItem(item);
+                  setShowEquipAnim(true);
+                } else if (item.category === 'banner') {
+                  handleKitEquip('banner', item.id);
+                } else if (item.category === 'theme') {
+                  handleKitEquip('theme', item.id);
+                }
                 setConfirmPurchaseItem(null);
                 setPurchasing(false);
-                setEquipAnimItem(item);
-                setShowEquipAnim(true);
               }} style={{
                 padding: '10px 28px', borderRadius: 12, cursor: purchasing ? 'wait' : 'pointer',
                 background: 'linear-gradient(135deg, #fbbf24, #d97706)', border: 'none',

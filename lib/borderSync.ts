@@ -24,12 +24,12 @@ export async function syncBorderToPlayers(borderId: string | null): Promise<void
   try {
     // Get the player's supabase_id from localStorage (same as player.userId)
     const playerKey = Object.keys(localStorage).find(k => k.startsWith('reforge_player_v2_'));
-    if (!playerKey) { console.warn('[BorderSync] No player in localStorage'); return; }
+    if (!playerKey) { console.debug('[BorderSync] No player in localStorage'); return; }
 
     const playerData = JSON.parse(localStorage.getItem(playerKey) || '{}');
     const supabaseId = playerData.userId;
     if (!supabaseId || supabaseId.startsWith('local')) {
-      console.warn('[BorderSync] No synced userId');
+      console.debug('[BorderSync] No synced userId');
       return;
     }
 
