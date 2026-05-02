@@ -52,27 +52,26 @@ const N = {
   cableFrontRaise:       '/assets/videos/exercises/cable_front_raise.mp4',
   uprightRow:            '/assets/videos/exercises/upright_row.mp4',
   shrugs:                '/assets/videos/exercises/shrugs.mp4',
-  externalRotation:      '/assets/videos/exercises/external_rotation.mp4',
+
   crossBodyMtnClimbers:  '/assets/videos/exercises/cross_body_mountain_climbers.mp4',
   threadTheNeedle:       '/assets/videos/exercises/thread_the_needle_stretch.mp4',
   hammerCurl:            '/assets/videos/exercises/hammer_curl.mp4',
   concentrationCurl:     '/assets/videos/exercises/concentration_curl.mp4',
   inclineDumbbellCurl:   '/assets/videos/exercises/incline_dumbbell_curl.mp4',
-  spiderCurl:            '/assets/videos/exercises/spider_curl.mp4',
+
   ezBarCurl:             '/assets/videos/exercises/ez_bar_curl.mp4',
   reverseFly:            '/assets/videos/exercises/reverse_fly.mp4',
-  zottmanCurl:           '/assets/videos/exercises/zottman_curl.mp4',
+
   jumpRope:              '/assets/videos/exercises/jump_rope.mp4',
   closeGripBench:        '/assets/videos/exercises/close_grip_bench_press.mp4',
   parallelBarDips:       '/assets/videos/exercises/parallel_bar_dips.mp4',
   chairDips:             '/assets/videos/exercises/chair_dips.mp4',
   floorPress:            '/assets/videos/exercises/floor_press.mp4',
   ropeTricepsPushdown:   '/assets/videos/exercises/rope_triceps_pushdown.mp4',
-  skullCrusher:          '/assets/videos/exercises/skull_crusher.mp4',
+
   cableOverheadTricep:   '/assets/videos/exercises/cable_overhead_triceps_extension.mp4',
   kickback:              '/assets/videos/exercises/kickback.mp4',
-  singleArmCablePush:    '/assets/videos/exercises/single_arm_cable_pushdown.mp4',
-  reverseGripPushdown:   '/assets/videos/exercises/reverse_grip_triceps_pushdown.mp4',
+
   frontSquat:            '/assets/videos/exercises/front_squat.mp4',
   lunges:                '/assets/videos/exercises/lunges.mp4',
   walkingLunges:         '/assets/videos/exercises/walking_lunges.mp4',
@@ -82,10 +81,7 @@ const N = {
   legExtension:          '/assets/videos/exercises/leg_extension.mp4',
   seatedLegCurl:         '/assets/videos/exercises/seated_leg_curl.mp4',
   seatedCalfRaise:       '/assets/videos/exercises/seated_calf_raise.mp4',
-  donkeyCalfRaise:       '/assets/videos/exercises/donkey_calf_raise.mp4',
   gluteKickback:         '/assets/videos/exercises/glute_kickback.mp4',
-  cableHipAbduction:     '/assets/videos/exercises/cable_hip_abduction.mp4',
-  cableHipAdduction:     '/assets/videos/exercises/cable_hip_adduction.mp4',
   standingQuadStretch:   '/assets/videos/exercises/standing_quadriceps_stretch.mp4',
   hamstringStretch:      '/assets/videos/exercises/hamstring_stretch.mp4',
   seatedHamstringStr:    '/assets/videos/exercises/seated_hamstring_stretch.mp4',
@@ -111,7 +107,7 @@ const N = {
   lyingLegRaise:         '/assets/videos/exercises/lying_leg_raise.mp4',
   cableCrunch:           '/assets/videos/exercises/cable_crunch.mp4',
   reverseCrunch:         '/assets/videos/exercises/reverse_crunch.mp4',
-  seatedSpinalTwist:     '/assets/videos/exercises/seated_spinal_twist.mp4',
+
   bentOverRow:           '/assets/videos/exercises/bent_over_row.mp4',
   seatedCableRow:        '/assets/videos/exercises/seated_cable_row.mp4',
   singleArmDbRow:        '/assets/videos/exercises/single_arm_dumbbell_row.mp4',
@@ -121,10 +117,10 @@ const N = {
   barbellBackSquat:      '/assets/videos/exercises/barbell_back_squat.mp4',
   snatch:                '/assets/videos/exercises/snatch.mp4',
   thruster:              '/assets/videos/exercises/thruster.mp4',
-  kettlebellSnatch:      '/assets/videos/exercises/kettlebell_snatch.mp4',
+
   wallSit:               '/assets/videos/exercises/wall_sit.mp4',
   inchwormWalk:          '/assets/videos/exercises/inchworm_walk.mp4',
-  windmill:              '/assets/videos/exercises/windmill.mp4',
+
   lateralLunge:          '/assets/videos/exercises/lateral_lunge.mp4',
   jogging:               '/assets/videos/exercises/jogging.mp4',
   sprint:                '/assets/videos/exercises/sprint.mp4',
@@ -132,16 +128,16 @@ const N = {
   skaterJump:            '/assets/videos/exercises/skater_jump.mp4',
   buttKicks:             '/assets/videos/exercises/butt_kicks.mp4',
   skipping:              '/assets/videos/exercises/skipping.mp4',
-  cariocaDrill:          '/assets/videos/exercises/carioca_drill.mp4',
+
   jumpLunges:            '/assets/videos/exercises/jump_lunges.mp4',
-  dynamicSideShuffle:    '/assets/videos/exercises/dynamic_side_shuffle.mp4',
+
   downwardDog:           '/assets/videos/exercises/downward_dog.mp4',
   standingForwardBend:   '/assets/videos/exercises/standing_forward_bend.mp4',
   seatedForwardFold:     '/assets/videos/exercises/seated_forward_fold.mp4',
   lyingSpinalTwist:      '/assets/videos/exercises/lying_spinal_twist.mp4',
   kneelingHipFlexor:     '/assets/videos/exercises/kneeling_hip_flexor_stretch.mp4',
   machineShoulderPress:  '/assets/videos/exercises/machine_shoulder_press.mp4',
-  gluteActivationWalk:   '/assets/videos/exercises/glute_activation_walk.mp4',
+
   arnoldPress:           '/assets/videos/exercises/dumbbell_shoulder_press.mp4',  // arnold_press.mp4 missing, closest match
   preacherCurl:          '/assets/videos/exercises/incline_dumbbell_curl.mp4',   // preacher_curl.mp4 missing, closest match
   briskWalk:             '/assets/videos/exercises/jogging.mp4',                  // brisk_walk.mp4 missing, closest match
@@ -161,7 +157,7 @@ const B = {
   bicepCurlMachine:      '/assets/videos/exercises-batch2/bicep_curl_machine.mp4',
   tricepExtMachine:      '/assets/videos/exercises-batch2/tricep_extension_machine.mp4',
   cableFacePull:         '/assets/videos/exercises-batch2/cable_face_pull.mp4',
-  cableWoodChop:         '/assets/videos/exercises-batch2/cable_wood_chop.mp4',
+
   romanChairExt:         '/assets/videos/exercises-batch2/roman_chair_back_extension.mp4',
   hyperextension:        '/assets/videos/exercises-batch2/hyperextension.mp4',
   tBarRow:               '/assets/videos/exercises-batch2/t_bar_row.mp4',
@@ -169,28 +165,27 @@ const B = {
   inclineDbFly:          '/assets/videos/exercises-batch2/incline_dumbbell_fly.mp4',
   declineDbPress:        '/assets/videos/exercises-batch2/decline_dumbbell_press.mp4',
   cableBicepCurl:        '/assets/videos/exercises-batch2/cable_bicep_curl.mp4',
-  cableRearDeltRow:      '/assets/videos/exercises-batch2/cable_rear_delt_row.mp4',
+
   standCableChestFly:    '/assets/videos/exercises-batch2/standing_cable_chest_fly.mp4',
-  declineCrunch:         '/assets/videos/exercises-batch2/decline_crunch.mp4',
+
   cableShrug:            '/assets/videos/exercises-batch2/cable_shrug.mp4',
   smithCalfRaise:        '/assets/videos/exercises-batch2/smith_machine_calf_raise.mp4',
   standCableCurl:        '/assets/videos/exercises-batch2/standing_cable_curl.mp4',
   birdDog:               '/assets/videos/exercises-batch2/bird_dog.mp4',
-  reversePlank:          '/assets/videos/exercises-batch2/reverse_plank.mp4',
+
   supermanEx:            '/assets/videos/exercises-batch2/superman.mp4',
-  gluteBridgeMarch:      '/assets/videos/exercises-batch2/glute_bridge_march.mp4',
+
   bearCrawl:             '/assets/videos/exercises-batch2/bear_crawl.mp4',
-  hollowBodyHold:        '/assets/videos/exercises-batch2/hollow_body_hold.mp4',
+
   sidePlankDips:         '/assets/videos/exercises-batch2/side_plank_hip_dips.mp4',
-  walkingPlank:          '/assets/videos/exercises-batch2/walking_plank.mp4',
+
   boxPushUps:            '/assets/videos/exercises-batch2/box_push_ups.mp4',
   inclinePushUps:        '/assets/videos/exercises-batch2/incline_push_ups.mp4',
   declinePushUps:        '/assets/videos/exercises-batch2/decline_push_ups.mp4',
-  pistolSquat:           '/assets/videos/exercises-batch2/pistol_squat.mp4',
-  wallSitBallSqueeze:    '/assets/videos/exercises-batch2/wall_sit_with_ball_squeeze.mp4',
+
   dbGobletSquat:         '/assets/videos/exercises-batch2/dumbbell_goblet_squat.mp4',
   dbRomanianDl:          '/assets/videos/exercises-batch2/dumbbell_romanian_deadlift.mp4',
-  dbPullover:            '/assets/videos/exercises-batch2/dumbbell_pullover.mp4',
+
   dbShrug:               '/assets/videos/exercises-batch2/dumbbell_shrug.mp4',
   dbFrontSquat:          '/assets/videos/exercises-batch2/dumbbell_front_squat.mp4',
   dbHammerCurl:          '/assets/videos/exercises-batch2/dumbbell_hammer_curl.mp4',
@@ -236,11 +231,7 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   'Dumbbell Triceps Extension':      N.dumbbellTricepKickback,
   'Dumbbell Tricep Kickback':        N.dumbbellTricepKickback,
   'Dumbbell Tricep Kickbacks':       N.dumbbellTricepKickback,
-  'Skull Crusher':                   N.skullCrusher,
-  'EZ Bar Skull Crusher':            N.skullCrusher,
   'Kickback':                        N.kickback,
-  'Single Arm Cable Pushdown':       N.singleArmCablePush,
-  'Reverse Grip Triceps Pushdown':   N.reverseGripPushdown,
 
   'Push-Up':                         N.pushUps,
   'Push-Ups':                        N.pushUps,
@@ -248,8 +239,7 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   'Pushups':                         N.pushUps,
   'Diamond Push-Ups':                N.diamondPushUps,
   'Pike Push-Ups':                   N.pikePushUps,
-  'Archer Pushups':                  N.diamondPushUps,
-  'Clap Push-Up':                    N.pushUps,
+
 
   // ══════════════════════════════════════════════
   // ── Pull (Back / Biceps) ──
@@ -277,15 +267,14 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   'Reverse Fly':                     N.reverseFly,
   'Resistance Band Pull Apart':      N.resistanceBandPull,
   'Shrugs':                          N.shrugs,
-  'External Rotation':               N.externalRotation,
+
 
   'Barbell Curls':                   N.barbellCurl,
   'Barbell Curl':                    N.barbellCurl,
   'EZ Bar Curl':                     N.ezBarCurl,
   'Incline Dumbbell Curl':           N.inclineDumbbellCurl,
   'Concentration Curl':              N.concentrationCurl,
-  'Spider Curl':                     N.spiderCurl,
-  'Zottman Curl':                    N.zottmanCurl,
+
   'Hammer Curls':                    N.hammerCurl,
   'Hammer Curl':                     N.hammerCurl,
   'Preacher Curls':                  N.preacherCurl,
@@ -304,7 +293,7 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   'Hack Squat':                      N.barbellSquat,
   'Jump Squat':                      N.jumpSquat,
   'Jump Squats':                     N.jumpSquats,
-  'Cossack Squat':                   N.frontSquat,
+
   'Romanian Deadlift':               N.romanianDeadlift,
   'Leg Press':                       N.legPress,
   'Leg Extensions':                  N.legExtension,
@@ -325,19 +314,18 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   'Step Up':                         N.lunges,
   'Calf Raises':                     N.calfRaises,
   'Seated Calf Raise':               N.seatedCalfRaise,
-  'Donkey Calf Raise':               N.donkeyCalfRaise,
+
   'Wall Sit':                        N.wallSit,
   'Box Jumps':                       N.boxJumps,
   'Glute Kickback':                  N.gluteKickback,
   'Glute Kickback Machine':          N.gluteKickbackMachine,
   'Cable Glute Kickback':            N.cableGluteKickback,
   'Donkey Kicks':                    N.donkeyKicks,
-  'Cable Hip Abduction':             N.cableHipAbduction,
-  'Cable Hip Adduction':             N.cableHipAdduction,
+
   'Hip Abduction Machine':           N.hipAbductionMachine,
   'Kettlebell Swing':                N.kettlebellSwing,
   'Jump Lunges':                     N.jumpLunges,
-  'Glute Activation Walk':           N.gluteActivationWalk,
+
 
   // ══════════════════════════════════════════════
   // ── Core ──
@@ -361,7 +349,7 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   'Russian Twists':                  N.russianTwists,
   'Mountain Climbers':               N.mountainClimbers,
   'Cross Body Mountain Climbers':    N.crossBodyMtnClimbers,
-  'Seated Spinal Twist':             N.seatedSpinalTwist,
+
 
   // ══════════════════════════════════════════════
   // ── Cardio ──
@@ -381,17 +369,14 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   'Elliptical Training':             N.elliptical,
   'Skater Jump':                     N.skaterJump,
   'Butt Kicks':                      N.buttKicks,
-  'Carioca Drill':                   N.cariocaDrill,
-  'Dynamic Side Shuffle':            N.dynamicSideShuffle,
+
 
   // ══════════════════════════════════════════════
   // ── Olympic / Functional ──
   // ══════════════════════════════════════════════
   'Snatch':                          N.snatch,
   'Thruster':                        N.thruster,
-  'Kettlebell Snatch':               N.kettlebellSnatch,
   'Inchworm Walk':                   N.inchwormWalk,
-  'Windmill':                        N.windmill,
 
   // ══════════════════════════════════════════════
   // ── Stretch / Recovery ──
@@ -428,15 +413,15 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   'Bicep Curl Machine':              B.bicepCurlMachine,
   'Tricep Extension Machine':        B.tricepExtMachine,
   'Cable Face Pull':                 B.cableFacePull,
-  'Cable Wood Chop':                 B.cableWoodChop,
+
   'Roman Chair Back Extension':      B.romanChairExt,
   'Hyperextension':                  B.hyperextension,
   'T-Bar Row':                       B.tBarRow,
   'Decline Bench Press':             B.declineBench,
   'Cable Bicep Curl':                B.cableBicepCurl,
-  'Cable Rear Delt Row':             B.cableRearDeltRow,
+
   'Standing Cable Chest Fly':        B.standCableChestFly,
-  'Decline Crunch':                  B.declineCrunch,
+
   'Cable Shrug':                     B.cableShrug,
   'Smith Machine Calf Raise':        B.smithCalfRaise,
   'Standing Cable Curl':             B.standCableCurl,
@@ -446,24 +431,23 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   // ══════════════════════════════════════════════
   'Incline Dumbbell Fly':            B.inclineDbFly,
   'Decline Dumbbell Press':          B.declineDbPress,
-  'Dumbbell Pullover':               B.dbPullover,
+
 
   // ══════════════════════════════════════════════
   // ── Batch 2: Bodyweight ──
   // ══════════════════════════════════════════════
   'Bird Dog':                        B.birdDog,
-  'Reverse Plank':                   B.reversePlank,
+
   'Superman':                        B.supermanEx,
-  'Glute Bridge March':              B.gluteBridgeMarch,
+
   'Bear Crawl':                      B.bearCrawl,
-  'Hollow Body Hold':                B.hollowBodyHold,
+
   'Side Plank Hip Dips':             B.sidePlankDips,
-  'Walking Plank':                   B.walkingPlank,
+
   'Box Push-Ups':                    B.boxPushUps,
   'Incline Push-Ups':                B.inclinePushUps,
   'Decline Push-Ups':                B.declinePushUps,
-  'Pistol Squat':                    B.pistolSquat,
-  'Wall Sit with Ball Squeeze':      B.wallSitBallSqueeze,
+
 
   // ══════════════════════════════════════════════
   // ── Batch 2: Dumbbell / Kettlebell ──
