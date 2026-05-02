@@ -917,7 +917,7 @@ const ShopView: React.FC<ShopViewProps> = ({
           </div>
           <div className="hdr-line" />
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, padding: '0 16px', overflow: 'hidden' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, padding: '0 16px' }}>
           {getTodaysDeals(4).map(d => (
             <div key={d.item.id}>
                <KitGlowCard item={d.item} discount={d.discount}
@@ -1000,7 +1000,7 @@ const ShopView: React.FC<ShopViewProps> = ({
         </div>
         <div className="store-hscroll">
           {BORDERS_ELEMENTS.map(item => (
-            <div key={item.id} style={{ flexShrink: 0, width: 170 }}>
+            <div key={item.id} style={{ flexShrink: 0, width: 'calc(42vw - 12px)', minWidth: 140, maxWidth: 180 }}>
               <KitGlowCard item={item}
                 owned={isItemOwned(item.id)}
                 equipped={kitEconomy.equipped.border === item.id}
@@ -1032,7 +1032,7 @@ const ShopView: React.FC<ShopViewProps> = ({
         </div>
         <div className="store-hscroll">
           {BORDERS_BEASTS.map(item => (
-            <div key={item.id} style={{ flexShrink: 0, width: 170 }}>
+            <div key={item.id} style={{ flexShrink: 0, width: 'calc(42vw - 12px)', minWidth: 140, maxWidth: 180 }}>
               <KitGlowCard item={item}
                 owned={isItemOwned(item.id)}
                 equipped={kitEconomy.equipped.border === item.id}
@@ -1064,7 +1064,7 @@ const ShopView: React.FC<ShopViewProps> = ({
         </div>
         <div className="store-hscroll">
           {BORDERS_SHIELDS.map(item => (
-            <div key={item.id} style={{ flexShrink: 0, width: 170 }}>
+            <div key={item.id} style={{ flexShrink: 0, width: 'calc(42vw - 12px)', minWidth: 140, maxWidth: 180 }}>
               <KitGlowCard item={item}
                 owned={isItemOwned(item.id)}
                 equipped={kitEconomy.equipped.border === item.id}
@@ -1096,7 +1096,7 @@ const ShopView: React.FC<ShopViewProps> = ({
         </div>
         <div className="store-hscroll">
           {BORDERS_EXCLUSIVE.map(item => (
-            <div key={item.id} style={{ flexShrink: 0, width: 170 }}>
+            <div key={item.id} style={{ flexShrink: 0, width: 'calc(42vw - 12px)', minWidth: 140, maxWidth: 180 }}>
               <KitGlowCard item={item}
                 owned={isItemOwned(item.id)}
                 equipped={kitEconomy.equipped.border === item.id}
@@ -1543,8 +1543,9 @@ function KitGlowCard({ item, discount, owned, equipped, canAfford, onBuy, onEqui
   return (
     /* Layer 1: Outer Glow Wrapper */
     <div onClick={() => { if (item.category === 'border' && onCardClick) onCardClick(); }} style={{
-      filter: `drop-shadow(0 0 12px ${catColor}40) drop-shadow(0 4px 16px rgba(0,0,0,0.6))`,
+      filter: `drop-shadow(0 0 6px ${catColor}30) drop-shadow(0 2px 8px rgba(0,0,0,0.4))`,
       cursor: item.category === 'border' ? 'pointer' : undefined,
+      overflow: 'visible',
     }}>
       {/* Layer 2: Gradient Border Frame (3px visible border) */}
       <div style={{
