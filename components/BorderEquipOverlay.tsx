@@ -10,6 +10,7 @@
  *   6. "Continue" button
  */
 import React, { useEffect, useRef, useCallback, useState } from 'react';
+import ReactDOM from 'react-dom';
 import gsap from 'gsap';
 import confetti from 'canvas-confetti';
 import Lottie from 'lottie-react';
@@ -292,7 +293,8 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
   // Container must hold the glow without clipping
   const containerSize = 300;
 
-  return (
+  // Portal to document.body so overlay escapes any parent stacking context (e.g. z-10)
+  return ReactDOM.createPortal(
     <div
       ref={overlayRef}
       style={{
@@ -521,7 +523,8 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
         @keyframes equip-spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
         @keyframes aura-rotate { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
       `}</style>
-    </div>
+    </div>,
+    document.body
   );
 };
 
