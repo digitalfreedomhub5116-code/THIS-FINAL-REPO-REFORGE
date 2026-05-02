@@ -23,14 +23,14 @@ const BMIGauge = ({ value }: { value: number }) => {
         <div className="w-24 mt-3 flex flex-col gap-1">
             <div className="h-1.5 w-full bg-gray-800 rounded-full relative overflow-visible">
                 {/* Monochromatic gradient: dark grey → cyan → light grey */}
-                <div className="absolute inset-0 rounded-full" style={{ background: 'linear-gradient(to right, #3a3a4a, #5a7a88, #7EB8D4, #5a7a88, #3a3a4a)' }} />
+                <div className="absolute inset-0 rounded-full" style={{ background: 'linear-gradient(to right, #3a3a4a, #5a7a88, #00d4ff, #5a7a88, #3a3a4a)' }} />
                 
                 {/* Marker */}
                 <motion.div 
                     initial={{ left: 0 }}
                     animate={{ left: `${percent}%` }}
                     transition={{ delay: 0.5, duration: 1, type: "spring" }}
-                    className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-white border-2 border-[#0a0a14] rounded-full shadow-[0_0_5px_rgba(126,184,212,0.5)] z-10"
+                    className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-white border-2 border-[#0a0a14] rounded-full shadow-[0_0_5px_rgba(0,212,255,0.5)] z-10"
                     style={{ marginLeft: '-5px' }} 
                 />
             </div>
@@ -50,7 +50,7 @@ const TrendGraph = () => (
                 initial={{ height: 0 }}
                 animate={{ height: `${h * 100}%` }}
                 transition={{ duration: 0.5, delay: i * 0.1 }}
-                className={`w-2 rounded-t-sm ${i > 5 ? 'bg-system-neon shadow-[0_0_8px_#7EB8D4]' : 'bg-gray-800'}`}
+                className={`w-2 rounded-t-sm ${i > 5 ? 'bg-system-neon shadow-[0_0_8px_#00d4ff]' : 'bg-gray-800'}`}
             />
         ))}
     </div>
@@ -79,10 +79,10 @@ const GrowthSpinner = () => (
             transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", repeatDelay: 1 }}
             className="z-10"
         >
-            <Hourglass className="text-[#7EB8D4]" size={32} />
+            <Hourglass className="text-[#00d4ff]" size={32} />
         </motion.div>
         <motion.div 
-            className="absolute inset-0 border-2 border-[#7EB8D4]/30 rounded-full"
+            className="absolute inset-0 border-2 border-[#00d4ff]/30 rounded-full"
             animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0, 0.5] }}
             transition={{ duration: 2, repeat: Infinity }}
         />
@@ -218,14 +218,14 @@ const CalibrationReport: React.FC<{ profile: HealthProfile, onContinue: () => vo
 
                     {/* Growth Potential Card */}
                     <motion.div 
-                        whileHover={{ scale: 1.02, borderColor: '#7EB8D4' }}
+                        whileHover={{ scale: 1.02, borderColor: '#00d4ff' }}
                         className="bg-[#0f0f0f] border border-gray-800 p-5 rounded-xl relative overflow-hidden group transition-colors flex flex-col justify-between"
                     >
                         <div className="flex justify-between items-start">
                             <div>
                                 <div className="flex items-center gap-2 mb-2">
-                                    <div className="p-1.5 rounded-md bg-black border border-gray-700 group-hover:border-[#7EB8D4]/50 transition-colors">
-                                        <Zap size={16} className="text-[#7EB8D4]" />
+                                    <div className="p-1.5 rounded-md bg-black border border-gray-700 group-hover:border-[#00d4ff]/50 transition-colors">
+                                        <Zap size={16} className="text-[#00d4ff]" />
                                     </div>
                                     <span className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Growth Potential</span>
                                 </div>
@@ -360,7 +360,7 @@ const AwakeningOverlay: React.FC<{ profile: Partial<HealthProfile>; onComplete: 
         ];
     }, [baseStats, targetStats]);
 
-    const stageColors = ['#ef4444', '#f97316', '#eab308', '#7EB8D4'];
+    const stageColors = ['#ef4444', '#f97316', '#eab308', '#00d4ff'];
     const stageColor = stageColors[stage];
 
     const [animatedStats, setAnimatedStats] = useState<number[]>(() => [...baseStats]);
@@ -436,7 +436,7 @@ const AwakeningOverlay: React.FC<{ profile: Partial<HealthProfile>; onComplete: 
     const statConfig = [
         { key: 0, label: 'STR', full: 'STRENGTH',     Icon: Dumbbell, color: '#f87171', dataKey: 'str' },
         { key: 1, label: 'INT', full: 'INTELLIGENCE', Icon: Brain,    color: '#60a5fa', dataKey: 'int' },
-        { key: 2, label: 'DIS', full: 'DISCIPLINE',   Icon: Shield,   color: '#9ACDE3', dataKey: 'dis' },
+        { key: 2, label: 'DIS', full: 'DISCIPLINE',   Icon: Shield,   color: '#33dfff', dataKey: 'dis' },
         { key: 3, label: 'SOC', full: 'SOCIAL',       Icon: Users,    color: '#facc15', dataKey: 'soc' },
         { key: 4, label: 'FOC', full: 'FOCUS',        Icon: Eye,       color: '#34d399', dataKey: 'foc' },
         { key: 5, label: 'WIL', full: 'WILLPOWER',    Icon: Sparkles,  color: '#fb923c', dataKey: 'wil' },
@@ -778,7 +778,7 @@ const AwakeningOverlay: React.FC<{ profile: Partial<HealthProfile>; onComplete: 
                                 background: isTransitioning
                                     ? '#0d0d0d'
                                     : stage === 3
-                                    ? '#7EB8D4'
+                                    ? '#00d4ff'
                                     : stage === 0
                                     ? '#ffffff'
                                     : 'transparent',
@@ -793,7 +793,7 @@ const AwakeningOverlay: React.FC<{ profile: Partial<HealthProfile>; onComplete: 
                                     ? `1.5px solid ${stageColor}`
                                     : '1.5px solid transparent',
                                 boxShadow: !isTransitioning && stage === 3
-                                    ? '0 0 40px #7EB8D455'
+                                    ? '0 0 40px #00d4ff55'
                                     : !isTransitioning && stage === 0
                                     ? '0 0 30px rgba(255,255,255,0.18)'
                                     : !isTransitioning && stage > 0 && stage < 3
@@ -884,14 +884,14 @@ const AssessmentOverlay: React.FC<{ onComplete: () => void }> = ({ onComplete })
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[200] bg-black flex flex-col items-center justify-center font-mono overflow-hidden"
         >
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(126,184,212,0.05)_0%,transparent_50%)]" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,212,255,0.05)_0%,transparent_50%)]" />
             <div className="relative z-10 flex flex-col items-center gap-12">
                 <div className="relative w-64 h-64 flex items-center justify-center">
                     <motion.div className="absolute inset-0 rounded-full border border-gray-800 border-t-system-neon/30 border-r-system-neon/30" animate={{ rotate: 360 }} transition={{ duration: 3, repeat: Infinity, ease: "linear" }} />
                     <motion.div className="absolute inset-4 rounded-full border border-gray-800 border-b-system-neon/20 border-l-system-neon/20" animate={{ rotate: -360 }} transition={{ duration: 5, repeat: Infinity, ease: "linear" }} />
                     <svg className="absolute inset-0 w-full h-full -rotate-90 transform p-4">
                         <circle cx="50%" cy="50%" r="48%" className="stroke-gray-900/50" strokeWidth="2" fill="transparent" />
-                        <motion.circle cx="50%" cy="50%" r="48%" className="stroke-system-neon drop-shadow-[0_0_15px_rgba(126,184,212,0.5)]" strokeWidth="4" fill="transparent" strokeLinecap="round" initial={{ pathLength: 0 }} animate={{ pathLength: progress / 100 }} transition={{ duration: 0.1, ease: "linear" }} />
+                        <motion.circle cx="50%" cy="50%" r="48%" className="stroke-system-neon drop-shadow-[0_0_15px_rgba(0,212,255,0.5)]" strokeWidth="4" fill="transparent" strokeLinecap="round" initial={{ pathLength: 0 }} animate={{ pathLength: progress / 100 }} transition={{ duration: 0.1, ease: "linear" }} />
                     </svg>
                     <div className="flex flex-col items-center justify-center bg-black/80 backdrop-blur-md rounded-full w-32 h-32 border border-gray-800 shadow-[0_0_30px_rgba(0,0,0,0.5)] z-10">
                         <span className="text-3xl font-black text-white tracking-tighter">
@@ -1000,7 +1000,7 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                   <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${(step / TOTAL_STEPS) * 100}%` }}
-                      className="h-full bg-system-neon shadow-[0_0_15px_#7EB8D4]"
+                      className="h-full bg-system-neon shadow-[0_0_15px_#00d4ff]"
                   />
               </div>
 
@@ -1093,7 +1093,7 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                               <button
                                   onClick={() => setStep(3)}
                                   disabled={!formData.age || formData.age < 10}
-                                  className="bg-system-neon text-black px-10 py-3 rounded-full font-black text-xs shadow-[0_0_15px_#7EB8D4] hover:bg-white transition-all uppercase flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                                  className="bg-system-neon text-black px-10 py-3 rounded-full font-black text-xs shadow-[0_0_15px_#00d4ff] hover:bg-white transition-all uppercase flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
                               >
                                   NEXT <ChevronRight size={14} />
                               </button>
@@ -1181,7 +1181,7 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
 
                           <motion.div variants={setupItemVariants} className="sticky bottom-0 bg-[#0a0a0a] pt-3 pb-1 flex justify-between mt-4">
                               <button onClick={() => setStep(2)} className="text-gray-600 hover:text-white flex items-center gap-1 font-bold text-xs uppercase"><ChevronLeft size={14} /> BACK</button>
-                              <button onClick={() => setStep(4)} className="bg-system-neon text-black px-10 py-3 rounded-full font-black text-xs shadow-[0_0_15px_#7EB8D4] hover:bg-white transition-all uppercase flex items-center gap-2">NEXT <ChevronRight size={14} /></button>
+                              <button onClick={() => setStep(4)} className="bg-system-neon text-black px-10 py-3 rounded-full font-black text-xs shadow-[0_0_15px_#00d4ff] hover:bg-white transition-all uppercase flex items-center gap-2">NEXT <ChevronRight size={14} /></button>
                           </motion.div>
                       </motion.div>
                   )}
@@ -1267,7 +1267,7 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                                       }
                                   }}
                                   placeholder="e.g., Lower back pain, knee discomfort..."
-                                  className="w-full px-4 py-3 bg-gray-900/50 border border-gray-800 rounded-xl text-white text-sm placeholder:text-gray-600 focus:outline-none focus:border-[#7EB8D4]/50 transition-colors"
+                                  className="w-full px-4 py-3 bg-gray-900/50 border border-gray-800 rounded-xl text-white text-sm placeholder:text-gray-600 focus:outline-none focus:border-[#00d4ff]/50 transition-colors"
                               />
                               <p className="text-[9px] text-gray-600">
                                   {formData.injuries?.[0] ? `${formData.injuries[0].trim().split(/\s+/).length}/10 words` : '0/10 words'}
@@ -1288,7 +1288,7 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
 
                           <motion.div variants={setupItemVariants} className="sticky bottom-0 bg-[#0a0a0a] pt-3 pb-1 flex justify-between mt-4">
                               <button onClick={() => setStep(5)} className="text-gray-600 hover:text-white flex items-center gap-1 font-bold text-xs uppercase"><ChevronLeft size={14} /> BACK</button>
-                              <button onClick={() => setStep(7)} className="bg-system-neon text-black px-10 py-3 rounded-full font-black text-xs shadow-[0_0_15px_#7EB8D4] hover:bg-white transition-all uppercase flex items-center gap-2">NEXT <ChevronRight size={14} /></button>
+                              <button onClick={() => setStep(7)} className="bg-system-neon text-black px-10 py-3 rounded-full font-black text-xs shadow-[0_0_15px_#00d4ff] hover:bg-white transition-all uppercase flex items-center gap-2">NEXT <ChevronRight size={14} /></button>
                           </motion.div>
                       </motion.div>
                   )}
@@ -1373,7 +1373,7 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                               <button
                                   onClick={() => setStep(8)}
                                   disabled={!formData.activityLevel || !formData.energyLevel || !formData.stressLevel}
-                                  className="bg-system-neon text-black px-10 py-3 rounded-full font-black text-xs shadow-[0_0_15px_#7EB8D4] hover:bg-white transition-all uppercase flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                                  className="bg-system-neon text-black px-10 py-3 rounded-full font-black text-xs shadow-[0_0_15px_#00d4ff] hover:bg-white transition-all uppercase flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
                               >NEXT <ChevronRight size={14} /></button>
                           </motion.div>
                       </motion.div>
@@ -1384,7 +1384,7 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                       <motion.div key="s7" variants={setupContainerVariants} initial="hidden" animate="visible" exit="exit" className="space-y-5">
                           <motion.div variants={setupItemVariants}>
                               <div className="flex items-center gap-2 mb-1">
-                                  <Brain className="text-[#7EB8D4]" size={18} />
+                                  <Brain className="text-[#00d4ff]" size={18} />
                                   <span className="text-xs text-gray-500 uppercase tracking-widest font-bold">Capability Scan</span>
                               </div>
                               <p className="text-gray-600 text-[11px]">Quick baseline check — ForgeGuard uses this to scale your quests. Be honest.</p>
@@ -1420,7 +1420,7 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                                   ]).map(opt => (
                                       <button key={opt.label}
                                           onClick={() => setBaselines({ ...baselines, focusDuration: opt.focus, readingTime: opt.reading })}
-                                          className={`py-3 px-3 rounded-xl border text-center transition-all ${baselines.focusDuration === opt.focus ? 'bg-[#7EB8D4] text-white border-[#7EB8D4]' : 'border-gray-800 text-gray-400 hover:border-gray-600'}`}>
+                                          className={`py-3 px-3 rounded-xl border text-center transition-all ${baselines.focusDuration === opt.focus ? 'bg-[#00d4ff] text-white border-[#00d4ff]' : 'border-gray-800 text-gray-400 hover:border-gray-600'}`}>
                                           <div className="font-bold text-[11px]">{opt.label}</div>
                                       </button>
                                   ))}
@@ -1458,7 +1458,7 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                                   className={`px-10 py-3 rounded-full font-black text-xs transition-all uppercase flex items-center gap-2 ${
                                       baselines.pushups === 0 || baselines.focusDuration === 0 || baselines.sleepAvg === 0
                                           ? 'bg-gray-800 text-gray-600 cursor-not-allowed'
-                                          : 'bg-system-neon text-black shadow-[0_0_15px_#7EB8D4] hover:bg-white'
+                                          : 'bg-system-neon text-black shadow-[0_0_15px_#00d4ff] hover:bg-white'
                                   }`}
                               >
                                   NEXT <ChevronRight size={14} />
@@ -1498,7 +1498,7 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                           <motion.button
                               variants={setupItemVariants}
                               onClick={handleFinish}
-                              className="w-full bg-system-neon text-black font-black py-5 rounded-xl shadow-[0_0_30px_#7EB8D4] hover:scale-105 transition-transform uppercase tracking-widest"
+                              className="w-full bg-system-neon text-black font-black py-5 rounded-xl shadow-[0_0_30px_#00d4ff] hover:scale-105 transition-transform uppercase tracking-widest"
                           >
                               Upload Biometrics
                           </motion.button>

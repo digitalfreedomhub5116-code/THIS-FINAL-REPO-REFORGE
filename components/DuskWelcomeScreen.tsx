@@ -32,8 +32,8 @@ const AmbientParticles: React.FC = () => {
             bottom: '5%',
             width: p.size,
             height: p.size,
-            background: '#7EB8D4',
-            boxShadow: `0 0 ${p.size * 3}px rgba(126,184,212,0.6)`,
+            background: '#00d4ff',
+            boxShadow: `0 0 ${p.size * 3}px rgba(0,212,255,0.6)`,
           }}
           animate={{
             y: [0, -(200 + Math.random() * 300)],
@@ -57,7 +57,7 @@ const ScanLine: React.FC = () => (
   <motion.div
     className="absolute left-0 right-0 h-px pointer-events-none z-10"
     style={{
-      background: 'linear-gradient(90deg, transparent, rgba(126,184,212,0.4), rgba(126,184,212,0.2), transparent)',
+      background: 'linear-gradient(90deg, transparent, rgba(0,212,255,0.4), rgba(0,212,255,0.2), transparent)',
     }}
     animate={{ top: ['0%', '100%'] }}
     transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
@@ -186,18 +186,18 @@ const DuskWelcomeScreen: React.FC<DuskWelcomeScreenProps> = ({ onComplete }) => 
                 background: 'rgba(255,255,255,0.03)',
                 backdropFilter: 'blur(12px)',
                 WebkitBackdropFilter: 'blur(12px)',
-                border: '1px solid rgba(126,184,212,0.25)',
-                boxShadow: '0 0 40px rgba(126,184,212,0.08), 0 0 80px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04)',
+                border: '1px solid rgba(0,212,255,0.25)',
+                boxShadow: '0 0 40px rgba(0,212,255,0.08), 0 0 80px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04)',
               }}
             >
               {/* Header label */}
               <div className="flex items-center gap-1.5 mb-2 sm:mb-3">
                 <motion.div
-                  className="w-1 h-1 rounded-full bg-[#7EB8D4]"
+                  className="w-1 h-1 rounded-full bg-[#00d4ff]"
                   animate={{ opacity: [1, 0.3, 1] }}
                   transition={{ duration: 2, repeat: Infinity }}
                 />
-                <p className="font-mono text-[8px] tracking-[0.25em] uppercase text-[#7EB8D4]/70">
+                <p className="font-mono text-[8px] tracking-[0.25em] uppercase text-[#00d4ff]/70">
                   DUSK // ACCOUNTABILITY AI
                 </p>
               </div>
@@ -216,7 +216,7 @@ const DuskWelcomeScreen: React.FC<DuskWelcomeScreenProps> = ({ onComplete }) => 
                     style={{
                       width: '1.5px',
                       height: '0.9em',
-                      background: '#7EB8D4',
+                      background: '#00d4ff',
                     }}
                   />
                 )}
@@ -235,10 +235,10 @@ const DuskWelcomeScreen: React.FC<DuskWelcomeScreenProps> = ({ onComplete }) => 
                       onClick={onComplete}
                       className="w-full py-2.5 sm:py-3 rounded-lg font-black text-xs tracking-[0.2em] uppercase transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
                       style={{
-                        background: 'linear-gradient(135deg, rgba(126,184,212,0.9), rgba(0,180,220,0.95))',
+                        background: 'linear-gradient(135deg, rgba(0,212,255,0.9), rgba(0,180,220,0.95))',
                         color: '#fff',
-                        border: '1px solid rgba(126,184,212,0.6)',
-                        boxShadow: '0 0 25px rgba(126,184,212,0.3), 0 4px 20px rgba(0,0,0,0.4)',
+                        border: '1px solid rgba(0,212,255,0.6)',
+                        boxShadow: '0 0 25px rgba(0,212,255,0.3), 0 4px 20px rgba(0,0,0,0.4)',
                       }}
                     >
                       ARISE

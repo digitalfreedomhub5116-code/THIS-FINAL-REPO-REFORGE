@@ -192,7 +192,7 @@ const CheatWarningModal: React.FC<CheatWarningModalProps> = ({
                         <button 
                             onClick={handleSubmitTicket}
                             disabled={!reason || !proofImage}
-                            className="w-full py-4 bg-system-neon text-black font-black uppercase tracking-widest rounded-xl hover:bg-white transition-all shadow-[0_0_20px_rgba(126,184,212,0.4)] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full py-4 bg-system-neon text-black font-black uppercase tracking-widest rounded-xl hover:bg-white transition-all shadow-[0_0_20px_rgba(0,212,255,0.4)] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             SUBMIT FOR REVIEW <Send size={16} />
                         </button>

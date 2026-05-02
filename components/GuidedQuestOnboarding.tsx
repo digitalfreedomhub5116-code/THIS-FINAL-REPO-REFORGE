@@ -378,16 +378,16 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({
               }}
               animate={{
                 boxShadow: [
-                  '0 0 8px rgba(126,184,212,0.4), inset 0 0 8px rgba(126,184,212,0.1)',
-                  '0 0 20px rgba(126,184,212,0.8), inset 0 0 12px rgba(126,184,212,0.2)',
-                  '0 0 8px rgba(126,184,212,0.4), inset 0 0 8px rgba(126,184,212,0.1)',
+                  '0 0 8px rgba(0,212,255,0.4), inset 0 0 8px rgba(0,212,255,0.1)',
+                  '0 0 20px rgba(0,212,255,0.8), inset 0 0 12px rgba(0,212,255,0.2)',
+                  '0 0 8px rgba(0,212,255,0.4), inset 0 0 8px rgba(0,212,255,0.1)',
                 ],
               }}
               transition={{ duration: 1.5, repeat: Infinity }}
             >
               <div
                 className="w-full h-full rounded-xl"
-                style={{ border: '2px solid rgba(126,184,212,0.6)' }}
+                style={{ border: '2px solid rgba(0,212,255,0.6)' }}
               />
             </motion.div>
           )}
@@ -411,8 +411,8 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({
                 className="px-4 py-2 rounded-full text-[11px] font-bold text-white whitespace-nowrap"
                 style={{
                   background: 'rgba(0,0,0,0.8)',
-                  border: '1px solid rgba(126,184,212,0.4)',
-                  boxShadow: '0 0 20px rgba(126,184,212,0.3)',
+                  border: '1px solid rgba(0,212,255,0.4)',
+                  boxShadow: '0 0 20px rgba(0,212,255,0.3)',
                 }}
               >
                 Tap the highlighted button
@@ -442,8 +442,8 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({
                 className="rounded-2xl p-4 relative overflow-hidden"
                 style={{
                   background: 'linear-gradient(135deg, rgba(12,12,30,0.97) 0%, rgba(6,6,20,0.98) 100%)',
-                  border: '1px solid rgba(126,184,212,0.25)',
-                  boxShadow: '0 0 30px rgba(126,184,212,0.15), 0 8px 32px rgba(0,0,0,0.5)',
+                  border: '1px solid rgba(0,212,255,0.25)',
+                  boxShadow: '0 0 30px rgba(0,212,255,0.15), 0 8px 32px rgba(0,0,0,0.5)',
                   backdropFilter: 'blur(20px)',
                 }}
               >
@@ -451,7 +451,7 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({
                 <div className="flex items-center gap-2 mb-3">
                   <div
                     className="w-7 h-7 rounded-lg flex items-center justify-center"
-                    style={{ background: 'rgba(126,184,212,0.15)', color: '#00d4ff' }}
+                    style={{ background: 'rgba(0,212,255,0.15)', color: '#00d4ff' }}
                   >
                     {step.icon}
                   </div>
@@ -468,7 +468,7 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({
                         className="w-1.5 h-1.5 rounded-full"
                         style={{
                           background: i < currentStep ? '#00d4ff' : i === stepIndex ? '#00d4ff' : 'rgba(100,100,140,0.3)',
-                          boxShadow: i === stepIndex ? '0 0 6px rgba(126,184,212,0.6)' : 'none',
+                          boxShadow: i === stepIndex ? '0 0 6px rgba(0,212,255,0.6)' : 'none',
                         }}
                       />
                     ))}
@@ -483,7 +483,7 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({
                 {!step.waitForAction && currentStep !== 3 && currentStep !== 5 && (
                   <button
                     onClick={() => onStepComplete(currentStep)}
-                    className="mt-3 flex items-center gap-1 text-[10px] font-bold tracking-wider text-[#7EB8D4] hover:text-[#9ACDE3] transition-colors"
+                    className="mt-3 flex items-center gap-1 text-[10px] font-bold tracking-wider text-[#00d4ff] hover:text-[#33dfff] transition-colors"
                   >
                     CONTINUE <ChevronRight size={12} />
                   </button>
@@ -519,7 +519,7 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({
                       disabled={wordCount < 2}
                       className={`w-full py-2 rounded-lg text-[11px] font-bold tracking-wider transition-all ${
                         wordCount >= 2
-                          ? 'bg-[#7EB8D4] text-black hover:bg-[#7EB8D4]'
+                          ? 'bg-[#00d4ff] text-black hover:bg-[#00d4ff]'
                           : 'bg-gray-800 text-gray-500 cursor-not-allowed'
                       }`}
                     >
@@ -541,7 +541,7 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({
                       disabled={!scheduleReady}
                       className={`w-full py-2 rounded-lg text-[11px] font-bold tracking-wider transition-all ${
                         scheduleReady
-                          ? 'bg-[#7EB8D4] text-black hover:bg-[#7EB8D4]'
+                          ? 'bg-[#00d4ff] text-black hover:bg-[#00d4ff]'
                           : 'bg-gray-800 text-gray-500 cursor-not-allowed'
                       }`}
                     >
@@ -560,7 +560,7 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({
                     </div>
                     <button
                       onClick={() => onStepComplete(currentStep)}
-                      className="w-full py-2.5 rounded-lg text-[11px] font-bold tracking-wider bg-[#7EB8D4] text-black hover:bg-[#7EB8D4] transition-all"
+                      className="w-full py-2.5 rounded-lg text-[11px] font-bold tracking-wider bg-[#00d4ff] text-black hover:bg-[#00d4ff] transition-all"
                     >
                       TRY AGAIN
                     </button>
@@ -579,7 +579,7 @@ const GuidedQuestOnboarding: React.FC<GuidedQuestOnboardingProps> = ({
                 {/* Scan line animation */}
                 <motion.div
                   className="absolute bottom-0 left-0 right-0 h-px"
-                  style={{ background: 'linear-gradient(90deg, transparent, rgba(126,184,212,0.5), transparent)' }}
+                  style={{ background: 'linear-gradient(90deg, transparent, rgba(0,212,255,0.5), transparent)' }}
                   animate={{ x: ['-100%', '100%'] }}
                   transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
                 />

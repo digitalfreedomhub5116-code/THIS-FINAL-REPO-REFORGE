@@ -75,7 +75,7 @@ const WelcomeCinematic: React.FC<WelcomeCinematicProps> = ({ username, onComplet
            initial={{ width: 0 }}
            animate={{ width: '100%' }}
            transition={{ delay: 1, duration: 1.5 }}
-           className="h-1 bg-system-neon mt-8 mx-auto max-w-lg shadow-[0_0_20px_#7EB8D4]"
+           className="h-1 bg-system-neon mt-8 mx-auto max-w-lg shadow-[0_0_20px_#00d4ff]"
          />
 
          <motion.p

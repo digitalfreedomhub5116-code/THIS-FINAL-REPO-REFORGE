@@ -65,8 +65,8 @@ const RANK_COLORS: Record<Rank, { bg: string; text: string; border: string; glow
   D: { bg: 'bg-orange-900/60',  text: 'text-orange-400',border: 'border-orange-700',glow: 'shadow-[0_0_12px_rgba(251,146,60,0.3)]' },
   C: { bg: 'bg-yellow-900/60',  text: 'text-yellow-400',border: 'border-yellow-700',glow: 'shadow-[0_0_12px_rgba(234,179,8,0.3)]' },
   B: { bg: 'bg-green-900/60',   text: 'text-green-400', border: 'border-green-700', glow: 'shadow-[0_0_12px_rgba(34,197,94,0.3)]' },
-  A: { bg: 'bg-cyan-900/60',    text: 'text-[#7EB8D4]',  border: 'border-cyan-700',  glow: 'shadow-[0_0_12px_rgba(126,184,212,0.4)]' },
-  S: { bg: 'bg-purple-900/60',  text: 'text-[#7EB8D4]',border: 'border-purple-700',glow: 'shadow-[0_0_16px_rgba(126,184,212,0.5)]' },
+  A: { bg: 'bg-cyan-900/60',    text: 'text-[#00d4ff]',  border: 'border-cyan-700',  glow: 'shadow-[0_0_12px_rgba(0,212,255,0.4)]' },
+  S: { bg: 'bg-purple-900/60',  text: 'text-[#00d4ff]',border: 'border-purple-700',glow: 'shadow-[0_0_16px_rgba(0,212,255,0.5)]' },
 };
 
 function getUserTimezone(): string {
@@ -280,7 +280,7 @@ const QuestsView: React.FC<QuestsViewProps> = ({
             style={activeSubTab === tab ? {
               background: 'rgba(255,255,255,0.06)',
               border: '1px solid rgba(255,255,255,0.1)',
-              boxShadow: '0 0 12px rgba(126,184,212,0.08)',
+              boxShadow: '0 0 12px rgba(0,212,255,0.08)',
             } : {
               background: 'transparent',
               border: '1px solid transparent',
@@ -405,13 +405,13 @@ const QuestsView: React.FC<QuestsViewProps> = ({
               exit={{ opacity: 0, y: 40 }}
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
               className="w-full max-w-lg md:max-w-xl rounded-t-2xl md:rounded-2xl overflow-hidden max-h-[94vh] md:max-h-[85vh] md:m-6 relative flex flex-col"
-              style={{ background: '#08081a', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 -8px 40px rgba(0,0,0,0.6), 0 0 80px rgba(126,184,212,0.03)' }}
+              style={{ background: '#08081a', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 -8px 40px rgba(0,0,0,0.6), 0 0 80px rgba(0,212,255,0.03)' }}
             >
               {/* Modal Header — minimal */}
               <div className="px-5 pt-5 pb-3 flex justify-between items-center z-10 shrink-0">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(126,184,212,0.08)', border: '1px solid rgba(126,184,212,0.2)' }}>
-                    <ShieldCheck size={13} className="text-[#7EB8D4]" />
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(0,212,255,0.08)', border: '1px solid rgba(0,212,255,0.2)' }}>
+                    <ShieldCheck size={13} className="text-[#00d4ff]" />
                   </div>
                   <div>
                     <h3 className="text-xs font-black text-white font-mono tracking-[0.2em]">NEW QUEST</h3>
@@ -458,7 +458,7 @@ const QuestsView: React.FC<QuestsViewProps> = ({
                     autoFocus
                   />
                   <div className="flex justify-between mt-1.5 px-0.5">
-                    <span className="text-[9px] font-mono" style={{ color: title.trim().split(/\s+/).filter(w=>w.length>0).length >= 2 ? 'rgba(126,184,212,0.4)' : 'rgba(156,163,175,0.4)' }}>
+                    <span className="text-[9px] font-mono" style={{ color: title.trim().split(/\s+/).filter(w=>w.length>0).length >= 2 ? 'rgba(0,212,255,0.4)' : 'rgba(156,163,175,0.4)' }}>
                       {title.trim().split(/\s+/).filter(w=>w.length>0).length >= 2 ? 'Ready to analyze' : 'Min 2 words'}
                     </span>
                     <span className="text-[9px] text-gray-700 font-mono">{title.length}/120</span>
@@ -498,14 +498,14 @@ const QuestsView: React.FC<QuestsViewProps> = ({
                   disabled={isAnalyzing || !hasWords}
                   className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
                     isAnalyzing
-                      ? 'text-[#7EB8D4] cursor-wait'
+                      ? 'text-[#00d4ff] cursor-wait'
                       : hasWords
-                      ? 'text-[#7EB8D4] hover:bg-[#7EB8D4]/8'
+                      ? 'text-[#00d4ff] hover:bg-[#00d4ff]/8'
                       : 'text-gray-600 cursor-not-allowed'
                   }`}
                   style={{
-                    background: isAnalyzing ? 'rgba(126,184,212,0.06)' : hasWords ? 'rgba(126,184,212,0.04)' : 'rgba(255,255,255,0.02)',
-                    border: isAnalyzing ? '1px solid rgba(126,184,212,0.3)' : hasWords ? '1px solid rgba(126,184,212,0.15)' : '1px solid rgba(255,255,255,0.05)',
+                    background: isAnalyzing ? 'rgba(0,212,255,0.06)' : hasWords ? 'rgba(0,212,255,0.04)' : 'rgba(255,255,255,0.02)',
+                    border: isAnalyzing ? '1px solid rgba(0,212,255,0.3)' : hasWords ? '1px solid rgba(0,212,255,0.15)' : '1px solid rgba(255,255,255,0.05)',
                   }}
                 >
                   {isAnalyzing ? (
@@ -564,8 +564,8 @@ const QuestsView: React.FC<QuestsViewProps> = ({
                           {(forgeResult.categories || [forgeResult.category]).map((cat) => {
                             const pillarConfig: Record<string, { icon: React.ReactNode; color: string; bg: string }> = {
                               strength:     { icon: <Dumbbell size={11} />, color: '#f97066', bg: 'rgba(249,112,102,0.1)' },
-                              intelligence: { icon: <Brain size={11} />,    color: '#7EB8D4', bg: 'rgba(129,140,248,0.1)' },
-                              discipline:   { icon: <Shield size={11} />,   color: '#9ACDE3', bg: 'rgba(192,132,252,0.1)' },
+                              intelligence: { icon: <Brain size={11} />,    color: '#00d4ff', bg: 'rgba(129,140,248,0.1)' },
+                              discipline:   { icon: <Shield size={11} />,   color: '#33dfff', bg: 'rgba(192,132,252,0.1)' },
                               social:       { icon: <Users size={11} />,    color: '#fbbf24', bg: 'rgba(251,191,36,0.1)' },
                             };
                             const cfg = pillarConfig[cat];
@@ -650,11 +650,11 @@ const QuestsView: React.FC<QuestsViewProps> = ({
                       <div
                         className="w-5 h-5 rounded-md flex items-center justify-center transition-all"
                         style={{
-                          background: isDaily ? 'rgba(126,184,212,0.2)' : 'rgba(255,255,255,0.04)',
-                          border: isDaily ? '1.5px solid #7EB8D4' : '1.5px solid rgba(255,255,255,0.1)',
+                          background: isDaily ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.04)',
+                          border: isDaily ? '1.5px solid #00d4ff' : '1.5px solid rgba(255,255,255,0.1)',
                         }}
                       >
-                        {isDaily && <Check size={11} className="text-[#7EB8D4]" />}
+                        {isDaily && <Check size={11} className="text-[#00d4ff]" />}
                       </div>
                       <div>
                         <div className="flex items-center gap-1.5">

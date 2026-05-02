@@ -17,9 +17,9 @@ interface ConfettiParticle {
 const THEME_COLORS_SMALL = [
   'rgba(251,191,36,0.9)',   // gold
   'rgba(168,85,247,0.8)',   // purple
-  'rgba(126,184,212,0.8)',    // cyan
+  'rgba(0,212,255,0.8)',    // cyan
   'rgba(255,255,255,0.6)',  // white
-  'rgba(126,184,212,0.7)',   // violet
+  'rgba(0,212,255,0.7)',   // violet
 ];
 
 const THEME_COLORS_LARGE = [

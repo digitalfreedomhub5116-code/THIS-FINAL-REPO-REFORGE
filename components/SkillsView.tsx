@@ -334,7 +334,7 @@ const SkillsView: React.FC<SkillsViewProps> = ({ skillProgress, onUpdateProgress
           <div className="text-[8px] text-gray-500 font-mono uppercase">Skills Started</div>
         </div>
         <div className="bg-gray-900/50 border border-gray-800 rounded-lg p-3 text-center">
-          <BookOpen size={16} className="mx-auto mb-1 text-[#7EB8D4]" />
+          <BookOpen size={16} className="mx-auto mb-1 text-[#00d4ff]" />
           <div className="text-lg font-bold text-white font-mono">{completedLessons}</div>
           <div className="text-[8px] text-gray-500 font-mono uppercase">Lessons Done</div>
         </div>

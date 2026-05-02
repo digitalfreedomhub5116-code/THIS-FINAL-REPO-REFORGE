@@ -12,18 +12,18 @@ interface AdminUserProfileModalProps {
 }
 
 const RANK_COLORS: Record<string, string> = {
-  E: '#6b7280', D: '#fb923c', C: '#facc15', B: '#4ade80', A: '#7EB8D4', S: '#9ACDE3', UNRANKED: '#6b7280',
+  E: '#6b7280', D: '#fb923c', C: '#facc15', B: '#4ade80', A: '#00d4ff', S: '#33dfff', UNRANKED: '#6b7280',
 };
 
 const LOG_TYPE_COLORS: Record<string, string> = {
-  XP: '#7EB8D4',
+  XP: '#00d4ff',
   LOOT: '#fbbf24',
   PENALTY: '#ef4444',
   WARNING: '#f97316',
-  SYSTEM: '#7EB8D4',
+  SYSTEM: '#00d4ff',
   QUEST: '#4ade80',
-  WORKOUT: '#9ACDE3',
-  LEVEL_UP: '#9ACDE3',
+  WORKOUT: '#33dfff',
+  LEVEL_UP: '#33dfff',
   INFO: '#9ca3af',
 };
 
@@ -152,7 +152,7 @@ export default function AdminUserProfileModal({ userId, adminToken, onClose, ini
         <div className="flex-1 overflow-y-auto px-5 py-4">
           {loading && (
             <div className="flex items-center justify-center py-16 gap-2">
-              <Loader2 className="w-5 h-5 text-[#7EB8D4] animate-spin" />
+              <Loader2 className="w-5 h-5 text-[#00d4ff] animate-spin" />
               <span className="text-xs text-gray-500 font-mono">Loading hunter data...</span>
             </div>
           )}
@@ -172,7 +172,7 @@ export default function AdminUserProfileModal({ userId, adminToken, onClose, ini
                   {/* Stat cards */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     {[
-                      { label: 'Total XP', value: data.summary.totalXp?.toLocaleString() || '0', icon: <Zap size={14} />, color: '#7EB8D4' },
+                      { label: 'Total XP', value: data.summary.totalXp?.toLocaleString() || '0', icon: <Zap size={14} />, color: '#00d4ff' },
                       { label: 'Gold', value: data.summary.gold?.toLocaleString() || '0', icon: <Coins size={14} />, color: '#fbbf24' },
                       { label: 'Streak', value: `${data.summary.streak || 0} days`, icon: <TrendingUp size={14} />, color: '#fb923c' },
                     ].map(s => (
@@ -203,7 +203,7 @@ export default function AdminUserProfileModal({ userId, adminToken, onClose, ini
                         <div className="text-[10px] text-gray-600 font-mono">Failed</div>
                       </div>
                       <div className="text-center">
-                        <div className="text-2xl font-black text-[#7EB8D4]">{data.questStats?.totalXpEarned?.toLocaleString() || 0}</div>
+                        <div className="text-2xl font-black text-[#00d4ff]">{data.questStats?.totalXpEarned?.toLocaleString() || 0}</div>
                         <div className="text-[10px] text-gray-600 font-mono">XP Earned</div>
                       </div>
                     </div>
@@ -261,7 +261,7 @@ export default function AdminUserProfileModal({ userId, adminToken, onClose, ini
                         onClick={() => setQuestFilter(f)}
                         className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${
                           questFilter === f
-                            ? 'bg-[#7EB8D4]/10 text-[#7EB8D4] border border-[#7EB8D4]/20'
+                            ? 'bg-[#00d4ff]/10 text-[#00d4ff] border border-[#00d4ff]/20'
                             : 'text-gray-600 hover:text-gray-400 border border-transparent'
                         }`}
                       >
@@ -303,10 +303,10 @@ export default function AdminUserProfileModal({ userId, adminToken, onClose, ini
                               <div className="text-sm font-bold text-white leading-tight">{q.title}</div>
                               <div className="flex items-center gap-2 mt-1 flex-wrap">
                                 {q.isDaily && (
-                                  <span className="text-[8px] font-bold text-[#7EB8D4] bg-[#7EB8D4]/10 border border-[#7EB8D4]/20 px-1.5 py-0.5 rounded">DAILY</span>
+                                  <span className="text-[8px] font-bold text-[#00d4ff] bg-[#00d4ff]/10 border border-[#00d4ff]/20 px-1.5 py-0.5 rounded">DAILY</span>
                                 )}
                                 {q.goalTitle && (
-                                  <span className="text-[8px] font-bold text-[#7EB8D4] bg-[#7EB8D4]/10 border border-[#7EB8D4]/20 px-1.5 py-0.5 rounded truncate max-w-[140px]">GOAL: {q.goalTitle}</span>
+                                  <span className="text-[8px] font-bold text-[#00d4ff] bg-[#00d4ff]/10 border border-[#00d4ff]/20 px-1.5 py-0.5 rounded truncate max-w-[140px]">GOAL: {q.goalTitle}</span>
                                 )}
                                 {q.hasPact && (
                                   <span className="text-[8px] font-bold text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 px-1.5 py-0.5 rounded">{q.pactAmount}G PACT</span>
@@ -357,8 +357,8 @@ export default function AdminUserProfileModal({ userId, adminToken, onClose, ini
                           {/* Row 3: Rewards earned (always visible) */}
                           <div className="flex items-center gap-3 mt-1.5 ml-11">
                             <div className="flex items-center gap-1">
-                              <Zap size={11} style={{ color: q.isCompleted ? '#7EB8D4' : '#4b5563' }} />
-                              <span className="text-[10px] font-bold font-mono" style={{ color: q.isCompleted ? '#7EB8D4' : '#4b5563' }}>
+                              <Zap size={11} style={{ color: q.isCompleted ? '#00d4ff' : '#4b5563' }} />
+                              <span className="text-[10px] font-bold font-mono" style={{ color: q.isCompleted ? '#00d4ff' : '#4b5563' }}>
                                 {q.isCompleted ? `+${q.xpReward} XP earned` : q.failed ? `${q.xpReward} XP (not earned)` : `${q.xpReward} XP reward`}
                               </span>
                             </div>
@@ -475,7 +475,7 @@ export default function AdminUserProfileModal({ userId, adminToken, onClose, ini
                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
                               g.status === 'ACTIVE' ? 'bg-green-500/10 text-green-400' :
                               g.status === 'PAUSED' ? 'bg-yellow-500/10 text-yellow-400' :
-                              g.status === 'COMPLETED' ? 'bg-[#7EB8D4]/10 text-[#7EB8D4]' :
+                              g.status === 'COMPLETED' ? 'bg-[#00d4ff]/10 text-[#00d4ff]' :
                               'bg-red-500/10 text-red-400'
                             }`}>
                               {g.status}

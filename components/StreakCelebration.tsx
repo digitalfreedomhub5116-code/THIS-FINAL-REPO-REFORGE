@@ -5,9 +5,9 @@ import Lottie from 'lottie-react';
 // ── Outfit config for accent theming ──
 const OUTFIT_CONFIG: Record<string, { accent: string; glow: string }> = {
   outfit_starter:  { accent: '#9ca3af', glow: '#60a5fa' },
-  outfit_ghost:    { accent: '#4ade80', glow: '#7EB8D4' },
-  outfit_knight:   { accent: '#60a5fa', glow: '#7EB8D4' },
-  outfit_assassin: { accent: '#9ACDE3', glow: '#e879f9' },
+  outfit_ghost:    { accent: '#4ade80', glow: '#00d4ff' },
+  outfit_knight:   { accent: '#60a5fa', glow: '#00d4ff' },
+  outfit_assassin: { accent: '#33dfff', glow: '#e879f9' },
   outfit_vanguard: { accent: '#facc15', glow: '#fb923c' },
   outfit_monarch:  { accent: '#f87171', glow: '#fb923c' },
 };

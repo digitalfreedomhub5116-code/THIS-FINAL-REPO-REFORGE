@@ -66,7 +66,7 @@ const REWARD_POOLS: Record<'DAILY' | 'LEGENDARY' | 'ALLIANCE', WeightedReward[]>
     { reward: { type: 'STONE', amount: 2,    label: 'outfit_starter',  color: '#9ca3af' }, weight: 15 },
     { reward: { type: 'STONE', amount: 2,    label: 'outfit_ghost',    color: '#4ade80' }, weight: 12 },
     { reward: { type: 'STONE', amount: 1,    label: 'outfit_knight',   color: '#60a5fa' }, weight: 10 },
-    { reward: { type: 'STONE', amount: 1,    label: 'outfit_assassin',  color: '#9ACDE3' }, weight: 8 },
+    { reward: { type: 'STONE', amount: 1,    label: 'outfit_assassin',  color: '#33dfff' }, weight: 8 },
   ],
   ALLIANCE: [
     { reward: { type: 'GOLD',  amount: 600,  label: 'GOLD',            color: '#eab308' }, weight: 18 },
@@ -74,7 +74,7 @@ const REWARD_POOLS: Record<'DAILY' | 'LEGENDARY' | 'ALLIANCE', WeightedReward[]>
     { reward: { type: 'STONE', amount: 3,    label: 'outfit_starter',  color: '#9ca3af' }, weight: 8 },
     { reward: { type: 'STONE', amount: 3,    label: 'outfit_ghost',    color: '#4ade80' }, weight: 8 },
     { reward: { type: 'STONE', amount: 2,    label: 'outfit_knight',   color: '#60a5fa' }, weight: 8 },
-    { reward: { type: 'STONE', amount: 2,    label: 'outfit_assassin',  color: '#9ACDE3' }, weight: 8 },
+    { reward: { type: 'STONE', amount: 2,    label: 'outfit_assassin',  color: '#33dfff' }, weight: 8 },
     { reward: { type: 'STONE', amount: 1,    label: 'outfit_vanguard', color: '#facc15' }, weight: 6 },
     { reward: { type: 'STONE', amount: 1,    label: 'outfit_monarch',  color: '#f87171' }, weight: 4 },
   ],
@@ -126,7 +126,7 @@ const CHEST_CFG = {
     bg: 'linear-gradient(135deg, #0e0018 0%, #180028 100%)',
     rewards: [
       { type: 'GOLD' as const,  amount: 800,  label: 'GOLD',   color: '#eab308' },
-      { type: 'STONE' as const, amount: 3,    label: 'SHARDS', color: '#9ACDE3' },
+      { type: 'STONE' as const, amount: 3,    label: 'SHARDS', color: '#33dfff' },
     ],
     contents: [
       { icon: '🪙', text: 'Gold — Very High' },

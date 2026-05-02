@@ -56,7 +56,7 @@ type XpMode = 'daily' | 'global';
 
 // ── Constants ──
 const RANK_COLORS: Record<string, string> = {
-  E: '#78716c', D: '#f97316', C: '#60a5fa', B: '#7EB8D4', A: '#eab308', S: '#a855f7',
+  E: '#78716c', D: '#f97316', C: '#60a5fa', B: '#00d4ff', A: '#eab308', S: '#a855f7',
 };
 
 const RANK_GLOW: Record<string, string> = {
@@ -345,7 +345,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
           <div>
             <h1 className="text-2xl font-black text-white tracking-tight">Leaderboard</h1>
             <div className="text-xs text-gray-400 mt-0.5">
-              {activeTab === 'xp' ? 'Daily XP rankings' : 'Top players by streak'}{myIndex >= 0 ? <span className="text-[#7EB8D4] font-bold"> — You're #{myRank}</span> : ''}
+              {activeTab === 'xp' ? 'Daily XP rankings' : 'Top players by streak'}{myIndex >= 0 ? <span className="text-[#00d4ff] font-bold"> — You're #{myRank}</span> : ''}
               {activeTab === 'xp' && countdown && (
                 <span className="text-[10px] font-mono text-gray-500 ml-1">· Resets {countdown}</span>
               )}
@@ -466,19 +466,19 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                   transition={{ duration: 0.2, delay: index * 0.02 }}
                   className="flex items-center gap-3 px-4 py-3.5 rounded-2xl cursor-pointer active:scale-[0.98] transition-transform"
                   style={{
-                    background: entry.isMe ? 'rgba(126,184,212,0.08)' : 'rgba(255,255,255,0.03)',
-                    ...(entry.isMe ? { border: '1.5px solid rgba(126,184,212,0.25)', boxShadow: '0 0 16px rgba(126,184,212,0.1)' } : {}),
+                    background: entry.isMe ? 'rgba(0,212,255,0.08)' : 'rgba(255,255,255,0.03)',
+                    ...(entry.isMe ? { border: '1.5px solid rgba(0,212,255,0.25)', boxShadow: '0 0 16px rgba(0,212,255,0.1)' } : {}),
                   }}
                   onClick={() => setProfileTarget(entry)}
                 >
                   <div className="w-7 text-center">
-                    <span className={`text-sm font-black font-mono ${entry.isMe ? 'text-[#7EB8D4]' : 'text-gray-500'}`}>{actualRank}</span>
+                    <span className={`text-sm font-black font-mono ${entry.isMe ? 'text-[#00d4ff]' : 'text-gray-500'}`}>{actualRank}</span>
                   </div>
                   <AvatarWithBorder avatarUrl={entry.avatar_url} borderId={entry.equipped_border || null} size={44} className="shrink-0" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-black text-white truncate">{entry.username || entry.name}</span>
-                      {entry.isMe && <span className="text-[8px] px-1.5 py-0.5 rounded bg-[#7EB8D4]/15 text-[#7EB8D4] font-black tracking-wider">you</span>}
+                      {entry.isMe && <span className="text-[8px] px-1.5 py-0.5 rounded bg-[#00d4ff]/15 text-[#00d4ff] font-black tracking-wider">you</span>}
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
@@ -571,7 +571,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                   className="flex items-center gap-3 px-4 py-3.5 rounded-2xl cursor-pointer active:scale-[0.98] transition-transform"
                   style={{
                     background: entry.isMe
-                      ? 'rgba(126,184,212,0.08)'
+                      ? 'rgba(0,212,255,0.08)'
                       : 'rgba(255,255,255,0.03)',
                   }}
                   onClick={() => setProfileTarget(entry)}
@@ -591,7 +591,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                         {entry.username || entry.name}
                       </span>
                       {entry.isMe && (
-                        <span className="text-[8px] px-1.5 py-0.5 rounded bg-[#7EB8D4]/15 text-[#7EB8D4] font-black tracking-wider">you</span>
+                        <span className="text-[8px] px-1.5 py-0.5 rounded bg-[#00d4ff]/15 text-[#00d4ff] font-black tracking-wider">you</span>
                       )}
                     </div>
                   </div>
@@ -612,7 +612,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
               <div style={{
                 height: 1,
                 margin: '12px 0',
-                background: 'repeating-linear-gradient(90deg, rgba(126,184,212,0.3) 0px, rgba(126,184,212,0.3) 4px, transparent 4px, transparent 12px)',
+                background: 'repeating-linear-gradient(90deg, rgba(0,212,255,0.3) 0px, rgba(0,212,255,0.3) 4px, transparent 4px, transparent 12px)',
               }} />
               <div className="text-center text-[9px] font-mono text-gray-600 mb-2">YOUR POSITION</div>
 
@@ -644,19 +644,19 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                 <div
                   className="flex items-center gap-3 px-4 py-3.5 rounded-2xl"
                   style={{
-                    background: 'rgba(126,184,212,0.08)',
-                    border: '1.5px solid rgba(126,184,212,0.25)',
-                    boxShadow: '0 0 16px rgba(126,184,212,0.1)',
+                    background: 'rgba(0,212,255,0.08)',
+                    border: '1.5px solid rgba(0,212,255,0.25)',
+                    boxShadow: '0 0 16px rgba(0,212,255,0.1)',
                   }}
                 >
                   <div className="w-7 text-center">
-                    <span className="text-sm font-black text-[#7EB8D4] font-mono">{yourRank}</span>
+                    <span className="text-sm font-black text-[#00d4ff] font-mono">{yourRank}</span>
                   </div>
                   <AvatarWithBorder avatarUrl={yourEntry.avatar_url} borderId={yourEntry.equipped_border || null} size={44} className="shrink-0" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-black text-white truncate">{yourEntry.username || yourEntry.name}</span>
-                      <span className="text-[8px] px-1.5 py-0.5 rounded bg-[#7EB8D4]/15 text-[#7EB8D4] font-black tracking-wider">you</span>
+                      <span className="text-[8px] px-1.5 py-0.5 rounded bg-[#00d4ff]/15 text-[#00d4ff] font-black tracking-wider">you</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
@@ -779,14 +779,14 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                     ].map(s => (
                       <div key={s.label} className="rounded-2xl p-3 text-center"
                         style={{
-                          background: 'rgba(126,184,212,0.06)',
+                          background: 'rgba(0,212,255,0.06)',
                           backdropFilter: 'blur(12px)',
                           WebkitBackdropFilter: 'blur(12px)',
-                          border: '1px solid rgba(126,184,212,0.12)',
+                          border: '1px solid rgba(0,212,255,0.12)',
                           boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.3)',
                         }}>
-                        <div className="text-[15px] font-black font-mono" style={{ color: '#9ACDE3' }}>{s.value}</div>
-                        <div className="text-[7px] font-mono uppercase tracking-[0.18em] mt-1" style={{ color: 'rgba(126,184,212,0.5)' }}>{s.label}</div>
+                        <div className="text-[15px] font-black font-mono" style={{ color: '#33dfff' }}>{s.value}</div>
+                        <div className="text-[7px] font-mono uppercase tracking-[0.18em] mt-1" style={{ color: 'rgba(0,212,255,0.5)' }}>{s.label}</div>
                       </div>
                     ))}
                   </div>
@@ -794,17 +794,17 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                   {/* ── Outfit Info — liquid glass ── */}
                   <div className="rounded-2xl px-4 py-3 mb-4 flex items-center gap-3"
                     style={{
-                      background: 'rgba(126,184,212,0.04)',
+                      background: 'rgba(0,212,255,0.04)',
                       backdropFilter: 'blur(12px)',
                       WebkitBackdropFilter: 'blur(12px)',
-                      border: '1px solid rgba(126,184,212,0.08)',
+                      border: '1px solid rgba(0,212,255,0.08)',
                       boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03)',
                     }}>
                     <OutfitHunterBadge outfitId={pEntry.outfitId} size={40} />
                     <div className="flex-1 min-w-0">
-                      <div className="text-[8px] font-mono uppercase tracking-widest" style={{ color: 'rgba(126,184,212,0.45)' }}>Equipped Outfit</div>
+                      <div className="text-[8px] font-mono uppercase tracking-widest" style={{ color: 'rgba(0,212,255,0.45)' }}>Equipped Outfit</div>
                       <div className="text-[12px] font-black text-white truncate">{pOutfit?.name || pCfg.name}</div>
-                      <div className="text-[9px] font-mono" style={{ color: '#7EB8D4' }}>{pCfg.tier}-Rank • {pCfg.name}</div>
+                      <div className="text-[9px] font-mono" style={{ color: '#00d4ff' }}>{pCfg.tier}-Rank • {pCfg.name}</div>
                     </div>
                   </div>
 
@@ -821,8 +821,8 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                   )}
 
                   {pEntry.isMe && (
-                    <div className="w-full py-3 rounded-xl flex items-center justify-center gap-2 border border-[#7EB8D4]/15 bg-[#7EB8D4]/5">
-                      <span className="text-[10px] font-black tracking-widest uppercase text-[#7EB8D4]">Your Profile</span>
+                    <div className="w-full py-3 rounded-xl flex items-center justify-center gap-2 border border-[#00d4ff]/15 bg-[#00d4ff]/5">
+                      <span className="text-[10px] font-black tracking-widest uppercase text-[#00d4ff]">Your Profile</span>
                     </div>
                   )}
                 </div>

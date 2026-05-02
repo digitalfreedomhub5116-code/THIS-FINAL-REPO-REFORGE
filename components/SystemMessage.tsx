@@ -21,7 +21,7 @@ const SystemMessage: React.FC<SystemMessageProps> = ({ notifications, removeNoti
       case 'DANGER':
         return 'border-system-danger bg-system-danger/10 text-system-danger';
       case 'LEVEL_UP':
-        return 'border-system-accent bg-system-accent/10 text-system-accent shadow-[0_0_15px_#7EB8D4]';
+        return 'border-system-accent bg-system-accent/10 text-system-accent shadow-[0_0_15px_#00d4ff]';
       case 'PURCHASE':
         return 'border-yellow-500 bg-yellow-500/10 text-yellow-500 shadow-[0_0_15px_#eab308]';
       case 'SYSTEM':

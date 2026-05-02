@@ -119,7 +119,7 @@ const SwordLoader: React.FC<SwordLoaderProps> = ({ onComplete }) => {
             <linearGradient id="bladeGlow" x1="60" y1="7" x2="60" y2="198" gradientUnits="userSpaceOnUse">
               <stop offset="0%" stopColor="#ffffff" stopOpacity="0.95" />
               <stop offset="40%" stopColor="#c7d2fe" stopOpacity="0.6" />
-              <stop offset="100%" stopColor="#7EB8D4" stopOpacity="0.2" />
+              <stop offset="100%" stopColor="#00d4ff" stopOpacity="0.2" />
             </linearGradient>
             <linearGradient id="bladeFill" x1="60" y1="7" x2="60" y2="198" gradientUnits="userSpaceOnUse">
               <stop offset="0%" stopColor="#ffffff" stopOpacity="0.9" />
@@ -183,7 +183,7 @@ const SwordLoader: React.FC<SwordLoaderProps> = ({ onComplete }) => {
           {/* Pommel gem — blue glow */}
           <motion.circle
             cx="60" cy="202" r="4"
-            fill="#7EB8D4"
+            fill="#00d4ff"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }}
             transition={{ delay: 1.3, duration: 0.3 }}
             style={{ filter: 'blur(0.5px)' }}
@@ -191,7 +191,7 @@ const SwordLoader: React.FC<SwordLoaderProps> = ({ onComplete }) => {
           <motion.circle
             cx="60" cy="202" r="8"
             fill="none"
-            stroke="#7EB8D4"
+            stroke="#00d4ff"
             strokeWidth="0.5"
             strokeOpacity="0.4"
             initial={{ opacity: 0 }} animate={{ opacity: [0, 0.6, 0.3] }}

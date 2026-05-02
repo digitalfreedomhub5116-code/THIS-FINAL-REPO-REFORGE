@@ -181,9 +181,9 @@ const StreakBreakPrompt: React.FC<StreakBreakPromptProps> = ({
           </div>
 
           {/* Shield option */}
-          <div className="mx-5 mb-5 px-4 py-3.5 rounded-xl" style={{ background: 'rgba(126,184,212,0.06)', border: '1px solid rgba(126,184,212,0.12)' }}>
+          <div className="mx-5 mb-5 px-4 py-3.5 rounded-xl" style={{ background: 'rgba(0,212,255,0.06)', border: '1px solid rgba(0,212,255,0.12)' }}>
             <div className="flex items-center gap-2 mb-2">
-              <Shield size={14} className="text-[#7EB8D4]" />
+              <Shield size={14} className="text-[#00d4ff]" />
               <span className="text-xs font-black text-white tracking-wider font-mono">PREVENT FUTURE BREAKS</span>
             </div>
             <p className="text-[10px] text-gray-400 font-mono mb-2">
@@ -192,7 +192,7 @@ const StreakBreakPrompt: React.FC<StreakBreakPromptProps> = ({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
                 <div className="flex items-center -mx-0.5" style={{ width: 18 }}><SystemCoin size={18} /></div>
-                <span className="text-sm font-black text-[#7EB8D4] font-mono">{shieldCost}</span>
+                <span className="text-sm font-black text-[#00d4ff] font-mono">{shieldCost}</span>
               </div>
               <button
                 onClick={handleBuyShield}
@@ -200,7 +200,7 @@ const StreakBreakPrompt: React.FC<StreakBreakPromptProps> = ({
                 className="px-4 py-1.5 rounded-lg text-[10px] font-black tracking-wider font-mono transition-all active:scale-95"
                 style={{
                   background: canBuyShield
-                    ? 'linear-gradient(135deg, #7EB8D4, #5A9AB5)'
+                    ? 'linear-gradient(135deg, #00d4ff, #5A9AB5)'
                     : 'rgba(255,255,255,0.06)',
                   color: canBuyShield ? '#0a0a14' : 'rgba(255,255,255,0.3)',
                   opacity: buyingShield ? 0.5 : 1,

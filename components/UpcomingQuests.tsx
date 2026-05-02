@@ -26,8 +26,8 @@ const CAT_ICON: Record<string, React.ReactNode> = {
 
 const CAT_COLOR: Record<string, string> = {
   strength:     '#f97066',
-  intelligence: '#7EB8D4',
-  discipline:   '#9ACDE3',
+  intelligence: '#00d4ff',
+  discipline:   '#33dfff',
   social:       '#fbbf24',
 };
 
@@ -63,7 +63,7 @@ const UpcomingQuests: React.FC<UpcomingQuestsProps> = ({ quests, onNavigateToQue
           {active.length > 0 && (
             <span
               className="text-[9px] font-black px-1.5 py-0.5 rounded font-mono"
-              style={{ background: 'rgba(126,184,212,0.15)', color: '#7EB8D4', border: '1px solid rgba(126,184,212,0.3)' }}
+              style={{ background: 'rgba(0,212,255,0.15)', color: '#00d4ff', border: '1px solid rgba(0,212,255,0.3)' }}
             >
               {active.length}
             </span>
@@ -83,13 +83,13 @@ const UpcomingQuests: React.FC<UpcomingQuestsProps> = ({ quests, onNavigateToQue
         <div
           className="rounded-2xl p-6 flex flex-col items-center justify-center gap-3"
           style={{
-            background: 'rgba(126,184,212,0.04)',
-            border: '1px solid rgba(126,184,212,0.12)',
+            background: 'rgba(0,212,255,0.04)',
+            border: '1px solid rgba(0,212,255,0.12)',
           }}
         >
           <div
             className="w-12 h-12 rounded-2xl flex items-center justify-center"
-            style={{ background: 'rgba(126,184,212,0.1)', border: '1px solid rgba(126,184,212,0.2)' }}
+            style={{ background: 'rgba(0,212,255,0.1)', border: '1px solid rgba(0,212,255,0.2)' }}
           >
             <Swords size={22} className="text-system-accent/50" />
           </div>
@@ -100,7 +100,7 @@ const UpcomingQuests: React.FC<UpcomingQuestsProps> = ({ quests, onNavigateToQue
           <button
             onClick={onNavigateToQuests}
             className="text-[10px] font-black uppercase tracking-wider px-4 py-2 rounded-xl text-white transition-all hover:scale-105 active:scale-95"
-            style={{ background: 'linear-gradient(135deg, #7EB8D4, #7c3aed)' }}
+            style={{ background: 'linear-gradient(135deg, #00d4ff, #7c3aed)' }}
           >
             Add Quest
           </button>
@@ -163,7 +163,7 @@ const UpcomingQuests: React.FC<UpcomingQuestsProps> = ({ quests, onNavigateToQue
                         </div>
                       )}
                       {quest.isDaily && (
-                        <span className="text-[8px] font-mono text-[#7EB8D4]/60 border border-[#7EB8D4]/20 px-1 rounded">
+                        <span className="text-[8px] font-mono text-[#00d4ff]/60 border border-[#00d4ff]/20 px-1 rounded">
                           DAILY
                         </span>
                       )}
@@ -172,7 +172,7 @@ const UpcomingQuests: React.FC<UpcomingQuestsProps> = ({ quests, onNavigateToQue
 
                   {/* XP pill */}
                   <div className="flex items-center gap-0.5 flex-shrink-0">
-                    <Zap size={8} className="text-[#7EB8D4]" />
+                    <Zap size={8} className="text-[#00d4ff]" />
                     <span className="text-[10px] font-black font-mono text-white/70">{quest.xpReward}</span>
                     <span className="text-[8px] font-mono text-gray-600">XP</span>
                   </div>

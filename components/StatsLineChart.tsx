@@ -37,9 +37,9 @@ const GlowDot = (props: { cx?: number; cy?: number; payload?: { primary: number 
   if (!payload || payload.primary === 0) return null;
   return (
     <g>
-      <circle cx={cx} cy={cy} r={8} fill="#7EB8D4" fillOpacity={0.15} />
-      <circle cx={cx} cy={cy} r={5} fill="#7EB8D4" fillOpacity={0.3} />
-      <circle cx={cx} cy={cy} r={3} fill="#7EB8D4" />
+      <circle cx={cx} cy={cy} r={8} fill="#00d4ff" fillOpacity={0.15} />
+      <circle cx={cx} cy={cy} r={5} fill="#00d4ff" fillOpacity={0.3} />
+      <circle cx={cx} cy={cy} r={3} fill="#00d4ff" />
       <circle cx={cx} cy={cy} r={2} fill="white" />
     </g>
   );
@@ -48,8 +48,8 @@ const GlowDot = (props: { cx?: number; cy?: number; payload?: { primary: number 
 const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number; name: string }>; label?: string }) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-black/95 border border-[#7EB8D4]/40 rounded-xl p-3 shadow-[0_0_20px_rgba(126,184,212,0.15)]">
-        <p className="text-[#7EB8D4] font-mono text-[10px] font-bold tracking-widest mb-1 uppercase">{label}</p>
+      <div className="bg-black/95 border border-[#00d4ff]/40 rounded-xl p-3 shadow-[0_0_20px_rgba(0,212,255,0.15)]">
+        <p className="text-[#00d4ff] font-mono text-[10px] font-bold tracking-widest mb-1 uppercase">{label}</p>
         {payload.map((p) => (
           <div key={p.name} className="flex items-center gap-2">
             <span className="text-white font-mono text-lg font-black">{Math.round(p.value)}</span>
@@ -91,8 +91,8 @@ const StatsLineChart: React.FC<StatsLineChartProps> = ({
       <div className="flex items-center justify-between mb-4 px-1">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5">
-            <div className="w-1.5 h-1.5 bg-[#7EB8D4] rounded-full animate-pulse" />
-            <span className="text-[#7EB8D4] font-mono text-[10px] font-bold tracking-widest">SYSTEM ONLINE</span>
+            <div className="w-1.5 h-1.5 bg-[#00d4ff] rounded-full animate-pulse" />
+            <span className="text-[#00d4ff] font-mono text-[10px] font-bold tracking-widest">SYSTEM ONLINE</span>
           </div>
         </div>
       </div>
@@ -110,14 +110,14 @@ const StatsLineChart: React.FC<StatsLineChartProps> = ({
                 onClick={() => setMode(m)}
                 className={`relative px-3 py-1.5 rounded-lg font-mono text-[10px] font-bold tracking-widest transition-all duration-300 ${
                   mode === m
-                    ? 'text-[#7EB8D4] shadow-[0_0_15px_rgba(126,184,212,0.3)]'
+                    ? 'text-[#00d4ff] shadow-[0_0_15px_rgba(0,212,255,0.3)]'
                     : 'text-gray-600 hover:text-gray-400'
                 }`}
               >
                 {mode === m && (
                   <motion.div
                     layoutId="mode-bg"
-                    className="absolute inset-0 bg-[#7EB8D4]/10 border border-[#7EB8D4]/30 rounded-lg"
+                    className="absolute inset-0 bg-[#00d4ff]/10 border border-[#00d4ff]/30 rounded-lg"
                     transition={{ type: 'spring', stiffness: 400, damping: 35 }}
                   />
                 )}
@@ -133,7 +133,7 @@ const StatsLineChart: React.FC<StatsLineChartProps> = ({
             </p>
             <div className="flex items-baseline gap-1.5 justify-end">
               <span className="text-white font-mono text-2xl font-black leading-none">{totalPoints}</span>
-              <span className={`font-mono text-[10px] font-bold ${parseFloat(changePercent) >= 0 ? 'text-[#7EB8D4]' : 'text-red-400'}`}>
+              <span className={`font-mono text-[10px] font-bold ${parseFloat(changePercent) >= 0 ? 'text-[#00d4ff]' : 'text-red-400'}`}>
                 {parseFloat(changePercent) >= 0 ? '+' : ''}{parseFloat(changePercent).toFixed(1)}%
               </span>
             </div>
@@ -161,8 +161,8 @@ const StatsLineChart: React.FC<StatsLineChartProps> = ({
               <LineChart data={chartData} margin={{ top: 10, right: 20, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="neonGlow" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stopColor="#7EB8D4" stopOpacity={0.8} />
-                    <stop offset="100%" stopColor="#7EB8D4" stopOpacity={1} />
+                    <stop offset="0%" stopColor="#00d4ff" stopOpacity={0.8} />
+                    <stop offset="100%" stopColor="#00d4ff" stopOpacity={1} />
                   </linearGradient>
                   <filter id="glow">
                     <feGaussianBlur stdDeviation="3" result="coloredBlur" />
@@ -195,7 +195,7 @@ const StatsLineChart: React.FC<StatsLineChartProps> = ({
                 {/* Reference line at max */}
                 <ReferenceLine
                   y={maxY}
-                  stroke="rgba(126,184,212,0.1)"
+                  stroke="rgba(0,212,255,0.1)"
                   strokeDasharray="4 4"
                 />
                 {/* Previous period - dashed grey */}
@@ -216,7 +216,7 @@ const StatsLineChart: React.FC<StatsLineChartProps> = ({
                   strokeWidth={2.5}
                   filter="url(#glow)"
                   dot={<GlowDot />}
-                  activeDot={{ r: 6, fill: '#7EB8D4', stroke: 'white', strokeWidth: 2 }}
+                  activeDot={{ r: 6, fill: '#00d4ff', stroke: 'white', strokeWidth: 2 }}
                   name="Current"
                 />
               </LineChart>
@@ -227,9 +227,9 @@ const StatsLineChart: React.FC<StatsLineChartProps> = ({
 
       {/* Daily XP badge */}
       <div className="flex items-center justify-center mt-3 gap-2">
-        <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#7EB8D4]/10 border border-[#7EB8D4]/20">
-          <div className="w-1.5 h-1.5 bg-[#7EB8D4] rounded-full animate-pulse" />
-          <span className="text-[#7EB8D4] font-mono text-[10px] font-bold tracking-widest">{dailyXp.toLocaleString()} XP TODAY</span>
+        <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#00d4ff]/10 border border-[#00d4ff]/20">
+          <div className="w-1.5 h-1.5 bg-[#00d4ff] rounded-full animate-pulse" />
+          <span className="text-[#00d4ff] font-mono text-[10px] font-bold tracking-widest">{dailyXp.toLocaleString()} XP TODAY</span>
         </div>
         <div className="flex items-center gap-2 px-3 py-2 rounded-full bg-white/[0.04] border border-white/[0.06]">
           <span className="text-gray-400 font-mono text-[10px] tracking-wide">LVL {playerLevel}</span>

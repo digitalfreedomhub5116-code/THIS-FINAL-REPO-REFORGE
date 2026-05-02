@@ -14,7 +14,7 @@ export const LEAGUE_TIER_CONFIG: Record<LeagueTier, {
   E: { name: 'E-Rank', icon: '⚔️', color: '#78716C', glow: 'rgba(120,113,108,0.3)', nextTier: 'D', prevTier: null },
   D: { name: 'D-Rank', icon: '🗡️', color: '#F97316', glow: 'rgba(249,115,22,0.3)', nextTier: 'C', prevTier: 'E' },
   C: { name: 'C-Rank', icon: '🔵', color: '#60A5FA', glow: 'rgba(96,165,250,0.3)', nextTier: 'B', prevTier: 'D' },
-  B: { name: 'B-Rank', icon: '💠', color: '#7EB8D4', glow: 'rgba(126,184,212,0.3)', nextTier: 'A', prevTier: 'C' },
+  B: { name: 'B-Rank', icon: '💠', color: '#00d4ff', glow: 'rgba(0,212,255,0.3)', nextTier: 'A', prevTier: 'C' },
   A: { name: 'A-Rank', icon: '🌟', color: '#EAB308', glow: 'rgba(234,179,8,0.4)', nextTier: 'S', prevTier: 'B' },
   S: { name: 'S-Rank', icon: '💎', color: '#A855F7', glow: 'rgba(168,85,247,0.5)', nextTier: null, prevTier: 'A' },
 };

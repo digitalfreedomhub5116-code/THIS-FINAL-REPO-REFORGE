@@ -42,10 +42,10 @@ const TYPE_CONFIG: Record<SystemToastType, {
 }> = {
   QUEST_FORGED: {
     icon: <Swords className="w-5 h-5" />,
-    borderColor: 'rgba(126,184,212,0.5)',
-    glowColor: 'rgba(126,184,212,0.15)',
+    borderColor: 'rgba(0,212,255,0.5)',
+    glowColor: 'rgba(0,212,255,0.15)',
     accentColor: '#00d4ff',
-    bgColor: 'rgba(126,184,212,0.04)',
+    bgColor: 'rgba(0,212,255,0.04)',
     sound: 'PURCHASE',
   },
   WARNING: {
@@ -66,10 +66,10 @@ const TYPE_CONFIG: Record<SystemToastType, {
   },
   INFO: {
     icon: <Info className="w-5 h-5" />,
-    borderColor: 'rgba(126,184,212,0.5)',
-    glowColor: 'rgba(126,184,212,0.15)',
-    accentColor: '#7EB8D4',
-    bgColor: 'rgba(126,184,212,0.04)',
+    borderColor: 'rgba(0,212,255,0.5)',
+    glowColor: 'rgba(0,212,255,0.15)',
+    accentColor: '#00d4ff',
+    bgColor: 'rgba(0,212,255,0.04)',
     sound: 'SYSTEM',
   },
 };

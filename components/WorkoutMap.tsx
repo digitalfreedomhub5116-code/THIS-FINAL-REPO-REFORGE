@@ -24,7 +24,7 @@ const Fallback3DReward = () => {
             <meshStandardMaterial color="#a855f7" wireframe emissive="#7c3aed" emissiveIntensity={0.5} />
             <mesh>
                 <octahedronGeometry args={[0.9, 0]} />
-                <meshStandardMaterial color="#7EB8D4" transparent opacity={0.8} />
+                <meshStandardMaterial color="#00d4ff" transparent opacity={0.8} />
             </mesh>
         </mesh>
     );
@@ -198,14 +198,14 @@ const WorkoutMap: React.FC<WorkoutMapProps> = ({
                  <div className="relative w-full max-w-md h-full" style={{ height: `${mapHeight}px` }}>
                     
                     {/* Background Grid */}
-                    <div className="absolute inset-0 opacity-10 bg-[linear-gradient(rgba(126,184,212,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(126,184,212,0.05)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none" />
+                    <div className="absolute inset-0 opacity-10 bg-[linear-gradient(rgba(0,212,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(0,212,255,0.05)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none" />
 
                     {/* SVG Path */}
                     <svg className="absolute top-0 left-1/2 -translate-x-1/2 w-[350px] md:w-[400px] h-full pointer-events-none z-0 overflow-visible">
                         <defs>
                             <linearGradient id="pathGradient" x1="0" x2="0" y1="0" y2="1">
-                                <stop offset="0%" stopColor="#7EB8D4" stopOpacity="0.8"/>
-                                <stop offset={`${(completedDays / totalDays) * 100}%`} stopColor="#7EB8D4" stopOpacity="0.8"/>
+                                <stop offset="0%" stopColor="#00d4ff" stopOpacity="0.8"/>
+                                <stop offset={`${(completedDays / totalDays) * 100}%`} stopColor="#00d4ff" stopOpacity="0.8"/>
                                 <stop offset={`${(completedDays / totalDays) * 100 + 5}%`} stopColor="#333" stopOpacity="0.3"/>
                                 <stop offset="100%" stopColor="#333" stopOpacity="0.3"/>
                             </linearGradient>
@@ -214,7 +214,7 @@ const WorkoutMap: React.FC<WorkoutMapProps> = ({
                         <motion.path 
                             d={svgPath}
                             fill="none"
-                            stroke="#7EB8D4"
+                            stroke="#00d4ff"
                             strokeWidth="12"
                             strokeOpacity="0.15"
                             strokeLinecap="round"
@@ -319,7 +319,7 @@ const WorkoutMap: React.FC<WorkoutMapProps> = ({
                                         ${isCheated ? 'bg-amber-600 border-amber-500 text-black shadow-[0_0_20px_rgba(245,158,11,0.6)]' : ''}
                                         ${isCompleted && !isCheated ? 'bg-emerald-500 border-emerald-400 text-black shadow-[0_0_20px_rgba(16,185,129,0.6)]' : ''}
                                         ${isMissed && !isCheated ? 'bg-gray-700 border-gray-600 text-gray-300 shadow-none' : ''}
-                                        ${isCurrent && !isCompleted && !isCheated ? 'bg-black border-system-neon text-system-neon shadow-[0_0_40px_rgba(126,184,212,0.5)] animate-pulse' : ''}
+                                        ${isCurrent && !isCompleted && !isCheated ? 'bg-black border-system-neon text-system-neon shadow-[0_0_40px_rgba(0,212,255,0.5)] animate-pulse' : ''}
                                         ${isLocked && !isMissed && !isCheated ? 'bg-gray-900 border-gray-800 text-gray-600' : ''}
                                         ${isSelected ? 'ring-4 ring-white/50' : ''}
                                         hover:scale-110 active:scale-95
@@ -366,7 +366,7 @@ const WorkoutMap: React.FC<WorkoutMapProps> = ({
                                         initial={{ opacity: 0, y: 20, scale: 0.9 }}
                                         animate={{ opacity: 1, y: 0, scale: 1 }}
                                         transition={{ delay: 0.3 }}
-                                        className="absolute top-full mt-6 bg-[#0a0a0a]/90 backdrop-blur-md border border-system-neon/50 p-4 rounded-xl shadow-[0_0_30px_rgba(126,184,212,0.2)] w-48 flex flex-col items-center text-center z-50 group-hover:border-system-neon transition-colors"
+                                        className="absolute top-full mt-6 bg-[#0a0a0a]/90 backdrop-blur-md border border-system-neon/50 p-4 rounded-xl shadow-[0_0_30px_rgba(0,212,255,0.2)] w-48 flex flex-col items-center text-center z-50 group-hover:border-system-neon transition-colors"
                                     >
                                         <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-0.5 h-6 bg-system-neon/50" />
                                         
@@ -382,7 +382,7 @@ const WorkoutMap: React.FC<WorkoutMapProps> = ({
                                                 e.stopPropagation();
                                                 onStartDay(index);
                                             }}
-                                            className="w-full bg-system-neon text-black font-bold text-xs py-3 rounded uppercase tracking-wider hover:bg-white transition-colors shadow-[0_0_15px_rgba(126,184,212,0.4)] flex items-center justify-center gap-2"
+                                            className="w-full bg-system-neon text-black font-bold text-xs py-3 rounded uppercase tracking-wider hover:bg-white transition-colors shadow-[0_0_15px_rgba(0,212,255,0.4)] flex items-center justify-center gap-2"
                                         >
                                             <Play size={12} fill="currentColor" /> START MISSION
                                         </button>
@@ -515,7 +515,7 @@ const WorkoutMap: React.FC<WorkoutMapProps> = ({
                  <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30 w-full flex justify-center pointer-events-auto">
                      <button 
                         onClick={() => onStartDay(0)} 
-                        className="bg-system-neon text-black font-bold px-8 py-4 rounded-full shadow-[0_0_30px_#7EB8D4] hover:scale-105 transition-transform font-mono flex items-center gap-2 text-sm"
+                        className="bg-system-neon text-black font-bold px-8 py-4 rounded-full shadow-[0_0_30px_#00d4ff] hover:scale-105 transition-transform font-mono flex items-center gap-2 text-sm"
                      >
                         <Zap size={20} /> NEW GAME+
                      </button>
@@ -548,11 +548,11 @@ const WorkoutMap: React.FC<WorkoutMapProps> = ({
 
                         <div className="w-64 h-64 relative mb-8">
                             <div className="absolute inset-0 bg-system-neon/10 rounded-full blur-[50px] animate-pulse" />
-                            <div className="absolute inset-0 w-full h-full rounded-full border border-system-neon/30" style={{ boxShadow: '0 0 40px rgba(126,184,212,0.2) inset' }}>
+                            <div className="absolute inset-0 w-full h-full rounded-full border border-system-neon/30" style={{ boxShadow: '0 0 40px rgba(0,212,255,0.2) inset' }}>
                                 <Canvas camera={{ position: [0, 0, 4], fov: 45 }}>
                                     <ambientLight intensity={0.5} />
                                     <pointLight position={[10, 10, 10]} intensity={1.5} />
-                                    <pointLight position={[-10, -10, -10]} intensity={0.5} color="#7EB8D4" />
+                                    <pointLight position={[-10, -10, -10]} intensity={0.5} color="#00d4ff" />
                                     <Fallback3DReward />
                                     <OrbitControls enableZoom={false} autoRotate autoRotateSpeed={2} />
                                     <Environment preset="city" />
@@ -569,7 +569,7 @@ const WorkoutMap: React.FC<WorkoutMapProps> = ({
 
                         <button 
                             onClick={() => setShowReward(null)}
-                            className="w-full max-w-[240px] py-4 bg-system-neon text-black font-black text-sm uppercase tracking-widest rounded-xl hover:bg-white hover:scale-105 transition-all shadow-[0_0_30px_rgba(126,184,212,0.4)]"
+                            className="w-full max-w-[240px] py-4 bg-system-neon text-black font-black text-sm uppercase tracking-widest rounded-xl hover:bg-white hover:scale-105 transition-all shadow-[0_0_30px_rgba(0,212,255,0.4)]"
                         >
                             CLAIM REWARD
                         </button>

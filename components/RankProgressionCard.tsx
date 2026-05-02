@@ -22,7 +22,7 @@ const RANKS = [
 // NOTE: These thresholds must match RANK_THRESHOLDS in hooks/useSystem.ts
 
 // Solid gradient for modal mini-bar only
-const BAR_GRADIENT = 'linear-gradient(0deg, #7EB8D4 0%, #3b82f6 55%, #7EB8D4 100%)';
+const BAR_GRADIENT = 'linear-gradient(0deg, #00d4ff 0%, #3b82f6 55%, #00d4ff 100%)';
 
 // ── Crossed Swords SVG ────────────────────────────────────────────────────────
 //
@@ -286,7 +286,7 @@ const RankProgressionCard: React.FC<RankProgressionCardProps> = ({ level, rank, 
                 <div className="text-[10px] font-mono text-gray-600">
                   {level - rangeStart} / {rangeSpan} lvls
                 </div>
-                <div className="text-[10px] font-mono mt-0.5" style={{ color: '#7EB8D4' }}>
+                <div className="text-[10px] font-mono mt-0.5" style={{ color: '#00d4ff' }}>
                   {rangeEnd - level} to {nextRank!.label}
                 </div>
               </div>
@@ -337,12 +337,12 @@ const RankProgressionCard: React.FC<RankProgressionCardProps> = ({ level, rank, 
                 animate={{ height: `${scrollFill * 100}%` }}
                 transition={{ duration: 0.45, ease: [0.25, 0.46, 0.45, 0.94] }}
                 style={{
-                  background: 'linear-gradient(0deg, rgba(126,184,212,0.70) 0%, rgba(59,130,246,0.60) 55%, rgba(6,182,212,0.60) 100%)',
+                  background: 'linear-gradient(0deg, rgba(0,212,255,0.70) 0%, rgba(59,130,246,0.60) 55%, rgba(6,182,212,0.60) 100%)',
                   backdropFilter: 'blur(6px)',
                   WebkitBackdropFilter: 'blur(6px)',
                   borderRadius: 999,
                   borderTop: '1px solid rgba(255,255,255,0.35)',
-                  boxShadow: `inset 0 1px 0 rgba(255,255,255,0.28), 0 0 ${8 + scrollFill * 16}px rgba(126,184,212,${0.35 + scrollFill * 0.4})`,
+                  boxShadow: `inset 0 1px 0 rgba(255,255,255,0.28), 0 0 ${8 + scrollFill * 16}px rgba(0,212,255,${0.35 + scrollFill * 0.4})`,
                 }}
               >
                 {/* Animated shimmer at the fill top edge */}
@@ -498,7 +498,7 @@ const RankProgressionCard: React.FC<RankProgressionCardProps> = ({ level, rank, 
                 borderRadius: '14px 14px 0 0',
               }} />
               <div className="p-3 text-center">
-                <div className="font-black text-2xl leading-none" style={{ color: '#7EB8D4' }}>
+                <div className="font-black text-2xl leading-none" style={{ color: '#00d4ff' }}>
                   {isMaxRank ? '—' : rangeEnd - level}
                 </div>
                 <div className="text-[10px] font-mono text-gray-600 mt-1.5 tracking-widest uppercase">
@@ -515,7 +515,7 @@ const RankProgressionCard: React.FC<RankProgressionCardProps> = ({ level, rank, 
                 borderRadius: '14px 14px 0 0',
               }} />
               <div className="p-3 text-center">
-                <div className="font-black text-2xl leading-none" style={{ color: '#7EB8D4' }}>
+                <div className="font-black text-2xl leading-none" style={{ color: '#00d4ff' }}>
                   {Math.round(playerProgress * 100)}%
                 </div>
                 <div className="text-[10px] font-mono text-gray-600 mt-1.5 tracking-widest uppercase">
@@ -649,10 +649,10 @@ const RankProgressionCard: React.FC<RankProgressionCardProps> = ({ level, rank, 
                 <div className="pt-2">
                   <div
                     className="rounded-xl p-3"
-                    style={{ background: 'rgba(126,184,212,0.06)', border: '1px solid rgba(126,184,212,0.20)' }}
+                    style={{ background: 'rgba(0,212,255,0.06)', border: '1px solid rgba(0,212,255,0.20)' }}
                   >
                     <div className="flex justify-between text-[10px] font-mono mb-2">
-                      <span style={{ color: '#7EB8D4' }}>Progress to {nextRank?.label ?? 'MAX'}</span>
+                      <span style={{ color: '#00d4ff' }}>Progress to {nextRank?.label ?? 'MAX'}</span>
                       <span className="text-gray-500">{Math.round(playerProgress * 100)}%</span>
                     </div>
                     <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.05)' }}>
@@ -661,14 +661,14 @@ const RankProgressionCard: React.FC<RankProgressionCardProps> = ({ level, rank, 
                         style={{
                           width: `${playerProgress * 100}%`,
                           background: BAR_GRADIENT,
-                          boxShadow: '0 0 8px rgba(126,184,212,0.6)',
+                          boxShadow: '0 0 8px rgba(0,212,255,0.6)',
                           transition: 'width 0.7s ease',
                         }}
                       />
                     </div>
                     <div className="flex justify-between text-[9px] font-mono mt-1.5 text-gray-600">
                       <span>Lvl {rangeStart}</span>
-                      <span style={{ color: '#7EB8D4' }}>Lvl {level} ← YOU</span>
+                      <span style={{ color: '#00d4ff' }}>Lvl {level} ← YOU</span>
                       <span>Lvl {rangeEnd}</span>
                     </div>
                   </div>

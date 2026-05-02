@@ -20,9 +20,9 @@ const getCategoryBanner = (cat: GoalCategory | string): string =>
 const getCategoryColor = (cat: GoalCategory | string): string => {
   const map: Record<string, string> = {
     FITNESS: '#f87171', HEALTH: '#4ade80', FINANCIAL: '#fbbf24',
-    ACADEMIC: '#60a5fa', SKILL: '#a78bfa', CAREER: '#7EB8D4', CREATIVE: '#f472b6',
+    ACADEMIC: '#60a5fa', SKILL: '#a78bfa', CAREER: '#00d4ff', CREATIVE: '#f472b6',
   };
-  return map[cat] || '#7EB8D4';
+  return map[cat] || '#00d4ff';
 };
 
 // ══════════════════════════════════════════════════════════════
@@ -94,17 +94,17 @@ const GoalDetailsPopup: React.FC<{
           {/* Stats row */}
           <div className="grid grid-cols-3 gap-2 mb-4">
             <div className="rounded-xl p-2.5 text-center" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
-              <Calendar size={14} className="mx-auto mb-1" style={{ color: '#7EB8D4' }} />
+              <Calendar size={14} className="mx-auto mb-1" style={{ color: '#00d4ff' }} />
               <div className="text-xs font-bold text-white">{totalDays}d</div>
               <div className="text-[7px] text-gray-600 font-mono uppercase">Duration</div>
             </div>
             <div className="rounded-xl p-2.5 text-center" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
-              <Clock size={14} className="mx-auto mb-1" style={{ color: '#7EB8D4' }} />
+              <Clock size={14} className="mx-auto mb-1" style={{ color: '#00d4ff' }} />
               <div className="text-xs font-bold text-white">{goal.dailyCommitmentMin}m</div>
               <div className="text-[7px] text-gray-600 font-mono uppercase">Per Day</div>
             </div>
             <div className="rounded-xl p-2.5 text-center" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
-              <Flame size={14} className="mx-auto mb-1" style={{ color: '#7EB8D4' }} />
+              <Flame size={14} className="mx-auto mb-1" style={{ color: '#00d4ff' }} />
               <div className="text-xs font-bold text-white">{goal.streak || 0}</div>
               <div className="text-[7px] text-gray-600 font-mono uppercase">Streak</div>
             </div>
@@ -132,8 +132,8 @@ const GoalDetailsPopup: React.FC<{
 
           {/* Current milestone */}
           {currentMilestone && (
-            <div className="rounded-xl p-3 mb-4" style={{ background: 'rgba(126,184,212,0.05)', border: '1px solid rgba(126,184,212,0.1)' }}>
-              <div className="text-[8px] font-mono text-[#7EB8D4] uppercase tracking-wider mb-1">
+            <div className="rounded-xl p-3 mb-4" style={{ background: 'rgba(0,212,255,0.05)', border: '1px solid rgba(0,212,255,0.1)' }}>
+              <div className="text-[8px] font-mono text-[#00d4ff] uppercase tracking-wider mb-1">
                 Phase {currentMilestone.phase} — Current
               </div>
               <div className="text-[12px] font-bold text-white mb-0.5">{currentMilestone.title}</div>
@@ -154,8 +154,8 @@ const GoalDetailsPopup: React.FC<{
                     key={m.phase}
                     className="flex items-center gap-2.5 px-3 py-2 rounded-xl"
                     style={{
-                      background: i === (goal.currentMilestone || 0) ? 'rgba(126,184,212,0.08)' : 'rgba(255,255,255,0.02)',
-                      border: `1px solid ${i === (goal.currentMilestone || 0) ? 'rgba(126,184,212,0.15)' : 'rgba(255,255,255,0.04)'}`,
+                      background: i === (goal.currentMilestone || 0) ? 'rgba(0,212,255,0.08)' : 'rgba(255,255,255,0.02)',
+                      border: `1px solid ${i === (goal.currentMilestone || 0) ? 'rgba(0,212,255,0.15)' : 'rgba(255,255,255,0.04)'}`,
                     }}
                   >
                     <div
@@ -222,8 +222,8 @@ const PinnedGoalCard: React.FC<{
           top: -10,
           left: '50%',
           transform: 'translateX(-50%)',
-          background: '#7EB8D4',
-          boxShadow: '0 3px 10px rgba(126,184,212,0.5)',
+          background: '#00d4ff',
+          boxShadow: '0 3px 10px rgba(0,212,255,0.5)',
         }}
       >
         <Pin size={10} className="text-white" style={{ transform: 'rotate(45deg)' }} />
@@ -274,9 +274,9 @@ const PinnedGoalCard: React.FC<{
           disabled={hasQuestsToday || isGenerating}
           className="w-full flex items-center justify-center gap-1.5 py-2 rounded-b-xl text-[9px] font-mono font-bold uppercase tracking-wider transition-all"
           style={{
-            background: hasQuestsToday ? 'rgba(34,197,94,0.06)' : isGenerating ? 'rgba(126,184,212,0.12)' : 'rgba(126,184,212,0.08)',
-            borderTop: `1px solid ${hasQuestsToday ? 'rgba(34,197,94,0.15)' : 'rgba(126,184,212,0.15)'}`,
-            color: hasQuestsToday ? '#4ade80' : '#7EB8D4',
+            background: hasQuestsToday ? 'rgba(34,197,94,0.06)' : isGenerating ? 'rgba(0,212,255,0.12)' : 'rgba(0,212,255,0.08)',
+            borderTop: `1px solid ${hasQuestsToday ? 'rgba(34,197,94,0.15)' : 'rgba(0,212,255,0.15)'}`,
+            color: hasQuestsToday ? '#4ade80' : '#00d4ff',
             opacity: hasQuestsToday ? 0.7 : 1,
             cursor: hasQuestsToday ? 'default' : isGenerating ? 'wait' : 'pointer',
           }}
@@ -321,7 +321,7 @@ const GoalHeroSection: React.FC<GoalHeroSectionProps> = ({ goals, onCreateGoal, 
         className="relative w-full rounded-2xl overflow-hidden"
         style={{
           background: '#0a0a14',
-          border: '1px solid rgba(126,184,212,0.3)',
+          border: '1px solid rgba(0,212,255,0.3)',
           boxShadow: '0 16px 48px rgba(0,0,0,0.6)',
         }}
       >
@@ -337,7 +337,7 @@ const GoalHeroSection: React.FC<GoalHeroSectionProps> = ({ goals, onCreateGoal, 
         {/* Text overlay */}
         <div className="absolute bottom-0 left-0 right-0 px-5 pb-5">
           <div className="text-[10px] font-mono font-bold tracking-[0.2em] uppercase mb-1.5"
-            style={{ color: '#7EB8D4' }}>
+            style={{ color: '#00d4ff' }}>
             Shadow Mission
           </div>
           <h2 className="text-[28px] font-black text-white leading-none mb-2.5"
@@ -353,9 +353,9 @@ const GoalHeroSection: React.FC<GoalHeroSectionProps> = ({ goals, onCreateGoal, 
             whileTap={{ scale: 0.96 }}
             className="w-full flex items-center justify-center gap-2.5 py-3 rounded-xl font-bold text-sm tracking-wide transition-all"
             style={{
-              background: 'linear-gradient(135deg, #7EB8D4 0%, #5a9ab5 100%)',
+              background: 'linear-gradient(135deg, #00d4ff 0%, #5a9ab5 100%)',
               color: '#0a0a14',
-              boxShadow: '0 4px 20px rgba(126,184,212,0.35), 0 0 0 1px rgba(126,184,212,0.2)',
+              boxShadow: '0 4px 20px rgba(0,212,255,0.35), 0 0 0 1px rgba(0,212,255,0.2)',
             }}
           >
             <Target size={16} />
@@ -367,9 +367,9 @@ const GoalHeroSection: React.FC<GoalHeroSectionProps> = ({ goals, onCreateGoal, 
             onClick={() => setShowGoalInfo(true)}
             className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg font-mono text-[10px] font-bold tracking-[0.15em] uppercase transition-all"
             style={{
-              background: 'rgba(126,184,212,0.06)',
-              border: '1px solid rgba(126,184,212,0.12)',
-              color: 'rgba(126,184,212,0.5)',
+              background: 'rgba(0,212,255,0.06)',
+              border: '1px solid rgba(0,212,255,0.12)',
+              color: 'rgba(0,212,255,0.5)',
               cursor: 'pointer',
               marginTop: 10,
             }}
@@ -393,8 +393,8 @@ const GoalHeroSection: React.FC<GoalHeroSectionProps> = ({ goals, onCreateGoal, 
           }}
         >
           <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ background: 'rgba(126,184,212,0.1)', border: '1px solid rgba(126,184,212,0.15)' }}>
-            <Target size={18} style={{ color: '#7EB8D4' }} />
+            style={{ background: 'rgba(0,212,255,0.1)', border: '1px solid rgba(0,212,255,0.15)' }}>
+            <Target size={18} style={{ color: '#00d4ff' }} />
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-[13px] font-bold text-white/90">Your created goals will appear here</div>
@@ -405,11 +405,11 @@ const GoalHeroSection: React.FC<GoalHeroSectionProps> = ({ goals, onCreateGoal, 
       ) : (
         <div>
           <div className="flex items-center gap-1.5 mb-3 px-1">
-            <Pin size={10} className="text-[#7EB8D4]" style={{ transform: 'rotate(45deg)' }} />
+            <Pin size={10} className="text-[#00d4ff]" style={{ transform: 'rotate(45deg)' }} />
             <span className="text-[9px] font-mono font-bold tracking-[0.2em] text-gray-500 uppercase">
               Active Goals
             </span>
-            <span className="text-[8px] font-mono text-[#7EB8D4]/60 ml-auto">
+            <span className="text-[8px] font-mono text-[#00d4ff]/60 ml-auto">
               {activeGoals.length} pinned
             </span>
           </div>
@@ -454,7 +454,7 @@ const GoalHeroSection: React.FC<GoalHeroSectionProps> = ({ goals, onCreateGoal, 
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.92, opacity: 0 }}
               className="w-full max-w-sm rounded-2xl overflow-hidden"
-              style={{ background: '#0d0d18', border: '1px solid rgba(126,184,212,0.15)' }}
+              style={{ background: '#0d0d18', border: '1px solid rgba(0,212,255,0.15)' }}
               onClick={e => e.stopPropagation()}
             >
               {/* Close */}
@@ -486,7 +486,7 @@ const GoalHeroSection: React.FC<GoalHeroSectionProps> = ({ goals, onCreateGoal, 
                   <div key={step.num} className="flex items-start gap-3">
                     <div
                       className="w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-black font-mono flex-shrink-0 mt-0.5"
-                      style={{ background: 'rgba(126,184,212,0.1)', border: '1px solid rgba(126,184,212,0.2)', color: '#7EB8D4' }}
+                      style={{ background: 'rgba(0,212,255,0.1)', border: '1px solid rgba(0,212,255,0.2)', color: '#00d4ff' }}
                     >
                       {step.num}
                     </div>

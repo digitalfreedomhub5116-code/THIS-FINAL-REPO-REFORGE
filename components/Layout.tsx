@@ -149,8 +149,8 @@ const Layout: React.FC<LayoutProps> = ({
     WARNING: 'text-yellow-400',
     DANGER: 'text-red-400',
     LEVEL_UP: 'text-yellow-300',
-    SYSTEM: 'text-[#7EB8D4]',
-    PURCHASE: 'text-[#7EB8D4]'
+    SYSTEM: 'text-[#00d4ff]',
+    PURCHASE: 'text-[#00d4ff]'
   };
 
   const notifDot: Record<string, string> = {
@@ -158,8 +158,8 @@ const Layout: React.FC<LayoutProps> = ({
     WARNING: 'bg-yellow-400',
     DANGER: 'bg-red-400',
     LEVEL_UP: 'bg-yellow-300',
-    SYSTEM: 'bg-[#7EB8D4]',
-    PURCHASE: 'bg-[#7EB8D4]'
+    SYSTEM: 'bg-[#00d4ff]',
+    PURCHASE: 'bg-[#00d4ff]'
   };
 
   useEffect(() => {
@@ -374,8 +374,8 @@ const Layout: React.FC<LayoutProps> = ({
             }}
           >
             {/* Specular top edge */}
-            <div className="absolute top-0 left-0 right-0 h-px pointer-events-none" style={{ background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.18) 30%, rgba(126,184,212,0.12) 55%, rgba(126,184,212,0.10) 75%, transparent 100%)' }} />
-            <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(135deg, rgba(126,184,212,0.02) 0%, transparent 50%, rgba(126,184,212,0.02) 100%)' }} />
+            <div className="absolute top-0 left-0 right-0 h-px pointer-events-none" style={{ background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.18) 30%, rgba(0,212,255,0.12) 55%, rgba(0,212,255,0.10) 75%, transparent 100%)' }} />
+            <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(135deg, rgba(0,212,255,0.02) 0%, transparent 50%, rgba(0,212,255,0.02) 100%)' }} />
 
             <div className="flex items-center justify-between px-4 py-2.5 sm:px-6 sm:py-3 max-w-7xl mx-auto relative z-10">
 
@@ -393,8 +393,8 @@ const Layout: React.FC<LayoutProps> = ({
                       style={{
                         width: 44, height: 44,
                         padding: 2,
-                        border: '2.5px solid #7EB8D4',
-                        boxShadow: '0 0 12px rgba(126,184,212,0.2)',
+                        border: '2.5px solid #00d4ff',
+                        boxShadow: '0 0 12px rgba(0,212,255,0.2)',
                       }}
                     >
                       {avatarUrl ? (
@@ -404,7 +404,7 @@ const Layout: React.FC<LayoutProps> = ({
                           className="w-full h-full rounded-full object-cover group-hover:brightness-110 transition-all"
                         />
                       ) : (
-                        <div className="w-full h-full rounded-full bg-gradient-to-br from-[#7EB8D4] to-[#5a9ab5] flex items-center justify-center text-white text-sm font-black group-hover:brightness-110 transition-all">
+                        <div className="w-full h-full rounded-full bg-gradient-to-br from-[#00d4ff] to-[#5a9ab5] flex items-center justify-center text-white text-sm font-black group-hover:brightness-110 transition-all">
                           {initial}
                         </div>
                       )}
@@ -427,13 +427,13 @@ const Layout: React.FC<LayoutProps> = ({
                       <div
                         style={{
                           width: 11, height: 11, borderRadius: '50%',
-                          background: '#7EB8D4',
+                          background: '#00d4ff',
                           border: '2.5px solid rgba(6,6,16,0.95)',
                           flexShrink: 0,
                           marginRight: -4,
                           position: 'relative',
                           zIndex: 5,
-                          boxShadow: '0 0 6px rgba(126,184,212,0.3)',
+                          boxShadow: '0 0 6px rgba(0,212,255,0.3)',
                         }}
                       />
 
@@ -441,8 +441,8 @@ const Layout: React.FC<LayoutProps> = ({
                       <div
                         style={{
                           width: 100, height: 10, borderRadius: 999,
-                          background: 'rgba(126,184,212,0.10)',
-                          border: '2.5px solid rgba(126,184,212,0.30)',
+                          background: 'rgba(0,212,255,0.10)',
+                          border: '2.5px solid rgba(0,212,255,0.30)',
                           overflow: 'hidden',
                           position: 'relative',
                         }}
@@ -455,7 +455,7 @@ const Layout: React.FC<LayoutProps> = ({
                           style={{
                             position: 'absolute', top: 0, left: 0, height: '100%',
                             borderRadius: 999,
-                            background: 'linear-gradient(90deg, #5a9ab5 0%, #7EB8D4 40%, #00d4ff 100%)',
+                            background: 'linear-gradient(90deg, #5a9ab5 0%, #00d4ff 40%, #00d4ff 100%)',
                             boxShadow: '0 0 8px rgba(0,212,255,0.3)',
                           }}
                         />
@@ -477,7 +477,7 @@ const Layout: React.FC<LayoutProps> = ({
                         <div className="px-4 py-3 border-b border-white/[0.06]">
                           <div className="text-white font-heading font-bold text-sm truncate">{playerName}</div>
                           {playerUsername && (
-                            <div className="text-[#7EB8D4] text-[10px] font-medium tracking-widest truncate">@{playerUsername}</div>
+                            <div className="text-[#00d4ff] text-[10px] font-medium tracking-widest truncate">@{playerUsername}</div>
                           )}
                           <div className="text-gray-600 text-[10px] font-mono mt-0.5">LVL {playerLevel}</div>
                         </div>
@@ -487,7 +487,7 @@ const Layout: React.FC<LayoutProps> = ({
                               onClick={() => { onEditProfile(); setShowProfileMenu(false); }}
                               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/[0.06] text-gray-300 hover:text-white transition-colors text-xs font-mono group"
                             >
-                              <Edit3 size={13} className="text-[#7EB8D4]" />
+                              <Edit3 size={13} className="text-[#00d4ff]" />
                               <span className="tracking-wide">EDIT PROFILE</span>
                             </button>
                           )}
@@ -537,7 +537,7 @@ const Layout: React.FC<LayoutProps> = ({
                     onClick={handleOpenNotifications}
                     className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 border ${
                       showNotifications
-                        ? 'bg-[#7EB8D4]/15 border-[#7EB8D4]/40 text-[#7EB8D4]'
+                        ? 'bg-[#00d4ff]/15 border-[#00d4ff]/40 text-[#00d4ff]'
                         : 'bg-white/[0.05] border-white/[0.08] text-gray-400 hover:text-white hover:bg-white/10'
                     }`}
                   >
@@ -583,7 +583,7 @@ const Layout: React.FC<LayoutProps> = ({
                           ) : (
                             notificationHistory.slice(0, 20).map(n => (
                               <div key={n.id} className="flex items-start gap-3 px-4 py-3 border-b border-white/[0.04] hover:bg-white/[0.03] transition-colors">
-                                <div className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${notifDot[n.type] || 'bg-[#7EB8D4]'}`} />
+                                <div className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${notifDot[n.type] || 'bg-[#00d4ff]'}`} />
                                 <div className="flex-1 min-w-0">
                                   <p className={`text-xs font-mono leading-relaxed ${notifTypeColor[n.type] || 'text-gray-300'}`}>
                                     {n.message}

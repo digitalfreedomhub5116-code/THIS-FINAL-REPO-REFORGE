@@ -104,7 +104,7 @@ function FadeImg({ src, alt, style, className, ...rest }: React.ImgHTMLAttribute
 
 const RARITY_STYLES: Record<string, { label: string; bg: string; text: string; border: string }> = {
   COMMON:    { label: 'COMMON',    bg: 'rgba(107,114,128,0.2)', text: '#9ca3af', border: 'rgba(107,114,128,0.3)' },
-  RARE:      { label: 'RARE',      bg: 'rgba(126,184,212,0.12)',  text: '#7EB8D4', border: 'rgba(126,184,212,0.25)' },
+  RARE:      { label: 'RARE',      bg: 'rgba(0,212,255,0.12)',  text: '#00d4ff', border: 'rgba(0,212,255,0.25)' },
   LEGENDARY: { label: 'LEGENDARY', bg: 'rgba(234,179,8,0.12)',  text: '#eab308', border: 'rgba(234,179,8,0.3)' },
 };
 
@@ -228,11 +228,11 @@ const ItemsTab: React.FC<{ gold: number }> = ({ gold }) => {
       </div>
 
       {/* Streak Shield Card */}
-      <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(126,184,212,0.04)', border: '1px solid rgba(126,184,212,0.12)' }}>
+      <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(0,212,255,0.04)', border: '1px solid rgba(0,212,255,0.12)' }}>
         <div className="p-4">
           <div className="flex items-start gap-3">
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(126,184,212,0.1)', border: '1px solid rgba(126,184,212,0.2)' }}>
-              <Shield size={24} className="text-[#7EB8D4]" />
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(0,212,255,0.1)', border: '1px solid rgba(0,212,255,0.2)' }}>
+              <Shield size={24} className="text-[#00d4ff]" />
             </div>
             <div className="flex-1">
               <div className="text-sm font-black text-white font-mono tracking-wider">STREAK SHIELD</div>
@@ -240,7 +240,7 @@ const ItemsTab: React.FC<{ gold: number }> = ({ gold }) => {
                 Protects your streak for 1 missed day. Auto-activates when you miss a login.
               </p>
               <div className="flex items-center gap-2 mt-2">
-                <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded" style={{ background: 'rgba(126,184,212,0.1)', color: '#7EB8D4' }}>
+                <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded" style={{ background: 'rgba(0,212,255,0.1)', color: '#00d4ff' }}>
                   Owned: {shieldCount}/2
                 </span>
                 <span className="text-[9px] font-mono text-gray-600">Max 2 at a time</span>
@@ -250,7 +250,7 @@ const ItemsTab: React.FC<{ gold: number }> = ({ gold }) => {
           <div className="flex items-center justify-between mt-3 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
             <div className="flex items-center gap-1.5">
               <div className="flex items-center" style={{ width: 20 }}><SystemCoin size={20} /></div>
-              <span className="text-sm font-black text-[#7EB8D4] font-mono">75</span>
+              <span className="text-sm font-black text-[#00d4ff] font-mono">75</span>
             </div>
             <button
               onClick={handleBuyShield}
@@ -258,7 +258,7 @@ const ItemsTab: React.FC<{ gold: number }> = ({ gold }) => {
               className="px-5 py-2 rounded-xl text-[10px] font-black tracking-wider font-mono transition-all active:scale-95"
               style={{
                 background: canAffordShield && shieldCount < 2
-                  ? 'linear-gradient(135deg, #7EB8D4, #5A9AB5)'
+                  ? 'linear-gradient(135deg, #00d4ff, #5A9AB5)'
                   : 'rgba(255,255,255,0.06)',
                 color: canAffordShield && shieldCount < 2 ? '#0a0a14' : 'rgba(255,255,255,0.3)',
                 opacity: buying === 'shield' ? 0.5 : 1,
@@ -628,8 +628,8 @@ const ShopView: React.FC<ShopViewProps> = ({
          ═══════════════════════════════════════════ */}
       <section>
         <div className="store-section-hdr">
-          <div className="hdr-icon" style={{ background: 'rgba(126,184,212,0.12)', border: '1px solid rgba(126,184,212,0.2)' }}>
-            <Frame size={15} style={{ color: '#7EB8D4' }} />
+          <div className="hdr-icon" style={{ background: 'rgba(0,212,255,0.12)', border: '1px solid rgba(0,212,255,0.2)' }}>
+            <Frame size={15} style={{ color: '#00d4ff' }} />
           </div>
           <span className="hdr-title">Borders</span>
           <div className="hdr-line" />
@@ -807,9 +807,9 @@ const ShopView: React.FC<ShopViewProps> = ({
           onClick={() => setShowMore(!showMore)}
           style={{
             width: '100%', padding: '14px 0', borderRadius: 14, cursor: 'pointer',
-            background: showMore ? 'rgba(126,184,212,0.08)' : 'rgba(255,255,255,0.03)',
-            border: showMore ? '1px solid rgba(126,184,212,0.15)' : '1px solid rgba(255,255,255,0.06)',
-            color: showMore ? '#7EB8D4' : 'rgba(255,255,255,0.45)',
+            background: showMore ? 'rgba(0,212,255,0.08)' : 'rgba(255,255,255,0.03)',
+            border: showMore ? '1px solid rgba(0,212,255,0.15)' : '1px solid rgba(255,255,255,0.06)',
+            color: showMore ? '#00d4ff' : 'rgba(255,255,255,0.45)',
             fontSize: 12, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase' as const,
             fontFamily: 'Inter, system-ui, sans-serif',
             transition: 'all 0.25s',
@@ -838,10 +838,10 @@ const ShopView: React.FC<ShopViewProps> = ({
                   return (
                     <button key={tab.id} onClick={() => setMoreTab(tab.id)} style={{
                       display: 'flex', alignItems: 'center', gap: 5, padding: '8px 18px', borderRadius: 10,
-                      background: isActive ? 'rgba(126,184,212,0.15)' : 'rgba(255,255,255,0.03)',
-                      color: isActive ? '#7EB8D4' : '#6b7280',
+                      background: isActive ? 'rgba(0,212,255,0.15)' : 'rgba(255,255,255,0.03)',
+                      color: isActive ? '#00d4ff' : '#6b7280',
                       fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                      border: isActive ? '1.5px solid rgba(126,184,212,0.3)' : '1.5px solid transparent',
+                      border: isActive ? '1.5px solid rgba(0,212,255,0.3)' : '1.5px solid transparent',
                       transition: 'all 0.2s', flexShrink: 0,
                     }}>
                       {tab.icon} {tab.label}
@@ -1041,7 +1041,7 @@ function StoreLottieBorder({ src, glow }: { src: string; glow: string }) {
    KitGlowCard — Premium card for kit items
    ═══════════════════════════════════ */
 const KIT_CAT_COLORS: Record<string, string> = {
-  border: '#7EB8D4', theme: '#8B5CF6', deals: '#F59E0B', banner: '#06B6D4', consumable: '#22C55E', title: '#F59E0B',
+  border: '#00d4ff', theme: '#8B5CF6', deals: '#F59E0B', banner: '#06B6D4', consumable: '#22C55E', title: '#F59E0B',
 };
 
 function KitGlowCard({ item, discount, owned, equipped, canAfford, onBuy, onEquip, onInfo, onView, onCardClick, dealColor }: {
@@ -1049,7 +1049,7 @@ function KitGlowCard({ item, discount, owned, equipped, canAfford, onBuy, onEqui
   canAfford: boolean; onBuy: () => void; onEquip?: () => void; onInfo?: () => void; onView?: () => void;
   onCardClick?: () => void; dealColor?: string;
 }) {
-  const catColor = dealColor || KIT_CAT_COLORS[item.category] || '#7EB8D4';
+  const catColor = dealColor || KIT_CAT_COLORS[item.category] || '#00d4ff';
   const finalPrice = discount ? Math.round(item.price * (1 - discount / 100)) : item.price;
   const chipSize = 14;
   const clipPath = `polygon(0 0, calc(100% - ${chipSize}px) 0, 100% ${chipSize}px, 100% 100%, ${chipSize}px 100%, 0 calc(100% - ${chipSize}px))`;

@@ -286,12 +286,12 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
   }, []);
 
   return (
-    <div className="w-full relative rounded-2xl overflow-hidden flex flex-col group shadow-[0_20px_60px_rgba(0,0,0,0.7)] bg-[#0A0A0F]" style={{ border: '1px solid rgba(126,184,212,0.3)' }}>
+    <div className="w-full relative rounded-2xl overflow-hidden flex flex-col group shadow-[0_20px_60px_rgba(0,0,0,0.7)] bg-[#0A0A0F]" style={{ border: '1px solid rgba(0,212,255,0.3)' }}>
 
       {/* --- TOP HEADER --- */}
       <div className="w-full flex items-center justify-between px-4 pt-3.5 pb-2 bg-gradient-to-b from-[#0A0A0F] to-transparent z-30 absolute top-0 left-0 right-0 pointer-events-none">
         <div className="flex items-center gap-2">
-          <div className="w-1 h-3.5 bg-system-neon rounded-full shadow-[0_0_8px_#7EB8D4]" />
+          <div className="w-1 h-3.5 bg-system-neon rounded-full shadow-[0_0_8px_#00d4ff]" />
           <h2 className="text-[10px] font-black tracking-[0.2em] text-white uppercase opacity-90 font-mono">Growth Terminal</h2>
         </div>
       </div>
@@ -302,7 +302,7 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
         <div 
           className="absolute inset-0 pointer-events-none opacity-20"
           style={{
-            backgroundImage: `linear-gradient(rgba(126, 184, 212, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(126, 184, 212, 0.1) 1px, transparent 1px)`,
+            backgroundImage: `linear-gradient(rgba(0,212,255, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0,212,255, 0.1) 1px, transparent 1px)`,
             backgroundSize: '20px 20px',
             maskImage: 'linear-gradient(to bottom, black, transparent)',
             WebkitMaskImage: 'linear-gradient(to bottom, black, transparent)',
@@ -340,8 +340,8 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
 
             let borderColor = 'rgba(255,255,255,0.08)';
             let glowShadow = 'none';
-            if (isSelected) { borderColor = '#7EB8D4'; glowShadow = '0 0 10px rgba(126,184,212,0.4)'; }
-            else if (isToday) { borderColor = 'rgba(126,184,212,0.4)'; }
+            if (isSelected) { borderColor = '#00d4ff'; glowShadow = '0 0 10px rgba(0,212,255,0.4)'; }
+            else if (isToday) { borderColor = 'rgba(0,212,255,0.4)'; }
 
             return (
               <button
@@ -370,13 +370,13 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
                     style={{
                       inset: '1.5px',
                       clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
-                      background: isSelected ? 'rgba(126,184,212,0.25)' : 'rgba(8,8,18,1)',
+                      background: isSelected ? 'rgba(0,212,255,0.25)' : 'rgba(8,8,18,1)',
                       boxShadow: glowShadow,
                     }}
                   >
                     <span
                       className="font-mono font-black text-xs leading-none"
-                      style={{ color: isSelected ? '#ffffff' : isToday ? '#7EB8D4' : '#4b5563' }}
+                      style={{ color: isSelected ? '#ffffff' : isToday ? '#00d4ff' : '#4b5563' }}
                     >
                       {day.getDate()}
                     </span>
@@ -385,7 +385,7 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
                 {/* Day label */}
                 <span
                   className="text-[7px] font-mono font-bold tracking-wider"
-                  style={{ color: isSelected ? '#7EB8D4' : isToday ? 'rgba(126,184,212,0.6)' : '#374151' }}
+                  style={{ color: isSelected ? '#00d4ff' : isToday ? 'rgba(0,212,255,0.6)' : '#374151' }}
                 >
                   {isToday ? 'TODAY' : dayLabel}
                 </span>
@@ -398,8 +398,8 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
       {/* --- DAILY INSIGHTS BANNER --- */}
       <div className="w-full bg-[#0A0A0F]/80 border-b border-white/[0.02] flex items-center px-3 py-1.5 z-20 shrink-0 shadow-[0_4px_10px_rgba(0,0,0,0.2)]">
         <div className="flex items-center gap-2 w-full">
-          <Zap size={10} className="text-[#7EB8D4]" />
-          <span className="text-[8px] font-mono text-[#7EB8D4] uppercase font-bold tracking-widest shrink-0">SYS_LOG:</span>
+          <Zap size={10} className="text-[#00d4ff]" />
+          <span className="text-[8px] font-mono text-[#00d4ff] uppercase font-bold tracking-widest shrink-0">SYS_LOG:</span>
           <motion.div 
             key={`${selectedDateIndex}-${chartMode}`}
             initial={{ opacity: 0, x: 5 }}
@@ -422,10 +422,10 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
               onClick={() => setChartMode(mode)}
               className="px-4 py-1 rounded-lg text-[9px] font-black font-mono uppercase tracking-widest transition-all duration-200"
               style={active ? {
-                background: 'rgba(126,184,212,0.15)',
-                border: '1px solid rgba(126,184,212,0.4)',
-                color: '#7EB8D4',
-                boxShadow: '0 0 8px rgba(126,184,212,0.15)',
+                background: 'rgba(0,212,255,0.15)',
+                border: '1px solid rgba(0,212,255,0.4)',
+                color: '#00d4ff',
+                boxShadow: '0 0 8px rgba(0,212,255,0.15)',
               } : {
                 background: 'rgba(255,255,255,0.03)',
                 border: '1px solid rgba(255,255,255,0.06)',
@@ -457,7 +457,7 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
                     const val = item?.A || 0;
                     return (
                       <g>
-                        <text x={x} y={y - 4} textAnchor="middle" dominantBaseline="middle" fill="#7EB8D4" fontSize={10} fontWeight={900} fontFamily="monospace">
+                        <text x={x} y={y - 4} textAnchor="middle" dominantBaseline="middle" fill="#00d4ff" fontSize={10} fontWeight={900} fontFamily="monospace">
                           {payload.value}
                         </text>
                         <text x={x} y={y + 9} textAnchor="middle" dominantBaseline="middle" fill="#6b7280" fontSize={7} fontWeight={700} fontFamily="monospace">
@@ -479,9 +479,9 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
                 <Radar 
                   name="Stats" 
                   dataKey="A" 
-                  stroke={radarPhase === 'dots' ? 'transparent' : '#7EB8D4'} 
+                  stroke={radarPhase === 'dots' ? 'transparent' : '#00d4ff'} 
                   strokeWidth={2} 
-                  fill={radarPhase === 'complete' ? '#7EB8D4' : 'transparent'} 
+                  fill={radarPhase === 'complete' ? '#00d4ff' : 'transparent'} 
                   fillOpacity={radarPhase === 'complete' ? 0.2 : 0} 
                   isAnimationActive={false}
                   activeDot={false}
@@ -497,7 +497,7 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
                           {isVisible && <animate attributeName="opacity" values="0;0.95" dur="0.2s" fill="freeze" />}
                         </circle>
                         {/* Ambient pulse ring */}
-                        <circle cx={ctr} cy={ctr} r="5" fill="none" stroke="#7EB8D4" strokeWidth="1" opacity={isVisible ? 0.5 : 0}>
+                        <circle cx={ctr} cy={ctr} r="5" fill="none" stroke="#00d4ff" strokeWidth="1" opacity={isVisible ? 0.5 : 0}>
                           {isVisible && (
                             <>
                               <animate attributeName="r" values="5;8;5" dur="2s" repeatCount="indefinite" />
@@ -511,7 +511,7 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
                 />
                 <defs>
                   <linearGradient id="radarGradientV2" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#7EB8D4" stopOpacity={0.35} />
+                    <stop offset="0%" stopColor="#00d4ff" stopOpacity={0.35} />
                     <stop offset="100%" stopColor="#0055ff" stopOpacity={0.08} />
                   </linearGradient>
                 </defs>
@@ -576,8 +576,8 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
         const mana = player.mp ?? 100;
         const maxMana = player.maxMp ?? 100;
         const pct = maxMana > 0 ? (mana / maxMana) * 100 : 0;
-        const manaColor = pct > 75 ? '#7EB8D4' : pct > 50 ? '#eab308' : pct > 10 ? '#f97316' : '#ef4444';
-        const manaGlow = pct > 75 ? 'rgba(126,184,212,0.3)' : pct > 50 ? 'rgba(234,179,8,0.25)' : pct > 10 ? 'rgba(249,115,22,0.25)' : 'rgba(239,68,68,0.4)';
+        const manaColor = pct > 75 ? '#00d4ff' : pct > 50 ? '#eab308' : pct > 10 ? '#f97316' : '#ef4444';
+        const manaGlow = pct > 75 ? 'rgba(0,212,255,0.3)' : pct > 50 ? 'rgba(234,179,8,0.25)' : pct > 10 ? 'rgba(249,115,22,0.25)' : 'rgba(239,68,68,0.4)';
         return (
           <div className="w-full bg-[#0A0A0F]/90 border-t border-white/[0.03] px-3 pt-3 pb-4 z-20 shrink-0">
             <div className="flex items-center justify-between mb-1">

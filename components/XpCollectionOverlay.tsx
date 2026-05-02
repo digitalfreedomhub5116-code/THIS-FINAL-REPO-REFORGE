@@ -10,14 +10,14 @@ interface XpCollectionOverlayProps {
   onComplete: () => void;
 }
 
-const CRYSTAL_COLORS = ['#a855f7', '#7EB8D4', '#7EB8D4', '#9ACDE3', '#7c3aed'];
+const CRYSTAL_COLORS = ['#a855f7', '#00d4ff', '#00d4ff', '#33dfff', '#7c3aed'];
 
 const CRYSTAL_SVG = (color: string) =>
   `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20">
     <defs>
       <linearGradient id="cg" x1="0%" y1="0%" x2="100%" y2="100%">
         <stop offset="0%" stop-color="${color}" stop-opacity="1"/>
-        <stop offset="100%" stop-color="#7EB8D4" stop-opacity="0.8"/>
+        <stop offset="100%" stop-color="#00d4ff" stop-opacity="0.8"/>
       </linearGradient>
       <filter id="glow">
         <feGaussianBlur stdDeviation="1.5" result="blur"/>
@@ -144,14 +144,14 @@ const XpCollectionOverlay: React.FC<XpCollectionOverlayProps> = ({
             transition={{ type: 'spring', stiffness: 140, damping: 20 }}
             className={`relative bg-black/96 backdrop-blur-xl rounded-2xl p-4 pointer-events-auto z-[202] ${
               willLevelUp
-                ? 'w-[85%] max-w-lg border border-[#7EB8D4]/40 shadow-[0_0_60px_rgba(126,184,212,0.25)]'
-                : 'w-[88%] max-w-md border border-[#7EB8D4]/30 shadow-[0_20px_50px_rgba(0,0,0,0.9),0_0_20px_rgba(126,184,212,0.2)]'
+                ? 'w-[85%] max-w-lg border border-[#00d4ff]/40 shadow-[0_0_60px_rgba(0,212,255,0.25)]'
+                : 'w-[88%] max-w-md border border-[#00d4ff]/30 shadow-[0_20px_50px_rgba(0,0,0,0.9),0_0_20px_rgba(0,212,255,0.2)]'
             }`}
           >
             {/* Header row */}
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-[#7EB8D4] animate-pulse shadow-[0_0_6px_#7EB8D4]" />
+                <div className="w-1.5 h-1.5 rounded-full bg-[#00d4ff] animate-pulse shadow-[0_0_6px_#00d4ff]" />
                 <span className="font-mono text-[10px] font-black tracking-[0.25em] text-white/70 uppercase">
                   {willLevelUp ? 'System Overload' : 'XP Absorbed'}
                 </span>
@@ -160,8 +160,8 @@ const XpCollectionOverlay: React.FC<XpCollectionOverlayProps> = ({
                 initial={{ opacity: 0, scale: 0.5 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.5 }}
-                className={`font-mono text-sm font-black ${willLevelUp ? 'text-[#7EB8D4]' : 'text-[#7EB8D4]'}`}
-                style={{ textShadow: willLevelUp ? '0 0 10px rgba(126,184,212,0.8)' : '0 0 10px rgba(126,184,212,0.8)' }}
+                className={`font-mono text-sm font-black ${willLevelUp ? 'text-[#00d4ff]' : 'text-[#00d4ff]'}`}
+                style={{ textShadow: willLevelUp ? '0 0 10px rgba(0,212,255,0.8)' : '0 0 10px rgba(0,212,255,0.8)' }}
               >
                 +{displayXp} XP
               </motion.span>
@@ -172,7 +172,7 @@ const XpCollectionOverlay: React.FC<XpCollectionOverlayProps> = ({
               <motion.div
                 className="absolute top-0 left-0 h-full rounded-full"
                 style={{
-                  background: 'linear-gradient(90deg, #7EB8D4, #7c3aed, #7EB8D4)',
+                  background: 'linear-gradient(90deg, #00d4ff, #7c3aed, #00d4ff)',
                   backgroundSize: '200% 100%',
                 }}
                 initial={{ width: `${startPercent}%` }}
@@ -206,8 +206,8 @@ const XpCollectionOverlay: React.FC<XpCollectionOverlayProps> = ({
               <motion.div
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="mt-2 text-center font-mono text-xs font-black tracking-[0.3em] text-[#7EB8D4]"
-                style={{ textShadow: '0 0 12px rgba(126,184,212,0.9)' }}
+                className="mt-2 text-center font-mono text-xs font-black tracking-[0.3em] text-[#00d4ff]"
+                style={{ textShadow: '0 0 12px rgba(0,212,255,0.9)' }}
               >
                 LEVEL UP
               </motion.div>

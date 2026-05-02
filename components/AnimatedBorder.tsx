@@ -267,7 +267,7 @@ const BorderPrismatic: React.FC<{ color: string; glow: string }> = ({ glow }) =>
       animate={{ rotate: 360 }}
       transition={{ duration: 6, repeat: Infinity, ease: 'linear' }}
       style={{
-        background: 'conic-gradient(from 0deg, #f87171, #fbbf24, #4ade80, #7EB8D4, #7EB8D4, #ec4899, #f87171)',
+        background: 'conic-gradient(from 0deg, #f87171, #fbbf24, #4ade80, #00d4ff, #00d4ff, #ec4899, #f87171)',
         mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
         WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
         maskComposite: 'exclude',
@@ -282,7 +282,7 @@ const BorderPrismatic: React.FC<{ color: string; glow: string }> = ({ glow }) =>
         boxShadow: [
           `inset 0 0 25px rgba(248,113,113,0.2), 0 0 20px rgba(248,113,113,0.15)`,
           `inset 0 0 25px rgba(74,222,128,0.2), 0 0 20px rgba(74,222,128,0.15)`,
-          `inset 0 0 25px rgba(126,184,212,0.2), 0 0 20px rgba(126,184,212,0.15)`,
+          `inset 0 0 25px rgba(0,212,255,0.2), 0 0 20px rgba(0,212,255,0.15)`,
           `inset 0 0 25px rgba(248,113,113,0.2), 0 0 20px rgba(248,113,113,0.15)`,
         ],
       }}
@@ -302,8 +302,8 @@ const BorderPrismatic: React.FC<{ color: string; glow: string }> = ({ glow }) =>
             top: '50%', left: '50%',
             transform: `rotate(${deg}deg) translateY(-50%) translateX(${deg % 180 === 0 ? '48%' : '0'})`,
             transformOrigin: '0 0',
-            background: ['#f87171', '#fbbf24', '#4ade80', '#7EB8D4'][deg / 90],
-            boxShadow: `0 0 8px ${['#f87171', '#fbbf24', '#4ade80', '#7EB8D4'][deg / 90]}`,
+            background: ['#f87171', '#fbbf24', '#4ade80', '#00d4ff'][deg / 90],
+            boxShadow: `0 0 8px ${['#f87171', '#fbbf24', '#4ade80', '#00d4ff'][deg / 90]}`,
             filter: `blur(0.5px)`,
           }}
         />
@@ -376,7 +376,7 @@ const AnimatedBorder: React.FC<AnimatedBorderProps> = ({
                 ? 'none'
                 : `2px solid ${border.accentColor}`,
               background: isPrismatic
-                ? 'conic-gradient(from 0deg, #f87171, #fbbf24, #4ade80, #7EB8D4, #7EB8D4, #ec4899, #f87171)'
+                ? 'conic-gradient(from 0deg, #f87171, #fbbf24, #4ade80, #00d4ff, #00d4ff, #ec4899, #f87171)'
                 : 'transparent',
               boxShadow: `0 0 4px ${border.accentGlow}`,
               ...(isPrismatic ? {

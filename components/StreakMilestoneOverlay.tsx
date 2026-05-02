@@ -23,7 +23,7 @@ const TIER_CONFIG: Record<number, {
   7:   { gradient: 'linear-gradient(135deg, #CD7F32, #8B6914)', glowColor: '#CD7F32', fireEmoji: '🔥', label: 'WEEK WARRIOR', bgGlow: 'rgba(205,127,50,0.08)' },
   14:  { gradient: 'linear-gradient(135deg, #C0C0C0, #808080)', glowColor: '#C0C0C0', fireEmoji: '🔥', label: 'FORGED IN FIRE', bgGlow: 'rgba(192,192,192,0.08)' },
   30:  { gradient: 'linear-gradient(135deg, #EAB308, #CA8A04)', glowColor: '#EAB308', fireEmoji: '🔥', label: 'IRON WILL', bgGlow: 'rgba(234,179,8,0.08)' },
-  60:  { gradient: 'linear-gradient(135deg, #7EB8D4, #5A9AB5)', glowColor: '#7EB8D4', fireEmoji: '🔥', label: 'INFERNO', bgGlow: 'rgba(126,184,212,0.08)' },
+  60:  { gradient: 'linear-gradient(135deg, #00d4ff, #5A9AB5)', glowColor: '#00d4ff', fireEmoji: '🔥', label: 'INFERNO', bgGlow: 'rgba(0,212,255,0.08)' },
   100: { gradient: 'linear-gradient(135deg, #A855F7, #7C3AED)', glowColor: '#A855F7', fireEmoji: '🔥', label: 'ETERNAL FLAME', bgGlow: 'rgba(168,85,247,0.08)' },
   365: { gradient: 'linear-gradient(135deg, #EAB308, #A855F7, #EF4444)', glowColor: '#EAB308', fireEmoji: '👑', label: 'LEGENDARY', bgGlow: 'rgba(234,179,8,0.12)' },
 };
@@ -208,7 +208,7 @@ const StreakMilestoneOverlay: React.FC<StreakMilestoneOverlayProps> = ({ milesto
               {/* Keys */}
               {milestone.keys > 0 && (
                 <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg"
-                  style={{ background: 'rgba(126,184,212,0.08)', border: '1px solid rgba(126,184,212,0.15)' }}>
+                  style={{ background: 'rgba(0,212,255,0.08)', border: '1px solid rgba(0,212,255,0.15)' }}>
                   <Key size={13} className="text-cyan-400" />
                   <span className="text-sm font-bold text-cyan-400">+{milestone.keys}</span>
                 </div>

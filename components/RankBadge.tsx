@@ -53,13 +53,13 @@ export const RANK_META: Record<RankType, {
     image:      '/images/ranks/d-rank-removebg-preview.png',
   },
   C: {
-    primary:    '#7EB8D4',
+    primary:    '#00d4ff',
     secondary:  '#5A9BB5',
     letter:     '#e0f5ff',
-    border:     '#7EB8D4',
-    glow:       'rgba(126,184,212,0.8)',
+    border:     '#00d4ff',
+    glow:       'rgba(0,212,255,0.8)',
     bg:         '#001018',
-    labelColor: '#7EB8D4',
+    labelColor: '#00d4ff',
     image:      '/images/ranks/c-rank-removebg-preview.png',
   },
   B: {

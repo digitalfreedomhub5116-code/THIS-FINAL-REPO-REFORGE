@@ -14,7 +14,7 @@ const TIER_INFO: Record<string, { name: string; icon: string; color: string }> =
   E: { name: 'E-Rank', icon: '⚔️', color: '#78716C' },
   D: { name: 'D-Rank', icon: '🗡️', color: '#F97316' },
   C: { name: 'C-Rank', icon: '🔵', color: '#60A5FA' },
-  B: { name: 'B-Rank', icon: '💠', color: '#7EB8D4' },
+  B: { name: 'B-Rank', icon: '💠', color: '#00d4ff' },
   A: { name: 'A-Rank', icon: '🌟', color: '#EAB308' },
   S: { name: 'S-Rank', icon: '💎', color: '#A855F7' },
 };

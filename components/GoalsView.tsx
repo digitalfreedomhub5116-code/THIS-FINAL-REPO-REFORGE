@@ -284,9 +284,9 @@ export default function GoalsView({
             exit={{ opacity: 0, y: -10 }}
             className="rounded-2xl p-4 mb-4 overflow-hidden relative"
             style={{
-              background: 'rgba(126,184,212,0.03)',
-              border: '1px solid rgba(126,184,212,0.12)',
-              boxShadow: '0 0 30px rgba(126,184,212,0.06)',
+              background: 'rgba(0,212,255,0.03)',
+              border: '1px solid rgba(0,212,255,0.12)',
+              boxShadow: '0 0 30px rgba(0,212,255,0.06)',
             }}
           >
             {/* Animated scanning line */}
@@ -302,13 +302,13 @@ export default function GoalsView({
                 animate={{ rotate: 360 }}
                 transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
               >
-                <Loader2 className="w-5 h-5 text-[#7EB8D4]" />
+                <Loader2 className="w-5 h-5 text-[#00d4ff]" />
               </motion.div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-[8px] font-black font-mono uppercase tracking-[0.3em] text-[#7EB8D4]/60">SYSTEM</span>
+                  <span className="text-[8px] font-black font-mono uppercase tracking-[0.3em] text-[#00d4ff]/60">SYSTEM</span>
                   <motion.div
-                    className="w-1.5 h-1.5 rounded-full bg-[#7EB8D4]"
+                    className="w-1.5 h-1.5 rounded-full bg-[#00d4ff]"
                     animate={{ opacity: [1, 0.3, 1] }}
                     transition={{ duration: 1, repeat: Infinity }}
                   />
@@ -320,14 +320,14 @@ export default function GoalsView({
                   Goal {autoGenProgress.current}/{autoGenProgress.total} • AI generating micro-quests
                 </div>
               </div>
-              <Swords className="w-4 h-4 text-[#7EB8D4]/30 flex-shrink-0" />
+              <Swords className="w-4 h-4 text-[#00d4ff]/30 flex-shrink-0" />
             </div>
 
             {/* Progress bar */}
             <div className="mt-3 h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)' }}>
               <motion.div
                 className="h-full rounded-full"
-                style={{ background: 'linear-gradient(90deg, #7EB8D4, #00d4ff)' }}
+                style={{ background: 'linear-gradient(90deg, #00d4ff, #00d4ff)' }}
                 initial={{ width: '0%' }}
                 animate={{ width: `${autoGenProgress.total > 0 ? (autoGenProgress.current / autoGenProgress.total) * 100 : 0}%` }}
                 transition={{ duration: 0.5 }}
@@ -354,7 +354,7 @@ export default function GoalsView({
       {activeGoals.length === 0 && (
         <div className="flex flex-col items-center justify-center py-16 px-6">
           <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ background: 'rgba(34,211,238,0.06)' }}>
-            <Target className="w-7 h-7 text-[#7EB8D4]" />
+            <Target className="w-7 h-7 text-[#00d4ff]" />
           </div>
           <h3 className="text-sm font-bold text-white mb-1">No Active Goals</h3>
           <p className="text-[10px] text-gray-500 font-mono text-center mb-5 max-w-[240px]">
@@ -363,7 +363,7 @@ export default function GoalsView({
           <button
             onClick={() => setShowCreate(true)}
             className="px-6 py-3 rounded-xl text-xs font-black text-black uppercase tracking-wider"
-            style={{ background: 'linear-gradient(135deg, #7EB8D4, #7EB8D4)' }}
+            style={{ background: 'linear-gradient(135deg, #00d4ff, #00d4ff)' }}
           >
             Create Shadow Mission
           </button>
@@ -391,7 +391,7 @@ export default function GoalsView({
           whileTap={{ scale: 0.9 }}
           onClick={() => setShowCreate(true)}
           className="fixed bottom-24 right-5 w-13 h-13 rounded-full flex items-center justify-center z-50 shadow-lg"
-          style={{ background: 'linear-gradient(135deg, #7EB8D4, #7EB8D4)', width: 52, height: 52 }}
+          style={{ background: 'linear-gradient(135deg, #00d4ff, #00d4ff)', width: 52, height: 52 }}
         >
           <Plus className="w-5 h-5 text-black" />
         </motion.button>

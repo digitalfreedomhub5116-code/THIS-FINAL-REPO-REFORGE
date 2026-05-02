@@ -113,7 +113,7 @@ const MONTH_NAMES = [
   'JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE',
   'JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER',
 ];
-const WATER_GRADIENT = 'linear-gradient(0deg, #7EB8D4 0%, #3b82f6 55%, #7EB8D4 100%)';
+const WATER_GRADIENT = 'linear-gradient(0deg, #00d4ff 0%, #3b82f6 55%, #00d4ff 100%)';
 
 const RANK_COLORS: Record<Rank, { bg: string; text: string; border: string; glow: string }> = {
   UNRANKED: { bg: 'bg-gray-900', text: 'text-gray-600', border: 'border-gray-800', glow: '' },
@@ -121,8 +121,8 @@ const RANK_COLORS: Record<Rank, { bg: string; text: string; border: string; glow
   D: { bg: 'bg-orange-900/60',  text: 'text-orange-400',border: 'border-orange-700',glow: 'shadow-[0_0_12px_rgba(251,146,60,0.3)]' },
   C: { bg: 'bg-yellow-900/60',  text: 'text-yellow-400',border: 'border-yellow-700',glow: 'shadow-[0_0_12px_rgba(234,179,8,0.3)]' },
   B: { bg: 'bg-green-900/60',   text: 'text-green-400', border: 'border-green-700', glow: 'shadow-[0_0_12px_rgba(34,197,94,0.3)]' },
-  A: { bg: 'bg-cyan-900/60',    text: 'text-[#7EB8D4]',  border: 'border-cyan-700',  glow: 'shadow-[0_0_12px_rgba(126,184,212,0.4)]' },
-  S: { bg: 'bg-purple-900/60',  text: 'text-[#7EB8D4]',border: 'border-purple-700',glow: 'shadow-[0_0_16px_rgba(126,184,212,0.5)]' },
+  A: { bg: 'bg-cyan-900/60',    text: 'text-[#00d4ff]',  border: 'border-cyan-700',  glow: 'shadow-[0_0_12px_rgba(0,212,255,0.4)]' },
+  S: { bg: 'bg-purple-900/60',  text: 'text-[#00d4ff]',border: 'border-purple-700',glow: 'shadow-[0_0_16px_rgba(0,212,255,0.5)]' },
 };
 
 const SLOT_ICONS: Record<string, React.ReactNode> = {
@@ -130,23 +130,23 @@ const SLOT_ICONS: Record<string, React.ReactNode> = {
   ROUTINE: <Coffee className="w-3 h-3 text-orange-400" />,
   BLOCKED: <GraduationCap className="w-3 h-3 text-gray-400" />,
   WORKOUT: <Dumbbell className="w-3 h-3 text-red-400" />,
-  QUEST: <Target className="w-3 h-3 text-[#7EB8D4]" />,
+  QUEST: <Target className="w-3 h-3 text-[#00d4ff]" />,
   MEAL: <Utensils className="w-3 h-3 text-green-400" />,
-  FREE: <Zap className="w-3 h-3 text-[#7EB8D4]" />,
+  FREE: <Zap className="w-3 h-3 text-[#00d4ff]" />,
 };
 
 const SLOT_COLORS: Record<string, string> = {
-  SLEEP: '#7EB8D4',
+  SLEEP: '#00d4ff',
   ROUTINE: '#fb923c',
   BLOCKED: '#6b7280',
   WORKOUT: '#f87171',
-  QUEST: '#7EB8D4',
+  QUEST: '#00d4ff',
   MEAL: '#4ade80',
-  FREE: '#9ACDE3',
+  FREE: '#33dfff',
 };
 
 const GOAL_RANK_COLORS: Record<string, string> = {
-  E: '#9ca3af', D: '#fb923c', C: '#facc15', B: '#4ade80', A: '#7EB8D4', S: '#9ACDE3',
+  E: '#9ca3af', D: '#fb923c', C: '#facc15', B: '#4ade80', A: '#00d4ff', S: '#33dfff',
   UNRANKED: '#6b7280',
 };
 
@@ -440,7 +440,7 @@ const ScheduleSlotRow: React.FC<{
       {/* Left column: time */}
       <div className="flex flex-col items-center w-14 flex-shrink-0">
         <div className={`text-[9px] font-mono font-bold text-right w-full pr-2 pb-0.5 ${
-          isCurrent ? 'text-[#7EB8D4]' : isPast ? 'text-gray-700' : 'text-gray-500'
+          isCurrent ? 'text-[#00d4ff]' : isPast ? 'text-gray-700' : 'text-gray-500'
         }`}>
           {formatTime12(slot.startTime).split(' ')[0]}
           <span className="text-[7px] ml-0.5">{formatTime12(slot.startTime).split(' ')[1]}</span>
@@ -471,7 +471,7 @@ const ScheduleSlotRow: React.FC<{
           <span className={`text-[10px] font-mono truncate ${isCurrent ? 'text-white font-bold' : isPast ? 'text-gray-600' : 'text-gray-400'}`}>
             {slot.label}
           </span>
-          {isCurrent && <span className="text-[7px] font-black text-[#7EB8D4] px-1 py-0.5 rounded bg-[#7EB8D4]/10 flex-shrink-0 uppercase tracking-wider ml-auto">Now</span>}
+          {isCurrent && <span className="text-[7px] font-black text-[#00d4ff] px-1 py-0.5 rounded bg-[#00d4ff]/10 flex-shrink-0 uppercase tracking-wider ml-auto">Now</span>}
           {slot.type === 'BLOCKED' && <span className="text-[8px] text-gray-700 font-mono ml-auto flex-shrink-0">until {formatTime12(slot.endTime)}</span>}
         </div>
       </div>
@@ -503,7 +503,7 @@ const FreeSlotRow: React.FC<{
       </div>
       <Circle className="w-2 h-2 text-gray-800 flex-shrink-0" />
       <div className="flex-1 flex items-center gap-1.5">
-        <Plus className="w-3 h-3 text-gray-700 group-hover:text-[#7EB8D4] transition-colors" />
+        <Plus className="w-3 h-3 text-gray-700 group-hover:text-[#00d4ff] transition-colors" />
         <span className="text-[10px] font-mono text-gray-700 group-hover:text-gray-400 transition-colors">
           Free · {durationMin}m available
         </span>
@@ -679,7 +679,7 @@ const RescheduleModal: React.FC<{
             disabled={!canSave}
             className="flex-1 py-2.5 rounded-xl text-[10px] font-bold text-black uppercase tracking-wider transition-opacity"
             style={{
-              background: !canSave ? '#374151' : 'linear-gradient(135deg, #7EB8D4, #7EB8D4)',
+              background: !canSave ? '#374151' : 'linear-gradient(135deg, #00d4ff, #00d4ff)',
               opacity: !canSave ? 0.4 : 1,
               color: !canSave ? '#6b7280' : '#000',
             }}
@@ -749,7 +749,7 @@ const QuestTimelineRow: React.FC<{
         {/* Dot */}
         <div className="relative z-10 flex-shrink-0">
           {isCompleted ? (
-            <div className="w-[14px] h-[14px] rounded-full flex items-center justify-center" style={{ background: '#7EB8D4' }}>
+            <div className="w-[14px] h-[14px] rounded-full flex items-center justify-center" style={{ background: '#00d4ff' }}>
               <Check className="w-2 h-2 text-black" strokeWidth={3} />
             </div>
           ) : isFailed ? (
@@ -757,15 +757,15 @@ const QuestTimelineRow: React.FC<{
               <X className="w-2 h-2 text-black" strokeWidth={3} />
             </div>
           ) : isOverdue ? (
-            <div className="w-[14px] h-[14px] rounded-full" style={{ background: '#7EB8D4', boxShadow: '0 0 6px #7EB8D480' }} />
+            <div className="w-[14px] h-[14px] rounded-full" style={{ background: '#00d4ff', boxShadow: '0 0 6px #00d4ff80' }} />
           ) : isTimeLocked ? (
             <div className="w-[14px] h-[14px] rounded-full" style={{ background: '#1a1a2e', border: '1.5px solid #374151' }} />
           ) : isCurrent ? (
             <motion.div className="w-[14px] h-[14px] rounded-full"
-              style={{ background: '#7EB8D4', boxShadow: '0 0 8px #7EB8D4' }}
+              style={{ background: '#00d4ff', boxShadow: '0 0 8px #00d4ff' }}
               animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 2, repeat: Infinity }} />
           ) : (
-            <div className="w-[14px] h-[14px] rounded-full border-2" style={{ borderColor: '#7EB8D430' }} />
+            <div className="w-[14px] h-[14px] rounded-full border-2" style={{ borderColor: '#00d4ff30' }} />
           )}
         </div>
         {/* Time label */}
@@ -773,16 +773,16 @@ const QuestTimelineRow: React.FC<{
           onClick={() => canReschedule && onReschedule(quest)}
           disabled={!canReschedule}
           className={`text-[11px] font-mono font-bold transition-colors ${
-            isCompleted ? 'text-[#7EB8D4]' : isFailed ? 'text-[#4a6670]' :
-            isOverdue ? 'text-[#7EB8D4]' :
+            isCompleted ? 'text-[#00d4ff]' : isFailed ? 'text-[#4a6670]' :
+            isOverdue ? 'text-[#00d4ff]' :
             isTimeLocked ? 'text-gray-700' :
-            isCurrent ? 'text-[#7EB8D4]' : isPast ? 'text-gray-700' : 'text-gray-500'
+            isCurrent ? 'text-[#00d4ff]' : isPast ? 'text-gray-700' : 'text-gray-500'
           } ${canReschedule ? 'cursor-pointer active:scale-95' : 'cursor-default'}`}
         >
           {formatTime12(scheduledStr)}
         </button>
-        {isCurrent && <span className="text-[7px] font-black text-[#7EB8D4] px-1.5 py-0.5 rounded-full bg-[#7EB8D4]/10 uppercase tracking-wider">Now</span>}
-        {isOverdue && <span className="text-[7px] font-black text-[#7EB8D4] px-1.5 py-0.5 rounded-full bg-[#7EB8D4]/10 uppercase tracking-wider">Overdue</span>}
+        {isCurrent && <span className="text-[7px] font-black text-[#00d4ff] px-1.5 py-0.5 rounded-full bg-[#00d4ff]/10 uppercase tracking-wider">Now</span>}
+        {isOverdue && <span className="text-[7px] font-black text-[#00d4ff] px-1.5 py-0.5 rounded-full bg-[#00d4ff]/10 uppercase tracking-wider">Overdue</span>}
         {isTimeLocked && <span className="text-[7px] font-bold text-gray-600 font-mono">{minutesUntilAvailable >= 60 ? `${Math.floor(minutesUntilAvailable / 60)}h ${minutesUntilAvailable % 60}m` : `${minutesUntilAvailable}m`}</span>}
       </div>
 
@@ -839,7 +839,7 @@ const ProgressRing: React.FC<{ completed: number; total: number }> = ({ complete
         {/* Progress arc */}
         <motion.circle cx={size / 2} cy={size / 2} r={radius}
           fill="none"
-          stroke={isComplete ? '#4ade80' : '#7EB8D4'}
+          stroke={isComplete ? '#4ade80' : '#00d4ff'}
           strokeWidth={strokeWidth}
           strokeLinecap="round"
           strokeDasharray={circumference}
@@ -1403,13 +1403,13 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
               exit={{ opacity: 0, y: 40 }}
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
               className="w-full max-w-lg md:max-w-xl rounded-t-2xl md:rounded-2xl overflow-hidden max-h-[94vh] md:max-h-[85vh] md:m-6 relative flex flex-col"
-              style={{ background: '#08081a', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 -8px 40px rgba(0,0,0,0.6), 0 0 80px rgba(126,184,212,0.03)' }}
+              style={{ background: '#08081a', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 -8px 40px rgba(0,0,0,0.6), 0 0 80px rgba(0,212,255,0.03)' }}
             >
               {/* Modal header */}
               <div className="px-5 pt-5 pb-3 flex justify-between items-center z-10 shrink-0">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(126,184,212,0.08)', border: '1px solid rgba(126,184,212,0.2)' }}>
-                    <ShieldCheck size={13} className="text-[#7EB8D4]" />
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(0,212,255,0.08)', border: '1px solid rgba(0,212,255,0.2)' }}>
+                    <ShieldCheck size={13} className="text-[#00d4ff]" />
                   </div>
                   <div>
                     <h3 className="text-xs font-black text-white font-mono tracking-[0.2em]">NEW QUEST</h3>
@@ -1454,7 +1454,7 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
                     autoFocus
                   />
                   <div className="flex justify-between mt-1.5 px-0.5">
-                    <span className="text-[9px] font-mono" style={{ color: title.trim().split(/\s+/).filter(w=>w.length>0).length >= 2 ? 'rgba(126,184,212,0.4)' : 'rgba(156,163,175,0.4)' }}>
+                    <span className="text-[9px] font-mono" style={{ color: title.trim().split(/\s+/).filter(w=>w.length>0).length >= 2 ? 'rgba(0,212,255,0.4)' : 'rgba(156,163,175,0.4)' }}>
                       {title.trim().split(/\s+/).filter(w=>w.length>0).length >= 2 ? 'Ready to analyze' : 'Min 2 words'}
                     </span>
                     <span className="text-[9px] text-gray-700 font-mono">{title.length}/120</span>
@@ -1477,11 +1477,11 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
                   onClick={handleForgeAnalyze}
                   disabled={isAnalyzing || !hasWords}
                   className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
-                    isAnalyzing ? 'text-[#7EB8D4] cursor-wait' : hasWords ? 'text-[#7EB8D4] hover:bg-[#7EB8D4]/8' : 'text-gray-600 cursor-not-allowed'
+                    isAnalyzing ? 'text-[#00d4ff] cursor-wait' : hasWords ? 'text-[#00d4ff] hover:bg-[#00d4ff]/8' : 'text-gray-600 cursor-not-allowed'
                   }`}
                   style={{
-                    background: isAnalyzing ? 'rgba(126,184,212,0.06)' : hasWords ? 'rgba(126,184,212,0.04)' : 'rgba(255,255,255,0.02)',
-                    border: isAnalyzing ? '1px solid rgba(126,184,212,0.3)' : hasWords ? '1px solid rgba(126,184,212,0.15)' : '1px solid rgba(255,255,255,0.05)',
+                    background: isAnalyzing ? 'rgba(0,212,255,0.06)' : hasWords ? 'rgba(0,212,255,0.04)' : 'rgba(255,255,255,0.02)',
+                    border: isAnalyzing ? '1px solid rgba(0,212,255,0.3)' : hasWords ? '1px solid rgba(0,212,255,0.15)' : '1px solid rgba(255,255,255,0.05)',
                   }}
                 >
                   {isAnalyzing ? <><Loader2 size={14} className="animate-spin" /> ANALYZING...</> : <><BrainCircuit size={14} /> ANALYZE QUEST <span className="text-[9px] opacity-60 ml-1">({15 + analysisCount * 5} MANA)</span></>}
@@ -1528,8 +1528,8 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
                           {(forgeResult.categories || [forgeResult.category]).map((cat) => {
                             const pillarConfig: Record<string, { icon: React.ReactNode; color: string; bg: string }> = {
                               strength:     { icon: <Dumbbell size={11} />, color: '#f97066', bg: 'rgba(249,112,102,0.1)' },
-                              intelligence: { icon: <Brain size={11} />,    color: '#7EB8D4', bg: 'rgba(129,140,248,0.1)' },
-                              discipline:   { icon: <Shield size={11} />,   color: '#9ACDE3', bg: 'rgba(192,132,252,0.1)' },
+                              intelligence: { icon: <Brain size={11} />,    color: '#00d4ff', bg: 'rgba(129,140,248,0.1)' },
+                              discipline:   { icon: <Shield size={11} />,   color: '#33dfff', bg: 'rgba(192,132,252,0.1)' },
                               social:       { icon: <Users size={11} />,    color: '#fbbf24', bg: 'rgba(251,191,36,0.1)' },
                             };
                             const cfg = pillarConfig[cat];
@@ -1556,10 +1556,10 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
                       className="space-y-3"
                     >
                       <div className="flex items-center gap-2">
-                        <Clock size={12} className={scheduleReady ? 'text-[#7EB8D4]' : 'text-gray-500'} />
+                        <Clock size={12} className={scheduleReady ? 'text-[#00d4ff]' : 'text-gray-500'} />
                         <span className="text-[10px] font-black uppercase tracking-widest font-mono text-gray-400">Schedule</span>
                         {!scheduleReady && <span className="text-[9px] text-amber-500/70 font-mono ml-auto">REQUIRED</span>}
-                        {scheduleReady && autoScheduled && <span className="text-[9px] text-[#7EB8D4]/60 font-mono ml-auto">AUTO-DETECTED</span>}
+                        {scheduleReady && autoScheduled && <span className="text-[9px] text-[#00d4ff]/60 font-mono ml-auto">AUTO-DETECTED</span>}
                       </div>
                       <div className="flex gap-2">
                         <input
@@ -1577,13 +1577,13 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
                       </div>
                       <button onClick={() => setIsDaily(!isDaily)}
                         className="w-full flex items-center gap-3 p-3 rounded-xl transition-all"
-                        style={{ background: isDaily ? 'rgba(126,184,212,0.04)' : 'rgba(255,255,255,0.02)', border: isDaily ? '1px solid rgba(126,184,212,0.15)' : '1px solid rgba(255,255,255,0.05)' }}
+                        style={{ background: isDaily ? 'rgba(0,212,255,0.04)' : 'rgba(255,255,255,0.02)', border: isDaily ? '1px solid rgba(0,212,255,0.15)' : '1px solid rgba(255,255,255,0.05)' }}
                       >
-                        <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-colors ${isDaily ? 'bg-[#7EB8D4] border-[#7EB8D4]' : 'bg-transparent border-gray-700'}`}>
+                        <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-colors ${isDaily ? 'bg-[#00d4ff] border-[#00d4ff]' : 'bg-transparent border-gray-700'}`}>
                           {isDaily && <Repeat size={9} className="text-black" />}
                         </div>
                         <div className="text-left">
-                          <p className={`text-[10px] font-black uppercase tracking-widest font-mono ${isDaily ? 'text-[#7EB8D4]' : 'text-gray-500'}`}>Repeat Daily</p>
+                          <p className={`text-[10px] font-black uppercase tracking-widest font-mono ${isDaily ? 'text-[#00d4ff]' : 'text-gray-500'}`}>Repeat Daily</p>
                           <p className="text-[9px] text-gray-600 font-mono">{isDaily ? 'Resets at midnight every day' : 'One-time quest'}</p>
                         </div>
                       </button>
@@ -1605,7 +1605,7 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
                   style={{
                     background: (!forgeResult || !scheduleReady) ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg, #00d4ff 0%, #0099cc 100%)',
                     color: (!forgeResult || !scheduleReady) ? '#4b5563' : '#000',
-                    boxShadow: (!forgeResult || !scheduleReady) ? 'none' : '0 0 20px rgba(126,184,212,0.2)',
+                    boxShadow: (!forgeResult || !scheduleReady) ? 'none' : '0 0 20px rgba(0,212,255,0.2)',
                   }}
                 >
                   CONFIRM PROTOCOL

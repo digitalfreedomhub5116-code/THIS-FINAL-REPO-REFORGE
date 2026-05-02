@@ -26,7 +26,7 @@ const RANK_LADDER: { rank: Exclude<Rank, 'UNRANKED'>; minLevel: number; color: s
   { rank: 'E', minLevel: 1,  color: '#9ca3af' },
   { rank: 'D', minLevel: 11, color: '#4ade80' },
   { rank: 'C', minLevel: 27, color: '#60a5fa' },
-  { rank: 'B', minLevel: 39, color: '#9ACDE3' },
+  { rank: 'B', minLevel: 39, color: '#33dfff' },
   { rank: 'A', minLevel: 55, color: '#facc15' },
   { rank: 'S', minLevel: 80, color: '#f87171' },
 ];
@@ -52,7 +52,7 @@ interface YouViewProps {
 function getCyanShade(value: number, max: number): string {
   const pct = Math.min(1, value / max);
   if (pct < 0.25) return '#5a9ab0';       // dull cyan
-  if (pct < 0.5) return '#7EB8D4';        // medium cyan
+  if (pct < 0.5) return '#00d4ff';        // medium cyan
   if (pct < 0.75) return '#9ad0e8';       // bright cyan
   return '#bce8fa';                        // vivid cyan
 }
@@ -73,7 +73,7 @@ const StatCircle: React.FC<{
     >
       <div className="relative" style={{ width: 52, height: 52 }}>
         <svg className="w-full h-full -rotate-90" viewBox="0 0 52 52">
-          <circle cx="26" cy="26" r={r} fill="none" stroke="rgba(126,184,212,0.1)" strokeWidth="3.5" />
+          <circle cx="26" cy="26" r={r} fill="none" stroke="rgba(0,212,255,0.1)" strokeWidth="3.5" />
           <motion.circle
             cx="26" cy="26" r={r} fill="none" stroke={color} strokeWidth="3.5"
             strokeLinecap="round" strokeDasharray={circ} initial={{ strokeDashoffset: circ }}
@@ -158,7 +158,7 @@ const ProfileHero: React.FC<{
       <div className="flex flex-col items-center mt-4">
         <motion.div
           className="font-black leading-none"
-          style={{ fontSize: 48, color: '#7EB8D4', textShadow: '0 0 30px rgba(126,184,212,0.3)', letterSpacing: '-0.03em' }}
+          style={{ fontSize: 48, color: '#00d4ff', textShadow: '0 0 30px rgba(0,212,255,0.3)', letterSpacing: '-0.03em' }}
           initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3, duration: 0.5 }}
         >
           {forgeScore}
@@ -169,25 +169,25 @@ const ProfileHero: React.FC<{
       {/* ── Potential Distribution — Liquid Glass Panel ── */}
       <div className="px-4 mt-5">
         <div style={{
-          background: 'linear-gradient(135deg, rgba(126,184,212,0.06) 0%, rgba(10,10,20,0.7) 50%, rgba(126,184,212,0.04) 100%)',
-          border: '1px solid rgba(126,184,212,0.12)',
+          background: 'linear-gradient(135deg, rgba(0,212,255,0.06) 0%, rgba(10,10,20,0.7) 50%, rgba(0,212,255,0.04) 100%)',
+          border: '1px solid rgba(0,212,255,0.12)',
           borderRadius: 16,
           padding: '20px 16px 14px',
           backdropFilter: 'blur(16px)',
           WebkitBackdropFilter: 'blur(16px)',
-          boxShadow: 'inset 0 1px 0 rgba(126,184,212,0.08), 0 8px 32px rgba(0,0,0,0.3)',
+          boxShadow: 'inset 0 1px 0 rgba(0,212,255,0.08), 0 8px 32px rgba(0,0,0,0.3)',
           position: 'relative',
           overflow: 'hidden',
         }}>
           {/* Glass shine overlay */}
           <div style={{
             position: 'absolute', top: 0, left: 0, right: 0, height: '1px',
-            background: 'linear-gradient(90deg, transparent 10%, rgba(126,184,212,0.2) 50%, transparent 90%)',
+            background: 'linear-gradient(90deg, transparent 10%, rgba(0,212,255,0.2) 50%, transparent 90%)',
           }} />
           <div className="text-[8px] font-mono font-bold tracking-[0.2em] text-gray-500 text-center mb-3">
             POTENTIAL DISTRIBUTION
           </div>
-          <ForgeScoreCurve score={forgeScore} primary="#7EB8D4" />
+          <ForgeScoreCurve score={forgeScore} primary="#00d4ff" />
         </div>
       </div>
 
@@ -203,7 +203,7 @@ const ProfileHero: React.FC<{
 };
 
 // ─── Bell Curve SVG (liquid glass style) ─────────────────────────────
-function ForgeScoreCurve({ score, primary = '#7EB8D4' }: { score: number; primary?: string }) {
+function ForgeScoreCurve({ score, primary = '#00d4ff' }: { score: number; primary?: string }) {
   const W = 300, H = 100, pad = 20, bot = 20;
   const curveH = H - bot;
   const pts: string[] = [];
@@ -258,7 +258,7 @@ const ActionTile: React.FC<{
   accent?: string;
   isSoon?: boolean;
   onClick: () => void;
-}> = ({ icon, label, badge, accent = '#7EB8D4', isSoon, onClick }) => (
+}> = ({ icon, label, badge, accent = '#00d4ff', isSoon, onClick }) => (
   <button
     onClick={onClick}
     className="group relative flex flex-col items-center justify-center gap-1.5 py-3 active:scale-[0.92] transition-all duration-200"
@@ -318,18 +318,18 @@ const JourneyLog: React.FC<{ player: PlayerData }> = ({ player }) => {
     <div className="w-full rounded-2xl p-4 bg-white/[0.03] border border-white/[0.06]">
       <div className="flex items-center justify-between mb-3">
         <div className="text-[11px] font-mono font-bold text-gray-300 tracking-widest">JOURNEY LOG</div>
-        <button className="text-[10px] font-mono text-[#7EB8D4] hover:text-white transition flex items-center gap-0.5">
+        <button className="text-[10px] font-mono text-[#00d4ff] hover:text-white transition flex items-center gap-0.5">
           View All <ChevronRight size={11} />
         </button>
       </div>
       <div className="grid grid-cols-7 gap-1.5">
         {days.map((d, i) => (
           <div key={i} className="flex flex-col items-center gap-1">
-            <div className={`text-[9px] font-mono tracking-widest ${d.isToday ? 'text-[#7EB8D4]' : 'text-gray-600'}`}>{d.label}</div>
+            <div className={`text-[9px] font-mono tracking-widest ${d.isToday ? 'text-[#00d4ff]' : 'text-gray-600'}`}>{d.label}</div>
             <div
               className={`w-full aspect-square rounded-lg flex items-center justify-center text-[11px] font-mono font-bold border transition ${
                 d.isToday
-                  ? 'border-[#7EB8D4] text-[#7EB8D4] bg-[#7EB8D4]/10'
+                  ? 'border-[#00d4ff] text-[#00d4ff] bg-[#00d4ff]/10'
                   : d.hasActivity
                     ? 'border-white/15 text-white bg-white/[0.05]'
                     : 'border-white/5 text-gray-600 bg-transparent'
@@ -339,7 +339,7 @@ const JourneyLog: React.FC<{ player: PlayerData }> = ({ player }) => {
             </div>
             <div className="h-1.5 flex items-center">
               {d.hasActivity ? (
-                <div className="w-1.5 h-1.5 rounded-full" style={{ background: d.isToday ? '#7EB8D4' : '#4ade80' }} />
+                <div className="w-1.5 h-1.5 rounded-full" style={{ background: d.isToday ? '#00d4ff' : '#4ade80' }} />
               ) : (
                 <div className="w-1.5 h-1.5 rounded-full bg-transparent" />
               )}
@@ -369,7 +369,7 @@ const RankLadderModal: React.FC<{ player: PlayerData; onClose: () => void; onTes
     >
       <div className="flex items-center justify-between">
         <div>
-          <div className="text-xs font-mono text-[#7EB8D4] tracking-widest">RANK PROGRESSION</div>
+          <div className="text-xs font-mono text-[#00d4ff] tracking-widest">RANK PROGRESSION</div>
           <div className="text-[10px] text-gray-500 font-mono">
             {onTestSetRank ? '⚠ TAP TO SET (TEST)' : `Level ${player.level} · Current Rank: ${player.rank}`}
           </div>
@@ -386,7 +386,7 @@ const RankLadderModal: React.FC<{ player: PlayerData; onClose: () => void; onTes
               key={r.rank}
               className={`flex items-center gap-3 p-3 rounded-xl border transition ${
                 isCurrent
-                  ? 'border-[#7EB8D4] bg-[#7EB8D4]/5'
+                  ? 'border-[#00d4ff] bg-[#00d4ff]/5'
                   : reached
                     ? 'border-white/10 bg-white/[0.03]'
                     : 'border-white/5 bg-transparent opacity-50'
@@ -402,7 +402,7 @@ const RankLadderModal: React.FC<{ player: PlayerData; onClose: () => void; onTes
                 </div>
               </div>
               {isCurrent && (
-                <div className="text-[9px] font-mono text-[#7EB8D4] font-bold tracking-widest px-2 py-1 rounded bg-[#7EB8D4]/10 border border-[#7EB8D4]/30">
+                <div className="text-[9px] font-mono text-[#00d4ff] font-bold tracking-widest px-2 py-1 rounded bg-[#00d4ff]/10 border border-[#00d4ff]/30">
                   YOU
                 </div>
               )}
@@ -436,7 +436,7 @@ const ProfileDrawer: React.FC<{
     className="fixed inset-0 z-[700] bg-[#05050a] overflow-y-auto"
   >
     <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-[#05050a]/95 backdrop-blur-md border-b border-white/5">
-      <div className="text-xs font-mono font-bold text-[#7EB8D4] tracking-widest">ACCOUNT & CONFIG</div>
+      <div className="text-xs font-mono font-bold text-[#00d4ff] tracking-widest">ACCOUNT & CONFIG</div>
       <button onClick={onClose} className="p-1.5 rounded-full hover:bg-white/5"><X size={18} className="text-gray-400" /></button>
     </div>
     <div className="px-4 py-6">
@@ -468,7 +468,7 @@ const ComingSoonDrawer: React.FC<{ title: string; onClose: () => void }> = ({ ti
       onClick={e => e.stopPropagation()}
       className="max-w-sm w-full bg-[#0a0a14] border border-white/10 rounded-2xl p-6 text-center"
     >
-      <div className="text-xs font-mono text-[#7EB8D4] tracking-widest mb-2">{title}</div>
+      <div className="text-xs font-mono text-[#00d4ff] tracking-widest mb-2">{title}</div>
       <div className="text-sm text-gray-300 font-mono mb-4">Coming soon in the full release.</div>
       <button onClick={onClose} className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-[11px] font-mono tracking-widest text-gray-300 hover:bg-white/10">
         CLOSE
@@ -482,8 +482,8 @@ const STAT_CONFIG: { key: keyof CoreStats; label: string; fullLabel: string; ico
   { key: 'strength', label: 'STR', fullLabel: 'STRENGTH', icon: <Dumbbell size={14} />, color: 'text-red-400', barColor: 'bg-red-400', accentRgb: '249,112,102' },
   { key: 'intelligence', label: 'INT', fullLabel: 'INTELLIGENCE', icon: <Brain size={14} />, color: 'text-indigo-400', barColor: 'bg-indigo-400', accentRgb: '129,140,248' },
   { key: 'social', label: 'SOC', fullLabel: 'SOCIAL', icon: <Users size={14} />, color: 'text-amber-400', barColor: 'bg-amber-400', accentRgb: '251,191,36' },
-  { key: 'discipline', label: 'DIS', fullLabel: 'DISCIPLINE', icon: <Shield size={14} />, color: 'text-[#7EB8D4]', barColor: 'bg-[#7EB8D4]', accentRgb: '192,132,252' },
-  { key: 'focus', label: 'FOC', fullLabel: 'FOCUS', icon: <Target size={14} />, color: 'text-[#7EB8D4]', barColor: 'bg-[#7EB8D4]', accentRgb: '6,182,212' },
+  { key: 'discipline', label: 'DIS', fullLabel: 'DISCIPLINE', icon: <Shield size={14} />, color: 'text-[#00d4ff]', barColor: 'bg-[#00d4ff]', accentRgb: '192,132,252' },
+  { key: 'focus', label: 'FOC', fullLabel: 'FOCUS', icon: <Target size={14} />, color: 'text-[#00d4ff]', barColor: 'bg-[#00d4ff]', accentRgb: '6,182,212' },
   { key: 'willpower', label: 'WIL', fullLabel: 'WILLPOWER', icon: <Zap size={14} />, color: 'text-pink-400', barColor: 'bg-pink-400', accentRgb: '236,72,153' },
 ];
 
@@ -507,7 +507,7 @@ const StatsDrawer: React.FC<{ player: PlayerData; history?: import('../types').H
       {/* Header */}
       <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-[#05050a]/95 backdrop-blur-md border-b border-white/5">
         <div>
-          <div className="text-xs font-mono font-bold text-[#7EB8D4] tracking-widest">ADVANCED STATS</div>
+          <div className="text-xs font-mono font-bold text-[#00d4ff] tracking-widest">ADVANCED STATS</div>
           <div className="text-[10px] text-gray-500 font-mono">Total: {totalPoints} pts across 6 attributes</div>
         </div>
         <button onClick={onClose} className="p-1.5 rounded-full hover:bg-white/5">
@@ -657,20 +657,20 @@ const YouView: React.FC<YouViewProps> = ({
         <ActionTile
           icon={<Package size={22} />}
           label="Inventory"
-          accent="#9ACDE3"
+          accent="#33dfff"
           isSoon
           onClick={() => setComingSoon('INVENTORY')}
         />
         <ActionTile
           icon={<Swords size={22} />}
           label="Rank"
-          accent="#7EB8D4"
+          accent="#00d4ff"
           onClick={() => setShowRankProgression(true)}
         />
         <ActionTile
           icon={<BarChart3 size={22} />}
           label="Stats"
-          accent="#7EB8D4"
+          accent="#00d4ff"
           onClick={() => setShowStats(true)}
         />
         <ActionTile
@@ -682,7 +682,7 @@ const YouView: React.FC<YouViewProps> = ({
         <ActionTile
           icon={<MessageCircle size={22} />}
           label="Dusk"
-          accent="#7EB8D4"
+          accent="#00d4ff"
           badge={duskBadge || undefined}
           onClick={() => onOpenDusk?.()}
         />
@@ -716,7 +716,7 @@ const YouView: React.FC<YouViewProps> = ({
             className="fixed inset-0 z-[700] bg-[#05050a] overflow-y-auto"
           >
             <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-[#05050a]/95 backdrop-blur-md border-b border-white/5">
-              <div className="text-xs font-mono font-bold text-[#7EB8D4] tracking-widest">RANK PROGRESSION</div>
+              <div className="text-xs font-mono font-bold text-[#00d4ff] tracking-widest">RANK PROGRESSION</div>
               <button onClick={() => setShowRankProgression(false)} className="p-1.5 rounded-full hover:bg-white/5">
                 <X size={18} className="text-gray-400" />
               </button>

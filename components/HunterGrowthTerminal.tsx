@@ -26,10 +26,10 @@ const PILLAR_CONFIG: {
   rgb: string;
 }[] = [
   { key: 'strength',     label: 'STRENGTH',     shortLabel: 'STR', icon: <Dumbbell size={12} />, color: '#f97066', rgb: '249,112,102' },
-  { key: 'intelligence', label: 'INTELLIGENCE', shortLabel: 'INT', icon: <Brain size={12} />,    color: '#7EB8D4', rgb: '129,140,248' },
+  { key: 'intelligence', label: 'INTELLIGENCE', shortLabel: 'INT', icon: <Brain size={12} />,    color: '#00d4ff', rgb: '129,140,248' },
   { key: 'social',       label: 'SOCIAL',       shortLabel: 'SOC', icon: <Users size={12} />,    color: '#fbbf24', rgb: '251,191,36' },
-  { key: 'discipline',   label: 'DISCIPLINE',   shortLabel: 'DIS', icon: <Shield size={12} />,   color: '#9ACDE3', rgb: '192,132,252' },
-  { key: 'focus',        label: 'FOCUS',        shortLabel: 'FOC', icon: <Target size={12} />,   color: '#7EB8D4', rgb: '6,182,212' },
+  { key: 'discipline',   label: 'DISCIPLINE',   shortLabel: 'DIS', icon: <Shield size={12} />,   color: '#33dfff', rgb: '192,132,252' },
+  { key: 'focus',        label: 'FOCUS',        shortLabel: 'FOC', icon: <Target size={12} />,   color: '#00d4ff', rgb: '6,182,212' },
   { key: 'willpower',    label: 'WILLPOWER',    shortLabel: 'WIL', icon: <Zap size={12} />,      color: '#f472b6', rgb: '236,72,153' },
 ];
 
@@ -65,10 +65,10 @@ const getWeekHeatmap = (history: HistoryEntry[], todayCompletion: number, todayX
 
 const getHeatColor = (completion: number, isFuture: boolean, isToday: boolean) => {
   if (isFuture) return { bg: 'rgba(255,255,255,0.02)', border: 'rgba(255,255,255,0.04)', glow: 'none' };
-  if (isToday && completion === 0) return { bg: 'rgba(126,184,212,0.08)', border: 'rgba(126,184,212,0.3)', glow: 'none' };
+  if (isToday && completion === 0) return { bg: 'rgba(0,212,255,0.08)', border: 'rgba(0,212,255,0.3)', glow: 'none' };
   if (completion === 0) return { bg: 'rgba(255,255,255,0.03)', border: 'rgba(255,255,255,0.06)', glow: 'none' };
-  if (completion <= 2) return { bg: 'rgba(126,184,212,0.15)', border: 'rgba(126,184,212,0.3)', glow: '0 0 8px rgba(126,184,212,0.15)' };
-  if (completion <= 4) return { bg: 'rgba(126,184,212,0.3)', border: 'rgba(126,184,212,0.5)', glow: '0 0 12px rgba(126,184,212,0.25)' };
+  if (completion <= 2) return { bg: 'rgba(0,212,255,0.15)', border: 'rgba(0,212,255,0.3)', glow: '0 0 8px rgba(0,212,255,0.15)' };
+  if (completion <= 4) return { bg: 'rgba(0,212,255,0.3)', border: 'rgba(0,212,255,0.5)', glow: '0 0 12px rgba(0,212,255,0.25)' };
   return { bg: 'rgba(234,179,8,0.3)', border: 'rgba(234,179,8,0.6)', glow: '0 0 14px rgba(234,179,8,0.3)' };
 };
 
@@ -98,8 +98,8 @@ const XpSparkline: React.FC<{ data: number[] }> = ({ data }) => {
     <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-full overflow-visible">
       <defs>
         <linearGradient id="spark-area" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#7EB8D4" stopOpacity={0.4} />
-          <stop offset="100%" stopColor="#7EB8D4" stopOpacity={0} />
+          <stop offset="0%" stopColor="#00d4ff" stopOpacity={0.4} />
+          <stop offset="100%" stopColor="#00d4ff" stopOpacity={0} />
         </linearGradient>
         <filter id="glow">
           <feGaussianBlur stdDeviation="1.5" result="coloredBlur"/>
@@ -121,7 +121,7 @@ const XpSparkline: React.FC<{ data: number[] }> = ({ data }) => {
       <motion.path
         d={pathD}
         fill="none"
-        stroke="#7EB8D4"
+        stroke="#00d4ff"
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -138,7 +138,7 @@ const XpSparkline: React.FC<{ data: number[] }> = ({ data }) => {
           cx={p.x}
           cy={p.y}
           r={i === points.length - 1 ? "2.5" : "1.5"}
-          fill={i === points.length - 1 ? "#fff" : "#7EB8D4"}
+          fill={i === points.length - 1 ? "#fff" : "#00d4ff"}
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: i === points.length - 1 ? 1 : 0.5 }}
           transition={{ delay: 1 + (i * 0.1) }}
@@ -151,7 +151,7 @@ const XpSparkline: React.FC<{ data: number[] }> = ({ data }) => {
         cy={lastPt.y}
         r="4"
         fill="none"
-        stroke="#7EB8D4"
+        stroke="#00d4ff"
         strokeWidth="1"
         initial={{ scale: 0.5, opacity: 1 }}
         animate={{ scale: 2.5, opacity: 0 }}
@@ -213,8 +213,8 @@ const HunterGrowthTerminal: React.FC<HunterGrowthTerminalProps> = ({
       {/* Header */}
       <div className="flex items-center justify-between mb-4 px-1 relative z-10">
         <div className="flex items-center gap-2">
-          <div className="w-1.5 h-1.5 bg-[#7EB8D4] rounded-full animate-pulse shadow-[0_0_8px_#7EB8D4]" />
-          <span className="text-[#7EB8D4] font-mono text-[10px] font-black tracking-widest text-shadow-neon">GROWTH TERMINAL</span>
+          <div className="w-1.5 h-1.5 bg-[#00d4ff] rounded-full animate-pulse shadow-[0_0_8px_#00d4ff]" />
+          <span className="text-[#00d4ff] font-mono text-[10px] font-black tracking-widest text-shadow-neon">GROWTH TERMINAL</span>
         </div>
         {streak > 0 && (
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-yellow-500/10 border border-yellow-500/30 backdrop-blur-md shadow-[0_0_15px_rgba(234,179,8,0.15)]">
@@ -239,13 +239,13 @@ const HunterGrowthTerminal: React.FC<HunterGrowthTerminalProps> = ({
         }}
       >
         {/* Glow orb behind container */}
-        <div className="absolute top-0 left-1/4 w-32 h-32 bg-[#7EB8D4]/10 rounded-full blur-[40px] pointer-events-none" />
+        <div className="absolute top-0 left-1/4 w-32 h-32 bg-[#00d4ff]/10 rounded-full blur-[40px] pointer-events-none" />
 
         {/* ── SECTION 1: Weekly Heatmap ── */}
         <div className="px-4 pt-4 pb-3 relative z-10">
           <div className="flex items-center justify-between mb-3">
             <span className="text-[10px] font-mono font-bold tracking-[0.2em] text-gray-400 uppercase">This Week</span>
-            <span className="text-[10px] font-mono text-[#7EB8D4]">
+            <span className="text-[10px] font-mono text-[#00d4ff]">
               {activeDays}/{totalPastDays} <span className="text-gray-500">active</span>
             </span>
           </div>
@@ -265,7 +265,7 @@ const HunterGrowthTerminal: React.FC<HunterGrowthTerminalProps> = ({
                   className={`flex flex-col items-center gap-1 ${!day.isFuture ? 'cursor-pointer hover:scale-105 transition-transform' : 'cursor-not-allowed opacity-50'}`}
                 >
                   <div
-                    className={`w-full aspect-square rounded-lg flex items-center justify-center relative transition-all duration-300 ${day.isToday ? 'ring-1 ring-[#7EB8D4]/50' : ''} ${isSelected ? 'ring-2 ring-white/40 shadow-[0_0_20px_rgba(255,255,255,0.2)]' : ''}`}
+                    className={`w-full aspect-square rounded-lg flex items-center justify-center relative transition-all duration-300 ${day.isToday ? 'ring-1 ring-[#00d4ff]/50' : ''} ${isSelected ? 'ring-2 ring-white/40 shadow-[0_0_20px_rgba(255,255,255,0.2)]' : ''}`}
                     style={{ 
                       background: colors.bg, 
                       border: `1px solid ${isSelected ? 'rgba(255,255,255,0.4)' : colors.border}`, 
@@ -277,10 +277,10 @@ const HunterGrowthTerminal: React.FC<HunterGrowthTerminalProps> = ({
                       <span className="text-[11px] font-mono font-black text-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">{day.questCompletion}</span>
                     )}
                     {day.isToday && day.questCompletion === 0 && (
-                      <div className="w-1.5 h-1.5 rounded-full bg-[#7EB8D4] shadow-[0_0_8px_#7EB8D4]" />
+                      <div className="w-1.5 h-1.5 rounded-full bg-[#00d4ff] shadow-[0_0_8px_#00d4ff]" />
                     )}
                   </div>
-                  <span className={`text-[8px] font-mono font-bold tracking-wider ${day.isToday ? 'text-[#7EB8D4]' : isSelected ? 'text-white' : 'text-gray-500'}`}>
+                  <span className={`text-[8px] font-mono font-bold tracking-wider ${day.isToday ? 'text-[#00d4ff]' : isSelected ? 'text-white' : 'text-gray-500'}`}>
                     {DAY_LABELS[i]}
                   </span>
                 </motion.button>
@@ -308,7 +308,7 @@ const HunterGrowthTerminal: React.FC<HunterGrowthTerminalProps> = ({
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-[10px] font-mono font-bold text-[#7EB8D4]">
+                      <div className="text-[10px] font-mono font-bold text-[#00d4ff]">
                         +{Math.floor(selectedDayData.xp)} XP
                       </div>
                     </div>
@@ -406,7 +406,7 @@ const HunterGrowthTerminal: React.FC<HunterGrowthTerminalProps> = ({
           {/* XP info */}
           <div className="flex-1 flex justify-between items-center bg-black/20 rounded-lg border border-white/5 p-2 backdrop-blur-sm">
             <div>
-              <div className="flex items-center gap-1.5 text-white font-mono text-[10px] font-black drop-shadow-[0_0_8px_rgba(126,184,212,0.5)]">
+              <div className="flex items-center gap-1.5 text-white font-mono text-[10px] font-black drop-shadow-[0_0_8px_rgba(0,212,255,0.5)]">
                 <Activity size={11} className="text-system-neon" /> TODAY
               </div>
               <div className="text-[10px] text-gray-400 font-mono mt-0.5 font-bold">
@@ -428,7 +428,7 @@ const HunterGrowthTerminal: React.FC<HunterGrowthTerminalProps> = ({
         </div>
 
         {/* Bottom liquid accent */}
-        <div className="h-[3px] relative z-20" style={{ background: 'linear-gradient(90deg, #f97066, #7EB8D4, #fbbf24, #9ACDE3, #7EB8D4, #f472b6)', boxShadow: '0 -2px 10px rgba(192,132,252,0.4)' }} />
+        <div className="h-[3px] relative z-20" style={{ background: 'linear-gradient(90deg, #f97066, #00d4ff, #fbbf24, #33dfff, #00d4ff, #f472b6)', boxShadow: '0 -2px 10px rgba(192,132,252,0.4)' }} />
       </div>
 
       {/* Level badge (Floating glass element) */}
@@ -446,7 +446,7 @@ const HunterGrowthTerminal: React.FC<HunterGrowthTerminalProps> = ({
             borderRight: '1px solid rgba(255,255,255,0.05)',
           }}
         >
-          <span className="text-[#7EB8D4] font-mono text-[10px] font-black tracking-widest drop-shadow-[0_0_5px_rgba(126,184,212,0.5)]">
+          <span className="text-[#00d4ff] font-mono text-[10px] font-black tracking-widest drop-shadow-[0_0_5px_rgba(0,212,255,0.5)]">
             LEVEL {playerLevel}
           </span>
         </motion.div>

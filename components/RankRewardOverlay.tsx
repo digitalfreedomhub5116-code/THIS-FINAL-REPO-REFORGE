@@ -23,7 +23,7 @@ const RANK_CONFIG: Record<number, { emoji: string; title: string; color: string;
 };
 
 // Fallback configs for participation tiers (ranks 6+)
-const HUNTER_CONFIG = { emoji: '⚔️', title: 'HUNTER CLASS', color: '#7EB8D4', glow: 'rgba(126,184,212,0.4)', bgGrad: 'radial-gradient(ellipse at center, rgba(126,184,212,0.06) 0%, rgba(10,10,26,0.98) 70%)' };
+const HUNTER_CONFIG = { emoji: '⚔️', title: 'HUNTER CLASS', color: '#00d4ff', glow: 'rgba(0,212,255,0.4)', bgGrad: 'radial-gradient(ellipse at center, rgba(0,212,255,0.06) 0%, rgba(10,10,26,0.98) 70%)' };
 const PARTICIPANT_CONFIG = { emoji: '🛡️', title: 'ACTIVE HUNTER', color: 'rgba(255,255,255,0.6)', glow: 'rgba(255,255,255,0.2)', bgGrad: 'radial-gradient(ellipse at center, rgba(255,255,255,0.03) 0%, rgba(10,10,26,0.98) 70%)' };
 
 function getRankConfig(rank: number) {

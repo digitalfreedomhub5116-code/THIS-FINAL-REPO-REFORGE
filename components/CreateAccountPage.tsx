@@ -513,9 +513,9 @@ const CreateAccountPage: React.FC<CreateAccountPageProps> = ({ onLogin, onNaviga
                 animate={{ scale: 1 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.1 }}
                 className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center"
-                style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.15), rgba(126,184,212,0.15))', border: '1px solid rgba(99,102,241,0.25)' }}
+                style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.15), rgba(0,212,255,0.15))', border: '1px solid rgba(99,102,241,0.25)' }}
               >
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#9ACDE3" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#33dfff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="2" y="4" width="20" height="16" rx="2" />
                   <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
                 </svg>
@@ -524,7 +524,7 @@ const CreateAccountPage: React.FC<CreateAccountPageProps> = ({ onLogin, onNaviga
               <p className="text-gray-400 text-sm leading-relaxed">
                 We sent a 6-digit code to
               </p>
-              <p className="text-[#7EB8D4] text-sm font-bold mt-1">{otpEmail}</p>
+              <p className="text-[#00d4ff] text-sm font-bold mt-1">{otpEmail}</p>
             </div>
 
             {/* 6-digit OTP Input */}
@@ -551,7 +551,7 @@ const CreateAccountPage: React.FC<CreateAccountPageProps> = ({ onLogin, onNaviga
                       : otpError
                         ? '2px solid rgba(239,68,68,0.4)'
                         : '1px solid rgba(255,255,255,0.08)',
-                    caretColor: '#9ACDE3',
+                    caretColor: '#33dfff',
                     boxShadow: digit ? '0 0 12px rgba(99,102,241,0.15)' : 'none',
                   }}
                 />
@@ -576,12 +576,12 @@ const CreateAccountPage: React.FC<CreateAccountPageProps> = ({ onLogin, onNaviga
             <div className="text-center mb-6">
               {resendCooldown > 0 ? (
                 <p className="text-gray-500 text-xs">
-                  Resend code in <span className="text-[#7EB8D4] font-bold">{resendCooldown}s</span>
+                  Resend code in <span className="text-[#00d4ff] font-bold">{resendCooldown}s</span>
                 </p>
               ) : (
                 <button
                   onClick={handleResendOtp}
-                  className="text-[#7EB8D4] hover:text-[#9ACDE3] text-xs font-bold transition-colors"
+                  className="text-[#00d4ff] hover:text-[#33dfff] text-xs font-bold transition-colors"
                 >
                   Didn't receive the code? Resend
                 </button>

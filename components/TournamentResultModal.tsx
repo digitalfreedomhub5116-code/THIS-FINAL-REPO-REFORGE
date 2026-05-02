@@ -32,7 +32,7 @@ const TournamentResultModal: React.FC<TournamentResultModalProps> = ({ reward, o
             initial={{ scale: 0.8, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.8, opacity: 0, y: -20 }}
-            className={`relative z-10 w-full max-w-sm bg-[#0a0a0a] border-2 rounded-2xl overflow-hidden shadow-2xl flex flex-col text-center ${isWinner ? 'border-yellow-500 shadow-[0_0_50px_rgba(234,179,8,0.3)]' : 'border-system-neon shadow-[0_0_30px_rgba(126,184,212,0.2)]'}`}
+            className={`relative z-10 w-full max-w-sm bg-[#0a0a0a] border-2 rounded-2xl overflow-hidden shadow-2xl flex flex-col text-center ${isWinner ? 'border-yellow-500 shadow-[0_0_50px_rgba(234,179,8,0.3)]' : 'border-system-neon shadow-[0_0_30px_rgba(0,212,255,0.2)]'}`}
         >
             {/* Header Art */}
             <div className={`h-24 flex items-center justify-center relative overflow-hidden ${isWinner ? 'bg-yellow-900/20' : 'bg-gray-900/50'}`}>
@@ -45,7 +45,7 @@ const TournamentResultModal: React.FC<TournamentResultModalProps> = ({ reward, o
                     {isWinner ? (
                         <Trophy size={64} className="text-yellow-500 drop-shadow-[0_0_15px_rgba(234,179,8,0.8)]" />
                     ) : isTopThree ? (
-                        <Award size={64} className="text-system-neon drop-shadow-[0_0_15px_rgba(126,184,212,0.8)]" />
+                        <Award size={64} className="text-system-neon drop-shadow-[0_0_15px_rgba(0,212,255,0.8)]" />
                     ) : (
                         <Award size={64} className="text-gray-400" />
                     )}

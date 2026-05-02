@@ -66,8 +66,8 @@ const STAT_CONFIG: StatConfig[] = [
     label: 'FOC',
     fullLabel: 'FOCUS',
     icon: <Target size={14} />,
-    color: 'text-[#7EB8D4]',
-    barColor: 'bg-[#7EB8D4]',
+    color: 'text-[#00d4ff]',
+    barColor: 'bg-[#00d4ff]',
     accentRgb: '6,182,212', // cyan-500
     maxDaily: 50
   },

@@ -425,9 +425,9 @@ const ArmoryView: React.FC<ArmoryViewProps> = ({
             animKey={`${statAnimKey}-ext`}
             value={outfit.baseStats.extraction}
             cap={TIERS[outfit.tier].statCap}
-            color="#9ACDE3"
-            glowColor="#9ACDE380"
-            icon={<Ghost size={16} className="text-[#7EB8D4]" />}
+            color="#33dfff"
+            glowColor="#33dfff80"
+            icon={<Ghost size={16} className="text-[#00d4ff]" />}
             label="Extract"
           />
           <StatRing

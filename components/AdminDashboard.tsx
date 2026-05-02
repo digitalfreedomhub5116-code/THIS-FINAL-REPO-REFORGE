@@ -566,7 +566,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
           <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
              <div className="flex items-center gap-6 w-full md:w-auto">
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-system-neon text-black rounded flex items-center justify-center font-black shadow-[0_0_15px_#7EB8D4]">GM</div>
+                    <div className="w-10 h-10 bg-system-neon text-black rounded flex items-center justify-center font-black shadow-[0_0_15px_#00d4ff]">GM</div>
                     <div>
                         <h1 className="text-xl font-black italic tracking-tighter text-white">SYSTEM OVERRIDE</h1>
                         <div className="flex gap-4 mt-1">
@@ -618,7 +618,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
                            <h2 className="text-white font-bold flex items-center gap-2"><Activity size={18} className="text-system-accent" /> NEURAL VISUALIZER MAPPING</h2>
                            <p className="text-[10px] text-gray-500 font-bold mt-1 uppercase tracking-widest">Global exercise video pointers (Synced across all users)</p>
                        </div>
-                       <button onClick={handleSaveRegions} disabled={isSaving} className="px-6 py-2 bg-system-accent text-white font-bold rounded flex items-center gap-2 hover:bg-white hover:text-black transition-all disabled:opacity-50 text-xs shadow-[0_0_15px_rgba(126,184,212,0.3)]">
+                       <button onClick={handleSaveRegions} disabled={isSaving} className="px-6 py-2 bg-system-accent text-white font-bold rounded flex items-center gap-2 hover:bg-white hover:text-black transition-all disabled:opacity-50 text-xs shadow-[0_0_15px_rgba(0,212,255,0.3)]">
                            {isSaving ? <RefreshCw className="animate-spin" size={14} /> : <Save size={14} />}
                            SYNC NEURAL LINKS
                        </button>
@@ -720,7 +720,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
                                    }).map((user) => (
                                        <tr key={user.supabase_id} className={`border-b border-gray-800/50 transition-colors ${user.is_banned ? 'bg-red-950/10 hover:bg-red-950/20' : 'hover:bg-white/5'}`}>
                                            <td className="p-3 cursor-pointer group" onClick={() => setProfileUserId(user.supabase_id)}>
-                                               <div className="font-bold text-sm text-white group-hover:text-[#7EB8D4] transition-colors">{user.username || 'ANONYMOUS'}</div>
+                                               <div className="font-bold text-sm text-white group-hover:text-[#00d4ff] transition-colors">{user.username || 'ANONYMOUS'}</div>
                                                <div className="text-[10px] text-gray-600 mt-0.5">{user.name}</div>
                                                <div className="text-[8px] text-gray-700 mt-0.5 font-mono">{user.supabase_id?.slice(0, 12)}...</div>
                                            </td>
@@ -759,7 +759,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
                                            {/* Keys column with custom input */}
                                            <td className="p-3 text-center">
                                                <div className="flex flex-col items-center gap-1.5">
-                                                   <span className="text-xs font-mono font-bold text-[#7EB8D4]">{user.keys ?? 0}</span>
+                                                   <span className="text-xs font-mono font-bold text-[#00d4ff]">{user.keys ?? 0}</span>
                                                    <div className="flex items-center gap-1">
                                                        <input
                                                            type="number"
@@ -767,11 +767,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
                                                            onChange={e => setKeysInput(prev => ({ ...prev, [user.supabase_id]: e.target.value }))}
                                                            onKeyDown={e => { if (e.key === 'Enter') { const v = parseInt(keysInput[user.supabase_id]); if (!isNaN(v) && v !== 0) { adjustKeys(user.supabase_id, v); setKeysInput(prev => ({ ...prev, [user.supabase_id]: '' })); } } }}
                                                            placeholder="±amt"
-                                                           className="w-20 bg-black border border-gray-700 rounded px-2 py-1 text-[10px] text-[#7EB8D4] text-center outline-none focus:border-[#7EB8D4] font-mono [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                           className="w-20 bg-black border border-gray-700 rounded px-2 py-1 text-[10px] text-[#00d4ff] text-center outline-none focus:border-[#00d4ff] font-mono [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                                        />
                                                        <button
                                                            onClick={() => { const v = parseInt(keysInput[user.supabase_id]); if (!isNaN(v) && v !== 0) { adjustKeys(user.supabase_id, v); setKeysInput(prev => ({ ...prev, [user.supabase_id]: '' })); } }}
-                                                           className="px-2 py-1 rounded bg-purple-900/40 hover:bg-purple-900/70 text-[#7EB8D4] text-[8px] font-black flex items-center justify-center border border-purple-800/50 tracking-widest"
+                                                           className="px-2 py-1 rounded bg-purple-900/40 hover:bg-purple-900/70 text-[#00d4ff] text-[8px] font-black flex items-center justify-center border border-purple-800/50 tracking-widest"
                                                        >ADD</button>
                                                    </div>
                                                </div>
@@ -803,7 +803,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
                                                <div className="flex flex-col items-end gap-1">
                                                    <button
                                                        onClick={() => { setProfileInitialTab('OVERVIEW'); setProfileUserId(user.supabase_id); }}
-                                                       className="text-[9px] bg-cyan-950/40 hover:bg-cyan-900/60 border border-cyan-800/50 text-[#7EB8D4] px-2 py-1 rounded font-bold tracking-widest uppercase transition-all"
+                                                       className="text-[9px] bg-cyan-950/40 hover:bg-cyan-900/60 border border-cyan-800/50 text-[#00d4ff] px-2 py-1 rounded font-bold tracking-widest uppercase transition-all"
                                                    >
                                                        PROFILE
                                                    </button>
@@ -1092,7 +1092,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
                                                       <div className={`text-[8px] font-mono px-1.5 py-0.5 rounded border ${o.intro_video_url ? 'bg-green-500/10 border-green-500/30 text-green-400' : 'bg-red-500/10 border-red-500/30 text-red-400'}`}>
                                                           INTRO: {o.intro_video_url ? 'YES' : 'NO'}
                                                       </div>
-                                                      <div className={`text-[8px] font-mono px-1.5 py-0.5 rounded border ${o.loop_video_url ? 'bg-[#7EB8D4]/10 border-[#7EB8D4]/30 text-[#7EB8D4]' : 'bg-red-500/10 border-red-500/30 text-red-400'}`}>
+                                                      <div className={`text-[8px] font-mono px-1.5 py-0.5 rounded border ${o.loop_video_url ? 'bg-[#00d4ff]/10 border-[#00d4ff]/30 text-[#00d4ff]' : 'bg-red-500/10 border-red-500/30 text-red-400'}`}>
                                                           LOOP: {o.loop_video_url ? 'YES' : 'NO'}
                                                       </div>
                                                   </div>
@@ -1365,7 +1365,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
                                                       <span className={`text-[10px] font-black px-2 py-1 rounded uppercase tracking-widest ${
                                                           row.model.includes('2.0-flash') ? 'bg-emerald-950/50 border border-emerald-900/50 text-emerald-400' :
                                                           row.model.includes('1.5-flash') ? 'bg-blue-950/50 border border-blue-900/50 text-blue-400' :
-                                                          row.model.includes('pro') ? 'bg-purple-950/50 border border-purple-900/50 text-[#7EB8D4]' :
+                                                          row.model.includes('pro') ? 'bg-purple-950/50 border border-purple-900/50 text-[#00d4ff]' :
                                                           row.model.includes('image') ? 'bg-amber-950/50 border border-amber-900/50 text-amber-400' :
                                                           'bg-gray-800 text-gray-400'
                                                       }`}>{row.model}</span>
@@ -1498,7 +1498,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
                                                       <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-widest ${
                                                           log.model.includes('2.0-flash') ? 'bg-emerald-950/50 text-emerald-500' :
                                                           log.model.includes('1.5-flash') ? 'bg-blue-950/50 text-blue-400' :
-                                                          'bg-purple-950/50 text-[#7EB8D4]'
+                                                          'bg-purple-950/50 text-[#00d4ff]'
                                                       }`}>{log.model.replace('gemini-', '')}</span>
                                                   </td>
                                                   <td className="p-3 text-right text-[10px] text-gray-500 font-mono">{(Number(log.input_tokens) + Number(log.output_tokens)).toLocaleString()}</td>

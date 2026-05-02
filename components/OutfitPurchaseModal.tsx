@@ -239,7 +239,7 @@ const OutfitPurchaseModal: React.FC<Props> = ({
   };
 
   const tierColors: Record<string, string> = {
-    S: '#f87171', A: '#facc15', B: '#9ACDE3',
+    S: '#f87171', A: '#facc15', B: '#33dfff',
     C: '#60a5fa', D: '#4ade80', E: '#9ca3af',
   };
   const tierColor = tierColors[outfit.tier || 'E'] || '#9ca3af';

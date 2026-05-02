@@ -28,7 +28,7 @@ const LevelUpCinematic: React.FC<LevelUpCinematicProps> = ({ level, onComplete }
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          backgroundImage: 'linear-gradient(rgba(126,184,212,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(126,184,212,0.04) 1px, transparent 1px)',
+          backgroundImage: 'linear-gradient(rgba(0,212,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,212,255,0.04) 1px, transparent 1px)',
           backgroundSize: '40px 40px',
         }}
       />
@@ -44,7 +44,7 @@ const LevelUpCinematic: React.FC<LevelUpCinematicProps> = ({ level, onComplete }
               initial={{ scale: 0, opacity: 1 }}
               animate={{ scale: 6, opacity: 0 }}
               transition={{ duration: 0.5, ease: 'easeOut' }}
-              className="absolute w-24 h-24 rounded-full border-2 border-[#7EB8D4] pointer-events-none"
+              className="absolute w-24 h-24 rounded-full border-2 border-[#00d4ff] pointer-events-none"
             />
           )}
         </AnimatePresence>
@@ -75,12 +75,12 @@ const LevelUpCinematic: React.FC<LevelUpCinematicProps> = ({ level, onComplete }
               transition={{ type: 'spring', stiffness: 300, damping: 18 }}
               className="text-[10rem] font-black leading-none select-none"
               style={{
-                background: 'linear-gradient(180deg, #ffffff 0%, #7EB8D4 100%)',
+                background: 'linear-gradient(180deg, #ffffff 0%, #00d4ff 100%)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text',
                 textShadow: 'none',
-                filter: 'drop-shadow(0 0 30px rgba(126,184,212,0.6)) drop-shadow(0 0 60px rgba(126,184,212,0.3))',
+                filter: 'drop-shadow(0 0 30px rgba(0,212,255,0.6)) drop-shadow(0 0 60px rgba(0,212,255,0.3))',
                 fontVariantNumeric: 'tabular-nums',
                 lineHeight: 1,
               }}
@@ -102,7 +102,7 @@ const LevelUpCinematic: React.FC<LevelUpCinematicProps> = ({ level, onComplete }
             >
               <div
                 className="text-xs font-mono font-black tracking-[0.5em] uppercase"
-                style={{ color: '#7EB8D4', letterSpacing: '0.5em' }}
+                style={{ color: '#00d4ff', letterSpacing: '0.5em' }}
               >
                 LEVEL&nbsp;{level}&nbsp;ACHIEVED
               </div>
@@ -117,10 +117,10 @@ const LevelUpCinematic: React.FC<LevelUpCinematicProps> = ({ level, onComplete }
                 onClick={onComplete}
                 className="mt-6 px-8 py-2.5 font-black text-xs tracking-[0.3em] font-mono uppercase rounded border cursor-pointer"
                 style={{
-                  background: 'linear-gradient(135deg, rgba(126,184,212,0.15), rgba(126,184,212,0.05))',
-                  borderColor: 'rgba(126,184,212,0.5)',
-                  color: '#9ACDE3',
-                  boxShadow: '0 0 16px rgba(126,184,212,0.3)',
+                  background: 'linear-gradient(135deg, rgba(0,212,255,0.15), rgba(0,212,255,0.05))',
+                  borderColor: 'rgba(0,212,255,0.5)',
+                  color: '#33dfff',
+                  boxShadow: '0 0 16px rgba(0,212,255,0.3)',
                 }}
               >
                 CONTINUE

@@ -111,7 +111,7 @@ const WorkoutPlanPreview: React.FC = () => {
   const getBadgeStyle = (env: string) => {
     switch (env) {
       case 'Gym': return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
-      case 'Dumbbells': return 'bg-[#7EB8D4]/10 text-[#7EB8D4] border-[#7EB8D4]/20';
+      case 'Dumbbells': return 'bg-[#00d4ff]/10 text-[#00d4ff] border-[#00d4ff]/20';
       case 'Home': return 'bg-green-500/10 text-green-400 border-green-500/20';
       default: return 'bg-gray-800 text-gray-400';
     }
@@ -181,7 +181,7 @@ const WorkoutPlanPreview: React.FC = () => {
           <button 
             onClick={generateMockSchedule}
             disabled={loading}
-            className="w-full md:w-auto px-8 py-3 bg-system-neon text-black font-bold rounded-lg hover:bg-white transition-all active:scale-95 flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(126,184,212,0.3)]"
+            className="w-full md:w-auto px-8 py-3 bg-system-neon text-black font-bold rounded-lg hover:bg-white transition-all active:scale-95 flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(0,212,255,0.3)]"
           >
             {loading ? <RefreshCw className="animate-spin" size={18} /> : <RefreshCw size={18} />}
             {loading ? 'GENERATING...' : 'GENERATE PLAN'}

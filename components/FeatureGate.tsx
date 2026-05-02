@@ -93,7 +93,7 @@ export const LockedFeaturePopup: React.FC<LockedFeaturePopupProps> = ({ visible,
               <span className="text-[10px] font-mono text-gray-500 tracking-[0.2em] uppercase">Unlocks at</span>
               <span
                 className="text-sm font-black font-mono tracking-wider"
-                style={{ color: '#7EB8D4', textShadow: '0 0 10px rgba(126,184,212,0.5)' }}
+                style={{ color: '#00d4ff', textShadow: '0 0 10px rgba(0,212,255,0.5)' }}
               >
                 LEVEL {requiredLevel}
               </span>
@@ -143,7 +143,7 @@ export const LockedSectionPlaceholder: React.FC<LockedSectionPlaceholderProps> =
         <Lock size={18} className="text-gray-500" />
       </div>
       <div className="text-[10px] font-mono text-gray-600 tracking-[0.15em] uppercase mb-1">{gate.label}</div>
-      <div className="text-[10px] font-mono tracking-wider" style={{ color: 'rgba(126,184,212,0.6)' }}>
+      <div className="text-[10px] font-mono tracking-wider" style={{ color: 'rgba(0,212,255,0.6)' }}>
         Unlocks at Level {gate.level}
       </div>
     </div>

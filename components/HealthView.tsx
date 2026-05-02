@@ -889,24 +889,24 @@ export const HealthView: React.FC<HealthViewProps> = ({
                         initial={{ scale: 0.8, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         exit={{ scale: 0.8, opacity: 0 }}
-                        className="bg-[#0a0a0a] border border-[#7EB8D4]/50 w-full max-w-sm rounded-2xl p-8 text-center shadow-[0_0_50px_rgba(126,184,212,0.3)] relative overflow-hidden"
+                        className="bg-[#0a0a0a] border border-[#00d4ff]/50 w-full max-w-sm rounded-2xl p-8 text-center shadow-[0_0_50px_rgba(0,212,255,0.3)] relative overflow-hidden"
                     >
                         {/* Background Effect */}
                         <div className="absolute inset-0 bg-cyan-900/10 pointer-events-none" />
                         
                         <div className="relative z-10 flex flex-col items-center">
-                            <div className="w-16 h-16 rounded-full bg-black border border-[#7EB8D4] flex items-center justify-center mb-6 shadow-[0_0_20px_rgba(126,184,212,0.5)]">
-                                <Lock size={32} className="text-[#7EB8D4]" />
+                            <div className="w-16 h-16 rounded-full bg-black border border-[#00d4ff] flex items-center justify-center mb-6 shadow-[0_0_20px_rgba(0,212,255,0.5)]">
+                                <Lock size={32} className="text-[#00d4ff]" />
                             </div>
                             
                             <h2 className="text-xl font-black text-white font-mono uppercase tracking-tighter mb-2">MANA DEPLETED</h2>
-                            <p className="text-xs text-[#9ACDE3] font-mono mb-6 leading-relaxed">
+                            <p className="text-xs text-[#33dfff] font-mono mb-6 leading-relaxed">
                                 INSUFFICIENT MANA.<br/>Your System Mana resets at midnight. Come back tomorrow.
                             </p>
                             
                             <button 
                                 onClick={() => setShowManaAlert(false)}
-                                className="w-full py-4 bg-cyan-600 text-white font-bold rounded-xl hover:bg-[#7EB8D4] transition-colors uppercase tracking-widest text-xs font-mono shadow-lg"
+                                className="w-full py-4 bg-cyan-600 text-white font-bold rounded-xl hover:bg-[#00d4ff] transition-colors uppercase tracking-widest text-xs font-mono shadow-lg"
                             >
                                 ACKNOWLEDGE
                             </button>
@@ -932,7 +932,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
                             isTabLocked
                                 ? 'text-gray-700 border-gray-800/50 cursor-not-allowed opacity-50'
                                 : activeTab === t
-                                    ? 'text-system-neon border-system-neon shadow-[0_0_12px_rgba(126,184,212,0.25)]'
+                                    ? 'text-system-neon border-system-neon shadow-[0_0_12px_rgba(0,212,255,0.25)]'
                                     : 'text-gray-600 border-gray-800 hover:text-gray-400 hover:border-gray-600'
                         }`}
                         style={{ background: 'transparent' }}
@@ -967,12 +967,12 @@ export const HealthView: React.FC<HealthViewProps> = ({
                             <div className="relative rounded-2xl overflow-hidden p-5"
                                 style={{
                                     background: '#0B1015',
-                                    border: '1px solid rgba(126, 184, 212, 0.15)',
+                                    border: '1px solid rgba(0,212,255, 0.15)',
                                     boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
                                 }}
                             >
                                 {/* Top Header */}
-                                <div className="text-[10px] font-black tracking-[0.2em] mb-4 text-[#7EB8D4]">
+                                <div className="text-[10px] font-black tracking-[0.2em] mb-4 text-[#00d4ff]">
                                     ACTIVE STREAK
                                 </div>
 
@@ -1006,8 +1006,8 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                             key={day} 
                                             className="h-1.5 flex-1 rounded-full transition-colors duration-500"
                                             style={{ 
-                                                background: day <= streakInWeek ? '#7EB8D4' : 'rgba(255,255,255,0.06)',
-                                                boxShadow: day <= streakInWeek ? '0 0 8px rgba(126,184,212,0.4)' : 'none'
+                                                background: day <= streakInWeek ? '#00d4ff' : 'rgba(255,255,255,0.06)',
+                                                boxShadow: day <= streakInWeek ? '0 0 8px rgba(0,212,255,0.4)' : 'none'
                                             }}
                                         />
                                     ))}
@@ -1034,7 +1034,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                         <button
                                             onClick={() => { setAiPlanError(null); setAiConfirmStep(0); setShowAIConfirm(true); }}
                                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all"
-                                            style={{ background: 'rgba(168,85,247,0.15)', border: '1px solid rgba(168,85,247,0.35)', color: '#9ACDE3', boxShadow: '0 0 12px rgba(168,85,247,0.15)' }}
+                                            style={{ background: 'rgba(168,85,247,0.15)', border: '1px solid rgba(168,85,247,0.35)', color: '#33dfff', boxShadow: '0 0 12px rgba(168,85,247,0.15)' }}
                                         >
                                             <Sparkles size={10} />
                                             Create Plan with AI (Free)
@@ -1074,8 +1074,8 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                                     }}
                                                     className="relative shrink-0 w-44 h-56 rounded-2xl overflow-hidden transition-all"
                                                     style={{
-                                                        border: isAiActive ? '1px solid rgba(126,184,212,0.5)' : '1px solid rgba(168,85,247,0.3)',
-                                                        boxShadow: isAiActive ? '0 0 24px rgba(126,184,212,0.2), 0 0 8px rgba(126,184,212,0.1)' : '0 4px 20px rgba(0,0,0,0.4)',
+                                                        border: isAiActive ? '1px solid rgba(0,212,255,0.5)' : '1px solid rgba(168,85,247,0.3)',
+                                                        boxShadow: isAiActive ? '0 0 24px rgba(0,212,255,0.2), 0 0 8px rgba(0,212,255,0.1)' : '0 4px 20px rgba(0,0,0,0.4)',
                                                         filter: isAiActive ? 'none' : 'grayscale(1) brightness(0.8)',
                                                         transition: 'filter 0.5s ease, border 0.3s ease, box-shadow 0.3s ease',
                                                     }}
@@ -1086,12 +1086,12 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                                     <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.1) 100%)' }} />
                                                     <div className="absolute inset-0 p-3.5 flex flex-col justify-between">
                                                         <div className="flex items-start justify-between">
-                                                            <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-purple-900/80 text-[#9ACDE3]">AI GENERATED</span>
+                                                            <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-purple-900/80 text-[#33dfff]">AI GENERATED</span>
                                                             {isAiActive && <span className="text-[8px] font-black text-system-neon bg-black/60 px-1.5 py-0.5 rounded-full border border-system-neon/30">ACTIVE</span>}
                                                         </div>
                                                         <div>
                                                             <div className="text-sm font-black text-white leading-tight mb-1.5">{aiPlanName}</div>
-                                                            <div className="text-[9px] text-[#9ACDE3]/70 font-mono">Personalized for you</div>
+                                                            <div className="text-[9px] text-[#33dfff]/70 font-mono">Personalized for you</div>
                                                         </div>
                                                     </div>
                                                 </motion.button>
@@ -1103,10 +1103,10 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                     {premadePlans.map(plan => {
                                         const isActive = (healthProfile as any)?.selectedPlanId === plan.id;
                                         const dc = plan.difficulty === 'BEGINNER'
-                                            ? { badge: 'bg-green-900/80 text-green-300', glow: 'rgba(126,184,212,0.18)', border: 'rgba(126,184,212,0.35)' }
+                                            ? { badge: 'bg-green-900/80 text-green-300', glow: 'rgba(0,212,255,0.18)', border: 'rgba(0,212,255,0.35)' }
                                             : plan.difficulty === 'INTERMEDIATE'
-                                            ? { badge: 'bg-yellow-900/80 text-yellow-300', glow: 'rgba(126,184,212,0.18)', border: 'rgba(126,184,212,0.35)' }
-                                            : { badge: 'bg-red-900/80 text-red-300', glow: 'rgba(126,184,212,0.18)', border: 'rgba(126,184,212,0.35)' };
+                                            ? { badge: 'bg-yellow-900/80 text-yellow-300', glow: 'rgba(0,212,255,0.18)', border: 'rgba(0,212,255,0.35)' }
+                                            : { badge: 'bg-red-900/80 text-red-300', glow: 'rgba(0,212,255,0.18)', border: 'rgba(0,212,255,0.35)' };
                                         return (
                                             <div key={plan.id} className="relative shrink-0">
                                                 <motion.button
@@ -1208,23 +1208,23 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                                     }}
                                                     className="relative w-44 h-56 rounded-2xl overflow-hidden transition-all"
                                                     style={{
-                                                        border: isActive ? '1px solid rgba(126,184,212,0.6)' : '1px solid rgba(255,255,255,0.08)',
-                                                        boxShadow: isActive ? '0 0 24px rgba(126,184,212,0.25)' : '0 4px 20px rgba(0,0,0,0.4)',
+                                                        border: isActive ? '1px solid rgba(0,212,255,0.6)' : '1px solid rgba(255,255,255,0.08)',
+                                                        boxShadow: isActive ? '0 0 24px rgba(0,212,255,0.25)' : '0 4px 20px rgba(0,0,0,0.4)',
                                                         filter: isActive ? 'none' : 'grayscale(1) brightness(0.8)',
                                                         transition: 'filter 0.5s ease, border 0.3s ease, box-shadow 0.3s ease',
                                                     }}
                                                 >
                                                     <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, #001a1f 0%, #003040 40%, #000d14 100%)' }} />
-                                                    <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(126,184,212,0.2) 0%, transparent 65%)' }} />
+                                                    <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(0,212,255,0.2) 0%, transparent 65%)' }} />
                                                     <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.1) 100%)' }} />
                                                     <div className="absolute inset-0 p-3.5 flex flex-col justify-between">
                                                         <div className="flex items-start justify-between">
-                                                            <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-cyan-900/80 text-[#9ACDE3]">CUSTOM</span>
+                                                            <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-cyan-900/80 text-[#33dfff]">CUSTOM</span>
                                                             {isActive && <span className="text-[8px] font-black text-system-neon bg-black/60 px-1.5 py-0.5 rounded-full border border-system-neon/30">ACTIVE</span>}
                                                         </div>
                                                         <div>
                                                             <div className="text-sm font-black text-white leading-tight mb-1.5">{cp.name}</div>
-                                                            <div className="text-[9px] text-[#9ACDE3]/70 font-mono">{cpDays.length} days</div>
+                                                            <div className="text-[9px] text-[#33dfff]/70 font-mono">{cpDays.length} days</div>
                                                         </div>
                                                     </div>
                                                 </motion.button>
@@ -1289,10 +1289,10 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                     >
                                         <div className="flex items-center gap-3 mb-5">
                                             <div className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(168,85,247,0.2)', border: '1px solid rgba(168,85,247,0.3)' }}>
-                                                <Sparkles size={18} className="text-[#7EB8D4]" />
+                                                <Sparkles size={18} className="text-[#00d4ff]" />
                                             </div>
                                             <div>
-                                                <div className="text-[9px] font-bold text-[#7EB8D4]/70 uppercase tracking-widest">ForgeGuard AI · Step {aiConfirmStep + 1} of 3</div>
+                                                <div className="text-[9px] font-bold text-[#00d4ff]/70 uppercase tracking-widest">ForgeGuard AI · Step {aiConfirmStep + 1} of 3</div>
                                                 <div className="text-base font-black text-white">
                                                     {aiConfirmStep === 0 ? 'Training Frequency' : aiConfirmStep === 1 ? 'Session Duration' : 'Generate Your Plan'}
                                                 </div>
@@ -1310,16 +1310,16 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                                             onClick={() => setAiDaysPerWeek(d)}
                                                             className="py-3 rounded-xl text-sm font-black transition-all"
                                                             style={aiDaysPerWeek === d
-                                                                ? { background: 'linear-gradient(135deg,#7c3aed,#9333ea)', color: '#fff', boxShadow: '0 0 16px rgba(126,184,212,0.5)' }
+                                                                ? { background: 'linear-gradient(135deg,#7c3aed,#9333ea)', color: '#fff', boxShadow: '0 0 16px rgba(0,212,255,0.5)' }
                                                                 : { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#9ca3af' }
                                                             }
                                                         >{d}</button>
                                                     ))}
                                                 </div>
-                                                <div className="text-center text-[10px] text-[#9ACDE3]/60 font-mono mb-5">{aiDaysPerWeek} day{aiDaysPerWeek > 1 ? 's' : ''} per week selected</div>
+                                                <div className="text-center text-[10px] text-[#33dfff]/60 font-mono mb-5">{aiDaysPerWeek} day{aiDaysPerWeek > 1 ? 's' : ''} per week selected</div>
                                                 <div className="flex gap-3">
                                                     <button onClick={() => { setShowAIConfirm(false); setAiPlanError(null); setAiConfirmStep(0); }} className="flex-1 py-3 rounded-xl text-[11px] font-bold text-gray-500 border border-gray-800">Cancel</button>
-                                                    <button onClick={() => setAiConfirmStep(1)} className="flex-1 py-3 rounded-xl text-[11px] font-black text-white" style={{ background: 'linear-gradient(135deg,#7c3aed,#9333ea)', boxShadow: '0 0 20px rgba(126,184,212,0.4)' }}>Next →</button>
+                                                    <button onClick={() => setAiConfirmStep(1)} className="flex-1 py-3 rounded-xl text-[11px] font-black text-white" style={{ background: 'linear-gradient(135deg,#7c3aed,#9333ea)', boxShadow: '0 0 20px rgba(0,212,255,0.4)' }}>Next →</button>
                                                 </div>
                                             </>
                                         )}
@@ -1335,7 +1335,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                                             onClick={() => setAiSessionDuration(min)}
                                                             className="py-4 rounded-xl font-black transition-all"
                                                             style={aiSessionDuration === min
-                                                                ? { background: 'linear-gradient(135deg,#7c3aed,#9333ea)', color: '#fff', boxShadow: '0 0 16px rgba(126,184,212,0.5)' }
+                                                                ? { background: 'linear-gradient(135deg,#7c3aed,#9333ea)', color: '#fff', boxShadow: '0 0 16px rgba(0,212,255,0.5)' }
                                                                 : { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#9ca3af' }
                                                             }
                                                         >
@@ -1346,7 +1346,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                                 </div>
                                                 <div className="flex gap-3">
                                                     <button onClick={() => setAiConfirmStep(0)} className="flex-1 py-3 rounded-xl text-[11px] font-bold text-gray-500 border border-gray-800">← Back</button>
-                                                    <button onClick={() => setAiConfirmStep(2)} className="flex-1 py-3 rounded-xl text-[11px] font-black text-white" style={{ background: 'linear-gradient(135deg,#7c3aed,#9333ea)', boxShadow: '0 0 20px rgba(126,184,212,0.4)' }}>Next →</button>
+                                                    <button onClick={() => setAiConfirmStep(2)} className="flex-1 py-3 rounded-xl text-[11px] font-black text-white" style={{ background: 'linear-gradient(135deg,#7c3aed,#9333ea)', boxShadow: '0 0 20px rgba(0,212,255,0.4)' }}>Next →</button>
                                                 </div>
                                             </>
                                         )}
@@ -1357,11 +1357,11 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                                 <div className="flex gap-2 mb-4">
                                                     <div className="flex-1 px-3 py-2.5 rounded-xl text-center" style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.2)' }}>
                                                         <div className="text-lg font-black text-white">{aiDaysPerWeek}</div>
-                                                        <div className="text-[9px] text-[#9ACDE3]/70 font-mono">days/week</div>
+                                                        <div className="text-[9px] text-[#33dfff]/70 font-mono">days/week</div>
                                                     </div>
                                                     <div className="flex-1 px-3 py-2.5 rounded-xl text-center" style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.2)' }}>
                                                         <div className="text-lg font-black text-white">{aiSessionDuration}</div>
-                                                        <div className="text-[9px] text-[#9ACDE3]/70 font-mono">min/session</div>
+                                                        <div className="text-[9px] text-[#33dfff]/70 font-mono">min/session</div>
                                                     </div>
                                                 </div>
                                                 <p className="text-[11px] text-gray-400 leading-relaxed mb-3">
@@ -1373,7 +1373,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                                         <span className="text-[11px] text-red-400 font-bold">Already Generated — One per account</span>
                                                     </div>
                                                 ) : (
-                                                    <div className="flex items-center gap-2 mb-4 px-3 py-2 rounded-xl" style={{ background: 'rgba(126,184,212,0.08)', border: '1px solid rgba(126,184,212,0.2)' }}>
+                                                    <div className="flex items-center gap-2 mb-4 px-3 py-2 rounded-xl" style={{ background: 'rgba(0,212,255,0.08)', border: '1px solid rgba(0,212,255,0.2)' }}>
                                                         <span className="text-sm">✨</span>
                                                         <span className="text-[11px] text-system-neon font-bold">Free — One Time Only</span>
                                                     </div>
@@ -1390,7 +1390,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                                             onClick={handleGenerateAIPlan}
                                                             disabled={!!(healthProfile as any)?.aiPlanUsed}
                                                             className="flex-1 py-3 rounded-xl text-[11px] font-black text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                                                            style={{ background: 'linear-gradient(135deg,#7c3aed,#9333ea)', boxShadow: '0 0 20px rgba(126,184,212,0.4)' }}
+                                                            style={{ background: 'linear-gradient(135deg,#7c3aed,#9333ea)', boxShadow: '0 0 20px rgba(0,212,255,0.4)' }}
                                                         >
                                                             Generate Plan
                                                         </button>
@@ -1462,7 +1462,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                         setShowCustomPlanBuilder(true);
                                         onToggleNav?.(false);
                                     }}
-                                    className="w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-[0_4px_15px_rgba(0,0,0,0.4)] bg-system-neon text-black hover:bg-white shadow-[0_0_20px_rgba(126,184,212,0.5),0_4px_15px_rgba(0,0,0,0.4)] animate-fab-float"
+                                    className="w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-[0_4px_15px_rgba(0,0,0,0.4)] bg-system-neon text-black hover:bg-white shadow-[0_0_20px_rgba(0,212,255,0.5),0_4px_15px_rgba(0,0,0,0.4)] animate-fab-float"
                                     whileTap={{ scale: 0.9 }}
                                 >
                                     <Plus size={24} strokeWidth={3} />
@@ -1502,7 +1502,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                     </h3>
                                     <button
                                         onClick={() => { setCalorieLimitInput(healthProfile?.customCalorieLimit?.toString() || ''); setShowCalorieEditor(prev => !prev); }}
-                                        className="flex items-center gap-1 px-2 py-1 rounded-lg bg-gray-800/60 hover:bg-gray-700/60 border border-gray-700/50 text-[9px] text-gray-400 hover:text-[#7EB8D4] transition-all uppercase font-bold tracking-wider"
+                                        className="flex items-center gap-1 px-2 py-1 rounded-lg bg-gray-800/60 hover:bg-gray-700/60 border border-gray-700/50 text-[9px] text-gray-400 hover:text-[#00d4ff] transition-all uppercase font-bold tracking-wider"
                                         title="Set custom calorie limit"
                                     >
                                         <Settings size={10} /> Limit
@@ -1519,14 +1519,14 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                         className="overflow-hidden mb-4"
                                     >
                                         <div className="rounded-xl p-3 border border-purple-900/30 bg-purple-950/20">
-                                            <div className="text-[9px] text-[#7EB8D4] font-bold uppercase tracking-widest mb-2">Custom Calorie Limit</div>
+                                            <div className="text-[9px] text-[#00d4ff] font-bold uppercase tracking-widest mb-2">Custom Calorie Limit</div>
                                             <div className="flex items-center gap-2">
                                                 <input
                                                     type="number"
                                                     value={calorieLimitInput}
                                                     onChange={e => setCalorieLimitInput(e.target.value)}
                                                     placeholder={`${dailyTargets?.calories || nutritionInfo.macros.calories}`}
-                                                    className="flex-1 bg-black/50 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-[#7EB8D4] font-mono"
+                                                    className="flex-1 bg-black/50 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-[#00d4ff] font-mono"
                                                     min={800}
                                                     max={10000}
                                                 />
@@ -1540,7 +1540,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                                         setShowCalorieEditor(false);
                                                         playSystemSoundEffect('SYSTEM');
                                                     }}
-                                                    className="px-3 py-2 rounded-lg bg-purple-900/40 hover:bg-purple-900/70 border border-purple-700/50 text-[#9ACDE3] text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 whitespace-nowrap"
+                                                    className="px-3 py-2 rounded-lg bg-purple-900/40 hover:bg-purple-900/70 border border-purple-700/50 text-[#33dfff] text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 whitespace-nowrap"
                                                 >
                                                     SET
                                                 </button>
@@ -1703,7 +1703,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                     >
                                         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-system-neon/5 to-transparent translate-y-[-100%] group-hover:translate-y-[100%] transition-transform duration-1000 ease-in-out pointer-events-none" />
                                         
-                                        <div className="w-16 h-16 rounded-full bg-black border border-system-neon/30 flex items-center justify-center relative shadow-[0_0_30px_rgba(126,184,212,0.1)] group-hover:shadow-[0_0_50px_rgba(126,184,212,0.2)] transition-shadow">
+                                        <div className="w-16 h-16 rounded-full bg-black border border-system-neon/30 flex items-center justify-center relative shadow-[0_0_30px_rgba(0,212,255,0.1)] group-hover:shadow-[0_0_50px_rgba(0,212,255,0.2)] transition-shadow">
                                             <Camera size={24} className="text-system-neon relative z-10" />
                                             <div className="absolute inset-0 rounded-full border border-system-neon opacity-20 animate-ping" />
                                         </div>
@@ -1712,7 +1712,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                             <h3 className="text-lg font-bold text-white font-mono tracking-tight">LOG MEAL</h3>
                                             <p className="text-[10px] text-gray-400 font-mono mt-1 tracking-wider uppercase opacity-80">TAP TO SCAN · CAMERA OR GALLERY</p>
                                             <p className="text-[9px] text-gray-500 font-mono tracking-widest uppercase mt-2 flex items-center justify-center gap-1">
-                                                <Zap size={10} className="text-[#7EB8D4]" /> 35 MANA
+                                                <Zap size={10} className="text-[#00d4ff]" /> 35 MANA
                                             </p>
                                         </div>
 
@@ -1729,10 +1729,10 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                     {/* Manual Food Log Button */}
                                     <button
                                         onClick={() => setShowFoodLibrary(true)}
-                                        className="w-full py-3.5 rounded-xl border border-[#7EB8D4]/30 bg-[#7EB8D4]/5 hover:bg-[#7EB8D4]/10 hover:border-[#7EB8D4]/50 transition-all flex items-center justify-center gap-2"
+                                        className="w-full py-3.5 rounded-xl border border-[#00d4ff]/30 bg-[#00d4ff]/5 hover:bg-[#00d4ff]/10 hover:border-[#00d4ff]/50 transition-all flex items-center justify-center gap-2"
                                     >
-                                        <Utensils size={16} className="text-[#7EB8D4]" />
-                                        <span className="text-xs font-mono font-bold text-[#7EB8D4] tracking-widest">MANUAL FOOD LOG</span>
+                                        <Utensils size={16} className="text-[#00d4ff]" />
+                                        <span className="text-xs font-mono font-bold text-[#00d4ff] tracking-widest">MANUAL FOOD LOG</span>
                                         <span className="text-[9px] text-gray-500 font-mono ml-1">FREE</span>
                                     </button>
                                 </motion.div>
@@ -1741,7 +1741,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
                             {/* STATE: SCANNING */}
                             {scanState === 'SCANNING' && scannedImage && (
                                 <motion.div 
-                                    className="w-full max-w-sm bg-black border border-system-neon/50 rounded-2xl overflow-hidden relative shadow-[0_0_50px_rgba(126,184,212,0.2)]"
+                                    className="w-full max-w-sm bg-black border border-system-neon/50 rounded-2xl overflow-hidden relative shadow-[0_0_50px_rgba(0,212,255,0.2)]"
                                     initial={{ opacity: 0 }}
                                     animate={{ opacity: 1 }}
                                 >
@@ -1750,13 +1750,13 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                         
                                         {/* Scanning Beam */}
                                         <motion.div 
-                                            className="absolute left-0 w-full h-1 bg-system-neon shadow-[0_0_20px_#7EB8D4,0_0_10px_white] z-10"
+                                            className="absolute left-0 w-full h-1 bg-system-neon shadow-[0_0_20px_#00d4ff,0_0_10px_white] z-10"
                                             animate={{ top: ['0%', '100%', '0%'] }}
                                             transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
                                         />
                                         
                                         {/* Grid Overlay */}
-                                        <div className="absolute inset-0 bg-[linear-gradient(rgba(126,184,212,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(126,184,212,0.1)_1px,transparent_1px)] bg-[size:40px_40px] z-0 pointer-events-none" />
+                                        <div className="absolute inset-0 bg-[linear-gradient(rgba(0,212,255,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(0,212,255,0.1)_1px,transparent_1px)] bg-[size:40px_40px] z-0 pointer-events-none" />
                                         
                                         <div className="absolute inset-0 flex flex-col items-center justify-center z-20">
                                             <div className="bg-black/80 backdrop-blur-md px-6 py-3 rounded-lg border border-system-neon/30 flex items-center gap-3">
@@ -1863,7 +1863,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                                 <div className="grid grid-cols-2 gap-2">
                                                     {scanResult.fiber != null && (
                                                         <div className="text-center p-2 bg-gray-900/30 rounded-xl border border-gray-800/60">
-                                                            <div className="text-[9px] text-[#7EB8D4] font-bold mb-0.5 tracking-widest">FIBER</div>
+                                                            <div className="text-[9px] text-[#00d4ff] font-bold mb-0.5 tracking-widest">FIBER</div>
                                                             <div className="text-sm font-black text-white">{scanResult.fiber}g</div>
                                                         </div>
                                                     )}
@@ -1895,7 +1895,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                                             { label: 'Vitamin A', value: scanResult.vitaminA, unit: '% DV', max: 100, color: 'bg-yellow-400' },
                                                             { label: 'Vitamin C', value: scanResult.vitaminC, unit: '% DV', max: 100, color: 'bg-orange-300' },
                                                             { label: 'Vitamin D', value: scanResult.vitaminD, unit: '% DV', max: 100, color: 'bg-amber-400' },
-                                                            { label: 'Vitamin B12', value: scanResult.vitaminB12, unit: '% DV', max: 100, color: 'bg-[#7EB8D4]' },
+                                                            { label: 'Vitamin B12', value: scanResult.vitaminB12, unit: '% DV', max: 100, color: 'bg-[#00d4ff]' },
                                                             { label: 'Calcium', value: scanResult.calcium, unit: '% DV', max: 100, color: 'bg-blue-300' },
                                                             { label: 'Iron', value: scanResult.iron, unit: '% DV', max: 100, color: 'bg-gray-400' },
                                                         ].filter(m => m.value != null).map(micro => (
@@ -1968,7 +1968,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                             </button>
                                             <button 
                                                 onClick={confirmLog}
-                                                className="py-3 rounded-xl bg-system-neon text-black font-mono font-black text-xs hover:bg-white transition-colors flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(126,184,212,0.4)]"
+                                                className="py-3 rounded-xl bg-system-neon text-black font-mono font-black text-xs hover:bg-white transition-colors flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(0,212,255,0.4)]"
                                             >
                                                 <Save size={16} /> CONFIRM LOG
                                             </button>
@@ -1987,9 +1987,9 @@ export const HealthView: React.FC<HealthViewProps> = ({
                         const yesterdayLogs = (playerData.nutritionLogs || []).filter(l => l.timestamp >= yesterdayStart.getTime() && l.timestamp < todayStart.getTime());
                         const MEAL_SECTIONS: { type: MealType; label: string; icon: string; accent: string }[] = [
                             { type: 'BREAKFAST', label: 'Breakfast', icon: '🌅', accent: '#f59e0b' },
-                            { type: 'LUNCH', label: 'Lunch', icon: '☀️', accent: '#7EB8D4' },
+                            { type: 'LUNCH', label: 'Lunch', icon: '☀️', accent: '#00d4ff' },
                             { type: 'SNACK', label: 'Snack', icon: '🍎', accent: '#10b981' },
-                            { type: 'DINNER', label: 'Dinner', icon: '🌙', accent: '#7EB8D4' },
+                            { type: 'DINNER', label: 'Dinner', icon: '🌙', accent: '#00d4ff' },
                         ];
                         const totalLogged = todayLogs.length;
                         const yesterdayTotal = yesterdayLogs.reduce((sum, log) => sum + log.totalCalories, 0);
@@ -2215,7 +2215,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                     <X size={16} />
                                 </button>
                             )}
-                            <div className="text-[10px] text-[#7EB8D4] font-mono tracking-widest uppercase mb-1">
+                            <div className="text-[10px] text-[#00d4ff] font-mono tracking-widest uppercase mb-1">
                                 {new Date(selectedMealLog.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </div>
                             <h3 className="text-xl font-bold text-white mb-6 leading-tight">{selectedMealLog.label}</h3>

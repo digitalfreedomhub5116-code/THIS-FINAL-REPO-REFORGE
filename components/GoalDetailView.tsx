@@ -176,7 +176,7 @@ function autoScheduleQuestsIntoGaps(
 }
 
 const RANK_COLORS: Record<string, string> = {
-  E: '#9ca3af', D: '#fb923c', C: '#facc15', B: '#4ade80', A: '#7EB8D4', S: '#9ACDE3',
+  E: '#9ca3af', D: '#fb923c', C: '#facc15', B: '#4ade80', A: '#00d4ff', S: '#33dfff',
   UNRANKED: '#6b7280',
 };
 
@@ -407,7 +407,7 @@ function ReadMore({ text, maxLines = 3 }: { text: string; maxLines?: number }) {
     <div>
       <p className={`text-[13px] text-gray-400 font-mono leading-relaxed ${!expanded && isLong ? 'line-clamp-3' : ''}`}>{text}</p>
       {isLong && (
-        <button onClick={() => setExpanded(!expanded)} className="flex items-center gap-1 mt-1 text-[11px] text-[#7EB8D4] font-mono">
+        <button onClick={() => setExpanded(!expanded)} className="flex items-center gap-1 mt-1 text-[11px] text-[#00d4ff] font-mono">
           {expanded ? <><ChevronUp className="w-3 h-3" /> Show less</> : <><ChevronDown className="w-3 h-3" /> Read more</>}
         </button>
       )}
@@ -703,10 +703,10 @@ export default function GoalDetailView({
               onClick={generateDailyQuests}
               className="w-full py-3.5 rounded-xl text-xs font-black uppercase tracking-[0.2em] flex items-center justify-center gap-2 transition-all active:scale-95"
               style={{
-                background: 'rgba(126,184,212,0.08)',
-                border: '1px solid rgba(126,184,212,0.25)',
-                color: '#9ACDE3',
-                boxShadow: '0 0 20px rgba(126,184,212,0.08)',
+                background: 'rgba(0,212,255,0.08)',
+                border: '1px solid rgba(0,212,255,0.25)',
+                color: '#33dfff',
+                boxShadow: '0 0 20px rgba(0,212,255,0.08)',
               }}
             >
               <Zap className="w-4 h-4" />
@@ -716,24 +716,24 @@ export default function GoalDetailView({
 
           {isGenerating && (
             <div className="flex items-center justify-center py-6 gap-2">
-              <Loader2 className="w-5 h-5 text-[#7EB8D4] animate-spin" />
+              <Loader2 className="w-5 h-5 text-[#00d4ff] animate-spin" />
               <span className="text-xs text-gray-400 font-mono">Generating resource-rich quests with AI...</span>
             </div>
           )}
 
           {generateError && !isGenerating && !todayTasks && (
-            <div className="rounded-xl p-3 mb-2" style={{ background: 'rgba(126,184,212,0.06)', border: '1px solid rgba(126,184,212,0.15)' }}>
+            <div className="rounded-xl p-3 mb-2" style={{ background: 'rgba(0,212,255,0.06)', border: '1px solid rgba(0,212,255,0.15)' }}>
               <div className="flex items-start gap-2 mb-2">
-                <AlertTriangle className="w-4 h-4 text-[#7EB8D4] flex-shrink-0 mt-0.5" />
+                <AlertTriangle className="w-4 h-4 text-[#00d4ff] flex-shrink-0 mt-0.5" />
                 <p className="text-[12px] text-gray-300 font-mono leading-relaxed">{generateError}</p>
               </div>
               <button
                 onClick={generateDailyQuests}
                 className="w-full py-2.5 rounded-lg text-xs font-black uppercase tracking-[0.15em] mt-1 flex items-center justify-center gap-2 transition-all active:scale-95"
                 style={{
-                  background: 'rgba(126,184,212,0.08)',
-                  border: '1px solid rgba(126,184,212,0.2)',
-                  color: '#7EB8D4',
+                  background: 'rgba(0,212,255,0.08)',
+                  border: '1px solid rgba(0,212,255,0.2)',
+                  color: '#00d4ff',
                 }}
               >
                 <RefreshCw className="w-3.5 h-3.5" />
@@ -746,7 +746,7 @@ export default function GoalDetailView({
             <div className="space-y-2">
               {todayTasks.dailyNote && (
                 <div className="rounded-lg p-3 mb-2" style={{ background: 'rgba(34,211,238,0.04)', border: '1px solid rgba(34,211,238,0.08)' }}>
-                  <p className="text-[13px] text-[#9ACDE3] font-mono leading-relaxed">{todayTasks.dailyNote}</p>
+                  <p className="text-[13px] text-[#33dfff] font-mono leading-relaxed">{todayTasks.dailyNote}</p>
                 </div>
               )}
               <p className="text-[11px] text-gray-600 font-mono">Quests have been added to your main quest feed.</p>

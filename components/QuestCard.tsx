@@ -20,21 +20,21 @@ interface QuestCardProps {
 
 const RANK_BAR: Record<Rank, string> = {
   UNRANKED: '#4a6670',
-  S: '#7EB8D4',
-  A: '#7EB8D4',
-  B: '#7EB8D4',
-  C: '#7EB8D4',
-  D: '#7EB8D4',
+  S: '#00d4ff',
+  A: '#00d4ff',
+  B: '#00d4ff',
+  C: '#00d4ff',
+  D: '#00d4ff',
   E: '#4a6670',
 };
 
 const RANK_LABEL: Record<Rank, string> = {
   UNRANKED: 'rgba(74,102,112,0.08)',
-  S: 'rgba(126,184,212,0.15)',
-  A: 'rgba(126,184,212,0.12)',
-  B: 'rgba(126,184,212,0.12)',
-  C: 'rgba(126,184,212,0.12)',
-  D: 'rgba(126,184,212,0.10)',
+  S: 'rgba(0,212,255,0.15)',
+  A: 'rgba(0,212,255,0.12)',
+  B: 'rgba(0,212,255,0.12)',
+  C: 'rgba(0,212,255,0.12)',
+  D: 'rgba(0,212,255,0.10)',
   E: 'rgba(74,102,112,0.10)',
 };
 
@@ -49,12 +49,12 @@ const CAT_ICON: Record<keyof CoreStats, React.ReactNode> = {
 };
 
 const CAT_COLOR: Record<keyof CoreStats, string> = {
-  strength:     '#7EB8D4',
-  intelligence: '#7EB8D4',
-  discipline:   '#9ACDE3',
-  social:       '#7EB8D4',
-  focus:        '#9ACDE3',
-  willpower:    '#7EB8D4',
+  strength:     '#00d4ff',
+  intelligence: '#00d4ff',
+  discipline:   '#33dfff',
+  social:       '#00d4ff',
+  focus:        '#33dfff',
+  willpower:    '#00d4ff',
 };
 
 const SensorBar: React.FC<{
@@ -135,7 +135,7 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
           : isFailed
           ? '1px solid rgba(107,114,128,0.18)'
           : isMiniActive
-          ? '1px solid rgba(126,184,212,0.22)'
+          ? '1px solid rgba(0,212,255,0.22)'
           : '1px solid rgba(255,255,255,0.10)',
         borderLeft: 'none',
         borderRight: '1px solid rgba(255,255,255,0.03)',
@@ -150,7 +150,7 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
             ? 'linear-gradient(135deg, rgba(34,197,94,0.04) 0%, transparent 60%)'
             : isFailed
             ? 'linear-gradient(135deg, rgba(107,114,128,0.04) 0%, transparent 60%)'
-            : 'linear-gradient(135deg, rgba(126,184,212,0.05) 0%, transparent 60%)',
+            : 'linear-gradient(135deg, rgba(0,212,255,0.05) 0%, transparent 60%)',
         }} />
       )}
       {/* Locked overlay — time-locked or tutorial locked */}
@@ -162,7 +162,7 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
             {onReschedule && (
               <button
                 onClick={(e) => { e.stopPropagation(); onReschedule(); }}
-                className="mt-1 px-3 py-1.5 rounded-lg text-[9px] font-bold text-[#7EB8D4] uppercase tracking-wider transition-all active:scale-95"
+                className="mt-1 px-3 py-1.5 rounded-lg text-[9px] font-bold text-[#00d4ff] uppercase tracking-wider transition-all active:scale-95"
                 style={{ background: 'rgba(34,211,238,0.08)', border: '1px solid rgba(34,211,238,0.2)' }}
               >
                 ↻ Reschedule
@@ -175,7 +175,7 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
       <div
         className="absolute left-0 top-0 bottom-0 w-[3px]"
         style={{
-          background: isCompleted ? '#7EB8D4' : isFailed ? '#4a6670'
+          background: isCompleted ? '#00d4ff' : isFailed ? '#4a6670'
             : (isActive && quest.hasPact && quest.pactStatus === 'active') ? '#fbbf24' : rankColor,
         }}
       />
@@ -227,7 +227,7 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
 
             {/* Goal title link */}
             {quest.goalTitle && (
-              <p className="text-[10px] text-[#7EB8D4]/60 font-mono mt-2 truncate">
+              <p className="text-[10px] text-[#00d4ff]/60 font-mono mt-2 truncate">
                 Mission: {quest.goalTitle}
               </p>
             )}
@@ -244,7 +244,7 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
               <div className="mt-2">
                 <button
                   onClick={(e) => { e.stopPropagation(); setShowResources(!showResources); }}
-                  className="flex items-center gap-1 text-[10px] font-mono text-[#7EB8D4] hover:text-[#9ACDE3] transition-colors"
+                  className="flex items-center gap-1 text-[10px] font-mono text-[#00d4ff] hover:text-[#33dfff] transition-colors"
                 >
                   {showResources ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                   {showResources ? 'Hide details' : 'View steps & resources'}
@@ -277,12 +277,12 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
                               {r.channel && <p className="text-[9px] text-gray-500 font-mono">Channel: {r.channel}</p>}
                               {r.bookInfo && <p className="text-[9px] text-amber-400/70 font-mono">{r.bookInfo}</p>}
                               {r.url && (
-                                <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-[#7EB8D4] font-mono underline break-all" onClick={e => e.stopPropagation()}>
+                                <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-[#00d4ff] font-mono underline break-all" onClick={e => e.stopPropagation()}>
                                   {r.url.length > 60 ? r.url.slice(0, 60) + '...' : r.url}
                                 </a>
                               )}
                               {!r.url && r.searchQuery && (
-                                <a href={`https://www.youtube.com/results?search_query=${encodeURIComponent(r.searchQuery)}`} target="_blank" rel="noopener noreferrer" className="text-[10px] text-[#7EB8D4]/70 font-mono underline" onClick={e => e.stopPropagation()}>
+                                <a href={`https://www.youtube.com/results?search_query=${encodeURIComponent(r.searchQuery)}`} target="_blank" rel="noopener noreferrer" className="text-[10px] text-[#00d4ff]/70 font-mono underline" onClick={e => e.stopPropagation()}>
                                   Search: {r.searchQuery}
                                 </a>
                               )}
@@ -312,7 +312,7 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
                     label="Steps"
                     current={quest.sensorData?.stepsRecorded || 0}
                     target={quest.sensorRequirements.steps}
-                    color="#9ACDE3"
+                    color="#33dfff"
                   />
                 )}
                 {quest.sensorRequirements.distanceKm && (
@@ -344,7 +344,7 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
           <div className="flex flex-col items-end flex-shrink-0 gap-1">
             <div
               className="flex items-center gap-0.5 font-heading font-extrabold text-sm"
-              style={{ color: isCompleted ? '#22c55e' : isFailed ? '#6b7280' : '#7EB8D4' }}
+              style={{ color: isCompleted ? '#22c55e' : isFailed ? '#6b7280' : '#00d4ff' }}
             >
               <Zap size={10} />
               {displayXp}
@@ -381,7 +381,7 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
             {quest.miniQuest && !isMiniActive && (
               <button onClick={() => setIsMiniView(true)} title="Activation Mode"
                 className="w-7 h-7 rounded-lg flex items-center justify-center active:scale-95"
-                style={{ background: 'rgba(126,184,212,0.05)', border: '1px solid rgba(126,184,212,0.15)', color: 'rgba(126,184,212,0.5)' }}>
+                style={{ background: 'rgba(0,212,255,0.05)', border: '1px solid rgba(0,212,255,0.15)', color: 'rgba(0,212,255,0.5)' }}>
                 <Zap size={11} />
               </button>
             )}
@@ -403,9 +403,9 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
             <button onClick={handleComplete}
               className="flex items-center gap-1.5 h-7 px-3.5 rounded-lg text-[10px] font-black font-mono uppercase tracking-wide active:scale-95"
               style={{
-                background: isMiniActive ? 'rgba(126,184,212,0.1)' : 'rgba(34,197,94,0.1)',
-                border: isMiniActive ? '1px solid rgba(126,184,212,0.3)' : '1px solid rgba(34,197,94,0.3)',
-                color: isMiniActive ? '#7EB8D4' : '#4ade80',
+                background: isMiniActive ? 'rgba(0,212,255,0.1)' : 'rgba(34,197,94,0.1)',
+                border: isMiniActive ? '1px solid rgba(0,212,255,0.3)' : '1px solid rgba(34,197,94,0.3)',
+                color: isMiniActive ? '#00d4ff' : '#4ade80',
               }}>
               <Check size={11} strokeWidth={3} />
               {isMiniActive ? `+${Math.floor(quest.xpReward * 0.1)}` : 'Complete'}
@@ -416,8 +416,8 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
         {/* ── COMPLETED — compact 1-line ── */}
         {isCompleted && (
           <div className="flex items-center gap-1.5 mt-1.5">
-            <Check size={10} strokeWidth={3} style={{ color: 'rgba(126,184,212,0.5)' }} />
-            <span className="text-[9px] font-mono tracking-wide uppercase" style={{ color: 'rgba(126,184,212,0.4)' }}>
+            <Check size={10} strokeWidth={3} style={{ color: 'rgba(0,212,255,0.5)' }} />
+            <span className="text-[9px] font-mono tracking-wide uppercase" style={{ color: 'rgba(0,212,255,0.4)' }}>
               {quest.completedAsMini ? 'Activation done' : 'Done'}
             </span>
           </div>

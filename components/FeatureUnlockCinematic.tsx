@@ -13,9 +13,9 @@ interface FeatureUnlockConfig {
 
 const UNLOCK_CONFIGS: Record<number, FeatureUnlockConfig[]> = {
   5: [
-    { icon: <Store size={32} />, title: 'ARMORY & STORE', subtitle: 'New Store content is now available.', color: '#9ACDE3', glow: 'rgba(192,132,252,0.6)' },
-    { icon: <Utensils size={32} />, title: 'NUTRITION SCANNER', subtitle: 'Nutrition tools are now available in Health → Nutrition.', color: '#7EB8D4', glow: 'rgba(34,211,238,0.6)' },
-    { icon: <Sparkles size={32} />, title: 'AI PROTOCOL GENERATOR', subtitle: 'Generate custom workout plans.', color: '#9ACDE3', glow: 'rgba(167,139,250,0.6)' },
+    { icon: <Store size={32} />, title: 'ARMORY & STORE', subtitle: 'New Store content is now available.', color: '#33dfff', glow: 'rgba(192,132,252,0.6)' },
+    { icon: <Utensils size={32} />, title: 'NUTRITION SCANNER', subtitle: 'Nutrition tools are now available in Health → Nutrition.', color: '#00d4ff', glow: 'rgba(34,211,238,0.6)' },
+    { icon: <Sparkles size={32} />, title: 'AI PROTOCOL GENERATOR', subtitle: 'Generate custom workout plans.', color: '#33dfff', glow: 'rgba(167,139,250,0.6)' },
   ],
   10: [
     { icon: <Trophy size={32} />, title: 'HUNTER RANKINGS', subtitle: 'Climb higher and earn bigger rank rewards.', color: '#fbbf24', glow: 'rgba(251,191,36,0.6)' },
@@ -124,7 +124,7 @@ const FeatureUnlockCinematic: React.FC<FeatureUnlockCinematicProps> = ({ level, 
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          backgroundImage: `linear-gradient(${currentFeature?.color || '#9ACDE3'}08 1px, transparent 1px), linear-gradient(90deg, ${currentFeature?.color || '#9ACDE3'}08 1px, transparent 1px)`,
+          backgroundImage: `linear-gradient(${currentFeature?.color || '#33dfff'}08 1px, transparent 1px), linear-gradient(90deg, ${currentFeature?.color || '#33dfff'}08 1px, transparent 1px)`,
           backgroundSize: '48px 48px',
           zIndex: 0,
         }}
@@ -144,7 +144,7 @@ const FeatureUnlockCinematic: React.FC<FeatureUnlockCinematicProps> = ({ level, 
               animate={{ opacity: [0.4, 1, 0.4] }}
               transition={{ duration: 1.2, repeat: Infinity }}
               className="text-[10px] font-black tracking-[0.5em] font-mono uppercase"
-              style={{ color: currentFeature?.color || '#9ACDE3' }}
+              style={{ color: currentFeature?.color || '#33dfff' }}
             >
               ── SYSTEM ALERT ──
             </motion.div>
@@ -155,12 +155,12 @@ const FeatureUnlockCinematic: React.FC<FeatureUnlockCinematicProps> = ({ level, 
               transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.3 }}
               className="w-20 h-20 rounded-full flex items-center justify-center"
               style={{
-                background: `radial-gradient(circle, ${currentFeature?.color || '#9ACDE3'}25, transparent 70%)`,
-                border: `2px solid ${currentFeature?.color || '#9ACDE3'}40`,
+                background: `radial-gradient(circle, ${currentFeature?.color || '#33dfff'}25, transparent 70%)`,
+                border: `2px solid ${currentFeature?.color || '#33dfff'}40`,
                 boxShadow: `0 0 40px ${currentFeature?.glow || 'rgba(192,132,252,0.3)'}`,
               }}
             >
-              <Unlock size={36} style={{ color: currentFeature?.color || '#9ACDE3' }} />
+              <Unlock size={36} style={{ color: currentFeature?.color || '#33dfff' }} />
             </motion.div>
 
             <motion.div

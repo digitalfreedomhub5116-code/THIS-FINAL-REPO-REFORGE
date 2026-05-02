@@ -177,7 +177,7 @@ const STREAK_BORDERS: StoreItem[] = [
     id: 'border-streak-inferno', name: 'Inferno', category: 'border', tier: 'legendary', price: 0,
     description: '60-day streak milestone — cyan inferno flames of relentless dedication.',
     imageBorder: '/borders/border-streak-inferno.webp',
-    borderConfig: { colors: ['#7EB8D4', '#06B6D4'], strokeWidth: 3, animated: false, glowColor: '#7EB8D4', glowIntensity: 0.8 },
+    borderConfig: { colors: ['#00d4ff', '#06B6D4'], strokeWidth: 3, animated: false, glowColor: '#00d4ff', glowIntensity: 0.8 },
   },
   {
     id: 'border-streak-eternal', name: 'Eternal Flame', category: 'border', tier: 'legendary', price: 0,

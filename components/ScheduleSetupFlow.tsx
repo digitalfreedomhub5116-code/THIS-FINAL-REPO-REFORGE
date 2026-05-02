@@ -226,7 +226,7 @@ export default function ScheduleSetupFlow({ existingProfile, onComplete, onClose
           <div className="h-1 rounded-full bg-white/5 overflow-hidden">
             <motion.div
               className="h-full rounded-full"
-              style={{ background: 'linear-gradient(90deg, #7EB8D4, #7EB8D4)' }}
+              style={{ background: 'linear-gradient(90deg, #00d4ff, #00d4ff)' }}
               animate={{ width: `${stepProgress}%` }}
               transition={{ duration: 0.4 }}
             />
@@ -257,14 +257,14 @@ export default function ScheduleSetupFlow({ existingProfile, onComplete, onClose
                             background: active ? 'rgba(34,211,238,0.15)' : 'rgba(255,255,255,0.04)',
                           }}
                         >
-                          <r.Icon className={`w-5 h-5 ${active ? 'text-[#7EB8D4]' : 'text-gray-500'}`} />
+                          <r.Icon className={`w-5 h-5 ${active ? 'text-[#00d4ff]' : 'text-gray-500'}`} />
                         </div>
                         <div className="text-center">
                           <div className={`text-xs font-bold ${active ? 'text-white' : 'text-gray-400'}`}>{r.label}</div>
                           <div className="text-[9px] text-gray-600 font-mono mt-0.5">{r.sub}</div>
                         </div>
                         {active && (
-                          <div className="w-5 h-5 rounded-full bg-[#7EB8D4] flex items-center justify-center">
+                          <div className="w-5 h-5 rounded-full bg-[#00d4ff] flex items-center justify-center">
                             <Check className="w-3 h-3 text-black" />
                           </div>
                         )}
@@ -276,7 +276,7 @@ export default function ScheduleSetupFlow({ existingProfile, onComplete, onClose
                 <button
                   onClick={nextStep}
                   className="w-full py-3.5 rounded-xl text-xs font-black text-black uppercase tracking-widest"
-                  style={{ background: 'linear-gradient(135deg, #7EB8D4, #7EB8D4)' }}
+                  style={{ background: 'linear-gradient(135deg, #00d4ff, #00d4ff)' }}
                 >
                   Continue
                 </button>
@@ -328,7 +328,7 @@ export default function ScheduleSetupFlow({ existingProfile, onComplete, onClose
                       <span className="text-[10px] font-mono text-gray-400 uppercase">Different Weekend Schedule?</span>
                       <button
                         onClick={() => setWeekendDifferent(!weekendDifferent)}
-                        className={`w-10 h-5 rounded-full transition-colors relative ${weekendDifferent ? 'bg-[#7EB8D4]' : 'bg-gray-700'}`}
+                        className={`w-10 h-5 rounded-full transition-colors relative ${weekendDifferent ? 'bg-[#00d4ff]' : 'bg-gray-700'}`}
                       >
                         <motion.div
                           className="w-4 h-4 rounded-full bg-white absolute top-0.5"
@@ -353,7 +353,7 @@ export default function ScheduleSetupFlow({ existingProfile, onComplete, onClose
                   <button
                     onClick={nextStep}
                     className="flex-1 py-3.5 rounded-xl text-xs font-black text-black uppercase tracking-widest"
-                    style={{ background: 'linear-gradient(135deg, #7EB8D4, #7EB8D4)' }}
+                    style={{ background: 'linear-gradient(135deg, #00d4ff, #00d4ff)' }}
                   >
                     Continue
                   </button>
@@ -378,7 +378,7 @@ export default function ScheduleSetupFlow({ existingProfile, onComplete, onClose
                           <span className="text-[10px] font-mono text-gray-400 uppercase">Tuition / Coaching?</span>
                           <button
                             onClick={() => setCoachingEnabled(!coachingEnabled)}
-                            className={`w-10 h-5 rounded-full transition-colors relative ${coachingEnabled ? 'bg-[#7EB8D4]' : 'bg-gray-700'}`}
+                            className={`w-10 h-5 rounded-full transition-colors relative ${coachingEnabled ? 'bg-[#00d4ff]' : 'bg-gray-700'}`}
                           >
                             <motion.div
                               className="w-4 h-4 rounded-full bg-white absolute top-0.5"
@@ -440,7 +440,7 @@ export default function ScheduleSetupFlow({ existingProfile, onComplete, onClose
                   <button
                     onClick={nextStep}
                     className="flex-1 py-3.5 rounded-xl text-xs font-black text-black uppercase tracking-widest"
-                    style={{ background: 'linear-gradient(135deg, #7EB8D4, #7EB8D4)' }}
+                    style={{ background: 'linear-gradient(135deg, #00d4ff, #00d4ff)' }}
                   >
                     Continue
                   </button>
@@ -469,8 +469,8 @@ export default function ScheduleSetupFlow({ existingProfile, onComplete, onClose
                           }}
                         >
                           <span className="text-sm">{w.icon}</span>
-                          <span className={`text-xs font-mono ${preferredWorkoutTime === w.id ? 'text-[#9ACDE3]' : 'text-gray-400'}`}>{w.label}</span>
-                          {preferredWorkoutTime === w.id && <Check className="w-3.5 h-3.5 text-[#7EB8D4] ml-auto" />}
+                          <span className={`text-xs font-mono ${preferredWorkoutTime === w.id ? 'text-[#33dfff]' : 'text-gray-400'}`}>{w.label}</span>
+                          {preferredWorkoutTime === w.id && <Check className="w-3.5 h-3.5 text-[#00d4ff] ml-auto" />}
                         </button>
                       ))}
                     </div>
@@ -520,7 +520,7 @@ export default function ScheduleSetupFlow({ existingProfile, onComplete, onClose
                       <span className="text-[10px] font-mono text-gray-400 uppercase">Do you nap?</span>
                       <button
                         onClick={() => setNapEnabled(!napEnabled)}
-                        className={`w-10 h-5 rounded-full transition-colors relative ${napEnabled ? 'bg-[#7EB8D4]' : 'bg-gray-700'}`}
+                        className={`w-10 h-5 rounded-full transition-colors relative ${napEnabled ? 'bg-[#00d4ff]' : 'bg-gray-700'}`}
                       >
                         <motion.div
                           className="w-4 h-4 rounded-full bg-white absolute top-0.5"
@@ -566,7 +566,7 @@ export default function ScheduleSetupFlow({ existingProfile, onComplete, onClose
                   <button
                     onClick={nextStep}
                     className="flex-1 py-3.5 rounded-xl text-xs font-black text-black uppercase tracking-widest"
-                    style={{ background: 'linear-gradient(135deg, #7EB8D4, #7EB8D4)' }}
+                    style={{ background: 'linear-gradient(135deg, #00d4ff, #00d4ff)' }}
                   >
                     Review Schedule
                   </button>
@@ -580,7 +580,7 @@ export default function ScheduleSetupFlow({ existingProfile, onComplete, onClose
                 <div className="space-y-3 mb-5">
                   {/* Role */}
                   <div className="rounded-xl p-3" style={{ background: 'rgba(34,211,238,0.04)', border: '1px solid rgba(34,211,238,0.1)' }}>
-                    <div className="text-[9px] font-mono text-[#7EB8D4] uppercase mb-1">Role</div>
+                    <div className="text-[9px] font-mono text-[#00d4ff] uppercase mb-1">Role</div>
                     <div className="text-sm font-bold text-white">{ROLES.find(r => r.id === role)?.label}</div>
                   </div>
 
@@ -652,7 +652,7 @@ export default function ScheduleSetupFlow({ existingProfile, onComplete, onClose
                   <button
                     onClick={handleComplete}
                     className="flex-1 py-4 rounded-xl text-xs font-black text-black uppercase tracking-widest"
-                    style={{ background: 'linear-gradient(135deg, #7EB8D4, #7EB8D4)' }}
+                    style={{ background: 'linear-gradient(135deg, #00d4ff, #00d4ff)' }}
                   >
                     Activate Schedule Protocol
                   </button>

@@ -54,7 +54,7 @@ const AvatarWithBorder: React.FC<AvatarWithBorderProps> = ({
   // ── Image border (PNG wrapping avatar) ──
   if (hasImageBorder && storeItem) {
     const cfg = storeItem.borderConfig;
-    const glow = cfg?.glowColor || '#7EB8D4';
+    const glow = cfg?.glowColor || '#00d4ff';
     const scale = storeItem.imageScale || 1.0;
     const outerSize = size + 20;
     const borderImgSize = outerSize * scale;
@@ -160,7 +160,7 @@ function BorderImage({ src, isAnimated, animType, glowColor }: { src: string; is
         <div
           className="absolute inset-0 rounded-full"
           style={{
-            background: 'linear-gradient(110deg, rgba(126,184,212,0.04) 30%, rgba(126,184,212,0.1) 50%, rgba(126,184,212,0.04) 70%)',
+            background: 'linear-gradient(110deg, rgba(0,212,255,0.04) 30%, rgba(0,212,255,0.1) 50%, rgba(0,212,255,0.04) 70%)',
             backgroundSize: '200% 100%',
             animation: 'skeleton-shimmer 1.5s ease-in-out infinite',
           }}
