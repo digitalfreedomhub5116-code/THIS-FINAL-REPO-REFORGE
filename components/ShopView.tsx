@@ -576,55 +576,106 @@ const ShopView: React.FC<ShopViewProps> = ({
         </button>
       </div>
 
-      {/* ═══ INVENTORY PANEL (collapsible) ═══ */}
-      <AnimatePresence>
-        {showInventoryPanel && (
+      {/* ═══ INVENTORY OVERLAY (full-screen popup via Portal) ═══ */}
+      {showInventoryPanel && ReactDOM.createPortal(
+        <AnimatePresence>
           <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            style={{ overflow: 'hidden' }}
+            key="inv-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            onClick={() => setShowInventoryPanel(false)}
+            style={{
+              position: 'fixed', inset: 0, zIndex: 9999,
+              background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+            }}
+          />
+          <motion.div
+            key="inv-panel"
+            initial={{ y: '100%', opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: '100%', opacity: 0 }}
+            transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+            style={{
+              position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 10000,
+              maxHeight: '85vh', display: 'flex', flexDirection: 'column',
+              background: 'linear-gradient(180deg, #13111a 0%, #0a0a0f 100%)',
+              borderTop: '1px solid rgba(139,92,246,0.2)',
+              borderRadius: '24px 24px 0 0',
+              boxShadow: '0 -8px 40px rgba(139,92,246,0.15)',
+            }}
           >
+            {/* ── Handle bar ── */}
+            <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 10, paddingBottom: 4 }}>
+              <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.15)' }} />
+            </div>
+
+            {/* ── Header ── */}
             <div style={{
-              background: 'linear-gradient(180deg, rgba(139,92,246,0.06) 0%, rgba(10,10,15,0.95) 100%)',
-              border: '1px solid rgba(139,92,246,0.12)',
-              borderRadius: 16, padding: '16px 14px', marginBottom: 8,
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '8px 20px 14px',
+              borderBottom: '1px solid rgba(139,92,246,0.08)',
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-                <div style={{ fontSize: 13, fontWeight: 900, color: '#a78bfa', letterSpacing: '0.05em' }}>📦 MY INVENTORY</div>
-                <button onClick={() => setShowInventoryPanel(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', fontSize: 16 }}>✕</button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{
+                  width: 32, height: 32, borderRadius: 10,
+                  background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.2)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Package size={16} color="#a78bfa" />
+                </div>
+                <div>
+                  <div style={{ fontSize: 15, fontWeight: 900, color: '#fff', letterSpacing: '0.03em' }}>MY INVENTORY</div>
+                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', fontFamily: 'monospace' }}>
+                    {serverInventory.length} item{serverInventory.length !== 1 ? 's' : ''} owned
+                  </div>
+                </div>
               </div>
+              <button
+                onClick={() => setShowInventoryPanel(false)}
+                style={{
+                  width: 32, height: 32, borderRadius: 10,
+                  background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
+                  color: 'rgba(255,255,255,0.4)', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 16, transition: 'all 0.2s',
+                }}
+              >✕</button>
+            </div>
+
+            {/* ── Scrollable content ── */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '16px 18px 32px', WebkitOverflowScrolling: 'touch' }}>
 
               {/* Borders */}
               {(() => {
                 const ownedBorderItems = serverInventory.filter(i => i.item_type === 'border');
                 if (ownedBorderItems.length === 0) return null;
                 return (
-                  <div style={{ marginBottom: 16 }}>
-                    <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>
+                  <div style={{ marginBottom: 20 }}>
+                    <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>
                       BORDERS ({ownedBorderItems.length})
                     </div>
-                    <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
                       {ownedBorderItems.map(inv => {
                         const storeItem = ALL_STORE_ITEMS.find(s => s.id === inv.item_id);
                         if (!storeItem) return null;
                         const isEquipped = kitEconomy.equipped.border === inv.item_id;
                         return (
                           <div key={inv.item_id} onClick={() => handleKitEquip('border', inv.item_id)} style={{
-                            flexShrink: 0, width: 80, textAlign: 'center', cursor: 'pointer',
-                            padding: 8, borderRadius: 12,
+                            textAlign: 'center', cursor: 'pointer',
+                            padding: 10, borderRadius: 14,
                             background: isEquipped ? 'rgba(139,92,246,0.12)' : 'rgba(255,255,255,0.02)',
                             border: isEquipped ? '1.5px solid rgba(139,92,246,0.3)' : '1px solid rgba(255,255,255,0.06)',
                             transition: 'all 0.2s',
                           }}>
                             {storeItem.imageBorder && (
-                              <img src={storeItem.imageBorder} alt="" style={{ width: 50, height: 50, objectFit: 'contain', margin: '0 auto 6px', display: 'block', mixBlendMode: 'screen' }} />
+                              <img src={storeItem.imageBorder} alt="" style={{ width: 48, height: 48, objectFit: 'contain', margin: '0 auto 6px', display: 'block', mixBlendMode: 'screen' }} />
                             )}
                             <div style={{ fontSize: 9, fontWeight: 700, color: isEquipped ? '#a78bfa' : 'rgba(255,255,255,0.5)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               {storeItem.name}
                             </div>
-                            {isEquipped && <div style={{ fontSize: 7, color: '#22c55e', fontWeight: 900, marginTop: 2 }}>✓ ON</div>}
+                            {isEquipped && <div style={{ fontSize: 7, color: '#22c55e', fontWeight: 900, marginTop: 3 }}>✓ EQUIPPED</div>}
                           </div>
                         );
                       })}
@@ -638,32 +689,72 @@ const ShopView: React.FC<ShopViewProps> = ({
                 const ownedBannerItems = serverInventory.filter(i => i.item_type === 'banner');
                 if (ownedBannerItems.length === 0) return null;
                 return (
-                  <div style={{ marginBottom: 16 }}>
-                    <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>
+                  <div style={{ marginBottom: 20 }}>
+                    <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>
                       BANNERS ({ownedBannerItems.length})
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       {ownedBannerItems.map(inv => {
                         const storeItem = ALL_STORE_ITEMS.find(s => s.id === inv.item_id);
                         if (!storeItem) return null;
                         const isEquipped = kitEconomy.equipped.banner === inv.item_id;
                         return (
                           <div key={inv.item_id} onClick={() => handleKitEquip('banner', inv.item_id)} style={{
-                            display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
-                            padding: '8px 10px', borderRadius: 10,
+                            display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer',
+                            padding: '10px 12px', borderRadius: 12,
                             background: isEquipped ? 'rgba(6,182,212,0.08)' : 'rgba(255,255,255,0.02)',
                             border: isEquipped ? '1px solid rgba(6,182,212,0.2)' : '1px solid rgba(255,255,255,0.05)',
                             transition: 'all 0.2s',
                           }}>
                             {storeItem.bannerImage && (
-                              <img src={storeItem.bannerImage} alt="" style={{ width: 60, height: 34, borderRadius: 6, objectFit: 'cover' }} />
+                              <img src={storeItem.bannerImage} alt="" style={{ width: 64, height: 36, borderRadius: 8, objectFit: 'cover' }} />
                             )}
                             <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontSize: 11, fontWeight: 800, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{storeItem.name}</div>
-                              <div style={{ fontSize: 8, color: isEquipped ? '#06B6D4' : 'rgba(255,255,255,0.3)' }}>
+                              <div style={{ fontSize: 12, fontWeight: 800, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{storeItem.name}</div>
+                              <div style={{ fontSize: 9, color: isEquipped ? '#06B6D4' : 'rgba(255,255,255,0.3)', fontWeight: 600 }}>
                                 {isEquipped ? '✓ EQUIPPED' : 'Tap to equip'}
                               </div>
                             </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Themes */}
+              {(() => {
+                const ownedThemeItems = serverInventory.filter(i => i.item_type === 'theme');
+                if (ownedThemeItems.length === 0) return null;
+                return (
+                  <div style={{ marginBottom: 20 }}>
+                    <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>
+                      THEMES ({ownedThemeItems.length})
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                      {ownedThemeItems.map(inv => {
+                        const storeItem = ALL_STORE_ITEMS.find(s => s.id === inv.item_id);
+                        if (!storeItem) return null;
+                        const isEquipped = kitEconomy.equipped.theme === inv.item_id;
+                        const themeColor = storeItem.themeVars?.['--primary'] || '#9ca3af';
+                        return (
+                          <div key={inv.item_id} onClick={() => handleKitEquip('theme', inv.item_id)} style={{
+                            textAlign: 'center', cursor: 'pointer',
+                            padding: '10px 8px', borderRadius: 12,
+                            background: isEquipped ? `${themeColor}15` : 'rgba(255,255,255,0.02)',
+                            border: isEquipped ? `1.5px solid ${themeColor}40` : '1px solid rgba(255,255,255,0.06)',
+                            transition: 'all 0.2s',
+                          }}>
+                            <div style={{
+                              width: 28, height: 28, borderRadius: '50%', margin: '0 auto 6px',
+                              background: `linear-gradient(135deg, ${themeColor}, ${themeColor}80)`,
+                              boxShadow: isEquipped ? `0 0 12px ${themeColor}50` : 'none',
+                            }} />
+                            <div style={{ fontSize: 9, fontWeight: 700, color: isEquipped ? themeColor : 'rgba(255,255,255,0.5)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {storeItem.name}
+                            </div>
+                            {isEquipped && <div style={{ fontSize: 7, color: '#22c55e', fontWeight: 900, marginTop: 3 }}>✓ ON</div>}
                           </div>
                         );
                       })}
@@ -677,27 +768,70 @@ const ShopView: React.FC<ShopViewProps> = ({
                 const ownedOutfitItems = serverInventory.filter(i => i.item_type === 'outfit');
                 if (ownedOutfitItems.length === 0) return null;
                 return (
-                  <div>
-                    <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>
+                  <div style={{ marginBottom: 20 }}>
+                    <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>
                       OUTFITS ({ownedOutfitItems.length})
                     </div>
-                    <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
                       {ownedOutfitItems.map(inv => {
+                        const outfitData = OUTFITS.find(o => o.id === inv.item_id);
                         const isEquipped = wardrobeEquippedOutfitId === inv.item_id;
                         return (
-                          <div key={inv.item_id} style={{
-                            flexShrink: 0, width: 80, textAlign: 'center',
-                            padding: 8, borderRadius: 12,
+                          <div key={inv.item_id} onClick={() => wardrobeOnEquip?.(inv.item_id)} style={{
+                            textAlign: 'center', cursor: 'pointer',
+                            padding: 10, borderRadius: 14,
                             background: isEquipped ? 'rgba(139,92,246,0.12)' : 'rgba(255,255,255,0.02)',
                             border: isEquipped ? '1.5px solid rgba(139,92,246,0.3)' : '1px solid rgba(255,255,255,0.06)',
+                            transition: 'all 0.2s',
                           }}>
-                            <div style={{ width: 40, height: 40, margin: '0 auto 6px', borderRadius: '50%', background: isEquipped ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>
-                              ⚔️
+                            <div style={{
+                              width: 44, height: 44, margin: '0 auto 6px', borderRadius: '50%',
+                              background: isEquipped
+                                ? `linear-gradient(135deg, ${outfitData?.accentColor || '#a78bfa'}30, ${outfitData?.accentColor || '#a78bfa'}10)`
+                                : 'rgba(255,255,255,0.05)',
+                              border: `1px solid ${isEquipped ? (outfitData?.accentColor || '#a78bfa') + '40' : 'rgba(255,255,255,0.06)'}`,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              overflow: 'hidden',
+                            }}>
+                              {outfitData?.image ? (
+                                <img src={outfitData.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              ) : (
+                                <span style={{ fontSize: 18 }}>⚔️</span>
+                              )}
                             </div>
                             <div style={{ fontSize: 9, fontWeight: 700, color: isEquipped ? '#a78bfa' : 'rgba(255,255,255,0.5)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              {inv.item_id.replace('outfit_', '').replace(/_/g, ' ')}
+                              {outfitData?.name || inv.item_id.replace('outfit_', '').replace(/_/g, ' ')}
                             </div>
-                            {isEquipped && <div style={{ fontSize: 7, color: '#22c55e', fontWeight: 900, marginTop: 2 }}>✓ ON</div>}
+                            {isEquipped && <div style={{ fontSize: 7, color: '#22c55e', fontWeight: 900, marginTop: 3 }}>✓ EQUIPPED</div>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Titles */}
+              {(() => {
+                const ownedTitleItems = serverInventory.filter(i => i.item_type === 'title');
+                if (ownedTitleItems.length === 0) return null;
+                return (
+                  <div style={{ marginBottom: 20 }}>
+                    <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>
+                      TITLES ({ownedTitleItems.length})
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                      {ownedTitleItems.map(inv => {
+                        const storeItem = ALL_STORE_ITEMS.find(s => s.id === inv.item_id);
+                        if (!storeItem) return null;
+                        const titleColor = storeItem.titleConfig?.color || '#9ca3af';
+                        return (
+                          <div key={inv.item_id} style={{
+                            padding: '6px 14px', borderRadius: 10,
+                            background: `${titleColor}15`, border: `1px solid ${titleColor}30`,
+                            fontSize: 11, fontWeight: 800, color: titleColor,
+                          }}>
+                            {storeItem.name}
                           </div>
                         );
                       })}
@@ -707,14 +841,16 @@ const ShopView: React.FC<ShopViewProps> = ({
               })()}
 
               {serverInventory.length === 0 && (
-                <div style={{ textAlign: 'center', padding: '20px 0', color: 'rgba(255,255,255,0.25)', fontSize: 12 }}>
+                <div style={{ textAlign: 'center', padding: '40px 0', color: 'rgba(255,255,255,0.25)', fontSize: 13 }}>
+                  <div style={{ fontSize: 32, marginBottom: 8 }}>📦</div>
                   No items yet — visit the shop below!
                 </div>
               )}
             </div>
           </motion.div>
-        )}
-      </AnimatePresence>
+        </AnimatePresence>,
+        document.body
+      )}
 
       {/* ═══════════════════════════════════════════
            EVENT BANNER CAROUSEL (top hero)
