@@ -919,7 +919,7 @@ const ShopView: React.FC<ShopViewProps> = ({
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, padding: '0 16px' }}>
           {getTodaysDeals(4).map(d => (
-            <div key={d.item.id}>
+            <div key={d.item.id} style={{ overflow: 'hidden' }}>
                <KitGlowCard item={d.item} discount={d.discount}
                 owned={isItemOwned(d.item.id)}
                 equipped={kitEconomy.equipped[d.item.category as keyof EquippedItems] === d.item.id}
@@ -1545,7 +1545,6 @@ function KitGlowCard({ item, discount, owned, equipped, canAfford, onBuy, onEqui
     <div onClick={() => { if (item.category === 'border' && onCardClick) onCardClick(); }} style={{
       filter: `drop-shadow(0 0 6px ${catColor}30) drop-shadow(0 2px 8px rgba(0,0,0,0.4))`,
       cursor: item.category === 'border' ? 'pointer' : undefined,
-      overflow: 'visible',
     }}>
       {/* Layer 2: Gradient Border Frame (3px visible border) */}
       <div style={{
@@ -1631,12 +1630,12 @@ function KitGlowCard({ item, discount, owned, equipped, canAfford, onBuy, onEqui
 
             {/* ── BORDER: Image-based (PNG) ── */}
             {item.category === 'border' && item.imageBorder ? (
-              <div style={{ position: 'relative', width: 96, height: 96, flexShrink: 0 }}>
+              <div style={{ position: 'relative', width: 96, height: 96, flexShrink: 0, overflow: 'hidden' }}>
                 <div style={{ position: 'absolute', top: '50%', left: '50%', width: 56, height: 56, borderRadius: '50%', background: 'radial-gradient(circle, #3a3a4a, #1a1a24)', transform: 'translate(-50%, -50%)', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                   <svg width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="16" r="7" fill="#555568" /><ellipse cx="20" cy="35" rx="13" ry="10" fill="#4a4a5a" /></svg>
                 </div>
                 {item.imageAnimated && item.imageAnimationType === 'pulse' ? (
-                  <div style={{ position: 'absolute', inset: 0, zIndex: 2, pointerEvents: 'none', animation: 'border-breathe-centered 3s ease-in-out infinite' }}>
+                  <div style={{ position: 'absolute', inset: 0, zIndex: 2, pointerEvents: 'none', animation: 'border-breathe-simple 3s ease-in-out infinite' }}>
                     <FadeImg src={item.imageBorder} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                   </div>
                 ) : (
@@ -1647,7 +1646,7 @@ function KitGlowCard({ item, discount, owned, equipped, canAfford, onBuy, onEqui
               <StoreLottieBorder src={item.lottieBorder} glow={item.borderConfig?.glowColor || '#C8A84E'} />
             ) : item.category === 'border' && item.auraConfig ? (
               /* ── BORDER: CSS Aura glow (full spec) ── */
-              <div style={{ position: 'relative', width: 96, height: 96, flexShrink: 0 }}>
+              <div style={{ position: 'relative', width: 96, height: 96, flexShrink: 0, overflow: 'hidden' }}>
                 {/* Ambient glow */}
                 <div style={{ position: 'absolute', top: '50%', left: '50%', width: 120, height: 120, borderRadius: '50%', background: `radial-gradient(circle, ${item.auraConfig.colors[0]}30 0%, ${(item.auraConfig.colors[1] || item.auraConfig.colors[0])}15 40%, transparent 70%)`, transform: 'translate(-50%, -50%)', animation: item.auraConfig.animated ? `pulse-glow ${item.auraConfig.pulseSpeed || 3}s ease-in-out infinite` : undefined }} />
                 {/* Main aura ring */}
