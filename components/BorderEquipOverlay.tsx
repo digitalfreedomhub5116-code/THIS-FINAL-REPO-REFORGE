@@ -36,8 +36,23 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
   const btnRef = useRef<HTMLButtonElement>(null);
   const labelRef = useRef<HTMLDivElement>(null);
   const tlRef = useRef<gsap.core.Timeline | null>(null);
+  const confettiCanvasRef = useRef<HTMLCanvasElement>(null);
+  const confettiInstanceRef = useRef<ReturnType<typeof confetti.create> | null>(null);
   const [visible, setVisible] = useState(false);
   const [lottieData, setLottieData] = useState<any>(null);
+
+  // Create confetti instance bound to our canvas (inside the overlay, above the backdrop)
+  useEffect(() => {
+    if (visible && confettiCanvasRef.current && !confettiInstanceRef.current) {
+      confettiInstanceRef.current = confetti.create(confettiCanvasRef.current, { resize: true, useWorker: true });
+    }
+    return () => {
+      if (confettiInstanceRef.current) {
+        confettiInstanceRef.current.reset();
+        confettiInstanceRef.current = null;
+      }
+    };
+  }, [visible]);
 
   // ── Normalize any color (rgba/rgb/hex) to #RRGGBB hex so suffix patterns like ${color}55 produce valid CSS ──
   const toHex = (c: string): string => {
@@ -138,9 +153,10 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
             ease: 'back.out(2.5)',
             onComplete: () => {
               // ── MEGA Confetti celebration burst ──
+              const fire = confettiInstanceRef.current || confetti;
               const cyanGrey = ['#7EB8D4', '#9ACDE3', '#5a9ab5', '#c0c0c0', '#808080', '#d4d4d4', '#ffffff'];
               // Left corner burst — 3× bigger
-              confetti({
+              fire({
                 particleCount: 150,
                 angle: 55,
                 spread: 75,
@@ -156,7 +172,7 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
                 disableForReducedMotion: true,
               });
               // Right corner burst — 3× bigger
-              confetti({
+              fire({
                 particleCount: 150,
                 angle: 125,
                 spread: 75,
@@ -173,7 +189,8 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
               });
               // Center sparkle — slightly delayed
               setTimeout(() => {
-                confetti({
+                const f = confettiInstanceRef.current || confetti;
+                f({
                   particleCount: 60,
                   spread: 100,
                   origin: { x: 0.5, y: 0.55 },
@@ -189,7 +206,8 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
               }, 100);
               // 3rd wave — sustained shower from sides
               setTimeout(() => {
-                confetti({
+                const f = confettiInstanceRef.current || confetti;
+                f({
                   particleCount: 80,
                   angle: 60,
                   spread: 55,
@@ -203,7 +221,7 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
                   shapes: ['circle', 'square'],
                   disableForReducedMotion: true,
                 });
-                confetti({
+                f({
                   particleCount: 80,
                   angle: 120,
                   spread: 55,
@@ -220,7 +238,8 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
               }, 400);
               // 4th wave — center rain from top
               setTimeout(() => {
-                confetti({
+                const f = confettiInstanceRef.current || confetti;
+                f({
                   particleCount: 50,
                   angle: 270,
                   spread: 120,
@@ -308,6 +327,16 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
         overflow: 'hidden', // clip glow from bleeding over nav bar
       }}
     >
+      {/* Confetti canvas — lives INSIDE the overlay so it renders above the backdrop */}
+      <canvas
+        ref={confettiCanvasRef}
+        style={{
+          position: 'fixed', inset: 0,
+          width: '100%', height: '100%',
+          pointerEvents: 'none',
+          zIndex: 99999,
+        }}
+      />
       {/* ── Avatar + Border + Glow container ── */}
       <div style={{
         position: 'relative',
