@@ -148,7 +148,28 @@ export const FinalizingView: React.FC<{ finalizingLog: string }> = ({ finalizing
 );
 
 // ── AI GENERATING PLAN OVERLAY ──
-export const GeneratingPlanOverlay: React.FC = () => {
+export const GeneratingPlanOverlay: React.FC<{ progress?: number }> = ({ progress }) => {
+  // If no external progress, use an internal indeterminate timer that caps at 0.85
+  const [internalPct, setInternalPct] = React.useState(0);
+  React.useEffect(() => {
+    if (progress != null) return; // external progress drives the ring
+    let raf: number;
+    const start = Date.now();
+    const tick = () => {
+      const elapsed = (Date.now() - start) / 1000;
+      // Fast at first, asymptotically approaches 0.85 — never reaches 1.0
+      const pct = 0.85 * (1 - Math.exp(-elapsed / 12));
+      setInternalPct(pct);
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [progress]);
+
+  const pct = progress != null ? progress : internalPct;
+  const circumference = 2 * Math.PI * 44; // ~276.46
+  const offset = circumference * (1 - pct);
+
   const msgs = [
     'Analyzing your fitness profile...',
     'Selecting optimal exercises...',
@@ -161,30 +182,28 @@ export const GeneratingPlanOverlay: React.FC = () => {
       {/* Animated ring */}
       <div className="relative w-28 h-28 mb-10">
         <svg className="w-full h-full" viewBox="0 0 100 100">
-          <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(168,85,247,0.1)" strokeWidth="4" />
-          <motion.circle
+          <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(0,210,255,0.1)" strokeWidth="4" />
+          <circle
             cx="50" cy="50" r="44" fill="none"
-            stroke="rgba(168,85,247,0.8)" strokeWidth="4"
+            stroke="var(--color-neon, #00d2ff)" strokeWidth="4"
             strokeLinecap="round"
-            strokeDasharray="276"
-            initial={{ strokeDashoffset: 276, rotate: -90 }}
-            animate={{ strokeDashoffset: [276, 220, 210, 140, 135, 80, 50, 45, 0] }}
-            transition={{ duration: 8, times: [0, 0.1, 0.25, 0.35, 0.5, 0.6, 0.75, 0.88, 1], ease: 'easeInOut' }}
-            style={{ transformOrigin: '50% 50%', rotate: -90 }}
+            strokeDasharray={circumference}
+            strokeDashoffset={offset}
+            style={{ transformOrigin: '50% 50%', transform: 'rotate(-90deg)', transition: 'stroke-dashoffset 0.4s ease-out' }}
           />
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
           <motion.div animate={{ scale: [1, 1.15, 1] }} transition={{ duration: 1.8, repeat: Infinity }}>
-            <Sparkles size={32} className="text-purple-400" />
+            <Sparkles size={32} className="text-[#00d2ff]" />
           </motion.div>
         </div>
       </div>
-      <div className="text-[10px] font-black text-purple-400 uppercase tracking-[0.3em] mb-4">ForgeGuard AI</div>
+      <div className="text-[10px] font-black text-[#00d2ff] uppercase tracking-[0.3em] mb-4">ForgeGuard AI</div>
       <div className="text-xl font-black text-white mb-3 tracking-tight">Crafting Your Protocol</div>
       <GeneratingMessage messages={msgs} />
       <div className="flex gap-1.5 mt-6">
         {[0,1,2,3,4].map(i => (
-          <motion.div key={i} className="w-1.5 h-1.5 rounded-full bg-purple-500"
+          <motion.div key={i} className="w-1.5 h-1.5 rounded-full bg-[#00d2ff]"
             animate={{ opacity: [0.3, 1, 0.3], scale: [0.8, 1.2, 0.8] }}
             transition={{ duration: 1.2, delay: i * 0.2, repeat: Infinity }}
           />

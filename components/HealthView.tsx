@@ -89,6 +89,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
 }) => {
   const [viewMode, setViewMode] = useState<'MAP' | 'OVERVIEW' | 'ACTIVE' | 'SETUP' | 'PROCESSING' | 'DIAGNOSIS' | 'PROJECTION' | 'FINALIZING' | 'PLAN_SELECT'>('MAP');
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
+  const [genProgress, setGenProgress] = useState(0);
   const [showAIConfirm, setShowAIConfirm] = useState(false);
   const [aiPlanError, setAiPlanError] = useState<string | null>(null);
   const [planCompleteData, setPlanCompleteData] = useState<{ name: string; dayCount: number } | null>(null);
@@ -472,6 +473,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
       }
       setAiPlanError(null);
       setIsGeneratingPlan(true);
+      setGenProgress(0);
       setShowAIConfirm(false);
       try {
           const profile = healthProfile || formData;
@@ -541,6 +543,9 @@ export const HealthView: React.FC<HealthViewProps> = ({
               }
           } catch (_) {}
           // Show confetti completion screen
+          setGenProgress(1);
+          // Brief delay so user sees 100% before transitioning
+          await new Promise(r => setTimeout(r, 600));
           setPlanCompleteData({ name: planName, dayCount: planDays.length });
       } catch (err: any) {
           console.error('AI plan generation error:', err);
@@ -795,7 +800,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
 
   if (viewMode === 'FINALIZING') return <FinalizingView finalizingLog={finalizingLog} />;
 
-  if (isGeneratingPlan) return <GeneratingPlanOverlay />;
+  if (isGeneratingPlan) return <GeneratingPlanOverlay progress={genProgress === 1 ? 1 : undefined} />;
 
   if (planCompleteData) return (
     <PlanCompleteView
