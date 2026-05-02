@@ -69,6 +69,28 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
     '#C8A84E'
   );
 
+  // ── Generate lighter/darker shades of any hex color for confetti variety ──
+  const colorShade = (hex: string, pct: number): string => {
+    const num = parseInt(hex.replace('#', ''), 16);
+    const r = Math.min(255, Math.max(0, ((num >> 16) & 0xff) + Math.round(255 * pct)));
+    const g = Math.min(255, Math.max(0, ((num >> 8) & 0xff) + Math.round(255 * pct)));
+    const b = Math.min(255, Math.max(0, (num & 0xff) + Math.round(255 * pct)));
+    return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
+  };
+
+  // Dynamic confetti palette: glow-derived colors + constant greys
+  const confettiColors = [
+    glowColor,
+    colorShade(glowColor, 0.15),   // lighter
+    colorShade(glowColor, -0.12),  // darker
+    '#c0c0c0', '#808080', '#d4d4d4', '#ffffff',  // greys stay constant
+  ];
+  const confettiColorsCenter = [
+    colorShade(glowColor, 0.15),
+    '#d4d4d4', '#ffffff',
+    glowColor,
+  ];
+
   // ── Sun ray starburst gradient (12 thick beams) ──
   const sunRayGradient = (() => {
     const beams = 12;
@@ -154,14 +176,13 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
             onComplete: () => {
               // ── MEGA Confetti celebration burst ──
               const fire = confettiInstanceRef.current || confetti;
-              const cyanGrey = ['#7EB8D4', '#9ACDE3', '#5a9ab5', '#c0c0c0', '#808080', '#d4d4d4', '#ffffff'];
               // Left corner burst — 3× bigger
               fire({
                 particleCount: 150,
                 angle: 55,
                 spread: 75,
                 origin: { x: 0.05, y: 1 },
-                colors: cyanGrey,
+                colors: confettiColors,
                 startVelocity: 50,
                 gravity: 0.9,
                 drift: 0.5,
@@ -171,13 +192,12 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
                 shapes: ['circle', 'square'],
                 disableForReducedMotion: true,
               });
-              // Right corner burst — 3× bigger
               fire({
                 particleCount: 150,
                 angle: 125,
                 spread: 75,
                 origin: { x: 0.95, y: 1 },
-                colors: cyanGrey,
+                colors: confettiColors,
                 startVelocity: 50,
                 gravity: 0.9,
                 drift: -0.5,
@@ -194,7 +214,7 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
                   particleCount: 60,
                   spread: 100,
                   origin: { x: 0.5, y: 0.55 },
-                  colors: ['#9ACDE3', '#d4d4d4', '#ffffff', '#7EB8D4'],
+                  colors: confettiColorsCenter,
                   startVelocity: 28,
                   gravity: 0.8,
                   scalar: 1.3,
@@ -212,7 +232,7 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
                   angle: 60,
                   spread: 55,
                   origin: { x: 0.1, y: 0.8 },
-                  colors: cyanGrey,
+                  colors: confettiColors,
                   startVelocity: 35,
                   gravity: 0.85,
                   scalar: 1.4,
@@ -226,7 +246,7 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
                   angle: 120,
                   spread: 55,
                   origin: { x: 0.9, y: 0.8 },
-                  colors: cyanGrey,
+                  colors: confettiColors,
                   startVelocity: 35,
                   gravity: 0.85,
                   scalar: 1.4,
@@ -244,7 +264,7 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
                   angle: 270,
                   spread: 120,
                   origin: { x: 0.5, y: -0.1 },
-                  colors: ['#7EB8D4', '#9ACDE3', '#ffffff', '#d4d4d4'],
+                  colors: confettiColorsCenter,
                   startVelocity: 25,
                   gravity: 1.2,
                   scalar: 1.2,

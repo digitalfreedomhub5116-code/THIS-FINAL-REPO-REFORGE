@@ -649,6 +649,7 @@ const ShopView: React.FC<ShopViewProps> = ({
                 }}
                 onInfo={() => setKitInfoItem(item)}
                 onView={() => setKitInfoItem(item)}
+                onCardClick={() => setKitInfoItem(item)}
               />
             </div>
           ))}
@@ -893,7 +894,20 @@ const ShopView: React.FC<ShopViewProps> = ({
 
       {/* ── BORDER PREVIEW MODAL ── */}
       {kitInfoItem && kitInfoItem.category === 'border' && (
-        <KitBorderPreviewModal item={kitInfoItem} onClose={() => setKitInfoItem(null)} />
+        <KitBorderPreviewModal
+          item={kitInfoItem}
+          onClose={() => setKitInfoItem(null)}
+          owned={DEV_UNLOCK_ALL || kitEconomy.owned.includes(kitInfoItem.id)}
+          equipped={kitEconomy.equipped.border === kitInfoItem.id}
+          canAfford={DEV_UNLOCK_ALL || gold >= kitInfoItem.price}
+          onBuy={() => { setKitInfoItem(null); setConfirmPurchaseItem(kitInfoItem); }}
+          onEquip={() => {
+            setKitInfoItem(null);
+            setEquipAnimItem(kitInfoItem);
+            setShowEquipAnim(true);
+            handleKitEquip('border', kitInfoItem.id);
+          }}
+        />
       )}
 
       {/* ── CONFIRM PURCHASE MODAL ── */}
@@ -1030,10 +1044,10 @@ const KIT_CAT_COLORS: Record<string, string> = {
   border: '#7EB8D4', theme: '#8B5CF6', deals: '#F59E0B', banner: '#06B6D4', consumable: '#22C55E', title: '#F59E0B',
 };
 
-function KitGlowCard({ item, discount, owned, equipped, canAfford, onBuy, onEquip, onInfo, onView, dealColor }: {
+function KitGlowCard({ item, discount, owned, equipped, canAfford, onBuy, onEquip, onInfo, onView, onCardClick, dealColor }: {
   item: KitStoreItem; discount?: number; owned?: boolean; equipped?: boolean;
   canAfford: boolean; onBuy: () => void; onEquip?: () => void; onInfo?: () => void; onView?: () => void;
-  dealColor?: string;
+  onCardClick?: () => void; dealColor?: string;
 }) {
   const catColor = dealColor || KIT_CAT_COLORS[item.category] || '#7EB8D4';
   const finalPrice = discount ? Math.round(item.price * (1 - discount / 100)) : item.price;
@@ -1042,8 +1056,9 @@ function KitGlowCard({ item, discount, owned, equipped, canAfford, onBuy, onEqui
 
   return (
     /* Layer 1: Outer Glow Wrapper */
-    <div style={{
+    <div onClick={() => { if (item.category === 'border' && onCardClick) onCardClick(); }} style={{
       filter: `drop-shadow(0 0 12px ${catColor}40) drop-shadow(0 4px 16px rgba(0,0,0,0.6))`,
+      cursor: item.category === 'border' ? 'pointer' : undefined,
     }}>
       {/* Layer 2: Gradient Border Frame (3px visible border) */}
       <div style={{
@@ -1306,7 +1321,11 @@ function KitThemePreviewModal({ item, onClose }: { item: KitStoreItem; onClose: 
 /* ═══════════════════════════════════
    KitBorderPreviewModal
    ═══════════════════════════════════ */
-function KitBorderPreviewModal({ item, onClose }: { item: KitStoreItem; onClose: () => void }) {
+function KitBorderPreviewModal({ item, onClose, owned, equipped, canAfford, onBuy, onEquip }: {
+  item: KitStoreItem; onClose: () => void;
+  owned?: boolean; equipped?: boolean; canAfford?: boolean;
+  onBuy?: () => void; onEquip?: () => void;
+}) {
   const glow = item.borderConfig?.glowColor || item.auraConfig?.colors?.[0] || '#C8A84E';
   const size = 200;
 
@@ -1369,10 +1388,45 @@ function KitBorderPreviewModal({ item, onClose }: { item: KitStoreItem; onClose:
           {item.description}
         </div>
 
+        {/* ── Action Buttons ── */}
+        <div style={{ display: 'flex', gap: 10, marginTop: 28, width: '100%', justifyContent: 'center' }}>
+          {owned ? (
+            onEquip ? (
+              <button onClick={onEquip} style={{
+                padding: '12px 36px', borderRadius: 14, cursor: 'pointer', border: 'none',
+                background: equipped ? `linear-gradient(135deg, ${glow}, ${glow}CC)` : 'rgba(255,255,255,0.08)',
+                color: equipped ? '#000' : glow,
+                fontSize: 13, fontWeight: 900, letterSpacing: 0.5,
+                boxShadow: equipped ? `0 0 20px ${glow}50` : 'none',
+                transition: 'all 0.2s',
+              }}>
+                {equipped ? '✓ EQUIPPED' : 'EQUIP'}
+              </button>
+            ) : (
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#22C55E' }}>✓ Owned</span>
+            )
+          ) : onBuy ? (
+            <button onClick={onBuy} disabled={!canAfford} style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              padding: '12px 32px', borderRadius: 14, cursor: canAfford ? 'pointer' : 'default',
+              background: canAfford ? `linear-gradient(135deg, ${glow}50, ${glow}25)` : 'rgba(255,255,255,0.04)',
+              border: canAfford ? `2px solid ${glow}80` : '2px solid rgba(255,255,255,0.08)',
+              color: canAfford ? '#fff' : 'rgba(255,255,255,0.35)',
+              fontSize: 14, fontWeight: 900,
+              boxShadow: canAfford ? `0 0 16px ${glow}30` : 'none',
+              transition: 'all 0.2s', opacity: canAfford ? 1 : 0.5,
+            }}>
+              <Lock size={14} color={canAfford ? '#fbbf24' : '#555'} />
+              <SystemCoin size={22} />
+              <span>{item.price}</span>
+            </button>
+          ) : null}
+        </div>
+
         <button onClick={onClose} style={{
-          marginTop: 32, padding: '10px 36px', borderRadius: 12,
-          background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
-          color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+          marginTop: 16, padding: '8px 28px', borderRadius: 12,
+          background: 'transparent', border: '1px solid rgba(255,255,255,0.1)',
+          color: 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: 600, cursor: 'pointer',
         }}>
           Close
         </button>
