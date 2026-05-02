@@ -564,7 +564,7 @@ const ShopView: React.FC<ShopViewProps> = ({
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, padding: '0 16px', overflow: 'hidden' }}>
           {getTodaysDeals(4).map(d => (
             <div key={d.item.id}>
-              <KitGlowCard item={d.item} discount={d.discount} dealColor="#F59E0B"
+               <KitGlowCard item={d.item} discount={d.discount}
                 owned={DEV_UNLOCK_ALL || kitEconomy.owned.includes(d.item.id)}
                 equipped={kitEconomy.equipped[d.item.category as keyof EquippedItems] === d.item.id}
                 canAfford={DEV_UNLOCK_ALL || gold >= Math.round(d.item.price * (1 - d.discount / 100))}
@@ -630,11 +630,11 @@ const ShopView: React.FC<ShopViewProps> = ({
       {/* ── Tier 1: Elements ── */}
       <section>
         <div className="store-section-hdr">
-          <div className="hdr-icon" style={{ background: 'rgba(0,191,255,0.12)', border: '1px solid rgba(0,191,255,0.2)' }}>
-            <Flame size={15} style={{ color: '#00BFFF' }} />
+          <div className="hdr-icon" style={{ background: 'rgba(91,159,230,0.12)', border: '1px solid rgba(91,159,230,0.2)' }}>
+            <Flame size={15} style={{ color: '#5B9FE6' }} />
           </div>
           <span className="hdr-title">Elements</span>
-          <span style={{ fontSize: 8, fontFamily: 'monospace', color: 'rgba(255,255,255,0.3)', padding: '2px 8px', background: 'rgba(0,191,255,0.06)', borderRadius: 6, border: '1px solid rgba(0,191,255,0.1)' }}>NATURE · ICE · FIRE</span>
+          <span style={{ fontSize: 8, fontFamily: 'monospace', color: 'rgba(255,255,255,0.3)', padding: '2px 8px', background: 'rgba(91,159,230,0.06)', borderRadius: 6, border: '1px solid rgba(91,159,230,0.1)' }}>NATURE · ICE · FIRE</span>
           <div className="hdr-line" />
         </div>
         <div className="store-hscroll">
@@ -662,11 +662,11 @@ const ShopView: React.FC<ShopViewProps> = ({
       {/* ── Tier 2: Beasts ── */}
       <section>
         <div className="store-section-hdr">
-          <div className="hdr-icon" style={{ background: 'rgba(200,168,78,0.12)', border: '1px solid rgba(200,168,78,0.2)' }}>
-            <Shield size={15} style={{ color: '#C8A84E' }} />
+          <div className="hdr-icon" style={{ background: 'rgba(139,149,165,0.12)', border: '1px solid rgba(139,149,165,0.2)' }}>
+            <Shield size={15} style={{ color: '#8B95A5' }} />
           </div>
           <span className="hdr-title">Beasts</span>
-          <span style={{ fontSize: 8, fontFamily: 'monospace', color: 'rgba(255,255,255,0.3)', padding: '2px 8px', background: 'rgba(200,168,78,0.06)', borderRadius: 6, border: '1px solid rgba(200,168,78,0.1)' }}>DRAGONS · LIONS · EAGLES</span>
+          <span style={{ fontSize: 8, fontFamily: 'monospace', color: 'rgba(255,255,255,0.3)', padding: '2px 8px', background: 'rgba(139,149,165,0.06)', borderRadius: 6, border: '1px solid rgba(139,149,165,0.1)' }}>DRAGONS · LIONS · EAGLES</span>
           <div className="hdr-line" />
         </div>
         <div className="store-hscroll">
@@ -694,11 +694,11 @@ const ShopView: React.FC<ShopViewProps> = ({
       {/* ── Tier 3: Shields ── */}
       <section>
         <div className="store-section-hdr">
-          <div className="hdr-icon" style={{ background: 'rgba(192,192,192,0.12)', border: '1px solid rgba(192,192,192,0.2)' }}>
-            <Hexagon size={15} style={{ color: '#C0C0C0' }} />
+          <div className="hdr-icon" style={{ background: 'rgba(212,146,10,0.12)', border: '1px solid rgba(212,146,10,0.2)' }}>
+            <Hexagon size={15} style={{ color: '#D4920A' }} />
           </div>
           <span className="hdr-title">Shields</span>
-          <span style={{ fontSize: 8, fontFamily: 'monospace', color: 'rgba(255,255,255,0.3)', padding: '2px 8px', background: 'rgba(192,192,192,0.06)', borderRadius: 6, border: '1px solid rgba(192,192,192,0.1)' }}>ARMOR · RUNES · VANGUARD</span>
+          <span style={{ fontSize: 8, fontFamily: 'monospace', color: 'rgba(255,255,255,0.3)', padding: '2px 8px', background: 'rgba(212,146,10,0.06)', borderRadius: 6, border: '1px solid rgba(212,146,10,0.1)' }}>ARMOR · RUNES · VANGUARD</span>
           <div className="hdr-line" />
         </div>
         <div className="store-hscroll">
@@ -726,11 +726,11 @@ const ShopView: React.FC<ShopViewProps> = ({
       {/* ── Tier 4: Exclusive (Glow) ── */}
       <section>
         <div className="store-section-hdr">
-          <div className="hdr-icon" style={{ background: 'rgba(168,85,247,0.15)', border: '1px solid rgba(168,85,247,0.3)', boxShadow: '0 0 12px rgba(168,85,247,0.15)' }}>
-            <Star size={15} style={{ color: '#A855F7' }} />
+          <div className="hdr-icon" style={{ background: 'rgba(155,93,229,0.15)', border: '1px solid rgba(155,93,229,0.3)', boxShadow: '0 0 12px rgba(155,93,229,0.15)' }}>
+            <Star size={15} style={{ color: '#9B5DE5' }} />
           </div>
-          <span className="hdr-title" style={{ background: 'linear-gradient(90deg, #A855F7, #EAB308)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Exclusive</span>
-          <span style={{ fontSize: 8, fontFamily: 'monospace', color: '#A855F7', padding: '2px 8px', background: 'rgba(168,85,247,0.08)', borderRadius: 6, border: '1px solid rgba(168,85,247,0.15)' }}>✦ GLOW EFFECT</span>
+          <span className="hdr-title" style={{ background: 'linear-gradient(90deg, #9B5DE5, #EAB308)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Exclusive</span>
+          <span style={{ fontSize: 8, fontFamily: 'monospace', color: '#9B5DE5', padding: '2px 8px', background: 'rgba(155,93,229,0.08)', borderRadius: 6, border: '1px solid rgba(155,93,229,0.15)' }}>✦ GLOW EFFECT</span>
           <div className="hdr-line" />
         </div>
         <div className="store-hscroll">
@@ -1148,7 +1148,7 @@ function KitGlowCard({ item, discount, owned, equipped, canAfford, onBuy, onEqui
   canAfford: boolean; onBuy: () => void; onEquip?: () => void; onInfo?: () => void; onView?: () => void;
   onCardClick?: () => void; dealColor?: string;
 }) {
-  const catColor = dealColor || KIT_CAT_COLORS[item.category] || '#00d4ff';
+  const catColor = item.tierColor || dealColor || KIT_CAT_COLORS[item.category] || '#00d4ff';
   const finalPrice = discount ? Math.round(item.price * (1 - discount / 100)) : item.price;
   const chipSize = 14;
   const clipPath = `polygon(0 0, calc(100% - ${chipSize}px) 0, 100% ${chipSize}px, 100% 100%, ${chipSize}px 100%, 0 calc(100% - ${chipSize}px))`;
