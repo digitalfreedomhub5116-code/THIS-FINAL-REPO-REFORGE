@@ -1126,7 +1126,7 @@ function KitGlowCard({ item, discount, owned, equipped, canAfford, onBuy, onEqui
                 )}
               </div>
             ) : item.category === 'border' && item.lottieBorder ? (
-              <StoreLottieBorder src={item.lottieBorder} glow={item.borderConfig?.glowColor || 'rgba(200,168,78,0.3)'} />
+              <StoreLottieBorder src={item.lottieBorder} glow={item.borderConfig?.glowColor || '#C8A84E'} />
             ) : item.category === 'border' && item.auraConfig ? (
               /* ── BORDER: CSS Aura glow (full spec) ── */
               <div style={{ position: 'relative', width: 110, height: 110, overflow: 'visible' }}>
@@ -1289,7 +1289,7 @@ function KitThemePreviewModal({ item, onClose }: { item: KitStoreItem; onClose: 
    KitBorderPreviewModal
    ═══════════════════════════════════ */
 function KitBorderPreviewModal({ item, onClose }: { item: KitStoreItem; onClose: () => void }) {
-  const glow = item.borderConfig?.glowColor || item.auraConfig?.colors?.[0] || 'rgba(200,168,78,0.4)';
+  const glow = item.borderConfig?.glowColor || item.auraConfig?.colors?.[0] || '#C8A84E';
   const size = 200;
 
   return (

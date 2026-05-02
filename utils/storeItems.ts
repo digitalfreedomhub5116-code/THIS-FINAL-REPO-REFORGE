@@ -75,13 +75,13 @@ const BORDERS: StoreItem[] = [
     description: 'Frozen crystalline frost wrapping your avatar.',
     imageBorder: '/borders/ice-transparent.webp',
     imageAnimated: true,
-    borderConfig: { colors: ['#00BFFF', '#E0FFFF'], strokeWidth: 3, animated: false, glowColor: 'rgba(0,191,255,0.4)', glowIntensity: 0.6 },
+    borderConfig: { colors: ['#00BFFF', '#E0FFFF'], strokeWidth: 3, animated: false, glowColor: '#00BFFF', glowIntensity: 0.6 },
   },
   {
     id: 'border-dragon-img', name: 'Dragon Coil', category: 'border', tier: 'legendary', price: 1200,
     description: 'A mythic water dragon coils around your profile.',
     imageBorder: '/borders/dragon.webp',
-    borderConfig: { colors: ['#60A5FA', '#93C5FD'], strokeWidth: 3, animated: false, glowColor: 'rgba(96,165,250,0.4)', glowIntensity: 0.7 },
+    borderConfig: { colors: ['#60A5FA', '#93C5FD'], strokeWidth: 3, animated: false, glowColor: '#60A5FA', glowIntensity: 0.7 },
   },
   {
     id: 'border-starcrown-img', name: 'Star Crown', category: 'border', tier: 'premium', price: 900,
@@ -89,13 +89,13 @@ const BORDERS: StoreItem[] = [
     imageBorder: '/borders/rotate.webp',
     imageAnimated: true,
     imageAnimationType: 'pulse',
-    borderConfig: { colors: ['#E2E8F0', '#94A3B8'], strokeWidth: 3, animated: false, glowColor: 'rgba(226,232,240,0.4)', glowIntensity: 0.5 },
+    borderConfig: { colors: ['#E2E8F0', '#94A3B8'], strokeWidth: 3, animated: false, glowColor: '#E2E8F0', glowIntensity: 0.5 },
   },
   {
     id: 'border-shadowthrone-img', name: 'Shadow Throne', category: 'border', tier: 'legendary', price: 1500,
     description: 'Ornate dark-magic thorns weaving a royal frame.',
     imageBorder: '/borders/purple.webp',
-    borderConfig: { colors: ['#C084FC', '#A855F7'], strokeWidth: 3, animated: false, glowColor: 'rgba(192,132,252,0.4)', glowIntensity: 0.7 },
+    borderConfig: { colors: ['#C084FC', '#A855F7'], strokeWidth: 3, animated: false, glowColor: '#C084FC', glowIntensity: 0.7 },
   },
 
 
@@ -105,7 +105,7 @@ const BORDERS: StoreItem[] = [
     id: 'border-lottie-celestial', name: 'Celestial Flame', category: 'border', tier: 'legendary', price: 4500,
     description: 'A mesmerizing animated flame ring from another realm.',
     lottieBorder: '/borders/lottie-border.json',
-    borderConfig: { colors: ['#F59E0B', '#EF4444', '#C8A84E'], strokeWidth: 3, animated: false, glowColor: 'rgba(245,158,11,0.5)', glowIntensity: 0.8 },
+    borderConfig: { colors: ['#F59E0B', '#EF4444', '#C8A84E'], strokeWidth: 3, animated: false, glowColor: '#F59E0B', glowIntensity: 0.8 },
   },
 
   {
@@ -113,20 +113,20 @@ const BORDERS: StoreItem[] = [
     description: 'Japanese waves and sacred flames entwine around your avatar.',
     imageBorder: '/borders/border-mixed.webp',
     imageScale: 0.9,
-    borderConfig: { colors: ['#1E90FF', '#FF6347', '#C8A84E'], strokeWidth: 3, animated: false, glowColor: 'rgba(30,144,255,0.4)', glowIntensity: 0.7 },
+    borderConfig: { colors: ['#1E90FF', '#FF6347', '#C8A84E'], strokeWidth: 3, animated: false, glowColor: '#1E90FF', glowIntensity: 0.7 },
   },
   {
     id: 'border-gold-dragon', name: 'Gold Dragon', category: 'border', tier: 'legendary', price: 5500,
     description: 'An ancient golden dragon coils around your avatar — ultimate power.',
     imageBorder: '/borders/border-golddragon.webp',
-    borderConfig: { colors: ['#C8A84E', '#F59E0B', '#DAA520'], strokeWidth: 3, animated: false, glowColor: 'rgba(200,168,78,0.5)', glowIntensity: 0.8 },
+    borderConfig: { colors: ['#C8A84E', '#F59E0B', '#DAA520'], strokeWidth: 3, animated: false, glowColor: '#C8A84E', glowIntensity: 0.8 },
   },
   {
     id: 'border-gold-lion', name: 'Gold Lion', category: 'border', tier: 'legendary', price: 4800,
     description: 'A majestic golden lion crowns your avatar — royalty unleashed.',
     imageBorder: '/borders/border-goldlion.webp',
     imageScale: 1.5,
-    borderConfig: { colors: ['#C8A84E', '#0E8585', '#DAA520'], strokeWidth: 3, animated: false, glowColor: 'rgba(200,168,78,0.45)', glowIntensity: 0.8 },
+    borderConfig: { colors: ['#C8A84E', '#0E8585', '#DAA520'], strokeWidth: 3, animated: false, glowColor: '#C8A84E', glowIntensity: 0.8 },
   },
   {
     id: 'border-gold-eagle', name: 'Golden Eagle', category: 'border', tier: 'legendary', price: 6200,
@@ -134,28 +134,28 @@ const BORDERS: StoreItem[] = [
     imageBorder: '/borders/border-eagle.webp',
     imageScale: 1.4,
     imageOffsetY: 5,
-    borderConfig: { colors: ['#B87333', '#C8A84E', '#DAA520'], strokeWidth: 3, animated: false, glowColor: 'rgba(184,115,51,0.5)', glowIntensity: 0.8 },
+    borderConfig: { colors: ['#B87333', '#C8A84E', '#DAA520'], strokeWidth: 3, animated: false, glowColor: '#B87333', glowIntensity: 0.8 },
   },
   {
     id: 'border-phoenix', name: 'Phoenix Blaze', category: 'border', tier: 'legendary', price: 7400,
     description: 'A golden phoenix rises from the flames — reborn in glory.',
     imageBorder: '/borders/border-phoenix.webp',
     imageScale: 1.05,
-    borderConfig: { colors: ['#DAA520', '#FF8C00', '#FFD700'], strokeWidth: 3, animated: false, glowColor: 'rgba(218,165,32,0.5)', glowIntensity: 0.8 },
+    borderConfig: { colors: ['#DAA520', '#FF8C00', '#FFD700'], strokeWidth: 3, animated: false, glowColor: '#DAA520', glowIntensity: 0.8 },
   },
   {
     id: 'border-stitched-dragon', name: 'Stitched Dragon', category: 'border', tier: 'legendary', price: 3600,
     description: 'A crimson dragon coils in stitched leather and gold — ancient fury.',
     imageBorder: '/borders/border-stitched-dragon.webp',
     imageScale: 1.08,
-    borderConfig: { colors: ['#8B0000', '#C8A84E', '#FF4500'], strokeWidth: 3, animated: false, glowColor: 'rgba(139,0,0,0.5)', glowIntensity: 0.8 },
+    borderConfig: { colors: ['#8B0000', '#C8A84E', '#FF4500'], strokeWidth: 3, animated: false, glowColor: '#8B0000', glowIntensity: 0.8 },
   },
   {
     id: 'border-frost-tech', name: 'Frost Tech', category: 'border', tier: 'legendary', price: 8900,
     description: 'Cryo-tech crystals and snowflakes forge a futuristic ice frame.',
     imageBorder: '/borders/border-frost-tech.webp',
     imageScale: 1.1,
-    borderConfig: { colors: ['#00CED1', '#87CEEB', '#E0FFFF'], strokeWidth: 3, animated: false, glowColor: 'rgba(0,206,209,0.5)', glowIntensity: 0.8 },
+    borderConfig: { colors: ['#00CED1', '#87CEEB', '#E0FFFF'], strokeWidth: 3, animated: false, glowColor: '#00CED1', glowIntensity: 0.8 },
   },
 ];
 
@@ -165,32 +165,32 @@ const STREAK_BORDERS: StoreItem[] = [
     id: 'border-streak-silver', name: 'Forged in Fire', category: 'border', tier: 'special', price: 0,
     description: '14-day streak milestone — silver frost ring of dedication.',
     imageBorder: '/borders/border-streak-silver.webp',
-    borderConfig: { colors: ['#C0C0C0', '#E0E0E0'], strokeWidth: 3, animated: false, glowColor: 'rgba(192,192,192,0.4)', glowIntensity: 0.6 },
+    borderConfig: { colors: ['#C0C0C0', '#E0E0E0'], strokeWidth: 3, animated: false, glowColor: '#C0C0C0', glowIntensity: 0.6 },
   },
   {
     id: 'border-streak-gold', name: 'Iron Will', category: 'border', tier: 'premium', price: 0,
     description: '30-day streak milestone — golden rune ring of iron will.',
     imageBorder: '/borders/border-streak-gold.webp',
-    borderConfig: { colors: ['#EAB308', '#F59E0B'], strokeWidth: 3, animated: false, glowColor: 'rgba(234,179,8,0.5)', glowIntensity: 0.7 },
+    borderConfig: { colors: ['#EAB308', '#F59E0B'], strokeWidth: 3, animated: false, glowColor: '#EAB308', glowIntensity: 0.7 },
   },
   {
     id: 'border-streak-inferno', name: 'Inferno', category: 'border', tier: 'legendary', price: 0,
     description: '60-day streak milestone — cyan inferno flames of relentless dedication.',
     imageBorder: '/borders/border-streak-inferno.webp',
-    borderConfig: { colors: ['#7EB8D4', '#06B6D4'], strokeWidth: 3, animated: false, glowColor: 'rgba(126,184,212,0.5)', glowIntensity: 0.8 },
+    borderConfig: { colors: ['#7EB8D4', '#06B6D4'], strokeWidth: 3, animated: false, glowColor: '#7EB8D4', glowIntensity: 0.8 },
   },
   {
     id: 'border-streak-eternal', name: 'Eternal Flame', category: 'border', tier: 'legendary', price: 0,
     description: '100-day streak milestone — purple arcane flames of eternal power.',
     imageBorder: '/borders/border-streak-eternal.webp',
-    borderConfig: { colors: ['#A855F7', '#7C3AED'], strokeWidth: 3, animated: false, glowColor: 'rgba(168,85,247,0.5)', glowIntensity: 0.9 },
+    borderConfig: { colors: ['#A855F7', '#7C3AED'], strokeWidth: 3, animated: false, glowColor: '#A855F7', glowIntensity: 0.9 },
   },
   {
     id: 'border-streak-legendary', name: 'Legendary', category: 'border', tier: 'legendary', price: 0,
     description: '365-day streak milestone — divine golden ring of legendary status.',
     imageBorder: '/borders/border-streak-legendary.webp',
     imageScale: 1.05,
-    borderConfig: { colors: ['#EAB308', '#A855F7', '#EF4444'], strokeWidth: 3, animated: false, glowColor: 'rgba(234,179,8,0.6)', glowIntensity: 1.0 },
+    borderConfig: { colors: ['#EAB308', '#A855F7', '#EF4444'], strokeWidth: 3, animated: false, glowColor: '#EAB308', glowIntensity: 1.0 },
   },
 ];
 

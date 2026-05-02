@@ -54,7 +54,7 @@ const AvatarWithBorder: React.FC<AvatarWithBorderProps> = ({
   // ── Image border (PNG wrapping avatar) ──
   if (hasImageBorder && storeItem) {
     const cfg = storeItem.borderConfig;
-    const glow = cfg?.glowColor || 'rgba(126,184,212,0.3)';
+    const glow = cfg?.glowColor || '#7EB8D4';
     const scale = storeItem.imageScale || 1.0;
     const outerSize = size + 20;
     const borderImgSize = outerSize * scale;

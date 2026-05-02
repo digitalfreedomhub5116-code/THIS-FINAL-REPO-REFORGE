@@ -36,10 +36,20 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
   const tlRef = useRef<gsap.core.Timeline | null>(null);
   const [visible, setVisible] = useState(false);
 
-  const glowColor = borderItem?.auraConfig?.colors?.[0] ||
+  // ── Normalize any color (rgba/rgb/hex) to #RRGGBB hex so suffix patterns like ${color}55 produce valid CSS ──
+  const toHex = (c: string): string => {
+    if (c.startsWith('#')) return c.length > 7 ? c.slice(0, 7) : c; // strip 8-digit alpha
+    const m = c.match(/rgba?\(\s*(\d+),\s*(\d+),\s*(\d+)/);
+    if (m) return '#' + [m[1], m[2], m[3]].map(v => parseInt(v).toString(16).padStart(2, '0')).join('');
+    return '#C8A84E'; // fallback gold
+  };
+
+  const glowColor = toHex(
+    borderItem?.auraConfig?.colors?.[0] ||
     borderItem?.borderConfig?.glowColor ||
     borderItem?.borderConfig?.colors?.[0] ||
-    '#C8A84E';
+    '#C8A84E'
+  );
 
   // ── Sun ray starburst gradient (12 thick beams) ──
   const sunRayGradient = (() => {
