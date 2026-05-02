@@ -87,10 +87,10 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
 
         if (!overlay || !avatar || !btn || !label) return;
 
-        // Reset
+        // Reset — use xPercent/yPercent so GSAP centering doesn't conflict with translate
         gsap.set(overlay, { opacity: 0 });
-        gsap.set(avatar, { scale: 0, opacity: 0 });
-        if (border) gsap.set(border, { y: -200, scale: 1.4, opacity: 0 });
+        gsap.set(avatar, { scale: 0, opacity: 0, xPercent: -50, yPercent: -50 });
+        if (border) gsap.set(border, { y: -200, scale: 1.4, opacity: 0, xPercent: -50, yPercent: -50 });
         if (glow) gsap.set(glow, { scale: 0.3, opacity: 0 });
         gsap.set(label, { opacity: 0, y: 20 });
         gsap.set(btn, { opacity: 0, y: 20 });
@@ -102,16 +102,17 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
         // 1. Backdrop
         tl.to(overlay, { opacity: 1, duration: 0.4, ease: 'power2.out' });
 
-        // 2. PFP appears
+        // 2. PFP appears (keep centered)
         tl.to(avatar, {
           scale: 1, opacity: 1, duration: 0.5,
+          xPercent: -50, yPercent: -50,
           ease: 'back.out(1.7)',
         }, '-=0.1');
 
         // 3. Border STAMPS from above (comes down, snaps to place)
         if (border) {
           tl.to(border, {
-            y: 0, scale: 1, opacity: 1, duration: 0.45,
+            y: 0, scale: 1, opacity: 1, duration: 0.45, xPercent: -50, yPercent: -50,
             ease: 'back.out(2.5)',
             onComplete: () => {
               // ── MEGA Confetti celebration burst ──
@@ -254,10 +255,13 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
 
   const borderImgSrc = borderItem.imageBorder;
   const borderScale = borderItem.imageScale || 1.0;
-  const avatarSize = 120;
-  const borderSize = avatarSize + 44;
+  const avatarSize = 130;
+  const borderSize = avatarSize + 50;
   const isAnimated = borderItem.imageAnimated;
   const animType = (borderItem as any).imageAnimationType;
+
+  // The container must be large enough so the glow doesn't clip
+  const containerSize = Math.max(borderSize * borderScale, 240) + 60;
 
   return (
     <div
@@ -270,81 +274,90 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
         opacity: 0,
+        padding: '40px 0',
       }}
     >
-      {/* ── Avatar + Border container ── */}
+      {/* ── Avatar + Border + Glow container ── */}
       <div style={{
         position: 'relative',
-        width: borderSize * borderScale + 20,
-        height: borderSize * borderScale + 20,
+        width: containerSize,
+        height: containerSize,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
+        overflow: 'visible',
       }}>
-        {/* ── Sun Ray Starburst Glow (behind avatar, centered) ── */}
+        {/* ── Sun Ray Starburst Glow (behind everything) ── */}
         <div style={{
           position: 'absolute',
-          width: 420, height: 420,
+          width: 480, height: 480,
           top: '50%', left: '50%',
           transform: 'translate(-50%, -50%)',
           pointerEvents: 'none',
           zIndex: 0,
+          overflow: 'visible',
         }}>
           <div
             ref={glowRef}
             style={{
               width: '100%', height: '100%',
               borderRadius: '50%',
+              position: 'relative',
+              overflow: 'visible',
             }}
           >
             {/* Base radial glow */}
             <div style={{
               position: 'absolute', inset: 0,
               borderRadius: '50%',
-              background: `radial-gradient(circle, ${glowColor}55 0%, ${glowColor}25 45%, transparent 72%)`,
+              background: `radial-gradient(circle, ${glowColor}60 0%, ${glowColor}30 40%, transparent 70%)`,
             }} />
             {/* Rotating thick sun rays */}
             <div style={{
-              position: 'absolute', inset: '-25%',
+              position: 'absolute', inset: '-30%',
               background: sunRayGradient,
               borderRadius: '50%',
               animation: 'sunray-rotate 25s linear infinite',
               filter: 'blur(6px)',
-              opacity: 0.8,
+              opacity: 0.85,
             }} />
             {/* Inner bright glow */}
             <div style={{
-              position: 'absolute', inset: '15%',
+              position: 'absolute', inset: '12%',
               borderRadius: '50%',
-              background: `radial-gradient(circle, ${glowColor}50 0%, transparent 70%)`,
+              background: `radial-gradient(circle, ${glowColor}55 0%, transparent 65%)`,
             }} />
           </div>
         </div>
+
         {/* Avatar */}
         <div
           ref={avatarRef}
           style={{
-            position: 'absolute', width: avatarSize, height: avatarSize,
+            position: 'absolute',
+            top: '50%', left: '50%',
+            width: avatarSize, height: avatarSize,
             borderRadius: '50%', overflow: 'hidden',
             background: '#0d0d1a', zIndex: 10,
-            boxShadow: '0 0 30px rgba(0,0,0,0.7)',
+            boxShadow: `0 0 30px rgba(0,0,0,0.7), 0 0 60px ${glowColor}20`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
         >
           {avatarUrl ? (
             <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           ) : (
-            <svg width={72} height={72} viewBox="0 0 40 40">
+            <svg width={80} height={80} viewBox="0 0 40 40">
               <circle cx="20" cy="16" r="7" fill="#555568" />
               <ellipse cx="20" cy="35" rx="13" ry="10" fill="#4a4a5a" />
             </svg>
           )}
         </div>
 
-        {/* Border image — stamps from above */}
+        {/* Border image — stamps from above, properly centered */}
         {borderImgSrc && (
           <div
             ref={borderRef}
             style={{
               position: 'absolute',
+              top: '50%', left: '50%',
               width: borderSize * borderScale,
               height: borderSize * borderScale,
               zIndex: 11, pointerEvents: 'none',
@@ -355,8 +368,7 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
               src={borderImgSrc} alt=""
               style={{
                 width: '100%', height: '100%', objectFit: 'contain',
-                mixBlendMode: 'screen',
-                filter: `drop-shadow(0 0 12px ${glowColor}90)`,
+                filter: `drop-shadow(0 0 16px ${glowColor}AA)`,
                 animation: isAnimated
                   ? animType === 'pulse'
                     ? 'equip-breathe 2.5s ease-in-out infinite'
@@ -373,7 +385,8 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
             ref={borderRef}
             style={{
               position: 'absolute',
-              width: avatarSize + 18, height: avatarSize + 18,
+              top: '50%', left: '50%',
+              width: avatarSize + 22, height: avatarSize + 22,
               borderRadius: '50%', zIndex: 9,
               border: `3px solid ${borderItem.auraConfig.colors[0]}CC`,
               boxShadow: `0 0 8px ${borderItem.auraConfig.colors[0]}AA, 0 0 20px ${borderItem.auraConfig.colors[0]}60, 0 0 40px ${(borderItem.auraConfig.colors[1] || borderItem.auraConfig.colors[0])}30`,
@@ -388,7 +401,8 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
             ref={borderRef}
             style={{
               position: 'absolute',
-              width: avatarSize + 18, height: avatarSize + 18,
+              top: '50%', left: '50%',
+              width: avatarSize + 22, height: avatarSize + 22,
               borderRadius: '50%', zIndex: 9,
               border: `3px solid ${borderItem.borderConfig.glowColor || '#C8A84E'}`,
               boxShadow: `0 0 12px ${borderItem.borderConfig.glowColor || '#C8A84E'}60`,
@@ -398,35 +412,43 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
       </div>
 
       {/* ── Label ── */}
-      <div ref={labelRef} style={{ marginTop: 28, textAlign: 'center' }}>
+      <div ref={labelRef} style={{ marginTop: 32, textAlign: 'center' }}>
         <div style={{
-          fontSize: 12, fontWeight: 900, letterSpacing: '0.35em',
+          fontSize: 11, fontWeight: 900, letterSpacing: '0.35em',
           color: glowColor, textTransform: 'uppercase',
-          textShadow: `0 0 18px ${glowColor}80`,
-          marginBottom: 6, fontFamily: 'Inter, system-ui, sans-serif',
+          textShadow: `0 0 20px ${glowColor}90, 0 0 40px ${glowColor}40`,
+          marginBottom: 8, fontFamily: 'Inter, system-ui, sans-serif',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
         }}>
-          ✓ Equipped
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            width: 18, height: 18, borderRadius: '50%',
+            background: `${glowColor}25`, border: `1.5px solid ${glowColor}60`,
+          }}>✓</span>
+          Equipped
         </div>
         <div style={{
-          fontSize: 20, fontWeight: 900, color: '#fff',
-          textShadow: '0 2px 10px rgba(0,0,0,0.5)',
+          fontSize: 22, fontWeight: 900, color: '#fff',
+          textShadow: '0 2px 12px rgba(0,0,0,0.6)',
           fontFamily: 'Inter, system-ui, sans-serif',
+          letterSpacing: '0.02em',
         }}>
           {borderItem.name}
         </div>
       </div>
 
-      {/* ── Continue ── */}
+      {/* ── Continue Button ── */}
       <button
         ref={btnRef}
         onClick={handleComplete}
         style={{
-          marginTop: 28, padding: '13px 52px', borderRadius: 14,
-          background: `linear-gradient(135deg, ${glowColor}30, ${glowColor}12)`,
-          border: `1.5px solid ${glowColor}45`, color: '#fff',
-          fontSize: 13, fontWeight: 800, letterSpacing: '0.14em',
+          marginTop: 32, padding: '14px 56px', borderRadius: 16,
+          background: `linear-gradient(135deg, ${glowColor}40, ${glowColor}18)`,
+          border: `1.5px solid ${glowColor}50`, color: '#fff',
+          fontSize: 13, fontWeight: 800, letterSpacing: '0.18em',
           cursor: 'pointer', fontFamily: 'Inter, system-ui, sans-serif',
-          textTransform: 'uppercase', boxShadow: `0 0 18px ${glowColor}18`,
+          textTransform: 'uppercase',
+          boxShadow: `0 0 24px ${glowColor}25, 0 4px 20px rgba(0,0,0,0.3)`,
           transition: 'transform 0.15s, box-shadow 0.15s',
         }}
         onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
@@ -445,3 +467,4 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
 };
 
 export default BorderEquipOverlay;
+
