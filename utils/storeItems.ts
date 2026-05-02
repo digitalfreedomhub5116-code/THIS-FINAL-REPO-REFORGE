@@ -92,7 +92,7 @@ export const BORDERS_ELEMENTS: StoreItem[] = [
     id: 'border-elemental-tide', name: 'Elemental Tide', category: 'border', tier: 'legendary', price: 2800, tierColor: ELEMENTS_COLOR,
     description: 'Japanese waves and sacred flames entwine around your avatar.',
     imageBorder: '/borders/border-mixed.webp',
-    imageScale: 0.9,
+    imageScale: 0.95,
     borderConfig: { colors: ['#1E90FF', '#FF6347', '#C8A84E'], strokeWidth: 3, animated: false, glowColor: '#1E90FF', glowIntensity: 0.7 },
   },
 
@@ -100,7 +100,7 @@ export const BORDERS_ELEMENTS: StoreItem[] = [
     id: 'border-frost-tech', name: 'Frost Tech', category: 'border', tier: 'legendary', price: 8900, tierColor: ELEMENTS_COLOR,
     description: 'Cryo-tech crystals and snowflakes forge a futuristic ice frame.',
     imageBorder: '/borders/border-frost-tech.webp',
-    imageScale: 1.1,
+    imageScale: 1.05,
     borderConfig: { colors: ['#00CED1', '#87CEEB', '#E0FFFF'], strokeWidth: 3, animated: false, glowColor: '#00CED1', glowIntensity: 0.8 },
   },
 ];
@@ -118,14 +118,15 @@ export const BORDERS_BEASTS: StoreItem[] = [
     id: 'border-stitched-dragon', name: 'Stitched Dragon', category: 'border', tier: 'legendary', price: 3600, tierColor: BEASTS_COLOR,
     description: 'A crimson dragon coils in stitched leather and gold — ancient fury.',
     imageBorder: '/borders/border-stitched-dragon.webp',
-    imageScale: 1.08,
+    imageScale: 1.15,
+    imageOffsetY: -4,
     borderConfig: { colors: ['#8B0000', '#C8A84E', '#FF4500'], strokeWidth: 3, animated: false, glowColor: '#8B0000', glowIntensity: 0.8 },
   },
   {
     id: 'border-gold-lion', name: 'Gold Lion', category: 'border', tier: 'legendary', price: 4800, tierColor: BEASTS_COLOR,
     description: 'A majestic golden lion crowns your avatar — royalty unleashed.',
     imageBorder: '/borders/border-goldlion.webp',
-    imageScale: 1.5,
+    imageScale: 1.2,
     borderConfig: { colors: ['#C8A84E', '#0E8585', '#DAA520'], strokeWidth: 3, animated: false, glowColor: '#C8A84E', glowIntensity: 0.8 },
   },
   {
@@ -138,8 +139,8 @@ export const BORDERS_BEASTS: StoreItem[] = [
     id: 'border-gold-eagle', name: 'Golden Eagle', category: 'border', tier: 'legendary', price: 6200, tierColor: BEASTS_COLOR,
     description: 'Bronze wings of an apex predator crown your avatar — soar above all.',
     imageBorder: '/borders/border-eagle.webp',
-    imageScale: 1.4,
-    imageOffsetY: 5,
+    imageScale: 1.1,
+    imageOffsetY: 3,
     borderConfig: { colors: ['#B87333', '#C8A84E', '#DAA520'], strokeWidth: 3, animated: false, glowColor: '#B87333', glowIntensity: 0.8 },
   },
   {
@@ -158,7 +159,7 @@ export const BORDERS_SHIELDS: StoreItem[] = [
     id: 'border-podium-bronze', name: 'Bronze Vanguard', category: 'border', tier: 'premium', price: 1200, tierColor: SHIELDS_COLOR,
     description: 'A weathered bronze frame — earned through battle.',
     imageBorder: '/borders/bronzerank-Photoroom.webp',
-    imageScale: 1.1,
+    imageScale: 1.05,
     borderConfig: { colors: ['#CD7F32', '#B87333'], strokeWidth: 3, animated: false, glowColor: '#CD7F32', glowIntensity: 0.6 },
   },
   {
@@ -177,7 +178,7 @@ export const BORDERS_SHIELDS: StoreItem[] = [
     id: 'border-podium-silver', name: 'Silversteel Aegis', category: 'border', tier: 'premium', price: 1800, tierColor: SHIELDS_COLOR,
     description: 'Forged from silversteel — a shield of honor.',
     imageBorder: '/borders/silverrank-Photoroom.webp',
-    imageScale: 1.1,
+    imageScale: 1.05,
     borderConfig: { colors: ['#C0C0C0', '#E0E0E0'], strokeWidth: 3, animated: false, glowColor: '#C0C0C0', glowIntensity: 0.6 },
   },
   {
@@ -202,7 +203,7 @@ export const BORDERS_EXCLUSIVE: StoreItem[] = [
     id: 'border-podium-gold', name: "Sovereign's Crown", category: 'border', tier: 'legendary', price: 3500, tierColor: EXCLUSIVE_COLOR,
     description: 'A regal golden frame befitting a true champion.',
     imageBorder: '/borders/goldrank-Photoroom.webp',
-    imageScale: 1.1,
+    imageScale: 1.05,
     borderConfig: { colors: ['#FFD700', '#DAA520'], strokeWidth: 3, animated: false, glowColor: '#FFD700', glowIntensity: 0.8 },
   },
   {
