@@ -85,6 +85,8 @@ const QuestsView: React.FC<QuestsViewProps> = ({
   const [title, setTitle] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isDaily, setIsDaily] = useState(false);
+  const [scheduledTime, setScheduledTime] = useState<string>('');
+  const [scheduleError, setScheduleError] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [forgeResult, setForgeResult] = useState<ForgeGuardResult | null>(null);
   const [forgeError, setForgeError] = useState<string | null>(null);
@@ -192,7 +194,14 @@ const QuestsView: React.FC<QuestsViewProps> = ({
 
   const handleCreate = () => {
     setError(null);
+    setScheduleError(null);
     if (!forgeResult || !title.trim()) return;
+    // Require scheduling before confirming
+    if (!scheduledTime) {
+      setScheduleError('Please schedule your quest before confirming.');
+      playSystemSoundEffect('WARNING');
+      return;
+    }
     if (playerData?.questOnboardingDone !== false) {
       const isDuplicate = quests.some(
         q => q.title.toLowerCase().trim() === title.toLowerCase().trim() && !q.isCompleted && !q.failed
@@ -217,6 +226,7 @@ const QuestsView: React.FC<QuestsViewProps> = ({
       failed: false,
       createdAt: Date.now(),
       isDaily,
+      scheduledTime: scheduledTime || undefined,
       estimatedDuration: forgeResult.estimatedDuration,
       minDurationMinutes: forgeResult.minDurationMinutes,
       aiReasoning: forgeResult.reasoning,
@@ -241,6 +251,8 @@ const QuestsView: React.FC<QuestsViewProps> = ({
     setForgeResult(null);
     setForgeError(null);
     setIsDaily(false);
+    setScheduledTime('');
+    setScheduleError(null);
     setAnalysisCount(0);
   };
 
@@ -577,7 +589,83 @@ const QuestsView: React.FC<QuestsViewProps> = ({
                   )}
                 </AnimatePresence>
 
+                {/* ── Schedule Section (visible after analysis) ── */}
+                {forgeResult && (
+                  <div className="space-y-3 mt-1">
+                    {/* Schedule header with red star */}
+                    <div className="flex items-center gap-2">
+                      <Clock size={13} className="text-gray-500" />
+                      <span className="text-[10px] font-black text-gray-400 font-mono uppercase tracking-widest">Schedule</span>
+                      <span style={{ color: '#EF4444', fontSize: 14, fontWeight: 900, lineHeight: 1 }}>*</span>
+                    </div>
 
+                    {/* Time picker row */}
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="time"
+                        value={scheduledTime}
+                        onChange={(e) => { setScheduledTime(e.target.value); setScheduleError(null); }}
+                        className="flex-1 rounded-xl px-4 py-3 text-white text-sm font-mono focus:outline-none"
+                        style={{
+                          background: 'rgba(255,255,255,0.04)',
+                          border: scheduleError ? '1px solid rgba(239,68,68,0.5)' : scheduledTime ? '1px solid rgba(34,197,94,0.25)' : '1px solid rgba(255,255,255,0.08)',
+                          colorScheme: 'dark',
+                        }}
+                      />
+                      <button
+                        onClick={() => {
+                          const now = new Date();
+                          const h = now.getHours().toString().padStart(2, '0');
+                          const m = now.getMinutes().toString().padStart(2, '0');
+                          setScheduledTime(`${h}:${m}`);
+                          setScheduleError(null);
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-3 rounded-xl text-[10px] font-black font-mono uppercase tracking-wider transition-all"
+                        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#9ca3af' }}
+                      >
+                        <Zap size={11} /> Now
+                      </button>
+                    </div>
+
+                    {/* Schedule error alert */}
+                    <AnimatePresence>
+                      {scheduleError && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+                          className="flex items-center gap-2 px-3 py-2 rounded-lg"
+                          style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}
+                        >
+                          <AlertTriangle size={11} className="text-red-400 shrink-0" />
+                          <span className="text-[10px] text-red-400 font-mono font-bold">{scheduleError}</span>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    {/* Repeat Daily toggle */}
+                    <div
+                      onClick={() => setIsDaily(!isDaily)}
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all"
+                      style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}
+                    >
+                      <div
+                        className="w-5 h-5 rounded-md flex items-center justify-center transition-all"
+                        style={{
+                          background: isDaily ? 'rgba(126,184,212,0.2)' : 'rgba(255,255,255,0.04)',
+                          border: isDaily ? '1.5px solid #7EB8D4' : '1.5px solid rgba(255,255,255,0.1)',
+                        }}
+                      >
+                        {isDaily && <Check size={11} className="text-[#7EB8D4]" />}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <Repeat size={11} className="text-gray-500" />
+                          <span className="text-[10px] font-black text-gray-300 font-mono uppercase tracking-wider">Repeat Daily</span>
+                        </div>
+                        <span className="text-[8px] text-gray-600 font-mono">{isDaily ? 'Repeats every day' : 'One-time quest'}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
               </div>
 
@@ -590,11 +678,12 @@ const QuestsView: React.FC<QuestsViewProps> = ({
                   id="tut-confirm-quest"
                   onClick={handleCreate}
                   disabled={!forgeResult || !title.trim()}
-                  className="px-6 py-2.5 font-black rounded-xl text-xs font-mono transition-all disabled:opacity-20 disabled:cursor-not-allowed"
+                  className="px-6 py-2.5 font-black rounded-xl text-xs font-mono transition-all disabled:cursor-not-allowed"
                   style={{
-                    background: !forgeResult ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg, #00d4ff 0%, #0099cc 100%)',
-                    color: !forgeResult ? '#4b5563' : '#000',
-                    boxShadow: !forgeResult ? 'none' : '0 0 20px rgba(126,184,212,0.2)',
+                    background: 'linear-gradient(135deg, #00d4ff 0%, #0099cc 100%)',
+                    color: '#000',
+                    boxShadow: '0 0 20px rgba(0,212,255,0.25)',
+                    opacity: (!forgeResult || !title.trim()) ? 0.4 : 1,
                   }}
                 >
                   CONFIRM PROTOCOL
