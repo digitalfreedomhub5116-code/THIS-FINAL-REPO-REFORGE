@@ -752,6 +752,49 @@ video {
   50% { transform: scale(1.04); }
 }
 
+/* ── Sun Ray starburst rotation (Border equip overlay) ── */
+@keyframes sunray-rotate {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ── Store horizontal scroll sections ── */
+.store-hscroll {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  padding-bottom: 12px;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.store-hscroll::-webkit-scrollbar { display: none; }
+.store-hscroll > * { scroll-snap-align: start; }
+
+/* ── Store section header styling ── */
+.store-section-hdr {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 2px;
+  margin-bottom: 14px;
+}
+.store-section-hdr .hdr-icon {
+  width: 28px; height: 28px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.store-section-hdr .hdr-title {
+  font-size: 13px; font-weight: 900; letter-spacing: 0.08em;
+  text-transform: uppercase; color: #fff;
+  font-family: Inter, system-ui, sans-serif;
+}
+.store-section-hdr .hdr-line {
+  flex: 1; height: 1px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.08), transparent);
+}
+
 /* Hide navbars when outfit purchase modal is open */
 .reforge-modal-open #reforge-top-nav,
 .reforge-modal-open #reforge-mobile-nav {

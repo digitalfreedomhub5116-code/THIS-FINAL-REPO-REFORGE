@@ -370,6 +370,8 @@ const ShopView: React.FC<ShopViewProps> = ({
   onGoldUpdate,
 }) => {
   const [storeTab, setStoreTab] = useState<'OUTFITS' | 'BADGES' | 'BORDERS' | 'DEALS' | 'ITEMS' | 'THEMES' | 'BANNERS_SHOP'>(initialStoreTab || 'OUTFITS');
+  const [showMore, setShowMore] = useState(false);
+  const [moreTab, setMoreTab] = useState<'ITEMS' | 'BADGES'>('ITEMS');
   const [kitEconomy, setKitEconomy] = useState(getEconomy());
   const [dealTimer, setDealTimer] = useState('');
   const [kitInfoItem, setKitInfoItem] = useState<KitStoreItem | null>(null);
@@ -489,296 +491,150 @@ const ShopView: React.FC<ShopViewProps> = ({
   };
 
   return (
-    <div id="tut-store" className="space-y-5 md:space-y-6 pb-10">
-      {/* OnboardingNotice removed — not needed */}
+    <div id="tut-store" className="space-y-7 pb-24">
 
-      {/* ── STORE TAB NAVIGATION ── */}
-      <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 8, marginBottom: 4, WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
-        {([
-          { id: 'OUTFITS' as const, label: 'Outfits', icon: <Shirt size={13} /> },
-          { id: 'BORDERS' as const, label: 'Borders', icon: <Frame size={13} /> },
-          { id: 'DEALS' as const, label: 'Deals', icon: <Clock size={13} /> },
-          { id: 'ITEMS' as const, label: 'Items', icon: <Shield size={13} /> },
-          { id: 'THEMES' as const, label: 'Themes', icon: <Palette size={13} /> },
-          { id: 'BANNERS_SHOP' as const, label: 'Banners', icon: <ImageIcon size={13} /> },
-          { id: 'BADGES' as const, label: 'Badges', icon: <Hexagon size={13} /> },
-        ]).map(tab => {
-          const isActive = storeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setStoreTab(tab.id)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 5,
-                padding: '8px 14px', borderRadius: 10,
-                background: isActive ? 'rgba(126,184,212,0.15)' : 'rgba(255,255,255,0.03)',
-                color: isActive ? '#c4b5fd' : '#6b7280',
-                fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                border: isActive ? '1.5px solid rgba(126,184,212,0.3)' : '1.5px solid transparent',
-                transition: 'all 0.2s', whiteSpace: 'nowrap',
-                boxShadow: isActive ? '0 0 12px rgba(126,184,212,0.15)' : 'none',
-                flexShrink: 0,
-              }}
+      {/* ═══════════════════════════════════════════
+           EVENT BANNER CAROUSEL (top hero)
+         ═══════════════════════════════════════════ */}
+      {banners.length > 0 && (
+        <div className="relative w-full rounded-2xl overflow-hidden" style={{ minHeight: 200 }}>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={banners[bannerIdx % banners.length]?.id}
+              initial={{ opacity: 0, x: 40 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -40 }}
+              transition={{ duration: 0.35 }}
+              className="relative w-full"
+              style={{ minHeight: 200 }}
             >
-              {tab.icon}
-              {tab.label}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* ── TAB: OUTFITS ── */}
-      {storeTab === 'OUTFITS' && (
-        <motion.div
-          key="outfits-tab"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="space-y-5"
-        >
-          {/* ── EVENTS LABEL ── */}
-          <div className="flex items-center gap-3">
-            <div className="text-[10px] font-mono font-bold tracking-[0.3em] uppercase text-gray-400">EVENTS</div>
-            <div className="flex-1 h-px bg-system-border" />
-          </div>
-
-          {/* ── EVENT BANNER CAROUSEL ── */}
-          {banners.length > 0 && (
-            <div className="relative w-full rounded-2xl overflow-hidden" style={{ minHeight: 200 }}>
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={banners[bannerIdx % banners.length]?.id}
-                  initial={{ opacity: 0, x: 40 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -40 }}
-                  transition={{ duration: 0.35 }}
-                  className="relative w-full"
-                  style={{ minHeight: 200 }}
-                >
-                  <FadeImg
-                    src={banners[bannerIdx % banners.length]?.image_url}
-                    alt={banners[bannerIdx % banners.length]?.title}
-                    className="w-full h-full object-cover rounded-2xl"
-                    style={{ minHeight: 200, maxHeight: 220 }}
-                  />
-                  <div className="absolute inset-0 rounded-2xl" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 50%, transparent 100%)' }} />
-                  <div className="absolute bottom-0 left-0 right-0 p-4">
-                    <h3 className="text-base font-black text-white uppercase tracking-tight font-mono drop-shadow-lg">
-                      {banners[bannerIdx % banners.length]?.title}
-                    </h3>
-                    {banners[bannerIdx % banners.length]?.subtitle && (
-                      <p className="text-[11px] text-gray-300 font-mono mt-0.5 drop-shadow">
-                        {banners[bannerIdx % banners.length]?.subtitle}
-                      </p>
-                    )}
-                  </div>
-                </motion.div>
-              </AnimatePresence>
-
-              {/* Carousel nav arrows */}
-              {banners.length > 1 && (
-                <>
-                  <button
-                    onClick={() => { setBannerIdx(p => (p - 1 + banners.length) % banners.length); resetBannerTimer(); }}
-                    className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white/70 hover:text-white transition-colors z-10"
-                  >
-                    <ChevronLeft size={16} />
-                  </button>
-                  <button
-                    onClick={() => { setBannerIdx(p => (p + 1) % banners.length); resetBannerTimer(); }}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white/70 hover:text-white transition-colors z-10"
-                  >
-                    <ChevronRight size={16} />
-                  </button>
-                </>
-              )}
-
-              {/* Dots indicator */}
-              {banners.length > 1 && (
-                <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
-                  {banners.map((_, i) => (
-                    <button
-                      key={i}
-                      onClick={() => { setBannerIdx(i); resetBannerTimer(); }}
-                      className={`rounded-full transition-all ${i === bannerIdx % banners.length ? 'w-5 h-1.5 bg-white' : 'w-1.5 h-1.5 bg-white/40'}`}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-
-
-
-          {/* ── LOGIN REWARDS BANNER ── */}
-          {false && <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.05 }}
-            className="relative w-full rounded-2xl overflow-hidden transition-all"
-            style={{ background: 'linear-gradient(135deg, #0a0a1a 0%, #0d0d25 50%, #0a0a1a 100%)', border: '1px solid rgba(126,184,212,0.2)' }}
-          >
-            {/* Background glow */}
-            <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(126,184,212,0.12) 0%, transparent 65%)' }} />
-            <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(126,184,212,0.5), rgba(126,184,212,0.5), transparent)' }} />
-
-            <div className="relative p-4">
-              {/* Header - clickable to open calendar */}
-              <div 
-                className="flex items-center justify-between mb-3 cursor-pointer"
-                onClick={() => onOpenDailyCalendar?.()}
-              >
-                <div>
-                  <div className="text-[9px] font-mono font-bold tracking-[0.3em] uppercase text-[#7EB8D4] mb-0.5">DAILY LOGIN</div>
-                  <h3 className="text-sm font-black text-white font-mono uppercase tracking-wide">Streak Rewards</h3>
-                </div>
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full font-mono text-xs font-bold"
-                  style={{ background: claimedToday ? 'rgba(34,197,94,0.1)' : 'rgba(126,184,212,0.15)', border: claimedToday ? '1px solid rgba(34,197,94,0.3)' : '1px solid rgba(126,184,212,0.3)', color: claimedToday ? '#4ade80' : '#c4b5fd' }}
-                >
-                  {claimedToday ? <><CheckCircle2 size={11} /> Claimed</> : <><span className="text-[10px]">Day</span> {streak || 1}</>}
-                </div>
-              </div>
-
-              {/* Toast message */}
-              <AnimatePresence>
-                {loginToast && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    className="mb-2 px-3 py-2 rounded-lg text-center text-[10px] font-mono font-bold"
-                    style={{
-                      background: 'rgba(126,184,212,0.15)',
-                      border: '1px solid rgba(126,184,212,0.3)',
-                      color: '#c4b5fd',
-                    }}
-                  >
-                    {loginToast}
-                  </motion.div>
+              <FadeImg
+                src={banners[bannerIdx % banners.length]?.image_url}
+                alt={banners[bannerIdx % banners.length]?.title}
+                className="w-full h-full object-cover rounded-2xl"
+                style={{ minHeight: 200, maxHeight: 220 }}
+              />
+              <div className="absolute inset-0 rounded-2xl" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 50%, transparent 100%)' }} />
+              <div className="absolute bottom-0 left-0 right-0 p-4">
+                <h3 className="text-base font-black text-white uppercase tracking-tight font-mono drop-shadow-lg">
+                  {banners[bannerIdx % banners.length]?.title}
+                </h3>
+                {banners[bannerIdx % banners.length]?.subtitle && (
+                  <p className="text-[11px] text-gray-300 font-mono mt-0.5 drop-shadow">
+                    {banners[bannerIdx % banners.length]?.subtitle}
+                  </p>
                 )}
-              </AnimatePresence>
-
-              {/* 7-day reward track */}
-              <div className="flex gap-2 justify-between">
-                {previewDays.map((reward) => {
-                  const dayNum   = reward.day;
-                  const isCurrent = dayNum === currentStreakDay;
-                  const isClaimed = claimedToday ? dayNum <= currentStreakDay : dayNum < currentStreakDay;
-                  const isFuture  = dayNum > currentStreakDay;
-                  const rStyle    = RARITY_STYLES[reward.rarity];
-
-                  return (
-                    <div
-                      key={dayNum}
-                      onClick={(e) => { e.stopPropagation(); handleDayClick(dayNum); }}
-                      className="flex flex-col items-center gap-1.5 rounded-xl p-2 relative flex-1 min-w-0 cursor-pointer"
-                      style={{
-                        background: isClaimed
-                          ? 'rgba(34,197,94,0.08)'
-                          : isCurrent
-                          ? `rgba(126,184,212,0.2)`
-                          : 'rgba(0,0,0,0.3)',
-                        border: isCurrent
-                          ? '1px solid rgba(126,184,212,0.5)'
-                          : isClaimed
-                          ? '1px solid rgba(34,197,94,0.2)'
-                          : '1px solid rgba(255,255,255,0.05)',
-                        boxShadow: isCurrent ? '0 0 12px rgba(126,184,212,0.25)' : 'none',
-                      }}
-                    >
-                      {isCurrent && (
-                        <motion.div
-                          animate={{ opacity: [0.4, 0.8, 0.4] }}
-                          transition={{ duration: 2, repeat: Infinity }}
-                          className="absolute inset-0 rounded-xl"
-                          style={{ background: 'rgba(126,184,212,0.15)' }}
-                        />
-                      )}
-
-                      <div className="relative text-lg">
-                        {isClaimed ? (
-                          <div className="opacity-50">{reward.emoji}</div>
-                        ) : isFuture ? (
-                          <Lock size={16} className="text-gray-600" />
-                        ) : (
-                          <div>{reward.emoji}</div>
-                        )}
-                        {isClaimed && (
-                          <div className="absolute -top-1 -right-1">
-                            <CheckCircle2 size={10} className="text-green-400" />
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="font-mono text-[9px] font-bold text-center leading-tight truncate w-full"
-                        style={{ color: isClaimed ? '#4ade80' : isCurrent ? rStyle.text : '#6b7280' }}
-                      >
-                        {reward.label}
-                      </div>
-                    </div>
-                  );
-                })}
               </div>
-
-              <div 
-                className="mt-3 text-center text-[10px] font-mono cursor-pointer"
-                style={{ color: claimedToday ? 'rgba(74,222,128,0.6)' : 'rgba(167,139,250,0.6)' }}
-                onClick={() => onOpenDailyCalendar?.()}
-              >
-                {claimedToday ? 'Claimed today · Tap to view calendar' : 'Click to view full 30-day calendar →'}
-              </div>
-            </div>
-          </motion.div>}
-
-          {/* ── MONARCH'S WARDROBE (moved from home page) ── */}
-          {wardrobeOnEquip && (
-            <Suspense fallback={<div className="h-[400px] rounded-2xl bg-[#0A0A0F] animate-pulse" />}>
-              <ErrorBoundary fallbackLabel="Wardrobe preview failed">
-                <WardrobePreviewCard
-                  gold={wardrobeGold ?? gold}
-
-                  unlockedOutfits={wardrobeUnlockedOutfits || ['outfit_starter']}
-                  equippedOutfitId={wardrobeEquippedOutfitId || 'outfit_starter'}
-                  outfits={wardrobeOutfits}
-                  onPurchase={wardrobeOnPurchase}
-                  onEquip={wardrobeOnEquip}
-                  onOpenWardrobe={() => {}}
-                  outfitStones={outfitStones}
-                />
-              </ErrorBoundary>
-            </Suspense>
+            </motion.div>
+          </AnimatePresence>
+          {banners.length > 1 && (
+            <>
+              <button onClick={() => { setBannerIdx(p => (p - 1 + banners.length) % banners.length); resetBannerTimer(); }} className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white/70 hover:text-white transition-colors z-10"><ChevronLeft size={16} /></button>
+              <button onClick={() => { setBannerIdx(p => (p + 1) % banners.length); resetBannerTimer(); }} className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white/70 hover:text-white transition-colors z-10"><ChevronRight size={16} /></button>
+            </>
           )}
-        </motion.div>
+          {banners.length > 1 && (
+            <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+              {banners.map((_, i) => (
+                <button key={i} onClick={() => { setBannerIdx(i); resetBannerTimer(); }} className={`rounded-full transition-all ${i === bannerIdx % banners.length ? 'w-5 h-1.5 bg-white' : 'w-1.5 h-1.5 bg-white/40'}`} />
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
-      {/* ── TAB: BADGES ── */}
-      {storeTab === 'BADGES' && (
-        <motion.div
-          key="badges-tab"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-        >
-          <Suspense fallback={<div className="h-[300px] rounded-2xl bg-[#0A0A0F] animate-pulse" />}>
-            <BadgesSection
-              outfitStones={outfitStones}
-              unlockedOutfits={wardrobeUnlockedOutfits || ['outfit_starter']}
-              equippedOutfitId={wardrobeEquippedOutfitId || 'outfit_starter'}
-              outfits={wardrobeOutfits}
-            />
-          </Suspense>
-        </motion.div>
-      )}
-
-      {/* ── TAB: BORDERS (Kit-style) ── */}
-      {storeTab === 'BORDERS' && (
-        <motion.div key="borders-tab" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="text-[10px] font-mono font-bold tracking-[0.3em] uppercase text-gray-400">AVATAR BORDERS</div>
-            <div className="flex-1 h-px bg-system-border" />
+      {/* ═══════════════════════════════════════════
+           🔥 DEALS OF THE DAY
+         ═══════════════════════════════════════════ */}
+      <section>
+        <div className="store-section-hdr">
+          <div className="hdr-icon" style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.2)' }}>
+            <Flame size={15} style={{ color: '#EF4444' }} />
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-            {getItemsByCategory('border').map(item => (
-              <KitGlowCard key={item.id} item={item}
+          <span className="hdr-title" style={{ color: '#fff' }}>Deals</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 8, background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.12)' }}>
+            <Timer size={10} style={{ color: '#EF4444' }} />
+            <span style={{ fontSize: 10, fontWeight: 700, color: '#EF4444', fontFamily: 'monospace' }}>{dealTimer || '...'}</span>
+          </div>
+          <div className="hdr-line" />
+        </div>
+        <div className="store-hscroll">
+          {getTodaysDeals(6).map(d => (
+            <div key={d.item.id} style={{ flexShrink: 0, width: 170 }}>
+              <KitGlowCard item={d.item} discount={d.discount}
+                owned={DEV_UNLOCK_ALL || kitEconomy.owned.includes(d.item.id)}
+                equipped={kitEconomy.equipped[d.item.category as keyof EquippedItems] === d.item.id}
+                canAfford={DEV_UNLOCK_ALL || gold >= Math.round(d.item.price * (1 - d.discount / 100))}
+                onBuy={() => {
+                  if (d.item.category === 'border') { setConfirmPurchaseItem(d.item); return; }
+                  const p = kitPurchaseItem(d.item.id, Math.round(d.item.price * (1 - d.discount / 100)));
+                  if (p) { setKitEconomy(p); setKitPurchasedId(d.item.id); setTimeout(() => setKitPurchasedId(null), 1500); }
+                }}
+                onEquip={d.item.category !== 'consumable' ? () => handleKitEquip(d.item.category as keyof EquippedItems, d.item.id) : undefined}
+                onInfo={() => setKitInfoItem(d.item)}
+              />
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════
+           🖼️ PROFILE BANNERS
+         ═══════════════════════════════════════════ */}
+      <section>
+        <div className="store-section-hdr">
+          <div className="hdr-icon" style={{ background: 'rgba(6,182,212,0.12)', border: '1px solid rgba(6,182,212,0.2)' }}>
+            <ImageIcon size={15} style={{ color: '#06B6D4' }} />
+          </div>
+          <span className="hdr-title">Banners</span>
+          <div className="hdr-line" />
+        </div>
+        <div className="store-hscroll">
+          {getItemsByCategory('banner').map(item => {
+            const isEquipped = kitEconomy.equipped.banner === item.id;
+            const isDefault = item.id === 'banner-reforge-default';
+            return (
+              <div key={item.id} style={{ flexShrink: 0, width: 260, borderRadius: 16, overflow: 'hidden', position: 'relative', border: isEquipped ? '2px solid rgba(6,182,212,0.5)' : '1px solid rgba(255,255,255,0.06)', boxShadow: isEquipped ? '0 0 20px rgba(6,182,212,0.15)' : 'none' }}>
+                {item.bannerImage && (
+                  <div style={{ width: '100%', aspectRatio: '16 / 9', position: 'relative', overflow: 'hidden' }}>
+                    <FadeImg src={item.bannerImage} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                  </div>
+                )}
+                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '60%', background: 'linear-gradient(transparent, rgba(0,0,0,0.9))', pointerEvents: 'none' }} />
+                {isDefault && (
+                  <div style={{ position: 'absolute', top: 8, left: 8, zIndex: 3, padding: '2px 8px', borderRadius: 5, background: 'rgba(6,182,212,0.2)', border: '1px solid rgba(6,182,212,0.4)', fontSize: 8, fontWeight: 900, color: '#06B6D4', letterSpacing: '0.1em', textTransform: 'uppercase' }}>DEFAULT</div>
+                )}
+                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '10px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 2 }}>
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 900, color: '#fff' }}>{item.name}</div>
+                    {item.price > 0 && <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontFamily: 'monospace' }}>{item.price} G</div>}
+                    {item.price === 0 && <div style={{ fontSize: 10, color: '#06B6D4', fontFamily: 'monospace', fontWeight: 700 }}>FREE</div>}
+                  </div>
+                  <button onClick={() => handleKitEquip('banner', item.id)} style={{ padding: '6px 14px', borderRadius: 10, fontSize: 10, fontWeight: 900, letterSpacing: '0.05em', border: 'none', cursor: 'pointer', background: isEquipped ? 'rgba(255,255,255,0.1)' : 'linear-gradient(135deg, #06B6D4, #0891b2)', color: isEquipped ? 'rgba(255,255,255,0.5)' : '#fff', textTransform: 'uppercase' }}>
+                    {isEquipped ? '✓ EQUIPPED' : 'EQUIP'}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════
+           👑 AVATAR BORDERS
+         ═══════════════════════════════════════════ */}
+      <section>
+        <div className="store-section-hdr">
+          <div className="hdr-icon" style={{ background: 'rgba(126,184,212,0.12)', border: '1px solid rgba(126,184,212,0.2)' }}>
+            <Frame size={15} style={{ color: '#7EB8D4' }} />
+          </div>
+          <span className="hdr-title">Borders</span>
+          <div className="hdr-line" />
+        </div>
+        <div className="store-hscroll">
+          {getItemsByCategory('border').map(item => (
+            <div key={item.id} style={{ flexShrink: 0, width: 170 }}>
+              <KitGlowCard item={item}
                 owned={DEV_UNLOCK_ALL || kitEconomy.owned.includes(item.id)}
                 equipped={kitEconomy.equipped.border === item.id}
                 canAfford={DEV_UNLOCK_ALL || gold >= item.price}
@@ -791,43 +647,111 @@ const ShopView: React.FC<ShopViewProps> = ({
                 onInfo={() => setKitInfoItem(item)}
                 onView={() => setKitInfoItem(item)}
               />
-            ))}
-          </div>
-          <div className="text-center text-[9px] font-mono text-gray-600 pt-2 pb-4">
-            Borders are permanent · Visible on profile & leaderboard
-          </div>
-        </motion.div>
-      )}
+            </div>
+          ))}
+        </div>
+        <div style={{ textAlign: 'center', fontSize: 9, fontFamily: 'monospace', color: 'rgba(255,255,255,0.25)', paddingTop: 2 }}>
+          Borders are permanent · Visible on profile & leaderboard
+        </div>
+      </section>
 
-      {/* ── TAB: DEALS ── */}
-      {storeTab === 'DEALS' && (
-        <motion.div key="deals-tab" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
-          <div className="flex items-center justify-center gap-2 py-2 rounded-xl" style={{ background: 'rgba(126,184,212,0.06)', border: '1px solid rgba(126,184,212,0.1)' }}>
-            <Clock size={13} style={{ color: '#7EB8D4' }} />
-            <span className="text-[11px] font-mono font-bold text-gray-400">Refreshes in <span style={{ color: '#7EB8D4' }}>{dealTimer || '...'}</span></span>
+      {/* ═══════════════════════════════════════════
+           👕 OUTFITS (last main section)
+         ═══════════════════════════════════════════ */}
+      <section>
+        <div className="store-section-hdr">
+          <div className="hdr-icon" style={{ background: 'rgba(244,114,182,0.12)', border: '1px solid rgba(244,114,182,0.2)' }}>
+            <Shirt size={15} style={{ color: '#F472B6' }} />
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-            {getTodaysDeals().map(d => (
-              <KitGlowCard key={d.item.id} item={d.item} discount={d.discount}
-                owned={DEV_UNLOCK_ALL || kitEconomy.owned.includes(d.item.id)}
-                equipped={kitEconomy.equipped[d.item.category as keyof EquippedItems] === d.item.id}
-                canAfford={DEV_UNLOCK_ALL || gold >= Math.round(d.item.price * (1 - d.discount / 100))}
-                onBuy={() => { const p = kitPurchaseItem(d.item.id, Math.round(d.item.price * (1 - d.discount / 100))); if (p) { setKitEconomy(p); setKitPurchasedId(d.item.id); setTimeout(() => setKitPurchasedId(null), 1500); } }}
-                onEquip={d.item.category !== 'consumable' ? () => handleKitEquip(d.item.category as keyof EquippedItems, d.item.id) : undefined}
-                onInfo={() => setKitInfoItem(d.item)}
+          <span className="hdr-title">Outfits</span>
+          <div className="hdr-line" />
+        </div>
+        {wardrobeOnEquip && (
+          <Suspense fallback={<div className="h-[400px] rounded-2xl bg-[#0A0A0F] animate-pulse" />}>
+            <ErrorBoundary fallbackLabel="Wardrobe preview failed">
+              <WardrobePreviewCard
+                gold={wardrobeGold ?? gold}
+                unlockedOutfits={wardrobeUnlockedOutfits || ['outfit_starter']}
+                equippedOutfitId={wardrobeEquippedOutfitId || 'outfit_starter'}
+                outfits={wardrobeOutfits}
+                onPurchase={wardrobeOnPurchase}
+                onEquip={wardrobeOnEquip}
+                onOpenWardrobe={() => {}}
+                outfitStones={outfitStones}
               />
-            ))}
-          </div>
-        </motion.div>
-      )}
+            </ErrorBoundary>
+          </Suspense>
+        )}
+      </section>
 
-      {/* ── TAB: ITEMS (Streak Shield & Repair) ── */}
-      {storeTab === 'ITEMS' && (
-        <ItemsTab gold={gold} />
-      )}
+      {/* ═══════════════════════════════════════════
+           ⬇️ MORE (Items / Badges) — expandable
+         ═══════════════════════════════════════════ */}
+      <section>
+        <button
+          onClick={() => setShowMore(!showMore)}
+          style={{
+            width: '100%', padding: '14px 0', borderRadius: 14, cursor: 'pointer',
+            background: showMore ? 'rgba(126,184,212,0.08)' : 'rgba(255,255,255,0.03)',
+            border: showMore ? '1px solid rgba(126,184,212,0.15)' : '1px solid rgba(255,255,255,0.06)',
+            color: showMore ? '#7EB8D4' : 'rgba(255,255,255,0.45)',
+            fontSize: 12, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase' as const,
+            fontFamily: 'Inter, system-ui, sans-serif',
+            transition: 'all 0.25s',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+          }}
+        >
+          {showMore ? '▲ Show Less' : '▼ More — Items & Badges'}
+        </button>
 
-      {/* ── TAB: THEMES ── */}
-      {storeTab === 'THEMES' && (
+        <AnimatePresence>
+          {showMore && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              style={{ overflow: 'hidden' }}
+            >
+              {/* Sub-tabs */}
+              <div style={{ display: 'flex', gap: 8, padding: '16px 0 12px', justifyContent: 'center' }}>
+                {([
+                  { id: 'ITEMS' as const, label: 'Items', icon: <Shield size={13} /> },
+                  { id: 'BADGES' as const, label: 'Badges', icon: <Hexagon size={13} /> },
+                ]).map(tab => {
+                  const isActive = moreTab === tab.id;
+                  return (
+                    <button key={tab.id} onClick={() => setMoreTab(tab.id)} style={{
+                      display: 'flex', alignItems: 'center', gap: 5, padding: '8px 18px', borderRadius: 10,
+                      background: isActive ? 'rgba(126,184,212,0.15)' : 'rgba(255,255,255,0.03)',
+                      color: isActive ? '#7EB8D4' : '#6b7280',
+                      fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                      border: isActive ? '1.5px solid rgba(126,184,212,0.3)' : '1.5px solid transparent',
+                      transition: 'all 0.2s', flexShrink: 0,
+                    }}>
+                      {tab.icon} {tab.label}
+                    </button>
+                  );
+                })}
+              </div>
+              {moreTab === 'ITEMS' && <ItemsTab gold={gold} />}
+              {moreTab === 'BADGES' && (
+                <Suspense fallback={<div className="h-[300px] rounded-2xl bg-[#0A0A0F] animate-pulse" />}>
+                  <BadgesSection
+                    outfitStones={outfitStones}
+                    unlockedOutfits={wardrobeUnlockedOutfits || ['outfit_starter']}
+                    equippedOutfitId={wardrobeEquippedOutfitId || 'outfit_starter'}
+                    outfits={wardrobeOutfits}
+                  />
+                </Suspense>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </section>
+
+      {/* ── THEMES TAB (HIDDEN — code preserved for future) ── */}
+      {false && storeTab === 'THEMES' && (
         <motion.div key="themes-tab" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
           <div className="flex items-center gap-3">
             <div className="text-[10px] font-mono font-bold tracking-[0.3em] uppercase text-gray-400">APP THEMES</div>
@@ -848,62 +772,6 @@ const ShopView: React.FC<ShopViewProps> = ({
         </motion.div>
       )}
 
-      {/* ── TAB: BANNERS_SHOP ── */}
-      {storeTab === 'BANNERS_SHOP' && (
-        <motion.div key="banners-shop-tab" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="text-[10px] font-mono font-bold tracking-[0.3em] uppercase text-gray-400">PROFILE BANNERS</div>
-            <div className="flex-1 h-px bg-system-border" />
-          </div>
-          <div className="space-y-4">
-            {getItemsByCategory('banner').map(item => {
-              const isEquipped = kitEconomy.equipped.banner === item.id;
-              const isDefault = item.id === 'banner-reforge-default';
-              return (
-                <div key={item.id} className="relative rounded-2xl overflow-hidden" style={{ border: isEquipped ? '2px solid rgba(126,184,212,0.4)' : '1px solid rgba(255,255,255,0.06)' }}>
-                  {item.bannerImage && (
-                    <div style={{ width: '100%', aspectRatio: '3 / 1', position: 'relative', overflow: 'hidden' }}>
-                      <FadeImg src={item.bannerImage} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block' }} />
-                    </div>
-                  )}
-                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '60%', background: 'linear-gradient(transparent, rgba(0,0,0,0.85))', pointerEvents: 'none' }} />
-                  {/* DEFAULT badge */}
-                  {isDefault && (
-                    <div style={{
-                      position: 'absolute', top: 10, left: 10, zIndex: 3,
-                      padding: '3px 10px', borderRadius: 6,
-                      background: 'rgba(126,184,212,0.2)', border: '1px solid rgba(126,184,212,0.4)',
-                      fontSize: 9, fontWeight: 900, color: '#7EB8D4',
-                      letterSpacing: '0.1em', textTransform: 'uppercase',
-                    }}>
-                      DEFAULT
-                    </div>
-                  )}
-                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div>
-                      <div className="text-sm font-black text-white">{item.name}</div>
-                      {item.price > 0 && <div className="text-[11px] text-gray-400 font-mono mt-0.5">{item.price} G</div>}
-                      {item.price === 0 && <div className="text-[11px] font-mono mt-0.5" style={{ color: '#7EB8D4' }}>FREE</div>}
-                    </div>
-                    <button
-                      onClick={() => handleKitEquip('banner', item.id)}
-                      className="px-5 py-2 rounded-xl font-mono font-black text-[11px] uppercase tracking-wider transition-all"
-                      style={{
-                        background: isEquipped ? 'rgba(255,255,255,0.1)' : 'linear-gradient(135deg, #7EB8D4, #5a9ab5)',
-                        color: isEquipped ? 'rgba(255,255,255,0.5)' : '#fff',
-                        border: 'none', cursor: 'pointer',
-                      }}
-                    >
-                      {isEquipped ? '✓ EQUIPPED' : 'EQUIP'}
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </motion.div>
-      )}
-
       {/* ── THEME PREVIEW MODAL ── */}
       {kitInfoItem && kitInfoItem.category === 'theme' && (
         <KitThemePreviewModal item={kitInfoItem} onClose={() => setKitInfoItem(null)} />
@@ -919,8 +787,7 @@ const ShopView: React.FC<ShopViewProps> = ({
         <div onClick={() => { if (!purchasing) setConfirmPurchaseItem(null); }} style={{
           position: 'fixed', inset: 0, zIndex: 99999,
           background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: 24,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
         }}>
           <div onClick={e => e.stopPropagation()} style={{
             background: 'linear-gradient(180deg, #14161e 0%, #0c0d14 100%)',
@@ -928,7 +795,6 @@ const ShopView: React.FC<ShopViewProps> = ({
             borderRadius: 20, padding: '28px 24px', width: '100%', maxWidth: 320,
             textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
           }}>
-            {/* Border preview */}
             {confirmPurchaseItem.imageBorder && (
               <div style={{ width: 80, height: 80, margin: '0 auto 16px', position: 'relative' }}>
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -937,81 +803,40 @@ const ShopView: React.FC<ShopViewProps> = ({
                 <img src={confirmPurchaseItem.imageBorder} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', mixBlendMode: 'screen', position: 'relative', zIndex: 1 }} />
               </div>
             )}
-            <div style={{ fontSize: 16, fontWeight: 900, color: '#fff', marginBottom: 4, fontFamily: 'Inter, system-ui, sans-serif' }}>
-              {confirmPurchaseItem.name}
-            </div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 20, fontFamily: 'Inter, system-ui, sans-serif' }}>
-              Confirm purchase?
-            </div>
-            {/* Price */}
+            <div style={{ fontSize: 16, fontWeight: 900, color: '#fff', marginBottom: 4 }}>{confirmPurchaseItem.name}</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 20 }}>Confirm purchase?</div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 20 }}>
               <SystemCoin size={22} />
-              <span style={{ fontSize: 20, fontWeight: 900, color: '#fbbf24', fontFamily: 'Inter, system-ui, sans-serif' }}>
-                {confirmPurchaseItem.price}
-              </span>
+              <span style={{ fontSize: 20, fontWeight: 900, color: '#fbbf24' }}>{confirmPurchaseItem.price}</span>
             </div>
-            {/* Buttons */}
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-              <button
-                disabled={purchasing}
-                onClick={() => setConfirmPurchaseItem(null)}
-                style={{
-                  padding: '10px 28px', borderRadius: 12, cursor: 'pointer',
-                  background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
-                  color: 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: 700,
-                  fontFamily: 'Inter, system-ui, sans-serif',
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                disabled={purchasing}
-                onClick={async () => {
-                  const item = confirmPurchaseItem;
-                  setPurchasing(true);
-                  // 1. Server-side gold deduction
-                  try {
-                    const headers = getPlayerAuthHeaders();
-                    const resp = await fetch(`${API_BASE}/api/economy/spend`, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json', ...headers },
-                      credentials: 'include',
-                      body: JSON.stringify({ action: 'cosmetic_purchase', amount: item.price, itemId: item.id }),
-                    });
-                    if (!resp.ok) {
-                      console.error('[Shop] Purchase failed');
-                      setPurchasing(false);
-                      setConfirmPurchaseItem(null);
-                      return;
-                    }
-                    const { gold: newGold } = await resp.json();
-                    if (onGoldUpdate) onGoldUpdate(newGold);
-                  } catch (e) {
-                    console.error('[Shop] Purchase error:', e);
-                    setPurchasing(false);
-                    setConfirmPurchaseItem(null);
-                    return;
-                  }
-                  // 2. Local economy
-                  const p = kitPurchaseItem(item.id, item.price);
-                  if (p) setKitEconomy(p);
-                  // 3. Equip
-                  handleKitEquip('border', item.id);
-                  // 4. Close confirm, show animation
-                  setConfirmPurchaseItem(null);
-                  setPurchasing(false);
-                  setEquipAnimItem(item);
-                  setShowEquipAnim(true);
-                }}
-                style={{
-                  padding: '10px 28px', borderRadius: 12, cursor: purchasing ? 'wait' : 'pointer',
-                  background: 'linear-gradient(135deg, #fbbf24, #d97706)',
-                  border: 'none', color: '#000', fontSize: 12, fontWeight: 900,
-                  fontFamily: 'Inter, system-ui, sans-serif',
-                  boxShadow: '0 0 20px rgba(251,191,36,0.3)',
-                  opacity: purchasing ? 0.6 : 1,
-                }}
-              >
+              <button disabled={purchasing} onClick={() => setConfirmPurchaseItem(null)} style={{ padding: '10px 28px', borderRadius: 12, cursor: 'pointer', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: 700 }}>Cancel</button>
+              <button disabled={purchasing} onClick={async () => {
+                const item = confirmPurchaseItem;
+                setPurchasing(true);
+                try {
+                  const headers = getPlayerAuthHeaders();
+                  const resp = await fetch(`${API_BASE}/api/economy/spend`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json', ...headers },
+                    credentials: 'include', body: JSON.stringify({ action: 'cosmetic_purchase', amount: item.price, itemId: item.id }),
+                  });
+                  if (!resp.ok) { setPurchasing(false); setConfirmPurchaseItem(null); return; }
+                  const { gold: newGold } = await resp.json();
+                  if (onGoldUpdate) onGoldUpdate(newGold);
+                } catch (e) { setPurchasing(false); setConfirmPurchaseItem(null); return; }
+                const p = kitPurchaseItem(item.id, item.price);
+                if (p) setKitEconomy(p);
+                handleKitEquip('border', item.id);
+                setConfirmPurchaseItem(null);
+                setPurchasing(false);
+                setEquipAnimItem(item);
+                setShowEquipAnim(true);
+              }} style={{
+                padding: '10px 28px', borderRadius: 12, cursor: purchasing ? 'wait' : 'pointer',
+                background: 'linear-gradient(135deg, #fbbf24, #d97706)', border: 'none',
+                color: '#000', fontSize: 12, fontWeight: 900,
+                boxShadow: '0 0 20px rgba(251,191,36,0.3)', opacity: purchasing ? 0.6 : 1,
+              }}>
                 {purchasing ? 'Buying...' : 'Buy Now'}
               </button>
             </div>
@@ -1029,6 +854,7 @@ const ShopView: React.FC<ShopViewProps> = ({
           setEquipAnimItem(null);
         }}
       />
+
     </div>
   );
 };
@@ -1087,7 +913,7 @@ function StoreLottieBorder({ src, glow }: { src: string; glow: string }) {
    KitGlowCard — Premium card for kit items
    ═══════════════════════════════════ */
 const KIT_CAT_COLORS: Record<string, string> = {
-  border: '#705820', theme: '#8B5CF6', deals: '#8d702d', banner: '#06B6D4', consumable: '#22C55E', title: '#F59E0B',
+  border: '#7EB8D4', theme: '#8B5CF6', deals: '#F59E0B', banner: '#06B6D4', consumable: '#22C55E', title: '#F59E0B',
 };
 
 function KitGlowCard({ item, discount, owned, equipped, canAfford, onBuy, onEquip, onInfo, onView }: {

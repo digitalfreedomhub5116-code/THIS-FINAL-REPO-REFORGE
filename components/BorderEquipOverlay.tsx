@@ -41,6 +41,21 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
     borderItem?.borderConfig?.colors?.[0] ||
     '#C8A84E';
 
+  // ── Sun ray starburst gradient (12 thick beams) ──
+  const sunRayGradient = (() => {
+    const beams = 12;
+    const w = 9;
+    const stops: string[] = [];
+    for (let i = 0; i < beams; i++) {
+      const s = i * 30;
+      stops.push(`transparent ${s}deg`);
+      stops.push(`${glowColor}65 ${s + 2}deg`);
+      stops.push(`${glowColor}65 ${s + w - 2}deg`);
+      stops.push(`transparent ${s + w}deg`);
+    }
+    return `conic-gradient(from 0deg, ${stops.join(', ')})`;
+  })();
+
   const handleComplete = useCallback(() => {
     if (tlRef.current) tlRef.current.kill();
     const el = overlayRef.current;
@@ -99,56 +114,104 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
             y: 0, scale: 1, opacity: 1, duration: 0.45,
             ease: 'back.out(2.5)',
             onComplete: () => {
-              // ── Confetti celebration burst ──
-              const cyanGrey = ['#7EB8D4', '#9ACDE3', '#5a9ab5', '#c0c0c0', '#808080', '#d4d4d4'];
-              // Left corner burst
+              // ── MEGA Confetti celebration burst ──
+              const cyanGrey = ['#7EB8D4', '#9ACDE3', '#5a9ab5', '#c0c0c0', '#808080', '#d4d4d4', '#ffffff'];
+              // Left corner burst — 3× bigger
               confetti({
-                particleCount: 70,
+                particleCount: 150,
                 angle: 55,
-                spread: 65,
+                spread: 75,
                 origin: { x: 0.05, y: 1 },
                 colors: cyanGrey,
-                startVelocity: 40,
-                gravity: 1.1,
-                drift: 0.4,
-                scalar: 1.05,
-                ticks: 180,
-                decay: 0.92,
+                startVelocity: 50,
+                gravity: 0.9,
+                drift: 0.5,
+                scalar: 1.6,
+                ticks: 450,
+                decay: 0.93,
                 shapes: ['circle', 'square'],
                 disableForReducedMotion: true,
               });
-              // Right corner burst
+              // Right corner burst — 3× bigger
               confetti({
-                particleCount: 70,
+                particleCount: 150,
                 angle: 125,
-                spread: 65,
+                spread: 75,
                 origin: { x: 0.95, y: 1 },
                 colors: cyanGrey,
-                startVelocity: 40,
-                gravity: 1.1,
-                drift: -0.4,
-                scalar: 1.05,
-                ticks: 180,
-                decay: 0.92,
+                startVelocity: 50,
+                gravity: 0.9,
+                drift: -0.5,
+                scalar: 1.6,
+                ticks: 450,
+                decay: 0.93,
                 shapes: ['circle', 'square'],
                 disableForReducedMotion: true,
               });
               // Center sparkle — slightly delayed
               setTimeout(() => {
                 confetti({
-                  particleCount: 25,
-                  spread: 90,
+                  particleCount: 60,
+                  spread: 100,
                   origin: { x: 0.5, y: 0.55 },
-                  colors: ['#9ACDE3', '#d4d4d4', '#ffffff'],
-                  startVelocity: 20,
-                  gravity: 0.9,
-                  scalar: 0.85,
-                  ticks: 140,
-                  decay: 0.9,
+                  colors: ['#9ACDE3', '#d4d4d4', '#ffffff', '#7EB8D4'],
+                  startVelocity: 28,
+                  gravity: 0.8,
+                  scalar: 1.3,
+                  ticks: 400,
+                  decay: 0.91,
                   shapes: ['circle'],
                   disableForReducedMotion: true,
                 });
-              }, 80);
+              }, 100);
+              // 3rd wave — sustained shower from sides
+              setTimeout(() => {
+                confetti({
+                  particleCount: 80,
+                  angle: 60,
+                  spread: 55,
+                  origin: { x: 0.1, y: 0.8 },
+                  colors: cyanGrey,
+                  startVelocity: 35,
+                  gravity: 0.85,
+                  scalar: 1.4,
+                  ticks: 400,
+                  decay: 0.92,
+                  shapes: ['circle', 'square'],
+                  disableForReducedMotion: true,
+                });
+                confetti({
+                  particleCount: 80,
+                  angle: 120,
+                  spread: 55,
+                  origin: { x: 0.9, y: 0.8 },
+                  colors: cyanGrey,
+                  startVelocity: 35,
+                  gravity: 0.85,
+                  scalar: 1.4,
+                  ticks: 400,
+                  decay: 0.92,
+                  shapes: ['circle', 'square'],
+                  disableForReducedMotion: true,
+                });
+              }, 400);
+              // 4th wave — center rain from top
+              setTimeout(() => {
+                confetti({
+                  particleCount: 50,
+                  angle: 270,
+                  spread: 120,
+                  origin: { x: 0.5, y: -0.1 },
+                  colors: ['#7EB8D4', '#9ACDE3', '#ffffff', '#d4d4d4'],
+                  startVelocity: 25,
+                  gravity: 1.2,
+                  scalar: 1.2,
+                  ticks: 350,
+                  decay: 0.93,
+                  shapes: ['circle', 'square'],
+                  disableForReducedMotion: true,
+                });
+              }, 650);
             },
           }, '-=0.1');
         }
@@ -209,15 +272,36 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
         opacity: 0,
       }}
     >
-      {/* ── Glow behind ── */}
+      {/* ── Sun Ray Starburst Glow behind ── */}
       <div
         ref={glowRef}
         style={{
-          position: 'absolute', width: 280, height: 280,
+          position: 'absolute', width: 360, height: 360,
           borderRadius: '50%', pointerEvents: 'none',
-          background: `radial-gradient(circle, ${glowColor}55 0%, ${glowColor}20 45%, transparent 72%)`,
         }}
-      />
+      >
+        {/* Base radial glow */}
+        <div style={{
+          position: 'absolute', inset: 0,
+          borderRadius: '50%',
+          background: `radial-gradient(circle, ${glowColor}55 0%, ${glowColor}25 45%, transparent 72%)`,
+        }} />
+        {/* Rotating thick sun rays */}
+        <div style={{
+          position: 'absolute', inset: '-25%',
+          background: sunRayGradient,
+          borderRadius: '50%',
+          animation: 'sunray-rotate 25s linear infinite',
+          filter: 'blur(5px)',
+          opacity: 0.75,
+        }} />
+        {/* Inner bright glow */}
+        <div style={{
+          position: 'absolute', inset: '15%',
+          borderRadius: '50%',
+          background: `radial-gradient(circle, ${glowColor}40 0%, transparent 70%)`,
+        }} />
+      </div>
 
       {/* ── Avatar + Border container ── */}
       <div style={{
