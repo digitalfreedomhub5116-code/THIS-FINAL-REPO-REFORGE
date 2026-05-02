@@ -344,9 +344,10 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
           <div>
             <h1 className="text-2xl font-black text-white tracking-tight">Leaderboard</h1>
             <div className="text-xs text-gray-400 mt-0.5">
-              {activeTab === 'xp'
-              ? (xpMode === 'daily' ? 'Daily XP rankings' : 'All-time XP rankings')
-              : 'Top players by streak'} {myIndex >= 0 ? <span className="text-[#7EB8D4] font-bold">— You're #{myRank}</span> : ''}
+              {activeTab === 'xp' ? 'Daily XP rankings' : 'Top players by streak'}{myIndex >= 0 ? <span className="text-[#7EB8D4] font-bold"> — You're #{myRank}</span> : ''}
+              {activeTab === 'xp' && countdown && (
+                <span className="text-[10px] font-mono text-gray-500 ml-1">· Resets {countdown}</span>
+              )}
             </div>
           </div>
           <motion.button
@@ -361,43 +362,8 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
         </div>
       </div>
 
-      {/* ── DAILY REWARDS CARD (xp tab, daily mode only) ── */}
-      {activeTab === 'xp' && xpMode === 'daily' && (
-        <div className="mx-4 mb-3 px-4 py-3 rounded-xl" style={{
-          background: 'linear-gradient(135deg, rgba(234,179,8,0.06) 0%, rgba(168,85,247,0.06) 100%)',
-          border: '1px solid rgba(234,179,8,0.15)',
-        }}>
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <span className="text-base">🏆</span>
-              <span className="text-[10px] font-black tracking-widest uppercase text-yellow-400">Daily Prizes</span>
-            </div>
-            {countdown && (
-              <div className="flex items-center gap-1.5" style={{ background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.15)', borderRadius: 8, padding: '3px 8px' }}>
-                <Clock size={9} className="text-yellow-400" />
-                <span className="text-[8px] font-mono font-bold text-yellow-400 tracking-wider">RESETS {countdown}</span>
-              </div>
-            )}
-          </div>
-          <div className="flex items-center gap-3 text-[9px] font-mono text-gray-400">
-            <span>🥇 50G + 🎁 Chest + 🛡️</span>
-            <span>🥈 35G + 🎁</span>
-            <span>🥉 25G + 🎁</span>
-            <span className="text-gray-600">All: 3-15G</span>
-          </div>
-        </div>
-      )}
-
-      {/* ── COUNTDOWN (xp tab, global mode) ── */}
-      {activeTab === 'xp' && xpMode === 'global' && countdown && (
-        <div className="mx-4 mb-3 px-3 py-2 rounded-xl flex items-center gap-2" style={{ background: 'rgba(126,184,212,0.06)', border: '1px solid rgba(126,184,212,0.12)' }}>
-          <Clock size={13} className="text-[#7EB8D4]" />
-          <span className="text-[10px] font-mono font-bold text-[#7EB8D4] tracking-wider">WEEKLY RESET {countdown}</span>
-        </div>
-      )}
-
       {/* ── TAB SWITCHER ── */}
-      <div className="flex px-4 mb-2 gap-2">
+      <div className="flex px-4 mb-3 gap-2">
         {(['xp', 'streak'] as TabMode[]).map(tab => (
           <button
             key={tab}
@@ -414,26 +380,6 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
         ))}
       </div>
 
-      {/* ── XP SUB-TOGGLE (Daily / Global) ── */}
-      {activeTab === 'xp' && (
-        <div className="flex px-4 mb-4 gap-1.5">
-          {(['daily', 'global'] as XpMode[]).map(mode => (
-            <button
-              key={mode}
-              onClick={() => setXpMode(mode)}
-              className="flex-1 py-1.5 rounded-lg transition-all text-[10px] font-black tracking-widest uppercase"
-              style={{
-                background: xpMode === mode ? 'rgba(234,179,8,0.12)' : 'transparent',
-                color: xpMode === mode ? '#fbbf24' : 'rgba(255,255,255,0.2)',
-                border: xpMode === mode ? '1px solid rgba(234,179,8,0.25)' : '1px solid transparent',
-              }}
-            >
-              {mode === 'daily' ? '⚡ TODAY' : '🌐 ALL TIME'}
-            </button>
-          ))}
-        </div>
-      )}
-
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.5, repeat: Infinity }} className="text-gray-600 text-xs font-mono">
@@ -443,28 +389,26 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
       ) : activeTab === 'xp' && simulatedEntries.length === 0 ? (
         <div className="text-center py-16 px-6">
           <div className="text-3xl mb-3">⚡</div>
-          <div className="text-sm font-black text-white mb-1">{xpMode === 'daily' ? 'No XP Earned Today Yet' : 'No Players Found'}</div>
+          <div className="text-sm font-black text-white mb-1">No XP Earned Today Yet</div>
           <div className="text-xs text-gray-500 font-mono">Complete quests to start climbing the leaderboard.</div>
         </div>
       ) : activeTab === 'xp' ? (
         <>
-          {/* ── PODIUM — Laurel Wreath Style ── */}
+          {/* ── PODIUM — Medal Style (matches streak tab) ── */}
           {simulatedEntries.length >= 3 && (
-            <div className="flex items-end justify-center gap-2 px-4 pt-2 pb-6">
+            <div className="flex items-end justify-center gap-3 px-4 pt-2 pb-6">
               {/* 2nd place (left) */}
               {(() => {
                 const e = simulatedEntries[1];
                 return (
-                  <div className="flex flex-col items-center gap-1 flex-1 cursor-pointer" onClick={() => setProfileTarget(e)}>
-                    <div className="relative">
-                      <div className="absolute -inset-2 flex items-center justify-center" style={{ filter: 'drop-shadow(0 0 4px rgba(192,192,192,0.3))' }}>
-                        <svg width="76" height="76" viewBox="0 0 80 80"><circle cx="40" cy="40" r="36" fill="none" stroke="#C0C0C0" strokeWidth="2" strokeDasharray="4 3" opacity="0.5"/><text x="40" y="14" textAnchor="middle" fill="#C0C0C0" fontSize="11" fontWeight="900">2nd</text></svg>
-                      </div>
-                      <AvatarWithBorder avatarUrl={e.avatar_url} borderId={e.equipped_border || null} size={56} />
+                  <div className="flex flex-col items-center gap-1.5 flex-1 cursor-pointer" onClick={() => setProfileTarget(e)}>
+                    <div className="text-lg">🥈</div>
+                    <AvatarWithBorder avatarUrl={e.avatar_url} borderId={e.equipped_border || null} size={64} />
+                    <div className="text-[11px] font-black text-white truncate max-w-[80px] text-center">
+                      {e.username || e.name}
                     </div>
-                    <div className="text-[10px] font-black text-white truncate max-w-[75px] text-center mt-1">{e.username || e.name}</div>
                     <div className="flex items-center gap-1">
-                      <Zap size={12} className="text-cyan-400" />
+                      <Zap size={13} className="text-cyan-400" />
                       <span className="text-sm font-black text-cyan-400">{formatXp(e.dominance)}</span>
                     </div>
                   </div>
@@ -475,15 +419,12 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
               {(() => {
                 const e = simulatedEntries[0];
                 return (
-                  <div className="flex flex-col items-center gap-1 flex-1 -mt-6 cursor-pointer" onClick={() => setProfileTarget(e)}>
-                    <div className="text-xl mb-0.5">👑</div>
-                    <div className="relative">
-                      <div className="absolute -inset-3 flex items-center justify-center" style={{ filter: 'drop-shadow(0 0 6px rgba(234,179,8,0.4))' }}>
-                        <svg width="92" height="92" viewBox="0 0 96 96"><circle cx="48" cy="48" r="42" fill="none" stroke="#EAB308" strokeWidth="2.5" strokeDasharray="5 3" opacity="0.6"/><text x="48" y="16" textAnchor="middle" fill="#EAB308" fontSize="12" fontWeight="900">1st</text></svg>
-                      </div>
-                      <AvatarWithBorder avatarUrl={e.avatar_url} borderId={e.equipped_border || null} size={68} />
+                  <div className="flex flex-col items-center gap-1.5 flex-1 -mt-4 cursor-pointer" onClick={() => setProfileTarget(e)}>
+                    <div className="text-2xl">👑</div>
+                    <AvatarWithBorder avatarUrl={e.avatar_url} borderId={e.equipped_border || null} size={80} />
+                    <div className="text-xs font-black text-white truncate max-w-[90px] text-center">
+                      {e.username || e.name}
                     </div>
-                    <div className="text-[11px] font-black text-white truncate max-w-[85px] text-center mt-1">{e.username || e.name}</div>
                     <div className="flex items-center gap-1">
                       <Zap size={14} className="text-yellow-400" />
                       <span className="text-base font-black text-yellow-400">{formatXp(e.dominance)}</span>
@@ -496,16 +437,14 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
               {(() => {
                 const e = simulatedEntries[2];
                 return (
-                  <div className="flex flex-col items-center gap-1 flex-1 cursor-pointer" onClick={() => setProfileTarget(e)}>
-                    <div className="relative">
-                      <div className="absolute -inset-2 flex items-center justify-center" style={{ filter: 'drop-shadow(0 0 4px rgba(205,127,50,0.3))' }}>
-                        <svg width="76" height="76" viewBox="0 0 80 80"><circle cx="40" cy="40" r="36" fill="none" stroke="#CD7F32" strokeWidth="2" strokeDasharray="4 3" opacity="0.5"/><text x="40" y="14" textAnchor="middle" fill="#CD7F32" fontSize="11" fontWeight="900">3rd</text></svg>
-                      </div>
-                      <AvatarWithBorder avatarUrl={e.avatar_url} borderId={e.equipped_border || null} size={56} />
+                  <div className="flex flex-col items-center gap-1.5 flex-1 cursor-pointer" onClick={() => setProfileTarget(e)}>
+                    <div className="text-lg">🥉</div>
+                    <AvatarWithBorder avatarUrl={e.avatar_url} borderId={e.equipped_border || null} size={64} />
+                    <div className="text-[11px] font-black text-white truncate max-w-[80px] text-center">
+                      {e.username || e.name}
                     </div>
-                    <div className="text-[10px] font-black text-white truncate max-w-[75px] text-center mt-1">{e.username || e.name}</div>
                     <div className="flex items-center gap-1">
-                      <Zap size={12} className="text-cyan-400" />
+                      <Zap size={13} className="text-cyan-400" />
                       <span className="text-sm font-black text-cyan-400">{formatXp(e.dominance)}</span>
                     </div>
                   </div>
@@ -552,7 +491,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
 
           <div className="text-center py-4 mt-2">
             <span className="text-[10px] text-gray-600 font-mono">
-              {xpMode === 'daily' ? 'Daily XP · Resets at midnight UTC' : 'All-time total XP'} · Top hunters
+              Daily XP · Resets at midnight UTC · Top hunters
             </span>
           </div>
         </>
