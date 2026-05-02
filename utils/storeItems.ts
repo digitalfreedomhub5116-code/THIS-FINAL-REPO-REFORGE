@@ -66,22 +66,16 @@ export interface TitleConfig {
   glow?: boolean;
 }
 
-/* ═══ BORDERS ═══ */
-const BORDERS: StoreItem[] = [
+/* ═══ BORDERS — organized by thematic tiers ═══ */
 
-  // Image-Based Borders
+/** Tier 1: ELEMENTS — Nature & elemental forces */
+export const BORDERS_ELEMENTS: StoreItem[] = [
   {
     id: 'border-ice-img', name: 'Ice Crown', category: 'border', tier: 'elemental', price: 600,
     description: 'Frozen crystalline frost wrapping your avatar.',
     imageBorder: '/borders/ice-transparent.webp',
     imageAnimated: true,
     borderConfig: { colors: ['#00BFFF', '#E0FFFF'], strokeWidth: 3, animated: false, glowColor: '#00BFFF', glowIntensity: 0.6 },
-  },
-  {
-    id: 'border-dragon-img', name: 'Dragon Coil', category: 'border', tier: 'legendary', price: 1200,
-    description: 'A mythic water dragon coils around your profile.',
-    imageBorder: '/borders/dragon.webp',
-    borderConfig: { colors: ['#60A5FA', '#93C5FD'], strokeWidth: 3, animated: false, glowColor: '#60A5FA', glowIntensity: 0.7 },
   },
   {
     id: 'border-starcrown-img', name: 'Star Crown', category: 'border', tier: 'premium', price: 900,
@@ -92,23 +86,6 @@ const BORDERS: StoreItem[] = [
     borderConfig: { colors: ['#E2E8F0', '#94A3B8'], strokeWidth: 3, animated: false, glowColor: '#E2E8F0', glowIntensity: 0.5 },
   },
   {
-    id: 'border-shadowthrone-img', name: 'Shadow Throne', category: 'border', tier: 'legendary', price: 1500,
-    description: 'Ornate dark-magic thorns weaving a royal frame.',
-    imageBorder: '/borders/purple.webp',
-    borderConfig: { colors: ['#C084FC', '#A855F7'], strokeWidth: 3, animated: false, glowColor: '#C084FC', glowIntensity: 0.7 },
-  },
-
-
-
-  // Lottie Animated Borders
-  {
-    id: 'border-lottie-celestial', name: 'Celestial Flame', category: 'border', tier: 'legendary', price: 4500,
-    description: 'A mesmerizing animated flame ring from another realm.',
-    lottieBorder: '/borders/lottie-border.json',
-    borderConfig: { colors: ['#F59E0B', '#EF4444', '#C8A84E'], strokeWidth: 3, animated: false, glowColor: '#F59E0B', glowIntensity: 0.8 },
-  },
-
-  {
     id: 'border-elemental-tide', name: 'Elemental Tide', category: 'border', tier: 'legendary', price: 2800,
     description: 'Japanese waves and sacred flames entwine around your avatar.',
     imageBorder: '/borders/border-mixed.webp',
@@ -116,10 +93,34 @@ const BORDERS: StoreItem[] = [
     borderConfig: { colors: ['#1E90FF', '#FF6347', '#C8A84E'], strokeWidth: 3, animated: false, glowColor: '#1E90FF', glowIntensity: 0.7 },
   },
   {
-    id: 'border-gold-dragon', name: 'Gold Dragon', category: 'border', tier: 'legendary', price: 5500,
-    description: 'An ancient golden dragon coils around your avatar — ultimate power.',
-    imageBorder: '/borders/border-golddragon.webp',
-    borderConfig: { colors: ['#C8A84E', '#F59E0B', '#DAA520'], strokeWidth: 3, animated: false, glowColor: '#C8A84E', glowIntensity: 0.8 },
+    id: 'border-lottie-celestial', name: 'Celestial Flame', category: 'border', tier: 'legendary', price: 4500,
+    description: 'A mesmerizing animated flame ring from another realm.',
+    lottieBorder: '/borders/lottie-border.json',
+    borderConfig: { colors: ['#F59E0B', '#EF4444', '#C8A84E'], strokeWidth: 3, animated: false, glowColor: '#F59E0B', glowIntensity: 0.8 },
+  },
+  {
+    id: 'border-frost-tech', name: 'Frost Tech', category: 'border', tier: 'legendary', price: 8900,
+    description: 'Cryo-tech crystals and snowflakes forge a futuristic ice frame.',
+    imageBorder: '/borders/border-frost-tech.webp',
+    imageScale: 1.1,
+    borderConfig: { colors: ['#00CED1', '#87CEEB', '#E0FFFF'], strokeWidth: 3, animated: false, glowColor: '#00CED1', glowIntensity: 0.8 },
+  },
+];
+
+/** Tier 2: BEASTS — Dragons, lions, eagles, phoenixes */
+export const BORDERS_BEASTS: StoreItem[] = [
+  {
+    id: 'border-dragon-img', name: 'Dragon Coil', category: 'border', tier: 'legendary', price: 1200,
+    description: 'A mythic water dragon coils around your profile.',
+    imageBorder: '/borders/dragon.webp',
+    borderConfig: { colors: ['#60A5FA', '#93C5FD'], strokeWidth: 3, animated: false, glowColor: '#60A5FA', glowIntensity: 0.7 },
+  },
+  {
+    id: 'border-stitched-dragon', name: 'Stitched Dragon', category: 'border', tier: 'legendary', price: 3600,
+    description: 'A crimson dragon coils in stitched leather and gold — ancient fury.',
+    imageBorder: '/borders/border-stitched-dragon.webp',
+    imageScale: 1.08,
+    borderConfig: { colors: ['#8B0000', '#C8A84E', '#FF4500'], strokeWidth: 3, animated: false, glowColor: '#8B0000', glowIntensity: 0.8 },
   },
   {
     id: 'border-gold-lion', name: 'Gold Lion', category: 'border', tier: 'legendary', price: 4800,
@@ -127,6 +128,12 @@ const BORDERS: StoreItem[] = [
     imageBorder: '/borders/border-goldlion.webp',
     imageScale: 1.5,
     borderConfig: { colors: ['#C8A84E', '#0E8585', '#DAA520'], strokeWidth: 3, animated: false, glowColor: '#C8A84E', glowIntensity: 0.8 },
+  },
+  {
+    id: 'border-gold-dragon', name: 'Gold Dragon', category: 'border', tier: 'legendary', price: 5500,
+    description: 'An ancient golden dragon coils around your avatar — ultimate power.',
+    imageBorder: '/borders/border-golddragon.webp',
+    borderConfig: { colors: ['#C8A84E', '#F59E0B', '#DAA520'], strokeWidth: 3, animated: false, glowColor: '#C8A84E', glowIntensity: 0.8 },
   },
   {
     id: 'border-gold-eagle', name: 'Golden Eagle', category: 'border', tier: 'legendary', price: 6200,
@@ -143,55 +150,80 @@ const BORDERS: StoreItem[] = [
     imageScale: 1.05,
     borderConfig: { colors: ['#DAA520', '#FF8C00', '#FFD700'], strokeWidth: 3, animated: false, glowColor: '#DAA520', glowIntensity: 0.8 },
   },
-  {
-    id: 'border-stitched-dragon', name: 'Stitched Dragon', category: 'border', tier: 'legendary', price: 3600,
-    description: 'A crimson dragon coils in stitched leather and gold — ancient fury.',
-    imageBorder: '/borders/border-stitched-dragon.webp',
-    imageScale: 1.08,
-    borderConfig: { colors: ['#8B0000', '#C8A84E', '#FF4500'], strokeWidth: 3, animated: false, glowColor: '#8B0000', glowIntensity: 0.8 },
-  },
-  {
-    id: 'border-frost-tech', name: 'Frost Tech', category: 'border', tier: 'legendary', price: 8900,
-    description: 'Cryo-tech crystals and snowflakes forge a futuristic ice frame.',
-    imageBorder: '/borders/border-frost-tech.webp',
-    imageScale: 1.1,
-    borderConfig: { colors: ['#00CED1', '#87CEEB', '#E0FFFF'], strokeWidth: 3, animated: false, glowColor: '#00CED1', glowIntensity: 0.8 },
-  },
 ];
 
-/* ═══ STREAK MILESTONE BORDERS (exclusive — not purchasable) ═══ */
-const STREAK_BORDERS: StoreItem[] = [
+/** Tier 3: SHIELDS — Armor, runes, defensive frames */
+export const BORDERS_SHIELDS: StoreItem[] = [
   {
-    id: 'border-streak-silver', name: 'Forged in Fire', category: 'border', tier: 'special', price: 0,
-    description: '14-day streak milestone — silver frost ring of dedication.',
+    id: 'border-podium-bronze', name: 'Bronze Vanguard', category: 'border', tier: 'premium', price: 1200,
+    description: 'A weathered bronze frame — earned through battle.',
+    imageBorder: '/borders/bronzerank-Photoroom.webp',
+    imageScale: 1.1,
+    borderConfig: { colors: ['#CD7F32', '#B87333'], strokeWidth: 3, animated: false, glowColor: '#CD7F32', glowIntensity: 0.6 },
+  },
+  {
+    id: 'border-streak-silver', name: 'Forged in Fire', category: 'border', tier: 'premium', price: 1500,
+    description: 'A silver frost ring forged through dedication.',
     imageBorder: '/borders/border-streak-silver.webp',
     borderConfig: { colors: ['#C0C0C0', '#E0E0E0'], strokeWidth: 3, animated: false, glowColor: '#C0C0C0', glowIntensity: 0.6 },
   },
   {
-    id: 'border-streak-gold', name: 'Iron Will', category: 'border', tier: 'premium', price: 0,
-    description: '30-day streak milestone — golden rune ring of iron will.',
-    imageBorder: '/borders/border-streak-gold.webp',
-    borderConfig: { colors: ['#EAB308', '#F59E0B'], strokeWidth: 3, animated: false, glowColor: '#EAB308', glowIntensity: 0.7 },
+    id: 'border-shadowthrone-img', name: 'Shadow Throne', category: 'border', tier: 'legendary', price: 1500,
+    description: 'Ornate dark-magic thorns weaving a royal frame.',
+    imageBorder: '/borders/purple.webp',
+    borderConfig: { colors: ['#C084FC', '#A855F7'], strokeWidth: 3, animated: false, glowColor: '#C084FC', glowIntensity: 0.7 },
   },
   {
-    id: 'border-streak-inferno', name: 'Inferno', category: 'border', tier: 'legendary', price: 0,
-    description: '60-day streak milestone — cyan inferno flames of relentless dedication.',
-    imageBorder: '/borders/border-streak-inferno.webp',
-    borderConfig: { colors: ['#00d4ff', '#06B6D4'], strokeWidth: 3, animated: false, glowColor: '#00d4ff', glowIntensity: 0.8 },
+    id: 'border-podium-silver', name: 'Silversteel Aegis', category: 'border', tier: 'premium', price: 1800,
+    description: 'Forged from silversteel — a shield of honor.',
+    imageBorder: '/borders/silverrank-Photoroom.webp',
+    imageScale: 1.1,
+    borderConfig: { colors: ['#C0C0C0', '#E0E0E0'], strokeWidth: 3, animated: false, glowColor: '#C0C0C0', glowIntensity: 0.6 },
   },
   {
-    id: 'border-streak-eternal', name: 'Eternal Flame', category: 'border', tier: 'legendary', price: 0,
-    description: '100-day streak milestone — purple arcane flames of eternal power.',
-    imageBorder: '/borders/border-streak-eternal.webp',
-    borderConfig: { colors: ['#A855F7', '#7C3AED'], strokeWidth: 3, animated: false, glowColor: '#A855F7', glowIntensity: 0.9 },
-  },
-  {
-    id: 'border-streak-legendary', name: 'Legendary', category: 'border', tier: 'legendary', price: 0,
-    description: '365-day streak milestone — divine golden ring of legendary status.',
+    id: 'border-streak-legendary', name: 'Legendary', category: 'border', tier: 'legendary', price: 2200,
+    description: 'A divine golden ring — legendary status.',
     imageBorder: '/borders/border-streak-legendary.webp',
     imageScale: 1.05,
     borderConfig: { colors: ['#EAB308', '#A855F7', '#EF4444'], strokeWidth: 3, animated: false, glowColor: '#EAB308', glowIntensity: 1.0 },
   },
+];
+
+/** Tier 4: EXCLUSIVE — Premium borders with glow effect */
+export const BORDERS_EXCLUSIVE: StoreItem[] = [
+  {
+    id: 'border-streak-gold', name: 'Iron Will', category: 'border', tier: 'legendary', price: 3000,
+    description: 'A golden rune ring of iron will — unyielding.',
+    imageBorder: '/borders/border-streak-gold.webp',
+    borderConfig: { colors: ['#EAB308', '#F59E0B'], strokeWidth: 3, animated: false, glowColor: '#EAB308', glowIntensity: 0.7 },
+  },
+  {
+    id: 'border-podium-gold', name: "Sovereign's Crown", category: 'border', tier: 'legendary', price: 3500,
+    description: 'A regal golden frame befitting a true champion.',
+    imageBorder: '/borders/goldrank-Photoroom.webp',
+    imageScale: 1.1,
+    borderConfig: { colors: ['#FFD700', '#DAA520'], strokeWidth: 3, animated: false, glowColor: '#FFD700', glowIntensity: 0.8 },
+  },
+  {
+    id: 'border-streak-inferno', name: 'Inferno', category: 'border', tier: 'legendary', price: 5000,
+    description: 'Cyan inferno flames of relentless dedication.',
+    imageBorder: '/borders/border-streak-inferno.webp',
+    borderConfig: { colors: ['#00d4ff', '#06B6D4'], strokeWidth: 3, animated: false, glowColor: '#00d4ff', glowIntensity: 0.8 },
+  },
+  {
+    id: 'border-streak-eternal', name: 'Eternal Flame', category: 'border', tier: 'legendary', price: 7500,
+    description: 'Purple arcane flames of eternal power.',
+    imageBorder: '/borders/border-streak-eternal.webp',
+    borderConfig: { colors: ['#A855F7', '#7C3AED'], strokeWidth: 3, animated: false, glowColor: '#A855F7', glowIntensity: 0.9 },
+  },
+];
+
+/** All borders combined */
+const ALL_BORDERS: StoreItem[] = [
+  ...BORDERS_ELEMENTS,
+  ...BORDERS_BEASTS,
+  ...BORDERS_SHIELDS,
+  ...BORDERS_EXCLUSIVE,
 ];
 
 
@@ -544,9 +576,7 @@ const RANK_BORDERS: StoreItem[] = [
 
 /* ═══ ALL ITEMS ═══ */
 export const ALL_STORE_ITEMS: StoreItem[] = [
-  ...BORDERS,
-  ...STREAK_BORDERS,
-  ...RANK_BORDERS,
+  ...ALL_BORDERS,
   ...THEMES,
   ...CONSUMABLES,
   ...TITLES,

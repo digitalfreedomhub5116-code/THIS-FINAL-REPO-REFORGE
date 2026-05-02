@@ -7,6 +7,14 @@ import React, { useState } from 'react';
 import { User as UserIcon } from 'lucide-react';
 import { getItemById } from '../utils/storeItems';
 
+/* ── Only these borders keep their glow (Tier 4 Exclusive) ── */
+const GLOW_WHITELIST = new Set([
+  'border-streak-gold',      // Iron Will
+  'border-streak-inferno',   // Inferno
+  'border-streak-eternal',   // Eternal Flame
+  'border-podium-gold',      // Sovereign's Crown
+]);
+
 interface AvatarWithBorderProps {
   avatarUrl?: string | null;
   borderId?: string | null;
@@ -101,11 +109,12 @@ const AvatarWithBorder: React.FC<AvatarWithBorderProps> = ({
             zIndex: 2,
           }}
         >
-          <BorderImage
+            <BorderImage
             src={storeItem.imageBorder!}
             isAnimated={isAnimated}
             animType={animType}
             glowColor={glow}
+            borderId={borderId || undefined}
           />
         </div>
       </div>
@@ -152,7 +161,7 @@ function AvatarImage({ src, size }: { src: string; size: number }) {
 }
 
 /** Internal border image with skeleton loading */
-function BorderImage({ src, isAnimated, animType, glowColor }: { src: string; isAnimated?: boolean; animType?: string; glowColor?: string }) {
+function BorderImage({ src, isAnimated, animType, glowColor, borderId }: { src: string; isAnimated?: boolean; animType?: string; glowColor?: string; borderId?: string }) {
   const [loaded, setLoaded] = useState(false);
   return (
     <>
@@ -178,7 +187,7 @@ function BorderImage({ src, isAnimated, animType, glowColor }: { src: string; is
           // mix-blend-mode: screen makes white pixels invisible on dark backgrounds.
           // Many border PNGs have white backgrounds instead of true transparency.
           mixBlendMode: 'screen',
-          filter: glowColor ? `drop-shadow(0 0 6px ${glowColor})` : undefined,
+          filter: glowColor && GLOW_WHITELIST.has(borderId || '') ? `drop-shadow(0 0 6px ${glowColor})` : undefined,
           animation: isAnimated
             ? animType === 'pulse'
               ? 'pulse 2s ease-in-out infinite'

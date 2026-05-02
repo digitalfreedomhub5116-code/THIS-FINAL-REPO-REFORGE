@@ -13,7 +13,7 @@ import { PROFILE_BORDERS, getBorderConfig, OUTFITS } from '../utils/gameData';
 import AnimatedBorder from './AnimatedBorder';
 import OnboardingNotice from './OnboardingNotice';
 import { SystemCoin } from './icons/SystemCoin';
-import { getItemsByCategory, getTodaysDeals, type StoreItem as KitStoreItem, ALL_STORE_ITEMS } from '../utils/storeItems';
+import { getItemsByCategory, getTodaysDeals, type StoreItem as KitStoreItem, ALL_STORE_ITEMS, BORDERS_ELEMENTS, BORDERS_BEASTS, BORDERS_SHIELDS, BORDERS_EXCLUSIVE } from '../utils/storeItems';
 import { getEconomy, purchaseItem as kitPurchaseItem, equipItem as kitEquipItem, applyThemeVars, DEV_UNLOCK_ALL, type EquippedItems } from '../utils/storeEconomy';
 import { syncBorderToPlayers } from '../lib/borderSync';
 import { LynxCoin, BorderRing, ThemeSwatch } from './StoreComponents';
@@ -624,18 +624,117 @@ const ShopView: React.FC<ShopViewProps> = ({
       </section>
 
       {/* ═══════════════════════════════════════════
-           👑 AVATAR BORDERS
+           👑 AVATAR BORDERS — 4 Thematic Tiers
          ═══════════════════════════════════════════ */}
+
+      {/* ── Tier 1: Elements ── */}
       <section>
         <div className="store-section-hdr">
-          <div className="hdr-icon" style={{ background: 'rgba(0,212,255,0.12)', border: '1px solid rgba(0,212,255,0.2)' }}>
-            <Frame size={15} style={{ color: '#00d4ff' }} />
+          <div className="hdr-icon" style={{ background: 'rgba(0,191,255,0.12)', border: '1px solid rgba(0,191,255,0.2)' }}>
+            <Flame size={15} style={{ color: '#00BFFF' }} />
           </div>
-          <span className="hdr-title">Borders</span>
+          <span className="hdr-title">Elements</span>
+          <span style={{ fontSize: 8, fontFamily: 'monospace', color: 'rgba(255,255,255,0.3)', padding: '2px 8px', background: 'rgba(0,191,255,0.06)', borderRadius: 6, border: '1px solid rgba(0,191,255,0.1)' }}>NATURE · ICE · FIRE</span>
           <div className="hdr-line" />
         </div>
         <div className="store-hscroll">
-          {getItemsByCategory('border').map(item => (
+          {BORDERS_ELEMENTS.map(item => (
+            <div key={item.id} style={{ flexShrink: 0, width: 170 }}>
+              <KitGlowCard item={item}
+                owned={DEV_UNLOCK_ALL || kitEconomy.owned.includes(item.id)}
+                equipped={kitEconomy.equipped.border === item.id}
+                canAfford={DEV_UNLOCK_ALL || gold >= item.price}
+                onBuy={() => setConfirmPurchaseItem(item)}
+                onEquip={() => {
+                  setEquipAnimItem(item);
+                  setShowEquipAnim(true);
+                  handleKitEquip('border', item.id);
+                }}
+                onInfo={() => setKitInfoItem(item)}
+                onView={() => setKitInfoItem(item)}
+                onCardClick={() => setKitInfoItem(item)}
+              />
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Tier 2: Beasts ── */}
+      <section>
+        <div className="store-section-hdr">
+          <div className="hdr-icon" style={{ background: 'rgba(200,168,78,0.12)', border: '1px solid rgba(200,168,78,0.2)' }}>
+            <Shield size={15} style={{ color: '#C8A84E' }} />
+          </div>
+          <span className="hdr-title">Beasts</span>
+          <span style={{ fontSize: 8, fontFamily: 'monospace', color: 'rgba(255,255,255,0.3)', padding: '2px 8px', background: 'rgba(200,168,78,0.06)', borderRadius: 6, border: '1px solid rgba(200,168,78,0.1)' }}>DRAGONS · LIONS · EAGLES</span>
+          <div className="hdr-line" />
+        </div>
+        <div className="store-hscroll">
+          {BORDERS_BEASTS.map(item => (
+            <div key={item.id} style={{ flexShrink: 0, width: 170 }}>
+              <KitGlowCard item={item}
+                owned={DEV_UNLOCK_ALL || kitEconomy.owned.includes(item.id)}
+                equipped={kitEconomy.equipped.border === item.id}
+                canAfford={DEV_UNLOCK_ALL || gold >= item.price}
+                onBuy={() => setConfirmPurchaseItem(item)}
+                onEquip={() => {
+                  setEquipAnimItem(item);
+                  setShowEquipAnim(true);
+                  handleKitEquip('border', item.id);
+                }}
+                onInfo={() => setKitInfoItem(item)}
+                onView={() => setKitInfoItem(item)}
+                onCardClick={() => setKitInfoItem(item)}
+              />
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Tier 3: Shields ── */}
+      <section>
+        <div className="store-section-hdr">
+          <div className="hdr-icon" style={{ background: 'rgba(192,192,192,0.12)', border: '1px solid rgba(192,192,192,0.2)' }}>
+            <Hexagon size={15} style={{ color: '#C0C0C0' }} />
+          </div>
+          <span className="hdr-title">Shields</span>
+          <span style={{ fontSize: 8, fontFamily: 'monospace', color: 'rgba(255,255,255,0.3)', padding: '2px 8px', background: 'rgba(192,192,192,0.06)', borderRadius: 6, border: '1px solid rgba(192,192,192,0.1)' }}>ARMOR · RUNES · VANGUARD</span>
+          <div className="hdr-line" />
+        </div>
+        <div className="store-hscroll">
+          {BORDERS_SHIELDS.map(item => (
+            <div key={item.id} style={{ flexShrink: 0, width: 170 }}>
+              <KitGlowCard item={item}
+                owned={DEV_UNLOCK_ALL || kitEconomy.owned.includes(item.id)}
+                equipped={kitEconomy.equipped.border === item.id}
+                canAfford={DEV_UNLOCK_ALL || gold >= item.price}
+                onBuy={() => setConfirmPurchaseItem(item)}
+                onEquip={() => {
+                  setEquipAnimItem(item);
+                  setShowEquipAnim(true);
+                  handleKitEquip('border', item.id);
+                }}
+                onInfo={() => setKitInfoItem(item)}
+                onView={() => setKitInfoItem(item)}
+                onCardClick={() => setKitInfoItem(item)}
+              />
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Tier 4: Exclusive (Glow) ── */}
+      <section>
+        <div className="store-section-hdr">
+          <div className="hdr-icon" style={{ background: 'rgba(168,85,247,0.15)', border: '1px solid rgba(168,85,247,0.3)', boxShadow: '0 0 12px rgba(168,85,247,0.15)' }}>
+            <Star size={15} style={{ color: '#A855F7' }} />
+          </div>
+          <span className="hdr-title" style={{ background: 'linear-gradient(90deg, #A855F7, #EAB308)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Exclusive</span>
+          <span style={{ fontSize: 8, fontFamily: 'monospace', color: '#A855F7', padding: '2px 8px', background: 'rgba(168,85,247,0.08)', borderRadius: 6, border: '1px solid rgba(168,85,247,0.15)' }}>✦ GLOW EFFECT</span>
+          <div className="hdr-line" />
+        </div>
+        <div className="store-hscroll">
+          {BORDERS_EXCLUSIVE.map(item => (
             <div key={item.id} style={{ flexShrink: 0, width: 170 }}>
               <KitGlowCard item={item}
                 owned={DEV_UNLOCK_ALL || kitEconomy.owned.includes(item.id)}
