@@ -1488,17 +1488,17 @@ function StoreLottieBorder({ src, glow }: { src: string; glow: string }) {
   }, [src]);
 
   return (
-    <div style={{ position: 'relative', width: 110, height: 110 }}>
+    <div style={{ position: 'relative', width: 96, height: 96 }}>
       {/* Avatar */}
       <div style={{
         position: 'absolute', top: '50%', left: '50%',
-        width: 72, height: 72, borderRadius: '50%',
+        width: 56, height: 56, borderRadius: '50%',
         background: 'radial-gradient(circle, #3a3a4a, #1a1a24)',
         transform: 'translate(-50%, -50%)', zIndex: 1,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         overflow: 'hidden',
       }}>
-        <svg width="56" height="56" viewBox="0 0 40 40">
+        <svg width="40" height="40" viewBox="0 0 40 40">
           <circle cx="20" cy="16" r="7" fill="#555568" />
           <ellipse cx="20" cy="35" rx="13" ry="10" fill="#4a4a5a" />
         </svg>
@@ -1507,7 +1507,7 @@ function StoreLottieBorder({ src, glow }: { src: string; glow: string }) {
       {data && (
         <div style={{
           position: 'absolute', top: '50%', left: '50%',
-          width: 110, height: 110, borderRadius: '50%', overflow: 'hidden',
+          width: 96, height: 96, borderRadius: '50%', overflow: 'hidden',
           transform: 'translate(-50%, -50%)', zIndex: 2, pointerEvents: 'none',
           mixBlendMode: 'screen', filter: 'brightness(1.1)',
         }}>
@@ -1559,7 +1559,8 @@ function KitGlowCard({ item, discount, owned, equipped, canAfford, onBuy, onEqui
           background: `linear-gradient(160deg, ${catColor}40 0%, ${catColor}22 25%, #111828 55%, #0d1118 100%)`,
           position: 'relative', textAlign: 'center',
           padding: '16px 10px 14px',
-          minHeight: 210, display: 'flex', flexDirection: 'column', alignItems: 'center',
+          height: 240, display: 'flex', flexDirection: 'column', alignItems: 'center',
+          overflow: 'hidden',
         }}>
 
           {/* ── Diagonal Shine Streaks ── */}
@@ -1614,7 +1615,7 @@ function KitGlowCard({ item, discount, owned, equipped, canAfford, onBuy, onEqui
           )}
 
           {/* ── Name & Category ── */}
-          <div style={{ position: 'relative', zIndex: 2, marginBottom: 10, marginTop: discount ? 18 : 0 }}>
+          <div style={{ position: 'relative', zIndex: 2, marginBottom: 6, marginTop: 0 }}>
             <div style={{ fontSize: 15, fontWeight: 900, color: '#fff', lineHeight: 1.2, marginBottom: 3, textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
               {item.name}
             </div>
@@ -1624,29 +1625,29 @@ function KitGlowCard({ item, discount, owned, equipped, canAfford, onBuy, onEqui
           </div>
 
           {/* ── Preview Area ── */}
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', zIndex: 2, width: '100%', minHeight: 110, overflow: 'visible' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', zIndex: 2, width: '100%', height: 100, overflow: 'hidden' }}>
             {/* Radial glow behind preview */}
             <div style={{ position: 'absolute', top: '50%', left: '50%', width: 110, height: 110, borderRadius: '50%', background: `radial-gradient(circle, ${catColor}25 0%, ${catColor}08 50%, transparent 70%)`, transform: 'translate(-50%, -50%)' }} />
 
             {/* ── BORDER: Image-based (PNG) ── */}
             {item.category === 'border' && item.imageBorder ? (
-              <div style={{ position: 'relative', width: 100, height: 100, overflow: 'visible' }}>
-                <div style={{ position: 'absolute', top: '50%', left: '50%', width: 64, height: 64, borderRadius: '50%', background: 'radial-gradient(circle, #3a3a4a, #1a1a24)', transform: 'translate(-50%, -50%)', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                  <svg width="46" height="46" viewBox="0 0 40 40"><circle cx="20" cy="16" r="7" fill="#555568" /><ellipse cx="20" cy="35" rx="13" ry="10" fill="#4a4a5a" /></svg>
+              <div style={{ position: 'relative', width: 96, height: 96, flexShrink: 0 }}>
+                <div style={{ position: 'absolute', top: '50%', left: '50%', width: 56, height: 56, borderRadius: '50%', background: 'radial-gradient(circle, #3a3a4a, #1a1a24)', transform: 'translate(-50%, -50%)', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                  <svg width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="16" r="7" fill="#555568" /><ellipse cx="20" cy="35" rx="13" ry="10" fill="#4a4a5a" /></svg>
                 </div>
                 {item.imageAnimated && item.imageAnimationType === 'pulse' ? (
-                  <div style={{ position: 'absolute', top: '50%', left: '50%', width: `${(item.imageScale || 1) * 100}%`, height: `${(item.imageScale || 1) * 100}%`, zIndex: 2, pointerEvents: 'none', animation: 'border-breathe-centered 3s ease-in-out infinite' }}>
+                  <div style={{ position: 'absolute', inset: 0, zIndex: 2, pointerEvents: 'none', animation: 'border-breathe-centered 3s ease-in-out infinite' }}>
                     <FadeImg src={item.imageBorder} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                   </div>
                 ) : (
-                  <FadeImg src={item.imageBorder} alt={item.name} style={{ position: 'absolute', top: '50%', left: '50%', width: `${(item.imageScale || 1) * 100}%`, height: `${(item.imageScale || 1) * 100}%`, transform: `translate(-50%, calc(-50% + ${item.imageOffsetY || 0}px))`, objectFit: 'contain', zIndex: 2, pointerEvents: 'none', ...(item.imageAnimated ? { animation: 'spin-clockwise 10s linear infinite' } : {}) }} />
+                  <FadeImg src={item.imageBorder} alt={item.name} style={{ position: 'absolute', inset: 0, objectFit: 'contain', zIndex: 2, pointerEvents: 'none', ...(item.imageAnimated ? { animation: 'spin-clockwise 10s linear infinite' } : {}) }} />
                 )}
               </div>
             ) : item.category === 'border' && item.lottieBorder ? (
               <StoreLottieBorder src={item.lottieBorder} glow={item.borderConfig?.glowColor || '#C8A84E'} />
             ) : item.category === 'border' && item.auraConfig ? (
               /* ── BORDER: CSS Aura glow (full spec) ── */
-              <div style={{ position: 'relative', width: 110, height: 110, overflow: 'visible' }}>
+              <div style={{ position: 'relative', width: 96, height: 96, flexShrink: 0 }}>
                 {/* Ambient glow */}
                 <div style={{ position: 'absolute', top: '50%', left: '50%', width: 120, height: 120, borderRadius: '50%', background: `radial-gradient(circle, ${item.auraConfig.colors[0]}30 0%, ${(item.auraConfig.colors[1] || item.auraConfig.colors[0])}15 40%, transparent 70%)`, transform: 'translate(-50%, -50%)', animation: item.auraConfig.animated ? `pulse-glow ${item.auraConfig.pulseSpeed || 3}s ease-in-out infinite` : undefined }} />
                 {/* Main aura ring */}
@@ -1675,7 +1676,7 @@ function KitGlowCard({ item, discount, owned, equipped, canAfford, onBuy, onEqui
           </div>
 
           {/* ── Bottom: Buy + View ── */}
-          <div style={{ position: 'relative', zIndex: 2, marginTop: 10, width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+          <div style={{ position: 'relative', zIndex: 2, marginTop: 'auto', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
             {owned ? (
               onEquip ? (
                 <button onClick={(e) => { e.stopPropagation(); onEquip(); }} style={{
