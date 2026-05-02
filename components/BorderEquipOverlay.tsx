@@ -12,6 +12,7 @@
 import React, { useEffect, useRef, useCallback, useState } from 'react';
 import gsap from 'gsap';
 import confetti from 'canvas-confetti';
+import Lottie from 'lottie-react';
 import type { StoreItem } from '../utils/storeItems';
 
 interface BorderEquipOverlayProps {
@@ -35,13 +36,14 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
   const labelRef = useRef<HTMLDivElement>(null);
   const tlRef = useRef<gsap.core.Timeline | null>(null);
   const [visible, setVisible] = useState(false);
+  const [lottieData, setLottieData] = useState<any>(null);
 
   // ── Normalize any color (rgba/rgb/hex) to #RRGGBB hex so suffix patterns like ${color}55 produce valid CSS ──
   const toHex = (c: string): string => {
-    if (c.startsWith('#')) return c.length > 7 ? c.slice(0, 7) : c; // strip 8-digit alpha
+    if (c.startsWith('#')) return c.length > 7 ? c.slice(0, 7) : c;
     const m = c.match(/rgba?\(\s*(\d+),\s*(\d+),\s*(\d+)/);
     if (m) return '#' + [m[1], m[2], m[3]].map(v => parseInt(v).toString(16).padStart(2, '0')).join('');
-    return '#C8A84E'; // fallback gold
+    return '#C8A84E';
   };
 
   const glowColor = toHex(
@@ -65,6 +67,15 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
     }
     return `conic-gradient(from 0deg, ${stops.join(', ')})`;
   })();
+
+  // ── Load Lottie data if border uses lottie ──
+  useEffect(() => {
+    if (!borderItem?.lottieBorder) { setLottieData(null); return; }
+    fetch(borderItem.lottieBorder)
+      .then(r => r.json())
+      .then(d => setLottieData(d))
+      .catch(() => setLottieData(null));
+  }, [borderItem?.lottieBorder]);
 
   const handleComplete = useCallback(() => {
     if (tlRef.current) tlRef.current.kill();
@@ -264,14 +275,22 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
   if (!visible || !borderItem) return null;
 
   const borderImgSrc = borderItem.imageBorder;
-  const borderScale = borderItem.imageScale || 1.0;
-  const avatarSize = 130;
-  const borderSize = avatarSize + 50;
+  const hasLottie = !!borderItem.lottieBorder;
   const isAnimated = borderItem.imageAnimated;
   const animType = (borderItem as any).imageAnimationType;
 
-  // The container must be large enough so the glow doesn't clip
-  const containerSize = Math.max(borderSize * borderScale, 240) + 60;
+  // ── Normalized overlay sizing ──
+  // imageScale from storeItems is tuned for the small in-game avatar (88px).
+  // In the overlay (130px avatar), extreme scales (1.4x eagle, 1.5x lion) look too big.
+  // We clamp the scale to [0.95, 1.15] for a uniform visual weight across all borders.
+  const avatarSize = 130;
+  const overlayBorderBase = 200;
+  const rawScale = borderItem.imageScale || 1.0;
+  const overlayScale = Math.min(Math.max(rawScale, 0.95), 1.15);
+  const borderDisplaySize = overlayBorderBase * overlayScale;
+
+  // Container must hold the glow without clipping
+  const containerSize = 300;
 
   return (
     <div
@@ -284,7 +303,7 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
         opacity: 0,
-        padding: '40px 0',
+        overflow: 'hidden', // clip glow from bleeding over nav bar
       }}
     >
       {/* ── Avatar + Border + Glow container ── */}
@@ -294,6 +313,7 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
         height: containerSize,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         overflow: 'visible',
+        flexShrink: 0,
       }}>
         {/* ── Sun Ray Starburst Glow (behind everything) ── */}
         <div style={{
@@ -361,15 +381,15 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
           )}
         </div>
 
-        {/* Border image — stamps from above, properly centered */}
+        {/* ── PNG Image Border — stamps from above, properly centered ── */}
         {borderImgSrc && (
           <div
             ref={borderRef}
             style={{
               position: 'absolute',
               top: '50%', left: '50%',
-              width: borderSize * borderScale,
-              height: borderSize * borderScale,
+              width: borderDisplaySize,
+              height: borderDisplaySize,
               zIndex: 11, pointerEvents: 'none',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
@@ -389,8 +409,36 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
           </div>
         )}
 
-        {/* Aura border fallback (no image) */}
-        {!borderImgSrc && borderItem.auraConfig && (
+        {/* ── Lottie Animated Border ── */}
+        {!borderImgSrc && hasLottie && (
+          <div
+            ref={borderRef}
+            style={{
+              position: 'absolute',
+              top: '50%', left: '50%',
+              width: borderDisplaySize,
+              height: borderDisplaySize,
+              zIndex: 11, pointerEvents: 'none',
+              borderRadius: '50%', overflow: 'hidden',
+              mixBlendMode: 'screen',
+              filter: 'brightness(1.1)',
+            }}
+          >
+            {lottieData && (
+              <div style={{
+                position: 'absolute',
+                width: '100%', height: '200%',
+                top: '50%', left: '50%',
+                transform: 'translate(-50%, -50%)',
+              }}>
+                <Lottie animationData={lottieData} loop autoplay style={{ width: '100%', height: '100%' }} />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Aura border fallback (no image, no lottie) */}
+        {!borderImgSrc && !hasLottie && borderItem.auraConfig && (
           <div
             ref={borderRef}
             style={{
@@ -406,7 +454,7 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
         )}
 
         {/* CSS border fallback */}
-        {!borderImgSrc && !borderItem.auraConfig && borderItem.borderConfig && (
+        {!borderImgSrc && !hasLottie && !borderItem.auraConfig && borderItem.borderConfig && (
           <div
             ref={borderRef}
             style={{
@@ -422,7 +470,7 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
       </div>
 
       {/* ── Label ── */}
-      <div ref={labelRef} style={{ marginTop: 32, textAlign: 'center' }}>
+      <div ref={labelRef} style={{ marginTop: 28, textAlign: 'center', position: 'relative', zIndex: 2 }}>
         <div style={{
           fontSize: 11, fontWeight: 900, letterSpacing: '0.35em',
           color: glowColor, textTransform: 'uppercase',
@@ -452,7 +500,7 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
         ref={btnRef}
         onClick={handleComplete}
         style={{
-          marginTop: 32, padding: '14px 56px', borderRadius: 16,
+          marginTop: 28, padding: '14px 56px', borderRadius: 16,
           background: `linear-gradient(135deg, ${glowColor}40, ${glowColor}18)`,
           border: `1.5px solid ${glowColor}50`, color: '#fff',
           fontSize: 13, fontWeight: 800, letterSpacing: '0.18em',
@@ -460,6 +508,7 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
           textTransform: 'uppercase',
           boxShadow: `0 0 24px ${glowColor}25, 0 4px 20px rgba(0,0,0,0.3)`,
           transition: 'transform 0.15s, box-shadow 0.15s',
+          position: 'relative', zIndex: 2,
         }}
         onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
         onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
@@ -477,4 +526,3 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
 };
 
 export default BorderEquipOverlay;
-
