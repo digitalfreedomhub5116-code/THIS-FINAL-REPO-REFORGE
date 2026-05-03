@@ -24,6 +24,8 @@ export interface StoreItem {
   imageScale?: number;
   /** For borders: vertical offset in px (positive = down) */
   imageOffsetY?: number;
+  /** For borders: PFP avatar scale multiplier (default 1.0) */
+  imagePfpScale?: number;
   /** For borders: CSS animation on the image overlay */
   imageAnimated?: boolean;
   /** Animation type: 'rotate' (default) or 'pulse' */
@@ -118,7 +120,8 @@ export const BORDERS_BEASTS: StoreItem[] = [
     id: 'border-stitched-dragon', name: 'Stitched Dragon', category: 'border', tier: 'legendary', price: 3600, tierColor: BEASTS_COLOR,
     description: 'A crimson dragon coils in stitched leather and gold — ancient fury.',
     imageBorder: '/borders/border-stitched-dragon.webp',
-    imageScale: 1.15,
+    imageScale: 1.73,
+    imagePfpScale: 1.5,
     imageOffsetY: -4,
     borderConfig: { colors: ['#8B0000', '#C8A84E', '#FF4500'], strokeWidth: 3, animated: false, glowColor: '#8B0000', glowIntensity: 0.8 },
   },
@@ -126,7 +129,8 @@ export const BORDERS_BEASTS: StoreItem[] = [
     id: 'border-gold-lion', name: 'Gold Lion', category: 'border', tier: 'legendary', price: 4800, tierColor: BEASTS_COLOR,
     description: 'A majestic golden lion crowns your avatar — royalty unleashed.',
     imageBorder: '/borders/border-goldlion.webp',
-    imageScale: 1.2,
+    imageScale: 1.8,
+    imagePfpScale: 1.5,
     borderConfig: { colors: ['#C8A84E', '#0E8585', '#DAA520'], strokeWidth: 3, animated: false, glowColor: '#C8A84E', glowIntensity: 0.8 },
   },
   {
