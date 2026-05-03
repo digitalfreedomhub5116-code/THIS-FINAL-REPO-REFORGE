@@ -1755,18 +1755,18 @@ function KitGlowCard({ item, discount, owned, equipped, canAfford, onBuy, onInsu
               )
             ) : (
               <button onClick={(e) => { e.stopPropagation(); if (canAfford) { onBuy(); } else if (onInsufficientFunds) { onInsufficientFunds(); } }} style={{
-                display: 'inline-flex', alignItems: 'center', gap: 6,
-                padding: '8px 22px', borderRadius: 20, cursor: 'pointer',
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                padding: '5px 14px', borderRadius: 16, cursor: 'pointer',
                 background: `linear-gradient(135deg, ${catColor}35, ${catColor}15)`,
-                border: `2px solid ${catColor}60`,
+                border: `1.5px solid ${catColor}60`,
                 color: '#fff',
-                fontSize: 13, fontWeight: 800,
-                boxShadow: `0 0 12px ${catColor}25`,
+                fontSize: 11, fontWeight: 800,
+                boxShadow: `0 0 10px ${catColor}20`,
                 transition: 'all 0.2s',
               }}>
-                {discount && <span style={{ textDecoration: 'line-through', opacity: 0.35, fontSize: 10 }}>{item.price}</span>}
-                <SystemCoin size={20} />
-                <span style={{ fontSize: 14 }}>{finalPrice}</span>
+                {discount && <span style={{ textDecoration: 'line-through', opacity: 0.35, fontSize: 9 }}>{item.price}</span>}
+                <SystemCoin size={15} />
+                <span style={{ fontSize: 12 }}>{finalPrice}</span>
               </button>
             )}
 
