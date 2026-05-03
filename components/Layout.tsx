@@ -1,37 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { LogOut, Edit3, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Lottie from 'lottie-react';
 import { SystemNotification, ReplitUser } from '../types';
 import { useThemeContext } from '../hooks/useTheme';
 
-const _CoinSkeleton: React.FC<{ size: number }> = ({ size }) => (
-  <div
-    style={{
-      width: size, height: size, borderRadius: '50%', flexShrink: 0,
-      background: 'linear-gradient(135deg, rgba(240,178,50,0.15) 0%, rgba(240,178,50,0.05) 50%, rgba(240,178,50,0.15) 100%)',
-      backgroundSize: '200% 200%',
-      animation: 'gradientMove 1.5s ease infinite',
-    }}
-  />
+const AnimatedCoinIcon: React.FC<{ size?: number }> = ({ size = 16 }) => (
+  <div style={{ width: size, height: size, flexShrink: 0 }}>
+    <img src="/assets/gold-coin.png" alt="Gold" width={size} height={size} style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} loading="eager" draggable={false} />
+  </div>
 );
-
-let _layoutCoinData: object | null | false = null;
-
-const AnimatedCoinIcon: React.FC<{ size?: number }> = ({ size = 16 }) => {
-  const [data, setData] = React.useState<object | null | false>(_layoutCoinData);
-  React.useEffect(() => {
-    if (_layoutCoinData !== null) { setData(_layoutCoinData); return; }
-    fetch('/assets/lottie/coins.json')
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { _layoutCoinData = d ?? false; setData(_layoutCoinData); })
-      .catch(() => { _layoutCoinData = false; setData(false); });
-  }, []);
-  if (data) {
-    return <div style={{ width: size, height: size, flexShrink: 0 }}><Lottie animationData={data} loop autoplay style={{ width: '100%', height: '100%' }} /></div>;
-  }
-  return <_CoinSkeleton size={size} />;
-};
 
 
 
@@ -184,13 +161,7 @@ const Layout: React.FC<LayoutProps> = ({
     if (forceHeaderVisible) setHeaderVisible(true);
   }, [forceHeaderVisible]);
 
-  const coinLottieRef = useRef<object | null>(null);
-  useEffect(() => {
-    fetch('/assets/lottie/coin.json')
-      .then(r => r.ok ? r.json() : null)
-      .then(data => { if (data) coinLottieRef.current = data; })
-      .catch(() => {});
-  }, []);
+  const COIN_IMG_SRC = '/assets/gold-coin.png';
 
   const coinForceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
@@ -209,12 +180,15 @@ const Layout: React.FC<LayoutProps> = ({
       const endX = destRect.left + destRect.width / 2;
       const endY = destRect.top + destRect.height / 2;
       const COIN_COUNT = 8;
-      const lottieData = coinLottieRef.current;
       for (let i = 0; i < COIN_COUNT; i++) {
         setTimeout(() => {
-          const SIZE = lottieData ? 32 : 18;
+          const SIZE = 28;
           const coin = document.createElement('div');
           coin.style.cssText = `position:fixed;width:${SIZE}px;height:${SIZE}px;left:${startX - SIZE/2}px;top:${startY - SIZE/2}px;z-index:9999;pointer-events:none;overflow:hidden;`;
+          const img = document.createElement('img');
+          img.src = COIN_IMG_SRC;
+          img.style.cssText = 'width:100%;height:100%;object-fit:contain;';
+          coin.appendChild(img);
           document.body.appendChild(coin);
           const scatterX = (Math.random() - 0.5) * 60;
           const scatterY = (Math.random() - 0.5) * 60;
@@ -230,15 +204,7 @@ const Layout: React.FC<LayoutProps> = ({
             easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
             fill: 'forwards',
           });
-          if (lottieData) {
-            import('lottie-web').then(({ default: lottieLib }) => {
-              const anim = lottieLib.loadAnimation({ container: coin, renderer: 'svg', loop: true, autoplay: true, animationData: lottieData as object });
-              flyAnim.onfinish = () => { anim.destroy(); coin.remove(); };
-            }).catch(() => { coin.innerHTML = COIN_SVG; flyAnim.onfinish = () => coin.remove(); });
-          } else {
-            coin.innerHTML = COIN_SVG;
-            flyAnim.onfinish = () => coin.remove();
-          }
+          flyAnim.onfinish = () => coin.remove();
         }, i * 60);
       }
     };
