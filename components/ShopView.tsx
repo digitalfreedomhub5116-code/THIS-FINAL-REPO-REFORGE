@@ -1685,7 +1685,7 @@ function KitGlowCard({ item, discount, owned, equipped, canAfford, onBuy, onInsu
               const scale = item.imageScale || 1;
               const baseSize = 96;
               // Container grows with scale so the border actually appears bigger
-              const containerSize = Math.min(Math.round(baseSize * Math.max(scale, 1)), 140);
+              const containerSize = Math.min(Math.round(baseSize * scale), 140);
               const pfpSize = Math.round(56 * (item.imagePfpScale || 1));
               const svgSize = Math.round(40 * (item.imagePfpScale || 1));
               return (

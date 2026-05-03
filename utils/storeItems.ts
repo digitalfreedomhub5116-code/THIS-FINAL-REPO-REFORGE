@@ -94,7 +94,7 @@ export const BORDERS_ELEMENTS: StoreItem[] = [
     id: 'border-elemental-tide', name: 'Elemental Tide', category: 'border', tier: 'legendary', price: 2800, tierColor: ELEMENTS_COLOR,
     description: 'Japanese waves and sacred flames entwine around your avatar.',
     imageBorder: '/borders/border-mixed.webp',
-    imageScale: 0.70,
+    imageScale: 0.80,
     borderConfig: { colors: ['#1E90FF', '#FF6347', '#C8A84E'], strokeWidth: 3, animated: false, glowColor: '#1E90FF', glowIntensity: 0.7 },
   },
 
