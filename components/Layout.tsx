@@ -477,7 +477,7 @@ const Layout: React.FC<LayoutProps> = ({
 
                 {/* Streak */}
                 <div id="user-streak-count" className="flex items-center gap-1">
-                  <img src="/assets/fire-image.png" alt="Streak" width={28} height={28} style={{ width: 28, height: 28, objectFit: 'contain', flexShrink: 0 }} loading="eager" draggable={false} />
+                  <img src="/assets/fire-image.png" alt="Streak" width={20} height={20} style={{ width: 20, height: 20, objectFit: 'contain', flexShrink: 0 }} loading="eager" draggable={false} />
                   <span className="font-mono text-[16px] font-black text-orange-400 whitespace-nowrap" style={{ textShadow: '0 0 6px rgba(249,115,22,0.3)' }}><AnimatedCounter value={streak} /></span>
                 </div>
 
@@ -488,8 +488,8 @@ const Layout: React.FC<LayoutProps> = ({
                   disabled={headerDisabled}
                   className="flex items-center gap-px transition-all active:scale-95"
                 >
-                  <div className="flex items-center justify-center" style={{ width: 28 }}>
-                    <AnimatedCoinIcon size={28} />
+                  <div className="flex items-center justify-center" style={{ width: 20 }}>
+                    <AnimatedCoinIcon size={20} />
                   </div>
                   <span id="user-wallet-balance" className="font-mono text-[16px] font-black whitespace-nowrap" style={{ color: '#F0B232', textShadow: '0 0 6px rgba(240,178,50,0.3)' }}><AnimatedCounter value={gold} /></span>
                 </button>
