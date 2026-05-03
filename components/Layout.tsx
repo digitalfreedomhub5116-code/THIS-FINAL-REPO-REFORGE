@@ -494,7 +494,7 @@ const Layout: React.FC<LayoutProps> = ({
                   <div className="flex items-center justify-center" style={{ width: 28 }}>
                     <AnimatedCoinIcon size={28} />
                   </div>
-                  <span id="user-wallet-balance" className="font-mono text-[13px] font-black whitespace-nowrap" style={{ color: '#F0B232', textShadow: '0 0 6px rgba(240,178,50,0.3)' }}><AnimatedCounter value={gold} /></span>
+                  <span id="user-wallet-balance" className="font-mono text-[16px] font-black whitespace-nowrap" style={{ color: '#F0B232', textShadow: '0 0 6px rgba(240,178,50,0.3)' }}><AnimatedCounter value={gold} /></span>
                 </button>
 
                 {/* Bell */}
