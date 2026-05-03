@@ -477,11 +477,8 @@ const Layout: React.FC<LayoutProps> = ({
 
                 {/* Streak */}
                 <div id="user-streak-count" className="flex items-center gap-1">
-                  <svg width={16} height={16} viewBox="0 0 24 24" fill="none" style={{ filter: 'drop-shadow(0 0 4px rgba(249,115,22,0.6))', flexShrink: 0 }}>
-                    <path d="M12 2C6.5 8.5 4 12 4 15a8 8 0 0 0 16 0c0-3-2.5-6.5-8-13z" fill="#f97316" stroke="#fb923c" strokeWidth="0.5"/>
-                    <path d="M12 9c-2 3-3 5-3 7a3 3 0 0 0 6 0c0-2-1-4-3-7z" fill="#fbbf24"/>
-                  </svg>
-                  <span className="font-mono text-[13px] font-black text-orange-400 whitespace-nowrap" style={{ textShadow: '0 0 6px rgba(249,115,22,0.3)' }}><AnimatedCounter value={streak} /></span>
+                  <img src="/assets/fire-image.png" alt="Streak" width={28} height={28} style={{ width: 28, height: 28, objectFit: 'contain', flexShrink: 0 }} loading="eager" draggable={false} />
+                  <span className="font-mono text-[16px] font-black text-orange-400 whitespace-nowrap" style={{ textShadow: '0 0 6px rgba(249,115,22,0.3)' }}><AnimatedCounter value={streak} /></span>
                 </div>
 
                 {/* Gold */}
