@@ -1629,23 +1629,29 @@ function KitGlowCard({ item, discount, owned, equipped, canAfford, onBuy, onEqui
             <div style={{ position: 'absolute', top: '50%', left: '50%', width: 110, height: 110, borderRadius: '50%', background: `radial-gradient(circle, ${catColor}25 0%, ${catColor}08 50%, transparent 70%)`, transform: 'translate(-50%, -50%)' }} />
 
             {/* ── BORDER: Image-based (PNG) ── */}
-            {item.category === 'border' && item.imageBorder ? (
-              <div style={{ position: 'relative', width: 96, height: 96, flexShrink: 0, overflow: 'hidden' }}>
+            {item.category === 'border' && item.imageBorder ? (() => {
+              const scale = item.imageScale || 1;
+              const baseSize = 96;
+              // Container grows with scale so the border actually appears bigger
+              const containerSize = Math.min(Math.round(baseSize * Math.max(scale, 1)), 140);
+              const pfpSize = Math.round(56 * (item.imagePfpScale || 1));
+              const svgSize = Math.round(40 * (item.imagePfpScale || 1));
+              return (
+              <div style={{ position: 'relative', width: containerSize, height: containerSize, flexShrink: 0, overflow: 'hidden' }}>
                 {/* Avatar silhouette — scales per item via imagePfpScale */}
-                {(() => { const pfpSize = Math.round(56 * (item.imagePfpScale || 1)); const svgSize = Math.round(40 * (item.imagePfpScale || 1)); return (
                 <div style={{ position: 'absolute', top: '50%', left: '50%', width: pfpSize, height: pfpSize, borderRadius: '50%', background: 'radial-gradient(circle, #3a3a4a, #1a1a24)', transform: 'translate(-50%, -50%)', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                   <svg width={svgSize} height={svgSize} viewBox="0 0 40 40"><circle cx="20" cy="16" r="7" fill="#555568" /><ellipse cx="20" cy="35" rx="13" ry="10" fill="#4a4a5a" /></svg>
-                </div>); })()}
-                {/* Border frame image — scaled per item, centered, clipped */}
+                </div>
+                {/* Border frame image — fills the container */}
                 {item.imageAnimated && item.imageAnimationType === 'pulse' ? (
-                  <div style={{ position: 'absolute', top: '50%', left: '50%', width: `${(item.imageScale || 1) * 100}%`, height: `${(item.imageScale || 1) * 100}%`, zIndex: 2, pointerEvents: 'none', animation: 'border-breathe-centered 3s ease-in-out infinite' }}>
+                  <div style={{ position: 'absolute', top: '50%', left: '50%', width: '100%', height: '100%', zIndex: 2, pointerEvents: 'none', animation: 'border-breathe-centered 3s ease-in-out infinite' }}>
                     <FadeImg src={item.imageBorder} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                   </div>
                 ) : (
-                  <FadeImg src={item.imageBorder} alt={item.name} style={{ position: 'absolute', top: '50%', left: '50%', width: `${(item.imageScale || 1) * 100}%`, height: `${(item.imageScale || 1) * 100}%`, transform: `translate(-50%, calc(-50% + ${item.imageOffsetY || 0}px))`, objectFit: 'contain', zIndex: 2, pointerEvents: 'none', ...(item.imageAnimated ? { animation: 'spin-clockwise 10s linear infinite' } : {}) }} />
+                  <FadeImg src={item.imageBorder} alt={item.name} style={{ position: 'absolute', top: '50%', left: '50%', width: '100%', height: '100%', transform: `translate(-50%, calc(-50% + ${item.imageOffsetY || 0}px))`, objectFit: 'contain', zIndex: 2, pointerEvents: 'none', ...(item.imageAnimated ? { animation: 'spin-clockwise 10s linear infinite' } : {}) }} />
                 )}
-              </div>
-            ) : item.category === 'border' && item.lottieBorder ? (
+              </div>);
+            })() : item.category === 'border' && item.lottieBorder ? (
               <StoreLottieBorder src={item.lottieBorder} glow={item.borderConfig?.glowColor || '#C8A84E'} />
             ) : item.category === 'border' && item.auraConfig ? (
               /* ── BORDER: CSS Aura glow (full spec) ── */
