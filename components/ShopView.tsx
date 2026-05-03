@@ -389,6 +389,8 @@ const ShopView: React.FC<ShopViewProps> = ({
   // ── Confirm purchase modal ──
   const [confirmPurchaseItem, setConfirmPurchaseItem] = useState<KitStoreItem | null>(null);
   const [purchasing, setPurchasing] = useState(false);
+  // ── Not enough coins popup ──
+  const [showInsufficientFunds, setShowInsufficientFunds] = useState<KitStoreItem | null>(null);
 
   // ── Server-authoritative inventory ──
   interface InventoryItem { item_id: string; item_type: string; source: string; }
@@ -1006,6 +1008,7 @@ const ShopView: React.FC<ShopViewProps> = ({
                 equipped={kitEconomy.equipped.border === item.id}
                 canAfford={DEV_UNLOCK_ALL || gold >= item.price}
                 onBuy={() => setConfirmPurchaseItem(item)}
+                onInsufficientFunds={() => setShowInsufficientFunds(item)}
                 onEquip={() => {
                   setEquipAnimItem(item);
                   setShowEquipAnim(true);
@@ -1038,6 +1041,7 @@ const ShopView: React.FC<ShopViewProps> = ({
                 equipped={kitEconomy.equipped.border === item.id}
                 canAfford={DEV_UNLOCK_ALL || gold >= item.price}
                 onBuy={() => setConfirmPurchaseItem(item)}
+                onInsufficientFunds={() => setShowInsufficientFunds(item)}
                 onEquip={() => {
                   setEquipAnimItem(item);
                   setShowEquipAnim(true);
@@ -1070,6 +1074,7 @@ const ShopView: React.FC<ShopViewProps> = ({
                 equipped={kitEconomy.equipped.border === item.id}
                 canAfford={DEV_UNLOCK_ALL || gold >= item.price}
                 onBuy={() => setConfirmPurchaseItem(item)}
+                onInsufficientFunds={() => setShowInsufficientFunds(item)}
                 onEquip={() => {
                   setEquipAnimItem(item);
                   setShowEquipAnim(true);
@@ -1102,6 +1107,7 @@ const ShopView: React.FC<ShopViewProps> = ({
                 equipped={kitEconomy.equipped.border === item.id}
                 canAfford={DEV_UNLOCK_ALL || gold >= item.price}
                 onBuy={() => setConfirmPurchaseItem(item)}
+                onInsufficientFunds={() => setShowInsufficientFunds(item)}
                 onEquip={() => {
                   setEquipAnimItem(item);
                   setShowEquipAnim(true);
@@ -1457,6 +1463,52 @@ const ShopView: React.FC<ShopViewProps> = ({
           </div>
         </div>, document.body)}
 
+      {/* ── NOT ENOUGH COINS POPUP ── */}
+      {showInsufficientFunds &&
+        ReactDOM.createPortal(<div onClick={() => setShowInsufficientFunds(null)} style={{
+          position: 'fixed', inset: 0, zIndex: 100000,
+          background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: 'linear-gradient(180deg, #14161e 0%, #0c0d14 100%)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: 20, padding: '28px 24px', width: '100%', maxWidth: 320,
+            textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
+          }}>
+            {/* Sad coin icon */}
+            <div style={{ width: 64, height: 64, margin: '0 auto 16px', opacity: 0.6 }}>
+              <SystemCoin size={64} />
+            </div>
+            <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', marginBottom: 6 }}>Not Enough Coins</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginBottom: 16, lineHeight: 1.5 }}>
+              You need <span style={{ color: '#fbbf24', fontWeight: 800 }}>{showInsufficientFunds.price.toLocaleString()}</span> coins for <span style={{ color: '#fff', fontWeight: 700 }}>{showInsufficientFunds.name}</span>.
+              <br />You currently have <span style={{ color: '#fbbf24', fontWeight: 800 }}>{(gold || 0).toLocaleString()}</span>.
+            </div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginBottom: 20, fontFamily: 'monospace' }}>
+              Need {Math.max(0, showInsufficientFunds.price - (gold || 0)).toLocaleString()} more coins
+            </div>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+              <button onClick={() => setShowInsufficientFunds(null)} style={{
+                padding: '10px 24px', borderRadius: 12, cursor: 'pointer',
+                background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+                color: 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: 700,
+              }}>Close</button>
+              <button onClick={() => { setShowInsufficientFunds(null); /* Future: navigate to coin purchase */ }} style={{
+                padding: '10px 24px', borderRadius: 12, cursor: 'pointer',
+                background: 'linear-gradient(135deg, #fbbf24, #d97706)', border: 'none',
+                color: '#000', fontSize: 12, fontWeight: 900,
+                boxShadow: '0 0 20px rgba(251,191,36,0.3)',
+                display: 'flex', alignItems: 'center', gap: 6,
+              }}>
+                <SystemCoin size={16} />
+                Add Coins
+              </button>
+            </div>
+          </div>
+        </div>, document.body)}
+
+
 
       {/* ── BORDER EQUIP ANIMATION OVERLAY ── */}
       <BorderEquipOverlay
@@ -1530,9 +1582,9 @@ const KIT_CAT_COLORS: Record<string, string> = {
   border: '#00d4ff', theme: '#8B5CF6', deals: '#F59E0B', banner: '#06B6D4', consumable: '#22C55E', title: '#F59E0B',
 };
 
-function KitGlowCard({ item, discount, owned, equipped, canAfford, onBuy, onEquip, onInfo, onView, onCardClick, dealColor }: {
+function KitGlowCard({ item, discount, owned, equipped, canAfford, onBuy, onInsufficientFunds, onEquip, onInfo, onView, onCardClick, dealColor }: {
   item: KitStoreItem; discount?: number; owned?: boolean; equipped?: boolean;
-  canAfford: boolean; onBuy: () => void; onEquip?: () => void; onInfo?: () => void; onView?: () => void;
+  canAfford: boolean; onBuy: () => void; onInsufficientFunds?: () => void; onEquip?: () => void; onInfo?: () => void; onView?: () => void;
   onCardClick?: () => void; dealColor?: string;
 }) {
   const catColor = item.tierColor || dealColor || KIT_CAT_COLORS[item.category] || '#00d4ff';
@@ -1702,22 +1754,17 @@ function KitGlowCard({ item, discount, owned, equipped, canAfford, onBuy, onEqui
                 <span style={{ fontSize: 11, fontWeight: 700, color: '#22C55E' }}>✓ Owned</span>
               )
             ) : (
-              <button onClick={(e) => { e.stopPropagation(); onBuy(); }} disabled={!canAfford} style={{
+              <button onClick={(e) => { e.stopPropagation(); if (canAfford) { onBuy(); } else if (onInsufficientFunds) { onInsufficientFunds(); } }} style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6,
-                padding: '8px 22px', borderRadius: 20, cursor: canAfford ? 'pointer' : 'default',
-                background: canAfford ? `linear-gradient(135deg, ${catColor}35, ${catColor}15)` : 'rgba(255,255,255,0.04)',
-                border: canAfford ? `2px solid ${catColor}60` : '2px solid rgba(255,255,255,0.08)',
-                color: canAfford ? '#fff' : 'rgba(255,255,255,0.35)',
+                padding: '8px 22px', borderRadius: 20, cursor: 'pointer',
+                background: `linear-gradient(135deg, ${catColor}35, ${catColor}15)`,
+                border: `2px solid ${catColor}60`,
+                color: '#fff',
                 fontSize: 13, fontWeight: 800,
-                boxShadow: canAfford ? `0 0 12px ${catColor}25` : 'none',
+                boxShadow: `0 0 12px ${catColor}25`,
                 transition: 'all 0.2s',
               }}>
                 {discount && <span style={{ textDecoration: 'line-through', opacity: 0.35, fontSize: 10 }}>{item.price}</span>}
-                {canAfford ? (
-                  <Lock size={13} color="#fbbf24" />
-                ) : (
-                  <Lock size={12} />
-                )}
                 <SystemCoin size={20} />
                 <span style={{ fontSize: 14 }}>{finalPrice}</span>
               </button>
