@@ -1870,7 +1870,7 @@ function KitBorderPreviewModal({ item, onClose, owned, equipped, canAfford, onBu
   onBuy?: () => void; onEquip?: () => void;
 }) {
   const glow = item.borderConfig?.glowColor || item.auraConfig?.colors?.[0] || '#C8A84E';
-  const size = 200;
+  const size = 280;
 
   return ReactDOM.createPortal(
     <div onClick={onClose} style={{
