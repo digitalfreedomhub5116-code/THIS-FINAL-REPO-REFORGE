@@ -930,9 +930,10 @@ const ShopView: React.FC<ShopViewProps> = ({
           </div>
           <div className="hdr-line" />
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, padding: '0 16px', alignItems: 'stretch' }}>
+        {/* gridAutoRows:'1fr' = every row forced to tallest card height */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, padding: '0 16px', gridAutoRows: '1fr' }}>
           {getTodaysDeals(4).map(d => (
-            <div key={d.item.id} style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <div key={d.item.id}>
                <KitGlowCard item={d.item} discount={d.discount}
                 owned={isItemOwned(d.item.id)}
                 equipped={kitEconomy.equipped[d.item.category as keyof EquippedItems] === d.item.id}
@@ -1746,9 +1747,9 @@ const KitGlowCard = React.memo(function KitGlowCard({ item, discount, owned, equ
             </div>
           )}
 
-          {/* ── Name & Category ── */}
-          <div style={{ position: 'relative', zIndex: 2, marginBottom: 6, marginTop: 0 }}>
-            <div style={{ fontSize: 15, fontWeight: 900, color: '#fff', lineHeight: 1.2, marginBottom: 3, textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
+          {/* ── Name & Category (fixed height: single line with ellipsis) ── */}
+          <div style={{ position: 'relative', zIndex: 2, marginBottom: 6, marginTop: 0, width: '100%', paddingLeft: 4, paddingRight: 4 }}>
+            <div style={{ fontSize: 14, fontWeight: 900, color: '#fff', lineHeight: 1.2, marginBottom: 3, textShadow: '0 2px 8px rgba(0,0,0,0.5)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {item.name}
             </div>
             <div style={{ fontSize: 11, fontWeight: 600, color: catColor, textTransform: 'capitalize', opacity: 0.9 }}>
@@ -1756,8 +1757,8 @@ const KitGlowCard = React.memo(function KitGlowCard({ item, discount, owned, equ
             </div>
           </div>
 
-          {/* ── Preview Area ── */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', zIndex: 2, width: '100%', height: 100, overflow: 'hidden' }}>
+          {/* ── Preview Area (STRICT aspect-ratio container — prevents height variance) ── */}
+          <div style={{ position: 'relative', zIndex: 2, width: '100%', aspectRatio: '1 / 1', maxHeight: 110, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
             {/* Radial glow behind preview */}
             <div style={{ position: 'absolute', top: '50%', left: '50%', width: 110, height: 110, borderRadius: '50%', background: `radial-gradient(circle, ${catColor}25 0%, ${catColor}08 50%, transparent 70%)`, transform: 'translate(-50%, -50%)' }} />
 
