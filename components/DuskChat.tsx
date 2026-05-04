@@ -411,7 +411,8 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, updatePlayer, onClose, onMa
         </div>
 
         {/* ── Header ── */}
-        <div className="relative z-10 px-4 py-3 flex items-center justify-between border-b border-gray-800/60">
+        <div className="relative z-10 px-4 py-3 flex items-center justify-between border-b border-gray-800/60"
+          style={{ paddingTop: 'max(env(safe-area-inset-top, 12px), 28px)' }}>
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-full flex items-center justify-center relative"
               style={{
