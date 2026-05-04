@@ -37,7 +37,7 @@ import {
 
 // ── RevenueCat API Keys ──
 // Replace with your real keys from RevenueCat dashboard → Project → API Keys
-const RC_API_KEY_ANDROID = 'test_WsnkMG3nYDHZcgxIkMDhigMphpW'; // Your test key
+const RC_API_KEY_ANDROID = 'goog_eOzEbZhFBupbAubEqTBkZzBqWCy'; // Production Play Store key
 const RC_API_KEY_IOS = 'appl_REPLACE_WITH_IOS_KEY';             // Add when you have iOS
 
 // ── Entitlement IDs (must match RevenueCat dashboard) ──

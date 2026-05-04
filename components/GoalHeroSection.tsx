@@ -301,9 +301,11 @@ interface GoalHeroSectionProps {
   onGoalTap?: (goalId: string) => void;
   onGenerateQuests?: (goalId: string) => void;
   generatingGoalId?: string | null;
+  isPremium?: boolean;
+  onUpgrade?: () => void;
 }
 
-const GoalHeroSection: React.FC<GoalHeroSectionProps> = ({ goals, onCreateGoal, onGoalTap, onGenerateQuests, generatingGoalId }) => {
+const GoalHeroSection: React.FC<GoalHeroSectionProps> = ({ goals, onCreateGoal, onGoalTap, onGenerateQuests, generatingGoalId, isPremium = false, onUpgrade }) => {
   const activeGoals = useMemo(
     () => (goals || []).filter(g => g.status === 'ACTIVE').slice(0, 6),
     [goals]
@@ -311,6 +313,86 @@ const GoalHeroSection: React.FC<GoalHeroSectionProps> = ({ goals, onCreateGoal, 
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
   const [showGoalInfo, setShowGoalInfo] = useState(false);
 
+  // ── FREE USER: Premium Upsell Screen ──
+  if (!isPremium) {
+    return (
+      <div className="space-y-3">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative w-full rounded-2xl overflow-hidden"
+          style={{
+            background: '#0a0a14',
+            border: '1px solid rgba(0,212,255,0.15)',
+            boxShadow: '0 16px 48px rgba(0,0,0,0.6)',
+          }}
+        >
+          {/* Background image */}
+          <div className="relative w-full" style={{ height: 320 }}>
+            <GoalHeroImg />
+            <div className="absolute inset-0" style={{
+              background: 'linear-gradient(180deg, rgba(10,10,20,0.15) 0%, rgba(10,10,20,0.5) 30%, rgba(10,10,20,0.85) 55%, #0a0a14 78%)',
+            }} />
+          </div>
+
+          {/* Content overlay */}
+          <div className="absolute bottom-0 left-0 right-0 px-5 pb-5">
+            {/* Premium badge */}
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg mb-2"
+              style={{ background: 'rgba(250,204,21,0.1)', border: '1px solid rgba(250,204,21,0.2)' }}>
+              <Zap size={10} style={{ color: '#facc15' }} />
+              <span className="text-[8px] font-mono font-bold tracking-[0.2em] uppercase" style={{ color: '#facc15' }}>
+                Mana Power
+              </span>
+            </div>
+
+            <h2 className="text-[26px] font-black text-white leading-none mb-1.5"
+              style={{ textShadow: '0 4px 20px rgba(0,0,0,0.8)' }}>
+              AI Autopilot
+            </h2>
+            <p className="text-[11px] text-gray-400 leading-relaxed mb-4 max-w-[280px]">
+              Set your goals. The AI generates daily quests, tracks milestones, and keeps you on track — automatically.
+            </p>
+
+            {/* Feature pills */}
+            <div className="flex flex-wrap gap-1.5 mb-4">
+              {[
+                { icon: '🎯', label: 'AI Goal Planning' },
+                { icon: '⚡', label: 'Auto Daily Quests' },
+                { icon: '📊', label: 'Progress Tracking' },
+                { icon: '🧠', label: 'Smart Milestones' },
+              ].map(f => (
+                <div key={f.label} className="flex items-center gap-1 px-2 py-1 rounded-lg text-[8px] font-mono font-bold"
+                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.7)' }}>
+                  <span>{f.icon}</span> {f.label}
+                </div>
+              ))}
+            </div>
+
+            <motion.button
+              onClick={onUpgrade}
+              whileTap={{ scale: 0.96 }}
+              className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-xl font-bold text-sm tracking-wide transition-all"
+              style={{
+                background: 'linear-gradient(135deg, #facc15 0%, #f59e0b 100%)',
+                color: '#0a0a14',
+                boxShadow: '0 4px 24px rgba(250,204,21,0.3), 0 0 0 1px rgba(250,204,21,0.2)',
+              }}
+            >
+              <Zap size={16} />
+              Unlock AI Autopilot
+            </motion.button>
+
+            <p className="text-center text-[9px] text-gray-600 font-mono mt-2">
+              Part of Mana Power subscription
+            </p>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // ── PREMIUM USER: Full Goal System ──
   return (
     <div className="space-y-3">
 
@@ -338,14 +420,14 @@ const GoalHeroSection: React.FC<GoalHeroSectionProps> = ({ goals, onCreateGoal, 
         <div className="absolute bottom-0 left-0 right-0 px-5 pb-5">
           <div className="text-[10px] font-mono font-bold tracking-[0.2em] uppercase mb-1.5"
             style={{ color: '#00d4ff' }}>
-            Shadow Mission
+            AI Autopilot
           </div>
           <h2 className="text-[28px] font-black text-white leading-none mb-2.5"
             style={{ textShadow: '0 4px 20px rgba(0,0,0,0.8)' }}>
             Create your new goal
           </h2>
           <p className="text-[12px] text-gray-400 leading-relaxed mb-4 max-w-[300px]">
-            Set a long-term goal. The system generates daily quests to keep you on track every single day.
+            Set a long-term goal. The AI generates daily quests to keep you on track every single day.
           </p>
 
           <motion.button

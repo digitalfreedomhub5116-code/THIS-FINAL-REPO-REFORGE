@@ -74,6 +74,7 @@ import { getPlayerAuthHeaders, getOrRefreshPlayerHeaders } from './lib/playerApi
 
 import { saveAuthNative, clearAuthNative } from './lib/nativeAuth';
 import { clearEconomySession } from './utils/storeEconomy';
+import { useRevenueCat } from './hooks/useRevenueCat';
 
 import { Terminal, Flame } from 'lucide-react';
 
@@ -659,7 +660,10 @@ const App: React.FC = () => {
   const [healthSubTab, setHealthSubTab] = useState<'WORKOUT' | 'NUTRITION' | 'SKILLS' | undefined>(undefined);
   const [storeInitialTab, setStoreInitialTab] = useState<'OUTFITS' | 'BADGES' | 'BORDERS' | 'DEALS' | 'THEMES' | 'BANNERS_SHOP' | undefined>(undefined);
 
-
+  // ── RevenueCat (Premium / Mana Power) ──
+  const [rcState, rcActions] = useRevenueCat();
+  const isPremium = rcState.hasManaPower;
+  const [showManaPowerUpsell, setShowManaPowerUpsell] = useState(false);
 
   // ── Tab navigation with history for Android back button ──
 
@@ -4609,6 +4613,8 @@ const App: React.FC = () => {
                     goals={player.goals || []}
                     onCreateGoal={() => setShowGoalCreate(true)}
                     generatingGoalId={generatingGoalId}
+                    isPremium={isPremium}
+                    onUpgrade={() => setShowManaPowerUpsell(true)}
                     onGenerateQuests={(goalId) => {
                       const goal = (player.goals || []).find(g => g.id === goalId);
                       if (!goal) return;
