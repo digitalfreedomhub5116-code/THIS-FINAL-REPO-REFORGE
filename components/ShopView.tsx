@@ -930,9 +930,9 @@ const ShopView: React.FC<ShopViewProps> = ({
           </div>
           <div className="hdr-line" />
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, padding: '0 16px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, padding: '0 16px', alignItems: 'stretch' }}>
           {getTodaysDeals(4).map(d => (
-            <div key={d.item.id} style={{ overflow: 'hidden' }}>
+            <div key={d.item.id} style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                <KitGlowCard item={d.item} discount={d.discount}
                 owned={isItemOwned(d.item.id)}
                 equipped={kitEconomy.equipped[d.item.category as keyof EquippedItems] === d.item.id}
@@ -1673,12 +1673,14 @@ const KitGlowCard = React.memo(function KitGlowCard({ item, discount, owned, equ
     <div onClick={() => { if (item.category === 'border' && onCardClick) onCardClick(); }} style={{
       filter: `drop-shadow(0 0 6px ${catColor}30) drop-shadow(0 2px 8px rgba(0,0,0,0.4))`,
       cursor: item.category === 'border' ? 'pointer' : undefined,
+      height: '100%', display: 'flex', flexDirection: 'column',
     }}>
       {/* Layer 2: Gradient Border Frame (3px visible border) */}
       <div style={{
         clipPath,
         padding: 3,
         background: `linear-gradient(160deg, ${catColor}CC, ${catColor}50 40%, ${catColor}90 80%, ${catColor}CC)`,
+        flex: 1, display: 'flex', flexDirection: 'column',
       }}>
         {/* Layer 3: Inner Card Body */}
         <div style={{
@@ -1686,7 +1688,7 @@ const KitGlowCard = React.memo(function KitGlowCard({ item, discount, owned, equ
           background: `linear-gradient(160deg, ${catColor}40 0%, ${catColor}22 25%, #111828 55%, #0d1118 100%)`,
           position: 'relative', textAlign: 'center',
           padding: '16px 10px 14px',
-          height: 240, display: 'flex', flexDirection: 'column', alignItems: 'center',
+          minHeight: 240, flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
           overflow: 'hidden',
         }}>
 
