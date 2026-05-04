@@ -1881,32 +1881,41 @@ function KitBorderPreviewModal({ item, onClose, owned, equipped, canAfford, onBu
       backdropFilter: 'blur(16px)',
       WebkitBackdropFilter: 'blur(16px)',
       animation: 'fadeIn 0.25s ease-out',
-      overflow: 'hidden',
     }}>
-      <div onClick={e => e.stopPropagation()} style={{ textAlign: 'center', maxWidth: 320, width: '85%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <div onClick={e => e.stopPropagation()} style={{ textAlign: 'center', maxWidth: 380, width: '90%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', marginBottom: 4 }}>{item.name}</div>
         <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'capitalize', marginBottom: 28, color: item.auraConfig?.colors?.[0] || item.borderConfig?.colors?.[0] || '#C8A84E', opacity: 0.8 }}>
           {item.tier} Border
         </div>
 
         {/* ── Border Preview (centered) ── */}
-        <div style={{ position: 'relative', width: size + 40, height: size + 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {(() => {
+          const scale = item.imageScale || 1;
+          // Compute real visual size: container * scale — ensure wrapper is large enough
+          const visualSize = Math.max(size, size * scale);
+          // Add extra padding so nothing clips
+          const wrapperSize = visualSize + 60;
+
+          return (
+        <div style={{ position: 'relative', width: wrapperSize, height: wrapperSize, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'visible' }}>
           {/* Background radial glow */}
-          <div style={{ position: 'absolute', top: '50%', left: '50%', width: size + 80, height: size + 80, borderRadius: '50%', background: `radial-gradient(circle, ${glow}50 0%, ${glow}15 40%, transparent 70%)`, transform: 'translate(-50%, -50%)' }} />
+          <div style={{ position: 'absolute', top: '50%', left: '50%', width: wrapperSize + 40, height: wrapperSize + 40, borderRadius: '50%', background: `radial-gradient(circle, ${glow}50 0%, ${glow}15 40%, transparent 70%)`, transform: 'translate(-50%, -50%)', pointerEvents: 'none' }} />
 
           {/* PNG Image Border */}
           {item.imageBorder ? (
             <div style={{ position: 'relative', width: size, height: size, overflow: 'visible' }}>
+              {/* PFP Avatar placeholder */}
               {(() => { const pfpFactor = item.imagePfpScale || 1; const pfpPct = 0.6 * pfpFactor; const svgPx = Math.round(80 * pfpFactor); return (
               <div style={{ position: 'absolute', top: '50%', left: '50%', width: size * pfpPct, height: size * pfpPct, borderRadius: '50%', background: 'radial-gradient(circle, #3a3a4a, #1a1a24)', transform: 'translate(-50%, -50%)', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                 <svg width={svgPx} height={svgPx} viewBox="0 0 40 40"><circle cx="20" cy="16" r="7" fill="#555568" /><ellipse cx="20" cy="35" rx="13" ry="10" fill="#4a4a5a" /></svg>
               </div>); })()}
+              {/* Border image — always centered with translate, never clipped */}
               {item.imageAnimated && item.imageAnimationType === 'pulse' ? (
-                <div style={{ position: 'absolute', top: '50%', left: '50%', width: `${(item.imageScale || 1) * 100}%`, height: `${(item.imageScale || 1) * 100}%`, zIndex: 2, pointerEvents: 'none', animation: 'border-breathe-centered 3s ease-in-out infinite' }}>
+                <div style={{ position: 'absolute', top: '50%', left: '50%', width: `${scale * 100}%`, height: `${scale * 100}%`, transform: `translate(-50%, calc(-50% + ${item.imageOffsetY || 0}px))`, zIndex: 2, pointerEvents: 'none', animation: 'border-breathe-centered 3s ease-in-out infinite' }}>
                   <FadeImg src={item.imageBorder} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                 </div>
               ) : (
-                <FadeImg src={item.imageBorder} alt={item.name} style={{ position: 'absolute', top: '50%', left: '50%', width: `${(item.imageScale || 1) * 100}%`, height: `${(item.imageScale || 1) * 100}%`, transform: `translate(-50%, calc(-50% + ${item.imageOffsetY || 0}px))`, objectFit: 'contain', zIndex: 2, pointerEvents: 'none', ...(item.imageAnimated ? { animation: 'spin-clockwise 10s linear infinite' } : {}) }} />
+                <FadeImg src={item.imageBorder} alt={item.name} style={{ position: 'absolute', top: '50%', left: '50%', width: `${scale * 100}%`, height: `${scale * 100}%`, transform: `translate(-50%, calc(-50% + ${item.imageOffsetY || 0}px))`, objectFit: 'contain', zIndex: 2, pointerEvents: 'none', ...(item.imageAnimated ? { animation: 'spin-clockwise 10s linear infinite' } : {}) }} />
               )}
             </div>
           ) : item.lottieBorder ? (
@@ -1927,6 +1936,8 @@ function KitBorderPreviewModal({ item, onClose, owned, equipped, canAfford, onBu
             <BorderRing config={item.borderConfig} size={size * 0.8} />
           ) : null}
         </div>
+          );
+        })()}
 
         <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 28, maxWidth: 260, lineHeight: 1.5 }}>
           {item.description}
