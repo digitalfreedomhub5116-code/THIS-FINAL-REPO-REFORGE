@@ -54,7 +54,7 @@ import {
 
 } from './components/SkeletonLoaders';
 
-
+const ManaPowerScreen = React.lazy(() => import('./components/ManaPowerScreen'));
 
 import { useSystem, isLocalUser, safeLevelUp } from './hooks/useSystem';
 
@@ -3945,6 +3945,35 @@ const App: React.FC = () => {
               />
             </Suspense>
           )}
+
+          {/* ── Mana Power Subscription Screen ── */}
+          <AnimatePresence>
+            {showManaPowerUpsell && (
+              <Suspense fallback={null}>
+                <ManaPowerScreen
+                  onClose={() => setShowManaPowerUpsell(false)}
+                  offerings={rcState.offerings}
+                  isPurchasing={rcState.isPurchasing}
+                  error={rcState.error}
+                  onPurchase={async (pkg) => {
+                    const result = await rcActions.purchasePackage(pkg);
+                    if (result.success) {
+                      setShowManaPowerUpsell(false);
+                      addNotification({ title: '⚡ Mana Power Activated!', message: 'Welcome to AI Autopilot. Your full potential is unlocked.', type: 'success' });
+                    }
+                    return result;
+                  }}
+                  onRestore={async () => {
+                    await rcActions.restorePurchases();
+                    if (rcState.hasManaPower) {
+                      setShowManaPowerUpsell(false);
+                      addNotification({ title: '✅ Purchase Restored', message: 'Mana Power is active again!', type: 'success' });
+                    }
+                  }}
+                />
+              </Suspense>
+            )}
+          </AnimatePresence>
 
           {xpCollection && (
 

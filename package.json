@@ -18,6 +18,7 @@
     "populate-gifs": "tsx scripts/populate-exercise-gifs.ts"
   },
   "dependencies": {
+    "@capacitor-community/admob": "^8.0.0",
     "@capacitor/android": "^8.2.0",
     "@capacitor/app": "^8.1.0",
     "@capacitor/camera": "^8.0.2",
