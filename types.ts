@@ -571,9 +571,10 @@ export interface GoalMilestone {
 export interface GoalInterviewQuestion {
   id: number;
   question: string;
-  type: 'text' | 'number';
+  type: 'text' | 'number' | 'mcq';
   prefilled?: string | number | null;
   answer?: string | number | null;
+  options?: string[];
 }
 
 export interface GoalQuestResource {

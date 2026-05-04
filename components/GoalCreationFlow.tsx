@@ -388,24 +388,57 @@ export default function GoalCreationFlow({
                 </div>
 
                 {/* Questions */}
-                <div className="space-y-3 mb-4">
+                <div className="space-y-4 mb-4">
                   {questions.map((q, i) => (
                     <div key={q.id}>
-                      <label className="block text-[10px] font-mono text-gray-400 mb-1.5">
+                      <label className="block text-[10px] font-mono text-gray-400 mb-2">
                         {i + 1}. {q.question}
                       </label>
-                      <input
-                        type={q.type === 'number' ? 'number' : 'text'}
-                        value={q.answer ?? q.prefilled ?? ''}
-                        onChange={e => {
-                          const val = q.type === 'number' ? (e.target.value ? Number(e.target.value) : '') : e.target.value;
-                          setQuestions(prev => prev.map(pq => pq.id === q.id ? { ...pq, answer: val as any } : pq));
-                          setError(null);
-                        }}
-                        className="w-full rounded-xl p-3 text-white text-sm focus:outline-none font-mono"
-                        style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}
-                        placeholder={q.prefilled != null ? String(q.prefilled) : 'Your answer...'}
-                      />
+
+                      {/* MCQ: Tappable option chips */}
+                      {q.type === 'mcq' && q.options ? (
+                        <div className="flex flex-wrap gap-2">
+                          {q.options.map(opt => {
+                            const currentVal = q.answer ?? q.prefilled ?? '';
+                            const isSelected = String(currentVal) === opt;
+                            return (
+                              <button
+                                key={opt}
+                                type="button"
+                                onClick={() => {
+                                  setQuestions(prev => prev.map(pq => pq.id === q.id ? { ...pq, answer: opt } : pq));
+                                  setError(null);
+                                  playSystemSoundEffect('SYSTEM');
+                                }}
+                                className="px-3.5 py-2 rounded-xl text-[11px] font-bold font-mono transition-all active:scale-95"
+                                style={{
+                                  background: isSelected ? 'rgba(0,212,255,0.15)' : 'rgba(255,255,255,0.03)',
+                                  border: `1.5px solid ${isSelected ? 'rgba(0,212,255,0.5)' : 'rgba(255,255,255,0.08)'}`,
+                                  color: isSelected ? '#00d4ff' : '#9ca3af',
+                                  boxShadow: isSelected ? '0 0 12px rgba(0,212,255,0.1)' : 'none',
+                                }}
+                              >
+                                {isSelected && <span style={{ marginRight: 4 }}>✓</span>}
+                                {opt}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        /* Number / Text: Standard input */
+                        <input
+                          type={q.type === 'number' ? 'number' : 'text'}
+                          value={q.answer ?? q.prefilled ?? ''}
+                          onChange={e => {
+                            const val = q.type === 'number' ? (e.target.value ? Number(e.target.value) : '') : e.target.value;
+                            setQuestions(prev => prev.map(pq => pq.id === q.id ? { ...pq, answer: val as any } : pq));
+                            setError(null);
+                          }}
+                          className="w-full rounded-xl p-3 text-white text-sm focus:outline-none font-mono"
+                          style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}
+                          placeholder={q.prefilled != null ? String(q.prefilled) : 'Your answer...'}
+                        />
+                      )}
                     </div>
                   ))}
                 </div>

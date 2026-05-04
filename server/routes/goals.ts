@@ -150,11 +150,21 @@ Users type on mobile. If the goal has typos but intent is clear, interpret corre
   "questions": [
     {"id": 1, "question": "What is your current weight in kg?", "type": "number", "prefilled": 80},
     {"id": 2, "question": "Target weight in kg?", "type": "number", "prefilled": null},
-    {"id": 3, "question": "How many hours per day can you dedicate?", "type": "number", "prefilled": 1},
-    {"id": 4, "question": "Do you have gym access or only home workouts?", "type": "text", "prefilled": "GYM"},
-    {"id": 5, "question": "Any dietary restrictions or health conditions?", "type": "text", "prefilled": null}
+    {"id": 3, "question": "How many hours per day can you dedicate?", "type": "mcq", "options": ["30 min", "1 hour", "2 hours", "3+ hours"], "prefilled": "1 hour"},
+    {"id": 4, "question": "What equipment do you have access to?", "type": "mcq", "options": ["Full Gym", "Dumbbells at Home", "Bodyweight Only", "Resistance Bands"], "prefilled": "Full Gym"},
+    {"id": 5, "question": "What's your current experience level?", "type": "mcq", "options": ["Complete Beginner", "Some Experience", "Intermediate", "Advanced"], "prefilled": null}
   ]
-}`;
+}
+
+=== MCQ QUESTION RULES (CRITICAL — REDUCES FRICTION) ===
+- PREFER "mcq" type for ALL questions where possible. Generate 3-5 clear options per question.
+- Use "number" type ONLY when the answer is a specific numeric value (weight, target score, age).
+- Use "text" type ONLY when the answer is truly unique/personal and cannot be captured by options (e.g. "list your injuries").
+- Options should be SHORT (2-4 words each) and easy to tap on mobile.
+- Always include the most common/recommended option as "prefilled".
+- For experience questions: use levels like "Complete Beginner", "Some Experience", "Intermediate", "Advanced".
+- For time questions: use "30 min", "1 hour", "1.5 hours", "2 hours", "3+ hours".
+- For yes/no questions: use "mcq" with ["Yes", "No"] options.`;
 
     const { result, modelName } = await generateWithFallback(ai, [...DEFAULT_MODEL_CHAIN], prompt);
     const text = result.response.text().trim();
