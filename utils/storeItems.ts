@@ -590,24 +590,47 @@ export const ALL_STORE_ITEMS: StoreItem[] = [
   ...STREAK_BANNERS,
 ];
 
+/* ═══ Remote Store Cache ═══ */
+// Populated on app startup by fetching /api/store/catalog.
+// Enables getItemById() to resolve remote items across the entire app
+// (AvatarWithBorder, LeaderboardView, YouView, ShopView inventory tabs)
+let _remoteStoreCache: StoreItem[] = [];
+
+export function setRemoteStoreCache(items: StoreItem[]): void {
+  _remoteStoreCache = items;
+  console.log(`[StoreItems] Remote cache updated: ${items.length} items`);
+}
+
+export function getRemoteStoreCache(): StoreItem[] {
+  return _remoteStoreCache;
+}
+
 export function getItemsByCategory(cat: StoreCategory): StoreItem[] {
-  return ALL_STORE_ITEMS.filter(i => i.category === cat);
+  return [...ALL_STORE_ITEMS, ..._remoteStoreCache].filter(i => i.category === cat);
 }
 
 export function getItemById(id: string): StoreItem | undefined {
-  return ALL_STORE_ITEMS.find(i => i.id === id);
+  // Fast path: check hardcoded items first (most lookups hit these)
+  const local = ALL_STORE_ITEMS.find(i => i.id === id);
+  if (local) return local;
+  // Fallback: check remote items (admin-added borders/banners)
+  return _remoteStoreCache.find(i => i.id === id);
 }
 
-/* ═══ Rotating Deals ═══ */
+/* ═══ Rotating Deals (includes remote items) ═══ */
 export function getTodaysDeals(count = 4): { item: StoreItem; discount: number }[] {
   // Seed based on date so deals are consistent throughout the day
   const seed = parseInt(new Date().toISOString().split('T')[0].replace(/-/g, ''), 10);
-  const shuffled = [...ALL_STORE_ITEMS]
+  // Pool includes both hardcoded AND remote items
+  const pool = [...ALL_STORE_ITEMS, ..._remoteStoreCache];
+  const shuffled = pool
     .filter(i => i.category !== 'consumable') // consumables are always available
     .sort((a, b) => {
-      const hashA = (seed * 31 + a.id.charCodeAt(0)) % 1000;
-      const hashB = (seed * 31 + b.id.charCodeAt(0)) % 1000;
-      return hashA - hashB;
+      // Use multiple chars for better distribution (prevents remote- items from clustering)
+      let hA = 0, hB = 0;
+      for (let i = 0; i < a.id.length; i++) hA = (hA * 31 + a.id.charCodeAt(i)) | 0;
+      for (let i = 0; i < b.id.length; i++) hB = (hB * 31 + b.id.charCodeAt(i)) | 0;
+      return ((seed ^ hA) % 1000) - ((seed ^ hB) % 1000);
     });
 
   return shuffled.slice(0, count).map((item, i) => ({

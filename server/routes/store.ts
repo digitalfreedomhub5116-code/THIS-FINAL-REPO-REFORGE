@@ -158,4 +158,55 @@ router.post('/outfits/:id/set-default', async (req: Request, res: Response) => {
   }
 });
 
+// ── GET /api/store/catalog — Public: Returns active remote store items ──
+// Cached in memory for 60 seconds to avoid DB hits on every app launch
+let _catalogCache: { data: any[]; fetchedAt: number } = { data: [], fetchedAt: 0 };
+const CATALOG_CACHE_TTL = 60_000; // 60 seconds
+
+router.get('/catalog', async (_req: Request, res: Response) => {
+  try {
+    const now = Date.now();
+
+    // Return cached if fresh
+    if (_catalogCache.data.length > 0 && (now - _catalogCache.fetchedAt) < CATALOG_CACHE_TTL) {
+      return res.json({ items: _catalogCache.data, cached: true });
+    }
+
+    const db = supabaseServer() as any;
+    const nowISO = new Date().toISOString();
+
+    // Fetch all active items
+    const { data, error } = await db
+      .from('remote_store_items')
+      .select('*')
+      .eq('is_active', true)
+      .order('display_order', { ascending: true })
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    // Filter events: only show if within date range (or not an event)
+    const filtered = (data || []).filter((item: any) => {
+      if (!item.is_event) return true;
+      // Event items: must be within start/end dates
+      if (item.event_starts_at && new Date(item.event_starts_at) > new Date(nowISO)) return false;
+      if (item.event_ends_at && new Date(item.event_ends_at) < new Date(nowISO)) return false;
+      return true;
+    });
+
+    // Update cache
+    _catalogCache = { data: filtered, fetchedAt: now };
+
+    console.log(`[Store] Catalog fetched: ${filtered.length} active items (${(data || []).length} total)`);
+    return res.json({ items: filtered, cached: false });
+  } catch (err) {
+    console.error('[Store] GET catalog error:', err);
+    // Return stale cache if DB fails (graceful degradation)
+    if (_catalogCache.data.length > 0) {
+      return res.json({ items: _catalogCache.data, cached: true, stale: true });
+    }
+    return res.status(500).json({ error: 'Failed to fetch catalog', items: [] });
+  }
+});
+
 export default router;

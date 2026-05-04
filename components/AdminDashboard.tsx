@@ -110,7 +110,24 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
 
   // Store State
   const [storeOutfits, setStoreOutfits] = useState<StoreOutfit[]>([]);
-  const [storeSubTab, setStoreSubTab] = useState<'OUTFITS' | 'BANNERS' | 'ITEMS' | 'SHADOWS'>('OUTFITS');
+  const [storeSubTab, setStoreSubTab] = useState<'OUTFITS' | 'BANNERS' | 'ITEMS' | 'SHADOWS' | 'LIVE_STORE'>('OUTFITS');
+
+  // Remote Store (Live Store) State
+  const [remoteItems, setRemoteItems] = useState<any[]>([]);
+  const [remoteLoading, setRemoteLoading] = useState(false);
+  const [showRemoteForm, setShowRemoteForm] = useState(false);
+  const [editingRemote, setEditingRemote] = useState<any>(null);
+  const [remoteForm, setRemoteForm] = useState<any>({
+    name: '', category: 'border', tier: 'legendary', price: 0, description: '',
+    image_base64: '', image_filename: '',
+    image_scale: 1.0, image_offset_y: 0, image_pfp_scale: 1.0,
+    image_animated: false, image_animation_type: 'rotate',
+    glow_color: '#C8A84E', glow_intensity: 0.7, tier_color: '#C8A84E',
+    rank_required: '', is_event: false, event_name: '', event_starts_at: '', event_ends_at: '',
+    display_order: 0,
+  });
+  const [confirmDeleteRemoteId, setConfirmDeleteRemoteId] = useState<string | null>(null);
+  const [remoteImagePreview, setRemoteImagePreview] = useState<string>('');
 
   // Banner State
   const [banners, setBanners] = useState<any[]>([]);
@@ -381,7 +398,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
 
   useEffect(() => { 
       if (activeTab === 'USERS') fetchUsers();
-      if (activeTab === 'STORE') { fetchStoreOutfits(); fetchBanners(); }
+      if (activeTab === 'STORE') { fetchStoreOutfits(); fetchBanners(); fetchRemoteItems(); }
       if (activeTab === 'USAGE') fetchUsage(usagePeriod);
       if (activeTab === 'REPORTS') fetchReports();
       if (activeTab === 'APPEALS') fetchAppeals();
@@ -489,6 +506,91 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
           fetchStoreOutfits();
       } catch { setStoreMsg({ type: 'error', text: 'Failed to set default' }); }
       finally { setStoreLoading(false); }
+  };
+
+  // ── Remote Store (Live Store) CRUD ──
+  const fetchRemoteItems = async () => {
+      setRemoteLoading(true);
+      try {
+          const res = await fetch(`${API_BASE}/api/admin/remote-store`, { headers: { 'Authorization': `Bearer ${adminToken}` } });
+          const data = await res.json();
+          setRemoteItems(data || []);
+      } catch { setStoreMsg({ type: 'error', text: 'Failed to load remote items' }); }
+      finally { setRemoteLoading(false); }
+  };
+
+  const handleRemoteImagePick = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      if (file.size > 2 * 1024 * 1024) { setStoreMsg({ type: 'error', text: 'Image too large (max 2MB)' }); return; }
+      const reader = new FileReader();
+      reader.onload = () => {
+          const base64 = reader.result as string;
+          setRemoteForm((prev: any) => ({ ...prev, image_base64: base64, image_filename: file.name }));
+          setRemoteImagePreview(base64);
+      };
+      reader.readAsDataURL(file);
+  };
+
+  const resetRemoteForm = () => {
+      setRemoteForm({
+          name: '', category: 'border', tier: 'legendary', price: 0, description: '',
+          image_base64: '', image_filename: '',
+          image_scale: 1.0, image_offset_y: 0, image_pfp_scale: 1.0,
+          image_animated: false, image_animation_type: 'rotate',
+          glow_color: '#C8A84E', glow_intensity: 0.7, tier_color: '#C8A84E',
+          rank_required: '', is_event: false, event_name: '', event_starts_at: '', event_ends_at: '',
+          display_order: 0,
+      });
+      setRemoteImagePreview('');
+      setEditingRemote(null);
+      setShowRemoteForm(false);
+  };
+
+  const saveRemoteItem = async () => {
+      setRemoteLoading(true);
+      setStoreMsg(null);
+      try {
+          const url = editingRemote ? `${API_BASE}/api/admin/remote-store/${editingRemote.id}` : `${API_BASE}/api/admin/remote-store`;
+          const method = editingRemote ? 'PUT' : 'POST';
+          const res = await fetch(url, {
+              method,
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminToken}` },
+              body: JSON.stringify(remoteForm),
+          });
+          if (!res.ok) { const e = await res.json(); throw new Error(e.error || 'Save failed'); }
+          setStoreMsg({ type: 'success', text: editingRemote ? 'Item updated!' : 'Item created!' });
+          resetRemoteForm();
+          fetchRemoteItems();
+      } catch (err: any) {
+          setStoreMsg({ type: 'error', text: err.message });
+      } finally { setRemoteLoading(false); }
+  };
+
+  const toggleRemoteItem = async (id: number) => {
+      try {
+          await fetch(`${API_BASE}/api/admin/remote-store/${id}/toggle`, {
+              method: 'PATCH',
+              headers: { 'Authorization': `Bearer ${adminToken}` },
+          });
+          fetchRemoteItems();
+      } catch { setStoreMsg({ type: 'error', text: 'Toggle failed' }); }
+  };
+
+  const deleteRemoteItem = async (id: number) => {
+      setRemoteLoading(true);
+      try {
+          const res = await fetch(`${API_BASE}/api/admin/remote-store/${id}`, {
+              method: 'DELETE',
+              headers: { 'Authorization': `Bearer ${adminToken}` },
+          });
+          if (!res.ok) throw new Error('Delete failed');
+          setStoreMsg({ type: 'success', text: 'Item deleted.' });
+          setConfirmDeleteRemoteId(null);
+          fetchRemoteItems();
+      } catch (err: any) {
+          setStoreMsg({ type: 'error', text: err.message });
+      } finally { setRemoteLoading(false); }
   };
 
   // --- ACTIONS ---
@@ -859,7 +961,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
 
                   {/* Sub-tabs */}
                   <div className="flex gap-2 flex-wrap">
-                      {(['OUTFITS', 'BANNERS', 'ITEMS', 'SHADOWS'] as const).map(tab => (
+                      {(['OUTFITS', 'BANNERS', 'ITEMS', 'SHADOWS', 'LIVE_STORE'] as const).map(tab => (
                           <button
                               key={tab}
                               onClick={() => setStoreSubTab(tab)}
@@ -1267,6 +1369,207 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
                           <div className="text-4xl mb-3">👻</div>
                           <div className="text-sm font-black text-white uppercase tracking-widest mb-1">Shadows System</div>
                           <div className="text-xs text-gray-500 font-mono">Coming Soon — Phantom Legion management under development</div>
+                      </div>
+                  )}
+
+                  {/* ── LIVE STORE SUB-TAB ── */}
+                  {storeSubTab === 'LIVE_STORE' && (
+                      <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                              <div>
+                                  <div className="text-xs font-black text-orange-400 uppercase tracking-widest">🔥 Live Store — Remote Items</div>
+                                  <div className="text-[10px] text-gray-600 font-mono mt-0.5">Add borders, banners, themes without app updates. Items sync to all users in real-time.</div>
+                              </div>
+                              <button onClick={() => { resetRemoteForm(); setShowRemoteForm(true); }} className="px-4 py-2 bg-orange-500 text-black text-[10px] font-black rounded-lg uppercase tracking-widest hover:bg-orange-400 transition-all flex items-center gap-1.5">
+                                  <Plus size={12} /> ADD ITEM
+                              </button>
+                          </div>
+
+                          {/* Create/Edit Form Modal */}
+                          {showRemoteForm && (
+                              <div className="bg-[#0a0a0a] border border-orange-900/50 rounded-xl p-5 space-y-4">
+                                  <div className="flex justify-between items-center">
+                                      <div className="text-xs font-black text-orange-400 uppercase tracking-widest">{editingRemote ? '✏️ Edit Item' : '➕ New Remote Item'}</div>
+                                      <button onClick={resetRemoteForm} className="text-gray-500 hover:text-white">✕</button>
+                                  </div>
+
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                      {/* Left: Fields */}
+                                      <div className="space-y-3">
+                                          <div>
+                                              <label className="text-[9px] text-gray-500 uppercase tracking-widest font-bold block mb-1">Name *</label>
+                                              <input value={remoteForm.name} onChange={e => setRemoteForm((p: any) => ({...p, name: e.target.value}))} className="w-full bg-black border border-gray-800 rounded px-3 py-2 text-xs text-white outline-none focus:border-orange-500" placeholder="Celestial Fury" />
+                                          </div>
+                                          <div className="grid grid-cols-3 gap-2">
+                                              <div>
+                                                  <label className="text-[9px] text-gray-500 uppercase tracking-widest font-bold block mb-1">Category</label>
+                                                  <select value={remoteForm.category} onChange={e => setRemoteForm((p: any) => ({...p, category: e.target.value}))} className="w-full bg-black border border-gray-800 rounded px-2 py-2 text-xs text-white outline-none">
+                                                      <option value="border">Border</option>
+                                                      <option value="banner">Banner</option>
+                                                      <option value="theme">Theme</option>
+                                                  </select>
+                                              </div>
+                                              <div>
+                                                  <label className="text-[9px] text-gray-500 uppercase tracking-widest font-bold block mb-1">Tier</label>
+                                                  <select value={remoteForm.tier} onChange={e => setRemoteForm((p: any) => ({...p, tier: e.target.value}))} className="w-full bg-black border border-gray-800 rounded px-2 py-2 text-xs text-white outline-none">
+                                                      {['basic','color','elemental','special','prismatic','seasonal','premium','legendary','rank-gated'].map(t => <option key={t} value={t}>{t}</option>)}
+                                                  </select>
+                                              </div>
+                                              <div>
+                                                  <label className="text-[9px] text-gray-500 uppercase tracking-widest font-bold block mb-1">Price (Gold)</label>
+                                                  <input type="number" value={remoteForm.price} onChange={e => setRemoteForm((p: any) => ({...p, price: parseInt(e.target.value) || 0}))} className="w-full bg-black border border-gray-800 rounded px-2 py-2 text-xs text-yellow-400 outline-none [appearance:textfield]" />
+                                              </div>
+                                          </div>
+                                          <div>
+                                              <label className="text-[9px] text-gray-500 uppercase tracking-widest font-bold block mb-1">Description</label>
+                                              <input value={remoteForm.description} onChange={e => setRemoteForm((p: any) => ({...p, description: e.target.value}))} className="w-full bg-black border border-gray-800 rounded px-3 py-2 text-xs text-white outline-none focus:border-orange-500" placeholder="A blazing cosmic frame..." />
+                                          </div>
+                                          <div className="grid grid-cols-3 gap-2">
+                                              <div>
+                                                  <label className="text-[9px] text-gray-500 uppercase tracking-widest font-bold block mb-1">Scale</label>
+                                                  <input type="number" step="0.05" value={remoteForm.image_scale} onChange={e => setRemoteForm((p: any) => ({...p, image_scale: parseFloat(e.target.value) || 1}))} className="w-full bg-black border border-gray-800 rounded px-2 py-2 text-xs text-white outline-none [appearance:textfield]" />
+                                              </div>
+                                              <div>
+                                                  <label className="text-[9px] text-gray-500 uppercase tracking-widest font-bold block mb-1">Offset Y</label>
+                                                  <input type="number" value={remoteForm.image_offset_y} onChange={e => setRemoteForm((p: any) => ({...p, image_offset_y: parseInt(e.target.value) || 0}))} className="w-full bg-black border border-gray-800 rounded px-2 py-2 text-xs text-white outline-none [appearance:textfield]" />
+                                              </div>
+                                              <div>
+                                                  <label className="text-[9px] text-gray-500 uppercase tracking-widest font-bold block mb-1">PFP Scale</label>
+                                                  <input type="number" step="0.05" value={remoteForm.image_pfp_scale} onChange={e => setRemoteForm((p: any) => ({...p, image_pfp_scale: parseFloat(e.target.value) || 1}))} className="w-full bg-black border border-gray-800 rounded px-2 py-2 text-xs text-white outline-none [appearance:textfield]" />
+                                              </div>
+                                          </div>
+                                          <div className="grid grid-cols-2 gap-2">
+                                              <div>
+                                                  <label className="text-[9px] text-gray-500 uppercase tracking-widest font-bold block mb-1">Glow Color</label>
+                                                  <div className="flex gap-2 items-center">
+                                                      <input type="color" value={remoteForm.glow_color} onChange={e => setRemoteForm((p: any) => ({...p, glow_color: e.target.value}))} className="w-8 h-8 rounded border border-gray-700 bg-black cursor-pointer" />
+                                                      <input value={remoteForm.glow_color} onChange={e => setRemoteForm((p: any) => ({...p, glow_color: e.target.value}))} className="flex-1 bg-black border border-gray-800 rounded px-2 py-1 text-[10px] text-white outline-none" />
+                                                  </div>
+                                              </div>
+                                              <div>
+                                                  <label className="text-[9px] text-gray-500 uppercase tracking-widest font-bold block mb-1">Tier Color</label>
+                                                  <div className="flex gap-2 items-center">
+                                                      <input type="color" value={remoteForm.tier_color} onChange={e => setRemoteForm((p: any) => ({...p, tier_color: e.target.value}))} className="w-8 h-8 rounded border border-gray-700 bg-black cursor-pointer" />
+                                                      <input value={remoteForm.tier_color} onChange={e => setRemoteForm((p: any) => ({...p, tier_color: e.target.value}))} className="flex-1 bg-black border border-gray-800 rounded px-2 py-1 text-[10px] text-white outline-none" />
+                                                  </div>
+                                              </div>
+                                          </div>
+                                          {/* Event scheduling */}
+                                          <div className="border border-gray-800 rounded-lg p-3">
+                                              <label className="flex items-center gap-2 cursor-pointer">
+                                                  <input type="checkbox" checked={remoteForm.is_event} onChange={e => setRemoteForm((p: any) => ({...p, is_event: e.target.checked}))} className="rounded" />
+                                                  <span className="text-[10px] text-orange-400 font-bold uppercase tracking-widest">⚡ Event Item (time-limited)</span>
+                                              </label>
+                                              {remoteForm.is_event && (
+                                                  <div className="mt-3 space-y-2">
+                                                      <input value={remoteForm.event_name} onChange={e => setRemoteForm((p: any) => ({...p, event_name: e.target.value}))} placeholder="Event Name (e.g. Summer Blaze)" className="w-full bg-black border border-gray-800 rounded px-2 py-1.5 text-xs text-white outline-none" />
+                                                      <div className="grid grid-cols-2 gap-2">
+                                                          <div>
+                                                              <label className="text-[8px] text-gray-600 block mb-0.5">Starts</label>
+                                                              <input type="datetime-local" value={remoteForm.event_starts_at} onChange={e => setRemoteForm((p: any) => ({...p, event_starts_at: e.target.value}))} className="w-full bg-black border border-gray-800 rounded px-2 py-1 text-[10px] text-white outline-none" />
+                                                          </div>
+                                                          <div>
+                                                              <label className="text-[8px] text-gray-600 block mb-0.5">Ends</label>
+                                                              <input type="datetime-local" value={remoteForm.event_ends_at} onChange={e => setRemoteForm((p: any) => ({...p, event_ends_at: e.target.value}))} className="w-full bg-black border border-gray-800 rounded px-2 py-1 text-[10px] text-white outline-none" />
+                                                          </div>
+                                                      </div>
+                                                  </div>
+                                              )}
+                                          </div>
+                                      </div>
+
+                                      {/* Right: Image Upload + Preview */}
+                                      <div className="space-y-3">
+                                          <div>
+                                              <label className="text-[9px] text-gray-500 uppercase tracking-widest font-bold block mb-1">Asset Image *</label>
+                                              <label className="flex items-center justify-center gap-2 w-full h-12 bg-black border-2 border-dashed border-gray-700 rounded-lg cursor-pointer hover:border-orange-500 transition-colors">
+                                                  <Image size={14} className="text-gray-500" />
+                                                  <span className="text-[10px] text-gray-500 font-bold">{remoteForm.image_filename || 'Choose PNG/WebP (max 2MB)'}</span>
+                                                  <input type="file" accept="image/png,image/webp,image/jpeg" onChange={handleRemoteImagePick} className="hidden" />
+                                              </label>
+                                          </div>
+                                          {/* Live Preview */}
+                                          <div className="bg-gray-900/60 border border-gray-800 rounded-xl p-4 flex flex-col items-center justify-center min-h-[200px]">
+                                              <div className="text-[8px] text-gray-600 uppercase tracking-widest mb-3">Live Preview</div>
+                                              {(remoteImagePreview || editingRemote?.image_url) ? (
+                                                  <div className="relative w-24 h-24">
+                                                      <div className="w-16 h-16 rounded-full bg-gray-800 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-0" />
+                                                      <img
+                                                          src={remoteImagePreview || editingRemote?.image_url}
+                                                          alt="preview"
+                                                          className="absolute inset-0 w-full h-full object-contain z-10"
+                                                          style={{ transform: `scale(${remoteForm.image_scale}) translateY(${remoteForm.image_offset_y}px)` }}
+                                                      />
+                                                  </div>
+                                              ) : (
+                                                  <div className="text-gray-700 text-xs">No image selected</div>
+                                              )}
+                                              <div className="text-[10px] text-white font-bold mt-3">{remoteForm.name || 'Item Name'}</div>
+                                              <div className="text-[9px] font-bold mt-1" style={{color: remoteForm.tier_color}}>{remoteForm.tier.toUpperCase()}</div>
+                                              <div className="text-[10px] text-yellow-400 font-bold mt-1">{remoteForm.price}G</div>
+                                          </div>
+                                      </div>
+                                  </div>
+
+                                  <div className="flex gap-2 justify-end pt-2 border-t border-gray-800">
+                                      <button onClick={resetRemoteForm} className="px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg text-[10px] text-gray-400 font-bold uppercase tracking-widest hover:text-white transition-all">Cancel</button>
+                                      <button onClick={saveRemoteItem} disabled={remoteLoading || !remoteForm.name} className="px-6 py-2 bg-orange-500 text-black rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-orange-400 transition-all disabled:opacity-40 flex items-center gap-1.5">
+                                          {remoteLoading ? <RefreshCw size={11} className="animate-spin" /> : <Save size={11} />}
+                                          {editingRemote ? 'UPDATE' : 'CREATE'}
+                                      </button>
+                                  </div>
+                              </div>
+                          )}
+
+                          {/* Items List */}
+                          {remoteLoading && remoteItems.length === 0 ? (
+                              <div className="text-center py-12 text-gray-600 text-xs font-mono">Loading remote items...</div>
+                          ) : remoteItems.length === 0 ? (
+                              <div className="bg-gray-900/40 border border-gray-800 rounded-xl p-10 text-center">
+                                  <div className="text-3xl mb-2">📦</div>
+                                  <div className="text-sm font-bold text-gray-400">No remote items yet</div>
+                                  <div className="text-[10px] text-gray-600 mt-1">Click "Add Item" to create your first live store item</div>
+                              </div>
+                          ) : (
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                  {remoteItems.map((item: any) => (
+                                      <div key={item.id} className={`bg-[#0a0a0a] border rounded-xl overflow-hidden transition-all ${item.is_active ? 'border-gray-800 hover:border-orange-900/50' : 'border-red-900/30 opacity-60'}`}>
+                                          <div className="flex items-center gap-3 p-3">
+                                              <div className="w-14 h-14 rounded-lg bg-gray-900 flex-shrink-0 overflow-hidden flex items-center justify-center">
+                                                  {item.image_url ? <img src={item.image_url} alt={item.name} className="w-full h-full object-contain" /> : <Image size={20} className="text-gray-700" />}
+                                              </div>
+                                              <div className="flex-1 min-w-0">
+                                                  <div className="text-xs font-black text-white truncate">{item.name}</div>
+                                                  <div className="flex items-center gap-2 mt-0.5">
+                                                      <span className="text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded" style={{color: item.tier_color, background: `${item.tier_color}15`, border: `1px solid ${item.tier_color}30`}}>{item.tier}</span>
+                                                      <span className="text-[9px] text-gray-500 font-mono">{item.category}</span>
+                                                      <span className="text-[9px] text-yellow-400 font-bold">{item.price}G</span>
+                                                  </div>
+                                                  {item.is_event && (
+                                                      <div className="text-[8px] text-orange-400 font-bold mt-0.5">⚡ {item.event_name || 'EVENT'} {item.event_ends_at ? `· ends ${new Date(item.event_ends_at).toLocaleDateString()}` : ''}</div>
+                                                  )}
+                                              </div>
+                                          </div>
+                                          <div className="flex items-center justify-between px-3 py-2 border-t border-gray-800/50 bg-gray-900/20">
+                                              <button onClick={() => toggleRemoteItem(item.id)} className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded transition-all ${item.is_active ? 'text-green-400 hover:bg-green-900/30' : 'text-red-400 hover:bg-red-900/30'}`}>
+                                                  {item.is_active ? '● LIVE' : '○ OFF'}
+                                              </button>
+                                              <div className="flex gap-1">
+                                                  <button onClick={() => { setEditingRemote(item); setRemoteForm({...item, image_base64: '', image_filename: ''}); setRemoteImagePreview(item.image_url || ''); setShowRemoteForm(true); }} className="p-1.5 rounded hover:bg-gray-800 text-gray-500 hover:text-white transition-all"><Edit3 size={12} /></button>
+                                                  {confirmDeleteRemoteId === item.id ? (
+                                                      <div className="flex gap-1 items-center">
+                                                          <button onClick={() => deleteRemoteItem(item.id)} className="text-[8px] bg-red-900 text-red-300 px-2 py-1 rounded font-bold">DELETE</button>
+                                                          <button onClick={() => setConfirmDeleteRemoteId(null)} className="text-[8px] text-gray-500 px-1">✕</button>
+                                                      </div>
+                                                  ) : (
+                                                      <button onClick={() => setConfirmDeleteRemoteId(item.id)} className="p-1.5 rounded hover:bg-red-900/30 text-gray-600 hover:text-red-400 transition-all"><Trash2 size={12} /></button>
+                                                  )}
+                                              </div>
+                                          </div>
+                                      </div>
+                                  ))}
+                              </div>
+                          )}
                       </div>
                   )}
               </div>

@@ -13,7 +13,7 @@ import { PROFILE_BORDERS, getBorderConfig, OUTFITS } from '../utils/gameData';
 import AnimatedBorder from './AnimatedBorder';
 import OnboardingNotice from './OnboardingNotice';
 import { SystemCoin } from './icons/SystemCoin';
-import { getItemsByCategory, getTodaysDeals, type StoreItem as KitStoreItem, ALL_STORE_ITEMS, BORDERS_ELEMENTS, BORDERS_BEASTS, BORDERS_SHIELDS, BORDERS_EXCLUSIVE } from '../utils/storeItems';
+import { getItemsByCategory, getTodaysDeals, getItemById, getRemoteStoreCache, type StoreItem as KitStoreItem, ALL_STORE_ITEMS, BORDERS_ELEMENTS, BORDERS_BEASTS, BORDERS_SHIELDS, BORDERS_EXCLUSIVE } from '../utils/storeItems';
 import { getEconomy, purchaseItem as kitPurchaseItem, equipItem as kitEquipItem, applyThemeVars, DEV_UNLOCK_ALL, type EquippedItems } from '../utils/storeEconomy';
 import { syncBorderToPlayers } from '../lib/borderSync';
 import { LynxCoin, BorderRing, ThemeSwatch } from './StoreComponents';
@@ -389,8 +389,19 @@ const ShopView: React.FC<ShopViewProps> = ({
   // ── Confirm purchase modal ──
   const [confirmPurchaseItem, setConfirmPurchaseItem] = useState<KitStoreItem | null>(null);
   const [purchasing, setPurchasing] = useState(false);
+  // ── Phase transition flag: keeps confirm modal mounted while equip overlay fades in ──
+  const [purchasePhase, setPurchasePhase] = useState<'idle' | 'buying' | 'transitioning'>('idle');
   // ── Not enough coins popup ──
   const [showInsufficientFunds, setShowInsufficientFunds] = useState<KitStoreItem | null>(null);
+
+  // ── Image preloader: eagerly load border images so celebration overlay doesn't flash ──
+  const preloadedImagesRef = useRef<Set<string>>(new Set());
+  const preloadImage = useCallback((src: string | undefined) => {
+    if (!src || preloadedImagesRef.current.has(src)) return;
+    const img = new Image();
+    img.src = src;
+    preloadedImagesRef.current.add(src);
+  }, []);
 
   // ── Server-authoritative inventory ──
   interface InventoryItem { item_id: string; item_type: string; source: string; }
@@ -418,7 +429,7 @@ const ShopView: React.FC<ShopViewProps> = ({
           const missingItems = localEco.owned
             .filter(id => !serverIds.has(id))
             .map(id => {
-              const item = ALL_STORE_ITEMS.find(si => si.id === id);
+              const item = getItemById(id);
               return item ? { itemId: id, itemType: item.category } : null;
             })
             .filter(Boolean);
@@ -526,7 +537,7 @@ const ShopView: React.FC<ShopViewProps> = ({
     const newEco = kitEquipItem(slot, newId);
     setKitEconomy(newEco);
     if (slot === 'theme') {
-      const themeItem = newId ? ALL_STORE_ITEMS.find(i => i.id === newId) : null;
+      const themeItem = newId ? getItemById(newId) : null;
       applyThemeVars(themeItem?.themeVars || null);
     }
     // Sync border to player state → Supabase → leaderboard
@@ -660,7 +671,7 @@ const ShopView: React.FC<ShopViewProps> = ({
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
                       {ownedBorderItems.map(inv => {
-                        const storeItem = ALL_STORE_ITEMS.find(s => s.id === inv.item_id);
+                        const storeItem = getItemById(inv.item_id);
                         if (!storeItem) return null;
                         const isEquipped = kitEconomy.equipped.border === inv.item_id;
                         return (
@@ -697,7 +708,7 @@ const ShopView: React.FC<ShopViewProps> = ({
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       {ownedBannerItems.map(inv => {
-                        const storeItem = ALL_STORE_ITEMS.find(s => s.id === inv.item_id);
+                        const storeItem = getItemById(inv.item_id);
                         if (!storeItem) return null;
                         const isEquipped = kitEconomy.equipped.banner === inv.item_id;
                         return (
@@ -736,7 +747,7 @@ const ShopView: React.FC<ShopViewProps> = ({
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
                       {ownedThemeItems.map(inv => {
-                        const storeItem = ALL_STORE_ITEMS.find(s => s.id === inv.item_id);
+                        const storeItem = getItemById(inv.item_id);
                         if (!storeItem) return null;
                         const isEquipped = kitEconomy.equipped.theme === inv.item_id;
                         const themeColor = storeItem.themeVars?.['--primary'] || '#9ca3af';
@@ -824,7 +835,7 @@ const ShopView: React.FC<ShopViewProps> = ({
                     </div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                       {ownedTitleItems.map(inv => {
-                        const storeItem = ALL_STORE_ITEMS.find(s => s.id === inv.item_id);
+                        const storeItem = getItemById(inv.item_id);
                         if (!storeItem) return null;
                         const titleColor = storeItem.titleConfig?.color || '#9ca3af';
                         return (
@@ -1125,6 +1136,45 @@ const ShopView: React.FC<ShopViewProps> = ({
         </div>
       </section>
 
+      {/* ── Tier 5: Live Event Borders (remote, admin-added) ── */}
+      {(() => {
+        const remoteBorders = getRemoteStoreCache().filter(i => i.category === 'border');
+        if (remoteBorders.length === 0) return null;
+        return (
+          <section>
+            <div className="store-section-hdr">
+              <div className="hdr-icon" style={{ background: 'rgba(249,115,22,0.15)', border: '1px solid rgba(249,115,22,0.3)', boxShadow: '0 0 12px rgba(249,115,22,0.15)' }}>
+                <Flame size={15} style={{ color: '#F97316' }} />
+              </div>
+              <span className="hdr-title" style={{ background: 'linear-gradient(90deg, #F97316, #EAB308)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Live Events</span>
+              <span style={{ fontSize: 8, fontFamily: 'monospace', color: '#F97316', padding: '2px 8px', background: 'rgba(249,115,22,0.08)', borderRadius: 6, border: '1px solid rgba(249,115,22,0.15)' }}>🔥 LIMITED</span>
+              <div className="hdr-line" />
+            </div>
+            <div className="store-hscroll">
+              {remoteBorders.map(item => (
+                <div key={item.id} style={{ flexShrink: 0, width: 'calc(42vw - 12px)', minWidth: 140, maxWidth: 180 }}>
+                  <KitGlowCard item={item}
+                    owned={isItemOwned(item.id)}
+                    equipped={kitEconomy.equipped.border === item.id}
+                    canAfford={DEV_UNLOCK_ALL || gold >= item.price}
+                    onBuy={() => setConfirmPurchaseItem(item)}
+                    onInsufficientFunds={() => setShowInsufficientFunds(item)}
+                    onEquip={() => {
+                      setEquipAnimItem(item);
+                      setShowEquipAnim(true);
+                      handleKitEquip('border', item.id);
+                    }}
+                    onInfo={() => setKitInfoItem(item)}
+                    onView={() => setKitInfoItem(item)}
+                    onCardClick={() => setKitInfoItem(item)}
+                  />
+                </div>
+              ))}
+            </div>
+          </section>
+        );
+      })()}
+
       {/* ═══════════════════════════════════════════
            👕 OUTFITS (last main section) — individual video cards
          ═══════════════════════════════════════════ */}
@@ -1377,12 +1427,23 @@ const ShopView: React.FC<ShopViewProps> = ({
       )}
 
       {/* ── CONFIRM PURCHASE MODAL (works for borders, banners, themes, titles, consumables) ── */}
-      {confirmPurchaseItem &&
-        ReactDOM.createPortal(<div onClick={() => { if (!purchasing) setConfirmPurchaseItem(null); }} style={{
-          position: 'fixed', inset: 0, zIndex: 100000,
-          background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
-        }}>
+      {/* Persistent portal container: stays mounted during buying→celebration transition to prevent blank frame gap */}
+      {(confirmPurchaseItem || purchasePhase === 'transitioning') &&
+        ReactDOM.createPortal(<div
+          onClick={() => { if (!purchasing && purchasePhase !== 'transitioning') setConfirmPurchaseItem(null); }}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 100000,
+            background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
+            /* GPU-accelerated fade during phase transition */
+            opacity: purchasePhase === 'transitioning' ? 0 : 1,
+            transition: 'opacity 0.3s ease-out',
+            willChange: 'opacity',
+            transform: 'translate3d(0,0,0)', /* force GPU layer */
+            pointerEvents: purchasePhase === 'transitioning' ? 'none' : 'auto',
+          }}
+        >
+          {confirmPurchaseItem && purchasePhase !== 'transitioning' && (
           <div onClick={e => e.stopPropagation()} style={{
             background: 'linear-gradient(180deg, #14161e 0%, #0c0d14 100%)',
             border: '1px solid rgba(255,255,255,0.1)',
@@ -1422,6 +1483,11 @@ const ShopView: React.FC<ShopViewProps> = ({
               <button disabled={purchasing} onClick={async () => {
                 const item = confirmPurchaseItem;
                 setPurchasing(true);
+                setPurchasePhase('buying');
+                // Preload border image for celebration overlay — prevents empty flash
+                if (item.category === 'border' && item.imageBorder) {
+                  preloadImage(item.imageBorder);
+                }
                 try {
                   const headers = getPlayerAuthHeaders();
                   const resp = await fetch(`${API_BASE}/api/inventory/purchase`, {
@@ -1431,26 +1497,35 @@ const ShopView: React.FC<ShopViewProps> = ({
                   if (!resp.ok) {
                     const errData = await resp.json().catch(() => ({}));
                     console.error('[Store] Purchase failed:', errData);
-                    setPurchasing(false); setConfirmPurchaseItem(null); return;
+                    setPurchasing(false); setPurchasePhase('idle'); setConfirmPurchaseItem(null); return;
                   }
                   const { gold: newGold } = await resp.json();
                   if (onGoldUpdate) onGoldUpdate(newGold);
+                  // Use callback to avoid triggering unnecessary re-renders in background store
                   setServerInventory(prev => [...prev, { item_id: item.id, item_type: item.category, source: 'purchase' }]);
                   const p = kitPurchaseItem(item.id, item.price);
                   if (p) setKitEconomy(p);
-                } catch (e) { console.error('[Store] Purchase error:', e); setPurchasing(false); setConfirmPurchaseItem(null); return; }
+                } catch (e) { console.error('[Store] Purchase error:', e); setPurchasing(false); setPurchasePhase('idle'); setConfirmPurchaseItem(null); return; }
                 // Category-specific post-purchase logic
                 if (item.category === 'border') {
                   handleKitEquip('border', item.id);
                   setEquipAnimItem(item);
+                  // Phase transition: keep confirm backdrop mounted, start celebration overlay
+                  setPurchasePhase('transitioning');
                   setShowEquipAnim(true);
-                } else if (item.category === 'banner') {
-                  handleKitEquip('banner', item.id);
-                } else if (item.category === 'theme') {
-                  handleKitEquip('theme', item.id);
+                  // After equip overlay fades in (300ms), unmount confirm modal cleanly
+                  setTimeout(() => {
+                    setConfirmPurchaseItem(null);
+                    setPurchasePhase('idle');
+                    setPurchasing(false);
+                  }, 350);
+                } else {
+                  if (item.category === 'banner') handleKitEquip('banner', item.id);
+                  else if (item.category === 'theme') handleKitEquip('theme', item.id);
+                  setConfirmPurchaseItem(null);
+                  setPurchasing(false);
+                  setPurchasePhase('idle');
                 }
-                setConfirmPurchaseItem(null);
-                setPurchasing(false);
               }} style={{
                 padding: '10px 28px', borderRadius: 12, cursor: purchasing ? 'wait' : 'pointer',
                 background: 'linear-gradient(135deg, #fbbf24, #d97706)', border: 'none',
@@ -1461,6 +1536,7 @@ const ShopView: React.FC<ShopViewProps> = ({
               </button>
             </div>
           </div>
+          )}
         </div>, document.body)}
 
       {/* ── NOT ENOUGH COINS POPUP ── */}
@@ -1582,7 +1658,7 @@ const KIT_CAT_COLORS: Record<string, string> = {
   border: '#00d4ff', theme: '#8B5CF6', deals: '#F59E0B', banner: '#06B6D4', consumable: '#22C55E', title: '#F59E0B',
 };
 
-function KitGlowCard({ item, discount, owned, equipped, canAfford, onBuy, onInsufficientFunds, onEquip, onInfo, onView, onCardClick, dealColor }: {
+const KitGlowCard = React.memo(function KitGlowCard({ item, discount, owned, equipped, canAfford, onBuy, onInsufficientFunds, onEquip, onInfo, onView, onCardClick, dealColor }: {
   item: KitStoreItem; discount?: number; owned?: boolean; equipped?: boolean;
   canAfford: boolean; onBuy: () => void; onInsufficientFunds?: () => void; onEquip?: () => void; onInfo?: () => void; onView?: () => void;
   onCardClick?: () => void; dealColor?: string;
@@ -1790,7 +1866,7 @@ function KitGlowCard({ item, discount, owned, equipped, canAfford, onBuy, onInsu
       </div>
     </div>
   );
-}
+});
 
 
 /* ═══════════════════════════════════

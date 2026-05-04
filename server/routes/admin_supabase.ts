@@ -1373,4 +1373,302 @@ router.delete('/exercises/:id', async (req: Request, res: Response) => {
   }
 });
 
+// ── Remote Store Items Management (Live Store) ─────────────────────────
+// Admin can add/edit/delete borders, banners, themes without app updates.
+// Images are uploaded as base64 and stored in Supabase Storage 'store-assets' bucket.
+
+router.get('/remote-store', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+  try {
+    const { data, error } = await (supabaseServer() as any)
+      .from('remote_store_items')
+      .select('*')
+      .order('display_order', { ascending: true })
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return res.json(data || []);
+  } catch (err) {
+    console.error('[Admin remote-store] GET error:', err);
+    return res.status(500).json({ error: 'Failed to fetch remote store items' });
+  }
+});
+
+router.post('/remote-store', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+  try {
+    const {
+      name, category = 'border', tier = 'legendary', price = 0,
+      description = '', image_base64, image_filename,
+      image_scale = 1.0, image_offset_y = 0, image_pfp_scale = 1.0,
+      image_animated = false, image_animation_type = 'rotate',
+      glow_color = '#C8A84E', glow_intensity = 0.7, tier_color = '#C8A84E',
+      rank_required, is_event = false, event_name, event_starts_at, event_ends_at,
+      display_order = 0,
+    } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'Name is required' });
+    }
+
+    // Generate a URL-safe item_id from the name
+    const slug = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const item_id = `remote-${category}-${slug}`;
+
+    // Upload image to Supabase Storage if provided
+    let image_url = '';
+    if (image_base64 && image_filename) {
+      const db = supabaseServer() as any;
+
+      // Decode base64 to buffer
+      const base64Data = image_base64.replace(/^data:image\/\w+;base64,/, '');
+      const buffer = Buffer.from(base64Data, 'base64');
+
+      // Validate size (2MB max)
+      if (buffer.length > 2 * 1024 * 1024) {
+        return res.status(400).json({ error: 'Image too large. Max 2MB.' });
+      }
+
+      // Determine content type from filename
+      const ext = image_filename.split('.').pop()?.toLowerCase() || 'png';
+      const contentType = ext === 'webp' ? 'image/webp' : ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : 'image/png';
+
+      // Upload to storage
+      const storagePath = `${category}s/${item_id}.${ext}`;
+      const { error: uploadErr } = await db.storage
+        .from('store-assets')
+        .upload(storagePath, buffer, {
+          contentType,
+          upsert: true,
+        });
+
+      if (uploadErr) {
+        console.error('[Admin remote-store] Upload error:', uploadErr);
+        return res.status(500).json({ error: 'Image upload failed: ' + uploadErr.message });
+      }
+
+      // Get public URL
+      const { data: urlData } = db.storage.from('store-assets').getPublicUrl(storagePath);
+      image_url = urlData?.publicUrl || '';
+    }
+
+    if (!image_url) {
+      return res.status(400).json({ error: 'Image is required' });
+    }
+
+    // Insert into DB
+    const { data, error } = await (supabaseServer() as any)
+      .from('remote_store_items')
+      .insert({
+        item_id, name: name.trim(), category, tier, price,
+        description, image_url,
+        image_scale, image_offset_y, image_pfp_scale,
+        image_animated, image_animation_type,
+        glow_color, glow_intensity, tier_color,
+        rank_required: rank_required || null,
+        is_event, event_name: event_name || null,
+        event_starts_at: event_starts_at || null,
+        event_ends_at: event_ends_at || null,
+        display_order,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      if (error.code === '23505') {
+        return res.status(409).json({ error: `Item "${name}" already exists` });
+      }
+      throw error;
+    }
+
+    await logAdminAction('create_remote_store_item', req, {
+      newValue: { item_id, name: name.trim(), category, tier, price },
+    });
+
+    console.log(`[Admin] Created remote store item: ${item_id} (${category}, ${tier}, ${price}G)`);
+    return res.json(data);
+  } catch (err) {
+    console.error('[Admin remote-store] POST error:', err);
+    return res.status(500).json({ error: 'Failed to create item' });
+  }
+});
+
+router.put('/remote-store/:id', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+  const { id } = req.params;
+  try {
+    const {
+      name, tier, price, description,
+      image_base64, image_filename,
+      image_scale, image_offset_y, image_pfp_scale,
+      image_animated, image_animation_type,
+      glow_color, glow_intensity, tier_color,
+      rank_required, is_event, event_name,
+      event_starts_at, event_ends_at, display_order,
+    } = req.body;
+
+    const updates: any = {};
+    if (name !== undefined) updates.name = name.trim();
+    if (tier !== undefined) updates.tier = tier;
+    if (price !== undefined) updates.price = price;
+    if (description !== undefined) updates.description = description;
+    if (image_scale !== undefined) updates.image_scale = image_scale;
+    if (image_offset_y !== undefined) updates.image_offset_y = image_offset_y;
+    if (image_pfp_scale !== undefined) updates.image_pfp_scale = image_pfp_scale;
+    if (image_animated !== undefined) updates.image_animated = image_animated;
+    if (image_animation_type !== undefined) updates.image_animation_type = image_animation_type;
+    if (glow_color !== undefined) updates.glow_color = glow_color;
+    if (glow_intensity !== undefined) updates.glow_intensity = glow_intensity;
+    if (tier_color !== undefined) updates.tier_color = tier_color;
+    if (rank_required !== undefined) updates.rank_required = rank_required || null;
+    if (is_event !== undefined) updates.is_event = is_event;
+    if (event_name !== undefined) updates.event_name = event_name || null;
+    if (event_starts_at !== undefined) updates.event_starts_at = event_starts_at || null;
+    if (event_ends_at !== undefined) updates.event_ends_at = event_ends_at || null;
+    if (display_order !== undefined) updates.display_order = display_order;
+
+    // Handle new image upload if provided
+    if (image_base64 && image_filename) {
+      const db = supabaseServer() as any;
+
+      // Get current item to know its item_id and category
+      const { data: current } = await db
+        .from('remote_store_items')
+        .select('item_id, category')
+        .eq('id', id)
+        .single();
+
+      if (current) {
+        const base64Data = image_base64.replace(/^data:image\/\w+;base64,/, '');
+        const buffer = Buffer.from(base64Data, 'base64');
+
+        if (buffer.length > 2 * 1024 * 1024) {
+          return res.status(400).json({ error: 'Image too large. Max 2MB.' });
+        }
+
+        const ext = image_filename.split('.').pop()?.toLowerCase() || 'png';
+        const contentType = ext === 'webp' ? 'image/webp' : ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : 'image/png';
+        const storagePath = `${current.category}s/${current.item_id}.${ext}`;
+
+        const { error: uploadErr } = await db.storage
+          .from('store-assets')
+          .upload(storagePath, buffer, { contentType, upsert: true });
+
+        if (uploadErr) {
+          console.error('[Admin remote-store] Upload error:', uploadErr);
+          return res.status(500).json({ error: 'Image upload failed' });
+        }
+
+        const { data: urlData } = db.storage.from('store-assets').getPublicUrl(storagePath);
+        updates.image_url = urlData?.publicUrl || '';
+      }
+    }
+
+    const { data, error } = await (supabaseServer() as any)
+      .from('remote_store_items')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    if (!data) return res.status(404).json({ error: 'Item not found' });
+
+    await logAdminAction('update_remote_store_item', req, {
+      targetUser: id,
+      newValue: { name: data.name, price: data.price },
+    });
+
+    return res.json(data);
+  } catch (err) {
+    console.error('[Admin remote-store] PUT error:', err);
+    return res.status(500).json({ error: 'Failed to update item' });
+  }
+});
+
+router.patch('/remote-store/:id/toggle', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+  const { id } = req.params;
+  try {
+    // Get current state
+    const db = supabaseServer() as any;
+    const { data: current } = await db
+      .from('remote_store_items')
+      .select('is_active, name')
+      .eq('id', id)
+      .single();
+
+    if (!current) return res.status(404).json({ error: 'Item not found' });
+
+    const newState = !current.is_active;
+    const { data, error } = await db
+      .from('remote_store_items')
+      .update({ is_active: newState })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    await logAdminAction('toggle_remote_store_item', req, {
+      targetUser: id,
+      newValue: { name: current.name, is_active: newState },
+    });
+
+    console.log(`[Admin] Toggled ${current.name}: ${newState ? 'ACTIVE' : 'INACTIVE'}`);
+    return res.json(data);
+  } catch (err) {
+    console.error('[Admin remote-store] TOGGLE error:', err);
+    return res.status(500).json({ error: 'Failed to toggle item' });
+  }
+});
+
+router.delete('/remote-store/:id', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+  const { id } = req.params;
+  try {
+    const db = supabaseServer() as any;
+
+    // Get item info for storage cleanup
+    const { data: item } = await db
+      .from('remote_store_items')
+      .select('item_id, name, category, image_url')
+      .eq('id', id)
+      .single();
+
+    if (!item) return res.status(404).json({ error: 'Item not found' });
+
+    // Delete from storage (best effort — don't block on failure)
+    if (item.image_url) {
+      try {
+        // Extract storage path from URL
+        const urlParts = item.image_url.split('/store-assets/');
+        if (urlParts[1]) {
+          await db.storage.from('store-assets').remove([urlParts[1]]);
+        }
+      } catch (storageErr) {
+        console.warn('[Admin remote-store] Storage cleanup failed (non-critical):', storageErr);
+      }
+    }
+
+    // Delete from DB
+    const { error } = await db
+      .from('remote_store_items')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+
+    await logAdminAction('delete_remote_store_item', req, {
+      targetUser: id,
+      newValue: { name: item.name, item_id: item.item_id },
+    });
+
+    console.log(`[Admin] Deleted remote store item: ${item.item_id}`);
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('[Admin remote-store] DELETE error:', err);
+    return res.status(500).json({ error: 'Failed to delete item' });
+  }
+});
+
 export default router;

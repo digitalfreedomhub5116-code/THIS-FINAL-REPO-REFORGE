@@ -34,6 +34,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import StreakMilestoneOverlay from './components/StreakMilestoneOverlay';
 import LeaguePromotionOverlay from './components/LeaguePromotionOverlay';
 import { unlockItem } from './utils/storeEconomy';
+import { setRemoteStoreCache, StoreItem, StoreCategory, ItemTier } from './utils/storeItems';
 
 import {
 
@@ -2043,6 +2044,46 @@ const App: React.FC = () => {
     return () => window.removeEventListener('focus', onFocus);
 
   }, [fetchDbOutfits]);
+
+  // ── Fetch remote store catalog on startup ──
+  // Populates the global cache so getItemById() resolves admin-added items
+  // across all views (AvatarWithBorder, Leaderboard, YouView, ShopView)
+  useEffect(() => {
+    if (!player.isConfigured) return;
+    fetch(`${API_BASE}/api/store/catalog`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data?.items || !Array.isArray(data.items)) return;
+        const mapped: StoreItem[] = data.items.map((r: any) => ({
+          id: r.item_id,
+          name: r.name,
+          category: (r.category || 'border') as StoreCategory,
+          tier: (r.tier || 'legendary') as ItemTier,
+          price: r.price || 0,
+          description: r.description || '',
+          imageBorder: r.category === 'border' ? r.image_url : undefined,
+          bannerImage: r.category === 'banner' ? r.image_url : undefined,
+          imageScale: r.image_scale ?? 1.0,
+          imageOffsetY: r.image_offset_y ?? 0,
+          imagePfpScale: r.image_pfp_scale ?? 1.0,
+          imageAnimated: r.image_animated ?? false,
+          imageAnimationType: r.image_animation_type || 'rotate',
+          tierColor: r.tier_color || '#C8A84E',
+          rankRequired: r.rank_required || undefined,
+          seasonal: r.is_event || false,
+          borderConfig: r.category === 'border' ? {
+            colors: [r.glow_color || '#C8A84E'],
+            strokeWidth: 3,
+            animated: false,
+            glowColor: r.glow_color,
+            glowIntensity: r.glow_intensity ?? 0.7,
+          } : undefined,
+        }));
+        setRemoteStoreCache(mapped);
+        console.log(`[App] Remote store catalog loaded: ${mapped.length} items`);
+      })
+      .catch(() => {}); // Offline: remote items just won't show
+  }, [player.isConfigured]);
 
 
 

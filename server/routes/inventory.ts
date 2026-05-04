@@ -172,10 +172,25 @@ router.post('/purchase', async (req: Request, res: Response) => {
         .single();
       if (outfitRow) {
         catalogPrice = outfitRow.cost ?? 0;
-      } else {
-        return res.status(400).json({ error: 'Unknown item' });
       }
-    } else if (catalogPrice < 0) {
+    }
+
+    // Dynamic price lookup for remote store items (admin-added borders/banners)
+    if (catalogPrice < 0 && itemId.startsWith('remote-')) {
+      const { data: remoteItem } = await db
+        .from('remote_store_items')
+        .select('price, is_active')
+        .eq('item_id', itemId)
+        .single();
+
+      if (remoteItem && remoteItem.is_active) {
+        catalogPrice = remoteItem.price;
+      } else {
+        return res.status(400).json({ error: 'Remote item not available or inactive' });
+      }
+    }
+
+    if (catalogPrice < 0) {
       return res.status(400).json({ error: 'Unknown item' });
     }
 

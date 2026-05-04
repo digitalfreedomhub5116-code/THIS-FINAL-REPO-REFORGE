@@ -355,6 +355,8 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
           width: '100%', height: '100%',
           pointerEvents: 'none',
           zIndex: 99999,
+          transform: 'translate3d(0,0,0)', /* GPU layer for confetti particles */
+          willChange: 'transform',
         }}
       />
       {/* ── Avatar + Border + Glow container ── */}
@@ -373,10 +375,11 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
           position: 'absolute',
           width: '150vmax', height: '150vmax',
           top: '50%', left: '50%',
-          transform: 'translate(-50%, -50%)',
+          transform: 'translate3d(-50%, -50%, 0)', /* GPU layer for sunburst */
           pointerEvents: 'none',
           zIndex: 0,
           overflow: 'visible',
+          willChange: 'transform',
         }}>
           <div
             ref={glowRef}
@@ -401,6 +404,8 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
               animation: 'sunray-rotate 25s linear infinite',
               filter: 'blur(6px)',
               opacity: 0.85,
+              willChange: 'transform', /* GPU-accelerate rotation */
+              transform: 'translate3d(0,0,0)',
             }} />
             {/* Inner bright glow */}
             <div style={{
@@ -570,9 +575,9 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
       </button>
 
       <style>{`
-        @keyframes equip-breathe { 0%,100%{transform:scale(1)} 50%{transform:scale(1.04)} }
-        @keyframes equip-spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
-        @keyframes aura-rotate { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+        @keyframes equip-breathe { 0%,100%{transform:translate3d(0,0,0) scale(1)} 50%{transform:translate3d(0,0,0) scale(1.04)} }
+        @keyframes equip-spin { from{transform:translate3d(0,0,0) rotate(0deg)} to{transform:translate3d(0,0,0) rotate(360deg)} }
+        @keyframes aura-rotate { from{transform:translate3d(0,0,0) rotate(0deg)} to{transform:translate3d(0,0,0) rotate(360deg)} }
       `}</style>
     </div>,
     document.body
