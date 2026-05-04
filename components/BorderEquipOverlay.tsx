@@ -340,11 +340,10 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
         position: 'fixed', inset: 0, zIndex: 100000,
         display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center',
-        background: 'rgba(0,0,0,0.94)',
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
+        /* Android WebView: backdropFilter causes screen flicker/glitch during GSAP animation */
+        background: 'rgba(0,0,0,0.96)',
         opacity: 0,
-        overflow: 'hidden', // clip glow from bleeding over nav bar
+        overflow: 'hidden',
       }}
     >
       {/* Confetti canvas — lives INSIDE the overlay so it renders above the backdrop */}
@@ -355,8 +354,7 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
           width: '100%', height: '100%',
           pointerEvents: 'none',
           zIndex: 99999,
-          transform: 'translate3d(0,0,0)', /* GPU layer for confetti particles */
-          willChange: 'transform',
+          transform: 'translateZ(0)', /* single GPU layer — avoid willChange on Android */
         }}
       />
       {/* ── Avatar + Border + Glow container ── */}

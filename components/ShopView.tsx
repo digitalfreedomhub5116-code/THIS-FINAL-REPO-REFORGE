@@ -1433,13 +1433,13 @@ const ShopView: React.FC<ShopViewProps> = ({
           onClick={() => { if (!purchasing && purchasePhase !== 'transitioning') setConfirmPurchaseItem(null); }}
           style={{
             position: 'fixed', inset: 0, zIndex: 100000,
-            background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)',
+            /* Android WebView: backdropFilter causes full-screen repaint storms → use opaque bg */
+            background: 'rgba(0,0,0,0.92)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
-            /* GPU-accelerated fade during phase transition */
+            /* Phase transition fade — no willChange (causes Android WebView jank) */
             opacity: purchasePhase === 'transitioning' ? 0 : 1,
             transition: 'opacity 0.3s ease-out',
-            willChange: 'opacity',
-            transform: 'translate3d(0,0,0)', /* force GPU layer */
+            transform: 'translateZ(0)', /* single GPU layer */
             pointerEvents: purchasePhase === 'transitioning' ? 'none' : 'auto',
           }}
         >
@@ -1543,7 +1543,8 @@ const ShopView: React.FC<ShopViewProps> = ({
       {showInsufficientFunds &&
         ReactDOM.createPortal(<div onClick={() => setShowInsufficientFunds(null)} style={{
           position: 'fixed', inset: 0, zIndex: 100000,
-          background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)',
+          /* Android WebView: no backdropFilter → use opaque bg */
+          background: 'rgba(0,0,0,0.92)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
         }}>
           <div onClick={e => e.stopPropagation()} style={{
@@ -1669,18 +1670,18 @@ const KitGlowCard = React.memo(function KitGlowCard({ item, discount, owned, equ
   const clipPath = `polygon(0 0, calc(100% - ${chipSize}px) 0, 100% ${chipSize}px, 100% 100%, ${chipSize}px 100%, 0 calc(100% - ${chipSize}px))`;
 
   return (
-    /* Layer 1: Outer Glow Wrapper */
+    /* Layer 1: Outer Glow Wrapper — height:100% for Android WebView (flex+clipPath breaks) */
     <div onClick={() => { if (item.category === 'border' && onCardClick) onCardClick(); }} style={{
       filter: `drop-shadow(0 0 6px ${catColor}30) drop-shadow(0 2px 8px rgba(0,0,0,0.4))`,
       cursor: item.category === 'border' ? 'pointer' : undefined,
-      height: '100%', display: 'flex', flexDirection: 'column',
+      height: '100%',
     }}>
       {/* Layer 2: Gradient Border Frame (3px visible border) */}
       <div style={{
         clipPath,
         padding: 3,
+        height: '100%',
         background: `linear-gradient(160deg, ${catColor}CC, ${catColor}50 40%, ${catColor}90 80%, ${catColor}CC)`,
-        flex: 1, display: 'flex', flexDirection: 'column',
       }}>
         {/* Layer 3: Inner Card Body */}
         <div style={{
@@ -1688,8 +1689,10 @@ const KitGlowCard = React.memo(function KitGlowCard({ item, discount, owned, equ
           background: `linear-gradient(160deg, ${catColor}40 0%, ${catColor}22 25%, #111828 55%, #0d1118 100%)`,
           position: 'relative', textAlign: 'center',
           padding: '16px 10px 14px',
-          minHeight: 240, flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+          minHeight: 240, height: '100%',
+          display: 'flex', flexDirection: 'column', alignItems: 'center',
           overflow: 'hidden',
+          boxSizing: 'border-box',
         }}>
 
           {/* ── Diagonal Shine Streaks ── */}
