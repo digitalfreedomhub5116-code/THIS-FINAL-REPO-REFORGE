@@ -1952,36 +1952,51 @@ function KitBorderPreviewModal({ item, onClose, owned, equipped, canAfford, onBu
   onBuy?: () => void; onEquip?: () => void;
 }) {
   const glow = item.borderConfig?.glowColor || item.auraConfig?.colors?.[0] || '#C8A84E';
-  const size = 280;
+  const size = 220;
 
   return ReactDOM.createPortal(
     <div onClick={onClose} style={{
       position: 'fixed', inset: 0, zIndex: 100000,
       display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center',
-      background: 'rgba(0,0,0,0.95)',
-      backdropFilter: 'blur(16px)',
-      WebkitBackdropFilter: 'blur(16px)',
+      /* Android WebView: no backdropFilter — use opaque bg */
+      background: 'rgba(0,0,0,0.96)',
       animation: 'fadeIn 0.25s ease-out',
     }}>
-      <div onClick={e => e.stopPropagation()} style={{ textAlign: 'center', maxWidth: 380, width: '90%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', marginBottom: 4 }}>{item.name}</div>
-        <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'capitalize', marginBottom: 28, color: item.auraConfig?.colors?.[0] || item.borderConfig?.colors?.[0] || '#C8A84E', opacity: 0.8 }}>
+      {/* ── Close X Button (top-right) ── */}
+      <button onClick={onClose} style={{
+        position: 'fixed', top: 16, right: 16, zIndex: 100001,
+        width: 36, height: 36, borderRadius: '50%',
+        background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)',
+        color: 'rgba(255,255,255,0.6)', fontSize: 18, fontWeight: 400,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+      }}>✕</button>
+
+      <div onClick={e => e.stopPropagation()} style={{
+        textAlign: 'center', maxWidth: 340, width: '88%',
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        padding: '20px 0',
+      }}>
+        {/* ── Title ── */}
+        <div style={{ fontSize: 24, fontWeight: 900, color: '#fff', marginBottom: 4, textShadow: `0 0 20px ${glow}40` }}>{item.name}</div>
+        <div style={{
+          fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em',
+          marginBottom: 24, padding: '3px 12px', borderRadius: 6,
+          color: glow, background: `${glow}15`, border: `1px solid ${glow}25`,
+        }}>
           {item.tier} Border
         </div>
 
-        {/* ── Border Preview (centered) ── */}
+        {/* ── Border Preview (centered, tighter) ── */}
         {(() => {
           const scale = item.imageScale || 1;
-          // Compute real visual size: container * scale — ensure wrapper is large enough
           const visualSize = Math.max(size, size * scale);
-          // Add extra padding so nothing clips
-          const wrapperSize = visualSize + 60;
+          const wrapperSize = visualSize + 40;
 
           return (
-        <div style={{ position: 'relative', width: wrapperSize, height: wrapperSize, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'visible' }}>
-          {/* Background radial glow */}
-          <div style={{ position: 'absolute', top: '50%', left: '50%', width: wrapperSize + 40, height: wrapperSize + 40, borderRadius: '50%', background: `radial-gradient(circle, ${glow}50 0%, ${glow}15 40%, transparent 70%)`, transform: 'translate(-50%, -50%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'relative', width: wrapperSize, height: wrapperSize, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'visible', marginBottom: 8 }}>
+          {/* Background radial glow — smaller, more focused */}
+          <div style={{ position: 'absolute', top: '50%', left: '50%', width: wrapperSize, height: wrapperSize, borderRadius: '50%', background: `radial-gradient(circle, ${glow}30 0%, ${glow}10 45%, transparent 70%)`, transform: 'translate(-50%, -50%)', pointerEvents: 'none' }} />
 
           {/* PNG Image Border */}
           {item.imageBorder ? (
@@ -1991,7 +2006,7 @@ function KitBorderPreviewModal({ item, onClose, owned, equipped, canAfford, onBu
               <div style={{ position: 'absolute', top: '50%', left: '50%', width: size * pfpPct, height: size * pfpPct, borderRadius: '50%', background: 'radial-gradient(circle, #3a3a4a, #1a1a24)', transform: 'translate(-50%, -50%)', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                 <svg width={svgPx} height={svgPx} viewBox="0 0 40 40"><circle cx="20" cy="16" r="7" fill="#555568" /><ellipse cx="20" cy="35" rx="13" ry="10" fill="#4a4a5a" /></svg>
               </div>); })()}
-              {/* Border image — always centered with translate, never clipped */}
+              {/* Border image */}
               {item.imageAnimated && item.imageAnimationType === 'pulse' ? (
                 <div style={{ position: 'absolute', top: '50%', left: '50%', width: `${scale * 100}%`, height: `${scale * 100}%`, transform: `translate(-50%, calc(-50% + ${item.imageOffsetY || 0}px))`, zIndex: 2, pointerEvents: 'none', animation: 'border-breathe-centered 3s ease-in-out infinite' }}>
                   <FadeImg src={item.imageBorder} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
@@ -2001,10 +2016,8 @@ function KitBorderPreviewModal({ item, onClose, owned, equipped, canAfford, onBu
               )}
             </div>
           ) : item.lottieBorder ? (
-            /* Lottie Border */
             <StoreLottieBorder src={item.lottieBorder} glow={glow} />
           ) : item.auraConfig ? (
-            /* CSS Aura Border */
             <div style={{ position: 'relative', width: size, height: size, overflow: 'visible' }}>
               <div style={{ position: 'absolute', top: '50%', left: '50%', width: size + 20, height: size + 20, borderRadius: '50%', background: `radial-gradient(circle, ${item.auraConfig.colors[0]}30 0%, ${(item.auraConfig.colors[1] || item.auraConfig.colors[0])}15 40%, transparent 70%)`, transform: 'translate(-50%, -50%)', animation: item.auraConfig.animated ? `pulse-glow ${item.auraConfig.pulseSpeed || 3}s ease-in-out infinite` : undefined }} />
               <div style={{ position: 'absolute', top: '50%', left: '50%', width: size * 0.75, height: size * 0.75, borderRadius: '50%', transform: 'translate(-50%, -50%)', border: `3px solid ${item.auraConfig.colors[0]}CC`, boxShadow: `0 0 8px 3px ${item.auraConfig.colors[0]}AA, 0 0 20px 6px ${item.auraConfig.colors[0]}70, 0 0 36px 10px ${(item.auraConfig.colors[1] || item.auraConfig.colors[0])}50, 0 0 60px 16px ${(item.auraConfig.colors[2] || item.auraConfig.colors[0])}35, inset 0 0 14px 4px ${item.auraConfig.colors[0]}40, inset 0 0 28px 8px ${(item.auraConfig.colors[1] || item.auraConfig.colors[0])}25`, animation: item.auraConfig.animated ? 'aura-rotate 8s linear infinite' : undefined, zIndex: 1 }} />
@@ -2014,23 +2027,26 @@ function KitBorderPreviewModal({ item, onClose, owned, equipped, canAfford, onBu
               </div>
             </div>
           ) : item.borderConfig ? (
-            /* SVG Ring Border */
             <BorderRing config={item.borderConfig} size={size * 0.8} />
           ) : null}
         </div>
           );
         })()}
 
-        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 28, maxWidth: 260, lineHeight: 1.5 }}>
+        {/* ── Description ── */}
+        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', marginTop: 12, maxWidth: 280, lineHeight: 1.6, fontStyle: 'italic' }}>
           {item.description}
         </div>
 
+        {/* ── Divider ── */}
+        <div style={{ width: 60, height: 1, background: `linear-gradient(90deg, transparent, ${glow}60, transparent)`, margin: '20px 0' }} />
+
         {/* ── Action Buttons ── */}
-        <div style={{ display: 'flex', gap: 10, marginTop: 28, width: '100%', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', gap: 10, width: '100%', justifyContent: 'center' }}>
           {owned ? (
             onEquip ? (
               <button onClick={onEquip} style={{
-                padding: '12px 36px', borderRadius: 14, cursor: 'pointer', border: 'none',
+                padding: '12px 40px', borderRadius: 14, cursor: 'pointer', border: 'none',
                 background: equipped ? `linear-gradient(135deg, ${glow}, ${glow}CC)` : 'rgba(255,255,255,0.08)',
                 color: equipped ? '#000' : glow,
                 fontSize: 13, fontWeight: 900, letterSpacing: 0.5,
@@ -2059,14 +2075,6 @@ function KitBorderPreviewModal({ item, onClose, owned, equipped, canAfford, onBu
             </button>
           ) : null}
         </div>
-
-        <button onClick={onClose} style={{
-          marginTop: 16, padding: '8px 28px', borderRadius: 12,
-          background: 'transparent', border: '1px solid rgba(255,255,255,0.1)',
-          color: 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: 600, cursor: 'pointer',
-        }}>
-          Close
-        </button>
       </div>
     </div>,
     document.body
