@@ -299,6 +299,7 @@ export function startQuestGeneration(params: {
       userCountry: playerData?.country || 'India',
       userLanguage: 'English',
       scheduleProfile: playerData?.scheduleProfile || null,
+      currentTime: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }),
     }),
   })
     .then(async res => {

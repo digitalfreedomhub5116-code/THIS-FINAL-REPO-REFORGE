@@ -320,7 +320,7 @@ router.post('/daily-quests', async (req: Request, res: Response) => {
     }
 
     const ai = getSharedAI();
-    const { goal, recentTasks, playerStats, otherGoalTasksToday, remainingMinutes, dayOfWeek, scheduleProfile } = req.body;
+    const { goal, recentTasks, playerStats, otherGoalTasksToday, remainingMinutes, dayOfWeek, scheduleProfile, currentTime } = req.body;
 
     if (!goal) {
       return res.status(400).json({ error: 'Goal data is required' });
@@ -385,8 +385,9 @@ SCHEDULING RULES:
 4. Leave 15-min gaps between consecutive quests
 5. Never schedule quests during blocked times
 6. Never schedule quests after bedtime
+${currentTime ? `7. CRITICAL — CURRENT TIME IS ${currentTime}. The user is generating quests RIGHT NOW. You MUST NOT schedule ANY quest before ${currentTime}. All quests MUST start at least 10 minutes AFTER ${currentTime}. Any time before ${currentTime} is IN THE PAST and cannot be used.` : ''}
 
-For EACH quest, include a "scheduledTime" field in "HH:MM" format (24-hour).
+For EACH quest, include a "scheduledTime" field in "HH:MM" format (24-hour).${currentTime ? `\nREMEMBER: Current time is ${currentTime}. The EARLIEST any quest can start is ${currentTime} + 10 minutes. Do NOT use any time before that.` : ''}
 `;
     }
 
@@ -566,6 +567,28 @@ URL RULES:
         id: `goal-quest-${goal.id}-${Date.now()}-${i}`,
         completed: false,
       }));
+
+      // ── POST-PROCESS: Force-fix quests scheduled in the past ──
+      if (currentTime && parsed.quests) {
+        const toMin = (t: string) => { const [h, m] = (t || '00:00').split(':').map(Number); return h * 60 + m; };
+        const toHHMM = (mins: number) => `${String(Math.floor(mins / 60) % 24).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
+        const nowMins = toMin(currentTime) + 10; // 10-min buffer from current time
+
+        let nextSlot = nowMins;
+        parsed.quests = parsed.quests.map((q: any) => {
+          if (!q.scheduledTime) return q;
+          const qMins = toMin(q.scheduledTime);
+          if (qMins < nowMins) {
+            // Quest is in the past — reschedule to next available slot
+            const fixedTime = toHHMM(nextSlot);
+            nextSlot += (q.estimatedDuration || 20) + 10; // quest duration + 10min gap
+            return { ...q, scheduledTime: fixedTime };
+          }
+          // Quest is already in the future — update nextSlot tracker
+          nextSlot = Math.max(nextSlot, qMins + (q.estimatedDuration || 20) + 10);
+          return q;
+        });
+      }
     }
 
     return res.json(parsed);

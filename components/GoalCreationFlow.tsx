@@ -491,11 +491,25 @@ export default function GoalCreationFlow({
               const probOffset = circumference - (circumference * (planData.successProbability || 0)) / 100;
               const catImage = CATEGORY_IMAGES[category] || CATEGORY_IMAGES.SKILL;
 
+              const handleDragEnd = (_: any, info: { offset: { x: number }; velocity: { x: number } }) => {
+                if (info.offset.x < -40 || info.velocity.x < -300) goToCard(reviewCard + 1);
+                else if (info.offset.x > 40 || info.velocity.x > 300) goToCard(reviewCard - 1);
+              };
+
               return (
                 <motion.div key="review" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                  {/* Card Container — fixed height, overflow hidden */}
-                  <div className="relative overflow-hidden rounded-2xl" style={{ height: 340, background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                    <AnimatePresence mode="wait">
+                  {/* Card label */}
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-mono text-[#00d4ff] uppercase tracking-widest">{['Mission Intel','Battle Plan','Deploy'][reviewCard]}</span>
+                    <span className="text-[9px] font-mono text-gray-600">{reviewCard + 1}/3</span>
+                  </div>
+                  {/* Swipeable Card Container */}
+                  <motion.div
+                    className="relative overflow-hidden rounded-2xl"
+                    style={{ height: 'min(380px, calc(100vh - 280px))', background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.08)', touchAction: 'pan-y' }}
+                    drag="x" dragConstraints={{ left: 0, right: 0 }} dragElastic={0.12} onDragEnd={handleDragEnd}
+                  >
+                    <AnimatePresence mode="wait" initial={false}>
                       {/* ── CARD 1: Hero ── */}
                       {reviewCard === 0 && (
                         <motion.div key="c0" initial={{ opacity: 0, x: 60 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -60 }} transition={{ duration: 0.25 }} className="absolute inset-0">
@@ -547,12 +561,15 @@ export default function GoalCreationFlow({
                               ))}
                             </div>
                           </div>
+                          <div className="relative z-10 text-center pb-3">
+                            <span className="text-[8px] font-mono text-gray-600 animate-pulse">Swipe left for battle plan →</span>
+                          </div>
                         </motion.div>
                       )}
 
                       {/* ── CARD 2: Battle Intel — Milestone Timeline ── */}
                       {reviewCard === 1 && (
-                        <motion.div key="c1" initial={{ opacity: 0, x: 60 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -60 }} transition={{ duration: 0.25 }} className="absolute inset-0 p-4 overflow-y-auto">
+                        <motion.div key="c1" initial={{ opacity: 0, x: 60 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -60 }} transition={{ duration: 0.25 }} className="absolute inset-0 p-4 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }} onPointerDownCapture={e => e.stopPropagation()}>
                           <div className="text-[9px] font-mono text-[#00d4ff] uppercase tracking-widest mb-3">Mission Phases</div>
 
                           {/* Visual Timeline */}
@@ -599,7 +616,7 @@ export default function GoalCreationFlow({
 
                       {/* ── CARD 3: Deploy — Rest Day + Accept ── */}
                       {reviewCard === 2 && (
-                        <motion.div key="c2" initial={{ opacity: 0, x: 60 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -60 }} transition={{ duration: 0.25 }} className="absolute inset-0 p-4 flex flex-col">
+                        <motion.div key="c2" initial={{ opacity: 0, x: 60 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -60 }} transition={{ duration: 0.25 }} className="absolute inset-0 p-4 flex flex-col" onPointerDownCapture={e => e.stopPropagation()}>
                           <div className="text-[9px] font-mono text-[#00d4ff] uppercase tracking-widest mb-3">Deploy Mission</div>
 
                           {/* AI one-liner */}
@@ -654,25 +671,25 @@ export default function GoalCreationFlow({
                         </motion.div>
                       )}
                     </AnimatePresence>
-                  </div>
+                  </motion.div>
 
-                  {/* Dot Indicators + Swipe Buttons */}
-                  <div className="flex items-center justify-center gap-3 mt-3">
+                  {/* Navigation */}
+                  <div className="flex items-center justify-between mt-3 px-1">
                     <button onClick={() => goToCard(reviewCard - 1)} disabled={reviewCard === 0}
-                      className="text-[10px] font-mono font-bold px-3 py-1 rounded-lg"
-                      style={{ color: reviewCard === 0 ? '#333' : '#00d4ff', background: reviewCard === 0 ? 'transparent' : 'rgba(0,212,255,0.08)' }}
+                      className="text-[10px] font-mono font-bold px-3 py-1.5 rounded-lg active:scale-95 transition-all"
+                      style={{ opacity: reviewCard === 0 ? 0.25 : 1, color: '#00d4ff', background: reviewCard === 0 ? 'transparent' : 'rgba(0,212,255,0.06)' }}
                     >← Back</button>
-                    <div className="flex gap-1.5">
+                    <div className="flex gap-2 items-center">
                       {[0, 1, 2].map(i => (
                         <button key={i} onClick={() => goToCard(i)}
-                          className="w-2 h-2 rounded-full transition-all"
-                          style={{ background: reviewCard === i ? '#00d4ff' : 'rgba(255,255,255,0.12)', transform: reviewCard === i ? 'scale(1.3)' : 'scale(1)' }}
+                          className="rounded-full transition-all duration-200"
+                          style={{ width: reviewCard === i ? 16 : 6, height: 6, background: reviewCard === i ? '#00d4ff' : 'rgba(255,255,255,0.15)' }}
                         />
                       ))}
                     </div>
                     <button onClick={() => goToCard(reviewCard + 1)} disabled={reviewCard === totalCards - 1}
-                      className="text-[10px] font-mono font-bold px-3 py-1 rounded-lg"
-                      style={{ color: reviewCard === totalCards - 1 ? '#333' : '#00d4ff', background: reviewCard === totalCards - 1 ? 'transparent' : 'rgba(0,212,255,0.08)' }}
+                      className="text-[10px] font-mono font-bold px-3 py-1.5 rounded-lg active:scale-95 transition-all"
+                      style={{ opacity: reviewCard === totalCards - 1 ? 0.25 : 1, color: '#00d4ff', background: reviewCard === totalCards - 1 ? 'transparent' : 'rgba(0,212,255,0.06)' }}
                     >Next →</button>
                   </div>
                 </motion.div>
