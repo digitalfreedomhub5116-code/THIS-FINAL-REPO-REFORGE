@@ -66,6 +66,7 @@ const HAPTIC_PATTERNS: Record<string, number | number[]> = {
     RANK_UP: [40, 50, 40, 50, 40, 60, 60, 80, 100],
     TAB_SWITCH: 20,
     TICK: 15,
+    SWIPE: 18,
 };
 
 export const triggerHaptic = (type: string = 'CLICK') => {

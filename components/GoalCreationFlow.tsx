@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Loader2, Target, AlertTriangle, ChevronRight, CheckCircle, Shield, Calendar, Flame, Brain, TrendingUp, Clock, CalendarOff } from 'lucide-react';
 import { Goal, GoalInterviewQuestion, GoalMilestone, PlayerData, Rank } from '../types';
-import { playSystemSoundEffect } from '../utils/soundEngine';
+import { playSystemSoundEffect, triggerHaptic } from '../utils/soundEngine';
 import { API_BASE } from '../lib/apiConfig';
 import { getPlayerAuthHeaders } from '../lib/playerApi';
 
@@ -111,6 +111,14 @@ export default function GoalCreationFlow({
 
   // Rest day selection — user can override AI suggestion
   const [restDay, setRestDay] = useState<string>('Sunday');
+  const [reviewCard, setReviewCard] = useState(0);
+
+  const CATEGORY_IMAGES: Record<string, string> = {
+    FITNESS: '/images/goals/fitness.webp', ACADEMIC: '/images/goals/academic.webp',
+    FINANCIAL: '/images/goals/financial.webp', SKILL: '/images/goals/skill.webp',
+    CAREER: '/images/goals/career.webp', HEALTH: '/images/goals/health.webp',
+    CREATIVE: '/images/goals/creative.webp',
+  };
 
   const MANA_COST = 30;
 
@@ -469,176 +477,207 @@ export default function GoalCreationFlow({
               </motion.div>
             )}
 
-            {/* ── REVIEW STEP ── */}
-            {step === 'REVIEW' && planData && (
-              <motion.div key="review" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-                {/* Rank + Probability */}
-                <div className="flex items-center gap-3 mb-4">
-                  <div
-                    className="w-14 h-14 rounded-2xl flex items-center justify-center text-lg font-black"
-                    style={{ background: `${rankColor}15`, border: `1px solid ${rankColor}30`, color: rankColor }}
-                  >
-                    {planData.goalRank}
+            {/* ── REVIEW STEP — Swipeable Cards ── */}
+            {step === 'REVIEW' && planData && (() => {
+              const totalCards = 3;
+              const goToCard = (n: number) => {
+                if (n >= 0 && n < totalCards && n !== reviewCard) {
+                  setReviewCard(n);
+                  triggerHaptic('SWIPE');
+                }
+              };
+              const probColor = planData.successProbability >= 70 ? '#4ade80' : planData.successProbability >= 40 ? '#facc15' : '#f87171';
+              const circumference = 2 * Math.PI * 38;
+              const probOffset = circumference - (circumference * (planData.successProbability || 0)) / 100;
+              const catImage = CATEGORY_IMAGES[category] || CATEGORY_IMAGES.SKILL;
+
+              return (
+                <motion.div key="review" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                  {/* Card Container — fixed height, overflow hidden */}
+                  <div className="relative overflow-hidden rounded-2xl" style={{ height: 340, background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <AnimatePresence mode="wait">
+                      {/* ── CARD 1: Hero ── */}
+                      {reviewCard === 0 && (
+                        <motion.div key="c0" initial={{ opacity: 0, x: 60 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -60 }} transition={{ duration: 0.25 }} className="absolute inset-0">
+                          {/* Background image */}
+                          <img src={catImage} alt="" className="absolute inset-0 w-full h-full object-cover opacity-40" />
+                          <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.85) 100%)' }} />
+
+                          {/* Content overlay */}
+                          <div className="relative z-10 flex flex-col items-center justify-center h-full px-6 text-center">
+                            {/* Rank Badge */}
+                            <motion.div
+                              initial={{ scale: 0, rotate: -20 }} animate={{ scale: 1, rotate: 0 }}
+                              transition={{ type: 'spring', stiffness: 300, damping: 15, delay: 0.15 }}
+                              className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-black mb-3"
+                              style={{ background: `${rankColor}20`, border: `2px solid ${rankColor}50`, color: rankColor, boxShadow: `0 0 30px ${rankColor}30` }}
+                            >
+                              {planData.goalRank}
+                            </motion.div>
+                            <div className="text-sm font-bold text-white mb-1 line-clamp-2">{goalText}</div>
+                            <div className="text-[10px] font-mono mb-5" style={{ color: rankColor }}>{planData.goalRank}-Rank Mission • {category}</div>
+
+                            {/* Success Ring */}
+                            <div className="relative w-20 h-20 mb-3">
+                              <svg viewBox="0 0 88 88" className="w-full h-full -rotate-90">
+                                <circle cx="44" cy="44" r="38" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="4" />
+                                <motion.circle cx="44" cy="44" r="38" fill="none" stroke={probColor} strokeWidth="4" strokeLinecap="round"
+                                  strokeDasharray={circumference} initial={{ strokeDashoffset: circumference }} animate={{ strokeDashoffset: probOffset }}
+                                  transition={{ duration: 1.2, delay: 0.4, ease: 'easeOut' }}
+                                />
+                              </svg>
+                              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                <span className="text-lg font-black" style={{ color: probColor }}>{planData.successProbability}%</span>
+                                <span className="text-[7px] font-mono text-gray-500 uppercase">Success</span>
+                              </div>
+                            </div>
+
+                            {/* Stats row */}
+                            <div className="flex gap-4">
+                              {[
+                                { icon: '⏱', val: `${planData.totalDurationDays}d`, label: 'Duration' },
+                                { icon: '⚡', val: `${planData.dailyCommitmentMinutes}m`, label: 'Per Day' },
+                                { icon: '🎯', val: `${planData.milestones?.length || 0}`, label: 'Phases' },
+                              ].map(s => (
+                                <div key={s.label} className="text-center">
+                                  <div className="text-sm">{s.icon}</div>
+                                  <div className="text-[11px] font-bold text-white">{s.val}</div>
+                                  <div className="text-[7px] font-mono text-gray-500 uppercase">{s.label}</div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+
+                      {/* ── CARD 2: Battle Intel — Milestone Timeline ── */}
+                      {reviewCard === 1 && (
+                        <motion.div key="c1" initial={{ opacity: 0, x: 60 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -60 }} transition={{ duration: 0.25 }} className="absolute inset-0 p-4 overflow-y-auto">
+                          <div className="text-[9px] font-mono text-[#00d4ff] uppercase tracking-widest mb-3">Mission Phases</div>
+
+                          {/* Visual Timeline */}
+                          <div className="relative pl-5">
+                            {/* Vertical line */}
+                            <div className="absolute left-[7px] top-1 bottom-1 w-[2px]" style={{ background: `linear-gradient(180deg, ${rankColor}40, ${rankColor}10)` }} />
+
+                            {(planData.milestones || []).map((m: GoalMilestone, i: number) => (
+                              <motion.div key={m.phase} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.1 }} className="relative mb-4 last:mb-0">
+                                {/* Dot */}
+                                <div className="absolute -left-5 top-1 w-4 h-4 rounded-full flex items-center justify-center" style={{ background: `${rankColor}20`, border: `2px solid ${rankColor}60` }}>
+                                  <div className="w-1.5 h-1.5 rounded-full" style={{ background: rankColor }} />
+                                </div>
+
+                                <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                                  <div className="flex items-center justify-between mb-1">
+                                    <span className="text-[10px] font-bold text-white">Phase {m.phase}: {m.title}</span>
+                                    <span className="text-[8px] font-mono px-1.5 py-0.5 rounded" style={{ background: `${rankColor}10`, color: rankColor }}>
+                                      Day {m.startDay}–{m.endDay}
+                                    </span>
+                                  </div>
+                                  <div className="text-[9px] text-gray-400 font-mono leading-relaxed">{m.targetOutcome}</div>
+                                </div>
+                              </motion.div>
+                            ))}
+                          </div>
+
+                          {/* Time-budget warning (compact) */}
+                          {(() => {
+                            const freeMin = calcFreeMinutes(playerData?.scheduleProfile, existingGoals);
+                            const commitMin = planData.dailyCommitmentMinutes || 60;
+                            if (freeMin > 0 && commitMin > freeMin) {
+                              return (
+                                <div className="rounded-xl p-2.5 mt-3 flex items-center gap-2" style={{ background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.12)' }}>
+                                  <AlertTriangle className="w-3 h-3 text-amber-400 flex-shrink-0" />
+                                  <span className="text-[9px] text-amber-400 font-mono">Needs {commitMin}m/day but only ~{freeMin}m free</span>
+                                </div>
+                              );
+                            }
+                            return null;
+                          })()}
+                        </motion.div>
+                      )}
+
+                      {/* ── CARD 3: Deploy — Rest Day + Accept ── */}
+                      {reviewCard === 2 && (
+                        <motion.div key="c2" initial={{ opacity: 0, x: 60 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -60 }} transition={{ duration: 0.25 }} className="absolute inset-0 p-4 flex flex-col">
+                          <div className="text-[9px] font-mono text-[#00d4ff] uppercase tracking-widest mb-3">Deploy Mission</div>
+
+                          {/* AI one-liner */}
+                          {planData.reasoning && (
+                            <div className="rounded-xl p-3 mb-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                              <p className="text-[10px] text-gray-300 font-mono leading-relaxed line-clamp-3">{planData.reasoning}</p>
+                            </div>
+                          )}
+
+                          {/* Rest Day Picker */}
+                          <div className="mb-3">
+                            <div className="flex items-center gap-2 mb-2">
+                              <CalendarOff className="w-3 h-3 text-indigo-400" />
+                              <span className="text-[9px] font-mono text-gray-400 uppercase">Weekly Rest Day</span>
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d, i) => {
+                                const full = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'][i];
+                                const isSel = restDay === full;
+                                return (
+                                  <button key={d} onClick={() => { setRestDay(full); triggerHaptic('CLICK'); }}
+                                    className="px-2 py-1.5 rounded-lg text-[9px] font-black font-mono uppercase"
+                                    style={{ background: isSel ? 'rgba(129,140,248,0.15)' : 'rgba(255,255,255,0.03)', border: `1px solid ${isSel ? 'rgba(129,140,248,0.4)' : 'rgba(255,255,255,0.06)'}`, color: isSel ? '#a5b4fc' : '#6b7280' }}
+                                  >{d}</button>
+                                );
+                              })}
+                              <button onClick={() => { setRestDay('NONE'); triggerHaptic('CLICK'); }}
+                                className="px-2 py-1.5 rounded-lg text-[9px] font-black font-mono uppercase"
+                                style={{ background: restDay === 'NONE' ? 'rgba(239,68,68,0.12)' : 'rgba(255,255,255,0.03)', border: `1px solid ${restDay === 'NONE' ? 'rgba(239,68,68,0.3)' : 'rgba(255,255,255,0.06)'}`, color: restDay === 'NONE' ? '#f87171' : '#6b7280' }}
+                              >None</button>
+                            </div>
+                          </div>
+
+                          {/* Risk factors as compact pills */}
+                          {planData.riskFactors?.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mb-3">
+                              {planData.riskFactors.slice(0, 3).map((r: string, i: number) => (
+                                <span key={i} className="px-2 py-1 rounded-lg text-[8px] font-mono text-amber-400" style={{ background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.1)' }}>
+                                  ⚠ {r.length > 40 ? r.slice(0, 40) + '…' : r}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Accept button */}
+                          <div className="mt-auto">
+                            <button onClick={handleAcceptMission} className="w-full py-4 rounded-xl text-xs font-black uppercase tracking-widest"
+                              style={{ background: 'linear-gradient(135deg, #00d4ff 0%, #5a9ab5 100%)', color: '#0a0a14', boxShadow: '0 4px 20px rgba(0,212,255,0.35)' }}
+                            >Accept Mission</button>
+                            <p className="text-[8px] text-gray-600 font-mono text-center mt-1.5">Goal quests are free & give 1.5x XP</p>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
-                  <div className="flex-1">
-                    <div className="text-xs font-bold text-white">{goalText}</div>
-                    <div className="flex items-center gap-3 mt-1">
-                      <span className="text-[9px] font-mono" style={{ color: rankColor }}>{planData.goalRank}-Rank Mission</span>
-                      <span className="text-[9px] font-mono text-gray-500">{planData.successProbability}% success odds</span>
+
+                  {/* Dot Indicators + Swipe Buttons */}
+                  <div className="flex items-center justify-center gap-3 mt-3">
+                    <button onClick={() => goToCard(reviewCard - 1)} disabled={reviewCard === 0}
+                      className="text-[10px] font-mono font-bold px-3 py-1 rounded-lg"
+                      style={{ color: reviewCard === 0 ? '#333' : '#00d4ff', background: reviewCard === 0 ? 'transparent' : 'rgba(0,212,255,0.08)' }}
+                    >← Back</button>
+                    <div className="flex gap-1.5">
+                      {[0, 1, 2].map(i => (
+                        <button key={i} onClick={() => goToCard(i)}
+                          className="w-2 h-2 rounded-full transition-all"
+                          style={{ background: reviewCard === i ? '#00d4ff' : 'rgba(255,255,255,0.12)', transform: reviewCard === i ? 'scale(1.3)' : 'scale(1)' }}
+                        />
+                      ))}
                     </div>
+                    <button onClick={() => goToCard(reviewCard + 1)} disabled={reviewCard === totalCards - 1}
+                      className="text-[10px] font-mono font-bold px-3 py-1 rounded-lg"
+                      style={{ color: reviewCard === totalCards - 1 ? '#333' : '#00d4ff', background: reviewCard === totalCards - 1 ? 'transparent' : 'rgba(0,212,255,0.08)' }}
+                    >Next →</button>
                   </div>
-                </div>
-
-                {/* Key stats */}
-                <div className="grid grid-cols-3 gap-2 mb-4">
-                  <div className="rounded-xl p-2.5 text-center" style={{ background: 'rgba(255,255,255,0.02)' }}>
-                    <Calendar className="w-3.5 h-3.5 text-[#00d4ff] mx-auto mb-1" />
-                    <div className="text-xs font-bold text-white">{planData.totalDurationDays}d</div>
-                    <div className="text-[8px] text-gray-600 font-mono">DURATION</div>
-                  </div>
-                  <div className="rounded-xl p-2.5 text-center" style={{ background: 'rgba(255,255,255,0.02)' }}>
-                    <Clock className="w-3.5 h-3.5 text-[#00d4ff] mx-auto mb-1" />
-                    <div className="text-xs font-bold text-white">{planData.dailyCommitmentMinutes}m</div>
-                    <div className="text-[8px] text-gray-600 font-mono">PER DAY</div>
-                  </div>
-                  <div className="rounded-xl p-2.5 text-center" style={{ background: 'rgba(255,255,255,0.02)' }}>
-                    <TrendingUp className="w-3.5 h-3.5 text-[#00d4ff] mx-auto mb-1" />
-                    <div className="text-xs font-bold text-white">{planData.milestones?.length || 0}</div>
-                    <div className="text-[8px] text-gray-600 font-mono">PHASES</div>
-                  </div>
-                </div>
-
-                {/* FIX Loophole 1: Time-budget warning */}
-                {(() => {
-                  const freeMin = calcFreeMinutes(playerData?.scheduleProfile, existingGoals);
-                  const commitMin = planData.dailyCommitmentMinutes || 60;
-                  if (freeMin > 0 && commitMin > freeMin) {
-                    return (
-                      <div className="rounded-xl p-3 mb-3 flex items-start gap-2" style={{ background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.15)' }}>
-                        <AlertTriangle className="w-3.5 h-3.5 text-amber-400 flex-shrink-0 mt-0.5" />
-                        <div>
-                          <div className="text-[10px] font-bold text-amber-300">Time Budget Warning</div>
-                          <p className="text-[9px] text-amber-400/80 font-mono leading-relaxed mt-0.5">
-                            This goal needs {commitMin}m/day, but your schedule only has ~{freeMin}m free
-                            {existingGoals.filter(g => g.status === 'ACTIVE').length > 0 && ' (after other goals)'}.
-                            Some quests may be left unscheduled. Consider adjusting your schedule or goal scope.
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  }
-                  return null;
-                })()}
-
-                {/* AI Reasoning */}
-                <div className="rounded-xl p-3 mb-3" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
-                  <div className="text-[9px] font-mono text-[#00d4ff] uppercase mb-1">AI Assessment</div>
-                  <p className="text-[10px] text-gray-300 font-mono leading-relaxed">{planData.reasoning}</p>
-                </div>
-
-                {/* Duration reasoning */}
-                {planData.smartDurationReasoning && (
-                  <div className="rounded-xl p-3 mb-3" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
-                    <div className="text-[9px] font-mono text-amber-400 uppercase mb-1">Timeline Analysis</div>
-                    <p className="text-[10px] text-gray-400 font-mono leading-relaxed">{planData.smartDurationReasoning}</p>
-                  </div>
-                )}
-
-                {/* Milestones preview */}
-                <div className="mb-4">
-                  <div className="text-[9px] font-mono text-gray-500 uppercase mb-2">Mission Phases</div>
-                  <div className="space-y-1.5">
-                    {(planData.milestones || []).map((m: GoalMilestone) => (
-                      <div
-                        key={m.phase}
-                        className="rounded-xl p-2.5 flex items-center gap-2.5"
-                        style={{ background: 'rgba(255,255,255,0.02)' }}
-                      >
-                        <div
-                          className="w-6 h-6 rounded-lg flex items-center justify-center text-[9px] font-black flex-shrink-0"
-                          style={{ background: `${rankColor}15`, color: rankColor }}
-                        >
-                          {m.phase}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="text-[10px] text-white font-medium truncate">{m.title}</div>
-                          <div className="text-[9px] text-gray-600 font-mono">Day {m.startDay}–{m.endDay} • {m.targetOutcome}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Rest Day Picker */}
-                <div className="rounded-xl p-3 mb-3" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
-                  <div className="flex items-center gap-2 mb-2.5">
-                    <CalendarOff className="w-3.5 h-3.5 text-indigo-400" />
-                    <span className="text-[9px] font-mono text-gray-400 uppercase tracking-wider">Weekly Rest Day</span>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => {
-                      const isSelected = restDay === day;
-                      return (
-                        <button
-                          key={day}
-                          onClick={() => { setRestDay(day); playSystemSoundEffect('SYSTEM'); }}
-                          className="px-2.5 py-1.5 rounded-lg text-[9px] font-black font-mono uppercase tracking-wide transition-all"
-                          style={{
-                            background: isSelected ? 'rgba(129,140,248,0.15)' : 'rgba(255,255,255,0.02)',
-                            border: `1px solid ${isSelected ? 'rgba(129,140,248,0.4)' : 'rgba(255,255,255,0.06)'}`,
-                            color: isSelected ? '#a5b4fc' : '#6b7280',
-                          }}
-                        >
-                          {day.slice(0, 3)}
-                        </button>
-                      );
-                    })}
-                    <button
-                      onClick={() => { setRestDay('NONE'); playSystemSoundEffect('SYSTEM'); }}
-                      className="px-2.5 py-1.5 rounded-lg text-[9px] font-black font-mono uppercase tracking-wide transition-all"
-                      style={{
-                        background: restDay === 'NONE' ? 'rgba(239,68,68,0.12)' : 'rgba(255,255,255,0.02)',
-                        border: `1px solid ${restDay === 'NONE' ? 'rgba(239,68,68,0.3)' : 'rgba(255,255,255,0.06)'}`,
-                        color: restDay === 'NONE' ? '#f87171' : '#6b7280',
-                      }}
-                    >
-                      None
-                    </button>
-                  </div>
-                  <p className="text-[8px] text-gray-600 font-mono mt-2">
-                    {restDay === 'NONE' ? 'No rest day — quests generated every day.' : `Light/no quests on ${restDay}s.`}
-                  </p>
-                </div>
-
-                {/* Risk factors */}
-                {planData.riskFactors?.length > 0 && (
-                  <div className="rounded-xl p-3 mb-4" style={{ background: 'rgba(251,191,36,0.04)', border: '1px solid rgba(251,191,36,0.1)' }}>
-                    <div className="text-[9px] font-mono text-amber-400 uppercase mb-1.5">Risk Factors</div>
-                    {planData.riskFactors.map((r: string, i: number) => (
-                      <div key={i} className="text-[9px] text-gray-400 font-mono flex items-start gap-1.5 mb-0.5">
-                        <span className="text-amber-500">•</span> {r}
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Accept button */}
-                <button
-                  onClick={handleAcceptMission}
-                  className="w-full py-4 rounded-xl text-xs font-black uppercase tracking-widest"
-                  style={{
-                    background: 'linear-gradient(135deg, #00d4ff 0%, #5a9ab5 100%)',
-                    color: '#0a0a14',
-                    boxShadow: '0 4px 20px rgba(0,212,255,0.35), 0 0 0 1px rgba(0,212,255,0.2)',
-                  }}
-                >
-                  Accept Mission
-                </button>
-                <p className="text-[9px] text-gray-600 font-mono text-center mt-2">
-                  Daily quests will be generated automatically. Goal quests are free (no mana) & give 1.5x XP.
-                </p>
-              </motion.div>
-            )}
+                </motion.div>
+              );
+            })()}
 
             {/* ── ERROR STEP ── */}
             {step === 'ERROR' && (
