@@ -336,7 +336,7 @@ const SignInPage: React.FC<SignInPageProps> = ({ onLogin, onNavigate }) => {
 
   if (checking) {
     return (
-      <div className="fixed inset-0 z-[500] flex flex-col items-center justify-center font-mono gap-4 px-6" style={{ background: 'var(--color-auth-bg)' }}>
+      <div className="fixed inset-0 z-[500] flex flex-col items-center justify-center font-mono gap-4 px-6" style={{ background: 'var(--color-auth-bg)', overflow: 'hidden', touchAction: 'none', overscrollBehavior: 'none' }}>
         <motion.div animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 2, repeat: Infinity }} className="text-system-neon text-lg font-black tracking-widest">
           REFORGE
         </motion.div>
@@ -372,8 +372,8 @@ const SignInPage: React.FC<SignInPageProps> = ({ onLogin, onNavigate }) => {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.3 }}
-      className="fixed inset-0 z-[500] flex items-center justify-center p-4 sm:p-6 font-mono overflow-y-auto"
-      style={{ background: 'var(--color-auth-bg)', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)' }}
+      className="fixed inset-0 z-[500] flex items-center justify-center p-4 sm:p-6 font-mono"
+      style={{ background: 'var(--color-auth-bg)', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)', overflow: 'hidden', overscrollBehavior: 'none', touchAction: 'pan-y pinch-zoom' }}
     >
       {/* Loading overlay with fun facts */}
       <AnimatePresence>
@@ -439,6 +439,7 @@ const SignInPage: React.FC<SignInPageProps> = ({ onLogin, onNavigate }) => {
         exit={{ opacity: 0, y: -20, scale: 0.97 }}
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
         className="w-full max-w-md relative"
+        style={{ overflow: 'hidden' }}
       >
         {/* ═══ FORGOT PASSWORD FLOW ═══ */}
         <AnimatePresence mode="wait">
