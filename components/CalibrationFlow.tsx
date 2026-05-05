@@ -540,7 +540,10 @@ const AwakeningOverlay: React.FC<{ profile: Partial<HealthProfile>; onComplete: 
             </AnimatePresence>
 
             {/* MAIN CONTENT */}
-            <div className="relative z-10 flex flex-col items-center w-full h-full px-4 py-5 overflow-y-auto">
+            <div
+                className="relative z-10 flex flex-col items-center w-full h-full px-4 overflow-y-auto"
+                style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)' }}
+            >
                 <div className="w-full max-w-sm mx-auto flex flex-col items-center gap-3">
 
                     {/* Header */}
