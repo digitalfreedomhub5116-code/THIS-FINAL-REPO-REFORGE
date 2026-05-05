@@ -18,6 +18,7 @@ import { getEconomy, purchaseItem as kitPurchaseItem, equipItem as kitEquipItem,
 import { syncBorderToPlayers } from '../lib/borderSync';
 import { LynxCoin, BorderRing, ThemeSwatch } from './StoreComponents';
 import { Package } from 'lucide-react';
+import AvatarWithBorder, { BorderVideo } from './AvatarWithBorder';
 
 const WardrobePreviewCard = lazy(() => import('./WardrobePreviewCard'));
 const BadgesSection = lazy(() => import('./BadgesSection'));
@@ -106,9 +107,9 @@ function FadeImg({ src, alt, style, className, ...rest }: React.ImgHTMLAttribute
 }
 
 const RARITY_STYLES: Record<string, { label: string; bg: string; text: string; border: string }> = {
-  COMMON:    { label: 'COMMON',    bg: 'rgba(107,114,128,0.2)', text: '#9ca3af', border: 'rgba(107,114,128,0.3)' },
-  RARE:      { label: 'RARE',      bg: 'rgba(0,212,255,0.12)',  text: '#00d4ff', border: 'rgba(0,212,255,0.25)' },
-  LEGENDARY: { label: 'LEGENDARY', bg: 'rgba(234,179,8,0.12)',  text: '#eab308', border: 'rgba(234,179,8,0.3)' },
+  COMMON: { label: 'COMMON', bg: 'rgba(107,114,128,0.2)', text: '#9ca3af', border: 'rgba(107,114,128,0.3)' },
+  RARE: { label: 'RARE', bg: 'rgba(0,212,255,0.12)', text: '#00d4ff', border: 'rgba(0,212,255,0.25)' },
+  LEGENDARY: { label: 'LEGENDARY', bg: 'rgba(234,179,8,0.12)', text: '#eab308', border: 'rgba(234,179,8,0.3)' },
 };
 
 const CONSUMABLE_ITEMS: any[] = [];
@@ -349,7 +350,7 @@ const ShopView: React.FC<ShopViewProps> = ({
   gold,
   items,
   purchaseItem,
-  consumables = { },
+  consumables = {},
   streak = 0,
   lastLoginDate = '',
   onOpenDailyCalendar,
@@ -447,7 +448,7 @@ const ShopView: React.FC<ShopViewProps> = ({
                   .then(r => r.ok ? r.json() : { items: [] })
                   .then(d => { if (Array.isArray(d.items)) setServerInventory(d.items); });
               }
-            }).catch(() => {});
+            }).catch(() => { });
           }
         }
         setInventoryLoaded(true);
@@ -465,7 +466,7 @@ const ShopView: React.FC<ShopViewProps> = ({
     fetch(`${API_BASE}/api/store/banners`)
       .then(r => r.ok ? r.json() : [])
       .then(data => { if (Array.isArray(data) && data.length > 0) setBanners(data); })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const resetBannerTimer = useCallback(() => {
@@ -551,7 +552,7 @@ const ShopView: React.FC<ShopViewProps> = ({
       syncBorderToPlayers(newId).then(() => {
         // 3. Dispatch refresh event so leaderboard re-fetches
         window.dispatchEvent(new Event('leaderboard:refresh'));
-      }).catch(() => {});
+      }).catch(() => { });
     }
     // Sync banner to player state → raw_data → leaderboard popup
     if (slot === 'banner') {
@@ -562,11 +563,11 @@ const ShopView: React.FC<ShopViewProps> = ({
   return (
     <div id="tut-store" className="space-y-7 pb-24">
 
-      {/* ═══ INVENTORY BUTTON (top bar) ═══ */}
+      {/* ═══ GOLD BALANCE + INVENTORY BUTTON (top bar) ═══ */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <SystemCoin size={18} />
-          <span style={{ fontSize: 14, fontWeight: 900, color: '#fbbf24', fontFamily: 'monospace' }}>{(gold || 0).toLocaleString()}</span>
+        <div id="user-wallet-balance" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <img src="/assets/gold-coin.png" alt="Gold" width={24} height={24} style={{ width: 24, height: 24, objectFit: 'contain' }} loading="eager" draggable={false} />
+          <span style={{ fontSize: 18, fontWeight: 900, color: '#F0B232', fontFamily: 'monospace', textShadow: '0 0 8px rgba(240,178,50,0.3)' }}>{(gold || 0).toLocaleString()}</span>
         </div>
         <button
           onClick={() => setShowInventoryPanel(!showInventoryPanel)}
@@ -937,7 +938,7 @@ const ShopView: React.FC<ShopViewProps> = ({
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, padding: '0 16px', gridAutoRows: '1fr' }}>
           {getTodaysDeals(4).map(d => (
             <div key={d.item.id}>
-               <KitGlowCard item={d.item} discount={d.discount}
+              <KitGlowCard item={d.item} discount={d.discount}
                 owned={isItemOwned(d.item.id)}
                 equipped={kitEconomy.equipped[d.item.category as keyof EquippedItems] === d.item.id}
                 canAfford={DEV_UNLOCK_ALL || gold >= Math.round(d.item.price * (1 - d.discount / 100))}
@@ -1448,138 +1449,147 @@ const ShopView: React.FC<ShopViewProps> = ({
           }}
         >
           {confirmPurchaseItem && purchasePhase !== 'transitioning' && (
-          <div onClick={e => e.stopPropagation()} style={{
-            background: 'linear-gradient(180deg, #14161e 0%, #0c0d14 100%)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: 20, padding: '28px 24px', width: '100%', maxWidth: 320,
-            textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
-          }}>
-            {/* ── Item Preview (adaptive per category) ── */}
-            {confirmPurchaseItem.imageBorder && (
-              <div style={{ width: 80, height: 80, margin: '0 auto 16px', position: 'relative' }}>
-                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#1a1a2a' }} />
+            <div onClick={e => e.stopPropagation()} style={{
+              background: 'linear-gradient(180deg, #14161e 0%, #0c0d14 100%)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: 20, padding: '28px 24px', width: '100%', maxWidth: 320,
+              textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
+            }}>
+              {/* ── Item Preview (adaptive per category) ── */}
+              {confirmPurchaseItem.videoBorder ? (
+                <div style={{ width: 80, height: 80, margin: '0 auto 16px', position: 'relative' }}>
+                  <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#1a1a2a' }} />
+                  </div>
+                  <div style={{ position: 'absolute', inset: 0, zIndex: 1, mixBlendMode: 'screen' }}>
+                    <BorderVideo src={confirmPurchaseItem.videoBorder} />
+                  </div>
                 </div>
-                <img src={confirmPurchaseItem.imageBorder} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', mixBlendMode: 'screen', position: 'relative', zIndex: 1 }} />
-              </div>
-            )}
-            {confirmPurchaseItem.category === 'banner' && confirmPurchaseItem.bannerImage && (
-              <div style={{ width: '100%', borderRadius: 12, overflow: 'hidden', margin: '0 auto 16px', aspectRatio: '16 / 9', position: 'relative' }}>
-                <img src={confirmPurchaseItem.bannerImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-              </div>
-            )}
-            {confirmPurchaseItem.category === 'theme' && confirmPurchaseItem.themeVars && (
-              <div style={{
-                width: 56, height: 56, borderRadius: '50%', margin: '0 auto 16px',
-                background: `linear-gradient(135deg, ${confirmPurchaseItem.themeVars['--primary'] || '#9ca3af'}, ${confirmPurchaseItem.themeVars['--primary'] || '#9ca3af'}80)`,
-                boxShadow: `0 0 24px ${confirmPurchaseItem.themeVars['--primary'] || '#9ca3af'}40`,
-              }} />
-            )}
-            <div style={{ fontSize: 16, fontWeight: 900, color: '#fff', marginBottom: 4 }}>{confirmPurchaseItem.name}</div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>Confirm purchase?</div>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginBottom: 16, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{confirmPurchaseItem.category}</div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 20 }}>
-              {confirmPurchaseItem.adUnlock ? (
-                <span style={{ fontSize: 14, fontWeight: 900, color: '#a855f7', letterSpacing: '0.05em' }}>▶ WATCH AD TO UNLOCK</span>
-              ) : (
-                <>
-                  <SystemCoin size={22} />
-                  <span style={{ fontSize: 20, fontWeight: 900, color: '#fbbf24' }}>{confirmPurchaseItem.price}</span>
-                </>
+              ) : confirmPurchaseItem.imageBorder ? (
+                <div style={{ width: 80, height: 80, margin: '0 auto 16px', position: 'relative' }}>
+                  <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#1a1a2a' }} />
+                  </div>
+                  <img src={confirmPurchaseItem.imageBorder} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', mixBlendMode: 'screen', position: 'relative', zIndex: 1 }} />
+                </div>
+              ) : null}
+              {confirmPurchaseItem.category === 'banner' && confirmPurchaseItem.bannerImage && (
+                <div style={{ width: '100%', borderRadius: 12, overflow: 'hidden', margin: '0 auto 16px', aspectRatio: '16 / 9', position: 'relative' }}>
+                  <img src={confirmPurchaseItem.bannerImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                </div>
               )}
-            </div>
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-              <button disabled={purchasing} onClick={() => setConfirmPurchaseItem(null)} style={{ padding: '10px 28px', borderRadius: 12, cursor: 'pointer', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: 700 }}>Cancel</button>
-              {confirmPurchaseItem.adUnlock && onWatchAdForBorder ? (
-                <button disabled={purchasing} onClick={async () => {
-                  const item = confirmPurchaseItem;
-                  setPurchasing(true);
-                  try {
-                    const success = await onWatchAdForBorder(item.id);
-                    if (success) {
-                      // Add to inventory locally
-                      setServerInventory(prev => [...prev, { item_id: item.id, item_type: item.category, source: 'ad_reward' }]);
-                      const p = kitPurchaseItem(item.id, 0);
-                      if (p) setKitEconomy(p);
-                      if (item.category === 'border') {
-                        handleKitEquip('border', item.id);
-                        setEquipAnimItem(item);
-                        setPurchasePhase('transitioning');
-                        setShowEquipAnim(true);
-                        setTimeout(() => { setConfirmPurchaseItem(null); setPurchasePhase('idle'); setPurchasing(false); }, 350);
+              {confirmPurchaseItem.category === 'theme' && confirmPurchaseItem.themeVars && (
+                <div style={{
+                  width: 56, height: 56, borderRadius: '50%', margin: '0 auto 16px',
+                  background: `linear-gradient(135deg, ${confirmPurchaseItem.themeVars['--primary'] || '#9ca3af'}, ${confirmPurchaseItem.themeVars['--primary'] || '#9ca3af'}80)`,
+                  boxShadow: `0 0 24px ${confirmPurchaseItem.themeVars['--primary'] || '#9ca3af'}40`,
+                }} />
+              )}
+              <div style={{ fontSize: 16, fontWeight: 900, color: '#fff', marginBottom: 4 }}>{confirmPurchaseItem.name}</div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>Confirm purchase?</div>
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginBottom: 16, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{confirmPurchaseItem.category}</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 20 }}>
+                {confirmPurchaseItem.adUnlock ? (
+                  <span style={{ fontSize: 14, fontWeight: 900, color: '#a855f7', letterSpacing: '0.05em' }}>▶ WATCH AD TO UNLOCK</span>
+                ) : (
+                  <>
+                    <SystemCoin size={22} />
+                    <span style={{ fontSize: 20, fontWeight: 900, color: '#fbbf24' }}>{confirmPurchaseItem.price}</span>
+                  </>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+                <button disabled={purchasing} onClick={() => setConfirmPurchaseItem(null)} style={{ padding: '10px 28px', borderRadius: 12, cursor: 'pointer', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: 700 }}>Cancel</button>
+                {confirmPurchaseItem.adUnlock && onWatchAdForBorder ? (
+                  <button disabled={purchasing} onClick={async () => {
+                    const item = confirmPurchaseItem;
+                    setPurchasing(true);
+                    try {
+                      const success = await onWatchAdForBorder(item.id);
+                      if (success) {
+                        // Add to inventory locally
+                        setServerInventory(prev => [...prev, { item_id: item.id, item_type: item.category, source: 'ad_reward' }]);
+                        const p = kitPurchaseItem(item.id, 0);
+                        if (p) setKitEconomy(p);
+                        if (item.category === 'border') {
+                          handleKitEquip('border', item.id);
+                          setEquipAnimItem(item);
+                          setPurchasePhase('transitioning');
+                          setShowEquipAnim(true);
+                          setTimeout(() => { setConfirmPurchaseItem(null); setPurchasePhase('idle'); setPurchasing(false); }, 350);
+                        } else {
+                          setConfirmPurchaseItem(null); setPurchasing(false); setPurchasePhase('idle');
+                        }
                       } else {
-                        setConfirmPurchaseItem(null); setPurchasing(false); setPurchasePhase('idle');
+                        setPurchasing(false);
                       }
-                    } else {
-                      setPurchasing(false);
+                    } catch { setPurchasing(false); }
+                  }} style={{
+                    padding: '10px 28px', borderRadius: 12, cursor: purchasing ? 'wait' : 'pointer',
+                    background: 'linear-gradient(135deg, #a855f7, #7c3aed)', border: 'none',
+                    color: '#fff', fontSize: 12, fontWeight: 900,
+                    boxShadow: '0 0 20px rgba(168,85,247,0.3)', opacity: purchasing ? 0.6 : 1,
+                  }}>
+                    {purchasing ? 'Loading...' : '▶ Watch Ad'}
+                  </button>
+                ) : (
+                  <button disabled={purchasing} onClick={async () => {
+                    const item = confirmPurchaseItem;
+                    setPurchasing(true);
+                    setPurchasePhase('buying');
+                    // Preload border image for celebration overlay — prevents empty flash
+                    if (item.category === 'border' && item.imageBorder) {
+                      preloadImage(item.imageBorder);
                     }
-                  } catch { setPurchasing(false); }
-                }} style={{
-                  padding: '10px 28px', borderRadius: 12, cursor: purchasing ? 'wait' : 'pointer',
-                  background: 'linear-gradient(135deg, #a855f7, #7c3aed)', border: 'none',
-                  color: '#fff', fontSize: 12, fontWeight: 900,
-                  boxShadow: '0 0 20px rgba(168,85,247,0.3)', opacity: purchasing ? 0.6 : 1,
-                }}>
-                  {purchasing ? 'Loading...' : '▶ Watch Ad'}
-                </button>
-              ) : (
-              <button disabled={purchasing} onClick={async () => {
-                const item = confirmPurchaseItem;
-                setPurchasing(true);
-                setPurchasePhase('buying');
-                // Preload border image for celebration overlay — prevents empty flash
-                if (item.category === 'border' && item.imageBorder) {
-                  preloadImage(item.imageBorder);
-                }
-                try {
-                  const headers = getPlayerAuthHeaders();
-                  const resp = await fetch(`${API_BASE}/api/inventory/purchase`, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json', ...headers },
-                    credentials: 'include', body: JSON.stringify({ itemId: item.id, itemType: item.category, price: item.price }),
-                  });
-                  if (!resp.ok) {
-                    const errData = await resp.json().catch(() => ({}));
-                    console.error('[Store] Purchase failed:', errData);
-                    setPurchasing(false); setPurchasePhase('idle'); setConfirmPurchaseItem(null); return;
-                  }
-                  const { gold: newGold } = await resp.json();
-                  if (onGoldUpdate) onGoldUpdate(newGold);
-                  // Use callback to avoid triggering unnecessary re-renders in background store
-                  setServerInventory(prev => [...prev, { item_id: item.id, item_type: item.category, source: 'purchase' }]);
-                  const p = kitPurchaseItem(item.id, item.price);
-                  if (p) setKitEconomy(p);
-                } catch (e) { console.error('[Store] Purchase error:', e); setPurchasing(false); setPurchasePhase('idle'); setConfirmPurchaseItem(null); return; }
-                // Category-specific post-purchase logic
-                if (item.category === 'border') {
-                  handleKitEquip('border', item.id);
-                  setEquipAnimItem(item);
-                  // Phase transition: keep confirm backdrop mounted, start celebration overlay
-                  setPurchasePhase('transitioning');
-                  setShowEquipAnim(true);
-                  // After equip overlay fades in (300ms), unmount confirm modal cleanly
-                  setTimeout(() => {
-                    setConfirmPurchaseItem(null);
-                    setPurchasePhase('idle');
-                    setPurchasing(false);
-                  }, 350);
-                } else {
-                  if (item.category === 'banner') handleKitEquip('banner', item.id);
-                  else if (item.category === 'theme') handleKitEquip('theme', item.id);
-                  setConfirmPurchaseItem(null);
-                  setPurchasing(false);
-                  setPurchasePhase('idle');
-                }
-              }} style={{
-                padding: '10px 28px', borderRadius: 12, cursor: purchasing ? 'wait' : 'pointer',
-                background: 'linear-gradient(135deg, #fbbf24, #d97706)', border: 'none',
-                color: '#000', fontSize: 12, fontWeight: 900,
-                boxShadow: '0 0 20px rgba(251,191,36,0.3)', opacity: purchasing ? 0.6 : 1,
-              }}>
-                {purchasing ? 'Buying...' : 'Buy Now'}
-              </button>
-              )}
+                    try {
+                      const headers = getPlayerAuthHeaders();
+                      const resp = await fetch(`${API_BASE}/api/inventory/purchase`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json', ...headers },
+                        credentials: 'include', body: JSON.stringify({ itemId: item.id, itemType: item.category, price: item.price }),
+                      });
+                      if (!resp.ok) {
+                        const errData = await resp.json().catch(() => ({}));
+                        console.error('[Store] Purchase failed:', errData);
+                        setPurchasing(false); setPurchasePhase('idle'); setConfirmPurchaseItem(null); return;
+                      }
+                      const { gold: newGold } = await resp.json();
+                      if (onGoldUpdate) onGoldUpdate(newGold);
+                      // Use callback to avoid triggering unnecessary re-renders in background store
+                      setServerInventory(prev => [...prev, { item_id: item.id, item_type: item.category, source: 'purchase' }]);
+                      const p = kitPurchaseItem(item.id, item.price);
+                      if (p) setKitEconomy(p);
+                    } catch (e) { console.error('[Store] Purchase error:', e); setPurchasing(false); setPurchasePhase('idle'); setConfirmPurchaseItem(null); return; }
+                    // Category-specific post-purchase logic
+                    if (item.category === 'border') {
+                      handleKitEquip('border', item.id);
+                      setEquipAnimItem(item);
+                      // Phase transition: keep confirm backdrop mounted, start celebration overlay
+                      setPurchasePhase('transitioning');
+                      setShowEquipAnim(true);
+                      // After equip overlay fades in (300ms), unmount confirm modal cleanly
+                      setTimeout(() => {
+                        setConfirmPurchaseItem(null);
+                        setPurchasePhase('idle');
+                        setPurchasing(false);
+                      }, 350);
+                    } else {
+                      if (item.category === 'banner') handleKitEquip('banner', item.id);
+                      else if (item.category === 'theme') handleKitEquip('theme', item.id);
+                      setConfirmPurchaseItem(null);
+                      setPurchasing(false);
+                      setPurchasePhase('idle');
+                    }
+                  }} style={{
+                    padding: '10px 28px', borderRadius: 12, cursor: purchasing ? 'wait' : 'pointer',
+                    background: 'linear-gradient(135deg, #fbbf24, #d97706)', border: 'none',
+                    color: '#000', fontSize: 12, fontWeight: 900,
+                    boxShadow: '0 0 20px rgba(251,191,36,0.3)', opacity: purchasing ? 0.6 : 1,
+                  }}>
+                    {purchasing ? 'Buying...' : 'Buy Now'}
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
           )}
         </div>, document.body)}
 
@@ -1657,7 +1667,7 @@ function StoreLottieBorder({ src, glow }: { src: string; glow: string }) {
 
   useEffect(() => {
     if (storeLottieCache[src]) { setData(storeLottieCache[src]); return; }
-    fetch(src).then(r => r.json()).then(d => { storeLottieCache[src] = d; setData(d); }).catch(() => {});
+    fetch(src).then(r => r.json()).then(d => { storeLottieCache[src] = d; setData(d); }).catch(() => { });
   }, [src]);
 
   return (
@@ -1805,48 +1815,66 @@ const KitGlowCard = React.memo(function KitGlowCard({ item, discount, owned, equ
             {/* Radial glow behind preview */}
             <div style={{ position: 'absolute', top: '50%', left: '50%', width: 110, height: 110, borderRadius: '50%', background: `radial-gradient(circle, ${catColor}25 0%, ${catColor}08 50%, transparent 70%)`, transform: 'translate(-50%, -50%)' }} />
 
-            {/* ── BORDER: Image-based (PNG) ── */}
-            {item.category === 'border' && item.imageBorder ? (() => {
+            {/* ── BORDER: Video (GIF/MP4) ── */}
+            {item.category === 'border' && item.videoBorder ? (() => {
               const scale = item.imageScale || 1;
-              const baseSize = 96;
-              // Container grows with scale so the border actually appears bigger
-              const containerSize = Math.min(Math.round(baseSize * scale), 140);
-              const pfpSize = Math.round(56 * (item.imagePfpScale || 1));
-              const svgSize = Math.round(40 * (item.imagePfpScale || 1));
+              const baseSize = 72;
+              const containerSize = Math.min(Math.round(baseSize * scale), 105);
+              const pfpSize = Math.round(42 * (item.imagePfpScale || 1));
+              const svgSize = Math.round(30 * (item.imagePfpScale || 1));
               return (
-              <div style={{ position: 'relative', width: containerSize, height: containerSize, flexShrink: 0, overflow: 'hidden' }}>
-                {/* Avatar silhouette — scales per item via imagePfpScale */}
-                <div style={{ position: 'absolute', top: '50%', left: '50%', width: pfpSize, height: pfpSize, borderRadius: '50%', background: 'radial-gradient(circle, #3a3a4a, #1a1a24)', transform: 'translate(-50%, -50%)', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                  <svg width={svgSize} height={svgSize} viewBox="0 0 40 40"><circle cx="20" cy="16" r="7" fill="#555568" /><ellipse cx="20" cy="35" rx="13" ry="10" fill="#4a4a5a" /></svg>
-                </div>
-                {/* Border frame image — fills the container */}
-                {item.imageAnimated && item.imageAnimationType === 'pulse' ? (
-                  <div style={{ position: 'absolute', top: '50%', left: '50%', width: '100%', height: '100%', zIndex: 2, pointerEvents: 'none', animation: 'border-breathe-centered 3s ease-in-out infinite' }}>
-                    <FadeImg src={item.imageBorder} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                <div style={{ position: 'relative', width: containerSize, height: containerSize, flexShrink: 0, overflow: 'hidden' }}>
+                  {/* Avatar silhouette */}
+                  <div style={{ position: 'absolute', top: '50%', left: '50%', width: pfpSize, height: pfpSize, borderRadius: '50%', background: 'radial-gradient(circle, #3a3a4a, #1a1a24)', transform: 'translate(-50%, -50%)', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                    <svg width={svgSize} height={svgSize} viewBox="0 0 40 40"><circle cx="20" cy="16" r="7" fill="#555568" /><ellipse cx="20" cy="35" rx="13" ry="10" fill="#4a4a5a" /></svg>
                   </div>
-                ) : (
-                  <FadeImg src={item.imageBorder} alt={item.name} style={{ position: 'absolute', top: '50%', left: '50%', width: '100%', height: '100%', transform: `translate(-50%, calc(-50% + ${item.imageOffsetY || 0}px))`, objectFit: 'contain', zIndex: 2, pointerEvents: 'none', ...(item.imageAnimated ? { animation: 'spin-clockwise 10s linear infinite' } : {}) }} />
-                )}
-              </div>);
-            })() : item.category === 'border' && item.lottieBorder ? (
-              <StoreLottieBorder src={item.lottieBorder} glow={item.borderConfig?.glowColor || '#C8A84E'} />
-            ) : item.category === 'border' && item.auraConfig ? (
-              /* ── BORDER: CSS Aura glow (full spec) ── */
-              <div style={{ position: 'relative', width: 96, height: 96, flexShrink: 0, overflow: 'hidden' }}>
-                {/* Ambient glow */}
-                <div style={{ position: 'absolute', top: '50%', left: '50%', width: 120, height: 120, borderRadius: '50%', background: `radial-gradient(circle, ${item.auraConfig.colors[0]}30 0%, ${(item.auraConfig.colors[1] || item.auraConfig.colors[0])}15 40%, transparent 70%)`, transform: 'translate(-50%, -50%)', animation: item.auraConfig.animated ? `pulse-glow ${item.auraConfig.pulseSpeed || 3}s ease-in-out infinite` : undefined }} />
-                {/* Main aura ring */}
-                <div style={{ position: 'absolute', top: '50%', left: '50%', width: 82, height: 82, borderRadius: '50%', transform: 'translate(-50%, -50%)', border: `3px solid ${item.auraConfig.colors[0]}CC`, boxShadow: `0 0 6px 2px ${item.auraConfig.colors[0]}AA, 0 0 14px 4px ${item.auraConfig.colors[0]}70, 0 0 24px 6px ${(item.auraConfig.colors[1] || item.auraConfig.colors[0])}50, 0 0 40px 10px ${(item.auraConfig.colors[2] || item.auraConfig.colors[0])}35, 0 0 60px 14px ${(item.auraConfig.colors[3] || item.auraConfig.colors[1] || item.auraConfig.colors[0])}20, inset 0 0 10px 3px ${item.auraConfig.colors[0]}40, inset 0 0 20px 6px ${(item.auraConfig.colors[1] || item.auraConfig.colors[0])}25`, animation: item.auraConfig.animated ? 'aura-rotate 8s linear infinite' : undefined, zIndex: 1 }} />
-                {/* Outer glow ring */}
-                <div style={{ position: 'absolute', top: '50%', left: '50%', width: 90, height: 90, borderRadius: '50%', transform: 'translate(-50%, -50%)', border: `1.5px solid ${(item.auraConfig.colors[1] || item.auraConfig.colors[0])}50`, boxShadow: `0 0 12px 3px ${(item.auraConfig.colors[1] || item.auraConfig.colors[0])}40, 0 0 30px 8px ${(item.auraConfig.colors[2] || item.auraConfig.colors[0])}20`, animation: item.auraConfig.animated ? `pulse-glow ${item.auraConfig.pulseSpeed || 3}s ease-in-out infinite` : undefined, zIndex: 1 }} />
-                {/* Center avatar */}
-                <div style={{ position: 'absolute', top: '50%', left: '50%', width: 56, height: 56, borderRadius: '50%', background: 'radial-gradient(circle, #2a2a3a, #1a1a24)', transform: 'translate(-50%, -50%)', zIndex: 3, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 0 8px ${item.auraConfig.colors[0]}80, inset 0 0 6px ${item.auraConfig.colors[0]}30` }}>
-                  <svg width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="16" r="7" fill="#555568" /><ellipse cx="20" cy="35" rx="13" ry="10" fill="#4a4a5a" /></svg>
+                  {/* Border Video */}
+                  <div style={{ position: 'absolute', top: '50%', left: '50%', width: '100%', height: '100%', transform: `translate(-50%, calc(-50% + ${item.imageOffsetY || 0}px))`, zIndex: 2, pointerEvents: 'none', mixBlendMode: 'screen' }}>
+                    <BorderVideo src={item.videoBorder} />
+                  </div>
+                </div>);
+            })() : /* ── BORDER: Image-based (PNG) ── */
+              item.category === 'border' && item.imageBorder ? (() => {
+                const scale = item.imageScale || 1;
+                const baseSize = 96;
+                // Container grows with scale so the border actually appears bigger
+                const containerSize = Math.min(Math.round(baseSize * scale), 140);
+                const pfpSize = Math.round(56 * (item.imagePfpScale || 1));
+                const svgSize = Math.round(40 * (item.imagePfpScale || 1));
+                return (
+                  <div style={{ position: 'relative', width: containerSize, height: containerSize, flexShrink: 0, overflow: 'hidden' }}>
+                    {/* Avatar silhouette — scales per item via imagePfpScale */}
+                    <div style={{ position: 'absolute', top: '50%', left: '50%', width: pfpSize, height: pfpSize, borderRadius: '50%', background: 'radial-gradient(circle, #3a3a4a, #1a1a24)', transform: 'translate(-50%, -50%)', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                      <svg width={svgSize} height={svgSize} viewBox="0 0 40 40"><circle cx="20" cy="16" r="7" fill="#555568" /><ellipse cx="20" cy="35" rx="13" ry="10" fill="#4a4a5a" /></svg>
+                    </div>
+                    {/* Border frame image — fills the container */}
+                    {item.imageAnimated && item.imageAnimationType === 'pulse' ? (
+                      <div style={{ position: 'absolute', top: '50%', left: '50%', width: '100%', height: '100%', zIndex: 2, pointerEvents: 'none', animation: 'border-breathe-centered 3s ease-in-out infinite' }}>
+                        <FadeImg src={item.imageBorder} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                      </div>
+                    ) : (
+                      <FadeImg src={item.imageBorder} alt={item.name} style={{ position: 'absolute', top: '50%', left: '50%', width: '100%', height: '100%', transform: `translate(-50%, calc(-50% + ${item.imageOffsetY || 0}px))`, objectFit: 'contain', zIndex: 2, pointerEvents: 'none', ...(item.imageAnimated ? { animation: 'spin-clockwise 10s linear infinite' } : {}) }} />
+                    )}
+                  </div>);
+              })() : item.category === 'border' && item.lottieBorder ? (
+                <StoreLottieBorder src={item.lottieBorder} glow={item.borderConfig?.glowColor || '#C8A84E'} />
+              ) : item.category === 'border' && item.auraConfig ? (
+                /* ── BORDER: CSS Aura glow (full spec) ── */
+                <div style={{ position: 'relative', width: 96, height: 96, flexShrink: 0, overflow: 'hidden' }}>
+                  {/* Ambient glow */}
+                  <div style={{ position: 'absolute', top: '50%', left: '50%', width: 120, height: 120, borderRadius: '50%', background: `radial-gradient(circle, ${item.auraConfig.colors[0]}30 0%, ${(item.auraConfig.colors[1] || item.auraConfig.colors[0])}15 40%, transparent 70%)`, transform: 'translate(-50%, -50%)', animation: item.auraConfig.animated ? `pulse-glow ${item.auraConfig.pulseSpeed || 3}s ease-in-out infinite` : undefined }} />
+                  {/* Main aura ring */}
+                  <div style={{ position: 'absolute', top: '50%', left: '50%', width: 82, height: 82, borderRadius: '50%', transform: 'translate(-50%, -50%)', border: `3px solid ${item.auraConfig.colors[0]}CC`, boxShadow: `0 0 6px 2px ${item.auraConfig.colors[0]}AA, 0 0 14px 4px ${item.auraConfig.colors[0]}70, 0 0 24px 6px ${(item.auraConfig.colors[1] || item.auraConfig.colors[0])}50, 0 0 40px 10px ${(item.auraConfig.colors[2] || item.auraConfig.colors[0])}35, 0 0 60px 14px ${(item.auraConfig.colors[3] || item.auraConfig.colors[1] || item.auraConfig.colors[0])}20, inset 0 0 10px 3px ${item.auraConfig.colors[0]}40, inset 0 0 20px 6px ${(item.auraConfig.colors[1] || item.auraConfig.colors[0])}25`, animation: item.auraConfig.animated ? 'aura-rotate 8s linear infinite' : undefined, zIndex: 1 }} />
+                  {/* Outer glow ring */}
+                  <div style={{ position: 'absolute', top: '50%', left: '50%', width: 90, height: 90, borderRadius: '50%', transform: 'translate(-50%, -50%)', border: `1.5px solid ${(item.auraConfig.colors[1] || item.auraConfig.colors[0])}50`, boxShadow: `0 0 12px 3px ${(item.auraConfig.colors[1] || item.auraConfig.colors[0])}40, 0 0 30px 8px ${(item.auraConfig.colors[2] || item.auraConfig.colors[0])}20`, animation: item.auraConfig.animated ? `pulse-glow ${item.auraConfig.pulseSpeed || 3}s ease-in-out infinite` : undefined, zIndex: 1 }} />
+                  {/* Center avatar */}
+                  <div style={{ position: 'absolute', top: '50%', left: '50%', width: 56, height: 56, borderRadius: '50%', background: 'radial-gradient(circle, #2a2a3a, #1a1a24)', transform: 'translate(-50%, -50%)', zIndex: 3, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 0 8px ${item.auraConfig.colors[0]}80, inset 0 0 6px ${item.auraConfig.colors[0]}30` }}>
+                    <svg width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="16" r="7" fill="#555568" /><ellipse cx="20" cy="35" rx="13" ry="10" fill="#4a4a5a" /></svg>
+                  </div>
                 </div>
-              </div>
-            ) : item.category === 'border' && item.borderConfig ? (
-              <BorderRing config={item.borderConfig} size={90} />
-            ) : null}
+              ) : item.category === 'border' && item.borderConfig ? (
+                <BorderRing config={item.borderConfig} size={90} />
+              ) : null}
 
             {/* ── THEME swatch ── */}
             {item.category === 'theme' && item.themeVars && (
@@ -2037,42 +2065,59 @@ function KitBorderPreviewModal({ item, onClose, owned, equipped, canAfford, onBu
           const wrapperSize = visualSize + 40;
 
           return (
-        <div style={{ position: 'relative', width: wrapperSize, height: wrapperSize, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'visible', marginBottom: 8 }}>
-          {/* Background radial glow — smaller, more focused */}
-          <div style={{ position: 'absolute', top: '50%', left: '50%', width: wrapperSize, height: wrapperSize, borderRadius: '50%', background: `radial-gradient(circle, ${glow}30 0%, ${glow}10 45%, transparent 70%)`, transform: 'translate(-50%, -50%)', pointerEvents: 'none' }} />
+            <div style={{ position: 'relative', width: wrapperSize, height: wrapperSize, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'visible', marginBottom: 8 }}>
+              {/* Background radial glow — smaller, more focused */}
+              <div style={{ position: 'absolute', top: '50%', left: '50%', width: wrapperSize, height: wrapperSize, borderRadius: '50%', background: `radial-gradient(circle, ${glow}30 0%, ${glow}10 45%, transparent 70%)`, transform: 'translate(-50%, -50%)', pointerEvents: 'none' }} />
 
-          {/* PNG Image Border */}
-          {item.imageBorder ? (
-            <div style={{ position: 'relative', width: size, height: size, overflow: 'visible' }}>
-              {/* PFP Avatar placeholder */}
-              {(() => { const pfpFactor = item.imagePfpScale || 1; const pfpPct = 0.6 * pfpFactor; const svgPx = Math.round(80 * pfpFactor); return (
-              <div style={{ position: 'absolute', top: '50%', left: '50%', width: size * pfpPct, height: size * pfpPct, borderRadius: '50%', background: 'radial-gradient(circle, #3a3a4a, #1a1a24)', transform: 'translate(-50%, -50%)', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                <svg width={svgPx} height={svgPx} viewBox="0 0 40 40"><circle cx="20" cy="16" r="7" fill="#555568" /><ellipse cx="20" cy="35" rx="13" ry="10" fill="#4a4a5a" /></svg>
-              </div>); })()}
-              {/* Border image */}
-              {item.imageAnimated && item.imageAnimationType === 'pulse' ? (
-                <div style={{ position: 'absolute', top: '50%', left: '50%', width: `${scale * 100}%`, height: `${scale * 100}%`, transform: `translate(-50%, calc(-50% + ${item.imageOffsetY || 0}px))`, zIndex: 2, pointerEvents: 'none', animation: 'border-breathe-centered 3s ease-in-out infinite' }}>
-                  <FadeImg src={item.imageBorder} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+              {/* Video Border (GIF/MP4) */}
+              {item.videoBorder ? (
+                <div style={{ position: 'relative', width: size, height: size, overflow: 'visible' }}>
+                  {/* PFP Avatar placeholder */}
+                  {(() => {
+                    const pfpFactor = item.imagePfpScale || 1; const pfpPct = 0.6 * pfpFactor; const svgPx = Math.round(80 * pfpFactor); return (
+                      <div style={{ position: 'absolute', top: '50%', left: '50%', width: size * pfpPct, height: size * pfpPct, borderRadius: '50%', background: 'radial-gradient(circle, #3a3a4a, #1a1a24)', transform: 'translate(-50%, -50%)', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                        <svg width={svgPx} height={svgPx} viewBox="0 0 40 40"><circle cx="20" cy="16" r="7" fill="#555568" /><ellipse cx="20" cy="35" rx="13" ry="10" fill="#4a4a5a" /></svg>
+                      </div>);
+                  })()}
+                  {/* Border video */}
+                  <div style={{ position: 'absolute', top: '50%', left: '50%', width: `${scale * 100}%`, height: `${scale * 100}%`, transform: `translate(-50%, calc(-50% + ${item.imageOffsetY || 0}px))`, zIndex: 2, pointerEvents: 'none', mixBlendMode: 'screen' }}>
+                    <BorderVideo src={item.videoBorder} />
+                  </div>
                 </div>
-              ) : (
-                <FadeImg src={item.imageBorder} alt={item.name} style={{ position: 'absolute', top: '50%', left: '50%', width: `${scale * 100}%`, height: `${scale * 100}%`, transform: `translate(-50%, calc(-50% + ${item.imageOffsetY || 0}px))`, objectFit: 'contain', zIndex: 2, pointerEvents: 'none', ...(item.imageAnimated ? { animation: 'spin-clockwise 10s linear infinite' } : {}) }} />
-              )}
+              ) : /* PNG Image Border */
+                item.imageBorder ? (
+                  <div style={{ position: 'relative', width: size, height: size, overflow: 'visible' }}>
+                    {/* PFP Avatar placeholder */}
+                    {(() => {
+                      const pfpFactor = item.imagePfpScale || 1; const pfpPct = 0.6 * pfpFactor; const svgPx = Math.round(80 * pfpFactor); return (
+                        <div style={{ position: 'absolute', top: '50%', left: '50%', width: size * pfpPct, height: size * pfpPct, borderRadius: '50%', background: 'radial-gradient(circle, #3a3a4a, #1a1a24)', transform: 'translate(-50%, -50%)', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                          <svg width={svgPx} height={svgPx} viewBox="0 0 40 40"><circle cx="20" cy="16" r="7" fill="#555568" /><ellipse cx="20" cy="35" rx="13" ry="10" fill="#4a4a5a" /></svg>
+                        </div>);
+                    })()}
+                    {/* Border image */}
+                    {item.imageAnimated && item.imageAnimationType === 'pulse' ? (
+                      <div style={{ position: 'absolute', top: '50%', left: '50%', width: `${scale * 100}%`, height: `${scale * 100}%`, transform: `translate(-50%, calc(-50% + ${item.imageOffsetY || 0}px))`, zIndex: 2, pointerEvents: 'none', animation: 'border-breathe-centered 3s ease-in-out infinite' }}>
+                        <FadeImg src={item.imageBorder} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                      </div>
+                    ) : (
+                      <FadeImg src={item.imageBorder} alt={item.name} style={{ position: 'absolute', top: '50%', left: '50%', width: `${scale * 100}%`, height: `${scale * 100}%`, transform: `translate(-50%, calc(-50% + ${item.imageOffsetY || 0}px))`, objectFit: 'contain', zIndex: 2, pointerEvents: 'none', ...(item.imageAnimated ? { animation: 'spin-clockwise 10s linear infinite' } : {}) }} />
+                    )}
+                  </div>
+                ) : item.lottieBorder ? (
+                  <StoreLottieBorder src={item.lottieBorder} glow={glow} />
+                ) : item.auraConfig ? (
+                  <div style={{ position: 'relative', width: size, height: size, overflow: 'visible' }}>
+                    <div style={{ position: 'absolute', top: '50%', left: '50%', width: size + 20, height: size + 20, borderRadius: '50%', background: `radial-gradient(circle, ${item.auraConfig.colors[0]}30 0%, ${(item.auraConfig.colors[1] || item.auraConfig.colors[0])}15 40%, transparent 70%)`, transform: 'translate(-50%, -50%)', animation: item.auraConfig.animated ? `pulse-glow ${item.auraConfig.pulseSpeed || 3}s ease-in-out infinite` : undefined }} />
+                    <div style={{ position: 'absolute', top: '50%', left: '50%', width: size * 0.75, height: size * 0.75, borderRadius: '50%', transform: 'translate(-50%, -50%)', border: `3px solid ${item.auraConfig.colors[0]}CC`, boxShadow: `0 0 8px 3px ${item.auraConfig.colors[0]}AA, 0 0 20px 6px ${item.auraConfig.colors[0]}70, 0 0 36px 10px ${(item.auraConfig.colors[1] || item.auraConfig.colors[0])}50, 0 0 60px 16px ${(item.auraConfig.colors[2] || item.auraConfig.colors[0])}35, inset 0 0 14px 4px ${item.auraConfig.colors[0]}40, inset 0 0 28px 8px ${(item.auraConfig.colors[1] || item.auraConfig.colors[0])}25`, animation: item.auraConfig.animated ? 'aura-rotate 8s linear infinite' : undefined, zIndex: 1 }} />
+                    <div style={{ position: 'absolute', top: '50%', left: '50%', width: size * 0.82, height: size * 0.82, borderRadius: '50%', transform: 'translate(-50%, -50%)', border: `1.5px solid ${(item.auraConfig.colors[1] || item.auraConfig.colors[0])}50`, boxShadow: `0 0 16px 4px ${(item.auraConfig.colors[1] || item.auraConfig.colors[0])}40, 0 0 40px 10px ${(item.auraConfig.colors[2] || item.auraConfig.colors[0])}20`, animation: item.auraConfig.animated ? `pulse-glow ${item.auraConfig.pulseSpeed || 3}s ease-in-out infinite` : undefined, zIndex: 1 }} />
+                    <div style={{ position: 'absolute', top: '50%', left: '50%', width: size * 0.6, height: size * 0.6, borderRadius: '50%', background: 'radial-gradient(circle, #2a2a3a, #1a1a24)', transform: 'translate(-50%, -50%)', zIndex: 3, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 0 12px ${item.auraConfig.colors[0]}80, inset 0 0 8px ${item.auraConfig.colors[0]}30` }}>
+                      <svg width="80" height="80" viewBox="0 0 40 40"><circle cx="20" cy="16" r="7" fill="#555568" /><ellipse cx="20" cy="35" rx="13" ry="10" fill="#4a4a5a" /></svg>
+                    </div>
+                  </div>
+                ) : item.borderConfig ? (
+                  <BorderRing config={item.borderConfig} size={size * 0.8} />
+                ) : null}
             </div>
-          ) : item.lottieBorder ? (
-            <StoreLottieBorder src={item.lottieBorder} glow={glow} />
-          ) : item.auraConfig ? (
-            <div style={{ position: 'relative', width: size, height: size, overflow: 'visible' }}>
-              <div style={{ position: 'absolute', top: '50%', left: '50%', width: size + 20, height: size + 20, borderRadius: '50%', background: `radial-gradient(circle, ${item.auraConfig.colors[0]}30 0%, ${(item.auraConfig.colors[1] || item.auraConfig.colors[0])}15 40%, transparent 70%)`, transform: 'translate(-50%, -50%)', animation: item.auraConfig.animated ? `pulse-glow ${item.auraConfig.pulseSpeed || 3}s ease-in-out infinite` : undefined }} />
-              <div style={{ position: 'absolute', top: '50%', left: '50%', width: size * 0.75, height: size * 0.75, borderRadius: '50%', transform: 'translate(-50%, -50%)', border: `3px solid ${item.auraConfig.colors[0]}CC`, boxShadow: `0 0 8px 3px ${item.auraConfig.colors[0]}AA, 0 0 20px 6px ${item.auraConfig.colors[0]}70, 0 0 36px 10px ${(item.auraConfig.colors[1] || item.auraConfig.colors[0])}50, 0 0 60px 16px ${(item.auraConfig.colors[2] || item.auraConfig.colors[0])}35, inset 0 0 14px 4px ${item.auraConfig.colors[0]}40, inset 0 0 28px 8px ${(item.auraConfig.colors[1] || item.auraConfig.colors[0])}25`, animation: item.auraConfig.animated ? 'aura-rotate 8s linear infinite' : undefined, zIndex: 1 }} />
-              <div style={{ position: 'absolute', top: '50%', left: '50%', width: size * 0.82, height: size * 0.82, borderRadius: '50%', transform: 'translate(-50%, -50%)', border: `1.5px solid ${(item.auraConfig.colors[1] || item.auraConfig.colors[0])}50`, boxShadow: `0 0 16px 4px ${(item.auraConfig.colors[1] || item.auraConfig.colors[0])}40, 0 0 40px 10px ${(item.auraConfig.colors[2] || item.auraConfig.colors[0])}20`, animation: item.auraConfig.animated ? `pulse-glow ${item.auraConfig.pulseSpeed || 3}s ease-in-out infinite` : undefined, zIndex: 1 }} />
-              <div style={{ position: 'absolute', top: '50%', left: '50%', width: size * 0.6, height: size * 0.6, borderRadius: '50%', background: 'radial-gradient(circle, #2a2a3a, #1a1a24)', transform: 'translate(-50%, -50%)', zIndex: 3, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 0 12px ${item.auraConfig.colors[0]}80, inset 0 0 8px ${item.auraConfig.colors[0]}30` }}>
-                <svg width="80" height="80" viewBox="0 0 40 40"><circle cx="20" cy="16" r="7" fill="#555568" /><ellipse cx="20" cy="35" rx="13" ry="10" fill="#4a4a5a" /></svg>
-              </div>
-            </div>
-          ) : item.borderConfig ? (
-            <BorderRing config={item.borderConfig} size={size * 0.8} />
-          ) : null}
-        </div>
           );
         })()}
 

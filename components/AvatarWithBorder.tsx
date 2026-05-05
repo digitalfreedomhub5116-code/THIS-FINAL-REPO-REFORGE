@@ -1,9 +1,9 @@
 /**
- * AvatarWithBorder — Renders avatar with image-based store borders only.
- * Old AnimatedBorder/SVG system has been removed.
- * Only supports PNG image borders from storeItems.ts.
+ * AvatarWithBorder — Renders avatar with image or video-based store borders.
+ * Supports PNG image borders AND video/GIF borders from storeItems.ts.
+ * Uses mix-blend-mode: screen to eliminate black backgrounds from video borders.
  */
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { User as UserIcon } from 'lucide-react';
 import { getItemById } from '../utils/storeItems';
 
@@ -40,6 +40,7 @@ const AvatarWithBorder: React.FC<AvatarWithBorderProps> = ({
   // Resolve as a Store item (image-based border)
   const storeItem = borderId ? getItemById(borderId) : null;
   const hasImageBorder = !!storeItem?.imageBorder;
+  const hasVideoBorder = !!storeItem?.videoBorder;
 
   // Avatar element — perfectly circular, transparent background (no dark square)
   const avatarElement = (
@@ -58,6 +59,61 @@ const AvatarWithBorder: React.FC<AvatarWithBorderProps> = ({
       )}
     </div>
   );
+
+  // ── Video border (GIF/MP4/WebM wrapping avatar) ──
+  if (hasVideoBorder && storeItem) {
+    const cfg = storeItem.borderConfig;
+    const glow = cfg?.glowColor || '#00d4ff';
+    const scale = storeItem.imageScale || 1.0;
+    const outerSize = size + 20;
+    const borderSize = outerSize * scale;
+    const offsetY = (storeItem as any).imageOffsetY || 0;
+
+    return (
+      <div
+        className={`relative ${className}`}
+        style={{
+          width: outerSize,
+          height: outerSize,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          overflow: 'visible',
+          ...safeStyle,
+        }}
+      >
+        {/* Avatar (centred) */}
+        <div
+          style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            zIndex: 1,
+          }}
+        >
+          {avatarElement}
+        </div>
+
+        {/* Video border overlay */}
+        <div
+          style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            width: borderSize,
+            height: borderSize,
+            transform: `translate(-50%, calc(-50% + ${offsetY}px))`,
+            pointerEvents: 'none',
+            zIndex: 2,
+            mixBlendMode: 'screen'
+          }}
+        >
+          <BorderVideo src={storeItem.videoBorder!} />
+        </div>
+      </div>
+    );
+  }
 
   // ── Image border (PNG wrapping avatar) ──
   if (hasImageBorder && storeItem) {
@@ -202,6 +258,78 @@ function BorderImage({ src, isAnimated, animType, glowColor, borderId }: { src: 
           100% { background-position: -200% 0; }
         }
       `}</style>
+    </>
+  );
+}
+
+/**
+ * Video/GIF border overlay — uses mix-blend-mode: screen to remove black background.
+ * For GIFs: renders as <img> (GIFs autoplay natively).
+ * For MP4/WebM: renders as <video> with autoplay, loop, muted.
+ */
+export function BorderVideo({ src, glowColor, borderId }: { src: string; glowColor?: string; borderId?: string }) {
+  const [loaded, setLoaded] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const isGif = src.toLowerCase().endsWith('.gif');
+  const isVideo = /\.(mp4|webm|mov)$/i.test(src);
+
+  useEffect(() => {
+    if (isVideo && videoRef.current) {
+      videoRef.current.play().catch(() => {});
+    }
+  }, [src, isVideo]);
+
+  const mediaStyle: React.CSSProperties = {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+    opacity: loaded ? 1 : 0,
+    transition: 'opacity 0.3s ease',
+  };
+
+  const filterStyle: React.CSSProperties = {
+    width: '100%',
+    height: '100%',
+    borderRadius: '50%',
+    overflow: 'hidden',
+    // The filter crushes the compression artifacts (dark grays) into true #000000 black.
+    // We isolate the filter in this child div, while the parent div handles mix-blend-mode.
+    filter: `contrast(1.6) brightness(0.8) ${glowColor && GLOW_WHITELIST.has(borderId || '') ? `drop-shadow(0 0 6px ${glowColor})` : ''}`.trim(),
+  };
+
+  return (
+    <>
+      {!loaded && (
+        <div
+          className="absolute inset-0 rounded-full"
+          style={{
+            background: 'linear-gradient(110deg, rgba(0,212,255,0.04) 30%, rgba(0,212,255,0.1) 50%, rgba(0,212,255,0.04) 70%)',
+            backgroundSize: '200% 100%',
+            animation: 'skeleton-shimmer 1.5s ease-in-out infinite',
+          }}
+        />
+      )}
+      <div style={filterStyle}>
+        {isGif ? (
+          <img
+            src={src}
+            alt=""
+            style={mediaStyle}
+            onLoad={() => setLoaded(true)}
+          />
+        ) : (
+          <video
+            ref={videoRef}
+            src={src}
+            autoPlay
+            loop
+            muted
+            playsInline
+            style={mediaStyle}
+            onLoadedData={() => setLoaded(true)}
+          />
+        )}
+      </div>
     </>
   );
 }

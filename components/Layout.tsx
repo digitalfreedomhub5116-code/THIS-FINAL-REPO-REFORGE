@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { LogOut, Edit3, Trash2 } from 'lucide-react';
+import { LogOut, Edit3, Trash2, Bell } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SystemNotification, ReplitUser } from '../types';
 import { useThemeContext } from '../hooks/useTheme';
@@ -476,33 +476,105 @@ const Layout: React.FC<LayoutProps> = ({
                 </div>
               </div>
 
-              {/* RIGHT: Keys + Streak + Gold */}
-              <div id="tut-gold-display" className="flex items-center gap-3 flex-shrink-0">
+              {/* RIGHT: Keys + Streak + Notifications */}
+              <div id="tut-gold-display" className="flex items-center gap-5 flex-shrink-0">
 
                 {/* Keys */}
-                <div className="flex items-center gap-1">
-                  <img src="/assets/key-icon.png" alt="Keys" width={24} height={24} style={{ width: 24, height: 24, objectFit: 'contain', flexShrink: 0 }} loading="eager" draggable={false} />
-                  <span className="font-mono text-[16px] font-black whitespace-nowrap" style={{ color: '#00d4ff', textShadow: '0 0 6px rgba(0,212,255,0.3)' }}><AnimatedCounter value={keys} /></span>
+                <div className="flex items-center gap-1.5">
+                  <img src="/assets/key-icon.png" alt="Keys" width={22} height={22} style={{ width: 22, height: 22, objectFit: 'contain', flexShrink: 0 }} loading="eager" draggable={false} />
+                  <span className="font-mono text-[15px] font-black whitespace-nowrap" style={{ color: '#00d4ff', textShadow: '0 0 8px rgba(0,212,255,0.4)', fontVariantNumeric: 'tabular-nums' }}><AnimatedCounter value={keys} /></span>
                 </div>
 
                 {/* Streak */}
-                <div id="user-streak-count" className="flex items-center gap-1">
-                  <img src="/assets/fire-image.png" alt="Streak" width={20} height={20} style={{ width: 20, height: 20, objectFit: 'contain', flexShrink: 0 }} loading="eager" draggable={false} />
-                  <span className="font-mono text-[16px] font-black text-orange-400 whitespace-nowrap" style={{ textShadow: '0 0 6px rgba(249,115,22,0.3)' }}><AnimatedCounter value={streak} /></span>
+                <div id="user-streak-count" className="flex items-center gap-1.5">
+                  <img src="/assets/fire-image.png" alt="Streak" width={22} height={22} style={{ width: 22, height: 22, objectFit: 'contain', flexShrink: 0 }} loading="eager" draggable={false} />
+                  <span className="font-mono text-[15px] font-black text-orange-400 whitespace-nowrap" style={{ textShadow: '0 0 8px rgba(249,115,22,0.4)', fontVariantNumeric: 'tabular-nums' }}><AnimatedCounter value={streak} /></span>
                 </div>
 
-                {/* Gold */}
-                <button
-                  id="gold-header-btn"
-                  onClick={!headerDisabled ? onGoldClick : undefined}
-                  disabled={headerDisabled}
-                  className="flex items-center gap-px transition-all active:scale-95"
-                >
-                  <div className="flex items-center justify-center" style={{ width: 20 }}>
-                    <AnimatedCoinIcon size={20} />
-                  </div>
-                  <span id="user-wallet-balance" className="font-mono text-[16px] font-black whitespace-nowrap" style={{ color: '#F0B232', textShadow: '0 0 6px rgba(240,178,50,0.3)' }}><AnimatedCounter value={gold} /></span>
-                </button>
+                {/* Notification Bell */}
+                <div className="relative" ref={notifRef}>
+                  <button
+                    onClick={handleOpenNotifications}
+                    className="relative flex items-center justify-center rounded-xl transition-all active:scale-90"
+                    style={{
+                      width: 36, height: 36,
+                      background: showNotifications ? 'rgba(0,212,255,0.12)' : 'rgba(255,255,255,0.05)',
+                      border: showNotifications ? '1px solid rgba(0,212,255,0.25)' : '1px solid rgba(255,255,255,0.08)',
+                    }}
+                    aria-label="Notifications"
+                  >
+                    <Bell size={18} style={{ color: showNotifications ? '#00d4ff' : 'rgba(255,255,255,0.5)' }} />
+                    {hasUnreadNotifications && (
+                      <div
+                        className="absolute"
+                        style={{
+                          top: 6, right: 6,
+                          width: 8, height: 8, borderRadius: '50%',
+                          background: '#ef4444',
+                          border: '2px solid rgba(6,6,16,0.95)',
+                          boxShadow: '0 0 6px rgba(239,68,68,0.5)',
+                        }}
+                      />
+                    )}
+                  </button>
+
+                  {/* Notification dropdown */}
+                  <AnimatePresence>
+                    {showNotifications && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -8, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute right-0 top-full mt-2 w-72 rounded-2xl z-50 overflow-hidden"
+                        style={isLight ? glassDropdownLight : glassDropdownDark}
+                      >
+                        <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
+                          <span className="text-[11px] font-mono font-bold tracking-[0.2em] uppercase" style={{ color: 'rgba(255,255,255,0.5)' }}>Notifications</span>
+                          {notificationHistory.length > 0 && onClearNotificationHistory && (
+                            <button
+                              onClick={() => { onClearNotificationHistory(); setShowNotifications(false); }}
+                              className="flex items-center gap-1 text-[9px] font-mono text-gray-600 hover:text-red-400 transition-colors"
+                            >
+                              <Trash2 size={10} /> Clear
+                            </button>
+                          )}
+                        </div>
+                        <div className="max-h-64 overflow-y-auto">
+                          {notificationHistory.length === 0 ? (
+                            <div className="px-4 py-6 text-center">
+                              <div className="text-gray-600 text-[10px] font-mono">No notifications yet</div>
+                            </div>
+                          ) : (
+                            notificationHistory.slice(0, 15).map((n, i) => (
+                              <div
+                                key={i}
+                                className="px-4 py-2.5 border-b border-white/[0.03] last:border-0"
+                              >
+                                <div className="flex items-start gap-2">
+                                  <div className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${notifDot[n.type] || 'bg-gray-500'}`} />
+                                  <div className="min-w-0">
+                                    <div className={`text-[11px] font-bold font-mono ${notifTypeColor[n.type] || 'text-gray-400'}`}>
+                                      {n.type.replace(/_/g, ' ')}
+                                    </div>
+                                    <div className="text-[9px] text-gray-500 font-mono mt-0.5 leading-relaxed">
+                                      {n.message}
+                                    </div>
+                                    {n.timestamp && (
+                                      <div className="text-[8px] text-gray-700 font-mono mt-1">
+                                        {new Date(n.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
 
               </div>
             </div>

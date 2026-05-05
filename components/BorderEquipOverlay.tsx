@@ -15,6 +15,7 @@ import gsap from 'gsap';
 import confetti from 'canvas-confetti';
 import Lottie from 'lottie-react';
 import type { StoreItem } from '../utils/storeItems';
+import { BorderVideo } from './AvatarWithBorder';
 
 interface BorderEquipOverlayProps {
   show: boolean;
@@ -315,6 +316,7 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
   if (!visible || !borderItem) return null;
 
   const borderImgSrc = borderItem.imageBorder;
+  const borderVideoSrc = borderItem.videoBorder;
   const hasLottie = !!borderItem.lottieBorder;
   const isAnimated = borderItem.imageAnimated;
   const animType = (borderItem as any).imageAnimationType;
@@ -437,8 +439,26 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
           )}
         </div>
 
-        {/* ── PNG Image Border — stamps from above, properly centered ── */}
-        {borderImgSrc && (
+        {/* ── Video Border (GIF/MP4) ── */}
+        {borderVideoSrc ? (
+          <div
+            ref={borderRef}
+            style={{
+              position: 'absolute',
+              top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+              width: borderDisplaySize,
+              height: borderDisplaySize,
+              zIndex: 11, pointerEvents: 'none',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              mixBlendMode: 'screen'
+            }}
+          >
+            <div style={{ width: '100%', height: '100%', transform: `translateY(${borderItem.imageOffsetY || 0}px)` }}>
+              <BorderVideo src={borderItem.videoBorder!} />
+            </div>
+          </div>
+        ) : /* ── PNG Image Border ── */
+        borderImgSrc ? (
           <div
             ref={borderRef}
             style={{
@@ -463,10 +483,10 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
               }}
             />
           </div>
-        )}
+        ) : null}
 
         {/* ── Lottie Animated Border ── */}
-        {!borderImgSrc && hasLottie && (
+        {!borderImgSrc && !borderVideoSrc && hasLottie && (
           <div
             ref={borderRef}
             style={{
@@ -494,7 +514,7 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
         )}
 
         {/* Aura border fallback (no image, no lottie) */}
-        {!borderImgSrc && !hasLottie && borderItem.auraConfig && (
+        {!borderImgSrc && !borderVideoSrc && !hasLottie && borderItem.auraConfig && (
           <div
             ref={borderRef}
             style={{
@@ -510,7 +530,7 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
         )}
 
         {/* CSS border fallback */}
-        {!borderImgSrc && !hasLottie && !borderItem.auraConfig && borderItem.borderConfig && (
+        {!borderImgSrc && !borderVideoSrc && !hasLottie && !borderItem.auraConfig && borderItem.borderConfig && (
           <div
             ref={borderRef}
             style={{

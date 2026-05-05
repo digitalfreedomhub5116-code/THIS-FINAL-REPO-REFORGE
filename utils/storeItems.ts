@@ -20,6 +20,8 @@ export interface StoreItem {
   borderConfig?: BorderConfig;
   /** For borders: image path (used with mix-blend-mode: screen) */
   imageBorder?: string;
+  /** For borders: video/GIF path (used with mix-blend-mode: screen to remove black bg) */
+  videoBorder?: string;
   /** For borders: scale multiplier for image overlay (default 1.0) */
   imageScale?: number;
   /** For borders: vertical offset in px (positive = down) */
@@ -106,6 +108,13 @@ export const BORDERS_ELEMENTS: StoreItem[] = [
     imageBorder: '/borders/border-frost-tech.webp',
     imageScale: 1.05,
     borderConfig: { colors: ['#00CED1', '#87CEEB', '#E0FFFF'], strokeWidth: 3, animated: false, glowColor: '#00CED1', glowIntensity: 0.8 },
+  },
+  {
+    id: 'border-video-neon', name: 'Neon Pulse Ring', category: 'border', tier: 'legendary', price: 10000, tierColor: ELEMENTS_COLOR,
+    description: 'Animated neon energy pulses around your avatar — alive and electric.',
+    videoBorder: '/borders/videoborder1.gif',
+    imageScale: 1.15,
+    borderConfig: { colors: ['#00d4ff', '#ff00ff', '#00ff88'], strokeWidth: 3, animated: false, glowColor: '#00d4ff', glowIntensity: 0.9 },
   },
 ];
 
