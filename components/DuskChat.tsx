@@ -12,6 +12,7 @@ interface DuskChatProps {
   updatePlayer?: (updater: (prev: PlayerData) => PlayerData) => void;
   onClose: () => void;
   onMarkRead?: () => void;
+  onWatchAdForKeys?: () => Promise<boolean>;
 }
 
 interface Message {
@@ -131,7 +132,7 @@ const SuggestionChip: React.FC<ChipProps> = ({ icon, label, onClick }) => (
 );
 
 
-const DuskChat: React.FC<DuskChatProps> = ({ player, updatePlayer, onClose, onMarkRead }) => {
+const DuskChat: React.FC<DuskChatProps> = ({ player, updatePlayer, onClose, onMarkRead, onWatchAdForKeys }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -460,6 +461,19 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, updatePlayer, onClose, onMa
                   <span className={`text-[9px] font-mono font-bold ${hasKeys ? 'text-[#00d4ff]/50' : 'text-red-500'}`}>
                     {hasKeys ? `${player.keys ?? 10} 🔑 KEYS • 1 / msg` : 'NO KEYS'}
                   </span>
+                  {onWatchAdForKeys && (
+                    <button
+                      onClick={async () => { await onWatchAdForKeys(); }}
+                      className="ml-2 px-2 py-0.5 rounded text-[8px] font-black font-mono uppercase tracking-wider transition-all active:scale-95"
+                      style={{
+                        background: 'rgba(168,85,247,0.15)',
+                        border: '1px solid rgba(168,85,247,0.3)',
+                        color: '#a855f7',
+                      }}
+                    >
+                      ▶ +3 Keys
+                    </button>
+                  )}
                 </motion.div>
 
                 {/* Suggestion Chips */}

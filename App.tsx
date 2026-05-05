@@ -221,6 +221,9 @@ const Level5Tutorial = lazy(() => import('./components/Level5Tutorial'));
 
 const Level10Tutorial = lazy(() => import('./components/Level10Tutorial'));
 
+const RewardCelebration = lazy(() => import('./components/RewardCelebration'));
+
+import { useAdMob, AD_UNITS } from './hooks/useAdMob';
 
 
 /** Skeleton-loaded promo card background image */
@@ -342,6 +345,7 @@ const App: React.FC = () => {
 
   } = useSystem();
 
+  const { showRewardedAd, showInterstitialAd } = useAdMob();
 
 
   const sensors = useSensors();
@@ -3933,6 +3937,27 @@ const App: React.FC = () => {
                   onClose={() => setShowDuskChat(false)}
 
                   onMarkRead={markDuskMessagesRead}
+
+                  onWatchAdForKeys={async () => {
+                    const result = await showRewardedAd(AD_UNITS.KEY_REWARD);
+                    if (result.rewarded) {
+                      try {
+                        const res = await fetch(`${API_BASE}/api/economy/ad-reward`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
+                          credentials: 'include',
+                          body: JSON.stringify({ rewardType: 'keys' }),
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                          setPlayer(p => ({ ...p, keys: data.keys }));
+                          addNotification(`+${data.granted} 🔑 Keys earned!`, 'SUCCESS');
+                        }
+                      } catch (e) { console.error('[AdReward]', e); }
+                      return true;
+                    }
+                    return false;
+                  }}
 
                 />
 
