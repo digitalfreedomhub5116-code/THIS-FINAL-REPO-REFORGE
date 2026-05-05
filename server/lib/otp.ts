@@ -35,27 +35,54 @@ export function generateOtp(): string {
 export async function storeOtp(email: string, otp: string): Promise<void> {
   const hashedOtp = crypto.createHash('sha256').update(otp).digest('hex');
   const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000).toISOString();
+  const normalizedEmail = email.toLowerCase();
 
   // Delete any existing OTPs for this email
-  await (supabaseServer() as any)
+  const { error: delError, count: delCount } = await (supabaseServer() as any)
     .from('email_otps')
     .delete()
-    .eq('email', email.toLowerCase());
+    .eq('email', normalizedEmail);
+
+  if (delError) {
+    console.error('[OTP] Delete existing OTP failed:', delError);
+    // Don't throw — the insert might still work if there was nothing to delete
+  } else {
+    console.log(`[OTP] Deleted ${delCount ?? '?'} existing OTPs for ${normalizedEmail}`);
+  }
 
   // Insert new OTP
-  const { error } = await (supabaseServer() as any)
+  const { error, data: insertData } = await (supabaseServer() as any)
     .from('email_otps')
     .insert({
-      email: email.toLowerCase(),
+      email: normalizedEmail,
       otp_hash: hashedOtp,
       expires_at: expiresAt,
       attempts: 0,
-    });
+    })
+    .select();
 
   if (error) {
-    console.error('[OTP] Failed to store OTP:', error);
-    throw new Error('Failed to store verification code');
+    console.error('[OTP] Failed to store OTP:', JSON.stringify(error));
+    throw new Error(`Failed to store verification code: ${error.message || error.code}`);
   }
+
+  console.log(`[OTP] Stored OTP for ${normalizedEmail}, inserted rows: ${insertData?.length ?? 0}`);
+
+  // Verify the OTP was actually stored (catches silent RLS blocks)
+  const { data: verifyData, error: verifyError } = await (supabaseServer() as any)
+    .from('email_otps')
+    .select('email, expires_at')
+    .eq('email', normalizedEmail)
+    .maybeSingle();
+
+  if (verifyError || !verifyData) {
+    console.error('[OTP] CRITICAL: OTP was inserted but cannot be read back!', 
+      'This likely means RLS is enabled on email_otps table.',
+      'Error:', verifyError);
+    throw new Error('OTP storage verification failed — check RLS policies on email_otps table');
+  }
+
+  console.log(`[OTP] Verified OTP readable for ${normalizedEmail}, expires: ${verifyData.expires_at}`);
 }
 
 /**
@@ -71,7 +98,9 @@ export async function verifyOtp(email: string, otp: string): Promise<{ valid: bo
     .from('email_otps')
     .select('*')
     .eq('email', normalizedEmail)
-    .single();
+    .maybeSingle();
+
+  console.log(`[OTP Verify] Lookup for ${normalizedEmail}: data=${data ? 'found' : 'null'}, error=${error ? JSON.stringify(error) : 'none'}`);
 
   if (error || !data) {
     return { valid: false, error: 'No verification code found. Please request a new one.' };
