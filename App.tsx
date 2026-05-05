@@ -4810,6 +4810,22 @@ const App: React.FC = () => {
 
                     onGoldUpdate={(newGold) => setPlayer(prev => ({ ...prev, gold: newGold }))}
 
+                    onWatchAdForBorder={async (borderId: string) => {
+                      const result = await showRewardedAd(AD_UNITS.BORDER_REWARD);
+                      if (result.rewarded) {
+                        try {
+                          const res = await fetch(`${API_BASE}/api/inventory/purchase`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
+                            credentials: 'include',
+                            body: JSON.stringify({ itemId: borderId, itemType: 'border', price: 0, source: 'ad_reward' }),
+                          });
+                          if (res.ok) return true;
+                        } catch (e) { console.error('[AdBorder]', e); }
+                      }
+                      return false;
+                    }}
+
                   />
 
                 </ErrorBoundary>

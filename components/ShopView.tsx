@@ -71,6 +71,8 @@ interface ShopViewProps {
   playerAvatarUrl?: string | null;
   /** Called after a server-confirmed purchase to update parent gold state */
   onGoldUpdate?: (newGold: number) => void;
+  /** Watch ad to unlock a premium border */
+  onWatchAdForBorder?: (borderId: string) => Promise<boolean>;
 }
 
 
@@ -371,6 +373,7 @@ const ShopView: React.FC<ShopViewProps> = ({
   initialStoreTab,
   playerAvatarUrl,
   onGoldUpdate,
+  onWatchAdForBorder,
 }) => {
   const [storeTab, setStoreTab] = useState<'OUTFITS' | 'BADGES' | 'BORDERS' | 'DEALS' | 'ITEMS' | 'THEMES' | 'BANNERS_SHOP'>(initialStoreTab || 'OUTFITS');
   const [showMore, setShowMore] = useState(false);
@@ -1476,11 +1479,50 @@ const ShopView: React.FC<ShopViewProps> = ({
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>Confirm purchase?</div>
             <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginBottom: 16, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{confirmPurchaseItem.category}</div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 20 }}>
-              <SystemCoin size={22} />
-              <span style={{ fontSize: 20, fontWeight: 900, color: '#fbbf24' }}>{confirmPurchaseItem.price}</span>
+              {confirmPurchaseItem.adUnlock ? (
+                <span style={{ fontSize: 14, fontWeight: 900, color: '#a855f7', letterSpacing: '0.05em' }}>▶ WATCH AD TO UNLOCK</span>
+              ) : (
+                <>
+                  <SystemCoin size={22} />
+                  <span style={{ fontSize: 20, fontWeight: 900, color: '#fbbf24' }}>{confirmPurchaseItem.price}</span>
+                </>
+              )}
             </div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
               <button disabled={purchasing} onClick={() => setConfirmPurchaseItem(null)} style={{ padding: '10px 28px', borderRadius: 12, cursor: 'pointer', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: 700 }}>Cancel</button>
+              {confirmPurchaseItem.adUnlock && onWatchAdForBorder ? (
+                <button disabled={purchasing} onClick={async () => {
+                  const item = confirmPurchaseItem;
+                  setPurchasing(true);
+                  try {
+                    const success = await onWatchAdForBorder(item.id);
+                    if (success) {
+                      // Add to inventory locally
+                      setServerInventory(prev => [...prev, { item_id: item.id, item_type: item.category, source: 'ad_reward' }]);
+                      const p = kitPurchaseItem(item.id, 0);
+                      if (p) setKitEconomy(p);
+                      if (item.category === 'border') {
+                        handleKitEquip('border', item.id);
+                        setEquipAnimItem(item);
+                        setPurchasePhase('transitioning');
+                        setShowEquipAnim(true);
+                        setTimeout(() => { setConfirmPurchaseItem(null); setPurchasePhase('idle'); setPurchasing(false); }, 350);
+                      } else {
+                        setConfirmPurchaseItem(null); setPurchasing(false); setPurchasePhase('idle');
+                      }
+                    } else {
+                      setPurchasing(false);
+                    }
+                  } catch { setPurchasing(false); }
+                }} style={{
+                  padding: '10px 28px', borderRadius: 12, cursor: purchasing ? 'wait' : 'pointer',
+                  background: 'linear-gradient(135deg, #a855f7, #7c3aed)', border: 'none',
+                  color: '#fff', fontSize: 12, fontWeight: 900,
+                  boxShadow: '0 0 20px rgba(168,85,247,0.3)', opacity: purchasing ? 0.6 : 1,
+                }}>
+                  {purchasing ? 'Loading...' : '▶ Watch Ad'}
+                </button>
+              ) : (
               <button disabled={purchasing} onClick={async () => {
                 const item = confirmPurchaseItem;
                 setPurchasing(true);
@@ -1535,6 +1577,7 @@ const ShopView: React.FC<ShopViewProps> = ({
               }}>
                 {purchasing ? 'Buying...' : 'Buy Now'}
               </button>
+              )}
             </div>
           </div>
           )}
