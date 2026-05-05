@@ -182,7 +182,6 @@ router.post('/verify-otp', async (req, res) => {
         email: normalizedEmail,
         password_hash: pending.password_hash,
         auth_type: 'local',
-        email_verified: true,
         level: 1,
         current_xp: 0,
         required_xp: 100,
