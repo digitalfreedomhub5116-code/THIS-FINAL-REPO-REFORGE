@@ -1550,6 +1550,8 @@ const ShopView: React.FC<ShopViewProps> = ({
                       if (!resp.ok) {
                         const errData = await resp.json().catch(() => ({}));
                         console.error('[Store] Purchase failed:', errData);
+                        const msg = errData.error || 'Purchase failed';
+                        alert(`Purchase failed: ${msg}`);
                         setPurchasing(false); setPurchasePhase('idle'); setConfirmPurchaseItem(null); return;
                       }
                       const { gold: newGold } = await resp.json();

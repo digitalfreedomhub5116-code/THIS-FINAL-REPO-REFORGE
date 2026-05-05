@@ -22,6 +22,7 @@ const STORE_PRICES: Record<string, number> = {
   'border-starcrown-img': 900,
   'border-elemental-tide': 2800,
   'border-frost-tech': 8900,
+  'border-video-neon': 10000,
   // ── Borders: BEASTS ──
   'border-dragon-img': 1200,
   'border-stitched-dragon': 3600,
