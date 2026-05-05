@@ -288,8 +288,8 @@ export function BorderVideo({ src, glowColor, borderId }: { src: string; glowCol
   };
 
   const filterStyle: React.CSSProperties = {
-    width: '100%',
-    height: '100%',
+    width: '95%',
+    height: '95%',
     borderRadius: '50%',
     overflow: 'hidden',
     // The filter crushes the compression artifacts (dark grays) into true #000000 black.
@@ -298,7 +298,7 @@ export function BorderVideo({ src, glowColor, borderId }: { src: string; glowCol
   };
 
   return (
-    <>
+    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
       {!loaded && (
         <div
           className="absolute inset-0 rounded-full"
@@ -330,7 +330,7 @@ export function BorderVideo({ src, glowColor, borderId }: { src: string; glowCol
           />
         )}
       </div>
-    </>
+    </div>
   );
 }
 
