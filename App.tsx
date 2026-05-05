@@ -660,7 +660,7 @@ const App: React.FC = () => {
   const [healthSubTab, setHealthSubTab] = useState<'WORKOUT' | 'NUTRITION' | 'SKILLS' | undefined>(undefined);
   const [storeInitialTab, setStoreInitialTab] = useState<'OUTFITS' | 'BADGES' | 'BORDERS' | 'DEALS' | 'THEMES' | 'BANNERS_SHOP' | undefined>(undefined);
 
-  // ── RevenueCat (Premium / Mana Power) ──
+  // ── RevenueCat (Premium / Reforge Pro) ──
   const [rcState, rcActions] = useRevenueCat();
   const isPremium = rcState.hasManaPower;
   const [showManaPowerUpsell, setShowManaPowerUpsell] = useState(false);
@@ -3951,11 +3951,12 @@ const App: React.FC = () => {
             </Suspense>
           )}
 
-          {/* ── Mana Power Subscription Screen ── */}
-          <AnimatePresence>
-            {showManaPowerUpsell && (
-              <Suspense fallback={null}>
+          {/* ── Reforge Pro Subscription Screen ── */}
+          <Suspense fallback={null}>
+            <AnimatePresence>
+              {showManaPowerUpsell && (
                 <ManaPowerScreen
+                  key="reforge-pro-screen"
                   onClose={() => setShowManaPowerUpsell(false)}
                   offerings={rcState.offerings}
                   isPurchasing={rcState.isPurchasing}
@@ -3964,7 +3965,7 @@ const App: React.FC = () => {
                     const result = await rcActions.purchasePackage(pkg);
                     if (result.success) {
                       setShowManaPowerUpsell(false);
-                      addNotification('⚡ Mana Power Activated! Your full potential is unlocked.', 'SUCCESS');
+                      addNotification('⚡ Reforge Pro Activated! Your full potential is unlocked.', 'SUCCESS');
                     }
                     return result;
                   }}
@@ -3972,13 +3973,13 @@ const App: React.FC = () => {
                     await rcActions.restorePurchases();
                     if (rcState.hasManaPower) {
                       setShowManaPowerUpsell(false);
-                      addNotification('✅ Purchase Restored — Mana Power is active again!', 'SUCCESS');
+                      addNotification('✅ Purchase Restored — Reforge Pro is active again!', 'SUCCESS');
                     }
                   }}
                 />
-              </Suspense>
-            )}
-          </AnimatePresence>
+              )}
+            </AnimatePresence>
+          </Suspense>
 
           {xpCollection && (
 

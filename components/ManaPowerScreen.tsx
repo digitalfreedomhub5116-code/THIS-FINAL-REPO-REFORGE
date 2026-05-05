@@ -20,7 +20,7 @@ const PERKS = [
   { icon: Calendar, label: 'AI Schedule Forge', desc: 'Auto-generate your perfect daily schedule', color: '#f87171' },
   { icon: Sparkles, label: '2× XP Boost', desc: 'Level up twice as fast', color: '#f59e0b' },
   { icon: Shield, label: 'No Ads Ever', desc: 'Clean, distraction-free experience', color: '#60a5fa' },
-  { icon: Crown, label: 'Exclusive Border', desc: 'Mana Power subscriber-only cosmetic', color: '#facc15' },
+  { icon: Crown, label: 'Exclusive Border', desc: 'Reforge Pro subscriber-only cosmetic', color: '#facc15' },
 ];
 
 type PlanKey = 'weekly' | 'monthly' | 'yearly';
@@ -90,7 +90,7 @@ const ManaPowerScreen: React.FC<ManaPowerScreenProps> = ({
       style={{ background: '#060610' }}
     >
       {/* Close button */}
-      <div className="flex justify-end px-4 pt-3 pb-1">
+      <div className="flex justify-end px-4 pb-1" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}>
         <button
           onClick={onClose}
           className="w-8 h-8 flex items-center justify-center rounded-full"
@@ -124,7 +124,7 @@ const ManaPowerScreen: React.FC<ManaPowerScreenProps> = ({
             transition={{ delay: 0.15 }}
             className="text-[28px] font-black text-white leading-tight mb-1"
           >
-            Mana Power
+            Reforge Pro
           </motion.h1>
           <motion.p
             initial={{ y: 10, opacity: 0 }}
@@ -229,7 +229,7 @@ const ManaPowerScreen: React.FC<ManaPowerScreenProps> = ({
           {isPurchasing ? (
             <><Loader2 size={18} className="animate-spin" /> Processing...</>
           ) : (
-            <><Crown size={18} /> Subscribe to Mana Power</>
+            <><Crown size={18} /> Subscribe to Reforge Pro</>
           )}
         </motion.button>
 

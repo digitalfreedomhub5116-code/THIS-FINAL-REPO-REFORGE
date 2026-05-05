@@ -342,7 +342,7 @@ const GoalHeroSection: React.FC<GoalHeroSectionProps> = ({ goals, onCreateGoal, 
               style={{ background: 'rgba(250,204,21,0.1)', border: '1px solid rgba(250,204,21,0.2)' }}>
               <Zap size={10} style={{ color: '#facc15' }} />
               <span className="text-[8px] font-mono font-bold tracking-[0.2em] uppercase" style={{ color: '#facc15' }}>
-                Mana Power
+                Reforge Pro
               </span>
             </div>
 
@@ -384,7 +384,7 @@ const GoalHeroSection: React.FC<GoalHeroSectionProps> = ({ goals, onCreateGoal, 
             </motion.button>
 
             <p className="text-center text-[9px] text-gray-600 font-mono mt-2">
-              Part of Mana Power subscription
+              Part of Reforge Pro subscription
             </p>
           </div>
         </motion.div>

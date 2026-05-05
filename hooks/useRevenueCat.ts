@@ -5,7 +5,7 @@
  * - SDK initialization (Android/iOS/Web fallback)
  * - Fetching available offerings (subscriptions + consumables)
  * - Making purchases
- * - Checking entitlements (e.g., "mana_power" subscription)
+ * - Checking entitlements (e.g., "Reforge Pro" subscription)
  * - Restoring purchases
  *
  * Product IDs (configure these in Google Play Console + RevenueCat dashboard):
@@ -63,7 +63,7 @@ export interface RevenueCatState {
   offerings: PurchasesOfferings | null;
   /** Current customer info (entitlements, etc.) */
   customerInfo: CustomerInfo | null;
-  /** Whether the user has an active "mana_power" subscription */
+  /** Whether the user has an active "Reforge Pro" subscription */
   hasManaPower: boolean;
   /** Whether a purchase is in progress */
   isPurchasing: boolean;
@@ -143,7 +143,7 @@ export function useRevenueCat(): [RevenueCatState, RevenueCatActions] {
     })();
   }, [isNative, platform]);
 
-  // ── Derived: has active Mana Power subscription ──
+  // ── Derived: has active Reforge Pro subscription ──
   const hasManaPower = !!customerInfo?.entitlements?.active?.[ENTITLEMENT_MANA_POWER];
 
   // ── Purchase a package ──
