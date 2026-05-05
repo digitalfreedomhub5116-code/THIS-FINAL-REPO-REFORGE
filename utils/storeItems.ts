@@ -156,6 +156,8 @@ export const BORDERS_BEASTS: StoreItem[] = [
     imageBorder: '/borders/border-eagle.webp',
     imageScale: 1.1,
     imageOffsetY: 3,
+    previewBorderScale: 0.82,
+    previewPfpScale: 0.52,
     borderConfig: { colors: ['#B87333', '#C8A84E', '#DAA520'], strokeWidth: 3, animated: false, glowColor: '#B87333', glowIntensity: 0.8 },
   },
   {

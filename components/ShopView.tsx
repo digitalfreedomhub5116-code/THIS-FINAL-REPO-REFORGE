@@ -2074,16 +2074,24 @@ function KitBorderPreviewModal({ item, onClose, owned, equipped, canAfford, onBu
             </div>
           ) : item.imageBorder ? (
             <div style={{ position: 'relative', width: previewSize, height: previewSize }}>
-              <div style={{ position: 'absolute', top: '50%', left: '50%', width: pfpSize, height: pfpSize, borderRadius: '50%', background: 'radial-gradient(circle, #3a3a4a, #1a1a24)', transform: 'translate(-50%, -50%)', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                <svg width="70" height="70" viewBox="0 0 40 40"><circle cx="20" cy="16" r="7" fill="#555568" /><ellipse cx="20" cy="35" rx="13" ry="10" fill="#4a4a5a" /></svg>
-              </div>
-              {item.imageAnimated && item.imageAnimationType === 'pulse' ? (
-                <div style={{ position: 'absolute', inset: 0, zIndex: 2, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'border-breathe-centered 3s ease-in-out infinite' }}>
-                  <FadeImg src={item.imageBorder} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                </div>
-              ) : (
-                <FadeImg src={item.imageBorder} alt={item.name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', zIndex: 2, pointerEvents: 'none', ...(item.imageAnimated ? { animation: 'spin-clockwise 10s linear infinite' } : {}) }} />
-              )}
+              {(() => {
+                const bdrScale = (item as any).previewBorderScale || 1;
+                const pfpScale = (item as any).previewPfpScale || 0.4;
+                const thisPfp = previewSize * pfpScale;
+                const bdrPx = previewSize * bdrScale;
+                return (<>
+                  <div style={{ position: 'absolute', top: '50%', left: '50%', width: thisPfp, height: thisPfp, borderRadius: '50%', background: 'radial-gradient(circle, #3a3a4a, #1a1a24)', transform: 'translate(-50%, -50%)', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                    <svg width="70" height="70" viewBox="0 0 40 40"><circle cx="20" cy="16" r="7" fill="#555568" /><ellipse cx="20" cy="35" rx="13" ry="10" fill="#4a4a5a" /></svg>
+                  </div>
+                  {item.imageAnimated && item.imageAnimationType === 'pulse' ? (
+                    <div style={{ position: 'absolute', top: '50%', left: '50%', width: bdrPx, height: bdrPx, transform: 'translate(-50%, -50%)', zIndex: 2, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'border-breathe-centered 3s ease-in-out infinite' }}>
+                      <FadeImg src={item.imageBorder} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                    </div>
+                  ) : (
+                    <FadeImg src={item.imageBorder} alt={item.name} style={{ position: 'absolute', top: '50%', left: '50%', width: bdrPx, height: bdrPx, transform: 'translate(-50%, -50%)', objectFit: 'contain', zIndex: 2, pointerEvents: 'none', ...(item.imageAnimated ? { animation: 'spin-clockwise 10s linear infinite' } : {}) }} />
+                  )}
+                </>);
+              })()}
             </div>
           ) : item.lottieBorder ? (
             <StoreLottieBorder src={item.lottieBorder} glow={glow} />
