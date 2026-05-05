@@ -884,7 +884,8 @@ export const useSystem = () => {
         name: (profile.name as string) || (cloudData.name as string) || prev.name,
         username: (profile.username as string) || (cloudData.username as string) || prev.username,
         gold: currentGold,
-
+        // ── Avatar: profile arg > cloudData > existing (never lose the Google PFP) ──
+        avatarUrl: (profile as any).avatarUrl || cloudData.avatarUrl || prev.avatarUrl,
         quests: currentQuests,
         isConfigured: true,
         replitUser: profile.replitUser || prev.replitUser,

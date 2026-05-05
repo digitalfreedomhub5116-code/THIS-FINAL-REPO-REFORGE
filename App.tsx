@@ -1899,6 +1899,11 @@ const App: React.FC = () => {
 
             const rawData = row.raw_data as Partial<PlayerData> | null;
 
+            // Inject top-level avatar_url column into raw_data so player.avatarUrl gets populated
+            if (rawData && row.avatar_url && !rawData.avatarUrl) {
+              rawData.avatarUrl = row.avatar_url;
+            }
+
             if (rawData?.isConfigured || rawData?.avatarUrl) {
 
               registerUser({ id: uid, name: user.firstName || user.name || rawData.name, username: rawData.username, raw_data: rawData });
@@ -3959,7 +3964,7 @@ const App: React.FC = () => {
                     const result = await rcActions.purchasePackage(pkg);
                     if (result.success) {
                       setShowManaPowerUpsell(false);
-                      addNotification({ title: '⚡ Mana Power Activated!', message: 'Welcome to AI Autopilot. Your full potential is unlocked.', type: 'success' });
+                      addNotification('⚡ Mana Power Activated! Your full potential is unlocked.', 'SUCCESS');
                     }
                     return result;
                   }}
@@ -3967,7 +3972,7 @@ const App: React.FC = () => {
                     await rcActions.restorePurchases();
                     if (rcState.hasManaPower) {
                       setShowManaPowerUpsell(false);
-                      addNotification({ title: '✅ Purchase Restored', message: 'Mana Power is active again!', type: 'success' });
+                      addNotification('✅ Purchase Restored — Mana Power is active again!', 'SUCCESS');
                     }
                   }}
                 />

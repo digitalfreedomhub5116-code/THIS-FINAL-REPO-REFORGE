@@ -318,6 +318,8 @@ router.get('/:id', async (req: Request, res: Response) => {
       isBanned: row.is_banned,
       cheatStrikes: row.cheat_strikes,
       totalStrikesEver: row.total_strikes_ever ?? 0,
+      // Inject avatar_url from top-level column into raw_data so client player.avatarUrl is populated
+      avatarUrl: row.avatar_url || (row.raw_data || {}).avatarUrl || null,
     };
     return res.json({ ...row, raw_data: mergedRawData });
   } catch (err) {

@@ -41,7 +41,7 @@ const RC_API_KEY_ANDROID = 'goog_eOzEbZhFBupbAubEqTBkZzBqWCy'; // Production Pla
 const RC_API_KEY_IOS = 'appl_REPLACE_WITH_IOS_KEY';             // Add when you have iOS
 
 // ── Entitlement IDs (must match RevenueCat dashboard) ──
-export const ENTITLEMENT_MANA_POWER = 'mana_power';
+export const ENTITLEMENT_MANA_POWER = 'Reforge System Pro';
 
 // ── Gold/Mana credit mapping for consumables ──
 // Maps RevenueCat product IDs to the amount of currency to credit

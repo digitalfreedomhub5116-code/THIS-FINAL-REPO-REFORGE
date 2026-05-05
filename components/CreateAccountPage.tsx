@@ -123,15 +123,26 @@ const CreateAccountPage: React.FC<CreateAccountPageProps> = ({ onLogin, onNaviga
       const playerRes = await fetchWithRetry(`${API_BASE}/api/player/${user.id}`, { credentials: 'include', headers: token ? { Authorization: `Bearer ${token}` } : {} });
       if (playerRes.ok) {
         const row = await playerRes.json();
-        if (row?.raw_data) playerData = row.raw_data as Partial<PlayerData>;
+        if (row?.raw_data) {
+          playerData = row.raw_data as Partial<PlayerData>;
+          // Inject top-level avatar_url column into raw_data so player.avatarUrl gets populated
+          if (row.avatar_url && !playerData.avatarUrl) {
+            playerData.avatarUrl = row.avatar_url;
+          }
+        } else if (row?.avatar_url) {
+          // No raw_data yet (brand new user) — create minimal raw_data with avatar
+          playerData = { avatarUrl: row.avatar_url };
+        }
       }
     } catch { /* no cloud data yet */ }
+    // Also check profileImageUrl from Google auth (passed via ReplitUser)
+    const avatarFallback = (user as any).profileImageUrl || undefined;
     onLogin({
       id: user.id,
       name: playerData?.name || user.firstName || 'Hunter',
       username: (user as any).username || playerData?.username,
-
-      raw_data: playerData || undefined,
+      avatarUrl: playerData?.avatarUrl || avatarFallback,
+      raw_data: playerData ? { ...playerData, avatarUrl: playerData.avatarUrl || avatarFallback } : (avatarFallback ? { avatarUrl: avatarFallback } : undefined),
       replitUser: user,
     } as any);
   };
