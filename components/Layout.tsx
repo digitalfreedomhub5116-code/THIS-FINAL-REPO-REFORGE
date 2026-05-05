@@ -481,7 +481,7 @@ const Layout: React.FC<LayoutProps> = ({
 
                 {/* Keys */}
                 <div className="flex items-center gap-1">
-                  <img src="/assets/key-icon.png" alt="Keys" width={20} height={20} style={{ width: 20, height: 20, objectFit: 'contain', flexShrink: 0 }} loading="eager" draggable={false} />
+                  <img src="/assets/key-icon.png" alt="Keys" width={24} height={24} style={{ width: 24, height: 24, objectFit: 'contain', flexShrink: 0 }} loading="eager" draggable={false} />
                   <span className="font-mono text-[16px] font-black whitespace-nowrap" style={{ color: '#00d4ff', textShadow: '0 0 6px rgba(0,212,255,0.3)' }}><AnimatedCounter value={keys} /></span>
                 </div>
 
