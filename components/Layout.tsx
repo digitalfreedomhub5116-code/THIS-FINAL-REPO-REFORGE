@@ -46,6 +46,8 @@ interface LayoutProps {
   playerRank?: string;
   streak?: number;
   gold?: number;
+  keys?: number;
+  maxKeys?: number;
   currentXp?: number;
   requiredXp?: number;
 
@@ -88,6 +90,8 @@ const Layout: React.FC<LayoutProps> = ({
   playerUsername,
   streak = 0,
   gold = 0,
+  keys = 0,
+  maxKeys = 100,
   currentXp = 0,
   requiredXp = 100,
 
@@ -472,8 +476,14 @@ const Layout: React.FC<LayoutProps> = ({
                 </div>
               </div>
 
-              {/* RIGHT: Streak + Gold + Bell */}
+              {/* RIGHT: Keys + Streak + Gold */}
               <div id="tut-gold-display" className="flex items-center gap-3 flex-shrink-0">
+
+                {/* Keys */}
+                <div className="flex items-center gap-1">
+                  <img src="/assets/key-icon.png" alt="Keys" width={20} height={20} style={{ width: 20, height: 20, objectFit: 'contain', flexShrink: 0 }} loading="eager" draggable={false} />
+                  <span className="font-mono text-[16px] font-black whitespace-nowrap" style={{ color: '#00d4ff', textShadow: '0 0 6px rgba(0,212,255,0.3)' }}><AnimatedCounter value={keys} /></span>
+                </div>
 
                 {/* Streak */}
                 <div id="user-streak-count" className="flex items-center gap-1">
@@ -493,78 +503,6 @@ const Layout: React.FC<LayoutProps> = ({
                   </div>
                   <span id="user-wallet-balance" className="font-mono text-[16px] font-black whitespace-nowrap" style={{ color: '#F0B232', textShadow: '0 0 6px rgba(240,178,50,0.3)' }}><AnimatedCounter value={gold} /></span>
                 </button>
-
-                {/* Bell */}
-                <div className="relative ml-0.5" ref={notifRef}>
-                  <button
-                    onClick={handleOpenNotifications}
-                    className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 border ${
-                      showNotifications
-                        ? 'bg-[#00d4ff]/15 border-[#00d4ff]/40 text-[#00d4ff]'
-                        : 'bg-white/[0.05] border-white/[0.08] text-gray-400 hover:text-white hover:bg-white/10'
-                    }`}
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
-                    {hasUnreadNotifications && (
-                      <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 rounded-full border-2 border-black shadow-[0_0_6px_rgba(239,68,68,0.8)]" />
-                    )}
-                  </button>
-
-                  <AnimatePresence>
-                    {showNotifications && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -8, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -8, scale: 0.95 }}
-                        transition={{ duration: 0.15 }}
-                        className="absolute right-0 top-full mt-2 w-76 rounded-2xl z-50 overflow-hidden"
-                        style={{ ...(isLight ? glassDropdownLight : glassDropdownDark), width: 288 }}
-                      >
-                        <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
-                          <span className="text-white font-heading text-xs font-bold tracking-widest">NOTIFICATIONS</span>
-                          <div className="flex items-center gap-2">
-                            {notificationHistory.length > 0 && (
-                              <span className="text-gray-600 text-[9px] font-mono">{notificationHistory.length}</span>
-                            )}
-                            {onClearNotificationHistory && notificationHistory.length > 0 && (
-                              <button
-                                onClick={onClearNotificationHistory}
-                                className="text-gray-600 hover:text-red-400 transition-colors"
-                                title="Clear all"
-                              >
-                                <Trash2 size={11} />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                        <div className="max-h-72 overflow-y-auto">
-                          {notificationHistory.length === 0 ? (
-                            <div className="py-8 text-center">
-                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-700 mx-auto mb-2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
-                              <p className="text-gray-600 text-xs font-mono">No notifications</p>
-                            </div>
-                          ) : (
-                            notificationHistory.slice(0, 20).map(n => (
-                              <div key={n.id} className="flex items-start gap-3 px-4 py-3 border-b border-white/[0.04] hover:bg-white/[0.03] transition-colors">
-                                <div className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${notifDot[n.type] || 'bg-[#00d4ff]'}`} />
-                                <div className="flex-1 min-w-0">
-                                  <p className={`text-xs font-mono leading-relaxed ${notifTypeColor[n.type] || 'text-gray-300'}`}>
-                                    {n.message}
-                                  </p>
-                                  {n.timestamp && (
-                                    <p className="text-[9px] text-gray-700 font-mono mt-0.5">
-                                      {new Date(n.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-                            ))
-                          )}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
 
               </div>
             </div>

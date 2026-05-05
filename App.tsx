@@ -4499,6 +4499,9 @@ const App: React.FC = () => {
 
         gold={player.gold}
 
+        keys={Math.floor(player.mp ?? 100)}
+        maxKeys={player.maxMp ?? 100}
+
         currentXp={player.currentXp}
         requiredXp={player.requiredXp}
 
