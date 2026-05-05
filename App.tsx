@@ -1221,6 +1221,7 @@ const App: React.FC = () => {
 
         const dbGold    = row.gold           ?? 0;
 
+        const dbKeys    = row.keys           ?? 0;
 
         const dbTotalStrikes = row.totalStrikesEver ?? 0;
 
@@ -1375,6 +1376,9 @@ const App: React.FC = () => {
 
             if (dbGold !== prev.gold) updates.gold = dbGold;
 
+            // Keys: always apply server value (server-authoritative)
+            if (dbKeys !== prev.keys) updates.keys = dbKeys;
+
 
             if (dbLevel !== prev.level) updates.level = dbLevel;
 
@@ -1468,6 +1472,9 @@ const App: React.FC = () => {
           } else {
 
             if (goldChangedInDb && dbGold !== prev.gold) updates.gold = dbGold;
+
+            // Keys are always server-authoritative — always apply the latest server value
+            if (dbKeys !== prev.keys) updates.keys = dbKeys;
 
 
             if (levelChangedInDb && dbLevel !== prev.level) updates.level = dbLevel;
@@ -4499,8 +4506,7 @@ const App: React.FC = () => {
 
         gold={player.gold}
 
-        keys={Math.floor(player.mp ?? 100)}
-        maxKeys={player.maxMp ?? 100}
+        keys={player.keys ?? 0}
 
         currentXp={player.currentXp}
         requiredXp={player.requiredXp}
