@@ -1,8 +1,10 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldAlert, Lock, Terminal, ArrowLeft, Key } from 'lucide-react';
 import { API_BASE } from '../lib/apiConfig';
+
+const STORAGE_KEY = 'reforge_admin_remember';
 
 interface AdminLoginProps {
   onLoginSuccess: (token: string) => void;
@@ -12,8 +14,44 @@ interface AdminLoginProps {
 const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onBack }) => {
   const [adminId, setAdminId] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [autoLoginAttempted, setAutoLoginAttempted] = useState(false);
+
+  // On mount: check if saved credentials exist and auto-login
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (!saved) { setAutoLoginAttempted(true); return; }
+    try {
+      const { id, pwd } = JSON.parse(saved);
+      if (id && pwd) {
+        setAdminId(id);
+        setPassword(pwd);
+        setRememberMe(true);
+        // Auto-login with saved credentials
+        (async () => {
+          try {
+            const res = await fetch(`${API_BASE}/api/admin/verify`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ password: pwd }),
+            });
+            const data = await res.json();
+            if (data.authorized && data.token) {
+              onLoginSuccess(data.token);
+              return;
+            }
+          } catch { /* auto-login failed, show form */ }
+          // If auto-login failed, clear saved data and show form
+          localStorage.removeItem(STORAGE_KEY);
+          setAutoLoginAttempted(true);
+        })();
+        return;
+      }
+    } catch { /* corrupted storage, ignore */ }
+    setAutoLoginAttempted(true);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,6 +65,12 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onBack }) => {
       });
       const data = await res.json();
       if (data.authorized && data.token) {
+        // Save credentials if "Remember Me" is checked
+        if (rememberMe) {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({ id: adminId, pwd: password }));
+        } else {
+          localStorage.removeItem(STORAGE_KEY);
+        }
         onLoginSuccess(data.token);
       } else {
         setError(data.error || 'ACCESS DENIED.');
@@ -37,6 +81,24 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onBack }) => {
       setIsLoading(false);
     }
   };
+
+  // Show loading while auto-login is in progress
+  if (!autoLoginAttempted) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center font-mono">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="flex flex-col items-center gap-4"
+        >
+          <div className="w-8 h-8 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+          <span className="text-[10px] text-red-600 tracking-[0.3em] uppercase font-bold">
+            RESTORING SESSION...
+          </span>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-black flex items-center justify-center p-6 relative overflow-hidden font-mono">
@@ -102,6 +164,27 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onBack }) => {
               />
             </div>
           </div>
+
+          {/* Remember Me */}
+          <label className="flex items-center gap-3 cursor-pointer group select-none">
+            <div
+              className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${
+                rememberMe
+                  ? 'bg-red-600 border-red-600 shadow-[0_0_8px_rgba(220,38,38,0.4)]'
+                  : 'border-gray-700 group-hover:border-gray-500'
+              }`}
+              onClick={() => setRememberMe(!rememberMe)}
+            >
+              {rememberMe && (
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                  <path d="M2 5L4.5 7.5L8 2.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              )}
+            </div>
+            <span className="text-[10px] text-gray-500 uppercase tracking-widest font-bold group-hover:text-gray-300 transition-colors">
+              Remember credentials
+            </span>
+          </label>
 
           <AnimatePresence>
             {error && (

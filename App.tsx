@@ -3197,7 +3197,7 @@ const App: React.FC = () => {
 
         <ErrorBoundary fallbackLabel="Admin dashboard failed to load">
 
-          <AdminDashboard adminToken={adminToken} onLogout={() => { setIsAdmin(false); setAdminToken(''); window.history.replaceState({}, '', '/'); }} />
+          <AdminDashboard adminToken={adminToken} onLogout={() => { setIsAdmin(false); setAdminToken(''); localStorage.removeItem('reforge_admin_remember'); window.history.replaceState({}, '', '/'); }} />
 
         </ErrorBoundary>
 
