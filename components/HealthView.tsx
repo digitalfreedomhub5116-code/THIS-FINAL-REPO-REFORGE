@@ -81,11 +81,13 @@ interface HealthViewProps {
   onUpdateSkillProgress?: (progress: import('../types').SkillProgress[]) => void;
   playerLevel?: number;
   initialSubTab?: 'WORKOUT' | 'NUTRITION' | 'SKILLS';
+  onShowDungeonAd?: () => Promise<boolean>;
+  onWatchAdToDouble?: () => Promise<boolean>;
 }
 
 
 export const HealthView: React.FC<HealthViewProps> = ({ 
-  healthProfile, onSaveProfile, onCompleteWorkout, onFailWorkout, onLogMeal, onDeleteMeal: _onDeleteMeal, playerData, onToggleNav, onConsumeMana, onRefundMana, onAddRewards, onUpdateSkillProgress, playerLevel = 99, initialSubTab
+  healthProfile, onSaveProfile, onCompleteWorkout, onFailWorkout, onLogMeal, onDeleteMeal: _onDeleteMeal, playerData, onToggleNav, onConsumeMana, onRefundMana, onAddRewards, onUpdateSkillProgress, playerLevel = 99, initialSubTab, onShowDungeonAd, onWatchAdToDouble
 }) => {
   const [viewMode, setViewMode] = useState<'MAP' | 'OVERVIEW' | 'ACTIVE' | 'SETUP' | 'PROCESSING' | 'DIAGNOSIS' | 'PROJECTION' | 'FINALIZING' | 'PLAN_SELECT'>('MAP');
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
@@ -838,7 +840,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
       );
   }
 
-  if (viewMode === 'OVERVIEW' && activePlan) return <WorkoutOverview plan={activePlan} focusVideos={playerData.focusVideos} onStart={(p) => { setActivePlan(p); setViewMode('ACTIVE'); }} onCancel={() => setViewMode('MAP')} userWeight={healthProfile?.weight} />;
+  if (viewMode === 'OVERVIEW' && activePlan) return <WorkoutOverview plan={activePlan} focusVideos={playerData.focusVideos} onStart={(p) => { setActivePlan(p); setViewMode('ACTIVE'); }} onCancel={() => setViewMode('MAP')} userWeight={healthProfile?.weight} onShowDungeonAd={onShowDungeonAd} />;
   if (viewMode === 'ACTIVE' && activePlan) return (
     <>
       <ActiveWorkoutPlayer
@@ -879,6 +881,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
             setWorkoutAnomalyPoints(0);
             setViewMode('MAP');
           }}
+          onWatchAdToDouble={onWatchAdToDouble}
         />
       )}
     </>

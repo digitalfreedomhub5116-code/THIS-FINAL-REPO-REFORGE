@@ -4942,6 +4942,31 @@ const App: React.FC = () => {
 
                     initialSubTab={healthSubTab}
 
+                    onShowDungeonAd={async () => {
+                      const result = await showRewardedAd(AD_UNITS.DUNGEON_INTERSTITIAL);
+                      return result.rewarded;
+                    }}
+
+                    onWatchAdToDouble={async () => {
+                      const result = await showRewardedAd(AD_UNITS.KEY_REWARD);
+                      if (result.rewarded) {
+                        try {
+                          const res = await fetch(`${API_BASE}/api/economy/ad-double`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
+                            credentials: 'include',
+                            body: JSON.stringify({ goldBonus: 50, xpBonus: 0 }),
+                          });
+                          const data = await res.json();
+                          if (data.success) {
+                            setPlayer(p => ({ ...p, gold: data.gold }));
+                          }
+                        } catch (e) { console.error('[AdDouble]', e); }
+                        return true;
+                      }
+                      return false;
+                    }}
+
                   />
 
                 </ErrorBoundary>

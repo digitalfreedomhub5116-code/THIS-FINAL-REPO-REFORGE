@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, Coins, Key, ChevronRight, AlertOctagon, ShieldOff, XCircle } from 'lucide-react';
+import { Zap, Coins, Key, ChevronRight, AlertOctagon, ShieldOff, XCircle, Play } from 'lucide-react';
 import { SystemCoin } from './icons/SystemCoin';
 
 
@@ -15,6 +15,7 @@ interface WorkoutRewardModalProps {
   rewards: WorkoutReward[];
   anomalyPoints: number;
   onClose: () => void;
+  onWatchAdToDouble?: () => Promise<boolean>;
 }
 
 const REWARD_CONFIG: Record<string, { icon: React.ReactNode; accent: string; accentRgb: string }> = {
@@ -57,9 +58,12 @@ const LineBurst: React.FC = () => {
   );
 };
 
-const WorkoutRewardModal: React.FC<WorkoutRewardModalProps> = ({ rewards, anomalyPoints, onClose }) => {
+const WorkoutRewardModal: React.FC<WorkoutRewardModalProps> = ({ rewards, anomalyPoints, onClose, onWatchAdToDouble }) => {
   const [revealedCount, setRevealedCount] = useState(0);
   const [allRevealed, setAllRevealed] = useState(false);
+  const [isDoubled, setIsDoubled] = useState(false);
+  const [adLoading, setAdLoading] = useState(false);
+  const [adWatched, setAdWatched] = useState(false);
 
   // Auto-reveal rewards one by one with delays
   useEffect(() => {
@@ -271,7 +275,7 @@ const WorkoutRewardModal: React.FC<WorkoutRewardModalProps> = ({ rewards, anomal
                         transition={{ delay: 0.15 }}
                         className="text-white font-black text-xl leading-none font-mono"
                       >
-                        +{reward.amount}
+                        +{isDoubled ? reward.amount * 2 : reward.amount}
                       </motion.p>
                       <motion.p
                         initial={{ x: -12, opacity: 0 }}
@@ -291,15 +295,73 @@ const WorkoutRewardModal: React.FC<WorkoutRewardModalProps> = ({ rewards, anomal
         })}
       </div>
 
+      {/* Watch Ad to Double */}
+      {allRevealed && onWatchAdToDouble && !adWatched && (
+        <motion.button
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.1 }}
+          onClick={async () => {
+            if (adLoading || adWatched) return;
+            setAdLoading(true);
+            try {
+              const success = await onWatchAdToDouble();
+              if (success) {
+                setIsDoubled(true);
+                setAdWatched(true);
+              }
+            } finally {
+              setAdLoading(false);
+            }
+          }}
+          disabled={adLoading}
+          className="mt-4 w-full max-w-sm py-3.5 rounded-xl font-black text-sm tracking-wider uppercase font-mono flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50"
+          style={{
+            background: 'rgba(168,85,247,0.12)',
+            border: '1px solid rgba(168,85,247,0.35)',
+            color: '#a855f7',
+            boxShadow: '0 0 15px rgba(168,85,247,0.1)',
+          }}
+        >
+          {adLoading ? (
+            <>
+              <div className="w-4 h-4 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
+              Loading...
+            </>
+          ) : (
+            <>
+              <Play size={14} fill="currentColor" />
+              Watch Ad to Double Rewards
+            </>
+          )}
+        </motion.button>
+      )}
+
+      {/* Doubled badge */}
+      {adWatched && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="mt-4 w-full max-w-sm py-2.5 rounded-xl text-center text-xs font-black uppercase tracking-widest font-mono"
+          style={{
+            background: 'rgba(34,197,94,0.08)',
+            border: '1px solid rgba(34,197,94,0.25)',
+            color: '#22c55e',
+          }}
+        >
+          ✓ REWARDS DOUBLED
+        </motion.div>
+      )}
+
       {/* Continue Button */}
       <AnimatePresence>
         {allRevealed && (
           <motion.button
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.2 }}
+            transition={{ delay: adWatched ? 0.1 : 0.2 }}
             onClick={onClose}
-            className="mt-8 w-full max-w-sm py-3.5 rounded-xl font-black text-sm tracking-widest uppercase font-mono flex items-center justify-center gap-2 transition-all active:scale-95"
+            className="mt-3 w-full max-w-sm py-3.5 rounded-xl font-black text-sm tracking-widest uppercase font-mono flex items-center justify-center gap-2 transition-all active:scale-95"
             style={{
               background: 'rgba(255,255,255,0.06)',
               border: '1px solid rgba(255,255,255,0.12)',

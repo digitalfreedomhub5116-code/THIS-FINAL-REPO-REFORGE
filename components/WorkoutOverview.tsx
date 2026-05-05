@@ -14,6 +14,7 @@ interface WorkoutOverviewProps {
   onStart: (modifiedPlan: WorkoutDay, isCardioActive: boolean) => void;
   onCancel: () => void;
   userWeight?: number;
+  onShowDungeonAd?: () => Promise<boolean>;
 }
 
 // --- VISUAL ANATOMY DISPLAY (VIDEO) ---
@@ -185,8 +186,9 @@ const ExerciseRow: React.FC<{ exercise: Exercise; calories: number }> = ({ exerc
     );
 };
 
-const WorkoutOverview: React.FC<WorkoutOverviewProps> = ({ plan, focusVideos, onStart, onCancel, userWeight = 70 }) => {
+const WorkoutOverview: React.FC<WorkoutOverviewProps> = ({ plan, focusVideos, onStart, onCancel, userWeight = 70, onShowDungeonAd }) => {
   const [isCardio, setIsCardio] = useState(false);
+  const [adLoading, setAdLoading] = useState(false);
 
   const baseStats = useMemo(() => {
       const sets = plan.exercises.reduce((acc, curr) => acc + curr.sets, 0);
@@ -206,7 +208,7 @@ const WorkoutOverview: React.FC<WorkoutOverviewProps> = ({ plan, focusVideos, on
       sets: isCardio ? baseStats.sets + 3 : baseStats.sets
   };
 
-  const handleStart = () => {
+  const handleStart = async () => {
       let modifiedPlan = { ...plan };
       if (isCardio) {
           modifiedPlan.exercises = [...modifiedPlan.exercises, {
@@ -219,6 +221,17 @@ const WorkoutOverview: React.FC<WorkoutOverviewProps> = ({ plan, focusVideos, on
               notes: "Added via Protocol"
           }];
       }
+
+      // Show ad before entering dungeon
+      if (onShowDungeonAd) {
+        setAdLoading(true);
+        try {
+          await onShowDungeonAd();
+        } finally {
+          setAdLoading(false);
+        }
+      }
+
       onStart(modifiedPlan, isCardio);
   };
 
@@ -304,9 +317,19 @@ const WorkoutOverview: React.FC<WorkoutOverviewProps> = ({ plan, focusVideos, on
 
                         <button 
                             onClick={handleStart}
-                            className="w-full py-4 bg-white text-black font-black text-lg uppercase tracking-widest rounded-lg hover:bg-system-neon transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:shadow-[0_0_30px_#00d4ff]"
+                            disabled={adLoading}
+                            className="w-full py-4 bg-white text-black font-black text-lg uppercase tracking-widest rounded-lg hover:bg-system-neon transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:shadow-[0_0_30px_#00d4ff] disabled:opacity-50"
                         >
-                            ENTER DUNGEON <ChevronRight size={20} strokeWidth={3} />
+                            {adLoading ? (
+                              <>
+                                <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                                LOADING...
+                              </>
+                            ) : (
+                              <>
+                                ENTER DUNGEON <ChevronRight size={20} strokeWidth={3} />
+                              </>
+                            )}
                         </button>
                     </div>
                 </div>

@@ -52,6 +52,8 @@ export interface StoreItem {
   seasonal?: boolean;
   /** Tier color for card accent (Valorant-style per-tier coloring) */
   tierColor?: string;
+  /** If true, this item is unlocked by watching an ad instead of paying gold */
+  adUnlock?: boolean;
 }
 
 export interface BorderConfig {
