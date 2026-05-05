@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 import { supabaseServer, isSupabaseDown } from '../lib/supabase.js';
 import { generatePlayerToken, getAuthenticatedUserId } from '../lib/playerAuth.js';
-import { generateOtp, storeOtp, sendOtpEmail, verifyOtp } from '../lib/otp.js';
+import { generateOtp, storeOtp, sendOtpEmail, verifyOtp, sendPasswordResetEmail } from '../lib/otp.js';
 
 const router = express.Router();
 
@@ -349,6 +349,153 @@ router.post('/login', async (req, res) => {
   } catch (err) {
     console.error('[Local Auth Login]', err);
     return res.status(500).json({ error: 'Login failed' });
+  }
+});
+
+// ── FORGOT PASSWORD — Step 1: Send OTP ──
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // Check if user exists with this email and has a local password
+    const { data: users } = await (supabaseServer() as any)
+      .from('players')
+      .select('supabase_id, username, email, password_hash, auth_type')
+      .ilike('email', normalizedEmail)
+      .limit(1);
+
+    if (!users || users.length === 0) {
+      // Don't reveal whether the email exists — always say "sent"
+      return res.json({ message: 'If an account exists with that email, a reset code has been sent.', otpSent: true });
+    }
+
+    const user = users[0] as any;
+
+    // If they signed up with Google only (no password_hash), tell them
+    if (user.auth_type === 'google' && !user.password_hash) {
+      return res.status(400).json({ error: 'This account uses Google sign-in. Please sign in with Google instead.' });
+    }
+
+    // Generate and send OTP
+    const otp = generateOtp();
+    await storeOtp(normalizedEmail, otp);
+    await sendPasswordResetEmail(normalizedEmail, otp);
+
+    return res.json({ message: 'Reset code sent to your email', otpSent: true });
+
+  } catch (err: any) {
+    console.error('[Auth Forgot-Password] Error:', err);
+    return res.status(500).json({ error: 'Failed to send reset code. Please try again.' });
+  }
+});
+
+// ── FORGOT PASSWORD — Step 2: Verify OTP & issue reset token ──
+router.post('/forgot-password/verify', async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    if (!email || !otp) {
+      return res.status(400).json({ error: 'Email and verification code are required' });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // Verify the OTP
+    const result = await verifyOtp(normalizedEmail, otp);
+    if (!result.valid) {
+      return res.status(400).json({ error: result.error || 'Invalid verification code' });
+    }
+
+    // OTP is valid — generate a short-lived reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetTokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 min
+
+    // Store the reset token hash in the players table (add columns or use a separate approach)
+    // We'll use the email_otps table with a special prefix to avoid needing schema changes
+    await (supabaseServer() as any)
+      .from('email_otps')
+      .delete()
+      .eq('email', `reset:${normalizedEmail}`);
+
+    await (supabaseServer() as any)
+      .from('email_otps')
+      .insert({
+        email: `reset:${normalizedEmail}`,
+        otp_hash: resetTokenHash,
+        expires_at: expiresAt,
+        attempts: 0,
+      });
+
+    return res.json({ message: 'Code verified. You can now set a new password.', verified: true, resetToken });
+
+  } catch (err: any) {
+    console.error('[Auth Forgot-Password Verify] Error:', err);
+    return res.status(500).json({ error: 'Verification failed. Please try again.' });
+  }
+});
+
+// ── FORGOT PASSWORD — Step 3: Reset password with token ──
+router.post('/forgot-password/reset', async (req, res) => {
+  try {
+    const { email, resetToken, newPassword } = req.body;
+    if (!email || !resetToken || !newPassword) {
+      return res.status(400).json({ error: 'Email, reset token, and new password are required' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const resetTokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
+
+    // Validate the reset token
+    const { data: tokenRecord, error: fetchError } = await (supabaseServer() as any)
+      .from('email_otps')
+      .select('*')
+      .eq('email', `reset:${normalizedEmail}`)
+      .single();
+
+    if (fetchError || !tokenRecord) {
+      return res.status(400).json({ error: 'Invalid or expired reset session. Please start over.' });
+    }
+
+    if (new Date(tokenRecord.expires_at) < new Date()) {
+      await (supabaseServer() as any).from('email_otps').delete().eq('email', `reset:${normalizedEmail}`);
+      return res.status(400).json({ error: 'Reset session expired. Please start over.' });
+    }
+
+    if (tokenRecord.otp_hash !== resetTokenHash) {
+      return res.status(400).json({ error: 'Invalid reset token. Please start over.' });
+    }
+
+    // Hash the new password
+    const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
+
+    // Update the player's password
+    const { error: updateError } = await (supabaseServer() as any)
+      .from('players')
+      .update({ password_hash: hashedPassword, updated_at: new Date().toISOString() })
+      .ilike('email', normalizedEmail);
+
+    if (updateError) {
+      console.error('[Auth Forgot-Password Reset] Update error:', updateError);
+      return res.status(500).json({ error: 'Failed to update password. Please try again.' });
+    }
+
+    // Clean up the reset token
+    await (supabaseServer() as any).from('email_otps').delete().eq('email', `reset:${normalizedEmail}`);
+
+    return res.json({ message: 'Password updated successfully. You can now sign in.', success: true });
+
+  } catch (err: any) {
+    console.error('[Auth Forgot-Password Reset] Error:', err);
+    return res.status(500).json({ error: 'Password reset failed. Please try again.' });
   }
 });
 

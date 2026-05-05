@@ -163,3 +163,58 @@ export async function sendOtpEmail(email: string, otp: string, username: string)
 
   console.log(`[OTP] Verification email sent to ${email}`);
 }
+
+/**
+ * Send password reset OTP email via Resend
+ */
+export async function sendPasswordResetEmail(email: string, otp: string): Promise<void> {
+  const resend = getResend();
+
+  const { error } = await resend.emails.send({
+    from: `Reforge <${SENDER_EMAIL}>`,
+    to: email,
+    subject: `${otp} — Reset your Reforge password`,
+    html: `
+      <div style="font-family: 'Segoe UI', system-ui, sans-serif; max-width: 480px; margin: 0 auto; background: #08081a; border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.06);">
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #ef4444, #f97316); padding: 32px 24px; text-align: center;">
+          <h1 style="color: white; font-size: 28px; font-weight: 900; letter-spacing: -1px; margin: 0;">REFORGE</h1>
+          <p style="color: rgba(255,255,255,0.8); font-size: 13px; margin: 8px 0 0;">Password Reset</p>
+        </div>
+        
+        <!-- Body -->
+        <div style="padding: 32px 24px;">
+          <p style="color: #a1a1aa; font-size: 14px; line-height: 1.6; margin: 0 0 24px;">
+            We received a request to reset your password. Enter this code in the app to continue:
+          </p>
+          
+          <!-- OTP Code -->
+          <div style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 20px; text-align: center; margin: 0 0 24px;">
+            <span style="font-family: 'SF Mono', 'Fira Code', monospace; font-size: 36px; font-weight: 900; letter-spacing: 8px; color: #fb923c;">
+              ${otp}
+            </span>
+          </div>
+          
+          <p style="color: #71717a; font-size: 12px; line-height: 1.5; margin: 0;">
+            This code expires in ${OTP_EXPIRY_MINUTES} minutes.<br/>
+            If you didn't request a password reset, please ignore this email — your account is safe.
+          </p>
+        </div>
+        
+        <!-- Footer -->
+        <div style="padding: 16px 24px; border-top: 1px solid rgba(255,255,255,0.04); text-align: center;">
+          <p style="color: #52525b; font-size: 11px; margin: 0;">
+            Reforge — Level Up Your Life
+          </p>
+        </div>
+      </div>
+    `,
+  });
+
+  if (error) {
+    console.error('[OTP] Failed to send password reset email:', error);
+    throw new Error('Failed to send password reset email');
+  }
+
+  console.log(`[OTP] Password reset email sent to ${email}`);
+}
