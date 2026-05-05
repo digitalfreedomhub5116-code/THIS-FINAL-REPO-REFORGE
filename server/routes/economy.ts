@@ -223,4 +223,97 @@ router.post('/grant-keys', async (req: Request, res: Response) => {
   }
 });
 
+// ── POST /ad-reward — Grant keys for watching a rewarded ad ──
+// Rate-limited: max 5 ads per day per user
+const adWatchTracker: Record<string, { count: number; resetAt: number }> = {};
+
+router.post('/ad-reward', async (req: Request, res: Response) => {
+  const userId = getAuthenticatedUserId(req);
+  if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+  const { rewardType } = req.body; // 'keys' | 'gold'
+  const KEYS_PER_AD = 3;
+  const GOLD_PER_AD = 150;
+  const MAX_ADS_PER_DAY = 5;
+
+  // Rate limiting
+  const now = Date.now();
+  const tracker = adWatchTracker[userId];
+  if (tracker && now < tracker.resetAt) {
+    if (tracker.count >= MAX_ADS_PER_DAY) {
+      return res.status(429).json({ error: 'Daily ad limit reached', maxAds: MAX_ADS_PER_DAY });
+    }
+    tracker.count++;
+  } else {
+    // Reset for new day (midnight reset)
+    const midnight = new Date();
+    midnight.setHours(24, 0, 0, 0);
+    adWatchTracker[userId] = { count: 1, resetAt: midnight.getTime() };
+  }
+
+  try {
+    if (rewardType === 'keys') {
+      const result = await grantKeys(userId, KEYS_PER_AD);
+      if (!result.success) {
+        return res.status(500).json({ error: 'Failed to grant keys' });
+      }
+      console.log(`[Economy] ${userId.slice(-8)}: +${KEYS_PER_AD}🔑 (ad_reward) → ${result.newBalance} total`);
+      return res.json({ success: true, keys: result.newBalance, granted: KEYS_PER_AD, type: 'keys' });
+    } else {
+      // Grant gold
+      const db = supabaseServer() as any;
+      const { data: player, error: fetchErr } = await db
+        .from('players')
+        .select('id, gold')
+        .eq('supabase_id', userId)
+        .single();
+
+      if (fetchErr || !player) {
+        return res.status(404).json({ error: 'Player not found' });
+      }
+
+      const newGold = (player.gold || 0) + GOLD_PER_AD;
+      await db.from('players').update({ gold: newGold }).eq('id', player.id);
+      console.log(`[Economy] ${userId.slice(-8)}: +${GOLD_PER_AD}G (ad_reward) → ${newGold} total`);
+      return res.json({ success: true, gold: newGold, granted: GOLD_PER_AD, type: 'gold' });
+    }
+  } catch (err) {
+    console.error('[Economy ad-reward]', err);
+    return res.status(500).json({ error: 'Failed to process ad reward' });
+  }
+});
+
+// ── POST /ad-double — Double rewards for watching an ad after completion ──
+// Called after workout/leaderboard completion with the original reward values
+router.post('/ad-double', async (req: Request, res: Response) => {
+  const userId = getAuthenticatedUserId(req);
+  if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+  const { goldBonus, xpBonus } = req.body;
+  
+  try {
+    const db = supabaseServer() as any;
+    const { data: player, error: fetchErr } = await db
+      .from('players')
+      .select('id, gold')
+      .eq('supabase_id', userId)
+      .single();
+
+    if (fetchErr || !player) {
+      return res.status(404).json({ error: 'Player not found' });
+    }
+
+    const safeGold = Math.min(Math.max(goldBonus || 0, 0), 500); // Cap at 500 bonus gold
+    const newGold = (player.gold || 0) + safeGold;
+    await db.from('players').update({ gold: newGold }).eq('id', player.id);
+
+    console.log(`[Economy] ${userId.slice(-8)}: +${safeGold}G (ad_double) → ${newGold} total`);
+    return res.json({ success: true, gold: newGold, bonusGold: safeGold, bonusXp: xpBonus || 0 });
+  } catch (err) {
+    console.error('[Economy ad-double]', err);
+    return res.status(500).json({ error: 'Failed to process ad double' });
+  }
+});
+
 export default router;
+

@@ -1,233 +1,228 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+/**
+ * useAdMob — Capacitor AdMob integration hook
+ * 
+ * Handles rewarded and interstitial ad loading/showing.
+ * Skips gracefully on web (localhost dev).
+ */
+
+import { useCallback, useRef, useEffect, useState } from 'react';
 import { Capacitor } from '@capacitor/core';
 
-// ── AdMob Ad Unit IDs ──
-const AD_UNITS = {
+// ── Ad Unit IDs (from AdMob Console) ──
+export const AD_UNITS = {
   KEY_REWARD: 'ca-app-pub-4155407212794852/2557191822',
   BORDER_REWARD: 'ca-app-pub-4155407212794852/7617946818',
-  // Test IDs (use during development)
-  KEY_REWARD_TEST: 'ca-app-pub-3940256099942544/5224354917',
-  BORDER_REWARD_TEST: 'ca-app-pub-3940256099942544/5224354917',
-};
+  // TODO: Create interstitial ad unit in AdMob Console for dungeon gate
+  DUNGEON_INTERSTITIAL: 'ca-app-pub-4155407212794852/2557191822', // Using Key Reward as placeholder
+} as const;
 
-// Use test ads in debug mode
-const IS_TESTING = !Capacitor.isNativePlatform() || (window as any).__DEV_MODE__;
-
-interface AdMobState {
-  isInitialized: boolean;
-  isAdLoading: boolean;
-  adsWatchedToday: number;
-  maxAdsPerDay: number;
-  canWatchAd: boolean;
-  error: string | null;
+// Lazy-load the AdMob plugin only on native
+let AdMobModule: any = null;
+async function getAdMob() {
+  if (AdMobModule) return AdMobModule;
+  if (!Capacitor.isNativePlatform()) return null;
+  try {
+    const mod = await import('@capacitor-community/admob');
+    AdMobModule = mod.AdMob;
+    return AdMobModule;
+  } catch {
+    console.warn('[AdMob] Plugin not available');
+    return null;
+  }
 }
 
-// Get today's ad count from localStorage
-const getAdsWatchedToday = (): number => {
-  try {
-    const stored = localStorage.getItem('admob_ads_today');
-    if (!stored) return 0;
-    const data = JSON.parse(stored);
-    const today = new Date().toISOString().split('T')[0];
-    return data.date === today ? data.count : 0;
-  } catch { return 0; }
-};
-
-const setAdsWatchedToday = (count: number) => {
-  const today = new Date().toISOString().split('T')[0];
-  localStorage.setItem('admob_ads_today', JSON.stringify({ date: today, count }));
-};
-
 export function useAdMob() {
-  const [state, setState] = useState<AdMobState>({
-    isInitialized: false,
-    isAdLoading: false,
-    adsWatchedToday: getAdsWatchedToday(),
-    maxAdsPerDay: 3, // Watch 3 ads to earn 1 key
-    canWatchAd: getAdsWatchedToday() < 3,
-    error: null,
-  });
+  const initializedRef = useRef(false);
+  const [isReady, setIsReady] = useState(false);
 
-  const admobRef = useRef<typeof import('@capacitor-community/admob').AdMob | null>(null);
-  const rewardCallbackRef = useRef<((earned: boolean) => void) | null>(null);
-
-  // ── Initialize AdMob ──
+  // ── Initialize AdMob SDK ──
   useEffect(() => {
-    const init = async () => {
-      if (!Capacitor.isNativePlatform()) return;
+    if (initializedRef.current) return;
+    initializedRef.current = true;
+
+    (async () => {
+      const AdMob = await getAdMob();
+      if (!AdMob) return;
 
       try {
-        const { AdMob } = await import('@capacitor-community/admob');
         await AdMob.initialize({
-          requestTrackingAuthorization: false, // We'll handle consent separately
-          initializeForTesting: IS_TESTING,
+          // Set to false for production
+          initializeForTesting: false,
+          // Request user consent (GDPR)
+          requestTrackingAuthorization: true,
         });
-        admobRef.current = AdMob;
-        setState(prev => ({ ...prev, isInitialized: true }));
+        setIsReady(true);
         console.log('[AdMob] Initialized successfully');
       } catch (err) {
         console.error('[AdMob] Init failed:', err);
-        setState(prev => ({ ...prev, error: 'AdMob initialization failed' }));
       }
-    };
-    init();
+    })();
   }, []);
 
-  // ── Show Rewarded Ad (for Keys) ──
-  const showKeyRewardAd = useCallback(async (): Promise<boolean> => {
-    if (!admobRef.current) {
-      console.warn('[AdMob] Not initialized');
-      return false;
+  // ── Show Rewarded Ad ──
+  // Returns: { rewarded: boolean, type?: string }
+  const showRewardedAd = useCallback(async (adUnitId: string): Promise<{ rewarded: boolean; type?: string; amount?: number }> => {
+    const AdMob = await getAdMob();
+    if (!AdMob) {
+      console.log('[AdMob] Not on native platform, simulating reward');
+      // Simulate reward on web for testing
+      return { rewarded: true, type: 'simulated', amount: 1 };
     }
-
-    if (state.adsWatchedToday >= state.maxAdsPerDay) {
-      setState(prev => ({ ...prev, error: 'Daily ad limit reached. Come back tomorrow!' }));
-      return false;
-    }
-
-    setState(prev => ({ ...prev, isAdLoading: true, error: null }));
 
     try {
-      const { AdMob, RewardAdPluginEvents } = await import('@capacitor-community/admob');
+      // Prepare the rewarded ad
+      const { RewardAdPluginEvents } = await import('@capacitor-community/admob');
 
-      return new Promise<boolean>((resolve) => {
+      return new Promise<{ rewarded: boolean; type?: string; amount?: number }>((resolve) => {
         let resolved = false;
 
-        // Listen for reward
-        const rewardListener = AdMob.addListener(RewardAdPluginEvents.Rewarded, () => {
-          if (!resolved) {
-            resolved = true;
-            const newCount = state.adsWatchedToday + 1;
-            setAdsWatchedToday(newCount);
-            setState(prev => ({
-              ...prev,
-              adsWatchedToday: newCount,
-              canWatchAd: newCount < prev.maxAdsPerDay,
-              isAdLoading: false,
-            }));
-            rewardListener.remove();
-            resolve(true);
+        // Listen for reward event
+        const rewardListener = AdMob.addListener(
+          RewardAdPluginEvents.Rewarded,
+          (reward: any) => {
+            if (!resolved) {
+              resolved = true;
+              resolve({ rewarded: true, type: reward?.type, amount: reward?.amount });
+            }
           }
-        });
+        );
 
         // Listen for dismiss without reward
-        const dismissListener = AdMob.addListener(RewardAdPluginEvents.Dismissed, () => {
-          if (!resolved) {
-            resolved = true;
-            setState(prev => ({ ...prev, isAdLoading: false }));
-            dismissListener.remove();
-            resolve(false);
+        const dismissListener = AdMob.addListener(
+          RewardAdPluginEvents.Dismissed,
+          () => {
+            // Give a small delay to let Rewarded event fire first
+            setTimeout(() => {
+              if (!resolved) {
+                resolved = true;
+                resolve({ rewarded: false });
+              }
+            }, 300);
           }
-        });
+        );
 
         // Listen for failure
-        const failListener = AdMob.addListener(RewardAdPluginEvents.FailedToLoad, (err) => {
-          if (!resolved) {
-            resolved = true;
-            console.error('[AdMob] Failed to load:', err);
-            setState(prev => ({ ...prev, isAdLoading: false, error: 'Ad failed to load. Try again later.' }));
-            failListener.remove();
-            resolve(false);
+        const failListener = AdMob.addListener(
+          RewardAdPluginEvents.FailedToLoad,
+          () => {
+            if (!resolved) {
+              resolved = true;
+              resolve({ rewarded: false });
+            }
           }
-        });
+        );
+
+        // Clean up listeners after resolution
+        const cleanup = () => {
+          setTimeout(() => {
+            rewardListener?.remove?.();
+            dismissListener?.remove?.();
+            failListener?.remove?.();
+          }, 500);
+        };
 
         // Prepare and show
-        AdMob.prepareRewardVideoAd({
-          adId: IS_TESTING ? AD_UNITS.KEY_REWARD_TEST : AD_UNITS.KEY_REWARD,
-          isTesting: IS_TESTING,
-        }).then(() => {
-          return AdMob.showRewardVideoAd();
-        }).catch((err) => {
+        AdMob.prepareRewardVideoAd({ adId: adUnitId })
+          .then(() => AdMob.showRewardVideoAd())
+          .then(() => {
+            // Ad shown, waiting for reward/dismiss events
+          })
+          .catch((err: any) => {
+            console.error('[AdMob] Rewarded ad error:', err);
+            if (!resolved) {
+              resolved = true;
+              resolve({ rewarded: false });
+            }
+            cleanup();
+          });
+
+        // Safety timeout — resolve after 60s regardless
+        setTimeout(() => {
           if (!resolved) {
             resolved = true;
-            console.error('[AdMob] Show failed:', err);
-            setState(prev => ({ ...prev, isAdLoading: false, error: 'Could not show ad. Try again.' }));
-            resolve(false);
+            resolve({ rewarded: false });
           }
-        });
+          cleanup();
+        }, 60000);
       });
     } catch (err) {
-      console.error('[AdMob] Error:', err);
-      setState(prev => ({ ...prev, isAdLoading: false, error: 'Ad error. Try again.' }));
-      return false;
+      console.error('[AdMob] Rewarded ad error:', err);
+      return { rewarded: false };
     }
-  }, [state.adsWatchedToday, state.maxAdsPerDay]);
+  }, []);
 
-  // ── Show Rewarded Ad (for Border) ──
-  const showBorderRewardAd = useCallback(async (): Promise<boolean> => {
-    if (!admobRef.current) return false;
-
-    setState(prev => ({ ...prev, isAdLoading: true, error: null }));
+  // ── Show Interstitial Ad ──
+  // Returns: boolean (true = ad was shown)
+  const showInterstitialAd = useCallback(async (adUnitId: string): Promise<boolean> => {
+    const AdMob = await getAdMob();
+    if (!AdMob) {
+      console.log('[AdMob] Not on native platform, skipping interstitial');
+      return true; // Allow through on web
+    }
 
     try {
-      const { AdMob, RewardAdPluginEvents } = await import('@capacitor-community/admob');
+      const { InterstitialAdPluginEvents } = await import('@capacitor-community/admob');
 
       return new Promise<boolean>((resolve) => {
         let resolved = false;
 
-        const rewardListener = AdMob.addListener(RewardAdPluginEvents.Rewarded, () => {
+        const dismissListener = AdMob.addListener(
+          InterstitialAdPluginEvents.Dismissed,
+          () => {
+            if (!resolved) {
+              resolved = true;
+              resolve(true);
+            }
+          }
+        );
+
+        const failListener = AdMob.addListener(
+          InterstitialAdPluginEvents.FailedToLoad,
+          () => {
+            if (!resolved) {
+              resolved = true;
+              resolve(true); // Allow through even if ad fails
+            }
+          }
+        );
+
+        const cleanup = () => {
+          setTimeout(() => {
+            dismissListener?.remove?.();
+            failListener?.remove?.();
+          }, 500);
+        };
+
+        AdMob.prepareInterstitial({ adId: adUnitId })
+          .then(() => AdMob.showInterstitial())
+          .catch((err: any) => {
+            console.error('[AdMob] Interstitial error:', err);
+            if (!resolved) {
+              resolved = true;
+              resolve(true); // Allow through on error
+            }
+            cleanup();
+          });
+
+        // Safety timeout
+        setTimeout(() => {
           if (!resolved) {
             resolved = true;
-            setState(prev => ({ ...prev, isAdLoading: false }));
-            rewardListener.remove();
             resolve(true);
           }
-        });
-
-        const dismissListener = AdMob.addListener(RewardAdPluginEvents.Dismissed, () => {
-          if (!resolved) {
-            resolved = true;
-            setState(prev => ({ ...prev, isAdLoading: false }));
-            dismissListener.remove();
-            resolve(false);
-          }
-        });
-
-        const failListener = AdMob.addListener(RewardAdPluginEvents.FailedToLoad, () => {
-          if (!resolved) {
-            resolved = true;
-            setState(prev => ({ ...prev, isAdLoading: false, error: 'Ad failed to load.' }));
-            failListener.remove();
-            resolve(false);
-          }
-        });
-
-        AdMob.prepareRewardVideoAd({
-          adId: IS_TESTING ? AD_UNITS.BORDER_REWARD_TEST : AD_UNITS.BORDER_REWARD,
-          isTesting: IS_TESTING,
-        }).then(() => {
-          return AdMob.showRewardVideoAd();
-        }).catch(() => {
-          if (!resolved) {
-            resolved = true;
-            setState(prev => ({ ...prev, isAdLoading: false, error: 'Could not show ad.' }));
-            resolve(false);
-          }
-        });
+          cleanup();
+        }, 30000);
       });
-    } catch {
-      setState(prev => ({ ...prev, isAdLoading: false }));
-      return false;
+    } catch (err) {
+      console.error('[AdMob] Interstitial error:', err);
+      return true;
     }
-  }, []);
-
-  // ── Reset daily count (call on app open) ──
-  const refreshDailyCount = useCallback(() => {
-    const count = getAdsWatchedToday();
-    setState(prev => ({
-      ...prev,
-      adsWatchedToday: count,
-      canWatchAd: count < prev.maxAdsPerDay,
-    }));
   }, []);
 
   return {
-    state,
-    showKeyRewardAd,
-    showBorderRewardAd,
-    refreshDailyCount,
-    // Computed: how many ads left to earn a key
-    adsRemainingForKey: Math.max(0, 3 - state.adsWatchedToday),
-    hasEarnedKeyToday: state.adsWatchedToday >= 3,
+    isReady,
+    showRewardedAd,
+    showInterstitialAd,
+    AD_UNITS,
   };
 }
