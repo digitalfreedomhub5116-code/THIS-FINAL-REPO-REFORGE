@@ -2063,8 +2063,13 @@ function KitBorderPreviewModal({ item, onClose, owned, equipped, canAfford, onBu
         {/* ── Border Preview (centered, tighter) ── */}
         {(() => {
           const scale = item.imageScale || 1;
-          const previewSize = size;
-          const wrapperSize = previewSize + 40;
+          const maxVisualSize = 280;
+          const rawVisualSize = size * scale;
+          
+          // Dynamically shrink the preview if the border asset is too large for the modal
+          const previewSize = rawVisualSize > maxVisualSize ? (maxVisualSize / scale) : size;
+          const visualSize = Math.max(previewSize, previewSize * scale);
+          const wrapperSize = visualSize + 20;
 
           return (
             <div style={{ position: 'relative', width: wrapperSize, height: wrapperSize, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'visible', marginBottom: 8 }}>
@@ -2073,7 +2078,7 @@ function KitBorderPreviewModal({ item, onClose, owned, equipped, canAfford, onBu
 
               {/* Video Border (GIF/MP4) */}
               {item.videoBorder ? (
-                <div style={{ position: 'relative', width: previewSize, height: previewSize, overflow: 'hidden', borderRadius: '50%' }}>
+                <div style={{ position: 'relative', width: previewSize, height: previewSize, overflow: 'visible' }}>
                   {/* PFP Avatar placeholder */}
                   {(() => {
                     const pfpFactor = item.imagePfpScale || 1; const pfpPct = 0.6 * pfpFactor; const svgPx = Math.round(80 * pfpFactor); return (
@@ -2088,7 +2093,7 @@ function KitBorderPreviewModal({ item, onClose, owned, equipped, canAfford, onBu
                 </div>
               ) : /* PNG Image Border */
                 item.imageBorder ? (
-                  <div style={{ position: 'relative', width: previewSize, height: previewSize, overflow: 'hidden', borderRadius: '50%' }}>
+                  <div style={{ position: 'relative', width: previewSize, height: previewSize, overflow: 'visible' }}>
                     {/* PFP Avatar placeholder */}
                     {(() => {
                       const pfpFactor = item.imagePfpScale || 1; const pfpPct = 0.6 * pfpFactor; const svgPx = Math.round(80 * pfpFactor); return (
@@ -2108,16 +2113,16 @@ function KitBorderPreviewModal({ item, onClose, owned, equipped, canAfford, onBu
                 ) : item.lottieBorder ? (
                   <StoreLottieBorder src={item.lottieBorder} glow={glow} />
                 ) : item.auraConfig ? (
-                  <div style={{ position: 'relative', width: size, height: size, overflow: 'visible' }}>
-                    <div style={{ position: 'absolute', top: '50%', left: '50%', width: size + 20, height: size + 20, borderRadius: '50%', background: `radial-gradient(circle, ${item.auraConfig.colors[0]}30 0%, ${(item.auraConfig.colors[1] || item.auraConfig.colors[0])}15 40%, transparent 70%)`, transform: 'translate(-50%, -50%)', animation: item.auraConfig.animated ? `pulse-glow ${item.auraConfig.pulseSpeed || 3}s ease-in-out infinite` : undefined }} />
-                    <div style={{ position: 'absolute', top: '50%', left: '50%', width: size * 0.75, height: size * 0.75, borderRadius: '50%', transform: 'translate(-50%, -50%)', border: `3px solid ${item.auraConfig.colors[0]}CC`, boxShadow: `0 0 8px 3px ${item.auraConfig.colors[0]}AA, 0 0 20px 6px ${item.auraConfig.colors[0]}70, 0 0 36px 10px ${(item.auraConfig.colors[1] || item.auraConfig.colors[0])}50, 0 0 60px 16px ${(item.auraConfig.colors[2] || item.auraConfig.colors[0])}35, inset 0 0 14px 4px ${item.auraConfig.colors[0]}40, inset 0 0 28px 8px ${(item.auraConfig.colors[1] || item.auraConfig.colors[0])}25`, animation: item.auraConfig.animated ? 'aura-rotate 8s linear infinite' : undefined, zIndex: 1 }} />
-                    <div style={{ position: 'absolute', top: '50%', left: '50%', width: size * 0.82, height: size * 0.82, borderRadius: '50%', transform: 'translate(-50%, -50%)', border: `1.5px solid ${(item.auraConfig.colors[1] || item.auraConfig.colors[0])}50`, boxShadow: `0 0 16px 4px ${(item.auraConfig.colors[1] || item.auraConfig.colors[0])}40, 0 0 40px 10px ${(item.auraConfig.colors[2] || item.auraConfig.colors[0])}20`, animation: item.auraConfig.animated ? `pulse-glow ${item.auraConfig.pulseSpeed || 3}s ease-in-out infinite` : undefined, zIndex: 1 }} />
-                    <div style={{ position: 'absolute', top: '50%', left: '50%', width: size * 0.6, height: size * 0.6, borderRadius: '50%', background: 'radial-gradient(circle, #2a2a3a, #1a1a24)', transform: 'translate(-50%, -50%)', zIndex: 3, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 0 12px ${item.auraConfig.colors[0]}80, inset 0 0 8px ${item.auraConfig.colors[0]}30` }}>
+                  <div style={{ position: 'relative', width: previewSize, height: previewSize, overflow: 'visible' }}>
+                    <div style={{ position: 'absolute', top: '50%', left: '50%', width: previewSize + 20, height: previewSize + 20, borderRadius: '50%', background: `radial-gradient(circle, ${item.auraConfig.colors[0]}30 0%, ${(item.auraConfig.colors[1] || item.auraConfig.colors[0])}15 40%, transparent 70%)`, transform: 'translate(-50%, -50%)', animation: item.auraConfig.animated ? `pulse-glow ${item.auraConfig.pulseSpeed || 3}s ease-in-out infinite` : undefined }} />
+                    <div style={{ position: 'absolute', top: '50%', left: '50%', width: previewSize * 0.75, height: previewSize * 0.75, borderRadius: '50%', transform: 'translate(-50%, -50%)', border: `3px solid ${item.auraConfig.colors[0]}CC`, boxShadow: `0 0 8px 3px ${item.auraConfig.colors[0]}AA, 0 0 20px 6px ${item.auraConfig.colors[0]}70, 0 0 36px 10px ${(item.auraConfig.colors[1] || item.auraConfig.colors[0])}50, 0 0 60px 16px ${(item.auraConfig.colors[2] || item.auraConfig.colors[0])}35, inset 0 0 14px 4px ${item.auraConfig.colors[0]}40, inset 0 0 28px 8px ${(item.auraConfig.colors[1] || item.auraConfig.colors[0])}25`, animation: item.auraConfig.animated ? 'aura-rotate 8s linear infinite' : undefined, zIndex: 1 }} />
+                    <div style={{ position: 'absolute', top: '50%', left: '50%', width: previewSize * 0.82, height: previewSize * 0.82, borderRadius: '50%', transform: 'translate(-50%, -50%)', border: `1.5px solid ${(item.auraConfig.colors[1] || item.auraConfig.colors[0])}50`, boxShadow: `0 0 16px 4px ${(item.auraConfig.colors[1] || item.auraConfig.colors[0])}40, 0 0 40px 10px ${(item.auraConfig.colors[2] || item.auraConfig.colors[0])}20`, animation: item.auraConfig.animated ? `pulse-glow ${item.auraConfig.pulseSpeed || 3}s ease-in-out infinite` : undefined, zIndex: 1 }} />
+                    <div style={{ position: 'absolute', top: '50%', left: '50%', width: previewSize * 0.6, height: previewSize * 0.6, borderRadius: '50%', background: 'radial-gradient(circle, #2a2a3a, #1a1a24)', transform: 'translate(-50%, -50%)', zIndex: 3, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 0 12px ${item.auraConfig.colors[0]}80, inset 0 0 8px ${item.auraConfig.colors[0]}30` }}>
                       <svg width="80" height="80" viewBox="0 0 40 40"><circle cx="20" cy="16" r="7" fill="#555568" /><ellipse cx="20" cy="35" rx="13" ry="10" fill="#4a4a5a" /></svg>
                     </div>
                   </div>
                 ) : item.borderConfig ? (
-                  <BorderRing config={item.borderConfig} size={size * 0.8} />
+                  <BorderRing config={item.borderConfig} size={previewSize * 0.8} />
                 ) : null}
             </div>
           );
