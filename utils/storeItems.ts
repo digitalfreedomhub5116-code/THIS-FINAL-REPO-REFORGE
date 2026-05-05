@@ -112,8 +112,8 @@ export const BORDERS_ELEMENTS: StoreItem[] = [
   {
     id: 'border-video-neon', name: 'Neon Pulse Ring', category: 'border', tier: 'legendary', price: 10000, tierColor: ELEMENTS_COLOR,
     description: 'Animated neon energy pulses around your avatar — alive and electric.',
-    videoBorder: '/borders/videoborder1.gif',
-    imageScale: 1.15,
+    videoBorder: '/borders/videoborder1.webm',
+    imageScale: 0.95,
     borderConfig: { colors: ['#00d4ff', '#ff00ff', '#00ff88'], strokeWidth: 3, animated: false, glowColor: '#00d4ff', glowIntensity: 0.9 },
   },
 ];
