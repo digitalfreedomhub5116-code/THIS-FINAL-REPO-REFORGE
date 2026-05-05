@@ -12,8 +12,8 @@ import { Capacitor } from '@capacitor/core';
 export const AD_UNITS = {
   KEY_REWARD: 'ca-app-pub-4155407212794852/2557191822',
   BORDER_REWARD: 'ca-app-pub-4155407212794852/7617946818',
-  // TODO: Create interstitial ad unit in AdMob Console for dungeon gate
-  DUNGEON_INTERSTITIAL: 'ca-app-pub-4155407212794852/2557191822', // Using Key Reward as placeholder
+  // Interstitial ad unit for dungeon gate
+  DUNGEON_INTERSTITIAL: 'ca-app-pub-4155407212794852/6424585968',
 } as const;
 
 // Lazy-load the AdMob plugin only on native

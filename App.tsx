@@ -4959,8 +4959,8 @@ const App: React.FC = () => {
                     initialSubTab={healthSubTab}
 
                     onShowDungeonAd={async () => {
-                      const result = await showRewardedAd(AD_UNITS.DUNGEON_INTERSTITIAL);
-                      return result.rewarded;
+                      const shown = await showInterstitialAd(AD_UNITS.DUNGEON_INTERSTITIAL);
+                      return shown;
                     }}
 
                     onWatchAdToDouble={async () => {
