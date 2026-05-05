@@ -21,7 +21,7 @@ interface Message {
   timestamp: number;
 }
 
-// ── Animated Dusk Avatar (glowing orb with eyes) ──
+// ── Dusk Avatar (hooded figure with glowing eyes) ──
 const DuskAvatar: React.FC<{ isThinking: boolean }> = ({ isThinking }) => (
   <div className="relative flex items-center justify-center">
     {/* Outer glow rings */}
@@ -44,14 +44,13 @@ const DuskAvatar: React.FC<{ isThinking: boolean }> = ({ isThinking }) => (
       transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
     />
 
-    {/* Main orb */}
+    {/* Main avatar image */}
     <motion.div
-      className="relative rounded-full flex items-center justify-center"
+      className="relative rounded-full overflow-hidden flex items-center justify-center"
       style={{
         width: 72, height: 72,
-        background: 'radial-gradient(circle at 35% 35%, rgba(0,230,255,0.6), rgba(0,180,220,0.4) 50%, rgba(0,100,140,0.3) 100%)',
-        boxShadow: '0 0 40px rgba(0,212,255,0.35), 0 0 80px rgba(0,212,255,0.15), inset 0 -8px 20px rgba(0,0,0,0.3)',
-        border: '1px solid rgba(0,212,255,0.25)',
+        boxShadow: '0 0 40px rgba(0,212,255,0.35), 0 0 80px rgba(0,212,255,0.15)',
+        border: '2px solid rgba(0,212,255,0.3)',
       }}
       animate={isThinking
         ? { scale: [1, 1.08, 1], rotate: [0, 3, -3, 0] }
@@ -62,41 +61,7 @@ const DuskAvatar: React.FC<{ isThinking: boolean }> = ({ isThinking }) => (
         : { duration: 3, repeat: Infinity, ease: 'easeInOut' }
       }
     >
-      {/* Eyes */}
-      <div className="flex gap-3">
-        <motion.div
-          className="rounded-full"
-          style={{
-            width: 8, height: 14, borderRadius: 6,
-            background: 'rgba(255,255,255,0.95)',
-            boxShadow: '0 0 8px rgba(255,255,255,0.5)',
-          }}
-          animate={isThinking
-            ? { scaleY: [1, 0.3, 1] }
-            : { scaleY: [1, 0.15, 1] }
-          }
-          transition={isThinking
-            ? { duration: 0.8, repeat: Infinity }
-            : { duration: 4, repeat: Infinity, repeatDelay: 3 }
-          }
-        />
-        <motion.div
-          className="rounded-full"
-          style={{
-            width: 8, height: 14, borderRadius: 6,
-            background: 'rgba(255,255,255,0.95)',
-            boxShadow: '0 0 8px rgba(255,255,255,0.5)',
-          }}
-          animate={isThinking
-            ? { scaleY: [1, 0.3, 1] }
-            : { scaleY: [1, 0.15, 1] }
-          }
-          transition={isThinking
-            ? { duration: 0.8, repeat: Infinity }
-            : { duration: 4, repeat: Infinity, repeatDelay: 3 }
-          }
-        />
-      </div>
+      <img src="/assets/dusk-avatar.png" alt="Dusk" className="w-full h-full object-cover" draggable={false} />
     </motion.div>
   </div>
 );
@@ -414,23 +379,18 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, updatePlayer, onClose, onMa
         <div className="relative z-10 px-4 py-3 flex items-center justify-between border-b border-gray-800/60"
           style={{ paddingTop: 'max(env(safe-area-inset-top, 12px), 28px)' }}>
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-full flex items-center justify-center relative"
+            <div className="w-8 h-8 rounded-full overflow-hidden relative"
               style={{
-                background: 'radial-gradient(circle at 40% 40%, rgba(0,212,255,0.3), rgba(0,120,160,0.2))',
-                border: '1px solid rgba(0,212,255,0.3)',
+                border: '1.5px solid rgba(0,212,255,0.3)',
                 boxShadow: '0 0 12px rgba(0,212,255,0.15)',
               }}
             >
-              {/* Mini eyes */}
-              <div className="flex gap-1">
-                <div className="w-[3px] h-[5px] rounded-full bg-white/90" />
-                <div className="w-[3px] h-[5px] rounded-full bg-white/90" />
-              </div>
+              <img src="/assets/dusk-avatar.png" alt="Dusk" className="w-full h-full object-cover" />
               <div className="absolute -bottom-px -right-px w-2 h-2 bg-emerald-500 rounded-full border border-[#060608]" />
             </div>
             <div>
               <h3 className="text-white text-sm font-bold font-mono tracking-wide">DUSK</h3>
-              <p className="text-[8px] text-[#00d4ff]/70 font-mono tracking-[0.2em] uppercase">Online • AI Buddy</p>
+              <p className="text-[8px] text-[#00d4ff]/70 font-mono tracking-[0.2em] uppercase">Online • Shadow Overseer</p>
             </div>
           </div>
           <div className="flex items-center gap-1">
@@ -482,10 +442,10 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, updatePlayer, onClose, onMa
                   transition={{ duration: 0.4, delay: 0.3 }}
                 >
                   <h2 className="text-xl font-bold text-white mb-1">
-                    Hey, {firstName}!
+                    Speak, {firstName}.
                   </h2>
                   <p className="text-gray-500 text-xs font-mono">
-                    How can I help you today?
+                    What do you need?
                   </p>
                 </motion.div>
 
@@ -547,16 +507,13 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, updatePlayer, onClose, onMa
                       className={`flex ${isDusk ? 'justify-start' : 'justify-end'}`}
                     >
                       {isDusk && (
-                        <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mr-2 mt-1"
+                        <div className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0 mr-2 mt-1"
                           style={{
-                            background: 'radial-gradient(circle, rgba(0,212,255,0.2), rgba(0,100,140,0.15))',
                             border: '1px solid rgba(0,212,255,0.2)',
+                            boxShadow: '0 0 6px rgba(0,212,255,0.1)',
                           }}
                         >
-                          <div className="flex gap-0.5">
-                            <div className="w-[2px] h-[3px] rounded-full bg-white/80" />
-                            <div className="w-[2px] h-[3px] rounded-full bg-white/80" />
-                          </div>
+                          <img src="/assets/dusk-avatar.png" alt="Dusk" className="w-full h-full object-cover" />
                         </div>
                       )}
                       <div className={`
@@ -579,16 +536,13 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, updatePlayer, onClose, onMa
                     animate={{ opacity: 1, y: 0 }}
                     className="flex justify-start"
                   >
-                    <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mr-2 mt-1"
+                    <div className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0 mr-2 mt-1"
                       style={{
-                        background: 'radial-gradient(circle, rgba(0,212,255,0.2), rgba(0,100,140,0.15))',
                         border: '1px solid rgba(0,212,255,0.2)',
+                        boxShadow: '0 0 6px rgba(0,212,255,0.1)',
                       }}
                     >
-                      <div className="flex gap-0.5">
-                        <div className="w-[2px] h-[3px] rounded-full bg-white/80" />
-                        <div className="w-[2px] h-[3px] rounded-full bg-white/80" />
-                      </div>
+                      <img src="/assets/dusk-avatar.png" alt="Dusk" className="w-full h-full object-cover" />
                     </div>
                     <div className="bg-gray-900/70 border border-gray-800 px-4 py-3 rounded-2xl rounded-tl-md flex items-center gap-2">
                       <div className="flex gap-1">

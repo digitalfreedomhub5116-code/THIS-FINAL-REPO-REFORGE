@@ -574,12 +574,11 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
               <span className="absolute inset-[-3px] rounded-full border-[2.5px] border-blue-400/50" style={{
                 animation: 'duskRingPulse 3s ease-in-out infinite',
               }} />
-              {/* 3D Chat Icon — 50% B&W */}
+              {/* Hooded figure avatar */}
               <img
-                src="/images/ui/dusk-chat-icon.png"
-                alt="Dusk Chat"
+                src="/assets/dusk-avatar.png"
+                alt="Dusk"
                 className="w-full h-full object-cover rounded-full"
-                style={{ filter: 'grayscale(50%)' }}
               />
             </button>
             {/* Unread notification pip */}
