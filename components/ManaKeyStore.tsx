@@ -46,7 +46,7 @@ const MANA_PACKS: ManaPack[] = [
     price: '₹29',
     image: '/assets/store/keyless-Photoroom.png',
     tier: 'starter',
-    catColor: '#00d4ff',
+    catColor: '#8B5CF6',
   },
   {
     id: 'mana_medium',
@@ -71,7 +71,7 @@ const MANA_PACKS: ManaPack[] = [
     image: '/assets/store/keymax-Photoroom.png',
     tier: 'best',
     badge: 'BEST VALUE',
-    catColor: '#F59E0B',
+    catColor: '#8B5CF6',
     savings: 'Save 32%',
   },
 ];
@@ -537,6 +537,7 @@ const ManaKeyStore: React.FC<ManaKeyStoreProps> = ({ keys, rcState, rcActions, o
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
+                        overflow: 'visible',
                       }}
                     >
                       {/* Radial glow behind image */}
@@ -545,8 +546,8 @@ const ManaKeyStore: React.FC<ManaKeyStoreProps> = ({ keys, rcState, rcActions, o
                           position: 'absolute',
                           top: '50%',
                           left: '50%',
-                          width: 120,
-                          height: 120,
+                          width: 160,
+                          height: 160,
                           borderRadius: '50%',
                           background: `radial-gradient(circle, ${c}25 0%, ${c}08 50%, transparent 70%)`,
                           transform: 'translate(-50%, -50%)',
@@ -557,10 +558,10 @@ const ManaKeyStore: React.FC<ManaKeyStoreProps> = ({ keys, rcState, rcActions, o
                         src={pack.image}
                         alt={pack.name}
                         style={{
-                          width: '100%',
-                          height: '100%',
+                          width: 154,
+                          height: 154,
                           objectFit: 'contain',
-                          filter: `drop-shadow(0 0 10px ${c}35)`,
+                          filter: `drop-shadow(0 0 14px ${c}40)`,
                           position: 'relative',
                           zIndex: 1,
                         }}
