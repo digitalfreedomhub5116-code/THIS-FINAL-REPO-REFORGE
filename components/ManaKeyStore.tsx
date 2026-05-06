@@ -34,25 +34,27 @@ interface ManaPack {
   badge?: string;
   catColor: string;
   savings?: string;
+  imgSize: number;
 }
 
 const MANA_PACKS: ManaPack[] = [
   {
     id: 'mana_small',
     productId: 'mana_crystals_10',
-    name: 'Mana Shard',
-    subtitle: 'A handful of crystals',
+    name: 'Key Handful',
+    subtitle: 'A few keys to get started',
     amount: 10,
     price: '₹29',
     image: '/assets/store/keyless-Photoroom.png',
     tier: 'starter',
     catColor: '#8B5CF6',
+    imgSize: 210,
   },
   {
     id: 'mana_medium',
     productId: 'mana_crystals_30',
-    name: 'Mana Pouch',
-    subtitle: 'A bag full of power',
+    name: 'Key Stash',
+    subtitle: 'A bag full of keys',
     amount: 30,
     price: '₹79',
     image: '/assets/store/key medium-Photoroom.png',
@@ -60,12 +62,13 @@ const MANA_PACKS: ManaPack[] = [
     badge: 'POPULAR',
     catColor: '#8B5CF6',
     savings: 'Save 9%',
+    imgSize: 210,
   },
   {
     id: 'mana_large',
     productId: 'mana_crystals_75',
-    name: 'Mana Vault',
-    subtitle: 'Overflowing treasure',
+    name: 'Key Chest',
+    subtitle: 'Overflowing with keys',
     amount: 75,
     price: '₹149',
     image: '/assets/store/keymax-Photoroom.png',
@@ -73,6 +76,7 @@ const MANA_PACKS: ManaPack[] = [
     badge: 'BEST VALUE',
     catColor: '#8B5CF6',
     savings: 'Save 32%',
+    imgSize: 260,
   },
 ];
 
@@ -411,12 +415,12 @@ const ManaKeyStore: React.FC<ManaKeyStoreProps> = ({ keys, rcState, rcActions, o
                         </span>
                         <span
                           style={{
-                            fontSize: 11,
-                            fontWeight: 700,
-                            color: c,
+                            fontSize: 12,
+                            fontWeight: 800,
+                            color: '#fff',
                             textTransform: 'uppercase' as const,
-                            letterSpacing: '0.05em',
-                            opacity: 0.9,
+                            letterSpacing: '0.08em',
+                            opacity: 0.7,
                           }}
                         >
                           Keys
@@ -558,8 +562,8 @@ const ManaKeyStore: React.FC<ManaKeyStoreProps> = ({ keys, rcState, rcActions, o
                         src={pack.image}
                         alt={pack.name}
                         style={{
-                          width: 210,
-                          height: 210,
+                          width: pack.imgSize,
+                          height: pack.imgSize,
                           objectFit: 'contain',
                           filter: `drop-shadow(0 0 14px ${c}40)`,
                           position: 'relative',
