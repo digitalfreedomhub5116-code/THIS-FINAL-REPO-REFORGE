@@ -2,7 +2,10 @@
 import React, { useState, useEffect, useRef, lazy, Suspense, useCallback, type CSSProperties } from 'react';
 import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Coins, Timer, Key, CheckCircle2, Lock, ChevronLeft, ChevronRight, Heart, Star, Zap, Ghost, Hexagon, ShoppingBag, Shirt, CircleDot, Palette, Frame, Clock, ImageIcon, Flame, Shield, Wrench, Eye } from 'lucide-react';
+import { Coins, Timer, Key, CheckCircle2, Lock, ChevronLeft, ChevronRight, Heart, Star, Zap, Ghost, Hexagon, ShoppingBag, Shirt, CircleDot, Palette, Frame, Clock, ImageIcon, Flame, Shield, Wrench, Eye, Sparkles, Crown, Gift } from 'lucide-react';
+import type { RevenueCatState, RevenueCatActions } from '../hooks/useRevenueCat';
+import { CONSUMABLE_CREDITS } from '../hooks/useRevenueCat';
+import ManaKeyStore from './ManaKeyStore';
 import BorderEquipOverlay from './BorderEquipOverlay';
 import Lottie from 'lottie-react';
 import { REWARD_SCHEDULE, DAILY_REWARDS_ENABLED } from '../lib/rewards';
@@ -74,6 +77,14 @@ interface ShopViewProps {
   onGoldUpdate?: (newGold: number) => void;
   /** Watch ad to unlock a premium border */
   onWatchAdForBorder?: (borderId: string) => Promise<boolean>;
+  /** Player's current key (Mana Crystal) balance */
+  keys?: number;
+  /** Callback to update key balance after IAP */
+  onKeysUpdate?: (newKeys: number) => void;
+  /** RevenueCat state for IAP */
+  rcState?: RevenueCatState;
+  /** RevenueCat actions for purchasing */
+  rcActions?: RevenueCatActions;
 }
 
 
@@ -375,6 +386,10 @@ const ShopView: React.FC<ShopViewProps> = ({
   playerAvatarUrl,
   onGoldUpdate,
   onWatchAdForBorder,
+  keys = 0,
+  onKeysUpdate,
+  rcState,
+  rcActions,
 }) => {
   const [storeTab, setStoreTab] = useState<'OUTFITS' | 'BADGES' | 'BORDERS' | 'DEALS' | 'ITEMS' | 'THEMES' | 'BANNERS_SHOP'>(initialStoreTab || 'OUTFITS');
   const [showMore, setShowMore] = useState(false);
@@ -950,6 +965,16 @@ const ShopView: React.FC<ShopViewProps> = ({
           ))}
         </div>
       </section>
+
+      {/* ═══════════════════════════════════════════
+           🔑 MANA CRYSTAL STORE (IAP Keys)
+         ═══════════════════════════════════════════ */}
+      <ManaKeyStore
+        keys={keys}
+        rcState={rcState}
+        rcActions={rcActions}
+        onKeysUpdate={onKeysUpdate}
+      />
 
       {/* ═══════════════════════════════════════════
            🖼️ PROFILE BANNERS

@@ -4826,6 +4826,14 @@ const App: React.FC = () => {
                       return false;
                     }}
 
+                    keys={player.keys ?? 0}
+
+                    onKeysUpdate={(newKeys) => setPlayer(prev => ({ ...prev, keys: newKeys }))}
+
+                    rcState={rcState}
+
+                    rcActions={rcActions}
+
                   />
 
                 </ErrorBoundary>
