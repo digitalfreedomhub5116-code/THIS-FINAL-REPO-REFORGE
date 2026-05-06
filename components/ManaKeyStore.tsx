@@ -558,8 +558,8 @@ const ManaKeyStore: React.FC<ManaKeyStoreProps> = ({ keys, rcState, rcActions, o
                         src={pack.image}
                         alt={pack.name}
                         style={{
-                          width: 154,
-                          height: 154,
+                          width: 210,
+                          height: 210,
                           objectFit: 'contain',
                           filter: `drop-shadow(0 0 14px ${c}40)`,
                           position: 'relative',
