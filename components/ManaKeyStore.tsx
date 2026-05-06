@@ -41,8 +41,8 @@ const MANA_PACKS: ManaPack[] = [
   {
     id: 'mana_small',
     productId: 'mana_crystals_10',
-    name: 'Key Handful',
-    subtitle: 'A few keys to get started',
+    name: 'Shadow Keys',
+    subtitle: 'Begin your ascent',
     amount: 10,
     price: '₹29',
     image: '/assets/store/keyless-Photoroom.png',
@@ -53,8 +53,8 @@ const MANA_PACKS: ManaPack[] = [
   {
     id: 'mana_medium',
     productId: 'mana_crystals_30',
-    name: 'Key Stash',
-    subtitle: 'A bag full of keys',
+    name: 'Phantom Keys',
+    subtitle: 'Unlock greater power',
     amount: 30,
     price: '₹79',
     image: '/assets/store/key medium-Photoroom.png',
@@ -67,8 +67,8 @@ const MANA_PACKS: ManaPack[] = [
   {
     id: 'mana_large',
     productId: 'mana_crystals_75',
-    name: 'Key Chest',
-    subtitle: 'Overflowing with keys',
+    name: 'Monarch Keys',
+    subtitle: 'Rule the dungeon gates',
     amount: 75,
     price: '₹149',
     image: '/assets/store/keymax-Photoroom.png',
