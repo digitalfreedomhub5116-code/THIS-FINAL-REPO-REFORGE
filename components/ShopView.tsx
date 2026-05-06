@@ -2026,21 +2026,21 @@ function KitBorderPreviewModal({ item, onClose, owned, equipped, canAfford, onBu
 }) {
   const glow = item.borderConfig?.glowColor || item.auraConfig?.colors?.[0] || '#C8A84E';
 
-  // Use item's own scale values — same formula as the original working code
+  // ── FIXED: Preview modal uses a FIXED base container for all borders.
+  // imageScale is applied ONLY to the border image overlay (not the container).
+  // This prevents the double-scaling bug where high-scale borders (1.7x+) got
+  // their container shrunk AND their image re-scaled, causing visual breakage.
+  // The card thumbnails (KitGlowCard) use a separate formula and are NOT affected.
   const scale = item.imageScale || 1;
   const pfpFactor = item.imagePfpScale || 1;
 
-  // Base size 220, but shrink if the scaled result would exceed 280px (prevents Stitched Dragon overflow)
-  const maxVisual = 280;
-  const baseSize = 220;
-  const rawVisual = baseSize * scale;
-  const size = rawVisual > maxVisual ? Math.floor(maxVisual / scale) : baseSize;
-
-  const visualSize = Math.max(size, size * scale);
-  const wrapperSize = visualSize + 40;
-  const pfpPct = 0.6 * pfpFactor;
-  const pfpSize = size * pfpPct;
-  const svgPx = Math.round(80 * pfpFactor);
+  // Fixed container — same for ALL borders (no per-item container resizing)
+  const size = 200;
+  const wrapperSize = size + 60;
+  // PFP scales down inversely with border scale so larger borders don't dwarf the avatar
+  const pfpPct = 0.52 / Math.max(scale, 1);
+  const pfpSize = Math.max(size * pfpPct * pfpFactor, 70);
+  const svgPx = Math.round(pfpSize * 0.7);
 
   return ReactDOM.createPortal(
     <div onClick={onClose} style={{
@@ -2072,7 +2072,7 @@ function KitBorderPreviewModal({ item, onClose, owned, equipped, canAfford, onBu
           {item.tier} Border
         </div>
 
-        {/* Border Preview — uses per-item imageScale + imagePfpScale, capped at 280px */}
+        {/* Border Preview — fixed container, imageScale applied only to border image */}
         <div style={{ position: 'relative', width: wrapperSize, height: wrapperSize, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'visible', marginBottom: 8 }}>
           <div style={{ position: 'absolute', top: '50%', left: '50%', width: wrapperSize, height: wrapperSize, borderRadius: '50%', background: `radial-gradient(circle, ${glow}30 0%, ${glow}10 45%, transparent 70%)`, transform: 'translate(-50%, -50%)', pointerEvents: 'none' }} />
 
