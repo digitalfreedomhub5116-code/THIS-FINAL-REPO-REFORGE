@@ -394,64 +394,9 @@ const TITLES: StoreItem[] = [
 /* ═══ BANNERS ═══ */
 const BANNERS: StoreItem[] = [
   {
-    id: 'banner-default', name: 'Lynx Default', category: 'banner', tier: 'basic', price: 0,
-    description: 'The official Lynx AI banner — included free for all users.',
-    bannerImage: '/banners/default.jpg',
-  },
-  {
-    id: 'banner-mclaren', name: 'McLaren Senna', category: 'banner', tier: 'premium', price: 300,
-    description: 'White McLaren Senna — pure speed, pure elegance.',
-    bannerImage: '/banners/banner1.jpg',
-  },
-  {
-    id: 'banner-hotlooks', name: 'He Looks Hot', category: 'banner', tier: 'special', price: 200,
-    description: 'Damn — turn heads wherever you go.',
-    bannerImage: '/banners/banner2.jpg',
-  },
-  {
-    id: 'banner-noenemies', name: 'No Enemies', category: 'banner', tier: 'special', price: 250,
-    description: 'You don\'t have enemies — manga katana motivation.',
-    bannerImage: '/banners/banner3.jpg',
-  },
-  {
-    id: 'banner-porsche', name: 'Porsche 911 JDM', category: 'banner', tier: 'premium', price: 350,
-    description: 'Porsche 911 meets Japanese waves and cherry blossoms.',
-    bannerImage: '/banners/banner4.jpg',
-  },
-  {
-    id: 'banner-fineshyt', name: 'Fine Shyt', category: 'banner', tier: 'premium', price: 300,
-    description: 'Dark anime aesthetic — you already know.',
-    bannerImage: '/banners/banner5.jpg',
-  },
-  {
-    id: 'banner-chico', name: 'Model of the Year', category: 'banner', tier: 'legendary', price: 400,
-    description: 'Chico Lachowski — the face that broke the internet.',
-    bannerImage: '/banners/banner6.jpg',
-  },
-  {
-    id: 'banner-shadowmonarch', name: 'Shadow Monarch', category: 'banner', tier: 'legendary', price: 500,
-    description: 'Sung Jinwoo — A Shadow Monarch. The one who commands the abyss.',
-    bannerImage: '/banners/reforgebanner1.jpeg',
-  },
-  {
-    id: 'banner-igris', name: 'Igris', category: 'banner', tier: 'legendary', price: 450,
-    description: 'The Greatest Warrior Alive — Igris, the crimson knight.',
-    bannerImage: '/banners/reforgebanner2.jpeg',
-  },
-  {
-    id: 'banner-chahaein', name: 'Cha Hae In', category: 'banner', tier: 'special', price: 350,
-    description: "Everyone's Wifey — Cha Hae In in casual mode.",
-    bannerImage: '/banners/reforgebanner3.jpeg',
-  },
-  {
-    id: 'banner-getup', name: 'Get Up', category: 'banner', tier: 'premium', price: 300,
-    description: 'Get up. No excuses. No mercy. Just action.',
-    bannerImage: '/banners/reforgebanner4.jpeg',
-  },
-  {
-    id: 'banner-keepgoing', name: 'I Keep Going', category: 'banner', tier: 'legendary', price: 400,
-    description: 'Even at my worst — I keep going. Dark manga motivation.',
-    bannerImage: '/banners/reforgebanner5.jpeg',
+    id: 'banner-default', name: 'Reforge Default', category: 'banner', tier: 'basic', price: 0,
+    description: 'The official Reforge AI banner — equipped by default for all users.',
+    bannerImage: '/banners/defaultreforgebanner.webp',
   },
 ];
 

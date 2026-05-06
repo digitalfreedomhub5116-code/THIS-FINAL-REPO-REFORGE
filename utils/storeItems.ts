@@ -156,8 +156,6 @@ export const BORDERS_BEASTS: StoreItem[] = [
     imageBorder: '/borders/border-eagle.webp',
     imageScale: 1.1,
     imageOffsetY: 3,
-    previewBorderScale: 0.82,
-    previewPfpScale: 0.52,
     borderConfig: { colors: ['#B87333', '#C8A84E', '#DAA520'], strokeWidth: 3, animated: false, glowColor: '#B87333', glowIntensity: 0.8 },
   },
   {
@@ -484,86 +482,9 @@ const BANNERS: StoreItem[] = [
     description: 'The official Reforge AI banner — equipped by default for all hunters.',
     bannerImage: '/banners/defaultreforgebanner.webp',
   },
-  {
-    id: 'banner-mclaren', name: 'McLaren Senna', category: 'banner', tier: 'premium', price: 300,
-    description: 'White McLaren Senna — pure speed, pure elegance.',
-    bannerImage: '/banners/banner1.webp',
-  },
-  {
-    id: 'banner-noenemies', name: 'No Enemies', category: 'banner', tier: 'special', price: 250,
-    description: 'You don\'t have enemies — manga katana motivation.',
-    bannerImage: '/banners/banner3.webp',
-  },
-  {
-    id: 'banner-porsche', name: 'Porsche 911 JDM', category: 'banner', tier: 'premium', price: 350,
-    description: 'Porsche 911 meets Japanese waves and cherry blossoms.',
-    bannerImage: '/banners/banner4.webp',
-  },
-  {
-    id: 'banner-fineshyt', name: 'Fine Shyt', category: 'banner', tier: 'premium', price: 300,
-    description: 'Dark anime aesthetic — you already know.',
-    bannerImage: '/banners/banner5.webp',
-  },
-  {
-    id: 'banner-shadowmonarch', name: 'Shadow Monarch', category: 'banner', tier: 'legendary', price: 500,
-    description: 'Sung Jinwoo — A Shadow Monarch. The one who commands the abyss.',
-    bannerImage: '/banners/reforgebanner1.webp',
-  },
-  {
-    id: 'banner-igris', name: 'Igris', category: 'banner', tier: 'legendary', price: 450,
-    description: 'The Greatest Warrior Alive — Igris, the crimson knight.',
-    bannerImage: '/banners/reforgebanner2.webp',
-  },
-  {
-    id: 'banner-chahaein', name: 'Cha Hae In', category: 'banner', tier: 'special', price: 350,
-    description: "Everyone's Wifey — Cha Hae In in casual mode.",
-    bannerImage: '/banners/reforgebanner3.webp',
-  },
-  {
-    id: 'banner-getup', name: 'Get Up', category: 'banner', tier: 'premium', price: 300,
-    description: 'Get up. No excuses. No mercy. Just action.',
-    bannerImage: '/banners/reforgebanner4.webp',
-  },
-  {
-    id: 'banner-keepgoing', name: 'I Keep Going', category: 'banner', tier: 'legendary', price: 400,
-    description: 'Even at my worst — I keep going. Dark manga motivation.',
-    bannerImage: '/banners/reforgebanner5.webp',
-  },
 ];
 
-/* ═══ STREAK MILESTONE BANNERS (exclusive — not purchasable) ═══ */
-const STREAK_BANNERS: StoreItem[] = [
-  {
-    id: 'banner-streak-7day', name: 'Week Warrior', category: 'banner', tier: 'special', price: 0,
-    description: '7-day streak milestone — the first step of your journey.',
-    bannerImage: '/banners/streak-7day.webp',
-  },
-  {
-    id: 'banner-streak-14day', name: 'Forged in Fire', category: 'banner', tier: 'special', price: 0,
-    description: '14-day streak milestone — two weeks of unwavering dedication.',
-    bannerImage: '/banners/streak-14day.webp',
-  },
-  {
-    id: 'banner-streak-30day', name: 'Iron Will', category: 'banner', tier: 'premium', price: 0,
-    description: '30-day streak milestone — a month of iron will.',
-    bannerImage: '/banners/streak-30day.webp',
-  },
-  {
-    id: 'banner-streak-60day', name: 'Inferno', category: 'banner', tier: 'legendary', price: 0,
-    description: '60-day streak milestone — the inferno burns within.',
-    bannerImage: '/banners/streak-60day.webp',
-  },
-  {
-    id: 'banner-streak-100day', name: 'Eternal Flame', category: 'banner', tier: 'legendary', price: 0,
-    description: '100-day streak milestone — your flame is eternal.',
-    bannerImage: '/banners/streak-100day.webp',
-  },
-  {
-    id: 'banner-streak-365day', name: 'Legendary', category: 'banner', tier: 'legendary', price: 0,
-    description: '365-day streak milestone — the ultimate achievement. You are LEGENDARY.',
-    bannerImage: '/banners/streak-365day.webp',
-  },
-];
+
 
 /* ═══ LEADERBOARD PODIUM BORDERS (now purchasable in the store) ═══ */
 const RANK_BORDERS: StoreItem[] = [
@@ -600,7 +521,6 @@ export const ALL_STORE_ITEMS: StoreItem[] = [
   ...CONSUMABLES,
   ...TITLES,
   ...BANNERS,
-  ...STREAK_BANNERS,
 ];
 
 /* ═══ Remote Store Cache ═══ */

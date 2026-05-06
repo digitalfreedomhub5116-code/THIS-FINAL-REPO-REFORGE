@@ -87,22 +87,6 @@ const STORE_PRICES: Record<string, number> = {
   'title-elite': 500,
   // ── Banners ──
   'banner-reforge-default': 0,
-  'banner-mclaren': 300,
-  'banner-noenemies': 250,
-  'banner-porsche': 350,
-  'banner-fineshyt': 300,
-  'banner-shadowmonarch': 500,
-  'banner-igris': 450,
-  'banner-chahaein': 350,
-  'banner-getup': 300,
-  'banner-keepgoing': 400,
-  // ── Streak Banners (free milestone rewards) ──
-  'banner-streak-7day': 0,
-  'banner-streak-14day': 0,
-  'banner-streak-30day': 0,
-  'banner-streak-60day': 0,
-  'banner-streak-100day': 0,
-  'banner-streak-365day': 0,
 };
 
 // Max discount % any daily deal can offer (anti-cheat ceiling)

@@ -120,12 +120,12 @@ router.get('/:id/sync', async (req: Request, res: Response) => {
 
     // ── STREAK MILESTONE DETECTION ──
     const STREAK_MILESTONES = [
-      { days: 7,   gold: 50,   keys: 0,  title: null,           border: null,                         banner: 'banner-streak-7day' },
-      { days: 14,  gold: 100,  keys: 0,  title: null,           border: 'border-streak-silver',       banner: 'banner-streak-14day' },
-      { days: 30,  gold: 200,  keys: 1,  title: 'Iron Will',    border: 'border-streak-gold',         banner: 'banner-streak-30day' },
-      { days: 60,  gold: 400,  keys: 1,  title: null,           border: 'border-streak-inferno',      banner: 'banner-streak-60day' },
-      { days: 100, gold: 1000, keys: 3,  title: 'Eternal Flame', border: 'border-streak-eternal',     banner: 'banner-streak-100day' },
-      { days: 365, gold: 5000, keys: 10, title: 'Legendary',    border: 'border-streak-legendary',    banner: 'banner-streak-365day' },
+      { days: 7,   gold: 50,   keys: 0,  title: null,           border: null,                         banner: null },
+      { days: 14,  gold: 100,  keys: 0,  title: null,           border: 'border-streak-silver',       banner: null },
+      { days: 30,  gold: 200,  keys: 1,  title: 'Iron Will',    border: 'border-streak-gold',         banner: null },
+      { days: 60,  gold: 400,  keys: 1,  title: null,           border: 'border-streak-inferno',      banner: null },
+      { days: 100, gold: 1000, keys: 3,  title: 'Eternal Flame', border: 'border-streak-eternal',     banner: null },
+      { days: 365, gold: 5000, keys: 10, title: 'Legendary',    border: 'border-streak-legendary',    banner: null },
     ];
 
     let streakMilestone: any = null;

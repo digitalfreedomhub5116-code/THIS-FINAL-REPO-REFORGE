@@ -96,7 +96,7 @@ Current Hunter Stats:
 - Social: ${userStats.social || 10}/100
 ` : '';
 
-    const prompt = `You are ForgeGuard, an elite AI quest judge for a solo-leveling RPG fitness app called Bio-Sync OS. Dusk is the System's male overseer — refer to him with he/his pronouns.
+    const prompt = `You are ForgeGuard, an elite AI quest judge for a gamified RPG fitness app called Reforge. Dusk is the System's male overseer — refer to him with he/his pronouns.
 
 ${tzContext}
 ${calibrationContext}

@@ -4,7 +4,7 @@ import { getAuthenticatedUserId } from '../lib/playerAuth.js';
 
 const router = Router();
 
-// ── League tier config (Solo Leveling themed) ──
+// ── League tier config ──
 export const LEAGUE_TIERS = ['E', 'D', 'C', 'B', 'A', 'S'] as const;
 export type LeagueTier = typeof LEAGUE_TIERS[number];
 
