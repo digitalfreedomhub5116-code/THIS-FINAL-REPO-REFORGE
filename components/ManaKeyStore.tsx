@@ -1,13 +1,18 @@
 /**
  * ManaKeyStore.tsx — In-App Purchase key packs for REFORGE
  *
+ * HORIZONTAL card layout matching KitGlowCard's exact design DNA:
+ * - 3-layer structure: Outer glow → Gradient border (3px) → Inner body
+ * - clipPath corner chips for sci-fi aesthetic
+ * - 3 diagonal white shine streaks
+ * - Top edge glow line
+ * - Category color system (cyan → purple → gold)
+ *
  * Psychology applied:
- * - Visual Escalation: handful → bag → treasure chest (anchoring bias)
- * - "BEST VALUE" badge on largest pack (anchoring + loss aversion)
- * - Glow intensity scales with tier to signal premium value
- * - Savings percentage shown to trigger "smart buyer" identity
- * - Purple = Epic rarity (conditioned from Fortnite/WoW/Diablo)
- * - Gold = Legendary (conditioned from loot systems)
+ * - Visual escalation: handful → bag → treasure chest (anchoring)
+ * - "BEST VALUE" golden badge triggers anchoring bias
+ * - Savings % triggers "smart buyer" identity
+ * - Purple = Epic, Gold = Legendary (conditioned from loot systems)
  */
 
 import React, { useState } from 'react';
@@ -21,12 +26,13 @@ interface ManaPack {
   id: string;
   productId: string;
   name: string;
+  subtitle: string;
   amount: number;
   price: string;
   image: string;
   tier: 'starter' | 'popular' | 'best';
   badge?: string;
-  glowColor: string;
+  catColor: string;
   savings?: string;
 }
 
@@ -35,34 +41,37 @@ const MANA_PACKS: ManaPack[] = [
     id: 'mana_small',
     productId: 'mana_crystals_10',
     name: 'Mana Shard',
+    subtitle: 'A handful of crystals',
     amount: 10,
     price: '₹29',
     image: '/assets/store/keyless-Photoroom.png',
     tier: 'starter',
-    glowColor: '#7dd3fc',
+    catColor: '#00d4ff',
   },
   {
     id: 'mana_medium',
     productId: 'mana_crystals_30',
     name: 'Mana Pouch',
+    subtitle: 'A bag full of power',
     amount: 30,
     price: '₹79',
     image: '/assets/store/key medium-Photoroom.png',
     tier: 'popular',
     badge: 'POPULAR',
-    glowColor: '#818cf8',
+    catColor: '#8B5CF6',
     savings: 'Save 9%',
   },
   {
     id: 'mana_large',
     productId: 'mana_crystals_75',
     name: 'Mana Vault',
+    subtitle: 'Overflowing treasure',
     amount: 75,
     price: '₹149',
     image: '/assets/store/keymax-Photoroom.png',
     tier: 'best',
     badge: 'BEST VALUE',
-    glowColor: '#fbbf24',
+    catColor: '#F59E0B',
     savings: 'Save 32%',
   },
 ];
@@ -75,6 +84,9 @@ interface ManaKeyStoreProps {
   rcActions?: RevenueCatActions;
   onKeysUpdate?: (newKeys: number) => void;
 }
+
+const CHIP = 12; // Corner chip size for clipPath
+const CLIP = `polygon(0 0, calc(100% - ${CHIP}px) 0, 100% ${CHIP}px, 100% 100%, ${CHIP}px 100%, 0 calc(100% - ${CHIP}px))`;
 
 const ManaKeyStore: React.FC<ManaKeyStoreProps> = ({ keys, rcState, rcActions, onKeysUpdate }) => {
   const [buyingId, setBuyingId] = useState<string | null>(null);
@@ -142,7 +154,6 @@ const ManaKeyStore: React.FC<ManaKeyStoreProps> = ({ keys, rcState, rcActions, o
           }
         } catch (err) {
           console.error('[ManaStore] Server credit failed:', err);
-          // Purchase succeeded on Google Play — keys will sync on next login
         }
 
         setPurchaseSuccess(pack.id);
@@ -230,266 +241,335 @@ const ManaKeyStore: React.FC<ManaKeyStoreProps> = ({ keys, rcState, rcActions, o
         )}
       </AnimatePresence>
 
-      {/* ── 3 Key Pack Cards ── */}
-      <div
-        style={{
-          display: 'flex',
-          gap: 10,
-          padding: '0 16px',
-          overflowX: 'auto',
-          WebkitOverflowScrolling: 'touch',
-          scrollbarWidth: 'none',
-        }}
-      >
-        {MANA_PACKS.map((pack) => {
+      {/* ── 3 Horizontal Key Pack Cards ── */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '0 16px' }}>
+        {MANA_PACKS.map((pack, idx) => {
           const isBuying = buyingId === pack.id;
           const isPurchased = purchaseSuccess === pack.id;
-          const isBest = pack.tier === 'best';
-          const isPopular = pack.tier === 'popular';
+          const c = pack.catColor; // shorthand for the tier color
 
           return (
             <motion.div
               key={pack.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{
-                delay:
-                  pack.tier === 'starter'
-                    ? 0
-                    : pack.tier === 'popular'
-                    ? 0.08
-                    : 0.16,
-              }}
-              style={{
-                flex: '1 0 0',
-                minWidth: 0,
-                borderRadius: 20,
-                overflow: 'hidden',
-                position: 'relative',
-                background: isBest
-                  ? 'linear-gradient(180deg, rgba(251,191,36,0.08) 0%, rgba(10,10,20,0.98) 40%)'
-                  : isPopular
-                  ? 'linear-gradient(180deg, rgba(139,92,246,0.08) 0%, rgba(10,10,20,0.98) 40%)'
-                  : 'linear-gradient(180deg, rgba(0,212,255,0.05) 0%, rgba(10,10,20,0.98) 40%)',
-                border: isBest
-                  ? '1.5px solid rgba(251,191,36,0.35)'
-                  : isPopular
-                  ? '1.5px solid rgba(139,92,246,0.3)'
-                  : '1px solid rgba(0,212,255,0.12)',
-                boxShadow: isBest
-                  ? '0 4px 30px rgba(251,191,36,0.12), inset 0 1px 0 rgba(251,191,36,0.1)'
-                  : isPopular
-                  ? '0 4px 24px rgba(139,92,246,0.08)'
-                  : '0 2px 16px rgba(0,0,0,0.3)',
-              }}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: idx * 0.08, type: 'spring', stiffness: 300, damping: 30 }}
             >
-              {/* Tier Badge */}
-              {pack.badge && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    zIndex: 5,
-                    padding: '3px 12px',
-                    borderRadius: '0 0 8px 8px',
-                    background: isBest
-                      ? 'linear-gradient(135deg, #fbbf24, #f59e0b)'
-                      : 'linear-gradient(135deg, #a78bfa, #8b5cf6)',
-                    fontSize: 8,
-                    fontWeight: 900,
-                    letterSpacing: '0.12em',
-                    color: isBest ? '#000' : '#fff',
-                    textTransform: 'uppercase' as const,
-                    boxShadow: isBest
-                      ? '0 4px 12px rgba(251,191,36,0.4)'
-                      : '0 4px 12px rgba(139,92,246,0.4)',
-                  }}
-                >
-                  {pack.badge}
-                </div>
-              )}
-
-              {/* Radial glow behind image */}
+              {/* ── Layer 1: Outer Glow Wrapper ── */}
               <div
                 style={{
-                  position: 'absolute',
-                  top: '15%',
-                  left: '50%',
-                  transform: 'translate(-50%, -30%)',
-                  width: '80%',
-                  height: '60%',
-                  background: `radial-gradient(ellipse, ${pack.glowColor}18 0%, transparent 70%)`,
-                  pointerEvents: 'none',
-                  filter: 'blur(12px)',
-                }}
-              />
-
-              <div
-                style={{
-                  padding: '28px 8px 8px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: 0,
+                  filter: `drop-shadow(0 0 6px ${c}30) drop-shadow(0 2px 8px rgba(0,0,0,0.4))`,
                 }}
               >
-                {/* Pack Image */}
+                {/* ── Layer 2: Gradient Border Frame (3px) ── */}
                 <div
                   style={{
-                    width: '85%',
-                    maxWidth: 120,
-                    aspectRatio: '1',
-                    position: 'relative',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginBottom: 6,
+                    clipPath: CLIP,
+                    padding: 3,
+                    background: `linear-gradient(160deg, ${c}CC, ${c}50 40%, ${c}90 80%, ${c}CC)`,
                   }}
                 >
-                  <img
-                    src={pack.image}
-                    alt={pack.name}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'contain',
-                      filter: `drop-shadow(0 0 12px ${pack.glowColor}40)`,
-                      animation: isBest
-                        ? 'border-breathe-centered 3s ease-in-out infinite'
-                        : undefined,
-                    }}
-                    loading="lazy"
-                    draggable={false}
-                  />
-                </div>
-
-                {/* Key Count + Pack Name */}
-                <div style={{ textAlign: 'center', marginBottom: 4 }}>
+                  {/* ── Layer 3: Inner Card Body ── */}
                   <div
                     style={{
-                      fontSize: 22,
-                      fontWeight: 900,
-                      color: '#fff',
-                      fontFamily: 'monospace',
-                      textShadow: `0 0 16px ${pack.glowColor}50`,
-                      lineHeight: 1.1,
+                      clipPath: CLIP,
+                      background: `linear-gradient(160deg, ${c}40 0%, ${c}22 25%, #111828 55%, #0d1118 100%)`,
+                      position: 'relative',
+                      overflow: 'hidden',
+                      display: 'flex',
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      padding: '16px 14px 16px 18px',
+                      minHeight: 120,
                     }}
                   >
-                    {pack.amount}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 9,
-                      fontWeight: 700,
-                      color: 'rgba(255,255,255,0.45)',
-                      textTransform: 'uppercase' as const,
-                      letterSpacing: '0.1em',
-                      fontFamily: 'monospace',
-                    }}
-                  >
-                    {pack.name}
-                  </div>
-                </div>
-
-                {/* Savings Badge */}
-                {pack.savings && (
-                  <div
-                    style={{
-                      fontSize: 8,
-                      fontWeight: 800,
-                      color: isBest ? '#fbbf24' : '#a78bfa',
-                      padding: '2px 8px',
-                      borderRadius: 6,
-                      marginBottom: 6,
-                      background: isBest
-                        ? 'rgba(251,191,36,0.08)'
-                        : 'rgba(139,92,246,0.08)',
-                      border: `1px solid ${
-                        isBest
-                          ? 'rgba(251,191,36,0.2)'
-                          : 'rgba(139,92,246,0.2)'
-                      }`,
-                      letterSpacing: '0.05em',
-                    }}
-                  >
-                    {pack.savings}
-                  </div>
-                )}
-
-                {/* Buy Button — triggers Google Play */}
-                <button
-                  onClick={() => handlePurchase(pack)}
-                  disabled={isBuying || isPurchased}
-                  style={{
-                    width: '100%',
-                    padding: '10px 0',
-                    borderRadius: 12,
-                    border: 'none',
-                    cursor:
-                      isBuying || isPurchased ? 'default' : 'pointer',
-                    fontSize: 12,
-                    fontWeight: 900,
-                    fontFamily: 'monospace',
-                    letterSpacing: '0.05em',
-                    transition: 'all 0.2s',
-                    position: 'relative',
-                    overflow: 'hidden',
-                    background: isPurchased
-                      ? 'linear-gradient(135deg, #22c55e, #16a34a)'
-                      : isBest
-                      ? 'linear-gradient(135deg, #fbbf24, #f59e0b)'
-                      : isPopular
-                      ? 'linear-gradient(135deg, #a78bfa, #8b5cf6)'
-                      : 'linear-gradient(135deg, #00d4ff, #0ea5e9)',
-                    color: isPurchased || isBest ? '#000' : '#fff',
-                    boxShadow: isPurchased
-                      ? '0 4px 16px rgba(34,197,94,0.3)'
-                      : isBest
-                      ? '0 4px 16px rgba(251,191,36,0.3)'
-                      : isPopular
-                      ? '0 4px 12px rgba(139,92,246,0.25)'
-                      : '0 2px 8px rgba(0,212,255,0.2)',
-                    opacity: isBuying ? 0.7 : 1,
-                    transform: isBuying ? 'scale(0.97)' : 'scale(1)',
-                  }}
-                >
-                  {isPurchased ? (
-                    <span
+                    {/* ── Diagonal Shine Streaks (same as KitGlowCard) ── */}
+                    <div
                       style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 4,
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        pointerEvents: 'none',
+                        zIndex: 1,
+                        overflow: 'hidden',
                       }}
                     >
-                      <CheckCircle2 size={14} /> ADDED!
-                    </span>
-                  ) : isBuying ? (
-                    <span
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 4,
-                      }}
-                    >
-                      <span
+                      {/* Primary Shine */}
+                      <div
                         style={{
-                          animation:
-                            'spin-clockwise 1s linear infinite',
-                          display: 'inline-block',
+                          position: 'absolute',
+                          top: '-80%',
+                          left: '-25%',
+                          width: '55%',
+                          height: '260%',
+                          background:
+                            'linear-gradient(72deg, transparent 36%, rgba(255,255,255,0.06) 42%, rgba(255,255,255,0.14) 46%, rgba(255,255,255,0.22) 48%, rgba(255,255,255,0.14) 50%, rgba(255,255,255,0.06) 54%, transparent 60%)',
+                          transform: 'rotate(25deg)',
+                        }}
+                      />
+                      {/* Secondary Shine */}
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: '-80%',
+                          left: '12%',
+                          width: '40%',
+                          height: '260%',
+                          background:
+                            'linear-gradient(72deg, transparent 40%, rgba(255,255,255,0.04) 44%, rgba(255,255,255,0.12) 47%, rgba(255,255,255,0.18) 49%, rgba(255,255,255,0.12) 51%, rgba(255,255,255,0.04) 54%, transparent 58%)',
+                          transform: 'rotate(25deg)',
+                        }}
+                      />
+                      {/* Tertiary Shine */}
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: '-80%',
+                          left: '42%',
+                          width: '28%',
+                          height: '260%',
+                          background:
+                            'linear-gradient(72deg, transparent 44%, rgba(255,255,255,0.03) 47%, rgba(255,255,255,0.08) 49%, rgba(255,255,255,0.03) 51%, transparent 54%)',
+                          transform: 'rotate(25deg)',
+                        }}
+                      />
+                    </div>
+
+                    {/* ── Top Edge Glow Line ── */}
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: CHIP,
+                        right: CHIP,
+                        height: 1.5,
+                        background: `linear-gradient(90deg, transparent, ${c}BB, transparent)`,
+                        zIndex: 2,
+                      }}
+                    />
+
+                    {/* ── Badge (top-left) ── */}
+                    {pack.badge && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: 8,
+                          left: 8,
+                          zIndex: 5,
+                          padding: '3px 10px',
+                          borderRadius: 6,
+                          background: pack.tier === 'best'
+                            ? 'linear-gradient(135deg, #fbbf24, #f59e0b)'
+                            : 'linear-gradient(135deg, #a78bfa, #8b5cf6)',
+                          fontSize: 8,
+                          fontWeight: 900,
+                          letterSpacing: '0.1em',
+                          color: pack.tier === 'best' ? '#000' : '#fff',
+                          boxShadow: pack.tier === 'best'
+                            ? '0 2px 10px rgba(251,191,36,0.5)'
+                            : '0 2px 10px rgba(139,92,246,0.4)',
                         }}
                       >
-                        ⟳
-                      </span>{' '}
-                      BUYING...
-                    </span>
-                  ) : (
-                    pack.price
-                  )}
-                </button>
+                        {pack.badge}
+                      </div>
+                    )}
+
+                    {/* ── LEFT SIDE: Info + Buy ── */}
+                    <div
+                      style={{
+                        position: 'relative',
+                        zIndex: 3,
+                        flex: 1,
+                        minWidth: 0,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 6,
+                        paddingTop: pack.badge ? 18 : 0,
+                      }}
+                    >
+                      {/* Pack Amount */}
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'baseline',
+                          gap: 6,
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: 28,
+                            fontWeight: 900,
+                            color: '#fff',
+                            fontFamily: 'monospace',
+                            lineHeight: 1,
+                            textShadow: `0 0 20px ${c}50`,
+                          }}
+                        >
+                          {pack.amount}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            color: c,
+                            textTransform: 'uppercase' as const,
+                            letterSpacing: '0.05em',
+                            opacity: 0.9,
+                          }}
+                        >
+                          Keys
+                        </span>
+                      </div>
+
+                      {/* Pack Name */}
+                      <div>
+                        <div
+                          style={{
+                            fontSize: 14,
+                            fontWeight: 900,
+                            color: '#fff',
+                            lineHeight: 1.2,
+                            textShadow: '0 2px 8px rgba(0,0,0,0.5)',
+                          }}
+                        >
+                          {pack.name}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 600,
+                            color: 'rgba(255,255,255,0.35)',
+                            marginTop: 1,
+                          }}
+                        >
+                          {pack.subtitle}
+                        </div>
+                      </div>
+
+                      {/* Savings + Buy Row */}
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 8,
+                          marginTop: 2,
+                        }}
+                      >
+                        {/* Buy Button */}
+                        <button
+                          onClick={() => handlePurchase(pack)}
+                          disabled={isBuying || isPurchased}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            padding: '7px 20px',
+                            borderRadius: 16,
+                            cursor: isBuying || isPurchased ? 'default' : 'pointer',
+                            fontSize: 13,
+                            fontWeight: 900,
+                            fontFamily: 'monospace',
+                            letterSpacing: '0.03em',
+                            transition: 'all 0.2s',
+                            background: isPurchased
+                              ? 'linear-gradient(135deg, #22c55e, #16a34a)'
+                              : `linear-gradient(135deg, ${c}35, ${c}15)`,
+                            border: isPurchased ? `1.5px solid #22c55e80` : `1.5px solid ${c}60`,
+                            color: isPurchased ? '#000' : '#fff',
+                            boxShadow: isPurchased
+                              ? '0 0 14px rgba(34,197,94,0.4)'
+                              : `0 0 10px ${c}20`,
+                            opacity: isBuying ? 0.6 : 1,
+                            transform: isBuying ? 'scale(0.97)' : 'scale(1)',
+                          }}
+                        >
+                          {isPurchased ? (
+                            <>
+                              <CheckCircle2 size={14} /> ADDED!
+                            </>
+                          ) : isBuying ? (
+                            <>
+                              <span
+                                style={{
+                                  animation: 'spin-clockwise 1s linear infinite',
+                                  display: 'inline-block',
+                                }}
+                              >
+                                ⟳
+                              </span>
+                              BUYING...
+                            </>
+                          ) : (
+                            pack.price
+                          )}
+                        </button>
+
+                        {/* Savings Badge */}
+                        {pack.savings && (
+                          <span
+                            style={{
+                              fontSize: 9,
+                              fontWeight: 800,
+                              color: c,
+                              padding: '3px 8px',
+                              borderRadius: 6,
+                              background: `${c}12`,
+                              border: `1px solid ${c}25`,
+                              letterSpacing: '0.03em',
+                            }}
+                          >
+                            {pack.savings}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* ── RIGHT SIDE: Pack Image ── */}
+                    <div
+                      style={{
+                        position: 'relative',
+                        zIndex: 3,
+                        width: 110,
+                        height: 110,
+                        flexShrink: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      {/* Radial glow behind image */}
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: '50%',
+                          left: '50%',
+                          width: 120,
+                          height: 120,
+                          borderRadius: '50%',
+                          background: `radial-gradient(circle, ${c}25 0%, ${c}08 50%, transparent 70%)`,
+                          transform: 'translate(-50%, -50%)',
+                          pointerEvents: 'none',
+                        }}
+                      />
+                      <img
+                        src={pack.image}
+                        alt={pack.name}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'contain',
+                          filter: `drop-shadow(0 0 10px ${c}35)`,
+                          position: 'relative',
+                          zIndex: 1,
+                        }}
+                        loading="lazy"
+                        draggable={false}
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
             </motion.div>
           );
