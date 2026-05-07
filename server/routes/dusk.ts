@@ -8,18 +8,46 @@ const router = Router();
 
 router.post('/chat', async (req: Request, res: Response) => {
   try {
-    // ── KEY GATE: 1 key per message ──
+    // ── KEY GATE: 1 key per 5 messages ──
+    // Track message count per user. Deduct 1 key every 5th message.
     const userId = getAuthenticatedUserId(req) || null;
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
-    const keyResult = await deductKeys(userId, 1);
-    if (!keyResult.success) {
-      return res.status(402).json({ 
-        error: 'Not enough keys',
-        keysRemaining: keyResult.remaining,
-        keysRequired: 1,
-      });
+
+    // Import supabase for counter tracking
+    const { createClient } = await import('@supabase/supabase-js');
+    const supabase = createClient(
+      process.env.SUPABASE_URL || '',
+      process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+    );
+
+    // Atomically increment the dusk message counter
+    const { data: counterRow, error: counterErr } = await supabase
+      .from('players')
+      .select('dusk_msg_count')
+      .eq('id', userId)
+      .single();
+
+    const currentCount = (counterRow?.dusk_msg_count ?? 0) + 1;
+    const shouldDeduct = currentCount % 5 === 0; // every 5th message costs 1 key
+
+    // Update the counter
+    await supabase
+      .from('players')
+      .update({ dusk_msg_count: currentCount })
+      .eq('id', userId);
+
+    if (shouldDeduct) {
+      const keyResult = await deductKeys(userId, 1);
+      if (!keyResult.success) {
+        return res.status(402).json({ 
+          error: 'Not enough keys',
+          keysRemaining: keyResult.remaining,
+          keysRequired: 1,
+          messagesUntilDeduct: 0,
+        });
+      }
     }
 
     let ai: ReturnType<typeof getSharedAI>;

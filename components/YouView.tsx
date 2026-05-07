@@ -2,8 +2,8 @@ import React, { useState, useRef, useEffect, useMemo, lazy, Suspense } from 'rea
 import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Settings, Store as StoreIcon, Package, BarChart3, Award,
-  Terminal, MessageCircle, User as UserIcon, MoreHorizontal,
+  Settings, BarChart3,
+  MessageCircle,
   X, ChevronRight, Lock as LockIcon,
   Swords, Dumbbell, Brain, Users, Shield, Target, Zap,
 } from 'lucide-react';
@@ -503,7 +503,8 @@ const StatsDrawer: React.FC<{ player: PlayerData; history?: import('../types').H
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[700] bg-[#05050a] overflow-y-auto"
+      className="fixed inset-0 bg-[#05050a] overflow-y-auto"
+      style={{ zIndex: 100000 }}
     >
       {/* Header */}
       <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-[#05050a]/95 backdrop-blur-md border-b border-white/5">
@@ -650,19 +651,6 @@ const YouView: React.FC<YouViewProps> = ({
       {/* Action grid — clean 4-col */}
       <div className="grid grid-cols-4 gap-1 px-2">
         <ActionTile
-          icon={<StoreIcon size={22} />}
-          label="Store"
-          accent="#facc15"
-          onClick={() => onNavigate?.('STORE' as Tab)}
-        />
-        <ActionTile
-          icon={<Package size={22} />}
-          label="Inventory"
-          accent="#33dfff"
-          isSoon
-          onClick={() => setComingSoon('INVENTORY')}
-        />
-        <ActionTile
           icon={<Swords size={22} />}
           label="Rank"
           accent="#00d4ff"
@@ -675,28 +663,16 @@ const YouView: React.FC<YouViewProps> = ({
           onClick={() => setShowStats(true)}
         />
         <ActionTile
-          icon={<Terminal size={22} />}
-          label="Logs"
-          accent="#4ade80"
-          onClick={() => setShowConfig(true)}
-        />
-        <ActionTile
           icon={<MessageCircle size={22} />}
           label="Dusk"
           accent="#00d4ff"
           badge={duskBadge || undefined}
-          onClick={() => onOpenDusk?.()}
+          onClick={() => { onNavigate?.('DASHBOARD' as Tab); setTimeout(() => onOpenDusk?.(), 150); }}
         />
         <ActionTile
           icon={<Settings size={22} />}
           label="Config"
           accent="#60a5fa"
-          onClick={() => setShowConfig(true)}
-        />
-        <ActionTile
-          icon={<MoreHorizontal size={22} />}
-          label="More"
-          accent="#9ca3af"
           onClick={() => setShowConfig(true)}
         />
       </div>
@@ -741,7 +717,10 @@ const YouView: React.FC<YouViewProps> = ({
             onClose={() => setShowConfig(false)}
           />
         )}
-        {showStats && <StatsDrawer player={player} history={history} onClose={() => setShowStats(false)} />}
+        {showStats && ReactDOM.createPortal(
+          <StatsDrawer player={player} history={history} onClose={() => setShowStats(false)} />,
+          document.body
+        )}
         {comingSoon && <ComingSoonDrawer title={comingSoon} onClose={() => setComingSoon(null)} />}
       </AnimatePresence>
 

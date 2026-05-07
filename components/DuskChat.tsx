@@ -315,7 +315,7 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, updatePlayer, onClose, onMa
       console.error('Dusk AI Error:', error);
       // Handle 402 (not enough keys) — show specific message
       const errMsg = error?.keysError
-        ? `Not enough keys! You need 1 🔑 per message. You have ${error.keysRemaining || 0} left.`
+        ? `Not enough keys! You need 1 🔑 per 5 messages. You have ${error.keysRemaining || 0} left.`
         : 'Oops, something went wrong. Try again in a bit.';
       setMessages(prev => [...prev, {
         id: Date.now().toString(),
@@ -459,7 +459,7 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, updatePlayer, onClose, onMa
                 >
                   <Zap size={10} className={hasKeys ? 'text-[#00d4ff]/60' : 'text-red-500'} />
                   <span className={`text-[9px] font-mono font-bold ${hasKeys ? 'text-[#00d4ff]/50' : 'text-red-500'}`}>
-                    {hasKeys ? `${player.keys ?? 10} 🔑 KEYS • 1 / msg` : 'NO KEYS'}
+                    {hasKeys ? `${player.keys ?? 10} 🔑 KEYS • 1 / 5 msgs` : 'NO KEYS'}
                   </span>
                   {onWatchAdForKeys && (
                     <button
@@ -613,7 +613,7 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, updatePlayer, onClose, onMa
           {hasStartedChat && (
             <div className="mt-1.5 flex items-center justify-center gap-2">
               <span className={`text-[8px] font-mono font-bold flex items-center gap-0.5 ${hasKeys ? 'text-[#00d4ff]/40' : 'text-red-500/70'}`}>
-                <Zap size={7} /> {hasKeys ? '1 🔑 per message' : 'NOT ENOUGH KEYS'}
+                <Zap size={7} /> {hasKeys ? '1 🔑 per 5 messages' : 'NOT ENOUGH KEYS'}
               </span>
             </div>
           )}
