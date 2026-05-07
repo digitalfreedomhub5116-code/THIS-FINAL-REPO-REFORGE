@@ -5,18 +5,24 @@
  * When the required number of ads is watched, the item is automatically added to inventory.
  */
 import { Router, Request, Response } from 'express';
-import { getAuthenticatedUserId } from '../lib/playerAuth';
+import { getAuthenticatedUserId } from '../lib/playerAuth.js';
+import { supabaseServer } from '../lib/supabase.js';
 
 const router = Router();
 
-// Lazy Supabase client
-const getSupabase = async () => {
-  const { createClient } = await import('@supabase/supabase-js');
-  return createClient(
-    process.env.SUPABASE_URL || '',
-    process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-  );
-};
+/**
+ * Resolve the internal player row ID from the auth userId (supabase_id).
+ * Returns { id: uuid, supabase_id: string } or null if not found.
+ */
+async function resolvePlayer(db: any, supabaseId: string) {
+  const { data, error } = await db
+    .from('players')
+    .select('id')
+    .eq('supabase_id', supabaseId)
+    .single();
+  if (error || !data) return null;
+  return data as { id: string };
+}
 
 /**
  * GET /api/ad-unlock/progress
@@ -28,13 +34,16 @@ router.get('/progress', async (req: Request, res: Response) => {
     const userId = getAuthenticatedUserId(req);
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
-    const supabase = await getSupabase();
+    const db = supabaseServer() as any;
+    const player = await resolvePlayer(db, userId);
+    if (!player) return res.status(404).json({ error: 'Player not found' });
+
     const itemId = req.query.itemId as string | undefined;
 
-    let query = supabase
+    let query = db
       .from('ad_unlock_progress')
       .select('item_id, ads_watched, ads_required, unlocked')
-      .eq('player_id', userId);
+      .eq('player_id', player.id);
 
     if (itemId) query = query.eq('item_id', itemId);
 
@@ -76,13 +85,15 @@ router.post('/watch', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'itemId and adsRequired are required' });
     }
 
-    const supabase = await getSupabase();
+    const db = supabaseServer() as any;
+    const player = await resolvePlayer(db, userId);
+    if (!player) return res.status(404).json({ error: 'Player not found' });
 
-    // Upsert: create if not exists, increment if exists
-    const { data: existing } = await supabase
+    // Check existing progress
+    const { data: existing } = await db
       .from('ad_unlock_progress')
       .select('ads_watched, unlocked')
-      .eq('player_id', userId)
+      .eq('player_id', player.id)
       .eq('item_id', itemId)
       .single();
 
@@ -99,10 +110,10 @@ router.post('/watch', async (req: Request, res: Response) => {
     const nowUnlocked = currentCount >= adsRequired;
 
     // Upsert the progress
-    const { error: upsertError } = await supabase
+    const { error: upsertError } = await db
       .from('ad_unlock_progress')
       .upsert({
-        player_id: userId,
+        player_id: player.id,
         item_id: itemId,
         ads_watched: currentCount,
         ads_required: adsRequired,
@@ -115,26 +126,36 @@ router.post('/watch', async (req: Request, res: Response) => {
       return res.status(500).json({ error: 'Failed to update progress' });
     }
 
-    // If now unlocked, add to inventory
+    // If now unlocked, add to user_inventory
     if (nowUnlocked) {
       // Determine item type from ID
       const itemType = itemId.startsWith('border') ? 'border' 
                      : itemId.startsWith('outfit') ? 'outfit' 
                      : 'border';
 
-      const { error: invError } = await supabase
-        .from('inventory')
-        .upsert({
-          player_id: userId,
-          item_id: itemId,
-          item_type: itemType,
-          source: 'ad_unlock',
-          created_at: new Date().toISOString(),
-        }, { onConflict: 'player_id,item_id' });
+      // Check if already in inventory (safety check)
+      const { data: existingInv } = await db
+        .from('user_inventory')
+        .select('id')
+        .eq('player_id', player.id)
+        .eq('item_id', itemId)
+        .single();
 
-      if (invError) {
-        console.error('[AdUnlock] Inventory insert error:', invError);
-        // Don't fail — the progress is saved, retry on next request
+      if (!existingInv) {
+        const { error: invError } = await db
+          .from('user_inventory')
+          .insert({
+            player_id: player.id,
+            item_id: itemId,
+            item_type: itemType,
+            price_paid: 0,
+            source: 'reward',
+          });
+
+        if (invError) {
+          console.error('[AdUnlock] Inventory insert error:', invError);
+          // Don't fail — the progress is saved, retry on next request
+        }
       }
     }
 
