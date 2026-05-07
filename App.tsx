@@ -75,6 +75,12 @@ import { getPlayerAuthHeaders, getOrRefreshPlayerHeaders } from './lib/playerApi
 import { saveAuthNative, clearAuthNative } from './lib/nativeAuth';
 import { clearEconomySession } from './utils/storeEconomy';
 import { useRevenueCat } from './hooks/useRevenueCat';
+import { supabase } from './lib/supabase';
+
+// ── VIP emails that get all premium features unlocked ──
+const VIP_EMAILS = new Set([
+  'reforgesystem@gmail.com',
+]);
 
 import { Terminal, Flame } from 'lucide-react';
 
@@ -667,8 +673,21 @@ const App: React.FC = () => {
 
   // ── RevenueCat (Premium / Reforge Pro) ──
   const [rcState, rcActions] = useRevenueCat();
-  const isPremium = rcState.hasManaPower;
   const [showManaPowerUpsell, setShowManaPowerUpsell] = useState(false);
+
+  // ── VIP override: fetch auth email and check whitelist ──
+  const [authEmail, setAuthEmail] = useState<string | null>(null);
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setAuthEmail(data.session?.user?.email ?? null);
+    });
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setAuthEmail(session?.user?.email ?? null);
+    });
+    return () => { listener.subscription.unsubscribe(); };
+  }, []);
+  const isVip = !!(authEmail && VIP_EMAILS.has(authEmail.toLowerCase()));
+  const isPremium = rcState.hasManaPower || isVip;
 
   // ── Identify user with RevenueCat so entitlements are per-account, not per-device ──
   const rcLoginDoneRef = useRef<string | null>(null);
