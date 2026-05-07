@@ -277,7 +277,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
       todayStart.setHours(0, 0, 0, 0);
       return (playerData.nutritionLogs || [])
         .filter(log => log.timestamp >= todayStart.getTime())
-        .reduce((acc, log) => ({ calories: acc.calories + log.totalCalories, protein: acc.protein + log.totalProtein, carbs: acc.carbs + log.totalCarbs, fats: acc.fats + log.totalFats }), { calories: 0, protein: 0, carbs: 0, fats: 0 });
+        .reduce((acc, log) => ({ calories: acc.calories + (log.totalCalories || 0), protein: acc.protein + (log.totalProtein || 0), carbs: acc.carbs + (log.totalCarbs || 0), fats: acc.fats + (log.totalFats || 0) }), { calories: 0, protein: 0, carbs: 0, fats: 0 });
   }, [playerData.nutritionLogs]);
 
   // Calculate personalized daily targets based on health profile
