@@ -135,29 +135,45 @@ const ManaKeyStore: React.FC<ManaKeyStoreProps> = ({ keys, rcState, rcActions, o
       const result = await rcActions.purchasePackage(rcPackage);
 
       if (result.success) {
-        // Credit keys on server after Google confirms
-        try {
-          const { getPlayerAuthHeaders } = await import('../lib/playerApi');
-          const { API_BASE } = await import('../lib/apiConfig');
-          const res = await fetch(`${API_BASE}/api/iap/credit`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              ...getPlayerAuthHeaders(),
-            },
-            credentials: 'include',
-            body: JSON.stringify({
-              productId: pack.productId,
-              transactionId: `rc_${Date.now()}_${pack.productId}`,
-            }),
-          });
+        // Credit keys on server after Google confirms — with retry for reliability
+        const transactionId = `rc_${Date.now()}_${pack.productId}`;
+        let credited = false;
 
-          const data = await res.json();
-          if (data.success && data.keys != null && onKeysUpdate) {
-            onKeysUpdate(data.keys);
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          try {
+            const { getPlayerAuthHeaders } = await import('../lib/playerApi');
+            const { API_BASE } = await import('../lib/apiConfig');
+            const res = await fetch(`${API_BASE}/api/iap/credit`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                ...getPlayerAuthHeaders(),
+              },
+              credentials: 'include',
+              body: JSON.stringify({
+                productId: pack.productId,
+                transactionId,
+              }),
+            });
+
+            const data = await res.json();
+            if (data.success && data.keys != null && onKeysUpdate) {
+              onKeysUpdate(data.keys);
+            }
+            credited = true;
+            break; // Success — exit retry loop
+          } catch (err) {
+            console.error(`[ManaStore] Server credit attempt ${attempt}/3 failed:`, err);
+            if (attempt < 3) {
+              await new Promise(r => setTimeout(r, attempt * 1000)); // Backoff: 1s, 2s
+            }
           }
-        } catch (err) {
-          console.error('[ManaStore] Server credit failed:', err);
+        }
+
+        if (!credited) {
+          console.error('[ManaStore] All credit attempts failed — purchase went through but server credit failed');
+          setPurchaseError('Purchase confirmed! Keys will be added shortly.');
+          setTimeout(() => setPurchaseError(null), 5000);
         }
 
         setPurchaseSuccess(pack.id);

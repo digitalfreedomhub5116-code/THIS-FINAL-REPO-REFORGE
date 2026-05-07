@@ -105,17 +105,23 @@ const GoldCoinStore: React.FC<GoldCoinStoreProps> = ({ gold, rcState, rcActions,
   const [isPulsing, setIsPulsing] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
   const popularRef = useRef<HTMLDivElement>(null);
+  // Store callback in ref to avoid useEffect dependency loop
+  const onHighlightDoneRef = useRef(onHighlightDone);
+  onHighlightDoneRef.current = onHighlightDone;
 
   // ── Handle highlight: scroll into view + pulse animation ──
   useEffect(() => {
-    if (!highlightPopular) return;
+    if (!highlightPopular) {
+      setIsPulsing(false);
+      return;
+    }
 
     // Step 1: Scroll the Gold Crystal section into view
     if (sectionRef.current) {
       sectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
-    // Step 2: After scroll completes (~500ms), start pulsing
+    // Step 2: After scroll completes (~600ms), start pulsing
     const pulseDelay = setTimeout(() => {
       setIsPulsing(true);
     }, 600);
@@ -123,14 +129,16 @@ const GoldCoinStore: React.FC<GoldCoinStoreProps> = ({ gold, rcState, rcActions,
     // Step 3: Stop pulsing after 3 cycles (~2.4s) and notify parent
     const stopDelay = setTimeout(() => {
       setIsPulsing(false);
-      onHighlightDone?.();
+      onHighlightDoneRef.current?.();
     }, 3200);
 
     return () => {
       clearTimeout(pulseDelay);
       clearTimeout(stopDelay);
     };
-  }, [highlightPopular, onHighlightDone]);
+  // ONLY depend on highlightPopular — callback is in a ref
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [highlightPopular]);
 
   const handlePurchase = async (pack: GoldPack) => {
     if (!rcState?.isNative || !rcActions || !rcState.offerings) {
@@ -170,29 +178,45 @@ const GoldCoinStore: React.FC<GoldCoinStoreProps> = ({ gold, rcState, rcActions,
       const result = await rcActions.purchasePackage(rcPackage);
 
       if (result.success) {
-        // Credit gold on server after Google confirms
-        try {
-          const { getPlayerAuthHeaders } = await import('../lib/playerApi');
-          const { API_BASE } = await import('../lib/apiConfig');
-          const res = await fetch(`${API_BASE}/api/iap/credit`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              ...getPlayerAuthHeaders(),
-            },
-            credentials: 'include',
-            body: JSON.stringify({
-              productId: pack.productId,
-              transactionId: `rc_${Date.now()}_${pack.productId}`,
-            }),
-          });
+        // Credit gold on server after Google confirms — with retry for reliability
+        const transactionId = `rc_${Date.now()}_${pack.productId}`;
+        let credited = false;
 
-          const data = await res.json();
-          if (data.success && data.gold != null && onGoldUpdate) {
-            onGoldUpdate(data.gold);
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          try {
+            const { getPlayerAuthHeaders } = await import('../lib/playerApi');
+            const { API_BASE } = await import('../lib/apiConfig');
+            const res = await fetch(`${API_BASE}/api/iap/credit`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                ...getPlayerAuthHeaders(),
+              },
+              credentials: 'include',
+              body: JSON.stringify({
+                productId: pack.productId,
+                transactionId,
+              }),
+            });
+
+            const data = await res.json();
+            if (data.success && data.gold != null && onGoldUpdate) {
+              onGoldUpdate(data.gold);
+            }
+            credited = true;
+            break; // Success — exit retry loop
+          } catch (err) {
+            console.error(`[GoldStore] Server credit attempt ${attempt}/3 failed:`, err);
+            if (attempt < 3) {
+              await new Promise(r => setTimeout(r, attempt * 1000)); // Backoff: 1s, 2s
+            }
           }
-        } catch (err) {
-          console.error('[GoldStore] Server credit failed:', err);
+        }
+
+        if (!credited) {
+          console.error('[GoldStore] All credit attempts failed — purchase went through but server credit failed');
+          setPurchaseError('Purchase confirmed! Gold will be added shortly.');
+          setTimeout(() => setPurchaseError(null), 5000);
         }
 
         setPurchaseSuccess(pack.id);
