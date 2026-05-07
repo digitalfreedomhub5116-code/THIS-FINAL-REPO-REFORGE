@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, lazy, Suspense } from 'react';
+import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Settings, Store as StoreIcon, Package, BarChart3, Award,
@@ -708,12 +709,13 @@ const YouView: React.FC<YouViewProps> = ({
       {/* Modals */}
       <AnimatePresence>
         {showRank && <RankLadderModal player={player} onClose={() => setShowRank(false)} onTestSetRank={onTestSetRank ? handleTestRankTap : undefined} />}
-        {showRankProgression && (
+        {showRankProgression && ReactDOM.createPortal(
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[700] bg-[#05050a] overflow-y-auto"
+            className="fixed inset-0 bg-[#05050a] overflow-y-auto"
+            style={{ zIndex: 100000 }}
           >
             <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-[#05050a]/95 backdrop-blur-md border-b border-white/5">
               <div className="text-xs font-mono font-bold text-[#00d4ff] tracking-widest">RANK PROGRESSION</div>
@@ -726,7 +728,8 @@ const YouView: React.FC<YouViewProps> = ({
                 <RankProgressionCard level={player.level} rank={player.rank} onTestSetRank={onTestSetRank ? handleTestRankTap : undefined} />
               </Suspense>
             </div>
-          </motion.div>
+          </motion.div>,
+          document.body
         )}
         {showConfig && (
           <ProfileDrawer
