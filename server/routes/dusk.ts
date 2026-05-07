@@ -18,8 +18,8 @@ router.post('/chat', async (req: Request, res: Response) => {
     // Import supabase for counter tracking
     const { createClient } = await import('@supabase/supabase-js');
     const supabase = createClient(
-      process.env.SUPABASE_URL || '',
-      process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+      process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '',
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || ''
     );
 
     // Atomically increment the dusk message counter
