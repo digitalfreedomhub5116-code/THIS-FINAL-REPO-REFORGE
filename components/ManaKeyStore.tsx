@@ -563,12 +563,16 @@ const ManaKeyStore: React.FC<ManaKeyStoreProps> = ({ keys, rcState, rcActions, o
                             <>
                               <span
                                 style={{
-                                  animation: 'spin-clockwise 1s linear infinite',
+                                  width: 16,
+                                  height: 16,
+                                  border: '2px solid rgba(255,255,255,0.25)',
+                                  borderTopColor: '#fff',
+                                  borderRadius: '50%',
                                   display: 'inline-block',
+                                  animation: 'spin 0.8s linear infinite',
+                                  flexShrink: 0,
                                 }}
-                              >
-                                ⟳
-                              </span>
+                              />
                               BUYING...
                             </>
                           ) : (
