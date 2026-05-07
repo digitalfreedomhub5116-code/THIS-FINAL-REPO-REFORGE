@@ -1,18 +1,16 @@
 /**
  * RankUpCinematic — GSAP + canvas-confetti powered rank-up celebration.
  *
- * Mirrors BorderEquipOverlay's proven animation pattern:
+ * Flow:
  *   1. Black fade backdrop
  *   2. Old rank badge scales up, shakes violently
  *   3. Old badge SHATTERS outward (clip-path shards)
  *   4. White flash + shockwave ring
  *   5. Void pulse with "FORGING NEW RANK..." text
  *   6. New badge STAMPS down from above with sun-ray glow
- *   7. MEGA confetti burst (left/right/center waves)
+ *   7. MEGA confetti burst
  *   8. "RANK UP" text + rank name reveal
- *   9. Continue button
- *
- * Psychology: delay → tension build → explosive release → dopamine
+ *   9. Continue button — single dismiss, no replay
  */
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import ReactDOM from 'react-dom';
@@ -86,7 +84,8 @@ const RankUpCinematic: React.FC<RankUpCinematicProps> = ({ oldRank, newRank, onC
   const tlRef = useRef<gsap.core.Timeline | null>(null);
   const confettiCanvasRef = useRef<HTMLCanvasElement>(null);
   const confettiRef = useRef<ReturnType<typeof confetti.create> | null>(null);
-  const [visible, setVisible] = useState(false);
+  const dismissedRef = useRef(false); // Guard: prevent double-dismiss / replay
+  const animStartedRef = useRef(false); // Guard: prevent animation re-run
 
   const confettiColors = [glowColor, colorShade(glowColor, 0.15), colorShade(glowColor, -0.12), '#c0c0c0', '#d4d4d4', '#ffffff'];
   const confettiColorsCenter = [colorShade(glowColor, 0.15), '#d4d4d4', '#ffffff', glowColor];
@@ -103,45 +102,49 @@ const RankUpCinematic: React.FC<RankUpCinematicProps> = ({ oldRank, newRank, onC
 
   // Create confetti instance
   useEffect(() => {
-    if (visible && confettiCanvasRef.current && !confettiRef.current) {
+    if (confettiCanvasRef.current && !confettiRef.current) {
       confettiRef.current = confetti.create(confettiCanvasRef.current, { resize: true, useWorker: true });
     }
     return () => { if (confettiRef.current) { confettiRef.current.reset(); confettiRef.current = null; } };
-  }, [visible]);
+  }, []);
 
+  // DISMISS — fade out then call onComplete exactly once
   const handleComplete = useCallback(() => {
-    if (tlRef.current) tlRef.current.kill();
+    if (dismissedRef.current) return; // Already dismissed
+    dismissedRef.current = true;
+
+    // Kill running timeline
+    if (tlRef.current) { tlRef.current.kill(); tlRef.current = null; }
+
     const el = overlayRef.current;
-    if (!el) { setVisible(false); onComplete(); return; }
-    gsap.to(el, { opacity: 0, duration: 0.25, onComplete: () => { setVisible(false); onComplete(); } });
+    if (!el) { onComplete(); return; }
+    gsap.to(el, { opacity: 0, duration: 0.25, onComplete: () => { onComplete(); } });
   }, [onComplete]);
 
   const fireMegaConfetti = useCallback(() => {
     const fire = confettiRef.current || confetti;
-    // Left burst
     fire({ particleCount: 150, angle: 55, spread: 75, origin: { x: 0.05, y: 1 }, colors: confettiColors, startVelocity: 50, gravity: 0.9, drift: 0.5, scalar: 1.6, ticks: 450, decay: 0.93, shapes: ['circle', 'square'] as any, disableForReducedMotion: true });
-    // Right burst
     fire({ particleCount: 150, angle: 125, spread: 75, origin: { x: 0.95, y: 1 }, colors: confettiColors, startVelocity: 50, gravity: 0.9, drift: -0.5, scalar: 1.6, ticks: 450, decay: 0.93, shapes: ['circle', 'square'] as any, disableForReducedMotion: true });
-    // Center sparkle
     setTimeout(() => {
       const f = confettiRef.current || confetti;
       f({ particleCount: 60, spread: 100, origin: { x: 0.5, y: 0.55 }, colors: confettiColorsCenter, startVelocity: 28, gravity: 0.8, scalar: 1.3, ticks: 400, decay: 0.91, shapes: ['circle'] as any, disableForReducedMotion: true });
     }, 100);
-    // 3rd wave — side shower
     setTimeout(() => {
       const f = confettiRef.current || confetti;
       f({ particleCount: 80, angle: 60, spread: 55, origin: { x: 0.1, y: 0.8 }, colors: confettiColors, startVelocity: 35, gravity: 0.85, scalar: 1.4, ticks: 400, decay: 0.92, shapes: ['circle', 'square'] as any, disableForReducedMotion: true });
       f({ particleCount: 80, angle: 120, spread: 55, origin: { x: 0.9, y: 0.8 }, colors: confettiColors, startVelocity: 35, gravity: 0.85, scalar: 1.4, ticks: 400, decay: 0.92, shapes: ['circle', 'square'] as any, disableForReducedMotion: true });
     }, 400);
-    // 4th wave — rain from top
     setTimeout(() => {
       const f = confettiRef.current || confetti;
       f({ particleCount: 50, angle: 270, spread: 120, origin: { x: 0.5, y: -0.1 }, colors: confettiColorsCenter, startVelocity: 25, gravity: 1.2, scalar: 1.2, ticks: 350, decay: 0.93, shapes: ['circle', 'square'] as any, disableForReducedMotion: true });
     }, 650);
   }, [confettiColors, confettiColorsCenter]);
 
+  // ── MAIN ANIMATION — runs exactly once ──
   useEffect(() => {
-    setVisible(true);
+    if (animStartedRef.current) return; // Never re-run
+    animStartedRef.current = true;
+
     const raf = requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         const overlay = overlayRef.current;
@@ -156,9 +159,9 @@ const RankUpCinematic: React.FC<RankUpCinematicProps> = ({ oldRank, newRank, onC
         const btn = btnRef.current;
         if (!overlay || !oldBadge || !newBadge || !label || !btn) return;
 
-        // Reset all elements
+        // ── INITIAL STATE: everything hidden ──
         gsap.set(overlay, { opacity: 0 });
-        gsap.set(oldBadge, { scale: 0.5, opacity: 0 });
+        gsap.set(oldBadge, { scale: 0.5, opacity: 0, x: 0, y: 0, rotation: 0 });
         gsap.set(newBadge, { y: -200, scale: 1.4, opacity: 0 });
         if (glow) gsap.set(glow, { scale: 0.3, opacity: 0 });
         if (flash) gsap.set(flash, { opacity: 0 });
@@ -167,57 +170,62 @@ const RankUpCinematic: React.FC<RankUpCinematicProps> = ({ oldRank, newRank, onC
         if (voidText) gsap.set(voidText, { opacity: 0 });
         gsap.set(label, { opacity: 0, y: 30 });
         gsap.set(btn, { opacity: 0, y: 20 });
-        shardRefs.current.forEach(s => { if (s) gsap.set(s, { x: 0, y: 0, rotation: 0, opacity: 1, scale: 1 }); });
+        // KEY FIX: Shards start HIDDEN (opacity 0) — only become visible at explosion
+        shardRefs.current.forEach(s => { if (s) gsap.set(s, { x: 0, y: 0, rotation: 0, opacity: 0, scale: 1 }); });
 
         const tl = gsap.timeline();
         tlRef.current = tl;
 
-        // ═══ ACT 1: DISPLAY OLD BADGE (0s – 1s) ═══
+        // ═══ ACT 1: FADE IN + SHOW OLD BADGE ═══
         tl.to(overlay, { opacity: 1, duration: 0.4, ease: 'power2.out' });
         tl.to(oldBadge, { scale: 1, opacity: 1, duration: 0.5, ease: 'back.out(1.7)' }, '-=0.1');
 
-        // ═══ ACT 2: VIOLENT CRACK/SHAKE (1s – 1.8s) ═══
+        // ═══ ACT 2: VIOLENT SHAKE (single element, no doubling) ═══
         tl.to(oldBadge, {
           duration: 0.8, ease: 'power2.inOut',
           keyframes: [
-            { scale: 1.05, x: -6, y: 4, rotation: -2, duration: 0.1 },
-            { scale: 0.97, x: 8, y: -6, rotation: 3, duration: 0.1 },
-            { scale: 1.08, x: -10, y: 8, rotation: -4, duration: 0.1 },
-            { scale: 0.95, x: 12, y: -10, rotation: 3, duration: 0.1 },
-            { scale: 1.1, x: -8, y: 5, rotation: -2, duration: 0.1 },
-            { scale: 0.93, x: 10, y: -7, rotation: 4, duration: 0.1 },
-            { scale: 1.15, x: -5, y: 9, rotation: -3, duration: 0.1 },
-            { scale: 1.18, x: 0, y: 0, rotation: 0, duration: 0.1 },
+            { x: -6, y: 4, rotation: -2, duration: 0.1 },
+            { x: 8, y: -6, rotation: 3, duration: 0.1 },
+            { x: -10, y: 8, rotation: -4, duration: 0.1 },
+            { x: 12, y: -10, rotation: 3, duration: 0.1 },
+            { x: -8, y: 5, rotation: -2, duration: 0.1 },
+            { x: 10, y: -7, rotation: 4, duration: 0.1 },
+            { x: -5, y: 9, rotation: -3, duration: 0.1 },
+            { x: 0, y: 0, rotation: 0, duration: 0.1 },
           ],
         }, '+=0.5');
 
-        // ═══ ACT 3: SHATTER + FLASH (1.8s – 2.3s) ═══
-        tl.to(oldBadge, { opacity: 0, scale: 0, duration: 0.01 });
+        // ═══ ACT 3: SHATTER — hide old badge, show shards, then explode ═══
         tl.call(() => { playSystemSoundEffect('RANK_UP'); });
+        // Make shards visible at exact moment of explosion
+        tl.call(() => {
+          shardRefs.current.forEach(s => { if (s) gsap.set(s, { opacity: 1 }); });
+        });
+        // Simultaneously hide old badge
+        tl.to(oldBadge, { opacity: 0, duration: 0.01 });
 
-        // Shard explosion
+        // Explode shards outward
         shardRefs.current.forEach((s, i) => {
           if (!s) return;
           const cfg = SHARD_CONFIGS[i];
           tl.to(s, {
-            x: cfg.dx * 120, y: cfg.dy * 120, rotation: cfg.rot * 2,
-            opacity: 0, scale: 0.2, duration: 0.5, ease: 'power2.out',
+            x: cfg.dx * 140, y: cfg.dy * 140, rotation: cfg.rot * 2,
+            opacity: 0, scale: 0.15, duration: 0.5, ease: 'power2.out',
           }, '<');
         });
 
-        // White flash
-        if (flash) tl.fromTo(flash, { opacity: 0 }, { opacity: 0.8, duration: 0.12, yoyo: true, repeat: 1 }, '<');
+        // White flash — FIXED: using fromTo with correct layering
+        if (flash) tl.fromTo(flash, { opacity: 0 }, { opacity: 0.7, duration: 0.12, yoyo: true, repeat: 1 }, '<');
         // Shockwave ring
-        if (shock) tl.fromTo(shock, { scale: 0, opacity: 1 }, { scale: 6, opacity: 0, duration: 0.55, ease: 'power2.out' }, '<');
+        if (shock) tl.fromTo(shock, { scale: 0, opacity: 0.8 }, { scale: 6, opacity: 0, duration: 0.55, ease: 'power2.out' }, '<');
 
-        // ═══ ACT 4: VOID PULSE (2.3s – 2.8s) ═══
-        if (voidPulse) tl.fromTo(voidPulse, { scale: 0, opacity: 0 }, { scale: 2.5, opacity: 0.6, duration: 0.5, ease: 'power2.out' }, '+=0.2');
+        // ═══ ACT 4: VOID PULSE ═══
+        if (voidPulse) tl.fromTo(voidPulse, { scale: 0, opacity: 0 }, { scale: 2.5, opacity: 0.6, duration: 0.5, ease: 'power2.out' }, '+=0.15');
         if (voidText) tl.fromTo(voidText, { opacity: 0 }, { opacity: 1, duration: 0.3 }, '-=0.3');
-        // Hide void
         if (voidPulse) tl.to(voidPulse, { opacity: 0, duration: 0.3 }, '+=0.3');
         if (voidText) tl.to(voidText, { opacity: 0, duration: 0.2 }, '<');
 
-        // ═══ ACT 5: NEW BADGE STAMPS DOWN (3.1s – 3.8s) ═══
+        // ═══ ACT 5: NEW BADGE STAMPS DOWN ═══
         tl.to(newBadge, {
           y: 0, scale: 1, opacity: 1, duration: 0.45, ease: 'back.out(2.5)',
           onComplete: fireMegaConfetti,
@@ -229,19 +237,17 @@ const RankUpCinematic: React.FC<RankUpCinematicProps> = ({ oldRank, newRank, onC
           tl.to(glow, { scale: 1.15, opacity: 0.5, duration: 2, ease: 'sine.inOut', yoyo: true, repeat: -1 }, '+=0.1');
         }
 
-        // Badge breathing loop
+        // Badge breathing
         tl.to(newBadge, { scale: 1.04, duration: 2.5, ease: 'sine.inOut', yoyo: true, repeat: -1 }, '-=2');
 
-        // ═══ ACT 7: TEXT REVEAL ═══
+        // ═══ ACT 7: TEXT + BUTTON REVEAL ═══
         tl.to(label, { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out' }, glow ? '-=2.0' : '-=0.3');
         tl.to(btn, { opacity: 1, y: 0, duration: 0.4, ease: 'power3.out' }, '-=0.2');
       });
     });
 
-    return () => { cancelAnimationFrame(raf); if (tlRef.current) tlRef.current.kill(); };
-  }, []);
-
-  if (!visible) return null;
+    return () => { cancelAnimationFrame(raf); if (tlRef.current) { tlRef.current.kill(); tlRef.current = null; } };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const badgeSize = 150;
   const containerSize = 320;
@@ -257,6 +263,12 @@ const RankUpCinematic: React.FC<RankUpCinematicProps> = ({ oldRank, newRank, onC
       <canvas ref={confettiCanvasRef} style={{
         position: 'fixed', inset: 0, width: '100%', height: '100%',
         pointerEvents: 'none', zIndex: 99999, transform: 'translateZ(0)',
+      }} />
+
+      {/* White flash — covers entire screen, properly layered */}
+      <div ref={flashRef} style={{
+        position: 'fixed', inset: 0, background: 'white',
+        zIndex: 50, pointerEvents: 'none', opacity: 0,
       }} />
 
       {/* Grid lines (subtle) */}
@@ -289,63 +301,72 @@ const RankUpCinematic: React.FC<RankUpCinematicProps> = ({ oldRank, newRank, onC
           </div>
         </div>
 
-        {/* OLD badge (visible initially, then shakes + disappears) */}
+        {/* OLD badge (visible initially, shakes, then hidden at shatter) */}
         <div ref={oldBadgeRef} style={{
-          position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+          position: 'absolute', top: '50%', left: '50%',
+          width: badgeSize, height: badgeSize,
+          marginLeft: -(badgeSize / 2), marginTop: -(badgeSize / 2),
           zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          willChange: 'transform, opacity',
         }}>
           <img src={oldMeta.image} alt={`${oldRank} Rank`} draggable={false}
-            style={{ width: badgeSize - 20, height: badgeSize - 20, objectFit: 'contain' }} />
+            style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
         </div>
 
-        {/* SHARD explosion pieces (copies of old badge with clip-path) */}
+        {/* SHARD explosion pieces — start HIDDEN, shown only at explosion */}
         {SHARD_CONFIGS.map((shard, i) => (
           <div key={`shard-${i}`} ref={el => { shardRefs.current[i] = el; }}
             style={{
-              position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-              width: badgeSize, height: badgeSize, zIndex: 11, pointerEvents: 'none', opacity: 0,
+              position: 'absolute', top: '50%', left: '50%',
+              width: badgeSize, height: badgeSize,
+              marginLeft: -(badgeSize / 2), marginTop: -(badgeSize / 2),
+              zIndex: 11, pointerEvents: 'none',
+              opacity: 0, /* KEY: starts hidden */
+              willChange: 'transform, opacity',
             }}>
             <img src={oldMeta.image} alt="" draggable={false}
               style={{ width: '100%', height: '100%', objectFit: 'contain', clipPath: shard.clip }} />
           </div>
         ))}
 
-        {/* White flash */}
-        <div ref={flashRef} style={{
-          position: 'fixed', inset: 0, background: 'white', zIndex: 30, pointerEvents: 'none', opacity: 0,
-        }} />
-
         {/* Shockwave ring */}
         <div ref={shockRef} style={{
-          position: 'absolute', width: 60, height: 60, borderRadius: '50%',
-          border: `3px solid ${toHex(oldMeta.primary)}`, zIndex: 12, pointerEvents: 'none',
+          position: 'absolute', top: '50%', left: '50%',
+          width: 60, height: 60, marginLeft: -30, marginTop: -30,
+          borderRadius: '50%', border: `3px solid ${toHex(oldMeta.primary)}`,
+          zIndex: 12, pointerEvents: 'none', opacity: 0,
         }} />
 
         {/* Void pulse */}
         <div ref={voidRef} style={{
-          position: 'absolute', width: 120, height: 120, borderRadius: '50%',
+          position: 'absolute', top: '50%', left: '50%',
+          width: 120, height: 120, marginLeft: -60, marginTop: -60,
+          borderRadius: '50%',
           background: `radial-gradient(circle, ${glowColor}60, transparent 70%)`,
-          zIndex: 12, pointerEvents: 'none',
+          zIndex: 12, pointerEvents: 'none', opacity: 0,
         }} />
 
         {/* Void text */}
         <div ref={voidTextRef} style={{
-          position: 'absolute', bottom: -10, zIndex: 12,
-          fontSize: 9, fontFamily: 'monospace', fontWeight: 700,
+          position: 'absolute', bottom: -10, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 12, fontSize: 9, fontFamily: 'monospace', fontWeight: 700,
           letterSpacing: '0.4em', textTransform: 'uppercase',
-          color: glowColor, opacity: 0,
+          color: glowColor, opacity: 0, whiteSpace: 'nowrap',
         }}>
           FORGING NEW RANK...
         </div>
 
         {/* NEW badge (stamps down from above) */}
         <div ref={newBadgeRef} style={{
-          position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+          position: 'absolute', top: '50%', left: '50%',
+          width: badgeSize, height: badgeSize,
+          marginLeft: -(badgeSize / 2), marginTop: -(badgeSize / 2),
           zIndex: 15, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          opacity: 0, willChange: 'transform, opacity',
         }}>
           <img src={newMeta.image} alt={`${newRank} Rank`} draggable={false}
             style={{
-              width: badgeSize, height: badgeSize, objectFit: 'contain',
+              width: '100%', height: '100%', objectFit: 'contain',
               filter: `drop-shadow(0 0 20px ${glowColor}60)`,
             }} />
         </div>
