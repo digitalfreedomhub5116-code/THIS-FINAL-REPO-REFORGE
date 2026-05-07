@@ -173,7 +173,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onAvatarCha
 
 
   return (
-    <div className="flex flex-col items-center justify-start min-h-[80vh] gap-6 w-full max-w-2xl mx-auto pb-8">
+    <div className="flex flex-col items-center justify-start min-h-[80vh] gap-6 w-full max-w-2xl mx-auto pb-32">
 
       {/* Back Button */}
       {onBack && (
