@@ -222,6 +222,7 @@ const Level5Tutorial = lazy(() => import('./components/Level5Tutorial'));
 const Level10Tutorial = lazy(() => import('./components/Level10Tutorial'));
 
 const RewardCelebration = lazy(() => import('./components/RewardCelebration'));
+const WelcomeRewardChest = lazy(() => import('./components/WelcomeRewardChest'));
 
 import { useAdMob, AD_UNITS } from './hooks/useAdMob';
 
@@ -796,6 +797,7 @@ const App: React.FC = () => {
   const [showWorkoutOnboarding, setShowWorkoutOnboarding] = useState(false);
 
   const [showDuskWelcome, setShowDuskWelcome] = useState(false);
+  const [showWelcomeChest, setShowWelcomeChest] = useState(false);
 
   const [questAnalysisFailed, setQuestAnalysisFailed] = useState(false); // Track if quest analysis failed during tutorial
 
@@ -2500,9 +2502,13 @@ const App: React.FC = () => {
       const timer = setTimeout(() => {
 
         if (!player.questOnboardingDone && !showStreakCelebration && activeOverlay === null) {
-
-          setShowDuskWelcome(true);
-
+          // Show welcome reward chest for first-time users before Dusk welcome
+          const chestKey = `reforge_welcome_chest_${player.userId || 'local'}`;
+          if (!localStorage.getItem(chestKey)) {
+            setShowWelcomeChest(true);
+          } else {
+            setShowDuskWelcome(true);
+          }
           setActiveTab('DASHBOARD');
 
         }
@@ -4204,6 +4210,26 @@ const App: React.FC = () => {
       })()}
 
 
+
+      {/* ── Welcome Reward Chest (first-time only, before Dusk) ── */}
+      <AnimatePresence>
+        {showWelcomeChest && (
+          <Suspense fallback={null}>
+            <ErrorBoundary>
+              <WelcomeRewardChest
+                goldAmount={500}
+                keysAmount={10}
+                onComplete={() => {
+                  const chestKey = `reforge_welcome_chest_${player.userId || 'local'}`;
+                  localStorage.setItem(chestKey, 'shown');
+                  setShowWelcomeChest(false);
+                  setShowDuskWelcome(true);
+                }}
+              />
+            </ErrorBoundary>
+          </Suspense>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
 
