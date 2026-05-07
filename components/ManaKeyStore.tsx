@@ -117,7 +117,7 @@ const ManaKeyStore: React.FC<ManaKeyStoreProps> = ({ keys, rcState, rcActions, o
 
   const handlePurchase = async (pack: ManaPack) => {
     if (!rcState?.isNative || !rcActions || !rcState.offerings) {
-      setPurchaseError('Purchases are only available on mobile');
+      setPurchaseError('Purchases are only available in the app');
       setTimeout(() => setPurchaseError(null), 3000);
       return;
     }
@@ -143,7 +143,7 @@ const ManaKeyStore: React.FC<ManaKeyStoreProps> = ({ keys, rcState, rcActions, o
           `[ManaStore] Package not found: ${pack.productId}`,
           allPackages.map((p: any) => p.product?.identifier)
         );
-        setPurchaseError('Package not available — check Play Console setup');
+        setPurchaseError('Store is being set up — available soon!');
         setBuyingId(null);
         setTimeout(() => setPurchaseError(null), 4000);
         return;
