@@ -9,7 +9,7 @@ import { useCallback, useRef, useEffect, useState } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 // ── Toggle for test ads (set to false for production builds) ──
-const USE_TEST_ADS = true; // ⚠️ SET TO false BEFORE FINAL PRODUCTION BUILD
+const USE_TEST_ADS = false; // ✅ PRODUCTION MODE
 
 // Google's official test ad unit IDs (always return test ads, safe to use)
 const TEST_AD_UNITS = {
