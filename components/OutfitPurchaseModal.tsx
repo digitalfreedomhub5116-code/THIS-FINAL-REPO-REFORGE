@@ -126,9 +126,15 @@ const OutfitPurchaseModal: React.FC<Props> = ({
   const [localAdProgress, setLocalAdProgress] = useState(initialAdProgress || null);
 
   const accent = outfit.accentColor || '#FFD700';
-  const isAdGated = !!onWatchAd && outfit.cost > 0; // Free outfits are NOT ad-gated
+
+  // Only specific outfits are ad-gated
+  const AD_GATED_OUTFITS: Record<string, number> = {
+    'outfit_knight': 5,   // Saturn — 5 ads
+    'outfit_monarch': 20, // Mercury — 20 ads
+  };
+  const isAdGated = !!onWatchAd && !!AD_GATED_OUTFITS[outfit.id];
   const isFree = outfit.cost === 0;
-  const adsReq = 5; // All non-free outfits require 5 ads
+  const adsReq = AD_GATED_OUTFITS[outfit.id] || 5;
   const watched = localAdProgress?.adsWatched ?? 0;
   const remaining = isAdGated ? Math.max(0, adsReq - watched) : 0;
   const pct = isAdGated ? Math.min(100, Math.round((watched / adsReq) * 100)) : 0;
