@@ -1,74 +1,41 @@
 /**
  * WelcomeRewardChest.tsx
  * ──────────────────────
- * Full-screen "System Awakening" reward chest animation shown to new users.
- * Displays starter credits (500 Gold + 10 Keys) with epic RPG flair.
+ * Full-screen "Welcome" reward screen shown to new users.
+ * Shows hunter name, two flipping reward cards (Gold + Keys), and a CTA.
  *
- * Flow: Dark overlay → System text → Chest pulse → Tap to open →
- *       Rewards fly out → Counters animate → CTA button
+ * Flow: Title fades in → Cards flip from back → Continue button appears
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface WelcomeRewardChestProps {
   onComplete: () => void;
+  hunterName?: string;
   goldAmount?: number;
   keysAmount?: number;
 }
 
 const WelcomeRewardChest: React.FC<WelcomeRewardChestProps> = ({
   onComplete,
+  hunterName = 'Hunter',
   goldAmount = 600,
   keysAmount = 10,
 }) => {
-  const [phase, setPhase] = useState<'intro' | 'chest' | 'reveal' | 'done'>('intro');
-  const [goldCounter, setGoldCounter] = useState(0);
-  const [keysCounter, setKeysCounter] = useState(0);
+  const [showCards, setShowCards] = useState(false);
+  const [card1Flipped, setCard1Flipped] = useState(false);
+  const [card2Flipped, setCard2Flipped] = useState(false);
+  const [showCTA, setShowCTA] = useState(false);
 
-  // Phase 1 → Phase 2 (auto-advance after intro text)
+  // Sequence: title → cards appear → flip card 1 → flip card 2 → CTA
   useEffect(() => {
-    if (phase === 'intro') {
-      const t = setTimeout(() => setPhase('chest'), 2200);
-      return () => clearTimeout(t);
-    }
-  }, [phase]);
-
-  // Phase 3: Animate counters
-  useEffect(() => {
-    if (phase !== 'reveal') return;
-    const duration = 1200;
-    const steps = 30;
-    const goldStep = goldAmount / steps;
-    const keysStep = keysAmount / steps;
-    let i = 0;
-    const interval = setInterval(() => {
-      i++;
-      setGoldCounter(Math.min(Math.round(goldStep * i), goldAmount));
-      setKeysCounter(Math.min(Math.round(keysStep * i), keysAmount));
-      if (i >= steps) {
-        clearInterval(interval);
-        setTimeout(() => setPhase('done'), 400);
-      }
-    }, duration / steps);
-    return () => clearInterval(interval);
-  }, [phase, goldAmount, keysAmount]);
-
-  const handleChestTap = useCallback(() => {
-    if (phase === 'chest') {
-      setPhase('reveal');
-    }
-  }, [phase]);
-
-  // Generate particle positions for the burst
-  const particles = Array.from({ length: 24 }, (_, i) => ({
-    id: i,
-    angle: (i / 24) * 360,
-    delay: Math.random() * 0.3,
-    distance: 80 + Math.random() * 120,
-    size: 3 + Math.random() * 5,
-    color: i % 3 === 0 ? '#F59E0B' : i % 3 === 1 ? '#8B5CF6' : '#00d4ff',
-  }));
+    const t1 = setTimeout(() => setShowCards(true), 800);
+    const t2 = setTimeout(() => setCard1Flipped(true), 1400);
+    const t3 = setTimeout(() => setCard2Flipped(true), 1900);
+    const t4 = setTimeout(() => setShowCTA(true), 2600);
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); };
+  }, []);
 
   return (
     <motion.div
@@ -80,35 +47,28 @@ const WelcomeRewardChest: React.FC<WelcomeRewardChestProps> = ({
         position: 'fixed',
         inset: 0,
         zIndex: 9999,
-        background: 'radial-gradient(ellipse at center, rgba(10,8,30,0.97) 0%, rgba(0,0,0,0.99) 100%)',
+        background: 'radial-gradient(ellipse at 50% 30%, rgba(15,10,40,0.98) 0%, rgba(0,0,0,0.99) 100%)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
         overflow: 'hidden',
         touchAction: 'none',
+        padding: '0 24px',
       }}
     >
-      {/* Background ambient particles */}
-      {Array.from({ length: 40 }).map((_, i) => (
+      {/* Ambient floating particles */}
+      {Array.from({ length: 20 }).map((_, i) => (
         <motion.div
-          key={`bg-${i}`}
+          key={`p-${i}`}
           initial={{ opacity: 0, y: '100vh' }}
-          animate={{
-            opacity: [0, 0.4, 0],
-            y: [window.innerHeight, -50],
-          }}
-          transition={{
-            duration: 4 + Math.random() * 4,
-            repeat: Infinity,
-            delay: Math.random() * 5,
-            ease: 'linear',
-          }}
+          animate={{ opacity: [0, 0.3, 0], y: [window.innerHeight, -20] }}
+          transition={{ duration: 5 + Math.random() * 4, repeat: Infinity, delay: Math.random() * 4, ease: 'linear' }}
           style={{
             position: 'absolute',
             left: `${Math.random() * 100}%`,
-            width: 2 + Math.random() * 3,
-            height: 2 + Math.random() * 3,
+            width: 2 + Math.random() * 2,
+            height: 2 + Math.random() * 2,
             borderRadius: '50%',
             background: i % 2 === 0 ? '#F59E0B' : '#8B5CF6',
             pointerEvents: 'none',
@@ -116,335 +76,261 @@ const WelcomeRewardChest: React.FC<WelcomeRewardChestProps> = ({
         />
       ))}
 
-      {/* Phase 1: System Intro Text */}
+      {/* Title Section */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2, duration: 0.6 }}
+        style={{ textAlign: 'center', marginBottom: 40, position: 'relative', zIndex: 10 }}
+      >
+        <div style={{
+          fontFamily: 'monospace',
+          fontSize: 11,
+          fontWeight: 800,
+          letterSpacing: '0.3em',
+          color: '#00d4ff',
+          textTransform: 'uppercase',
+          marginBottom: 10,
+          textShadow: '0 0 20px rgba(0,212,255,0.4)',
+        }}>
+          ⚡ System Notification ⚡
+        </div>
+
+        <div style={{
+          fontSize: 26,
+          fontWeight: 900,
+          color: '#fff',
+          letterSpacing: '0.02em',
+          lineHeight: 1.2,
+          textShadow: '0 4px 20px rgba(0,0,0,0.6)',
+        }}>
+          WELCOME, <span style={{ color: '#00d4ff' }}>{hunterName.toUpperCase()}</span>
+        </div>
+
+        <motion.div
+          initial={{ width: 0 }}
+          animate={{ width: 180 }}
+          transition={{ delay: 0.5, duration: 0.6 }}
+          style={{
+            height: 2,
+            background: 'linear-gradient(90deg, transparent, rgba(0,212,255,0.5), transparent)',
+            margin: '12px auto',
+          }}
+        />
+
+        <div style={{
+          fontFamily: 'monospace',
+          fontSize: 11,
+          fontWeight: 700,
+          letterSpacing: '0.18em',
+          color: 'rgba(255,255,255,0.5)',
+          textTransform: 'uppercase',
+        }}>
+          Here are your joining rewards
+        </div>
+      </motion.div>
+
+      {/* Reward Cards */}
       <AnimatePresence>
-        {phase === 'intro' && (
+        {showCards && (
           <motion.div
-            key="intro"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0, scale: 1.1 }}
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            style={{ textAlign: 'center', position: 'relative', zIndex: 10 }}
+            style={{
+              display: 'flex',
+              gap: 20,
+              justifyContent: 'center',
+              position: 'relative',
+              zIndex: 10,
+              perspective: 1000,
+            }}
           >
-            <motion.div
-              initial={{ opacity: 0, letterSpacing: '0.8em' }}
-              animate={{ opacity: 1, letterSpacing: '0.35em' }}
-              transition={{ duration: 1, ease: 'easeOut' }}
-              style={{
-                fontFamily: 'monospace',
-                fontSize: 11,
-                fontWeight: 800,
-                color: '#00d4ff',
-                textTransform: 'uppercase',
-                marginBottom: 16,
-                textShadow: '0 0 20px rgba(0,212,255,0.5)',
-              }}
-            >
-              ⚡ System Notification ⚡
-            </motion.div>
+            {/* Gold Card */}
+            <FlipCard
+              flipped={card1Flipped}
+              emoji="💰"
+              amount={goldAmount}
+              label="Gold Crystals"
+              color="#F59E0B"
+              bgGrad="linear-gradient(160deg, rgba(245,158,11,0.2), rgba(245,158,11,0.04) 80%)"
+              borderColor="rgba(245,158,11,0.35)"
+              glowColor="rgba(245,158,11,0.2)"
+            />
 
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6, duration: 0.6 }}
-              style={{
-                fontFamily: 'monospace',
-                fontSize: 18,
-                fontWeight: 900,
-                color: '#fff',
-                letterSpacing: '0.08em',
-              }}
-            >
-              Hunter Awakening Detected
-            </motion.div>
-
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: 200 }}
-              transition={{ delay: 1.2, duration: 0.8 }}
-              style={{
-                height: 2,
-                background: 'linear-gradient(90deg, transparent, #00d4ff, transparent)',
-                margin: '16px auto 0',
-                boxShadow: '0 0 15px rgba(0,212,255,0.4)',
-              }}
+            {/* Keys Card */}
+            <FlipCard
+              flipped={card2Flipped}
+              emoji="🔑"
+              amount={keysAmount}
+              label="Shadow Keys"
+              color="#A78BFA"
+              bgGrad="linear-gradient(160deg, rgba(139,92,246,0.2), rgba(139,92,246,0.04) 80%)"
+              borderColor="rgba(139,92,246,0.35)"
+              glowColor="rgba(139,92,246,0.2)"
             />
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Phase 2: Chest — Tap to Open */}
+      {/* CTA Button */}
       <AnimatePresence>
-        {phase === 'chest' && (
-          <motion.div
-            key="chest"
-            initial={{ opacity: 0, scale: 0.5 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.3 }}
-            transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-            onClick={handleChestTap}
+        {showCTA && (
+          <motion.button
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+            onClick={onComplete}
             style={{
-              textAlign: 'center',
+              marginTop: 40,
+              padding: '14px 44px',
+              borderRadius: 14,
+              border: '1px solid rgba(0,212,255,0.4)',
+              background: 'linear-gradient(135deg, rgba(0,212,255,0.2), rgba(0,212,255,0.05))',
+              color: '#00d4ff',
+              fontSize: 13,
+              fontWeight: 900,
+              fontFamily: 'monospace',
+              letterSpacing: '0.2em',
+              textTransform: 'uppercase' as const,
               cursor: 'pointer',
+              boxShadow: '0 0 25px rgba(0,212,255,0.2)',
+              outline: 'none',
               position: 'relative',
               zIndex: 10,
             }}
           >
-            {/* Glowing aura behind chest */}
-            <motion.div
-              animate={{
-                scale: [1, 1.2, 1],
-                opacity: [0.3, 0.6, 0.3],
-              }}
-              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-              style={{
-                position: 'absolute',
-                top: '50%',
-                left: '50%',
-                width: 260,
-                height: 260,
-                borderRadius: '50%',
-                background: 'radial-gradient(circle, rgba(245,158,11,0.25) 0%, rgba(139,92,246,0.15) 40%, transparent 70%)',
-                transform: 'translate(-50%, -50%)',
-                pointerEvents: 'none',
-              }}
-            />
-
-            {/* Chest emoji/icon */}
-            <motion.div
-              animate={{
-                scale: [1, 1.05, 1],
-                rotate: [0, -2, 2, 0],
-              }}
-              transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-              style={{
-                fontSize: 100,
-                lineHeight: 1,
-                filter: 'drop-shadow(0 0 30px rgba(245,158,11,0.5))',
-                marginBottom: 24,
-              }}
-            >
-              🎁
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: [0.5, 1, 0.5] }}
-              transition={{ duration: 1.5, repeat: Infinity }}
-              style={{
-                fontFamily: 'monospace',
-                fontSize: 13,
-                fontWeight: 800,
-                color: '#F59E0B',
-                textTransform: 'uppercase',
-                letterSpacing: '0.2em',
-                textShadow: '0 0 10px rgba(245,158,11,0.4)',
-              }}
-            >
-              Tap to Open
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Phase 3: Reward Reveal */}
-      <AnimatePresence>
-        {(phase === 'reveal' || phase === 'done') && (
-          <motion.div
-            key="reveal"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            style={{
-              textAlign: 'center',
-              position: 'relative',
-              zIndex: 10,
-              width: '100%',
-              maxWidth: 360,
-              padding: '0 24px',
-            }}
-          >
-            {/* Particle burst */}
-            {particles.map((p) => (
-              <motion.div
-                key={p.id}
-                initial={{ opacity: 1, x: 0, y: 0, scale: 1 }}
-                animate={{
-                  opacity: 0,
-                  x: Math.cos((p.angle * Math.PI) / 180) * p.distance,
-                  y: Math.sin((p.angle * Math.PI) / 180) * p.distance,
-                  scale: 0,
-                }}
-                transition={{ duration: 1.2, delay: p.delay, ease: 'easeOut' }}
-                style={{
-                  position: 'absolute',
-                  top: '30%',
-                  left: '50%',
-                  width: p.size,
-                  height: p.size,
-                  borderRadius: '50%',
-                  background: p.color,
-                  boxShadow: `0 0 8px ${p.color}`,
-                  pointerEvents: 'none',
-                }}
-              />
-            ))}
-
-            {/* Title */}
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2, type: 'spring' }}
-              style={{
-                fontFamily: 'monospace',
-                fontSize: 11,
-                fontWeight: 800,
-                color: '#00d4ff',
-                letterSpacing: '0.3em',
-                textTransform: 'uppercase',
-                marginBottom: 8,
-                textShadow: '0 0 15px rgba(0,212,255,0.5)',
-              }}
-            >
-              Starter Rewards Unlocked
-            </motion.div>
-
-            {/* Reward Cards */}
-            <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginTop: 24 }}>
-              {/* Gold Card */}
-              <motion.div
-                initial={{ opacity: 0, y: 30, rotateY: -90 }}
-                animate={{ opacity: 1, y: 0, rotateY: 0 }}
-                transition={{ delay: 0.3, duration: 0.6, type: 'spring' }}
-                style={{
-                  flex: 1,
-                  padding: 20,
-                  borderRadius: 16,
-                  background: 'linear-gradient(160deg, rgba(245,158,11,0.15), rgba(245,158,11,0.03) 80%)',
-                  border: '1px solid rgba(245,158,11,0.3)',
-                  boxShadow: '0 0 30px rgba(245,158,11,0.15)',
-                  textAlign: 'center',
-                }}
-              >
-                <div style={{ fontSize: 44, lineHeight: 1, marginBottom: 8 }}>💰</div>
-                <motion.div
-                  style={{
-                    fontSize: 32,
-                    fontWeight: 900,
-                    color: '#F59E0B',
-                    fontFamily: 'monospace',
-                    textShadow: '0 0 20px rgba(245,158,11,0.4)',
-                  }}
-                >
-                  {goldCounter}
-                </motion.div>
-                <div
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 700,
-                    color: 'rgba(245,158,11,0.7)',
-                    letterSpacing: '0.15em',
-                    marginTop: 4,
-                    fontFamily: 'monospace',
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  Gold Crystals
-                </div>
-              </motion.div>
-
-              {/* Keys Card */}
-              <motion.div
-                initial={{ opacity: 0, y: 30, rotateY: 90 }}
-                animate={{ opacity: 1, y: 0, rotateY: 0 }}
-                transition={{ delay: 0.5, duration: 0.6, type: 'spring' }}
-                style={{
-                  flex: 1,
-                  padding: 20,
-                  borderRadius: 16,
-                  background: 'linear-gradient(160deg, rgba(139,92,246,0.15), rgba(139,92,246,0.03) 80%)',
-                  border: '1px solid rgba(139,92,246,0.3)',
-                  boxShadow: '0 0 30px rgba(139,92,246,0.15)',
-                  textAlign: 'center',
-                }}
-              >
-                <div style={{ fontSize: 44, lineHeight: 1, marginBottom: 8 }}>🔑</div>
-                <motion.div
-                  style={{
-                    fontSize: 32,
-                    fontWeight: 900,
-                    color: '#A78BFA',
-                    fontFamily: 'monospace',
-                    textShadow: '0 0 20px rgba(139,92,246,0.4)',
-                  }}
-                >
-                  {keysCounter}
-                </motion.div>
-                <div
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 700,
-                    color: 'rgba(139,92,246,0.7)',
-                    letterSpacing: '0.15em',
-                    marginTop: 4,
-                    fontFamily: 'monospace',
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  Shadow Keys
-                </div>
-              </motion.div>
-            </div>
-
-            {/* Subtitle */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1.4 }}
-              style={{
-                marginTop: 20,
-                fontSize: 12,
-                color: 'rgba(255,255,255,0.4)',
-                fontFamily: 'monospace',
-                letterSpacing: '0.1em',
-              }}
-            >
-              Your journey begins, Hunter.
-            </motion.div>
-
-            {/* CTA Button */}
-            <AnimatePresence>
-              {phase === 'done' && (
-                <motion.button
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2, type: 'spring' }}
-                  onClick={onComplete}
-                  style={{
-                    marginTop: 32,
-                    padding: '14px 40px',
-                    borderRadius: 14,
-                    border: '1px solid rgba(0,212,255,0.4)',
-                    background: 'linear-gradient(135deg, rgba(0,212,255,0.2), rgba(0,212,255,0.05))',
-                    color: '#00d4ff',
-                    fontSize: 13,
-                    fontWeight: 900,
-                    fontFamily: 'monospace',
-                    letterSpacing: '0.2em',
-                    textTransform: 'uppercase',
-                    cursor: 'pointer',
-                    boxShadow: '0 0 25px rgba(0,212,255,0.2)',
-                    outline: 'none',
-                  }}
-                >
-                  Enter The System →
-                </motion.button>
-              )}
-            </AnimatePresence>
-          </motion.div>
+            Continue →
+          </motion.button>
         )}
       </AnimatePresence>
     </motion.div>
+  );
+};
+
+// ── Flip Card Sub-Component ──
+interface FlipCardProps {
+  flipped: boolean;
+  emoji: string;
+  amount: number;
+  label: string;
+  color: string;
+  bgGrad: string;
+  borderColor: string;
+  glowColor: string;
+}
+
+const FlipCard: React.FC<FlipCardProps> = ({
+  flipped, emoji, amount, label, color, bgGrad, borderColor, glowColor,
+}) => {
+  const [counter, setCounter] = useState(0);
+
+  // Animate counter when flipped
+  useEffect(() => {
+    if (!flipped) return;
+    const steps = 20;
+    const step = amount / steps;
+    let i = 0;
+    const interval = setInterval(() => {
+      i++;
+      setCounter(Math.min(Math.round(step * i), amount));
+      if (i >= steps) clearInterval(interval);
+    }, 40);
+    return () => clearInterval(interval);
+  }, [flipped, amount]);
+
+  return (
+    <div style={{ perspective: 800, width: 140, height: 190 }}>
+      <motion.div
+        animate={{ rotateY: flipped ? 180 : 0 }}
+        transition={{ duration: 0.6, ease: [0.23, 1, 0.32, 1] }}
+        style={{
+          width: '100%',
+          height: '100%',
+          position: 'relative',
+          transformStyle: 'preserve-3d',
+        }}
+      >
+        {/* Card Back */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            backfaceVisibility: 'hidden',
+            borderRadius: 16,
+            background: 'linear-gradient(160deg, rgba(30,20,60,0.9), rgba(15,10,35,0.95))',
+            border: '1px solid rgba(255,255,255,0.08)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+          }}
+        >
+          <div style={{
+            fontSize: 36,
+            opacity: 0.3,
+            marginBottom: 8,
+          }}>
+            ?
+          </div>
+          <div style={{
+            fontFamily: 'monospace',
+            fontSize: 9,
+            fontWeight: 700,
+            color: 'rgba(255,255,255,0.2)',
+            letterSpacing: '0.2em',
+            textTransform: 'uppercase',
+          }}>
+            Reward
+          </div>
+        </div>
+
+        {/* Card Front (flipped) */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            backfaceVisibility: 'hidden',
+            transform: 'rotateY(180deg)',
+            borderRadius: 16,
+            background: bgGrad,
+            border: `1px solid ${borderColor}`,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: `0 8px 32px rgba(0,0,0,0.4), 0 0 40px ${glowColor}`,
+            padding: 16,
+          }}
+        >
+          <div style={{ fontSize: 48, lineHeight: 1, marginBottom: 12 }}>
+            {emoji}
+          </div>
+          <div style={{
+            fontSize: 34,
+            fontWeight: 900,
+            color,
+            fontFamily: 'monospace',
+            textShadow: `0 0 20px ${glowColor}`,
+            lineHeight: 1,
+          }}>
+            {counter}
+          </div>
+          <div style={{
+            fontSize: 10,
+            fontWeight: 700,
+            color: `${color}AA`,
+            letterSpacing: '0.12em',
+            marginTop: 6,
+            fontFamily: 'monospace',
+            textTransform: 'uppercase',
+          }}>
+            {label}
+          </div>
+        </div>
+      </motion.div>
+    </div>
   );
 };
 

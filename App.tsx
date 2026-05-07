@@ -4233,6 +4233,7 @@ const App: React.FC = () => {
           <Suspense fallback={null}>
             <ErrorBoundary>
               <WelcomeRewardChest
+                hunterName={player.name || player.username || 'Hunter'}
                 goldAmount={600}
                 keysAmount={10}
                 onComplete={() => {
