@@ -89,8 +89,8 @@ const STORE_PRICES: Record<string, number> = {
   'banner-reforge-default': 0,
 };
 
-// Max discount % any daily deal can offer (anti-cheat ceiling)
-const MAX_DEAL_DISCOUNT = 40;
+// Max discount % any daily deal can offer (anti-cheat ceiling — client uses 5-20%, this gives 5% buffer)
+const MAX_DEAL_DISCOUNT = 25;
 
 // ── GET / — Load full inventory for the authenticated player ──
 router.get('/', async (req: Request, res: Response) => {
