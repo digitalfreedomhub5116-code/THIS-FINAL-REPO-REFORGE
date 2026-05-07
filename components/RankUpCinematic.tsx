@@ -259,10 +259,10 @@ const RankUpCinematic: React.FC<RankUpCinematicProps> = ({ oldRank, newRank, onC
       alignItems: 'center', justifyContent: 'center',
       background: 'rgba(0,0,0,0.96)', opacity: 0, overflow: 'hidden',
     }}>
-      {/* Confetti canvas */}
+      {/* Confetti canvas — must be above everything */}
       <canvas ref={confettiCanvasRef} style={{
         position: 'fixed', inset: 0, width: '100%', height: '100%',
-        pointerEvents: 'none', zIndex: 99999, transform: 'translateZ(0)',
+        pointerEvents: 'none', zIndex: 100001, transform: 'translateZ(0)',
       }} />
 
       {/* White flash — covers entire screen, properly layered */}
@@ -271,12 +271,7 @@ const RankUpCinematic: React.FC<RankUpCinematicProps> = ({ oldRank, newRank, onC
         zIndex: 50, pointerEvents: 'none', opacity: 0,
       }} />
 
-      {/* Grid lines (subtle) */}
-      <div style={{
-        position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0,
-        backgroundImage: `linear-gradient(${glowColor}06 1px, transparent 1px), linear-gradient(90deg, ${glowColor}06 1px, transparent 1px)`,
-        backgroundSize: '48px 48px',
-      }} />
+
 
       {/* Main stage */}
       <div style={{
@@ -286,7 +281,7 @@ const RankUpCinematic: React.FC<RankUpCinematicProps> = ({ oldRank, newRank, onC
       }}>
         {/* Sun ray glow (behind badge) */}
         <div style={{
-          position: 'absolute', width: '150vmax', height: '150vmax',
+          position: 'absolute', width: '100vmin', height: '100vmin',
           top: '50%', left: '50%', transform: 'translate3d(-50%, -50%, 0)',
           pointerEvents: 'none', zIndex: 0, overflow: 'visible',
         }}>

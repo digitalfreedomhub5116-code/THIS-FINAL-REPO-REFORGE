@@ -5141,7 +5141,8 @@ const App: React.FC = () => {
 
                     }}
 
-                    onTestSetRank={(rank) => setPlayer(prev => ({ ...prev, rank: rank as PlayerData['rank'] }))}
+
+
 
                   />
 

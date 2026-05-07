@@ -42,8 +42,6 @@ interface YouViewProps {
   onDeleteAccount?: () => Promise<void>;
   onNavigate?: (tab: Tab) => void;
   onOpenDusk?: () => void;
-  /** [TEST] Override player rank for badge testing. Remove after testing. */
-  onTestSetRank?: (rank: string) => void;
 }
 
 
@@ -353,7 +351,7 @@ const JourneyLog: React.FC<{ player: PlayerData }> = ({ player }) => {
 };
 
 // ─── Rank ladder modal ───────────────────────────────────────────────
-const RankLadderModal: React.FC<{ player: PlayerData; onClose: () => void; onTestSetRank?: (rank: string) => void }> = ({ player, onClose, onTestSetRank }) => (
+const RankLadderModal: React.FC<{ player: PlayerData; onClose: () => void }> = ({ player, onClose }) => (
   <motion.div
     initial={{ opacity: 0 }}
     animate={{ opacity: 1 }}
@@ -372,7 +370,7 @@ const RankLadderModal: React.FC<{ player: PlayerData; onClose: () => void; onTes
         <div>
           <div className="text-xs font-mono text-[#00d4ff] tracking-widest">RANK PROGRESSION</div>
           <div className="text-[10px] text-gray-500 font-mono">
-            {onTestSetRank ? '⚠ TAP TO SET (TEST)' : `Level ${player.level} · Current Rank: ${player.rank}`}
+            Level {player.level} · Current Rank: {player.rank}
           </div>
         </div>
         <button onClick={onClose} className="p-1 rounded-full hover:bg-white/5"><X size={16} className="text-gray-400" /></button>
@@ -392,8 +390,7 @@ const RankLadderModal: React.FC<{ player: PlayerData; onClose: () => void; onTes
                     ? 'border-white/10 bg-white/[0.03]'
                     : 'border-white/5 bg-transparent opacity-50'
               }`}
-              style={{ cursor: onTestSetRank ? 'pointer' : 'default' }}
-              onClick={() => onTestSetRank?.(r.rank)}
+              style={{ cursor: 'default' }}
             >
               <RankBadge rank={r.rank as RankType} size={56} animated={isCurrent} />
               <div className="flex-1 min-w-0">
@@ -622,26 +619,15 @@ const StatsDrawer: React.FC<{ player: PlayerData; history?: import('../types').H
 
 // ─── Main YouView ────────────────────────────────────────────────────
 const YouView: React.FC<YouViewProps> = ({
-  player, equippedOutfit, history, onUpdate, onAvatarChange, onLogout, onDeleteAccount, onNavigate, onOpenDusk, onTestSetRank,
+  player, equippedOutfit, history, onUpdate, onAvatarChange, onLogout, onDeleteAccount, onNavigate, onOpenDusk,
 }) => {
   const [showRank, setShowRank] = useState(false);
   const [showRankProgression, setShowRankProgression] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [comingSoon, setComingSoon] = useState<string | null>(null);
-  // [TEST] Rank-up cinematic test state
-  const [testRankUp, setTestRankUp] = useState<{ oldRank: string; newRank: string } | null>(null);
 
   const duskBadge = player.duskUnreadCount || 0;
-
-  // [TEST] Wraps the real onTestSetRank to play cinematic first
-  const handleTestRankTap = (rank: string) => {
-    if (!onTestSetRank) return;
-    const oldRank = player.rank || 'E';
-    if (oldRank === rank) return; // no-op if same rank
-    setShowRank(false); // close the modal
-    setTestRankUp({ oldRank, newRank: rank });
-  };
 
   return (
     <div className="w-full max-w-2xl mx-auto pb-24">
@@ -684,7 +670,7 @@ const YouView: React.FC<YouViewProps> = ({
 
       {/* Modals (non-portaled stay in AnimatePresence) */}
       <AnimatePresence>
-        {showRank && <RankLadderModal player={player} onClose={() => setShowRank(false)} onTestSetRank={onTestSetRank ? handleTestRankTap : undefined} />}
+        {showRank && <RankLadderModal player={player} onClose={() => setShowRank(false)} />}
         {showConfig && (
           <ProfileDrawer
             player={player}
@@ -712,7 +698,7 @@ const YouView: React.FC<YouViewProps> = ({
           </div>
           <div className="px-4 py-6">
             <Suspense fallback={<div className="text-gray-500 text-xs text-center py-8 font-mono">Loading rank data...</div>}>
-              <RankProgressionCard level={player.level} rank={player.rank} onTestSetRank={onTestSetRank ? handleTestRankTap : undefined} />
+              <RankProgressionCard level={player.level} rank={player.rank} />
             </Suspense>
           </div>
         </div>,
@@ -724,21 +710,7 @@ const YouView: React.FC<YouViewProps> = ({
         document.body
       )}
 
-      {/* [TEST] Rank-Up Cinematic overlay */}
-      <AnimatePresence>
-        {testRankUp && (
-          <Suspense fallback={null}>
-            <RankUpCinematic
-              oldRank={testRankUp.oldRank as any}
-              newRank={testRankUp.newRank as any}
-              onComplete={() => {
-                onTestSetRank?.(testRankUp.newRank);
-                setTestRankUp(null);
-              }}
-            />
-          </Suspense>
-        )}
-      </AnimatePresence>
+
     </div>
   );
 };
