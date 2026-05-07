@@ -687,7 +687,8 @@ const App: React.FC = () => {
     return () => { listener.subscription.unsubscribe(); };
   }, []);
   const isVip = !!(authEmail && VIP_EMAILS.has(authEmail.toLowerCase()));
-  const isPremium = rcState.hasManaPower || isVip;
+  // TEMP: Force premium ON for Google Play review video — revert after recording
+  const isPremium = true; // rcState.hasManaPower || isVip;
 
   // ── Identify user with RevenueCat so entitlements are per-account, not per-device ──
   const rcLoginDoneRef = useRef<string | null>(null);
