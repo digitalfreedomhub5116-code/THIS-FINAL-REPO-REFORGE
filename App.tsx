@@ -1089,9 +1089,9 @@ const App: React.FC = () => {
 
   // Only one gameplay-interrupting overlay at a time. Priority: streak > levelUp > levelDown > rankUp > dailyLogin > notifPrompt
 
-  type OverlayType = 'streak' | 'levelUp' | 'levelDown' | 'rankUp' | 'dailyLogin' | 'notifPrompt';
+  type OverlayType = 'rankReveal' | 'welcomeChest' | 'streak' | 'levelUp' | 'levelDown' | 'rankUp' | 'dailyLogin' | 'notifPrompt';
 
-  const OVERLAY_PRIORITY: Record<OverlayType, number> = { streak: 0, levelUp: 1, levelDown: 2, rankUp: 3, dailyLogin: 4, notifPrompt: 5 };
+  const OVERLAY_PRIORITY: Record<OverlayType, number> = { rankReveal: 0, welcomeChest: 1, streak: 2, levelUp: 3, levelDown: 4, rankUp: 5, dailyLogin: 6, notifPrompt: 7 };
 
   const overlayQueueRef = useRef<OverlayType[]>([]);
 
@@ -1143,7 +1143,7 @@ const App: React.FC = () => {
 
       // Re-check when any of the triggers fire (these deps cause re-evaluation)
 
-      showStreakCelebration, showLevelUp, showLevelDown, rankUpData, showDailyLogin, showNotifPrompt]);
+      showStreakCelebration, showLevelUp, showLevelDown, rankUpData, showDailyLogin, showNotifPrompt, showRankReveal, showWelcomeChest]);
 
 
 
@@ -2559,29 +2559,39 @@ const App: React.FC = () => {
 
 
 
-  // ── Rank Reveal after quest+workout onboarding complete ──
-
+  // ── Rank Reveal for first-time users (UNRANKED → E) ──
+  // Now uses overlay queue so it fires FIRST, before welcome chest and streak.
   useEffect(() => {
-
-    if (!player.isConfigured) return;
-
+    if (!player.isConfigured || !dataReady) return;
     if (player.rankRevealed) return;
-
     if (player.rank !== 'UNRANKED') return;
+    if (onboardingPhase !== 'APP') return;
 
-    if (!player.questOnboardingDone) return;
-
-    // Show rank reveal after quest onboarding is done
-
+    // Small delay to let the app settle
     const timer = setTimeout(() => {
-
       setShowRankReveal(true);
-
-    }, 800);
-
+      enqueueOverlay('rankReveal');
+    }, 600);
     return () => clearTimeout(timer);
+  }, [player.isConfigured, player.rankRevealed, player.rank, onboardingPhase, dataReady, enqueueOverlay]);
 
-  }, [player.questOnboardingDone, player.rankRevealed, player.rank, player.isConfigured]);
+  // ── Welcome Reward Chest for first-time users ──
+  // Shows AFTER rank reveal (priority 1 in queue), BEFORE streak (priority 2).
+  useEffect(() => {
+    if (!player.isConfigured || !dataReady) return;
+    if (!player.userId) return;
+    if (onboardingPhase !== 'APP') return;
+
+    const chestKey = `reforge_welcome_chest_${player.userId}`;
+    if (localStorage.getItem(chestKey)) return; // Already shown
+
+    // Small delay so rank reveal enqueues first
+    const timer = setTimeout(() => {
+      setShowWelcomeChest(true);
+      enqueueOverlay('welcomeChest');
+    }, 700);
+    return () => clearTimeout(timer);
+  }, [player.isConfigured, player.userId, onboardingPhase, dataReady, enqueueOverlay]);
 
 
 
@@ -2726,14 +2736,10 @@ const App: React.FC = () => {
   // ── Rank Reveal Complete Handler ──
 
   const handleRankRevealComplete = useCallback(() => {
-
     setShowRankReveal(false);
-
     setPlayer(prev => ({ ...prev, rank: 'E', rankRevealed: true }));
-
-    // DISABLED: Workout onboarding removed in v4
-
-  }, [setPlayer, player.workoutOnboardingDone]);
+    dismissOverlay(); // Advance queue to next (welcomeChest)
+  }, [setPlayer, dismissOverlay]);
 
 
 
@@ -4223,7 +4229,7 @@ const App: React.FC = () => {
 
       {/* ── Welcome Reward Chest (first-time only, before Dusk) ── */}
       <AnimatePresence>
-        {showWelcomeChest && (
+        {showWelcomeChest && activeOverlay === 'welcomeChest' && (
           <Suspense fallback={null}>
             <ErrorBoundary>
               <WelcomeRewardChest
@@ -4233,7 +4239,7 @@ const App: React.FC = () => {
                   const chestKey = `reforge_welcome_chest_${player.userId || 'local'}`;
                   localStorage.setItem(chestKey, 'shown');
                   setShowWelcomeChest(false);
-                  setShowDuskWelcome(true);
+                  dismissOverlay(); // Advance queue to streak
                 }}
               />
             </ErrorBoundary>
@@ -4399,7 +4405,7 @@ const App: React.FC = () => {
 
       <AnimatePresence>
 
-        {showRankReveal && (
+        {showRankReveal && activeOverlay === 'rankReveal' && (
 
           <Suspense fallback={null}>
 
