@@ -27,6 +27,25 @@ import OnboardingNotice from './OnboardingNotice';
 import { scheduleSlotReminder, cancelScheduleSlotReminder } from '../hooks/useLocalNotifications';
 
 // ────────────────────────────────────────────────────────────
+// DAILY ANALYSIS TRACKING (matches QuestsView)
+// ────────────────────────────────────────────────────────────
+
+const FREE_DAILY_ANALYSES = 3;
+
+function getDailyAnalysisCount(userId?: string): number {
+  const today = new Date().toISOString().split('T')[0];
+  const key = `reforge_daily_analyses_${userId || 'local'}_${today}`;
+  return parseInt(localStorage.getItem(key) || '0', 10);
+}
+
+function incrementDailyAnalysisCount(userId?: string): void {
+  const today = new Date().toISOString().split('T')[0];
+  const key = `reforge_daily_analyses_${userId || 'local'}_${today}`;
+  const current = parseInt(localStorage.getItem(key) || '0', 10);
+  localStorage.setItem(key, String(current + 1));
+}
+
+// ────────────────────────────────────────────────────────────
 // TYPES
 // ────────────────────────────────────────────────────────────
 
@@ -102,6 +121,7 @@ interface DailyCommandCenterProps {
   onSlotAction?: (slotId: string, action: 'SKIP' | 'DEFER', slots: ScheduleSlot[]) => void;
   onToggleNotify?: (slotId: string, enabled: boolean, slots: ScheduleSlot[]) => void;
   onReorderSlots?: (slots: ScheduleSlot[]) => void;
+  onShowInterstitialAd?: () => Promise<boolean>;
 }
 
 // ────────────────────────────────────────────────────────────
@@ -876,7 +896,7 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
   isQuestOnboarding, onTutorialManaOut,
   goals, onUpdateGoals, onDeleteGoal, onDeductGold, onUpdateScheduleSlots,
   scheduleProfile, dailySchedule, rescheduleQuest: rescheduleQuestProp, onSetupSchedule,
-  onSlotAction, onToggleNotify, onReorderSlots,
+  onSlotAction, onToggleNotify, onReorderSlots, onShowInterstitialAd,
 }) => {
   // ── State ──
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -1064,22 +1084,16 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
       setForgeError('Describe the quest clearly. Be specific about what you will actually do.');
       return;
     }
-    const manaCost = 15 + (analysisCount * 5);
+    const dailyCount = getDailyAnalysisCount(playerData?.userId);
+    const isFree = dailyCount < FREE_DAILY_ANALYSES;
     const tutFreeKey = `reforge_tut_free_analyses_${playerData?.userId || 'local'}`;
     const tutFreeUsed = parseInt(localStorage.getItem(tutFreeKey) || '0', 10);
 
     if (isQuestOnboarding && tutFreeUsed < 2) {
       localStorage.setItem(tutFreeKey, String(tutFreeUsed + 1));
-    } else if (isQuestOnboarding && tutFreeUsed >= 2 && (playerData?.mp ?? 100) < manaCost) {
-      onTutorialManaOut?.();
+    } else if (!isFree && (playerData?.keys ?? 0) <= 0) {
+      setForgeError('KEYS DEPLETED — You\'ve used your 3 free analyses today. Buy more keys or complete quests to earn them.');
       return;
-    } else {
-      if (onConsumeMana) {
-        if (!onConsumeMana(manaCost)) {
-          setForgeError(`MANA DEPLETED — Need ${manaCost} mana. Resets at midnight.`);
-          return;
-        }
-      }
     }
     setIsAnalyzing(true);
     setForgeResult(null);
@@ -1097,8 +1111,15 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
           userStats: playerData?.stats,
           healthProfile: playerData?.healthProfile,
           timezone: userTimezone,
+          retryCount: analysisCount,
         }),
       });
+
+      if (res.status === 402) {
+        setForgeError('KEYS DEPLETED — Not enough keys for this analysis. Buy more or wait until tomorrow.');
+        playSystemSoundEffect('WARNING');
+        return;
+      }
       if (!res.ok) throw new Error('ForgeGuard offline');
       const data: ForgeGuardResult = await res.json();
       if (data.isSpam) {
@@ -1116,6 +1137,7 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
         } else {
           setForgeResult(data);
           if (data.autoDetectedTime) { setScheduleTime(data.autoDetectedTime); setAutoScheduled(true); }
+          incrementDailyAnalysisCount(playerData?.userId);
           playSystemSoundEffect('PURCHASE');
           if (tutorialStep === 3 && onTutorialAction) onTutorialAction(4);
         }
@@ -1123,7 +1145,6 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
       setAnalysisCount(prev => prev + 1);
     } catch {
       setForgeError('ForgeGuard is offline. Please try again.');
-      if (onRefundMana) onRefundMana(manaCost);
       if (tutorialStep === 3 && onTutorialAnalysisFail) { setTitle(''); onTutorialAnalysisFail(); }
     } finally {
       setIsAnalyzing(false);
@@ -1165,7 +1186,14 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
     if (tutorialStep === 4 || isQuestOnboarding) {
       addQuest(newQuest); resetForm();
       if (onTutorialAction) onTutorialAction(5);
-    } else { addQuest(newQuest); setIsModalOpen(false); resetForm(); }
+    } else {
+      addQuest(newQuest); setIsModalOpen(false); resetForm();
+      // Show ad after registration if past free daily tier
+      const dailyCount = getDailyAnalysisCount(playerData?.userId);
+      if (dailyCount > FREE_DAILY_ANALYSES && onShowInterstitialAd) {
+        try { onShowInterstitialAd(); } catch (e) { /* ad failed, continue */ }
+      }
+    }
   };
 
   const resetForm = () => {
@@ -1484,7 +1512,11 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
                     border: isAnalyzing ? '1px solid rgba(0,212,255,0.3)' : hasWords ? '1px solid rgba(0,212,255,0.15)' : '1px solid rgba(255,255,255,0.05)',
                   }}
                 >
-                  {isAnalyzing ? <><Loader2 size={14} className="animate-spin" /> ANALYZING...</> : <><BrainCircuit size={14} /> ANALYZE QUEST <span className="text-[9px] opacity-60 ml-1">({15 + analysisCount * 5} MANA)</span></>}
+                  {isAnalyzing ? <><Loader2 size={14} className="animate-spin" /> ANALYZING...</> : (() => {
+                    const dailyUsed = getDailyAnalysisCount(playerData?.userId);
+                    const remaining = Math.max(0, FREE_DAILY_ANALYSES - dailyUsed);
+                    return <><BrainCircuit size={14} /> ANALYZE QUEST <span className="text-[9px] opacity-60 ml-1">{remaining > 0 ? `(FREE — ${remaining}/3 left)` : analysisCount >= 5 ? '(1 KEY)' : '(FREE)'}</span></>;
+                  })()}
                 </button>);})()}
 
                 {/* Forge Error */}

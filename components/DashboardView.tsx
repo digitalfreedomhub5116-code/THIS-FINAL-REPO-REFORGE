@@ -69,11 +69,11 @@ const GreetingStrip: React.FC<{ player: PlayerData }> = ({ player }) => {
   );
 };
 
-// ── System Mana Bar (compact — no card chrome) ─────────────
-const ManaBar: React.FC<{ player: PlayerData }> = ({ player }) => {
-  const mana = player.mp ?? 100;
-  const maxMana = player.maxMp ?? 100;
-  const pct = maxMana > 0 ? Math.max(0, Math.min(100, (mana / maxMana) * 100)) : 0;
+// ── System Energy Bar (compact — no card chrome) ─────────────
+const EnergyBar: React.FC<{ player: PlayerData }> = ({ player }) => {
+  const energy = player.mp ?? 100;
+  const maxEnergy = player.maxMp ?? 100;
+  const pct = maxEnergy > 0 ? Math.max(0, Math.min(100, (energy / maxEnergy) * 100)) : 0;
   const color = pct > 75 ? '#00d4ff' : pct > 50 ? '#eab308' : pct > 10 ? '#f97316' : '#ef4444';
   const glow = pct > 75 ? 'rgba(0,212,255,0.3)' : pct > 50 ? 'rgba(234,179,8,0.25)' : pct > 10 ? 'rgba(249,115,22,0.3)' : 'rgba(239,68,68,0.4)';
   return (
@@ -81,9 +81,9 @@ const ManaBar: React.FC<{ player: PlayerData }> = ({ player }) => {
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-1.5">
           <Zap size={10} style={{ color }} />
-          <span className="text-[9px] font-mono font-bold tracking-wider text-gray-500 uppercase">Mana</span>
+          <span className="text-[9px] font-mono font-bold tracking-wider text-gray-500 uppercase">Energy</span>
         </div>
-        <span className="text-[10px] font-bold font-mono tabular-nums" style={{ color }}>{Math.floor(mana)}/{maxMana}</span>
+        <span className="text-[10px] font-bold font-mono tabular-nums" style={{ color }}>{Math.floor(energy)}/{maxEnergy}</span>
       </div>
       <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
         <motion.div className="h-full rounded-full" style={{ background: color, boxShadow: `0 0 6px ${glow}` }}
@@ -302,11 +302,11 @@ const OnboardingHero: React.FC<{ onNavigate: () => void; onAddQuest?: () => void
   </div>
 );
 
-// ── Combined Stats Row (Mana + XP in single card) ───────────
+// ── Combined Stats Row (Energy + XP in single card) ───────────
 const CombinedStatsRow: React.FC<{ player: PlayerData }> = ({ player }) => (
   <div className="rounded-xl px-3.5 py-3 space-y-2.5"
     style={{ background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.05)' }}>
-    <ManaBar player={player} />
+    <EnergyBar player={player} />
     <div className="border-t border-white/[0.04]" />
     <DailyXPCard player={player} />
   </div>
@@ -356,7 +356,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
         </>
       )}
 
-      {/* 6. Mana + XP side-by-side */}
+      {/* 6. Energy + XP side-by-side */}
       <CombinedStatsRow player={player} />
 
       {/* 7. Active Goals (only if any) */}

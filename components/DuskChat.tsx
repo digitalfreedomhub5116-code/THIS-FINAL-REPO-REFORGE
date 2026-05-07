@@ -582,7 +582,8 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, updatePlayer, onClose, onMa
         </div>
 
         {/* ── Input Area ── */}
-        <div className="relative z-10 px-3 py-3 border-t border-gray-800/50 bg-[#060608]/90 backdrop-blur-sm">
+        <div className="relative z-10 px-3 py-3 border-t border-gray-800/50 bg-[#060608]/90 backdrop-blur-sm"
+          style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 12px), 12px)' }}>
           <div className="relative flex items-center gap-2">
             <input
               ref={inputRef}

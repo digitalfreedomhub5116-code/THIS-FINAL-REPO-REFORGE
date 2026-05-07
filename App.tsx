@@ -670,6 +670,16 @@ const App: React.FC = () => {
   const isPremium = rcState.hasManaPower;
   const [showManaPowerUpsell, setShowManaPowerUpsell] = useState(false);
 
+  // ── Identify user with RevenueCat so entitlements are per-account, not per-device ──
+  const rcLoginDoneRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!rcState.isReady || !player.userId || isLocalUser(player.userId)) return;
+    // Only login once per userId (avoid re-calling on every render)
+    if (rcLoginDoneRef.current === player.userId) return;
+    rcLoginDoneRef.current = player.userId;
+    rcActions.loginUser(player.userId);
+  }, [rcState.isReady, player.userId, rcActions]);
+
   // ── Tab navigation with history for Android back button ──
 
   const navigateTo = useCallback((tab: Tab) => {
@@ -4756,6 +4766,9 @@ const App: React.FC = () => {
                     onUpdateGoals={handleUpdateGoals}
                     onDeleteGoal={handleDeleteGoal}
                     onDeductGold={(amount) => setPlayer(prev => ({ ...prev, gold: Math.max(0, prev.gold - amount) }))}
+                    onShowInterstitialAd={async () => {
+                      try { await showInterstitialAd(AD_UNITS.DUNGEON_INTERSTITIAL); return true; } catch { return false; }
+                    }}
                   />
                 </ErrorBoundary>
               </Suspense>
@@ -5212,6 +5225,9 @@ const App: React.FC = () => {
               clearAuthNative();
 
               clearEconomySession(); // Clear per-user economy on logout
+
+              rcActions.logoutUser(); // Reset RevenueCat to anonymous — prevents entitlement bleed
+              rcLoginDoneRef.current = null;
 
               localStorage.removeItem('reforge_player_v2');
 

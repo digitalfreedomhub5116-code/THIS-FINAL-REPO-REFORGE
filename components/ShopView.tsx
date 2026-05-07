@@ -78,7 +78,7 @@ interface ShopViewProps {
   onGoldUpdate?: (newGold: number) => void;
   /** Watch ad to progress unlock for an ad-gated item. Returns progress data or null. */
   onWatchAdForBorder?: (itemId: string, adsRequired: number) => Promise<{ adsWatched: number; adsRequired: number; unlocked: boolean; justUnlocked?: boolean } | null>;
-  /** Player's current key (Mana Crystal) balance */
+  /** Player's current key (Key Crystal) balance */
   keys?: number;
   /** Callback to update key balance after IAP */
   onKeysUpdate?: (newKeys: number) => void;
@@ -984,7 +984,7 @@ const ShopView: React.FC<ShopViewProps> = ({
       </section>
 
       {/* ═══════════════════════════════════════════
-           🔑 MANA CRYSTAL STORE (IAP Keys)
+           🔑 KEY CRYSTAL STORE
          ═══════════════════════════════════════════ */}
       <ManaKeyStore
         keys={keys}

@@ -2,8 +2,12 @@ import { Router, Request, Response } from 'express';
 import { logUsage } from '../utils/logUsage.js';
 import { getAuthenticatedUserId } from '../lib/playerAuth.js';
 import { getSharedAI, generateWithFallback, DEFAULT_MODEL_CHAIN } from '../utils/geminiRetry.js';
+import { deductKeys, getKeyBalance } from '../lib/keyGate.js';
+import { supabaseServer } from '../lib/supabase.js';
 
 const router = Router();
+
+const FREE_DAILY_ANALYSES = 3;
 
 function stripMarkdown(text: string): string {
   return text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
@@ -50,11 +54,73 @@ function isGibberish(text: string): boolean {
   return false;
 }
 
+/** Calculate how many keys to deduct based on retry count within a session */
+function calcRetryKeyCost(retryCount: number): number {
+  if (retryCount < 5) return 0;        // First 4 retries: free
+  if (retryCount === 5) return 1;       // 5th retry: 1 key
+  if (retryCount <= 7) return 0;        // 6-7: free
+  if (retryCount <= 10) {               // 8-10: 1 key every 3rd
+    return (retryCount - 5) % 3 === 0 ? 1 : 0;
+  }
+  return 1;                             // 11+: 1 key per retry
+}
+
 router.post('/analyze-quest', async (req: Request, res: Response) => {
   try {
     const ai = getSharedAI();
     const userId = getAuthenticatedUserId(req) || null;
-    const { title, userStats, healthProfile, timezone } = req.body;
+    const { title, userStats, healthProfile, timezone, retryCount } = req.body;
+
+    // ── KEY GATE: Retry penalty + post-free-tier lockout ──
+    if (userId) {
+      const sessionRetries = typeof retryCount === 'number' ? retryCount : 0;
+      const keyCost = calcRetryKeyCost(sessionRetries);
+
+      if (keyCost > 0) {
+        const keyResult = await deductKeys(userId, keyCost);
+        if (!keyResult.success) {
+          return res.status(402).json({
+            error: 'Not enough keys',
+            keysRemaining: keyResult.remaining,
+            keysRequired: keyCost,
+            retryCount: sessionRetries,
+          });
+        }
+      }
+
+      // After free daily tier, require keys > 0 (even if no deduction this call)
+      const db = supabaseServer() as any;
+      const today = new Date().toISOString().split('T')[0];
+      const { data: playerRow } = await db
+        .from('players')
+        .select('forge_daily_count, forge_daily_date, keys')
+        .eq('supabase_id', userId)
+        .single();
+
+      let dailyCount = 0;
+      if (playerRow) {
+        if (playerRow.forge_daily_date === today) {
+          dailyCount = playerRow.forge_daily_count || 0;
+        }
+        // If past free tier and keys = 0, block
+        if (dailyCount >= FREE_DAILY_ANALYSES && (playerRow.keys || 0) <= 0 && keyCost === 0) {
+          return res.status(402).json({
+            error: 'Not enough keys',
+            keysRemaining: 0,
+            dailyFreeUsed: dailyCount,
+          });
+        }
+
+        // Increment daily counter
+        await db
+          .from('players')
+          .update({
+            forge_daily_count: dailyCount + 1,
+            forge_daily_date: today,
+          })
+          .eq('supabase_id', userId);
+      }
+    }
 
     if (!title) {
       return res.status(400).json({ error: 'title is required' });

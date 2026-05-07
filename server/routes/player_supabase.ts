@@ -320,6 +320,9 @@ router.get('/:id', async (req: Request, res: Response) => {
       totalStrikesEver: row.total_strikes_ever ?? 0,
       // Inject avatar_url from top-level column into raw_data so client player.avatarUrl is populated
       avatarUrl: row.avatar_url || (row.raw_data || {}).avatarUrl || null,
+      // Inject last_login_date and streak so client player.lastLoginDate/streak are always authoritative
+      lastLoginDate: row.last_login_date || (row.raw_data || {}).lastLoginDate || null,
+      streak: row.streak ?? (row.raw_data || {}).streak ?? 0,
     };
     return res.json({ ...row, raw_data: mergedRawData });
   } catch (err) {

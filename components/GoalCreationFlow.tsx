@@ -120,7 +120,7 @@ export default function GoalCreationFlow({
     CREATIVE: '/images/goals/creative.webp',
   };
 
-  const MANA_COST = 30;
+  const KEY_COST = 2; // Server deducts 2 keys for goal analysis
 
   // ── Step 1: Analyze Goal ──
   const handleAnalyze = useCallback(async () => {
@@ -129,9 +129,9 @@ export default function GoalCreationFlow({
       return;
     }
 
-    // Consume mana
-    if (onConsumeMana && !onConsumeMana(MANA_COST)) {
-      setError(`MANA DEPLETED — Need ${MANA_COST} mana to analyze a goal. Resets at midnight.`);
+    // Check keys balance (server does the actual deduction)
+    if ((playerData?.keys ?? 0) < KEY_COST) {
+      setError(`KEYS DEPLETED — Need ${KEY_COST} keys to analyze a goal. Complete quests or buy more.`);
       return;
     }
 
@@ -163,7 +163,6 @@ export default function GoalCreationFlow({
         setError(data.invalidReason || 'Goal rejected by ForgeGuard.');
         setStep('ERROR');
         playSystemSoundEffect('WARNING');
-        if (onRefundMana) onRefundMana(MANA_COST);
         return;
       }
 
@@ -178,7 +177,6 @@ export default function GoalCreationFlow({
       console.error('[GoalCreation] Analyze error:', err);
       setError(friendlyError(err?.message || 'ForgeGuard is offline. Try again later.'));
       setStep('ERROR');
-      if (onRefundMana) onRefundMana(MANA_COST);
     }
   }, [goalText, playerData, existingGoals, onConsumeMana, onRefundMana]);
 
@@ -362,7 +360,7 @@ export default function GoalCreationFlow({
                   }`}
                   style={goalText.trim().length >= 5 ? { background: 'linear-gradient(135deg, #00d4ff, #00d4ff)' } : undefined}
                 >
-                  Analyze Goal — {MANA_COST} Mana
+                  Analyze Goal — {KEY_COST} Keys
                 </button>
               </motion.div>
             )}

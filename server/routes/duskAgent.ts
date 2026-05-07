@@ -3,6 +3,8 @@ import Groq from 'groq-sdk';
 import { logUsage } from '../utils/logUsage.js';
 import { getAuthenticatedUserId } from '../lib/playerAuth.js';
 import { getSharedAI, generateWithFallback, DEFAULT_MODEL_CHAIN } from '../utils/geminiRetry.js';
+import { deductKeys } from '../lib/keyGate.js';
+import { supabaseServer } from '../lib/supabase.js';
 
 const router = Router();
 
@@ -304,6 +306,36 @@ router.post('/agent-chat', async (req: Request, res: Response) => {
 
     if (!message) {
       return res.status(400).json({ error: 'message is required' });
+    }
+
+    // ── KEY GATE: 1 key per 5 agent messages (same pattern as dusk chat) ──
+    if (userId) {
+      const db = supabaseServer() as any;
+      const { data: playerRow } = await db
+        .from('players')
+        .select('id, keys, dusk_msg_count')
+        .eq('supabase_id', userId)
+        .single();
+
+      if (playerRow) {
+        const msgCount = (playerRow.dusk_msg_count || 0) + 1;
+        // Every 5th message: deduct a key
+        if (msgCount % 5 === 0) {
+          const keyResult = await deductKeys(userId, 1);
+          if (!keyResult.success) {
+            return res.status(402).json({
+              text: 'Keys depleted. Buy more in the store or complete quests to earn keys.',
+              actions: [],
+              keysRemaining: 0,
+            });
+          }
+        }
+        // Increment message counter
+        await db
+          .from('players')
+          .update({ dusk_msg_count: msgCount })
+          .eq('id', playerRow.id);
+      }
     }
 
     const systemPrompt = buildSystemPrompt(playerContext || {});

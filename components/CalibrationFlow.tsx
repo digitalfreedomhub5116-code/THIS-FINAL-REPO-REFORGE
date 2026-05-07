@@ -548,22 +548,6 @@ const AwakeningOverlay: React.FC<{ profile: Partial<HealthProfile>; onComplete: 
 
                     {/* Header */}
                     <div className="w-full text-center space-y-1">
-                        <div className="flex items-center justify-center gap-2">
-                            <span className="text-[9px] tracking-[0.3em] font-bold uppercase text-gray-600">Bio-Sync OS · Calibration Complete</span>
-                            <AnimatePresence>
-                                {isTransitioning && (
-                                    <motion.span
-                                        initial={{ opacity: 0, scale: 0.8 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        exit={{ opacity: 0, scale: 0.8 }}
-                                        className="px-1.5 py-0.5 rounded text-[7px] font-black tracking-widest uppercase"
-                                        style={{ background: `${stageColor}22`, color: stageColor, border: `1px solid ${stageColor}50` }}
-                                    >
-                                        LIVE SIM
-                                    </motion.span>
-                                )}
-                            </AnimatePresence>
-                        </div>
                         <AnimatePresence mode="wait">
                             <motion.h2
                                 key={stage}

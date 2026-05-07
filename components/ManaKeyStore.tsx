@@ -18,6 +18,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Key, CheckCircle2 } from 'lucide-react';
+import PurchaseCelebrationModal from './PurchaseCelebrationModal';
 import type { RevenueCatState, RevenueCatActions } from '../hooks/useRevenueCat';
 
 // ── Pack Configuration ──
@@ -97,6 +98,7 @@ const ManaKeyStore: React.FC<ManaKeyStoreProps> = ({ keys, rcState, rcActions, o
   const [purchaseSuccess, setPurchaseSuccess] = useState<string | null>(null);
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
   const [imagesLoaded, setImagesLoaded] = useState(false);
+  const [celebrationPack, setCelebrationPack] = useState<ManaPack | null>(null);
 
   // ── Preload all pack images, show skeleton until done ──
   useEffect(() => {
@@ -195,6 +197,7 @@ const ManaKeyStore: React.FC<ManaKeyStoreProps> = ({ keys, rcState, rcActions, o
         }
 
         setPurchaseSuccess(pack.id);
+        setCelebrationPack(pack);
         setTimeout(() => setPurchaseSuccess(null), 3000);
       }
     } catch (err) {
@@ -207,6 +210,7 @@ const ManaKeyStore: React.FC<ManaKeyStoreProps> = ({ keys, rcState, rcActions, o
   };
 
   return (
+    <>
     <section>
       {/* Section Header */}
       <div className="store-section-hdr">
@@ -220,7 +224,7 @@ const ManaKeyStore: React.FC<ManaKeyStoreProps> = ({ keys, rcState, rcActions, o
           <Key size={15} style={{ color: '#00d4ff' }} />
         </div>
         <span className="hdr-title" style={{ color: '#fff' }}>
-          Mana Crystals
+          Key Crystals
         </span>
         <div
           style={{
@@ -674,6 +678,18 @@ const ManaKeyStore: React.FC<ManaKeyStoreProps> = ({ keys, rcState, rcActions, o
         </span>
       </div>
     </section>
+
+      {/* ── Purchase Celebration Modal ── */}
+      <PurchaseCelebrationModal
+        isOpen={!!celebrationPack}
+        packName={celebrationPack?.name || ''}
+        amount={celebrationPack?.amount || 0}
+        currency="keys"
+        packImage={celebrationPack?.image || ''}
+        tierColor={celebrationPack?.catColor || '#8B5CF6'}
+        onClose={() => setCelebrationPack(null)}
+      />
+    </>
   );
 };
 

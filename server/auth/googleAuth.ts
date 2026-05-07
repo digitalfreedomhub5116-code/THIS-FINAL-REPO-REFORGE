@@ -132,7 +132,7 @@ export async function setupGoogleAuth(app: Express) {
           rank: 'E',
           gold: 600,
           keys: 10,
-          streak: 0,
+          streak: 1,
           hp: 100,
           max_hp: 100,
           mp: 50,
@@ -142,6 +142,8 @@ export async function setupGoogleAuth(app: Express) {
           tutorial_step: 0,
           tutorial_complete: false,
           daily_quest_complete: false,
+          last_daily_reset: new Date().toISOString().split('T')[0],
+          last_login_date: new Date().toISOString().split('T')[0],
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         } as any);

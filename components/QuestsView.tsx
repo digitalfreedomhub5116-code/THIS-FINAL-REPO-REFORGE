@@ -32,6 +32,21 @@ interface ForgeGuardResult {
   } | null;
 }
 
+const FREE_DAILY_ANALYSES = 3;
+
+function getDailyAnalysisCount(userId?: string): number {
+  const today = new Date().toISOString().split('T')[0];
+  const key = `reforge_daily_analyses_${userId || 'local'}_${today}`;
+  return parseInt(localStorage.getItem(key) || '0', 10);
+}
+
+function incrementDailyAnalysisCount(userId?: string): void {
+  const today = new Date().toISOString().split('T')[0];
+  const key = `reforge_daily_analyses_${userId || 'local'}_${today}`;
+  const current = parseInt(localStorage.getItem(key) || '0', 10);
+  localStorage.setItem(key, String(current + 1));
+}
+
 interface QuestsViewProps {
   quests: Quest[];
   addQuest: (quest: Quest) => void;
@@ -56,6 +71,7 @@ interface QuestsViewProps {
   onUpdateGoals?: (goals: Goal[]) => void;
   onDeleteGoal?: (goalId: string) => void;
   onDeductGold?: (amount: number) => void;
+  onShowInterstitialAd?: () => Promise<boolean>;
 
 }
 
@@ -78,7 +94,7 @@ function getUserTimezone(): string {
 }
 
 const QuestsView: React.FC<QuestsViewProps> = ({
-  quests, addQuest, completeQuest, failQuest, resetQuest, deleteQuest, tutorialStep, onTutorialAction, onTutorialAnalysisFail, playerData, onToggleNav, onShowPact, onStartTracking, onStopTracking, onConsumeMana, onRefundMana, isQuestOnboarding, onTutorialManaOut, goals, onUpdateGoals, onDeleteGoal, onDeductGold,
+  quests, addQuest, completeQuest, failQuest, resetQuest, deleteQuest, tutorialStep, onTutorialAction, onTutorialAnalysisFail, playerData, onToggleNav, onShowPact, onStartTracking, onStopTracking, onConsumeMana, onRefundMana, isQuestOnboarding, onTutorialManaOut, goals, onUpdateGoals, onDeleteGoal, onDeductGold, onShowInterstitialAd,
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<'QUESTS' | 'GOALS'>('QUESTS');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -109,30 +125,29 @@ const QuestsView: React.FC<QuestsViewProps> = ({
 
   const handleForgeAnalyze = async () => {
     if (!canAddMoreQuests) {
-      setForgeError(`SYSTEM LIMIT REACHED: You have already forged ${MAX_QUESTS_PER_DAY} quests today. The body must rest.`);
+      setForgeError(`SYSTEM LIMIT REACHED: You have already forged ${MAX_QUESTS_PER_DAY} quests today.`);
       return;
     }
     if (!title.trim() || title.trim().length < 5) {
       setForgeError('Describe the quest clearly. Be specific about what you will actually do.');
       return;
     }
-    const manaCost = 15 + (analysisCount * 5);
+
+    // ── Free 3/day, then check keys ──
+    const dailyCount = getDailyAnalysisCount(playerData?.userId);
+    const isFree = dailyCount < FREE_DAILY_ANALYSES;
+
+    // Tutorial free passes
     const tutFreeKey = `reforge_tut_free_analyses_${playerData?.userId || 'local'}`;
     const tutFreeUsed = parseInt(localStorage.getItem(tutFreeKey) || '0', 10);
-
     if (isQuestOnboarding && tutFreeUsed < 2) {
       localStorage.setItem(tutFreeKey, String(tutFreeUsed + 1));
-    } else if (isQuestOnboarding && tutFreeUsed >= 2 && (playerData?.mp ?? 100) < manaCost) {
-      onTutorialManaOut?.();
+    } else if (!isFree && (playerData?.keys ?? 0) <= 0) {
+      // Past free tier + no keys = blocked
+      setForgeError('KEYS DEPLETED — You\'ve used your 3 free analyses today. Buy more keys or complete quests to earn them.');
       return;
-    } else {
-      if (onConsumeMana) {
-        if (!onConsumeMana(manaCost)) {
-          setForgeError(`MANA DEPLETED — Need ${manaCost} mana. Resets at midnight.`);
-          return;
-        }
-      }
     }
+
     setIsAnalyzing(true);
     setForgeResult(null);
     setForgeError(null);
@@ -147,9 +162,18 @@ const QuestsView: React.FC<QuestsViewProps> = ({
           userStats: playerData?.stats,
           healthProfile: playerData?.healthProfile,
           timezone: userTimezone,
+          retryCount: analysisCount,
         }),
       });
+
+      if (res.status === 402) {
+        const errData = await res.json().catch(() => ({}));
+        setForgeError('KEYS DEPLETED — Not enough keys for this analysis. Buy more or wait until tomorrow.');
+        playSystemSoundEffect('WARNING');
+        return;
+      }
       if (!res.ok) throw new Error('ForgeGuard offline');
+
       const data: ForgeGuardResult = await res.json();
       if (data.isSpam) {
         setForgeError(
@@ -175,6 +199,7 @@ const QuestsView: React.FC<QuestsViewProps> = ({
           }
         } else {
           setForgeResult(data);
+          incrementDailyAnalysisCount(playerData?.userId);
           playSystemSoundEffect('PURCHASE');
           if (tutorialStep === 3 && onTutorialAction) onTutorialAction(4);
         }
@@ -182,7 +207,6 @@ const QuestsView: React.FC<QuestsViewProps> = ({
       setAnalysisCount(prev => prev + 1);
     } catch {
       setForgeError('ForgeGuard is offline. Quest creation requires AI analysis — please try again.');
-      if (onRefundMana) onRefundMana(manaCost);
       if (tutorialStep === 3 && onTutorialAnalysisFail) {
         setTitle('');
         onTutorialAnalysisFail();
@@ -192,7 +216,7 @@ const QuestsView: React.FC<QuestsViewProps> = ({
     }
   };
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     setError(null);
     setScheduleError(null);
     if (!forgeResult || !title.trim()) return;
@@ -241,6 +265,12 @@ const QuestsView: React.FC<QuestsViewProps> = ({
       addQuest(newQuest);
       setIsModalOpen(false);
       resetForm();
+
+      // Show interstitial ad after registration if past free daily tier
+      const dailyCount = getDailyAnalysisCount(playerData?.userId);
+      if (dailyCount > FREE_DAILY_ANALYSES && onShowInterstitialAd) {
+        try { await onShowInterstitialAd(); } catch (e) { /* ad failed, continue */ }
+      }
     }
   };
 
@@ -510,9 +540,11 @@ const QuestsView: React.FC<QuestsViewProps> = ({
                 >
                   {isAnalyzing ? (
                     <><Loader2 size={14} className="animate-spin" /> ANALYZING...</>
-                  ) : (
-                    <><BrainCircuit size={14} /> ANALYZE QUEST <span className="text-[9px] opacity-60 ml-1">({15 + analysisCount * 5} MANA)</span></>
-                  )}
+                  ) : (() => {
+                    const dailyUsed = getDailyAnalysisCount(playerData?.userId);
+                    const remaining = Math.max(0, FREE_DAILY_ANALYSES - dailyUsed);
+                    return <><BrainCircuit size={14} /> ANALYZE QUEST <span className="text-[9px] opacity-60 ml-1">{remaining > 0 ? `(FREE — ${remaining}/3 left)` : analysisCount >= 5 ? '(1 KEY)' : '(FREE)'}</span></>;
+                  })()}
                 </button>
                 );})()}
 

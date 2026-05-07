@@ -20,6 +20,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Coins, CheckCircle2 } from 'lucide-react';
+import PurchaseCelebrationModal from './PurchaseCelebrationModal';
 import type { RevenueCatState, RevenueCatActions } from '../hooks/useRevenueCat';
 
 // ── Pack Configuration ──
@@ -104,6 +105,7 @@ const GoldCoinStore: React.FC<GoldCoinStoreProps> = ({ gold, rcState, rcActions,
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
   const [imagesLoaded, setImagesLoaded] = useState(false);
   const [isPulsing, setIsPulsing] = useState(false);
+  const [celebrationPack, setCelebrationPack] = useState<GoldPack | null>(null);
 
   // ── Preload all pack images, show skeleton until done ──
   useEffect(() => {
@@ -238,6 +240,7 @@ const GoldCoinStore: React.FC<GoldCoinStoreProps> = ({ gold, rcState, rcActions,
         }
 
         setPurchaseSuccess(pack.id);
+        setCelebrationPack(pack);
         setTimeout(() => setPurchaseSuccess(null), 3000);
       }
     } catch (err) {
@@ -250,6 +253,7 @@ const GoldCoinStore: React.FC<GoldCoinStoreProps> = ({ gold, rcState, rcActions,
   };
 
   return (
+    <>
     <section ref={sectionRef} id="gold-crystal-store">
       {/* Section Header */}
       <div className="store-section-hdr">
@@ -739,6 +743,18 @@ const GoldCoinStore: React.FC<GoldCoinStoreProps> = ({ gold, rcState, rcActions,
         </span>
       </div>
     </section>
+
+      {/* ── Purchase Celebration Modal ── */}
+      <PurchaseCelebrationModal
+        isOpen={!!celebrationPack}
+        packName={celebrationPack?.name || ''}
+        amount={celebrationPack?.amount || 0}
+        currency="gold"
+        packImage={celebrationPack?.image || ''}
+        tierColor={celebrationPack?.catColor || '#F59E0B'}
+        onClose={() => setCelebrationPack(null)}
+      />
+    </>
   );
 };
 

@@ -154,8 +154,8 @@ export const HealthView: React.FC<HealthViewProps> = ({
   const [showMicros, setShowMicros] = useState(false);
   const [showFoodLibrary, setShowFoodLibrary] = useState(false);
   
-  // Mana Alert State
-  const [showManaAlert, setShowManaAlert] = useState(false);
+  // Keys Alert State (replaces old Mana alert)
+  const [showKeysAlert, setShowKeysAlert] = useState(false);
 
   // Custom Calorie Limit State
   const [showCalorieEditor, setShowCalorieEditor] = useState(false);
@@ -578,8 +578,8 @@ export const HealthView: React.FC<HealthViewProps> = ({
 
   // ── Native Camera/Gallery picker (Capacitor) ──
   const handleNativePick = async () => {
-      if ((playerData.mp ?? 100) < 35) {
-          setShowManaAlert(true);
+      if ((playerData.keys ?? 0) < 3) {
+          setShowKeysAlert(true);
           return;
       }
 
@@ -598,8 +598,8 @@ export const HealthView: React.FC<HealthViewProps> = ({
 
           if (!photo.dataUrl) return;
 
-          if (!onConsumeMana(35)) {
-              setShowManaAlert(true);
+          if ((playerData.keys ?? 0) < 3) {
+              setShowKeysAlert(true);
               return;
           }
 
@@ -659,13 +659,13 @@ export const HealthView: React.FC<HealthViewProps> = ({
           const msg = error instanceof Error ? error.message : 'Analysis failed';
           console.error('[Nutrition Scanner]', msg);
           updateScan({ state: 'ERROR', error: msg });
-          onRefundMana(35);
+          // Server already deducted keys — no client refund needed
       }
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-      if ((playerData.mp ?? 100) < 35) {
-          setShowManaAlert(true);
+      if ((playerData.keys ?? 0) < 3) {
+          setShowKeysAlert(true);
           e.target.value = '';
           return;
       }
@@ -673,11 +673,8 @@ export const HealthView: React.FC<HealthViewProps> = ({
       const file = e.target.files?.[0];
       if (!file) return;
 
-      if (!onConsumeMana(35)) {
-          setShowManaAlert(true);
-          e.target.value = '';
-          return;
-      }
+      // Server deducts keys atomically during nutrition/analyze call
+      // Client pre-check is UX only
 
       updateScan({ state: 'SCANNING', error: null });
       setShowMicros(false);
@@ -737,7 +734,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
           const msg = error instanceof Error ? error.message : 'Analysis failed';
           console.error('[Nutrition Scanner]', msg);
           updateScan({ state: 'ERROR', error: msg });
-          onRefundMana(35);
+          // Server already deducted keys — no client refund needed
       }
   };
 
@@ -891,7 +888,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
     <>
         {/* OnboardingNotice removed — not needed */}
         <AnimatePresence>
-            {showManaAlert && (
+            {showKeysAlert && (
                 <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/90 backdrop-blur-md">
                     <motion.div 
                         initial={{ scale: 0.8, opacity: 0 }}
@@ -907,13 +904,13 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                 <Lock size={32} className="text-[#00d4ff]" />
                             </div>
                             
-                            <h2 className="text-xl font-black text-white font-mono uppercase tracking-tighter mb-2">MANA DEPLETED</h2>
+                            <h2 className="text-xl font-black text-white font-mono uppercase tracking-tighter mb-2">KEYS DEPLETED</h2>
                             <p className="text-xs text-[#33dfff] font-mono mb-6 leading-relaxed">
-                                INSUFFICIENT MANA.<br/>Your System Mana resets at midnight. Come back tomorrow.
+                                INSUFFICIENT KEYS.<br/>Complete quests to earn more or buy keys in the store.
                             </p>
                             
                             <button 
-                                onClick={() => setShowManaAlert(false)}
+                                onClick={() => setShowKeysAlert(false)}
                                 className="w-full py-4 bg-cyan-600 text-white font-bold rounded-xl hover:bg-[#00d4ff] transition-colors uppercase tracking-widest text-xs font-mono shadow-lg"
                             >
                                 ACKNOWLEDGE
@@ -1720,7 +1717,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                             <h3 className="text-lg font-bold text-white font-mono tracking-tight">LOG MEAL</h3>
                                             <p className="text-[10px] text-gray-400 font-mono mt-1 tracking-wider uppercase opacity-80">TAP TO SCAN · CAMERA OR GALLERY</p>
                                             <p className="text-[9px] text-gray-500 font-mono tracking-widest uppercase mt-2 flex items-center justify-center gap-1">
-                                                <Zap size={10} className="text-[#00d4ff]" /> 35 MANA
+                                                <Zap size={10} className="text-[#00d4ff]" /> 3 KEYS
                                             </p>
                                         </div>
 
