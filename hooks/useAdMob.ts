@@ -64,9 +64,9 @@ export function useAdMob() {
   const showRewardedAd = useCallback(async (adUnitId: string): Promise<{ rewarded: boolean; type?: string; amount?: number }> => {
     const AdMob = await getAdMob();
     if (!AdMob) {
-      console.log('[AdMob] Not on native platform, simulating reward');
-      // Simulate reward on web for testing
-      return { rewarded: true, type: 'simulated', amount: 1 };
+      console.warn('[AdMob] Not on native platform — ads not available');
+      // On web/browser: do NOT grant reward. Only native app can show real ads.
+      return { rewarded: false };
     }
 
     try {
