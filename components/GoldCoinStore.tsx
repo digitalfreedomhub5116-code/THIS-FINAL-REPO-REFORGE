@@ -102,7 +102,25 @@ const GoldCoinStore: React.FC<GoldCoinStoreProps> = ({ gold, rcState, rcActions,
   const [buyingId, setBuyingId] = useState<string | null>(null);
   const [purchaseSuccess, setPurchaseSuccess] = useState<string | null>(null);
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
+  const [imagesLoaded, setImagesLoaded] = useState(false);
   const [isPulsing, setIsPulsing] = useState(false);
+
+  // ── Preload all pack images, show skeleton until done ──
+  useEffect(() => {
+    let cancelled = false;
+    const promises = GOLD_PACKS.map(
+      (p) => new Promise<void>((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve();
+        img.onerror = () => resolve(); // Don't block on error
+        img.src = p.image;
+      })
+    );
+    Promise.all(promises).then(() => {
+      if (!cancelled) setImagesLoaded(true);
+    });
+    return () => { cancelled = true; };
+  }, []);
   const sectionRef = useRef<HTMLElement>(null);
   const popularRef = useRef<HTMLDivElement>(null);
   // Store callback in ref to avoid useEffect dependency loop
@@ -305,7 +323,38 @@ const GoldCoinStore: React.FC<GoldCoinStoreProps> = ({ gold, rcState, rcActions,
         )}
       </AnimatePresence>
 
-      {/* ── 3 Horizontal Gold Pack Cards ── */}
+
+      {/* ── Skeleton Loading or Real Cards ── */}
+      {!imagesLoaded ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '0 16px' }}>
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="store-skeleton-card" style={{
+              clipPath: CLIP,
+              padding: 3,
+              background: `linear-gradient(160deg, rgba(245,158,11,0.25), rgba(245,158,11,0.08) 40%, rgba(245,158,11,0.15) 80%)`,
+            }}>
+              <div style={{
+                clipPath: CLIP,
+                background: 'linear-gradient(160deg, rgba(245,158,11,0.08), #0d0c05 60%)',
+                display: 'flex', flexDirection: 'row', alignItems: 'center',
+                padding: '16px 14px 16px 18px', minHeight: 120,
+              }}>
+                {/* Left side shimmer blocks */}
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div className="store-skeleton-pulse" style={{ width: 100, height: 28 }} />
+                  <div className="store-skeleton-pulse" style={{ width: 140, height: 14 }} />
+                  <div className="store-skeleton-pulse" style={{ width: 80, height: 10 }} />
+                  <div className="store-skeleton-pulse" style={{ width: 90, height: 32, borderRadius: 16 }} />
+                </div>
+                {/* Right side image placeholder */}
+                <div className="store-skeleton-pulse" style={{
+                  width: 90, height: 90, borderRadius: '50%', flexShrink: 0,
+                }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '0 16px' }}>
         {GOLD_PACKS.map((pack, idx) => {
           const isBuying = buyingId === pack.id;
@@ -658,6 +707,7 @@ const GoldCoinStore: React.FC<GoldCoinStoreProps> = ({ gold, rcState, rcActions,
           );
         })}
       </div>
+      )}
 
       {/* Info Footer */}
       <div

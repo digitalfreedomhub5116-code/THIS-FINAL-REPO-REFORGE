@@ -15,7 +15,7 @@
  * - Purple = Epic, Gold = Legendary (conditioned from loot systems)
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Key, CheckCircle2 } from 'lucide-react';
 import type { RevenueCatState, RevenueCatActions } from '../hooks/useRevenueCat';
@@ -96,6 +96,24 @@ const ManaKeyStore: React.FC<ManaKeyStoreProps> = ({ keys, rcState, rcActions, o
   const [buyingId, setBuyingId] = useState<string | null>(null);
   const [purchaseSuccess, setPurchaseSuccess] = useState<string | null>(null);
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
+  const [imagesLoaded, setImagesLoaded] = useState(false);
+
+  // ── Preload all pack images, show skeleton until done ──
+  useEffect(() => {
+    let cancelled = false;
+    const promises = MANA_PACKS.map(
+      (p) => new Promise<void>((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve();
+        img.onerror = () => resolve();
+        img.src = p.image;
+      })
+    );
+    Promise.all(promises).then(() => {
+      if (!cancelled) setImagesLoaded(true);
+    });
+    return () => { cancelled = true; };
+  }, []);
 
   const handlePurchase = async (pack: ManaPack) => {
     if (!rcState?.isNative || !rcActions || !rcState.offerings) {
@@ -261,7 +279,35 @@ const ManaKeyStore: React.FC<ManaKeyStoreProps> = ({ keys, rcState, rcActions, o
         )}
       </AnimatePresence>
 
-      {/* ── 3 Horizontal Key Pack Cards ── */}
+      {/* ── Skeleton Loading or Real Cards ── */}
+      {!imagesLoaded ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '0 16px' }}>
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="store-skeleton-card" style={{
+              clipPath: CLIP,
+              padding: 3,
+              background: `linear-gradient(160deg, rgba(139,92,246,0.25), rgba(139,92,246,0.08) 40%, rgba(139,92,246,0.15) 80%)`,
+            }}>
+              <div style={{
+                clipPath: CLIP,
+                background: 'linear-gradient(160deg, rgba(139,92,246,0.08), #0a0515 60%)',
+                display: 'flex', flexDirection: 'row', alignItems: 'center',
+                padding: '16px 14px 16px 18px', minHeight: 120,
+              }}>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div className="store-skeleton-pulse" style={{ width: 100, height: 28 }} />
+                  <div className="store-skeleton-pulse" style={{ width: 140, height: 14 }} />
+                  <div className="store-skeleton-pulse" style={{ width: 80, height: 10 }} />
+                  <div className="store-skeleton-pulse" style={{ width: 90, height: 32, borderRadius: 16 }} />
+                </div>
+                <div className="store-skeleton-pulse" style={{
+                  width: 90, height: 90, borderRadius: '50%', flexShrink: 0,
+                }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '0 16px' }}>
         {MANA_PACKS.map((pack, idx) => {
           const isBuying = buyingId === pack.id;
@@ -596,6 +642,7 @@ const ManaKeyStore: React.FC<ManaKeyStoreProps> = ({ keys, rcState, rcActions, o
           );
         })}
       </div>
+      )}
 
       {/* Info Footer */}
       <div
