@@ -1,5 +1,5 @@
 /**
- * GoldCoinStore.tsx — In-App Purchase gold coin packs for REFORGE
+ * GoldCoinStore.tsx — In-App Purchase gold crystal packs for REFORGE
  *
  * HORIZONTAL card layout matching ManaKeyStore's exact design DNA:
  * - 3-layer structure: Outer glow → Gradient border (3px) → Inner body
@@ -9,12 +9,15 @@
  * - YELLOW / GOLD theme throughout
  *
  * Psychology applied:
- * - Visual escalation: few coins → bag → treasure (anchoring)
+ * - Visual escalation: few crystals → bag → treasure (anchoring)
  * - "BEST VALUE" golden badge triggers anchoring bias
  * - Savings % triggers "smart buyer" identity
+ *
+ * highlightPopular: when true, the POPULAR pack pulses with a zoom animation
+ * to draw the user's attention after clicking "Add Crystals".
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Coins, CheckCircle2 } from 'lucide-react';
 import type { RevenueCatState, RevenueCatActions } from '../hooks/useRevenueCat';
@@ -86,15 +89,48 @@ interface GoldCoinStoreProps {
   rcState?: RevenueCatState;
   rcActions?: RevenueCatActions;
   onGoldUpdate?: (newGold: number) => void;
+  /** When true, scroll into view and pulse the POPULAR pack */
+  highlightPopular?: boolean;
+  /** Called after the highlight animation completes */
+  onHighlightDone?: () => void;
 }
 
 const CHIP = 12; // Corner chip size for clipPath
 const CLIP = `polygon(0 0, calc(100% - ${CHIP}px) 0, 100% ${CHIP}px, 100% 100%, ${CHIP}px 100%, 0 calc(100% - ${CHIP}px))`;
 
-const GoldCoinStore: React.FC<GoldCoinStoreProps> = ({ gold, rcState, rcActions, onGoldUpdate }) => {
+const GoldCoinStore: React.FC<GoldCoinStoreProps> = ({ gold, rcState, rcActions, onGoldUpdate, highlightPopular, onHighlightDone }) => {
   const [buyingId, setBuyingId] = useState<string | null>(null);
   const [purchaseSuccess, setPurchaseSuccess] = useState<string | null>(null);
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
+  const [isPulsing, setIsPulsing] = useState(false);
+  const sectionRef = useRef<HTMLElement>(null);
+  const popularRef = useRef<HTMLDivElement>(null);
+
+  // ── Handle highlight: scroll into view + pulse animation ──
+  useEffect(() => {
+    if (!highlightPopular) return;
+
+    // Step 1: Scroll the Gold Crystal section into view
+    if (sectionRef.current) {
+      sectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    // Step 2: After scroll completes (~500ms), start pulsing
+    const pulseDelay = setTimeout(() => {
+      setIsPulsing(true);
+    }, 600);
+
+    // Step 3: Stop pulsing after 3 cycles (~2.4s) and notify parent
+    const stopDelay = setTimeout(() => {
+      setIsPulsing(false);
+      onHighlightDone?.();
+    }, 3200);
+
+    return () => {
+      clearTimeout(pulseDelay);
+      clearTimeout(stopDelay);
+    };
+  }, [highlightPopular, onHighlightDone]);
 
   const handlePurchase = async (pack: GoldPack) => {
     if (!rcState?.isNative || !rcActions || !rcState.offerings) {
@@ -172,7 +208,7 @@ const GoldCoinStore: React.FC<GoldCoinStoreProps> = ({ gold, rcState, rcActions,
   };
 
   return (
-    <section>
+    <section ref={sectionRef} id="gold-crystal-store">
       {/* Section Header */}
       <div className="store-section-hdr">
         <div
@@ -251,13 +287,33 @@ const GoldCoinStore: React.FC<GoldCoinStoreProps> = ({ gold, rcState, rcActions,
           const isBuying = buyingId === pack.id;
           const isPurchased = purchaseSuccess === pack.id;
           const c = pack.catColor; // gold amber color
+          const isPopular = pack.tier === 'popular';
+          const shouldPulse = isPopular && isPulsing;
 
           return (
             <motion.div
               key={pack.id}
+              ref={isPopular ? popularRef : undefined}
               initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: idx * 0.08, type: 'spring', stiffness: 300, damping: 30 }}
+              animate={shouldPulse ? {
+                opacity: 1,
+                x: 0,
+                scale: [1, 1.04, 1, 1.04, 1, 1.04, 1],
+                boxShadow: [
+                  '0 0 0px rgba(245,158,11,0)',
+                  '0 0 30px rgba(245,158,11,0.6)',
+                  '0 0 0px rgba(245,158,11,0)',
+                  '0 0 30px rgba(245,158,11,0.6)',
+                  '0 0 0px rgba(245,158,11,0)',
+                  '0 0 30px rgba(245,158,11,0.6)',
+                  '0 0 0px rgba(245,158,11,0)',
+                ],
+              } : { opacity: 1, x: 0, scale: 1 }}
+              transition={shouldPulse ? {
+                duration: 2.4,
+                ease: 'easeInOut',
+              } : { delay: idx * 0.08, type: 'spring', stiffness: 300, damping: 30 }}
+              style={{ borderRadius: 14 }}
             >
               {/* ── Layer 1: Outer Glow Wrapper ── */}
               <div
@@ -604,7 +660,7 @@ const GoldCoinStore: React.FC<GoldCoinStoreProps> = ({ gold, rcState, rcActions,
             lineHeight: 1.4,
           }}
         >
-          Gold unlocks premium borders, outfits, banners, and store items.
+          Gold Crystals unlock premium borders, outfits, banners, and store items.
           Charged via Google Play.
         </span>
       </div>

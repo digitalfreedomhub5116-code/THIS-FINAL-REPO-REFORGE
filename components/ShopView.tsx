@@ -411,8 +411,10 @@ const ShopView: React.FC<ShopViewProps> = ({
   const [purchasing, setPurchasing] = useState(false);
   // ── Phase transition flag: keeps confirm modal mounted while equip overlay fades in ──
   const [purchasePhase, setPurchasePhase] = useState<'idle' | 'buying' | 'transitioning'>('idle');
-  // ── Not enough coins popup ──
+  // ── Not enough crystals popup ──
   const [showInsufficientFunds, setShowInsufficientFunds] = useState<KitStoreItem | null>(null);
+  // ── Gold Crystal Store highlight (triggered from "Add Crystals" button) ──
+  const [highlightGoldStore, setHighlightGoldStore] = useState(false);
 
   // ── Image preloader: eagerly load border images so celebration overlay doesn't flash ──
   const preloadedImagesRef = useRef<Set<string>>(new Set());
@@ -1214,6 +1216,8 @@ const ShopView: React.FC<ShopViewProps> = ({
         rcState={rcState}
         rcActions={rcActions}
         onGoldUpdate={onGoldUpdate}
+        highlightPopular={highlightGoldStore}
+        onHighlightDone={() => setHighlightGoldStore(false)}
       />
 
       {/* ═══════════════════════════════════════════
@@ -1631,7 +1635,7 @@ const ShopView: React.FC<ShopViewProps> = ({
           )}
         </div>, document.body)}
 
-      {/* ── NOT ENOUGH COINS POPUP ── */}
+      {/* ── NOT ENOUGH CRYSTALS POPUP ── */}
       {showInsufficientFunds &&
         ReactDOM.createPortal(<div onClick={() => setShowInsufficientFunds(null)} style={{
           position: 'fixed', inset: 0, zIndex: 100000,
@@ -1645,17 +1649,17 @@ const ShopView: React.FC<ShopViewProps> = ({
             borderRadius: 20, padding: '28px 24px', width: '100%', maxWidth: 320,
             textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
           }}>
-            {/* Sad coin icon */}
+            {/* Sad crystal icon */}
             <div style={{ width: 64, height: 64, margin: '0 auto 16px', opacity: 0.6 }}>
               <SystemCoin size={64} />
             </div>
-            <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', marginBottom: 6 }}>Not Enough Coins</div>
+            <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', marginBottom: 6 }}>Not Enough Crystals</div>
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginBottom: 16, lineHeight: 1.5 }}>
-              You need <span style={{ color: '#fbbf24', fontWeight: 800 }}>{showInsufficientFunds.price.toLocaleString()}</span> coins for <span style={{ color: '#fff', fontWeight: 700 }}>{showInsufficientFunds.name}</span>.
+              You need <span style={{ color: '#fbbf24', fontWeight: 800 }}>{showInsufficientFunds.price.toLocaleString()}</span> crystals for <span style={{ color: '#fff', fontWeight: 700 }}>{showInsufficientFunds.name}</span>.
               <br />You currently have <span style={{ color: '#fbbf24', fontWeight: 800 }}>{(gold || 0).toLocaleString()}</span>.
             </div>
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginBottom: 20, fontFamily: 'monospace' }}>
-              Need {Math.max(0, showInsufficientFunds.price - (gold || 0)).toLocaleString()} more coins
+              Need {Math.max(0, showInsufficientFunds.price - (gold || 0)).toLocaleString()} more crystals
             </div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
               <button onClick={() => setShowInsufficientFunds(null)} style={{
@@ -1663,7 +1667,7 @@ const ShopView: React.FC<ShopViewProps> = ({
                 background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
                 color: 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: 700,
               }}>Close</button>
-              <button onClick={() => { setShowInsufficientFunds(null); /* Future: navigate to coin purchase */ }} style={{
+              <button onClick={() => { setShowInsufficientFunds(null); setHighlightGoldStore(true); }} style={{
                 padding: '10px 24px', borderRadius: 12, cursor: 'pointer',
                 background: 'linear-gradient(135deg, #fbbf24, #d97706)', border: 'none',
                 color: '#000', fontSize: 12, fontWeight: 900,
@@ -1671,7 +1675,7 @@ const ShopView: React.FC<ShopViewProps> = ({
                 display: 'flex', alignItems: 'center', gap: 6,
               }}>
                 <SystemCoin size={16} />
-                Add Coins
+                Add Crystals
               </button>
             </div>
           </div>
