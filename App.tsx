@@ -4217,7 +4217,7 @@ const App: React.FC = () => {
           <Suspense fallback={null}>
             <ErrorBoundary>
               <WelcomeRewardChest
-                goldAmount={500}
+                goldAmount={600}
                 keysAmount={10}
                 onComplete={() => {
                   const chestKey = `reforge_welcome_chest_${player.userId || 'local'}`;

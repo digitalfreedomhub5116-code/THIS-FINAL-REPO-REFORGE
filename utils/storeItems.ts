@@ -550,14 +550,14 @@ export function getItemById(id: string): StoreItem | undefined {
   return _remoteStoreCache.find(i => i.id === id);
 }
 
-/* ═══ Rotating Deals (includes remote items) ═══ */
+/* ═══ Rotating Deals (borders only, includes remote items) ═══ */
 export function getTodaysDeals(count = 4): { item: StoreItem; discount: number }[] {
   // Seed based on date so deals are consistent throughout the day
   const seed = parseInt(new Date().toISOString().split('T')[0].replace(/-/g, ''), 10);
-  // Pool includes both hardcoded AND remote items
-  const pool = [...ALL_STORE_ITEMS, ..._remoteStoreCache];
+  // Pool: ONLY borders (hardcoded + remote)
+  const pool = [...ALL_STORE_ITEMS, ..._remoteStoreCache]
+    .filter(i => i.category === 'border');
   const shuffled = pool
-    .filter(i => i.category !== 'consumable') // consumables are always available
     .sort((a, b) => {
       // Use multiple chars for better distribution (prevents remote- items from clustering)
       let hA = 0, hB = 0;
@@ -566,8 +566,11 @@ export function getTodaysDeals(count = 4): { item: StoreItem; discount: number }
       return ((seed ^ hA) % 1000) - ((seed ^ hB) % 1000);
     });
 
-  return shuffled.slice(0, count).map((item, i) => ({
-    item,
-    discount: [25, 30, 33, 40][i % 4],
-  }));
+  return shuffled.slice(0, count).map((item, i) => {
+    // Seeded pseudo-random discount between 5% and 20%
+    let h = seed;
+    for (let c = 0; c < item.id.length; c++) h = (h * 31 + item.id.charCodeAt(c)) | 0;
+    const discount = 5 + (Math.abs(h + i * 7) % 16); // 5..20
+    return { item, discount };
+  });
 }

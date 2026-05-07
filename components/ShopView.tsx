@@ -408,6 +408,7 @@ const ShopView: React.FC<ShopViewProps> = ({
   const [showEquipAnim, setShowEquipAnim] = useState(false);
   // ── Confirm purchase modal ──
   const [confirmPurchaseItem, setConfirmPurchaseItem] = useState<KitStoreItem | null>(null);
+  const [confirmPurchaseDiscount, setConfirmPurchaseDiscount] = useState(0);
   const [purchasing, setPurchasing] = useState(false);
   // ── Phase transition flag: keeps confirm modal mounted while equip overlay fades in ──
   const [purchasePhase, setPurchasePhase] = useState<'idle' | 'buying' | 'transitioning'>('idle');
@@ -960,7 +961,7 @@ const ShopView: React.FC<ShopViewProps> = ({
                 owned={isItemOwned(d.item.id)}
                 equipped={kitEconomy.equipped[d.item.category as keyof EquippedItems] === d.item.id}
                 canAfford={DEV_UNLOCK_ALL || gold >= Math.round(d.item.price * (1 - d.discount / 100))}
-                onBuy={() => setConfirmPurchaseItem(d.item)}
+                onBuy={() => { setConfirmPurchaseDiscount(d.discount); setConfirmPurchaseItem(d.item); }}
                 onEquip={d.item.category !== 'consumable' ? () => handleKitEquip(d.item.category as keyof EquippedItems, d.item.id) : undefined}
                 onInfo={() => setKitInfoItem(d.item)}
               />
@@ -1475,7 +1476,7 @@ const ShopView: React.FC<ShopViewProps> = ({
       {/* Persistent portal container: stays mounted during buying→celebration transition to prevent blank frame gap */}
       {(confirmPurchaseItem || purchasePhase === 'transitioning') &&
         ReactDOM.createPortal(<div
-          onClick={() => { if (!purchasing && purchasePhase !== 'transitioning') setConfirmPurchaseItem(null); }}
+          onClick={() => { if (!purchasing && purchasePhase !== 'transitioning') { setConfirmPurchaseDiscount(0); setConfirmPurchaseItem(null); } }}
           style={{
             position: 'fixed', inset: 0, zIndex: 100000,
             /* Android WebView: backdropFilter causes full-screen repaint storms → use opaque bg */
@@ -1534,12 +1535,13 @@ const ShopView: React.FC<ShopViewProps> = ({
                 ) : (
                   <>
                     <SystemCoin size={22} />
-                    <span style={{ fontSize: 20, fontWeight: 900, color: '#fbbf24' }}>{confirmPurchaseItem.price}</span>
+                    <span style={{ fontSize: 20, fontWeight: 900, color: '#fbbf24' }}>{confirmPurchaseDiscount > 0 ? Math.round(confirmPurchaseItem.price * (1 - confirmPurchaseDiscount / 100)) : confirmPurchaseItem.price}</span>
+                    {confirmPurchaseDiscount > 0 && <span style={{ textDecoration: 'line-through', opacity: 0.35, fontSize: 12, color: '#fbbf24', marginLeft: 6 }}>{confirmPurchaseItem.price}</span>}
                   </>
                 )}
               </div>
               <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-                <button disabled={purchasing} onClick={() => setConfirmPurchaseItem(null)} style={{ padding: '10px 28px', borderRadius: 12, cursor: 'pointer', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: 700 }}>Cancel</button>
+                <button disabled={purchasing} onClick={() => { setConfirmPurchaseDiscount(0); setConfirmPurchaseItem(null); }} style={{ padding: '10px 28px', borderRadius: 12, cursor: 'pointer', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: 700 }}>Cancel</button>
                 {confirmPurchaseItem.adUnlock && onWatchAdForBorder ? (
                   <button disabled={purchasing} onClick={async () => {
                     const item = confirmPurchaseItem;
@@ -1585,7 +1587,7 @@ const ShopView: React.FC<ShopViewProps> = ({
                       const headers = getPlayerAuthHeaders();
                       const resp = await fetch(`${API_BASE}/api/inventory/purchase`, {
                         method: 'POST', headers: { 'Content-Type': 'application/json', ...headers },
-                        credentials: 'include', body: JSON.stringify({ itemId: item.id, itemType: item.category, price: item.price }),
+                        credentials: 'include', body: JSON.stringify({ itemId: item.id, itemType: item.category, price: confirmPurchaseDiscount > 0 ? Math.round(item.price * (1 - confirmPurchaseDiscount / 100)) : item.price }),
                       });
                       if (!resp.ok) {
                         const errData = await resp.json().catch(() => ({}));
@@ -1598,7 +1600,7 @@ const ShopView: React.FC<ShopViewProps> = ({
                       if (onGoldUpdate) onGoldUpdate(newGold);
                       // Use callback to avoid triggering unnecessary re-renders in background store
                       setServerInventory(prev => [...prev, { item_id: item.id, item_type: item.category, source: 'purchase' }]);
-                      const p = kitPurchaseItem(item.id, item.price);
+                      const p = kitPurchaseItem(item.id, confirmPurchaseDiscount > 0 ? Math.round(item.price * (1 - confirmPurchaseDiscount / 100)) : item.price);
                       if (p) setKitEconomy(p);
                     } catch (e) { console.error('[Store] Purchase error:', e); setPurchasing(false); setPurchasePhase('idle'); setConfirmPurchaseItem(null); return; }
                     // Category-specific post-purchase logic

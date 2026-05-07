@@ -19,7 +19,7 @@ interface WelcomeRewardChestProps {
 
 const WelcomeRewardChest: React.FC<WelcomeRewardChestProps> = ({
   onComplete,
-  goldAmount = 500,
+  goldAmount = 600,
   keysAmount = 10,
 }) => {
   const [phase, setPhase] = useState<'intro' | 'chest' | 'reveal' | 'done'>('intro');

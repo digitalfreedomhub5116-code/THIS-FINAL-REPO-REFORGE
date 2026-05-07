@@ -130,7 +130,7 @@ export async function setupGoogleAuth(app: Express) {
           total_xp: 0,
           daily_xp: 0,
           rank: 'E',
-          gold: 500,
+          gold: 600,
           keys: 10,
           streak: 0,
           hp: 100,
