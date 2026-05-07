@@ -710,14 +710,14 @@ export const useSystem = () => {
       // --- NUTRITION AUDIT: EXCEEDED CALORIES/MACROS ---
       const yesterdayNutritionStart = todayStart - (24*60*60*1000);
       const yesterdayLogs = retainedNutritionLogs.filter(l => l.timestamp >= yesterdayNutritionStart && l.timestamp < todayStart);
-      if (yesterdayLogs.length > 0 && prev.healthProfile) {
+      if (yesterdayLogs.length > 0 && prev.healthProfile && prev.healthProfile.macros) {
         const macros = prev.healthProfile.macros;
-        const totalCals = yesterdayLogs.reduce((s, l) => s + l.totalCalories, 0);
-        const totalProtein = yesterdayLogs.reduce((s, l) => s + l.totalProtein, 0);
-        const totalCarbs = yesterdayLogs.reduce((s, l) => s + l.totalCarbs, 0);
-        const totalFats = yesterdayLogs.reduce((s, l) => s + l.totalFats, 0);
+        const totalCals = yesterdayLogs.reduce((s, l) => s + (l.totalCalories || 0), 0);
+        const totalProtein = yesterdayLogs.reduce((s, l) => s + (l.totalProtein || 0), 0);
+        const totalCarbs = yesterdayLogs.reduce((s, l) => s + (l.totalCarbs || 0), 0);
+        const totalFats = yesterdayLogs.reduce((s, l) => s + (l.totalFats || 0), 0);
 
-        if (macros && totalCals > macros.calories * 1.1) {
+        if (totalCals > (macros.calories || 0) * 1.1 && (macros.calories || 0) > 0) {
           // Exceeded calorie target by >10%
           updatedStats.discipline = Math.max(0, updatedStats.discipline - 5);
           newLogs.unshift({
@@ -729,9 +729,9 @@ export const useSystem = () => {
         } else {
           // Check individual macro overages
           let macroExceeded = false;
-          if (macros.protein > 0 && totalProtein > macros.protein * 1.15) macroExceeded = true;
-          if (macros.carbs > 0 && totalCarbs > macros.carbs * 1.15) macroExceeded = true;
-          if (macros.fats > 0 && totalFats > macros.fats * 1.15) macroExceeded = true;
+          if ((macros.protein || 0) > 0 && totalProtein > (macros.protein || 0) * 1.15) macroExceeded = true;
+          if ((macros.carbs || 0) > 0 && totalCarbs > (macros.carbs || 0) * 1.15) macroExceeded = true;
+          if ((macros.fats || 0) > 0 && totalFats > (macros.fats || 0) * 1.15) macroExceeded = true;
           if (macroExceeded) {
             updatedStats.discipline = Math.max(0, updatedStats.discipline - 2);
             newLogs.unshift({
