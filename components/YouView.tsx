@@ -682,31 +682,9 @@ const YouView: React.FC<YouViewProps> = ({
         <JourneyLog player={player} />
       </div>
 
-      {/* Modals */}
+      {/* Modals (non-portaled stay in AnimatePresence) */}
       <AnimatePresence>
         {showRank && <RankLadderModal player={player} onClose={() => setShowRank(false)} onTestSetRank={onTestSetRank ? handleTestRankTap : undefined} />}
-        {showRankProgression && ReactDOM.createPortal(
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-[#05050a] overflow-y-auto"
-            style={{ zIndex: 100000 }}
-          >
-            <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-[#05050a]/95 backdrop-blur-md border-b border-white/5">
-              <div className="text-xs font-mono font-bold text-[#00d4ff] tracking-widest">RANK PROGRESSION</div>
-              <button onClick={() => setShowRankProgression(false)} className="p-1.5 rounded-full hover:bg-white/5">
-                <X size={18} className="text-gray-400" />
-              </button>
-            </div>
-            <div className="px-4 py-6">
-              <Suspense fallback={<div className="text-gray-500 text-xs text-center py-8 font-mono">Loading rank data...</div>}>
-                <RankProgressionCard level={player.level} rank={player.rank} onTestSetRank={onTestSetRank ? handleTestRankTap : undefined} />
-              </Suspense>
-            </div>
-          </motion.div>,
-          document.body
-        )}
         {showConfig && (
           <ProfileDrawer
             player={player}
@@ -717,12 +695,34 @@ const YouView: React.FC<YouViewProps> = ({
             onClose={() => setShowConfig(false)}
           />
         )}
-        {showStats && ReactDOM.createPortal(
-          <StatsDrawer player={player} history={history} onClose={() => setShowStats(false)} />,
-          document.body
-        )}
         {comingSoon && <ComingSoonDrawer title={comingSoon} onClose={() => setComingSoon(null)} />}
       </AnimatePresence>
+
+      {/* Portaled full-screen overlays — must be OUTSIDE AnimatePresence */}
+      {showRankProgression && ReactDOM.createPortal(
+        <div
+          className="fixed inset-0 bg-[#05050a] overflow-y-auto"
+          style={{ zIndex: 100000 }}
+        >
+          <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-[#05050a]/95 backdrop-blur-md border-b border-white/5">
+            <div className="text-xs font-mono font-bold text-[#00d4ff] tracking-widest">RANK PROGRESSION</div>
+            <button onClick={() => setShowRankProgression(false)} className="p-1.5 rounded-full hover:bg-white/5">
+              <X size={18} className="text-gray-400" />
+            </button>
+          </div>
+          <div className="px-4 py-6">
+            <Suspense fallback={<div className="text-gray-500 text-xs text-center py-8 font-mono">Loading rank data...</div>}>
+              <RankProgressionCard level={player.level} rank={player.rank} onTestSetRank={onTestSetRank ? handleTestRankTap : undefined} />
+            </Suspense>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {showStats && ReactDOM.createPortal(
+        <StatsDrawer player={player} history={history} onClose={() => setShowStats(false)} />,
+        document.body
+      )}
 
       {/* [TEST] Rank-Up Cinematic overlay */}
       <AnimatePresence>
