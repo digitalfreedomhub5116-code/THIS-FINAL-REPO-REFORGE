@@ -6,6 +6,7 @@ import { Coins, Timer, Key, CheckCircle2, Lock, ChevronLeft, ChevronRight, Heart
 import type { RevenueCatState, RevenueCatActions } from '../hooks/useRevenueCat';
 import { CONSUMABLE_CREDITS } from '../hooks/useRevenueCat';
 import ManaKeyStore from './ManaKeyStore';
+import GoldCoinStore from './GoldCoinStore';
 import BorderEquipOverlay from './BorderEquipOverlay';
 import Lottie from 'lottie-react';
 import { REWARD_SCHEDULE, DAILY_REWARDS_ENABLED } from '../lib/rewards';
@@ -1204,6 +1205,16 @@ const ShopView: React.FC<ShopViewProps> = ({
           </section>
         );
       })()}
+
+      {/* ═══════════════════════════════════════════
+           🪙 GOLD CRYSTAL STORE (IAP Gold)
+         ═══════════════════════════════════════════ */}
+      <GoldCoinStore
+        gold={gold}
+        rcState={rcState}
+        rcActions={rcActions}
+        onGoldUpdate={onGoldUpdate}
+      />
 
       {/* ═══════════════════════════════════════════
            👕 OUTFITS (last main section) — individual video cards
