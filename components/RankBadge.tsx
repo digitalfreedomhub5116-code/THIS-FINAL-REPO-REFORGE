@@ -30,7 +30,7 @@ export const RANK_META: Record<RankType, {
     glow:       'rgba(74,74,90,0.0)',
     bg:         '#08080e',
     labelColor: '#5a5a6a',
-    image:      '/images/ranks/e-rank-removebg-preview.png',
+    image:      '/images/ranks/e-rank-removebg-preview.webp',
   },
   E: {
     primary:    '#9eaabb',
@@ -40,7 +40,7 @@ export const RANK_META: Record<RankType, {
     glow:       'rgba(158,170,187,0.5)',
     bg:         '#0e0f14',
     labelColor: '#9eaabb',
-    image:      '/images/ranks/e-rank-removebg-preview.png',
+    image:      '/images/ranks/e-rank-removebg-preview.webp',
   },
   D: {
     primary:    '#f5a623',
@@ -50,7 +50,7 @@ export const RANK_META: Record<RankType, {
     glow:       'rgba(245,166,35,0.85)',
     bg:         '#1a0e00',
     labelColor: '#f5a623',
-    image:      '/images/ranks/d-rank-removebg-preview.png',
+    image:      '/images/ranks/d-rank-removebg-preview.webp',
   },
   C: {
     primary:    '#00d4ff',
@@ -60,7 +60,7 @@ export const RANK_META: Record<RankType, {
     glow:       'rgba(0,212,255,0.8)',
     bg:         '#001018',
     labelColor: '#00d4ff',
-    image:      '/images/ranks/c-rank-removebg-preview.png',
+    image:      '/images/ranks/c-rank-removebg-preview.webp',
   },
   B: {
     primary:    '#c96eff',
@@ -70,7 +70,7 @@ export const RANK_META: Record<RankType, {
     glow:       'rgba(201,110,255,0.9)',
     bg:         '#0e0018',
     labelColor: '#c96eff',
-    image:      '/images/ranks/b-rank-removebg-preview.png',
+    image:      '/images/ranks/b-rank-removebg-preview.webp',
   },
   A: {
     primary:    '#ff5722',
@@ -80,7 +80,7 @@ export const RANK_META: Record<RankType, {
     glow:       'rgba(255,87,34,0.95)',
     bg:         '#1a0300',
     labelColor: '#ff6b3d',
-    image:      '/images/ranks/a-rank-removebg-preview.png',
+    image:      '/images/ranks/a-rank-removebg-preview.webp',
   },
   S: {
     primary:    '#f084ff',
@@ -90,7 +90,7 @@ export const RANK_META: Record<RankType, {
     glow:       'rgba(240,132,255,1)',
     bg:         '#0f0018',
     labelColor: '#f0abfc',
-    image:      '/images/ranks/s-rank-removebg-preview.png',
+    image:      '/images/ranks/s-rank-removebg-preview.webp',
   },
 };
 
