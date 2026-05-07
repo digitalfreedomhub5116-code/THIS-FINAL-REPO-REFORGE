@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Lock } from 'lucide-react';
+import { X } from 'lucide-react';
 import { Outfit } from '../types';
 import OutfitHunterBadge from './OutfitHunterBadge';
 
@@ -13,6 +13,10 @@ interface Props {
   onPurchase: (outfit: Outfit) => void;
   onEquip: (id: string) => void;
   onClose: () => void;
+  /** Ad unlock progress for this outfit */
+  adProgress?: { adsWatched: number; adsRequired: number; unlocked: boolean } | null;
+  /** Called when user wants to watch an ad for this outfit */
+  onWatchAd?: (itemId: string, adsRequired: number) => Promise<{ adsWatched: number; adsRequired: number; unlocked: boolean; justUnlocked?: boolean } | null>;
 }
 
 // ── Particle system ──────────────────────────────────────────────────────────
@@ -105,6 +109,8 @@ const OutfitPurchaseModal: React.FC<Props> = ({
   onPurchase,
   onEquip,
   onClose,
+  adProgress: initialAdProgress,
+  onWatchAd,
 }) => {
   const introRef = useRef<HTMLVideoElement>(null);
   const loopRef = useRef<HTMLVideoElement>(null);
@@ -116,10 +122,14 @@ const OutfitPurchaseModal: React.FC<Props> = ({
   const [purchased, setPurchased] = useState(false);
   const [showUnlocked, setShowUnlocked] = useState(false);
   const [showFlash, setShowFlash] = useState(false);
+  const [watchingAd, setWatchingAd] = useState(false);
+  const [localAdProgress, setLocalAdProgress] = useState(initialAdProgress || null);
 
   const accent = outfit.accentColor || '#FFD700';
-  const canAfford = gold >= outfit.cost;
-  const isFree = outfit.cost === 0;
+  const adsRequired = 5; // All outfits require 5 ads
+  const watched = localAdProgress?.adsWatched ?? 0;
+  const remaining = Math.max(0, adsRequired - watched);
+  const pct = Math.min(100, Math.round((watched / adsRequired) * 100));
 
   // Video sequence
   const startVideoSequence = useCallback(() => {
@@ -231,6 +241,22 @@ const OutfitPurchaseModal: React.FC<Props> = ({
     setTimeout(() => { onPurchase(outfit); }, 80);
     setTimeout(() => { onEquip(outfit.id); }, 200);
     setTimeout(() => { onClose(); }, 2800);
+  };
+
+  const handleWatchAd = async () => {
+    if (watchingAd || !onWatchAd) return;
+    setWatchingAd(true);
+    try {
+      const result = await onWatchAd(outfit.id, adsRequired);
+      if (result) {
+        setLocalAdProgress({ adsWatched: result.adsWatched, adsRequired: result.adsRequired, unlocked: result.unlocked });
+        if (result.unlocked || result.justUnlocked) {
+          // Fully unlocked — trigger celebration
+          handleBuy();
+        }
+      }
+    } catch (e) { console.error('[OutfitAd]', e); }
+    setWatchingAd(false);
   };
 
   const handleEquip = () => {
@@ -430,28 +456,22 @@ const OutfitPurchaseModal: React.FC<Props> = ({
             </div>
           </div>
 
-          {/* Price row */}
+          {/* Price row — ad progress */}
           {!isUnlocked && (
-            <div className="flex items-center gap-3 mb-4 flex-wrap">
-              {isFree ? (
-                <span className="text-lg font-black text-white">FREE</span>
-              ) : (
-                <>
-                  {outfit.cost > 0 && (
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-black" style={{ background: '#FFD700', color: '#000' }}>G</div>
-                      <span className={`text-lg font-black ${canAfford ? 'text-white' : 'text-red-400'}`}>{outfit.cost.toLocaleString()}</span>
-                      <span className="text-xs text-gray-500 font-mono">gold</span>
-                    </div>
-                  )}
-                </>
-              )}
-              {!canAfford && !isFree && (
-                <span className="ml-auto text-[10px] text-red-500 font-bold uppercase tracking-widest flex items-center gap-1">
-                  <Lock size={10} />
-                  {`Need ${(outfit.cost - gold).toLocaleString()} more gold`}
-                </span>
-              )}
+            <div className="mb-4">
+              <div className="flex items-center gap-2 mb-2">
+                <span style={{ fontSize: 14, fontWeight: 900, color: '#a855f7' }}>▶ WATCH ADS TO UNLOCK</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.5)', marginLeft: 'auto' }}>{watched} / {adsRequired}</span>
+              </div>
+              {/* Progress bar */}
+              <div style={{ width: '100%', height: 6, borderRadius: 999, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+                <div style={{
+                  width: `${pct}%`, height: '100%', borderRadius: 999,
+                  background: 'linear-gradient(90deg, #a855f7, #7c3aed)',
+                  boxShadow: '0 0 10px rgba(168,85,247,0.5)',
+                  transition: 'width 0.5s ease',
+                }} />
+              </div>
             </div>
           )}
 
@@ -468,28 +488,20 @@ const OutfitPurchaseModal: React.FC<Props> = ({
             >
               ⚡ EQUIP NOW
             </button>
-          ) : canAfford ? (
+          ) : (
             <button
-              onClick={handleBuy}
-              disabled={purchased}
+              onClick={handleWatchAd}
+              disabled={purchased || watchingAd}
               className="w-full py-4 rounded-2xl font-black uppercase tracking-widest text-sm flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-60"
               style={{
                 background: purchased
                   ? 'rgba(255,255,255,0.06)'
-                  : 'linear-gradient(135deg, #FFD700, #e6b800)',
-                boxShadow: purchased ? 'none' : '0 6px 28px rgba(255,215,0,0.45)',
-                color: purchased ? '#6b7280' : '#000',
+                  : 'linear-gradient(135deg, #a855f7, #7c3aed)',
+                boxShadow: purchased ? 'none' : '0 6px 28px rgba(168,85,247,0.45)',
+                color: purchased ? '#6b7280' : '#fff',
               }}
             >
-              {purchased ? '✓ PURCHASED' : isFree ? 'CLAIM FREE' : `BUY — ${outfit.cost.toLocaleString()}G`}
-            </button>
-          ) : (
-            <button
-              disabled
-              className="w-full py-4 rounded-2xl font-black uppercase tracking-widest text-sm flex items-center justify-center gap-2 cursor-not-allowed"
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1.5px solid rgba(255,255,255,0.09)', color: '#4b5563' }}
-            >
-              <Lock size={14} /> INSUFFICIENT GOLD
+              {purchased ? '✓ UNLOCKED' : watchingAd ? 'LOADING AD...' : `▶ WATCH AD (${remaining} LEFT)`}
             </button>
           )}
         </motion.div>

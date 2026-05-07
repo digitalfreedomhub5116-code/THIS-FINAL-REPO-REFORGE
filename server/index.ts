@@ -61,6 +61,7 @@ async function startServer() {
   const economyRouter = await import('./routes/economy.js');
   const inventoryRouter = await import('./routes/inventory.js');
   const iapRouter = await import('./routes/iap.js');
+  const adUnlockRouter = await import('./routes/adUnlock.js');
 
   const app = express();
   const PORT = process.env.PORT ? parseInt(process.env.PORT) : 8001;
@@ -216,6 +217,7 @@ async function startServer() {
   app.use('/api/economy', generalRateLimit, economyRouter.default);
   app.use('/api/inventory', generalRateLimit, inventoryRouter.default);
   app.use('/api/iap', generalRateLimit, iapRouter.default);
+  app.use('/api/ad-unlock', generalRateLimit, adUnlockRouter.default);
 
   // Google OAuth setup
   setupGoogleAuth(app);

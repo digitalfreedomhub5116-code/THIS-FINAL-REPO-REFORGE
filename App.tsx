@@ -4836,20 +4836,23 @@ const App: React.FC = () => {
 
                     onGoldUpdate={(newGold) => setPlayer(prev => ({ ...prev, gold: newGold }))}
 
-                    onWatchAdForBorder={async (borderId: string) => {
+                    onWatchAdForBorder={async (itemId: string, adsRequired: number) => {
                       const result = await showRewardedAd(AD_UNITS.BORDER_REWARD);
                       if (result.rewarded) {
                         try {
-                          const res = await fetch(`${API_BASE}/api/inventory/purchase`, {
+                          const res = await fetch(`${API_BASE}/api/ad-unlock/watch`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
                             credentials: 'include',
-                            body: JSON.stringify({ itemId: borderId, itemType: 'border', price: 0, source: 'ad_reward' }),
+                            body: JSON.stringify({ itemId, adsRequired }),
                           });
-                          if (res.ok) return true;
-                        } catch (e) { console.error('[AdBorder]', e); }
+                          if (res.ok) {
+                            const data = await res.json();
+                            return data; // { adsWatched, adsRequired, unlocked, justUnlocked }
+                          }
+                        } catch (e) { console.error('[AdUnlock]', e); }
                       }
-                      return false;
+                      return null;
                     }}
 
                     keys={player.keys ?? 0}

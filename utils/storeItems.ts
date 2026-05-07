@@ -54,8 +54,10 @@ export interface StoreItem {
   seasonal?: boolean;
   /** Tier color for card accent (Valorant-style per-tier coloring) */
   tierColor?: string;
-  /** If true, this item is unlocked by watching an ad instead of paying gold */
+  /** If true, this item is unlocked by watching ads instead of paying gold */
   adUnlock?: boolean;
+  /** Number of ads required to fully unlock (only relevant when adUnlock is true) */
+  adsRequired?: number;
 }
 
 export interface BorderConfig {
@@ -114,6 +116,7 @@ export const BORDERS_ELEMENTS: StoreItem[] = [
     description: 'Animated neon energy pulses around your avatar — alive and electric.',
     videoBorder: '/borders/videoborder1.webm',
     imageScale: 0.95,
+    adUnlock: true, adsRequired: 10,
     borderConfig: { colors: ['#00d4ff', '#ff00ff', '#00ff88'], strokeWidth: 3, animated: false, glowColor: '#00d4ff', glowIntensity: 0.9 },
   },
 ];
@@ -156,6 +159,7 @@ export const BORDERS_BEASTS: StoreItem[] = [
     imageBorder: '/borders/border-eagle.webp',
     imageScale: 1.1,
     imageOffsetY: 3,
+    adUnlock: true, adsRequired: 5,
     borderConfig: { colors: ['#B87333', '#C8A84E', '#DAA520'], strokeWidth: 3, animated: false, glowColor: '#B87333', glowIntensity: 0.8 },
   },
   {
@@ -194,6 +198,7 @@ export const BORDERS_SHIELDS: StoreItem[] = [
     description: 'Forged from silversteel — a shield of honor.',
     imageBorder: '/borders/silverrank-Photoroom.webp',
     imageScale: 1.05,
+    adUnlock: true, adsRequired: 5,
     borderConfig: { colors: ['#C0C0C0', '#E0E0E0'], strokeWidth: 3, animated: false, glowColor: '#C0C0C0', glowIntensity: 0.6 },
   },
   {
@@ -225,6 +230,7 @@ export const BORDERS_EXCLUSIVE: StoreItem[] = [
     id: 'border-streak-inferno', name: 'Inferno', category: 'border', tier: 'legendary', price: 5000, tierColor: EXCLUSIVE_COLOR,
     description: 'Cyan inferno flames of relentless dedication.',
     imageBorder: '/borders/border-streak-inferno.webp',
+    adUnlock: true, adsRequired: 5,
     borderConfig: { colors: ['#00d4ff', '#06B6D4'], strokeWidth: 3, animated: false, glowColor: '#00d4ff', glowIntensity: 0.8 },
   },
   {
