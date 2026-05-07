@@ -1319,8 +1319,8 @@ const ShopView: React.FC<ShopViewProps> = ({
                       fontSize: 8, fontWeight: 900, color: accent, letterSpacing: '0.1em',
                     }}>TIER {outfit.tier}</div>
                     <div style={{ fontSize: 13, fontWeight: 900, color: '#fff', lineHeight: 1.2 }}>{outfit.name}</div>
-                    <div style={{ fontSize: 10, color: outfit.cost === 0 ? '#4ade80' : 'rgba(255,255,255,0.45)', fontFamily: 'monospace', fontWeight: 700, marginTop: 2 }}>
-                      {outfit.cost === 0 ? 'FREE' : `${outfit.cost.toLocaleString()} G`}
+                    <div style={{ fontSize: 10, color: (outfit.id === 'outfit_knight' || outfit.id === 'outfit_monarch') ? '#a855f7' : outfit.cost === 0 ? '#4ade80' : 'rgba(255,255,255,0.45)', fontFamily: 'monospace', fontWeight: 700, marginTop: 2 }}>
+                      {outfit.cost === 0 ? 'FREE' : outfit.id === 'outfit_knight' ? '📺 5 ADS' : outfit.id === 'outfit_monarch' ? '📺 20 ADS' : `${outfit.cost.toLocaleString()} G`}
                     </div>
                   </div>
                   {/* Buttons */}
@@ -1347,12 +1347,17 @@ const ShopView: React.FC<ShopViewProps> = ({
                     ) : (
                       <button onClick={() => setOutfitModalIdx(idx)} style={{
                         flex: 1, padding: '7px 0', borderRadius: 10, cursor: 'pointer',
-                        background: 'linear-gradient(135deg, #fbbf24cc, #eab308)',
-                        border: 'none', color: '#000',
+                        background: (outfit.id === 'outfit_knight' || outfit.id === 'outfit_monarch')
+                          ? 'linear-gradient(135deg, #a855f7cc, #7c3aed)'
+                          : 'linear-gradient(135deg, #fbbf24cc, #eab308)',
+                        border: 'none',
+                        color: (outfit.id === 'outfit_knight' || outfit.id === 'outfit_monarch') ? '#fff' : '#000',
                         fontSize: 10, fontWeight: 900,
-                        boxShadow: '0 0 12px rgba(234,179,8,0.3)',
+                        boxShadow: (outfit.id === 'outfit_knight' || outfit.id === 'outfit_monarch')
+                          ? '0 0 12px rgba(168,85,247,0.3)'
+                          : '0 0 12px rgba(234,179,8,0.3)',
                       }}>
-                        BUY
+                        {(outfit.id === 'outfit_knight' || outfit.id === 'outfit_monarch') ? '▶ ADS' : 'BUY'}
                       </button>
                     )}
                   </div>

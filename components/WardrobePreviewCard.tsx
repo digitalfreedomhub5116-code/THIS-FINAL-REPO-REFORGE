@@ -17,6 +17,8 @@ interface WardrobePreviewCardProps {
   onEquip: (id: string) => void;
   onOpenWardrobe: () => void;
   outfitStones?: Record<string, number>;
+  adProgress?: Record<string, { adsWatched: number; adsRequired: number; unlocked: boolean }>;
+  onWatchAd?: (itemId: string, adsRequired: number) => Promise<any>;
 }
 
 // ── Vertical stat ring (sized to fit 4 in a column) ───────────────────────────
@@ -164,6 +166,8 @@ const WardrobePreviewCard: React.FC<WardrobePreviewCardProps> = ({
   onEquip,
   onOpenWardrobe: _onOpenWardrobe,
   outfitStones = {},
+  adProgress = {},
+  onWatchAd,
 }) => {
   const outfits = (propOutfits && propOutfits.length > 0) ? propOutfits : OUTFITS;
 
@@ -288,16 +292,29 @@ const WardrobePreviewCard: React.FC<WardrobePreviewCardProps> = ({
             transition={{ duration: 0.15 }}
             className="flex items-center gap-1 px-2 py-1 rounded-lg shrink-0"
             style={{
-              background: outfit.cost === 0 ? 'rgba(74,222,128,0.12)' : 'rgba(250,204,21,0.12)',
-              border: `1px solid ${outfit.cost === 0 ? 'rgba(74,222,128,0.3)' : 'rgba(250,204,21,0.3)'}`,
+              background: outfit.cost === 0 ? 'rgba(74,222,128,0.12)'
+                : (outfit.id === 'outfit_knight' || outfit.id === 'outfit_monarch') ? 'rgba(168,85,247,0.12)'
+                : 'rgba(250,204,21,0.12)',
+              border: `1px solid ${outfit.cost === 0 ? 'rgba(74,222,128,0.3)'
+                : (outfit.id === 'outfit_knight' || outfit.id === 'outfit_monarch') ? 'rgba(168,85,247,0.3)'
+                : 'rgba(250,204,21,0.3)'}`,
             }}
           >
-            <span className="text-[10px]">{outfit.cost === 0 ? '✓' : '🪙'}</span>
+            <span className="text-[10px]">
+              {outfit.cost === 0 ? '✓'
+                : (outfit.id === 'outfit_knight' || outfit.id === 'outfit_monarch') ? '📺'
+                : '🪙'}
+            </span>
             <span
               className="text-[9px] font-black font-mono tracking-wide"
-              style={{ color: outfit.cost === 0 ? '#4ade80' : '#facc15' }}
+              style={{ color: outfit.cost === 0 ? '#4ade80'
+                : (outfit.id === 'outfit_knight' || outfit.id === 'outfit_monarch') ? '#a855f7'
+                : '#facc15' }}
             >
-              {outfit.cost === 0 ? 'FREE' : `${outfit.cost.toLocaleString()} G`}
+              {outfit.cost === 0 ? 'FREE'
+                : outfit.id === 'outfit_knight' ? '5 ADS'
+                : outfit.id === 'outfit_monarch' ? '20 ADS'
+                : `${outfit.cost.toLocaleString()} G`}
             </span>
           </motion.div>
         </AnimatePresence>
@@ -573,6 +590,8 @@ const WardrobePreviewCard: React.FC<WardrobePreviewCardProps> = ({
         onPurchase={(o) => { onPurchase?.(o); }}
         onEquip={onEquip}
         onClose={() => setShowModal(false)}
+        adProgress={adProgress[outfit.id] || null}
+        onWatchAd={onWatchAd}
       />
     )}
     </>
