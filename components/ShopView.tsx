@@ -1503,6 +1503,7 @@ const ShopView: React.FC<ShopViewProps> = ({
             setShowEquipAnim(true);
             handleKitEquip('border', kitInfoItem.id);
           }}
+          playerAvatarUrl={playerAvatarUrl}
         />
       )}
 
@@ -1534,7 +1535,9 @@ const ShopView: React.FC<ShopViewProps> = ({
               {confirmPurchaseItem.videoBorder ? (
                 <div style={{ width: 80, height: 80, margin: '0 auto 16px', position: 'relative' }}>
                   <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#1a1a2a' }} />
+                    <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#1a1a2a', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {playerAvatarUrl ? <img src={playerAvatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} /> : <svg width="28" height="28" viewBox="0 0 40 40"><circle cx="20" cy="16" r="7" fill="#555568" /><ellipse cx="20" cy="35" rx="13" ry="10" fill="#4a4a5a" /></svg>}
+                    </div>
                   </div>
                   <div style={{ position: 'absolute', inset: 0, zIndex: 1, mixBlendMode: 'screen' }}>
                     <BorderVideo src={confirmPurchaseItem.videoBorder} />
@@ -1543,7 +1546,9 @@ const ShopView: React.FC<ShopViewProps> = ({
               ) : confirmPurchaseItem.imageBorder ? (
                 <div style={{ width: 80, height: 80, margin: '0 auto 16px', position: 'relative' }}>
                   <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#1a1a2a' }} />
+                    <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#1a1a2a', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {playerAvatarUrl ? <img src={playerAvatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} /> : <svg width="28" height="28" viewBox="0 0 40 40"><circle cx="20" cy="16" r="7" fill="#555568" /><ellipse cx="20" cy="35" rx="13" ry="10" fill="#4a4a5a" /></svg>}
+                    </div>
                   </div>
                   <img src={confirmPurchaseItem.imageBorder} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', mixBlendMode: 'screen', position: 'relative', zIndex: 1 }} />
                 </div>
@@ -2158,10 +2163,11 @@ function KitThemePreviewModal({ item, onClose }: { item: KitStoreItem; onClose: 
 /* ═══════════════════════════════════
    KitBorderPreviewModal
    ═══════════════════════════════════ */
-function KitBorderPreviewModal({ item, onClose, owned, equipped, canAfford, onBuy, onEquip }: {
+function KitBorderPreviewModal({ item, onClose, owned, equipped, canAfford, onBuy, onEquip, playerAvatarUrl }: {
   item: KitStoreItem; onClose: () => void;
   owned?: boolean; equipped?: boolean; canAfford?: boolean;
   onBuy?: () => void; onEquip?: () => void;
+  playerAvatarUrl?: string | null;
 }) {
   const glow = item.borderConfig?.glowColor || item.auraConfig?.colors?.[0] || '#C8A84E';
 
@@ -2218,7 +2224,7 @@ function KitBorderPreviewModal({ item, onClose, owned, equipped, canAfford, onBu
           {item.videoBorder ? (
             <div style={{ position: 'relative', width: size, height: size, overflow: 'visible' }}>
               <div style={{ position: 'absolute', top: '50%', left: '50%', width: pfpSize, height: pfpSize, borderRadius: '50%', background: 'radial-gradient(circle, #3a3a4a, #1a1a24)', transform: 'translate(-50%, -50%)', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                <svg width={svgPx} height={svgPx} viewBox="0 0 40 40"><circle cx="20" cy="16" r="7" fill="#555568" /><ellipse cx="20" cy="35" rx="13" ry="10" fill="#4a4a5a" /></svg>
+                {playerAvatarUrl ? <img src={playerAvatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} /> : <svg width={svgPx} height={svgPx} viewBox="0 0 40 40"><circle cx="20" cy="16" r="7" fill="#555568" /><ellipse cx="20" cy="35" rx="13" ry="10" fill="#4a4a5a" /></svg>}
               </div>
               <div style={{ position: 'absolute', top: '50%', left: '50%', width: `${scale * 100}%`, height: `${scale * 100}%`, transform: `translate(-50%, calc(-50% + ${item.imageOffsetY || 0}px))`, zIndex: 2, pointerEvents: 'none', mixBlendMode: 'screen' }}>
                 <BorderVideo src={item.videoBorder} />
@@ -2227,7 +2233,7 @@ function KitBorderPreviewModal({ item, onClose, owned, equipped, canAfford, onBu
           ) : item.imageBorder ? (
             <div style={{ position: 'relative', width: size, height: size, overflow: 'visible' }}>
               <div style={{ position: 'absolute', top: '50%', left: '50%', width: pfpSize, height: pfpSize, borderRadius: '50%', background: 'radial-gradient(circle, #3a3a4a, #1a1a24)', transform: 'translate(-50%, -50%)', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                <svg width={svgPx} height={svgPx} viewBox="0 0 40 40"><circle cx="20" cy="16" r="7" fill="#555568" /><ellipse cx="20" cy="35" rx="13" ry="10" fill="#4a4a5a" /></svg>
+                {playerAvatarUrl ? <img src={playerAvatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} /> : <svg width={svgPx} height={svgPx} viewBox="0 0 40 40"><circle cx="20" cy="16" r="7" fill="#555568" /><ellipse cx="20" cy="35" rx="13" ry="10" fill="#4a4a5a" /></svg>}
               </div>
               {item.imageAnimated && item.imageAnimationType === 'pulse' ? (
                 <div style={{ position: 'absolute', top: '50%', left: '50%', width: `${scale * 100}%`, height: `${scale * 100}%`, transform: `translate(-50%, calc(-50% + ${item.imageOffsetY || 0}px))`, zIndex: 2, pointerEvents: 'none', animation: 'border-breathe-centered 3s ease-in-out infinite' }}>
@@ -2245,7 +2251,7 @@ function KitBorderPreviewModal({ item, onClose, owned, equipped, canAfford, onBu
               <div style={{ position: 'absolute', top: '50%', left: '50%', width: size * 0.75, height: size * 0.75, borderRadius: '50%', transform: 'translate(-50%, -50%)', border: `3px solid ${item.auraConfig.colors[0]}CC`, boxShadow: `0 0 8px 3px ${item.auraConfig.colors[0]}AA, 0 0 20px 6px ${item.auraConfig.colors[0]}70, 0 0 36px 10px ${(item.auraConfig.colors[1] || item.auraConfig.colors[0])}50, 0 0 60px 16px ${(item.auraConfig.colors[2] || item.auraConfig.colors[0])}35, inset 0 0 14px 4px ${item.auraConfig.colors[0]}40, inset 0 0 28px 8px ${(item.auraConfig.colors[1] || item.auraConfig.colors[0])}25`, animation: item.auraConfig.animated ? 'aura-rotate 8s linear infinite' : undefined, zIndex: 1 }} />
               <div style={{ position: 'absolute', top: '50%', left: '50%', width: size * 0.82, height: size * 0.82, borderRadius: '50%', transform: 'translate(-50%, -50%)', border: `1.5px solid ${(item.auraConfig.colors[1] || item.auraConfig.colors[0])}50`, boxShadow: `0 0 16px 4px ${(item.auraConfig.colors[1] || item.auraConfig.colors[0])}40, 0 0 40px 10px ${(item.auraConfig.colors[2] || item.auraConfig.colors[0])}20`, animation: item.auraConfig.animated ? `pulse-glow ${item.auraConfig.pulseSpeed || 3}s ease-in-out infinite` : undefined, zIndex: 1 }} />
               <div style={{ position: 'absolute', top: '50%', left: '50%', width: size * 0.6, height: size * 0.6, borderRadius: '50%', background: 'radial-gradient(circle, #2a2a3a, #1a1a24)', transform: 'translate(-50%, -50%)', zIndex: 3, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 0 12px ${item.auraConfig.colors[0]}80, inset 0 0 8px ${item.auraConfig.colors[0]}30` }}>
-                <svg width="80" height="80" viewBox="0 0 40 40"><circle cx="20" cy="16" r="7" fill="#555568" /><ellipse cx="20" cy="35" rx="13" ry="10" fill="#4a4a5a" /></svg>
+                {playerAvatarUrl ? <img src={playerAvatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} /> : <svg width="80" height="80" viewBox="0 0 40 40"><circle cx="20" cy="16" r="7" fill="#555568" /><ellipse cx="20" cy="35" rx="13" ry="10" fill="#4a4a5a" /></svg>}
               </div>
             </div>
           ) : item.borderConfig ? (

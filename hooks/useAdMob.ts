@@ -8,13 +8,24 @@
 import { useCallback, useRef, useEffect, useState } from 'react';
 import { Capacitor } from '@capacitor/core';
 
-// ── Ad Unit IDs (from AdMob Console) ──
-export const AD_UNITS = {
+// ── Toggle for test ads (set to false for production builds) ──
+const USE_TEST_ADS = true; // ⚠️ SET TO false BEFORE FINAL PRODUCTION BUILD
+
+// Google's official test ad unit IDs (always return test ads, safe to use)
+const TEST_AD_UNITS = {
+  KEY_REWARD: 'ca-app-pub-3940256099942544/5224354917',
+  BORDER_REWARD: 'ca-app-pub-3940256099942544/5224354917',
+  DUNGEON_INTERSTITIAL: 'ca-app-pub-3940256099942544/1033173712',
+} as const;
+
+// Real production ad unit IDs (from AdMob Console)
+const PROD_AD_UNITS = {
   KEY_REWARD: 'ca-app-pub-4155407212794852/2557191822',
   BORDER_REWARD: 'ca-app-pub-4155407212794852/7617946818',
-  // Interstitial ad unit for dungeon gate
   DUNGEON_INTERSTITIAL: 'ca-app-pub-4155407212794852/6424585968',
 } as const;
+
+export const AD_UNITS = USE_TEST_ADS ? TEST_AD_UNITS : PROD_AD_UNITS;
 
 // Lazy-load the AdMob plugin only on native
 let AdMobModule: any = null;
