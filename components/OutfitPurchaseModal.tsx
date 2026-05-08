@@ -343,14 +343,14 @@ const OutfitPurchaseModal: React.FC<Props> = ({
           {/* Close button */}
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 z-10 w-9 h-9 rounded-full flex items-center justify-center transition-all hover:bg-white/10"
-            style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.12)' }}
+            className="absolute right-4 z-10 w-9 h-9 rounded-full flex items-center justify-center transition-all hover:bg-white/10"
+            style={{ top: 'calc(env(safe-area-inset-top, 0px) + 16px)', background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.12)' }}
           >
             <X size={16} className="text-gray-300" />
           </button>
 
           {/* Tier badge top-left */}
-          <div className="absolute top-4 left-4 z-10">
+          <div className="absolute left-4 z-10" style={{ top: 'calc(env(safe-area-inset-top, 0px) + 16px)' }}>
             <div
               className="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest"
               style={{ background: tierColor + '22', border: `1px solid ${tierColor}55`, color: tierColor }}

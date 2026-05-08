@@ -64,7 +64,7 @@ const PlanSelector: React.FC<PlanSelectorProps> = ({ healthProfile, onSelectPlan
 
   return (
     <div className="h-full w-full bg-black text-white flex flex-col">
-      <div className="sticky top-0 z-10 bg-black/90 backdrop-blur border-b border-gray-900 px-4 py-3 flex items-center gap-3">
+      <div className="sticky top-0 z-10 bg-black/90 backdrop-blur border-b border-gray-900 px-4 py-3 flex items-center gap-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}>
         {onBack && (
           <button onClick={onBack} className="text-gray-500 hover:text-white transition-colors">
             <ArrowLeft size={18} />

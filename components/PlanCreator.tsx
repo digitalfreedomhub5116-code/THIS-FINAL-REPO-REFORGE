@@ -118,7 +118,7 @@ export const PlanCreator: React.FC<PlanCreatorProps> = ({
         <div className="fixed inset-0 z-[200] bg-[#050505] text-white flex flex-col font-mono">
             
             {/* --- HEADER --- */}
-            <div className="h-20 border-b border-gray-800 bg-[#0a0a0a]/90 backdrop-blur-md flex items-center justify-between px-4 sm:px-6 z-30 shrink-0">
+            <div className="border-b border-gray-800 bg-[#0a0a0a]/90 backdrop-blur-md flex items-center justify-between px-4 sm:px-6 z-30 shrink-0" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)', paddingBottom: '16px' }}>
                 <div className="flex flex-col flex-1 mr-4">
                     <span className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Session Protocol</span>
                     <input 

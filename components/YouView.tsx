@@ -433,7 +433,7 @@ const ProfileDrawer: React.FC<{
     exit={{ opacity: 0 }}
     className="fixed inset-0 z-[700] bg-[#05050a] overflow-y-auto"
   >
-    <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-[#05050a]/95 backdrop-blur-md border-b border-white/5">
+    <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-[#05050a]/95 backdrop-blur-md border-b border-white/5" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}>
       <div className="text-xs font-mono font-bold text-[#00d4ff] tracking-widest">ACCOUNT & CONFIG</div>
       <button onClick={onClose} className="p-1.5 rounded-full hover:bg-white/5"><X size={18} className="text-gray-400" /></button>
     </div>
@@ -504,7 +504,7 @@ const StatsDrawer: React.FC<{ player: PlayerData; history?: import('../types').H
       style={{ zIndex: 100000 }}
     >
       {/* Header */}
-      <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-[#05050a]/95 backdrop-blur-md border-b border-white/5">
+      <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-[#05050a]/95 backdrop-blur-md border-b border-white/5" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}>
         <div>
           <div className="text-xs font-mono font-bold text-[#00d4ff] tracking-widest">ADVANCED STATS</div>
           <div className="text-[10px] text-gray-500 font-mono">Total: {totalPoints} pts across 6 attributes</div>
@@ -690,7 +690,7 @@ const YouView: React.FC<YouViewProps> = ({
           className="fixed inset-0 bg-[#05050a] overflow-y-auto"
           style={{ zIndex: 100000 }}
         >
-          <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-[#05050a]/95 backdrop-blur-md border-b border-white/5">
+          <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-[#05050a]/95 backdrop-blur-md border-b border-white/5" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}>
             <div className="text-xs font-mono font-bold text-[#00d4ff] tracking-widest">RANK PROGRESSION</div>
             <button onClick={() => setShowRankProgression(false)} className="p-1.5 rounded-full hover:bg-white/5">
               <X size={18} className="text-gray-400" />

@@ -566,7 +566,7 @@ export default function GoalDetailView({
   return (
     <div className="min-h-screen pb-24" style={{ background: '#07070d' }}>
       {/* Header */}
-      <div className="sticky top-0 z-10 px-4 pt-4 pb-3" style={{ background: '#07070d' }}>
+      <div className="sticky top-0 z-10 px-4 pb-3" style={{ background: '#07070d', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)' }}>
         <div className="flex items-center gap-3">
           <button onClick={onBack} className="p-2 rounded-xl hover:bg-white/5">
             <ArrowLeft className="w-5 h-5 text-gray-400" />

@@ -109,7 +109,7 @@ const PlanCustomizer: React.FC<PlanCustomizerProps> = ({ planName, days: initial
   return (
     <div className="fixed inset-0 z-[110] bg-black flex flex-col font-sans">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800/60">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800/60" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}>
         <div className="flex-1 min-w-0">
           <div className="text-[8px] text-system-neon font-bold tracking-[0.3em] uppercase mb-0.5">SESSION PROTOCOL</div>
           <input
