@@ -668,8 +668,39 @@ const App: React.FC = () => {
   const [showLogoutChoice, setShowLogoutChoice] = useState(false);
 
   const [activeTab, setActiveTab] = useState<Tab>('DASHBOARD');
-
   const tabHistoryRef = useRef<Tab[]>(['DASHBOARD']);
+
+  // ── Nav badge dots — conditional visibility ──
+  const [navBadges, setNavBadges] = useState<Record<string, boolean>>({});
+
+  // Helper: get current deal rotation slot (deals rotate every 8h)
+  const getCurrentDealSlot = useCallback(() => {
+    const now = new Date();
+    const dayKey = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`;
+    const slot = Math.floor(now.getHours() / 8); // 0, 1, or 2
+    return `${dayKey}-${slot}`;
+  }, []);
+
+  // On mount: check if store deals have rotated since last visit
+  useEffect(() => {
+    const lastSeenSlot = localStorage.getItem('reforge_lastDealSlot');
+    const currentSlot = getCurrentDealSlot();
+    if (lastSeenSlot !== currentSlot) {
+      setNavBadges(prev => ({ ...prev, STORE: true }));
+    }
+  }, [getCurrentDealSlot]);
+
+  // Also re-check deal rotation every 60s (handles rotation while app is open)
+  useEffect(() => {
+    const id = setInterval(() => {
+      const lastSeenSlot = localStorage.getItem('reforge_lastDealSlot');
+      const currentSlot = getCurrentDealSlot();
+      if (lastSeenSlot !== currentSlot) {
+        setNavBadges(prev => ({ ...prev, STORE: true }));
+      }
+    }, 60_000);
+    return () => clearInterval(id);
+  }, [getCurrentDealSlot]);
 
   const [healthViewKey, setHealthViewKey] = useState(0);
   const [healthSubTab, setHealthSubTab] = useState<'WORKOUT' | 'NUTRITION' | 'SKILLS' | undefined>(undefined);
@@ -711,18 +742,24 @@ const App: React.FC = () => {
   const navigateTo = useCallback((tab: Tab) => {
 
     setActiveTab(prev => {
-
       if (prev !== tab) tabHistoryRef.current.push(prev);
-
       return tab;
-
     });
 
     // Clear health sub-tab override when navigating away from Health
     if (tab !== 'HEALTH') setHealthSubTab(undefined);
     if (tab !== 'STORE') setStoreInitialTab(undefined);
 
-  }, []);
+    // Clear badge dot when user visits the tab
+    if (tab === 'STORE') {
+      setNavBadges(prev => ({ ...prev, STORE: false }));
+      localStorage.setItem('reforge_lastDealSlot', getCurrentDealSlot());
+    }
+    if (tab === 'LEADERBOARD') {
+      setNavBadges(prev => ({ ...prev, LEADERBOARD: false }));
+    }
+
+  }, [getCurrentDealSlot]);
 
   // ── Dusk Agent navigation listener ──
   useEffect(() => {
@@ -4549,7 +4586,7 @@ const App: React.FC = () => {
 
             onTabChange={navigateTo}
 
-            badges={{ LEADERBOARD: !player.allianceId }}
+            badges={navBadges}
 
             playerLevel={player.level}
 
