@@ -11,7 +11,7 @@ const COIN_SVG = `
 `;
 
 export const useCoinReward = () => {
-  const triggerCoinReward = useCallback((origin: React.MouseEvent<HTMLElement> | DOMRect, targetId: string = 'user-wallet-balance') => {
+  const triggerCoinReward = useCallback((origin: React.MouseEvent<HTMLElement> | DOMRect, targetId: string = 'shop-wallet-balance') => {
     let originRect: DOMRect;
 
     // Determine if origin is an Event or a Rect

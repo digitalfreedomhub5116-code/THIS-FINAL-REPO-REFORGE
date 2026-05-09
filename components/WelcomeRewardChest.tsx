@@ -30,9 +30,32 @@ const WelcomeRewardChest: React.FC<WelcomeRewardChestProps> = ({
   const [phase, setPhase] = useState<Phase>('INTRO');
   const [card1Counter, setCard1Counter] = useState(0);
   const [card2Counter, setCard2Counter] = useState(0);
+  const [assetsReady, setAssetsReady] = useState(false);
 
-  // ── Animation timeline ──
+  // ── Preload critical images before starting animation ──
   useEffect(() => {
+    const srcs = [
+      '/assets/card-back.webp',
+      '/assets/card-back.png',
+      '/assets/gold-coin.png',
+      '/assets/store/keyless-Photoroom.png',
+    ];
+    let loaded = 0;
+    const onLoad = () => { loaded++; if (loaded >= srcs.length - 1) setAssetsReady(true); };
+    srcs.forEach(src => {
+      const img = new Image();
+      img.onload = onLoad;
+      img.onerror = onLoad; // Don't block on failure
+      img.src = src;
+    });
+    // Safety timeout: start anyway after 1.5s
+    const safety = setTimeout(() => setAssetsReady(true), 1500);
+    return () => clearTimeout(safety);
+  }, []);
+
+  // ── Animation timeline (waits for assets) ──
+  useEffect(() => {
+    if (!assetsReady) return;
     const timers: ReturnType<typeof setTimeout>[] = [];
 
     // Intro title + chest appear
@@ -77,7 +100,7 @@ const WelcomeRewardChest: React.FC<WelcomeRewardChestProps> = ({
     timers.push(setTimeout(() => setPhase('CTA'), 5600));
 
     return () => timers.forEach(clearTimeout);
-  }, []);
+  }, [assetsReady]);
 
   // ── Counter animations ──
   useEffect(() => {
@@ -263,7 +286,7 @@ const WelcomeRewardChest: React.FC<WelcomeRewardChestProps> = ({
               >
                 <RewardFlipCard
                   flipped={isFlipped}
-                  icon="/assets/key-icon.png"
+                  icon="/assets/store/keyless-Photoroom.png"
                   amount={card2Counter}
                   label="Shadow Keys"
                   color="#A78BFA"
@@ -366,20 +389,23 @@ const RewardFlipCard: React.FC<RewardFlipCardProps> = ({
             boxShadow: '0 8px 32px rgba(0,0,0,0.5), inset 0 0 30px rgba(212,175,55,0.05)',
           }}
         >
-          {/* Antique pattern overlay image (works with both opaque and transparent PNGs) */}
-          <img
-            src="/assets/card-back.png"
-            alt=""
-            draggable={false}
-            style={{
-              position: 'absolute',
-              inset: 0,
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              display: 'block',
-            }}
-          />
+          {/* Antique pattern overlay (WebP primary, PNG fallback) */}
+          <picture style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+            <source srcSet="/assets/card-back.webp" type="image/webp" />
+            <img
+              src="/assets/card-back.png"
+              alt=""
+              draggable={false}
+              style={{
+                position: 'absolute',
+                inset: 0,
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                display: 'block',
+              }}
+            />
+          </picture>
           {/* Inner border glow for depth */}
           <div style={{
             position: 'absolute',

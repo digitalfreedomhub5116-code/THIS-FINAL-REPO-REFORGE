@@ -169,48 +169,115 @@ const Layout: React.FC<LayoutProps> = ({
 
   const coinForceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
-    const COIN_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="none" stroke="#eab308" stroke-width="1.5"/><text x="7" y="10.5" text-anchor="middle" font-size="6" font-weight="900" fill="#eab308" font-family="monospace">◈</text></svg>`;
     const handleCoinEarned = (e: Event) => {
-      const { startRect } = (e as CustomEvent).detail as { goldGained: number; startRect: DOMRect | null };
+      const { goldGained, startRect } = (e as CustomEvent).detail as { goldGained: number; startRect: DOMRect | null };
       setHeaderVisible(true);
       if (coinForceTimer.current) clearTimeout(coinForceTimer.current);
-      coinForceTimer.current = setTimeout(() => { coinForceTimer.current = null; }, 2600);
-      if (!startRect) return;
-      const destEl = document.getElementById('user-wallet-balance');
-      if (!destEl) return;
-      const destRect = destEl.getBoundingClientRect();
-      const startX = startRect.left + startRect.width / 2;
-      const startY = startRect.top + startRect.height / 2;
-      const endX = destRect.left + destRect.width / 2;
-      const endY = destRect.top + destRect.height / 2;
-      const COIN_COUNT = 8;
-      for (let i = 0; i < COIN_COUNT; i++) {
-        setTimeout(() => {
-          const SIZE = 28;
-          const coin = document.createElement('div');
-          coin.style.cssText = `position:fixed;width:${SIZE}px;height:${SIZE}px;left:${startX - SIZE/2}px;top:${startY - SIZE/2}px;z-index:9999;pointer-events:none;overflow:hidden;`;
-          const img = document.createElement('img');
-          img.src = COIN_IMG_SRC;
-          img.style.cssText = 'width:100%;height:100%;object-fit:contain;';
-          coin.appendChild(img);
-          document.body.appendChild(coin);
-          const scatterX = (Math.random() - 0.5) * 60;
-          const scatterY = (Math.random() - 0.5) * 60;
-          const midX = (startX + endX) / 2 - startX + (Math.random() - 0.5) * 60;
-          const midY = Math.min(startY, endY) - 80 - Math.random() * 60 - startY;
-          const flyAnim = coin.animate([
-            { transform: 'translate(0,0) scale(0.5)', opacity: 0 },
-            { transform: `translate(${scatterX}px,${scatterY}px) scale(1)`, opacity: 1, offset: 0.12 },
-            { transform: `translate(${midX}px,${midY}px) scale(1.1)`, offset: 0.5 },
-            { transform: `translate(${endX - startX}px,${endY - startY}px) scale(0.5)`, opacity: 0 },
-          ], {
-            duration: 900 + Math.random() * 300,
-            easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
-            fill: 'forwards',
-          });
-          flyAnim.onfinish = () => coin.remove();
-        }, i * 60);
-      }
+      coinForceTimer.current = setTimeout(() => { coinForceTimer.current = null; }, 3200);
+      if (!startRect || !goldGained) return;
+
+      // ── Create temporary floating gold counter (slides in, collects coins, slides out) ──
+      const counter = document.createElement('div');
+      counter.id = 'temp-gold-counter';
+      counter.style.cssText = `
+        position:fixed; top:72px; left:50%; transform:translateX(-50%) translateY(-80px);
+        z-index:9998; pointer-events:none;
+        display:flex; align-items:center; gap:8px;
+        padding:10px 20px; border-radius:14px;
+        background:linear-gradient(135deg, rgba(0,0,0,0.92), rgba(20,15,30,0.95));
+        border:1.5px solid rgba(251,191,36,0.35);
+        box-shadow:0 8px 32px rgba(0,0,0,0.6), 0 0 20px rgba(251,191,36,0.15);
+        backdrop-filter:blur(12px);
+        font-family:monospace; font-weight:900; font-size:18px; color:#fbbf24;
+        text-shadow:0 0 10px rgba(251,191,36,0.5);
+        white-space:nowrap;
+      `;
+
+      // Coin icon inside counter
+      const coinIcon = document.createElement('img');
+      coinIcon.src = COIN_IMG_SRC;
+      coinIcon.style.cssText = 'width:24px;height:24px;object-fit:contain;flex-shrink:0;';
+      counter.appendChild(coinIcon);
+
+      // Amount label
+      const label = document.createElement('span');
+      label.textContent = '+0';
+      label.style.cssText = 'font-variant-numeric:tabular-nums;min-width:40px;';
+      counter.appendChild(label);
+
+      document.body.appendChild(counter);
+
+      // Slide counter IN from top
+      const slideIn = counter.animate([
+        { transform: 'translateX(-50%) translateY(-80px)', opacity: 0 },
+        { transform: 'translateX(-50%) translateY(0)', opacity: 1 },
+      ], { duration: 400, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)', fill: 'forwards' });
+
+      slideIn.onfinish = () => {
+        // Get counter position for coin flight destination
+        const destRect = counter.getBoundingClientRect();
+        const startX = startRect.left + startRect.width / 2;
+        const startY = startRect.top + startRect.height / 2;
+        const endX = destRect.left + destRect.width / 2;
+        const endY = destRect.top + destRect.height / 2;
+
+        // Spawn flying coins
+        const COIN_COUNT = 8;
+        let coinsLanded = 0;
+        for (let i = 0; i < COIN_COUNT; i++) {
+          setTimeout(() => {
+            const SIZE = 28;
+            const coin = document.createElement('div');
+            coin.style.cssText = `position:fixed;width:${SIZE}px;height:${SIZE}px;left:${startX - SIZE/2}px;top:${startY - SIZE/2}px;z-index:9999;pointer-events:none;overflow:hidden;`;
+            const img = document.createElement('img');
+            img.src = COIN_IMG_SRC;
+            img.style.cssText = 'width:100%;height:100%;object-fit:contain;';
+            coin.appendChild(img);
+            document.body.appendChild(coin);
+
+            const scatterX = (Math.random() - 0.5) * 60;
+            const scatterY = (Math.random() - 0.5) * 60;
+            const midX = (startX + endX) / 2 - startX + (Math.random() - 0.5) * 60;
+            const midY = Math.min(startY, endY) - 80 - Math.random() * 60 - startY;
+            const flyAnim = coin.animate([
+              { transform: 'translate(0,0) scale(0.5)', opacity: 0 },
+              { transform: `translate(${scatterX}px,${scatterY}px) scale(1)`, opacity: 1, offset: 0.12 },
+              { transform: `translate(${midX}px,${midY}px) scale(1.1)`, offset: 0.5 },
+              { transform: `translate(${endX - startX}px,${endY - startY}px) scale(0.5)`, opacity: 0 },
+            ], {
+              duration: 900 + Math.random() * 300,
+              easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
+              fill: 'forwards',
+            });
+            flyAnim.onfinish = () => {
+              coin.remove();
+              coinsLanded++;
+              // Count up the label as coins land
+              const progress = Math.round((coinsLanded / COIN_COUNT) * goldGained);
+              label.textContent = `+${progress}`;
+
+              // Pulse the counter on each coin landing
+              counter.animate([
+                { transform: 'translateX(-50%) scale(1)' },
+                { transform: 'translateX(-50%) scale(1.06)' },
+                { transform: 'translateX(-50%) scale(1)' },
+              ], { duration: 150, easing: 'ease-out' });
+
+              // After last coin lands, hold briefly then slide out
+              if (coinsLanded >= COIN_COUNT) {
+                label.textContent = `+${goldGained}`;
+                setTimeout(() => {
+                  counter.animate([
+                    { transform: 'translateX(-50%) translateY(0)', opacity: 1 },
+                    { transform: 'translateX(-50%) translateY(-80px)', opacity: 0 },
+                  ], { duration: 350, easing: 'cubic-bezier(0.55, 0, 1, 0.45)', fill: 'forwards' })
+                  .onfinish = () => counter.remove();
+                }, 800);
+              }
+            };
+          }, i * 60);
+        }
+      };
     };
     window.addEventListener('reforge:coin-earned', handleCoinEarned);
 
@@ -218,10 +285,12 @@ const Layout: React.FC<LayoutProps> = ({
     const COIN_LOST_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="none" stroke="#ef4444" stroke-width="1.5"/><text x="7" y="10.5" text-anchor="middle" font-size="6" font-weight="900" fill="#ef4444" font-family="monospace">◈</text></svg>`;
     const handleCoinLost = (e: Event) => {
       const detail = (e as CustomEvent).detail as { amount: number; sourceRect: DOMRect | null };
-      const walletEl = document.getElementById('user-wallet-balance');
-      if (!walletEl) return;
+      // Gold is spent from the Shop — use shop wallet balance, or fallback to sourceRect
+      const walletEl = document.getElementById('shop-wallet-balance');
+      const sourceEl = detail.sourceRect;
+      const walletRect = walletEl?.getBoundingClientRect() || sourceEl;
+      if (!walletRect) return;
       setHeaderVisible(true);
-      const walletRect = walletEl.getBoundingClientRect();
       const startX = walletRect.left + walletRect.width / 2;
       const startY = walletRect.top + walletRect.height / 2;
       const COIN_COUNT = 10;
@@ -267,9 +336,11 @@ const Layout: React.FC<LayoutProps> = ({
         }).onfinish = () => dmg.remove();
       }
       // Flash wallet red briefly
-      walletEl.style.transition = 'filter 0.15s';
-      walletEl.style.filter = 'brightness(1.5) hue-rotate(-30deg)';
-      setTimeout(() => { walletEl.style.filter = ''; }, 400);
+      if (walletEl) {
+        walletEl.style.transition = 'filter 0.15s';
+        walletEl.style.filter = 'brightness(1.5) hue-rotate(-30deg)';
+        setTimeout(() => { walletEl.style.filter = ''; }, 400);
+      }
     };
     window.addEventListener('reforge:coin-lost', handleCoinLost);
 
@@ -476,14 +547,8 @@ const Layout: React.FC<LayoutProps> = ({
                 </div>
               </div>
 
-              {/* RIGHT: Gold + Keys + Streak + Notifications */}
+              {/* RIGHT: Keys + Streak + Notifications */}
               <div id="tut-gold-display" className="flex items-center gap-5 flex-shrink-0">
-
-                {/* Gold */}
-                <div id="user-wallet-balance" className="flex items-center gap-1.5" style={{ cursor: onGoldClick ? 'pointer' : 'default' }} onClick={onGoldClick}>
-                  <AnimatedCoinIcon size={22} />
-                  <span className="font-mono text-[15px] font-black whitespace-nowrap" style={{ color: '#fbbf24', textShadow: '0 0 8px rgba(251,191,36,0.4)', fontVariantNumeric: 'tabular-nums' }}><AnimatedCounter value={gold} /></span>
-                </div>
 
                 {/* Keys */}
                 <div className="flex items-center gap-1.5">
