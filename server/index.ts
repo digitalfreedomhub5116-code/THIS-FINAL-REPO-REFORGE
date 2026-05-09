@@ -270,61 +270,62 @@ async function startServer() {
       console.warn('[Server] Could not set up Supabase keep-alive:', err);
     }
 
-    // ── Weekly Leaderboard Reward Cron ──
-    // Checks every 60s. On Monday UTC midnight, snapshots the
-    // top 5 weekly XP earners and credits Gold/XP/Keys to their accounts,
-    // then resets all players' weekly_xp to 0 for the new week.
+    // ── Daily Leaderboard Reward Cron ──
+    // Checks every 60s. At UTC midnight, snapshots the
+    // top 5 daily XP earners and credits Gold/XP to their accounts,
+    // so they can claim rewards when they open the app.
     try {
       const { supabaseServer: getDb } = await import('./lib/supabase.js');
 
       const REWARD_TIERS = [
-        { rank: 1, gold: 500, xp: 300, keys: 1 },
+        { rank: 1, gold: 500, xp: 300, keys: 0 },
         { rank: 2, gold: 300, xp: 200, keys: 0 },
         { rank: 3, gold: 200, xp: 150, keys: 0 },
         { rank: 4, gold: 100, xp: 75, keys: 0 },
         { rank: 5, gold: 100, xp: 50, keys: 0 },
       ];
 
-      let lastCronWeek = '';
+      let lastCronDate = '';
 
-      const runWeeklyRewardCron = async () => {
+      const runDailyRewardCron = async () => {
         const now = new Date();
-        const dayOfWeek = now.getUTCDay(); // 0=Sun, 1=Mon...
+        const todayStr = now.toISOString().slice(0, 10);
 
-        // Only fire on Monday (dayOfWeek === 1)
-        if (dayOfWeek !== 1) return;
+        // Only fire once per day
+        if (todayStr === lastCronDate) return;
 
-        const thisMonday = now.toISOString().slice(0, 10);
-        if (thisMonday === lastCronWeek) return;
-
-        // The snapshot is for LAST week's leaderboard
-        const lastMonday = new Date(now);
-        lastMonday.setUTCDate(now.getUTCDate() - 7);
-        const lastMondayStr = lastMonday.toISOString().slice(0, 10);
+        // The snapshot is for YESTERDAY's leaderboard
+        const yesterday = new Date(now);
+        yesterday.setUTCDate(now.getUTCDate() - 1);
+        const yesterdayStr = yesterday.toISOString().slice(0, 10);
 
         const db = getDb() as any;
 
-        // Check if we already snapshotted last week
+        // Check if we already snapshotted yesterday
         const { data: existing } = await db
           .from('daily_rank_snapshots')
           .select('id')
-          .eq('snapshot_date', lastMondayStr)
+          .eq('snapshot_date', yesterdayStr)
           .limit(1);
 
         if (existing && existing.length > 0) {
-          lastCronWeek = thisMonday;
+          lastCronDate = todayStr;
           return;
         }
 
-        console.log(`[Cron] Weekly reward distribution — snapshotting week of ${lastMondayStr}`);
+        console.log(`[Cron] Daily reward distribution — snapshotting ${yesterdayStr}`);
 
-        // Get top 5 players by weekly_xp
+        // Get top 5 players by daily_xp (yesterday's XP, before today's reset)
+        // Note: daily_xp resets at daily reset in /sync, so we need to snapshot
+        // BEFORE the reset happens. The cron runs at midnight and /sync resets
+        // when lastDailyReset !== todayStr. Since the cron fires first, the
+        // daily_xp values are still yesterday's totals.
         const { data: topPlayers, error: fetchErr } = await db
           .from('players')
-          .select('id, username, name, weekly_xp, gold, keys, total_xp')
+          .select('id, username, name, daily_xp, gold, keys, total_xp')
           .eq('is_banned', false)
-          .gt('weekly_xp', 0)
-          .order('weekly_xp', { ascending: false })
+          .gt('daily_xp', 0)
+          .order('daily_xp', { ascending: false })
           .limit(5);
 
         if (fetchErr) {
@@ -333,9 +334,9 @@ async function startServer() {
         }
 
         if (!topPlayers || topPlayers.length === 0) {
-          console.log('[Cron] No active players last week — skipping rewards');
+          console.log('[Cron] No active players yesterday — skipping rewards');
         } else {
-          console.log(`[Cron] Top ${topPlayers.length} players:`, topPlayers.map((p: any) => `${p.username || p.name}: ${p.weekly_xp} XP`));
+          console.log(`[Cron] Top ${topPlayers.length} players:`, topPlayers.map((p: any) => `${p.username || p.name}: ${p.daily_xp} XP`));
 
           for (let i = 0; i < topPlayers.length; i++) {
             const player = topPlayers[i];
@@ -345,11 +346,11 @@ async function startServer() {
             const { error: snapErr } = await db
               .from('daily_rank_snapshots')
               .insert({
-                snapshot_date: lastMondayStr,
+                snapshot_date: yesterdayStr,
                 rank: tier.rank,
                 player_id: player.id,
                 username: player.username || player.name,
-                daily_xp: player.weekly_xp,
+                daily_xp: player.daily_xp,
                 reward_gold: tier.gold,
                 reward_xp: tier.xp,
                 reward_keys: tier.keys,
@@ -361,18 +362,18 @@ async function startServer() {
               continue;
             }
 
-            console.log(`[Cron] Rank #${tier.rank} → ${player.username || player.name}: snapshot created (${tier.gold}G, ${tier.xp}XP, ${tier.keys}K — pending claim)`);
+            console.log(`[Cron] Rank #${tier.rank} → ${player.username || player.name}: snapshot created (${tier.gold}G, ${tier.xp}XP — pending claim)`);
           }
 
-          // ── Participation Rewards: everyone with weekly_xp > 0 who isn't top 5 ──
+          // ── Participation Rewards: everyone with daily_xp > 0 who isn't top 5 ──
           const topPlayerIds = topPlayers.slice(0, 5).map((p: any) => p.id);
 
           const { data: participants } = await db
             .from('players')
-            .select('id, username, name, weekly_xp')
+            .select('id, username, name, daily_xp')
             .eq('is_banned', false)
-            .gt('weekly_xp', 0)
-            .order('weekly_xp', { ascending: false });
+            .gt('daily_xp', 0)
+            .order('daily_xp', { ascending: false });
 
           // Filter out top-5 players (they already got rewards)
           const eligibleParticipants = (participants || []).filter(
@@ -384,11 +385,11 @@ async function startServer() {
               const actualRank = i + 6; // starts after top 5
               const isHunterTier = actualRank <= 10; // ranks 6-10 get more
               return {
-                snapshot_date: lastMondayStr,
+                snapshot_date: yesterdayStr,
                 rank: actualRank,
                 player_id: p.id,
                 username: p.username || p.name,
-                daily_xp: p.weekly_xp,
+                daily_xp: p.daily_xp,
                 reward_gold: isHunterTier ? 50 : 25,
                 reward_xp: isHunterTier ? 25 : 0,
                 reward_keys: 0,
@@ -410,21 +411,10 @@ async function startServer() {
           }
         }
 
-        // Reset ALL players' weekly_xp to 0 for the new week
-        const currentMonday = new Date(now);
-        currentMonday.setUTCHours(0, 0, 0, 0);
-        const { error: resetErr } = await db
-          .from('players')
-          .update({ weekly_xp: 0, week_start_date: currentMonday.toISOString() })
-          .eq('is_banned', false);
+        // NOTE: daily_xp is reset to 0 by the /sync endpoint's daily reset logic
+        // (when lastDailyReset !== todayStr), so we don't need to reset it here.
 
-        if (resetErr) {
-          console.error('[Cron] Failed to reset weekly_xp:', resetErr);
-        } else {
-          console.log('[Cron] All players weekly_xp reset to 0');
-        }
-
-        // ── League Assignment: finalize last week + create new leagues ──
+        // ── League Assignment: finalize yesterday + create new leagues ──
         try {
           const { runLeagueAssignmentCron } = await import('./routes/league.js');
           await runLeagueAssignmentCron(db);
@@ -432,17 +422,17 @@ async function startServer() {
           console.error('[Cron] League assignment failed:', leagueErr);
         }
 
-        lastCronWeek = thisMonday;
-        console.log(`[Cron] Weekly reward distribution + league assignment complete for week of ${lastMondayStr}`);
+        lastCronDate = todayStr;
+        console.log(`[Cron] Daily reward distribution + league assignment complete for ${yesterdayStr}`);
       };
 
-      // Run immediately on startup (catches up if server was down at Monday)
-      runWeeklyRewardCron().catch(err => console.error('[Cron] Startup run failed:', err));
+      // Run immediately on startup (catches up if server was down at midnight)
+      runDailyRewardCron().catch(err => console.error('[Cron] Startup run failed:', err));
       // Then check every 60 seconds
       setInterval(() => {
-        runWeeklyRewardCron().catch(err => console.error('[Cron] Interval run failed:', err));
+        runDailyRewardCron().catch(err => console.error('[Cron] Interval run failed:', err));
       }, 60_000);
-      console.log('[Server] Weekly reward cron scheduled (checks every 60s)');
+      console.log('[Server] Daily reward cron scheduled (checks every 60s)');
     } catch (err) {
       console.warn('[Server] Could not set up weekly reward cron:', err);
     }

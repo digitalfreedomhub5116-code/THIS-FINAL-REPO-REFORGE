@@ -768,6 +768,7 @@ export interface PlayerData {
   // Feature gate tracking
   featureUnlocksShown?: number[];
   rankRevealed?: boolean;
+  welcomeChestShown?: boolean;
   questOnboardingDone?: boolean;
   workoutOnboardingDone?: boolean;
 

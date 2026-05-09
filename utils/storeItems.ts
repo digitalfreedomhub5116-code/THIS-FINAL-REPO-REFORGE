@@ -58,6 +58,8 @@ export interface StoreItem {
   adUnlock?: boolean;
   /** Number of ads required to fully unlock (only relevant when adUnlock is true) */
   adsRequired?: number;
+  /** If true, requires active Reforge Pro subscription to purchase/equip */
+  requiresPremium?: boolean;
 }
 
 export interface BorderConfig {
@@ -241,12 +243,44 @@ export const BORDERS_EXCLUSIVE: StoreItem[] = [
   },
 ];
 
+/** Tier 5: PRO EXCLUSIVE — Reforge Pro subscriber-only borders */
+const PRO_COLOR = '#facc15'; // Premium Gold
+export const BORDERS_PRO_EXCLUSIVE: StoreItem[] = [
+  {
+    id: 'border-pro-crown', name: 'Reforge Crown', category: 'border', tier: 'legendary', price: 0, tierColor: PRO_COLOR,
+    description: 'An exclusive golden crown aura — only for Reforge Pro subscribers.',
+    requiresPremium: true,
+    auraConfig: {
+      colors: ['#facc15', '#f59e0b', '#eab308'],
+      blur: 18,
+      spread: 4,
+      animated: true,
+      pulseSpeed: 3,
+    },
+    borderConfig: { colors: ['#facc15', '#f59e0b', '#eab308'], strokeWidth: 3, animated: true, animationType: 'shimmer', glowColor: '#facc15', glowIntensity: 1.0 },
+  },
+  {
+    id: 'border-pro-void', name: 'Void Sovereign', category: 'border', tier: 'legendary', price: 0, tierColor: PRO_COLOR,
+    description: 'A deep purple void aura with pulsing dark energy — Pro exclusive.',
+    requiresPremium: true,
+    auraConfig: {
+      colors: ['#7C3AED', '#4C1D95', '#A78BFA'],
+      blur: 20,
+      spread: 5,
+      animated: true,
+      pulseSpeed: 4,
+    },
+    borderConfig: { colors: ['#7C3AED', '#4C1D95', '#A78BFA'], strokeWidth: 3, animated: true, animationType: 'pulse', glowColor: '#7C3AED', glowIntensity: 1.0 },
+  },
+];
+
 /** All borders combined */
 const ALL_BORDERS: StoreItem[] = [
   ...BORDERS_ELEMENTS,
   ...BORDERS_BEASTS,
   ...BORDERS_SHIELDS,
   ...BORDERS_EXCLUSIVE,
+  ...BORDERS_PRO_EXCLUSIVE,
 ];
 
 

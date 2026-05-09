@@ -350,6 +350,8 @@ const App: React.FC = () => {
 
     dataReady, markDataReady,
 
+    setIsPremium,
+
   } = useSystem();
 
   const { showRewardedAd, showInterstitialAd } = useAdMob();
@@ -688,6 +690,9 @@ const App: React.FC = () => {
   }, []);
   const isVip = !!(authEmail && VIP_EMAILS.has(authEmail.toLowerCase()));
   const isPremium = rcState.hasManaPower || isVip;
+
+  // ── Sync premium status into useSystem for XP multiplier etc. ──
+  useEffect(() => { setIsPremium(isPremium); }, [isPremium, setIsPremium]);
 
   // ── Identify user with RevenueCat so entitlements are per-account, not per-device ──
   const rcLoginDoneRef = useRef<string | null>(null);
@@ -1039,20 +1044,10 @@ const App: React.FC = () => {
 
     };
 
-    const onBadgeUnlocked = (e: Event) => {
-
-      const d = (e as CustomEvent).detail as { tierIndex: number; outfitId: string };
-
-      // Badge unlock takes priority — cancel any pending stone anims
-
-      stoneBatchBuffer.current = [];
-
-      if (stoneBatchTimer.current) { clearTimeout(stoneBatchTimer.current); stoneBatchTimer.current = null; }
-
-      setStoneAnim(null); setBatchStoneAnim(null); stoneAnimBusy.current = false;
-
-      setBadgeAnim({ tierIndex: d.tierIndex, outfitId: d.outfitId });
-
+    // Badge unlock cinematic disabled — stones still accumulate silently
+    // but the full-screen BadgeUnlockAnim no longer fires.
+    const onBadgeUnlocked = (_e: Event) => {
+      // No-op: badge cinematic removed per user request
     };
 
     window.addEventListener('stone:earned',   onStoneEarned);
@@ -1817,7 +1812,7 @@ const App: React.FC = () => {
 
       if (batchStoneAnim)       { setBatchStoneAnim(null); return; }
 
-      if (badgeAnim)            { setBadgeAnim(null); return; }
+      // badgeAnim check removed — badge cinematic disabled
 
 
 
@@ -2532,8 +2527,7 @@ const App: React.FC = () => {
 
         if (!player.questOnboardingDone && !showStreakCelebration && activeOverlay === null) {
           // Show welcome reward chest for first-time users before Dusk welcome
-          const chestKey = `reforge_welcome_chest_${player.userId || 'local'}`;
-          if (!localStorage.getItem(chestKey)) {
+          if (!player.welcomeChestShown) {
             setShowWelcomeChest(true);
           } else {
             setShowDuskWelcome(true);
@@ -2600,9 +2594,7 @@ const App: React.FC = () => {
     if (!player.isConfigured || !dataReady) return;
     if (!player.userId) return;
     if (onboardingPhase !== 'APP') return;
-
-    const chestKey = `reforge_welcome_chest_${player.userId}`;
-    if (localStorage.getItem(chestKey)) return; // Already shown
+    if (player.welcomeChestShown) return; // Already shown — server-persisted flag
 
     // Small delay so rank reveal enqueues first
     const timer = setTimeout(() => {
@@ -3071,6 +3063,17 @@ const App: React.FC = () => {
       detail: { intensity: 'small', origin: rect ?? null }
 
     }));
+
+    // ── Gold coin fly animation — delayed to play AFTER XP overlay finishes ──
+    // XP overlay lasts ~2000ms (crystals + bar fill + hold). Fire coins after.
+    const coinDelay = rect ? 2100 : 300; // If no rect (no XP overlay), fire quickly
+    setTimeout(() => {
+      const el = document.getElementById(`quest-card-${id}`);
+      const startRect = el?.getBoundingClientRect() || rect || null;
+      window.dispatchEvent(new CustomEvent('reforge:coin-earned', {
+        detail: { goldGained, startRect }
+      }));
+    }, coinDelay);
 
     // Welcome quest tutorial advances removed (6-step tutorial)
 
@@ -4256,8 +4259,8 @@ const App: React.FC = () => {
                 goldAmount={600}
                 keysAmount={10}
                 onComplete={() => {
-                  const chestKey = `reforge_welcome_chest_${player.userId || 'local'}`;
-                  localStorage.setItem(chestKey, 'shown');
+                  // Persist to server via raw_data (survives logout/reinstall/device-switch)
+                  setPlayer(prev => ({ ...prev, welcomeChestShown: true }));
                   setShowWelcomeChest(false);
                   dismissOverlay(); // Advance queue to streak
                 }}
@@ -4792,7 +4795,7 @@ const App: React.FC = () => {
                     onUpdateGoals={handleUpdateGoals}
                     onDeleteGoal={handleDeleteGoal}
                     onDeductGold={(amount) => setPlayer(prev => ({ ...prev, gold: Math.max(0, prev.gold - amount) }))}
-                    onShowInterstitialAd={async () => {
+                    onShowInterstitialAd={isPremium ? undefined : async () => {
                       try { await showInterstitialAd(AD_UNITS.DUNGEON_INTERSTITIAL); return true; } catch { return false; }
                     }}
                   />
@@ -5034,7 +5037,7 @@ const App: React.FC = () => {
 
                     initialSubTab={healthSubTab}
 
-                    onShowDungeonAd={async () => {
+                    onShowDungeonAd={isPremium ? async () => true : async () => {
                       const shown = await showInterstitialAd(AD_UNITS.DUNGEON_INTERSTITIAL);
                       return shown;
                     }}
@@ -5367,27 +5370,8 @@ const App: React.FC = () => {
 
 
 
-        {/* ── Badge Tier Unlock Animation (full cinematic) ── */}
-
-        <AnimatePresence>
-
-          {badgeAnim && (
-
-            <BadgeUnlockAnim
-
-              key={`badge-${badgeAnim.outfitId}-${badgeAnim.tierIndex}`}
-
-              tierIndex={badgeAnim.tierIndex}
-
-              outfitId={badgeAnim.outfitId}
-
-              onComplete={() => setBadgeAnim(null)}
-
-            />
-
-          )}
-
-        </AnimatePresence>
+        {/* Badge Tier Unlock Animation — DISABLED per user request */}
+        {/* Stones still accumulate but no cinematic plays */}
 
 
 

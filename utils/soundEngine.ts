@@ -64,6 +64,7 @@ const HAPTIC_PATTERNS: Record<string, number | number[]> = {
     WARNING: [40, 30, 40, 30, 50],
     LEVEL_UP: [30, 50, 30, 50, 40, 60, 80],
     RANK_UP: [40, 50, 40, 50, 40, 60, 60, 80, 100],
+    CHEST_VIBRATE: [40, 30, 50, 25, 60, 20, 70, 20, 80, 15, 90, 15, 100],
     TAB_SWITCH: 20,
     TICK: 15,
     SWIPE: 18,

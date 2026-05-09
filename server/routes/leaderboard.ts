@@ -25,21 +25,19 @@ function safeLevelUp(currentXp: number, requiredXp: number, level: number) {
   return { currentXp, requiredXp, level, leveledUp, rank: computeRank(level) };
 }
 
-// ── Week boundary helpers ──
-function getWeekStartMonday(): Date {
+// ── Day boundary helpers ──
+function getDayStartUTC(): Date {
   const now = new Date();
-  const dayOfWeek = now.getUTCDay(); // 0=Sun, 1=Mon...
-  const monday = new Date(now);
-  monday.setUTCDate(now.getUTCDate() - ((dayOfWeek + 6) % 7));
-  monday.setUTCHours(0, 0, 0, 0);
-  return monday;
+  const today = new Date(now);
+  today.setUTCHours(0, 0, 0, 0);
+  return today;
 }
 
-function getWeekEndSunday(): Date {
-  const monday = getWeekStartMonday();
-  const sunday = new Date(monday);
-  sunday.setUTCDate(monday.getUTCDate() + 7);
-  return sunday;
+function getDayEndUTC(): Date {
+  const today = getDayStartUTC();
+  const tomorrow = new Date(today);
+  tomorrow.setUTCDate(today.getUTCDate() + 1);
+  return tomorrow;
 }
 
 const router = Router();
@@ -49,16 +47,15 @@ router.get('/', async (req: Request, res: Response) => {
   const type = (req.query.type as string) || 'xp';
 
   try {
-    const weekStart = getWeekStartMonday();
-    const weekEnd = getWeekEndSunday();
+    const dayEnd = getDayEndUTC();
 
     if (type === 'xp') {
-      // ── XP LEADERBOARD: weekly_xp, resets every Monday ──
+      // ── XP LEADERBOARD: daily_xp, resets every midnight UTC ──
       const { data, error } = await (supabaseServer() as any)
         .from('players')
-        .select('id, supabase_id, username, name, total_xp, daily_xp, weekly_xp, week_start_date, level, rank, streak, avatar_url, raw_data, equipped_border, updated_at')
+        .select('id, supabase_id, username, name, total_xp, daily_xp, level, rank, streak, avatar_url, raw_data, equipped_border, updated_at')
         .eq('is_banned', false)
-        .order('weekly_xp', { ascending: false })
+        .order('daily_xp', { ascending: false })
         .limit(50);
 
       if (error) {
@@ -67,12 +64,7 @@ router.get('/', async (req: Request, res: Response) => {
       }
 
       const entries = (data || []).map((row: any) => {
-        // Check if this player's weekly_xp is from the current week
-        const playerWeekStart = row.week_start_date ? new Date(row.week_start_date).getTime() : 0;
-        const currentWeekStart = weekStart.getTime();
-        // If the player's week_start_date is before this Monday, their weekly_xp is stale
-        const isCurrentWeek = playerWeekStart >= currentWeekStart;
-        const effectiveWeeklyXp = isCurrentWeek ? (row.weekly_xp || 0) : 0;
+        const effectiveDailyXp = row.daily_xp || 0;
 
         return {
           player_id: row.id,
@@ -81,7 +73,7 @@ router.get('/', async (req: Request, res: Response) => {
           name: row.name,
           total_xp: row.total_xp || 0,
           daily_xp: row.daily_xp || 0,
-          weekly_xp: effectiveWeeklyXp,
+          weekly_xp: effectiveDailyXp,
           level: row.level || 1,
           rank: row.rank || 'E',
           streak: row.streak || 0,
@@ -93,7 +85,7 @@ router.get('/', async (req: Request, res: Response) => {
       });
 
       // Re-sort by effective weekly XP (after stale detection)
-      entries.sort((a: any, b: any) => b.weekly_xp - a.weekly_xp);
+      entries.sort((a: any, b: any) => b.weekly_xp - a.weekly_xp);  // weekly_xp field now holds daily_xp for API compat
 
       // ── Neighborhood View: find user's position if not in top results ──
       const userId = req.query.userId as string;
@@ -107,21 +99,20 @@ router.get('/', async (req: Request, res: Response) => {
           try {
             const { data: me } = await (supabaseServer() as any)
               .from('players')
-              .select('id, supabase_id, username, name, total_xp, daily_xp, weekly_xp, week_start_date, level, rank, streak, avatar_url, raw_data, equipped_border')
+              .select('id, supabase_id, username, name, total_xp, daily_xp, level, rank, streak, avatar_url, raw_data, equipped_border')
               .eq('supabase_id', userId)
               .eq('is_banned', false)
               .single();
 
             if (me) {
-              const myWeekStart = me.week_start_date ? new Date(me.week_start_date).getTime() : 0;
-              const myWeeklyXp = myWeekStart >= weekStart.getTime() ? (me.weekly_xp || 0) : 0;
+              const myDailyXp = me.daily_xp || 0;
 
               // Count players above
               const { count } = await (supabaseServer() as any)
                 .from('players')
                 .select('id', { count: 'exact', head: true })
                 .eq('is_banned', false)
-                .gt('weekly_xp', myWeeklyXp);
+                .gt('daily_xp', myDailyXp);
 
               yourRank = (count || 0) + 1;
               yourEntry = {
@@ -131,7 +122,7 @@ router.get('/', async (req: Request, res: Response) => {
                 name: me.name,
                 total_xp: me.total_xp || 0,
                 daily_xp: me.daily_xp || 0,
-                weekly_xp: myWeeklyXp,
+                weekly_xp: myDailyXp,
                 level: me.level || 1,
                 rank: me.rank || 'E',
                 streak: me.streak || 0,
@@ -144,19 +135,19 @@ router.get('/', async (req: Request, res: Response) => {
               // Get 2 players just above (higher weekly_xp)
               const { data: aboveData } = await (supabaseServer() as any)
                 .from('players')
-                .select('id, supabase_id, username, name, total_xp, daily_xp, weekly_xp, level, rank, streak, avatar_url, raw_data, equipped_border')
+                .select('id, supabase_id, username, name, total_xp, daily_xp, level, rank, streak, avatar_url, raw_data, equipped_border')
                 .eq('is_banned', false)
-                .gt('weekly_xp', myWeeklyXp)
-                .order('weekly_xp', { ascending: true })
+                .gt('daily_xp', myDailyXp)
+                .order('daily_xp', { ascending: true })
                 .limit(2);
 
               // Get 2 players just below (lower weekly_xp)
               const { data: belowData } = await (supabaseServer() as any)
                 .from('players')
-                .select('id, supabase_id, username, name, total_xp, daily_xp, weekly_xp, level, rank, streak, avatar_url, raw_data, equipped_border')
+                .select('id, supabase_id, username, name, total_xp, daily_xp, level, rank, streak, avatar_url, raw_data, equipped_border')
                 .eq('is_banned', false)
-                .lt('weekly_xp', myWeeklyXp)
-                .order('weekly_xp', { ascending: false })
+                .lt('daily_xp', myDailyXp)
+                .order('daily_xp', { ascending: false })
                 .limit(2);
 
               const mapEntry = (row: any) => ({
@@ -188,11 +179,10 @@ router.get('/', async (req: Request, res: Response) => {
         }
       }
 
-      // Add week timing info
+      // Add day timing info
       return res.json({
         entries,
-        weekStart: weekStart.toISOString(),
-        weekEnd: weekEnd.toISOString(),
+        weekEnd: dayEnd.toISOString(),
         yourRank,
         yourEntry,
         neighborhood,

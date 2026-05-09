@@ -122,10 +122,10 @@ router.get('/:id/sync', async (req: Request, res: Response) => {
     const STREAK_MILESTONES = [
       { days: 7,   gold: 50,   keys: 0,  title: null,           border: null,                         banner: null },
       { days: 14,  gold: 100,  keys: 0,  title: null,           border: 'border-streak-silver',       banner: null },
-      { days: 30,  gold: 200,  keys: 1,  title: 'Iron Will',    border: 'border-streak-gold',         banner: null },
-      { days: 60,  gold: 400,  keys: 1,  title: null,           border: 'border-streak-inferno',      banner: null },
-      { days: 100, gold: 1000, keys: 3,  title: 'Eternal Flame', border: 'border-streak-eternal',     banner: null },
-      { days: 365, gold: 5000, keys: 10, title: 'Legendary',    border: 'border-streak-legendary',    banner: null },
+      { days: 30,  gold: 200,  keys: 0,  title: 'Iron Will',    border: 'border-streak-gold',         banner: null },
+      { days: 60,  gold: 400,  keys: 0,  title: null,           border: 'border-streak-inferno',      banner: null },
+      { days: 100, gold: 1000, keys: 0,  title: 'Eternal Flame', border: 'border-streak-eternal',     banner: null },
+      { days: 365, gold: 5000, keys: 0,  title: 'Legendary',    border: 'border-streak-legendary',    banner: null },
     ];
 
     let streakMilestone: any = null;
@@ -198,12 +198,10 @@ router.get('/:id/sync', async (req: Request, res: Response) => {
       statResetFields.last_daily_reset = todayStr;
       statResetFields.daily_xp = 0; // Reset daily XP for daily leaderboard
 
-      // ── DAILY KEY GRANT: 10 free keys per day ──
-      const DAILY_KEY_GRANT = 10;
-      const currentKeys = row.keys ?? 0;
-      statResetFields.keys = currentKeys + DAILY_KEY_GRANT;
-      row.keys = statResetFields.keys; // Update local row so response reflects new amount
-      console.log(`[Keys] ${id.slice(-8)}: Daily grant +${DAILY_KEY_GRANT}🔑 → ${statResetFields.keys} total`);
+      // ── DAILY KEY GRANT: REMOVED ──
+      // Keys are now ONE-TIME only (10 keys granted at account creation).
+      // After that, keys come from: ads, IAP store, Reforge Pro, gold exchange,
+      // workout rewards, leaderboard rewards, or streak milestones.
     }
 
     // Weekly reset — Monday UTC

@@ -597,7 +597,7 @@ const ShopView: React.FC<ShopViewProps> = ({
 
       {/* ═══ GOLD BALANCE + INVENTORY BUTTON (top bar) ═══ */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px' }}>
-        <div id="user-wallet-balance" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div id="shop-wallet-balance" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <img src="/assets/gold-coin.png" alt="Gold" width={24} height={24} style={{ width: 24, height: 24, objectFit: 'contain' }} loading="eager" draggable={false} />
           <span style={{ fontSize: 18, fontWeight: 900, color: '#F0B232', fontFamily: 'monospace', textShadow: '0 0 8px rgba(240,178,50,0.3)' }}>{(gold || 0).toLocaleString()}</span>
         </div>

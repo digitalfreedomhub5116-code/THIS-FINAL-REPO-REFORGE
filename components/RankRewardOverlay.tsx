@@ -492,7 +492,7 @@ const RankRewardOverlay: React.FC<RankRewardOverlayProps> = ({
           textAlign: 'center',
         }}
       >
-        WEEKLY LEADERBOARD REWARD
+        DAILY LEADERBOARD REWARD
       </motion.div>
     </motion.div>
   );

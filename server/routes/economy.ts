@@ -139,59 +139,12 @@ router.get('/balance', async (req: Request, res: Response) => {
   }
 });
 
-// ── POST /exchange — Convert Gold to Keys (10G → 1K) ──
-router.post('/exchange', async (req: Request, res: Response) => {
-  const userId = getAuthenticatedUserId(req);
-  if (!userId) return res.status(401).json({ error: 'Unauthorized' });
-
-  const { goldAmount } = req.body;
-  if (typeof goldAmount !== 'number' || goldAmount < 10 || goldAmount % 10 !== 0) {
-    return res.status(400).json({ error: 'Gold amount must be a multiple of 10' });
-  }
-
-  const keysToGrant = goldAmount / 10;
-
-  try {
-    const db = supabaseServer() as any;
-    const { data: player, error: fetchErr } = await db
-      .from('players')
-      .select('id, gold')
-      .eq('supabase_id', userId)
-      .single();
-
-    if (fetchErr || !player) {
-      return res.status(404).json({ error: 'Player not found' });
-    }
-
-    if ((player.gold || 0) < goldAmount) {
-      return res.status(402).json({ error: 'Not enough gold', goldRemaining: player.gold || 0 });
-    }
-
-    // Deduct gold atomically
-    const newGold = (player.gold || 0) - goldAmount;
-    const { error: goldErr } = await db
-      .from('players')
-      .update({ gold: newGold })
-      .eq('id', player.id)
-      .eq('gold', player.gold);
-
-    if (goldErr) throw goldErr;
-
-    // Grant keys
-    const keyResult = await grantKeys(userId, keysToGrant);
-
-    console.log(`[Economy] ${userId.slice(-8)}: Exchanged ${goldAmount}G → ${keysToGrant}🔑`);
-    return res.json({ 
-      success: true, 
-      gold: newGold, 
-      keys: keyResult.newBalance, 
-      exchanged: { goldSpent: goldAmount, keysReceived: keysToGrant } 
-    });
-  } catch (err) {
-    console.error('[Economy exchange]', err);
-    return res.status(500).json({ error: 'Exchange failed' });
-  }
+// ── POST /exchange — DISABLED: Gold→Key exchange removed ──
+// Keys are now scarce — they can only come from ads, IAP, Pro, workouts, or leaderboard rewards.
+router.post('/exchange', async (_req: Request, res: Response) => {
+  return res.status(410).json({ error: 'Gold to key exchange is no longer available.' });
 });
+
 
 // ── POST /grant-keys — Server-validated key granting (for workout rewards, etc.) ──
 router.post('/grant-keys', async (req: Request, res: Response) => {

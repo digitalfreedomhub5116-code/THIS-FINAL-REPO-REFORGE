@@ -166,11 +166,13 @@ function migratePlayerData(raw: Partial<PlayerData>): PlayerData {
   if (raw.isConfigured && raw.rank !== 'UNRANKED') {
     if (merged.featureUnlocksShown === undefined) merged.featureUnlocksShown = [5, 10];
     if (merged.rankRevealed === undefined) merged.rankRevealed = true;
+    if (merged.welcomeChestShown === undefined) merged.welcomeChestShown = true;
     if (merged.questOnboardingDone === undefined) merged.questOnboardingDone = true;
     if (merged.workoutOnboardingDone === undefined) merged.workoutOnboardingDone = true;
   } else {
     if (merged.featureUnlocksShown === undefined) merged.featureUnlocksShown = [];
     if (merged.rankRevealed === undefined) merged.rankRevealed = false;
+    if (merged.welcomeChestShown === undefined) merged.welcomeChestShown = false;
     if (merged.questOnboardingDone === undefined) merged.questOnboardingDone = false;
     if (merged.workoutOnboardingDone === undefined) merged.workoutOnboardingDone = false;
   }
@@ -241,6 +243,7 @@ function getBadgeXpMultiplier(outfitStones: Record<string, number>, equippedOutf
 }
 
 export const useSystem = () => {
+  const [isPremium, setIsPremium] = useState(false);
   const [player, setPlayer] = useState<PlayerData>(loadFromStorage);
   const [notifications, setNotifications] = useState<SystemNotification[]>([]);
   const [notificationHistory, setNotificationHistory] = useState<StoredNotification[]>(loadNotifHistory);
@@ -1343,9 +1346,10 @@ export const useSystem = () => {
       }
 
       let { currentXp, requiredXp, level, totalXp, dailyXp } = prev;
-      // Apply badge XP boost from equipped outfit
+      // Apply badge XP boost from equipped outfit + Reforge Pro 2× boost
       const badgeMultiplier = getBadgeXpMultiplier(prev.outfitStones || {}, prev.equippedOutfitId || 'outfit_starter');
-      const totalMultiplier = badgeMultiplier;
+      const premiumMultiplier = isPremium ? 2.0 : 1.0;
+      const totalMultiplier = badgeMultiplier * premiumMultiplier;
       const boostedReward = Math.floor(reward * totalMultiplier);
       const badgeBonus = boostedReward - reward;
       currentXp += boostedReward;
@@ -1405,14 +1409,9 @@ export const useSystem = () => {
       };
     });
 
-    // Post-state-update: dispatch coin-earned animation for gold rewards
-    if (!noRewards && !prePact) {
-      const RANK_GOLD_ANIM: Record<string, number> = { E: 10, D: 20, C: 40, B: 80, A: 150, S: 300 };
-      const goldGained = RANK_GOLD_ANIM[preQuest?.rank || 'E'] || 20;
-      const el = document.getElementById(`quest-card-${id}`);
-      const rect = el?.getBoundingClientRect() || null;
-      window.dispatchEvent(new CustomEvent('reforge:coin-earned', { detail: { goldGained, startRect: rect } }));
-    }
+    // Post-state-update: coin-earned animation is now dispatched from App.tsx
+    // finishQuestComplete() with a delay, so it plays AFTER the XP overlay.
+    // (Previously fired here instantly, racing with XP overlay)
 
     // Award random outfit stones on quest completion (1-3)
     awardRandomStones(1, 3, 'Quest');
@@ -1754,9 +1753,10 @@ export const useSystem = () => {
       });
 
       let { currentXp, requiredXp, level, totalXp, dailyXp } = prev;
-      // Apply badge XP boost
+      // Apply badge XP boost + Reforge Pro 2× boost
       const badgeMult = getBadgeXpMultiplier(prev.outfitStones || {}, prev.equippedOutfitId || 'outfit_starter');
-      const combinedMult = badgeMult;
+      const premiumMult = isPremium ? 2.0 : 1.0;
+      const combinedMult = badgeMult * premiumMult;
       const boostedWorkoutXp = Math.floor(totalXpGain * combinedMult);
       currentXp += boostedWorkoutXp;
       totalXp += boostedWorkoutXp;
@@ -2370,5 +2370,6 @@ export const useSystem = () => {
     equipBanner,
     dataReady,
     markDataReady,
+    setIsPremium,
   };
 };

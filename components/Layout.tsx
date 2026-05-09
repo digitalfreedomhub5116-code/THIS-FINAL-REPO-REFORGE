@@ -476,8 +476,14 @@ const Layout: React.FC<LayoutProps> = ({
                 </div>
               </div>
 
-              {/* RIGHT: Keys + Streak + Notifications */}
+              {/* RIGHT: Gold + Keys + Streak + Notifications */}
               <div id="tut-gold-display" className="flex items-center gap-5 flex-shrink-0">
+
+                {/* Gold */}
+                <div id="user-wallet-balance" className="flex items-center gap-1.5" style={{ cursor: onGoldClick ? 'pointer' : 'default' }} onClick={onGoldClick}>
+                  <AnimatedCoinIcon size={22} />
+                  <span className="font-mono text-[15px] font-black whitespace-nowrap" style={{ color: '#fbbf24', textShadow: '0 0 8px rgba(251,191,36,0.4)', fontVariantNumeric: 'tabular-nums' }}><AnimatedCounter value={gold} /></span>
+                </div>
 
                 {/* Keys */}
                 <div className="flex items-center gap-1.5">
