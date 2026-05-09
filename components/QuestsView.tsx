@@ -11,6 +11,7 @@ import QuestCard from './QuestCard';
 import { playSystemSoundEffect } from '../utils/soundEngine';
 import { API_BASE } from '../lib/apiConfig';
 import { getPlayerAuthHeaders } from '../lib/playerApi';
+import { scheduleQuestStartNotification } from '../hooks/useLocalNotifications';
 
 
 
@@ -265,6 +266,12 @@ const QuestsView: React.FC<QuestsViewProps> = ({
       addQuest(newQuest);
       setIsModalOpen(false);
       resetForm();
+
+      // Schedule notification for when scheduled quest starts
+      if (scheduledTime) {
+        const timeStr = scheduledTime.includes('T') ? scheduledTime.split('T')[1].slice(0, 5) : scheduledTime;
+        scheduleQuestStartNotification(newQuest.id, newQuest.title, timeStr);
+      }
 
       // Show interstitial ad after registration if past free daily tier
       const dailyCount = getDailyAnalysisCount(playerData?.userId);

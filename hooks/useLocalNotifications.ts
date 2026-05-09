@@ -393,3 +393,77 @@ export async function cancelScheduleSlotReminder(slotId: string): Promise<void> 
     console.warn('[Notif] cancelScheduleSlotReminder failed:', err);
   }
 }
+
+// ─── Quest Start Notification (fires when a scheduled quest's time arrives) ──
+
+const QUEST_START_NOTIF_BASE = 9000;
+
+const QUEST_START_MESSAGES = [
+  '⚔️ Your quest "{title}" has started! Time to conquer it.',
+  '🔔 Quest Active — "{title}" is live. Get it done, Hunter.',
+  '⏰ The System has activated "{title}". Complete it to earn your XP.',
+  '🗡️ "{title}" is now active. Show the System what you\'re made of.',
+  '💪 Quest unlocked: "{title}". Your window has begun.',
+];
+
+/**
+ * Schedule a local notification for when a quest's scheduled time arrives.
+ * @param questId - unique quest identifier
+ * @param questTitle - display title for the notification
+ * @param startTimeStr - "HH:MM" in local time
+ */
+export async function scheduleQuestStartNotification(
+  questId: string,
+  questTitle: string,
+  startTimeStr: string,
+): Promise<void> {
+  if (!isNative()) return;
+  try {
+    const notifId = QUEST_START_NOTIF_BASE + hashCode(questId);
+
+    // Parse the scheduled time for today (local timezone)
+    const [h, m] = startTimeStr.split(':').map(Number);
+    const fireDate = new Date();
+    fireDate.setHours(h, m, 0, 0);
+
+    // Don't schedule if the quest time is already in the past
+    if (fireDate <= new Date()) {
+      console.log(`[Notif] Quest start skipped (already past): ${questTitle} at ${startTimeStr}`);
+      return;
+    }
+
+    // Cancel any existing notification for this quest first
+    await LocalNotifications.cancel({ notifications: [{ id: notifId }] });
+
+    const msg = pick(QUEST_START_MESSAGES).replace(/\{title\}/g, questTitle);
+
+    await LocalNotifications.schedule({
+      notifications: [{
+        id: notifId,
+        title: '⚔️ Quest Started!',
+        body: msg,
+        schedule: { at: fireDate, allowWhileIdle: true },
+        smallIcon: 'ic_stat_notification',
+        channelId: 'reforge_quests',
+      }],
+    });
+    console.log(`[Notif] Quest start scheduled → "${questTitle}" at ${fireDate.toLocaleTimeString()}`);
+  } catch (err) {
+    console.warn('[Notif] scheduleQuestStartNotification failed:', err);
+  }
+}
+
+/**
+ * Cancel a quest start notification (e.g., if the quest is completed before its scheduled time).
+ */
+export async function cancelQuestStartNotification(questId: string): Promise<void> {
+  if (!isNative()) return;
+  try {
+    const notifId = QUEST_START_NOTIF_BASE + hashCode(questId);
+    await LocalNotifications.cancel({ notifications: [{ id: notifId }] });
+    console.log(`[Notif] Quest start cancelled for ${questId}`);
+  } catch (err) {
+    console.warn('[Notif] cancelQuestStartNotification failed:', err);
+  }
+}
+

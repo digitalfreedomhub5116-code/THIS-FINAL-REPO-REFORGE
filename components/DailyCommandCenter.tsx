@@ -24,7 +24,7 @@ import { playSystemSoundEffect } from '../utils/soundEngine';
 import { API_BASE } from '../lib/apiConfig';
 import { getPlayerAuthHeaders } from '../lib/playerApi';
 import OnboardingNotice from './OnboardingNotice';
-import { scheduleSlotReminder, cancelScheduleSlotReminder } from '../hooks/useLocalNotifications';
+import { scheduleSlotReminder, cancelScheduleSlotReminder, scheduleQuestStartNotification } from '../hooks/useLocalNotifications';
 
 // ────────────────────────────────────────────────────────────
 // DAILY ANALYSIS TRACKING (matches QuestsView)
@@ -1168,7 +1168,8 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
         return;
       }
     }
-    const scheduledTimestamp = new Date(`${todayStr()}T${scheduleTime}`).toISOString();
+    // Store scheduledTime as raw "HH:MM" string in local time — NOT ISO.
+    // ISO conversion was misinterpreting local time as UTC, causing timestamp drift.
     const newQuest: Quest = {
       id: Math.random().toString(36).substr(2, 9),
       title: title.trim(), description: '',
@@ -1180,7 +1181,7 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
       estimatedDuration: forgeResult.estimatedDuration,
       minDurationMinutes: forgeResult.minDurationMinutes,
       aiReasoning: forgeResult.reasoning,
-      scheduledTime: scheduledTimestamp,
+      scheduledTime: scheduleTime, // raw "HH:MM" in local timezone
       ...(forgeResult.sensorRequirements ? { sensorRequirements: forgeResult.sensorRequirements } : {}),
     };
     if (tutorialStep === 4 || isQuestOnboarding) {
@@ -1188,6 +1189,8 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
       if (onTutorialAction) onTutorialAction(5);
     } else {
       addQuest(newQuest); setIsModalOpen(false); resetForm();
+      // Schedule notification for when quest starts
+      scheduleQuestStartNotification(newQuest.id, newQuest.title, scheduleTime);
       // Show ad after registration if past free daily tier
       const dailyCount = getDailyAnalysisCount(playerData?.userId);
       if (dailyCount > FREE_DAILY_ANALYSES && onShowInterstitialAd) {

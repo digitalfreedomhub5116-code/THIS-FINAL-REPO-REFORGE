@@ -106,6 +106,8 @@ import {
 
   scheduleQuestDeadline,
 
+  cancelQuestStartNotification,
+
 } from './hooks/useLocalNotifications';
 
 
@@ -3026,6 +3028,9 @@ const App: React.FC = () => {
   ) => {
     const quest = player.quests.find(q => q.id === id);
     completeQuest(id, asMini);
+
+    // Cancel quest start notification if it was scheduled
+    cancelQuestStartNotification(id);
 
     // Confetti on quest completion
     window.dispatchEvent(new CustomEvent('reforge:confetti', {
