@@ -1016,32 +1016,11 @@ const App: React.FC = () => {
 
   useEffect(() => {
 
-    const onStoneEarned = (e: Event) => {
-
-      const d = (e as CustomEvent).detail as { outfitId: string; amount: number; oldCount: number; newCount: number; color: string; glow: string; badgeUnlocked: boolean };
-
-      if (d.badgeUnlocked) return;
-
-      const entry = { outfitId: d.outfitId, amount: d.amount, oldCount: d.oldCount, newCount: d.newCount, color: d.color, glow: d.glow };
-
-
-
-      // If an animation is already showing, queue for after it finishes
-
-      stoneBatchBuffer.current.push(entry);
-
-
-
-      // Debounce: wait 200ms for more events before deciding single vs batch
-
-      if (stoneBatchTimer.current) clearTimeout(stoneBatchTimer.current);
-
-      if (!stoneAnimBusy.current) {
-
-        stoneBatchTimer.current = setTimeout(flushStoneBatch, 200);
-
-      }
-
+    const onStoneEarned = (_e: Event) => {
+      // Stone animations disabled per user request.
+      // Stones still accumulate in inventory (awardRandomStones handles that),
+      // but no visual StoneDropAnim / BatchStoneAnim plays.
+      return;
     };
 
     // Badge unlock cinematic disabled — stones still accumulate silently
@@ -3038,46 +3017,51 @@ const App: React.FC = () => {
 
 
 
+  // Store pending coin data so we can fire it after XP overlay completes
+  const pendingCoinRef = useRef<{ id: string; goldGained: number; rect?: DOMRect } | null>(null);
+
   const finishQuestComplete = (
-
     id: string, asMini: boolean, rect: DOMRect | undefined,
-
     xpGained: number, xpBefore: number, requiredXp: number, level: number, goldGained: number
-
   ) => {
-
     const quest = player.quests.find(q => q.id === id);
-
     completeQuest(id, asMini);
 
-    if (rect) {
-
-      setXpCollection({ startRect: rect, xpGained, currentXp: xpBefore, requiredXp, level });
-
-    }
-
     // Confetti on quest completion
-
     window.dispatchEvent(new CustomEvent('reforge:confetti', {
-
       detail: { intensity: 'small', origin: rect ?? null }
-
     }));
 
-    // ── Gold coin fly animation — delayed to play AFTER XP overlay finishes ──
-    // XP overlay lasts ~2000ms (crystals + bar fill + hold). Fire coins after.
-    const coinDelay = rect ? 2100 : 300; // If no rect (no XP overlay), fire quickly
-    setTimeout(() => {
-      const el = document.getElementById(`quest-card-${id}`);
-      const startRect = el?.getBoundingClientRect() || rect || null;
-      window.dispatchEvent(new CustomEvent('reforge:coin-earned', {
-        detail: { goldGained, startRect }
-      }));
-    }, coinDelay);
-
-    // Welcome quest tutorial advances removed (6-step tutorial)
-
+    if (rect) {
+      // Store coin data — will fire after XP overlay completes via onXpAnimComplete
+      pendingCoinRef.current = { id, goldGained, rect };
+      setXpCollection({ startRect: rect, xpGained, currentXp: xpBefore, requiredXp, level });
+    } else {
+      // No rect → no XP overlay → fire coins immediately
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('reforge:coin-earned', {
+          detail: { goldGained, startRect: null }
+        }));
+      }, 300);
+    }
   };
+
+  // Called when XP overlay animation finishes — fires coin animation next
+  const onXpAnimComplete = useCallback(() => {
+    setXpCollection(null);
+    const pending = pendingCoinRef.current;
+    if (pending) {
+      pendingCoinRef.current = null;
+      // Small delay before coins start to let the header transition feel natural
+      setTimeout(() => {
+        const el = document.getElementById(`quest-card-${pending.id}`);
+        const startRect = el?.getBoundingClientRect() || pending.rect || null;
+        window.dispatchEvent(new CustomEvent('reforge:coin-earned', {
+          detail: { goldGained: pending.goldGained, startRect }
+        }));
+      }, 200);
+    }
+  }, []);
 
 
 
@@ -4075,7 +4059,7 @@ const App: React.FC = () => {
 
                   level={xpCollection.level}
 
-                  onComplete={() => setXpCollection(null)}
+                  onComplete={onXpAnimComplete}
 
                 />
 

@@ -344,10 +344,19 @@ const Layout: React.FC<LayoutProps> = ({
     };
     window.addEventListener('reforge:coin-lost', handleCoinLost);
 
+    // Force header visible for XP crystal animation (dispatched by XpCollectionOverlay)
+    const handleForceHeader = (e: Event) => {
+      const { duration } = (e as CustomEvent).detail as { duration: number };
+      setHeaderVisible(true);
+      if (coinForceTimer.current) clearTimeout(coinForceTimer.current);
+      coinForceTimer.current = setTimeout(() => { coinForceTimer.current = null; }, duration || 3000);
+    };
+    window.addEventListener('reforge:force-header', handleForceHeader);
+
     return () => {
       window.removeEventListener('reforge:coin-earned', handleCoinEarned);
       window.removeEventListener('reforge:coin-lost', handleCoinLost);
-      window.removeEventListener('reforge:coin-lost', handleCoinLost);
+      window.removeEventListener('reforge:force-header', handleForceHeader);
     };
   }, []);
 
@@ -480,6 +489,7 @@ const Layout: React.FC<LayoutProps> = ({
 
                       {/* Thin progress track */}
                       <div
+                        id="navbar-xp-bar"
                         style={{
                           width: 100, height: 10, borderRadius: 999,
                           background: 'rgba(0,212,255,0.10)',
