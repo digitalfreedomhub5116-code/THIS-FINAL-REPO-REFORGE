@@ -107,7 +107,7 @@ export const BORDERS_ELEMENTS: StoreItem[] = [
   },
 
   {
-    id: 'border-frost-tech', name: 'Frost Tech', category: 'border', tier: 'legendary', price: 8900, tierColor: ELEMENTS_COLOR,
+    id: 'border-frost-tech', name: 'Frost Tech', category: 'border', tier: 'legendary', price: 3500, tierColor: ELEMENTS_COLOR,
     description: 'Cryo-tech crystals and snowflakes forge a futuristic ice frame.',
     imageBorder: '/borders/border-frost-tech.webp',
     imageScale: 1.05,
@@ -165,7 +165,7 @@ export const BORDERS_BEASTS: StoreItem[] = [
     borderConfig: { colors: ['#B87333', '#C8A84E', '#DAA520'], strokeWidth: 3, animated: false, glowColor: '#B87333', glowIntensity: 0.8 },
   },
   {
-    id: 'border-phoenix', name: 'Phoenix Blaze', category: 'border', tier: 'legendary', price: 7400, tierColor: BEASTS_COLOR,
+    id: 'border-phoenix', name: 'Phoenix Blaze', category: 'border', tier: 'legendary', price: 2800, tierColor: BEASTS_COLOR,
     description: 'A golden phoenix rises from the flames — reborn in glory.',
     imageBorder: '/borders/border-phoenix.webp',
     imageScale: 1.05,

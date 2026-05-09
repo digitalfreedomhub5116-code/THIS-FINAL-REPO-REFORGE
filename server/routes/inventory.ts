@@ -21,7 +21,7 @@ const STORE_PRICES: Record<string, number> = {
   'border-ice-img': 600,
   'border-starcrown-img': 900,
   'border-elemental-tide': 2800,
-  'border-frost-tech': 8900,
+  'border-frost-tech': 3500,
   'border-video-neon': 10000,
   // ── Borders: BEASTS ──
   'border-dragon-img': 1200,
@@ -29,7 +29,7 @@ const STORE_PRICES: Record<string, number> = {
   'border-gold-lion': 4800,
   'border-gold-dragon': 5500,
   'border-gold-eagle': 6200,
-  'border-phoenix': 7400,
+  'border-phoenix': 2800,
   // ── Borders: SHIELDS ──
   'border-podium-bronze': 1200,
   'border-streak-silver': 1500,
