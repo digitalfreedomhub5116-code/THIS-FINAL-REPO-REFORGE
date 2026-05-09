@@ -340,14 +340,11 @@ const SignInPage: React.FC<SignInPageProps> = ({ onLogin, onNavigate }) => {
         <motion.div animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 2, repeat: Infinity }} className="text-system-neon text-lg font-black tracking-widest">
           REFORGE
         </motion.div>
-        <div className="text-gray-400 text-xs text-center">
+        <div className="glitch-text text-gray-400 text-xs text-center" data-text={serverWaking ? 'Connecting to server...' : 'Checking session...'}>
           {serverWaking ? 'Connecting to server...' : 'Checking session...'}
         </div>
         {serverWaking && (
           <>
-            <div className="w-48 h-1 bg-gray-800 rounded-full overflow-hidden mt-1">
-              <motion.div className="h-full bg-system-neon/60 rounded-full" animate={{ x: ['-100%', '100%'] }} transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }} style={{ width: '40%' }} />
-            </div>
             <AnimatePresence mode="wait">
               <motion.p
                 key={factIndex}
@@ -388,10 +385,7 @@ const SignInPage: React.FC<SignInPageProps> = ({ onLogin, onNavigate }) => {
             <motion.div animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 2, repeat: Infinity }} className="text-system-neon text-lg font-black tracking-widest">
               REFORGE
             </motion.div>
-            <div className="text-gray-400 text-xs text-center">Signing you in...</div>
-            <div className="w-48 h-1 bg-gray-800 rounded-full overflow-hidden">
-              <motion.div className="h-full bg-system-neon/60 rounded-full" animate={{ x: ['-100%', '100%'] }} transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }} style={{ width: '40%' }} />
-            </div>
+            <div className="glitch-text text-gray-400 text-xs text-center" data-text="Signing you in...">Signing you in...</div>
             <AnimatePresence mode="wait">
               <motion.p
                 key={factIndex}
