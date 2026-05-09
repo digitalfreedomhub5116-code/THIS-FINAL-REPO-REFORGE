@@ -133,25 +133,42 @@ const AuditTheater: React.FC<AuditTheaterProps> = ({
                         transition={{ duration: 0.3 }}
                         className="flex flex-col items-center py-4"
                     >
-                        <div className="relative mb-6 flex items-center justify-center" style={{ width: 72, height: 72 }}>
-                            {/* Circular loading ring */}
-                            <svg className="absolute inset-0 w-full h-full" viewBox="0 0 72 72">
-                                <circle cx="36" cy="36" r="32" fill="none" stroke="rgba(6,182,212,0.15)" strokeWidth="2" />
+                        <div className="relative mb-6 flex items-center justify-center" style={{ width: 80, height: 80 }}>
+                            {/* Circular progress bar — irregular fill over 3s */}
+                            <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 80 80">
+                                {/* Track */}
+                                <circle cx="40" cy="40" r="36" fill="none" stroke="rgba(6,182,212,0.1)" strokeWidth="3" />
+                                {/* Progress — irregular bursts: fast, pause, fast, pause, complete */}
                                 <motion.circle
-                                    cx="36" cy="36" r="32" fill="none"
-                                    stroke="rgba(6,182,212,0.8)"
-                                    strokeWidth="2"
+                                    cx="40" cy="40" r="36" fill="none"
+                                    stroke="#00d4ff"
+                                    strokeWidth="3"
                                     strokeLinecap="round"
-                                    strokeDasharray="201"
-                                    strokeDashoffset="201"
-                                    animate={{ strokeDashoffset: [201, 50, 201] }}
-                                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                                    style={{ filter: 'drop-shadow(0 0 6px rgba(6,182,212,0.6))' }}
+                                    strokeDasharray={2 * Math.PI * 36}
+                                    strokeDashoffset={2 * Math.PI * 36}
+                                    animate={{ 
+                                        strokeDashoffset: [
+                                            2 * Math.PI * 36,      // 0%   — start
+                                            2 * Math.PI * 36 * 0.7, // 30%  — quick burst
+                                            2 * Math.PI * 36 * 0.7, // 30%  — pause
+                                            2 * Math.PI * 36 * 0.45,// 55%  — another burst
+                                            2 * Math.PI * 36 * 0.45,// 55%  — pause
+                                            2 * Math.PI * 36 * 0.25,// 75%  — burst
+                                            2 * Math.PI * 36 * 0.25,// 75%  — pause
+                                            0                       // 100% — complete
+                                        ]
+                                    }}
+                                    transition={{ 
+                                        duration: 3, 
+                                        times: [0, 0.15, 0.25, 0.40, 0.55, 0.65, 0.80, 1],
+                                        ease: "easeInOut"
+                                    }}
+                                    style={{ filter: 'drop-shadow(0 0 6px rgba(0,212,255,0.7))' }}
                                 />
                             </svg>
-                            {/* Fixed icon */}
+                            {/* Icon */}
                             <div className="text-[#00d4ff] drop-shadow-[0_0_15px_rgba(6,182,212,0.6)]">
-                                <ScanSearch size={36} strokeWidth={1.5} />
+                                <ScanSearch size={32} strokeWidth={1.5} />
                             </div>
                         </div>
                         
