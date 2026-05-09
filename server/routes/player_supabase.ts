@@ -390,12 +390,15 @@ router.put('/:id', async (req: Request, res: Response) => {
     const dbGold = currentRow?.gold ?? 0;
     const dbKeys = currentRow?.keys ?? 0;
 
-    // ── SERVER-AUTHORITATIVE GOLD & KEYS ──
-    // Gold and Keys are NEVER set by the client. The server is the single source of truth.
-    // Gold changes: streak milestones, store purchases, leaderboard rewards, quest completion rewards
-    // Key changes: keyGate.ts (AI deductions), daily grants, leaderboard rewards
-    // The client's gold/keys values are completely IGNORED.
-    const newGold = dbGold;
+    // ── GOLD: Accept client's value if higher (quest/workout rewards increase it) ──
+    // Gold goes UP on client from: quest completion, goal completion, workout rewards,
+    // chest rewards, pact returns. It goes DOWN from: store purchases, pacts, shield buys
+    // — but those are also handled server-side. Using max() ensures quest rewards persist
+    // while preventing exploits (client can't set gold lower to undo a purchase).
+    const clientGold = cleanData.gold ?? 0;
+    const newGold = Math.max(dbGold, clientGold);
+
+    // ── KEYS: Server-authoritative (deducted by keyGate, added by IAP/rewards) ──
     const newKeys = dbKeys;
 
     // ── Phase 1C: DEEP MERGE raw_data instead of overwriting ──
