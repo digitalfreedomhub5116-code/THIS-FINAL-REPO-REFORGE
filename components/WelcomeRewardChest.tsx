@@ -360,22 +360,34 @@ const RewardFlipCard: React.FC<RewardFlipCardProps> = ({
             backfaceVisibility: 'hidden',
             borderRadius: 16,
             overflow: 'hidden',
+            // Solid dark base ensures card is opaque even with transparent PNG
+            background: 'linear-gradient(160deg, #1a1033 0%, #0d0a1a 50%, #130e24 100%)',
             border: '1.5px solid rgba(212,175,55,0.3)',
             boxShadow: '0 8px 32px rgba(0,0,0,0.5), inset 0 0 30px rgba(212,175,55,0.05)',
           }}
         >
-          {/* Antique pattern background image */}
+          {/* Antique pattern overlay image (works with both opaque and transparent PNGs) */}
           <img
             src="/assets/card-back.png"
             alt=""
             draggable={false}
             style={{
+              position: 'absolute',
+              inset: 0,
               width: '100%',
               height: '100%',
               objectFit: 'cover',
               display: 'block',
             }}
           />
+          {/* Inner border glow for depth */}
+          <div style={{
+            position: 'absolute',
+            inset: 2,
+            borderRadius: 14,
+            border: '1px solid rgba(212,175,55,0.08)',
+            pointerEvents: 'none',
+          }} />
           {/* Shimmer overlay on card back */}
           <motion.div
             animate={{ x: [-150, 200] }}
@@ -386,7 +398,7 @@ const RewardFlipCard: React.FC<RewardFlipCardProps> = ({
               left: 0,
               width: 60,
               height: '100%',
-              background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent)',
+              background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)',
               transform: 'skewX(-15deg)',
               pointerEvents: 'none',
             }}
@@ -404,6 +416,7 @@ const RewardFlipCard: React.FC<RewardFlipCardProps> = ({
             color: 'rgba(212,175,55,0.5)',
             letterSpacing: '0.3em',
             textTransform: 'uppercase',
+            zIndex: 2,
           }}>
             REWARD
           </div>
@@ -417,7 +430,7 @@ const RewardFlipCard: React.FC<RewardFlipCardProps> = ({
             backfaceVisibility: 'hidden',
             transform: 'rotateY(180deg)',
             borderRadius: 16,
-            background: bgGrad,
+            background: `linear-gradient(160deg, #0f0a20 0%, #0a0815 100%)`,
             border: `1.5px solid ${borderColor}`,
             display: 'flex',
             flexDirection: 'column',
@@ -427,7 +440,15 @@ const RewardFlipCard: React.FC<RewardFlipCardProps> = ({
             padding: 16,
           }}
         >
-          {/* Subtle inner glow */}
+          {/* Colored tint overlay */}
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            borderRadius: 16,
+            background: bgGrad,
+            pointerEvents: 'none',
+          }} />
+          {/* Radial inner glow */}
           <div style={{
             position: 'absolute',
             inset: 0,
