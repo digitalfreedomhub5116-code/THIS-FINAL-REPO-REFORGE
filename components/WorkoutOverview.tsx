@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
-import { Clock, Flame, Dumbbell, Activity, HeartPulse, Fingerprint, ScanLine, Video, AlertTriangle, ChevronRight, CheckCircle2, X } from 'lucide-react';
+import { Clock, Flame, Dumbbell, HeartPulse, Fingerprint, ScanLine, Video, AlertTriangle, ChevronRight, CheckCircle2, X } from 'lucide-react';
 import { WorkoutDay, Exercise } from '../types';
 import { isEmbed } from '../hooks/useSystem';
 import { EXERCISE_VIDEOS, fixVideoPath } from '../lib/exerciseVideos';
@@ -11,7 +11,7 @@ import { calculateExerciseCalories } from '../utils/workoutGenerator';
 interface WorkoutOverviewProps {
   plan: WorkoutDay;
   focusVideos: Record<string, string>;
-  onStart: (modifiedPlan: WorkoutDay, isCardioActive: boolean) => void;
+  onStart: (modifiedPlan: WorkoutDay) => void;
   onCancel: () => void;
   userWeight?: number;
   onShowDungeonAd?: () => Promise<boolean>;
@@ -187,41 +187,18 @@ const ExerciseRow: React.FC<{ exercise: Exercise; calories: number }> = ({ exerc
 };
 
 const WorkoutOverview: React.FC<WorkoutOverviewProps> = ({ plan, focusVideos, onStart, onCancel, userWeight = 70, onShowDungeonAd }) => {
-  const [isCardio, setIsCardio] = useState(false);
   const [adLoading, setAdLoading] = useState(false);
 
-  const baseStats = useMemo(() => {
+  const stats = useMemo(() => {
       const sets = plan.exercises.reduce((acc, curr) => acc + curr.sets, 0);
       const time = plan.totalDuration || 45;
-      
-      // Dynamic Calorie Calculation based on User Weight
-      const baseCalories = plan.exercises.reduce((acc, curr) => {
+      const cals = plan.exercises.reduce((acc, curr) => {
           return acc + calculateExerciseCalories(curr, userWeight);
       }, 0);
-
-      return { sets, time, cals: baseCalories };
+      return { sets, time, cals };
   }, [plan, userWeight]);
 
-  const activeStats = {
-      time: isCardio ? baseStats.time + 15 : baseStats.time,
-      cals: isCardio ? Math.floor(baseStats.cals * 1.3) : baseStats.cals,
-      sets: isCardio ? baseStats.sets + 3 : baseStats.sets
-  };
-
   const handleStart = async () => {
-      let modifiedPlan = { ...plan };
-      if (isCardio) {
-          modifiedPlan.exercises = [...modifiedPlan.exercises, {
-              name: "Shadow Sprint (HIIT)",
-              sets: 3,
-              reps: "45s On / 15s Off",
-              duration: 15,
-              completed: false,
-              type: "CARDIO",
-              notes: "Added via Protocol"
-          }];
-      }
-
       // Show ad before entering dungeon
       if (onShowDungeonAd) {
         setAdLoading(true);
@@ -232,7 +209,7 @@ const WorkoutOverview: React.FC<WorkoutOverviewProps> = ({ plan, focusVideos, on
         }
       }
 
-      onStart(modifiedPlan, isCardio);
+      onStart({ ...plan });
   };
 
   // Render via Portal to break out of any transform stacking contexts from parent layouts
@@ -263,39 +240,23 @@ const WorkoutOverview: React.FC<WorkoutOverviewProps> = ({ plan, focusVideos, on
                     <div className="flex-1 space-y-6">
                         <div className="grid grid-cols-3 gap-2">
                             <div className="bg-gray-900/50 border border-gray-800 p-3 rounded text-center">
-                                <Flame className={`w-5 h-5 mx-auto mb-1 ${isCardio ? 'text-system-accent animate-pulse' : 'text-gray-400'}`} />
-                                <div className="text-lg font-bold text-white">{activeStats.cals}</div>
+                                <Flame className="w-5 h-5 mx-auto mb-1 text-gray-400" />
+                                <div className="text-lg font-bold text-white">{stats.cals}</div>
                                 <div className="text-[8px] text-gray-500 font-mono uppercase">KCAL EST.</div>
                             </div>
                             <div className="bg-gray-900/50 border border-gray-800 p-3 rounded text-center">
-                                <Clock className={`w-5 h-5 mx-auto mb-1 ${isCardio ? 'text-system-accent animate-pulse' : 'text-gray-400'}`} />
-                                <div className="text-lg font-bold text-white">{activeStats.time}</div>
+                                <Clock className="w-5 h-5 mx-auto mb-1 text-gray-400" />
+                                <div className="text-lg font-bold text-white">{stats.time}</div>
                                 <div className="text-[8px] text-gray-500 font-mono uppercase">MINUTES</div>
                             </div>
                             <div className="bg-gray-900/50 border border-gray-800 p-3 rounded text-center">
-                                <Dumbbell className={`w-5 h-5 mx-auto mb-1 ${isCardio ? 'text-system-accent animate-pulse' : 'text-gray-400'}`} />
-                                <div className="text-lg font-bold text-white">{activeStats.sets}</div>
+                                <Dumbbell className="w-5 h-5 mx-auto mb-1 text-gray-400" />
+                                <div className="text-lg font-bold text-white">{stats.sets}</div>
                                 <div className="text-[8px] text-gray-500 font-mono uppercase">TOTAL SETS</div>
                             </div>
                         </div>
 
-                        <HolographicBody focus={plan.focus} isCardio={isCardio} videos={focusVideos} />
-
-                        <div 
-                            onClick={() => setIsCardio(!isCardio)}
-                            className={`p-4 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${isCardio ? 'bg-system-accent/10 border-system-accent text-white' : 'bg-gray-900/30 border-gray-800 text-gray-500'}`}
-                        >
-                            <div className="flex items-center gap-3">
-                                <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${isCardio ? 'bg-system-accent border-system-accent' : 'border-gray-600'}`}>
-                                    {isCardio && <Activity size={12} className="text-black" />}
-                                </div>
-                                <div>
-                                    <div className="text-xs font-bold font-mono tracking-widest uppercase">Emergency Quest</div>
-                                    <div className="text-[10px]">Add 15m HIIT Finisher (+30% XP)</div>
-                                </div>
-                            </div>
-                            <Activity size={20} className={isCardio ? 'animate-pulse' : ''} />
-                        </div>
+                        <HolographicBody focus={plan.focus} isCardio={false} videos={focusVideos} />
                     </div>
 
                     {/* RIGHT: EXERCISE LIST */}
