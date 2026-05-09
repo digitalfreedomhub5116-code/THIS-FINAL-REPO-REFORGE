@@ -51,12 +51,15 @@ router.get('/', async (req: Request, res: Response) => {
 
     if (type === 'xp') {
       // ── XP LEADERBOARD: daily_xp, resets every midnight UTC ──
+      // Also fetch last_daily_reset to zero-out stale players at query time
+      const todayStr = getDayStartUTC().toISOString().split('T')[0]; // "2026-05-09"
+
       const { data, error } = await (supabaseServer() as any)
         .from('players')
-        .select('id, supabase_id, username, name, total_xp, daily_xp, level, rank, streak, avatar_url, raw_data, equipped_border, updated_at')
+        .select('id, supabase_id, username, name, total_xp, daily_xp, last_daily_reset, level, rank, streak, avatar_url, raw_data, equipped_border, updated_at')
         .eq('is_banned', false)
         .order('daily_xp', { ascending: false })
-        .limit(50);
+        .limit(100); // Fetch more to account for stale entries we'll zero out
 
       if (error) {
         console.error('[Leaderboard GET xp]', error);
@@ -64,7 +67,9 @@ router.get('/', async (req: Request, res: Response) => {
       }
 
       const entries = (data || []).map((row: any) => {
-        const effectiveDailyXp = row.daily_xp || 0;
+        // Only count daily_xp if the player synced today — otherwise it's stale
+        const isToday = row.last_daily_reset === todayStr;
+        const effectiveDailyXp = isToday ? (row.daily_xp || 0) : 0;
 
         return {
           player_id: row.id,
@@ -72,8 +77,8 @@ router.get('/', async (req: Request, res: Response) => {
           username: row.username,
           name: row.name,
           total_xp: row.total_xp || 0,
-          daily_xp: row.daily_xp || 0,
-          weekly_xp: effectiveDailyXp,
+          daily_xp: effectiveDailyXp,
+          weekly_xp: effectiveDailyXp, // API compat — client reads weekly_xp
           level: row.level || 1,
           rank: row.rank || 'E',
           streak: row.streak || 0,
@@ -84,8 +89,9 @@ router.get('/', async (req: Request, res: Response) => {
         };
       });
 
-      // Re-sort by effective weekly XP (after stale detection)
-      entries.sort((a: any, b: any) => b.weekly_xp - a.weekly_xp);  // weekly_xp field now holds daily_xp for API compat
+      // Sort by effective daily XP (after stale detection) and take top 50
+      entries.sort((a: any, b: any) => b.daily_xp - a.daily_xp);
+      entries.splice(50); // Trim to top 50
 
       // ── Neighborhood View: find user's position if not in top results ──
       const userId = req.query.userId as string;
@@ -99,19 +105,21 @@ router.get('/', async (req: Request, res: Response) => {
           try {
             const { data: me } = await (supabaseServer() as any)
               .from('players')
-              .select('id, supabase_id, username, name, total_xp, daily_xp, level, rank, streak, avatar_url, raw_data, equipped_border')
+              .select('id, supabase_id, username, name, total_xp, daily_xp, last_daily_reset, level, rank, streak, avatar_url, raw_data, equipped_border')
               .eq('supabase_id', userId)
               .eq('is_banned', false)
               .single();
 
             if (me) {
-              const myDailyXp = me.daily_xp || 0;
+              const meIsToday = me.last_daily_reset === todayStr;
+              const myDailyXp = meIsToday ? (me.daily_xp || 0) : 0;
 
-              // Count players above
+              // Count players above — only those who synced today
               const { count } = await (supabaseServer() as any)
                 .from('players')
                 .select('id', { count: 'exact', head: true })
                 .eq('is_banned', false)
+                .eq('last_daily_reset', todayStr)
                 .gt('daily_xp', myDailyXp);
 
               yourRank = (count || 0) + 1;
@@ -121,7 +129,7 @@ router.get('/', async (req: Request, res: Response) => {
                 username: me.username,
                 name: me.name,
                 total_xp: me.total_xp || 0,
-                daily_xp: me.daily_xp || 0,
+                daily_xp: myDailyXp,
                 weekly_xp: myDailyXp,
                 level: me.level || 1,
                 rank: me.rank || 'E',
@@ -132,20 +140,22 @@ router.get('/', async (req: Request, res: Response) => {
                 equipped_banner: me.raw_data?.equippedBanner || null,
               };
 
-              // Get 2 players just above (higher weekly_xp)
+              // Get 2 players just above (higher daily_xp, synced today)
               const { data: aboveData } = await (supabaseServer() as any)
                 .from('players')
-                .select('id, supabase_id, username, name, total_xp, daily_xp, level, rank, streak, avatar_url, raw_data, equipped_border')
+                .select('id, supabase_id, username, name, total_xp, daily_xp, last_daily_reset, level, rank, streak, avatar_url, raw_data, equipped_border')
                 .eq('is_banned', false)
+                .eq('last_daily_reset', todayStr)
                 .gt('daily_xp', myDailyXp)
                 .order('daily_xp', { ascending: true })
                 .limit(2);
 
-              // Get 2 players just below (lower weekly_xp)
+              // Get 2 players just below (lower daily_xp, synced today)
               const { data: belowData } = await (supabaseServer() as any)
                 .from('players')
-                .select('id, supabase_id, username, name, total_xp, daily_xp, level, rank, streak, avatar_url, raw_data, equipped_border')
+                .select('id, supabase_id, username, name, total_xp, daily_xp, last_daily_reset, level, rank, streak, avatar_url, raw_data, equipped_border')
                 .eq('is_banned', false)
+                .eq('last_daily_reset', todayStr)
                 .lt('daily_xp', myDailyXp)
                 .order('daily_xp', { ascending: false })
                 .limit(2);
@@ -157,7 +167,7 @@ router.get('/', async (req: Request, res: Response) => {
                 name: row.name,
                 total_xp: row.total_xp || 0,
                 daily_xp: row.daily_xp || 0,
-                weekly_xp: row.weekly_xp || 0,
+                weekly_xp: row.daily_xp || 0,
                 level: row.level || 1,
                 rank: row.rank || 'E',
                 streak: row.streak || 0,

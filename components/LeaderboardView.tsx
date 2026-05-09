@@ -286,7 +286,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
       const isMe = i === meIndex;
       let dominanceValue: number;
       if (activeTab === 'xp') {
-        dominanceValue = xpMode === 'daily' ? (e.weekly_xp || e.daily_xp || 0) : (e.total_xp || 0);
+        dominanceValue = e.daily_xp || e.weekly_xp || 0; // Always today's XP
       } else {
         dominanceValue = e.streak || 0;
       }
