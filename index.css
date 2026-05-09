@@ -347,28 +347,28 @@ video {
     opacity: 1;
   }
   83% {
-    text-shadow: -2px 0 #00d4ff, 2px 0 #ff00ff;
+    text-shadow: -2px 0 #00d4ff, 2px 0 #9ca3af;
     transform: translate(-2px, 1px) skewX(-2deg);
     opacity: 0.95;
   }
   85% {
-    text-shadow: 3px 0 #ff00ff, -3px 0 #00d4ff;
+    text-shadow: 3px 0 #9ca3af, -3px 0 #00d4ff;
     transform: translate(3px, -1px) skewX(3deg);
     opacity: 0.9;
   }
   86% {
-    text-shadow: -1px 0 #00d4ff, 1px 0 #ff00ff;
+    text-shadow: -1px 0 #00d4ff, 1px 0 #9ca3af;
     transform: translate(0, 0) skewX(0deg);
     opacity: 1;
   }
   91% {
-    text-shadow: 2px 0 #00d4ff, -2px 0 #ff00ff, 0 2px rgba(0,212,255,0.3);
+    text-shadow: 2px 0 #00d4ff, -2px 0 #9ca3af, 0 2px rgba(0,212,255,0.3);
     transform: translate(2px, 2px) skewX(-4deg);
     opacity: 0.85;
     clip-path: inset(20% 0 30% 0);
   }
   93% {
-    text-shadow: -3px 0 #ff00ff, 3px 0 #00d4ff, 0 -1px rgba(255,0,255,0.3);
+    text-shadow: -3px 0 #9ca3af, 3px 0 #00d4ff, 0 -1px rgba(156,163,175,0.3);
     transform: translate(-1px, -1px) skewX(2deg);
     opacity: 0.92;
     clip-path: inset(50% 0 10% 0);
@@ -416,7 +416,7 @@ video {
 }
 
 .glitch-text::after {
-  color: #ff00ff;
+  color: #9ca3af;
   animation: glitchChroma 3.2s ease-in-out infinite;
   clip-path: inset(65% 0 0 0);
   opacity: 0.6;
