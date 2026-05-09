@@ -37,14 +37,8 @@ const AuditTheater: React.FC<AuditTheaterProps> = ({
       setScanTextIndex(prev => (prev + 1) % scanLines.length);
     }, 1000);
 
-    // End scan phase after exactly 3 seconds
-    const scanTimeout = setTimeout(() => {
-      setPhase('RESULT');
-    }, 3000);
-
     return () => {
       clearInterval(textInterval);
-      clearTimeout(scanTimeout);
     };
   }, [phase]);
 
@@ -164,6 +158,7 @@ const AuditTheater: React.FC<AuditTheaterProps> = ({
                                         ease: "easeInOut"
                                     }}
                                     style={{ filter: 'drop-shadow(0 0 6px rgba(0,212,255,0.7))' }}
+                                    onAnimationComplete={() => setPhase('RESULT')}
                                 />
                             </svg>
                             {/* Icon */}
