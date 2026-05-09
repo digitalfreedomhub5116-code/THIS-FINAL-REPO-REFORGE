@@ -131,7 +131,7 @@ const ProfileHero: React.FC<{
           </div>
         </div>
         {/* Rank badge — center-right of banner */}
-        <button onClick={onRankTap} className="absolute right-3 z-10" style={{ top: '50%', transform: 'translateY(-50%)' }} aria-label="View rank">
+        <button onClick={onRankTap} className="absolute right-3 z-10" style={{ top: '32%', transform: 'translateY(-50%)' }} aria-label="View rank">
           <RankBadge rank={(player.rank || 'E') as RankType} size={54} animated showLabel />
         </button>
       </div>
