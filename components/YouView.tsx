@@ -690,7 +690,7 @@ const YouView: React.FC<YouViewProps> = ({
           className="fixed inset-0 bg-[#05050a] overflow-y-auto"
           style={{ zIndex: 100000 }}
         >
-          <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-[#05050a]/95 backdrop-blur-md border-b border-white/5" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}>
+          <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-[#05050a]/95 backdrop-blur-md border-b border-white/5" style={{ paddingTop: 'max(env(safe-area-inset-top, 0px) + 12px, 40px)' }}>
             <div className="text-xs font-mono font-bold text-[#00d4ff] tracking-widest">RANK PROGRESSION</div>
             <button onClick={() => setShowRankProgression(false)} className="p-1.5 rounded-full hover:bg-white/5">
               <X size={18} className="text-gray-400" />
