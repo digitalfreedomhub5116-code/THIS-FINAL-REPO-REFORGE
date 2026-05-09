@@ -293,6 +293,7 @@ const WelcomeRewardChest: React.FC<WelcomeRewardChestProps> = ({
                   bgGrad="linear-gradient(160deg, rgba(139,92,246,0.25), rgba(139,92,246,0.06) 80%)"
                   borderColor="rgba(139,92,246,0.4)"
                   glowColor="rgba(139,92,246,0.25)"
+                  iconSize={72}
                 />
               </motion.div>
             </>
@@ -358,10 +359,11 @@ interface RewardFlipCardProps {
   bgGrad: string;
   borderColor: string;
   glowColor: string;
+  iconSize?: number;
 }
 
 const RewardFlipCard: React.FC<RewardFlipCardProps> = ({
-  flipped, icon, amount, label, color, bgGrad, borderColor, glowColor,
+  flipped, icon, amount, label, color, bgGrad, borderColor, glowColor, iconSize = 56,
 }) => {
   return (
     <div style={{ perspective: 800, width: 140, height: 190 }}>
@@ -486,9 +488,9 @@ const RewardFlipCard: React.FC<RewardFlipCardProps> = ({
           <img
             src={icon}
             alt={label}
-            width={56}
-            height={56}
-            style={{ width: 56, height: 56, objectFit: 'contain', marginBottom: 12, position: 'relative', zIndex: 1 }}
+            width={iconSize}
+            height={iconSize}
+            style={{ width: iconSize, height: iconSize, objectFit: 'contain', marginBottom: iconSize > 56 ? 4 : 12, position: 'relative', zIndex: 1 }}
             draggable={false}
           />
           <div style={{
