@@ -187,16 +187,16 @@ const AuditTheater: React.FC<AuditTheaterProps> = ({
                             {/* Scanning laser line */}
                             <motion.div
                                 className="absolute left-0 w-full"
-                                style={{ height: '2px' }}
-                                initial={{ top: '0%' }}
-                                animate={{ top: ['0%', '100%', '0%'] }}
+                                style={{ height: '14px', top: 0 }}
+                                animate={{ y: [0, 18, 0] }}
                                 transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
                             >
-                                <div className="w-full h-[2px] bg-[#00d4ff] shadow-[0_0_8px_rgba(0,212,255,0.9),0_0_20px_rgba(0,212,255,0.4)]" />
                                 {/* Glow trail above */}
-                                <div className="w-full h-[6px] bg-gradient-to-b from-[#00d4ff]/20 to-transparent -mt-[6px]" />
+                                <div className="w-full h-[6px] bg-gradient-to-b from-transparent to-[#00d4ff]/20" />
+                                {/* Main laser */}
+                                <div className="w-full h-[2px] bg-[#00d4ff] shadow-[0_0_8px_rgba(0,212,255,0.9),0_0_20px_rgba(0,212,255,0.4)]" />
                                 {/* Glow trail below */}
-                                <div className="w-full h-[6px] bg-gradient-to-t from-transparent to-[#00d4ff]/15 mt-[2px]" />
+                                <div className="w-full h-[6px] bg-gradient-to-b from-[#00d4ff]/15 to-transparent" />
                             </motion.div>
                         </div>
                     </motion.div>
