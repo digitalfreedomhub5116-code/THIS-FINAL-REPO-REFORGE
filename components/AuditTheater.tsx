@@ -175,18 +175,29 @@ const AuditTheater: React.FC<AuditTheaterProps> = ({
                             </motion.span>
                         </div>
                         
-                        {/* Progress Bar visual */}
-                        <div className="w-full h-1 bg-black/60 rounded-full mt-6 overflow-hidden">
-                            <motion.div 
-                                className="h-full bg-[#00d4ff] shadow-[0_0_10px_rgba(6,182,212,0.8)]"
-                                initial={{ width: "0%" }}
-                                animate={{ width: ["0%", "60%", "65%", "95%", "100%"] }}
-                                transition={{ 
-                                    duration: 3, 
-                                    times: [0, 0.4, 0.7, 0.9, 1],
-                                    ease: "easeInOut"
+                        {/* Scanning Line Loader */}
+                        <div className="w-full h-8 relative mt-6 overflow-hidden rounded-lg" style={{ background: 'rgba(0,0,0,0.3)' }}>
+                            {/* Grid lines background */}
+                            <div 
+                                className="absolute inset-0 opacity-[0.08]"
+                                style={{
+                                    backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,212,255,0.4) 3px, rgba(0,212,255,0.4) 4px)',
                                 }}
                             />
+                            {/* Scanning laser line */}
+                            <motion.div
+                                className="absolute left-0 w-full"
+                                style={{ height: '2px' }}
+                                initial={{ top: '0%' }}
+                                animate={{ top: ['0%', '100%', '0%'] }}
+                                transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+                            >
+                                <div className="w-full h-[2px] bg-[#00d4ff] shadow-[0_0_8px_rgba(0,212,255,0.9),0_0_20px_rgba(0,212,255,0.4)]" />
+                                {/* Glow trail above */}
+                                <div className="w-full h-[6px] bg-gradient-to-b from-[#00d4ff]/20 to-transparent -mt-[6px]" />
+                                {/* Glow trail below */}
+                                <div className="w-full h-[6px] bg-gradient-to-t from-transparent to-[#00d4ff]/15 mt-[2px]" />
+                            </motion.div>
                         </div>
                     </motion.div>
                 )}
