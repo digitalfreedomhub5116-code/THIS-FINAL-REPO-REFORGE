@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef } from 'react';
 
 interface XpCollectionOverlayProps {
   startRect: DOMRect | null;
@@ -28,21 +28,18 @@ const CRYSTAL_SVG = (color: string) =>
 
 /**
  * XpCollectionOverlay — flies crystals from quest card to the NAVBAR XP BAR.
- * No separate floating bar is rendered. The existing navbar bar is targeted.
+ * FAST version — minimal delays, snappy feel.
  *
  * Flow:
- * 1. Force header visible
- * 2. Spawn crystals from startRect → fly to #navbar-xp-bar
+ * 1. Force header visible (immediate)
+ * 2. Spawn crystals from startRect → fly to #navbar-xp-bar (rapid burst)
  * 3. Pulse/glow the bar as crystals land
- * 4. Show floating "+XP" label near the bar
- * 5. After hold, call onComplete (which triggers coin animation)
+ * 4. Show floating "+XP" label
+ * 5. Quick hold → onComplete (triggers coin animation)
  */
 const XpCollectionOverlay: React.FC<XpCollectionOverlayProps> = ({
   startRect,
   xpGained,
-  currentXp,
-  requiredXp,
-  level,
   onComplete,
 }) => {
   const completedRef = useRef(false);
@@ -51,37 +48,32 @@ const XpCollectionOverlay: React.FC<XpCollectionOverlayProps> = ({
     if (!startRect || completedRef.current) return;
     completedRef.current = true;
 
-    // ── 1. Force the header visible for the duration of the animation ──
+    // ── 1. Force header visible IMMEDIATELY ──
     window.dispatchEvent(new CustomEvent('reforge:force-header', {
-      detail: { duration: 3500 }
+      detail: { duration: 2000 }
     }));
 
-    // ── 2. Find the navbar XP bar ──
-    const findBarWithRetry = (retries: number): DOMRect | null => {
+    // ── 2. Find the bar — try instantly, retry once after a short wait ──
+    const tryRun = () => {
       const bar = document.getElementById('navbar-xp-bar');
-      if (bar) return bar.getBoundingClientRect();
-      return null;
+      if (bar) {
+        runCrystalAnimation(bar.getBoundingClientRect());
+        return true;
+      }
+      return false;
     };
 
-    // Small delay to let header animate in
-    const startDelay = setTimeout(() => {
-      let barRect = findBarWithRetry(0);
-
-      // Retry if header hasn't appeared yet
-      if (!barRect) {
-        const retryTimer = setTimeout(() => {
-          barRect = findBarWithRetry(1);
-          if (barRect) runCrystalAnimation(barRect);
-          else {
-            // Fallback: complete without animation
-            setTimeout(onComplete, 300);
-          }
-        }, 300);
-        return () => clearTimeout(retryTimer);
-      }
-
-      runCrystalAnimation(barRect);
-    }, 350);
+    // Try immediately (header may already be visible from scroll position)
+    if (!tryRun()) {
+      // Retry after minimal header slide-in time
+      const t = setTimeout(() => {
+        if (!tryRun()) {
+          // Last resort: skip animation, move to coins
+          onComplete();
+        }
+      }, 180);
+      return () => clearTimeout(t);
+    }
 
     function runCrystalAnimation(barRect: DOMRect) {
       const originX = startRect!.left + startRect!.width / 2;
@@ -89,10 +81,10 @@ const XpCollectionOverlay: React.FC<XpCollectionOverlayProps> = ({
       const destX = barRect.left + barRect.width / 2;
       const destY = barRect.top + barRect.height / 2;
 
-      const count = 18;
+      const count = 12; // Fewer crystals = faster burst
       let landed = 0;
 
-      // ── 3. Create floating "+XP" label near the bar ──
+      // ── 3. Create floating "+XP" label ──
       const xpLabel = document.createElement('div');
       xpLabel.style.cssText = `
         position:fixed; z-index:9999; pointer-events:none;
@@ -100,17 +92,16 @@ const XpCollectionOverlay: React.FC<XpCollectionOverlayProps> = ({
         font-family:monospace; font-weight:900; font-size:14px;
         color:#00d4ff; text-shadow:0 0 10px rgba(0,212,255,0.7);
         opacity:0; transform:translateY(4px);
-        transition: opacity 0.3s, transform 0.3s;
+        transition: opacity 0.2s, transform 0.2s;
       `;
       xpLabel.textContent = `+${xpGained} XP`;
       document.body.appendChild(xpLabel);
 
-      // Show label after first few crystals land
-      const showLabelAfter = Math.floor(count * 0.3);
+      const showLabelAfter = 3; // Show label early
 
-      // ── 4. Spawn crystals ──
+      // ── 4. Rapid-fire crystals ──
       for (let i = 0; i < count; i++) {
-        const delay = i * 40;
+        const delay = i * 22; // 22ms stagger (was 40ms)
         setTimeout(() => {
           const el = document.createElement('div');
           el.style.cssText = `position:fixed;width:20px;height:20px;left:${originX - 10}px;top:${originY - 10}px;z-index:9999;pointer-events:none;`;
@@ -120,59 +111,54 @@ const XpCollectionOverlay: React.FC<XpCollectionOverlayProps> = ({
 
           const dx = destX - originX;
           const dy = destY - originY;
-          const midX = dx / 2 + (Math.random() - 0.5) * 80;
-          const midY = dy / 2 - Math.abs(dx) * 0.3 - Math.random() * 40;
-          const scatter = (Math.random() - 0.5) * 16;
+          const midX = dx / 2 + (Math.random() - 0.5) * 60;
+          const midY = dy / 2 - Math.abs(dx) * 0.25 - Math.random() * 30;
+          const scatter = (Math.random() - 0.5) * 12;
 
           el.animate([
             { transform: 'translate(0,0) scale(0) rotate(0deg)', opacity: 0 },
-            { transform: `translate(${midX}px,${midY}px) scale(1.3) rotate(${Math.random() * 180}deg)`, opacity: 1, offset: 0.45 },
-            { transform: `translate(${dx + scatter}px,${dy + (Math.random() - 0.5) * 6}px) scale(0.4) rotate(${Math.random() * 360}deg)`, opacity: 0.6 },
+            { transform: `translate(${midX}px,${midY}px) scale(1.2) rotate(${Math.random() * 180}deg)`, opacity: 1, offset: 0.4 },
+            { transform: `translate(${dx + scatter}px,${dy + (Math.random() - 0.5) * 6}px) scale(0.3) rotate(${Math.random() * 360}deg)`, opacity: 0.6 },
           ], {
-            duration: 650 + Math.random() * 200,
-            easing: 'ease-in-out',
+            duration: 380 + Math.random() * 120, // 380-500ms (was 650-850ms)
+            easing: 'ease-in',
             fill: 'forwards',
           }).onfinish = () => {
             el.remove();
             landed++;
 
-            // Pulse the XP bar on each crystal landing
+            // Pulse the XP bar
             const bar = document.getElementById('navbar-xp-bar');
             if (bar) {
               bar.animate([
-                { boxShadow: '0 0 12px rgba(0,212,255,0.6), 0 0 4px rgba(0,212,255,0.3) inset' },
+                { boxShadow: '0 0 14px rgba(0,212,255,0.7), 0 0 6px rgba(0,212,255,0.4) inset' },
                 { boxShadow: '0 0 2px rgba(0,212,255,0.1)' },
-              ], { duration: 200, easing: 'ease-out' });
+              ], { duration: 150, easing: 'ease-out' });
             }
 
-            // Show label after enough crystals
+            // Show label early
             if (landed >= showLabelAfter && xpLabel.style.opacity === '0') {
               xpLabel.style.opacity = '1';
               xpLabel.style.transform = 'translateY(0)';
             }
 
-            // After all crystals land
+            // After all crystals land → quick hold → done
             if (landed >= count) {
-              // Hold the label visible, then clean up and complete
               setTimeout(() => {
-                // Fade out label
                 xpLabel.style.opacity = '0';
                 xpLabel.style.transform = 'translateY(-8px)';
                 setTimeout(() => {
                   xpLabel.remove();
                   onComplete();
-                }, 400);
-              }, 700);
+                }, 200); // 200ms fade (was 400ms)
+              }, 350); // 350ms hold (was 700ms)
             }
           };
         }, delay);
       }
     }
-
-    return () => clearTimeout(startDelay);
   }, [startRect]);
 
-  // This component renders nothing — all visuals are imperative DOM animations
   return null;
 };
 

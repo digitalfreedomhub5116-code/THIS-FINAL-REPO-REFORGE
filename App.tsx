@@ -3051,20 +3051,18 @@ const App: React.FC = () => {
     }
   };
 
-  // Called when XP overlay animation finishes — fires coin animation next
+  // Called when XP overlay animation finishes — fires coin animation immediately
   const onXpAnimComplete = useCallback(() => {
     setXpCollection(null);
     const pending = pendingCoinRef.current;
     if (pending) {
       pendingCoinRef.current = null;
-      // Small delay before coins start to let the header transition feel natural
-      setTimeout(() => {
-        const el = document.getElementById(`quest-card-${pending.id}`);
-        const startRect = el?.getBoundingClientRect() || pending.rect || null;
-        window.dispatchEvent(new CustomEvent('reforge:coin-earned', {
-          detail: { goldGained: pending.goldGained, startRect }
-        }));
-      }, 200);
+      // Fire coins immediately — no gap between XP and coin animations
+      const el = document.getElementById(`quest-card-${pending.id}`);
+      const startRect = el?.getBoundingClientRect() || pending.rect || null;
+      window.dispatchEvent(new CustomEvent('reforge:coin-earned', {
+        detail: { goldGained: pending.goldGained, startRect }
+      }));
     }
   }, []);
 

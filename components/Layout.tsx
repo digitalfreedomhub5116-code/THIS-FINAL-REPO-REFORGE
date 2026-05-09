@@ -207,11 +207,11 @@ const Layout: React.FC<LayoutProps> = ({
 
       document.body.appendChild(counter);
 
-      // Slide counter IN from top
+      // Slide counter IN from top (fast)
       const slideIn = counter.animate([
         { transform: 'translateX(-50%) translateY(-80px)', opacity: 0 },
         { transform: 'translateX(-50%) translateY(0)', opacity: 1 },
-      ], { duration: 400, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)', fill: 'forwards' });
+      ], { duration: 250, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)', fill: 'forwards' });
 
       slideIn.onfinish = () => {
         // Get counter position for coin flight destination
@@ -221,7 +221,7 @@ const Layout: React.FC<LayoutProps> = ({
         const endX = destRect.left + destRect.width / 2;
         const endY = destRect.top + destRect.height / 2;
 
-        // Spawn flying coins
+        // Spawn flying coins (rapid burst)
         const COIN_COUNT = 8;
         let coinsLanded = 0;
         for (let i = 0; i < COIN_COUNT; i++) {
@@ -245,7 +245,7 @@ const Layout: React.FC<LayoutProps> = ({
               { transform: `translate(${midX}px,${midY}px) scale(1.1)`, offset: 0.5 },
               { transform: `translate(${endX - startX}px,${endY - startY}px) scale(0.5)`, opacity: 0 },
             ], {
-              duration: 900 + Math.random() * 300,
+              duration: 550 + Math.random() * 200, // 550-750ms (was 900-1200ms)
               easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
               fill: 'forwards',
             });
@@ -261,21 +261,21 @@ const Layout: React.FC<LayoutProps> = ({
                 { transform: 'translateX(-50%) scale(1)' },
                 { transform: 'translateX(-50%) scale(1.06)' },
                 { transform: 'translateX(-50%) scale(1)' },
-              ], { duration: 150, easing: 'ease-out' });
+              ], { duration: 120, easing: 'ease-out' });
 
-              // After last coin lands, hold briefly then slide out
+              // After last coin lands, quick hold then slide out
               if (coinsLanded >= COIN_COUNT) {
                 label.textContent = `+${goldGained}`;
                 setTimeout(() => {
                   counter.animate([
                     { transform: 'translateX(-50%) translateY(0)', opacity: 1 },
                     { transform: 'translateX(-50%) translateY(-80px)', opacity: 0 },
-                  ], { duration: 350, easing: 'cubic-bezier(0.55, 0, 1, 0.45)', fill: 'forwards' })
+                  ], { duration: 250, easing: 'cubic-bezier(0.55, 0, 1, 0.45)', fill: 'forwards' })
                   .onfinish = () => counter.remove();
-                }, 800);
+                }, 400); // 400ms hold (was 800ms)
               }
             };
-          }, i * 60);
+          }, i * 40); // 40ms stagger (was 60ms)
         }
       };
     };
