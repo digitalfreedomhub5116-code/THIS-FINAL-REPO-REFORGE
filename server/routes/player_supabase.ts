@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { supabaseServer } from '../lib/supabase.js';
 import { getAuthenticatedUserId } from '../lib/playerAuth.js';
+import sharp from 'sharp';
 
 const router = Router();
 
@@ -761,12 +762,20 @@ router.post('/:id/avatar', async (req: Request, res: Response) => {
 
     // Strip data-URL prefix if present
     const raw = imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64;
-    const buffer = Buffer.from(raw, 'base64');
+    const rawBuffer = Buffer.from(raw, 'base64');
 
     // Limit to 2 MB
-    if (buffer.length > 2 * 1024 * 1024) {
+    if (rawBuffer.length > 2 * 1024 * 1024) {
       return res.status(400).json({ error: 'Image too large (max 2 MB)' });
     }
+
+    // ── Resize to 256×256 max and compress ──
+    // Avatars display at 44–80px in the app. 256px gives 3× retina quality
+    // while reducing file size from ~2MB to ~15-30KB — massive speedup.
+    const buffer = await sharp(rawBuffer)
+      .resize(256, 256, { fit: 'cover', position: 'center' })
+      .webp({ quality: 80 })
+      .toBuffer();
 
     const filePath = `avatars/${id}.webp`;
 
@@ -776,7 +785,7 @@ router.post('/:id/avatar', async (req: Request, res: Response) => {
       .upload(filePath, buffer, {
         contentType: 'image/webp',
         upsert: true,
-        cacheControl: '3600',
+        cacheControl: '86400', // 24 hours — avatars rarely change
       });
 
     if (uploadErr) {
@@ -784,16 +793,17 @@ router.post('/:id/avatar', async (req: Request, res: Response) => {
       return res.status(500).json({ error: 'Failed to upload avatar' });
     }
 
-    // Get the public URL
+    // Get the public URL — store WITHOUT cache-buster in DB so CDN/browser caching works.
+    // Only return the cache-busted URL in the response so the uploader sees the fresh image.
     const { data: urlData } = sb.storage.from('avatars').getPublicUrl(filePath);
-    // Append cache-buster so the browser picks up new uploads
-    const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+    const cleanUrl = urlData.publicUrl;
+    const freshUrl = `${cleanUrl}?t=${Date.now()}`;
 
-    // Update avatar_url column in players table
-    await sb.from('players').update({ avatar_url: publicUrl, updated_at: new Date().toISOString() }).eq('supabase_id', id);
+    // Update avatar_url column in players table (clean URL, no cache-buster)
+    await sb.from('players').update({ avatar_url: cleanUrl, updated_at: new Date().toISOString() }).eq('supabase_id', id);
 
-    console.log(`[Avatar Upload] Updated avatar for ${id}`);
-    return res.json({ success: true, avatarUrl: publicUrl });
+    console.log(`[Avatar Upload] Updated avatar for ${id} (${rawBuffer.length} → ${buffer.length} bytes)`);
+    return res.json({ success: true, avatarUrl: freshUrl });
   } catch (err) {
     console.error('[Avatar Upload]', err);
     return res.status(500).json({ error: 'Internal server error' });

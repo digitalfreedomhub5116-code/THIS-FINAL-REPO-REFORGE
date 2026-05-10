@@ -108,8 +108,9 @@ export function useRevenueCat(): [RevenueCatState, RevenueCatActions] {
 
     (async () => {
       try {
-        // Enable debug logging in dev
-        await Purchases.setLogLevel({ level: LOG_LEVEL.DEBUG });
+        // Enable debug logging only in dev — reduces noise on production devices
+        const isDev = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+        await Purchases.setLogLevel({ level: isDev ? LOG_LEVEL.DEBUG : LOG_LEVEL.INFO });
 
         // Configure with platform-specific key
         const apiKey = platform === 'ios' ? RC_API_KEY_IOS : RC_API_KEY_ANDROID;

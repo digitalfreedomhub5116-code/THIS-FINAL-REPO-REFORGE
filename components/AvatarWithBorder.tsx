@@ -208,6 +208,10 @@ function AvatarImage({ src, size }: { src: string; size: number }) {
       <img
         src={src}
         alt=""
+        width={size}
+        height={size}
+        loading="lazy"
+        decoding="async"
         className="w-full h-full object-cover"
         style={{ opacity: loaded ? 1 : 0, transition: 'opacity 0.3s ease' }}
         onLoad={() => setLoaded(true)}

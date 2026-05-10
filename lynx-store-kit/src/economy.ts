@@ -226,7 +226,7 @@ export function applyThemeVars(themeVars?: Record<string, string> | null): void 
 }
 
 /** DEV FLAG: Set to true to auto-unlock all items for testing */
-export const DEV_UNLOCK_ALL = true;
+export const DEV_UNLOCK_ALL = false;
 
 export function getEquipped(): EquippedItems {
   return getEconomy().equipped;
