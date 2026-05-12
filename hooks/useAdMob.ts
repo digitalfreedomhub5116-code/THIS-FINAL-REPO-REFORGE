@@ -31,13 +31,16 @@ export const AD_UNITS = USE_TEST_ADS ? TEST_AD_UNITS : PROD_AD_UNITS;
 let AdMobModule: any = null;
 async function getAdMob() {
   if (AdMobModule) return AdMobModule;
-  if (!Capacitor.isNativePlatform()) return null;
+  const isNative = Capacitor.isNativePlatform();
+  console.log('[AdMob] Platform check:', { isNative, platform: Capacitor.getPlatform() });
+  if (!isNative) return null;
   try {
     const mod = await import('@capacitor-community/admob');
     AdMobModule = mod.AdMob;
+    console.log('[AdMob] Plugin loaded successfully:', !!AdMobModule);
     return AdMobModule;
-  } catch {
-    console.warn('[AdMob] Plugin not available');
+  } catch (err) {
+    console.error('[AdMob] Plugin import FAILED:', err);
     return null;
   }
 }
@@ -52,8 +55,12 @@ export function useAdMob() {
     initializedRef.current = true;
 
     (async () => {
+      console.log('[AdMob] Starting initialization... USE_TEST_ADS =', USE_TEST_ADS);
       const AdMob = await getAdMob();
-      if (!AdMob) return;
+      if (!AdMob) {
+        console.warn('[AdMob] getAdMob() returned null — skipping init');
+        return;
+      }
 
       try {
         await AdMob.initialize({
@@ -63,9 +70,9 @@ export function useAdMob() {
           requestTrackingAuthorization: true,
         });
         setIsReady(true);
-        console.log('[AdMob] Initialized successfully');
+        console.log('[AdMob] ✅ Initialized successfully! Ready to serve ads.');
       } catch (err) {
-        console.error('[AdMob] Init failed:', err);
+        console.error('[AdMob] ❌ Init FAILED:', err);
       }
     })();
   }, []);
@@ -73,6 +80,7 @@ export function useAdMob() {
   // ── Show Rewarded Ad ──
   // Returns: { rewarded: boolean, type?: string }
   const showRewardedAd = useCallback(async (adUnitId: string): Promise<{ rewarded: boolean; type?: string; amount?: number }> => {
+    console.log('[AdMob] showRewardedAd called with adUnitId:', adUnitId);
     const AdMob = await getAdMob();
     if (!AdMob) {
       console.warn('[AdMob] Not on native platform — ads not available');
