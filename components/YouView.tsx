@@ -6,6 +6,7 @@ import {
   MessageCircle,
   X, ChevronRight, Lock as LockIcon,
   Swords, Dumbbell, Brain, Users, Shield, Target, Zap,
+  Camera, ImagePlus, Loader2,
 } from 'lucide-react';
 import { PlayerData, HealthProfile, Outfit, Tab, Rank, CoreStats } from '../types';
 import AvatarWithBorder from './AvatarWithBorder';
@@ -14,6 +15,33 @@ import type { RankType } from './RankBadge';
 import { getItemById } from '../utils/storeItems';
 import { getEconomy } from '../utils/storeEconomy';
 import ForgeGuardWidget from './ForgeGuardWidget';
+import { API_BASE } from '../lib/apiConfig';
+import { getOrRefreshPlayerHeaders } from '../lib/playerApi';
+
+// Compress & resize image to max 512×512 webp for bandwidth efficiency
+function compressImage(file: File, maxSize = 512): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let w = img.width, h = img.height;
+        if (w > h) { if (w > maxSize) { h = Math.round(h * maxSize / w); w = maxSize; } }
+        else { if (h > maxSize) { w = Math.round(w * maxSize / h); h = maxSize; } }
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d')!;
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/webp', 0.82));
+      };
+      img.onerror = reject;
+      img.src = reader.result as string;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 
 // Lazy-load the existing ProfileView — reused as the Config/Logs/More drawer
 const ProfileView = lazy(() => import('./ProfileView'));
@@ -94,7 +122,8 @@ const StatCircle: React.FC<{
 const ProfileHero: React.FC<{
   player: PlayerData;
   onRankTap: () => void;
-}> = ({ player, onRankTap }) => {
+  onAvatarTap?: () => void;
+}> = ({ player, onRankTap, onAvatarTap }) => {
   const economy = getEconomy();
   const bannerItemId = player.equippedBanner || economy.equipped.banner;
   const bannerItem = bannerItemId ? getItemById(bannerItemId) : null;
@@ -137,13 +166,43 @@ const ProfileHero: React.FC<{
       </div>
 
       {/* ── Centered Avatar with equipped border — overlaps banner ── */}
-      <div className="flex justify-center" style={{ marginTop: -44 }}>
-        <AvatarWithBorder
-          avatarUrl={player.avatarUrl}
-          borderId={borderId}
-          size={88}
-          style={{ boxShadow: '0 0 24px rgba(0,0,0,0.9)' }}
-        />
+      <div className="flex flex-col items-center" style={{ marginTop: -44 }}>
+        <button
+          onClick={onAvatarTap}
+          className="relative"
+          style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+        >
+          <AvatarWithBorder
+            avatarUrl={player.avatarUrl}
+            borderId={borderId}
+            size={88}
+          />
+          {/* Camera badge — bottom-right */}
+          <div style={{
+            position: 'absolute', bottom: 2, right: 2,
+            width: 26, height: 26, borderRadius: '50%',
+            background: '#00d4ff',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            border: '2px solid #05050a', zIndex: 20,
+            boxShadow: '0 2px 8px rgba(0,212,255,0.4)',
+          }}>
+            <Camera size={12} color="#05050a" />
+          </div>
+        </button>
+        {/* CHANGE pill button */}
+        <button
+          onClick={onAvatarTap}
+          className="active:scale-95 transition-transform"
+          style={{
+            marginTop: 6, background: 'rgba(0,212,255,0.08)',
+            border: '1px solid rgba(0,212,255,0.2)', borderRadius: 20,
+            padding: '3px 10px', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: 4,
+          }}
+        >
+          <Camera size={9} style={{ color: '#00d4ff' }} />
+          <span style={{ fontSize: 8, fontWeight: 900, color: '#00d4ff', fontFamily: 'monospace', letterSpacing: '0.1em' }}>CHANGE</span>
+        </button>
       </div>
 
       {/* ── 6 Stat Circles (mono cyan) ── */}
@@ -475,6 +534,95 @@ const ComingSoonDrawer: React.FC<{ title: string; onClose: () => void }> = ({ ti
   </motion.div>
 );
 
+// ─── Avatar Change Modal — Camera / Gallery picker ───────────────────
+const AvatarChangeModal: React.FC<{
+  onCamera: () => void;
+  onGallery: () => void;
+  onClose: () => void;
+  uploading: boolean;
+  error: string;
+}> = ({ onCamera, onGallery, onClose, uploading, error }) => (
+  <motion.div
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    exit={{ opacity: 0 }}
+    className="fixed inset-0 z-[700] bg-black/85 backdrop-blur-sm flex items-end justify-center"
+    onClick={onClose}
+  >
+    <motion.div
+      initial={{ y: 120, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      exit={{ y: 120, opacity: 0 }}
+      transition={{ type: 'spring', damping: 28, stiffness: 350 }}
+      onClick={e => e.stopPropagation()}
+      className="w-full max-w-md mx-4 mb-6"
+    >
+      {uploading ? (
+        <div className="bg-[#0a0a14] border border-white/10 rounded-2xl p-10 flex flex-col items-center gap-4">
+          <Loader2 size={36} className="text-[#00d4ff] animate-spin" />
+          <div className="text-[11px] font-mono font-bold text-gray-400 tracking-widest">UPLOADING PHOTO...</div>
+          <div className="text-[9px] font-mono text-gray-600">Compressing & saving to cloud</div>
+        </div>
+      ) : (
+        <>
+          <div className="bg-[#0a0a14] border border-white/10 rounded-2xl overflow-hidden">
+            {/* Header */}
+            <div className="text-center py-3 border-b border-white/[0.06]">
+              <div className="text-[10px] font-mono font-bold text-[#00d4ff] tracking-[0.2em]">CHANGE PROFILE PICTURE</div>
+            </div>
+
+            {/* Error */}
+            {error && (
+              <div className="text-center py-2 px-4 bg-red-500/5 border-b border-red-500/10">
+                <div className="text-[10px] text-red-400 font-mono">{error}</div>
+              </div>
+            )}
+
+            {/* Camera option */}
+            <button
+              onClick={onCamera}
+              className="w-full flex items-center gap-4 px-5 py-4 hover:bg-white/[0.03] active:bg-white/[0.06] transition-colors border-b border-white/[0.04]"
+            >
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(0,212,255,0.1)' }}>
+                <Camera size={20} className="text-[#00d4ff]" />
+              </div>
+              <div className="text-left">
+                <div className="text-[12px] font-bold text-white tracking-wide">Take Photo</div>
+                <div className="text-[9px] font-mono text-gray-500 mt-0.5">Open camera to capture</div>
+              </div>
+              <ChevronRight size={16} className="text-gray-600 ml-auto" />
+            </button>
+
+            {/* Gallery option */}
+            <button
+              onClick={onGallery}
+              className="w-full flex items-center gap-4 px-5 py-4 hover:bg-white/[0.03] active:bg-white/[0.06] transition-colors"
+            >
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(76,217,100,0.1)' }}>
+                <ImagePlus size={20} className="text-green-400" />
+              </div>
+              <div className="text-left">
+                <div className="text-[12px] font-bold text-white tracking-wide">Choose from Gallery</div>
+                <div className="text-[9px] font-mono text-gray-500 mt-0.5">Upload from device storage</div>
+              </div>
+              <ChevronRight size={16} className="text-gray-600 ml-auto" />
+            </button>
+          </div>
+
+          {/* Cancel */}
+          <button
+            onClick={onClose}
+            className="w-full mt-2 py-3.5 rounded-2xl text-center text-[12px] font-mono font-bold text-gray-300 tracking-widest active:scale-[0.98] transition-transform"
+            style={{ background: '#0a0a14', border: '1px solid rgba(255,255,255,0.1)' }}
+          >
+            CANCEL
+          </button>
+        </>
+      )}
+    </motion.div>
+  </motion.div>
+);
+
 // ─── Stat config for the stat cards ─────────────────────────────────
 const STAT_CONFIG: { key: keyof CoreStats; label: string; fullLabel: string; icon: React.ReactNode; color: string; barColor: string; accentRgb: string }[] = [
   { key: 'strength', label: 'STR', fullLabel: 'STRENGTH', icon: <Dumbbell size={14} />, color: 'text-red-400', barColor: 'bg-red-400', accentRgb: '249,112,102' },
@@ -626,13 +774,55 @@ const YouView: React.FC<YouViewProps> = ({
   const [showConfig, setShowConfig] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [comingSoon, setComingSoon] = useState<string | null>(null);
+  const [showAvatarModal, setShowAvatarModal] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarError, setAvatarError] = useState('');
+
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
 
   const duskBadge = player.duskUnreadCount || 0;
 
+  const handleAvatarFile = async (file: File) => {
+    if (!file.type.startsWith('image/')) { setAvatarError('Please select an image'); return; }
+    if (file.size > 10 * 1024 * 1024) { setAvatarError('Image must be under 10 MB'); return; }
+    setAvatarError('');
+    setAvatarUploading(true);
+    try {
+      const compressed = await compressImage(file);
+      const authHeaders = await getOrRefreshPlayerHeaders(API_BASE);
+      const res = await fetch(`${API_BASE}/api/player/${player.userId}/avatar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
+        credentials: 'include',
+        body: JSON.stringify({ imageBase64: compressed }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Upload failed' }));
+        throw new Error(err.error || 'Upload failed');
+      }
+      const { avatarUrl } = await res.json();
+      if (onAvatarChange) onAvatarChange(avatarUrl);
+      setShowAvatarModal(false);
+    } catch (err: any) {
+      setAvatarError(err.message || 'Upload failed');
+    } finally {
+      setAvatarUploading(false);
+      if (cameraInputRef.current) cameraInputRef.current.value = '';
+      if (galleryInputRef.current) galleryInputRef.current.value = '';
+    }
+  };
+
   return (
     <div className="w-full max-w-2xl mx-auto pb-24">
+      {/* Hidden file inputs — camera vs gallery */}
+      <input ref={cameraInputRef} type="file" accept="image/*" capture="user" className="hidden"
+        onChange={e => { const f = e.target.files?.[0]; if (f) handleAvatarFile(f); }} />
+      <input ref={galleryInputRef} type="file" accept="image/*" className="hidden"
+        onChange={e => { const f = e.target.files?.[0]; if (f) handleAvatarFile(f); }} />
+
       {/* ── Hero section — Banner + Avatar + Stats + Forge Score ── */}
-      <ProfileHero player={player} onRankTap={() => setShowRank(true)} />
+      <ProfileHero player={player} onRankTap={() => setShowRank(true)} onAvatarTap={() => setShowAvatarModal(true)} />
 
       {/* Action grid — clean 4-col */}
       <div className="grid grid-cols-4 gap-1 px-2">
@@ -682,6 +872,15 @@ const YouView: React.FC<YouViewProps> = ({
           />
         )}
         {comingSoon && <ComingSoonDrawer title={comingSoon} onClose={() => setComingSoon(null)} />}
+        {showAvatarModal && (
+          <AvatarChangeModal
+            onCamera={() => cameraInputRef.current?.click()}
+            onGallery={() => galleryInputRef.current?.click()}
+            onClose={() => { setShowAvatarModal(false); setAvatarError(''); }}
+            uploading={avatarUploading}
+            error={avatarError}
+          />
+        )}
       </AnimatePresence>
 
       {/* Portaled full-screen overlays — must be OUTSIDE AnimatePresence */}
