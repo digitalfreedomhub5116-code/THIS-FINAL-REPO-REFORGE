@@ -6,7 +6,7 @@ import {
   MessageCircle,
   X, ChevronRight, Lock as LockIcon,
   Swords, Dumbbell, Brain, Users, Shield, Target, Zap,
-  Camera, ImagePlus, Loader2,
+  Camera, ImagePlus, Loader2, Flame, TrendingUp, Sparkles,
 } from 'lucide-react';
 import { PlayerData, HealthProfile, Outfit, Tab, Rank, CoreStats } from '../types';
 import AvatarWithBorder from './AvatarWithBorder';
@@ -73,7 +73,63 @@ interface YouViewProps {
 }
 
 
+// ─── useInView: scroll-reveal trigger ────────────────────────────────
+function useInView(threshold = 0.15) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setVisible(true); obs.disconnect(); } }, { threshold });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [threshold]);
+  return { ref, visible };
+}
 
+// ─── Animated counter (casino-style count-up) ────────────────────────
+function AnimatedCounter({ value, duration = 1200 }: { value: number; duration?: number }) {
+  const [display, setDisplay] = useState(0);
+  const [done, setDone] = useState(false);
+  const prevRef = useRef(0);
+  useEffect(() => {
+    const prev = prevRef.current;
+    prevRef.current = value;
+    if (value === 0) { setDisplay(0); setDone(true); return; }
+    let start: number | null = null;
+    setDone(false);
+    const step = (ts: number) => {
+      if (!start) start = ts;
+      const p = Math.min(1, (ts - start) / duration);
+      const eased = 1 - Math.pow(1 - p, 3); // ease-out cubic
+      setDisplay(Math.round(eased * value));
+      if (p < 1) requestAnimationFrame(step);
+      else setDone(true);
+    };
+    requestAnimationFrame(step);
+  }, [value, duration]);
+  return { display, done };
+}
+
+// ─── Particle burst keyframes (injected once) ────────────────────────
+const PARTICLE_CSS = `
+@keyframes yv-particle {
+  0% { transform: translate(0,0) scale(1); opacity: 1; }
+  100% { transform: translate(var(--dx), var(--dy)) scale(0); opacity: 0; }
+}
+@keyframes yv-shine-sweep {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+@keyframes yv-avatar-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+}
+@keyframes yv-float-up {
+  0% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-28px); }
+}
+`;
 
 // ─── Mono-cyan color based on stat value ─────────────────────────────
 function getCyanShade(value: number, max: number): string {
@@ -147,17 +203,62 @@ const ProfileHero: React.FC<{
     { key: 'WIL', value: stats.willpower || 0, icon: <Zap size={14} /> },
   ];
 
+  // ── Casino counter for Forge Score ──
+  const { display: counterVal, done: counterDone } = AnimatedCounter({ value: forgeScore, duration: 1400 });
+  const [showParticles, setShowParticles] = useState(false);
+  const prevForgeRef = useRef<number | null>(null);
+  const delta = useMemo(() => {
+    const stored = localStorage.getItem('yv_last_forge');
+    return stored ? forgeScore - parseInt(stored) : 0;
+  }, [forgeScore]);
+  useEffect(() => {
+    if (counterDone && prevForgeRef.current !== forgeScore) {
+      prevForgeRef.current = forgeScore;
+      setShowParticles(true);
+      localStorage.setItem('yv_last_forge', String(forgeScore));
+      const t = setTimeout(() => setShowParticles(false), 800);
+      return () => clearTimeout(t);
+    }
+  }, [counterDone, forgeScore]);
+
+  // ── Scroll-reveal refs ──
+  const statsReveal = useInView(0.2);
+  const scoreReveal = useInView(0.3);
+  const curveReveal = useInView(0.2);
+  const guardReveal = useInView(0.2);
+
+  // ── Streak flame tier ──
+  const streak = player.streak || 0;
+  const flameTier = streak === 0 ? 0 : streak < 7 ? 1 : streak < 14 ? 2 : streak < 30 ? 3 : streak < 60 ? 4 : streak < 100 ? 5 : 6;
+  const flameColors = ['#555', '#ff6b35', '#ff9500', '#ffcc00', '#00d4ff', '#8b5cf6', '#f472b6'];
+  const flameNames = ['', 'Spark', 'Flame', 'Torch', 'Bonfire', 'Inferno', 'Eternal'];
+
   return (
     <div className="relative" style={{ marginBottom: 16 }}>
+      <style>{PARTICLE_CSS}</style>
+
       {/* ── Banner ── */}
       <div className="relative w-full overflow-hidden" style={{ height: 160, borderRadius: '0 0 16px 16px', background: '#000' }}>
         <img src={bannerSrc} alt="" className="w-full h-full object-cover" style={{ objectPosition: 'center center' }} />
         <div className="absolute bottom-0 left-0 right-0 pointer-events-none" style={{ height: 100, background: 'linear-gradient(to top, rgba(5,5,10,0.95) 0%, transparent 100%)' }} />
-        {/* Name — bottom left */}
+        {/* Name + streak flame — bottom left */}
         <div className="absolute bottom-3 left-4 z-10" style={{ maxWidth: 'calc(50% - 60px)' }}>
-          <div className="text-white font-bold text-lg leading-tight truncate" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.8)' }}>
-            {player.name || 'Player'}
+          <div className="flex items-center gap-2">
+            <div className="text-white font-bold text-lg leading-tight truncate" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.8)' }}>
+              {player.name || 'Player'}
+            </div>
+            {streak > 0 && (
+              <div className="flex items-center gap-1" style={{ animation: 'yv-avatar-breathe 2s ease-in-out infinite' }}>
+                <Flame size={flameTier >= 4 ? 18 : 14} style={{ color: flameColors[flameTier], filter: `drop-shadow(0 0 4px ${flameColors[flameTier]})` }} />
+                <span style={{ fontSize: 9, fontWeight: 900, color: flameColors[flameTier], fontFamily: 'monospace' }}>{streak}</span>
+              </div>
+            )}
           </div>
+          {streak > 0 && (
+            <div style={{ fontSize: 7, fontWeight: 800, color: flameColors[flameTier], fontFamily: 'monospace', letterSpacing: '0.15em', opacity: 0.7, marginTop: 1 }}>
+              {flameNames[flameTier]}
+            </div>
+          )}
         </div>
         {/* Rank badge — center-right of banner */}
         <button onClick={onRankTap} className="absolute right-3 z-10" style={{ top: '32%', transform: 'translateY(-50%)' }} aria-label="View rank">
@@ -165,12 +266,15 @@ const ProfileHero: React.FC<{
         </button>
       </div>
 
-      {/* ── Centered Avatar with equipped border — overlaps banner ── */}
+      {/* ── Centered Avatar with equipped border — breathing animation ── */}
       <div className="flex flex-col items-center" style={{ marginTop: -44 }}>
-        <button
+        <motion.button
           onClick={onAvatarTap}
           className="relative"
-          style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+          style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', animation: 'yv-avatar-breathe 4s ease-in-out infinite' }}
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ type: 'spring', damping: 18, stiffness: 200, delay: 0.1 }}
         >
           <AvatarWithBorder
             avatarUrl={player.avatarUrl}
@@ -188,7 +292,7 @@ const ProfileHero: React.FC<{
           }}>
             <Camera size={12} color="#05050a" />
           </div>
-        </button>
+        </motion.button>
         {/* CHANGE pill button */}
         <button
           onClick={onAvatarTap}
@@ -205,39 +309,88 @@ const ProfileHero: React.FC<{
         </button>
       </div>
 
-      {/* ── 6 Stat Circles (mono cyan) ── */}
-      <div className="flex justify-center gap-2 px-2 mt-5">
+      {/* ── 6 Stat Circles — scroll-reveal stagger ── */}
+      <div ref={statsReveal.ref} className="flex justify-center gap-2 px-2 mt-5">
         {STATS_RING.map((s, i) => (
-          <StatCircle key={s.key} label={s.key} value={s.value} max={maxStat} icon={s.icon} delay={0.1 + i * 0.06} />
+          <StatCircle key={s.key} label={s.key} value={statsReveal.visible ? s.value : 0} max={maxStat} icon={s.icon} delay={statsReveal.visible ? 0.05 + i * 0.08 : 10} />
         ))}
       </div>
 
-      {/* ── Forge Score ── */}
-      <div className="flex flex-col items-center mt-4">
+      {/* ── Forge Score — Casino Counter with Particle Burst ── */}
+      <div ref={scoreReveal.ref} className="flex flex-col items-center mt-4 relative">
         <motion.div
-          className="font-black leading-none"
-          style={{ fontSize: 48, color: '#00d4ff', textShadow: '0 0 30px rgba(0,212,255,0.3)', letterSpacing: '-0.03em' }}
-          initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3, duration: 0.5 }}
+          className="font-black leading-none relative"
+          style={{
+            fontSize: 52, color: '#00d4ff', letterSpacing: '-0.03em',
+            textShadow: counterDone ? '0 0 30px rgba(0,212,255,0.3)' : '0 0 50px rgba(0,212,255,0.5), 0 0 80px rgba(0,212,255,0.2)',
+            transition: 'text-shadow 0.5s ease',
+          }}
+          initial={{ opacity: 0, scale: 0.6 }} animate={scoreReveal.visible ? { opacity: 1, scale: 1 } : {}} transition={{ delay: 0.2, duration: 0.5, type: 'spring' }}
         >
-          {forgeScore}
+          {counterVal}
+          {/* Particle burst on count complete */}
+          {showParticles && (
+            <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+              {Array.from({ length: 14 }).map((_, i) => {
+                const angle = (i / 14) * Math.PI * 2;
+                const dist = 30 + Math.random() * 25;
+                return (
+                  <div key={i} style={{
+                    position: 'absolute', top: '50%', left: '50%',
+                    width: 4, height: 4, borderRadius: '50%',
+                    background: '#00d4ff', boxShadow: '0 0 6px #00d4ff',
+                    '--dx': `${Math.cos(angle) * dist}px`,
+                    '--dy': `${Math.sin(angle) * dist}px`,
+                    animation: 'yv-particle 0.7s ease-out forwards',
+                  } as React.CSSProperties} />
+                );
+              })}
+            </div>
+          )}
         </motion.div>
+        {/* Delta badge */}
+        {delta !== 0 && counterDone && (
+          <div style={{
+            position: 'absolute', top: -2, right: '25%',
+            fontSize: 11, fontWeight: 900, fontFamily: 'monospace',
+            color: delta > 0 ? '#4ade80' : '#f87171',
+            animation: 'yv-float-up 2.5s ease-out forwards',
+            display: 'flex', alignItems: 'center', gap: 2,
+          }}>
+            <TrendingUp size={10} style={{ transform: delta < 0 ? 'rotate(180deg)' : undefined }} />
+            {delta > 0 ? '+' : ''}{delta}
+          </div>
+        )}
         <div className="text-[8px] font-mono font-bold tracking-[0.25em] text-gray-500 mt-1">FORGE SCORE</div>
       </div>
 
-      {/* ── Potential Distribution — Liquid Glass Panel ── */}
-      <div className="px-4 mt-5">
-        <div style={{
-          background: 'linear-gradient(135deg, rgba(0,212,255,0.06) 0%, rgba(10,10,20,0.7) 50%, rgba(0,212,255,0.04) 100%)',
-          border: '1px solid rgba(0,212,255,0.12)',
-          borderRadius: 16,
-          padding: '20px 16px 14px',
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
-          boxShadow: 'inset 0 1px 0 rgba(0,212,255,0.08), 0 8px 32px rgba(0,0,0,0.3)',
-          position: 'relative',
-          overflow: 'hidden',
-        }}>
-          {/* Glass shine overlay */}
+      {/* ── Potential Distribution — Glass Panel with Shine Sweep ── */}
+      <div ref={curveReveal.ref} className="px-4 mt-5">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={curveReveal.visible ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.6, ease: 'easeOut' }}
+          style={{
+            background: 'linear-gradient(135deg, rgba(0,212,255,0.06) 0%, rgba(10,10,20,0.7) 50%, rgba(0,212,255,0.04) 100%)',
+            border: '1px solid rgba(0,212,255,0.12)',
+            borderRadius: 16,
+            padding: '20px 16px 14px',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            boxShadow: 'inset 0 1px 0 rgba(0,212,255,0.08), 0 8px 32px rgba(0,0,0,0.3)',
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
+          {/* Animated shine sweep */}
+          {curveReveal.visible && (
+            <div style={{
+              position: 'absolute', top: 0, left: 0, width: '50%', height: '100%',
+              background: 'linear-gradient(90deg, transparent, rgba(0,212,255,0.08), transparent)',
+              animation: 'yv-shine-sweep 1.5s ease-out 0.3s forwards',
+              pointerEvents: 'none', zIndex: 5,
+            }} />
+          )}
           <div style={{
             position: 'absolute', top: 0, left: 0, right: 0, height: '1px',
             background: 'linear-gradient(90deg, transparent 10%, rgba(0,212,255,0.2) 50%, transparent 90%)',
@@ -246,15 +399,21 @@ const ProfileHero: React.FC<{
             POTENTIAL DISTRIBUTION
           </div>
           <ForgeScoreCurve score={forgeScore} primary="#00d4ff" />
-        </div>
+        </motion.div>
       </div>
 
-      {/* ── ForgeGuard Integrity ── */}
-      <div className="px-4 mt-4">
-        <ForgeGuardWidget
-          cheatStrikes={player.cheatStrikes ?? 0}
-          totalStrikesEver={player.totalStrikesEver}
-        />
+      {/* ── ForgeGuard Integrity — scroll reveal ── */}
+      <div ref={guardReveal.ref} className="px-4 mt-4">
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={guardReveal.visible ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.5, delay: 0.1 }}
+        >
+          <ForgeGuardWidget
+            cheatStrikes={player.cheatStrikes ?? 0}
+            totalStrikesEver={player.totalStrikesEver}
+          />
+        </motion.div>
       </div>
     </div>
   );
@@ -533,6 +692,112 @@ const ComingSoonDrawer: React.FC<{ title: string; onClose: () => void }> = ({ ti
     </motion.div>
   </motion.div>
 );
+
+// ─── Daily Fortune Widget — Variable Ratio Surprise ───────────────────
+function getDailyFortune(player: PlayerData): { icon: string; label: string; text: string; accent: string } {
+  const d = new Date();
+  const seed = d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+  const hash = ((seed * 2654435761) >>> 0) % 100; // deterministic daily random
+  const streak = player.streak || 0;
+  const level = player.level || 1;
+  const stats = player.stats || {} as CoreStats;
+  const best = (['strength','intelligence','discipline','social','focus','willpower'] as const)
+    .reduce((a, b) => ((stats[b] || 0) > (stats[a] || 0) ? b : a));
+  const bestLabel = best.charAt(0).toUpperCase() + best.slice(1);
+
+  if (hash < 30) {
+    // Motivational
+    const msgs = [
+      `The System has observed ${streak} consecutive days of discipline. ${streak > 7 ? 'You are among the elite hunters who sustain this pace.' : 'Every flame begins with a single spark.'}`,
+      `Level ${level} hunter detected. The gap between you and the next rank narrows with each quest completed.`,
+      `"The difference between ordinary and extraordinary is practice." — Your daily discipline compounds silently.`,
+      `Most hunters plateau at Level ${Math.max(5, level - 3)}. You have already surpassed that threshold.`,
+    ];
+    return { icon: '⚡', label: 'SYSTEM BROADCAST', text: msgs[hash % msgs.length], accent: '#00d4ff' };
+  } else if (hash < 55) {
+    // Stat insight
+    return {
+      icon: '📈', label: 'STAT ANALYSIS',
+      text: `Your dominant attribute is ${bestLabel} (${Math.floor(stats[best] || 0)} pts). ${(stats[best] || 0) > 100 ? 'This exceeds the average hunter by a significant margin.' : 'Focus your training to push this beyond 100.'}`,
+      accent: '#8b5cf6',
+    };
+  } else if (hash < 70) {
+    // Micro reward hint
+    return {
+      icon: '✨', label: 'FORTUNE BONUS',
+      text: `The System rewards persistence. Complete today's quests and a bonus may appear. Fortune favors the relentless.`,
+      accent: '#facc15',
+    };
+  } else if (hash < 90) {
+    // Competitive intel
+    return {
+      icon: '🗡️', label: 'INTEL REPORT',
+      text: `${streak > 0 ? `Your ${streak}-day streak puts you ahead of most hunters at Level ${level}.` : 'Start a streak today to gain the edge.'} The leaderboard shifts weekly — every point counts.`,
+      accent: '#f87171',
+    };
+  } else {
+    // Rare teaser
+    return {
+      icon: '🌟', label: 'RARE SIGNAL',
+      text: `A faint signal from the System: hidden rewards await hunters who push beyond their comfort zone. The rarest borders are earned, not bought.`,
+      accent: '#f472b6',
+    };
+  }
+}
+
+const DailyFortuneWidget: React.FC<{ player: PlayerData }> = ({ player }) => {
+  const fortune = useMemo(() => getDailyFortune(player), [player.streak, player.level, player.stats]);
+  const [revealed, setRevealed] = useState(0);
+  const reveal = useInView(0.3);
+
+  useEffect(() => {
+    if (!reveal.visible) return;
+    let i = 0;
+    const interval = setInterval(() => {
+      i += 2; // 2 chars per tick for speed
+      setRevealed(i);
+      if (i >= fortune.text.length) clearInterval(interval);
+    }, 25);
+    return () => clearInterval(interval);
+  }, [reveal.visible, fortune.text]);
+
+  return (
+    <div ref={reveal.ref}>
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={reveal.visible ? { opacity: 1, y: 0 } : {}}
+        transition={{ duration: 0.5 }}
+        className="rounded-2xl p-4 relative overflow-hidden"
+        style={{
+          background: 'linear-gradient(135deg, rgba(0,212,255,0.04) 0%, rgba(10,10,20,0.8) 60%, rgba(0,212,255,0.03) 100%)',
+          border: `1px solid ${fortune.accent}22`,
+          boxShadow: `inset 0 1px 0 ${fortune.accent}15, 0 4px 20px rgba(0,0,0,0.3)`,
+        }}
+      >
+        {/* Holographic border shimmer */}
+        <div style={{
+          position: 'absolute', top: 0, left: 0, right: 0, height: 1,
+          background: `linear-gradient(90deg, transparent 10%, ${fortune.accent}40 50%, transparent 90%)`,
+        }} />
+        {/* Header */}
+        <div className="flex items-center gap-2 mb-2">
+          <span style={{ fontSize: 14 }}>{fortune.icon}</span>
+          <span style={{ fontSize: 8, fontWeight: 900, fontFamily: 'monospace', color: fortune.accent, letterSpacing: '0.2em' }}>
+            {fortune.label}
+          </span>
+          <Sparkles size={10} style={{ color: fortune.accent, opacity: 0.6, marginLeft: 'auto' }} />
+        </div>
+        {/* Typewriter text */}
+        <div style={{ fontSize: 11, fontFamily: 'monospace', color: '#c0c0c8', lineHeight: 1.6, minHeight: 36 }}>
+          {fortune.text.slice(0, revealed)}
+          {revealed < fortune.text.length && (
+            <span style={{ color: fortune.accent, animation: 'yv-avatar-breathe 0.8s ease-in-out infinite' }}>|</span>
+          )}
+        </div>
+      </motion.div>
+    </div>
+  );
+};
 
 // ─── Avatar Change Modal — Camera / Gallery picker ───────────────────
 const AvatarChangeModal: React.FC<{
@@ -851,6 +1116,11 @@ const YouView: React.FC<YouViewProps> = ({
           accent="#60a5fa"
           onClick={() => setShowConfig(true)}
         />
+      </div>
+
+      {/* Daily Fortune — variable reward widget */}
+      <div className="mt-4 px-1">
+        <DailyFortuneWidget player={player} />
       </div>
 
       {/* Journey log */}
