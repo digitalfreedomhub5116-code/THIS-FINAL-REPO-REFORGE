@@ -222,6 +222,12 @@ async function startServer() {
   // Google OAuth setup
   setupGoogleAuth(app);
 
+  // ── app-ads.txt — Required by AdMob for ad serving verification ──
+  app.get('/app-ads.txt', (_req, res) => {
+    res.setHeader('Content-Type', 'text/plain');
+    res.send('google.com, pub-4155407212794852, DIRECT, f08c47fec0942fa0\n');
+  });
+
   // Static files (if built)
   const distPath = join(__dirname, '../dist');
   if (existsSync(distPath)) {
