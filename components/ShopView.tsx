@@ -399,6 +399,7 @@ const ShopView: React.FC<ShopViewProps> = ({
   const [kitEconomy, setKitEconomy] = useState(getEconomy());
   const [dealTimer, setDealTimer] = useState('');
   const [kitInfoItem, setKitInfoItem] = useState<KitStoreItem | null>(null);
+  const [kitInfoDiscount, setKitInfoDiscount] = useState(0);
   const [kitPurchasedId, setKitPurchasedId] = useState<string | null>(null);
 
   const [buyingItem, setBuyingItem] = useState<string | null>(null);
@@ -976,7 +977,9 @@ const ShopView: React.FC<ShopViewProps> = ({
                 canAfford={DEV_UNLOCK_ALL || gold >= Math.round(d.item.price * (1 - d.discount / 100))}
                 onBuy={() => { setConfirmPurchaseDiscount(d.discount); setConfirmPurchaseItem(d.item); }}
                 onEquip={d.item.category !== 'consumable' ? () => handleKitEquip(d.item.category as keyof EquippedItems, d.item.id) : undefined}
-                onInfo={() => setKitInfoItem(d.item)}
+                onInfo={() => { setKitInfoDiscount(d.discount); setKitInfoItem(d.item); }}
+                onView={() => { setKitInfoDiscount(d.discount); setKitInfoItem(d.item); }}
+                onCardClick={() => { setKitInfoDiscount(d.discount); setKitInfoItem(d.item); }}
               />
             </div>
           ))}
@@ -1492,18 +1495,20 @@ const ShopView: React.FC<ShopViewProps> = ({
       {kitInfoItem && kitInfoItem.category === 'border' && (
         <KitBorderPreviewModal
           item={kitInfoItem}
-          onClose={() => setKitInfoItem(null)}
+          onClose={() => { setKitInfoItem(null); setKitInfoDiscount(0); }}
           owned={isItemOwned(kitInfoItem.id)}
           equipped={kitEconomy.equipped.border === kitInfoItem.id}
-          canAfford={DEV_UNLOCK_ALL || gold >= kitInfoItem.price}
-          onBuy={() => { setKitInfoItem(null); setConfirmPurchaseItem(kitInfoItem); }}
+          canAfford={DEV_UNLOCK_ALL || gold >= (kitInfoDiscount ? Math.round(kitInfoItem.price * (1 - kitInfoDiscount / 100)) : kitInfoItem.price)}
+          onBuy={() => { setKitInfoItem(null); setConfirmPurchaseDiscount(kitInfoDiscount); setConfirmPurchaseItem(kitInfoItem); setKitInfoDiscount(0); }}
           onEquip={() => {
             setKitInfoItem(null);
+            setKitInfoDiscount(0);
             setEquipAnimItem(kitInfoItem);
             setShowEquipAnim(true);
             handleKitEquip('border', kitInfoItem.id);
           }}
           playerAvatarUrl={playerAvatarUrl}
+          discount={kitInfoDiscount}
         />
       )}
 
@@ -2163,11 +2168,12 @@ function KitThemePreviewModal({ item, onClose }: { item: KitStoreItem; onClose: 
 /* ═══════════════════════════════════
    KitBorderPreviewModal
    ═══════════════════════════════════ */
-function KitBorderPreviewModal({ item, onClose, owned, equipped, canAfford, onBuy, onEquip, playerAvatarUrl }: {
+function KitBorderPreviewModal({ item, onClose, owned, equipped, canAfford, onBuy, onEquip, playerAvatarUrl, discount }: {
   item: KitStoreItem; onClose: () => void;
   owned?: boolean; equipped?: boolean; canAfford?: boolean;
   onBuy?: () => void; onEquip?: () => void;
   playerAvatarUrl?: string | null;
+  discount?: number;
 }) {
   const glow = item.borderConfig?.glowColor || item.auraConfig?.colors?.[0] || '#C8A84E';
 
@@ -2291,8 +2297,19 @@ function KitBorderPreviewModal({ item, onClose, owned, equipped, canAfford, onBu
               transition: 'all 0.2s', opacity: canAfford ? 1 : 0.5,
             }}>
               <Lock size={14} color={canAfford ? '#fbbf24' : '#555'} />
-              <SystemCoin size={22} />
-              <span>{item.price}</span>
+              {discount ? (
+                <>
+                  <span style={{ textDecoration: 'line-through', opacity: 0.35, fontSize: 11 }}>{item.price}</span>
+                  <SystemCoin size={22} />
+                  <span>{Math.round(item.price * (1 - discount / 100))}</span>
+                  <span style={{ fontSize: 10, fontWeight: 900, color: '#22C55E', marginLeft: 2 }}>-{discount}%</span>
+                </>
+              ) : (
+                <>
+                  <SystemCoin size={22} />
+                  <span>{item.price}</span>
+                </>
+              )}
             </button>
           ) : null}
         </div>

@@ -47,17 +47,17 @@ router.post('/analyze', async (req: Request, res: Response) => {
     return res.status(500).json({ error: 'Gemini credentials not configured. Add GEMINI_API_KEY or Vertex AI credentials to environment secrets.' });
   }
 
-  // ── KEY GATE: 3 keys per nutrition scan ──
+  // ── KEY GATE: 1 key per nutrition scan ──
   const userId = getAuthenticatedUserId(req) || null;
   if (!userId) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
-  const keyResult = await deductKeys(userId, 3);
+  const keyResult = await deductKeys(userId, 1);
   if (!keyResult.success) {
     return res.status(402).json({
       error: 'Not enough keys',
       keysRemaining: keyResult.remaining,
-      keysRequired: 3,
+      keysRequired: 1,
     });
   }
 

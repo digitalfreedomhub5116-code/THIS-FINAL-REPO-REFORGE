@@ -578,7 +578,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
 
   // ── Native Camera/Gallery picker (Capacitor) ──
   const handleNativePick = async () => {
-      if ((playerData.keys ?? 0) < 3) {
+      if ((playerData.keys ?? 0) < 1) {
           setShowKeysAlert(true);
           return;
       }
@@ -598,7 +598,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
 
           if (!photo.dataUrl) return;
 
-          if ((playerData.keys ?? 0) < 3) {
+          if ((playerData.keys ?? 0) < 1) {
               setShowKeysAlert(true);
               return;
           }
@@ -664,7 +664,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-      if ((playerData.keys ?? 0) < 3) {
+      if ((playerData.keys ?? 0) < 1) {
           setShowKeysAlert(true);
           e.target.value = '';
           return;
@@ -1717,7 +1717,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                             <h3 className="text-lg font-bold text-white font-mono tracking-tight">LOG MEAL</h3>
                                             <p className="text-[10px] text-gray-400 font-mono mt-1 tracking-wider uppercase opacity-80">TAP TO SCAN · CAMERA OR GALLERY</p>
                                             <p className="text-[9px] text-gray-500 font-mono tracking-widest uppercase mt-2 flex items-center justify-center gap-1">
-                                                <Zap size={10} className="text-[#00d4ff]" /> 3 KEYS
+                                                <Zap size={10} className="text-[#00d4ff]" /> 1 KEY
                                             </p>
                                         </div>
 
