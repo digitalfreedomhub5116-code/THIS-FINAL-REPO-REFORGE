@@ -9,7 +9,7 @@ import { useCallback, useRef, useEffect, useState } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 // ── Toggle for test ads (set to false for production builds) ──
-const USE_TEST_ADS = false; // ✅ PRODUCTION MODE
+const USE_TEST_ADS = true; // 🧪 TEST MODE — switch to false once AdMob app is approved
 
 // Google's official test ad unit IDs (always return test ads, safe to use)
 const TEST_AD_UNITS = {
@@ -57,8 +57,8 @@ export function useAdMob() {
 
       try {
         await AdMob.initialize({
-          // Set to false for production
-          initializeForTesting: false,
+          // Set to true while using test ads, false for production
+          initializeForTesting: USE_TEST_ADS,
           // Request user consent (GDPR)
           requestTrackingAuthorization: true,
         });
@@ -133,7 +133,7 @@ export function useAdMob() {
         };
 
         // Prepare and show
-        AdMob.prepareRewardVideoAd({ adId: adUnitId })
+        AdMob.prepareRewardVideoAd({ adId: adUnitId, isTesting: USE_TEST_ADS })
           .then(() => AdMob.showRewardVideoAd())
           .then(() => {
             // Ad shown, waiting for reward/dismiss events
@@ -204,7 +204,7 @@ export function useAdMob() {
           }, 500);
         };
 
-        AdMob.prepareInterstitial({ adId: adUnitId })
+        AdMob.prepareInterstitial({ adId: adUnitId, isTesting: USE_TEST_ADS })
           .then(() => AdMob.showInterstitial())
           .catch((err: any) => {
             console.error('[AdMob] Interstitial error:', err);
