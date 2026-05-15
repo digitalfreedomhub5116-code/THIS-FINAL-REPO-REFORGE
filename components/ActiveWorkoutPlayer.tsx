@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Pause, X, AlertOctagon, Check, Activity, Film, Timer as TimerIcon, ChevronRight, Zap, Clock } from 'lucide-react';
+import { Play, Pause, X, AlertOctagon, Check, Activity, Film, Timer as TimerIcon, ChevronRight, Zap, Clock, Dumbbell } from 'lucide-react';
 import { EXERCISE_VIDEOS, getExerciseVideoUrl, fixVideoPath } from '../lib/exerciseVideos';
 import { WorkoutDay } from '../types';
 import { SpeechService } from '../utils/speechService';
@@ -516,7 +516,7 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
             </AnimatePresence>
 
             {/* Video Player */}
-            <div className="w-full h-full flex items-center justify-center bg-black">
+            <div className="w-full h-full flex items-center justify-center bg-black relative">
                 {videoSource ? (
                     isEmbed(videoSource) ? (
                         <iframe 
@@ -526,17 +526,30 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
                             allow="autoplay; encrypted-media"
                         />
                     ) : (
-                        <video 
-                            key={videoSource} // Force reload on change
-                            src={videoSource} 
-                            poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
-                            className="w-full h-full object-cover object-top" 
-                            style={{ opacity: 0.95 }}
-                            autoPlay 
-                            loop 
-                            muted 
-                            playsInline 
-                        />
+                        <>
+                            {/* Skeleton shimmer — shows while video buffers */}
+                            <div className="absolute inset-0 z-0 flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+                                <div className="absolute inset-0 overflow-hidden">
+                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.03] to-transparent animate-[shimmer_2s_infinite]" 
+                                         style={{ transform: 'translateX(-100%)', animation: 'shimmer 2s infinite' }} />
+                                </div>
+                                <div className="w-14 h-14 rounded-full bg-gray-800/80 border border-gray-700/50 flex items-center justify-center mb-3 animate-pulse">
+                                    <Dumbbell size={24} className="text-gray-600" />
+                                </div>
+                                <div className="text-[10px] text-gray-600 font-mono tracking-widest uppercase">Loading...</div>
+                            </div>
+                            <video 
+                                key={videoSource}
+                                src={videoSource} 
+                                poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+                                className="w-full h-full object-cover object-top relative z-[1]" 
+                                style={{ opacity: 0.95 }}
+                                autoPlay 
+                                loop 
+                                muted 
+                                playsInline 
+                            />
+                        </>
                     )
                 ) : (
                     <div className="flex flex-col items-center justify-center text-gray-600 opacity-50">
