@@ -798,6 +798,41 @@ router.post('/:id/avatar', async (req: Request, res: Response) => {
 
     const filePath = `avatars/${id}.${extension}`;
 
+    // ── Delete previous avatar from Storage (cleanup orphaned files) ──
+    try {
+      const { data: currentPlayer } = await sb
+        .from('players')
+        .select('avatar_url')
+        .eq('supabase_id', id)
+        .single();
+
+      if (currentPlayer?.avatar_url) {
+        const oldUrl: string = currentPlayer.avatar_url;
+        // Only delete if it's in our avatars bucket (not Google/bot URLs)
+        if (oldUrl.includes('/storage/v1/object/public/avatars/')) {
+          // Extract file path from URL: .../avatars/avatars/userId.webp → avatars/userId.webp
+          const match = oldUrl.match(/\/avatars\/(.+?)(\?|$)/);
+          if (match) {
+            const oldFilePath = `avatars/${match[1]}`;
+            // Delete all possible extensions for this user
+            const possiblePaths = [
+              `avatars/${id}.webp`,
+              `avatars/${id}.png`,
+              `avatars/${id}.jpg`,
+            ].filter(p => p !== filePath); // Don't delete the path we're about to upload to
+
+            if (possiblePaths.length > 0) {
+              await sb.storage.from('avatars').remove(possiblePaths);
+              console.log(`[Avatar Upload] Cleaned up old avatar files for ${id}`);
+            }
+          }
+        }
+      }
+    } catch (cleanupErr: any) {
+      // Non-fatal: old file stays but new one still uploads fine
+      console.warn('[Avatar Upload] Old avatar cleanup failed (non-fatal):', cleanupErr?.message);
+    }
+
     // ── Ensure the 'avatars' bucket exists ──
     // First-time setup: the bucket may not exist yet in Supabase Storage
     try {
@@ -812,7 +847,6 @@ router.post('/:id/avatar', async (req: Request, res: Response) => {
         });
         if (createErr) {
           console.error('[Avatar Upload] Bucket creation failed:', createErr);
-          // Non-fatal: bucket might already exist from another worker
         }
       }
     } catch (bucketErr: any) {
