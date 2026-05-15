@@ -262,7 +262,11 @@ async function loadAndCacheAvatar(url: string): Promise<string> {
   }
 }
 
-/** Internal avatar image with skeleton loading + optimization */
+// 620-byte inline default avatar — shows instantly (zero network request)
+// Dark grey circle with person silhouette, matching the app's dark theme
+const DEFAULT_AVATAR_DATA_URI = 'data:image/webp;base64,UklGRmQCAABXRUJQVlA4WAoAAAAQAAAAPwAAPwAAQUxQSJIBAAABkFvbtmo3+z5BxsxcAMca6gDNjCmH4oxVgZntUFYBZsYP4R8KTR/N9I743Xt2AxExAbBePjR241Us8edPIvbq+uhgOXR3z4d8CeiH5rrU5J+NiuXI2TwNxRMJcZgYL3Jl9n8Sx/ETnpPWR6LwYYuD/qSozOy05S2I2jnPSu51UXwtx0Lukqi+mxPIXBLl170gC6J+JsA2Idy1pZYUQ6p5C+aRUN43mx0V0gObFH9m+Vi40aTQjm6Qn+CJ5607K8Sn14WYIgC6hbodmOeaAcJcb1Duc/mlQ0I+MM42coPt6ku258tssTjb599sv/jibJ+X2WIv2Z5fZ7syxjY8yNZf7nP9L0WI6zUwzzUNdHG1AQgxRQDgLNPpdXkJnnjeOkzwjGDDok8sHwo2wmGWfdjUPOS4ZzZDS4oh2YytDjEMYOtz+qYQ0FzQds0LgpwlXYs5CJ59TtOVHNg0M2r8KQPLfQkd6e2w33xfw70muDT7E67Sxw0cF573XfgXC6Cw97u97z3QWXnH1mIt1A5GbUT6YRdWUDggrAAAABAIAJ0BKkAAQAA+xVSeS7m2IqGz+ZqrMBiJZwDL4CEbg3iqPipvIUOC31rBwAWz5n8pNs4RXPY/rXmJHHEosMn5YQ9uaHCeAAAA/vGv3iK/E66zqXiUzW8BTCQnOyPNpmorAriWGKZ0zQt2q/FxUJsglYZqQ65OilCZP9KW1Cpk/TgrpgeDXdoTfnaCdms6LT2ChzBV1zjwex6fQZlXEiXi/tWvTYwZUkoAAAA=';
+
+/** Internal avatar image with instant default placeholder + optimization */
 function AvatarImage({ src, size }: { src: string; size: number }) {
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(false);
@@ -295,14 +299,14 @@ function AvatarImage({ src, size }: { src: string; size: number }) {
 
   return (
     <>
+      {/* Default avatar — shows instantly while real one loads */}
       {!loaded && (
-        <div
-          className="absolute inset-0 rounded-full"
-          style={{
-            background: 'linear-gradient(110deg, rgba(255,255,255,0.03) 30%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.03) 70%)',
-            backgroundSize: '200% 100%',
-            animation: 'skeleton-shimmer 1.5s ease-in-out infinite',
-          }}
+        <img
+          src={DEFAULT_AVATAR_DATA_URI}
+          alt=""
+          width={size}
+          height={size}
+          className="w-full h-full object-cover rounded-full absolute inset-0"
         />
       )}
       {displaySrc && (
