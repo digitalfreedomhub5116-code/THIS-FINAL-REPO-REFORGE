@@ -770,7 +770,6 @@ router.post('/:id/avatar', async (req: Request, res: Response) => {
     }
 
     // ── Resize if sharp is available, otherwise use raw buffer ──
-    // Client already compresses to 512x512 WebP, so skipping sharp is safe.
     let buffer: Buffer = rawBuffer;
     let contentType = 'image/webp';
     let extension = 'webp';
@@ -783,126 +782,90 @@ router.post('/:id/avatar', async (req: Request, res: Response) => {
       buffer = resized;
       console.log(`[Avatar Upload] Sharp: ${rawBuffer.length} → ${resized.length} bytes`);
     } catch (sharpErr: any) {
-      // Sharp failed (not installed, bad image format, etc.) — use raw buffer
-      console.warn(`[Avatar Upload] Sharp processing failed, using raw buffer: ${sharpErr?.message}`);
-      // Detect content type from the data URL prefix
+      console.warn(`[Avatar Upload] Sharp failed, using raw buffer: ${sharpErr?.message}`);
       if (imageBase64.startsWith('data:image/png')) {
-        contentType = 'image/png';
-        extension = 'png';
+        contentType = 'image/png'; extension = 'png';
       } else if (imageBase64.startsWith('data:image/jpeg') || imageBase64.startsWith('data:image/jpg')) {
-        contentType = 'image/jpeg';
-        extension = 'jpg';
+        contentType = 'image/jpeg'; extension = 'jpg';
       }
-      // else default to webp
     }
 
-    const filePath = `avatars/${id}.${extension}`;
+    // ── Content-hash filename: new image = new URL = browser cache works perfectly ──
+    // Hash the final buffer to create a unique filename per image content
+    const crypto = require('crypto');
+    const contentHash = crypto.createHash('md5').update(buffer).digest('hex').substring(0, 8);
+    const filePath = `avatars/${id}_${contentHash}.${extension}`;
 
-    // ── Delete previous avatar from Storage (cleanup orphaned files) ──
+    // ── Delete ALL previous avatar files for this user ──
     try {
-      const { data: currentPlayer } = await sb
-        .from('players')
-        .select('avatar_url')
-        .eq('supabase_id', id)
-        .single();
+      const { data: files } = await sb.storage
+        .from('avatars')
+        .list('avatars', { search: id });
 
-      if (currentPlayer?.avatar_url) {
-        const oldUrl: string = currentPlayer.avatar_url;
-        // Only delete if it's in our avatars bucket (not Google/bot URLs)
-        if (oldUrl.includes('/storage/v1/object/public/avatars/')) {
-          // Extract file path from URL: .../avatars/avatars/userId.webp → avatars/userId.webp
-          const match = oldUrl.match(/\/avatars\/(.+?)(\?|$)/);
-          if (match) {
-            const oldFilePath = `avatars/${match[1]}`;
-            // Delete all possible extensions for this user
-            const possiblePaths = [
-              `avatars/${id}.webp`,
-              `avatars/${id}.png`,
-              `avatars/${id}.jpg`,
-            ].filter(p => p !== filePath); // Don't delete the path we're about to upload to
+      if (files && files.length > 0) {
+        const oldPaths = files
+          .filter((f: any) => f.name.startsWith(id))
+          .map((f: any) => `avatars/${f.name}`);
 
-            if (possiblePaths.length > 0) {
-              await sb.storage.from('avatars').remove(possiblePaths);
-              console.log(`[Avatar Upload] Cleaned up old avatar files for ${id}`);
-            }
-          }
+        if (oldPaths.length > 0) {
+          await sb.storage.from('avatars').remove(oldPaths);
+          console.log(`[Avatar Upload] Deleted ${oldPaths.length} old file(s) for ${id}`);
         }
       }
     } catch (cleanupErr: any) {
-      // Non-fatal: old file stays but new one still uploads fine
-      console.warn('[Avatar Upload] Old avatar cleanup failed (non-fatal):', cleanupErr?.message);
+      console.warn('[Avatar Upload] Old file cleanup failed (non-fatal):', cleanupErr?.message);
     }
 
     // ── Ensure the 'avatars' bucket exists ──
-    // First-time setup: the bucket may not exist yet in Supabase Storage
     try {
       const { data: buckets } = await sb.storage.listBuckets();
       const avatarBucket = (buckets || []).find((b: any) => b.name === 'avatars');
       if (!avatarBucket) {
         console.log('[Avatar Upload] Creating "avatars" bucket...');
-        const { error: createErr } = await sb.storage.createBucket('avatars', {
+        await sb.storage.createBucket('avatars', {
           public: true,
           fileSizeLimit: 5 * 1024 * 1024,
           allowedMimeTypes: ['image/webp', 'image/png', 'image/jpeg'],
         });
-        if (createErr) {
-          console.error('[Avatar Upload] Bucket creation failed:', createErr);
-        }
       }
     } catch (bucketErr: any) {
       console.warn('[Avatar Upload] Bucket check failed (non-fatal):', bucketErr?.message);
     }
 
-    // ── Upload with upsert ──
-    let uploadErr: any = null;
-    const uploadResult = await sb.storage
+    // ── Upload with IMMUTABLE cache (1 year) ──
+    // Since filename contains content hash, same content = same URL = cached forever.
+    // Different content = different URL = fresh download. No cache busting needed.
+    const { error: uploadErr } = await sb.storage
       .from('avatars')
       .upload(filePath, buffer, {
         contentType,
-        upsert: true,
-        cacheControl: '86400',
+        upsert: false, // New unique filename each time, no upsert needed
+        cacheControl: '31536000', // 1 year — immutable content-addressed file
       });
-    uploadErr = uploadResult.error;
 
-    // If upsert fails (some Supabase tiers), try remove + upload
     if (uploadErr) {
-      console.warn(`[Avatar Upload] Upsert failed: ${uploadErr.message}. Trying remove + upload...`);
-      await sb.storage.from('avatars').remove([filePath]);
-      const retryResult = await sb.storage
-        .from('avatars')
-        .upload(filePath, buffer, {
-          contentType,
-          cacheControl: '86400',
-        });
-      if (retryResult.error) {
-        console.error('[Avatar Upload] Storage error after retry:', retryResult.error);
-        return res.status(500).json({
-          error: `Failed to upload avatar: ${retryResult.error.message || 'Storage error'}`,
-        });
-      }
-      uploadErr = null;
+      console.error('[Avatar Upload] Storage error:', uploadErr);
+      return res.status(500).json({
+        error: `Failed to upload avatar: ${uploadErr.message || 'Storage error'}`,
+      });
     }
 
-    // Get the public URL — store WITHOUT cache-buster in DB so CDN/browser caching works.
-    // Only return the cache-busted URL in the response so the uploader sees the fresh image.
+    // Get the public URL — content-hash means URL IS the cache key, no ?t= needed
     const { data: urlData } = sb.storage.from('avatars').getPublicUrl(filePath);
-    const cleanUrl = urlData.publicUrl;
-    const freshUrl = `${cleanUrl}?t=${Date.now()}`;
+    const avatarUrl = urlData.publicUrl;
 
-    // Update avatar_url column in players table (clean URL, no cache-buster)
+    // Update avatar_url column in players table
     const { error: dbErr } = await sb
       .from('players')
-      .update({ avatar_url: cleanUrl, updated_at: new Date().toISOString() })
+      .update({ avatar_url: avatarUrl, updated_at: new Date().toISOString() })
       .eq('supabase_id', id);
 
     if (dbErr) {
       console.error('[Avatar Upload] DB update failed:', dbErr);
-      // Upload succeeded but DB update failed — still return the URL
-      // so the client can display it, even if next load won't have it
     }
 
-    console.log(`[Avatar Upload] Updated avatar for ${id} (${rawBuffer.length} → ${buffer.length} bytes)`);
-    return res.json({ success: true, avatarUrl: freshUrl });
+    console.log(`[Avatar Upload] ${id}: ${rawBuffer.length}→${buffer.length} bytes, hash=${contentHash}`);
+    return res.json({ success: true, avatarUrl });
   } catch (err: any) {
     console.error('[Avatar Upload] Unexpected error:', err?.message || err);
     return res.status(500).json({ error: `Avatar upload failed: ${err?.message || 'Unknown error'}` });
