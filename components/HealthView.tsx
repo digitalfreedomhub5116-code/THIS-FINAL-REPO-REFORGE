@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Activity, Ruler, Fingerprint, Flame, Target, Check, Sparkles, User, Weight, ChevronRight, ChevronLeft, ShieldCheck, ArrowRight, Clock, TrendingUp, Trash2, Utensils, Camera, Loader2, Save, Droplets, Wheat, Beef, SkipForward, Lock, Key, Cpu, Plus, X, Settings, Zap } from 'lucide-react';
-import { HealthProfile, WorkoutDay, WorkoutPlan, PlayerData, ProgressPhoto, MealLog, FoodItem, MealType } from '../types';
+import { HealthProfile, WorkoutDay, WorkoutPlan, PlayerData, ProgressPhoto, MealLog, FoodItem, MealType, FormCoachSession } from '../types';
 import ActiveWorkoutPlayer, { SavedWorkoutSession, loadWorkoutSession, clearWorkoutSession } from './ActiveWorkoutPlayer';
 import WorkoutRewardModal, { WorkoutReward } from './WorkoutRewardModal';
 import WorkoutMap from './WorkoutMap';
@@ -65,7 +65,7 @@ function updateScan(patch: Partial<ScanSessionStore>) {
 interface HealthViewProps {
   healthProfile?: HealthProfile;
   onSaveProfile: (profile: HealthProfile, identity: string) => void;
-  onCompleteWorkout: (exercisesCompleted: number, totalExercises: number, results: Record<string, number>, intensityModifier: boolean, anomalyPoints?: number, isCustomWorkout?: boolean) => WorkoutReward[] | void;
+  onCompleteWorkout: (exercisesCompleted: number, totalExercises: number, results: Record<string, number>, intensityModifier: boolean, anomalyPoints?: number, isCustomWorkout?: boolean, formCoachBonusXp?: number, formCoachSession?: FormCoachSession) => WorkoutReward[] | void;
   onFailWorkout: () => void;
   onAddPhoto?: (photo: ProgressPhoto) => void;
   onDeletePhoto?: (id: string) => void;
@@ -878,9 +878,9 @@ export const HealthView: React.FC<HealthViewProps> = ({
     <>
       <ActiveWorkoutPlayer
         plan={activePlan}
-        onComplete={(c, t, r, anomaly) => {
+        onComplete={(c, t, r, anomaly, formCoachBonusXp, formCoachSession) => {
           const isCustomWorkout = activePlan.day === 'CUSTOM' || activePlan.day.includes('Custom');
-          const rewards = onCompleteWorkout(c, t, r, false, anomaly, isCustomWorkout);
+          const rewards = onCompleteWorkout(c, t, r, false, anomaly, isCustomWorkout, formCoachBonusXp, formCoachSession);
           clearWorkoutSession(playerData.userId || 'local');
           setSavedSession(null);
           // Log session and update day map

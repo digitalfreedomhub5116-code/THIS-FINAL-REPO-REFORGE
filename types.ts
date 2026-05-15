@@ -330,6 +330,21 @@ export interface FormCoachResult {
   bonusXp: number;
 }
 
+/** Aggregated form coach data for an entire workout session */
+export interface FormCoachSession {
+  date: string; // ISO date string
+  timestamp: number;
+  exercises: {
+    name: string;
+    avgFormScore: number;
+    totalReps: number;
+    sets: number;
+  }[];
+  overallScore: number; // 0-100, weighted average
+  totalBonusXp: number;
+  perfectSets: number; // Sets with score >= 90
+}
+
 export interface WorkoutDay {
   day: string;
   focus: string;
@@ -789,4 +804,7 @@ export interface PlayerData {
   // Schedule Planner
   scheduleProfile?: ScheduleProfile;
   dailySchedules?: DailySchedule[];
+
+  // Form Coach (AI Motion Coach) History
+  formCoachHistory?: FormCoachSession[];
 }

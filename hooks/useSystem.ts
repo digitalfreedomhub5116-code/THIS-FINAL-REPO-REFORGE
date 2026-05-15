@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   PlayerData, Quest, ShopItem, SystemNotification, NotificationType,
   ActivityLog, HealthProfile, ProgressPhoto, MealLog, WorkoutDay, AdminExercise, DailyReward,
-  ReplitUser, HistoryEntry, Goal
+  ReplitUser, HistoryEntry, Goal, FormCoachSession
 } from '../types';
 import { playSystemSoundEffect } from '../utils/soundEngine';
 import { getPlayerAuthHeaders } from '../lib/playerApi';
@@ -1631,7 +1631,9 @@ export const useSystem = () => {
     results: Record<string, number>,
     intensityModifier: boolean,
     anomalyPoints: number = 0,
-    isCustomWorkout: boolean = false
+    isCustomWorkout: boolean = false,
+    formCoachBonusXp: number = 0,
+    formCoachSession?: FormCoachSession
   ): WorkoutReward[] => {
     // Guard against duplicate rapid calls
     if (workoutCompletingRef.current) return [];
@@ -1723,6 +1725,11 @@ export const useSystem = () => {
         totalGoldGain = Math.floor((baseXp + bonusXp) / 10) + goldReward;
       }
 
+      // Apply Form Coach bonus XP
+      if (formCoachBonusXp > 0) {
+        totalXpGain += formCoachBonusXp;
+      }
+
       const stats = { ...prev.stats };
       const dailyStats = { ...prev.dailyStats };
       const weeklyStats = { ...prev.weeklyStats };
@@ -1796,7 +1803,14 @@ export const useSystem = () => {
 
         logs: newLogs,
         lastWorkoutDate: today,
-        ...(leveledUp ? { hp: prev.maxHp, mp: prev.maxMp } : {})
+        ...(leveledUp ? { hp: prev.maxHp, mp: prev.maxMp } : {}),
+        // Store Form Coach session history (cap at 50)
+        ...(formCoachSession ? {
+          formCoachHistory: [
+            formCoachSession,
+            ...(prev.formCoachHistory || []),
+          ].slice(0, 50)
+        } : {}),
       };
     });
 
@@ -1807,8 +1821,12 @@ export const useSystem = () => {
       // Cancel today's workout/streak/leaderboard reminders — user has already trained
       cancelDailyReminders().catch(() => {});
       const rewardSummary = rewards.map(r => `${r.amount} ${r.label}`).join(', ');
-      addNotification(`Workout Complete! Rewards: ${rewardSummary}`, 'SUCCESS');
-      triggerDuskMessage(`Workout Completed: ${exercisesCompleted}/${totalExercises} exercises done. Intensity: ${intensityModifier ? 'HIGH' : 'NORMAL'}. Rewards: ${rewardSummary}.`);
+      const formCoachTag = formCoachBonusXp > 0 ? ` + ${formCoachBonusXp} Form XP` : '';
+      addNotification(`Workout Complete! Rewards: ${rewardSummary}${formCoachTag}`, 'SUCCESS');
+      if (formCoachSession && formCoachBonusXp > 0) {
+        addNotification(`🎯 Motion Coach: ${formCoachSession.overallScore}% Form Score — +${formCoachBonusXp} Bonus XP`, 'SUCCESS');
+      }
+      triggerDuskMessage(`Workout Completed: ${exercisesCompleted}/${totalExercises} exercises done. Intensity: ${intensityModifier ? 'HIGH' : 'NORMAL'}. Rewards: ${rewardSummary}.${formCoachSession ? ` Form Coach Score: ${formCoachSession.overallScore}%, Bonus: +${formCoachBonusXp} XP, Perfect Sets: ${formCoachSession.perfectSets}.` : ''}`);
       // Award random outfit stones on workout completion (2-5)
       awardRandomStones(2, 5, 'Workout');
     }

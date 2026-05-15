@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Pause, X, AlertOctagon, Check, Activity, Film, Timer as TimerIcon, ChevronRight, Zap, Clock, Dumbbell, Camera } from 'lucide-react';
 import { EXERCISE_VIDEOS, getExerciseVideoUrl, fixVideoPath } from '../lib/exerciseVideos';
-import { WorkoutDay } from '../types';
+import { WorkoutDay, FormCoachSession } from '../types';
 import { SpeechService } from '../utils/speechService';
 import { playSystemSoundEffect } from '../utils/soundEngine';
 import { useSystem, isEmbed } from '../hooks/useSystem';
@@ -15,7 +15,7 @@ import FormCoachSummary from './FormCoachSummary';
 
 interface ActiveWorkoutPlayerProps {
   plan: WorkoutDay;
-  onComplete: (exercisesCompleted: number, totalExercises: number, results: Record<string, number>, anomalyPoints?: number) => void;
+  onComplete: (exercisesCompleted: number, totalExercises: number, results: Record<string, number>, anomalyPoints?: number, formCoachBonusXp?: number, formCoachSession?: FormCoachSession) => void;
   onFail: () => void;
   streak: number;
   savedSession?: SavedWorkoutSession | null;
@@ -135,6 +135,12 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
   // --- FORM COACH STATE ---
   const [formCoachState, setFormCoachState] = useState<FormCoachState | null>(null);
   const lastFormCoachStateRef = useRef<FormCoachState | null>(null);
+  // Accumulated form coach data across the entire workout
+  const formCoachAccumRef = useRef<{
+    exercises: Map<string, { scores: number[]; totalReps: number; sets: number }>;
+    totalBonusXp: number;
+    perfectSets: number;
+  }>({ exercises: new Map(), totalBonusXp: 0, perfectSets: 0 });
 
   // Derived Data
   const exercise = plan.exercises[currentIdx] || plan.exercises[0]; // Fallback to avoid undefined crash
@@ -259,7 +265,31 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
       clearWorkoutSession(player.userId || 'local');
       SpeechService.announceVictory();
       playSystemSoundEffect('LEVEL_UP');
-      onComplete(totalExercises, totalExercises, results, anomalyPoints);
+
+      // Build FormCoachSession from accumulated data
+      const accum = formCoachAccumRef.current;
+      let formSession: FormCoachSession | undefined;
+      if (accum.exercises.size > 0) {
+        const exerciseEntries = Array.from(accum.exercises.entries()).map(([name, data]) => ({
+          name,
+          avgFormScore: data.scores.length > 0 ? Math.round(data.scores.reduce((a, b) => a + b, 0) / data.scores.length) : 100,
+          totalReps: data.totalReps,
+          sets: data.sets,
+        }));
+        const overallScore = exerciseEntries.length > 0
+          ? Math.round(exerciseEntries.reduce((a, e) => a + e.avgFormScore, 0) / exerciseEntries.length)
+          : 100;
+        formSession = {
+          date: new Date().toISOString().split('T')[0],
+          timestamp: Date.now(),
+          exercises: exerciseEntries,
+          overallScore,
+          totalBonusXp: accum.totalBonusXp,
+          perfectSets: accum.perfectSets,
+        };
+      }
+
+      onComplete(totalExercises, totalExercises, results, anomalyPoints, accum.totalBonusXp, formSession);
     }
   }, [currentIdx, totalExercises, onComplete, results, anomalyPoints, plan.exercises]);
 
@@ -279,6 +309,27 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
       }
       
       setResults(prev => ({...prev, [`${exercise.name}_set${currentSet}`]: 1 }));
+      
+      // --- FORM COACH: Accumulate set data for final summary ---
+      if (lastFormCoachStateRef.current && lastFormCoachStateRef.current.repResults.length > 0) {
+        const fcState = lastFormCoachStateRef.current;
+        const accum = formCoachAccumRef.current;
+        const existing = accum.exercises.get(exercise.name) || { scores: [], totalReps: 0, sets: 0 };
+        existing.scores.push(fcState.formScore);
+        existing.totalReps += fcState.repCount;
+        existing.sets += 1;
+        accum.exercises.set(exercise.name, existing);
+
+        // Calculate XP bonus for this set
+        let setBonus = 0;
+        if (fcState.formScore >= 90) { setBonus = 20; accum.perfectSets++; }
+        else if (fcState.formScore >= 75) setBonus = 10;
+        else if (fcState.formScore >= 50) setBonus = 5;
+        accum.totalBonusXp += setBonus;
+
+        // Clear for next set
+        lastFormCoachStateRef.current = null;
+      }
       
       if (currentSet < exercise.sets) {
         // Transition to Next Set (Same Exercise)
