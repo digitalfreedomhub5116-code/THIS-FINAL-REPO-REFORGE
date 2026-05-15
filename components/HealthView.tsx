@@ -86,6 +86,40 @@ interface HealthViewProps {
 }
 
 
+// ── Plan Card Image with Skeleton Loading ──────────────────────────────────────
+const PlanCardImage: React.FC<{ src: string; alt: string }> = ({ src, alt }) => {
+  const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState(false);
+
+  if (error) {
+    return <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, #0d0d0d 0%, #1a1a1a 100%)' }} />;
+  }
+
+  return (
+    <>
+      {/* Skeleton shimmer — visible until image loads */}
+      {!loaded && (
+        <div className="absolute inset-0 z-0 flex flex-col items-center justify-center" style={{ background: 'linear-gradient(135deg, #0a0a0f 0%, #141420 40%, #0a0a0f 100%)' }}>
+          <div className="absolute inset-0 overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.04] to-transparent animate-shimmer" />
+          </div>
+          <div className="w-10 h-10 rounded-full bg-gray-800/60 border border-gray-700/30 flex items-center justify-center animate-pulse">
+            <Activity size={18} className="text-gray-600" />
+          </div>
+        </div>
+      )}
+      <img
+        src={src}
+        alt={alt}
+        className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500"
+        style={{ opacity: loaded ? 1 : 0 }}
+        onLoad={() => setLoaded(true)}
+        onError={() => setError(true)}
+      />
+    </>
+  );
+};
+
 export const HealthView: React.FC<HealthViewProps> = ({ 
   healthProfile, onSaveProfile, onCompleteWorkout, onFailWorkout, onLogMeal, onDeleteMeal: _onDeleteMeal, playerData, onToggleNav, onConsumeMana, onRefundMana, onAddRewards, onUpdateSkillProgress, playerLevel = 99, initialSubTab, onShowDungeonAd, onWatchAdToDouble
 }) => {
@@ -1144,7 +1178,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                                     }}
                                                 >
                                                     {plan.image_url ? (
-                                                        <img src={plan.image_url} alt={plan.name} className="absolute inset-0 w-full h-full object-cover" onError={e => { (e.target as any).style.display = 'none'; }} />
+                                                        <PlanCardImage src={plan.image_url} alt={plan.name} />
                                                     ) : (
                                                         <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, #0d0d0d 0%, #1a1a1a 100%)' }} />
                                                     )}
