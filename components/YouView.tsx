@@ -824,6 +824,7 @@ const AvatarChangeModal: React.FC<{
     animate={{ opacity: 1 }}
     exit={{ opacity: 0 }}
     className="fixed inset-0 z-[700] bg-black/85 backdrop-blur-sm flex items-end justify-center"
+    style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 5.5rem)' }}
     onClick={onClose}
   >
     <motion.div
@@ -832,7 +833,7 @@ const AvatarChangeModal: React.FC<{
       exit={{ y: 120, opacity: 0 }}
       transition={{ type: 'spring', damping: 28, stiffness: 350 }}
       onClick={e => e.stopPropagation()}
-      className="w-full max-w-md mx-4 mb-6"
+      className="w-full max-w-md mx-4"
     >
       {uploading ? (
         <div className="bg-[#0a0a14] border border-white/10 rounded-2xl p-10 flex flex-col items-center gap-4">

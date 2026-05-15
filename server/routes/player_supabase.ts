@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { supabaseServer } from '../lib/supabase.js';
 import { getAuthenticatedUserId } from '../lib/playerAuth.js';
 import sharp from 'sharp';
+import { createHash } from 'crypto';
 
 const router = Router();
 
@@ -792,8 +793,7 @@ router.post('/:id/avatar', async (req: Request, res: Response) => {
 
     // ── Content-hash filename: new image = new URL = browser cache works perfectly ──
     // Hash the final buffer to create a unique filename per image content
-    const crypto = require('crypto');
-    const contentHash = crypto.createHash('md5').update(buffer).digest('hex').substring(0, 8);
+    const contentHash = createHash('md5').update(buffer).digest('hex').substring(0, 8);
     const filePath = `avatars/${id}_${contentHash}.${extension}`;
 
     // ── Delete ALL previous avatar files for this user ──
