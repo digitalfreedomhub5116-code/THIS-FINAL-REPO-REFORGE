@@ -445,6 +445,27 @@ async function startServer() {
     } catch (err) {
       console.warn('[Server] Could not set up weekly reward cron:', err);
     }
+
+    // ── Bot Simulation Cron ──
+    // Simulates 7 dummy players daily: XP, streak, border changes, level/rank.
+    // Idempotent — each bot skips if already simulated today.
+    try {
+      const { runBotSimulation } = await import('./lib/botSimulation.js');
+
+      // Run on startup (after 5s delay to let DB connections settle)
+      setTimeout(() => {
+        runBotSimulation().catch(err => console.error('[BotSim] Startup run failed:', err));
+      }, 5000);
+
+      // Then check every 60 seconds (bots that already ran today will skip)
+      setInterval(() => {
+        runBotSimulation().catch(err => console.error('[BotSim] Interval run failed:', err));
+      }, 60_000);
+
+      console.log('[Server] Bot simulation scheduled (checks every 60s)');
+    } catch (err) {
+      console.warn('[Server] Could not set up bot simulation:', err);
+    }
   });
 }
 

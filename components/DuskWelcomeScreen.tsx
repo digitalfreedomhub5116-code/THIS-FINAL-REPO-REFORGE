@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE } from '../lib/apiConfig';
+import { triggerHaptic } from '../utils/soundEngine';
 
 interface DuskWelcomeScreenProps {
   onComplete: () => void;
@@ -232,7 +233,7 @@ const DuskWelcomeScreen: React.FC<DuskWelcomeScreenProps> = ({ onComplete }) => 
                     transition={{ duration: 0.5 }}
                   >
                     <button
-                      onClick={onComplete}
+                      onClick={() => { triggerHaptic('BUTTON_TAP'); onComplete(); }}
                       className="w-full py-2.5 sm:py-3 rounded-lg font-black text-xs tracking-[0.2em] uppercase transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
                       style={{
                         background: 'linear-gradient(135deg, rgba(0,212,255,0.9), rgba(0,180,220,0.95))',
