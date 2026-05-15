@@ -13,16 +13,15 @@ interface RankRewardOverlayProps {
 }
 
 // ── Rank Config ──
-const RANK_CONFIG: Record<number, { title: string; color: string; glow: string; medal: string; bgGrad: string }> = {
-  1: { title: 'FORGE SOVEREIGN', color: '#fbbf24', glow: 'rgba(251,191,36,0.6)', medal: '/images/medals/gold.webp', bgGrad: 'radial-gradient(ellipse at center, rgba(251,191,36,0.12) 0%, rgba(5,5,16,0.98) 70%)' },
-  2: { title: 'APEX ELITE', color: '#c0c0c0', glow: 'rgba(192,192,192,0.5)', medal: '/images/medals/silver.webp', bgGrad: 'radial-gradient(ellipse at center, rgba(192,192,192,0.08) 0%, rgba(5,5,16,0.98) 70%)' },
-  3: { title: 'APEX ELITE', color: '#cd7f32', glow: 'rgba(205,127,50,0.5)', medal: '/images/medals/bronze.webp', bgGrad: 'radial-gradient(ellipse at center, rgba(205,127,50,0.08) 0%, rgba(5,5,16,0.98) 70%)' },
-  4: { title: 'S-RANK ELITE', color: '#a855f7', glow: 'rgba(168,85,247,0.4)', medal: '', bgGrad: 'radial-gradient(ellipse at center, rgba(168,85,247,0.06) 0%, rgba(5,5,16,0.98) 70%)' },
-  5: { title: 'S-RANK ELITE', color: '#a855f7', glow: 'rgba(168,85,247,0.4)', medal: '', bgGrad: 'radial-gradient(ellipse at center, rgba(168,85,247,0.06) 0%, rgba(5,5,16,0.98) 70%)' },
+const RANK_CONFIG: Record<number, { emoji: string; title: string; color: string; glow: string; bgGrad: string }> = {
+  1: { emoji: '👑', title: 'FORGE SOVEREIGN', color: '#fbbf24', glow: 'rgba(251,191,36,0.6)', bgGrad: 'radial-gradient(ellipse at center, rgba(251,191,36,0.12) 0%, rgba(5,5,16,0.98) 70%)' },
+  2: { emoji: '🥈', title: 'APEX ELITE', color: '#c0c0c0', glow: 'rgba(192,192,192,0.5)', bgGrad: 'radial-gradient(ellipse at center, rgba(192,192,192,0.08) 0%, rgba(5,5,16,0.98) 70%)' },
+  3: { emoji: '🥉', title: 'APEX ELITE', color: '#cd7f32', glow: 'rgba(205,127,50,0.5)', bgGrad: 'radial-gradient(ellipse at center, rgba(205,127,50,0.08) 0%, rgba(5,5,16,0.98) 70%)' },
+  4: { emoji: '🏅', title: 'S-RANK ELITE', color: '#a855f7', glow: 'rgba(168,85,247,0.4)', bgGrad: 'radial-gradient(ellipse at center, rgba(168,85,247,0.06) 0%, rgba(5,5,16,0.98) 70%)' },
+  5: { emoji: '🏅', title: 'S-RANK ELITE', color: '#a855f7', glow: 'rgba(168,85,247,0.4)', bgGrad: 'radial-gradient(ellipse at center, rgba(168,85,247,0.06) 0%, rgba(5,5,16,0.98) 70%)' },
 };
-const HUNTER_CFG = { title: 'HUNTER CLASS', color: '#00d4ff', glow: 'rgba(0,212,255,0.4)', medal: '', bgGrad: 'radial-gradient(ellipse at center, rgba(0,212,255,0.06) 0%, rgba(5,5,16,0.98) 70%)' };
-const PART_CFG = { title: 'ACTIVE HUNTER', color: 'rgba(255,255,255,0.6)', glow: 'rgba(255,255,255,0.2)', medal: '', bgGrad: 'radial-gradient(ellipse at center, rgba(255,255,255,0.03) 0%, rgba(5,5,16,0.98) 70%)' };
-const RANK_EMOJI: Record<number, string> = { 1: '👑', 2: '🥈', 3: '🥉', 4: '🏅', 5: '🏅' };
+const HUNTER_CFG = { emoji: '⚔️', title: 'HUNTER CLASS', color: '#00d4ff', glow: 'rgba(0,212,255,0.4)', bgGrad: 'radial-gradient(ellipse at center, rgba(0,212,255,0.06) 0%, rgba(5,5,16,0.98) 70%)' };
+const PART_CFG = { emoji: '🛡️', title: 'ACTIVE HUNTER', color: 'rgba(255,255,255,0.6)', glow: 'rgba(255,255,255,0.2)', bgGrad: 'radial-gradient(ellipse at center, rgba(255,255,255,0.03) 0%, rgba(5,5,16,0.98) 70%)' };
 
 function getCfg(r: number) { return RANK_CONFIG[r] || (r <= 10 ? HUNTER_CFG : PART_CFG); }
 
@@ -170,7 +169,6 @@ const AnimCounter: React.FC<{ value: number; prefix?: string; color: string; del
 const RankRewardOverlay: React.FC<RankRewardOverlayProps> = ({ rank, gold, xp, username, onClaim }) => {
   const [phase, setPhase] = useState(0);
   const [flash, setFlash] = useState(false);
-  const [medalLoaded, setMedalLoaded] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<ConfettiEngine | null>(null);
   const cfg = getCfg(rank);
@@ -315,39 +313,14 @@ const RankRewardOverlay: React.FC<RankRewardOverlayProps> = ({ rank, gold, xp, u
               }}
             />
 
-            {/* Medal image or emoji fallback */}
-            {cfg.medal ? (
-              <motion.div
-                animate={{ y: [0, -8, 0] }}
-                transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-                style={{ position: 'relative', zIndex: 2 }}
-              >
-                <img
-                  src={cfg.medal}
-                  alt="Medal"
-                  onLoad={() => setMedalLoaded(true)}
-                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; setMedalLoaded(false); }}
-                  style={{
-                    width: 120, height: 120, objectFit: 'contain',
-                    filter: `drop-shadow(0 0 30px ${cfg.glow})`,
-                    display: medalLoaded || cfg.medal ? 'block' : 'none',
-                  }}
-                />
-                {!medalLoaded && (
-                  <div style={{ fontSize: 72, filter: `drop-shadow(0 0 20px ${cfg.glow})` }}>
-                    {RANK_EMOJI[rank] || '⚔️'}
-                  </div>
-                )}
-              </motion.div>
-            ) : (
-              <motion.div
-                animate={{ y: [0, -6, 0] }}
-                transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-                style={{ fontSize: 72, position: 'relative', zIndex: 2, filter: `drop-shadow(0 0 20px ${cfg.glow})` }}
-              >
-                {RANK_EMOJI[rank] || '⚔️'}
-              </motion.div>
-            )}
+            {/* Rank emoji */}
+            <motion.div
+              animate={{ y: [0, -6, 0] }}
+              transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+              style={{ fontSize: 72, position: 'relative', zIndex: 2, filter: `drop-shadow(0 0 20px ${cfg.glow})` }}
+            >
+              {cfg.emoji}
+            </motion.div>
 
             {/* Rank # */}
             <motion.div
