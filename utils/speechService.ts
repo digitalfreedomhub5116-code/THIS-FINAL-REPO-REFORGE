@@ -63,5 +63,29 @@ export const SpeechService = {
 
   announceFailure: () => {
     speak("System aborted. Penalty applied.", 0.9, 0.7);
-  }
+  },
+
+  // ── Form Coach Audio Coaching ──
+  announceFormCorrection: (message: string) => {
+    speak(message, 1.3, 1.1); // Faster + higher pitch for urgency
+  },
+
+  announceRepCounted: (repNumber: number) => {
+    if (repNumber <= 1) return; // Don't announce first rep
+    if (repNumber % 5 === 0) {
+      speak(`${repNumber} reps. Keep going.`, 1.2, 1.0);
+    }
+  },
+
+  announceFormScore: (score: number) => {
+    if (score >= 90) {
+      speak("Perfect form. Excellent work.", 1.0, 0.9);
+    } else if (score >= 75) {
+      speak("Good form. Minor adjustments needed.", 1.0, 0.9);
+    } else if (score >= 50) {
+      speak("Form needs improvement. Focus on technique.", 1.0, 0.9);
+    } else {
+      speak("Poor form detected. Reduce weight and focus on technique.", 1.0, 0.8);
+    }
+  },
 };

@@ -2,12 +2,16 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Pause, X, AlertOctagon, Check, Activity, Film, Timer as TimerIcon, ChevronRight, Zap, Clock, Dumbbell } from 'lucide-react';
+import { Play, Pause, X, AlertOctagon, Check, Activity, Film, Timer as TimerIcon, ChevronRight, Zap, Clock, Dumbbell, Camera } from 'lucide-react';
 import { EXERCISE_VIDEOS, getExerciseVideoUrl, fixVideoPath } from '../lib/exerciseVideos';
 import { WorkoutDay } from '../types';
 import { SpeechService } from '../utils/speechService';
 import { playSystemSoundEffect } from '../utils/soundEngine';
 import { useSystem, isEmbed } from '../hooks/useSystem';
+import { findFormCoachExercise } from '../lib/formCoachConfig';
+import type { FormCoachState } from '../utils/poseEngine';
+import FormCoachOverlay from './FormCoachOverlay';
+import FormCoachSummary from './FormCoachSummary';
 
 interface ActiveWorkoutPlayerProps {
   plan: WorkoutDay;
@@ -128,9 +132,17 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
   const completedRef = useRef(false);
   const [phaseStartTime, setPhaseStartTime] = useState(Date.now());
 
+  // --- FORM COACH STATE ---
+  const [formCoachState, setFormCoachState] = useState<FormCoachState | null>(null);
+  const lastFormCoachStateRef = useRef<FormCoachState | null>(null);
+
   // Derived Data
   const exercise = plan.exercises[currentIdx] || plan.exercises[0]; // Fallback to avoid undefined crash
   const totalExercises = plan.exercises.length;
+
+  // Check if current exercise supports Form Coach
+  const formCoachConfig = exercise?.formCoachEnabled ? findFormCoachExercise(exercise.name) : null;
+  const isFormCoachActive = !!formCoachConfig && phase === 'WORK';
   
   // Robust Video Lookup Strategy (checks EXERCISE_VIDEOS map → DB → exercise.videoUrl → focusVideos)
   const videoSource = React.useMemo(() => {
@@ -207,6 +219,7 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
       setPhase('WORK');
       setPhaseStartTime(Date.now());
       setCurrentSet(nextSet);
+      setFormCoachState(null); // Reset for fresh tracking
       
       // Dynamic Duration Calculation based on current exercise
       const currentEx = plan.exercises[currentIdx];
@@ -273,7 +286,12 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
         setPhase('REST');
         setPhaseStartTime(Date.now());
         setTimeLeft(restDuration);
-        SpeechService.announceRest(restDuration);
+        // Announce form score if Form Coach was active
+        if (lastFormCoachStateRef.current && lastFormCoachStateRef.current.repResults.length > 0) {
+          SpeechService.announceFormScore(lastFormCoachStateRef.current.formScore);
+        } else {
+          SpeechService.announceRest(restDuration);
+        }
       } else {
         handleExerciseComplete();
       }
@@ -464,11 +482,9 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        // Dynamic background opacity: Opaque normally, Transparent when <= 5s to show video
                         className={`absolute inset-0 z-20 flex flex-col items-center justify-center p-8 text-center transition-colors duration-500 ${isUpNextPreview ? 'bg-black/20 backdrop-blur-sm' : 'bg-black/90'}`}
                     >
                         {isUpNextPreview ? (
-                            // PREVIEW STATE (LAST 5 SECONDS)
                             <motion.div
                                 initial={{ opacity: 0, scale: 0.8 }}
                                 animate={{ opacity: 1, scale: 1 }}
@@ -485,39 +501,61 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
                                 </div>
                             </motion.div>
                         ) : (
-                            // STANDARD RECOVERY STATE
                             <motion.div 
                                 initial={{ scale: 0.8 }}
                                 animate={{ scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.5 }}
-                                className="bg-gray-900/50 border border-system-success/30 p-8 rounded-2xl shadow-[0_0_50px_rgba(16,185,129,0.1)] backdrop-blur-md"
+                                className="w-full max-w-sm"
                             >
-                                <h3 className="text-system-success font-mono font-bold tracking-widest text-lg mb-4 flex items-center justify-center gap-2">
-                                    <Activity size={20} className="animate-pulse" /> RECOVERY
-                                </h3>
-                                <div className="text-8xl font-black font-mono text-white mb-4 tabular-nums">
-                                    {timeLeft}<span className="text-2xl text-gray-500 ml-2">s</span>
-                                </div>
-                                <div className="space-y-1">
-                                    <p className="text-xs text-gray-400 font-mono uppercase tracking-wider">
-                                        UP NEXT
-                                    </p>
-                                    <p className="text-sm font-bold text-white uppercase max-w-[200px] truncate mx-auto">
-                                        {exercise.name}
-                                    </p>
-                                    <p className="text-xs text-gray-500 font-mono">
-                                        SET {currentSet + 1}
-                                    </p>
-                                </div>
+                                {/* Form Coach Summary (shown during REST when form data available) */}
+                                {lastFormCoachStateRef.current && lastFormCoachStateRef.current.repResults.length > 0 ? (
+                                    <div className="space-y-4">
+                                        <FormCoachSummary
+                                            setNumber={currentSet}
+                                            state={lastFormCoachStateRef.current}
+                                            targetReps={parseInt(exercise.reps) || 10}
+                                        />
+                                        <div className="text-center">
+                                            <div className="text-4xl font-black font-mono text-white mb-1 tabular-nums">
+                                                {timeLeft}<span className="text-lg text-gray-500 ml-1">s</span>
+                                            </div>
+                                            <p className="text-[10px] text-gray-500 font-mono tracking-widest">RECOVERY</p>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="bg-gray-900/50 border border-system-success/30 p-8 rounded-2xl shadow-[0_0_50px_rgba(16,185,129,0.1)] backdrop-blur-md">
+                                        <h3 className="text-system-success font-mono font-bold tracking-widest text-lg mb-4 flex items-center justify-center gap-2">
+                                            <Activity size={20} className="animate-pulse" /> RECOVERY
+                                        </h3>
+                                        <div className="text-8xl font-black font-mono text-white mb-4 tabular-nums">
+                                            {timeLeft}<span className="text-2xl text-gray-500 ml-2">s</span>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <p className="text-xs text-gray-400 font-mono uppercase tracking-wider">UP NEXT</p>
+                                            <p className="text-sm font-bold text-white uppercase max-w-[200px] truncate mx-auto">{exercise.name}</p>
+                                            <p className="text-xs text-gray-500 font-mono">SET {currentSet + 1}</p>
+                                        </div>
+                                    </div>
+                                )}
                             </motion.div>
                         )}
                     </motion.div>
                 )}
             </AnimatePresence>
 
-            {/* Video Player */}
+            {/* Video Player OR Form Coach Camera */}
             <div className="w-full h-full flex items-center justify-center bg-black relative">
-                {videoSource ? (
+                {formCoachConfig && phase === 'WORK' ? (
+                    /* ── Form Coach: Live Camera with Skeleton Overlay ── */
+                    <FormCoachOverlay
+                        exercise={formCoachConfig}
+                        isActive={phase === 'WORK' && !isPaused}
+                        onStateChange={(s) => {
+                            setFormCoachState(s);
+                            lastFormCoachStateRef.current = s;
+                        }}
+                    />
+                ) : videoSource ? (
                     isEmbed(videoSource) ? (
                         <iframe 
                             src={videoSource}
@@ -527,7 +565,6 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
                         />
                     ) : (
                         <>
-                            {/* Skeleton shimmer — shows while video buffers */}
                             <div className="absolute inset-0 z-0 flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
                                 <div className="absolute inset-0 overflow-hidden">
                                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.03] to-transparent animate-[shimmer_2s_infinite]" 
@@ -597,6 +634,11 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
                             <span className="bg-gray-900 px-2 py-1 rounded border border-gray-800 text-system-neon font-bold">
                                 {exercise.reps} REPS
                             </span>
+                            {formCoachConfig && (
+                                <span className="bg-orange-500/10 px-2 py-1 rounded border border-orange-500/30 text-orange-400 font-bold flex items-center gap-1">
+                                    <Camera size={10} /> FORM
+                                </span>
+                            )}
                         </div>
                     </div>
                     

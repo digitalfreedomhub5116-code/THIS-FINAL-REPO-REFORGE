@@ -35,6 +35,7 @@ import {
 } from './health/HealthHelpers';
 import SetupWizard from './health/SetupWizard';
 import { ProcessingView, DiagnosisView, ProjectionView, FinalizingView, GeneratingPlanOverlay, PlanCompleteView } from './health/OverlayViews';
+import { useSystem } from '../hooks/useSystem';
 
 // ── Module-level scan session (survives tab switches / component remounts) ──
 type ScanStateType = 'IDLE' | 'SCANNING' | 'RESULT' | 'ERROR';
@@ -124,6 +125,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
   healthProfile, onSaveProfile, onCompleteWorkout, onFailWorkout, onLogMeal, onDeleteMeal: _onDeleteMeal, playerData, onToggleNav, onConsumeMana, onRefundMana, onAddRewards, onUpdateSkillProgress, playerLevel = 99, initialSubTab, onShowDungeonAd, onWatchAdToDouble
 }) => {
   const [viewMode, setViewMode] = useState<'MAP' | 'OVERVIEW' | 'ACTIVE' | 'SETUP' | 'PROCESSING' | 'DIAGNOSIS' | 'PROJECTION' | 'FINALIZING' | 'PLAN_SELECT'>('MAP');
+  const { isPremium } = useSystem();
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
   const [genProgress, setGenProgress] = useState(0);
   const [showAIConfirm, setShowAIConfirm] = useState(false);
@@ -871,7 +873,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
       );
   }
 
-  if (viewMode === 'OVERVIEW' && activePlan) return <WorkoutOverview plan={activePlan} focusVideos={playerData.focusVideos} onStart={(p) => { setActivePlan(p); setViewMode('ACTIVE'); }} onCancel={() => setViewMode('MAP')} userWeight={healthProfile?.weight} onShowDungeonAd={onShowDungeonAd} />;
+  if (viewMode === 'OVERVIEW' && activePlan) return <WorkoutOverview plan={activePlan} focusVideos={playerData.focusVideos} onStart={(p) => { setActivePlan(p); setViewMode('ACTIVE'); }} onCancel={() => setViewMode('MAP')} userWeight={healthProfile?.weight} onShowDungeonAd={onShowDungeonAd} isPremium={isPremium} />;
   if (viewMode === 'ACTIVE' && activePlan) return (
     <>
       <ActiveWorkoutPlayer

@@ -2,11 +2,12 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
-import { Clock, Flame, Dumbbell, HeartPulse, Fingerprint, ScanLine, Video, AlertTriangle, ChevronRight, CheckCircle2, X } from 'lucide-react';
+import { Clock, Flame, Dumbbell, HeartPulse, Fingerprint, ScanLine, Video, AlertTriangle, ChevronRight, CheckCircle2, X, Camera, Lock } from 'lucide-react';
 import { WorkoutDay, Exercise } from '../types';
 import { isEmbed } from '../hooks/useSystem';
 import { EXERCISE_VIDEOS, fixVideoPath } from '../lib/exerciseVideos';
 import { calculateExerciseCalories } from '../utils/workoutGenerator';
+import { isFormCoachSupported } from '../lib/formCoachConfig';
 
 interface WorkoutOverviewProps {
   plan: WorkoutDay;
@@ -15,6 +16,7 @@ interface WorkoutOverviewProps {
   onCancel: () => void;
   userWeight?: number;
   onShowDungeonAd?: () => Promise<boolean>;
+  isPremium?: boolean;
 }
 
 // --- VISUAL ANATOMY DISPLAY (VIDEO) ---
@@ -147,7 +149,7 @@ const HolographicBody: React.FC<{ focus: string; isCardio: boolean; videos: Reco
 };
 
 // --- EXERCISE ROW ---
-const ExerciseRow: React.FC<{ exercise: Exercise; calories: number }> = ({ exercise, calories }) => {
+const ExerciseRow: React.FC<{ exercise: Exercise; calories: number; formCoachSupported: boolean; formCoachEnabled: boolean; onToggleFormCoach?: () => void; isPremium?: boolean }> = ({ exercise, calories, formCoachSupported, formCoachEnabled, onToggleFormCoach, isPremium }) => {
     const videoUrl = EXERCISE_VIDEOS[exercise.name] || fixVideoPath(exercise.videoUrl || '') || '';
     const hasVideo = !!(videoUrl && videoUrl.trim() !== '');
 
@@ -178,6 +180,23 @@ const ExerciseRow: React.FC<{ exercise: Exercise; calories: number }> = ({ exerc
                     </span>
                 </div>
             </div>
+            {/* Form Coach Badge */}
+            {formCoachSupported && (
+                <button
+                    onClick={(e) => { e.stopPropagation(); onToggleFormCoach?.(); }}
+                    className={`flex items-center gap-1 px-2 py-1 rounded-md text-[9px] font-mono font-bold tracking-wider transition-all shrink-0 ${
+                        !isPremium
+                            ? 'bg-gray-800/50 border border-gray-700 text-gray-600 cursor-default'
+                            : formCoachEnabled
+                                ? 'bg-orange-500/15 border border-orange-500/40 text-orange-400'
+                                : 'bg-gray-800/50 border border-gray-700 text-gray-500 hover:border-orange-500/30 hover:text-orange-400/70'
+                    }`}
+                >
+                    {!isPremium ? <Lock size={8} /> : <Camera size={9} />}
+                    FORM
+                    {isPremium && formCoachEnabled && <span className="text-[7px]">✓</span>}
+                </button>
+            )}
             <div className="text-right font-mono shrink-0">
                 <div className="text-xs font-bold text-white">{exercise.sets} SETS</div>
                 <div className="text-[10px] text-system-neon">{exercise.reps}</div>
@@ -186,8 +205,10 @@ const ExerciseRow: React.FC<{ exercise: Exercise; calories: number }> = ({ exerc
     );
 };
 
-const WorkoutOverview: React.FC<WorkoutOverviewProps> = ({ plan, focusVideos, onStart, onCancel, userWeight = 70, onShowDungeonAd }) => {
+const WorkoutOverview: React.FC<WorkoutOverviewProps> = ({ plan, focusVideos, onStart, onCancel, userWeight = 70, onShowDungeonAd, isPremium }) => {
   const [adLoading, setAdLoading] = useState(false);
+  // Track which exercises have Form Coach enabled (by index)
+  const [formCoachToggles, setFormCoachToggles] = useState<Record<number, boolean>>({});
 
   const stats = useMemo(() => {
       const sets = plan.exercises.reduce((acc, curr) => acc + curr.sets, 0);
@@ -197,6 +218,11 @@ const WorkoutOverview: React.FC<WorkoutOverviewProps> = ({ plan, focusVideos, on
       }, 0);
       return { sets, time, cals };
   }, [plan, userWeight]);
+
+  const toggleFormCoach = (idx: number) => {
+      if (!isPremium) return;
+      setFormCoachToggles(prev => ({ ...prev, [idx]: !prev[idx] }));
+  };
 
   const handleStart = async () => {
       // Show ad before entering dungeon
@@ -209,7 +235,12 @@ const WorkoutOverview: React.FC<WorkoutOverviewProps> = ({ plan, focusVideos, on
         }
       }
 
-      onStart({ ...plan });
+      // Apply Form Coach toggles to exercises
+      const modifiedExercises = plan.exercises.map((ex, idx) => ({
+          ...ex,
+          formCoachEnabled: !!formCoachToggles[idx],
+      }));
+      onStart({ ...plan, exercises: modifiedExercises });
   };
 
   // Render via Portal to break out of any transform stacking contexts from parent layouts
@@ -271,7 +302,11 @@ const WorkoutOverview: React.FC<WorkoutOverviewProps> = ({ plan, focusVideos, on
                                 <ExerciseRow 
                                     key={i} 
                                     exercise={ex} 
-                                    calories={calculateExerciseCalories(ex, userWeight)} 
+                                    calories={calculateExerciseCalories(ex, userWeight)}
+                                    formCoachSupported={isFormCoachSupported(ex.name)}
+                                    formCoachEnabled={!!formCoachToggles[i]}
+                                    onToggleFormCoach={() => toggleFormCoach(i)}
+                                    isPremium={isPremium}
                                 />
                             ))}
                         </div>

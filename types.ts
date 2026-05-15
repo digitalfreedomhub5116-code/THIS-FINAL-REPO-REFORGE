@@ -317,6 +317,17 @@ export interface Exercise {
   videoUrl?: string;
   imageUrl?: string;
   isSupplementary?: boolean;
+  /** Whether AI Form Coach is enabled for this exercise (PRO feature) */
+  formCoachEnabled?: boolean;
+}
+
+/** Result from AI Motion Coach form tracking for a single set */
+export interface FormCoachResult {
+  setNumber: number;
+  repsDetected: number;
+  formScore: number; // 0-100
+  violations: { ruleId: string; message: string; severity: 'warning' | 'error'; repNumber?: number }[];
+  bonusXp: number;
 }
 
 export interface WorkoutDay {

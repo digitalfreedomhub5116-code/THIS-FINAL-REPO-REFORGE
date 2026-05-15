@@ -2371,5 +2371,6 @@ export const useSystem = () => {
     dataReady,
     markDataReady,
     setIsPremium,
+    isPremium,
   };
 };

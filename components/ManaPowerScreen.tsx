@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Zap, Target, MessageCircle, UtensilsCrossed, Calendar, Shield, Crown, Sparkles, Check, Loader2, RotateCcw } from 'lucide-react';
+import { X, Zap, Target, MessageCircle, UtensilsCrossed, Calendar, Shield, Crown, Sparkles, Check, Loader2, RotateCcw, Camera } from 'lucide-react';
 import type { PurchasesOfferings, PurchasesPackage } from '@revenuecat/purchases-capacitor';
 
 interface ManaPowerScreenProps {
@@ -13,6 +13,7 @@ interface ManaPowerScreenProps {
 }
 
 const PERKS = [
+  { icon: Camera, label: 'AI Motion Coach', desc: 'Real-time form correction with camera tracking', color: '#f97316' },
   { icon: Target, label: 'AI Goal Autopilot', desc: 'Auto-generated daily quests for your goals', color: '#00d4ff' },
   { icon: MessageCircle, label: 'Unlimited Dusk Guidance', desc: 'Chat with your AI mentor without limits', color: '#a78bfa' },
   { icon: Zap, label: '5 Keys Every Day', desc: 'Daily keys for Nutrition Scan & Schedule', color: '#facc15' },
