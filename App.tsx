@@ -4006,26 +4006,7 @@ const App: React.FC = () => {
 
                   onMarkRead={markDuskMessagesRead}
 
-                  onWatchAdForKeys={async () => {
-                    const result = await showRewardedAd(AD_UNITS.KEY_REWARD);
-                    if (result.rewarded) {
-                      try {
-                        const res = await fetch(`${API_BASE}/api/economy/ad-reward`, {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
-                          credentials: 'include',
-                          body: JSON.stringify({ rewardType: 'keys' }),
-                        });
-                        const data = await res.json();
-                        if (data.success) {
-                          setPlayer(p => ({ ...p, keys: data.keys }));
-                          addNotification(`+${data.granted} 🔑 Keys earned!`, 'SUCCESS');
-                        }
-                      } catch (e) { console.error('[AdReward]', e); }
-                      return true;
-                    }
-                    return false;
-                  }}
+                  /* ADS DISABLED — onWatchAdForKeys removed */
 
                 />
 
@@ -4819,9 +4800,7 @@ const App: React.FC = () => {
                     onUpdateGoals={handleUpdateGoals}
                     onDeleteGoal={handleDeleteGoal}
                     onDeductGold={(amount) => setPlayer(prev => ({ ...prev, gold: Math.max(0, prev.gold - amount) }))}
-                    onShowInterstitialAd={isPremium ? undefined : async () => {
-                      try { await showInterstitialAd(AD_UNITS.DUNGEON_INTERSTITIAL); return true; } catch { return false; }
-                    }}
+                    /* ADS DISABLED — onShowInterstitialAd removed */
                   />
                 </ErrorBoundary>
               </Suspense>
@@ -4902,24 +4881,7 @@ const App: React.FC = () => {
 
                     onGoldUpdate={(newGold) => setPlayer(prev => ({ ...prev, gold: newGold }))}
 
-                    onWatchAdForBorder={async (itemId: string, adsRequired: number) => {
-                      const result = await showRewardedAd(AD_UNITS.BORDER_REWARD);
-                      if (result.rewarded) {
-                        try {
-                          const res = await fetch(`${API_BASE}/api/ad-unlock/watch`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
-                            credentials: 'include',
-                            body: JSON.stringify({ itemId, adsRequired }),
-                          });
-                          if (res.ok) {
-                            const data = await res.json();
-                            return data; // { adsWatched, adsRequired, unlocked, justUnlocked }
-                          }
-                        } catch (e) { console.error('[AdUnlock]', e); }
-                      }
-                      return null;
-                    }}
+                    /* ADS DISABLED — onWatchAdForBorder removed */
 
                     keys={player.keys ?? 0}
 
@@ -5061,30 +5023,9 @@ const App: React.FC = () => {
 
                     initialSubTab={healthSubTab}
 
-                    onShowDungeonAd={isPremium ? async () => true : async () => {
-                      const shown = await showInterstitialAd(AD_UNITS.DUNGEON_INTERSTITIAL);
-                      return shown;
-                    }}
-
-                    onWatchAdToDouble={async () => {
-                      const result = await showRewardedAd(AD_UNITS.KEY_REWARD);
-                      if (result.rewarded) {
-                        try {
-                          const res = await fetch(`${API_BASE}/api/economy/ad-double`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
-                            credentials: 'include',
-                            body: JSON.stringify({ goldBonus: 50, xpBonus: 0 }),
-                          });
-                          const data = await res.json();
-                          if (data.success) {
-                            setPlayer(p => ({ ...p, gold: data.gold }));
-                          }
-                        } catch (e) { console.error('[AdDouble]', e); }
-                        return true;
-                      }
-                      return false;
-                    }}
+                    /* ADS DISABLED — onShowDungeonAd removed */
+                    onShowDungeonAd={async () => true} /* Always allow through — no ad gate */
+                    /* ADS DISABLED — onWatchAdToDouble removed */
 
                   />
 

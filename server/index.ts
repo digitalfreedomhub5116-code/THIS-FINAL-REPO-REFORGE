@@ -217,16 +217,19 @@ async function startServer() {
   app.use('/api/economy', generalRateLimit, economyRouter.default);
   app.use('/api/inventory', generalRateLimit, inventoryRouter.default);
   app.use('/api/iap', generalRateLimit, iapRouter.default);
-  app.use('/api/ad-unlock', generalRateLimit, adUnlockRouter.default);
+  // ADS DISABLED — ad-unlock route returns 410 for all endpoints
+  app.use('/api/ad-unlock', (_req, res) => {
+    res.status(410).json({ error: 'Ad unlock is no longer available.' });
+  });
 
   // Google OAuth setup
   setupGoogleAuth(app);
 
-  // ── app-ads.txt — Required by AdMob for ad serving verification ──
-  app.get('/app-ads.txt', (_req, res) => {
-    res.setHeader('Content-Type', 'text/plain');
-    res.send('google.com, pub-4155407212794852, DIRECT, f08c47fec0942fa0\n');
-  });
+  // ADS DISABLED — app-ads.txt route removed (AdMob ads no longer served)
+  // app.get('/app-ads.txt', (_req, res) => {
+  //   res.setHeader('Content-Type', 'text/plain');
+  //   res.send('google.com, pub-4155407212794852, DIRECT, f08c47fec0942fa0\n');
+  // });
 
   // Static files (if built)
   const distPath = join(__dirname, '../dist');

@@ -480,14 +480,14 @@ const ShopView: React.FC<ShopViewProps> = ({
       .catch(() => setInventoryLoaded(true));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Fetch ad unlock progress on mount ──
-  useEffect(() => {
-    const headers = getPlayerAuthHeaders();
-    fetch(`${API_BASE}/api/ad-unlock/progress`, { credentials: 'include', headers })
-      .then(r => r.ok ? r.json() : { progress: {} })
-      .then(data => { if (data.progress) setAdProgress(data.progress); })
-      .catch(() => {});
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // ── ADS DISABLED — ad unlock progress fetch removed ──
+  // useEffect(() => {
+  //   const headers = getPlayerAuthHeaders();
+  //   fetch(`${API_BASE}/api/ad-unlock/progress`, { credentials: 'include', headers })
+  //     .then(r => r.ok ? r.json() : { progress: {} })
+  //     .then(data => { if (data.progress) setAdProgress(data.progress); })
+  //     .catch(() => {});
+  // }, []);
 
 
   // Event Banner Carousel
@@ -1384,16 +1384,7 @@ const ShopView: React.FC<ShopViewProps> = ({
             onEquip={(id) => { wardrobeOnEquip?.(id); setOutfitModalIdx(null); }}
             onClose={() => setOutfitModalIdx(null)}
             adProgress={adProgress[(wardrobeOutfits && wardrobeOutfits.length > 0 ? wardrobeOutfits : OUTFITS)[outfitModalIdx]?.id] || null}
-            onWatchAd={onWatchAdForBorder ? async (itemId, adsReq) => {
-              const result = await onWatchAdForBorder(itemId, adsReq);
-              if (result) {
-                setAdProgress(prev => ({ ...prev, [itemId]: { adsWatched: result.adsWatched, adsRequired: result.adsRequired, unlocked: result.unlocked } }));
-                if (result.unlocked || result.justUnlocked) {
-                  setServerInventory(prev => [...prev, { item_id: itemId, item_type: 'outfit', source: 'ad_unlock' }]);
-                }
-              }
-              return result;
-            } : undefined}
+            /* ADS DISABLED — onWatchAd prop removed from OutfitPurchaseModal */
           />
         </Suspense>
       )}
@@ -1574,26 +1565,9 @@ const ShopView: React.FC<ShopViewProps> = ({
               <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>Confirm purchase?</div>
               <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginBottom: 16, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{confirmPurchaseItem.category}</div>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, marginBottom: 20 }}>
-                {confirmPurchaseItem.adUnlock ? (() => {
-                  const prog = adProgress[confirmPurchaseItem.id];
-                  const watched = prog?.adsWatched ?? 0;
-                  const required = confirmPurchaseItem.adsRequired ?? 1;
-                  const pct = Math.min(100, Math.round((watched / required) * 100));
-                  return (
-                    <>
-                      <span style={{ fontSize: 14, fontWeight: 900, color: '#a855f7', letterSpacing: '0.05em' }}>▶ WATCH ADS TO UNLOCK</span>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.6)' }}>{watched} / {required} ads watched</div>
-                      {/* Progress bar */}
-                      <div style={{ width: '80%', height: 6, borderRadius: 999, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
-                        <div style={{
-                          width: `${pct}%`, height: '100%', borderRadius: 999,
-                          background: 'linear-gradient(90deg, #a855f7, #7c3aed)',
-                          boxShadow: '0 0 10px rgba(168,85,247,0.5)',
-                          transition: 'width 0.5s ease',
-                        }} />
-                      </div>
-                    </>
-                  );
+                {/* ADS DISABLED — ad unlock progress section removed */}
+                {false ? (() => {
+                  return null;
                 })() : (
                   <>
                     <SystemCoin size={22} />
@@ -1604,54 +1578,9 @@ const ShopView: React.FC<ShopViewProps> = ({
               </div>
               <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
                 <button disabled={purchasing} onClick={() => { setConfirmPurchaseDiscount(0); setConfirmPurchaseItem(null); }} style={{ padding: '10px 28px', borderRadius: 12, cursor: 'pointer', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: 700 }}>Cancel</button>
-                {confirmPurchaseItem.adUnlock && onWatchAdForBorder ? (() => {
-                  const prog = adProgress[confirmPurchaseItem.id];
-                  const watched = prog?.adsWatched ?? 0;
-                  const required = confirmPurchaseItem.adsRequired ?? 1;
-                  const remaining = Math.max(0, required - watched);
-                  return (
-                  <button disabled={purchasing} onClick={async () => {
-                    const item = confirmPurchaseItem;
-                    setPurchasing(true);
-                    try {
-                      const result = await onWatchAdForBorder(item.id, item.adsRequired ?? 1);
-                      if (result) {
-                        // Update local progress state
-                        setAdProgress(prev => ({
-                          ...prev,
-                          [item.id]: { adsWatched: result.adsWatched, adsRequired: result.adsRequired, unlocked: result.unlocked },
-                        }));
-                        if (result.unlocked || result.justUnlocked) {
-                          // Fully unlocked! Add to inventory and celebrate
-                          setServerInventory(prev => [...prev, { item_id: item.id, item_type: item.category, source: 'ad_unlock' }]);
-                          const p = kitPurchaseItem(item.id, 0);
-                          if (p) setKitEconomy(p);
-                          if (item.category === 'border') {
-                            handleKitEquip('border', item.id);
-                            setEquipAnimItem(item);
-                            setPurchasePhase('transitioning');
-                            setShowEquipAnim(true);
-                            setTimeout(() => { setConfirmPurchaseItem(null); setPurchasePhase('idle'); setPurchasing(false); }, 350);
-                          } else {
-                            setConfirmPurchaseItem(null); setPurchasing(false); setPurchasePhase('idle');
-                          }
-                        } else {
-                          // Not yet unlocked — keep modal open so user can watch more
-                          setPurchasing(false);
-                        }
-                      } else {
-                        setPurchasing(false);
-                      }
-                    } catch { setPurchasing(false); }
-                  }} style={{
-                    padding: '10px 28px', borderRadius: 12, cursor: purchasing ? 'wait' : 'pointer',
-                    background: 'linear-gradient(135deg, #a855f7, #7c3aed)', border: 'none',
-                    color: '#fff', fontSize: 12, fontWeight: 900,
-                    boxShadow: '0 0 20px rgba(168,85,247,0.3)', opacity: purchasing ? 0.6 : 1,
-                  }}>
-                    {purchasing ? 'Loading...' : `▶ Watch Ad (${remaining} left)`}
-                  </button>
-                  );
+                {/* ADS DISABLED — ad watch button removed from confirm modal */}
+                {false ? (() => {
+                  return null;
                 })() : (
                   <button disabled={purchasing} onClick={async () => {
                     const item = confirmPurchaseItem;
@@ -2029,34 +1958,9 @@ const KitGlowCard = React.memo(function KitGlowCard({ item, discount, owned, equ
               ) : (
                 <span style={{ fontSize: 11, fontWeight: 700, color: '#22C55E' }}>✓ Owned</span>
               )
-            ) : item.adUnlock ? (
-              /* ── Ad-gated item: show watch ads button with progress ── */
-              <>
-                <button onClick={(e) => { e.stopPropagation(); onBuy(); }} style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 4,
-                  padding: '5px 14px', borderRadius: 16, cursor: 'pointer',
-                  background: 'linear-gradient(135deg, rgba(168,85,247,0.35), rgba(124,58,237,0.15))',
-                  border: '1.5px solid rgba(168,85,247,0.6)',
-                  color: '#fff',
-                  fontSize: 11, fontWeight: 800,
-                  boxShadow: '0 0 10px rgba(168,85,247,0.2)',
-                  transition: 'all 0.2s',
-                }}>
-                  <span style={{ fontSize: 11 }}>📺</span>
-                  <span style={{ fontSize: 11 }}>{adProgress ? `${adProgress.adsWatched}/${item.adsRequired ?? 5}` : `${item.adsRequired ?? 5} ADS`}</span>
-                </button>
-                {/* Mini progress bar below ad button */}
-                {adProgress && adProgress.adsWatched > 0 && !adProgress.unlocked && (
-                  <div style={{ width: '80%', height: 3, borderRadius: 999, background: 'rgba(255,255,255,0.06)', overflow: 'hidden', marginTop: 2 }}>
-                    <div style={{
-                      width: `${Math.min(100, Math.round((adProgress.adsWatched / (item.adsRequired ?? 5)) * 100))}%`,
-                      height: '100%', borderRadius: 999,
-                      background: 'linear-gradient(90deg, #a855f7, #7c3aed)',
-                      transition: 'width 0.5s ease',
-                    }} />
-                  </div>
-                )}
-              </>
+            ) : /* ADS DISABLED — ad-gated items now show as gold purchasable */ item.adUnlock ? (
+              /* ── Previously ad-gated item: show as locked/coming soon ── */
+              <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(168,85,247,0.6)', fontFamily: 'monospace', letterSpacing: '0.05em' }}>🔒 COMING SOON</span>
             ) : (
               <button onClick={(e) => { e.stopPropagation(); if (canAfford) { onBuy(); } else if (onInsufficientFunds) { onInsufficientFunds(); } }} style={{
                 display: 'inline-flex', alignItems: 'center', gap: 4,

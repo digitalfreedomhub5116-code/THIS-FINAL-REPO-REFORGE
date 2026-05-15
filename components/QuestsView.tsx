@@ -273,11 +273,11 @@ const QuestsView: React.FC<QuestsViewProps> = ({
         scheduleQuestStartNotification(newQuest.id, newQuest.title, timeStr);
       }
 
-      // Show interstitial ad after registration if past free daily tier
-      const dailyCount = getDailyAnalysisCount(playerData?.userId);
-      if (dailyCount > FREE_DAILY_ANALYSES && onShowInterstitialAd) {
-        try { await onShowInterstitialAd(); } catch (e) { /* ad failed, continue */ }
-      }
+      // ADS DISABLED — interstitial ad after quest creation removed
+      // const dailyCount = getDailyAnalysisCount(playerData?.userId);
+      // if (dailyCount > FREE_DAILY_ANALYSES && onShowInterstitialAd) {
+      //   try { await onShowInterstitialAd(); } catch (e) { /* ad failed, continue */ }
+      // }
     }
   };
 

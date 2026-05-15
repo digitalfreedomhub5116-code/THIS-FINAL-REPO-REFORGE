@@ -1191,11 +1191,11 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
       addQuest(newQuest); setIsModalOpen(false); resetForm();
       // Schedule notification for when quest starts
       scheduleQuestStartNotification(newQuest.id, newQuest.title, scheduleTime);
-      // Show ad after registration if past free daily tier
-      const dailyCount = getDailyAnalysisCount(playerData?.userId);
-      if (dailyCount > FREE_DAILY_ANALYSES && onShowInterstitialAd) {
-        try { onShowInterstitialAd(); } catch (e) { /* ad failed, continue */ }
-      }
+      // ADS DISABLED — interstitial ad after quest creation removed
+      // const dailyCount = getDailyAnalysisCount(playerData?.userId);
+      // if (dailyCount > FREE_DAILY_ANALYSES && onShowInterstitialAd) {
+      //   try { onShowInterstitialAd(); } catch (e) { /* ad failed, continue */ }
+      // }
     }
   };
 
