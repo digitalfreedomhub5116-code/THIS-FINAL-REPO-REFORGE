@@ -23,6 +23,9 @@ const config: CapacitorConfig = {
       iconColor: '#00d2ff',
       sound: 'default',
     },
+    AdMob: {
+      appMeasurementServiceEnabled: true,
+    },
   },
 };
 
