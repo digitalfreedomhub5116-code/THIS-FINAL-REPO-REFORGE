@@ -14,9 +14,9 @@ interface RankRewardOverlayProps {
 
 // ── Rank Config ──
 const RANK_CONFIG: Record<number, { title: string; color: string; glow: string; medal: string; bgGrad: string }> = {
-  1: { title: 'FORGE SOVEREIGN', color: '#fbbf24', glow: 'rgba(251,191,36,0.6)', medal: '/images/medals/gold.png', bgGrad: 'radial-gradient(ellipse at center, rgba(251,191,36,0.12) 0%, rgba(5,5,16,0.98) 70%)' },
-  2: { title: 'APEX ELITE', color: '#c0c0c0', glow: 'rgba(192,192,192,0.5)', medal: '/images/medals/silver.png', bgGrad: 'radial-gradient(ellipse at center, rgba(192,192,192,0.08) 0%, rgba(5,5,16,0.98) 70%)' },
-  3: { title: 'APEX ELITE', color: '#cd7f32', glow: 'rgba(205,127,50,0.5)', medal: '/images/medals/bronze.png', bgGrad: 'radial-gradient(ellipse at center, rgba(205,127,50,0.08) 0%, rgba(5,5,16,0.98) 70%)' },
+  1: { title: 'FORGE SOVEREIGN', color: '#fbbf24', glow: 'rgba(251,191,36,0.6)', medal: '/images/medals/gold.webp', bgGrad: 'radial-gradient(ellipse at center, rgba(251,191,36,0.12) 0%, rgba(5,5,16,0.98) 70%)' },
+  2: { title: 'APEX ELITE', color: '#c0c0c0', glow: 'rgba(192,192,192,0.5)', medal: '/images/medals/silver.webp', bgGrad: 'radial-gradient(ellipse at center, rgba(192,192,192,0.08) 0%, rgba(5,5,16,0.98) 70%)' },
+  3: { title: 'APEX ELITE', color: '#cd7f32', glow: 'rgba(205,127,50,0.5)', medal: '/images/medals/bronze.webp', bgGrad: 'radial-gradient(ellipse at center, rgba(205,127,50,0.08) 0%, rgba(5,5,16,0.98) 70%)' },
   4: { title: 'S-RANK ELITE', color: '#a855f7', glow: 'rgba(168,85,247,0.4)', medal: '', bgGrad: 'radial-gradient(ellipse at center, rgba(168,85,247,0.06) 0%, rgba(5,5,16,0.98) 70%)' },
   5: { title: 'S-RANK ELITE', color: '#a855f7', glow: 'rgba(168,85,247,0.4)', medal: '', bgGrad: 'radial-gradient(ellipse at center, rgba(168,85,247,0.06) 0%, rgba(5,5,16,0.98) 70%)' },
 };
