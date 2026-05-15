@@ -81,7 +81,7 @@ const BOT_CONFIGS: BotConfig[] = [
   {
     username: 'ArjunX',
     name: 'Arjun',
-    avatarPath: 'avatar_arjunx.png',
+    avatarPath: 'avatar_arjunx.webp',
     seed: 1,
     xpMin: 150,
     xpMax: 520,
@@ -90,7 +90,7 @@ const BOT_CONFIGS: BotConfig[] = [
   {
     username: 'meeraStar',
     name: 'Meera',
-    avatarPath: 'avatar_meera.png',
+    avatarPath: 'avatar_meera.webp',
     seed: 3,
     xpMin: 200,
     xpMax: 580,
@@ -99,7 +99,7 @@ const BOT_CONFIGS: BotConfig[] = [
   {
     username: 'vikramZ',
     name: 'Vikram',
-    avatarPath: 'avatar_vikramz.png',
+    avatarPath: 'avatar_vikramz.webp',
     seed: 5,
     xpMin: 250,
     xpMax: 600,
@@ -108,7 +108,7 @@ const BOT_CONFIGS: BotConfig[] = [
   {
     username: 'niyaFit',
     name: 'Niya',
-    avatarPath: 'avatar_niya.png',
+    avatarPath: 'avatar_niya.webp',
     seed: 7,
     xpMin: 100,
     xpMax: 450,
@@ -117,7 +117,7 @@ const BOT_CONFIGS: BotConfig[] = [
   {
     username: 'devRaj_',
     name: 'Dev',
-    avatarPath: 'avatar_devraj.png',
+    avatarPath: 'avatar_devraj.webp',
     seed: 11,
     xpMin: 180,
     xpMax: 500,
@@ -126,7 +126,7 @@ const BOT_CONFIGS: BotConfig[] = [
   {
     username: 'samiraGrind',
     name: 'Samira',
-    avatarPath: 'avatar_samira.png',
+    avatarPath: 'avatar_samira.webp',
     seed: 13,
     xpMin: 220,
     xpMax: 560,
@@ -135,7 +135,7 @@ const BOT_CONFIGS: BotConfig[] = [
   {
     username: 'kunalFit',
     name: 'Kunal',
-    avatarPath: 'avatar_kunal.png',
+    avatarPath: 'avatar_kunal.webp',
     seed: 17,
     xpMin: 130,
     xpMax: 480,
