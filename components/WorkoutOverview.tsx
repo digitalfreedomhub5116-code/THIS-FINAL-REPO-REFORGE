@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import { Clock, Flame, Dumbbell, HeartPulse, Fingerprint, ScanLine, Video, AlertTriangle, ChevronRight, CheckCircle2, X, Camera, Lock } from 'lucide-react';
 import { WorkoutDay, Exercise } from '../types';
-import { isEmbed } from '../hooks/useSystem';
+import { useSystem, isEmbed } from '../hooks/useSystem';
 import { EXERCISE_VIDEOS, fixVideoPath } from '../lib/exerciseVideos';
 import { calculateExerciseCalories } from '../utils/workoutGenerator';
 import { isFormCoachSupported } from '../lib/formCoachConfig';
@@ -206,9 +206,20 @@ const ExerciseRow: React.FC<{ exercise: Exercise; calories: number; formCoachSup
 };
 
 const WorkoutOverview: React.FC<WorkoutOverviewProps> = ({ plan, focusVideos, onStart, onCancel, userWeight = 70, onShowDungeonAd, isPremium }) => {
+  const { player } = useSystem();
   const [adLoading, setAdLoading] = useState(false);
   // Track which exercises have Form Coach enabled (by index)
   const [formCoachToggles, setFormCoachToggles] = useState<Record<number, boolean>>({});
+
+  // Form Coach history stats
+  const formHistory = player.formCoachHistory || [];
+  const formHistoryStats = useMemo(() => {
+    if (formHistory.length === 0) return null;
+    const lastSession = formHistory[0];
+    const avgScore = Math.round(formHistory.reduce((a, s) => a + s.overallScore, 0) / formHistory.length);
+    const totalPerfectSets = formHistory.reduce((a, s) => a + s.perfectSets, 0);
+    return { lastScore: lastSession.overallScore, sessions: formHistory.length, avgScore, totalPerfectSets };
+  }, [formHistory]);
 
   const stats = useMemo(() => {
       const sets = plan.exercises.reduce((acc, curr) => acc + curr.sets, 0);
@@ -286,6 +297,43 @@ const WorkoutOverview: React.FC<WorkoutOverviewProps> = ({ plan, focusVideos, on
                                 <div className="text-[8px] text-gray-500 font-mono uppercase">TOTAL SETS</div>
                             </div>
                         </div>
+
+                        {/* Form Coach Stats Mini-Widget (PRO only, only if history exists) */}
+                        {isPremium && formHistoryStats && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.3 }}
+                            className="rounded-xl overflow-hidden"
+                            style={{
+                              background: 'linear-gradient(135deg, rgba(0,212,255,0.04) 0%, rgba(139,92,246,0.04) 100%)',
+                              border: '1px solid rgba(0,212,255,0.12)',
+                            }}
+                          >
+                            <div className="px-3 py-2 flex items-center gap-2" style={{ borderBottom: '1px solid rgba(0,212,255,0.08)' }}>
+                              <Camera size={11} className="text-system-neon" />
+                              <span className="text-[8px] font-mono font-bold tracking-[0.2em] text-system-neon">MOTION COACH STATS</span>
+                            </div>
+                            <div className="grid grid-cols-4 divide-x divide-white/5">
+                              <div className="px-2 py-2 text-center">
+                                <div className="text-sm font-black text-white font-mono">{formHistoryStats.lastScore}%</div>
+                                <div className="text-[7px] text-gray-500 font-mono tracking-wider">LAST</div>
+                              </div>
+                              <div className="px-2 py-2 text-center">
+                                <div className="text-sm font-black text-white font-mono">{formHistoryStats.avgScore}%</div>
+                                <div className="text-[7px] text-gray-500 font-mono tracking-wider">AVG</div>
+                              </div>
+                              <div className="px-2 py-2 text-center">
+                                <div className="text-sm font-black text-system-neon font-mono">{formHistoryStats.sessions}</div>
+                                <div className="text-[7px] text-gray-500 font-mono tracking-wider">SESSIONS</div>
+                              </div>
+                              <div className="px-2 py-2 text-center">
+                                <div className="text-sm font-black text-green-400 font-mono">{formHistoryStats.totalPerfectSets}</div>
+                                <div className="text-[7px] text-gray-500 font-mono tracking-wider">PERFECT</div>
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
 
                         <HolographicBody focus={plan.focus} isCardio={false} videos={focusVideos} />
                     </div>

@@ -1829,6 +1829,31 @@ export const useSystem = () => {
       triggerDuskMessage(`Workout Completed: ${exercisesCompleted}/${totalExercises} exercises done. Intensity: ${intensityModifier ? 'HIGH' : 'NORMAL'}. Rewards: ${rewardSummary}.${formCoachSession ? ` Form Coach Score: ${formCoachSession.overallScore}%, Bonus: +${formCoachBonusXp} XP, Perfect Sets: ${formCoachSession.perfectSets}.` : ''}`);
       // Award random outfit stones on workout completion (2-5)
       awardRandomStones(2, 5, 'Workout');
+
+      // ── FORM COACH MILESTONES ──
+      if (formCoachSession) {
+        const historyCount = (player.formCoachHistory?.length || 0) + 1; // +1 for current session
+        const MILESTONES: { count: number; title: string; bonusStones: number }[] = [
+          { count: 1, title: '🎯 FIRST FORM CHECK — Motion Coach Activated!', bonusStones: 3 },
+          { count: 5, title: '🎯 FORM APPRENTICE — 5 Form Coach Sessions!', bonusStones: 5 },
+          { count: 10, title: '🎯 FORM SPECIALIST — 10 Form Coach Sessions!', bonusStones: 8 },
+          { count: 25, title: '🎯 FORM MASTER — 25 Form Coach Sessions!', bonusStones: 12 },
+          { count: 50, title: '🎯 IRON DISCIPLINE — 50 Form Coach Sessions!', bonusStones: 20 },
+        ];
+        for (const milestone of MILESTONES) {
+          if (historyCount === milestone.count) {
+            addNotification(milestone.title, 'SUCCESS');
+            awardRandomStones(milestone.bonusStones, milestone.bonusStones, 'Form Coach Milestone');
+            break;
+          }
+        }
+
+        // Perfect Workout achievement: all sets scored 90%+
+        if (formCoachSession.overallScore >= 90 && formCoachSession.perfectSets > 0) {
+          addNotification('⭐ PERFECT FORM — All sets scored 90%+! Bonus stones earned!', 'SUCCESS');
+          awardRandomStones(3, 5, 'Perfect Form');
+        }
+      }
     }
 
     // Persist to workouts table (fire-and-forget)
