@@ -190,9 +190,109 @@ const AvatarWithBorder: React.FC<AvatarWithBorderProps> = ({
 };
 
 
-/** Internal avatar image with skeleton loading */
+/**
+ * ── Industry-level avatar optimization ──
+ *
+ * Problem: 50 full-size avatars loading simultaneously kills mobile perf.
+ * Solution (same approach as Discord, Instagram, WhatsApp):
+ *
+ * 1. URL rewriting — request server-resized thumbnails (96px for 44-80px displays)
+ *    - Supabase Storage: /render/image/public/... ?width=96&height=96&resize=cover
+ *    - Google profile pics: append =s96-c for 96px cropped circle
+ *    - Other URLs: pass through as-is
+ *
+ * 2. In-memory blob cache — once downloaded, avatars are stored as object URLs.
+ *    Re-renders and tab switches show cached versions instantly (0ms).
+ *
+ * 3. Skeleton shimmer placeholder — shows immediately while image downloads.
+ *
+ * 4. Error resilience — falls back to original URL if thumbnail fails.
+ */
+
+// Global in-memory avatar cache (survives re-renders, cleared on page refresh)
+const avatarCache = new Map<string, string>(); // optimizedUrl → objectURL
+const avatarErrors = new Set<string>(); // URLs that failed (skip retries)
+
+/** Rewrite avatar URL to request a server-resized thumbnail */
+function getOptimizedAvatarUrl(originalUrl: string, targetSize: number): string {
+  if (!originalUrl) return originalUrl;
+
+  // Supabase Storage: rewrite to use render/image transformation endpoint
+  // e.g. https://xyz.supabase.co/storage/v1/object/public/avatars/file.webp
+  //   → https://xyz.supabase.co/storage/v1/render/image/public/avatars/file.webp?width=96&height=96&resize=cover
+  if (originalUrl.includes('supabase.co/storage/v1/object/public/')) {
+    const thumbUrl = originalUrl.replace(
+      '/storage/v1/object/public/',
+      '/storage/v1/render/image/public/'
+    );
+    // Strip any existing query params and add resize params
+    const base = thumbUrl.split('?')[0];
+    return `${base}?width=${targetSize}&height=${targetSize}&resize=cover&quality=75`;
+  }
+
+  // Google profile pictures: append size param
+  // e.g. https://lh3.googleusercontent.com/a/xxx → append =s96-c
+  if (originalUrl.includes('googleusercontent.com')) {
+    const base = originalUrl.split('=')[0]; // strip existing size params
+    return `${base}=s${targetSize}-c`;
+  }
+
+  return originalUrl;
+}
+
+/** Load and cache an avatar image, returning an object URL for instant display */
+async function loadAndCacheAvatar(url: string): Promise<string> {
+  // Already cached?
+  const cached = avatarCache.get(url);
+  if (cached) return cached;
+
+  // Known to fail?
+  if (avatarErrors.has(url)) return url;
+
+  try {
+    const resp = await fetch(url, { mode: 'cors', credentials: 'omit' });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const blob = await resp.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    avatarCache.set(url, objectUrl);
+    return objectUrl;
+  } catch {
+    avatarErrors.add(url);
+    return url; // fallback to original URL (browser will try directly)
+  }
+}
+
+/** Internal avatar image with skeleton loading + optimization */
 function AvatarImage({ src, size }: { src: string; size: number }) {
   const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState(false);
+  const [displaySrc, setDisplaySrc] = useState<string>('');
+
+  // Target 2x for retina: a 44px avatar gets a 96px thumbnail
+  const thumbSize = Math.min(256, Math.max(96, size * 2));
+
+  useEffect(() => {
+    if (!src) return;
+
+    const optimizedUrl = getOptimizedAvatarUrl(src, thumbSize);
+
+    // Check in-memory cache first (instant)
+    const cached = avatarCache.get(optimizedUrl);
+    if (cached) {
+      setDisplaySrc(cached);
+      setLoaded(true);
+      return;
+    }
+
+    // Load and cache in background
+    setLoaded(false);
+    setError(false);
+
+    loadAndCacheAvatar(optimizedUrl).then(finalUrl => {
+      setDisplaySrc(finalUrl);
+    });
+  }, [src, thumbSize]);
+
   return (
     <>
       {!loaded && (
@@ -205,17 +305,25 @@ function AvatarImage({ src, size }: { src: string; size: number }) {
           }}
         />
       )}
-      <img
-        src={src}
-        alt=""
-        width={size}
-        height={size}
-        loading="lazy"
-        decoding="async"
-        className="w-full h-full object-cover"
-        style={{ opacity: loaded ? 1 : 0, transition: 'opacity 0.3s ease' }}
-        onLoad={() => setLoaded(true)}
-      />
+      {displaySrc && (
+        <img
+          src={displaySrc}
+          alt=""
+          width={size}
+          height={size}
+          decoding="async"
+          className="w-full h-full object-cover rounded-full"
+          style={{ opacity: loaded ? 1 : 0, transition: 'opacity 0.25s ease' }}
+          onLoad={() => setLoaded(true)}
+          onError={() => {
+            if (!error) {
+              // Fallback to original URL if optimized fails
+              setError(true);
+              setDisplaySrc(src);
+            }
+          }}
+        />
+      )}
     </>
   );
 }
