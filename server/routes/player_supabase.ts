@@ -19,7 +19,7 @@ router.get('/codename/check', async (req: Request, res: Response) => {
       .select('username')
       .eq('username', name)
       .limit(1);
-    
+
     if (error) throw error;
     return res.json({ available: !data || data.length === 0 });
   } catch (err) {
@@ -122,12 +122,12 @@ router.get('/:id/sync', async (req: Request, res: Response) => {
 
     // ── STREAK MILESTONE DETECTION ──
     const STREAK_MILESTONES = [
-      { days: 7,   gold: 50,   keys: 0,  title: null,           border: null,                         banner: null },
-      { days: 14,  gold: 100,  keys: 0,  title: null,           border: 'border-streak-silver',       banner: null },
-      { days: 30,  gold: 200,  keys: 0,  title: 'Iron Will',    border: 'border-streak-gold',         banner: null },
-      { days: 60,  gold: 400,  keys: 0,  title: null,           border: 'border-streak-inferno',      banner: null },
-      { days: 100, gold: 1000, keys: 0,  title: 'Eternal Flame', border: 'border-streak-eternal',     banner: null },
-      { days: 365, gold: 5000, keys: 0,  title: 'Legendary',    border: 'border-streak-legendary',    banner: null },
+      { days: 7, gold: 50, keys: 0, title: null, border: null, banner: null },
+      { days: 14, gold: 100, keys: 0, title: null, border: 'border-streak-silver', banner: null },
+      { days: 30, gold: 200, keys: 0, title: 'Iron Will', border: 'border-streak-gold', banner: null },
+      { days: 60, gold: 400, keys: 0, title: null, border: 'border-streak-inferno', banner: null },
+      { days: 100, gold: 1000, keys: 0, title: 'Eternal Flame', border: 'border-streak-eternal', banner: null },
+      { days: 365, gold: 5000, keys: 0, title: 'Legendary', border: 'border-streak-legendary', banner: null },
     ];
 
     let streakMilestone: any = null;
@@ -186,7 +186,7 @@ router.get('/:id/sync', async (req: Request, res: Response) => {
     }
 
     // ── SERVER-SIDE D/W/M STAT RESETS ──
-    const ZERO_STATS = {strength:0,intelligence:0,discipline:0,social:0,focus:0,willpower:0};
+    const ZERO_STATS = { strength: 0, intelligence: 0, discipline: 0, social: 0, focus: 0, willpower: 0 };
     let serverDailyStats = row.daily_stats || ZERO_STATS;
     let serverWeeklyStats = row.weekly_stats || ZERO_STATS;
     let serverMonthlyStats = row.monthly_stats || ZERO_STATS;
@@ -211,7 +211,7 @@ router.get('/:id/sync', async (req: Request, res: Response) => {
     const dayOfWeekUtc = nowUtc.getUTCDay();
     const mondayUtc = new Date(nowUtc);
     mondayUtc.setUTCDate(nowUtc.getUTCDate() - ((dayOfWeekUtc + 6) % 7));
-    const mondayStr = `${mondayUtc.getUTCFullYear()}-${String(mondayUtc.getUTCMonth()+1).padStart(2,'0')}-${String(mondayUtc.getUTCDate()).padStart(2,'0')}`;
+    const mondayStr = `${mondayUtc.getUTCFullYear()}-${String(mondayUtc.getUTCMonth() + 1).padStart(2, '0')}-${String(mondayUtc.getUTCDate()).padStart(2, '0')}`;
     const lastWeeklyReset = row.last_weekly_reset || '';
     if (lastWeeklyReset !== mondayStr) {
       serverWeeklyStats = { ...ZERO_STATS };
@@ -220,7 +220,7 @@ router.get('/:id/sync', async (req: Request, res: Response) => {
     }
 
     // Monthly reset — 1st of month
-    const monthStr = `${nowUtc.getFullYear()}-${String(nowUtc.getMonth()+1).padStart(2,'0')}`;
+    const monthStr = `${nowUtc.getFullYear()}-${String(nowUtc.getMonth() + 1).padStart(2, '0')}`;
     const lastMonthlyReset = row.last_monthly_reset || '';
     if (lastMonthlyReset !== monthStr) {
       serverMonthlyStats = { ...ZERO_STATS };
@@ -268,6 +268,7 @@ router.get('/:id/sync', async (req: Request, res: Response) => {
       dailyXp: row.daily_xp ?? 0,
       rank: row.rank ?? 'E',
       streak: currentStreak,
+      lastLoginDate: streakUpdated ? todayStr : (lastLogin || null),
       streakUpdated,
       streakShieldUsed,
       streakBroke,
@@ -303,7 +304,7 @@ router.get('/:id', async (req: Request, res: Response) => {
       .select('supabase_id, username, name, level, current_xp, required_xp, total_xp, daily_xp, rank, streak, hp, max_hp, mp, max_mp, gold, keys, is_configured, is_banned, is_penalty_active, penalty_end_time, cheat_strikes, total_strikes_ever, last_login_date, last_dungeon_entry, tutorial_step, tutorial_complete, daily_quest_complete, last_daily_reset, last_weekly_reset, last_monthly_reset, daily_stats, weekly_stats, monthly_stats, avatar_url, pending_notifications, raw_data, updated_at')
       .eq('supabase_id', id)
       .single();
-    
+
     if (error || !data) {
       return res.status(404).json({ error: 'Player not found' });
     }
@@ -459,7 +460,7 @@ router.put('/:id', async (req: Request, res: Response) => {
         .select('weekly_xp, week_start_date, daily_xp')
         .eq('supabase_id', id)
         .single();
-      
+
       if (weekRow) {
         const now = new Date();
         const dayOfWeek = now.getUTCDay();
@@ -468,7 +469,7 @@ router.put('/:id', async (req: Request, res: Response) => {
         currentMonday.setUTCHours(0, 0, 0, 0);
 
         const playerWeekStart = weekRow.week_start_date ? new Date(weekRow.week_start_date) : new Date(0);
-        
+
         if (playerWeekStart.getTime() < currentMonday.getTime()) {
           // New week! Reset weekly_xp, start fresh with this sync's dailyXp
           weeklyXp = cleanData.dailyXp || 0;
@@ -735,7 +736,7 @@ router.delete('/:id/delete-account', async (req: Request, res: Response) => {
 
     // 4. Destroy the session
     if (req.session) {
-      req.session.destroy(() => {});
+      req.session.destroy(() => { });
     }
 
     console.log(`[Account Delete] User ${id} — account permanently deleted`);

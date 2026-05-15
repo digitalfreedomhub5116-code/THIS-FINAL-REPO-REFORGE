@@ -819,7 +819,7 @@ const App: React.FC = () => {
   const [generatingGoalId, setGeneratingGoalId] = useState<string | null>(null);
 
   // Ref-based save so the quest gen listener can access saveGoalToDb without circular deps
-  const saveGoalToDbRef = useRef<(goal: any) => void>(() => {});
+  const saveGoalToDbRef = useRef<(goal: any) => void>(() => { });
 
   // Listen for quest generation results from pinned goal card buttons
   useEffect(() => {
@@ -855,7 +855,7 @@ const App: React.FC = () => {
 
 
 
-  const [mentorMessages, setMentorMessages] = useState<{id: string, text: string}[]>([]);
+  const [mentorMessages, setMentorMessages] = useState<{ id: string, text: string }[]>([]);
 
 
 
@@ -993,9 +993,9 @@ const App: React.FC = () => {
 
   const stoneBatchBuffer = useRef<Array<{ outfitId: string; amount: number; oldCount: number; newCount: number; color: string; glow: string }>>([]);
 
-  const stoneBatchTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const stoneBatchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const stoneAnimBusy    = useRef(false);
+  const stoneAnimBusy = useRef(false);
 
 
 
@@ -1068,13 +1068,13 @@ const App: React.FC = () => {
       // No-op: badge cinematic removed per user request
     };
 
-    window.addEventListener('stone:earned',   onStoneEarned);
+    window.addEventListener('stone:earned', onStoneEarned);
 
     window.addEventListener('badge:unlocked', onBadgeUnlocked);
 
     return () => {
 
-      window.removeEventListener('stone:earned',   onStoneEarned);
+      window.removeEventListener('stone:earned', onStoneEarned);
 
       window.removeEventListener('badge:unlocked', onBadgeUnlocked);
 
@@ -1173,9 +1173,9 @@ const App: React.FC = () => {
 
   }, [activeOverlay, player.isConfigured,
 
-      // Re-check when any of the triggers fire (these deps cause re-evaluation)
+    // Re-check when any of the triggers fire (these deps cause re-evaluation)
 
-      showStreakCelebration, showLevelUp, showLevelDown, rankUpData, showDailyLogin, showNotifPrompt, showRankReveal, showWelcomeChest]);
+    showStreakCelebration, showLevelUp, showLevelDown, rankUpData, showDailyLogin, showNotifPrompt, showRankReveal, showWelcomeChest]);
 
 
 
@@ -1263,37 +1263,37 @@ const App: React.FC = () => {
 
         const row = await res.json();
 
-        const dbBanned  = row.isBanned       ?? false;
+        const dbBanned = row.isBanned ?? false;
 
-        const dbStrikes = row.cheatStrikes   ?? 0;
+        const dbStrikes = row.cheatStrikes ?? 0;
 
-        const dbGold    = row.gold           ?? 0;
+        const dbGold = row.gold ?? 0;
 
-        const dbKeys    = row.keys           ?? 0;
+        const dbKeys = row.keys ?? 0;
 
         const dbTotalStrikes = row.totalStrikesEver ?? 0;
 
-        const dbLevel     = row.level     ?? 1;
+        const dbLevel = row.level ?? 1;
 
         const dbCurrentXp = row.currentXp ?? 0;
 
         const dbRequiredXp = row.requiredXp ?? 100;
 
-        const dbTotalXp   = row.totalXp   ?? 0;
+        const dbTotalXp = row.totalXp ?? 0;
 
-        const dbDailyXp   = row.dailyXp   ?? 0;
+        const dbDailyXp = row.dailyXp ?? 0;
 
-        const dbRank      = row.rank      ?? 'E';
+        const dbRank = row.rank ?? 'E';
 
-        const dbStreak    = row.streak    ?? 0;
+        const dbStreak = row.streak ?? 0;
 
-        const dbHp        = row.hp        ?? 100;
+        const dbHp = row.hp ?? 100;
 
-        const dbMaxHp     = row.maxHp     ?? 100;
+        const dbMaxHp = row.maxHp ?? 100;
 
-        const dbMp        = row.mp        ?? 100;
+        const dbMp = row.mp ?? 100;
 
-        const dbMaxMp     = row.maxMp     ?? 100;
+        const dbMaxMp = row.maxMp ?? 100;
 
 
 
@@ -1399,20 +1399,20 @@ const App: React.FC = () => {
 
               banReversalShownRef.current = true;
               // Persist so it only shows once per ban lift, survives reloads
-              try { localStorage.setItem(`banReversalSeen_${prev.userId}`, String(Date.now())); } catch {}
+              try { localStorage.setItem(`banReversalSeen_${prev.userId}`, String(Date.now())); } catch { }
               setTimeout(() => setShowBanReversalNotice(true), 50);
 
             } else if (dbBanned && !prev.isBanned) {
               // User just got banned — clear the seen flag so notice shows on next unban
               banReversalShownRef.current = false;
-              try { localStorage.removeItem(`banReversalSeen_${prev.userId}`); } catch {}
+              try { localStorage.removeItem(`banReversalSeen_${prev.userId}`); } catch { }
             }
 
           }
 
-          if (dbStrikes !== prev.cheatStrikes)           updates.cheatStrikes    = dbStrikes;
+          if (dbStrikes !== prev.cheatStrikes) updates.cheatStrikes = dbStrikes;
 
-          if (dbTotalStrikes !== prev.totalStrikesEver)  updates.totalStrikesEver = dbTotalStrikes;
+          if (dbTotalStrikes !== prev.totalStrikesEver) updates.totalStrikesEver = dbTotalStrikes;
 
 
 
@@ -1485,7 +1485,7 @@ const App: React.FC = () => {
 
               if (union.length !== (prev.unlockedOutfits || []).length ||
 
-                  union.some(id => !(prev.unlockedOutfits || []).includes(id))) {
+                union.some(id => !(prev.unlockedOutfits || []).includes(id))) {
 
                 updates.unlockedOutfits = union;
 
@@ -1548,7 +1548,7 @@ const App: React.FC = () => {
             // D/W/M stats: only overwrite local if server performed a RESET
             // (server sum < local sum = period reset happened)
             // Don't overwrite when server has stale data from a failed PUT
-            const sumStats = (s: any) => s ? (s.strength||0)+(s.intelligence||0)+(s.discipline||0)+(s.social||0)+(s.focus||0)+(s.willpower||0) : 0;
+            const sumStats = (s: any) => s ? (s.strength || 0) + (s.intelligence || 0) + (s.discipline || 0) + (s.social || 0) + (s.focus || 0) + (s.willpower || 0) : 0;
             const dbDailyStats2 = row.dailyStats;
             const dbWeeklyStats2 = row.weeklyStats;
             const dbMonthlyStats2 = row.monthlyStats;
@@ -1617,6 +1617,16 @@ const App: React.FC = () => {
 
         });
 
+        // ── Sync lastLoginDate from server when streak was updated for today ──
+        // The server sets last_login_date = today in Supabase when computing
+        // the daily streak. We MUST reflect this in client state so the streak
+        // celebration trigger (which gates on lastLoginDate === today) can fire.
+        if (row.streakUpdated && row.lastLoginDate) {
+          setPlayer(prev => {
+            if (prev.lastLoginDate === row.lastLoginDate) return prev;
+            return { ...prev, lastLoginDate: row.lastLoginDate, streak: row.streak ?? prev.streak };
+          });
+        }
 
 
         // Check for pending strike_lifted notifications
@@ -1721,7 +1731,7 @@ const App: React.FC = () => {
 
       if (isActive) handleAppResume();
 
-    }).then(l => { capListener = l; }).catch(() => {});
+    }).then(l => { capListener = l; }).catch(() => { });
 
 
 
@@ -1806,29 +1816,29 @@ const App: React.FC = () => {
       if (pendingPenalty || showAuditTheater) return;
 
 
-      if (showDuskChat)         { setShowDuskChat(false); return; }
+      if (showDuskChat) { setShowDuskChat(false); return; }
 
-      if (showChestOpening)     { setShowChestOpening(false); return; }
+      if (showChestOpening) { setShowChestOpening(false); return; }
 
-      if (showDailyLogin)       { setShowDailyLogin(false); return; }
+      if (showDailyLogin) { setShowDailyLogin(false); return; }
 
       if (showStreakCelebration) { setShowStreakCelebration(false); return; }
 
-      if (showLevelUp)          { setShowLevelUp(false); return; }
+      if (showLevelUp) { setShowLevelUp(false); return; }
 
-      if (showLevelDown)        { setShowLevelDown(false); return; }
+      if (showLevelDown) { setShowLevelDown(false); return; }
 
-      if (rankUpData)           { setRankUpData(null); return; }
+      if (rankUpData) { setRankUpData(null); return; }
 
-      if (showBanReversalNotice){ setShowBanReversalNotice(false); return; }
+      if (showBanReversalNotice) { setShowBanReversalNotice(false); return; }
 
-      if (showLogoutChoice)     { setShowLogoutChoice(false); return; }
+      if (showLogoutChoice) { setShowLogoutChoice(false); return; }
 
-      if (showNotifPrompt)      { setShowNotifPrompt(false); return; }
+      if (showNotifPrompt) { setShowNotifPrompt(false); return; }
 
-      if (stoneAnim)            { setStoneAnim(null); return; }
+      if (stoneAnim) { setStoneAnim(null); return; }
 
-      if (batchStoneAnim)       { setBatchStoneAnim(null); return; }
+      if (batchStoneAnim) { setBatchStoneAnim(null); return; }
 
       // badgeAnim check removed — badge cinematic disabled
 
@@ -1874,11 +1884,11 @@ const App: React.FC = () => {
 
   }, [isDungeonMode, pendingPenalty, showAuditTheater, showDuskChat,
 
-      showChestOpening, showDailyLogin, showStreakCelebration, showLevelUp, showLevelDown,
+    showChestOpening, showDailyLogin, showStreakCelebration, showLevelUp, showLevelDown,
 
-      rankUpData, showBanReversalNotice, showLogoutChoice, showNotifPrompt,
+    rankUpData, showBanReversalNotice, showLogoutChoice, showNotifPrompt,
 
-      stoneAnim, batchStoneAnim, badgeAnim, activeTab, addNotification]);
+    stoneAnim, batchStoneAnim, badgeAnim, activeTab, addNotification]);
 
 
 
@@ -2146,7 +2156,7 @@ const App: React.FC = () => {
         setRemoteStoreCache(mapped);
         console.log(`[App] Remote store catalog loaded: ${mapped.length} items`);
       })
-      .catch(() => {}); // Offline: remote items just won't show
+      .catch(() => { }); // Offline: remote items just won't show
   }, [player.isConfigured]);
 
 
@@ -2509,13 +2519,13 @@ const App: React.FC = () => {
 
     if (activeOverlay !== null) return; // Wait for any queued overlay (streak, notifPrompt) to finish first
 
-    
+
 
     // Don't show if level up/down, rank up, or other overlays are active
 
     if (showLevelUp || showLevelDown || rankUpData) return;
 
-    
+
 
     // Wait for streak celebration to finish (transition from true to false)
 
@@ -2525,13 +2535,13 @@ const App: React.FC = () => {
 
     prevStreakShownRef.current = showStreakCelebration;
 
-    
+
 
     // If streak is currently showing, wait
 
     if (showStreakCelebration) return;
 
-    
+
 
     // Only proceed if streak just closed or we're already past it
 
@@ -2560,7 +2570,7 @@ const App: React.FC = () => {
 
     }
 
-    
+
 
     // Streak just closed - start quest onboarding
 
@@ -2970,7 +2980,7 @@ const App: React.FC = () => {
 
     const isMidRank = rank === 'B' || rank === 'C';
 
-    
+
 
     let triggerAudit = false;
 
@@ -3000,17 +3010,17 @@ const App: React.FC = () => {
 
       const todayString = new Date().toDateString();
 
-      const todayHighRankCompletions = player.quests.filter(q => 
+      const todayHighRankCompletions = player.quests.filter(q =>
 
-        (q.rank === 'A' || q.rank === 'S') && 
+        (q.rank === 'A' || q.rank === 'S') &&
 
-        q.isCompleted && 
+        q.isCompleted &&
 
         new Date(q.lastCompletedAt || 0).toDateString() === todayString
 
       ).length;
 
-      
+
 
       // Only auto-flag if user has a pattern of cheating (3+ strikes = death spiral prevention)
       const hasCheatStrikes = player.cheatStrikes >= 3;
@@ -3213,7 +3223,7 @@ const App: React.FC = () => {
 
       credentials: 'include'
 
-    }).catch(() => {});
+    }).catch(() => { });
 
   };
 
@@ -3728,1713 +3738,1713 @@ const App: React.FC = () => {
 
     <ThemeContext.Provider value={themeCtx}>
 
-    {/* ── SUPABASE-FIRST LOADING GATE ── */}
-    {!dataReady ? (
-      <div style={{
-        position: 'fixed', inset: 0, zIndex: 99999,
-        background: 'linear-gradient(180deg, #06060f 0%, #0a0a1a 50%, #06060f 100%)',
-        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16,
-      }}>
+      {/* ── SUPABASE-FIRST LOADING GATE ── */}
+      {!dataReady ? (
         <div style={{
-          width: 48, height: 48, borderRadius: '50%',
-          border: '3px solid rgba(0,212,255,0.15)',
-          borderTopColor: '#00d4ff',
-          animation: 'spin 0.8s linear infinite',
-        }} />
-        <div style={{ color: '#00d4ff', fontSize: 12, fontFamily: 'monospace', fontWeight: 700, letterSpacing: '0.15em', opacity: 0.7 }}>
-          SYNCING DATA
+          position: 'fixed', inset: 0, zIndex: 99999,
+          background: 'linear-gradient(180deg, #06060f 0%, #0a0a1a 50%, #06060f 100%)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16,
+        }}>
+          <div style={{
+            width: 48, height: 48, borderRadius: '50%',
+            border: '3px solid rgba(0,212,255,0.15)',
+            borderTopColor: '#00d4ff',
+            animation: 'spin 0.8s linear infinite',
+          }} />
+          <div style={{ color: '#00d4ff', fontSize: 12, fontFamily: 'monospace', fontWeight: 700, letterSpacing: '0.15em', opacity: 0.7 }}>
+            SYNCING DATA
+          </div>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      </div>
-    ) : (
+      ) : (
 
-    <>
+        <>
 
-      <SystemMessage notifications={notifications} removeNotification={removeNotification} />
+          <SystemMessage notifications={notifications} removeNotification={removeNotification} />
 
 
 
-      {/* ── Overlays ── */}
+          {/* ── Overlays ── */}
 
-      <Suspense fallback={null}>
-
-        <AnimatePresence>
-
-          {DAILY_REWARDS_ENABLED && showDailyLogin && activeOverlay === 'dailyLogin' && (
-
-            <ErrorBoundary>
-
-              <DailyLoginModal 
-
-                onClose={() => {
-
-                  setShowDailyLogin(false);
-
-                  setDailyReward(null);
-
-                  dismissOverlay();
-
-                }}
-
-                onChestReward={() => {
-
-                  setShowDailyLogin(false);
-
-                  setDailyReward(null);
-
-                  dismissOverlay();
-
-                  setShowChestOpening(true);
-
-                }}
-
-              />
-
-            </ErrorBoundary>
-
-          )}
-
-          {showStreakCelebration && streakAnimData && activeOverlay === 'streak' && (
-
-            <Suspense fallback={null}>
-
-              <ErrorBoundary>
-
-                <StreakCelebration
-
-                  oldStreak={streakAnimData.oldStreak}
-
-                  newStreak={streakAnimData.newStreak}
-
-                  outfitId={player.equippedOutfitId}
-
-                  weeklyActivity={streakAnimData.weeklyActivity}
-
-                  streakBroken={streakAnimData.streakBroken}
-
-                  onComplete={() => {
-
-                    setShowStreakCelebration(false);
-
-                    setStreakAnimData(null);
-
-                    dismissOverlay();
-
-                    // Re-schedule streak reminder for tomorrow (workout already done today)
-
-                    if (player.streak >= 1) {
-
-                      scheduleStreakReminder(player.streak, true, true).catch(() => {});
-
-                    }
-
-                  }}
-
-                />
-
-              </ErrorBoundary>
-
-            </Suspense>
-
-          )}
-
-          {/* ── Streak Break Prompt ── */}
-          {showStreakBreakPrompt && streakBreakData && (
-            <Suspense fallback={null}>
-              <ErrorBoundary>
-                <StreakBreakPrompt
-                  previousStreak={streakBreakData.previousStreak}
-                  brokenAt={streakBreakData.brokenAt}
-                  shieldCount={streakBreakData.shieldCount}
-                  playerGold={player.gold}
-                  onRepairSuccess={(restoredStreak, newGold) => {
-                    setPlayer(prev => ({ ...prev, streak: restoredStreak, gold: newGold }));
-                    addNotification(`🔧 Streak restored to ${restoredStreak} days!`, 'SUCCESS');
-                    setShowStreakBreakPrompt(false);
-                    setStreakBreakData(null);
-                  }}
-                  onShieldSuccess={(newShieldCount, newGold) => {
-                    setPlayer(prev => ({ ...prev, gold: newGold }));
-                    addNotification(`🛡️ Shield purchased! You now have ${newShieldCount}/2 shields.`, 'SUCCESS');
-                    setStreakBreakData(prev => prev ? { ...prev, shieldCount: newShieldCount } : null);
-                  }}
-                  onDismiss={() => {
-                    setShowStreakBreakPrompt(false);
-                    setStreakBreakData(null);
-                  }}
-                />
-              </ErrorBoundary>
-            </Suspense>
-          )}
-
-          {/* ── Streak Milestone Overlay ── */}
-          {showStreakMilestone && streakMilestoneData && (
-            <StreakMilestoneOverlay
-              milestone={streakMilestoneData}
-              onClaim={() => {
-                // Unlock milestone items in local store economy
-                if (streakMilestoneData.unlockedItems && Array.isArray(streakMilestoneData.unlockedItems)) {
-                  for (const itemId of streakMilestoneData.unlockedItems) {
-                    unlockItem(itemId);
-                  }
-                }
-                setShowStreakMilestone(false);
-                const itemNames = [
-                  streakMilestoneData.border ? 'Border' : '',
-                  streakMilestoneData.banner ? 'Banner' : '',
-                ].filter(Boolean).join(' + ');
-                setStreakMilestoneData(null);
-                addNotification(
-                  `🎉 ${streakMilestoneData.days}-day milestone! +${streakMilestoneData.gold}G${streakMilestoneData.keys > 0 ? ` +${streakMilestoneData.keys}K` : ''}${itemNames ? ` · ${itemNames} unlocked!` : ''}`,
-                  'SUCCESS'
-                );
-              }}
-            />
-          )}
-
-          {/* ── League Promotion/Relegation Overlay ── */}
-          {showLeaguePromotion && leaguePromotionData && (
-            <LeaguePromotionOverlay
-              promoted={leaguePromotionData.promoted}
-              relegated={leaguePromotionData.relegated}
-              previousTier={leaguePromotionData.previousTier}
-              currentTier={leaguePromotionData.currentTier}
-              onDismiss={() => {
-                setShowLeaguePromotion(false);
-                setLeaguePromotionData(null);
-              }}
-            />
-          )}
-
-          {showChestOpening && (
-
-            <Suspense fallback={null}>
-
-              <ErrorBoundary>
-
-                <ChestOpeningOverlay
-
-                  chestType="LEGENDARY"
-
-                  onClose={() => setShowChestOpening(false)}
-
-                />
-
-              </ErrorBoundary>
-
-            </Suspense>
-
-          )}
-
-          {showLevelUp && activeOverlay === 'levelUp' && (
-
-            <Suspense fallback={null}>
-
-              <ErrorBoundary>
-
-                <LevelUpCinematic level={player.level} onComplete={() => { setShowLevelUp(false); dismissOverlay(); }} />
-
-              </ErrorBoundary>
-
-            </Suspense>
-
-          )}
-
-          {showLevelDown && activeOverlay === 'levelDown' && (
-
-            <Suspense fallback={null}>
-
-              <ErrorBoundary>
-
-                <LevelDownCinematic onClose={() => { setShowLevelDown(false); dismissOverlay(); }} />
-
-              </ErrorBoundary>
-
-            </Suspense>
-
-          )}
-
-          {rankUpData && activeOverlay === 'rankUp' && (
-
-            <Suspense fallback={null}>
-
-              <ErrorBoundary>
-
-                <RankUpCinematic
-
-                  oldRank={rankUpData.oldRank as 'UNRANKED'|'E'|'D'|'C'|'B'|'A'|'S'}
-
-                  newRank={rankUpData.newRank as 'UNRANKED'|'E'|'D'|'C'|'B'|'A'|'S'}
-
-                  onComplete={() => { setRankUpData(null); dismissOverlay(); }}
-
-                />
-
-              </ErrorBoundary>
-
-            </Suspense>
-
-          )}
-
-          {player.tournament.pendingReward && (
-
-            <Suspense fallback={null}>
-
-              <ErrorBoundary>
-
-                <TournamentResultModal reward={player.tournament.pendingReward} onClaim={claimTournamentReward} />
-
-              </ErrorBoundary>
-
-            </Suspense>
-
-          )}
-
-          {showDuskChat && (
-
-            <Suspense fallback={null}>
-
-              <ErrorBoundary>
-
-                <DuskChat
-
-                  player={player}
-
-                  updatePlayer={setPlayer}
-
-                  onClose={() => setShowDuskChat(false)}
-
-                  onMarkRead={markDuskMessagesRead}
-
-                  /* ADS DISABLED — onWatchAdForKeys removed */
-
-                />
-
-              </ErrorBoundary>
-
-            </Suspense>
-
-          )}
-
-          {showGoalCreate && (
-            <Suspense fallback={null}>
-              <GoalCreationFlow
-                playerData={player}
-                existingGoals={player.goals || []}
-                onClose={() => setShowGoalCreate(false)}
-                onGoalCreated={(newGoal) => {
-                  handleUpdateGoals([...(player.goals || []), newGoal]);
-                  setShowGoalCreate(false);
-                }}
-                onConsumeMana={consumeMana}
-                onRefundMana={refundMana}
-              />
-            </Suspense>
-          )}
-
-          {/* ── Reforge Pro Subscription Screen ── */}
           <Suspense fallback={null}>
+
             <AnimatePresence>
-              {showManaPowerUpsell && (
-                <ManaPowerScreen
-                  key="reforge-pro-screen"
-                  onClose={() => setShowManaPowerUpsell(false)}
-                  offerings={rcState.offerings}
-                  isPurchasing={rcState.isPurchasing}
-                  error={rcState.error}
-                  onPurchase={async (pkg) => {
-                    const result = await rcActions.purchasePackage(pkg);
-                    if (result.success) {
-                      setShowManaPowerUpsell(false);
-                      addNotification('⚡ Reforge Pro Activated! Your full potential is unlocked.', 'SUCCESS');
+
+              {DAILY_REWARDS_ENABLED && showDailyLogin && activeOverlay === 'dailyLogin' && (
+
+                <ErrorBoundary>
+
+                  <DailyLoginModal
+
+                    onClose={() => {
+
+                      setShowDailyLogin(false);
+
+                      setDailyReward(null);
+
+                      dismissOverlay();
+
+                    }}
+
+                    onChestReward={() => {
+
+                      setShowDailyLogin(false);
+
+                      setDailyReward(null);
+
+                      dismissOverlay();
+
+                      setShowChestOpening(true);
+
+                    }}
+
+                  />
+
+                </ErrorBoundary>
+
+              )}
+
+              {showStreakCelebration && streakAnimData && activeOverlay === 'streak' && (
+
+                <Suspense fallback={null}>
+
+                  <ErrorBoundary>
+
+                    <StreakCelebration
+
+                      oldStreak={streakAnimData.oldStreak}
+
+                      newStreak={streakAnimData.newStreak}
+
+                      outfitId={player.equippedOutfitId}
+
+                      weeklyActivity={streakAnimData.weeklyActivity}
+
+                      streakBroken={streakAnimData.streakBroken}
+
+                      onComplete={() => {
+
+                        setShowStreakCelebration(false);
+
+                        setStreakAnimData(null);
+
+                        dismissOverlay();
+
+                        // Re-schedule streak reminder for tomorrow (workout already done today)
+
+                        if (player.streak >= 1) {
+
+                          scheduleStreakReminder(player.streak, true, true).catch(() => { });
+
+                        }
+
+                      }}
+
+                    />
+
+                  </ErrorBoundary>
+
+                </Suspense>
+
+              )}
+
+              {/* ── Streak Break Prompt ── */}
+              {showStreakBreakPrompt && streakBreakData && (
+                <Suspense fallback={null}>
+                  <ErrorBoundary>
+                    <StreakBreakPrompt
+                      previousStreak={streakBreakData.previousStreak}
+                      brokenAt={streakBreakData.brokenAt}
+                      shieldCount={streakBreakData.shieldCount}
+                      playerGold={player.gold}
+                      onRepairSuccess={(restoredStreak, newGold) => {
+                        setPlayer(prev => ({ ...prev, streak: restoredStreak, gold: newGold }));
+                        addNotification(`🔧 Streak restored to ${restoredStreak} days!`, 'SUCCESS');
+                        setShowStreakBreakPrompt(false);
+                        setStreakBreakData(null);
+                      }}
+                      onShieldSuccess={(newShieldCount, newGold) => {
+                        setPlayer(prev => ({ ...prev, gold: newGold }));
+                        addNotification(`🛡️ Shield purchased! You now have ${newShieldCount}/2 shields.`, 'SUCCESS');
+                        setStreakBreakData(prev => prev ? { ...prev, shieldCount: newShieldCount } : null);
+                      }}
+                      onDismiss={() => {
+                        setShowStreakBreakPrompt(false);
+                        setStreakBreakData(null);
+                      }}
+                    />
+                  </ErrorBoundary>
+                </Suspense>
+              )}
+
+              {/* ── Streak Milestone Overlay ── */}
+              {showStreakMilestone && streakMilestoneData && (
+                <StreakMilestoneOverlay
+                  milestone={streakMilestoneData}
+                  onClaim={() => {
+                    // Unlock milestone items in local store economy
+                    if (streakMilestoneData.unlockedItems && Array.isArray(streakMilestoneData.unlockedItems)) {
+                      for (const itemId of streakMilestoneData.unlockedItems) {
+                        unlockItem(itemId);
+                      }
                     }
-                    return result;
-                  }}
-                  onRestore={async () => {
-                    await rcActions.restorePurchases();
-                    if (rcState.hasManaPower) {
-                      setShowManaPowerUpsell(false);
-                      addNotification('✅ Purchase Restored — Reforge Pro is active again!', 'SUCCESS');
-                    }
+                    setShowStreakMilestone(false);
+                    const itemNames = [
+                      streakMilestoneData.border ? 'Border' : '',
+                      streakMilestoneData.banner ? 'Banner' : '',
+                    ].filter(Boolean).join(' + ');
+                    setStreakMilestoneData(null);
+                    addNotification(
+                      `🎉 ${streakMilestoneData.days}-day milestone! +${streakMilestoneData.gold}G${streakMilestoneData.keys > 0 ? ` +${streakMilestoneData.keys}K` : ''}${itemNames ? ` · ${itemNames} unlocked!` : ''}`,
+                      'SUCCESS'
+                    );
                   }}
                 />
               )}
-            </AnimatePresence>
-          </Suspense>
 
-          {xpCollection && (
-
-            <Suspense fallback={null}>
-
-              <ErrorBoundary>
-
-                <XpCollectionOverlay
-
-                  startRect={xpCollection.startRect}
-
-                  xpGained={xpCollection.xpGained}
-
-                  currentXp={xpCollection.currentXp}
-
-                  requiredXp={xpCollection.requiredXp}
-
-                  level={xpCollection.level}
-
-                  onComplete={onXpAnimComplete}
-
-                />
-
-              </ErrorBoundary>
-
-            </Suspense>
-
-          )}
-
-          {showBanReversalNotice && (
-
-            <Suspense fallback={null}>
-
-              <ErrorBoundary>
-
-                <BanReversalNotice onClose={() => setShowBanReversalNotice(false)} />
-
-              </ErrorBoundary>
-
-            </Suspense>
-
-          )}
-
-          {strikeLiftedNotifId && (
-
-            <Suspense fallback={null}>
-
-              <ErrorBoundary>
-
-                <StrikeLiftedModal
-
-                  visible={true}
-
-                  onAcknowledge={async () => {
-
-                    if (player.userId && strikeLiftedNotifId) {
-
-                      try {
-
-                        await fetch(`${API_BASE}/api/player/${player.userId}/notification/${strikeLiftedNotifId}`, {
-
-                          method: 'DELETE',
-
-                          headers: { ...getPlayerAuthHeaders() },
-
-                          credentials: 'include',
-
-                        });
-
-                      } catch { /* ignore */ }
-
-                    }
-
-                    setStrikeLiftedNotifId(null);
-
+              {/* ── League Promotion/Relegation Overlay ── */}
+              {showLeaguePromotion && leaguePromotionData && (
+                <LeaguePromotionOverlay
+                  promoted={leaguePromotionData.promoted}
+                  relegated={leaguePromotionData.relegated}
+                  previousTier={leaguePromotionData.previousTier}
+                  currentTier={leaguePromotionData.currentTier}
+                  onDismiss={() => {
+                    setShowLeaguePromotion(false);
+                    setLeaguePromotionData(null);
                   }}
-
                 />
+              )}
 
-              </ErrorBoundary>
+              {showChestOpening && (
 
-            </Suspense>
+                <Suspense fallback={null}>
 
-          )}
+                  <ErrorBoundary>
 
-          {showAuditTheater && pendingAuditQuest && (
+                    <ChestOpeningOverlay
 
-            <Suspense fallback={null}>
+                      chestType="LEGENDARY"
 
-              <ErrorBoundary>
+                      onClose={() => setShowChestOpening(false)}
 
-                <AuditTheater
+                    />
 
-                  questTitle={pendingAuditQuest.title}
+                  </ErrorBoundary>
 
-                  questRank={pendingAuditQuest.rank}
+                </Suspense>
 
-                  outcome={auditOutcome}
+              )}
 
-                  onVerified={handleAuditVerified}
+              {showLevelUp && activeOverlay === 'levelUp' && (
 
-                  onFlagged={handleAuditFlagged}
+                <Suspense fallback={null}>
 
-                />
+                  <ErrorBoundary>
 
-              </ErrorBoundary>
+                    <LevelUpCinematic level={player.level} onComplete={() => { setShowLevelUp(false); dismissOverlay(); }} />
 
-            </Suspense>
+                  </ErrorBoundary>
 
-          )}
+                </Suspense>
+
+              )}
+
+              {showLevelDown && activeOverlay === 'levelDown' && (
+
+                <Suspense fallback={null}>
+
+                  <ErrorBoundary>
+
+                    <LevelDownCinematic onClose={() => { setShowLevelDown(false); dismissOverlay(); }} />
+
+                  </ErrorBoundary>
+
+                </Suspense>
+
+              )}
+
+              {rankUpData && activeOverlay === 'rankUp' && (
+
+                <Suspense fallback={null}>
+
+                  <ErrorBoundary>
+
+                    <RankUpCinematic
+
+                      oldRank={rankUpData.oldRank as 'UNRANKED' | 'E' | 'D' | 'C' | 'B' | 'A' | 'S'}
+
+                      newRank={rankUpData.newRank as 'UNRANKED' | 'E' | 'D' | 'C' | 'B' | 'A' | 'S'}
+
+                      onComplete={() => { setRankUpData(null); dismissOverlay(); }}
+
+                    />
+
+                  </ErrorBoundary>
+
+                </Suspense>
+
+              )}
+
+              {player.tournament.pendingReward && (
+
+                <Suspense fallback={null}>
+
+                  <ErrorBoundary>
+
+                    <TournamentResultModal reward={player.tournament.pendingReward} onClaim={claimTournamentReward} />
+
+                  </ErrorBoundary>
+
+                </Suspense>
+
+              )}
+
+              {showDuskChat && (
+
+                <Suspense fallback={null}>
+
+                  <ErrorBoundary>
+
+                    <DuskChat
+
+                      player={player}
+
+                      updatePlayer={setPlayer}
+
+                      onClose={() => setShowDuskChat(false)}
+
+                      onMarkRead={markDuskMessagesRead}
+
+                    /* ADS DISABLED — onWatchAdForKeys removed */
+
+                    />
+
+                  </ErrorBoundary>
+
+                </Suspense>
+
+              )}
+
+              {showGoalCreate && (
+                <Suspense fallback={null}>
+                  <GoalCreationFlow
+                    playerData={player}
+                    existingGoals={player.goals || []}
+                    onClose={() => setShowGoalCreate(false)}
+                    onGoalCreated={(newGoal) => {
+                      handleUpdateGoals([...(player.goals || []), newGoal]);
+                      setShowGoalCreate(false);
+                    }}
+                    onConsumeMana={consumeMana}
+                    onRefundMana={refundMana}
+                  />
+                </Suspense>
+              )}
+
+              {/* ── Reforge Pro Subscription Screen ── */}
+              <Suspense fallback={null}>
+                <AnimatePresence>
+                  {showManaPowerUpsell && (
+                    <ManaPowerScreen
+                      key="reforge-pro-screen"
+                      onClose={() => setShowManaPowerUpsell(false)}
+                      offerings={rcState.offerings}
+                      isPurchasing={rcState.isPurchasing}
+                      error={rcState.error}
+                      onPurchase={async (pkg) => {
+                        const result = await rcActions.purchasePackage(pkg);
+                        if (result.success) {
+                          setShowManaPowerUpsell(false);
+                          addNotification('⚡ Reforge Pro Activated! Your full potential is unlocked.', 'SUCCESS');
+                        }
+                        return result;
+                      }}
+                      onRestore={async () => {
+                        await rcActions.restorePurchases();
+                        if (rcState.hasManaPower) {
+                          setShowManaPowerUpsell(false);
+                          addNotification('✅ Purchase Restored — Reforge Pro is active again!', 'SUCCESS');
+                        }
+                      }}
+                    />
+                  )}
+                </AnimatePresence>
+              </Suspense>
+
+              {xpCollection && (
+
+                <Suspense fallback={null}>
+
+                  <ErrorBoundary>
+
+                    <XpCollectionOverlay
+
+                      startRect={xpCollection.startRect}
+
+                      xpGained={xpCollection.xpGained}
+
+                      currentXp={xpCollection.currentXp}
+
+                      requiredXp={xpCollection.requiredXp}
+
+                      level={xpCollection.level}
+
+                      onComplete={onXpAnimComplete}
+
+                    />
+
+                  </ErrorBoundary>
+
+                </Suspense>
+
+              )}
+
+              {showBanReversalNotice && (
+
+                <Suspense fallback={null}>
+
+                  <ErrorBoundary>
+
+                    <BanReversalNotice onClose={() => setShowBanReversalNotice(false)} />
+
+                  </ErrorBoundary>
+
+                </Suspense>
+
+              )}
+
+              {strikeLiftedNotifId && (
+
+                <Suspense fallback={null}>
+
+                  <ErrorBoundary>
+
+                    <StrikeLiftedModal
+
+                      visible={true}
+
+                      onAcknowledge={async () => {
+
+                        if (player.userId && strikeLiftedNotifId) {
+
+                          try {
+
+                            await fetch(`${API_BASE}/api/player/${player.userId}/notification/${strikeLiftedNotifId}`, {
+
+                              method: 'DELETE',
+
+                              headers: { ...getPlayerAuthHeaders() },
+
+                              credentials: 'include',
+
+                            });
+
+                          } catch { /* ignore */ }
+
+                        }
+
+                        setStrikeLiftedNotifId(null);
+
+                      }}
+
+                    />
+
+                  </ErrorBoundary>
+
+                </Suspense>
+
+              )}
+
+              {showAuditTheater && pendingAuditQuest && (
+
+                <Suspense fallback={null}>
+
+                  <ErrorBoundary>
+
+                    <AuditTheater
+
+                      questTitle={pendingAuditQuest.title}
+
+                      questRank={pendingAuditQuest.rank}
+
+                      outcome={auditOutcome}
+
+                      onVerified={handleAuditVerified}
+
+                      onFlagged={handleAuditFlagged}
+
+                    />
+
+                  </ErrorBoundary>
+
+                </Suspense>
+
+              )}
 
 
 
-          {pendingPenalty && (
+              {pendingPenalty && (
 
-            <Suspense fallback={null}>
+                <Suspense fallback={null}>
 
-              <ErrorBoundary>
+                  <ErrorBoundary>
 
-                <EarlyCompletionPenalty
+                    <EarlyCompletionPenalty
 
-                  questTitle={pendingPenalty.questTitle}
+                      questTitle={pendingPenalty.questTitle}
 
-                  elapsedMinutes={pendingPenalty.elapsedMinutes}
+                      elapsedMinutes={pendingPenalty.elapsedMinutes}
 
-                  minDurationMinutes={pendingPenalty.minDurationMinutes}
+                      minDurationMinutes={pendingPenalty.minDurationMinutes}
 
-                  currentStrikes={player.cheatStrikes}
+                      currentStrikes={player.cheatStrikes}
 
-                  onAcknowledge={handlePenaltyAcknowledge}
+                      onAcknowledge={handlePenaltyAcknowledge}
 
-                />
+                    />
 
-              </ErrorBoundary>
+                  </ErrorBoundary>
 
-            </Suspense>
+                </Suspense>
 
-          )}
+              )}
 
-        </AnimatePresence>
+            </AnimatePresence>
 
-      </Suspense>
-
-
-
-      {/* Tutorial enabled per user request. Set TUTORIAL_ACTIVE to true to enable. */}
-
-      {(() => {
-
-        const TUTORIAL_ACTIVE = false; 
-
-        if (!TUTORIAL_ACTIVE) return null;
-
-        
-
-        if (false) { // DISABLED: Tutorial removed in v4
-
-          return (
-
-            <Suspense fallback={null}>
-
-              <ErrorBoundary>
-
-                <TutorialOverlay
-
-                  currentStep={player.tutorialStep}
-
-                  onNext={handleTutorialNext}
-
-                  onComplete={handleTutorialComplete}
-
-                  dynamicTargetId={tutorialTarget}
-
-                  analysisFailed={tutorialAnalysisFailed}
-
-                  onAnalysisRetry={() => { setTutorialAnalysisFailed(false); advanceTutorial(2); }}
-
-                />
-
-              </ErrorBoundary>
-
-            </Suspense>
-
-          );
-
-        }
-
-        return null;
-
-      })()}
-
-
-
-      {/* ── Welcome Reward Chest (first-time only, before Dusk) ── */}
-      <AnimatePresence>
-        {showWelcomeChest && activeOverlay === 'welcomeChest' && (
-          <Suspense fallback={null}>
-            <ErrorBoundary>
-              <WelcomeRewardChest
-                hunterName={player.name || player.username || 'Hunter'}
-                goldAmount={600}
-                keysAmount={10}
-                onComplete={() => {
-                  // Persist to server via raw_data (survives logout/reinstall/device-switch)
-                  setPlayer(prev => ({ ...prev, welcomeChestShown: true }));
-                  setShowWelcomeChest(false);
-                  dismissOverlay(); // Advance queue to streak
-                }}
-              />
-            </ErrorBoundary>
           </Suspense>
-        )}
-      </AnimatePresence>
 
-      <AnimatePresence>
 
-        {showDuskWelcome && (
 
-          <motion.div
+          {/* Tutorial enabled per user request. Set TUTORIAL_ACTIVE to true to enable. */}
 
-            key="dusk-welcome"
+          {(() => {
 
-            initial={{ opacity: 0 }}
+            const TUTORIAL_ACTIVE = false;
 
-            animate={{ opacity: 1 }}
+            if (!TUTORIAL_ACTIVE) return null;
 
-            exit={{ opacity: 0 }}
 
-            className="fixed inset-0 z-[950]"
 
-            style={{ background: 'rgba(0,0,0,0.82)', backdropFilter: 'blur(10px)' }}
+            if (false) { // DISABLED: Tutorial removed in v4
 
-          >
+              return (
 
-            <div className="absolute inset-0 flex items-center justify-center p-6">
+                <Suspense fallback={null}>
+
+                  <ErrorBoundary>
+
+                    <TutorialOverlay
+
+                      currentStep={player.tutorialStep}
+
+                      onNext={handleTutorialNext}
+
+                      onComplete={handleTutorialComplete}
+
+                      dynamicTargetId={tutorialTarget}
+
+                      analysisFailed={tutorialAnalysisFailed}
+
+                      onAnalysisRetry={() => { setTutorialAnalysisFailed(false); advanceTutorial(2); }}
+
+                    />
+
+                  </ErrorBoundary>
+
+                </Suspense>
+
+              );
+
+            }
+
+            return null;
+
+          })()}
+
+
+
+          {/* ── Welcome Reward Chest (first-time only, before Dusk) ── */}
+          <AnimatePresence>
+            {showWelcomeChest && activeOverlay === 'welcomeChest' && (
+              <Suspense fallback={null}>
+                <ErrorBoundary>
+                  <WelcomeRewardChest
+                    hunterName={player.name || player.username || 'Hunter'}
+                    goldAmount={600}
+                    keysAmount={10}
+                    onComplete={() => {
+                      // Persist to server via raw_data (survives logout/reinstall/device-switch)
+                      setPlayer(prev => ({ ...prev, welcomeChestShown: true }));
+                      setShowWelcomeChest(false);
+                      dismissOverlay(); // Advance queue to streak
+                    }}
+                  />
+                </ErrorBoundary>
+              </Suspense>
+            )}
+          </AnimatePresence>
+
+          <AnimatePresence>
+
+            {showDuskWelcome && (
 
               <motion.div
 
-                initial={{ opacity: 0, y: 12, scale: 0.98 }}
+                key="dusk-welcome"
 
-                animate={{ opacity: 1, y: 0, scale: 1 }}
+                initial={{ opacity: 0 }}
 
-                exit={{ opacity: 0, y: 12, scale: 0.98 }}
+                animate={{ opacity: 1 }}
 
-                transition={{ type: 'spring', stiffness: 260, damping: 24 }}
+                exit={{ opacity: 0 }}
 
-                className="w-full max-w-[420px] rounded-2xl border border-cyan-400/30 overflow-hidden"
+                className="fixed inset-0 z-[950]"
 
-                style={{
-
-                  background: 'linear-gradient(135deg, rgba(12,12,30,0.98) 0%, rgba(6,6,20,0.98) 100%)',
-
-                  boxShadow: '0 0 40px rgba(0,212,255,0.18), 0 10px 40px rgba(0,0,0,0.6)',
-
-                }}
+                style={{ background: 'rgba(0,0,0,0.82)', backdropFilter: 'blur(10px)' }}
 
               >
 
-                <div className="h-1 w-full" style={{ background: 'linear-gradient(90deg, transparent, rgba(0,212,255,0.9), transparent)' }} />
+                <div className="absolute inset-0 flex items-center justify-center p-6">
 
-                <div className="p-5">
+                  <motion.div
 
-                  <div className="text-[10px] font-mono tracking-[0.25em] uppercase text-cyan-300/80">
+                    initial={{ opacity: 0, y: 12, scale: 0.98 }}
 
-                    Welcome
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
 
-                  </div>
+                    exit={{ opacity: 0, y: 12, scale: 0.98 }}
 
-                  <div className="mt-2 text-lg font-black text-white">
+                    transition={{ type: 'spring', stiffness: 260, damping: 24 }}
 
-                    Hi! I’m Dusk.
+                    className="w-full max-w-[420px] rounded-2xl border border-cyan-400/30 overflow-hidden"
 
-                  </div>
+                    style={{
 
-                  <div className="mt-2 text-[12px] leading-relaxed text-gray-300">
+                      background: 'linear-gradient(135deg, rgba(12,12,30,0.98) 0%, rgba(6,6,20,0.98) 100%)',
 
-                    I’m your companion here. I’ll show you the basics so you can create your first quest and start making progress.
+                      boxShadow: '0 0 40px rgba(0,212,255,0.18), 0 10px 40px rgba(0,0,0,0.6)',
 
-                  </div>
+                    }}
 
-                  <div className="mt-5 flex justify-end">
+                  >
 
-                    <button
+                    <div className="h-1 w-full" style={{ background: 'linear-gradient(90deg, transparent, rgba(0,212,255,0.9), transparent)' }} />
 
-                      onClick={handleDuskWelcomeNext}
+                    <div className="p-5">
 
-                      className="px-5 py-2.5 rounded-xl text-xs font-black font-mono tracking-widest"
+                      <div className="text-[10px] font-mono tracking-[0.25em] uppercase text-cyan-300/80">
 
-                      style={{ background: '#00d4ff', color: '#000', boxShadow: '0 0 18px rgba(0,212,255,0.35)' }}
+                        Welcome
 
-                    >
+                      </div>
 
-                      NEXT
+                      <div className="mt-2 text-lg font-black text-white">
 
-                    </button>
+                        Hi! I’m Dusk.
 
-                  </div>
+                      </div>
+
+                      <div className="mt-2 text-[12px] leading-relaxed text-gray-300">
+
+                        I’m your companion here. I’ll show you the basics so you can create your first quest and start making progress.
+
+                      </div>
+
+                      <div className="mt-5 flex justify-end">
+
+                        <button
+
+                          onClick={handleDuskWelcomeNext}
+
+                          className="px-5 py-2.5 rounded-xl text-xs font-black font-mono tracking-widest"
+
+                          style={{ background: '#00d4ff', color: '#000', boxShadow: '0 0 18px rgba(0,212,255,0.35)' }}
+
+                        >
+
+                          NEXT
+
+                        </button>
+
+                      </div>
+
+                    </div>
+
+                  </motion.div>
 
                 </div>
 
               </motion.div>
 
-            </div>
+            )}
 
-          </motion.div>
+          </AnimatePresence>
 
-        )}
 
-      </AnimatePresence>
 
+          {/* ── Guided Quest Onboarding (Level 1) ── */}
 
+          {showQuestOnboarding && questOnboardingStep > 0 && (
 
-      {/* ── Guided Quest Onboarding (Level 1) ── */}
+            <Suspense fallback={null}>
 
-      {showQuestOnboarding && questOnboardingStep > 0 && (
+              <ErrorBoundary>
 
-        <Suspense fallback={null}>
+                <GuidedQuestOnboarding
 
-          <ErrorBoundary>
+                  currentStep={questOnboardingStep}
 
-            <GuidedQuestOnboarding
+                  onStepComplete={handleQuestOnboardingStep}
 
-              currentStep={questOnboardingStep}
+                  onComplete={handleQuestOnboardingComplete}
 
-              onStepComplete={handleQuestOnboardingStep}
+                  analysisFailed={questAnalysisFailed}
 
-              onComplete={handleQuestOnboardingComplete}
+                  onAnalysisFailedReset={() => setQuestAnalysisFailed(false)}
 
-              analysisFailed={questAnalysisFailed}
+                />
 
-              onAnalysisFailedReset={() => setQuestAnalysisFailed(false)}
+              </ErrorBoundary>
 
-            />
+            </Suspense>
 
-          </ErrorBoundary>
+          )}
 
-        </Suspense>
 
-      )}
 
+          {/* ── Workout Onboarding Tutorial (Level 1) ── */}
 
+          {showWorkoutOnboarding && workoutOnboardingStep > 0 && (
 
-      {/* ── Workout Onboarding Tutorial (Level 1) ── */}
+            <Suspense fallback={null}>
 
-      {showWorkoutOnboarding && workoutOnboardingStep > 0 && (
+              <ErrorBoundary>
 
-        <Suspense fallback={null}>
+                <WorkoutOnboardingTutorial
 
-          <ErrorBoundary>
+                  currentStep={workoutOnboardingStep}
 
-            <WorkoutOnboardingTutorial
+                  onStepComplete={handleWorkoutOnboardingStep}
 
-              currentStep={workoutOnboardingStep}
+                  onComplete={handleWorkoutOnboardingComplete}
 
-              onStepComplete={handleWorkoutOnboardingStep}
+                />
 
-              onComplete={handleWorkoutOnboardingComplete}
+              </ErrorBoundary>
 
-            />
+            </Suspense>
 
-          </ErrorBoundary>
+          )}
 
-        </Suspense>
 
-      )}
 
+          {/* ── Rank Reveal (UNRANKED → E) ── */}
 
+          <AnimatePresence>
 
-      {/* ── Rank Reveal (UNRANKED → E) ── */}
+            {showRankReveal && activeOverlay === 'rankReveal' && (
 
-      <AnimatePresence>
-
-        {showRankReveal && activeOverlay === 'rankReveal' && (
-
-          <Suspense fallback={null}>
-
-            <ErrorBoundary>
-
-              <RankUpCinematic
-
-                oldRank="UNRANKED"
-
-                newRank="E"
-
-                onComplete={handleRankRevealComplete}
-
-              />
-
-            </ErrorBoundary>
-
-          </Suspense>
-
-        )}
-
-      </AnimatePresence>
-
-
-
-      {/* ── Feature Unlock Cinematic (Level 5 / Level 10) ── */}
-
-      <AnimatePresence>
-
-        {showFeatureUnlock !== null && (
-
-          <Suspense fallback={null}>
-
-            <ErrorBoundary>
-
-              <FeatureUnlockCinematic
-
-                level={showFeatureUnlock}
-
-                onComplete={() => handleFeatureUnlockComplete(showFeatureUnlock)}
-
-              />
-
-            </ErrorBoundary>
-
-          </Suspense>
-
-        )}
-
-      </AnimatePresence>
-
-
-
-      {/* ── Level 5 Tutorial ── */}
-
-      {showLevel5Tutorial && (
-
-        <Suspense fallback={null}>
-
-          <ErrorBoundary>
-
-            <Level5Tutorial
-
-              currentStep={level5TutStep}
-
-              onStepComplete={(step) => setLevel5TutStep(step + 1)}
-
-              onComplete={() => setShowLevel5Tutorial(false)}
-
-            />
-
-          </ErrorBoundary>
-
-        </Suspense>
-
-      )}
-
-
-
-      {/* ── Level 10 Tutorial ── */}
-
-      {showLevel10Tutorial && (
-
-        <Suspense fallback={null}>
-
-          <ErrorBoundary>
-
-            <Level10Tutorial
-
-              currentStep={level10TutStep}
-
-              onStepComplete={(step) => setLevel10TutStep(step + 1)}
-
-              onComplete={() => setShowLevel10Tutorial(false)}
-
-            />
-
-          </ErrorBoundary>
-
-        </Suspense>
-
-      )}
-
-
-
-      {/* Confetti Overlay — rendered at App level */}
-
-      <Suspense fallback={null}>
-
-        <ErrorBoundary>
-
-          <ConfettiOverlay />
-
-        </ErrorBoundary>
-
-      </Suspense>
-
-
-
-
-
-
-
-      <Layout
-
-        navigation={shouldShowNav ? (
-
-          <Navigation
-
-            activeTab={activeTab}
-
-            onTabChange={navigateTo}
-
-            badges={navBadges}
-
-            playerLevel={player.level}
-
-            guidedStep={undefined}
-
-            onGuidedAction={(step) => {
-
-              if (step === 1) handleQuestOnboardingStep(1);
-
-              if (step === 7) {
-
-                // Workout onboarding step — just switch tab
-
-              }
-
-            }}
-
-          />
-
-        ) : null}
-
-        playerLevel={player.level}
-
-        playerName={player.name}
-
-        playerUsername={player.username}
-
-        playerRank={player.rank}
-
-        streak={player.streak}
-
-        gold={player.gold}
-
-        keys={player.keys ?? 0}
-
-        currentXp={player.currentXp}
-        requiredXp={player.requiredXp}
-
-        consumables={player.consumables}
-
-        replitUser={player.replitUser}
-
-        playerAvatarUrl={player.avatarUrl}
-
-        notificationHistory={notificationHistory}
-
-        hasUnreadNotifications={hasUnreadNotifications}
-
-        onMarkNotificationsRead={markNotificationsRead}
-
-        onClearNotificationHistory={clearNotificationHistory}
-
-        headerDisabled={isDungeonMode}
-
-        forceHeaderVisible={false}
-
-        hideAmbientGlow={activeTab === 'PROFILE'}
-
-        onGoldClick={!isDungeonMode ? () => navigateTo('STORE') : undefined}
-
-        onLogout={() => setShowLogoutChoice(true)}
-
-        onEditProfile={() => navigateTo('PROFILE')}
-
-      >
-
-        {/* Food scan in-progress banner — shown on any tab except HEALTH */}
-
-        {foodScanBannerVisible && activeTab !== 'HEALTH' && (
-
-          <div
-
-            className="fixed top-20 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 rounded-full text-xs font-mono font-bold cursor-pointer"
-
-            style={{ background: 'rgba(0,212,255,0.12)', border: '1px solid rgba(0,212,255,0.4)', color: '#00d4ff', backdropFilter: 'blur(12px)' }}
-
-            onClick={() => navigateTo('HEALTH')}
-
-          >
-
-            <span className="animate-pulse">●</span> Food scan running — tap to view
-
-          </div>
-
-        )}
-
-
-
-        {/* Main content wrapper with swipe-to-change-tab */}
-        <div
-          onTouchStart={handleSwipeTouchStart}
-          onTouchEnd={handleSwipeTouchEnd}
-          style={{ minHeight: 0 }}
-        >
-        <AnimatePresence mode="wait">
-
-          {/* ── DASHBOARD ── */}
-          {activeTab === 'DASHBOARD' && (
-            <motion.div
-              key="dashboard"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="space-y-6 md:space-y-8"
-            >              {/* ── 1. Growth Terminal (Radar + Calendar + Mana + ForgeGuard) ── */}
-              <Suspense fallback={<SkeletonStatsChart />}>
-                <ErrorBoundary fallbackLabel="Status card failed">
-                  <PlayerStatusCard
-                    player={player}
-                    equippedOutfit={dbOutfits.find(o => o.id === player.equippedOutfitId) || OUTFITS.find(o => o.id === player.equippedOutfitId)}
-                    mentorMessages={mentorMessages}
-                    onDismissMentorMessage={(id) => setMentorMessages(prev => prev.filter(m => m.id !== id))}
-                    history={player.history || []}
-                    onOpenDuskChat={() => setShowDuskChat(true)}
-                  />
-                </ErrorBoundary>
-              </Suspense>
-
-              {/* ── Promo Banners: Food Scanner & Store Deals ── */}
-              <div className="grid grid-cols-2 gap-3 px-1">
-                {/* Food Scanner Card */}
-                <button
-                  onClick={() => {
-                    setHealthSubTab('NUTRITION');
-                    setActiveTab('HEALTH' as Tab);
-                  }}
-                  className="relative overflow-hidden rounded-2xl active:scale-[0.97] transition-transform"
-                  style={{
-                    height: 160,
-                    boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-                    border: '1px solid rgba(0,212,255,0.15)',
-                  }}
-                >
-                  <PromoImg
-                    src="/images/ui/food-scanner-promo.webp"
-                    alt="Food Scanner"
-                    style={{ filter: 'grayscale(0.85) brightness(0.35)' }}
-                  />
-                  <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.2) 100%)' }} />
-                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-3">
-                    <div className="text-[8px] font-mono font-bold tracking-[0.25em] text-[#00d4ff] uppercase mb-1">Nutrition</div>
-                    <div className="text-[15px] font-black text-white leading-tight mb-3">Scan Your Food</div>
-                    <div className="px-4 py-1.5 rounded-lg text-[9px] font-black font-mono uppercase tracking-widest"
-                      style={{ background: 'rgba(0,212,255,0.12)', border: '1px solid rgba(0,212,255,0.3)', color: '#00d4ff' }}
-                    >Scan Meal</div>
-                  </div>
-                </button>
-
-                {/* Store Deals Card */}
-                <button
-                  onClick={() => {
-                    setStoreInitialTab('DEALS');
-                    setActiveTab('STORE' as Tab);
-                  }}
-                  className="relative overflow-hidden rounded-2xl active:scale-[0.97] transition-transform"
-                  style={{
-                    height: 160,
-                    boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-                    border: '1px solid rgba(250,204,21,0.12)',
-                  }}
-                >
-                  <PromoImg
-                    src="/images/ui/store-deals-promo.webp"
-                    alt="Store Deals"
-                    style={{ filter: 'grayscale(0.85) brightness(0.35)' }}
-                  />
-                  <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.2) 100%)' }} />
-                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-3">
-                    <div className="text-[8px] font-mono font-bold tracking-[0.25em] text-[#facc15] uppercase mb-1">Store</div>
-                    <div className="text-[15px] font-black text-white leading-tight mb-3">Today's Deals</div>
-                    <div className="px-4 py-1.5 rounded-lg text-[9px] font-black font-mono uppercase tracking-widest"
-                      style={{ background: 'rgba(250,204,21,0.1)', border: '1px solid rgba(250,204,21,0.25)', color: '#facc15' }}
-                    >View Store</div>
-                  </div>
-                </button>
-              </div>
-
-              {/* ── 2. Goal Hero + Pinned Goals ── */}
               <Suspense fallback={null}>
-                <ErrorBoundary fallbackLabel="Goals failed">
-                  <GoalHeroSection
-                    goals={player.goals || []}
-                    onCreateGoal={() => setShowGoalCreate(true)}
-                    generatingGoalId={generatingGoalId}
-                    isPremium={isPremium}
-                    onUpgrade={() => setShowManaPowerUpsell(true)}
-                    onGenerateQuests={(goalId) => {
-                      const goal = (player.goals || []).find(g => g.id === goalId);
-                      if (!goal) return;
-                      const todayStr = new Date().toISOString().split('T')[0];
-                      const currentDay = Math.max(1, Math.floor((Date.now() - goal.startDate) / (1000 * 60 * 60 * 24)) + 1);
-                      startQuestGeneration({
-                        goal,
-                        allGoals: player.goals || [],
-                        playerData: player,
-                        todayStr,
-                        currentDay,
-                        existingQuests: player.quests,
-                      });
-                    }}
+
+                <ErrorBoundary>
+
+                  <RankUpCinematic
+
+                    oldRank="UNRANKED"
+
+                    newRank="E"
+
+                    onComplete={handleRankRevealComplete}
+
                   />
+
                 </ErrorBoundary>
+
               </Suspense>
 
-              {/* ── 3. Daily Quests ── */}
-              <div id="daily-command-center">
-              <Suspense fallback={<SkeletonQuestsPage />}>
-                <ErrorBoundary fallbackLabel="Quests failed to load">
-                  <DailyCommandCenter
-                    quests={player.quests}
-                    addQuest={addQuest}
-                    completeQuest={handleQuestComplete}
-                    failQuest={failQuest}
-                    resetQuest={resetQuest}
-                    deleteQuest={deleteQuest}
-                    tutorialStep={player.tutorialStep}
-                    onTutorialAction={advanceTutorial}
-                    onTutorialAnalysisFail={() => setTutorialAnalysisFailed(true)}
-                    playerData={player}
-                    onToggleNav={handleToggleNav}
-                    recordStrike={recordStrike}
+            )}
 
-                    onStartTracking={handleStartTracking}
-                    onStopTracking={handleStopTracking}
-                    onConsumeMana={consumeMana}
-                    onRefundMana={refundMana}
-                    isQuestOnboarding={showQuestOnboarding && questOnboardingStep > 0}
-                    onTutorialManaOut={handleTutorialManaOut}
-                    goals={player.goals || []}
-                    onUpdateGoals={handleUpdateGoals}
-                    onDeleteGoal={handleDeleteGoal}
-                    onDeductGold={(amount) => setPlayer(prev => ({ ...prev, gold: Math.max(0, prev.gold - amount) }))}
-                    /* ADS DISABLED — onShowInterstitialAd removed */
+          </AnimatePresence>
+
+
+
+          {/* ── Feature Unlock Cinematic (Level 5 / Level 10) ── */}
+
+          <AnimatePresence>
+
+            {showFeatureUnlock !== null && (
+
+              <Suspense fallback={null}>
+
+                <ErrorBoundary>
+
+                  <FeatureUnlockCinematic
+
+                    level={showFeatureUnlock}
+
+                    onComplete={() => handleFeatureUnlockComplete(showFeatureUnlock)}
+
                   />
-                </ErrorBoundary>
-              </Suspense>
-              </div>
 
-            </motion.div>
+                </ErrorBoundary>
+
+              </Suspense>
+
+            )}
+
+          </AnimatePresence>
+
+
+
+          {/* ── Level 5 Tutorial ── */}
+
+          {showLevel5Tutorial && (
+
+            <Suspense fallback={null}>
+
+              <ErrorBoundary>
+
+                <Level5Tutorial
+
+                  currentStep={level5TutStep}
+
+                  onStepComplete={(step) => setLevel5TutStep(step + 1)}
+
+                  onComplete={() => setShowLevel5Tutorial(false)}
+
+                />
+
+              </ErrorBoundary>
+
+            </Suspense>
 
           )}
 
 
 
+          {/* ── Level 10 Tutorial ── */}
 
+          {showLevel10Tutorial && (
 
-          {/* ── STORE ── */}
+            <Suspense fallback={null}>
 
-          {(activeTab === 'STORE' || activeTab === 'ARMORY') && (
+              <ErrorBoundary>
 
-            <motion.div key="store" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <Level10Tutorial
 
-              <Suspense fallback={<SkeletonShopPage />}>
+                  currentStep={level10TutStep}
 
-                <ErrorBoundary fallbackLabel="Store failed to load">
+                  onStepComplete={(step) => setLevel10TutStep(step + 1)}
 
-                  <ShopView
+                  onComplete={() => setShowLevel10Tutorial(false)}
 
-                    gold={player.gold}
+                />
 
-                    items={player.shopItems}
+              </ErrorBoundary>
 
-                    purchaseItem={purchaseItem}
-
-
-                    consumables={player.consumables}
-
-                    streak={player.streak}
-
-                    lastLoginDate={player.lastLoginDate}
-
-                    onOpenDailyCalendar={DAILY_REWARDS_ENABLED ? () => setShowDailyLogin(true) : undefined}
-
-                    highlightDungeon={highlightDungeon}
-
-                    onHighlightConsumed={() => setHighlightDungeon(false)}
-
-                    wardrobeGold={player.gold}
-
-                    wardrobeUnlockedOutfits={player.unlockedOutfits || ['outfit_starter']}
-
-                    wardrobeEquippedOutfitId={player.equippedOutfitId || 'outfit_starter'}
-
-                    wardrobeOutfits={dbOutfits.length > 0 ? dbOutfits : OUTFITS}
-
-                    wardrobeOnPurchase={purchaseOutfit}
-
-                    wardrobeOnEquip={equipOutfit}
-
-                    outfitStones={player.outfitStones || {}}
-
-                    chests={player.chests}
-
-                    onOpenChest={() => setShowChestOpening(true)}
-
-                    ownedBorders={player.ownedBorders || ['border_default']}
-
-                    equippedBorder={player.equippedBorder}
-
-                    playerLevel={player.level}
-
-                    onPurchaseBorder={purchaseBorder}
-
-                    onEquipBorder={equipBorder}
-
-                    onEquipBanner={equipBanner}
-
-                    initialStoreTab={storeInitialTab}
-
-                    playerAvatarUrl={player.avatarUrl}
-
-                    onGoldUpdate={(newGold) => setPlayer(prev => ({ ...prev, gold: newGold }))}
-
-                    /* ADS DISABLED — onWatchAdForBorder removed */
-
-                    keys={player.keys ?? 0}
-
-                    onKeysUpdate={(newKeys) => setPlayer(prev => ({ ...prev, keys: newKeys }))}
-
-                    rcState={rcState}
-
-                    rcActions={rcActions}
-
-                  />
-
-                </ErrorBoundary>
-
-              </Suspense>
-
-            </motion.div>
+            </Suspense>
 
           )}
 
 
 
-          {/* ── LEADERBOARD ── */}
+          {/* Confetti Overlay — rendered at App level */}
 
-          {activeTab === 'LEADERBOARD' && (
+          <Suspense fallback={null}>
 
-            <motion.div key="leaderboard" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <ErrorBoundary>
 
-              <Suspense fallback={<SkeletonAlliancePage />}>
+              <ConfettiOverlay />
 
-                <ErrorBoundary fallbackLabel="Leaderboard failed to load">
+            </ErrorBoundary>
 
-                  <LeaderboardView 
+          </Suspense>
 
-                    player={player} 
 
-                    equippedOutfit={dbOutfits.find(o => o.id === player.equippedOutfitId) || OUTFITS.find(o => o.id === player.equippedOutfitId)}
 
-                  />
 
-                </ErrorBoundary>
 
-              </Suspense>
 
-            </motion.div>
 
-          )}
+          <Layout
 
+            navigation={shouldShowNav ? (
 
+              <Navigation
 
-          {/* ── REWARDS ── */}
+                activeTab={activeTab}
 
-          {activeTab === 'REWARDS' && (
+                onTabChange={navigateTo}
 
-            <motion.div key="rewards" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                badges={navBadges}
 
-              <Suspense fallback={<SkeletonShopPage />}>
+                playerLevel={player.level}
 
-                <ErrorBoundary fallbackLabel="Shop failed to load">
+                guidedStep={undefined}
 
-                  <ShopView
+                onGuidedAction={(step) => {
 
-                    gold={player.gold}
+                  if (step === 1) handleQuestOnboardingStep(1);
 
-                    items={player.shopItems}
+                  if (step === 7) {
 
-                    purchaseItem={purchaseItem}
-
-
-                    consumables={player.consumables}
-
-                    streak={player.streak}
-
-                    lastLoginDate={player.lastLoginDate}
-
-                    outfitStones={player.outfitStones || {}}
-
-                    chests={player.chests}
-
-                    onOpenChest={() => setShowChestOpening(true)}
-
-                    playerAvatarUrl={player.avatarUrl}
-
-                    onGoldUpdate={(newGold) => setPlayer(prev => ({ ...prev, gold: newGold }))}
-
-                  />
-
-                </ErrorBoundary>
-
-              </Suspense>
-
-            </motion.div>
-
-          )}
-
-
-
-          {/* ── HEALTH ── */}
-
-          {activeTab === 'HEALTH' && (
-
-            <motion.div key={`health-${healthViewKey}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-
-              <Suspense fallback={<SkeletonHealthPage />}>
-
-                <ErrorBoundary fallbackLabel="Health view failed to load">
-
-                  <HealthView
-
-                    healthProfile={player.healthProfile}
-
-                    onSaveProfile={saveHealthProfile}
-
-                    onCompleteWorkout={completeWorkoutSession}
-
-                    onFailWorkout={failWorkout}
-
-                    onLogMeal={logMeal}
-
-                    onDeleteMeal={deleteMeal}
-
-                    playerData={player}
-
-                    onTutorialAction={advanceTutorial}
-
-                    tutorialStep={player.tutorialStep}
-
-                    onToggleNav={handleToggleNav}
-
-
-                    onConsumeMana={consumeMana}
-
-                    onRefundMana={refundMana}
-
-                    onUpdateSkillProgress={updateSkillProgress}
-
-                    playerLevel={player.level}
-
-                    onAddRewards={addRewards}
-
-                    initialSubTab={healthSubTab}
-
-                    /* ADS DISABLED — onShowDungeonAd removed */
-                    onShowDungeonAd={async () => true} /* Always allow through — no ad gate */
-                    /* ADS DISABLED — onWatchAdToDouble removed */
-
-                  />
-
-                </ErrorBoundary>
-
-              </Suspense>
-
-            </motion.div>
-
-          )}
-
-
-
-
-
-
-
-          {/* ── PROFILE ── */}
-
-          {activeTab === 'PROFILE' && (
-
-            <motion.div key="profile" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-
-              <Suspense fallback={<SkeletonProfilePage />}>
-
-                <ErrorBoundary fallbackLabel="Profile failed to load">
-
-                  <YouView
-
-                    player={player}
-
-                    equippedOutfit={dbOutfits.find(o => o.id === player.equippedOutfitId) || OUTFITS.find(o => o.id === player.equippedOutfitId)}
-
-                    history={player.history || []}
-
-                    onUpdate={updateProfile}
-
-                    onAvatarChange={(newUrl) => setPlayer(prev => ({ ...prev, avatarUrl: newUrl }))}
-
-                    onLogout={() => setShowLogoutChoice(true)}
-
-                    onNavigate={(tab) => setActiveTab(tab)}
-
-                    onOpenDusk={() => setShowDuskChat(true)}
-
-                    onDeleteAccount={async () => {
-
-                      if (!player.userId || player.userId.startsWith('local')) return;
-
-                      const uid = player.userId;
-
-                      const authHeaders = await getOrRefreshPlayerHeaders(API_BASE);
-
-
-
-                      // 1. Call server to delete account data — this MUST succeed
-
-                      let res: Response;
-
-                      try {
-
-                        res = await fetch(`${API_BASE}/api/player/${uid}/delete-account`, {
-
-                          method: 'DELETE',
-
-                          headers: { 'Content-Type': 'application/json', ...authHeaders },
-
-                          credentials: 'include',
-
-                        });
-
-                      } catch (networkErr) {
-
-                        throw new Error('Network error — check your internet connection and try again.');
-
-                      }
-
-
-
-                      if (!res.ok) {
-
-                        let serverMsg = 'Server failed to delete account.';
-
-                        try {
-
-                          const body = await res.json();
-
-                          if (body?.error) serverMsg = body.error;
-
-                        } catch { /* non-JSON response */ }
-
-                        throw new Error(serverMsg);
-
-                      }
-
-
-
-                      // 2. Server confirmed deletion — NOW safe to wipe local data
-
-                      clearAuthNative();
-
-                      localStorage.removeItem('reforge_player_v2');
-
-                      localStorage.removeItem(`reforge_workout_day_map_${uid}`);
-
-                      localStorage.removeItem(`reforge_journey_start_${uid}`);
-
-                      localStorage.removeItem(`reforge_session_logs_${uid}`);
-
-                      localStorage.removeItem('reforge_workout_day_map');
-
-                      localStorage.removeItem('reforge_journey_start');
-
-                      localStorage.removeItem('reforge_notif_opt');
-
-                      sessionStorage.clear();
-
-                      resetPlayer();
-
-                      setOnboardingPhase('WELCOME');
-
-                      setLoading(false);
-
-                    }}
-
-
-
-
-                  />
-
-                </ErrorBoundary>
-
-              </Suspense>
-
-            </motion.div>
-
-          )}
-
-
-
-        </AnimatePresence>
-
-        </div>{/* end swipe wrapper */}
-
-
-
-        {activeTab === 'DASHBOARD' && (
-
-          <ErrorBoundary>
-
-          <MobileFloatingMenu
-
-            gold={player.gold}
-
-
-            onAddRewards={addRewards}
-
-            onAddNotification={(msg: string, type: any) => addNotification(msg, type)}
-
-            onOpenDuskChat={() => setShowDuskChat(true)}
-
-          />
-
-          </ErrorBoundary>
-
-        )}
-
-
-
-
-
-
-        {showLogoutChoice && (
-
-          <ErrorBoundary>
-
-          <LogoutChoiceScreen
-
-            onSelect={(dest) => {
-
-              logoutFlowRef.current = true;
-
-              setShowLogoutChoice(false);
-
-              // 1. Clear local storage and reset player state IMMEDIATELY
-
-              const prevUserId = player.userId;
-
-              const prevPlayer = { ...player };
-
-              clearAuthNative();
-
-              clearEconomySession(); // Clear per-user economy on logout
-
-              rcActions.logoutUser(); // Reset RevenueCat to anonymous — prevents entitlement bleed
-              rcLoginDoneRef.current = null;
-
-              localStorage.removeItem('reforge_player_v2');
-
-              sessionStorage.setItem('reforge_logout_pending', '1');
-
-              resetPlayer();
-
-              // 2. Navigate directly to the chosen destination — instant
-
-              setOnboardingPhase(dest);
-
-              setLoading(false);
-
-              // 3. Fire-and-forget: sync data & destroy session in background
-
-              (async () => {
-
-                try {
-
-                  if (prevUserId && !isLocalUser(prevUserId)) {
-
-                    await fetch(`${API_BASE}/api/player/${prevUserId}`, {
-
-                      method: 'PUT',
-
-                      headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
-
-                      credentials: 'include',
-
-                      body: JSON.stringify(prevPlayer),
-
-                    });
+                    // Workout onboarding step — just switch tab
 
                   }
 
-                } catch { /* ignore sync errors */ }
+                }}
 
-                try {
+              />
 
-                  await fetch(`${API_BASE}/api/auth/local/logout`, { method: 'POST', credentials: 'include' });
+            ) : null}
 
-                } catch { /* ignore */ }
+            playerLevel={player.level}
 
-                sessionStorage.removeItem('reforge_logout_pending');
+            playerName={player.name}
 
-              })();
+            playerUsername={player.username}
 
-            }}
+            playerRank={player.rank}
 
-            onCancel={() => setShowLogoutChoice(false)}
+            streak={player.streak}
 
-          />
+            gold={player.gold}
 
-          </ErrorBoundary>
+            keys={player.keys ?? 0}
 
-        )}
+            currentXp={player.currentXp}
+            requiredXp={player.requiredXp}
 
+            consumables={player.consumables}
 
+            replitUser={player.replitUser}
 
-        {/* ── Stone Drop Animation (single award) ── */}
+            playerAvatarUrl={player.avatarUrl}
 
-        <AnimatePresence>
+            notificationHistory={notificationHistory}
 
-          {stoneAnim && (
+            hasUnreadNotifications={hasUnreadNotifications}
 
-            <StoneDropAnim
+            onMarkNotificationsRead={markNotificationsRead}
 
-              key={`stone-${stoneAnim.outfitId}-${stoneAnim.newCount}`}
+            onClearNotificationHistory={clearNotificationHistory}
 
-              outfitId={stoneAnim.outfitId}
+            headerDisabled={isDungeonMode}
 
-              amount={stoneAnim.amount}
+            forceHeaderVisible={false}
 
-              oldCount={stoneAnim.oldCount}
+            hideAmbientGlow={activeTab === 'PROFILE'}
 
-              newCount={stoneAnim.newCount}
+            onGoldClick={!isDungeonMode ? () => navigateTo('STORE') : undefined}
 
-              color={stoneAnim.color}
+            onLogout={() => setShowLogoutChoice(true)}
 
-              glow={stoneAnim.glow}
+            onEditProfile={() => navigateTo('PROFILE')}
 
-              onComplete={() => { setStoneAnim(null); stoneAnimBusy.current = false; flushStoneBatch(); }}
+          >
 
-            />
+            {/* Food scan in-progress banner — shown on any tab except HEALTH */}
 
-          )}
+            {foodScanBannerVisible && activeTab !== 'HEALTH' && (
 
-        </AnimatePresence>
+              <div
 
+                className="fixed top-20 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 rounded-full text-xs font-mono font-bold cursor-pointer"
 
+                style={{ background: 'rgba(0,212,255,0.12)', border: '1px solid rgba(0,212,255,0.4)', color: '#00d4ff', backdropFilter: 'blur(12px)' }}
 
-        {/* ── Batch Stone Animation (dungeon cash-out with multiple stone types) ── */}
-
-        <AnimatePresence>
-
-          {batchStoneAnim && (
-
-            <BatchStoneAnim
-
-              key={`batch-stones-${batchStoneAnim.map(s => s.outfitId).join('-')}`}
-
-              stones={batchStoneAnim}
-
-              onComplete={() => { setBatchStoneAnim(null); stoneAnimBusy.current = false; flushStoneBatch(); }}
-
-            />
-
-          )}
-
-        </AnimatePresence>
-
-
-
-        {/* Badge Tier Unlock Animation — DISABLED per user request */}
-        {/* Stones still accumulate but no cinematic plays */}
-
-
-
-        {/* ── Notification Opt-In Prompt (Android <13 auto-grants, so we ask in-app) ── */}
-
-        <AnimatePresence>
-
-          {showNotifPrompt && activeOverlay === 'notifPrompt' && (
-
-            <motion.div
-
-              initial={{ opacity: 0 }}
-
-              animate={{ opacity: 1 }}
-
-              exit={{ opacity: 0 }}
-
-              className="fixed inset-0 z-[900] bg-black/90 flex items-center justify-center p-6 font-mono"
-
-              onClick={() => handleNotifOptIn(false)}
-
-            >
-
-              <motion.div
-
-                initial={{ scale: 0.9, opacity: 0 }}
-
-                animate={{ scale: 1, opacity: 1 }}
-
-                exit={{ scale: 0.9, opacity: 0 }}
-
-                onClick={e => e.stopPropagation()}
-
-                className="w-full max-w-sm bg-[#0a0a14] border border-[#00d4ff]/30 rounded-2xl p-6 space-y-4"
+                onClick={() => navigateTo('HEALTH')}
 
               >
 
-                <div className="text-center">
+                <span className="animate-pulse">●</span> Food scan running — tap to view
 
-                  <div className="text-3xl mb-3">🔔</div>
+              </div>
 
-                  <h3 className="text-lg font-black text-white">Enable Notifications?</h3>
+            )}
 
-                  <p className="text-[11px] text-gray-400 mt-2 leading-relaxed">
 
-                    Get daily motivation from Dusk, streak reminders, quest deadline alerts, and workout nudges. You can change this anytime in your profile settings.
 
-                  </p>
+            {/* Main content wrapper with swipe-to-change-tab */}
+            <div
+              onTouchStart={handleSwipeTouchStart}
+              onTouchEnd={handleSwipeTouchEnd}
+              style={{ minHeight: 0 }}
+            >
+              <AnimatePresence mode="wait">
 
-                </div>
+                {/* ── DASHBOARD ── */}
+                {activeTab === 'DASHBOARD' && (
+                  <motion.div
+                    key="dashboard"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="space-y-6 md:space-y-8"
+                  >              {/* ── 1. Growth Terminal (Radar + Calendar + Mana + ForgeGuard) ── */}
+                    <Suspense fallback={<SkeletonStatsChart />}>
+                      <ErrorBoundary fallbackLabel="Status card failed">
+                        <PlayerStatusCard
+                          player={player}
+                          equippedOutfit={dbOutfits.find(o => o.id === player.equippedOutfitId) || OUTFITS.find(o => o.id === player.equippedOutfitId)}
+                          mentorMessages={mentorMessages}
+                          onDismissMentorMessage={(id) => setMentorMessages(prev => prev.filter(m => m.id !== id))}
+                          history={player.history || []}
+                          onOpenDuskChat={() => setShowDuskChat(true)}
+                        />
+                      </ErrorBoundary>
+                    </Suspense>
 
-                <div className="grid grid-cols-2 gap-3">
+                    {/* ── Promo Banners: Food Scanner & Store Deals ── */}
+                    <div className="grid grid-cols-2 gap-3 px-1">
+                      {/* Food Scanner Card */}
+                      <button
+                        onClick={() => {
+                          setHealthSubTab('NUTRITION');
+                          setActiveTab('HEALTH' as Tab);
+                        }}
+                        className="relative overflow-hidden rounded-2xl active:scale-[0.97] transition-transform"
+                        style={{
+                          height: 160,
+                          boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+                          border: '1px solid rgba(0,212,255,0.15)',
+                        }}
+                      >
+                        <PromoImg
+                          src="/images/ui/food-scanner-promo.webp"
+                          alt="Food Scanner"
+                          style={{ filter: 'grayscale(0.85) brightness(0.35)' }}
+                        />
+                        <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.2) 100%)' }} />
+                        <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-3">
+                          <div className="text-[8px] font-mono font-bold tracking-[0.25em] text-[#00d4ff] uppercase mb-1">Nutrition</div>
+                          <div className="text-[15px] font-black text-white leading-tight mb-3">Scan Your Food</div>
+                          <div className="px-4 py-1.5 rounded-lg text-[9px] font-black font-mono uppercase tracking-widest"
+                            style={{ background: 'rgba(0,212,255,0.12)', border: '1px solid rgba(0,212,255,0.3)', color: '#00d4ff' }}
+                          >Scan Meal</div>
+                        </div>
+                      </button>
 
-                  <button
+                      {/* Store Deals Card */}
+                      <button
+                        onClick={() => {
+                          setStoreInitialTab('DEALS');
+                          setActiveTab('STORE' as Tab);
+                        }}
+                        className="relative overflow-hidden rounded-2xl active:scale-[0.97] transition-transform"
+                        style={{
+                          height: 160,
+                          boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+                          border: '1px solid rgba(250,204,21,0.12)',
+                        }}
+                      >
+                        <PromoImg
+                          src="/images/ui/store-deals-promo.webp"
+                          alt="Store Deals"
+                          style={{ filter: 'grayscale(0.85) brightness(0.35)' }}
+                        />
+                        <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.2) 100%)' }} />
+                        <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-3">
+                          <div className="text-[8px] font-mono font-bold tracking-[0.25em] text-[#facc15] uppercase mb-1">Store</div>
+                          <div className="text-[15px] font-black text-white leading-tight mb-3">Today's Deals</div>
+                          <div className="px-4 py-1.5 rounded-lg text-[9px] font-black font-mono uppercase tracking-widest"
+                            style={{ background: 'rgba(250,204,21,0.1)', border: '1px solid rgba(250,204,21,0.25)', color: '#facc15' }}
+                          >View Store</div>
+                        </div>
+                      </button>
+                    </div>
 
-                    onClick={() => handleNotifOptIn(false)}
+                    {/* ── 2. Goal Hero + Pinned Goals ── */}
+                    <Suspense fallback={null}>
+                      <ErrorBoundary fallbackLabel="Goals failed">
+                        <GoalHeroSection
+                          goals={player.goals || []}
+                          onCreateGoal={() => setShowGoalCreate(true)}
+                          generatingGoalId={generatingGoalId}
+                          isPremium={isPremium}
+                          onUpgrade={() => setShowManaPowerUpsell(true)}
+                          onGenerateQuests={(goalId) => {
+                            const goal = (player.goals || []).find(g => g.id === goalId);
+                            if (!goal) return;
+                            const todayStr = new Date().toISOString().split('T')[0];
+                            const currentDay = Math.max(1, Math.floor((Date.now() - goal.startDate) / (1000 * 60 * 60 * 24)) + 1);
+                            startQuestGeneration({
+                              goal,
+                              allGoals: player.goals || [],
+                              playerData: player,
+                              todayStr,
+                              currentDay,
+                              existingQuests: player.quests,
+                            });
+                          }}
+                        />
+                      </ErrorBoundary>
+                    </Suspense>
 
-                    className="py-3 rounded-xl border border-gray-700 text-gray-400 font-bold text-xs tracking-widest hover:text-white transition-colors"
+                    {/* ── 3. Daily Quests ── */}
+                    <div id="daily-command-center">
+                      <Suspense fallback={<SkeletonQuestsPage />}>
+                        <ErrorBoundary fallbackLabel="Quests failed to load">
+                          <DailyCommandCenter
+                            quests={player.quests}
+                            addQuest={addQuest}
+                            completeQuest={handleQuestComplete}
+                            failQuest={failQuest}
+                            resetQuest={resetQuest}
+                            deleteQuest={deleteQuest}
+                            tutorialStep={player.tutorialStep}
+                            onTutorialAction={advanceTutorial}
+                            onTutorialAnalysisFail={() => setTutorialAnalysisFailed(true)}
+                            playerData={player}
+                            onToggleNav={handleToggleNav}
+                            recordStrike={recordStrike}
+
+                            onStartTracking={handleStartTracking}
+                            onStopTracking={handleStopTracking}
+                            onConsumeMana={consumeMana}
+                            onRefundMana={refundMana}
+                            isQuestOnboarding={showQuestOnboarding && questOnboardingStep > 0}
+                            onTutorialManaOut={handleTutorialManaOut}
+                            goals={player.goals || []}
+                            onUpdateGoals={handleUpdateGoals}
+                            onDeleteGoal={handleDeleteGoal}
+                            onDeductGold={(amount) => setPlayer(prev => ({ ...prev, gold: Math.max(0, prev.gold - amount) }))}
+                          /* ADS DISABLED — onShowInterstitialAd removed */
+                          />
+                        </ErrorBoundary>
+                      </Suspense>
+                    </div>
+
+                  </motion.div>
+
+                )}
+
+
+
+
+
+                {/* ── STORE ── */}
+
+                {(activeTab === 'STORE' || activeTab === 'ARMORY') && (
+
+                  <motion.div key="store" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+
+                    <Suspense fallback={<SkeletonShopPage />}>
+
+                      <ErrorBoundary fallbackLabel="Store failed to load">
+
+                        <ShopView
+
+                          gold={player.gold}
+
+                          items={player.shopItems}
+
+                          purchaseItem={purchaseItem}
+
+
+                          consumables={player.consumables}
+
+                          streak={player.streak}
+
+                          lastLoginDate={player.lastLoginDate}
+
+                          onOpenDailyCalendar={DAILY_REWARDS_ENABLED ? () => setShowDailyLogin(true) : undefined}
+
+                          highlightDungeon={highlightDungeon}
+
+                          onHighlightConsumed={() => setHighlightDungeon(false)}
+
+                          wardrobeGold={player.gold}
+
+                          wardrobeUnlockedOutfits={player.unlockedOutfits || ['outfit_starter']}
+
+                          wardrobeEquippedOutfitId={player.equippedOutfitId || 'outfit_starter'}
+
+                          wardrobeOutfits={dbOutfits.length > 0 ? dbOutfits : OUTFITS}
+
+                          wardrobeOnPurchase={purchaseOutfit}
+
+                          wardrobeOnEquip={equipOutfit}
+
+                          outfitStones={player.outfitStones || {}}
+
+                          chests={player.chests}
+
+                          onOpenChest={() => setShowChestOpening(true)}
+
+                          ownedBorders={player.ownedBorders || ['border_default']}
+
+                          equippedBorder={player.equippedBorder}
+
+                          playerLevel={player.level}
+
+                          onPurchaseBorder={purchaseBorder}
+
+                          onEquipBorder={equipBorder}
+
+                          onEquipBanner={equipBanner}
+
+                          initialStoreTab={storeInitialTab}
+
+                          playerAvatarUrl={player.avatarUrl}
+
+                          onGoldUpdate={(newGold) => setPlayer(prev => ({ ...prev, gold: newGold }))}
+
+                          /* ADS DISABLED — onWatchAdForBorder removed */
+
+                          keys={player.keys ?? 0}
+
+                          onKeysUpdate={(newKeys) => setPlayer(prev => ({ ...prev, keys: newKeys }))}
+
+                          rcState={rcState}
+
+                          rcActions={rcActions}
+
+                        />
+
+                      </ErrorBoundary>
+
+                    </Suspense>
+
+                  </motion.div>
+
+                )}
+
+
+
+                {/* ── LEADERBOARD ── */}
+
+                {activeTab === 'LEADERBOARD' && (
+
+                  <motion.div key="leaderboard" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+
+                    <Suspense fallback={<SkeletonAlliancePage />}>
+
+                      <ErrorBoundary fallbackLabel="Leaderboard failed to load">
+
+                        <LeaderboardView
+
+                          player={player}
+
+                          equippedOutfit={dbOutfits.find(o => o.id === player.equippedOutfitId) || OUTFITS.find(o => o.id === player.equippedOutfitId)}
+
+                        />
+
+                      </ErrorBoundary>
+
+                    </Suspense>
+
+                  </motion.div>
+
+                )}
+
+
+
+                {/* ── REWARDS ── */}
+
+                {activeTab === 'REWARDS' && (
+
+                  <motion.div key="rewards" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+
+                    <Suspense fallback={<SkeletonShopPage />}>
+
+                      <ErrorBoundary fallbackLabel="Shop failed to load">
+
+                        <ShopView
+
+                          gold={player.gold}
+
+                          items={player.shopItems}
+
+                          purchaseItem={purchaseItem}
+
+
+                          consumables={player.consumables}
+
+                          streak={player.streak}
+
+                          lastLoginDate={player.lastLoginDate}
+
+                          outfitStones={player.outfitStones || {}}
+
+                          chests={player.chests}
+
+                          onOpenChest={() => setShowChestOpening(true)}
+
+                          playerAvatarUrl={player.avatarUrl}
+
+                          onGoldUpdate={(newGold) => setPlayer(prev => ({ ...prev, gold: newGold }))}
+
+                        />
+
+                      </ErrorBoundary>
+
+                    </Suspense>
+
+                  </motion.div>
+
+                )}
+
+
+
+                {/* ── HEALTH ── */}
+
+                {activeTab === 'HEALTH' && (
+
+                  <motion.div key={`health-${healthViewKey}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+
+                    <Suspense fallback={<SkeletonHealthPage />}>
+
+                      <ErrorBoundary fallbackLabel="Health view failed to load">
+
+                        <HealthView
+
+                          healthProfile={player.healthProfile}
+
+                          onSaveProfile={saveHealthProfile}
+
+                          onCompleteWorkout={completeWorkoutSession}
+
+                          onFailWorkout={failWorkout}
+
+                          onLogMeal={logMeal}
+
+                          onDeleteMeal={deleteMeal}
+
+                          playerData={player}
+
+                          onTutorialAction={advanceTutorial}
+
+                          tutorialStep={player.tutorialStep}
+
+                          onToggleNav={handleToggleNav}
+
+
+                          onConsumeMana={consumeMana}
+
+                          onRefundMana={refundMana}
+
+                          onUpdateSkillProgress={updateSkillProgress}
+
+                          playerLevel={player.level}
+
+                          onAddRewards={addRewards}
+
+                          initialSubTab={healthSubTab}
+
+                          /* ADS DISABLED — onShowDungeonAd removed */
+                          onShowDungeonAd={async () => true} /* Always allow through — no ad gate */
+                        /* ADS DISABLED — onWatchAdToDouble removed */
+
+                        />
+
+                      </ErrorBoundary>
+
+                    </Suspense>
+
+                  </motion.div>
+
+                )}
+
+
+
+
+
+
+
+                {/* ── PROFILE ── */}
+
+                {activeTab === 'PROFILE' && (
+
+                  <motion.div key="profile" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+
+                    <Suspense fallback={<SkeletonProfilePage />}>
+
+                      <ErrorBoundary fallbackLabel="Profile failed to load">
+
+                        <YouView
+
+                          player={player}
+
+                          equippedOutfit={dbOutfits.find(o => o.id === player.equippedOutfitId) || OUTFITS.find(o => o.id === player.equippedOutfitId)}
+
+                          history={player.history || []}
+
+                          onUpdate={updateProfile}
+
+                          onAvatarChange={(newUrl) => setPlayer(prev => ({ ...prev, avatarUrl: newUrl }))}
+
+                          onLogout={() => setShowLogoutChoice(true)}
+
+                          onNavigate={(tab) => setActiveTab(tab)}
+
+                          onOpenDusk={() => setShowDuskChat(true)}
+
+                          onDeleteAccount={async () => {
+
+                            if (!player.userId || player.userId.startsWith('local')) return;
+
+                            const uid = player.userId;
+
+                            const authHeaders = await getOrRefreshPlayerHeaders(API_BASE);
+
+
+
+                            // 1. Call server to delete account data — this MUST succeed
+
+                            let res: Response;
+
+                            try {
+
+                              res = await fetch(`${API_BASE}/api/player/${uid}/delete-account`, {
+
+                                method: 'DELETE',
+
+                                headers: { 'Content-Type': 'application/json', ...authHeaders },
+
+                                credentials: 'include',
+
+                              });
+
+                            } catch (networkErr) {
+
+                              throw new Error('Network error — check your internet connection and try again.');
+
+                            }
+
+
+
+                            if (!res.ok) {
+
+                              let serverMsg = 'Server failed to delete account.';
+
+                              try {
+
+                                const body = await res.json();
+
+                                if (body?.error) serverMsg = body.error;
+
+                              } catch { /* non-JSON response */ }
+
+                              throw new Error(serverMsg);
+
+                            }
+
+
+
+                            // 2. Server confirmed deletion — NOW safe to wipe local data
+
+                            clearAuthNative();
+
+                            localStorage.removeItem('reforge_player_v2');
+
+                            localStorage.removeItem(`reforge_workout_day_map_${uid}`);
+
+                            localStorage.removeItem(`reforge_journey_start_${uid}`);
+
+                            localStorage.removeItem(`reforge_session_logs_${uid}`);
+
+                            localStorage.removeItem('reforge_workout_day_map');
+
+                            localStorage.removeItem('reforge_journey_start');
+
+                            localStorage.removeItem('reforge_notif_opt');
+
+                            sessionStorage.clear();
+
+                            resetPlayer();
+
+                            setOnboardingPhase('WELCOME');
+
+                            setLoading(false);
+
+                          }}
+
+
+
+
+                        />
+
+                      </ErrorBoundary>
+
+                    </Suspense>
+
+                  </motion.div>
+
+                )}
+
+
+
+              </AnimatePresence>
+
+            </div>{/* end swipe wrapper */}
+
+
+
+            {activeTab === 'DASHBOARD' && (
+
+              <ErrorBoundary>
+
+                <MobileFloatingMenu
+
+                  gold={player.gold}
+
+
+                  onAddRewards={addRewards}
+
+                  onAddNotification={(msg: string, type: any) => addNotification(msg, type)}
+
+                  onOpenDuskChat={() => setShowDuskChat(true)}
+
+                />
+
+              </ErrorBoundary>
+
+            )}
+
+
+
+
+
+
+            {showLogoutChoice && (
+
+              <ErrorBoundary>
+
+                <LogoutChoiceScreen
+
+                  onSelect={(dest) => {
+
+                    logoutFlowRef.current = true;
+
+                    setShowLogoutChoice(false);
+
+                    // 1. Clear local storage and reset player state IMMEDIATELY
+
+                    const prevUserId = player.userId;
+
+                    const prevPlayer = { ...player };
+
+                    clearAuthNative();
+
+                    clearEconomySession(); // Clear per-user economy on logout
+
+                    rcActions.logoutUser(); // Reset RevenueCat to anonymous — prevents entitlement bleed
+                    rcLoginDoneRef.current = null;
+
+                    localStorage.removeItem('reforge_player_v2');
+
+                    sessionStorage.setItem('reforge_logout_pending', '1');
+
+                    resetPlayer();
+
+                    // 2. Navigate directly to the chosen destination — instant
+
+                    setOnboardingPhase(dest);
+
+                    setLoading(false);
+
+                    // 3. Fire-and-forget: sync data & destroy session in background
+
+                    (async () => {
+
+                      try {
+
+                        if (prevUserId && !isLocalUser(prevUserId)) {
+
+                          await fetch(`${API_BASE}/api/player/${prevUserId}`, {
+
+                            method: 'PUT',
+
+                            headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
+
+                            credentials: 'include',
+
+                            body: JSON.stringify(prevPlayer),
+
+                          });
+
+                        }
+
+                      } catch { /* ignore sync errors */ }
+
+                      try {
+
+                        await fetch(`${API_BASE}/api/auth/local/logout`, { method: 'POST', credentials: 'include' });
+
+                      } catch { /* ignore */ }
+
+                      sessionStorage.removeItem('reforge_logout_pending');
+
+                    })();
+
+                  }}
+
+                  onCancel={() => setShowLogoutChoice(false)}
+
+                />
+
+              </ErrorBoundary>
+
+            )}
+
+
+
+            {/* ── Stone Drop Animation (single award) ── */}
+
+            <AnimatePresence>
+
+              {stoneAnim && (
+
+                <StoneDropAnim
+
+                  key={`stone-${stoneAnim.outfitId}-${stoneAnim.newCount}`}
+
+                  outfitId={stoneAnim.outfitId}
+
+                  amount={stoneAnim.amount}
+
+                  oldCount={stoneAnim.oldCount}
+
+                  newCount={stoneAnim.newCount}
+
+                  color={stoneAnim.color}
+
+                  glow={stoneAnim.glow}
+
+                  onComplete={() => { setStoneAnim(null); stoneAnimBusy.current = false; flushStoneBatch(); }}
+
+                />
+
+              )}
+
+            </AnimatePresence>
+
+
+
+            {/* ── Batch Stone Animation (dungeon cash-out with multiple stone types) ── */}
+
+            <AnimatePresence>
+
+              {batchStoneAnim && (
+
+                <BatchStoneAnim
+
+                  key={`batch-stones-${batchStoneAnim.map(s => s.outfitId).join('-')}`}
+
+                  stones={batchStoneAnim}
+
+                  onComplete={() => { setBatchStoneAnim(null); stoneAnimBusy.current = false; flushStoneBatch(); }}
+
+                />
+
+              )}
+
+            </AnimatePresence>
+
+
+
+            {/* Badge Tier Unlock Animation — DISABLED per user request */}
+            {/* Stones still accumulate but no cinematic plays */}
+
+
+
+            {/* ── Notification Opt-In Prompt (Android <13 auto-grants, so we ask in-app) ── */}
+
+            <AnimatePresence>
+
+              {showNotifPrompt && activeOverlay === 'notifPrompt' && (
+
+                <motion.div
+
+                  initial={{ opacity: 0 }}
+
+                  animate={{ opacity: 1 }}
+
+                  exit={{ opacity: 0 }}
+
+                  className="fixed inset-0 z-[900] bg-black/90 flex items-center justify-center p-6 font-mono"
+
+                  onClick={() => handleNotifOptIn(false)}
+
+                >
+
+                  <motion.div
+
+                    initial={{ scale: 0.9, opacity: 0 }}
+
+                    animate={{ scale: 1, opacity: 1 }}
+
+                    exit={{ scale: 0.9, opacity: 0 }}
+
+                    onClick={e => e.stopPropagation()}
+
+                    className="w-full max-w-sm bg-[#0a0a14] border border-[#00d4ff]/30 rounded-2xl p-6 space-y-4"
 
                   >
 
-                    NO THANKS
+                    <div className="text-center">
 
-                  </button>
+                      <div className="text-3xl mb-3">🔔</div>
 
-                  <button
+                      <h3 className="text-lg font-black text-white">Enable Notifications?</h3>
 
-                    onClick={() => handleNotifOptIn(true)}
+                      <p className="text-[11px] text-gray-400 mt-2 leading-relaxed">
 
-                    className="py-3 rounded-xl bg-[#00d4ff] text-black font-bold text-xs tracking-widest hover:bg-white transition-colors"
+                        Get daily motivation from Dusk, streak reminders, quest deadline alerts, and workout nudges. You can change this anytime in your profile settings.
 
-                  >
+                      </p>
 
-                    ENABLE
+                    </div>
 
-                  </button>
+                    <div className="grid grid-cols-2 gap-3">
 
-                </div>
+                      <button
 
-              </motion.div>
+                        onClick={() => handleNotifOptIn(false)}
 
-            </motion.div>
+                        className="py-3 rounded-xl border border-gray-700 text-gray-400 font-bold text-xs tracking-widest hover:text-white transition-colors"
 
-          )}
+                      >
 
-        </AnimatePresence>
+                        NO THANKS
+
+                      </button>
+
+                      <button
+
+                        onClick={() => handleNotifOptIn(true)}
+
+                        className="py-3 rounded-xl bg-[#00d4ff] text-black font-bold text-xs tracking-widest hover:bg-white transition-colors"
+
+                      >
+
+                        ENABLE
+
+                      </button>
+
+                    </div>
+
+                  </motion.div>
+
+                </motion.div>
+
+              )}
+
+            </AnimatePresence>
 
 
 
 
 
 
-      </Layout>
+          </Layout>
 
-    <SystemToastOverlay />
-    </>
+          <SystemToastOverlay />
+        </>
 
-    )}
+      )}
 
     </ThemeContext.Provider>
 
