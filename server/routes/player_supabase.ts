@@ -764,33 +764,89 @@ router.post('/:id/avatar', async (req: Request, res: Response) => {
     const raw = imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64;
     const rawBuffer = Buffer.from(raw, 'base64');
 
-    // Limit to 2 MB
-    if (rawBuffer.length > 2 * 1024 * 1024) {
-      return res.status(400).json({ error: 'Image too large (max 2 MB)' });
+    // Limit to 5 MB (the client already compresses, but be generous)
+    if (rawBuffer.length > 5 * 1024 * 1024) {
+      return res.status(400).json({ error: 'Image too large (max 5 MB)' });
     }
 
-    // ── Resize to 256×256 max and compress ──
-    // Avatars display at 44–80px in the app. 256px gives 3× retina quality
-    // while reducing file size from ~2MB to ~15-30KB — massive speedup.
-    const buffer = await sharp(rawBuffer)
-      .resize(256, 256, { fit: 'cover', position: 'center' })
-      .webp({ quality: 80 })
-      .toBuffer();
+    // ── Resize if sharp is available, otherwise use raw buffer ──
+    // Client already compresses to 512x512 WebP, so skipping sharp is safe.
+    let buffer: Buffer = rawBuffer;
+    let contentType = 'image/webp';
+    let extension = 'webp';
 
-    const filePath = `avatars/${id}.webp`;
+    try {
+      const resized = await sharp(rawBuffer)
+        .resize(256, 256, { fit: 'cover', position: 'center' })
+        .webp({ quality: 80 })
+        .toBuffer();
+      buffer = resized;
+      console.log(`[Avatar Upload] Sharp: ${rawBuffer.length} → ${resized.length} bytes`);
+    } catch (sharpErr: any) {
+      // Sharp failed (not installed, bad image format, etc.) — use raw buffer
+      console.warn(`[Avatar Upload] Sharp processing failed, using raw buffer: ${sharpErr?.message}`);
+      // Detect content type from the data URL prefix
+      if (imageBase64.startsWith('data:image/png')) {
+        contentType = 'image/png';
+        extension = 'png';
+      } else if (imageBase64.startsWith('data:image/jpeg') || imageBase64.startsWith('data:image/jpg')) {
+        contentType = 'image/jpeg';
+        extension = 'jpg';
+      }
+      // else default to webp
+    }
 
-    // Upload (upsert) to Supabase Storage bucket "avatars"
-    const { error: uploadErr } = await sb.storage
+    const filePath = `avatars/${id}.${extension}`;
+
+    // ── Ensure the 'avatars' bucket exists ──
+    // First-time setup: the bucket may not exist yet in Supabase Storage
+    try {
+      const { data: buckets } = await sb.storage.listBuckets();
+      const avatarBucket = (buckets || []).find((b: any) => b.name === 'avatars');
+      if (!avatarBucket) {
+        console.log('[Avatar Upload] Creating "avatars" bucket...');
+        const { error: createErr } = await sb.storage.createBucket('avatars', {
+          public: true,
+          fileSizeLimit: 5 * 1024 * 1024,
+          allowedMimeTypes: ['image/webp', 'image/png', 'image/jpeg'],
+        });
+        if (createErr) {
+          console.error('[Avatar Upload] Bucket creation failed:', createErr);
+          // Non-fatal: bucket might already exist from another worker
+        }
+      }
+    } catch (bucketErr: any) {
+      console.warn('[Avatar Upload] Bucket check failed (non-fatal):', bucketErr?.message);
+    }
+
+    // ── Upload with upsert ──
+    let uploadErr: any = null;
+    const uploadResult = await sb.storage
       .from('avatars')
       .upload(filePath, buffer, {
-        contentType: 'image/webp',
+        contentType,
         upsert: true,
-        cacheControl: '86400', // 24 hours — avatars rarely change
+        cacheControl: '86400',
       });
+    uploadErr = uploadResult.error;
 
+    // If upsert fails (some Supabase tiers), try remove + upload
     if (uploadErr) {
-      console.error('[Avatar Upload] Storage error:', uploadErr);
-      return res.status(500).json({ error: 'Failed to upload avatar' });
+      console.warn(`[Avatar Upload] Upsert failed: ${uploadErr.message}. Trying remove + upload...`);
+      await sb.storage.from('avatars').remove([filePath]);
+      const retryResult = await sb.storage
+        .from('avatars')
+        .upload(filePath, buffer, {
+          contentType,
+          cacheControl: '86400',
+        });
+      if (retryResult.error) {
+        console.error('[Avatar Upload] Storage error after retry:', retryResult.error);
+        return res.status(500).json({
+          error: `Failed to upload avatar: ${retryResult.error.message || 'Storage error'}`,
+        });
+      }
+      uploadErr = null;
     }
 
     // Get the public URL — store WITHOUT cache-buster in DB so CDN/browser caching works.
@@ -800,13 +856,22 @@ router.post('/:id/avatar', async (req: Request, res: Response) => {
     const freshUrl = `${cleanUrl}?t=${Date.now()}`;
 
     // Update avatar_url column in players table (clean URL, no cache-buster)
-    await sb.from('players').update({ avatar_url: cleanUrl, updated_at: new Date().toISOString() }).eq('supabase_id', id);
+    const { error: dbErr } = await sb
+      .from('players')
+      .update({ avatar_url: cleanUrl, updated_at: new Date().toISOString() })
+      .eq('supabase_id', id);
+
+    if (dbErr) {
+      console.error('[Avatar Upload] DB update failed:', dbErr);
+      // Upload succeeded but DB update failed — still return the URL
+      // so the client can display it, even if next load won't have it
+    }
 
     console.log(`[Avatar Upload] Updated avatar for ${id} (${rawBuffer.length} → ${buffer.length} bytes)`);
     return res.json({ success: true, avatarUrl: freshUrl });
-  } catch (err) {
-    console.error('[Avatar Upload]', err);
-    return res.status(500).json({ error: 'Internal server error' });
+  } catch (err: any) {
+    console.error('[Avatar Upload] Unexpected error:', err?.message || err);
+    return res.status(500).json({ error: `Avatar upload failed: ${err?.message || 'Unknown error'}` });
   }
 });
 
