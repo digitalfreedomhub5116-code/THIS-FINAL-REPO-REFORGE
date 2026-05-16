@@ -13,6 +13,14 @@ import type { FormCoachState } from '../utils/poseEngine';
 import FormCoachOverlay from './FormCoachOverlay';
 import FormCoachSummary from './FormCoachSummary';
 
+/** Check if an exercise is rep-based (not time-based like "5 min" or "30s") */
+const isRepBasedExercise = (reps: string, type: string): boolean => {
+  if (type === 'CARDIO' || type === 'STRETCH') return false;
+  const lower = reps?.toLowerCase() || '';
+  if (lower.includes('min') || lower.includes('sec') || /\d+s\b/.test(lower)) return false;
+  return /^\d+$/.test(lower.trim());
+};
+
 interface ActiveWorkoutPlayerProps {
   plan: WorkoutDay;
   onComplete: (exercisesCompleted: number, totalExercises: number, results: Record<string, number>, anomalyPoints?: number, formCoachBonusXp?: number, formCoachSession?: FormCoachSession) => void;
@@ -135,6 +143,8 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
   // --- FORM COACH STATE ---
   const [formCoachState, setFormCoachState] = useState<FormCoachState | null>(null);
   const lastFormCoachStateRef = useRef<FormCoachState | null>(null);
+  // Sub-phase for form coach exercises: PREVIEW (video full-screen) -> TRACKING (camera + PiP)
+  const [formCoachSubPhase, setFormCoachSubPhase] = useState<'PREVIEW' | 'TRACKING' | null>(null);
   // Accumulated form coach data across the entire workout
   const formCoachAccumRef = useRef<{
     exercises: Map<string, { scores: number[]; totalReps: number; sets: number }>;
@@ -143,12 +153,17 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
   }>({ exercises: new Map(), totalBonusXp: 0, perfectSets: 0 });
 
   // Derived Data
-  const exercise = plan.exercises[currentIdx] || plan.exercises[0]; // Fallback to avoid undefined crash
+  const exercise = plan.exercises[currentIdx] || plan.exercises[0];
   const totalExercises = plan.exercises.length;
 
-  // Check if current exercise supports Form Coach
-  const formCoachConfig = exercise?.formCoachEnabled ? findFormCoachExercise(exercise.name) : null;
-  const isFormCoachActive = !!formCoachConfig && phase === 'WORK';
+  // Auto-detect if current exercise should use Form Coach (PRO + rep-based + has config)
+  const { isPremium } = useSystem();
+  const formCoachConfig = React.useMemo(() => {
+    if (!isPremium || !exercise) return null;
+    if (!isRepBasedExercise(exercise.reps, exercise.type)) return null;
+    return findFormCoachExercise(exercise.name);
+  }, [isPremium, exercise?.name, exercise?.reps, exercise?.type]);
+  const isFormCoachActive = !!formCoachConfig && phase === 'WORK' && formCoachSubPhase === 'TRACKING';
   
   // Robust Video Lookup Strategy (checks EXERCISE_VIDEOS map → DB → exercise.videoUrl → focusVideos)
   const videoSource = React.useMemo(() => {
@@ -208,14 +223,27 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
 
   // --- LOGIC ---
 
-  // Initial Announcement Only
+  // Initial Announcement + Form Coach preview for first exercise
   useEffect(() => {
     if (plan.exercises.length > 0) {
         const first = plan.exercises[0];
         SpeechService.announceStart(first.name, first.sets, first.reps);
+        // Auto-start preview for form coach exercises
+        if (isPremium && isRepBasedExercise(first.reps, first.type) && findFormCoachExercise(first.name)) {
+          setFormCoachSubPhase('PREVIEW');
+        }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // PREVIEW → TRACKING auto-transition (4 seconds)
+  useEffect(() => {
+    if (formCoachSubPhase !== 'PREVIEW') return;
+    const timer = setTimeout(() => {
+      setFormCoachSubPhase('TRACKING');
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, [formCoachSubPhase]);
 
   const startNextSet = useCallback(() => {
       playSystemSoundEffect('SYSTEM');
@@ -232,15 +260,25 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
       const duration = getExerciseDuration(currentEx.reps);
       setTimeLeft(duration);
 
+      // Form Coach: trigger preview for first set of new exercise, skip preview for subsequent sets
+      const hasFormCoach = isPremium && isRepBasedExercise(currentEx.reps, currentEx.type) && !!findFormCoachExercise(currentEx.name);
+      if (hasFormCoach) {
+        if (nextSet === 1) {
+          setFormCoachSubPhase('PREVIEW'); // Full preview for first set
+        } else {
+          setFormCoachSubPhase('TRACKING'); // Skip preview for subsequent sets (camera already open)
+        }
+      } else {
+        setFormCoachSubPhase(null); // Not a form coach exercise
+      }
+
       // AI Voice Logic
       if (nextSet === 1) {
-          // Starting new exercise (Set 1)
           SpeechService.announceStart(currentEx.name, currentEx.sets, currentEx.reps);
       } else {
-          // Next set of same exercise
           SpeechService.announceSetStart(nextSet);
       }
-  }, [currentSet, currentIdx, plan.exercises]);
+  }, [currentSet, currentIdx, plan.exercises, isPremium]);
 
   const handleExerciseComplete = useCallback(() => {
     if (currentIdx < totalExercises - 1) {
@@ -594,18 +632,100 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
                 )}
             </AnimatePresence>
 
-            {/* Video Player OR Form Coach Camera */}
+            {/* Video Player / Form Coach Camera / PiP Layout */}
             <div className="w-full h-full flex items-center justify-center bg-black relative">
                 {formCoachConfig && phase === 'WORK' ? (
-                    /* ── Form Coach: Live Camera with Skeleton Overlay ── */
-                    <FormCoachOverlay
-                        exercise={formCoachConfig}
-                        isActive={phase === 'WORK' && !isPaused}
-                        onStateChange={(s) => {
-                            setFormCoachState(s);
-                            lastFormCoachStateRef.current = s;
-                        }}
-                    />
+                    /* ── Form Coach Mode: PREVIEW or TRACKING ── */
+                    <>
+                        {/* PREVIEW: Full-screen video with UPCOMING overlay */}
+                        {formCoachSubPhase === 'PREVIEW' && videoSource && (
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                className="absolute inset-0 z-10"
+                            >
+                                <video
+                                    key={`preview-${videoSource}`}
+                                    src={videoSource}
+                                    className="w-full h-full object-cover object-top"
+                                    autoPlay loop muted playsInline
+                                />
+                                {/* UPCOMING overlay */}
+                                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent flex flex-col items-center justify-end pb-16">
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: 0.3 }}
+                                        className="text-center"
+                                    >
+                                        <div className="inline-flex items-center gap-2 bg-orange-500/20 border border-orange-500/50 px-4 py-1.5 rounded-full text-orange-400 font-black text-xs tracking-[0.2em] mb-3 animate-pulse">
+                                            <Camera size={14} /> UPCOMING — WATCH FORM
+                                        </div>
+                                        <h2 className="text-3xl md:text-4xl font-black italic text-white uppercase mb-2 drop-shadow-[0_0_20px_rgba(0,0,0,0.8)]">
+                                            {exercise.name}
+                                        </h2>
+                                        <p className="text-xs text-gray-400 font-mono">
+                                            {exercise.sets} SETS × {exercise.reps} REPS — Camera opens in a moment
+                                        </p>
+                                        {/* Countdown dots */}
+                                        <div className="flex justify-center gap-2 mt-4">
+                                            {[0, 1, 2, 3].map(i => (
+                                                <motion.div
+                                                    key={i}
+                                                    className="w-2 h-2 rounded-full bg-orange-500"
+                                                    initial={{ opacity: 0.3 }}
+                                                    animate={{ opacity: 1 }}
+                                                    transition={{ delay: i * 1 }}
+                                                />
+                                            ))}
+                                        </div>
+                                    </motion.div>
+                                </div>
+                            </motion.div>
+                        )}
+
+                        {/* TRACKING: Full-screen camera + PiP video in top-right */}
+                        {formCoachSubPhase === 'TRACKING' && (
+                            <>
+                                <FormCoachOverlay
+                                    exercise={formCoachConfig}
+                                    isActive={!isPaused}
+                                    onStateChange={(s) => {
+                                        setFormCoachState(s);
+                                        lastFormCoachStateRef.current = s;
+                                    }}
+                                />
+                                {/* PiP Video — top-right corner like a video call */}
+                                {videoSource && (
+                                    <motion.div
+                                        initial={{ opacity: 0, scale: 0.5, x: 20, y: -20 }}
+                                        animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
+                                        transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+                                        className="absolute top-14 right-3 z-40 w-[120px] h-[160px] rounded-xl overflow-hidden border-2 border-orange-500/60 shadow-[0_4px_20px_rgba(0,0,0,0.8),0_0_15px_rgba(249,115,22,0.2)]"
+                                    >
+                                        <video
+                                            key={`pip-${videoSource}`}
+                                            src={videoSource}
+                                            className="w-full h-full object-cover object-top"
+                                            autoPlay loop muted playsInline
+                                        />
+                                        {/* PiP label */}
+                                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent px-1.5 py-1">
+                                            <p className="text-[7px] font-mono font-bold text-orange-400 tracking-wider text-center truncate">REFERENCE</p>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </>
+                        )}
+
+                        {/* No video and no sub-phase yet — show loading */}
+                        {!formCoachSubPhase && (
+                            <div className="flex flex-col items-center justify-center text-gray-600">
+                                <div className="w-12 h-12 border-2 border-system-neon border-t-transparent rounded-full animate-spin mb-4" />
+                                <span className="font-mono text-xs tracking-widest">INITIALIZING FORM COACH...</span>
+                            </div>
+                        )}
+                    </>
                 ) : videoSource ? (
                     isEmbed(videoSource) ? (
                         <iframe 
