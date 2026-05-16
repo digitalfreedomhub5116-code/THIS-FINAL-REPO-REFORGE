@@ -1031,7 +1031,7 @@ const EmpathyInsightScreen: React.FC<{ goal: string; profile: Partial<HealthProf
 
     const insightCards: Record<string, Array<{ icon: string; title: string; desc: string }>> = {
         LOSE_WEIGHT: [
-            { icon: '\uD83D\uDCA7', title: 'Hydration Protocol', desc: 'Your easiest daily win. Track your first glass tomorrow morning.' },
+            { icon: '\uD83C\uDF4E', title: 'Nutrition Protocol', desc: 'Fuel your body right. The System will calculate your optimal macros and meal timing.' },
             { icon: '\uD83D\uDD25', title: 'Metabolic Reset', desc: 'Your body adapts within 2 weeks. Small deficits beat crash diets.' },
             { icon: '\uD83E\uDDE0', title: 'Discipline is Trainable', desc: 'Each day you show up, the neural pathway gets stronger.' },
         ],
