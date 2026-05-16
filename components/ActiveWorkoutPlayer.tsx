@@ -148,6 +148,8 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
   const lastFormCoachStateRef = useRef<FormCoachState | null>(null);
   // Sub-phase for form coach exercises: PREVIEW (video full-screen) -> TRACKING (camera + PiP)
   const [formCoachSubPhase, setFormCoachSubPhase] = useState<'PREVIEW' | 'TRACKING' | null>(null);
+  // User-selectable tracking mode: TIMER (default, classic) vs CAMERA (AI rep counting)
+  const [trackingMode, setTrackingMode] = useState<'TIMER' | 'CAMERA'>('TIMER');
   // Accumulated form coach data across the entire workout
   const formCoachAccumRef = useRef<{
     exercises: Map<string, { scores: number[]; totalReps: number; sets: number }>;
@@ -166,7 +168,7 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
     if (!isRepBasedExercise(exercise.reps, exercise.type)) return null;
     return findFormCoachExercise(exercise.name);
   }, [exercise?.name, exercise?.reps, exercise?.type]);
-  const isFormCoachActive = !!formCoachConfig && phase === 'WORK' && formCoachSubPhase === 'TRACKING';
+  const isFormCoachActive = !!formCoachConfig && phase === 'WORK' && trackingMode === 'CAMERA' && formCoachSubPhase === 'TRACKING';
   
   // Robust Video Lookup Strategy (checks EXERCISE_VIDEOS map → DB → exercise.videoUrl → focusVideos)
   const videoSource = React.useMemo(() => {
@@ -226,15 +228,11 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
 
   // --- LOGIC ---
 
-  // Initial Announcement + Form Coach preview for first exercise
+  // Initial Announcement
   useEffect(() => {
     if (plan.exercises.length > 0) {
         const first = plan.exercises[0];
         SpeechService.announceStart(first.name, first.sets, first.reps);
-        // Auto-start preview for form coach exercises
-        if (isRepBasedExercise(first.reps, first.type) && findFormCoachExercise(first.name)) {
-          setFormCoachSubPhase('PREVIEW');
-        }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -263,16 +261,15 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
       const duration = getExerciseDuration(currentEx.reps);
       setTimeLeft(duration);
 
-      // Form Coach: trigger preview for first set of new exercise, skip preview for subsequent sets
-      const hasFormCoach = isRepBasedExercise(currentEx.reps, currentEx.type) && !!findFormCoachExercise(currentEx.name);
-      if (hasFormCoach) {
-        if (nextSet === 1) {
-          setFormCoachSubPhase('PREVIEW'); // Full preview for first set
-        } else {
-          setFormCoachSubPhase('TRACKING'); // Skip preview for subsequent sets (camera already open)
-        }
-      } else {
-        setFormCoachSubPhase(null); // Not a form coach exercise
+      // Form Coach: preserve user's tracking mode preference across sets
+      // Reset to TIMER for new exercises (set 1), keep current mode for subsequent sets
+      if (nextSet === 1) {
+        setTrackingMode('TIMER');
+        setFormCoachSubPhase(null);
+      }
+      // If user has camera on, keep it going for subsequent sets
+      if (trackingMode === 'CAMERA' && nextSet > 1) {
+        setFormCoachSubPhase('TRACKING');
       }
 
       // AI Voice Logic
@@ -399,7 +396,9 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
-    if (!isPaused && timeLeft > 0) {
+    // Pause timer when camera tracking is active (reps counted by AI instead)
+    const timerPaused = isPaused || (phase === 'WORK' && trackingMode === 'CAMERA' && formCoachSubPhase === 'TRACKING' && !!formCoachConfig);
+    if (!timerPaused && timeLeft > 0) {
       interval = setInterval(() => {
         setTimeLeft((prev) => {
           const next = prev - 1;
@@ -415,7 +414,7 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
       handleTimerComplete();
     }
     return () => clearInterval(interval);
-  }, [timeLeft, isPaused, phase, handleTimerComplete, currentIdx, plan.exercises]);
+  }, [timeLeft, isPaused, phase, handleTimerComplete, currentIdx, plan.exercises, trackingMode, formCoachSubPhase, formCoachConfig]);
 
   // --- SESSION PERSISTENCE: Save state whenever key values change ---
   // Skip saving once workout has been completed (prevents re-save after clear)
@@ -637,7 +636,7 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
 
             {/* Video Player / Form Coach Camera / PiP Layout */}
             <div className="w-full h-full flex items-center justify-center bg-black relative">
-                {formCoachConfig && phase === 'WORK' ? (
+                {formCoachConfig && phase === 'WORK' && trackingMode === 'CAMERA' ? (
                     /* ── Form Coach Mode: PREVIEW or TRACKING ── */
                     <>
                         {/* PREVIEW: Full-screen video with UPCOMING overlay */}
@@ -816,11 +815,18 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
                         </div>
                     </div>
                     
-                    {/* Mini Timer (Visible during work) */}
-                    {phase === 'WORK' && (
+                    {/* Mini Timer (Visible during work — hidden when camera tracking active) */}
+                    {phase === 'WORK' && !(trackingMode === 'CAMERA' && formCoachSubPhase === 'TRACKING' && formCoachConfig) && (
                         <div className="flex flex-col items-center justify-center bg-gray-900/50 border border-gray-800 rounded-lg p-2 min-w-[70px]">
                             <TimerIcon size={14} className="text-system-neon mb-1" />
                             <span className="text-xl font-bold font-mono text-white leading-none">{Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}</span>
+                        </div>
+                    )}
+                    {/* Rep Counter (when camera tracking active) */}
+                    {phase === 'WORK' && trackingMode === 'CAMERA' && formCoachSubPhase === 'TRACKING' && formCoachConfig && formCoachState && (
+                        <div className="flex flex-col items-center justify-center bg-orange-500/10 border border-orange-500/40 rounded-lg p-2 min-w-[70px]">
+                            <Camera size={14} className="text-orange-400 mb-1" />
+                            <span className="text-xl font-bold font-mono text-orange-400 leading-none">{formCoachState.repCount}<span className="text-xs text-gray-500">/{parseInt(exercise.reps) || '?'}</span></span>
                         </div>
                     )}
                 </div>
@@ -857,9 +863,32 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
 
                     {phase === 'WORK' ? (
                         <>
+                            {/* CAMERA/TIMER Toggle — only for form coach exercises */}
+                            {formCoachConfig && (
+                                <button
+                                    onClick={() => {
+                                        const next = trackingMode === 'TIMER' ? 'CAMERA' : 'TIMER';
+                                        setTrackingMode(next);
+                                        if (next === 'CAMERA') {
+                                            setFormCoachSubPhase('TRACKING');
+                                        } else {
+                                            setFormCoachSubPhase(null);
+                                            setFormCoachState(null);
+                                        }
+                                    }}
+                                    className={`col-span-1 h-14 md:h-16 rounded-xl flex flex-col items-center justify-center border transition-all active:scale-95 text-[9px] font-mono font-bold tracking-wider ${
+                                        trackingMode === 'CAMERA'
+                                            ? 'bg-orange-500/15 border-orange-500/50 text-orange-400'
+                                            : 'bg-gray-900 border-gray-800 text-gray-500 hover:border-orange-500/30 hover:text-orange-400/60'
+                                    }`}
+                                >
+                                    {trackingMode === 'CAMERA' ? <Camera size={18} /> : <TimerIcon size={18} />}
+                                    {trackingMode === 'CAMERA' ? 'AI ON' : 'AI OFF'}
+                                </button>
+                            )}
                             <button 
                                 onClick={completeSet}
-                                className="col-span-3 h-14 md:h-16 bg-system-neon text-black font-black text-lg rounded-xl flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(0,212,255,0.4)] hover:bg-white transition-all active:scale-95 group"
+                                className={`${formCoachConfig ? 'col-span-2' : 'col-span-3'} h-14 md:h-16 bg-system-neon text-black font-black text-lg rounded-xl flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(0,212,255,0.4)] hover:bg-white transition-all active:scale-95 group`}
                             >
                                 <Check size={24} strokeWidth={3} />
                                 <span>COMPLETE SET</span>

@@ -61,11 +61,12 @@ export interface FormCoachExercise {
 const L_KNEE: AngleDef = { name: 'Left Knee', a: 23, b: 25, c: 27 };
 const L_HIP: AngleDef = { name: 'Left Hip', a: 11, b: 23, c: 25 };
 const L_ELBOW: AngleDef = { name: 'Left Elbow', a: 11, b: 13, c: 15 };
+const L_SHOULDER: AngleDef = { name: 'Left Shoulder', a: 13, b: 11, c: 23 };
 
 export const FORM_COACH_EXERCISES: FormCoachExercise[] = [
   {
     name: 'Barbell Squat',
-    aliases: ['Back Squat','Squat','Goblet Squat','Bodyweight Squat','Air Squat'],
+    aliases: ['Back Squat','Squat','Goblet Squat','Bodyweight Squat','Air Squat','Front Squat','Sumo Squat','Dumbbell Squat'],
     viewAngle: 'side',
     primaryAngle: L_KNEE,
     repPhase: { bottomAngleMax: 100, topAngleMin: 160 },
@@ -79,7 +80,7 @@ export const FORM_COACH_EXERCISES: FormCoachExercise[] = [
   },
   {
     name: 'Push-Up',
-    aliases: ['Push Up','Pushup','Push-Ups','Wide Push-Up','Diamond Push-Up'],
+    aliases: ['Push Up','Pushup','Push-Ups','Pushups','Wide Push-Up','Wide Push-Ups','Diamond Push-Up','Diamond Push-Ups','Pike Push-Up','Pike Push-Ups','Knee Push-Up','Knee Push-Ups'],
     viewAngle: 'side',
     primaryAngle: L_ELBOW,
     repPhase: { bottomAngleMax: 100, topAngleMin: 155 },
@@ -93,7 +94,7 @@ export const FORM_COACH_EXERCISES: FormCoachExercise[] = [
   },
   {
     name: 'Deadlift',
-    aliases: ['Conventional Deadlift','Barbell Deadlift','Romanian Deadlift','RDL'],
+    aliases: ['Conventional Deadlift','Barbell Deadlift','Romanian Deadlift','RDL','Dumbbell Deadlift','Stiff Leg Deadlift','Sumo Deadlift'],
     viewAngle: 'side',
     primaryAngle: L_HIP,
     repPhase: { bottomAngleMax: 100, topAngleMin: 165 },
@@ -107,7 +108,7 @@ export const FORM_COACH_EXERCISES: FormCoachExercise[] = [
   },
   {
     name: 'Overhead Press',
-    aliases: ['OHP','Military Press','Shoulder Press','Standing Press'],
+    aliases: ['OHP','Military Press','Shoulder Press','Standing Press','Dumbbell Shoulder Press','Arnold Press','Barbell Press','Machine Shoulder Press','Overhead Barbell Press'],
     viewAngle: 'side',
     primaryAngle: L_ELBOW,
     repPhase: { bottomAngleMax: 100, topAngleMin: 160 },
@@ -121,7 +122,7 @@ export const FORM_COACH_EXERCISES: FormCoachExercise[] = [
   },
   {
     name: 'Lunge',
-    aliases: ['Lunges','Walking Lunge','Forward Lunge','Reverse Lunge','Bulgarian Split Squat'],
+    aliases: ['Lunges','Walking Lunge','Walking Lunges','Forward Lunge','Reverse Lunge','Reverse Lunges','Bulgarian Split Squat','Split Squat','Dumbbell Lunge','Dumbbell Lunges'],
     viewAngle: 'side',
     primaryAngle: L_KNEE,
     repPhase: { bottomAngleMax: 100, topAngleMin: 155 },
@@ -146,6 +147,91 @@ export const FORM_COACH_EXERCISES: FormCoachExercise[] = [
     ],
     setupTips: ['Phone on floor, sideways','6-8 feet away','Head to feet visible'],
     requiredLandmarks: [11, 23, 25, 27],
+  },
+  // ── NEW EXERCISES ──
+  {
+    name: 'Bicep Curl',
+    aliases: ['Bicep Curls','Dumbbell Curl','Dumbbell Curls','Dumbbell Bicep Curl','Dumbbell Bicep Curls','Barbell Curl','Barbell Curls','Hammer Curl','Hammer Curls','Cable Curl','Cable Curls','Concentration Curl','EZ Bar Curl','Preacher Curl'],
+    viewAngle: 'side',
+    primaryAngle: L_ELBOW,
+    repPhase: { bottomAngleMax: 60, topAngleMin: 140 },
+    trackingMode: 'reps',
+    formRules: [
+      { id: 'curl_swing', label: 'Body Swing', angle: L_HIP, minAngle: 165, errorMessage: "Don't swing your body — isolate the bicep", severity: 'error' },
+      { id: 'curl_range', label: 'Full Range', angle: L_ELBOW, minAngle: 150, errorMessage: 'Extend fully at the bottom', severity: 'warning' },
+    ],
+    setupTips: ['Stand sideways to camera','Keep upper arm pinned to side','Full arm visible'],
+    requiredLandmarks: [11, 13, 15, 23],
+  },
+  {
+    name: 'Lateral Raise',
+    aliases: ['Lateral Raises','Dumbbell Lateral Raise','Dumbbell Lateral Raises','Cable Lateral Raise','Cable Lateral Raises','Side Raise','Side Raises','Side Lateral Raise'],
+    viewAngle: 'front',
+    primaryAngle: L_SHOULDER,
+    repPhase: { bottomAngleMax: 30, topAngleMin: 70 },
+    trackingMode: 'reps',
+    formRules: [
+      { id: 'lat_height', label: 'Raise Height', angle: L_SHOULDER, minAngle: 75, errorMessage: 'Raise arms to shoulder height', severity: 'warning' },
+      { id: 'lat_lean', label: 'Body Lean', angle: L_HIP, minAngle: 165, errorMessage: "Don't lean to the side", severity: 'warning' },
+    ],
+    setupTips: ['Face the camera','Arms visible from side','Stand 6-8 ft away'],
+    requiredLandmarks: [11, 13, 15, 23],
+  },
+  {
+    name: 'Bench Press',
+    aliases: ['Barbell Bench Press','Flat Bench Press','Dumbbell Bench Press','Dumbbell Press','Flat Dumbbell Press','Incline Bench Press','Incline Dumbbell Press','Decline Bench Press','Close Grip Bench Press','Floor Press'],
+    viewAngle: 'side',
+    primaryAngle: L_ELBOW,
+    repPhase: { bottomAngleMax: 90, topAngleMin: 155 },
+    trackingMode: 'reps',
+    formRules: [
+      { id: 'bench_depth', label: 'Depth', angle: L_ELBOW, maxAngle: 95, errorMessage: 'Lower the bar to chest level', severity: 'warning' },
+      { id: 'bench_lockout', label: 'Lockout', angle: L_ELBOW, minAngle: 160, errorMessage: 'Fully extend arms at the top', severity: 'warning' },
+    ],
+    setupTips: ['Camera from the side','Bench and arms visible','Phone at bench height'],
+    requiredLandmarks: [11, 13, 15],
+  },
+  {
+    name: 'Dip',
+    aliases: ['Dips','Tricep Dip','Tricep Dips','Parallel Bar Dips','Chair Dips','Bench Dips','Ring Dips'],
+    viewAngle: 'side',
+    primaryAngle: L_ELBOW,
+    repPhase: { bottomAngleMax: 95, topAngleMin: 155 },
+    trackingMode: 'reps',
+    formRules: [
+      { id: 'dip_depth', label: 'Depth', angle: L_ELBOW, maxAngle: 100, errorMessage: 'Go deeper — elbows past 90°', severity: 'warning' },
+      { id: 'dip_lean', label: 'Forward Lean', angle: L_HIP, minAngle: 140, errorMessage: 'Control your forward lean', severity: 'warning' },
+    ],
+    setupTips: ['Camera from the side','Upper body fully visible','Phone at chest height'],
+    requiredLandmarks: [11, 13, 15, 23],
+  },
+  {
+    name: 'Bent-Over Row',
+    aliases: ['Bent Over Row','Barbell Row','Dumbbell Row','Dumbbell Rows','Pendlay Row','T-Bar Row','Cable Row','Seated Cable Row','One Arm Row','Single Arm Row'],
+    viewAngle: 'side',
+    primaryAngle: L_ELBOW,
+    repPhase: { bottomAngleMax: 100, topAngleMin: 155 },
+    trackingMode: 'reps',
+    formRules: [
+      { id: 'row_back', label: 'Back Position', angle: L_HIP, minAngle: 60, maxAngle: 130, errorMessage: 'Keep back flat and hinged', severity: 'error' },
+      { id: 'row_pull', label: 'Full Pull', angle: L_ELBOW, maxAngle: 50, errorMessage: 'Pull elbows back further', severity: 'warning' },
+    ],
+    setupTips: ['Stand sideways to camera','Keep back flat','Full body visible'],
+    requiredLandmarks: [11, 13, 15, 23, 25],
+  },
+  {
+    name: 'Tricep Extension',
+    aliases: ['Tricep Extensions','Overhead Tricep Extension','Cable Overhead Triceps Extension','Dumbbell Triceps Extension','Skull Crusher','Skull Crushers','Tricep Pushdown','Tricep Pushdowns','Rope Triceps Pushdown','Cable Tricep Extension'],
+    viewAngle: 'side',
+    primaryAngle: L_ELBOW,
+    repPhase: { bottomAngleMax: 70, topAngleMin: 150 },
+    trackingMode: 'reps',
+    formRules: [
+      { id: 'tri_elbow', label: 'Elbow Position', angle: L_SHOULDER, minAngle: 150, errorMessage: 'Keep elbows close to head', severity: 'error' },
+      { id: 'tri_range', label: 'Full Extension', angle: L_ELBOW, minAngle: 155, errorMessage: 'Fully extend at the top', severity: 'warning' },
+    ],
+    setupTips: ['Stand sideways','Arms overhead visible','Phone at waist height'],
+    requiredLandmarks: [11, 13, 15],
   },
 ];
 
