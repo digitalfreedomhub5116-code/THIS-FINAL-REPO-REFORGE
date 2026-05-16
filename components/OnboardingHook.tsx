@@ -177,116 +177,221 @@ const timelineData = [
   },
 ];
 
-const ScreenSocialProof = ({ onNext }: { onNext: () => void }) => (
-  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 flex flex-col bg-black">
-    <div className="relative z-10 flex-1 flex flex-col overflow-y-auto" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 24px)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 56px)' }}>
-      {/* Header */}
-      <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="text-center px-6 mb-5">
-        <div className="text-white text-xs font-bold tracking-[0.35em] uppercase mb-3" style={{ fontFamily: "'Orbitron', 'Rajdhani', 'Share Tech Mono', monospace" }}>REAL STORY FROM A HUNTER</div>
-      </motion.div>
+const ScreenSocialProof = ({ onNext }: { onNext: () => void }) => {
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+  const timelineRef = React.useRef<HTMLDivElement>(null);
+  const [fillPercent, setFillPercent] = useState(0);
+  const [activeDots, setActiveDots] = useState(0);
+  const dotRefs = React.useRef<(HTMLDivElement | null)[]>([]);
 
-      {/* Before / After photos */}
-      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }} className="flex items-center justify-center gap-4 px-6 mb-3">
-        <div className="text-center">
-          <div className="w-[72px] h-[72px] rounded-full overflow-hidden border-2 border-gray-700 shadow-lg">
-            <img src="/onboarding/before_selfie.webp" alt="Before" className="w-full h-full object-cover" />
-          </div>
-          <span className="text-gray-500 text-[10px] mt-1 block">Before</span>
-        </div>
-        <div className="text-[#00d4ff] text-lg font-bold">→</div>
-        <div className="text-center">
-          <div className="w-[72px] h-[72px] rounded-full overflow-hidden border-2 border-[#00d4ff] shadow-[0_0_12px_rgba(0,212,255,0.3)]">
-            <img src="/onboarding/after_selfie.webp" alt="After" className="w-full h-full object-cover" />
-          </div>
-          <span className="text-[#00d4ff] text-[10px] mt-1 block font-medium">After</span>
-        </div>
-      </motion.div>
-      <div className="text-center mb-5 px-6">
-        <div className="text-white text-[16px] font-bold">Arjun, 22</div>
-        <div className="text-gray-500 text-[12px]">📍 Mumbai, India</div>
-      </div>
+  const handleScroll = React.useCallback(() => {
+    const scrollEl = scrollRef.current;
+    const timelineEl = timelineRef.current;
+    if (!scrollEl || !timelineEl) return;
 
-      {/* Timeline */}
-      <div className="px-6 relative">
-        {/* Vertical line */}
-        <div className="absolute left-[30px] top-0 bottom-0 w-[2px] bg-gradient-to-b from-gray-700 via-[#00d4ff]/40 to-[#00d4ff]" />
+    const scrollTop = scrollEl.scrollTop;
+    const timelineTop = timelineEl.offsetTop - scrollEl.offsetTop;
+    const timelineHeight = timelineEl.offsetHeight;
+    const viewportMid = scrollTop + scrollEl.clientHeight * 0.55;
 
-        {timelineData.map((item, idx) => (
-          <motion.div
-            key={idx}
-            initial={{ opacity: 0, x: -15 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.3 + idx * 0.15 }}
-            className="relative pl-10 mb-6"
-          >
-            {/* Dot */}
-            <div className={`absolute left-[22px] top-1 w-[18px] h-[18px] rounded-full border-2 flex items-center justify-center ${idx === timelineData.length - 1 ? 'border-[#00d4ff] bg-[#00d4ff]/20' : 'border-gray-600 bg-black'}`}>
-              <div className={`w-[6px] h-[6px] rounded-full ${idx === timelineData.length - 1 ? 'bg-[#00d4ff]' : 'bg-gray-500'}`} />
-            </div>
+    // Fill percentage: how far through the timeline the user has scrolled
+    const progress = Math.max(0, Math.min(1, (viewportMid - timelineTop) / timelineHeight));
+    setFillPercent(progress * 100);
 
-            {/* Day label */}
-            <div className="text-[#00d4ff] text-[15px] font-black font-mono">{item.day}</div>
-            <div className="text-gray-500 text-[11px] mb-2">{item.label}</div>
+    // Count active dots based on their position relative to viewport
+    let count = 0;
+    dotRefs.current.forEach((dotEl) => {
+      if (!dotEl) return;
+      const dotTop = dotEl.offsetTop + timelineTop;
+      if (viewportMid >= dotTop) count++;
+    });
+    setActiveDots(count);
+  }, []);
 
-            {/* Stats bar */}
-            <div className="flex gap-3 mb-2">
-              {item.stats.map((s, si) => (
-                <div key={si} className="bg-[#111] border border-gray-800 rounded-lg px-3 py-1.5 flex items-center gap-2">
-                  <span className="text-gray-400 text-[11px]">★ {s.key}</span>
-                  <span className="text-white text-[14px] font-black font-mono">{s.value}</span>
-                  {(s as any).delta && <span className="text-[#00d4ff] text-[10px] font-bold bg-[#00d4ff]/10 px-1.5 py-0.5 rounded-full">+{(s as any).delta} ▲</span>}
-                </div>
-              ))}
-            </div>
+  React.useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.addEventListener('scroll', handleScroll, { passive: true });
+    // Initial computation
+    setTimeout(handleScroll, 300);
+    return () => el.removeEventListener('scroll', handleScroll);
+  }, [handleScroll]);
 
-            {/* Description */}
-            <p className="text-gray-300 text-[13px] leading-relaxed mb-2">{item.text}</p>
-
-            {/* Tasks (not shown for last item) */}
-            {item.tasks && (
-              <div className="bg-[#0a0a0a] border border-gray-800/60 rounded-xl p-3 mt-2">
-                <div className="text-gray-500 text-[10px] font-bold tracking-widest uppercase mb-2 border-b border-gray-800 pb-1.5">Tasks in Week {idx + 1}</div>
-                {item.tasks.map((task, ti) => (
-                  <div key={ti} className="flex items-center gap-2 py-1">
-                    <span className="text-[#00d4ff] text-[11px]">▸</span>
-                    <span className="text-gray-300 text-[12px]">{task}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Show before photo after Day 1 */}
-            {idx === 0 && (
-              <div className="mt-3 w-[140px] h-[140px] rounded-xl overflow-hidden border border-gray-800">
-                <img src="/onboarding/before_selfie.webp" alt="" className="w-full h-full object-cover" />
-              </div>
-            )}
-
-            {/* Show after photo at Day 90 */}
-            {idx === timelineData.length - 1 && (
-              <div className="mt-3 w-[140px] h-[140px] rounded-xl overflow-hidden border border-[#00d4ff]/30 shadow-[0_0_15px_rgba(0,212,255,0.15)]">
-                <img src="/onboarding/after_selfie.webp" alt="" className="w-full h-full object-cover" />
-              </div>
-            )}
-          </motion.div>
-        ))}
-      </div>
-
-      {/* Rating + CTA */}
-      <div className="px-6 mt-auto">
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }} className="flex items-center justify-center gap-2 mb-5">
-          <div className="flex">
-            {[1,2,3,4,5].map(i => <Star key={i} size={14} className="text-[#00d4ff] fill-[#00d4ff]" />)}
-          </div>
-          <span className="text-gray-400 text-[12px] font-medium ml-1">4.9</span>
-          <span className="text-gray-600 text-[12px]">•</span>
-          <span className="text-gray-400 text-[12px]">10K+ hunters</span>
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 flex flex-col bg-black">
+      <div
+        ref={scrollRef}
+        className="relative z-10 flex-1 flex flex-col overflow-y-auto"
+        style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 24px)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 56px)' }}
+      >
+        {/* Header */}
+        <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="text-center px-6 mb-5">
+          <div className="text-white text-xs font-bold tracking-[0.35em] uppercase mb-3" style={{ fontFamily: "'Orbitron', 'Rajdhani', 'Share Tech Mono', monospace" }}>REAL STORY FROM A HUNTER</div>
         </motion.div>
-        <CTAButton text="Next" onClick={onNext} />
+
+        {/* Before / After photos */}
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }} className="flex items-center justify-center gap-5 px-6 mb-3">
+          <div className="text-center">
+            <div className="w-[76px] h-[76px] rounded-full overflow-hidden border-2 border-gray-600/60 shadow-lg p-[2px] bg-gradient-to-br from-gray-700 to-gray-900">
+              <img src="/onboarding/before_selfie.webp" alt="Before" className="w-full h-full object-cover rounded-full" />
+            </div>
+            <span className="text-gray-500 text-[10px] mt-1.5 block font-medium">Day 1</span>
+          </div>
+          <div className="flex flex-col items-center gap-0.5">
+            <div className="text-[#00d4ff] text-[18px]">→</div>
+            <span className="text-gray-600 text-[9px] tracking-wider uppercase">90 days</span>
+          </div>
+          <div className="text-center">
+            <div className="w-[76px] h-[76px] rounded-full overflow-hidden p-[2px] bg-gradient-to-br from-[#00d4ff] to-[#0088aa] shadow-[0_0_20px_rgba(0,212,255,0.25)]">
+              <img src="/onboarding/after_selfie.webp" alt="After" className="w-full h-full object-cover rounded-full" />
+            </div>
+            <span className="text-[#00d4ff] text-[10px] mt-1.5 block font-semibold">Day 90</span>
+          </div>
+        </motion.div>
+        <div className="text-center mb-6 px-6">
+          <div className="text-white text-[16px] font-bold">Arjun, 22</div>
+          <div className="text-gray-500 text-[12px]">📍 Mumbai, India</div>
+        </div>
+
+        {/* Timeline */}
+        <div ref={timelineRef} className="px-6 relative pb-4">
+          {/* Background track (gray) */}
+          <div className="absolute left-[30px] top-0 bottom-0 w-[2px] bg-gray-800/80 rounded-full" />
+          {/* Fill track (cyan, height = fillPercent) */}
+          <div
+            className="absolute left-[30px] top-0 w-[2px] rounded-full transition-all duration-150 ease-out"
+            style={{
+              height: `${fillPercent}%`,
+              background: 'linear-gradient(to bottom, #00d4ff, #33dfff)',
+              boxShadow: '0 0 8px rgba(0,212,255,0.4), 0 0 2px rgba(0,212,255,0.8)',
+            }}
+          />
+
+          {timelineData.map((item, idx) => {
+            const isActive = idx < activeDots;
+            const isLast = idx === timelineData.length - 1;
+            return (
+              <div
+                key={idx}
+                ref={(el) => { dotRefs.current[idx] = el; }}
+                className="relative pl-11 mb-8"
+              >
+                {/* Checkpoint dot */}
+                <div
+                  className="absolute left-[21px] top-[2px] w-[20px] h-[20px] rounded-full border-2 flex items-center justify-center transition-all duration-500"
+                  style={{
+                    borderColor: isActive ? '#00d4ff' : '#374151',
+                    backgroundColor: isActive ? 'rgba(0,212,255,0.15)' : '#0a0a0a',
+                    boxShadow: isActive ? '0 0 12px rgba(0,212,255,0.35), inset 0 0 4px rgba(0,212,255,0.2)' : 'none',
+                  }}
+                >
+                  <div
+                    className="w-[7px] h-[7px] rounded-full transition-all duration-500"
+                    style={{
+                      backgroundColor: isActive ? '#00d4ff' : '#4b5563',
+                      boxShadow: isActive ? '0 0 6px rgba(0,212,255,0.6)' : 'none',
+                    }}
+                  />
+                </div>
+
+                {/* Day label */}
+                <div className="flex items-baseline gap-2 mb-0.5">
+                  <span
+                    className="text-[16px] font-black font-mono transition-colors duration-500"
+                    style={{ color: isActive ? '#00d4ff' : '#6b7280' }}
+                  >
+                    {item.day}
+                  </span>
+                </div>
+                <div className="text-gray-500 text-[11px] mb-3 tracking-wide">{item.label}</div>
+
+                {/* Stats badges */}
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {item.stats.map((s, si) => (
+                    <div
+                      key={si}
+                      className="rounded-lg px-3 py-2 flex items-center gap-2 transition-all duration-500"
+                      style={{
+                        backgroundColor: isActive ? 'rgba(0,212,255,0.06)' : '#111',
+                        border: `1px solid ${isActive ? 'rgba(0,212,255,0.2)' : '#1f1f1f'}`,
+                      }}
+                    >
+                      <span className="text-gray-400 text-[10px] font-medium">★ {s.key}</span>
+                      <span className="text-white text-[16px] font-black font-mono">{s.value}</span>
+                      {(s as any).delta && (
+                        <span
+                          className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                          style={{
+                            color: '#00d4ff',
+                            backgroundColor: 'rgba(0,212,255,0.1)',
+                            border: '1px solid rgba(0,212,255,0.15)',
+                          }}
+                        >
+                          +{(s as any).delta} ▲
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Description */}
+                <p className="text-gray-300 text-[13px] leading-[1.7] mb-3">{item.text}</p>
+
+                {/* Tasks card */}
+                {item.tasks && (
+                  <div
+                    className="rounded-xl p-4 mt-1 transition-all duration-500"
+                    style={{
+                      backgroundColor: isActive ? 'rgba(0,212,255,0.03)' : '#080808',
+                      border: `1px solid ${isActive ? 'rgba(0,212,255,0.12)' : '#1a1a1a'}`,
+                    }}
+                  >
+                    <div className="text-gray-500 text-[10px] font-bold tracking-[0.15em] uppercase mb-2.5 pb-2" style={{ borderBottom: '1px solid #1a1a1a' }}>
+                      Quests — Week {idx + 1}
+                    </div>
+                    {item.tasks.map((task, ti) => (
+                      <div key={ti} className="flex items-center gap-2.5 py-1.5">
+                        <div className="w-[5px] h-[5px] rounded-full bg-[#00d4ff]/60 shrink-0" />
+                        <span className="text-gray-300 text-[12px]">{task}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Before photo after Day 1 */}
+                {idx === 0 && (
+                  <div className="mt-4 w-[140px] h-[140px] rounded-xl overflow-hidden border border-gray-700/50 shadow-lg">
+                    <img src="/onboarding/before_selfie.webp" alt="" className="w-full h-full object-cover" />
+                  </div>
+                )}
+
+                {/* After photo at Day 90 */}
+                {isLast && (
+                  <div className="mt-4 w-[140px] h-[140px] rounded-xl overflow-hidden shadow-[0_0_20px_rgba(0,212,255,0.15)]" style={{ border: '1px solid rgba(0,212,255,0.25)' }}>
+                    <img src="/onboarding/after_selfie.webp" alt="" className="w-full h-full object-cover" />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Rating + CTA */}
+        <div className="px-6 mt-auto pt-2">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }} className="flex items-center justify-center gap-2 mb-5">
+            <div className="flex">
+              {[1,2,3,4,5].map(i => <Star key={i} size={14} className="text-[#00d4ff] fill-[#00d4ff]" />)}
+            </div>
+            <span className="text-gray-400 text-[12px] font-medium ml-1">4.9</span>
+            <span className="text-gray-600 text-[12px]">•</span>
+            <span className="text-gray-400 text-[12px]">10K+ hunters</span>
+          </motion.div>
+          <CTAButton text="Next" onClick={onNext} />
+        </div>
       </div>
-    </div>
-  </motion.div>
-);
+    </motion.div>
+  );
+};
 
 /* ═══════════════════════════════════════════════════════ */
 /* SCREEN A4 — "Progressive Difficulty" (Interactive)    */
