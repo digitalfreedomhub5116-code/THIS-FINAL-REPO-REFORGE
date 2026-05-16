@@ -394,6 +394,26 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
     }
   }, [phase, completeSet, startNextSet]);
 
+  // Auto-complete set when AI rep count reaches target (camera mode only)
+  const autoCompleteRef = useRef(false);
+  useEffect(() => {
+    if (trackingMode !== 'CAMERA' || !formCoachState || phase !== 'WORK') {
+      autoCompleteRef.current = false;
+      return;
+    }
+    const targetReps = parseInt(exercise.reps) || 0;
+    if (targetReps > 0 && formCoachState.repCount >= targetReps && !autoCompleteRef.current) {
+      autoCompleteRef.current = true;
+      playSystemSoundEffect('SYSTEM');
+      // Small delay so user sees the final rep count
+      const timer = setTimeout(() => {
+        completeSet();
+        autoCompleteRef.current = false;
+      }, 1200);
+      return () => clearTimeout(timer);
+    }
+  }, [formCoachState?.repCount, trackingMode, phase, exercise.reps, completeSet]);
+
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
     // Pause timer when camera tracking is active (reps counted by AI instead)
@@ -787,74 +807,46 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
                 />
             </div>
 
-            <div className="p-5 md:p-8 space-y-5 md:space-y-6 pb-8 md:pb-8">
+            <div className={phase === 'WORK' && trackingMode === 'CAMERA' && formCoachConfig ? 'px-4 py-3' : 'p-5 md:p-8 space-y-5 md:space-y-6 pb-8 md:pb-8'}>
 
                 {/* ═══════════════════════════════════════════════════════════ */}
-                {/* CAMERA MODE: Simplified bottom panel                      */}
+                {/* CAMERA MODE: Ultra-compact bottom strip                   */}
                 {/* ═══════════════════════════════════════════════════════════ */}
                 {phase === 'WORK' && trackingMode === 'CAMERA' && formCoachConfig ? (
-                    <div className="space-y-4">
-                        {/* Exercise Name + Rep Counter */}
+                    <div className="space-y-2">
+                        {/* Row 1: Exercise Name + Rep Counter */}
                         <div className="flex justify-between items-center">
-                            <motion.h2
-                                key={exercise.name}
-                                initial={{ opacity: 0, x: -10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                className="text-xl md:text-2xl font-black italic text-white leading-tight uppercase tracking-tight truncate flex-1 pr-4"
-                            >
+                            <h2 className="text-base font-black italic text-white uppercase tracking-tight truncate flex-1 pr-3">
                                 {exercise.name}
-                            </motion.h2>
-                            {/* Rep Counter */}
-                            <div className="flex items-center gap-2 bg-orange-500/10 border border-orange-500/40 rounded-xl px-4 py-2">
-                                <span className="text-2xl font-black font-mono text-orange-400">{formCoachState?.repCount ?? 0}</span>
-                                <span className="text-sm text-gray-500 font-mono">/{parseInt(exercise.reps) || '?'}</span>
+                            </h2>
+                            <div className="flex items-baseline gap-1 bg-orange-500/10 border border-orange-500/40 rounded-lg px-3 py-1">
+                                <span className="text-xl font-black font-mono text-orange-400">{formCoachState?.repCount ?? 0}</span>
+                                <span className="text-xs text-gray-500 font-mono">/{parseInt(exercise.reps) || '?'}</span>
                             </div>
                         </div>
-
-                        {/* Set Indicators */}
-                        <div className="flex gap-1.5 h-1.5 w-full">
-                            {Array.from({ length: safeSetCount }).map((_, i) => {
-                                let statusColor = 'bg-gray-800';
-                                if (i < currentSet - 1) statusColor = 'bg-orange-500';
-                                if (i === currentSet - 1) statusColor = 'bg-white animate-pulse';
-                                return (
-                                    <motion.div
-                                        key={i}
-                                        className={`flex-1 rounded-full ${statusColor}`}
-                                        layoutId={`set-dot-${i}`}
-                                    />
-                                );
-                            })}
-                        </div>
-
-                        {/* AI COACH Toggle (iOS-style) + Complete Set */}
+                        {/* Row 2: Set dots + AI COACH toggle */}
                         <div className="flex items-center gap-3">
-                            {/* Toggle Switch */}
+                            <div className="flex gap-1 h-1 flex-1">
+                                {Array.from({ length: safeSetCount }).map((_, i) => {
+                                    let c = 'bg-gray-800';
+                                    if (i < currentSet - 1) c = 'bg-orange-500';
+                                    if (i === currentSet - 1) c = 'bg-white animate-pulse';
+                                    return <div key={i} className={`flex-1 rounded-full ${c}`} />;
+                                })}
+                            </div>
+                            {/* iOS Toggle */}
                             <button
-                                onClick={() => {
-                                    setTrackingMode('TIMER');
-                                    setFormCoachSubPhase(null);
-                                    setFormCoachState(null);
-                                }}
-                                className="flex items-center gap-3 shrink-0"
+                                onClick={() => { setTrackingMode('TIMER'); setFormCoachSubPhase(null); setFormCoachState(null); }}
+                                className="flex items-center gap-2 shrink-0"
                             >
-                                <div className="relative w-[52px] h-[28px] rounded-full transition-all duration-300 bg-gradient-to-r from-orange-500 to-amber-400 shadow-[0_0_12px_rgba(249,115,22,0.4)]">
+                                <div className="relative w-[44px] h-[24px] rounded-full bg-gradient-to-r from-orange-500 to-amber-400 shadow-[0_0_10px_rgba(249,115,22,0.3)]">
                                     <motion.div
-                                        className="absolute top-[3px] w-[22px] h-[22px] rounded-full bg-white shadow-md"
-                                        animate={{ left: 27 }}
+                                        className="absolute top-[3px] w-[18px] h-[18px] rounded-full bg-white shadow-sm"
+                                        animate={{ left: 23 }}
                                         transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                                     />
                                 </div>
-                                <span className="text-[10px] font-mono font-bold text-orange-400 tracking-wider">AI COACH</span>
-                            </button>
-
-                            {/* Complete Set */}
-                            <button
-                                onClick={completeSet}
-                                className="flex-1 h-12 bg-system-neon text-black font-black text-sm rounded-xl flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(0,212,255,0.3)] hover:bg-white transition-all active:scale-95"
-                            >
-                                <Check size={20} strokeWidth={3} />
-                                DONE
+                                <span className="text-[9px] font-mono font-bold text-orange-400 tracking-wider">AI COACH</span>
                             </button>
                         </div>
                     </div>
