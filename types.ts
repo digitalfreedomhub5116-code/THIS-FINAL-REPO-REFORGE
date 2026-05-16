@@ -421,6 +421,7 @@ export interface SkillProgress {
 }
 
 export interface HealthProfile {
+  hunterName?: string;
   gender: 'MALE' | 'FEMALE';
   age: number;
   height: number;

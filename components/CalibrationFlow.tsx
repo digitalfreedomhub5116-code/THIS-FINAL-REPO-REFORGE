@@ -259,7 +259,7 @@ const CalibrationReport: React.FC<{ profile: HealthProfile, onContinue: () => vo
                     onClick={() => { triggerHaptic('BUTTON_TAP'); onContinue(); }}
                     className="group relative inline-flex items-center gap-3 px-8 py-4 bg-white text-black font-black uppercase tracking-widest text-xs rounded-lg hover:bg-system-neon hover:scale-105 transition-all shadow-[0_0_20px_rgba(255,255,255,0.3)]"
                 >
-                    <ShieldCheck size={16} /> Accept Protocols
+                    <ShieldCheck size={16} /> Enter The System
                     <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
                 </button>
             </div>
@@ -909,10 +909,237 @@ const AssessmentOverlay: React.FC<{ onComplete: () => void }> = ({ onComplete })
     );
 };
 
+// ─── HUNTER VOW SCREEN — Hold-to-confirm commitment ───────────────────────────
+const HunterVowScreen: React.FC<{ onComplete: () => void; hunterName: string }> = ({ onComplete, hunterName }) => {
+    const [holdProgress, setHoldProgress] = useState(0);
+    const [isHolding, setIsHolding] = useState(false);
+    const [isComplete, setIsComplete] = useState(false);
+    const holdRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+    const startHold = () => {
+        if (isComplete) return;
+        setIsHolding(true);
+        try { navigator.vibrate?.([10, 30]); } catch {}
+        holdRef.current = setInterval(() => {
+            setHoldProgress(prev => {
+                const next = prev + 1.8;
+                if (next >= 100) {
+                    clearInterval(holdRef.current!);
+                    setIsComplete(true);
+                    setIsHolding(false);
+                    triggerHaptic('SUCCESS');
+                    try { navigator.vibrate?.(200); } catch {}
+                    setTimeout(onComplete, 1200);
+                    return 100;
+                }
+                try { navigator.vibrate?.(8); } catch {}
+                return next;
+            });
+        }, 30);
+    };
+
+    const stopHold = () => {
+        if (holdRef.current) clearInterval(holdRef.current);
+        setIsHolding(false);
+        try { navigator.vibrate?.(0); } catch {}
+        if (!isComplete) setHoldProgress(prev => Math.max(0, prev - 5));
+    };
+
+    useEffect(() => () => { if (holdRef.current) clearInterval(holdRef.current); try { navigator.vibrate?.(0); } catch {} }, []);
+
+    return (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-[200] bg-black flex flex-col items-center justify-center px-6 font-mono">
+            <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 50% 30%, rgba(0,212,255,0.04) 0%, transparent 60%)' }} />
+            <div className="relative z-10 w-full max-w-md mx-auto flex flex-col items-center gap-8">
+                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="text-center">
+                    <div className="text-[#00d4ff] text-xs font-bold tracking-[0.3em] uppercase mb-4">⚔️ THE HUNTER'S OATH</div>
+                    <h2 className="text-2xl font-black text-white tracking-tight">Before You Enter</h2>
+                </motion.div>
+
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="bg-[#0a0a0a] border border-gray-800 rounded-2xl p-6 w-full">
+                    <p className="text-gray-300 text-[14px] leading-relaxed italic" style={{ fontFamily: 'Georgia, serif' }}>
+                        "I, <span className="text-white font-bold not-italic">{hunterName || 'Hunter'}</span>, vow to show up daily.
+                        To honor the system. To track honestly. To not quit when it gets hard.
+                        To become the version of myself that exists on the other side of discipline."
+                    </p>
+                </motion.div>
+
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }} className="w-full space-y-3">
+                    <div className="h-14 w-full bg-[#111] border border-gray-800 rounded-2xl relative overflow-hidden cursor-pointer select-none"
+                        onMouseDown={startHold} onMouseUp={stopHold} onMouseLeave={stopHold}
+                        onTouchStart={startHold} onTouchEnd={stopHold} onTouchCancel={stopHold}
+                    >
+                        <motion.div className="absolute inset-0 rounded-2xl" style={{ background: isComplete ? '#00d4ff' : 'linear-gradient(90deg, #00d4ff, #33dfff)', width: `${holdProgress}%`, transition: isHolding ? 'none' : 'width 0.3s ease-out' }} />
+                        <div className="absolute inset-0 flex items-center justify-center z-10">
+                            <span className={`font-black text-xs tracking-[0.2em] uppercase ${isComplete ? 'text-black' : holdProgress > 50 ? 'text-black' : 'text-gray-400'}`}>
+                                {isComplete ? '✓ OATH ACCEPTED' : isHolding ? 'HOLD...' : 'HOLD TO ACCEPT'}
+                            </span>
+                        </div>
+                    </div>
+                    {!isComplete && <p className="text-center text-gray-600 text-[10px]">Press and hold to seal your oath</p>}
+                </motion.div>
+            </div>
+        </motion.div>
+    );
+};
+
+// ─── EMPATHY INSIGHT SCREEN — Typewriter + personalized cards ─────────────────
+const EmpathyInsightScreen: React.FC<{ goal: string; onComplete: () => void }> = ({ goal, onComplete }) => {
+    const [typedText, setTypedText] = useState('');
+    const [showCards, setShowCards] = useState(false);
+    const [showButton, setShowButton] = useState(false);
+
+    const empathyTexts: Record<string, string> = {
+        LOSE_WEIGHT: "You know what needs to change. The weight isn't just physical \u2014 it's the friction slowing down every part of your life. The System sees the gap between where you are and where you should be. That gap is not permanent.",
+        BUILD_MUSCLE: "You've been consistent before, but never with a system behind you. Raw potential isn't enough \u2014 you need structure, progression, and accountability. The System will provide all three.",
+        ENDURANCE: "Endurance isn't just cardio \u2014 it's the ability to outlast your own excuses. The System will push you past comfort zones you didn't know existed.",
+        RECOMP: "You're not starting from zero. You're rebuilding with experience. The System will strip what doesn't serve you and forge what does.",
+    };
+
+    const insightCards: Record<string, Array<{ icon: string; title: string; desc: string }>> = {
+        LOSE_WEIGHT: [
+            { icon: '\uD83D\uDCA7', title: 'Hydration Protocol', desc: 'Your easiest daily win. Track your first glass tomorrow morning.' },
+            { icon: '\uD83D\uDD25', title: 'Metabolic Reset', desc: 'Your body adapts within 2 weeks. Small deficits beat crash diets.' },
+            { icon: '\uD83E\uDDE0', title: 'Discipline is Trainable', desc: 'Each day you show up, the neural pathway gets stronger.' },
+        ],
+        BUILD_MUSCLE: [
+            { icon: '\uD83D\uDCAA', title: 'Progressive Overload', desc: 'Add weight or reps weekly. Your muscles respond to progressive challenge.' },
+            { icon: '\uD83E\uDD69', title: 'Protein Timing', desc: 'Hit your daily protein target. The System will calculate this for you.' },
+            { icon: '\uD83D\uDE34', title: 'Recovery Matters', desc: 'Muscles grow during rest. Sleep is your most powerful anabolic.' },
+        ],
+        ENDURANCE: [
+            { icon: '\uD83E\uDEC1', title: 'VO2 Max Growth', desc: 'Cardiovascular capacity improves fastest in weeks 2-6.' },
+            { icon: '\u26A1', title: 'Zone Training', desc: 'Train at the right intensity. Not too easy, not too hard.' },
+            { icon: '\uD83E\uDDD8', title: 'Mental Endurance', desc: 'Physical endurance is 40% mental. Train your mind too.' },
+        ],
+        RECOMP: [
+            { icon: '\u2696\uFE0F', title: 'Body Recomposition', desc: 'Lose fat and gain muscle simultaneously. It takes patience.' },
+            { icon: '\uD83D\uDCCA', title: 'Track Everything', desc: 'What gets measured gets managed. The System tracks for you.' },
+            { icon: '\uD83D\uDD04', title: 'Consistency Compounds', desc: 'Small daily actions create massive transformation over 90 days.' },
+        ],
+    };
+
+    const fullText = empathyTexts[goal] || empathyTexts.RECOMP;
+    const cards = insightCards[goal] || insightCards.RECOMP;
+
+    useEffect(() => {
+        let i = 0;
+        const interval = setInterval(() => {
+            i++;
+            setTypedText(fullText.slice(0, i));
+            if (i >= fullText.length) {
+                clearInterval(interval);
+                setTimeout(() => setShowCards(true), 400);
+                setTimeout(() => setShowButton(true), 1200);
+            }
+        }, 22);
+        return () => clearInterval(interval);
+    }, [fullText]);
+
+    return (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-[200] bg-black flex flex-col font-mono overflow-y-auto"
+            style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 32px)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }}>
+            <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 50% 20%, rgba(0,212,255,0.04) 0%, transparent 60%)' }} />
+            <div className="relative z-10 flex-1 flex flex-col px-6 max-w-lg mx-auto w-full">
+                <div className="text-[#00d4ff] text-xs font-bold tracking-[0.3em] uppercase mb-6">SYSTEM INSIGHT</div>
+                <div className="bg-[#0a0a0a] border border-gray-800 rounded-2xl p-5 mb-6">
+                    <p className="text-gray-200 text-[15px] leading-relaxed min-h-[100px]" style={{ fontFamily: 'Georgia, serif' }}>
+                        &ldquo;{typedText}<span className="animate-pulse text-[#00d4ff]">|</span>&rdquo;
+                    </p>
+                </div>
+
+                <AnimatePresence>
+                    {showCards && (
+                        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-3 mb-6">
+                            {cards.map((card, i) => (
+                                <motion.div key={i} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.2 }}
+                                    className="bg-[#111] border border-gray-800 rounded-xl p-4 flex items-start gap-3">
+                                    <span className="text-xl">{card.icon}</span>
+                                    <div>
+                                        <div className="text-white font-bold text-[13px] mb-0.5">{card.title}</div>
+                                        <div className="text-gray-400 text-[11px]">{card.desc}</div>
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                {showButton && (
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-auto pb-4">
+                        <button onClick={() => { triggerHaptic('BUTTON_TAP'); onComplete(); }}
+                            className="w-full bg-white text-black font-black py-4 rounded-2xl uppercase tracking-widest text-sm">
+                            Continue
+                        </button>
+                    </motion.div>
+                )}
+            </div>
+        </motion.div>
+    );
+};
+
+// ─── ARCHETYPE SCREEN — Hunter class reveal with badge ────────────────────────
+const ArchetypeScreen: React.FC<{ archetype: { name: string; desc: string; badge: string }; onComplete: () => void }> = ({ archetype, onComplete }) => {
+    const [showName, setShowName] = useState(false);
+    const [showDesc, setShowDesc] = useState(false);
+    const [showButton, setShowButton] = useState(false);
+
+    useEffect(() => {
+        triggerHaptic('PHASE_TRANSITION');
+        setTimeout(() => setShowName(true), 800);
+        setTimeout(() => setShowDesc(true), 1600);
+        setTimeout(() => setShowButton(true), 2400);
+    }, []);
+
+    return (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-[200] bg-black flex flex-col items-center justify-center px-6 font-mono">
+            <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 50% 40%, rgba(0,212,255,0.06) 0%, transparent 55%)' }} />
+            <div className="relative z-10 flex flex-col items-center gap-6 max-w-sm">
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-[#00d4ff] text-[10px] font-bold tracking-[0.4em] uppercase">
+                    HUNTER CLASS IDENTIFIED
+                </motion.div>
+
+                <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.8, type: 'spring', stiffness: 200 }}
+                    className="w-40 h-40 relative">
+                    <img src={archetype.badge} alt="" className="w-full h-full object-contain" />
+                    <motion.div className="absolute inset-0 rounded-full" style={{ boxShadow: '0 0 60px rgba(0,212,255,0.15)' }}
+                        animate={{ opacity: [0.3, 0.6, 0.3] }} transition={{ duration: 3, repeat: Infinity }} />
+                </motion.div>
+
+                <AnimatePresence>
+                    {showName && (
+                        <motion.h2 initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="text-3xl font-black text-white tracking-tight text-center">
+                            {archetype.name}
+                        </motion.h2>
+                    )}
+                </AnimatePresence>
+
+                <AnimatePresence>
+                    {showDesc && (
+                        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-gray-400 text-[14px] text-center leading-relaxed max-w-xs" style={{ fontFamily: 'Georgia, serif' }}>
+                            &ldquo;{archetype.desc}&rdquo;
+                        </motion.p>
+                    )}
+                </AnimatePresence>
+
+                {showButton && (
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="w-full pt-6">
+                        <button onClick={() => { triggerHaptic('BUTTON_TAP'); onComplete(); }}
+                            className="w-full bg-[#00d4ff] text-black font-black py-4 rounded-2xl uppercase tracking-widest text-sm shadow-[0_0_30px_rgba(0,212,255,0.3)]">
+                            View System Report
+                        </button>
+                    </motion.div>
+                )}
+            </div>
+        </motion.div>
+    );
+};
+
 const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
   const [step, setStep] = useState(1);
-  const [viewState, setViewState] = useState<'HOOK' | 'FORM' | 'ASSESSMENT' | 'REPORT' | 'AWAKENING'>('HOOK');
+  const [viewState, setViewState] = useState<'HOOK' | 'FORM' | 'VOW' | 'ASSESSMENT' | 'EMPATHY' | 'ARCHETYPE' | 'REPORT'>('HOOK');
   const TOTAL_STEPS = 8;
+  const [hunterName, setHunterName] = useState('');
   
   const [formData, setFormData] = useState<Partial<HealthProfile>>({
       gender: 'MALE', goal: 'RECOMP', equipment: 'GYM', workoutSplit: 'CLASSIC', age: 25, height: 175, weight: 70, targetWeight: 70,
@@ -942,20 +1169,29 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
   const toKg = (lbs: number) => Math.round(lbs / 2.20462);
 
   const handleFinish = () => {
+      setViewState('VOW');
+  };
+
+  const handleVowComplete = () => {
       setViewState('ASSESSMENT');
   };
 
   const handleAssessmentComplete = () => {
-      setViewState('REPORT');
+      setViewState('EMPATHY');
   };
 
-  const handleReportAccept = () => {
-      setViewState('AWAKENING');
+  const handleEmpathyComplete = () => {
+      setViewState('ARCHETYPE');
+  };
+
+  const handleArchetypeComplete = () => {
+      setViewState('REPORT');
   };
 
   const finalizeCalibration = (stats: CoreStats) => {
       const calculatedProfile = {
           ...formData,
+          hunterName: hunterName.trim(),
           bmi: (formData.weight! / ((formData.height! / 100) ** 2)),
           bmr: 1600,
           macros: { protein: 150, carbs: 200, fats: 60, calories: 2000 },
@@ -976,10 +1212,32 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
       setFormData({ ...formData, height: cm });
   };
 
+  // Compute base stats for Empathy/Archetype/Report screens
+  const computeBaseStats = (): CoreStats => {
+      let str = 25, int = 40, dis = 20, soc = 30, foc = 25, wil = 20;
+      if (formData.activityLevel === 'SEDENTARY') { str = 15; dis = 15; foc = 20; wil = 15; }
+      if (formData.activityLevel === 'LIGHT') { str = 30; dis = 25; foc = 28; wil = 22; }
+      if (formData.activityLevel === 'MODERATE') { str = 45; dis = 40; foc = 35; wil = 35; }
+      if (formData.activityLevel === 'VERY_ACTIVE') { str = 60; dis = 55; foc = 42; wil = 45; }
+      return { strength: str, intelligence: int, discipline: dis, social: soc, focus: foc, willpower: wil };
+  };
+
+  // Archetype based on goal
+  const getArchetype = () => {
+      switch (formData.goal) {
+          case 'LOSE_WEIGHT': return { name: 'The Forge Breaker', desc: 'Strip away what holds you back. Forge a leaner, sharper version of yourself.', badge: '/onboarding/forge_breaker.webp' };
+          case 'BUILD_MUSCLE': return { name: 'The Shadow Knight', desc: 'Build the armor. Become the weapon. Rise through raw power.', badge: '/onboarding/shadow_knight.webp' };
+          case 'ENDURANCE': return { name: 'The Pathfinder', desc: 'Chart the course. Outlast every obstacle in your path.', badge: '/onboarding/pathfinder.webp' };
+          default: return { name: 'The Alchemist', desc: 'Transform what exists. Turn weakness into strength without starting over.', badge: '/onboarding/alchemist.webp' };
+      }
+  };
+
   if (viewState === 'HOOK') return <OnboardingHook onComplete={() => setViewState('FORM')} />;
+  if (viewState === 'VOW') return <HunterVowScreen onComplete={handleVowComplete} hunterName={hunterName.trim()} />;
   if (viewState === 'ASSESSMENT') return <AssessmentOverlay onComplete={handleAssessmentComplete} />;
-  if (viewState === 'REPORT') return <CalibrationReport profile={formData as HealthProfile} onContinue={handleReportAccept} />;
-  if (viewState === 'AWAKENING') return <AwakeningOverlay profile={formData} onComplete={finalizeCalibration} />;
+  if (viewState === 'EMPATHY') return <EmpathyInsightScreen goal={formData.goal || 'RECOMP'} onComplete={handleEmpathyComplete} />;
+  if (viewState === 'ARCHETYPE') return <ArchetypeScreen archetype={getArchetype()} onComplete={handleArchetypeComplete} />;
+  if (viewState === 'REPORT') return <CalibrationReport profile={formData as HealthProfile} onContinue={() => finalizeCalibration(computeBaseStats())} />;
 
   return (
       <div className="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center p-3 sm:p-4 font-mono"
@@ -1017,9 +1275,49 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
               <div className="flex-1 overflow-y-auto px-8 pb-6">
               <AnimatePresence mode="wait">
 
-                  {/* ── STEP 1: Hunter Identity (Gender + Age) — was old Step 2 ── */}
-
+                  {/* ── STEP 1: Hunter Registration (Name) ── */}
                   {step === 1 && (
+                      <motion.div key="sName" variants={setupContainerVariants} initial="hidden" animate="visible" exit="exit" className="space-y-6">
+                          <motion.div variants={setupItemVariants}>
+                              <div className="flex items-center gap-2 mb-1">
+                                  <User className="text-[#00d4ff]" size={18} />
+                                  <span className="text-xs text-gray-500 uppercase tracking-widest font-bold">Hunter Registration</span>
+                              </div>
+                              <p className="text-gray-600 text-[11px]">Every hunter needs a name. What shall we call you?</p>
+                          </motion.div>
+                          <motion.div variants={setupItemVariants}>
+                              <div className="relative">
+                                  <input
+                                      type="text"
+                                      value={hunterName}
+                                      onChange={e => setHunterName(e.target.value)}
+                                      className="w-full bg-black border-b-2 border-gray-800 text-center text-3xl text-white outline-none focus:border-[#00d4ff] py-6 transition-colors placeholder:text-gray-700"
+                                      placeholder="Your name"
+                                      maxLength={20}
+                                      autoFocus
+                                  />
+                              </div>
+                              {hunterName.trim() && (
+                                  <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center text-gray-500 text-[11px] mt-3">
+                                      Welcome, <span className="text-white font-bold">{hunterName.trim()}</span>. The System awaits.
+                                  </motion.p>
+                              )}
+                          </motion.div>
+                          <motion.div variants={setupItemVariants} className="sticky bottom-0 bg-[#0a0a0a] pt-3 pb-1 flex justify-end mt-4">
+                              <button
+                                  onClick={() => { triggerHaptic('BUTTON_TAP'); setStep(2); }}
+                                  disabled={!hunterName.trim()}
+                                  className="bg-system-neon text-black px-10 py-3 rounded-full font-black text-xs shadow-[0_0_15px_#00d4ff] hover:bg-white transition-all uppercase flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                              >
+                                  NEXT <ChevronRight size={14} />
+                              </button>
+                          </motion.div>
+                      </motion.div>
+                  )}
+
+                  {/* ── STEP 2: Hunter Identity (Gender + Age) ── */}
+
+                  {step === 2 && (
                       <motion.div key="s1" variants={setupContainerVariants} initial="hidden" animate="visible" exit="exit" className="space-y-6">
                           <motion.div variants={setupItemVariants}>
                               <div className="flex items-center gap-2 mb-1">
@@ -1061,9 +1359,10 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                               </div>
                           </motion.div>
 
-                          <motion.div variants={setupItemVariants} className="sticky bottom-0 bg-[#0a0a0a] pt-3 pb-1 flex justify-end mt-4">
+                          <motion.div variants={setupItemVariants} className="sticky bottom-0 bg-[#0a0a0a] pt-3 pb-1 flex justify-between mt-4">
+                              <button onClick={() => { triggerHaptic('BUTTON_TAP'); setStep(1); }} className="text-gray-600 hover:text-white flex items-center gap-1 font-bold text-xs uppercase"><ChevronLeft size={14} /> BACK</button>
                               <button
-                                  onClick={() => { triggerHaptic('BUTTON_TAP'); setStep(2); }}
+                                  onClick={() => { triggerHaptic('BUTTON_TAP'); setStep(3); }}
                                   disabled={!formData.age || formData.age < 10}
                                   className="bg-system-neon text-black px-10 py-3 rounded-full font-black text-xs shadow-[0_0_15px_#00d4ff] hover:bg-white transition-all uppercase flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
                               >
@@ -1074,7 +1373,7 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                   )}
 
                   {/* ── STEP 3: Body Metrics (Height + Weight + Target) ─── */}
-                  {step === 2 && (
+                  {step === 3 && (
                       <motion.div key="s3" variants={setupContainerVariants} initial="hidden" animate="visible" exit="exit" className="space-y-5">
                           <motion.div variants={setupItemVariants}>
                               <div className="flex items-center gap-2 mb-1">
@@ -1153,13 +1452,13 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
 
                           <motion.div variants={setupItemVariants} className="sticky bottom-0 bg-[#0a0a0a] pt-3 pb-1 flex justify-between mt-4">
                               <button onClick={() => { triggerHaptic('BUTTON_TAP'); setStep(2); }} className="text-gray-600 hover:text-white flex items-center gap-1 font-bold text-xs uppercase"><ChevronLeft size={14} /> BACK</button>
-                              <button onClick={() => { triggerHaptic('BUTTON_TAP'); setStep(3); }} className="bg-system-neon text-black px-10 py-3 rounded-full font-black text-xs shadow-[0_0_15px_#00d4ff] hover:bg-white transition-all uppercase flex items-center gap-2">NEXT <ChevronRight size={14} /></button>
+                              <button onClick={() => { triggerHaptic('BUTTON_TAP'); setStep(4); }} className="bg-system-neon text-black px-10 py-3 rounded-full font-black text-xs shadow-[0_0_15px_#00d4ff] hover:bg-white transition-all uppercase flex items-center gap-2">NEXT <ChevronRight size={14} /></button>
                           </motion.div>
                       </motion.div>
                   )}
 
                   {/* ── STEP 4: Primary Directive (Goal) ────────────────── */}
-                  {step === 3 && (
+                  {step === 4 && (
                       <motion.div key="s4" variants={setupContainerVariants} initial="hidden" animate="visible" exit="exit" className="space-y-5">
                           <motion.div variants={setupItemVariants}>
                               <div className="flex items-center gap-2 mb-1">
@@ -1176,19 +1475,19 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                               ] as const).map(opt => (
                                   <button
                                       key={opt.val}
-                                      onClick={() => { triggerHaptic('BUTTON_TAP'); setFormData({ ...formData, goal: opt.val }); setStep(4); }}
+                                      onClick={() => { triggerHaptic('BUTTON_TAP'); setFormData({ ...formData, goal: opt.val }); setStep(5); }}
                                       className="w-full py-4 px-4 border border-gray-800 rounded-xl font-bold text-sm text-gray-300 hover:bg-white hover:text-black transition-all text-left"
                                   >
                                       {opt.label}
                                   </button>
                               ))}
                           </motion.div>
-                          <button onClick={() => { triggerHaptic('BUTTON_TAP'); setStep(2); }} className="text-gray-600 hover:text-white flex items-center gap-1 font-bold text-xs uppercase"><ChevronLeft size={14} /> BACK</button>
+                          <button onClick={() => { triggerHaptic('BUTTON_TAP'); setStep(3); }} className="text-gray-600 hover:text-white flex items-center gap-1 font-bold text-xs uppercase"><ChevronLeft size={14} /> BACK</button>
                       </motion.div>
                   )}
 
                   {/* ── STEP 5: Equipment ────────────────────────────────── */}
-                  {step === 4 && (
+                  {step === 5 && (
                       <motion.div key="s5" variants={setupContainerVariants} initial="hidden" animate="visible" exit="exit" className="space-y-5">
                           <motion.div variants={setupItemVariants}>
                               <div className="flex items-center gap-2 mb-1">
@@ -1205,19 +1504,19 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                               ] as const).map(opt => (
                                   <button
                                       key={opt.val}
-                                      onClick={() => { triggerHaptic('BUTTON_TAP'); setFormData({ ...formData, equipment: opt.val }); setStep(5); }}
+                                      onClick={() => { triggerHaptic('BUTTON_TAP'); setFormData({ ...formData, equipment: opt.val }); setStep(6); }}
                                       className="w-full py-4 px-4 border border-gray-800 rounded-xl font-bold text-sm text-gray-300 hover:bg-white hover:text-black transition-all text-left"
                                   >
                                       {opt.label}
                                   </button>
                               ))}
                           </motion.div>
-                          <button onClick={() => { triggerHaptic('BUTTON_TAP'); setStep(3); }} className="text-gray-600 hover:text-white flex items-center gap-1 font-bold text-xs uppercase"><ChevronLeft size={14} /> BACK</button>
+                          <button onClick={() => { triggerHaptic('BUTTON_TAP'); setStep(4); }} className="text-gray-600 hover:text-white flex items-center gap-1 font-bold text-xs uppercase"><ChevronLeft size={14} /> BACK</button>
                       </motion.div>
                   )}
 
                   {/* ── STEP 6: Health Issues & Injuries ─────────────────── */}
-                  {step === 5 && (
+                  {step === 6 && (
                       <motion.div key="s6" variants={setupContainerVariants} initial="hidden" animate="visible" exit="exit" className="space-y-5">
                           <motion.div variants={setupItemVariants}>
                               <div className="flex items-center gap-2 mb-1">
@@ -1251,7 +1550,7 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                                   onClick={() => {
                                       triggerHaptic('BUTTON_TAP');
                                       setFormData({ ...formData, injuries: [] });
-                                      setStep(6);
+                                      setStep(7);
                                   }}
                                   className="flex-1 py-3 px-4 border border-gray-800 rounded-xl font-bold text-sm text-gray-300 hover:bg-white hover:text-black transition-all"
                               >
@@ -1260,15 +1559,15 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                           </motion.div>
 
                           <motion.div variants={setupItemVariants} className="sticky bottom-0 bg-[#0a0a0a] pt-3 pb-1 flex justify-between mt-4">
-                              <button onClick={() => { triggerHaptic('BUTTON_TAP'); setStep(4); }} className="text-gray-600 hover:text-white flex items-center gap-1 font-bold text-xs uppercase"><ChevronLeft size={14} /> BACK</button>
-                              <button onClick={() => { triggerHaptic('BUTTON_TAP'); setStep(6); }} className="bg-system-neon text-black px-10 py-3 rounded-full font-black text-xs shadow-[0_0_15px_#00d4ff] hover:bg-white transition-all uppercase flex items-center gap-2">NEXT <ChevronRight size={14} /></button>
+                              <button onClick={() => { triggerHaptic('BUTTON_TAP'); setStep(5); }} className="text-gray-600 hover:text-white flex items-center gap-1 font-bold text-xs uppercase"><ChevronLeft size={14} /> BACK</button>
+                              <button onClick={() => { triggerHaptic('BUTTON_TAP'); setStep(7); }} className="bg-system-neon text-black px-10 py-3 rounded-full font-black text-xs shadow-[0_0_15px_#00d4ff] hover:bg-white transition-all uppercase flex items-center gap-2">NEXT <ChevronRight size={14} /></button>
                           </motion.div>
                       </motion.div>
                   )}
 
                   {/* ── STEP 7: Energy & Activity ────────────────────────── */}
-                  {step === 6 && (
-                      <motion.div key="s6" variants={setupContainerVariants} initial="hidden" animate="visible" exit="exit" className="space-y-5">
+                  {step === 7 && (
+                      <motion.div key="s7" variants={setupContainerVariants} initial="hidden" animate="visible" exit="exit" className="space-y-5">
                           <motion.div variants={setupItemVariants}>
                               <div className="flex items-center gap-2 mb-1">
                                   <Zap className="text-yellow-400" size={18} />
@@ -1342,9 +1641,9 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                           </motion.div>
 
                           <motion.div variants={setupItemVariants} className="sticky bottom-0 bg-[#0a0a0a] pt-3 pb-1 flex justify-between mt-4">
-                              <button onClick={() => { triggerHaptic('BUTTON_TAP'); setStep(5); }} className="text-gray-600 hover:text-white flex items-center gap-1 font-bold text-xs uppercase"><ChevronLeft size={14} /> BACK</button>
+                              <button onClick={() => { triggerHaptic('BUTTON_TAP'); setStep(6); }} className="text-gray-600 hover:text-white flex items-center gap-1 font-bold text-xs uppercase"><ChevronLeft size={14} /> BACK</button>
                               <button
-                                  onClick={() => { triggerHaptic('BUTTON_TAP'); setStep(7); }}
+                                  onClick={() => { triggerHaptic('BUTTON_TAP'); setStep(8); }}
                                   disabled={!formData.activityLevel || !formData.energyLevel || !formData.stressLevel}
                                   className="bg-system-neon text-black px-10 py-3 rounded-full font-black text-xs shadow-[0_0_15px_#00d4ff] hover:bg-white transition-all uppercase flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
                               >NEXT <ChevronRight size={14} /></button>
@@ -1353,7 +1652,7 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                   )}
 
                   {/* ── STEP 8: Capability Scan ──────────────────────────── */}
-                  {step === 7 && (
+                  {step === 8 && (
                       <motion.div key="s7" variants={setupContainerVariants} initial="hidden" animate="visible" exit="exit" className="space-y-5">
                           <motion.div variants={setupItemVariants}>
                               <div className="flex items-center gap-2 mb-1">
@@ -1419,13 +1718,13 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                           </motion.div>
 
                           <motion.div variants={setupItemVariants} className="sticky bottom-0 bg-[#0a0a0a] pt-3 pb-1 flex justify-between mt-4">
-                              <button onClick={() => { triggerHaptic('BUTTON_TAP'); setStep(6); }} className="text-gray-600 hover:text-white flex items-center gap-1 font-bold text-xs uppercase"><ChevronLeft size={14} /> BACK</button>
+                              <button onClick={() => { triggerHaptic('BUTTON_TAP'); setStep(7); }} className="text-gray-600 hover:text-white flex items-center gap-1 font-bold text-xs uppercase"><ChevronLeft size={14} /> BACK</button>
                               <button 
                                   onClick={() => {
                                       // Check if all three selections are made (not default values)
                                       if (baselines.pushups !== 0 && baselines.focusDuration !== 0 && baselines.sleepAvg !== 0) {
-                                          triggerHaptic('BUTTON_TAP');
-                                          setStep(8);
+                                          triggerHaptic('SUCCESS');
+                                          handleFinish();
                                       }
                                   }}
                                   disabled={baselines.pushups === 0 || baselines.focusDuration === 0 || baselines.sleepAvg === 0}
@@ -1441,44 +1740,6 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                       </motion.div>
                   )}
 
-                  {/* ── STEP 9: Confirmation ─────────────────────────────── */}
-                  {step === 8 && (
-                      <motion.div key="s8" variants={setupContainerVariants} initial="hidden" animate="visible" exit="exit" className="space-y-6 text-center">
-                          <motion.div variants={setupItemVariants}>
-                              <h3 className="text-xl text-white font-black">Confirm Configuration</h3>
-                              <p className="text-gray-500 text-xs mt-1">Review your data before uploading to the System.</p>
-                          </motion.div>
-                          <motion.div variants={setupItemVariants} className="bg-gray-900/50 p-5 rounded-xl border border-gray-800 text-left space-y-2.5 font-mono text-xs">
-                              <div className="flex justify-between"><span className="text-gray-500">Profile</span><span className="text-white">{formData.gender}, {formData.age}y</span></div>
-                              <div className="flex justify-between">
-                                  <span className="text-gray-500">Height</span>
-                                  <span className="text-white">{heightUnit === 'FT' ? `${toFtIn(formData.height || 0).ft}'${toFtIn(formData.height || 0).inches}"` : `${formData.height}cm`}</span>
-                              </div>
-                              <div className="flex justify-between">
-                                  <span className="text-gray-500">Weight → Target</span>
-                                  <span className="text-white">
-                                      {weightUnit === 'LBS' ? `${toLbs(formData.weight || 0)}` : formData.weight}{weightUnit.toLowerCase()} → {weightUnit === 'LBS' ? `${toLbs(formData.targetWeight || 0)}` : formData.targetWeight}{weightUnit.toLowerCase()}
-                                  </span>
-                              </div>
-                              <div className="flex justify-between"><span className="text-gray-500">Goal</span><span className="text-white">{formData.goal === 'RECOMP' ? 'Recomp' : formData.goal?.replace('_', ' ')}</span></div>
-                              <div className="flex justify-between"><span className="text-gray-500">Equipment</span><span className="text-white">{formData.equipment?.replace('_', ' ')}</span></div>
-                              <div className="flex justify-between"><span className="text-gray-500">Injuries</span><span className="text-white">{formData.injuries?.length ? formData.injuries.join(', ') : 'None'}</span></div>
-                              <div className="flex justify-between"><span className="text-gray-500">Activity</span><span className="text-white">{formData.activityLevel}</span></div>
-                              <div className="flex justify-between"><span className="text-gray-500">Energy</span><span className="text-white">{formData.energyLevel}</span></div>
-                              <div className="flex justify-between"><span className="text-gray-500">Stress</span><span className="text-white">{formData.stressLevel}</span></div>
-                              <div className="flex justify-between"><span className="text-gray-500">Pushups</span><span className="text-white">{baselines.pushups}</span></div>
-                              <div className="flex justify-between"><span className="text-gray-500">Sleep</span><span className="text-white">{baselines.sleepAvg}h avg</span></div>
-                          </motion.div>
-                          <motion.button
-                              variants={setupItemVariants}
-                              onClick={() => { triggerHaptic('SUCCESS'); handleFinish(); }}
-                              className="w-full bg-system-neon text-black font-black py-5 rounded-xl shadow-[0_0_30px_#00d4ff] hover:scale-105 transition-transform uppercase tracking-widest"
-                          >
-                              Upload Biometrics
-                          </motion.button>
-                          <motion.button variants={setupItemVariants} onClick={() => { triggerHaptic('BUTTON_TAP'); setStep(7); }} className="text-gray-600 hover:text-white flex items-center gap-1 font-bold text-xs uppercase mx-auto"><ChevronLeft size={14} /> BACK</motion.button>
-                      </motion.div>
-                  )}
 
               </AnimatePresence>
               </div>

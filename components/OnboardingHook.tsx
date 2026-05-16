@@ -99,9 +99,9 @@ const ScreenScience = ({ onNext }: { onNext: () => void }) => (
     <div className="relative z-10 flex-1 flex flex-col px-6 overflow-y-auto" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 48px)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }}>
       <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-6">
         <div className="text-[#00d4ff] text-xs font-bold tracking-[0.3em] uppercase mb-4">⚔️</div>
-        <p className="text-gray-400 text-[15px] mb-2">Top scientific research shows it takes</p>
-        <h1 className="text-[56px] font-black bg-gradient-to-r from-[#00d4ff] to-[#33dfff] bg-clip-text text-transparent leading-none mb-2">66 days</h1>
-        <p className="text-gray-400 text-[15px]">to build lasting habits and <span className="text-[#00d4ff] font-semibold">transform your life.</span></p>
+        <p className="text-gray-400 text-[15px] mb-2">Research shows it takes just</p>
+        <h1 className="text-[56px] font-black bg-gradient-to-r from-[#00d4ff] to-[#33dfff] bg-clip-text text-transparent leading-none mb-2">21 days</h1>
+        <p className="text-gray-400 text-[15px]">to ignite a habit — and <span className="text-[#00d4ff] font-semibold">90 days to fully transform.</span></p>
       </motion.div>
       <div className="grid grid-cols-2 gap-3 mb-5">
         <StatCard label="Boost Strength" value="23%" delay={0.2} />
@@ -113,9 +113,9 @@ const ScreenScience = ({ onNext }: { onNext: () => void }) => (
         <h3 className="text-white font-bold text-[15px] mb-3">Scientific Research</h3>
         <div className="space-y-2.5">
           {[
-            { icon: '🌐', title: 'How are habits formed: Modelling...', source: 'psycnet.apa.org' },
-            { icon: '📄', title: 'Making health habitual: the...', source: 'pmc.ncbi.nlm.nih.gov' },
-            { icon: '📚', title: 'Time to Form a Habit: A...', source: 'pubmed.ncbi.nlm.nih.gov' },
+            { icon: '🧬', title: 'Psycho-Cybernetics: 21-day adaptation...', source: 'Dr. Maxwell Maltz, 1960' },
+            { icon: '📊', title: 'Exercise & Strength Gains: 6-8 Week...', source: 'pubmed.ncbi.nlm.nih.gov' },
+            { icon: '🧠', title: 'How are habits formed: Modelling habit...', source: 'Lally et al., UCL 2010' },
           ].map((r, i) => (
             <div key={i} className="flex items-center gap-2.5 text-[12px]">
               <span>{r.icon}</span>
