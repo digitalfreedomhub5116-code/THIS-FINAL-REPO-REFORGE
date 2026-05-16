@@ -19,8 +19,10 @@ const isRepBasedExercise = (reps: string, type: string): boolean => {
   const lower = reps?.toLowerCase()?.trim() || '';
   if (!lower) return false;
   if (lower.includes('min') || lower.includes('sec') || /\d+s\b/.test(lower)) return false;
+  // Strip common suffixes: "10 each", "12 per side", "15 reps"
+  const cleaned = lower.replace(/\b(each|per side|per leg|reps)\b/gi, '').trim();
   // Match pure numbers like "12" or comma-separated like "15, 15, 12"
-  const parts = lower.split(/[,\s]+/).filter(Boolean);
+  const parts = cleaned.split(/[,\s]+/).filter(Boolean);
   return parts.length > 0 && parts.every(p => /^\d+$/.test(p));
 };
 
