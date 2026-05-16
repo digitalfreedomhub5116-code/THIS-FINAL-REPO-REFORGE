@@ -93,14 +93,19 @@ const StatCard = ({ label, value, delay }: { label: string; value: string; delay
   </motion.div>
 );
 
+
 const ScreenScience = ({ onNext }: { onNext: () => void }) => (
   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 flex flex-col bg-black">
-    <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 50% 20%, rgba(0,212,255,0.06) 0%, transparent 60%)' }} />
+    {/* Half background image */}
+    <div className="absolute inset-0">
+      <img src="/onboarding/arrow_target.webp" alt="" className="w-full h-[45%] object-cover" />
+      <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, black 40%, rgba(0,0,0,0.75) 55%, rgba(0,0,0,0.3) 70%, rgba(0,0,0,0.5) 100%)' }} />
+    </div>
     <div className="relative z-10 flex-1 flex flex-col px-6 overflow-y-auto" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 48px)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 56px)' }}>
-      <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-6">
+      <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-6 mt-auto">
         <div className="text-white text-xs font-bold tracking-[0.35em] uppercase mb-4" style={{ fontFamily: "'Orbitron', 'Rajdhani', 'Share Tech Mono', monospace" }}>⚔️ REFORGE SYSTEM</div>
         <p className="text-gray-400 text-[15px] mb-2">Research shows it takes just</p>
-        <h1 className="text-[56px] font-black bg-gradient-to-r from-[#00d4ff] to-[#33dfff] bg-clip-text text-transparent leading-none mb-2">21 days</h1>
+        <h1 className="text-[56px] font-black text-white leading-none mb-2" style={{ textShadow: '0 0 30px rgba(255,255,255,0.15)' }}>21 days</h1>
         <p className="text-gray-400 text-[15px]">to ignite a habit — and <span className="text-[#00d4ff] font-semibold">90 days to fully transform.</span></p>
       </motion.div>
       <div className="grid grid-cols-2 gap-3 mb-5">
@@ -133,40 +138,152 @@ const ScreenScience = ({ onNext }: { onNext: () => void }) => (
 );
 
 /* ═══════════════════════════════════════════════════════ */
-/* SCREEN A3 — "Real Hunters, Real Results"              */
+/* SCREEN A3 — "Real Transformation Timeline"            */
 /* ═══════════════════════════════════════════════════════ */
+const timelineData = [
+  {
+    day: 'Day 1',
+    label: 'The Starting Point',
+    stats: [{ key: 'Overall', value: 55 }],
+    text: 'I was at my lowest. No routine, sleeping late, eating junk, scrolling for hours. My body felt sluggish and I had zero discipline. That\'s when I decided to try Reforge.',
+    tasks: ['30 push ups daily', 'Wake up at 7 AM', 'No social media after 9 PM', 'Track all meals'],
+  },
+  {
+    day: 'Day 10',
+    label: 'Building Habits',
+    stats: [{ key: 'Overall', value: 65, delta: 10 }, { key: 'Focus', value: 66, delta: 11 }],
+    text: 'Started waking up early consistently. The quest system kept me accountable — I didn\'t want to break my streak. Had more energy during the day.',
+    tasks: ['40 push ups daily', 'Wake up at 6:30 AM', 'Study 2 hrs before phone', 'Walk 5K steps'],
+  },
+  {
+    day: 'Day 33',
+    label: 'Visible Changes',
+    stats: [{ key: 'Overall', value: 74, delta: 19 }, { key: 'Strength', value: 72, delta: 17 }],
+    text: 'My friends started noticing. Lost the face bloat, clothes fit better. The progressive difficulty meant I was always pushing just a bit harder each week.',
+    tasks: ['Full workout 4x/week', 'Meal prep Sundays', 'Cold showers', 'Read 20 pages/day'],
+  },
+  {
+    day: 'Day 66',
+    label: 'The Breakthrough',
+    stats: [{ key: 'Overall', value: 85, delta: 30 }, { key: 'Discipline', value: 88, delta: 33 }],
+    text: 'Hit Level 30. The habits felt automatic now — I didn\'t need motivation anymore. Discipline replaced willpower. My body was visibly different.',
+    tasks: ['6-day training split', 'Consistent 7h sleep', 'Zero junk food weeks', 'Morning meditation'],
+  },
+  {
+    day: 'Day 90',
+    label: 'Fully Transformed',
+    stats: [{ key: 'Overall', value: 94, delta: 39 }, { key: 'All Stats', value: 90, delta: 35 }],
+    text: 'Completely different person. Lost 8kg, gained confidence, fixed my sleep schedule. The system pushed me every single day. Best 90 days of my life.',
+  },
+];
+
 const ScreenSocialProof = ({ onNext }: { onNext: () => void }) => (
-  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 flex flex-col">
-    <div className="absolute inset-0">
-      <img src="/onboarding/cliff_warrior.webp" alt="" className="w-full h-[45%] object-cover" />
-      <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, black 40%, rgba(0,0,0,0.8) 55%, rgba(0,0,0,0.3) 75%, rgba(0,0,0,0.5) 100%)' }} />
-    </div>
-    <div className="relative z-10 flex-1 flex flex-col justify-end px-6 pb-14 overflow-y-auto" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 56px)' }}>
-      <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="mb-5">
-        <div className="text-white text-xs font-bold tracking-[0.35em] uppercase mb-3" style={{ fontFamily: "'Orbitron', 'Rajdhani', 'Share Tech Mono', monospace" }}>⚔️ REFORGE SYSTEM</div>
-        <h1 className="text-[28px] font-black text-white leading-tight">Real Hunters.<br/>Real Results.</h1>
+  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 flex flex-col bg-black">
+    <div className="relative z-10 flex-1 flex flex-col overflow-y-auto" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 24px)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 56px)' }}>
+      {/* Header */}
+      <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="text-center px-6 mb-5">
+        <div className="text-white text-xs font-bold tracking-[0.35em] uppercase mb-3" style={{ fontFamily: "'Orbitron', 'Rajdhani', 'Share Tech Mono', monospace" }}>⚔️ REAL STORY FROM A HUNTER</div>
       </motion.div>
-      <motion.div initial={{ opacity: 0, y: 25 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="bg-[#111] border border-gray-800 rounded-2xl p-6 mb-5">
-        <p className="text-gray-300 text-[14px] leading-relaxed italic mb-4">
-          "I was at my <b className="text-white not-italic">lowest point</b>. No discipline, no routine. This app turned it around in 3 weeks. The gamified system made me actually <b className="text-white not-italic">WANT to wake up early</b>."
-        </p>
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#00d4ff] to-[#0088aa] flex items-center justify-center text-black font-black text-sm">A</div>
-          <div>
-            <div className="text-white text-[14px] font-bold">Alex, 22</div>
-            <div className="text-gray-500 text-[12px]">Hunter since Jan '26</div>
+
+      {/* Before / After photos */}
+      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }} className="flex items-center justify-center gap-4 px-6 mb-3">
+        <div className="text-center">
+          <div className="w-[72px] h-[72px] rounded-full overflow-hidden border-2 border-gray-700 shadow-lg">
+            <img src="/onboarding/before_selfie.webp" alt="Before" className="w-full h-full object-cover" />
           </div>
+          <span className="text-gray-500 text-[10px] mt-1 block">Before</span>
+        </div>
+        <div className="text-[#00d4ff] text-lg font-bold">→</div>
+        <div className="text-center">
+          <div className="w-[72px] h-[72px] rounded-full overflow-hidden border-2 border-[#00d4ff] shadow-[0_0_12px_rgba(0,212,255,0.3)]">
+            <img src="/onboarding/after_selfie.webp" alt="After" className="w-full h-full object-cover" />
+          </div>
+          <span className="text-[#00d4ff] text-[10px] mt-1 block font-medium">After</span>
         </div>
       </motion.div>
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="flex items-center justify-center gap-2 mb-6">
-        <div className="flex">
-          {[1,2,3,4,5].map(i => <Star key={i} size={16} className="text-[#00d4ff] fill-[#00d4ff]" />)}
-        </div>
-        <span className="text-gray-400 text-[13px] font-medium ml-1">4.9</span>
-        <span className="text-gray-600 text-[13px]">•</span>
-        <span className="text-gray-400 text-[13px]">10K+ hunters</span>
-      </motion.div>
-      <CTAButton text="Next" onClick={onNext} />
+      <div className="text-center mb-5 px-6">
+        <div className="text-white text-[16px] font-bold">Arjun, 22</div>
+        <div className="text-gray-500 text-[12px]">📍 Mumbai, India</div>
+      </div>
+
+      {/* Timeline */}
+      <div className="px-6 relative">
+        {/* Vertical line */}
+        <div className="absolute left-[30px] top-0 bottom-0 w-[2px] bg-gradient-to-b from-gray-700 via-[#00d4ff]/40 to-[#00d4ff]" />
+
+        {timelineData.map((item, idx) => (
+          <motion.div
+            key={idx}
+            initial={{ opacity: 0, x: -15 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3 + idx * 0.15 }}
+            className="relative pl-10 mb-6"
+          >
+            {/* Dot */}
+            <div className={`absolute left-[22px] top-1 w-[18px] h-[18px] rounded-full border-2 flex items-center justify-center ${idx === timelineData.length - 1 ? 'border-[#00d4ff] bg-[#00d4ff]/20' : 'border-gray-600 bg-black'}`}>
+              <div className={`w-[6px] h-[6px] rounded-full ${idx === timelineData.length - 1 ? 'bg-[#00d4ff]' : 'bg-gray-500'}`} />
+            </div>
+
+            {/* Day label */}
+            <div className="text-[#00d4ff] text-[15px] font-black font-mono">{item.day}</div>
+            <div className="text-gray-500 text-[11px] mb-2">{item.label}</div>
+
+            {/* Stats bar */}
+            <div className="flex gap-3 mb-2">
+              {item.stats.map((s, si) => (
+                <div key={si} className="bg-[#111] border border-gray-800 rounded-lg px-3 py-1.5 flex items-center gap-2">
+                  <span className="text-gray-400 text-[11px]">★ {s.key}</span>
+                  <span className="text-white text-[14px] font-black font-mono">{s.value}</span>
+                  {(s as any).delta && <span className="text-[#00d4ff] text-[10px] font-bold bg-[#00d4ff]/10 px-1.5 py-0.5 rounded-full">+{(s as any).delta} ▲</span>}
+                </div>
+              ))}
+            </div>
+
+            {/* Description */}
+            <p className="text-gray-300 text-[13px] leading-relaxed mb-2">{item.text}</p>
+
+            {/* Tasks (not shown for last item) */}
+            {item.tasks && (
+              <div className="bg-[#0a0a0a] border border-gray-800/60 rounded-xl p-3 mt-2">
+                <div className="text-gray-500 text-[10px] font-bold tracking-widest uppercase mb-2 border-b border-gray-800 pb-1.5">Tasks in Week {idx + 1}</div>
+                {item.tasks.map((task, ti) => (
+                  <div key={ti} className="flex items-center gap-2 py-1">
+                    <span className="text-[#00d4ff] text-[11px]">▸</span>
+                    <span className="text-gray-300 text-[12px]">{task}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Show before photo after Day 1 */}
+            {idx === 0 && (
+              <div className="mt-3 w-[140px] h-[140px] rounded-xl overflow-hidden border border-gray-800">
+                <img src="/onboarding/before_selfie.webp" alt="" className="w-full h-full object-cover" />
+              </div>
+            )}
+
+            {/* Show after photo at Day 90 */}
+            {idx === timelineData.length - 1 && (
+              <div className="mt-3 w-[140px] h-[140px] rounded-xl overflow-hidden border border-[#00d4ff]/30 shadow-[0_0_15px_rgba(0,212,255,0.15)]">
+                <img src="/onboarding/after_selfie.webp" alt="" className="w-full h-full object-cover" />
+              </div>
+            )}
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Rating + CTA */}
+      <div className="px-6 mt-auto">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }} className="flex items-center justify-center gap-2 mb-5">
+          <div className="flex">
+            {[1,2,3,4,5].map(i => <Star key={i} size={14} className="text-[#00d4ff] fill-[#00d4ff]" />)}
+          </div>
+          <span className="text-gray-400 text-[12px] font-medium ml-1">4.9</span>
+          <span className="text-gray-600 text-[12px]">•</span>
+          <span className="text-gray-400 text-[12px]">10K+ hunters</span>
+        </motion.div>
+        <CTAButton text="Next" onClick={onNext} />
+      </div>
     </div>
   </motion.div>
 );
