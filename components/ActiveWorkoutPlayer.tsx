@@ -788,11 +788,86 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
             </div>
 
             <div className="p-5 md:p-8 space-y-5 md:space-y-6 pb-8 md:pb-8">
-                
+
+                {/* ═══════════════════════════════════════════════════════════ */}
+                {/* CAMERA MODE: Simplified bottom panel                      */}
+                {/* ═══════════════════════════════════════════════════════════ */}
+                {phase === 'WORK' && trackingMode === 'CAMERA' && formCoachConfig ? (
+                    <div className="space-y-4">
+                        {/* Exercise Name + Rep Counter */}
+                        <div className="flex justify-between items-center">
+                            <motion.h2
+                                key={exercise.name}
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                className="text-xl md:text-2xl font-black italic text-white leading-tight uppercase tracking-tight truncate flex-1 pr-4"
+                            >
+                                {exercise.name}
+                            </motion.h2>
+                            {/* Rep Counter */}
+                            <div className="flex items-center gap-2 bg-orange-500/10 border border-orange-500/40 rounded-xl px-4 py-2">
+                                <span className="text-2xl font-black font-mono text-orange-400">{formCoachState?.repCount ?? 0}</span>
+                                <span className="text-sm text-gray-500 font-mono">/{parseInt(exercise.reps) || '?'}</span>
+                            </div>
+                        </div>
+
+                        {/* Set Indicators */}
+                        <div className="flex gap-1.5 h-1.5 w-full">
+                            {Array.from({ length: safeSetCount }).map((_, i) => {
+                                let statusColor = 'bg-gray-800';
+                                if (i < currentSet - 1) statusColor = 'bg-orange-500';
+                                if (i === currentSet - 1) statusColor = 'bg-white animate-pulse';
+                                return (
+                                    <motion.div
+                                        key={i}
+                                        className={`flex-1 rounded-full ${statusColor}`}
+                                        layoutId={`set-dot-${i}`}
+                                    />
+                                );
+                            })}
+                        </div>
+
+                        {/* AI COACH Toggle (iOS-style) + Complete Set */}
+                        <div className="flex items-center gap-3">
+                            {/* Toggle Switch */}
+                            <button
+                                onClick={() => {
+                                    setTrackingMode('TIMER');
+                                    setFormCoachSubPhase(null);
+                                    setFormCoachState(null);
+                                }}
+                                className="flex items-center gap-3 shrink-0"
+                            >
+                                <div className="relative w-[52px] h-[28px] rounded-full transition-all duration-300 bg-gradient-to-r from-orange-500 to-amber-400 shadow-[0_0_12px_rgba(249,115,22,0.4)]">
+                                    <motion.div
+                                        className="absolute top-[3px] w-[22px] h-[22px] rounded-full bg-white shadow-md"
+                                        animate={{ left: 27 }}
+                                        transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                                    />
+                                </div>
+                                <span className="text-[10px] font-mono font-bold text-orange-400 tracking-wider">AI COACH</span>
+                            </button>
+
+                            {/* Complete Set */}
+                            <button
+                                onClick={completeSet}
+                                className="flex-1 h-12 bg-system-neon text-black font-black text-sm rounded-xl flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(0,212,255,0.3)] hover:bg-white transition-all active:scale-95"
+                            >
+                                <Check size={20} strokeWidth={3} />
+                                DONE
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                <>
+                {/* ═══════════════════════════════════════════════════════════ */}
+                {/* TIMER MODE: Original full bottom panel (untouched)        */}
+                {/* ═══════════════════════════════════════════════════════════ */}
+
                 {/* Exercise Info */}
                 <div className="flex justify-between items-start">
                     <div className="flex-1 min-w-0 pr-4">
-                        <motion.h2 
+                        <motion.h2
                             key={exercise.name}
                             initial={{ opacity: 0, x: -10 }}
                             animate={{ opacity: 1, x: 0 }}
@@ -807,26 +882,14 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
                             <span className="bg-gray-900 px-2 py-1 rounded border border-gray-800 text-system-neon font-bold">
                                 {exercise.reps} REPS
                             </span>
-                            {formCoachConfig && (
-                                <span className="bg-orange-500/10 px-2 py-1 rounded border border-orange-500/30 text-orange-400 font-bold flex items-center gap-1">
-                                    <Camera size={10} /> FORM
-                                </span>
-                            )}
                         </div>
                     </div>
-                    
-                    {/* Mini Timer (Visible during work — hidden when camera tracking active) */}
-                    {phase === 'WORK' && !(trackingMode === 'CAMERA' && formCoachSubPhase === 'TRACKING' && formCoachConfig) && (
+
+                    {/* Mini Timer */}
+                    {phase === 'WORK' && (
                         <div className="flex flex-col items-center justify-center bg-gray-900/50 border border-gray-800 rounded-lg p-2 min-w-[70px]">
                             <TimerIcon size={14} className="text-system-neon mb-1" />
                             <span className="text-xl font-bold font-mono text-white leading-none">{Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}</span>
-                        </div>
-                    )}
-                    {/* Rep Counter (when camera tracking active) */}
-                    {phase === 'WORK' && trackingMode === 'CAMERA' && formCoachSubPhase === 'TRACKING' && formCoachConfig && formCoachState && (
-                        <div className="flex flex-col items-center justify-center bg-orange-500/10 border border-orange-500/40 rounded-lg p-2 min-w-[70px]">
-                            <Camera size={14} className="text-orange-400 mb-1" />
-                            <span className="text-xl font-bold font-mono text-orange-400 leading-none">{formCoachState.repCount}<span className="text-xs text-gray-500">/{parseInt(exercise.reps) || '?'}</span></span>
                         </div>
                     )}
                 </div>
@@ -837,10 +900,10 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
                         let statusColor = 'bg-gray-800';
                         if (i < currentSet - 1) statusColor = 'bg-system-neon'; // Completed
                         if (i === currentSet - 1) statusColor = phase === 'WORK' ? 'bg-white animate-pulse' : 'bg-system-success'; // Current
-                        
+
                         return (
-                            <motion.div 
-                                key={i} 
+                            <motion.div
+                                key={i}
                                 className={`flex-1 rounded-full ${statusColor}`}
                                 layoutId={`set-dot-${i}`}
                             />
@@ -850,11 +913,11 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
 
                 {/* Controls */}
                 <div className="grid grid-cols-4 gap-3">
-                    <button 
+                    <button
                         onClick={() => setIsPaused(!isPaused)}
                         className={`col-span-1 h-14 md:h-16 rounded-xl flex items-center justify-center border transition-all active:scale-95 ${
-                            isPaused 
-                            ? 'bg-yellow-500/10 border-yellow-500 text-yellow-500' 
+                            isPaused
+                            ? 'bg-yellow-500/10 border-yellow-500 text-yellow-500'
                             : 'bg-gray-900 border-gray-800 text-gray-400 hover:bg-gray-800'
                         }`}
                     >
@@ -863,30 +926,23 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
 
                     {phase === 'WORK' ? (
                         <>
-                            {/* CAMERA/TIMER Toggle — only for form coach exercises */}
+                            {/* AI COACH Toggle (iOS-style) — only for form coach exercises */}
                             {formCoachConfig && (
                                 <button
                                     onClick={() => {
-                                        const next = trackingMode === 'TIMER' ? 'CAMERA' : 'TIMER';
-                                        setTrackingMode(next);
-                                        if (next === 'CAMERA') {
-                                            setFormCoachSubPhase('TRACKING');
-                                        } else {
-                                            setFormCoachSubPhase(null);
-                                            setFormCoachState(null);
-                                        }
+                                        setTrackingMode('CAMERA');
+                                        setFormCoachSubPhase('TRACKING');
                                     }}
-                                    className={`col-span-1 h-14 md:h-16 rounded-xl flex flex-col items-center justify-center border transition-all active:scale-95 text-[9px] font-mono font-bold tracking-wider ${
-                                        trackingMode === 'CAMERA'
-                                            ? 'bg-orange-500/15 border-orange-500/50 text-orange-400'
-                                            : 'bg-gray-900 border-gray-800 text-gray-500 hover:border-orange-500/30 hover:text-orange-400/60'
-                                    }`}
+                                    className="col-span-1 h-14 md:h-16 rounded-xl flex items-center justify-center gap-2 border transition-all active:scale-95 bg-gray-900 border-gray-800 hover:border-orange-500/30"
                                 >
-                                    {trackingMode === 'CAMERA' ? <Camera size={18} /> : <Camera size={18} />}
-                                    AI COACH
+                                    {/* Off-state toggle */}
+                                    <div className="relative w-[36px] h-[20px] rounded-full bg-gray-700 transition-all">
+                                        <div className="absolute top-[2px] left-[2px] w-[16px] h-[16px] rounded-full bg-gray-400" />
+                                    </div>
+                                    <span className="text-[8px] font-mono font-bold text-gray-500 tracking-wider">AI</span>
                                 </button>
                             )}
-                            <button 
+                            <button
                                 onClick={completeSet}
                                 className={`${formCoachConfig ? 'col-span-2' : 'col-span-3'} h-14 md:h-16 bg-system-neon text-black font-black text-lg rounded-xl flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(0,212,255,0.4)] hover:bg-white transition-all active:scale-95 group`}
                             >
@@ -903,7 +959,7 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
                             )}
                         </>
                     ) : (
-                        <button 
+                        <button
                             onClick={() => { setPhaseStartTime(Date.now()); setTimeLeft(0); }}
                             className="col-span-3 h-14 md:h-16 bg-system-success text-black font-black text-lg rounded-xl flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:bg-white transition-all active:scale-95 group"
                         >
@@ -912,6 +968,8 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
                         </button>
                     )}
                 </div>
+                </>
+                )}
 
             </div>
         </div>

@@ -196,13 +196,6 @@ const ExerciseRow: React.FC<{ exercise: Exercise; calories: number; hasFormCoach
                     </span>
                 </div>
             </div>
-            {/* Auto Form Coach Badge (non-interactive — auto-enabled for all users) */}
-            {hasFormCoach && (
-                <div className="flex items-center gap-1 px-2 py-1 rounded-md text-[9px] font-mono font-bold tracking-wider shrink-0 bg-orange-500/15 border border-orange-500/40 text-orange-400">
-                    <Camera size={9} />
-                    AI FORM
-                </div>
-            )}
             <div className="text-right font-mono shrink-0">
                 <div className="text-xs font-bold text-white">{exercise.sets} SETS</div>
                 <div className="text-[10px] text-system-neon">{exercise.reps}</div>
