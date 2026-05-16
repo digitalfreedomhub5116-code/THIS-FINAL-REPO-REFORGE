@@ -882,8 +882,8 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
                                             : 'bg-gray-900 border-gray-800 text-gray-500 hover:border-orange-500/30 hover:text-orange-400/60'
                                     }`}
                                 >
-                                    {trackingMode === 'CAMERA' ? <Camera size={18} /> : <TimerIcon size={18} />}
-                                    {trackingMode === 'CAMERA' ? 'AI ON' : 'AI OFF'}
+                                    {trackingMode === 'CAMERA' ? <Camera size={18} /> : <Camera size={18} />}
+                                    AI COACH
                                 </button>
                             )}
                             <button 
