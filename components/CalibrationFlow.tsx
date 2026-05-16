@@ -983,11 +983,21 @@ const HunterVowScreen: React.FC<{ onComplete: () => void; hunterName: string }> 
     );
 };
 
-// ─── EMPATHY INSIGHT SCREEN — Typewriter + personalized cards ─────────────────
+// ─── COMBINED INSIGHT + GRAPH SCREEN ─────────────────────────────────────────────
+const INSIGHT_GRAPHS = [
+  { key: 'strength', Icon: Dumbbell, label: 'Strength', color: '#f87171', withSystem: [5,12,22,38,52,65,76,85,92], without: [5,8,10,12,14,15,16,17,18] },
+  { key: 'intelligence', Icon: Brain, label: 'Intelligence', color: '#60a5fa', withSystem: [10,18,30,45,55,68,78,88,95], without: [10,12,14,16,18,20,22,23,24] },
+  { key: 'focus', Icon: Eye, label: 'Focus', color: '#34d399', withSystem: [8,14,20,28,42,58,72,82,90], without: [8,10,11,13,14,15,16,17,17] },
+  { key: 'discipline', Icon: Shield, label: 'Discipline', color: '#00d4ff', withSystem: [3,10,25,40,55,70,82,90,96], without: [3,6,8,9,10,11,11,12,12] },
+  { key: 'social', Icon: Users, label: 'Social', color: '#facc15', withSystem: [12,18,26,35,45,56,65,75,82], without: [12,13,14,15,16,17,17,18,18] },
+];
+
 const EmpathyInsightScreen: React.FC<{ goal: string; onComplete: () => void }> = ({ goal, onComplete }) => {
     const [typedText, setTypedText] = useState('');
     const [showCards, setShowCards] = useState(false);
+    const [showGraph, setShowGraph] = useState(false);
     const [showButton, setShowButton] = useState(false);
+    const [activeGraph, setActiveGraph] = useState(0);
 
     const empathyTexts: Record<string, string> = {
         LOSE_WEIGHT: "You know what needs to change. The weight isn't just physical \u2014 it's the friction slowing down every part of your life. The System sees the gap between where you are and where you should be. That gap is not permanent.",
@@ -1030,11 +1040,25 @@ const EmpathyInsightScreen: React.FC<{ goal: string; onComplete: () => void }> =
             if (i >= fullText.length) {
                 clearInterval(interval);
                 setTimeout(() => setShowCards(true), 400);
-                setTimeout(() => setShowButton(true), 1200);
+                setTimeout(() => setShowGraph(true), 1000);
+                setTimeout(() => setShowButton(true), 1600);
             }
         }, 22);
         return () => clearInterval(interval);
     }, [fullText]);
+
+    // SVG graph helpers
+    const toY = (v: number) => 140 - (v / 100) * 130;
+    const toX = (i: number) => i * 55;
+    const totalW = 55 * 8;
+    const buildPath = (data: number[]) => data.map((v, i) => {
+        if (i === 0) return `M ${toX(i)},${toY(v)}`;
+        const cx = (toX(i - 1) + toX(i)) / 2;
+        return `C ${cx},${toY(data[i - 1])} ${cx},${toY(v)} ${toX(i)},${toY(v)}`;
+    }).join(' ');
+    const buildAreaPath = (data: number[]) => buildPath(data) + ` L ${toX(data.length - 1)},150 L 0,150 Z`;
+
+    const g = INSIGHT_GRAPHS[activeGraph];
 
     return (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-[200] bg-black flex flex-col font-mono overflow-y-auto"
@@ -1042,17 +1066,17 @@ const EmpathyInsightScreen: React.FC<{ goal: string; onComplete: () => void }> =
             <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 50% 20%, rgba(0,212,255,0.04) 0%, transparent 60%)' }} />
             <div className="relative z-10 flex-1 flex flex-col px-6 max-w-lg mx-auto w-full">
                 <div className="text-[#00d4ff] text-xs font-bold tracking-[0.3em] uppercase mb-6">SYSTEM INSIGHT</div>
-                <div className="bg-[#0a0a0a] border border-gray-800 rounded-2xl p-5 mb-6">
-                    <p className="text-gray-200 text-[15px] leading-relaxed min-h-[100px]" style={{ fontFamily: 'Georgia, serif' }}>
+                <div className="bg-[#0a0a0a] border border-gray-800 rounded-2xl p-5 mb-5">
+                    <p className="text-gray-200 text-[15px] leading-relaxed min-h-[80px]" style={{ fontFamily: 'Georgia, serif' }}>
                         &ldquo;{typedText}<span className="animate-pulse text-[#00d4ff]">|</span>&rdquo;
                     </p>
                 </div>
 
                 <AnimatePresence>
                     {showCards && (
-                        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-3 mb-6">
+                        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-3 mb-5">
                             {cards.map((card, i) => (
-                                <motion.div key={i} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.2 }}
+                                <motion.div key={i} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.15 }}
                                     className="bg-[#111] border border-gray-800 rounded-xl p-4 flex items-start gap-3">
                                     <span className="text-xl">{card.icon}</span>
                                     <div>
@@ -1065,11 +1089,65 @@ const EmpathyInsightScreen: React.FC<{ goal: string; onComplete: () => void }> =
                     )}
                 </AnimatePresence>
 
+                {/* Interactive Graph Section */}
+                <AnimatePresence>
+                    {showGraph && (
+                        <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="mb-5">
+                            {/* Stat icons */}
+                            <div className="flex justify-center gap-2 mb-4">
+                                {INSIGHT_GRAPHS.map((s, i) => (
+                                    <button
+                                        key={s.key}
+                                        onClick={() => { triggerHaptic('BUTTON_TAP'); setActiveGraph(i); }}
+                                        className={`p-2 rounded-xl border transition-all duration-300 ${i === activeGraph ? 'border-opacity-100' : 'border-gray-800 bg-transparent'}`}
+                                        style={i === activeGraph ? { borderColor: s.color, backgroundColor: `${s.color}15` } : undefined}
+                                    >
+                                        <s.Icon size={16} style={{ color: i === activeGraph ? s.color : '#4b5563' }} />
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Graph card */}
+                            <motion.div key={g.key} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                                className="bg-[#0a0a0a] border border-gray-800 rounded-2xl p-4">
+                                <h3 className="font-bold text-[14px] mb-3 flex items-center gap-2" style={{ color: g.color }}>
+                                    <g.Icon size={14} />
+                                    {g.label}
+                                </h3>
+                                <div className="overflow-x-auto -mx-2 px-2" style={{ WebkitOverflowScrolling: 'touch' }}>
+                                    <svg viewBox={`0 0 ${totalW} 155`} style={{ width: totalW, height: 140, minWidth: totalW }} className="block">
+                                        <defs>
+                                            <linearGradient id={`ig_${g.key}`} x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="0%" stopColor={g.color} stopOpacity="0.2" />
+                                                <stop offset="100%" stopColor={g.color} stopOpacity="0" />
+                                            </linearGradient>
+                                        </defs>
+                                        {[30,60,90,120].map(y => <line key={y} x1="0" y1={y} x2={totalW} y2={y} stroke="rgba(255,255,255,0.04)" />)}
+                                        {g.withSystem.map((_: number, i: number) => <text key={i} x={toX(i)} y={152} textAnchor="middle" fill="#4b5563" fontSize="9" fontFamily="monospace">W{i}</text>)}
+                                        <motion.path d={buildPath(g.without)} fill="none" stroke="#4b5563" strokeWidth="1.5" strokeDasharray="4 3" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1 }} />
+                                        <motion.path d={buildAreaPath(g.withSystem)} fill={`url(#ig_${g.key})`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4, duration: 0.6 }} />
+                                        <motion.path d={buildPath(g.withSystem)} fill="none" stroke={g.color} strokeWidth="2.5" strokeLinecap="round" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.2, delay: 0.2 }} />
+                                        {[0,2,4,6,8].map(wi => (
+                                            <g key={wi}>
+                                                <motion.circle cx={toX(wi)} cy={toY(g.withSystem[wi])} r="4" fill={g.color} stroke="black" strokeWidth="1.5" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.4 + wi * 0.1, duration: 0.3 }} />
+                                            </g>
+                                        ))}
+                                    </svg>
+                                </div>
+                                <div className="flex items-center gap-4 mt-2 text-[10px]">
+                                    <div className="flex items-center gap-1"><div className="w-3 h-[2px] rounded" style={{ backgroundColor: g.color }} /><span className="text-gray-400">With System</span></div>
+                                    <div className="flex items-center gap-1"><div className="w-3 h-[2px] rounded bg-gray-600" style={{ borderTop: '1px dashed #4b5563' }} /><span className="text-gray-500">Without</span></div>
+                                </div>
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
                 {showButton && (
                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-auto pb-4">
                         <button onClick={() => { triggerHaptic('BUTTON_TAP'); onComplete(); }}
-                            className="w-full bg-white text-black font-black py-4 rounded-2xl uppercase tracking-widest text-sm">
-                            Continue
+                            className="w-full bg-[#00d4ff] text-black font-black py-4 rounded-2xl uppercase tracking-widest text-sm shadow-[0_0_30px_rgba(0,212,255,0.3)]">
+                            Enter System
                         </button>
                     </motion.div>
                 )}
@@ -1177,15 +1255,15 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
   };
 
   const handleAssessmentComplete = () => {
-      setViewState('EMPATHY');
-  };
-
-  const handleEmpathyComplete = () => {
       setViewState('ARCHETYPE');
   };
 
   const handleArchetypeComplete = () => {
-      setViewState('REPORT');
+      setViewState('EMPATHY');
+  };
+
+  const handleEmpathyComplete = () => {
+      finalizeCalibration(computeBaseStats());
   };
 
   const finalizeCalibration = (stats: CoreStats) => {
@@ -1237,7 +1315,6 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
   if (viewState === 'ASSESSMENT') return <AssessmentOverlay onComplete={handleAssessmentComplete} />;
   if (viewState === 'EMPATHY') return <EmpathyInsightScreen goal={formData.goal || 'RECOMP'} onComplete={handleEmpathyComplete} />;
   if (viewState === 'ARCHETYPE') return <ArchetypeScreen archetype={getArchetype()} onComplete={handleArchetypeComplete} />;
-  if (viewState === 'REPORT') return <CalibrationReport profile={formData as HealthProfile} onContinue={() => finalizeCalibration(computeBaseStats())} />;
 
   return (
       <div className="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center p-3 sm:p-4 font-mono"
