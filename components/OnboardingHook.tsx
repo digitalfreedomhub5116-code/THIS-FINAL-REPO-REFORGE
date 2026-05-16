@@ -254,16 +254,19 @@ const ScreenSocialProof = ({ onNext }: { onNext: () => void }) => {
         </div>
 
         {/* Timeline */}
-        <div ref={timelineRef} className="px-6 relative pb-4">
-          {/* Background track (gray) */}
-          <div className="absolute left-[30px] top-0 bottom-0 w-[2px] bg-gray-800/80 rounded-full" />
-          {/* Fill track (cyan, height = fillPercent) */}
+        <div ref={timelineRef} className="relative pb-4" style={{ marginLeft: 24, marginRight: 24 }}>
+          {/* Background track (gray) — centered at 16px from this div's left */}
+          <div className="absolute top-0 bottom-0 rounded-full" style={{ left: 15, width: 2, backgroundColor: 'rgba(55,65,81,0.6)' }} />
+          {/* Fill track (cyan) — same position, height driven by scroll */}
           <div
-            className="absolute left-[30px] top-0 w-[2px] rounded-full transition-all duration-150 ease-out"
+            className="absolute top-0 rounded-full"
             style={{
+              left: 15,
+              width: 2,
               height: `${fillPercent}%`,
               background: 'linear-gradient(to bottom, #00d4ff, #33dfff)',
-              boxShadow: '0 0 8px rgba(0,212,255,0.4), 0 0 2px rgba(0,212,255,0.8)',
+              boxShadow: '0 0 6px rgba(0,212,255,0.5), 0 0 2px rgba(0,212,255,0.9)',
+              transition: 'height 100ms ease-out',
             }}
           />
 
@@ -274,22 +277,34 @@ const ScreenSocialProof = ({ onNext }: { onNext: () => void }) => {
               <div
                 key={idx}
                 ref={(el) => { dotRefs.current[idx] = el; }}
-                className="relative pl-11 mb-8"
+                className="relative mb-8"
+                style={{ paddingLeft: 40 }}
               >
-                {/* Checkpoint dot */}
+                {/* Checkpoint dot — centered on the line at left: 16px, so dot left = 16 - 11 = 5px */}
                 <div
-                  className="absolute left-[21px] top-[2px] w-[20px] h-[20px] rounded-full border-2 flex items-center justify-center transition-all duration-500"
+                  className="absolute flex items-center justify-center"
                   style={{
-                    borderColor: isActive ? '#00d4ff' : '#374151',
-                    backgroundColor: isActive ? 'rgba(0,212,255,0.15)' : '#0a0a0a',
-                    boxShadow: isActive ? '0 0 12px rgba(0,212,255,0.35), inset 0 0 4px rgba(0,212,255,0.2)' : 'none',
+                    left: 5,
+                    top: 1,
+                    width: 22,
+                    height: 22,
+                    borderRadius: '50%',
+                    border: `3px solid ${isActive ? '#00d4ff' : '#1a1a1a'}`,
+                    backgroundColor: '#000',
+                    zIndex: 2,
+                    transition: 'all 500ms ease',
+                    boxShadow: isActive ? '0 0 10px rgba(0,212,255,0.4), 0 0 3px rgba(0,212,255,0.6)' : 'none',
                   }}
                 >
+                  {/* Inner fill circle — grows when active */}
                   <div
-                    className="w-[7px] h-[7px] rounded-full transition-all duration-500"
                     style={{
+                      width: isActive ? 10 : 5,
+                      height: isActive ? 10 : 5,
+                      borderRadius: '50%',
                       backgroundColor: isActive ? '#00d4ff' : '#4b5563',
-                      boxShadow: isActive ? '0 0 6px rgba(0,212,255,0.6)' : 'none',
+                      transition: 'all 500ms ease',
+                      boxShadow: isActive ? '0 0 8px rgba(0,212,255,0.7)' : 'none',
                     }}
                   />
                 </div>
