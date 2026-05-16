@@ -1281,9 +1281,9 @@ const CommitmentSlider: React.FC<{ onComplete: (value: number) => void }> = ({ o
             <div className="relative z-10 flex-1 flex flex-col px-6 max-w-lg mx-auto w-full">
                 {/* Header */}
                 <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-                    <div className="text-[#00d4ff] text-xs font-bold tracking-[0.3em] uppercase mb-4" style={{ fontFamily: "'Orbitron', monospace" }}>COMMITMENT CHECK</div>
+                    <div className="text-[#00d4ff] text-xs font-bold tracking-[0.3em] uppercase mb-4">COMMITMENT CHECK</div>
                     <h1 className="text-[24px] font-black text-white leading-snug">
-                        How confident are you that you can stick with a daily routine for <span className="text-[#00d4ff]">7 days</span>?
+                        How confident are you that you can stick with a daily routine for <motion.span key={value} initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="text-[#00d4ff] inline-block">{value} {value === 1 ? 'day' : 'days'}</motion.span>?
                     </h1>
                     <p className="text-gray-500 text-[13px] mt-2">Be honest — there's no wrong answer.</p>
                 </motion.div>
