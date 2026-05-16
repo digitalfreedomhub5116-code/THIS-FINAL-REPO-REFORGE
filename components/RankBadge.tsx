@@ -30,7 +30,7 @@ export const RANK_META: Record<RankType, {
     glow:       'rgba(74,74,90,0.0)',
     bg:         '#08080e',
     labelColor: '#5a5a6a',
-    image:      '/images/ranks/unranked-badge.webp',
+    image:      '/images/ranks/unranked-badge.png',
   },
   E: {
     primary:    '#9eaabb',
@@ -214,7 +214,7 @@ export const RankRevealBadge: React.FC<{
             transition={{ duration: 0.3 }}
           >
             <motion.img
-              src="/images/ranks/unranked-badge.webp"
+              src="/images/ranks/unranked-badge.png"
               alt="Mystery Badge"
               style={{ width: size, height: size, objectFit: 'contain' }}
               animate={{
