@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence, Variants, animate } from 'framer-motion';
 import { User, Activity, Ruler, Weight, Target, ChevronLeft, ChevronRight, Zap, Clock, TrendingUp, ShieldCheck, Dumbbell, Brain, Shield, Users, Hourglass, Sparkles, AlertTriangle, Eye, BookOpen, Moon, Heart } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer, ReferenceLine } from 'recharts';
@@ -13,6 +13,26 @@ interface CalibrationFlowProps {
 }
 
 const setupContainerVariants: Variants = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.1, delayChildren: 0.2 } }, exit: { opacity: 0, x: -20, transition: { duration: 0.2 } } };
+
+/* ── Shimmer Loading Image ─────────────────────────────────────── */
+const ShimmerImg: React.FC<{ src: string; alt?: string; className?: string; style?: React.CSSProperties }> = ({ src, alt = '', className = '', style }) => {
+  const [loaded, setLoaded] = useState(false);
+  const onLoad = useCallback(() => setLoaded(true), []);
+  return (
+    <div className={`relative overflow-hidden ${className}`} style={style}>
+      {!loaded && (
+        <div className="absolute inset-0 z-10" style={{
+          background: 'linear-gradient(110deg, #1a1a2e 25%, #2a2a3e 37%, #1a1a2e 50%)',
+          backgroundSize: '200% 100%',
+          animation: 'shimmer-cal 1.5s ease-in-out infinite',
+        }} />
+      )}
+      <img src={src} alt={alt} className="w-full h-full object-contain"
+        style={{ opacity: loaded ? 1 : 0, transition: 'opacity 0.4s ease' }} onLoad={onLoad} draggable={false} />
+      <style>{`@keyframes shimmer-cal { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }`}</style>
+    </div>
+  );
+};
 const setupItemVariants: Variants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } } };
 
 
@@ -1419,7 +1439,7 @@ const ArchetypeScreen: React.FC<{ archetype: { name: string; desc: string; badge
 
                 <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.8, type: 'spring', stiffness: 200 }}
                     className="w-40 h-40 relative">
-                    <img src={archetype.badge} alt="" className="w-full h-full object-contain" />
+                    <ShimmerImg src={archetype.badge} alt="" className="w-full h-full" />
                     <motion.div className="absolute inset-0 rounded-full" style={{ boxShadow: '0 0 60px rgba(0,212,255,0.15)' }}
                         animate={{ opacity: [0.3, 0.6, 0.3] }} transition={{ duration: 3, repeat: Infinity }} />
                 </motion.div>

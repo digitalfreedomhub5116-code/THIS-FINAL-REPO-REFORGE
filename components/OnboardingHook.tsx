@@ -1,7 +1,51 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, Star, Dumbbell, Brain, Shield, Users, Eye, Sparkles } from 'lucide-react';
 import { triggerHaptic } from '../utils/soundEngine';
+
+/* ── Shimmer Loading Image ─────────────────────────────── */
+const ShimmerImage: React.FC<{
+  src: string;
+  alt?: string;
+  className?: string;
+  style?: React.CSSProperties;
+}> = ({ src, alt = '', className = '', style }) => {
+  const [loaded, setLoaded] = useState(false);
+  const onLoad = useCallback(() => setLoaded(true), []);
+
+  return (
+    <div className={`relative overflow-hidden ${className}`} style={style}>
+      {/* Shimmer skeleton */}
+      {!loaded && (
+        <div className="absolute inset-0 z-10">
+          <div
+            className="absolute inset-0 animate-pulse"
+            style={{
+              background: 'linear-gradient(110deg, #1a1a2e 25%, #2a2a3e 37%, #1a1a2e 50%)',
+              backgroundSize: '200% 100%',
+              animation: 'shimmer 1.5s ease-in-out infinite',
+            }}
+          />
+        </div>
+      )}
+      {/* Actual image */}
+      <motion.img
+        src={src}
+        alt={alt}
+        className={`w-full h-full object-cover ${className.includes('rounded') ? className.split(' ').filter(c => c.includes('rounded')).join(' ') : ''}`}
+        style={{ opacity: loaded ? 1 : 0, transition: 'opacity 0.4s ease' }}
+        onLoad={onLoad}
+        draggable={false}
+      />
+      <style>{`
+        @keyframes shimmer {
+          0% { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+      `}</style>
+    </div>
+  );
+};
 
 interface OnboardingHookProps {
   onComplete: () => void;
@@ -98,7 +142,7 @@ const ScreenScience = ({ onNext }: { onNext: () => void }) => (
   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 flex flex-col bg-black">
     {/* Half background image */}
     <div className="absolute inset-0">
-      <img src="/onboarding/arrow_target.webp" alt="" className="w-full h-[45%] object-cover" />
+      <ShimmerImage src="/onboarding/arrow_target.webp" alt="" className="w-full h-[45%]" />
       <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, black 40%, rgba(0,0,0,0.75) 55%, rgba(0,0,0,0.3) 70%, rgba(0,0,0,0.5) 100%)' }} />
     </div>
     <div className="relative z-10 flex-1 flex flex-col px-6 overflow-y-auto" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 48px)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 56px)' }}>
@@ -233,7 +277,7 @@ const ScreenSocialProof = ({ onNext }: { onNext: () => void }) => {
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }} className="flex items-center justify-center gap-5 px-6 mb-3">
           <div className="text-center">
             <div className="w-[76px] h-[76px] rounded-full overflow-hidden border-2 border-gray-600/60 shadow-lg p-[2px] bg-gradient-to-br from-gray-700 to-gray-900">
-              <img src="/onboarding/before_selfie.webp" alt="Before" className="w-full h-full object-cover rounded-full" />
+              <ShimmerImage src="/onboarding/before_selfie.webp" alt="Before" className="w-full h-full rounded-full" />
             </div>
             <span className="text-gray-500 text-[10px] mt-1.5 block font-medium">Day 1</span>
           </div>
@@ -243,7 +287,7 @@ const ScreenSocialProof = ({ onNext }: { onNext: () => void }) => {
           </div>
           <div className="text-center">
             <div className="w-[76px] h-[76px] rounded-full overflow-hidden p-[2px] bg-gradient-to-br from-[#00d4ff] to-[#0088aa] shadow-[0_0_20px_rgba(0,212,255,0.25)]">
-              <img src="/onboarding/after_selfie.webp" alt="After" className="w-full h-full object-cover rounded-full" />
+              <ShimmerImage src="/onboarding/after_selfie.webp" alt="After" className="w-full h-full rounded-full" />
             </div>
             <span className="text-[#00d4ff] text-[10px] mt-1.5 block font-semibold">Day 90</span>
           </div>
@@ -376,14 +420,14 @@ const ScreenSocialProof = ({ onNext }: { onNext: () => void }) => {
                 {/* Before photo after Day 1 */}
                 {idx === 0 && (
                   <div className="mt-4 w-[140px] h-[140px] rounded-xl overflow-hidden border border-gray-700/50 shadow-lg">
-                    <img src="/onboarding/before_selfie.webp" alt="" className="w-full h-full object-cover" />
+                    <ShimmerImage src="/onboarding/before_selfie.webp" alt="" className="w-full h-full rounded-xl" />
                   </div>
                 )}
 
                 {/* After photo at Day 90 */}
                 {isLast && (
                   <div className="mt-4 w-[140px] h-[140px] rounded-xl overflow-hidden shadow-[0_0_20px_rgba(0,212,255,0.15)]" style={{ border: '1px solid rgba(0,212,255,0.25)' }}>
-                    <img src="/onboarding/after_selfie.webp" alt="" className="w-full h-full object-cover" />
+                    <ShimmerImage src="/onboarding/after_selfie.webp" alt="" className="w-full h-full rounded-xl" />
                   </div>
                 )}
               </div>
