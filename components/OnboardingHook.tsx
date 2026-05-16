@@ -67,7 +67,7 @@ const ScreenGate = ({ onNext }: { onNext: () => void }) => (
     <Embers />
     <div className="relative z-10 flex-1 flex flex-col justify-end px-6 pb-14" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 56px)' }}>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="space-y-4 mb-8">
-        <div className="text-white text-xs font-bold tracking-[0.35em] uppercase" style={{ fontFamily: "'Orbitron', 'Rajdhani', 'Share Tech Mono', monospace" }}>⚔️ REFORGE SYSTEM</div>
+        <div className="text-white text-xs font-bold tracking-[0.35em] uppercase" style={{ fontFamily: "'Orbitron', 'Rajdhani', 'Share Tech Mono', monospace" }}>REFORGE SYSTEM</div>
         <h1 className="text-[32px] font-black text-white leading-tight tracking-tight">A Gate has<br/>opened.</h1>
         <p className="text-gray-400 text-[15px] leading-relaxed max-w-[300px]">Only those brave enough to enter will evolve beyond their limits.</p>
       </motion.div>
@@ -103,7 +103,7 @@ const ScreenScience = ({ onNext }: { onNext: () => void }) => (
     </div>
     <div className="relative z-10 flex-1 flex flex-col px-6 overflow-y-auto" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 48px)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 56px)' }}>
       <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-6 mt-auto">
-        <div className="text-white text-xs font-bold tracking-[0.35em] uppercase mb-4" style={{ fontFamily: "'Orbitron', 'Rajdhani', 'Share Tech Mono', monospace" }}>⚔️ REFORGE SYSTEM</div>
+        <div className="text-white text-xs font-bold tracking-[0.35em] uppercase mb-4" style={{ fontFamily: "'Orbitron', 'Rajdhani', 'Share Tech Mono', monospace" }}>REFORGE SYSTEM</div>
         <p className="text-gray-400 text-[15px] mb-2">Research shows it takes just</p>
         <h1 className="text-[56px] font-black text-white leading-none mb-2" style={{ textShadow: '0 0 30px rgba(255,255,255,0.15)' }}>21 days</h1>
         <p className="text-gray-400 text-[15px]">to ignite a habit — and <span className="text-[#00d4ff] font-semibold">90 days to fully transform.</span></p>
@@ -182,7 +182,7 @@ const ScreenSocialProof = ({ onNext }: { onNext: () => void }) => (
     <div className="relative z-10 flex-1 flex flex-col overflow-y-auto" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 24px)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 56px)' }}>
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="text-center px-6 mb-5">
-        <div className="text-white text-xs font-bold tracking-[0.35em] uppercase mb-3" style={{ fontFamily: "'Orbitron', 'Rajdhani', 'Share Tech Mono', monospace" }}>⚔️ REAL STORY FROM A HUNTER</div>
+        <div className="text-white text-xs font-bold tracking-[0.35em] uppercase mb-3" style={{ fontFamily: "'Orbitron', 'Rajdhani', 'Share Tech Mono', monospace" }}>REAL STORY FROM A HUNTER</div>
       </motion.div>
 
       {/* Before / After photos */}
@@ -379,7 +379,7 @@ const ScreenProgressive = ({ onNext }: { onNext: () => void }) => {
       <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 50% 30%, rgba(0,212,255,0.05) 0%, transparent 60%)' }} />
       <div className="relative z-10 flex-1 flex flex-col px-6 overflow-y-auto" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 48px)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 56px)' }}>
         <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-6">
-          <div className="text-white text-xs font-bold tracking-[0.35em] uppercase mb-4" style={{ fontFamily: "'Orbitron', 'Rajdhani', 'Share Tech Mono', monospace" }}>⚔️ REFORGE SYSTEM</div>
+          <div className="text-white text-xs font-bold tracking-[0.35em] uppercase mb-4" style={{ fontFamily: "'Orbitron', 'Rajdhani', 'Share Tech Mono', monospace" }}>REFORGE SYSTEM</div>
           <h1 className="text-[22px] font-black text-white leading-snug px-2">
             Each week, your quests get <span className="text-[#00d4ff]">progressively harder</span> to forge your discipline.
           </h1>
@@ -609,7 +609,7 @@ const ScreenCurrentLevel = ({ onNext }: { onNext: () => void }) => {
       </div>
       <div className="relative z-10 flex-1 flex flex-col px-6 overflow-y-auto" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 48px)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }}>
         <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}>
-          <div className="text-white text-xs font-bold tracking-[0.35em] uppercase mb-3" style={{ fontFamily: "'Orbitron', 'Rajdhani', 'Share Tech Mono', monospace" }}>⚔️ REFORGE SYSTEM</div>
+          <div className="text-white text-xs font-bold tracking-[0.35em] uppercase mb-3" style={{ fontFamily: "'Orbitron', 'Rajdhani', 'Share Tech Mono', monospace" }}>REFORGE SYSTEM</div>
           <h1 className="text-[28px] font-black text-white leading-tight mb-1">
             {showPotential ? <>Your Potential<br/>Rating 🔥</> : <>Your Current<br/>Rating ⚔️</>}
           </h1>
@@ -743,7 +743,7 @@ const ScreenReadyToBegin = ({ onNext }: { onNext: () => void }) => (
     </div>
     <div className="relative z-10 flex-1 flex flex-col justify-end px-6 pb-14" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 56px)' }}>
       <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="mb-5">
-        <div className="text-white text-xs font-bold tracking-[0.35em] uppercase mb-3" style={{ fontFamily: "'Orbitron', 'Rajdhani', 'Share Tech Mono', monospace" }}>⚔️ REFORGE SYSTEM</div>
+        <div className="text-white text-xs font-bold tracking-[0.35em] uppercase mb-3" style={{ fontFamily: "'Orbitron', 'Rajdhani', 'Share Tech Mono', monospace" }}>REFORGE SYSTEM</div>
         <h1 className="text-[28px] font-black text-white leading-tight mb-2">Understanding<br/>your situation</h1>
         <p className="text-gray-400 text-[14px] leading-relaxed">Answer honestly so the System can calibrate your optimal training protocol.</p>
       </motion.div>
