@@ -485,9 +485,12 @@ router.put('/:id', async (req: Request, res: Response) => {
       }
     } catch { /* weekly_xp column may not exist yet — ignore */ }
 
+    // Resolve display name: top-level name > healthProfile.hunterName > fallback
+    const resolvedName = cleanData.name || clientRaw?.healthProfile?.hunterName || 'Hunter';
+
     const playerData: Record<string, any> = {
-      username: cleanData.username || cleanData.name || ('u_' + id.slice(-8)),
-      name: cleanData.name || 'Hunter',
+      username: cleanData.username || resolvedName || ('u_' + id.slice(-8)),
+      name: resolvedName,
       level: cleanData.level || 1,
       current_xp: cleanData.currentXp || 0,
       required_xp: cleanData.requiredXp || 100,

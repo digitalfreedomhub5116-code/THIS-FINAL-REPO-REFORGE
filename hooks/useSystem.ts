@@ -1542,7 +1542,13 @@ export const useSystem = () => {
   };
 
   const saveHealthProfile = (profile: HealthProfile, identity: string) => {
-    setPlayer(prev => ({ ...prev, healthProfile: profile, identity }));
+    setPlayer(prev => ({
+      ...prev,
+      healthProfile: profile,
+      identity,
+      // Keep player.name in sync with healthProfile.hunterName (if set)
+      ...(profile.hunterName ? { name: profile.hunterName } : {}),
+    }));
     addNotification('Biometrics Updated. System Calibrated.', 'SUCCESS');
   };
 

@@ -3432,6 +3432,11 @@ const App: React.FC = () => {
 
                     } : {}),
 
+                    // Promote hunterName from CalibrationFlow to top-level name
+                    // so it gets written to the `name` column in Supabase (used by
+                    // leaderboard, profile header, WelcomeRewardChest, etc.)
+                    ...(profile.hunterName ? { name: profile.hunterName } : {}),
+
                     healthProfile: profile,
 
                     stats,
