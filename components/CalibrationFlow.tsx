@@ -995,7 +995,7 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                   <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${(step / TOTAL_STEPS) * 100}%` }}
-                      className="h-full bg-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.5)]"
+                      className="h-full bg-system-neon shadow-[0_0_15px_#00d4ff]"
                   />
               </div>
 
@@ -1007,7 +1007,7 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                   <motion.span
                       animate={{ opacity: [1, 0.5, 1] }}
                       transition={{ duration: 2, repeat: Infinity }}
-                      className="text-[10px] text-orange-400 font-black bg-orange-500/10 px-2 py-0.5 rounded border border-orange-500/30"
+                      className="text-[10px] text-system-neon font-black bg-system-neon/10 px-2 py-0.5 rounded border border-system-neon/30"
                   >
                       ⚔️ CALIBRATING
                   </motion.span>
@@ -1023,7 +1023,7 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                       <motion.div key="s1" variants={setupContainerVariants} initial="hidden" animate="visible" exit="exit" className="space-y-6">
                           <motion.div variants={setupItemVariants}>
                               <div className="flex items-center gap-2 mb-1">
-                                  <User className="text-orange-400" size={18} />
+                                  <User className="text-system-neon" size={18} />
                                   <span className="text-xs text-gray-500 uppercase tracking-widest font-bold">Hunter Identity</span>
                               </div>
                               <p className="text-gray-600 text-[11px]">Tell us about yourself so we can calibrate your stats.</p>
@@ -1037,7 +1037,7 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                                       <button
                                           key={g}
                                           onClick={() => { triggerHaptic('BUTTON_TAP'); setFormData({ ...formData, gender: g }); }}
-                                          className={`py-5 rounded-2xl font-black text-sm tracking-widest transition-all border ${formData.gender === g ? 'bg-orange-500 text-black border-orange-500 shadow-[0_0_20px_rgba(249,115,22,0.3)]' : 'bg-[#141414] border-gray-800 text-gray-400 hover:border-gray-600'}`}
+                                          className={`py-5 rounded-2xl font-black text-sm tracking-widest transition-all border ${formData.gender === g ? 'bg-white text-black border-white shadow-[0_0_20px_rgba(255,255,255,0.3)]' : 'bg-[#141414] border-gray-800 text-gray-400 hover:border-gray-600'}`}
                                       >
                                           {g === 'MALE' ? '♂ Male' : '♀ Female'}
                                       </button>
@@ -1053,7 +1053,7 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                                       type="number"
                                       value={formData.age || ''}
                                       onChange={e => setFormData({ ...formData, age: Number(e.target.value) })}
-                                      className="w-full bg-black border-b-2 border-gray-800 text-center text-5xl text-white outline-none focus:border-orange-500 py-4 transition-colors"
+                                      className="w-full bg-black border-b-2 border-gray-800 text-center text-5xl text-white outline-none focus:border-system-neon py-4 transition-colors"
                                       placeholder="25"
                                       min={10} max={99}
                                   />
@@ -1065,7 +1065,7 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                               <button
                                   onClick={() => { triggerHaptic('BUTTON_TAP'); setStep(2); }}
                                   disabled={!formData.age || formData.age < 10}
-                                  className="bg-orange-500 text-black px-10 py-3 rounded-full font-black text-xs shadow-[0_0_15px_rgba(249,115,22,0.4)] hover:bg-orange-400 transition-all uppercase flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                                  className="bg-system-neon text-black px-10 py-3 rounded-full font-black text-xs shadow-[0_0_15px_#00d4ff] hover:bg-white transition-all uppercase flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
                               >
                                   NEXT <ChevronRight size={14} />
                               </button>
@@ -1078,7 +1078,7 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                       <motion.div key="s3" variants={setupContainerVariants} initial="hidden" animate="visible" exit="exit" className="space-y-5">
                           <motion.div variants={setupItemVariants}>
                               <div className="flex items-center gap-2 mb-1">
-                                  <Ruler className="text-orange-400" size={18} />
+                                  <Ruler className="text-system-neon" size={18} />
                                   <span className="text-xs text-gray-500 uppercase tracking-widest font-bold">Body Metrics</span>
                               </div>
                               <p className="text-gray-600 text-[11px]">Used to calculate your body composition and calibration graph.</p>
@@ -1087,12 +1087,12 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                           {/* Unit toggles */}
                           <motion.div variants={setupItemVariants} className="flex gap-3">
                               <div className="flex bg-gray-900 rounded-lg p-1 border border-gray-800">
-                                  <button onClick={() => { triggerHaptic('BUTTON_TAP'); setHeightUnit('CM'); }} className={`px-3 py-1 text-[10px] font-bold rounded transition-colors ${heightUnit === 'CM' ? 'bg-orange-500 text-black' : 'text-gray-500'}`}>CM</button>
-                                  <button onClick={() => { triggerHaptic('BUTTON_TAP'); setHeightUnit('FT'); }} className={`px-3 py-1 text-[10px] font-bold rounded transition-colors ${heightUnit === 'FT' ? 'bg-orange-500 text-black' : 'text-gray-500'}`}>FT</button>
+                                  <button onClick={() => { triggerHaptic('BUTTON_TAP'); setHeightUnit('CM'); }} className={`px-3 py-1 text-[10px] font-bold rounded transition-colors ${heightUnit === 'CM' ? 'bg-system-neon text-black' : 'text-gray-500'}`}>CM</button>
+                                  <button onClick={() => { triggerHaptic('BUTTON_TAP'); setHeightUnit('FT'); }} className={`px-3 py-1 text-[10px] font-bold rounded transition-colors ${heightUnit === 'FT' ? 'bg-system-neon text-black' : 'text-gray-500'}`}>FT</button>
                               </div>
                               <div className="flex bg-gray-900 rounded-lg p-1 border border-gray-800">
-                                  <button onClick={() => { triggerHaptic('BUTTON_TAP'); setWeightUnit('KG'); }} className={`px-3 py-1 text-[10px] font-bold rounded transition-colors ${weightUnit === 'KG' ? 'bg-orange-500 text-black' : 'text-gray-500'}`}>KG</button>
-                                  <button onClick={() => { triggerHaptic('BUTTON_TAP'); setWeightUnit('LBS'); }} className={`px-3 py-1 text-[10px] font-bold rounded transition-colors ${weightUnit === 'LBS' ? 'bg-orange-500 text-black' : 'text-gray-500'}`}>LBS</button>
+                                  <button onClick={() => { triggerHaptic('BUTTON_TAP'); setWeightUnit('KG'); }} className={`px-3 py-1 text-[10px] font-bold rounded transition-colors ${weightUnit === 'KG' ? 'bg-system-neon text-black' : 'text-gray-500'}`}>KG</button>
+                                  <button onClick={() => { triggerHaptic('BUTTON_TAP'); setWeightUnit('LBS'); }} className={`px-3 py-1 text-[10px] font-bold rounded transition-colors ${weightUnit === 'LBS' ? 'bg-system-neon text-black' : 'text-gray-500'}`}>LBS</button>
                               </div>
                           </motion.div>
 
@@ -1104,17 +1104,17 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                                       type="number"
                                       value={formData.height || ''}
                                       onChange={e => setFormData({ ...formData, height: Number(e.target.value) })}
-                                      className="w-full bg-black border-b-2 border-gray-800 text-center text-3xl text-white outline-none focus:border-orange-500 py-3 transition-colors"
+                                      className="w-full bg-black border-b-2 border-gray-800 text-center text-3xl text-white outline-none focus:border-system-neon py-3 transition-colors"
                                       placeholder="175 cm"
                                   />
                               ) : (
                                   <div className="flex gap-3">
                                       <div className="relative flex-1">
-                                          <input type="number" value={toFtIn(formData.height || 0).ft || ''} onChange={e => updateHeightFromFtIn(e.target.value, toFtIn(formData.height || 0).inches)} className="w-full bg-black border-b-2 border-gray-800 text-center text-3xl text-white outline-none focus:border-orange-500 py-3 transition-colors" placeholder="5" />
+                                          <input type="number" value={toFtIn(formData.height || 0).ft || ''} onChange={e => updateHeightFromFtIn(e.target.value, toFtIn(formData.height || 0).inches)} className="w-full bg-black border-b-2 border-gray-800 text-center text-3xl text-white outline-none focus:border-system-neon py-3 transition-colors" placeholder="5" />
                                           <span className="absolute right-2 bottom-4 text-gray-600 font-bold text-xs">FT</span>
                                       </div>
                                       <div className="relative flex-1">
-                                          <input type="number" value={toFtIn(formData.height || 0).inches || ''} onChange={e => updateHeightFromFtIn(toFtIn(formData.height || 0).ft, e.target.value)} className="w-full bg-black border-b-2 border-gray-800 text-center text-3xl text-white outline-none focus:border-orange-500 py-3 transition-colors" placeholder="10" />
+                                          <input type="number" value={toFtIn(formData.height || 0).inches || ''} onChange={e => updateHeightFromFtIn(toFtIn(formData.height || 0).ft, e.target.value)} className="w-full bg-black border-b-2 border-gray-800 text-center text-3xl text-white outline-none focus:border-system-neon py-3 transition-colors" placeholder="10" />
                                           <span className="absolute right-2 bottom-4 text-gray-600 font-bold text-xs">IN</span>
                                       </div>
                                   </div>
@@ -1129,7 +1129,7 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                                       type="number"
                                       value={weightUnit === 'KG' ? formData.weight || '' : (formData.weight ? toLbs(formData.weight) : '')}
                                       onChange={e => { const v = Number(e.target.value); setFormData({ ...formData, weight: weightUnit === 'KG' ? v : toKg(v) }); }}
-                                      className="w-full bg-black border-b-2 border-gray-800 text-center text-3xl text-white outline-none focus:border-orange-500 py-3 transition-colors"
+                                      className="w-full bg-black border-b-2 border-gray-800 text-center text-3xl text-white outline-none focus:border-system-neon py-3 transition-colors"
                                       placeholder={weightUnit === 'KG' ? '70 kg' : '154 lbs'}
                                   />
                                   <span className="absolute right-4 bottom-4 text-gray-600 font-bold text-xs">{weightUnit}</span>
@@ -1153,7 +1153,7 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
 
                           <motion.div variants={setupItemVariants} className="sticky bottom-0 bg-[#0a0a0a] pt-3 pb-1 flex justify-between mt-4">
                               <button onClick={() => { triggerHaptic('BUTTON_TAP'); setStep(2); }} className="text-gray-600 hover:text-white flex items-center gap-1 font-bold text-xs uppercase"><ChevronLeft size={14} /> BACK</button>
-                              <button onClick={() => { triggerHaptic('BUTTON_TAP'); setStep(3); }} className="bg-orange-500 text-black px-10 py-3 rounded-full font-black text-xs shadow-[0_0_15px_rgba(249,115,22,0.4)] hover:bg-white transition-all uppercase flex items-center gap-2">NEXT <ChevronRight size={14} /></button>
+                              <button onClick={() => { triggerHaptic('BUTTON_TAP'); setStep(3); }} className="bg-system-neon text-black px-10 py-3 rounded-full font-black text-xs shadow-[0_0_15px_#00d4ff] hover:bg-white transition-all uppercase flex items-center gap-2">NEXT <ChevronRight size={14} /></button>
                           </motion.div>
                       </motion.div>
                   )}
@@ -1192,7 +1192,7 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                       <motion.div key="s5" variants={setupContainerVariants} initial="hidden" animate="visible" exit="exit" className="space-y-5">
                           <motion.div variants={setupItemVariants}>
                               <div className="flex items-center gap-2 mb-1">
-                                  <Dumbbell className="text-orange-400" size={18} />
+                                  <Dumbbell className="text-system-neon" size={18} />
                                   <span className="text-xs text-gray-500 uppercase tracking-widest font-bold">Equipment Access</span>
                               </div>
                               <p className="text-gray-600 text-[11px]">What training resources do you have? Your workout plan is built around this.</p>
@@ -1261,7 +1261,7 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
 
                           <motion.div variants={setupItemVariants} className="sticky bottom-0 bg-[#0a0a0a] pt-3 pb-1 flex justify-between mt-4">
                               <button onClick={() => { triggerHaptic('BUTTON_TAP'); setStep(4); }} className="text-gray-600 hover:text-white flex items-center gap-1 font-bold text-xs uppercase"><ChevronLeft size={14} /> BACK</button>
-                              <button onClick={() => { triggerHaptic('BUTTON_TAP'); setStep(6); }} className="bg-orange-500 text-black px-10 py-3 rounded-full font-black text-xs shadow-[0_0_15px_rgba(249,115,22,0.4)] hover:bg-white transition-all uppercase flex items-center gap-2">NEXT <ChevronRight size={14} /></button>
+                              <button onClick={() => { triggerHaptic('BUTTON_TAP'); setStep(6); }} className="bg-system-neon text-black px-10 py-3 rounded-full font-black text-xs shadow-[0_0_15px_#00d4ff] hover:bg-white transition-all uppercase flex items-center gap-2">NEXT <ChevronRight size={14} /></button>
                           </motion.div>
                       </motion.div>
                   )}
@@ -1346,7 +1346,7 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                               <button
                                   onClick={() => { triggerHaptic('BUTTON_TAP'); setStep(7); }}
                                   disabled={!formData.activityLevel || !formData.energyLevel || !formData.stressLevel}
-                                  className="bg-orange-500 text-black px-10 py-3 rounded-full font-black text-xs shadow-[0_0_15px_rgba(249,115,22,0.4)] hover:bg-white transition-all uppercase flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                                  className="bg-system-neon text-black px-10 py-3 rounded-full font-black text-xs shadow-[0_0_15px_#00d4ff] hover:bg-white transition-all uppercase flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
                               >NEXT <ChevronRight size={14} /></button>
                           </motion.div>
                       </motion.div>
@@ -1374,7 +1374,7 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                                       { label: '50+', val: 60 },
                                   ]).map(opt => (
                                       <button key={opt.val} onClick={() => { triggerHaptic('BUTTON_TAP'); setBaselines({ ...baselines, pushups: opt.val }); }}
-                                          className={`py-3 px-3 rounded-xl border text-center transition-all ${baselines.pushups === opt.val ? 'bg-orange-500 text-black border-orange-500' : 'border-gray-800 text-gray-400 hover:border-gray-600'}`}>
+                                          className={`py-3 px-3 rounded-xl border text-center transition-all ${baselines.pushups === opt.val ? 'bg-system-neon text-black border-system-neon' : 'border-gray-800 text-gray-400 hover:border-gray-600'}`}>
                                           <div className="font-bold text-[11px]">{opt.label}</div>
                                       </button>
                                   ))}
@@ -1432,7 +1432,7 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                                   className={`px-10 py-3 rounded-full font-black text-xs transition-all uppercase flex items-center gap-2 ${
                                       baselines.pushups === 0 || baselines.focusDuration === 0 || baselines.sleepAvg === 0
                                           ? 'bg-gray-800 text-gray-600 cursor-not-allowed'
-                                          : 'bg-orange-500 text-black shadow-[0_0_15px_rgba(249,115,22,0.4)] hover:bg-white'
+                                          : 'bg-system-neon text-black shadow-[0_0_15px_#00d4ff] hover:bg-white'
                                   }`}
                               >
                                   NEXT <ChevronRight size={14} />
@@ -1472,7 +1472,7 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                           <motion.button
                               variants={setupItemVariants}
                               onClick={() => { triggerHaptic('SUCCESS'); handleFinish(); }}
-                              className="w-full bg-orange-500 text-black font-black py-5 rounded-xl shadow-[0_0_30px_rgba(249,115,22,0.5)] hover:scale-105 transition-transform uppercase tracking-widest"
+                              className="w-full bg-system-neon text-black font-black py-5 rounded-xl shadow-[0_0_30px_#00d4ff] hover:scale-105 transition-transform uppercase tracking-widest"
                           >
                               Upload Biometrics
                           </motion.button>
