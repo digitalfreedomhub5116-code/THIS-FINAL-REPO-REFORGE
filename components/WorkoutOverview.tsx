@@ -12,9 +12,12 @@ import { isFormCoachSupported } from '../lib/formCoachConfig';
 /** Check if an exercise is rep-based (not time-based like "5 min" or "30s") */
 const isRepBasedExercise = (ex: Exercise): boolean => {
   if (ex.type === 'CARDIO' || ex.type === 'STRETCH') return false;
-  const reps = ex.reps?.toLowerCase() || '';
+  const reps = ex.reps?.toLowerCase()?.trim() || '';
+  if (!reps) return false;
   if (reps.includes('min') || reps.includes('sec') || /\d+s\b/.test(reps)) return false;
-  return /^\d+$/.test(reps.trim()); // Pure number like "12"
+  // Match pure numbers like "12" or comma-separated like "15, 15, 12"
+  const parts = reps.split(/[,\s]+/).filter(Boolean);
+  return parts.length > 0 && parts.every(p => /^\d+$/.test(p));
 };
 
 /** Check if exercise will get auto Form Coach (rep-based + has config) */

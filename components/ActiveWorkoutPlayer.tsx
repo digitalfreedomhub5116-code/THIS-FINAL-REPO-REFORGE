@@ -16,9 +16,12 @@ import FormCoachSummary from './FormCoachSummary';
 /** Check if an exercise is rep-based (not time-based like "5 min" or "30s") */
 const isRepBasedExercise = (reps: string, type: string): boolean => {
   if (type === 'CARDIO' || type === 'STRETCH') return false;
-  const lower = reps?.toLowerCase() || '';
+  const lower = reps?.toLowerCase()?.trim() || '';
+  if (!lower) return false;
   if (lower.includes('min') || lower.includes('sec') || /\d+s\b/.test(lower)) return false;
-  return /^\d+$/.test(lower.trim());
+  // Match pure numbers like "12" or comma-separated like "15, 15, 12"
+  const parts = lower.split(/[,\s]+/).filter(Boolean);
+  return parts.length > 0 && parts.every(p => /^\d+$/.test(p));
 };
 
 interface ActiveWorkoutPlayerProps {
