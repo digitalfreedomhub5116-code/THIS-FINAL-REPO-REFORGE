@@ -289,60 +289,277 @@ const ScreenSocialProof = ({ onNext }: { onNext: () => void }) => (
 );
 
 /* ═══════════════════════════════════════════════════════ */
-/* SCREEN A4 — "Progressive Difficulty"                  */
+/* SCREEN A4 — "Progressive Difficulty" (Interactive)    */
 /* ═══════════════════════════════════════════════════════ */
-const ScreenProgressive = ({ onNext }: { onNext: () => void }) => (
-  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 flex flex-col bg-black">
-    <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 50% 30%, rgba(0,212,255,0.05) 0%, transparent 60%)' }} />
-    <div className="relative z-10 flex-1 flex flex-col px-6 overflow-y-auto" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 48px)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 56px)' }}>
-      <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-6">
-        <div className="text-white text-xs font-bold tracking-[0.35em] uppercase mb-4" style={{ fontFamily: "'Orbitron', 'Rajdhani', 'Share Tech Mono', monospace" }}>⚔️ REFORGE SYSTEM</div>
-        <h1 className="text-[22px] font-black text-white leading-snug px-2">
-          Each week, your quests get <span className="text-[#00d4ff]">progressively harder</span> to forge your discipline.
-        </h1>
-      </motion.div>
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }} className="flex justify-center gap-2 mb-6">
-        {[
-          { Icon: Dumbbell, active: true },
-          { Icon: Brain, active: false },
-          { Icon: Eye, active: false },
-          { Icon: Shield, active: false },
-          { Icon: Users, active: false },
-        ].map(({ Icon, active }, i) => (
-          <div key={i} className={`p-2.5 rounded-xl border transition-all ${active ? 'border-[#00d4ff] bg-[#00d4ff]/10' : 'border-gray-800 bg-transparent'}`}>
-            <Icon size={18} className={active ? 'text-[#00d4ff]' : 'text-gray-600'} />
+
+// Each stat has its own unique growth curve, color, and data
+const STAT_GRAPHS = [
+  {
+    key: 'strength',
+    Icon: Dumbbell,
+    label: 'Build Strength',
+    color: '#f87171',
+    fact: '3x more consistency',
+    factPrefix: 'By Week 4, hunters report',
+    // Points: [week0, week1, week2, ... week8] — value 0-100 (100 = top of graph)
+    withSystem: [5, 12, 22, 38, 52, 65, 76, 85, 92],
+    without:    [5, 8,  10, 12, 14, 15, 16, 17, 18],
+  },
+  {
+    key: 'intelligence',
+    Icon: Brain,
+    label: 'Sharpen Intelligence',
+    color: '#60a5fa',
+    fact: '2.5x faster learning',
+    factPrefix: 'By Week 3, hunters show',
+    withSystem: [10, 18, 30, 45, 55, 68, 78, 88, 95],
+    without:    [10, 12, 14, 16, 18, 20, 22, 23, 24],
+  },
+  {
+    key: 'focus',
+    Icon: Eye,
+    label: 'Increase Focus',
+    color: '#34d399',
+    fact: '40% longer deep work',
+    factPrefix: 'By Week 5, hunters achieve',
+    withSystem: [8, 14, 20, 28, 42, 58, 72, 82, 90],
+    without:    [8, 10, 11, 13, 14, 15, 16, 17, 17],
+  },
+  {
+    key: 'discipline',
+    Icon: Shield,
+    label: 'Forge Discipline',
+    color: '#00d4ff',
+    fact: '85% streak retention',
+    factPrefix: 'By Week 6, hunters maintain',
+    withSystem: [3, 10, 25, 40, 55, 70, 82, 90, 96],
+    without:    [3, 6,  8,  9,  10, 11, 11, 12, 12],
+  },
+  {
+    key: 'social',
+    Icon: Users,
+    label: 'Grow Social Skills',
+    color: '#facc15',
+    fact: '60% more confidence',
+    factPrefix: 'By Week 4, hunters gain',
+    withSystem: [12, 18, 26, 35, 45, 56, 65, 75, 82],
+    without:    [12, 13, 14, 15, 16, 17, 17, 18, 18],
+  },
+];
+
+const ScreenProgressive = ({ onNext }: { onNext: () => void }) => {
+  const [activeIdx, setActiveIdx] = useState(0);
+  const stat = STAT_GRAPHS[activeIdx];
+  const graphRef = React.useRef<HTMLDivElement>(null);
+
+  // Convert data to SVG path (0-100 → 140-10 Y range, 0-8 → 0-440 X range for wider scrollable area)
+  const toY = (v: number) => 140 - (v / 100) * 130;
+  const toX = (i: number) => i * 55;
+  const totalW = 55 * 8; // 440px wide
+
+  const buildPath = (data: number[]) => {
+    return data.map((v, i) => {
+      if (i === 0) return `M ${toX(i)},${toY(v)}`;
+      const prevX = toX(i - 1);
+      const prevY = toY(data[i - 1]);
+      const cx = (prevX + toX(i)) / 2;
+      return `C ${cx},${prevY} ${cx},${toY(v)} ${toX(i)},${toY(v)}`;
+    }).join(' ');
+  };
+
+  const buildAreaPath = (data: number[]) => {
+    return buildPath(data) + ` L ${toX(data.length - 1)},150 L 0,150 Z`;
+  };
+
+  // Checkpoints at specific weeks
+  const checkpoints = [0, 2, 4, 6, 8];
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 flex flex-col bg-black">
+      <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 50% 30%, rgba(0,212,255,0.05) 0%, transparent 60%)' }} />
+      <div className="relative z-10 flex-1 flex flex-col px-6 overflow-y-auto" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 48px)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 56px)' }}>
+        <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-6">
+          <div className="text-white text-xs font-bold tracking-[0.35em] uppercase mb-4" style={{ fontFamily: "'Orbitron', 'Rajdhani', 'Share Tech Mono', monospace" }}>⚔️ REFORGE SYSTEM</div>
+          <h1 className="text-[22px] font-black text-white leading-snug px-2">
+            Each week, your quests get <span className="text-[#00d4ff]">progressively harder</span> to forge your discipline.
+          </h1>
+        </motion.div>
+
+        {/* Interactive stat icons */}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }} className="flex justify-center gap-2 mb-6">
+          {STAT_GRAPHS.map((s, i) => (
+            <motion.button
+              key={s.key}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => { triggerHaptic('BUTTON_TAP'); setActiveIdx(i); }}
+              className={`p-2.5 rounded-xl border transition-all duration-300 ${i === activeIdx
+                ? 'border-opacity-100 bg-opacity-10'
+                : 'border-gray-800 bg-transparent'}`}
+              style={i === activeIdx ? {
+                borderColor: s.color,
+                backgroundColor: `${s.color}15`,
+              } : undefined}
+            >
+              <s.Icon size={18} className="transition-colors duration-300" style={{ color: i === activeIdx ? s.color : '#4b5563' }} />
+            </motion.button>
+          ))}
+        </motion.div>
+
+        {/* Graph card */}
+        <motion.div
+          key={stat.key}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="bg-[#0a0a0a] border border-gray-800 rounded-2xl p-5 mb-4"
+        >
+          <h3 className="font-bold text-[15px] mb-4 flex items-center gap-2" style={{ color: stat.color }}>
+            <stat.Icon size={16} />
+            {stat.label}
+          </h3>
+
+          {/* Touch-scrollable graph container */}
+          <div
+            ref={graphRef}
+            className="overflow-x-auto overflow-y-hidden -mx-2 px-2"
+            style={{ WebkitOverflowScrolling: 'touch' }}
+          >
+            <svg viewBox={`0 0 ${totalW} 155`} style={{ width: totalW, height: 150, minWidth: totalW }} className="block">
+              <defs>
+                <linearGradient id={`grad_${stat.key}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={stat.color} stopOpacity="0.25" />
+                  <stop offset="100%" stopColor={stat.color} stopOpacity="0" />
+                </linearGradient>
+              </defs>
+
+              {/* Grid lines */}
+              {[30, 60, 90, 120].map(y => <line key={y} x1="0" y1={y} x2={totalW} y2={y} stroke="rgba(255,255,255,0.04)" />)}
+
+              {/* Week labels */}
+              {stat.withSystem.map((_, i) => (
+                <text key={i} x={toX(i)} y={152} textAnchor="middle" fill="#4b5563" fontSize="9" fontFamily="monospace">
+                  W{i}
+                </text>
+              ))}
+
+              {/* "Without" line — dashed gray */}
+              <motion.path
+                d={buildPath(stat.without)}
+                fill="none"
+                stroke="#4b5563"
+                strokeWidth="1.5"
+                strokeDasharray="4 4"
+                initial={{ pathLength: 0 }}
+                animate={{ pathLength: 1 }}
+                transition={{ duration: 1.2, delay: 0.3 }}
+              />
+
+              {/* Area fill */}
+              <motion.path
+                d={buildAreaPath(stat.withSystem)}
+                fill={`url(#grad_${stat.key})`}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.6, duration: 0.8 }}
+              />
+
+              {/* Main "With System" line */}
+              <motion.path
+                d={buildPath(stat.withSystem)}
+                fill="none"
+                stroke={stat.color}
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                initial={{ pathLength: 0 }}
+                animate={{ pathLength: 1 }}
+                transition={{ duration: 1.5, delay: 0.3 }}
+              />
+
+              {/* Checkpoint dots with pulse */}
+              {checkpoints.map((wi) => {
+                const cx = toX(wi);
+                const cy = toY(stat.withSystem[wi]);
+                return (
+                  <g key={wi}>
+                    {/* Pulse ring */}
+                    <motion.circle
+                      cx={cx} cy={cy} r="8"
+                      fill="none"
+                      stroke={stat.color}
+                      strokeWidth="1"
+                      opacity="0.4"
+                      initial={{ r: 4, opacity: 0 }}
+                      animate={{ r: [4, 10, 4], opacity: [0, 0.4, 0] }}
+                      transition={{ duration: 2, delay: 0.5 + wi * 0.15, repeat: Infinity, ease: 'easeInOut' }}
+                    />
+                    {/* Vibrating dot */}
+                    <motion.circle
+                      cx={cx} cy={cy} r="4"
+                      fill={stat.color}
+                      stroke="black"
+                      strokeWidth="1.5"
+                      initial={{ scale: 0 }}
+                      animate={{
+                        scale: 1,
+                        x: [0, -0.5, 0.5, -0.3, 0.3, 0],
+                        y: [0, 0.3, -0.3, 0.2, -0.2, 0],
+                      }}
+                      transition={{
+                        scale: { delay: 0.4 + wi * 0.15, duration: 0.3 },
+                        x: { delay: 1 + wi * 0.2, duration: 0.4, repeat: Infinity, repeatDelay: 3 },
+                        y: { delay: 1 + wi * 0.2, duration: 0.4, repeat: Infinity, repeatDelay: 3 },
+                      }}
+                    />
+                    {/* Value label */}
+                    <motion.text
+                      x={cx} y={cy - 10}
+                      textAnchor="middle"
+                      fill={stat.color}
+                      fontSize="8"
+                      fontWeight="bold"
+                      fontFamily="monospace"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.8 + wi * 0.15 }}
+                    >
+                      {stat.withSystem[wi]}%
+                    </motion.text>
+                  </g>
+                );
+              })}
+            </svg>
           </div>
-        ))}
-      </motion.div>
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="bg-[#0a0a0a] border border-gray-800 rounded-2xl p-5 mb-4">
-        <h3 className="text-white font-bold text-[15px] mb-4">Build Strength</h3>
-        <svg viewBox="0 0 300 150" className="w-full">
-          <defs>
-            <linearGradient id="cyanGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#00d4ff" stopOpacity="0.3" />
-              <stop offset="100%" stopColor="#00d4ff" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          {[30, 60, 90, 120].map(y => <line key={y} x1="0" y1={y} x2="300" y2={y} stroke="rgba(255,255,255,0.04)" />)}
-          <motion.path d="M 0,130 Q 75,125 150,120 T 300,115" fill="none" stroke="#4b5563" strokeWidth="2" strokeDasharray="4 4" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.5, delay: 0.5 }} />
-          <motion.path d="M 0,130 Q 50,120 100,100 T 200,55 Q 250,35 300,20 L 300,150 L 0,150 Z" fill="url(#cyanGrad)" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8, duration: 1 }} />
-          <motion.path d="M 0,130 Q 50,120 100,100 T 200,55 Q 250,35 300,20" fill="none" stroke="#00d4ff" strokeWidth="2.5" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.5, delay: 0.5 }} />
-          <text x="150" y="145" textAnchor="middle" fill="#6b7280" fontSize="10" fontFamily="monospace">Week 5</text>
-        </svg>
-        <div className="flex justify-center gap-6 mt-3 text-[12px]">
-          <div className="flex items-center gap-1.5"><div className="w-3 h-[3px] rounded-full bg-[#00d4ff]" /><span className="text-gray-400">With System</span></div>
-          <div className="flex items-center gap-1.5"><div className="w-3 h-[3px] rounded-full bg-gray-600" /><span className="text-gray-500">Without</span></div>
+
+          {/* Legend */}
+          <div className="flex justify-center gap-6 mt-3 text-[12px]">
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-[3px] rounded-full" style={{ backgroundColor: stat.color }} />
+              <span className="text-gray-400">With System</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-[3px] rounded-full bg-gray-600" />
+              <span className="text-gray-500">Without</span>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Dynamic fact */}
+        <motion.p
+          key={stat.key + '_fact'}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.7 }}
+          className="text-center text-[13px] text-gray-400 mb-6"
+        >
+          <span style={{ color: stat.color }}>★</span> {stat.factPrefix} <span className="font-semibold" style={{ color: stat.color }}>{stat.fact}</span> in their routines.
+        </motion.p>
+        <div className="mt-auto">
+          <CTAButton text="Continue" onClick={onNext} />
         </div>
-      </motion.div>
-      <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }} className="text-center text-[13px] text-gray-400 mb-6">
-        <span className="text-[#00d4ff]">★</span> By Week 4, hunters report <span className="text-[#00d4ff] font-semibold">3x more consistency</span> in their routines.
-      </motion.p>
-      <div className="mt-auto">
-        <CTAButton text="Continue" onClick={onNext} />
       </div>
-    </div>
-  </motion.div>
-);
+    </motion.div>
+  );
+};
 
 /* ═══════════════════════════════════════════════════════ */
 /* SCREEN A5 — "Your Current Level"                      */
