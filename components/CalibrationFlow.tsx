@@ -1060,6 +1060,8 @@ const EmpathyInsightScreen: React.FC<{ goal: string; profile: Partial<HealthProf
         const interval = setInterval(() => {
             i++;
             setTypedText(fullText.slice(0, i));
+            // Subtle haptic tick every 3rd character
+            if (i % 3 === 0 && navigator.vibrate) navigator.vibrate(10);
             if (i >= fullText.length) {
                 clearInterval(interval);
                 setTimeout(() => setShowCards(true), 400);
