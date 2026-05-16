@@ -61,7 +61,7 @@ const CTAButton = ({ text, onClick, variant = 'primary' }: { text: string; onCli
 const ScreenGate = ({ onNext }: { onNext: () => void }) => (
   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 flex flex-col">
     <div className="absolute inset-0">
-      <img src="/onboarding/gate_hero.png" alt="" className="w-full h-full object-cover" />
+      <img src="/onboarding/gate_hero.webp" alt="" className="w-full h-full object-cover" />
       <motion.div className="absolute inset-0" animate={{ opacity: [0.3, 0.45, 0.3] }} transition={{ duration: 3, repeat: Infinity }} style={{ background: 'linear-gradient(to top, black 0%, rgba(0,0,0,0.7) 35%, rgba(0,0,0,0.2) 60%, rgba(0,0,0,0.4) 100%)' }} />
     </div>
     <Embers />
@@ -138,7 +138,7 @@ const ScreenScience = ({ onNext }: { onNext: () => void }) => (
 const ScreenSocialProof = ({ onNext }: { onNext: () => void }) => (
   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 flex flex-col">
     <div className="absolute inset-0">
-      <img src="/onboarding/cliff_warrior.png" alt="" className="w-full h-[45%] object-cover" />
+      <img src="/onboarding/cliff_warrior.webp" alt="" className="w-full h-[45%] object-cover" />
       <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, black 40%, rgba(0,0,0,0.8) 55%, rgba(0,0,0,0.3) 75%, rgba(0,0,0,0.5) 100%)' }} />
     </div>
     <div className="relative z-10 flex-1 flex flex-col justify-end px-6 pb-6 overflow-y-auto" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }}>
@@ -242,7 +242,7 @@ const statRows = [
 const ScreenCurrentLevel = ({ onNext }: { onNext: () => void }) => (
   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 flex flex-col bg-black">
     <div className="absolute right-0 top-0 bottom-0 w-[45%] overflow-hidden pointer-events-none">
-      <img src="/onboarding/shadow_warrior.png" alt="" className="h-full w-full object-cover object-left" style={{ opacity: 0.3, maskImage: 'linear-gradient(to right, transparent 0%, black 30%)', WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 30%)' }} />
+      <img src="/onboarding/shadow_warrior.webp" alt="" className="h-full w-full object-cover object-left" style={{ opacity: 0.3, maskImage: 'linear-gradient(to right, transparent 0%, black 30%)', WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 30%)' }} />
     </div>
     <div className="relative z-10 flex-1 flex flex-col px-6 overflow-y-auto" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 48px)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }}>
       <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}>
@@ -291,7 +291,7 @@ const checklistItems = ['Hunter Identity', 'Body Metrics', 'Primary Mission', 'E
 const ScreenReadyToBegin = ({ onNext }: { onNext: () => void }) => (
   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 flex flex-col">
     <div className="absolute inset-0">
-      <img src="/onboarding/crystal_reach.png" alt="" className="w-full h-[50%] object-cover" />
+      <img src="/onboarding/crystal_reach.webp" alt="" className="w-full h-[50%] object-cover" />
       <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, black 35%, rgba(0,0,0,0.7) 50%, rgba(0,0,0,0.2) 70%, rgba(0,0,0,0.5) 100%)' }} />
     </div>
     <div className="relative z-10 flex-1 flex flex-col justify-end px-6 pb-6" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }}>
