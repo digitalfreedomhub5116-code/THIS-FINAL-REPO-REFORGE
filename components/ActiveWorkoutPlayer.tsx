@@ -156,13 +156,13 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
   const exercise = plan.exercises[currentIdx] || plan.exercises[0];
   const totalExercises = plan.exercises.length;
 
-  // Auto-detect if current exercise should use Form Coach (PRO + rep-based + has config)
-  const { isPremium } = useSystem();
+  // Auto-detect if current exercise should use Form Coach (rep-based + has config)
+  // NOTE: Premium gate temporarily removed for testing — all users can use Form Coach
   const formCoachConfig = React.useMemo(() => {
-    if (!isPremium || !exercise) return null;
+    if (!exercise) return null;
     if (!isRepBasedExercise(exercise.reps, exercise.type)) return null;
     return findFormCoachExercise(exercise.name);
-  }, [isPremium, exercise?.name, exercise?.reps, exercise?.type]);
+  }, [exercise?.name, exercise?.reps, exercise?.type]);
   const isFormCoachActive = !!formCoachConfig && phase === 'WORK' && formCoachSubPhase === 'TRACKING';
   
   // Robust Video Lookup Strategy (checks EXERCISE_VIDEOS map → DB → exercise.videoUrl → focusVideos)
@@ -229,7 +229,7 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
         const first = plan.exercises[0];
         SpeechService.announceStart(first.name, first.sets, first.reps);
         // Auto-start preview for form coach exercises
-        if (isPremium && isRepBasedExercise(first.reps, first.type) && findFormCoachExercise(first.name)) {
+        if (isRepBasedExercise(first.reps, first.type) && findFormCoachExercise(first.name)) {
           setFormCoachSubPhase('PREVIEW');
         }
     }
@@ -261,7 +261,7 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
       setTimeLeft(duration);
 
       // Form Coach: trigger preview for first set of new exercise, skip preview for subsequent sets
-      const hasFormCoach = isPremium && isRepBasedExercise(currentEx.reps, currentEx.type) && !!findFormCoachExercise(currentEx.name);
+      const hasFormCoach = isRepBasedExercise(currentEx.reps, currentEx.type) && !!findFormCoachExercise(currentEx.name);
       if (hasFormCoach) {
         if (nextSet === 1) {
           setFormCoachSubPhase('PREVIEW'); // Full preview for first set
@@ -278,7 +278,7 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
       } else {
           SpeechService.announceSetStart(nextSet);
       }
-  }, [currentSet, currentIdx, plan.exercises, isPremium]);
+  }, [currentSet, currentIdx, plan.exercises]);
 
   const handleExerciseComplete = useCallback(() => {
     if (currentIdx < totalExercises - 1) {

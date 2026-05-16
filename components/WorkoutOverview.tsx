@@ -193,8 +193,8 @@ const ExerciseRow: React.FC<{ exercise: Exercise; calories: number; hasFormCoach
                     </span>
                 </div>
             </div>
-            {/* Auto Form Coach Badge (non-interactive — auto-enabled for PRO) */}
-            {hasFormCoach && isPremium && (
+            {/* Auto Form Coach Badge (non-interactive — auto-enabled for all users) */}
+            {hasFormCoach && (
                 <div className="flex items-center gap-1 px-2 py-1 rounded-md text-[9px] font-mono font-bold tracking-wider shrink-0 bg-orange-500/15 border border-orange-500/40 text-orange-400">
                     <Camera size={9} />
                     AI FORM
@@ -214,9 +214,8 @@ const WorkoutOverview: React.FC<WorkoutOverviewProps> = ({ plan, focusVideos, on
 
   // Count how many exercises will get auto Form Coach
   const formCoachCount = useMemo(() => {
-    if (!isPremium) return 0;
     return plan.exercises.filter(ex => willGetFormCoach(ex)).length;
-  }, [plan.exercises, isPremium]);
+  }, [plan.exercises]);
 
   // Form Coach history stats
   const formHistory = player.formCoachHistory || [];
@@ -296,8 +295,8 @@ const WorkoutOverview: React.FC<WorkoutOverviewProps> = ({ plan, focusVideos, on
                             </div>
                         </div>
 
-                        {/* Form Coach Stats Mini-Widget (PRO only, only if history exists) */}
-                        {isPremium && formHistoryStats && (
+                        {/* Form Coach Stats Mini-Widget (only if history exists) */}
+                        {formHistoryStats && (
                           <motion.div
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
