@@ -50,13 +50,16 @@ router.get('/:id/sync', async (req: Request, res: Response) => {
 
     const row = data as any;
 
-    // ── SERVER-SIDE STREAK COMPUTATION ──
+    // ── SERVER-SIDE STREAK COMPUTATION (24-HOUR WINDOW) ──
     // The server is the SINGLE SOURCE OF TRUTH for streak.
-    // On each sync, check if today's date differs from last_login_date.
-    // If the user logged in yesterday → increment streak.
-    // If the user missed >1 day → reset streak to 1.
-    // If same day → keep current streak.
+    // Uses `updated_at` as the "last active" timestamp (updated every sync).
+    // 24-HOUR RULE:
+    //   - If user returns within 24h of last activity → streak continues (+1)
+    //   - If user returns after >24h → streak BREAKS (reset to 0)
+    //   - Streak logic only runs ONCE per calendar day (first sync of the day)
+    //   - `updated_at` is refreshed on EVERY sync so it tracks last-active time
     const now = new Date();
+    const nowIso = now.toISOString();
     const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const lastLogin = row.last_login_date as string | null;
     let currentStreak = row.streak ?? 0;
@@ -65,49 +68,55 @@ router.get('/:id/sync', async (req: Request, res: Response) => {
     let streakBroke = false;
     let currentShields = row.streak_shields ?? 0;
 
+    // Always update updated_at on every sync so we accurately track "last active"
+    // This is the timestamp used for the 24h window calculation.
+    // Batched with streak update below if streak logic runs, otherwise standalone.
+    const lastActiveAt = row.updated_at ? new Date(row.updated_at) : null;
+    const hoursSinceLastActive = lastActiveAt
+      ? (now.getTime() - lastActiveAt.getTime()) / (1000 * 60 * 60)
+      : Infinity; // No previous activity = treat as first ever
+
     if (lastLogin !== todayStr) {
-      // First login of the day — compute new streak
-      let newStreak = 1;
-      const updateFields: Record<string, any> = { last_login_date: todayStr };
+      // First login of a NEW calendar day — compute streak
+      const updateFields: Record<string, any> = {
+        last_login_date: todayStr,
+        updated_at: nowIso, // Refresh last-active timestamp
+      };
 
-      if (lastLogin) {
-        const lastDate = new Date(lastLogin + 'T00:00:00');
-        const todayDate = new Date(todayStr + 'T00:00:00');
-        const diffMs = todayDate.getTime() - lastDate.getTime();
-        const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+      let newStreak: number;
 
-        if (diffDays === 1) {
-          // Logged in yesterday — continue streak
+      if (!lastLogin && !lastActiveAt) {
+        // Brand new user, first ever login
+        newStreak = 1;
+        console.log(`[Streak] ${id.slice(-8)}: First ever login → streak = 1`);
+      } else if (hoursSinceLastActive <= 24) {
+        // Within 24h window — streak continues!
+        newStreak = (currentStreak || 0) + 1;
+      } else {
+        // >24h since last active — streak breaks
+        if (currentShields > 0) {
+          // Shield absorbs the break! Keep streak, decrement shield
           newStreak = (currentStreak || 0) + 1;
-        } else if (diffDays === 0) {
-          // Same day edge case (timezone) — keep
-          newStreak = currentStreak || 1;
+          currentShields -= 1;
+          updateFields.streak_shields = currentShields;
+          streakShieldUsed = true;
+          console.log(`[Streak] ${id.slice(-8)}: Shield activated! ${hoursSinceLastActive.toFixed(1)}h gap absorbed. Shields remaining: ${currentShields}`);
         } else {
-          // Missed >1 day — check for streak shield
-          if (currentShields > 0) {
-            // Shield absorbs the break! Keep streak, decrement shield
-            newStreak = (currentStreak || 0) + 1;
-            currentShields -= 1;
-            updateFields.streak_shields = currentShields;
-            streakShieldUsed = true;
-            console.log(`[Streak] ${id.slice(-8)}: Shield activated! Shields remaining: ${currentShields}`);
-          } else {
-            // No shield — streak breaks
-            const previousStreak = currentStreak || 0;
-            newStreak = 1;
-            if (previousStreak > 1) {
-              updateFields.streak_before_break = previousStreak;
-              updateFields.streak_broken_at = new Date().toISOString();
-              streakBroke = true;
-              console.log(`[Streak] ${id.slice(-8)}: Streak BROKEN ${previousStreak} → 1`);
-            }
+          // No shield — streak BREAKS to 0
+          const previousStreak = currentStreak || 0;
+          newStreak = 0;
+          if (previousStreak > 0) {
+            updateFields.streak_before_break = previousStreak;
+            updateFields.streak_broken_at = nowIso;
+            streakBroke = true;
+            console.log(`[Streak] ${id.slice(-8)}: BROKEN! ${previousStreak} → 0 (${hoursSinceLastActive.toFixed(1)}h gap, no shield)`);
           }
         }
       }
 
       updateFields.streak = newStreak;
 
-      // Update streak + last_login_date atomically in Supabase
+      // Update streak + last_login_date + updated_at atomically
       const { error: updateErr } = await (supabaseServer() as any)
         .from('players')
         .update(updateFields)
@@ -116,8 +125,14 @@ router.get('/:id/sync', async (req: Request, res: Response) => {
       if (!updateErr) {
         currentStreak = newStreak;
         streakUpdated = true;
-        console.log(`[Streak] ${id.slice(-8)}: ${lastLogin || 'null'} → ${todayStr} | streak: ${row.streak} → ${newStreak}`);
+        console.log(`[Streak] ${id.slice(-8)}: ${lastLogin || 'null'} → ${todayStr} | streak: ${row.streak} → ${newStreak} | gap: ${hoursSinceLastActive === Infinity ? '∞' : hoursSinceLastActive.toFixed(1)}h`);
       }
+    } else {
+      // Same day — just refresh updated_at (keeps 24h window alive while app is open)
+      await (supabaseServer() as any)
+        .from('players')
+        .update({ updated_at: nowIso })
+        .eq('supabase_id', id);
     }
 
     // ── STREAK MILESTONE DETECTION ──

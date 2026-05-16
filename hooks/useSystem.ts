@@ -961,7 +961,8 @@ export const useSystem = () => {
     if (lastLogin === today) return null;
 
     // Use the authoritative streak from auto-streak tracker (single source of truth)
-    const currentStreak = player.streak || 1;
+    // streak=0 means broken — use index 0 for the reward (Day 1 reward tier)
+    const currentStreak = Math.max(1, player.streak || 0);
     const rewardIndex = (currentStreak - 1) % 7;
     return REWARD_SCHEDULE[rewardIndex];
   }, [player.lastLoginDate, player.streak]);
@@ -971,7 +972,8 @@ export const useSystem = () => {
     
     setPlayer(prev => {
       // Streak is already set by auto-streak tracker — use it directly (single source of truth)
-      const nextStreak = prev.streak || 1;
+      // If streak=0 (broken), treat as Day 1 for reward purposes
+      const nextStreak = Math.max(1, prev.streak || 0);
 
       let { currentXp, requiredXp, level, totalXp, dailyXp, gold, consumables } = prev;
       

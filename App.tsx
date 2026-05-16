@@ -2278,43 +2278,26 @@ const App: React.FC = () => {
 
   // Fires EXACTLY ONCE per calendar day per user on first login.
 
-  // Scoped by userId so switching accounts triggers it for the new account.
+  // Uses server's lastLoginDate (set by /sync) as the sole trigger source
+
+  // to avoid timezone mismatch between server (UTC) and client (local).
 
   useEffect(() => {
-
-    // Must be configured with a real user
 
     // Must be configured with a real user + wait for Supabase data
 
     if (!player.isConfigured || !player.userId || !dataReady) return;
 
-
-
-    // Compute today's local date string
-
-    const now = new Date();
-
-    const y = now.getFullYear();
-
-    const m = String(now.getMonth() + 1).padStart(2, '0');
-
-    const d = String(now.getDate()).padStart(2, '0');
-
-    const today = `${y}-${m}-${d}`;
-
-
-
-    // Only trigger when lastLoginDate is set to today (set by useSystem auto-streak)
-
-    if (player.lastLoginDate !== today) return;
-
-
+    // Use server's lastLoginDate (set by /sync endpoint in UTC)
+    // instead of computing local date — this eliminates timezone mismatch
+    const serverDate = player.lastLoginDate;
+    if (!serverDate) return;
 
     // Per-user + per-day guard (handles account switching + page reload)
 
-    const guardKey = `reforge_streak_shown_${player.userId}_${today}`;
+    const guardKey = `reforge_streak_shown_${player.userId}_${serverDate}`;
 
-    const sessionKey = `${player.userId}_${today}`;
+    const sessionKey = `${player.userId}_${serverDate}`;
 
     if (streakShownRef.current === sessionKey) return; // Already shown this session for this user+day
 
@@ -2330,15 +2313,16 @@ const App: React.FC = () => {
 
 
 
-    // Detect if streak was broken (reset to 1 from a higher value)
+    // Detect if streak was broken (reset to 0)
 
-    const isBroken = player.streak === 1 && oldStreakRef.current > 1;
+    const isBroken = player.streak === 0 || (player.streak === 1 && oldStreakRef.current > 1);
 
     const previousStreak = isBroken ? oldStreakRef.current : Math.max(0, player.streak - 1);
 
 
 
     // Compute weekly activity (Mon=0 ... Sun=6)
+    const now = new Date();
 
     const dow = now.getDay(); // 0=Sun, 1=Mon...
 
@@ -2356,7 +2340,7 @@ const App: React.FC = () => {
 
       const inHistory = (player.history || []).some(h => h.date === dateStr);
 
-      const isToday = dateStr === today;
+      const isToday = dateStr === serverDate;
 
       weekly.push(inHistory || isToday);
 

@@ -214,22 +214,21 @@ router.get('/', async (req: Request, res: Response) => {
         return res.status(500).json({ error: 'Internal server error' });
       }
 
-      // Compute effective streak: if last_login_date is >1 day ago, streak is broken
+      // Compute effective streak: if updated_at is >24h ago, streak is broken
       const now = new Date();
-      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-      const yesterdayDate = new Date(now);
-      yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-      const yesterdayStr = `${yesterdayDate.getFullYear()}-${String(yesterdayDate.getMonth() + 1).padStart(2, '0')}-${String(yesterdayDate.getDate()).padStart(2, '0')}`;
 
       const stalePlayerIds: string[] = [];
 
       const entries = (data || []).map((row: any) => {
-        const lastLogin = row.last_login_date as string | null;
-        const isActive = lastLogin === todayStr || lastLogin === yesterdayStr;
+        const lastActiveAt = row.updated_at ? new Date(row.updated_at) : null;
+        const hoursSinceActive = lastActiveAt
+          ? (now.getTime() - lastActiveAt.getTime()) / (1000 * 60 * 60)
+          : Infinity;
+        const isActive = hoursSinceActive <= 24;
         const effectiveStreak = isActive ? (row.streak || 0) : 0;
 
         // Track stale players for batch DB reset
-        if (!isActive && (row.streak || 0) > 1) {
+        if (!isActive && (row.streak || 0) > 0) {
           stalePlayerIds.push(row.id);
         }
 
@@ -256,11 +255,11 @@ router.get('/', async (req: Request, res: Response) => {
       if (stalePlayerIds.length > 0) {
         (supabaseServer() as any)
           .from('players')
-          .update({ streak: 1 })
+          .update({ streak: 0 })
           .in('id', stalePlayerIds)
           .then(({ error: resetErr }: any) => {
             if (resetErr) console.error('[Leaderboard] Failed to reset stale streaks:', resetErr);
-            else console.log(`[Leaderboard] Reset ${stalePlayerIds.length} stale streaks to 1`);
+            else console.log(`[Leaderboard] Reset ${stalePlayerIds.length} stale streaks to 0`);
           });
       }
 
@@ -282,9 +281,8 @@ router.get('/', async (req: Request, res: Response) => {
               .single();
 
             if (me) {
-              const myLastLogin = me.last_login_date as string | null;
-              const isActive = myLastLogin === todayStr || myLastLogin === yesterdayStr;
-              const myStreak = isActive ? (me.streak || 0) : 0;
+              // Use same 24h window logic as main leaderboard
+              const myStreak = me.streak || 0;
 
               if (myStreak > 0) {
                 const { count } = await (supabaseServer() as any)
