@@ -992,12 +992,35 @@ const INSIGHT_GRAPHS = [
   { key: 'social', Icon: Users, label: 'Social', color: '#facc15', withSystem: [12,18,26,35,45,56,65,75,82], without: [12,13,14,15,16,17,17,18,18] },
 ];
 
-const EmpathyInsightScreen: React.FC<{ goal: string; onComplete: () => void }> = ({ goal, onComplete }) => {
+const EmpathyInsightScreen: React.FC<{ goal: string; profile: Partial<HealthProfile>; onComplete: () => void }> = ({ goal, profile, onComplete }) => {
     const [typedText, setTypedText] = useState('');
     const [showCards, setShowCards] = useState(false);
+    const [showMetrics, setShowMetrics] = useState(false);
     const [showGraph, setShowGraph] = useState(false);
     const [showButton, setShowButton] = useState(false);
     const [activeGraph, setActiveGraph] = useState(0);
+
+    // Biometric calculations
+    const weight = profile.weight || 70;
+    const height = profile.height || 175;
+    const age = profile.age || 25;
+    const bmi = weight / ((height / 100) ** 2);
+    const bodyFat = (1.20 * bmi) + (0.23 * age) - (profile.gender === 'MALE' ? 16.2 : 5.4);
+    const diff = Math.abs((profile.targetWeight || weight) - weight);
+    let weeksLow = 6, weeksHigh = 9, timelineMsg = 'Body Recomposition Cycle';
+    if (goal === 'LOSE_WEIGHT' || (profile.targetWeight || 0) < weight) {
+        const raw = Math.ceil(diff / 0.75);
+        weeksLow = Math.max(3, Math.floor(raw / 3) * 3);
+        weeksHigh = weeksLow + 3;
+        timelineMsg = `Estimated range to reach ~${profile.targetWeight}kg`;
+    } else if (goal === 'BUILD_MUSCLE' || (profile.targetWeight || 0) > weight) {
+        const raw = Math.ceil(diff / 0.3);
+        weeksLow = Math.max(3, Math.floor(raw / 3) * 3);
+        weeksHigh = weeksLow + 3;
+        timelineMsg = `Estimated range to reach ~${profile.targetWeight}kg`;
+    }
+    const activityBonus: Record<string, number> = { 'SEDENTARY': 0, 'LIGHT': 10, 'MODERATE': 20, 'VERY_ACTIVE': 25 };
+    const potential = 70 + (activityBonus[profile.activityLevel || ''] || 10) + (age < 30 ? 5 : 0);
 
     const empathyTexts: Record<string, string> = {
         LOSE_WEIGHT: "You know what needs to change. The weight isn't just physical \u2014 it's the friction slowing down every part of your life. The System sees the gap between where you are and where you should be. That gap is not permanent.",
@@ -1040,8 +1063,9 @@ const EmpathyInsightScreen: React.FC<{ goal: string; onComplete: () => void }> =
             if (i >= fullText.length) {
                 clearInterval(interval);
                 setTimeout(() => setShowCards(true), 400);
-                setTimeout(() => setShowGraph(true), 1000);
-                setTimeout(() => setShowButton(true), 1600);
+                setTimeout(() => setShowMetrics(true), 900);
+                setTimeout(() => setShowGraph(true), 1400);
+                setTimeout(() => setShowButton(true), 2000);
             }
         }, 22);
         return () => clearInterval(interval);
@@ -1085,6 +1109,57 @@ const EmpathyInsightScreen: React.FC<{ goal: string; onComplete: () => void }> =
                                     </div>
                                 </motion.div>
                             ))}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                {/* Biometric Report Cards */}
+                <AnimatePresence>
+                    {showMetrics && (
+                        <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="mb-5">
+                            <div className="text-[#00d4ff] text-[10px] font-bold tracking-[0.25em] uppercase mb-3">SYSTEM REPORT</div>
+                            <div className="grid grid-cols-2 gap-3">
+                                {/* BMI */}
+                                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0 }}
+                                    className="bg-[#0f0f0f] border border-gray-800 rounded-xl p-3.5">
+                                    <div className="flex items-center gap-1.5 mb-1.5">
+                                        <div className="p-1 rounded bg-black border border-gray-700"><Activity size={12} className="text-green-500" /></div>
+                                        <span className="text-[9px] text-gray-500 uppercase tracking-widest font-bold">BMI</span>
+                                    </div>
+                                    <div className="text-xl font-black text-white font-mono">{bmi.toFixed(1)}</div>
+                                    <div className="text-[9px] text-gray-500 mt-0.5">{bmi < 18.5 ? 'Underweight' : bmi < 25 ? 'Normal Range' : 'Overweight'}</div>
+                                </motion.div>
+                                {/* Body Fat */}
+                                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }}
+                                    className="bg-[#0f0f0f] border border-gray-800 rounded-xl p-3.5">
+                                    <div className="flex items-center gap-1.5 mb-1.5">
+                                        <div className="p-1 rounded bg-black border border-gray-700"><TrendingUp size={12} className="text-blue-500" /></div>
+                                        <span className="text-[9px] text-gray-500 uppercase tracking-widest font-bold">Body Fat</span>
+                                    </div>
+                                    <div className="text-xl font-black text-white font-mono">{bodyFat.toFixed(1)}%</div>
+                                    <div className="text-[9px] text-gray-500 mt-0.5">Estimated</div>
+                                </motion.div>
+                                {/* Timeline */}
+                                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }}
+                                    className="bg-[#0f0f0f] border border-gray-800 rounded-xl p-3.5">
+                                    <div className="flex items-center gap-1.5 mb-1.5">
+                                        <div className="p-1 rounded bg-black border border-gray-700"><Clock size={12} className="text-yellow-500" /></div>
+                                        <span className="text-[9px] text-gray-500 uppercase tracking-widest font-bold">Timeline</span>
+                                    </div>
+                                    <div className="text-xl font-black text-white font-mono">{weeksLow}–{weeksHigh}w</div>
+                                    <div className="text-[9px] text-gray-500 mt-0.5 truncate">{timelineMsg}</div>
+                                </motion.div>
+                                {/* Growth Potential */}
+                                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }}
+                                    className="bg-[#0f0f0f] border border-gray-800 rounded-xl p-3.5">
+                                    <div className="flex items-center gap-1.5 mb-1.5">
+                                        <div className="p-1 rounded bg-black border border-gray-700"><Zap size={12} className="text-[#00d4ff]" /></div>
+                                        <span className="text-[9px] text-gray-500 uppercase tracking-widest font-bold">Potential</span>
+                                    </div>
+                                    <div className="text-xl font-black text-white font-mono">{potential}%</div>
+                                    <div className="text-[9px] text-gray-500 mt-0.5">Growth Sync</div>
+                                </motion.div>
+                            </div>
                         </motion.div>
                     )}
                 </AnimatePresence>
@@ -1313,7 +1388,7 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
   if (viewState === 'HOOK') return <OnboardingHook onComplete={() => setViewState('FORM')} />;
   if (viewState === 'VOW') return <HunterVowScreen onComplete={handleVowComplete} hunterName={hunterName.trim()} />;
   if (viewState === 'ASSESSMENT') return <AssessmentOverlay onComplete={handleAssessmentComplete} />;
-  if (viewState === 'EMPATHY') return <EmpathyInsightScreen goal={formData.goal || 'RECOMP'} onComplete={handleEmpathyComplete} />;
+  if (viewState === 'EMPATHY') return <EmpathyInsightScreen goal={formData.goal || 'RECOMP'} profile={formData} onComplete={handleEmpathyComplete} />;
   if (viewState === 'ARCHETYPE') return <ArchetypeScreen archetype={getArchetype()} onComplete={handleArchetypeComplete} />;
 
   return (
