@@ -930,12 +930,12 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
   const [isDungeonActive, setIsDungeonActive] = useState(false);
   const [dungeonPlan, setDungeonPlan] = useState<WorkoutDay | null>(null);
 
-  // Auto-initialize dungeon on mount
+  // Auto-initialize dungeon on mount (also patches existing goals if needed)
   useEffect(() => {
-    if (!dungeonState && playerData?.healthProfile && onInitializeDungeon) {
+    if (playerData?.healthProfile && onInitializeDungeon) {
       onInitializeDungeon();
     }
-  }, [dungeonState, playerData?.healthProfile, onInitializeDungeon]);
+  }, [playerData?.healthProfile, onInitializeDungeon]);
 
   const handleEnterDungeon = useCallback(() => {
     if (!dungeonState) return;
