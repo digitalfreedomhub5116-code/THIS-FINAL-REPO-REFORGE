@@ -2135,6 +2135,29 @@ export const useSystem = () => {
     });
 
     addNotification('⚔️ DUNGEON CLEARED — Sung Jin-woo Protocol Complete!', 'SUCCESS');
+
+    // Write session log so the workout map shows "Dungeon Cleared" for today
+    try {
+      const userId = player.userId || 'local';
+      const logKey = `reforge_session_logs_${userId}`;
+      const dayMapKey = `reforge_daymap_${userId}`;
+      const today = new Date().toISOString().split('T')[0];
+      const existing = JSON.parse(localStorage.getItem(logKey) || '{}');
+      const todayLogs = existing[today] || [];
+      todayLogs.push({
+        name: '⚔️ Daily Dungeon',
+        source: 'DEFAULT',
+        status: anomalyPoints >= 5 ? 'cheated' : 'completed',
+        timestamp: Date.now(),
+      });
+      existing[today] = todayLogs;
+      localStorage.setItem(logKey, JSON.stringify(existing));
+      // Also mark dayMap
+      const dayMapData = JSON.parse(localStorage.getItem(dayMapKey) || '{}');
+      dayMapData[today] = todayLogs.some((s: any) => s.status === 'completed') ? 'completed' : 'cheated';
+      localStorage.setItem(dayMapKey, JSON.stringify(dayMapData));
+    } catch {}
+
     return rewards;
   };
 
