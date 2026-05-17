@@ -2174,7 +2174,21 @@ const App: React.FC = () => {
       if (!res.ok) return;
       const data = await res.json();
       if (data.goals && Array.isArray(data.goals)) {
-        setPlayer(prev => ({ ...prev, goals: data.goals }));
+        setPlayer(prev => {
+          const dbGoals = data.goals as any[];
+          // Merge DB goals with system goal patches (coverImage, isSystemGoal, etc.)
+          const mergedGoals = dbGoals.map((g: any) => {
+            if (g.id === 'system-goal-daily-dungeon') {
+              return { ...g, coverImage: '/dungeon/running.webp', isSystemGoal: true, systemGoalType: 'DAILY_DUNGEON' };
+            }
+            return g;
+          });
+          // If dungeon goal doesn't exist in DB, preserve the local one
+          const hasDungeonGoal = mergedGoals.some((g: any) => g.id === 'system-goal-daily-dungeon');
+          const localDungeonGoal = (prev.goals || []).find((g: any) => g.id === 'system-goal-daily-dungeon');
+          const finalGoals = hasDungeonGoal ? mergedGoals : (localDungeonGoal ? [localDungeonGoal, ...mergedGoals] : mergedGoals);
+          return { ...prev, goals: finalGoals };
+        });
       }
     } catch (e) {
       console.warn('[Goals] Failed to fetch from DB:', e);
