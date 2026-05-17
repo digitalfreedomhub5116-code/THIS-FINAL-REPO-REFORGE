@@ -2042,16 +2042,16 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
 
                           {/* Running */}
                           <motion.div variants={setupItemVariants}>
-                              <p className="text-[10px] text-gray-500 uppercase font-bold mb-2 tracking-widest">Max Running (minutes, no break)</p>
+                              <p className="text-[10px] text-gray-500 uppercase font-bold mb-2 tracking-widest">Max Running Distance (no break)</p>
                               <div className="grid grid-cols-2 gap-2">
                                   {([
-                                      { label: '0 – 3 min', val: 3 },
-                                      { label: '5 – 10 min', val: 8 },
-                                      { label: '15 – 20 min', val: 18 },
-                                      { label: '30+ min', val: 30 },
+                                      { label: 'Under 1 km', val: 0.5 },
+                                      { label: '1 – 2 km', val: 1.5 },
+                                      { label: '3 – 5 km', val: 4 },
+                                      { label: '5+ km', val: 6 },
                                   ]).map(opt => (
-                                      <button key={opt.val} onClick={() => { triggerHaptic('BUTTON_TAP'); setFormData(fd => ({ ...fd, baselineRunMinutes: opt.val })); }}
-                                          className={`py-3 px-3 rounded-xl border text-center transition-all ${formData.baselineRunMinutes === opt.val ? 'bg-orange-500 text-black border-orange-500' : 'border-gray-800 text-gray-400 hover:border-gray-600'}`}>
+                                      <button key={opt.val} onClick={() => { triggerHaptic('BUTTON_TAP'); setFormData(fd => ({ ...fd, baselineRunKm: opt.val })); }}
+                                          className={`py-3 px-3 rounded-xl border text-center transition-all ${formData.baselineRunKm === opt.val ? 'bg-orange-500 text-black border-orange-500' : 'border-gray-800 text-gray-400 hover:border-gray-600'}`}>
                                           <div className="font-bold text-[11px]">{opt.label}</div>
                                       </button>
                                   ))}
@@ -2100,14 +2100,14 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                               <button 
                                   onClick={() => {
                                       // Check if all three selections are made (not default values)
-                                      if (baselines.pushups !== 0 && baselines.focusDuration !== 0 && baselines.sleepAvg !== 0 && formData.baselineSquats && formData.baselineRunMinutes) {
+                                      if (baselines.pushups !== 0 && baselines.focusDuration !== 0 && baselines.sleepAvg !== 0 && formData.baselineSquats && formData.baselineRunKm) {
                                           triggerHaptic('SUCCESS');
                                           handleFinish();
                                       }
                                   }}
-                                  disabled={baselines.pushups === 0 || baselines.focusDuration === 0 || baselines.sleepAvg === 0 || !formData.baselineSquats || !formData.baselineRunMinutes}
+                                  disabled={baselines.pushups === 0 || baselines.focusDuration === 0 || baselines.sleepAvg === 0 || !formData.baselineSquats || !formData.baselineRunKm}
                                   className={`px-10 py-3 rounded-full font-black text-xs transition-all uppercase flex items-center gap-2 ${
-                                      baselines.pushups === 0 || baselines.focusDuration === 0 || baselines.sleepAvg === 0 || !formData.baselineSquats || !formData.baselineRunMinutes
+                                      baselines.pushups === 0 || baselines.focusDuration === 0 || baselines.sleepAvg === 0 || !formData.baselineSquats || !formData.baselineRunKm
                                           ? 'bg-gray-800 text-gray-600 cursor-not-allowed'
                                           : 'bg-system-neon text-black shadow-[0_0_15px_#00d4ff] hover:bg-white'
                                   }`}

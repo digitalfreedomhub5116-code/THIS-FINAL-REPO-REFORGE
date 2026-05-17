@@ -462,7 +462,8 @@ export interface HealthProfile {
   // Sung Jin-woo Daily Dungeon baselines (from calibration)
   baselinePushups?: number;     // Max push-ups without stopping
   baselineSquats?: number;      // Max squats without stopping
-  baselineRunMinutes?: number;  // Max running minutes without stopping
+  baselineRunMinutes?: number;  // DEPRECATED — use baselineRunKm
+  baselineRunKm?: number;       // Max running distance (km) without stopping
 }
 
 export interface WorkoutExercise {
@@ -827,7 +828,8 @@ export interface DungeonExerciseTarget {
   exercise: 'PUSHUPS' | 'SQUATS' | 'RUNNING';
   sets: number;
   reps: number;           // For push-ups/squats
-  durationMinutes?: number; // For running
+  distanceKm?: number;    // For running (km)
+  durationMinutes?: number; // DEPRECATED — kept for backward compat
   formCoachEnabled: boolean;
 }
 
@@ -847,11 +849,12 @@ export interface DungeonState {
   // Baselines snapshot (from calibration, frozen at dungeon creation)
   baselinePushups: number;
   baselineSquats: number;
-  baselineRunMinutes: number;
+  baselineRunKm: number;         // Max running distance (km)
+  baselineRunMinutes?: number;   // DEPRECATED — kept for migration
 
   // Progression multiplier (starts at 0.7, increases by ~0.08 every 3 days)
   progressionMultiplier: number;
 
   // History of completed dungeons (last 30 days)
-  history: { date: string; completed: boolean; pushupsTarget: number; squatsTarget: number; runMinutes: number }[];
+  history: { date: string; completed: boolean; pushupsTarget: number; squatsTarget: number; runKm: number }[];
 }

@@ -8,7 +8,7 @@
  * - Increase by 8-10% every 3 days (progressive overload)
  * - Never exceed 2x starting point in first 30 days
  * - Reduce by 20% after a failure (deload)
- * - Running: follow the 10% rule for duration
+ * - Running: follow the 10% rule for distance
  */
 
 import { DungeonState, DungeonExerciseTarget, HealthProfile } from '../types';
@@ -36,7 +36,7 @@ function daysBetween(date1: string, date2: string): number {
 export function computeTargets(
   baselinePushups: number,
   baselineSquats: number,
-  baselineRunMinutes: number,
+  baselineRunKm: number,
   multiplier: number,
   formCoachPushups: boolean = false,
   formCoachSquats: boolean = false,
@@ -58,7 +58,7 @@ export function computeTargets(
       exercise: 'RUNNING',
       sets: 1,
       reps: 0,
-      durationMinutes: Math.max(1, Math.round(baselineRunMinutes * multiplier)),
+      distanceKm: Math.max(0.3, Math.round(baselineRunKm * multiplier * 10) / 10),
       formCoachEnabled: false, // Running doesn't use form coach
     },
   ];
@@ -68,7 +68,8 @@ export function computeTargets(
 export function createInitialDungeonState(profile: HealthProfile): DungeonState {
   const pushups = profile.baselinePushups || 15;
   const squats = profile.baselineSquats || 20;
-  const runMin = profile.baselineRunMinutes || 5;
+  // Migration: if baselineRunKm exists use it, else convert old minutes → km (approx 10min/km pace)
+  const runKm = profile.baselineRunKm || (profile.baselineRunMinutes ? profile.baselineRunMinutes / 6 : 1.5);
 
   return {
     currentDay: 1,
@@ -78,10 +79,10 @@ export function createInitialDungeonState(profile: HealthProfile): DungeonState 
     consecutiveCompletions: 0,
     totalCompletions: 0,
     totalFailures: 0,
-    targets: computeTargets(pushups, squats, runMin, STARTING_MULTIPLIER),
+    targets: computeTargets(pushups, squats, runKm, STARTING_MULTIPLIER),
     baselinePushups: pushups,
     baselineSquats: squats,
-    baselineRunMinutes: runMin,
+    baselineRunKm: runKm,
     progressionMultiplier: STARTING_MULTIPLIER,
     history: [],
   };
@@ -120,7 +121,7 @@ export function getDungeonTargetsForToday(state: DungeonState): {
       targets: computeTargets(
         state.baselinePushups,
         state.baselineSquats,
-        state.baselineRunMinutes,
+        state.baselineRunKm,
         newMultiplier,
         currentFCPushups,
         currentFCSquats
@@ -156,7 +157,7 @@ export function recordDungeonCompletion(state: DungeonState): DungeonState {
         completed: true,
         pushupsTarget: pushTarget?.reps || 0,
         squatsTarget: squatTarget?.reps || 0,
-        runMinutes: runTarget?.durationMinutes || 0,
+        runKm: runTarget?.distanceKm || 0,
       },
     ],
   };
@@ -184,7 +185,7 @@ export function recordDungeonFailure(state: DungeonState): DungeonState {
     targets: computeTargets(
       state.baselinePushups,
       state.baselineSquats,
-      state.baselineRunMinutes,
+      state.baselineRunKm,
       deloadedMultiplier,
       currentFCPushups,
       currentFCSquats
@@ -196,7 +197,7 @@ export function recordDungeonFailure(state: DungeonState): DungeonState {
         completed: false,
         pushupsTarget: state.targets.find(t => t.exercise === 'PUSHUPS')?.reps || 0,
         squatsTarget: state.targets.find(t => t.exercise === 'SQUATS')?.reps || 0,
-        runMinutes: state.targets.find(t => t.exercise === 'RUNNING')?.durationMinutes || 0,
+        runKm: state.targets.find(t => t.exercise === 'RUNNING')?.distanceKm || 0,
       },
     ],
   };
@@ -226,12 +227,13 @@ export function buildDungeonWorkoutPlan(targets: DungeonExerciseTarget[]): Worko
       return {
         name: 'Running',
         sets: 1,
-        reps: `${t.durationMinutes || 5} min`,
-        duration: (t.durationMinutes || 5) * 60,
+        reps: `${t.distanceKm || 1} km`,
+        duration: (t.distanceKm || 1) * 6 * 60, // Estimate ~6 min/km pace for timer fallback
         completed: false,
         type: 'CARDIO' as const,
-        notes: 'Sung Jin-woo Protocol — Run at a comfortable pace',
+        notes: `Sung Jin-woo Protocol — ${t.distanceKm || 1} km run`,
         formCoachEnabled: false,
+        sensorRequirements: { distanceKm: t.distanceKm || 1 },
       };
     }
 

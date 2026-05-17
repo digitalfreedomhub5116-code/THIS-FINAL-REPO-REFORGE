@@ -3,11 +3,12 @@
  * RPG-styled quest cards for the Sung Jin-woo Daily Dungeon.
  * Each exercise gets its own visual card with background art.
  * Clean design — cyan/gray palette, no green, no emojis.
+ * Running displayed in KM with GPS sensor indicator.
  */
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Swords, Check, ChevronRight, Shield } from 'lucide-react';
+import { Swords, Check, ChevronRight, Shield, MapPin } from 'lucide-react';
 import { DungeonState, DungeonExerciseTarget } from '../types';
 import { getProgressionTier, isDungeonCompletedToday } from '../lib/dungeonEngine';
 
@@ -96,7 +97,7 @@ const ExerciseCard: React.FC<{
 
   const isRunning = target.exercise === 'RUNNING';
   const targetText = isRunning
-    ? `${target.durationMinutes} min`
+    ? `${target.distanceKm || 1} km`
     : `${target.reps} reps × ${target.sets} sets`;
 
   const diffLevel = Math.min(5, Math.ceil(dungeonState.progressionMultiplier * 3.5));
@@ -108,7 +109,7 @@ const ExerciseCard: React.FC<{
       transition={{ delay: index * 0.06 }}
       className="relative rounded-2xl overflow-hidden"
       style={{
-        minHeight: 180,
+        minHeight: 170,
         border: isCompleted
           ? '1px solid rgba(0,212,255,0.12)'
           : '1px solid rgba(255,255,255,0.06)',
@@ -136,7 +137,7 @@ const ExerciseCard: React.FC<{
         <div className="absolute inset-0 z-[1] pointer-events-none" style={{ background: 'rgba(0,212,255,0.02)' }} />
       )}
 
-      <div className="relative z-10 p-5 flex flex-col justify-between" style={{ minHeight: 180 }}>
+      <div className="relative z-10 p-5 flex flex-col justify-between" style={{ minHeight: 170 }}>
         {/* Top: Title + cleared badge */}
         <div>
           <div className="flex items-center gap-2.5 mb-1">
@@ -151,27 +152,30 @@ const ExerciseCard: React.FC<{
           <p className="text-[11px] text-gray-500 leading-snug">{meta.subtitle}</p>
         </div>
 
-        {/* Middle: Target value + AI coach toggle */}
+        {/* Middle: Target value + AI coach toggle / GPS indicator */}
         <div className="flex items-center justify-between mt-4 mb-4">
-          <span className="text-base font-black font-mono tracking-wide text-[#00d4ff]">
-            {targetText}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-base font-black font-mono tracking-wide text-[#00d4ff]">
+              {targetText}
+            </span>
+            {/* GPS indicator for running */}
+            {isRunning && (
+              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md" style={{ background: 'rgba(0,212,255,0.06)', border: '1px solid rgba(0,212,255,0.1)' }}>
+                <MapPin size={8} className="text-[#00d4ff]" />
+                <span className="text-[7px] font-mono font-bold text-[#00d4ff]/70 tracking-wider">GPS</span>
+              </div>
+            )}
+          </div>
 
           {!isRunning && onToggleCoach && (
             <AICoachToggle enabled={target.formCoachEnabled} onToggle={onToggleCoach} />
           )}
         </div>
 
-        {/* Bottom: Repeat + Difficulty */}
-        <div className="flex items-center gap-5 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-          <div className="flex items-center gap-2">
-            <span className="text-[9px] text-gray-600 font-mono uppercase tracking-wider">Repeat</span>
-            <span className="text-[10px] font-bold text-gray-300">Everyday</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-[9px] text-gray-600 font-mono uppercase tracking-wider">Difficulty</span>
-            <DifficultyDots level={diffLevel} />
-          </div>
+        {/* Bottom: Difficulty only */}
+        <div className="flex items-center gap-2 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+          <span className="text-[9px] text-gray-600 font-mono uppercase tracking-wider">Difficulty</span>
+          <DifficultyDots level={diffLevel} />
         </div>
       </div>
     </motion.div>

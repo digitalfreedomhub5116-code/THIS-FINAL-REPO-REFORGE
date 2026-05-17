@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Pause, X, AlertOctagon, Check, Activity, Film, Timer as TimerIcon, ChevronRight, Zap, Clock, Dumbbell, Camera } from 'lucide-react';
+import { Play, Pause, X, AlertOctagon, Check, Activity, Film, Timer as TimerIcon, ChevronRight, Zap, Clock, Dumbbell, Camera, MapPin, Navigation } from 'lucide-react';
 import { EXERCISE_VIDEOS, getExerciseVideoUrl, fixVideoPath } from '../lib/exerciseVideos';
 import { WorkoutDay, FormCoachSession } from '../types';
 import { SpeechService } from '../utils/speechService';
@@ -12,6 +12,7 @@ import { findFormCoachExercise } from '../lib/formCoachConfig';
 import type { FormCoachState } from '../utils/poseEngine';
 import FormCoachOverlay from './FormCoachOverlay';
 import FormCoachSummary from './FormCoachSummary';
+import { useSensors } from '../hooks/useSensors';
 
 /** Check if an exercise is rep-based (not time-based like "5 min" or "30s") */
 const isRepBasedExercise = (reps: string, type: string): boolean => {
@@ -112,6 +113,12 @@ const getExerciseDuration = (reps: string): number => {
      if (match) return parseInt(match[1], 10);
   }
   
+  // KM (e.g., "1.5 km", "2 km")
+  if (lower.includes('km')) {
+    const match = lower.match(/([\d.]+)\s*km/);
+    if (match) return Math.ceil(parseFloat(match[1]) * 6) * 60; // ~6 min/km pace estimate
+  }
+  
   return 60; // fallback default
 };
 
@@ -162,6 +169,50 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
   // Derived Data
   const exercise = plan.exercises[currentIdx] || plan.exercises[0];
   const totalExercises = plan.exercises.length;
+
+  // ── GPS SENSOR for Running Exercises ──
+  const sensorReqs = (exercise as any)?.sensorRequirements as { distanceKm?: number } | undefined;
+  const isRunningExercise = !!sensorReqs?.distanceKm;
+  const { startTracking, stopTracking, finalizeTracking, snapshot: sensorSnapshot, tracking: sensorTracking, requestPermissions } = useSensors(player.userId || 'local');
+  const sensorStartedRef = useRef(false);
+
+  // Auto-start GPS when a running exercise becomes active
+  useEffect(() => {
+    if (isRunningExercise && phase === 'WORK' && !sensorStartedRef.current) {
+      sensorStartedRef.current = true;
+      (async () => {
+        await requestPermissions();
+        await startTracking('dungeon-run', { distanceKm: sensorReqs!.distanceKm });
+      })();
+    }
+    // Reset flag when moving away from running exercise
+    if (!isRunningExercise) {
+      sensorStartedRef.current = false;
+    }
+  }, [isRunningExercise, phase, currentIdx]);
+
+  // Auto-complete running exercise when distance target is met
+  const runAutoCompleteRef = useRef(false);
+  useEffect(() => {
+    if (!isRunningExercise || !sensorSnapshot || runAutoCompleteRef.current) return;
+    const targetKm = sensorReqs?.distanceKm || 1;
+    if (sensorSnapshot.distanceRecorded >= targetKm) {
+      runAutoCompleteRef.current = true;
+      stopTracking().then(() => {
+        finalizeTracking('dungeon-run');
+        completeSet();
+      });
+    }
+  }, [sensorSnapshot?.distanceRecorded, isRunningExercise]);
+
+  // Cleanup sensors on unmount
+  useEffect(() => {
+    return () => {
+      if (sensorStartedRef.current) {
+        stopTracking().then(() => finalizeTracking('dungeon-run'));
+      }
+    };
+  }, []);
 
   // Auto-detect if current exercise should use Form Coach (rep-based + has config)
   // NOTE: Premium gate temporarily removed for testing — all users can use Form Coach
@@ -859,34 +910,108 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
                 {/* ═══════════════════════════════════════════════════════════ */}
 
                 {/* Exercise Info */}
-                <div className="flex justify-between items-start">
-                    <div className="flex-1 min-w-0 pr-4">
+                {isRunningExercise && phase === 'WORK' ? (
+                    /* ═══════════════════════════════════════════════════════════ */
+                    /* RUNNING MODE: Live GPS distance tracker                    */
+                    /* ═══════════════════════════════════════════════════════════ */
+                    <div className="space-y-4">
                         <motion.h2
                             key={exercise.name}
                             initial={{ opacity: 0, x: -10 }}
                             animate={{ opacity: 1, x: 0 }}
-                            className="text-xl md:text-3xl font-black italic text-white leading-tight uppercase tracking-tight truncate"
+                            className="text-xl md:text-3xl font-black italic text-white leading-tight uppercase tracking-tight"
                         >
                             {exercise.name}
                         </motion.h2>
-                        <div className="flex items-center gap-3 mt-2 text-xs font-mono text-gray-400">
-                            <span className="bg-gray-900 px-2 py-1 rounded border border-gray-800 text-gray-300">
-                                {exercise.sets} SETS
-                            </span>
-                            <span className="bg-gray-900 px-2 py-1 rounded border border-gray-800 text-system-neon font-bold">
-                                {exercise.reps} REPS
-                            </span>
+
+                        {/* Distance progress */}
+                        <div className="bg-gray-900/60 border border-gray-800 rounded-2xl p-4 space-y-3">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <Navigation size={14} className="text-[#00d4ff]" />
+                                    <span className="text-[9px] font-mono text-gray-500 uppercase tracking-wider">Distance</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                    <MapPin size={10} className={sensorTracking ? 'text-[#00d4ff] animate-pulse' : 'text-gray-600'} />
+                                    <span className="text-[8px] font-mono" style={{ color: sensorTracking ? '#00d4ff' : '#555' }}>
+                                        {sensorTracking ? 'GPS Active' : 'GPS Off'}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Big distance number */}
+                            <div className="text-center">
+                                <span className="text-5xl font-black font-mono text-white tabular-nums">
+                                    {(sensorSnapshot?.distanceRecorded || 0).toFixed(2)}
+                                </span>
+                                <span className="text-lg text-gray-400 ml-1">/ {sensorReqs?.distanceKm || 1} km</span>
+                            </div>
+
+                            {/* Progress bar */}
+                            <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
+                                <motion.div
+                                    className="h-full rounded-full"
+                                    style={{ background: 'linear-gradient(90deg, #00d4ff, #0099cc)' }}
+                                    initial={{ width: '0%' }}
+                                    animate={{
+                                        width: `${Math.min(100, ((sensorSnapshot?.distanceRecorded || 0) / (sensorReqs?.distanceKm || 1)) * 100)}%`
+                                    }}
+                                    transition={{ duration: 0.5 }}
+                                />
+                            </div>
+
+                            {/* Live stats row */}
+                            <div className="grid grid-cols-3 gap-2">
+                                <div className="text-center">
+                                    <div className="text-lg font-black font-mono text-white">{sensorSnapshot?.stepsRecorded || 0}</div>
+                                    <div className="text-[8px] font-mono text-gray-500 uppercase tracking-wider">Steps</div>
+                                </div>
+                                <div className="text-center">
+                                    <div className="text-lg font-black font-mono text-white">
+                                        {sensorSnapshot?.maxSpeedKmh ? `${sensorSnapshot.maxSpeedKmh.toFixed(1)}` : '0.0'}
+                                    </div>
+                                    <div className="text-[8px] font-mono text-gray-500 uppercase tracking-wider">km/h max</div>
+                                </div>
+                                <div className="text-center">
+                                    <div className="text-lg font-black font-mono text-white">
+                                        {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}
+                                    </div>
+                                    <div className="text-[8px] font-mono text-gray-500 uppercase tracking-wider">Timer</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-
-                    {/* Mini Timer */}
-                    {phase === 'WORK' && (
-                        <div className="flex flex-col items-center justify-center bg-gray-900/50 border border-gray-800 rounded-lg p-2 min-w-[70px]">
-                            <TimerIcon size={14} className="text-system-neon mb-1" />
-                            <span className="text-xl font-bold font-mono text-white leading-none">{Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}</span>
+                ) : (
+                    /* Standard Exercise Info */
+                    <div className="flex justify-between items-start">
+                        <div className="flex-1 min-w-0 pr-4">
+                            <motion.h2
+                                key={exercise.name}
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                className="text-xl md:text-3xl font-black italic text-white leading-tight uppercase tracking-tight truncate"
+                            >
+                                {exercise.name}
+                            </motion.h2>
+                            <div className="flex items-center gap-3 mt-2 text-xs font-mono text-gray-400">
+                                <span className="bg-gray-900 px-2 py-1 rounded border border-gray-800 text-gray-300">
+                                    {exercise.sets} SETS
+                                </span>
+                                <span className="bg-gray-900 px-2 py-1 rounded border border-gray-800 text-system-neon font-bold">
+                                    {exercise.reps} REPS
+                                </span>
+                            </div>
                         </div>
-                    )}
-                </div>
+
+                        {/* Mini Timer */}
+                        {phase === 'WORK' && (
+                            <div className="flex flex-col items-center justify-center bg-gray-900/50 border border-gray-800 rounded-lg p-2 min-w-[70px]">
+                                <TimerIcon size={14} className="text-system-neon mb-1" />
+                                <span className="text-xl font-bold font-mono text-white leading-none">{Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}</span>
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {/* Set Indicators */}
                 <div className="flex gap-1.5 h-1.5 w-full">
