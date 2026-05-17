@@ -14,6 +14,7 @@ import { fixVideoPath } from '../lib/exerciseVideos';
 import { OUTFITS, getOutfitXpBoost, getStoneConfig, getUnlockedBadgeCount, BADGE_TIERS } from '../utils/gameData';
 import { scheduleQuestDeadline, cancelDailyReminders } from './useLocalNotifications';
 import { safeLevelUp, computeRank } from '../lib/levelSystem';
+import { createInitialDungeonState, recordDungeonCompletion, getDungeonTargetsForToday, recordDungeonFailure } from '../lib/dungeonEngine';
 export { safeLevelUp, computeRank };
 
 export const isEmbed = (url: string) => {
@@ -2059,7 +2060,6 @@ export const useSystem = () => {
       if (prev.dungeonState) return prev; // Already initialized
       const profile = prev.healthProfile;
       if (!profile) return prev;
-      const { createInitialDungeonState } = require('../lib/dungeonEngine');
       const dungeonState = createInitialDungeonState(profile);
 
       // Also inject the System Goal if not already present
@@ -2123,7 +2123,6 @@ export const useSystem = () => {
     // Then: update dungeon state (record completion)
     setPlayer(prev => {
       if (!prev.dungeonState) return prev;
-      const { recordDungeonCompletion, getDungeonTargetsForToday } = require('../lib/dungeonEngine');
       let newState = recordDungeonCompletion(prev.dungeonState);
       // Check for progression
       const { updatedState, progressionTriggered } = getDungeonTargetsForToday(newState);
@@ -2142,7 +2141,6 @@ export const useSystem = () => {
   const failDungeonWorkout = () => {
     setPlayer(prev => {
       if (!prev.dungeonState) return prev;
-      const { recordDungeonFailure } = require('../lib/dungeonEngine');
       const newState = recordDungeonFailure(prev.dungeonState);
       const newLogs = [createLog('❌ Daily Dungeon failed — difficulty reduced for next attempt', 'WARNING'), ...prev.logs];
       return { ...prev, dungeonState: newState, logs: newLogs };
