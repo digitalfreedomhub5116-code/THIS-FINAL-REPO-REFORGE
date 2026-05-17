@@ -2057,51 +2057,73 @@ export const useSystem = () => {
 
   const initializeDungeon = () => {
     setPlayer(prev => {
-      if (prev.dungeonState) return prev; // Already initialized
       const profile = prev.healthProfile;
       if (!profile) return prev;
-      const dungeonState = createInitialDungeonState(profile);
 
-      // Also inject the System Goal if not already present
+      // Patch existing dungeon goal to add coverImage if missing
       const existingGoals = prev.goals || [];
-      const hasDungeonGoal = existingGoals.some(g => g.id === DUNGEON_GOAL_ID);
-      const dungeonGoal: Goal = {
-        id: DUNGEON_GOAL_ID,
-        title: 'Sung Jin-woo Protocol',
-        category: 'FITNESS' as any,
-        goalRank: 'S' as any,
-        successProbability: 100,
-        status: 'ACTIVE',
-        milestones: [
-          { phase: 1, title: 'First Dungeon Clear', description: 'Complete your first 3 Daily Dungeons to establish the habit.', startDay: 1, endDay: 3, targetOutcome: 'Complete your first 3 Daily Dungeons', sampleDailyPattern: ['Push-ups', 'Squats', 'Running'], connectionToNext: 'Build the habit before increasing intensity' },
-          { phase: 2, title: 'SOLDIER Rank', description: 'Progressive overload activates. Targets increase every 3 days.', startDay: 4, endDay: 12, targetOutcome: 'Reach SOLDIER progression tier', sampleDailyPattern: ['Progressive overload active', 'Targets increase every 3 days'], connectionToNext: 'Prepare for warrior-level intensity' },
-          { phase: 3, title: 'WARRIOR Rank', description: 'High-volume training. You are becoming unstoppable.', startDay: 13, endDay: 30, targetOutcome: 'Reach WARRIOR progression tier', sampleDailyPattern: ['High-volume training', 'Consistency is key'], connectionToNext: 'Continue your path to Shadow Monarch' },
-        ],
-        currentMilestone: 0,
-        interviewQA: [],
-        dailyCommitmentMin: 15,
-        totalDurationDays: 365,
-        smartDurationReasoning: 'The Sung Jin-woo Protocol is a permanent daily training regimen. Push-ups, Squats, and Running — every day.',
-        weeklyRestDay: 'NONE',
-        riskFactors: [],
-        reasoning: 'System-assigned mandatory daily training. This goal cannot be deleted or modified.',
-        startDate: Date.now(),
-        targetDate: Date.now() + 365 * 86400000,
-        streak: 0,
-        dailyTasks: [],
-        createdAt: Date.now(),
-        isSystemGoal: true,
-        systemGoalType: 'DAILY_DUNGEON',
-        coverImage: '/dungeon/running.webp',
-      };
+      const existingDungeonGoal = existingGoals.find(g => g.id === DUNGEON_GOAL_ID);
+      
+      if (prev.dungeonState) {
+        // Already initialized — but patch the goal if coverImage is missing
+        if (existingDungeonGoal && !existingDungeonGoal.coverImage) {
+          return {
+            ...prev,
+            goals: existingGoals.map(g => g.id === DUNGEON_GOAL_ID
+              ? { ...g, coverImage: '/dungeon/running.webp', isSystemGoal: true, systemGoalType: 'DAILY_DUNGEON' as const }
+              : g
+            ),
+          };
+        }
+        // Also inject goal if it somehow doesn't exist
+        if (!existingDungeonGoal) {
+          const dungeonGoal = createDungeonGoal();
+          return { ...prev, goals: [dungeonGoal, ...existingGoals] };
+        }
+        return prev;
+      }
+
+      const dungeonState = createInitialDungeonState(profile);
+      const dungeonGoal = createDungeonGoal();
 
       return {
         ...prev,
         dungeonState,
-        goals: hasDungeonGoal ? existingGoals : [dungeonGoal, ...existingGoals],
+        goals: existingDungeonGoal ? existingGoals.map(g => g.id === DUNGEON_GOAL_ID ? dungeonGoal : g) : [dungeonGoal, ...existingGoals],
       };
     });
   };
+
+  // Helper to create the dungeon goal template
+  const createDungeonGoal = (): Goal => ({
+    id: DUNGEON_GOAL_ID,
+    title: 'Sung Jin-woo Protocol',
+    category: 'FITNESS' as any,
+    goalRank: 'S' as any,
+    successProbability: 100,
+    status: 'ACTIVE',
+    milestones: [
+      { phase: 1, title: 'First Dungeon Clear', description: 'Complete your first 3 Daily Dungeons to establish the habit.', startDay: 1, endDay: 3, targetOutcome: 'Complete your first 3 Daily Dungeons', sampleDailyPattern: ['Push-ups', 'Squats', 'Running'], connectionToNext: 'Build the habit before increasing intensity' },
+      { phase: 2, title: 'SOLDIER Rank', description: 'Progressive overload activates. Targets increase every 3 days.', startDay: 4, endDay: 12, targetOutcome: 'Reach SOLDIER progression tier', sampleDailyPattern: ['Progressive overload active', 'Targets increase every 3 days'], connectionToNext: 'Prepare for warrior-level intensity' },
+      { phase: 3, title: 'WARRIOR Rank', description: 'High-volume training. You are becoming unstoppable.', startDay: 13, endDay: 30, targetOutcome: 'Reach WARRIOR progression tier', sampleDailyPattern: ['High-volume training', 'Consistency is key'], connectionToNext: 'Continue your path to Shadow Monarch' },
+    ],
+    currentMilestone: 0,
+    interviewQA: [],
+    dailyCommitmentMin: 15,
+    totalDurationDays: 365,
+    smartDurationReasoning: 'The Sung Jin-woo Protocol is a permanent daily training regimen. Push-ups, Squats, and Running — every day.',
+    weeklyRestDay: 'NONE',
+    riskFactors: [],
+    reasoning: 'System-assigned mandatory daily training. This goal cannot be deleted or modified.',
+    startDate: Date.now(),
+    targetDate: Date.now() + 365 * 86400000,
+    streak: 0,
+    dailyTasks: [],
+    createdAt: Date.now(),
+    isSystemGoal: true,
+    systemGoalType: 'DAILY_DUNGEON',
+    coverImage: '/dungeon/running.webp',
+  });
 
   const updateDungeonState = (updater: (prev: any) => any) => {
     setPlayer(prev => {

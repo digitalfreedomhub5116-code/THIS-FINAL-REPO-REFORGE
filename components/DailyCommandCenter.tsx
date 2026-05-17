@@ -1309,6 +1309,17 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
       </div>
 
 
+      {/* ── PINNED SYSTEM GOAL (Sung Jin-woo Protocol) ── */}
+      {(() => {
+        const dungeonGoal = (goals || []).find(g => g.isSystemGoal && g.systemGoalType === 'DAILY_DUNGEON');
+        if (!dungeonGoal) return null;
+        return (
+          <div className="mb-3">
+            <GoalCard goal={dungeonGoal} onTap={(g) => setSelectedGoal(g)} />
+          </div>
+        );
+      })()}
+
       {/* ── DAILY DUNGEON (Sung Jin-woo Protocol) ── */}
       {dungeonState && (
         <div className="mb-4">
