@@ -313,10 +313,36 @@ const GoalHeroSection: React.FC<GoalHeroSectionProps> = ({ goals, onCreateGoal, 
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
   const [showGoalInfo, setShowGoalInfo] = useState(false);
 
-  // ── FREE USER: Premium Upsell Screen ──
+  // ── FREE USER: Show system goals + Pro upsell below ──
   if (!isPremium) {
+    const systemGoals = activeGoals.filter(g => g.isSystemGoal);
+
     return (
       <div className="space-y-3">
+
+        {/* Show system goals (Daily Dungeon) for free users */}
+        {systemGoals.length > 0 && (
+          <div>
+            <div className="flex items-center gap-1.5 mb-3 px-1">
+              <Pin size={10} className="text-[#00d4ff]" style={{ transform: 'rotate(45deg)' }} />
+              <span className="text-[9px] font-mono font-bold tracking-[0.2em] text-gray-500 uppercase">
+                Active Goals
+              </span>
+              <span className="text-[8px] font-mono text-[#00d4ff]/60 ml-auto">
+                {systemGoals.length} pinned
+              </span>
+            </div>
+            <div className="grid grid-cols-1 gap-3 px-1 pt-3">
+              {systemGoals.map((goal, i) => (
+                <PinnedGoalCard key={goal.id} goal={goal} index={i}
+                  onClick={() => setSelectedGoal(goal)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Pro upsell — compact version for creating more goals */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -328,7 +354,7 @@ const GoalHeroSection: React.FC<GoalHeroSectionProps> = ({ goals, onCreateGoal, 
           }}
         >
           {/* Background image */}
-          <div className="relative w-full" style={{ height: 320 }}>
+          <div className="relative w-full" style={{ height: 200 }}>
             <GoalHeroImg />
             <div className="absolute inset-0" style={{
               background: 'linear-gradient(180deg, rgba(10,10,20,0.15) 0%, rgba(10,10,20,0.5) 30%, rgba(10,10,20,0.85) 55%, #0a0a14 78%)',
@@ -346,33 +372,18 @@ const GoalHeroSection: React.FC<GoalHeroSectionProps> = ({ goals, onCreateGoal, 
               </span>
             </div>
 
-            <h2 className="text-[26px] font-black text-white leading-none mb-1.5"
+            <h2 className="text-xl font-black text-white leading-none mb-1.5"
               style={{ textShadow: '0 4px 20px rgba(0,0,0,0.8)' }}>
-              AI Autopilot
+              Create Custom Goals
             </h2>
-            <p className="text-[11px] text-gray-400 leading-relaxed mb-4 max-w-[280px]">
-              Set your goals. The AI generates daily quests, tracks milestones, and keeps you on track — automatically.
+            <p className="text-[10px] text-gray-400 leading-relaxed mb-3 max-w-[280px]">
+              AI generates daily quests, tracks milestones, and keeps you on track — automatically.
             </p>
-
-            {/* Feature pills */}
-            <div className="flex flex-wrap gap-1.5 mb-4">
-              {[
-                { icon: '🎯', label: 'AI Goal Planning' },
-                { icon: '⚡', label: 'Auto Daily Quests' },
-                { icon: '📊', label: 'Progress Tracking' },
-                { icon: '🧠', label: 'Smart Milestones' },
-              ].map(f => (
-                <div key={f.label} className="flex items-center gap-1 px-2 py-1 rounded-lg text-[8px] font-mono font-bold"
-                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.7)' }}>
-                  <span>{f.icon}</span> {f.label}
-                </div>
-              ))}
-            </div>
 
             <motion.button
               onClick={onUpgrade}
               whileTap={{ scale: 0.96 }}
-              className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-xl font-bold text-sm tracking-wide transition-all"
+              className="w-full flex items-center justify-center gap-2.5 py-3 rounded-xl font-bold text-sm tracking-wide transition-all"
               style={{
                 background: 'linear-gradient(135deg, #facc15 0%, #f59e0b 100%)',
                 color: '#0a0a14',
@@ -382,12 +393,18 @@ const GoalHeroSection: React.FC<GoalHeroSectionProps> = ({ goals, onCreateGoal, 
               <Zap size={16} />
               Unlock AI Autopilot
             </motion.button>
-
-            <p className="text-center text-[9px] text-gray-600 font-mono mt-2">
-              Part of Reforge Pro subscription
-            </p>
           </div>
         </motion.div>
+
+        {/* Goal Details Popup for system goals */}
+        <AnimatePresence>
+          {selectedGoal && (
+            <GoalDetailsPopup
+              goal={selectedGoal}
+              onClose={() => setSelectedGoal(null)}
+            />
+          )}
+        </AnimatePresence>
       </div>
     );
   }
