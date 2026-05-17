@@ -2,12 +2,12 @@
  * ── DUNGEON QUEST CARDS ──
  * RPG-styled quest cards for the Sung Jin-woo Daily Dungeon.
  * Each exercise gets its own visual card with background art.
- * Clean design with clear visual hierarchy.
+ * Clean design — cyan/gray palette, no green, no emojis.
  */
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Swords, Camera, CameraOff, Check, ChevronRight, TrendingUp, Shield, Trophy } from 'lucide-react';
+import { Swords, Check, ChevronRight, Shield } from 'lucide-react';
 import { DungeonState, DungeonExerciseTarget } from '../types';
 import { getProgressionTier, isDungeonCompletedToday } from '../lib/dungeonEngine';
 
@@ -15,36 +15,32 @@ const EXERCISE_META: Record<string, {
   label: string;
   subtitle: string;
   image: string;
-  accentColor: string;
 }> = {
   PUSHUPS: {
     label: 'Push-ups',
     subtitle: 'Upper body strength protocol',
     image: '/dungeon/pushups.webp',
-    accentColor: '#00d4ff',
   },
   SQUATS: {
     label: 'Squats',
     subtitle: 'Lower body power training',
     image: '/dungeon/squats.webp',
-    accentColor: '#34d399',
   },
   RUNNING: {
     label: 'Running',
     subtitle: 'Cardio endurance drill',
     image: '/dungeon/running.webp',
-    accentColor: '#818cf8',
   },
 };
 
 // ── Difficulty dots ──
-const DifficultyDots: React.FC<{ level: number; max?: number; color: string }> = ({ level, max = 5, color }) => (
+const DifficultyDots: React.FC<{ level: number; max?: number }> = ({ level, max = 5 }) => (
   <div className="flex items-center gap-1">
     {Array.from({ length: max }).map((_, i) => (
       <div
         key={i}
         className="w-1.5 h-1.5 rounded-full"
-        style={{ background: i < level ? color : 'rgba(255,255,255,0.08)' }}
+        style={{ background: i < level ? '#00d4ff' : 'rgba(255,255,255,0.08)' }}
       />
     ))}
   </div>
@@ -55,6 +51,36 @@ interface DungeonQuestCardsProps {
   onEnterDungeon: () => void;
   onToggleFormCoach: (exercise: 'PUSHUPS' | 'SQUATS') => void;
 }
+
+// ── iOS-style AI Coach Toggle (matches ActiveWorkoutPlayer) ──
+const AICoachToggle: React.FC<{ enabled: boolean; onToggle: () => void }> = ({ enabled, onToggle }) => (
+  <button
+    onClick={(e) => { e.stopPropagation(); onToggle(); }}
+    className="flex items-center gap-2 transition-all active:scale-95"
+  >
+    <div
+      className="relative w-[38px] h-[20px] rounded-full transition-all"
+      style={{
+        background: enabled
+          ? 'linear-gradient(90deg, #00d4ff, #0099cc)'
+          : 'rgba(255,255,255,0.08)',
+      }}
+    >
+      <motion.div
+        className="absolute top-[2px] w-[16px] h-[16px] rounded-full shadow-sm"
+        style={{ background: enabled ? '#fff' : '#555' }}
+        animate={{ left: enabled ? 20 : 2 }}
+        transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+      />
+    </div>
+    <span
+      className="text-[8px] font-mono font-bold tracking-wider"
+      style={{ color: enabled ? '#00d4ff' : '#555' }}
+    >
+      AI
+    </span>
+  </button>
+);
 
 // ── Individual Exercise Card ──
 const ExerciseCard: React.FC<{
@@ -84,7 +110,7 @@ const ExerciseCard: React.FC<{
       style={{
         minHeight: 180,
         border: isCompleted
-          ? '1px solid rgba(34,197,94,0.15)'
+          ? '1px solid rgba(0,212,255,0.12)'
           : '1px solid rgba(255,255,255,0.06)',
       }}
     >
@@ -107,7 +133,7 @@ const ExerciseCard: React.FC<{
 
       {/* Completed tint */}
       {isCompleted && (
-        <div className="absolute inset-0 z-[1] pointer-events-none" style={{ background: 'rgba(34,197,94,0.03)' }} />
+        <div className="absolute inset-0 z-[1] pointer-events-none" style={{ background: 'rgba(0,212,255,0.02)' }} />
       )}
 
       <div className="relative z-10 p-5 flex flex-col justify-between" style={{ minHeight: 180 }}>
@@ -116,34 +142,23 @@ const ExerciseCard: React.FC<{
           <div className="flex items-center gap-2.5 mb-1">
             <h3 className="text-lg font-black text-white tracking-tight leading-tight">{meta.label}</h3>
             {isCompleted && (
-              <div className="flex items-center gap-1 px-2 py-0.5 rounded-md" style={{ background: 'rgba(34,197,94,0.1)' }}>
-                <Check size={10} className="text-green-400" strokeWidth={3} />
-                <span className="text-[8px] text-green-400 font-black tracking-wider">CLEARED</span>
+              <div className="flex items-center gap-1 px-2 py-0.5 rounded-md" style={{ background: 'rgba(0,212,255,0.08)' }}>
+                <Check size={10} className="text-[#00d4ff]" strokeWidth={3} />
+                <span className="text-[8px] text-[#00d4ff] font-black tracking-wider">CLEARED</span>
               </div>
             )}
           </div>
           <p className="text-[11px] text-gray-500 leading-snug">{meta.subtitle}</p>
         </div>
 
-        {/* Middle: Target value + AI coach */}
+        {/* Middle: Target value + AI coach toggle */}
         <div className="flex items-center justify-between mt-4 mb-4">
-          <span className="text-base font-black font-mono tracking-wide" style={{ color: meta.accentColor }}>
+          <span className="text-base font-black font-mono tracking-wide text-[#00d4ff]">
             {targetText}
           </span>
 
           {!isRunning && onToggleCoach && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onToggleCoach(); }}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[9px] font-bold font-mono uppercase tracking-wider transition-all active:scale-95"
-              style={{
-                background: target.formCoachEnabled ? 'rgba(249,115,22,0.1)' : 'rgba(255,255,255,0.04)',
-                border: target.formCoachEnabled ? '1px solid rgba(249,115,22,0.25)' : '1px solid rgba(255,255,255,0.06)',
-                color: target.formCoachEnabled ? '#f97316' : '#555',
-              }}
-            >
-              {target.formCoachEnabled ? <Camera size={10} /> : <CameraOff size={10} />}
-              AI Coach
-            </button>
+            <AICoachToggle enabled={target.formCoachEnabled} onToggle={onToggleCoach} />
           )}
         </div>
 
@@ -155,7 +170,7 @@ const ExerciseCard: React.FC<{
           </div>
           <div className="flex items-center gap-2">
             <span className="text-[9px] text-gray-600 font-mono uppercase tracking-wider">Difficulty</span>
-            <DifficultyDots level={diffLevel} color={meta.accentColor} />
+            <DifficultyDots level={diffLevel} />
           </div>
         </div>
       </div>
@@ -226,12 +241,12 @@ const DungeonQuestCards: React.FC<DungeonQuestCardsProps> = ({
             animate={{ opacity: 1 }}
             className="flex items-center justify-center gap-2.5 py-3.5 rounded-xl"
             style={{
-              background: 'rgba(34,197,94,0.04)',
-              border: '1px solid rgba(34,197,94,0.1)',
+              background: 'rgba(0,212,255,0.04)',
+              border: '1px solid rgba(0,212,255,0.1)',
             }}
           >
-            <Check size={14} className="text-green-400" strokeWidth={3} />
-            <span className="text-[11px] font-black font-mono text-green-400 uppercase tracking-[0.2em]">
+            <Check size={14} className="text-[#00d4ff]" strokeWidth={3} />
+            <span className="text-[11px] font-black font-mono text-[#00d4ff] uppercase tracking-[0.2em]">
               Dungeon Cleared
             </span>
           </motion.div>
