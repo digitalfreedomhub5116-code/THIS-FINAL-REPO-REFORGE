@@ -170,13 +170,18 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
   const exercise = plan.exercises[currentIdx] || plan.exercises[0];
   const totalExercises = plan.exercises.length;
 
-  // ── GPS SENSOR for Running Exercises ──
+  // ── SENSOR TRACKING for Running Exercises (GPS + Steps hybrid) ──
   const sensorReqs = (exercise as any)?.sensorRequirements as { distanceKm?: number } | undefined;
   const isRunningExercise = !!sensorReqs?.distanceKm;
   const { startTracking, stopTracking, finalizeTracking, snapshot: sensorSnapshot, tracking: sensorTracking, requestPermissions } = useSensors(player.userId || 'local');
   const sensorStartedRef = useRef(false);
 
-  // Auto-start GPS when a running exercise becomes active
+  // Step-based distance estimation: ~0.7m per step for running, ~0.65m for walking
+  const stepEstimatedKm = (sensorSnapshot?.stepsRecorded || 0) * 0.0007; // 0.7m per step
+  // Best distance = whichever is higher between GPS and step-estimated
+  const bestDistanceKm = Math.max(sensorSnapshot?.distanceRecorded || 0, stepEstimatedKm);
+
+  // Auto-start tracking when a running exercise becomes active
   useEffect(() => {
     if (isRunningExercise && phase === 'WORK' && !sensorStartedRef.current) {
       sensorStartedRef.current = true;
@@ -196,20 +201,20 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
   useEffect(() => {
     if (!isRunningExercise || !sensorSnapshot || runAutoCompleteRef.current) return;
     const targetKm = sensorReqs?.distanceKm || 1;
-    if (sensorSnapshot.distanceRecorded >= targetKm) {
+    if (bestDistanceKm >= targetKm) {
       runAutoCompleteRef.current = true;
       stopTracking().then(() => {
         finalizeTracking('dungeon-run');
         completeSet();
       });
     }
-  }, [sensorSnapshot?.distanceRecorded, isRunningExercise]);
+  }, [bestDistanceKm, isRunningExercise]);
 
-  // Cleanup sensors on unmount
+  // On unmount: STOP tracking but DON'T finalize — so progress is preserved for resume
   useEffect(() => {
     return () => {
       if (sensorStartedRef.current) {
-        stopTracking().then(() => finalizeTracking('dungeon-run'));
+        stopTracking(); // Session stays in localStorage for resume
       }
     };
   }, []);
@@ -931,18 +936,22 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
                                     <Navigation size={14} className="text-[#00d4ff]" />
                                     <span className="text-[9px] font-mono text-gray-500 uppercase tracking-wider">Distance</span>
                                 </div>
-                                <div className="flex items-center gap-1">
-                                    <MapPin size={10} className={sensorTracking ? 'text-[#00d4ff] animate-pulse' : 'text-gray-600'} />
-                                    <span className="text-[8px] font-mono" style={{ color: sensorTracking ? '#00d4ff' : '#555' }}>
-                                        {sensorTracking ? 'GPS Active' : 'GPS Off'}
-                                    </span>
+                                <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-1">
+                                        <MapPin size={9} className={sensorTracking ? 'text-[#00d4ff] animate-pulse' : 'text-gray-600'} />
+                                        <span className="text-[7px] font-mono" style={{ color: sensorTracking ? '#00d4ff' : '#555' }}>GPS</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        <Activity size={9} className={sensorTracking ? 'text-[#00d4ff] animate-pulse' : 'text-gray-600'} />
+                                        <span className="text-[7px] font-mono" style={{ color: sensorTracking ? '#00d4ff' : '#555' }}>Steps</span>
+                                    </div>
                                 </div>
                             </div>
 
                             {/* Big distance number */}
                             <div className="text-center">
                                 <span className="text-5xl font-black font-mono text-white tabular-nums">
-                                    {(sensorSnapshot?.distanceRecorded || 0).toFixed(2)}
+                                    {bestDistanceKm.toFixed(2)}
                                 </span>
                                 <span className="text-lg text-gray-400 ml-1">/ {sensorReqs?.distanceKm || 1} km</span>
                             </div>
@@ -954,7 +963,7 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
                                     style={{ background: 'linear-gradient(90deg, #00d4ff, #0099cc)' }}
                                     initial={{ width: '0%' }}
                                     animate={{
-                                        width: `${Math.min(100, ((sensorSnapshot?.distanceRecorded || 0) / (sensorReqs?.distanceKm || 1)) * 100)}%`
+                                        width: `${Math.min(100, (bestDistanceKm / (sensorReqs?.distanceKm || 1)) * 100)}%`
                                     }}
                                     transition={{ duration: 0.5 }}
                                 />

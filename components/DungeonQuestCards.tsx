@@ -2,8 +2,7 @@
  * ── DUNGEON QUEST CARDS ──
  * RPG-styled quest cards for the Sung Jin-woo Daily Dungeon.
  * Each exercise gets its own visual card with background art.
- * Clean design — cyan/gray palette, no green, no emojis.
- * Running displayed in KM with GPS sensor indicator.
+ * Muted design — soft cyan/gray palette, restful for the eyes.
  */
 
 import React, { useState } from 'react';
@@ -34,26 +33,13 @@ const EXERCISE_META: Record<string, {
   },
 };
 
-// ── Difficulty dots ──
-const DifficultyDots: React.FC<{ level: number; max?: number }> = ({ level, max = 5 }) => (
-  <div className="flex items-center gap-1">
-    {Array.from({ length: max }).map((_, i) => (
-      <div
-        key={i}
-        className="w-1.5 h-1.5 rounded-full"
-        style={{ background: i < level ? '#00d4ff' : 'rgba(255,255,255,0.08)' }}
-      />
-    ))}
-  </div>
-);
-
 interface DungeonQuestCardsProps {
   dungeonState: DungeonState;
   onEnterDungeon: () => void;
   onToggleFormCoach: (exercise: 'PUSHUPS' | 'SQUATS') => void;
 }
 
-// ── iOS-style AI Coach Toggle (matches ActiveWorkoutPlayer) ──
+// ── iOS-style AI Coach Toggle ──
 const AICoachToggle: React.FC<{ enabled: boolean; onToggle: () => void }> = ({ enabled, onToggle }) => (
   <button
     onClick={(e) => { e.stopPropagation(); onToggle(); }}
@@ -76,7 +62,7 @@ const AICoachToggle: React.FC<{ enabled: boolean; onToggle: () => void }> = ({ e
     </div>
     <span
       className="text-[8px] font-mono font-bold tracking-wider"
-      style={{ color: enabled ? '#00d4ff' : '#555' }}
+      style={{ color: enabled ? '#00a0c8' : '#555' }}
     >
       AI
     </span>
@@ -100,8 +86,6 @@ const ExerciseCard: React.FC<{
     ? `${target.distanceKm || 1} km`
     : `${target.reps} reps × ${target.sets} sets`;
 
-  const diffLevel = Math.min(5, Math.ceil(dungeonState.progressionMultiplier * 3.5));
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -109,10 +93,10 @@ const ExerciseCard: React.FC<{
       transition={{ delay: index * 0.06 }}
       className="relative rounded-2xl overflow-hidden"
       style={{
-        minHeight: 170,
+        minHeight: 150,
         border: isCompleted
-          ? '1px solid rgba(0,212,255,0.12)'
-          : '1px solid rgba(255,255,255,0.06)',
+          ? '1px solid rgba(0,180,220,0.1)'
+          : '1px solid rgba(255,255,255,0.05)',
       }}
     >
       {/* Background image */}
@@ -121,48 +105,43 @@ const ExerciseCard: React.FC<{
           src={meta.image}
           alt=""
           className="w-full h-full object-cover transition-opacity duration-700"
-          style={{ opacity: imgLoaded ? 0.45 : 0, filter: 'saturate(0.8) brightness(0.95)' }}
+          style={{ opacity: imgLoaded ? 0.35 : 0, filter: 'saturate(0.6) brightness(0.8)' }}
           onLoad={() => setImgLoaded(true)}
         />
         <div
           className="absolute inset-0"
           style={{
-            background: 'linear-gradient(180deg, rgba(8,8,18,0.25) 0%, rgba(8,8,18,0.65) 40%, rgba(6,6,14,0.95) 100%)',
+            background: 'linear-gradient(180deg, rgba(10,10,20,0.35) 0%, rgba(10,10,20,0.7) 45%, rgba(8,8,16,0.95) 100%)',
           }}
         />
       </div>
 
-      {/* Completed tint */}
-      {isCompleted && (
-        <div className="absolute inset-0 z-[1] pointer-events-none" style={{ background: 'rgba(0,212,255,0.02)' }} />
-      )}
-
-      <div className="relative z-10 p-5 flex flex-col justify-between" style={{ minHeight: 160 }}>
+      <div className="relative z-10 p-5 flex flex-col justify-between" style={{ minHeight: 150 }}>
         {/* Top: Title + cleared badge */}
         <div>
           <div className="flex items-center gap-2.5 mb-1">
-            <h3 className="text-lg font-black text-white tracking-tight leading-tight">{meta.label}</h3>
+            <h3 className="text-base font-bold text-gray-100 tracking-tight leading-tight">{meta.label}</h3>
             {isCompleted && (
-              <div className="flex items-center gap-1 px-2 py-0.5 rounded-md" style={{ background: 'rgba(0,212,255,0.08)' }}>
-                <Check size={10} className="text-[#00d4ff]" strokeWidth={3} />
-                <span className="text-[8px] text-[#00d4ff] font-black tracking-wider">CLEARED</span>
+              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded" style={{ background: 'rgba(0,180,220,0.08)' }}>
+                <Check size={9} style={{ color: '#5ab8cc' }} strokeWidth={3} />
+                <span className="text-[7px] font-bold tracking-wider" style={{ color: '#5ab8cc' }}>CLEARED</span>
               </div>
             )}
           </div>
-          <p className="text-[11px] text-gray-500 leading-snug">{meta.subtitle}</p>
+          <p className="text-[10px] text-gray-500 leading-snug">{meta.subtitle}</p>
         </div>
 
         {/* Middle: Target value + AI coach toggle / GPS indicator */}
-        <div className="flex items-center justify-between mt-4 mb-4">
+        <div className="flex items-center justify-between mt-3 mb-1">
           <div className="flex items-center gap-2">
-            <span className="text-base font-black font-mono tracking-wide text-[#00d4ff]">
+            <span className="text-sm font-bold font-mono tracking-wide" style={{ color: '#6ec4d6' }}>
               {targetText}
             </span>
-            {/* GPS indicator for running */}
+            {/* GPS + Steps indicator for running */}
             {isRunning && (
-              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md" style={{ background: 'rgba(0,212,255,0.06)', border: '1px solid rgba(0,212,255,0.1)' }}>
-                <MapPin size={8} className="text-[#00d4ff]" />
-                <span className="text-[7px] font-mono font-bold text-[#00d4ff]/70 tracking-wider">GPS</span>
+              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded" style={{ background: 'rgba(0,180,220,0.05)', border: '1px solid rgba(0,180,220,0.08)' }}>
+                <MapPin size={7} style={{ color: '#5ab8cc' }} />
+                <span className="text-[6px] font-mono font-bold tracking-wider" style={{ color: '#5ab8cc80' }}>GPS + Steps</span>
               </div>
             )}
           </div>
@@ -190,26 +169,26 @@ const DungeonQuestCards: React.FC<DungeonQuestCardsProps> = ({
       {/* Header */}
       <div className="flex items-center justify-between px-1 mb-1">
         <div className="flex items-center gap-2.5">
-          <Swords size={14} className="text-[#00d4ff]" />
+          <Swords size={13} style={{ color: '#5ab8cc' }} />
           <div>
-            <div className="text-[8px] font-mono uppercase tracking-[0.25em] text-gray-500">Daily Dungeon</div>
-            <div className="text-sm font-black text-white tracking-tight">Sung Jin-woo Protocol</div>
+            <div className="text-[8px] font-mono uppercase tracking-[0.25em] text-gray-600">Daily Dungeon</div>
+            <div className="text-sm font-bold text-gray-200 tracking-tight">Sung Jin-woo Protocol</div>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="px-2 py-1 rounded-md" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-            <span className="text-[9px] font-mono font-bold text-gray-400">Day {dungeonState.currentDay}</span>
+          <div className="px-2 py-1 rounded-md" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
+            <span className="text-[9px] font-mono text-gray-500">Day {dungeonState.currentDay}</span>
           </div>
           <div
             className="flex items-center gap-1 px-2 py-1 rounded-md"
             style={{
-              background: `${tier.color}08`,
-              border: `1px solid ${tier.color}18`,
+              background: `${tier.color}06`,
+              border: `1px solid ${tier.color}12`,
             }}
           >
-            <Shield size={9} style={{ color: tier.color }} />
-            <span className="text-[9px] font-black font-mono" style={{ color: tier.color }}>{tier.label}</span>
+            <Shield size={9} style={{ color: tier.color, opacity: 0.7 }} />
+            <span className="text-[9px] font-bold font-mono" style={{ color: tier.color, opacity: 0.8 }}>{tier.label}</span>
           </div>
         </div>
       </div>
@@ -239,12 +218,12 @@ const DungeonQuestCards: React.FC<DungeonQuestCardsProps> = ({
             animate={{ opacity: 1 }}
             className="flex items-center justify-center gap-2.5 py-3.5 rounded-xl"
             style={{
-              background: 'rgba(0,212,255,0.04)',
-              border: '1px solid rgba(0,212,255,0.1)',
+              background: 'rgba(0,180,220,0.03)',
+              border: '1px solid rgba(0,180,220,0.08)',
             }}
           >
-            <Check size={14} className="text-[#00d4ff]" strokeWidth={3} />
-            <span className="text-[11px] font-black font-mono text-[#00d4ff] uppercase tracking-[0.2em]">
+            <Check size={13} style={{ color: '#5ab8cc' }} strokeWidth={3} />
+            <span className="text-[11px] font-bold font-mono uppercase tracking-[0.2em]" style={{ color: '#5ab8cc' }}>
               Dungeon Cleared
             </span>
           </motion.div>
@@ -255,13 +234,14 @@ const DungeonQuestCards: React.FC<DungeonQuestCardsProps> = ({
             animate={{ opacity: 1, y: 0 }}
             whileTap={{ scale: 0.97 }}
             onClick={onEnterDungeon}
-            className="w-full flex items-center justify-center gap-2.5 py-4 rounded-xl font-black text-sm uppercase tracking-wider transition-all"
+            className="w-full flex items-center justify-center gap-2.5 py-4 rounded-xl font-bold text-sm uppercase tracking-wider transition-all"
             style={{
-              background: 'linear-gradient(135deg, #00d4ff 0%, #0099cc 100%)',
-              color: '#000',
+              background: 'linear-gradient(135deg, rgba(0,180,220,0.15) 0%, rgba(0,140,180,0.1) 100%)',
+              color: '#6ec4d6',
+              border: '1px solid rgba(0,180,220,0.15)',
             }}
           >
-            <Swords size={15} />
+            <Swords size={14} />
             Enter Dungeon
             <ChevronRight size={13} strokeWidth={3} />
           </motion.button>
