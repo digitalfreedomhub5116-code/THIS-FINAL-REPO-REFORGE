@@ -3365,35 +3365,28 @@ const App: React.FC = () => {
     }
 
     if (onboardingPhase === 'NAMING') {
-
-      return (
-
-        <Suspense fallback={<SkeletonOnboardingPage />}>
-
-          <ErrorBoundary fallbackLabel="Naming failed">
-
-            <NameOnboarding
-
-              onComplete={(country: string, tz: string) => {
-
-                const userData = { country, tz };
-
-                setTempUserData(userData);
-
-                ssSet(SS_USER, userData);
-
-                setOnboardingPhase('CALIBRATION');
-
-              }}
-
-            />
-
-          </ErrorBoundary>
-
-        </Suspense>
-
-      );
-
+      // Auto-detect country/timezone and skip to CALIBRATION immediately
+      const autoTz = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; } catch { return 'UTC'; } })();
+      const tzCountryMap: Record<string, string> = {
+        'Asia/Kolkata': 'India', 'Asia/Calcutta': 'India', 'Asia/Tokyo': 'Japan',
+        'Asia/Seoul': 'South Korea', 'Asia/Manila': 'Philippines', 'Asia/Jakarta': 'Indonesia',
+        'Europe/London': 'United Kingdom', 'Europe/Berlin': 'Germany', 'Europe/Paris': 'France',
+        'Australia/Sydney': 'Australia', 'Australia/Melbourne': 'Australia',
+        'America/Toronto': 'Canada', 'America/Vancouver': 'Canada',
+        'America/Sao_Paulo': 'Brazil', 'America/Mexico_City': 'Mexico',
+        'America/Argentina/Buenos_Aires': 'Argentina', 'Africa/Lagos': 'Nigeria',
+      };
+      const usPrefixes = ['America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles', 'America/Phoenix', 'America/Anchorage'];
+      const autoCountry = tzCountryMap[autoTz] || (usPrefixes.some(p => autoTz.startsWith(p)) ? 'United States' : 'Other');
+      const userData = { country: autoCountry, tz: autoTz };
+      // Use a microtask to set state after render
+      Promise.resolve().then(() => {
+        setTempUserData(userData);
+        ssSet(SS_USER, userData);
+        setOnboardingPhase('CALIBRATION');
+      });
+      // Show nothing while transitioning
+      return <div className="fixed inset-0 bg-black z-[100]" />;
     }
 
     if (onboardingPhase === 'CALIBRATION') {
