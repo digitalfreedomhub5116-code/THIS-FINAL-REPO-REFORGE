@@ -12,7 +12,7 @@ import {
 import {
   Quest, CoreStats, Rank, Priority, PlayerData, Goal,
   ScheduleProfile, ScheduleSlot, DailySchedule, ScheduleSlotType,
-  DungeonState, WorkoutDay, FormCoachSession
+  DungeonState, DungeonExerciseTarget, WorkoutDay, FormCoachSession
 } from '../types';
 import GoalCard from './GoalCard';
 import GoalDetailView from './GoalDetailView';
@@ -939,7 +939,14 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
 
   const handleEnterDungeon = useCallback(() => {
     if (!dungeonState) return;
-    const plan = buildDungeonWorkoutPlan(dungeonState.targets);
+    // Build plan only for exercises not yet completed today
+    const { isExerciseCompletedToday: isExDone } = require('../lib/dungeonEngine');
+    const remainingTargets = dungeonState.targets.filter(
+      (t: DungeonExerciseTarget) => !isExDone(dungeonState, t.exercise)
+    );
+    // If all are done, use full plan (shouldn't happen but safety)
+    const targetsForPlan = remainingTargets.length > 0 ? remainingTargets : dungeonState.targets;
+    const plan = buildDungeonWorkoutPlan(targetsForPlan);
     setDungeonPlan(plan);
     setIsDungeonActive(true);
     onToggleNav?.(false);
@@ -950,16 +957,39 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
     setIsDungeonActive(false);
     setDungeonPlan(null);
     onToggleNav?.(true);
+
+    // Track per-exercise completions based on what was in the plan
+    if (dungeonState && onUpdateDungeonState) {
+      const { recordExerciseCompletions, isExerciseCompletedToday: isExDone } = require('../lib/dungeonEngine');
+      // The plan only contained remaining exercises; all exercises in the plan were completed
+      const remainingTargets = dungeonState.targets.filter(
+        (t: DungeonExerciseTarget) => !isExDone(dungeonState, t.exercise)
+      );
+      const completedExNames = remainingTargets.map((t: DungeonExerciseTarget) => t.exercise);
+      onUpdateDungeonState((prev: DungeonState) => recordExerciseCompletions(prev, completedExNames));
+    }
+
     onCompleteDungeonWorkout?.(c, t, r, anomaly, fcBonus, fcSession);
-  }, [onToggleNav, onCompleteDungeonWorkout]);
+  }, [onToggleNav, onCompleteDungeonWorkout, dungeonState, onUpdateDungeonState]);
 
   const handleDungeonFail = useCallback(() => {
     setIsDungeonActive(false);
     setDungeonPlan(null);
     onToggleNav?.(true);
     clearWorkoutSession(playerData?.userId || 'local');
-    onFailDungeonWorkout?.();
-  }, [onToggleNav, onFailDungeonWorkout, playerData?.userId]);
+
+    // When quitting mid-workout, record which exercises were actually completed
+    // The ActiveWorkoutPlayer's currentIdx tells us how many exercises were finished
+    if (dungeonState && onUpdateDungeonState && dungeonPlan) {
+      const { recordExerciseCompletions, isExerciseCompletedToday: isExDone } = require('../lib/dungeonEngine');
+      // We can't easily know exact progress from here, so we DON'T mark anything as completed on fail
+      // The user must complete an exercise fully within the workout player for it to count
+      // This prevents the "everything gets marked cleared" bug
+    }
+
+    // Don't call onFailDungeonWorkout (which records a full failure/deload)
+    // Instead, the dungeon state remains unchanged — user can re-enter and continue
+  }, [onToggleNav, playerData?.userId, dungeonState, onUpdateDungeonState, dungeonPlan]);
 
   const handleToggleFormCoach = useCallback((exercise: 'PUSHUPS' | 'SQUATS') => {
     if (!dungeonState || !onUpdateDungeonState) return;

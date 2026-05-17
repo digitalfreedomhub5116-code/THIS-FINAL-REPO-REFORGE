@@ -134,7 +134,12 @@ const QuestsView: React.FC<QuestsViewProps> = ({
 
   const handleEnterDungeon = () => {
     if (!dungeonState) return;
-    const plan = buildDungeonWorkoutPlan(dungeonState.targets);
+    const { isExerciseCompletedToday: isExDone } = require('../lib/dungeonEngine');
+    const remainingTargets = dungeonState.targets.filter(
+      (t: any) => !isExDone(dungeonState, t.exercise)
+    );
+    const targetsForPlan = remainingTargets.length > 0 ? remainingTargets : dungeonState.targets;
+    const plan = buildDungeonWorkoutPlan(targetsForPlan);
     setDungeonPlan(plan);
     setIsDungeonActive(true);
     onToggleNav?.(false);
@@ -145,6 +150,15 @@ const QuestsView: React.FC<QuestsViewProps> = ({
     setIsDungeonActive(false);
     setDungeonPlan(null);
     onToggleNav?.(true);
+    // Track per-exercise completions
+    if (dungeonState && onUpdateDungeonState) {
+      const { recordExerciseCompletions, isExerciseCompletedToday: isExDone } = require('../lib/dungeonEngine');
+      const remainingTargets = dungeonState.targets.filter(
+        (t: any) => !isExDone(dungeonState, t.exercise)
+      );
+      const completedExNames = remainingTargets.map((t: any) => t.exercise);
+      onUpdateDungeonState((prev: any) => recordExerciseCompletions(prev, completedExNames));
+    }
     if (onCompleteDungeonWorkout) {
       onCompleteDungeonWorkout(c, t, r, anomaly, fcBonus, fcSession);
     }
@@ -155,9 +169,7 @@ const QuestsView: React.FC<QuestsViewProps> = ({
     setDungeonPlan(null);
     onToggleNav?.(true);
     clearWorkoutSession(playerData?.userId || 'local');
-    if (onFailDungeonWorkout) {
-      onFailDungeonWorkout();
-    }
+    // Don't record full failure — user can re-enter to continue remaining exercises
   };
 
   const handleToggleFormCoach = (exercise: 'PUSHUPS' | 'SQUATS') => {

@@ -847,6 +847,10 @@ export interface DungeonState {
   // Current targets (computed from baselines + progression)
   targets: DungeonExerciseTarget[];
 
+  // Per-exercise completion tracking for today
+  // Keys are exercise names (PUSHUPS, SQUATS, RUNNING), values are completion dates
+  completedExercisesToday?: Record<string, string>;
+
   // Baselines snapshot (from calibration, frozen at dungeon creation)
   baselinePushups: number;
   baselineSquats: number;

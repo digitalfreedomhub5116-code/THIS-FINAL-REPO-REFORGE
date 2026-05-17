@@ -213,9 +213,50 @@ export function toggleFormCoach(state: DungeonState, exercise: 'PUSHUPS' | 'SQUA
   };
 }
 
-// ── Check if dungeon was already completed today ──
+// ── Check if dungeon was already completed today (ALL exercises done) ──
 export function isDungeonCompletedToday(state: DungeonState): boolean {
-  return state.lastCompletedDate === todayStr();
+  // New per-exercise tracking: all exercises must be individually completed today
+  const today = todayStr();
+  const completed = state.completedExercisesToday || {};
+  const allDone = state.targets.every(t => completed[t.exercise] === today);
+  // Fallback: also check the legacy lastCompletedDate
+  return allDone || state.lastCompletedDate === today;
+}
+
+// ── Check if a specific exercise is completed today ──
+export function isExerciseCompletedToday(state: DungeonState, exercise: string): boolean {
+  const today = todayStr();
+  return (state.completedExercisesToday || {})[exercise] === today;
+}
+
+// ── Mark individual exercises as completed after workout ──
+// Called when leaving dungeon mid-workout — marks only the exercises the user actually finished
+export function recordExerciseCompletions(
+  state: DungeonState,
+  completedExercises: string[]
+): DungeonState {
+  const today = todayStr();
+  const existing = { ...(state.completedExercisesToday || {}) };
+
+  // Clear stale entries from previous days
+  for (const key of Object.keys(existing)) {
+    if (existing[key] !== today) delete existing[key];
+  }
+
+  // Mark the newly completed ones
+  for (const ex of completedExercises) {
+    existing[ex] = today;
+  }
+
+  const updatedState = { ...state, completedExercisesToday: existing };
+
+  // If ALL exercises are now completed → trigger full dungeon completion
+  const allDone = state.targets.every(t => existing[t.exercise] === today);
+  if (allDone && state.lastCompletedDate !== today) {
+    return recordDungeonCompletion(updatedState);
+  }
+
+  return updatedState;
 }
 
 // ── Build a WorkoutDay plan from dungeon targets ──
