@@ -2,50 +2,50 @@
  * ── DUNGEON QUEST CARDS ──
  * RPG-styled quest cards for the Sung Jin-woo Daily Dungeon.
  * Each exercise gets its own visual card with background art.
- * Design inspired by habit-tracker quest cards with RPG aesthetics.
+ * Clean design with clear visual hierarchy.
  */
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Swords, Zap, Camera, CameraOff, Check, ChevronRight, TrendingUp, Flame, Trophy, Shield } from 'lucide-react';
+import { Swords, Camera, CameraOff, Check, ChevronRight, TrendingUp, Shield, Trophy } from 'lucide-react';
 import { DungeonState, DungeonExerciseTarget } from '../types';
 import { getProgressionTier, isDungeonCompletedToday } from '../lib/dungeonEngine';
 
 const EXERCISE_META: Record<string, {
   label: string;
   subtitle: string;
-  icon: string;
   image: string;
   accentColor: string;
 }> = {
   PUSHUPS: {
     label: 'Push-ups',
-    subtitle: 'Upper body dominance.',
-    icon: '💪',
+    subtitle: 'Upper body strength protocol',
     image: '/dungeon/pushups.webp',
     accentColor: '#00d4ff',
   },
   SQUATS: {
     label: 'Squats',
-    subtitle: 'Legs of a warrior.',
-    icon: '🦵',
+    subtitle: 'Lower body power training',
     image: '/dungeon/squats.webp',
     accentColor: '#34d399',
   },
   RUNNING: {
     label: 'Running',
-    subtitle: 'Endurance protocol.',
-    icon: '🏃',
+    subtitle: 'Cardio endurance drill',
     image: '/dungeon/running.webp',
     accentColor: '#818cf8',
   },
 };
 
-// ── Difficulty Stars ──
-const DifficultyStars: React.FC<{ level: number; maxLevel?: number; color: string }> = ({ level, maxLevel = 5, color }) => (
-  <div className="flex items-center gap-0.5">
-    {Array.from({ length: maxLevel }).map((_, i) => (
-      <span key={i} style={{ color: i < level ? color : '#333', fontSize: 10, lineHeight: 1 }}>★</span>
+// ── Difficulty dots ──
+const DifficultyDots: React.FC<{ level: number; max?: number; color: string }> = ({ level, max = 5, color }) => (
+  <div className="flex items-center gap-1">
+    {Array.from({ length: max }).map((_, i) => (
+      <div
+        key={i}
+        className="w-1.5 h-1.5 rounded-full"
+        style={{ background: i < level ? color : 'rgba(255,255,255,0.08)' }}
+      />
     ))}
   </div>
 );
@@ -56,7 +56,7 @@ interface DungeonQuestCardsProps {
   onToggleFormCoach: (exercise: 'PUSHUPS' | 'SQUATS') => void;
 }
 
-// ── Individual Exercise Card (inspired by the habit-tracker card design) ──
+// ── Individual Exercise Card ──
 const ExerciseCard: React.FC<{
   target: DungeonExerciseTarget;
   dungeonState: DungeonState;
@@ -73,19 +73,19 @@ const ExerciseCard: React.FC<{
     ? `${target.durationMinutes} min`
     : `${target.reps} reps × ${target.sets} sets`;
 
-  // Difficulty: based on progression multiplier mapping
   const diffLevel = Math.min(5, Math.ceil(dungeonState.progressionMultiplier * 3.5));
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.08 }}
+      transition={{ delay: index * 0.06 }}
       className="relative rounded-2xl overflow-hidden"
       style={{
+        minHeight: 180,
         border: isCompleted
-          ? '1px solid rgba(34,197,94,0.2)'
-          : `1px solid ${meta.accentColor}18`,
+          ? '1px solid rgba(34,197,94,0.15)'
+          : '1px solid rgba(255,255,255,0.06)',
       }}
     >
       {/* Background image */}
@@ -94,93 +94,68 @@ const ExerciseCard: React.FC<{
           src={meta.image}
           alt=""
           className="w-full h-full object-cover transition-opacity duration-700"
-          style={{ opacity: imgLoaded ? 0.35 : 0, filter: 'saturate(0.8)' }}
+          style={{ opacity: imgLoaded ? 0.25 : 0, filter: 'saturate(0.7) brightness(0.9)' }}
           onLoad={() => setImgLoaded(true)}
         />
         <div
           className="absolute inset-0"
           style={{
-            background: `linear-gradient(180deg, rgba(0,0,0,0.3) 0%, rgba(8,8,20,0.88) 55%, rgba(6,6,14,0.98) 100%)`,
+            background: 'linear-gradient(180deg, rgba(8,8,18,0.4) 0%, rgba(8,8,18,0.8) 40%, rgba(6,6,14,0.97) 100%)',
           }}
         />
       </div>
 
-      {/* Completed shimmer */}
+      {/* Completed tint */}
       {isCompleted && (
-        <div className="absolute inset-0 z-[1] pointer-events-none" style={{ background: 'linear-gradient(135deg, rgba(34,197,94,0.06) 0%, transparent 50%)' }} />
+        <div className="absolute inset-0 z-[1] pointer-events-none" style={{ background: 'rgba(34,197,94,0.03)' }} />
       )}
 
-      <div className="relative z-10 p-4">
-        {/* Icon + title row */}
-        <div className="flex items-start gap-3 mb-3">
-          <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
-            style={{
-              background: `${meta.accentColor}12`,
-              border: `1px solid ${meta.accentColor}28`,
-              boxShadow: `0 0 12px ${meta.accentColor}10`,
-            }}
-          >
-            {meta.icon}
+      <div className="relative z-10 p-5 flex flex-col justify-between" style={{ minHeight: 180 }}>
+        {/* Top: Title + cleared badge */}
+        <div>
+          <div className="flex items-center gap-2.5 mb-1">
+            <h3 className="text-lg font-black text-white tracking-tight leading-tight">{meta.label}</h3>
+            {isCompleted && (
+              <div className="flex items-center gap-1 px-2 py-0.5 rounded-md" style={{ background: 'rgba(34,197,94,0.1)' }}>
+                <Check size={10} className="text-green-400" strokeWidth={3} />
+                <span className="text-[8px] text-green-400 font-black tracking-wider">CLEARED</span>
+              </div>
+            )}
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <h4 className="text-sm font-black text-white tracking-tight">{meta.label}</h4>
-              {isCompleted && (
-                <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md" style={{ background: 'rgba(34,197,94,0.12)' }}>
-                  <Check size={8} className="text-green-400" strokeWidth={3} />
-                  <span className="text-[7px] text-green-400 font-black">CLEARED</span>
-                </div>
-              )}
-            </div>
-            <p className="text-[10px] text-gray-400 font-mono">{meta.subtitle}</p>
-          </div>
+          <p className="text-[11px] text-gray-500 leading-snug">{meta.subtitle}</p>
         </div>
 
-        {/* Target display */}
-        <div
-          className="flex items-center justify-between px-3 py-2.5 rounded-xl mb-3"
-          style={{
-            background: 'rgba(255,255,255,0.03)',
-            border: '1px solid rgba(255,255,255,0.05)',
-          }}
-        >
-          <span className="text-xs font-black font-mono" style={{ color: meta.accentColor }}>
+        {/* Middle: Target value + AI coach */}
+        <div className="flex items-center justify-between mt-4 mb-4">
+          <span className="text-base font-black font-mono tracking-wide" style={{ color: meta.accentColor }}>
             {targetText}
           </span>
 
-          {/* AI Coach toggle */}
           {!isRunning && onToggleCoach && (
             <button
               onClick={(e) => { e.stopPropagation(); onToggleCoach(); }}
-              className="flex items-center gap-1 px-2 py-1 rounded-lg text-[8px] font-bold font-mono uppercase tracking-wider transition-all active:scale-95"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[9px] font-bold font-mono uppercase tracking-wider transition-all active:scale-95"
               style={{
-                background: target.formCoachEnabled ? 'rgba(249,115,22,0.12)' : 'rgba(255,255,255,0.04)',
-                border: target.formCoachEnabled ? '1px solid rgba(249,115,22,0.3)' : '1px solid rgba(255,255,255,0.08)',
-                color: target.formCoachEnabled ? '#f97316' : '#6b7280',
+                background: target.formCoachEnabled ? 'rgba(249,115,22,0.1)' : 'rgba(255,255,255,0.04)',
+                border: target.formCoachEnabled ? '1px solid rgba(249,115,22,0.25)' : '1px solid rgba(255,255,255,0.06)',
+                color: target.formCoachEnabled ? '#f97316' : '#555',
               }}
             >
-              {target.formCoachEnabled ? <Camera size={9} /> : <CameraOff size={9} />}
+              {target.formCoachEnabled ? <Camera size={10} /> : <CameraOff size={10} />}
               AI Coach
             </button>
           )}
         </div>
 
-        {/* Stats row */}
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5">
-            <span className="text-[9px] text-gray-500 font-mono">Streak</span>
-            <span className="text-[10px] font-black text-white font-mono">
-              {dungeonState.consecutiveCompletions} days
-            </span>
+        {/* Bottom: Repeat + Difficulty */}
+        <div className="flex items-center gap-5 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] text-gray-600 font-mono uppercase tracking-wider">Repeat</span>
+            <span className="text-[10px] font-bold text-gray-300">Everyday</span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <span className="text-[9px] text-gray-500 font-mono">Repeat</span>
-            <span className="text-[10px] font-black text-white font-mono">Everyday</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="text-[9px] text-gray-500 font-mono">Difficulty</span>
-            <DifficultyStars level={diffLevel} color={meta.accentColor} />
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] text-gray-600 font-mono uppercase tracking-wider">Difficulty</span>
+            <DifficultyDots level={diffLevel} color={meta.accentColor} />
           </div>
         </div>
       </div>
@@ -199,29 +174,25 @@ const DungeonQuestCards: React.FC<DungeonQuestCardsProps> = ({
 
   return (
     <div className="space-y-3">
-      {/* Header bar */}
-      <div className="flex items-center justify-between px-1">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: 'rgba(0,212,255,0.08)', border: '1px solid rgba(0,212,255,0.2)' }}>
-            <Swords size={12} className="text-[#00d4ff]" />
-          </div>
+      {/* Header */}
+      <div className="flex items-center justify-between px-1 mb-1">
+        <div className="flex items-center gap-2.5">
+          <Swords size={14} className="text-[#00d4ff]" />
           <div>
-            <div className="text-[9px] font-black font-mono uppercase tracking-[0.2em] text-[#00d4ff]/70">Daily Dungeon</div>
-            <div className="text-xs font-black text-white tracking-tight -mt-0.5">Sung Jin-woo Protocol</div>
+            <div className="text-[8px] font-mono uppercase tracking-[0.25em] text-gray-500">Daily Dungeon</div>
+            <div className="text-sm font-black text-white tracking-tight">Sung Jin-woo Protocol</div>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Stats badges */}
-          <div className="flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
-            <Flame size={9} className="text-orange-400" />
-            <span className="text-[9px] font-mono font-bold text-gray-300">Day {dungeonState.currentDay}</span>
+          <div className="px-2 py-1 rounded-md" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <span className="text-[9px] font-mono font-bold text-gray-400">Day {dungeonState.currentDay}</span>
           </div>
           <div
-            className="flex items-center gap-1 px-2 py-1 rounded-lg"
+            className="flex items-center gap-1 px-2 py-1 rounded-md"
             style={{
-              background: `${tier.color}10`,
-              border: `1px solid ${tier.color}25`,
+              background: `${tier.color}08`,
+              border: `1px solid ${tier.color}18`,
             }}
           >
             <Shield size={9} style={{ color: tier.color }} />
@@ -230,7 +201,7 @@ const DungeonQuestCards: React.FC<DungeonQuestCardsProps> = ({
         </div>
       </div>
 
-      {/* Individual exercise cards */}
+      {/* Exercise cards */}
       {dungeonState.targets.map((target, i) => (
         <ExerciseCard
           key={target.exercise}
@@ -246,42 +217,40 @@ const DungeonQuestCards: React.FC<DungeonQuestCardsProps> = ({
         />
       ))}
 
-      {/* Enter Dungeon / Cleared button */}
+      {/* Enter Dungeon / Cleared */}
       <AnimatePresence mode="wait">
         {completedToday ? (
           <motion.div
             key="completed"
-            initial={{ opacity: 0, y: 5 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex items-center justify-center gap-2 py-3.5 rounded-xl"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex items-center justify-center gap-2.5 py-3.5 rounded-xl"
             style={{
-              background: 'rgba(34,197,94,0.06)',
-              border: '1px solid rgba(34,197,94,0.15)',
+              background: 'rgba(34,197,94,0.04)',
+              border: '1px solid rgba(34,197,94,0.1)',
             }}
           >
             <Check size={14} className="text-green-400" strokeWidth={3} />
-            <span className="text-xs font-black font-mono text-green-400 uppercase tracking-[0.25em]">
-              DUNGEON CLEARED
+            <span className="text-[11px] font-black font-mono text-green-400 uppercase tracking-[0.2em]">
+              Dungeon Cleared
             </span>
-            <Trophy size={12} className="text-green-400/60" />
           </motion.div>
         ) : (
           <motion.button
             key="enter"
-            initial={{ opacity: 0, y: 5 }}
+            initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
             whileTap={{ scale: 0.97 }}
             onClick={onEnterDungeon}
-            className="w-full flex items-center justify-center gap-2.5 py-4 rounded-xl font-black text-sm uppercase tracking-widest transition-all active:scale-[0.98]"
+            className="w-full flex items-center justify-center gap-2.5 py-4 rounded-xl font-black text-sm uppercase tracking-wider transition-all"
             style={{
               background: 'linear-gradient(135deg, #00d4ff 0%, #0099cc 100%)',
               color: '#000',
-              boxShadow: '0 0 25px rgba(0,212,255,0.25), inset 0 1px 0 rgba(255,255,255,0.2)',
             }}
           >
-            <Swords size={16} />
+            <Swords size={15} />
             Enter Dungeon
-            <ChevronRight size={14} strokeWidth={3} />
+            <ChevronRight size={13} strokeWidth={3} />
           </motion.button>
         )}
       </AnimatePresence>
