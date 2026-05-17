@@ -672,6 +672,7 @@ export interface Goal {
   // System goals (cannot be deleted/modified by user)
   isSystemGoal?: boolean;
   systemGoalType?: 'DAILY_DUNGEON';
+  coverImage?: string; // Background image for visual goal cards
 }
 
 export interface PlayerData {

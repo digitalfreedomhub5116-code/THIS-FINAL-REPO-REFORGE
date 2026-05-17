@@ -2092,6 +2092,7 @@ export const useSystem = () => {
         createdAt: Date.now(),
         isSystemGoal: true,
         systemGoalType: 'DAILY_DUNGEON',
+        coverImage: '/dungeon/running.webp',
       };
 
       return {

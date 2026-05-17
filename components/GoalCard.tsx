@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Target, Calendar, Flame, ChevronRight, Pause, Trophy } from 'lucide-react';
+import { Target, Calendar, Flame, ChevronRight, Pause, Trophy, Pin, Swords } from 'lucide-react';
 import { Goal, Rank } from '../types';
 
 const RANK_COLORS: Record<string, string> = {
@@ -18,7 +18,119 @@ interface GoalCardProps {
   onTap: (goal: Goal) => void;
 }
 
+// ── Pinned System Goal Card (with cover image) ──
+function PinnedGoalCardContent({ goal, onTap }: GoalCardProps) {
+  const [imgLoaded, setImgLoaded] = useState(false);
+  const goalStartTime = goal.startDate || goal.createdAt || Date.now();
+  const currentDay = Math.max(1, Math.floor((Date.now() - goalStartTime) / (1000 * 60 * 60 * 24)) + 1);
+  const totalDays = goal.totalDurationDays || 1;
+  const progress = Math.min(100, Math.round((currentDay / totalDays) * 100));
+  const rankColor = RANK_COLORS[goal.goalRank] || RANK_COLORS.E;
+
+  const currentMilestone = goal.milestones?.find(m =>
+    currentDay >= m.startDay && currentDay <= m.endDay
+  ) || goal.milestones?.[0];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileTap={{ scale: 0.98 }}
+      onClick={() => onTap(goal)}
+      className="relative rounded-2xl overflow-hidden cursor-pointer"
+      style={{
+        minHeight: 160,
+        border: '1px solid rgba(0,180,220,0.1)',
+      }}
+    >
+      {/* Background image */}
+      <div className="absolute inset-0 z-0">
+        <img
+          src={goal.coverImage}
+          alt=""
+          className="w-full h-full object-cover transition-opacity duration-700"
+          style={{ opacity: imgLoaded ? 0.3 : 0, filter: 'saturate(0.5) brightness(0.8)' }}
+          onLoad={() => setImgLoaded(true)}
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            background: 'linear-gradient(180deg, rgba(8,8,18,0.4) 0%, rgba(8,8,18,0.75) 45%, rgba(6,6,14,0.96) 100%)',
+          }}
+        />
+      </div>
+
+      <div className="relative z-10 p-4">
+        {/* Pin + System badge */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Pin size={10} style={{ color: '#5ab8cc' }} />
+            <span className="text-[7px] font-mono font-bold uppercase tracking-[0.2em]" style={{ color: '#5ab8cc80' }}>
+              Pinned Quest
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Swords size={9} style={{ color: '#5ab8cc' }} />
+            <span className="text-[7px] font-mono font-bold uppercase tracking-wider" style={{ color: '#5ab8cc' }}>
+              System
+            </span>
+          </div>
+        </div>
+
+        {/* Title */}
+        <h3 className="text-base font-bold text-gray-100 mb-0.5">{goal.title}</h3>
+        <p className="text-[9px] text-gray-500 font-mono mb-3">
+          Push-ups · Squats · Running — Every day, no exceptions
+        </p>
+
+        {/* Progress bar */}
+        <div className="mb-3">
+          <div className="flex justify-between items-center mb-1">
+            <span className="text-[8px] font-mono text-gray-600">PROGRESS</span>
+            <span className="text-[8px] font-mono" style={{ color: '#5ab8cc' }}>Day {currentDay}</span>
+          </div>
+          <div className="h-1 rounded-full bg-white/5 overflow-hidden">
+            <motion.div
+              className="h-full rounded-full"
+              style={{ background: `linear-gradient(90deg, ${rankColor}66, ${rankColor})` }}
+              initial={{ width: 0 }}
+              animate={{ width: `${progress}%` }}
+              transition={{ duration: 0.8, ease: 'easeOut' }}
+            />
+          </div>
+        </div>
+
+        {/* Stats row */}
+        <div className="flex items-center gap-4 text-[9px] font-mono text-gray-500">
+          <div className="flex items-center gap-1">
+            <span className="text-[8px] font-bold px-1.5 py-0.5 rounded" style={{ background: `${rankColor}15`, color: rankColor, opacity: 0.8 }}>
+              {goal.goalRank}-RANK
+            </span>
+          </div>
+          {goal.streak > 0 && (
+            <div className="flex items-center gap-1" style={{ color: '#fb923c88' }}>
+              <Flame className="w-3 h-3" />
+              <span>{goal.streak}d</span>
+            </div>
+          )}
+          {currentMilestone && (
+            <div className="ml-auto text-[8px] text-gray-600 truncate max-w-[120px]">
+              Phase {currentMilestone.phase}: {currentMilestone.title}
+            </div>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// ── Standard Goal Card ──
 export default function GoalCard({ goal, onTap }: GoalCardProps) {
+  // If this goal has a cover image (e.g. system dungeon goal), show the pinned visual card
+  if (goal.coverImage && goal.isSystemGoal) {
+    return <PinnedGoalCardContent goal={goal} onTap={onTap} />;
+  }
+
   const goalStartTime = goal.startDate || goal.createdAt || Date.now();
   const currentDay = Math.max(1, Math.floor((Date.now() - goalStartTime) / (1000 * 60 * 60 * 24)) + 1);
   const totalDays = goal.totalDurationDays || 1;
@@ -76,7 +188,7 @@ export default function GoalCard({ goal, onTap }: GoalCardProps) {
                   </span>
                 )}
                 {isCompleted && (
-                  <span className="flex items-center gap-0.5 text-[9px] text-green-400 font-mono">
+                  <span className="flex items-center gap-0.5 text-[9px] text-[#5ab8cc] font-mono">
                     <Trophy className="w-2.5 h-2.5" /> COMPLETE
                   </span>
                 )}
