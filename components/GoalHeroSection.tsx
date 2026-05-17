@@ -313,36 +313,14 @@ const GoalHeroSection: React.FC<GoalHeroSectionProps> = ({ goals, onCreateGoal, 
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
   const [showGoalInfo, setShowGoalInfo] = useState(false);
 
-  // ── FREE USER: Show system goals + Pro upsell below ──
+  // ── FREE USER: Pro upsell on top, system goals below ──
   if (!isPremium) {
     const systemGoals = activeGoals.filter(g => g.isSystemGoal);
 
     return (
       <div className="space-y-3">
 
-        {/* Show system goals (Daily Dungeon) for free users */}
-        {systemGoals.length > 0 && (
-          <div>
-            <div className="flex items-center gap-1.5 mb-3 px-1">
-              <Pin size={10} className="text-[#00d4ff]" style={{ transform: 'rotate(45deg)' }} />
-              <span className="text-[9px] font-mono font-bold tracking-[0.2em] text-gray-500 uppercase">
-                Active Goals
-              </span>
-              <span className="text-[8px] font-mono text-[#00d4ff]/60 ml-auto">
-                {systemGoals.length} pinned
-              </span>
-            </div>
-            <div className="grid grid-cols-1 gap-3 px-1 pt-3">
-              {systemGoals.map((goal, i) => (
-                <PinnedGoalCard key={goal.id} goal={goal} index={i}
-                  onClick={() => setSelectedGoal(goal)}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Pro upsell — compact version for creating more goals */}
+        {/* Pro upsell — on top */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -395,6 +373,29 @@ const GoalHeroSection: React.FC<GoalHeroSectionProps> = ({ goals, onCreateGoal, 
             </motion.button>
           </div>
         </motion.div>
+
+        {/* System goals below — same tilted pinned style as premium */}
+        {systemGoals.length > 0 && (
+          <div>
+            <div className="flex items-center gap-1.5 mb-3 px-1">
+              <Pin size={10} className="text-[#00d4ff]" style={{ transform: 'rotate(45deg)' }} />
+              <span className="text-[9px] font-mono font-bold tracking-[0.2em] text-gray-500 uppercase">
+                Active Goals
+              </span>
+              <span className="text-[8px] font-mono text-[#00d4ff]/60 ml-auto">
+                {systemGoals.length} pinned
+              </span>
+            </div>
+            {/* Same grid layout as premium — tilted cards */}
+            <div className="grid grid-cols-2 gap-3 px-1 pt-3">
+              {systemGoals.map((goal, i) => (
+                <PinnedGoalCard key={goal.id} goal={goal} index={i}
+                  onClick={() => setSelectedGoal(goal)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Goal Details Popup for system goals */}
         <AnimatePresence>
