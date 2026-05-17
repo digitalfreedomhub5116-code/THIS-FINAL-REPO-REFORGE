@@ -121,13 +121,13 @@ const ExerciseCard: React.FC<{
           src={meta.image}
           alt=""
           className="w-full h-full object-cover transition-opacity duration-700"
-          style={{ opacity: imgLoaded ? 0.25 : 0, filter: 'saturate(0.7) brightness(0.9)' }}
+          style={{ opacity: imgLoaded ? 0.45 : 0, filter: 'saturate(0.8) brightness(0.95)' }}
           onLoad={() => setImgLoaded(true)}
         />
         <div
           className="absolute inset-0"
           style={{
-            background: 'linear-gradient(180deg, rgba(8,8,18,0.4) 0%, rgba(8,8,18,0.8) 40%, rgba(6,6,14,0.97) 100%)',
+            background: 'linear-gradient(180deg, rgba(8,8,18,0.25) 0%, rgba(8,8,18,0.65) 40%, rgba(6,6,14,0.95) 100%)',
           }}
         />
       </div>
@@ -137,7 +137,7 @@ const ExerciseCard: React.FC<{
         <div className="absolute inset-0 z-[1] pointer-events-none" style={{ background: 'rgba(0,212,255,0.02)' }} />
       )}
 
-      <div className="relative z-10 p-5 flex flex-col justify-between" style={{ minHeight: 170 }}>
+      <div className="relative z-10 p-5 flex flex-col justify-between" style={{ minHeight: 160 }}>
         {/* Top: Title + cleared badge */}
         <div>
           <div className="flex items-center gap-2.5 mb-1">
@@ -170,12 +170,6 @@ const ExerciseCard: React.FC<{
           {!isRunning && onToggleCoach && (
             <AICoachToggle enabled={target.formCoachEnabled} onToggle={onToggleCoach} />
           )}
-        </div>
-
-        {/* Bottom: Difficulty only */}
-        <div className="flex items-center gap-2 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-          <span className="text-[9px] text-gray-600 font-mono uppercase tracking-wider">Difficulty</span>
-          <DifficultyDots level={diffLevel} />
         </div>
       </div>
     </motion.div>
