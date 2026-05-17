@@ -2051,6 +2051,105 @@ export const useSystem = () => {
     // Silent abort — no penalty, no notification
   };
 
+  // ── DAILY DUNGEON STATE MANAGEMENT ──
+  const DUNGEON_GOAL_ID = 'system-goal-daily-dungeon';
+
+  const initializeDungeon = () => {
+    setPlayer(prev => {
+      if (prev.dungeonState) return prev; // Already initialized
+      const profile = prev.healthProfile;
+      if (!profile) return prev;
+      const { createInitialDungeonState } = require('../lib/dungeonEngine');
+      const dungeonState = createInitialDungeonState(profile);
+
+      // Also inject the System Goal if not already present
+      const existingGoals = prev.goals || [];
+      const hasDungeonGoal = existingGoals.some(g => g.id === DUNGEON_GOAL_ID);
+      const dungeonGoal: Goal = {
+        id: DUNGEON_GOAL_ID,
+        title: 'Sung Jin-woo Protocol',
+        category: 'FITNESS' as any,
+        goalRank: 'S' as any,
+        successProbability: 100,
+        status: 'ACTIVE',
+        milestones: [
+          { phase: 1, title: 'First Dungeon Clear', description: 'Complete your first 3 Daily Dungeons to establish the habit.', startDay: 1, endDay: 3, targetOutcome: 'Complete your first 3 Daily Dungeons', sampleDailyPattern: ['Push-ups', 'Squats', 'Running'], connectionToNext: 'Build the habit before increasing intensity' },
+          { phase: 2, title: 'SOLDIER Rank', description: 'Progressive overload activates. Targets increase every 3 days.', startDay: 4, endDay: 12, targetOutcome: 'Reach SOLDIER progression tier', sampleDailyPattern: ['Progressive overload active', 'Targets increase every 3 days'], connectionToNext: 'Prepare for warrior-level intensity' },
+          { phase: 3, title: 'WARRIOR Rank', description: 'High-volume training. You are becoming unstoppable.', startDay: 13, endDay: 30, targetOutcome: 'Reach WARRIOR progression tier', sampleDailyPattern: ['High-volume training', 'Consistency is key'], connectionToNext: 'Continue your path to Shadow Monarch' },
+        ],
+        currentMilestone: 0,
+        interviewQA: [],
+        dailyCommitmentMin: 15,
+        totalDurationDays: 365,
+        smartDurationReasoning: 'The Sung Jin-woo Protocol is a permanent daily training regimen. Push-ups, Squats, and Running — every day.',
+        weeklyRestDay: 'NONE',
+        riskFactors: [],
+        reasoning: 'System-assigned mandatory daily training. This goal cannot be deleted or modified.',
+        startDate: Date.now(),
+        targetDate: Date.now() + 365 * 86400000,
+        streak: 0,
+        dailyTasks: [],
+        createdAt: Date.now(),
+        isSystemGoal: true,
+        systemGoalType: 'DAILY_DUNGEON',
+      };
+
+      return {
+        ...prev,
+        dungeonState,
+        goals: hasDungeonGoal ? existingGoals : [dungeonGoal, ...existingGoals],
+      };
+    });
+  };
+
+  const updateDungeonState = (updater: (prev: any) => any) => {
+    setPlayer(prev => {
+      if (!prev.dungeonState) return prev;
+      return { ...prev, dungeonState: updater(prev.dungeonState) };
+    });
+  };
+
+  const completeDungeonWorkout = (
+    exercisesCompleted: number,
+    totalExercises: number,
+    results: Record<string, number>,
+    anomalyPoints: number = 0,
+    formCoachBonusXp: number = 0,
+    formCoachSession?: FormCoachSession
+  ) => {
+    // First: give normal workout rewards
+    const rewards = completeWorkoutSession(exercisesCompleted, totalExercises, results, false, anomalyPoints, false, formCoachBonusXp, formCoachSession);
+
+    // Then: update dungeon state (record completion)
+    setPlayer(prev => {
+      if (!prev.dungeonState) return prev;
+      const { recordDungeonCompletion, getDungeonTargetsForToday } = require('../lib/dungeonEngine');
+      let newState = recordDungeonCompletion(prev.dungeonState);
+      // Check for progression
+      const { updatedState, progressionTriggered } = getDungeonTargetsForToday(newState);
+      newState = updatedState;
+      if (progressionTriggered) {
+        const newLogs = [createLog('⬆️ DAILY DUNGEON LEVEL UP — Targets increased!', 'SYSTEM'), ...prev.logs];
+        return { ...prev, dungeonState: newState, logs: newLogs };
+      }
+      return { ...prev, dungeonState: newState };
+    });
+
+    addNotification('⚔️ DUNGEON CLEARED — Sung Jin-woo Protocol Complete!', 'SUCCESS');
+    return rewards;
+  };
+
+  const failDungeonWorkout = () => {
+    setPlayer(prev => {
+      if (!prev.dungeonState) return prev;
+      const { recordDungeonFailure } = require('../lib/dungeonEngine');
+      const newState = recordDungeonFailure(prev.dungeonState);
+      const newLogs = [createLog('❌ Daily Dungeon failed — difficulty reduced for next attempt', 'WARNING'), ...prev.logs];
+      return { ...prev, dungeonState: newState, logs: newLogs };
+    });
+    addNotification('Dungeon failed — targets reduced. Try again tomorrow.', 'WARNING');
+  };
+
   const advanceTutorial = (step: number) => {
     setPlayer(prev => ({ ...prev, tutorialStep: step }));
   };
@@ -2423,5 +2522,9 @@ export const useSystem = () => {
     markDataReady,
     setIsPremium,
     isPremium,
+    initializeDungeon,
+    updateDungeonState,
+    completeDungeonWorkout,
+    failDungeonWorkout,
   };
 };

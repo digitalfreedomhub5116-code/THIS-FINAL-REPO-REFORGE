@@ -2006,7 +2006,7 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
 
                           {/* Push-ups */}
                           <motion.div variants={setupItemVariants}>
-                              <p className="text-[10px] text-gray-500 uppercase font-bold mb-2 tracking-widest">Max Push-ups (one set)</p>
+                              <p className="text-[10px] text-gray-500 uppercase font-bold mb-2 tracking-widest">Max Push-ups (one set, no break)</p>
                               <div className="grid grid-cols-2 gap-2">
                                   {([
                                       { label: '0 – 5', val: 5 },
@@ -2014,8 +2014,44 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                                       { label: '30 – 50', val: 40 },
                                       { label: '50+', val: 60 },
                                   ]).map(opt => (
-                                      <button key={opt.val} onClick={() => { triggerHaptic('BUTTON_TAP'); setBaselines({ ...baselines, pushups: opt.val }); }}
+                                      <button key={opt.val} onClick={() => { triggerHaptic('BUTTON_TAP'); setBaselines({ ...baselines, pushups: opt.val }); setFormData(fd => ({ ...fd, baselinePushups: opt.val })); }}
                                           className={`py-3 px-3 rounded-xl border text-center transition-all ${baselines.pushups === opt.val ? 'bg-system-neon text-black border-system-neon' : 'border-gray-800 text-gray-400 hover:border-gray-600'}`}>
+                                          <div className="font-bold text-[11px]">{opt.label}</div>
+                                      </button>
+                                  ))}
+                              </div>
+                          </motion.div>
+
+                          {/* Squats */}
+                          <motion.div variants={setupItemVariants}>
+                              <p className="text-[10px] text-gray-500 uppercase font-bold mb-2 tracking-widest">Max Squats (one set, no break)</p>
+                              <div className="grid grid-cols-2 gap-2">
+                                  {([
+                                      { label: '0 – 10', val: 10 },
+                                      { label: '15 – 30', val: 20 },
+                                      { label: '40 – 60', val: 50 },
+                                      { label: '60+', val: 70 },
+                                  ]).map(opt => (
+                                      <button key={opt.val} onClick={() => { triggerHaptic('BUTTON_TAP'); setFormData(fd => ({ ...fd, baselineSquats: opt.val })); }}
+                                          className={`py-3 px-3 rounded-xl border text-center transition-all ${formData.baselineSquats === opt.val ? 'bg-green-500 text-black border-green-500' : 'border-gray-800 text-gray-400 hover:border-gray-600'}`}>
+                                          <div className="font-bold text-[11px]">{opt.label}</div>
+                                      </button>
+                                  ))}
+                              </div>
+                          </motion.div>
+
+                          {/* Running */}
+                          <motion.div variants={setupItemVariants}>
+                              <p className="text-[10px] text-gray-500 uppercase font-bold mb-2 tracking-widest">Max Running (minutes, no break)</p>
+                              <div className="grid grid-cols-2 gap-2">
+                                  {([
+                                      { label: '0 – 3 min', val: 3 },
+                                      { label: '5 – 10 min', val: 8 },
+                                      { label: '15 – 20 min', val: 18 },
+                                      { label: '30+ min', val: 30 },
+                                  ]).map(opt => (
+                                      <button key={opt.val} onClick={() => { triggerHaptic('BUTTON_TAP'); setFormData(fd => ({ ...fd, baselineRunMinutes: opt.val })); }}
+                                          className={`py-3 px-3 rounded-xl border text-center transition-all ${formData.baselineRunMinutes === opt.val ? 'bg-orange-500 text-black border-orange-500' : 'border-gray-800 text-gray-400 hover:border-gray-600'}`}>
                                           <div className="font-bold text-[11px]">{opt.label}</div>
                                       </button>
                                   ))}
@@ -2064,14 +2100,14 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                               <button 
                                   onClick={() => {
                                       // Check if all three selections are made (not default values)
-                                      if (baselines.pushups !== 0 && baselines.focusDuration !== 0 && baselines.sleepAvg !== 0) {
+                                      if (baselines.pushups !== 0 && baselines.focusDuration !== 0 && baselines.sleepAvg !== 0 && formData.baselineSquats && formData.baselineRunMinutes) {
                                           triggerHaptic('SUCCESS');
                                           handleFinish();
                                       }
                                   }}
-                                  disabled={baselines.pushups === 0 || baselines.focusDuration === 0 || baselines.sleepAvg === 0}
+                                  disabled={baselines.pushups === 0 || baselines.focusDuration === 0 || baselines.sleepAvg === 0 || !formData.baselineSquats || !formData.baselineRunMinutes}
                                   className={`px-10 py-3 rounded-full font-black text-xs transition-all uppercase flex items-center gap-2 ${
-                                      baselines.pushups === 0 || baselines.focusDuration === 0 || baselines.sleepAvg === 0
+                                      baselines.pushups === 0 || baselines.focusDuration === 0 || baselines.sleepAvg === 0 || !formData.baselineSquats || !formData.baselineRunMinutes
                                           ? 'bg-gray-800 text-gray-600 cursor-not-allowed'
                                           : 'bg-system-neon text-black shadow-[0_0_15px_#00d4ff] hover:bg-white'
                                   }`}

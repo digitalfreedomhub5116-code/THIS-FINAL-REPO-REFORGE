@@ -619,7 +619,8 @@ export default function GoalDetailView({
           </div>
         </div>
 
-        {/* Rest Day Setting */}
+        {/* Rest Day Setting — hidden for system goals */}
+        {!goal.isSystemGoal && (
         <div className="rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(129,140,248,0.08)' }}>
           <button
             onClick={() => setShowRestDayPicker(!showRestDayPicker)}
@@ -687,6 +688,7 @@ export default function GoalDetailView({
             )}
           </AnimatePresence>
         </div>
+        )}
 
         {/* Today's Quests */}
         <div className="rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.03)' }}>
@@ -842,7 +844,8 @@ export default function GoalDetailView({
           </div>
         )}
 
-        {/* Actions */}
+        {/* Actions — hidden for system goals */}
+        {!goal.isSystemGoal && (
         <div className="flex gap-2 pb-4">
           <button
             onClick={togglePause}
@@ -860,6 +863,7 @@ export default function GoalDetailView({
             <Trash2 className="w-4 h-4" /> Abandon
           </button>
         </div>
+        )}
 
         {/* Abandon Confirmation */}
         <AnimatePresence>

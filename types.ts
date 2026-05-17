@@ -458,6 +458,11 @@ export interface HealthProfile {
   aiGeneratedPlanName?: string;
   planChangedAtDay?: number;
   prevPlanName?: string;
+
+  // Sung Jin-woo Daily Dungeon baselines (from calibration)
+  baselinePushups?: number;     // Max push-ups without stopping
+  baselineSquats?: number;      // Max squats without stopping
+  baselineRunMinutes?: number;  // Max running minutes without stopping
 }
 
 export interface WorkoutExercise {
@@ -662,6 +667,10 @@ export interface Goal {
   streak: number;
   dailyTasks: GoalDailyTask[];
   createdAt: number;
+
+  // System goals (cannot be deleted/modified by user)
+  isSystemGoal?: boolean;
+  systemGoalType?: 'DAILY_DUNGEON';
 }
 
 export interface PlayerData {
@@ -808,4 +817,41 @@ export interface PlayerData {
 
   // Form Coach (AI Motion Coach) History
   formCoachHistory?: FormCoachSession[];
+
+  // Daily Dungeon (Sung Jin-woo Protocol)
+  dungeonState?: DungeonState;
+}
+
+// --- DAILY DUNGEON (Sung Jin-woo Protocol) ---
+export interface DungeonExerciseTarget {
+  exercise: 'PUSHUPS' | 'SQUATS' | 'RUNNING';
+  sets: number;
+  reps: number;           // For push-ups/squats
+  durationMinutes?: number; // For running
+  formCoachEnabled: boolean;
+}
+
+export interface DungeonState {
+  // Progression tracking
+  currentDay: number;            // Days since first dungeon
+  startDate: number;             // Timestamp when dungeon was first activated
+  lastCompletedDate: string;     // 'YYYY-MM-DD' of last completion
+  lastProgressionDate: string;   // 'YYYY-MM-DD' when reps last increased
+  consecutiveCompletions: number; // For streak-like tracking within dungeon
+  totalCompletions: number;
+  totalFailures: number;
+
+  // Current targets (computed from baselines + progression)
+  targets: DungeonExerciseTarget[];
+
+  // Baselines snapshot (from calibration, frozen at dungeon creation)
+  baselinePushups: number;
+  baselineSquats: number;
+  baselineRunMinutes: number;
+
+  // Progression multiplier (starts at 0.7, increases by ~0.08 every 3 days)
+  progressionMultiplier: number;
+
+  // History of completed dungeons (last 30 days)
+  history: { date: string; completed: boolean; pushupsTarget: number; squatsTarget: number; runMinutes: number }[];
 }

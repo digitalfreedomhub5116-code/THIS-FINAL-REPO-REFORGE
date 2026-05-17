@@ -64,6 +64,12 @@ export default function GoalCard({ goal, onTap }: GoalCardProps) {
                   {goal.goalRank}-RANK
                 </span>
                 <span className="text-[9px] text-gray-500 font-mono">{goal.category}</span>
+                {goal.isSystemGoal && (
+                  <span className="flex items-center gap-0.5 text-[9px] text-[#00d4ff] font-mono font-black px-1.5 py-0.5 rounded"
+                    style={{ background: 'rgba(0,212,255,0.1)', border: '1px solid rgba(0,212,255,0.2)' }}>
+                    ⚔️ SYSTEM
+                  </span>
+                )}
                 {isPaused && (
                   <span className="flex items-center gap-0.5 text-[9px] text-amber-400 font-mono">
                     <Pause className="w-2.5 h-2.5" /> PAUSED

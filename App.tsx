@@ -354,6 +354,8 @@ const App: React.FC = () => {
 
     setIsPremium,
 
+    initializeDungeon, updateDungeonState, completeDungeonWorkout, failDungeonWorkout,
+
   } = useSystem();
 
   const { showRewardedAd, showInterstitialAd } = useAdMob();
@@ -2213,6 +2215,12 @@ const App: React.FC = () => {
   }, [saveGoalToDb]);
 
   const handleDeleteGoal = useCallback(async (goalId: string) => {
+    // Block deletion of system goals
+    const goal = (player.goals || []).find(g => g.id === goalId);
+    if (goal?.isSystemGoal) {
+      addNotification('System-assigned goals cannot be deleted.', 'WARNING');
+      return;
+    }
     if (player.userId) {
       try {
         await fetch(`${API_BASE}/api/goals/${goalId}`, {
@@ -2222,7 +2230,7 @@ const App: React.FC = () => {
         });
       } catch (e) { console.warn('[Goals] Failed to delete from DB:', e); }
     }
-  }, [player.userId]);
+  }, [player.userId, player.goals]);
 
 
 
@@ -4800,6 +4808,12 @@ const App: React.FC = () => {
                             onDeleteGoal={handleDeleteGoal}
                             onDeductGold={(amount) => setPlayer(prev => ({ ...prev, gold: Math.max(0, prev.gold - amount) }))}
                           /* ADS DISABLED — onShowInterstitialAd removed */
+
+                          dungeonState={player.dungeonState}
+                          onInitializeDungeon={initializeDungeon}
+                          onUpdateDungeonState={updateDungeonState}
+                          onCompleteDungeonWorkout={completeDungeonWorkout}
+                          onFailDungeonWorkout={failDungeonWorkout}
                           />
                         </ErrorBoundary>
                       </Suspense>

@@ -2,11 +2,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, CalendarDays, ChevronLeft, ChevronRight, Check, XCircle, Skull, AlertTriangle, BrainCircuit, Loader2, CheckCircle, X, Clock, ShieldCheck, Globe, Repeat, Zap, Dumbbell, Brain, Shield, Users } from 'lucide-react';
-import { Quest, CoreStats, Rank, Priority, PlayerData, Goal } from '../types';
+import { Quest, CoreStats, Rank, Priority, PlayerData, Goal, DungeonState, WorkoutDay, FormCoachSession } from '../types';
 import GoalsView from './GoalsView';
 import RankBadge from './RankBadge';
 import type { RankType } from './RankBadge';
 import QuestCard from './QuestCard';
+import DungeonQuestCards from './DungeonQuestCards';
+import ActiveWorkoutPlayer, { clearWorkoutSession } from './ActiveWorkoutPlayer';
+import { buildDungeonWorkoutPlan, toggleFormCoach } from '../lib/dungeonEngine';
 
 import { playSystemSoundEffect } from '../utils/soundEngine';
 import { API_BASE } from '../lib/apiConfig';
@@ -74,6 +77,12 @@ interface QuestsViewProps {
   onDeductGold?: (amount: number) => void;
   onShowInterstitialAd?: () => Promise<boolean>;
 
+  // Daily Dungeon (Sung Jin-woo Protocol)
+  dungeonState?: DungeonState;
+  onInitializeDungeon?: () => void;
+  onUpdateDungeonState?: (updater: (prev: DungeonState) => DungeonState) => void;
+  onCompleteDungeonWorkout?: (exercisesCompleted: number, totalExercises: number, results: Record<string, number>, anomalyPoints?: number, formCoachBonusXp?: number, formCoachSession?: FormCoachSession) => any;
+  onFailDungeonWorkout?: () => void;
 }
 
 const RANK_COLORS: Record<Rank, { bg: string; text: string; border: string; glow: string }> = {
@@ -95,7 +104,7 @@ function getUserTimezone(): string {
 }
 
 const QuestsView: React.FC<QuestsViewProps> = ({
-  quests, addQuest, completeQuest, failQuest, resetQuest, deleteQuest, tutorialStep, onTutorialAction, onTutorialAnalysisFail, playerData, onToggleNav, onShowPact, onStartTracking, onStopTracking, onConsumeMana, onRefundMana, isQuestOnboarding, onTutorialManaOut, goals, onUpdateGoals, onDeleteGoal, onDeductGold, onShowInterstitialAd,
+  quests, addQuest, completeQuest, failQuest, resetQuest, deleteQuest, tutorialStep, onTutorialAction, onTutorialAnalysisFail, playerData, onToggleNav, onShowPact, onStartTracking, onStopTracking, onConsumeMana, onRefundMana, isQuestOnboarding, onTutorialManaOut, goals, onUpdateGoals, onDeleteGoal, onDeductGold, onShowInterstitialAd, dungeonState, onInitializeDungeon, onUpdateDungeonState, onCompleteDungeonWorkout, onFailDungeonWorkout,
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<'QUESTS' | 'GOALS'>('QUESTS');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -110,6 +119,51 @@ const QuestsView: React.FC<QuestsViewProps> = ({
   const [analysisCount, setAnalysisCount] = useState(0);
 
   const userTimezone = getUserTimezone();
+
+  // Daily Dungeon state
+  const [isDungeonActive, setIsDungeonActive] = useState(false);
+  const [dungeonPlan, setDungeonPlan] = useState<WorkoutDay | null>(null);
+  const [dungeonRewards, setDungeonRewards] = useState<any[] | null>(null);
+
+  // Auto-initialize dungeon on mount if not yet initialized
+  useEffect(() => {
+    if (!dungeonState && playerData?.healthProfile && onInitializeDungeon) {
+      onInitializeDungeon();
+    }
+  }, [dungeonState, playerData?.healthProfile, onInitializeDungeon]);
+
+  const handleEnterDungeon = () => {
+    if (!dungeonState) return;
+    const plan = buildDungeonWorkoutPlan(dungeonState.targets);
+    setDungeonPlan(plan);
+    setIsDungeonActive(true);
+    onToggleNav?.(false);
+    playSystemSoundEffect('SYSTEM');
+  };
+
+  const handleDungeonComplete = (c: number, t: number, r: Record<string, number>, anomaly?: number, fcBonus?: number, fcSession?: FormCoachSession) => {
+    setIsDungeonActive(false);
+    setDungeonPlan(null);
+    onToggleNav?.(true);
+    if (onCompleteDungeonWorkout) {
+      onCompleteDungeonWorkout(c, t, r, anomaly, fcBonus, fcSession);
+    }
+  };
+
+  const handleDungeonFail = () => {
+    setIsDungeonActive(false);
+    setDungeonPlan(null);
+    onToggleNav?.(true);
+    clearWorkoutSession(playerData?.userId || 'local');
+    if (onFailDungeonWorkout) {
+      onFailDungeonWorkout();
+    }
+  };
+
+  const handleToggleFormCoach = (exercise: 'PUSHUPS' | 'SQUATS') => {
+    if (!dungeonState || !onUpdateDungeonState) return;
+    onUpdateDungeonState((prev) => toggleFormCoach(prev, exercise));
+  };
 
   useEffect(() => {
     onToggleNav?.(!isModalOpen);
@@ -343,6 +397,27 @@ const QuestsView: React.FC<QuestsViewProps> = ({
       )}
 
       {activeSubTab === 'QUESTS' && <>
+
+        {/* ── DAILY DUNGEON (Sung Jin-woo Protocol) ── */}
+        {dungeonState && (
+          <div className="px-0">
+            <DungeonQuestCards
+              dungeonState={dungeonState}
+              onEnterDungeon={handleEnterDungeon}
+              onToggleFormCoach={handleToggleFormCoach}
+            />
+          </div>
+        )}
+
+        {/* Dungeon Workout Player (fullscreen overlay) */}
+        {isDungeonActive && dungeonPlan && (
+          <ActiveWorkoutPlayer
+            plan={dungeonPlan}
+            onComplete={handleDungeonComplete}
+            onFail={handleDungeonFail}
+            streak={playerData?.streak || 0}
+          />
+        )}
 
 
         {/* TODAY TASKS row */}

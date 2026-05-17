@@ -53,7 +53,10 @@ export default function GoalsView({
   const [autoGenProgress, setAutoGenProgress] = useState<{ current: number; total: number }>({ current: 0, total: 0 });
   const autoGenRef = useRef(false); // prevent double-trigger
 
-  const activeGoals = goals.filter(g => g.status === 'ACTIVE' || g.status === 'PAUSED');
+  // System goals always appear first
+  const activeGoals = goals
+    .filter(g => g.status === 'ACTIVE' || g.status === 'PAUSED')
+    .sort((a, b) => (b.isSystemGoal ? 1 : 0) - (a.isSystemGoal ? 1 : 0));
   const completedGoals = goals.filter(g => g.status === 'COMPLETED');
 
   // ── Auto-generate quests for all active goals on mount ──
@@ -66,6 +69,8 @@ export default function GoalsView({
     // Find active goals that don't have today's quests AND haven't been auto-generated today
     const goalsNeedingGen = goals.filter(g => {
       if (g.status !== 'ACTIVE') return false;
+      // Skip system goals (e.g. Daily Dungeon — has its own quest engine)
+      if (g.isSystemGoal) return false;
       // Skip if already auto-generated today
       if (_autoGenTracker[g.id] === today) return false;
       // Skip if quests already exist for today

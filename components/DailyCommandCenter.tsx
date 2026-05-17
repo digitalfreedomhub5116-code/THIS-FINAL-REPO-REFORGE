@@ -11,7 +11,8 @@ import {
 } from 'lucide-react';
 import {
   Quest, CoreStats, Rank, Priority, PlayerData, Goal,
-  ScheduleProfile, ScheduleSlot, DailySchedule, ScheduleSlotType
+  ScheduleProfile, ScheduleSlot, DailySchedule, ScheduleSlotType,
+  DungeonState, WorkoutDay, FormCoachSession
 } from '../types';
 import GoalCard from './GoalCard';
 import GoalDetailView from './GoalDetailView';
@@ -19,6 +20,9 @@ import GoalCreationFlow from './GoalCreationFlow';
 import RankBadge from './RankBadge';
 import type { RankType } from './RankBadge';
 import QuestCard from './QuestCard';
+import DungeonQuestCards from './DungeonQuestCards';
+import ActiveWorkoutPlayer, { clearWorkoutSession } from './ActiveWorkoutPlayer';
+import { buildDungeonWorkoutPlan, toggleFormCoach } from '../lib/dungeonEngine';
 import { PLEDGE_AMOUNTS, MANDATORY_RANKS } from './SystemPactScreen';
 import { playSystemSoundEffect } from '../utils/soundEngine';
 import { API_BASE } from '../lib/apiConfig';
@@ -122,6 +126,13 @@ interface DailyCommandCenterProps {
   onToggleNotify?: (slotId: string, enabled: boolean, slots: ScheduleSlot[]) => void;
   onReorderSlots?: (slots: ScheduleSlot[]) => void;
   onShowInterstitialAd?: () => Promise<boolean>;
+
+  // Daily Dungeon (Sung Jin-woo Protocol)
+  dungeonState?: DungeonState;
+  onInitializeDungeon?: () => void;
+  onUpdateDungeonState?: (updater: (prev: DungeonState) => DungeonState) => void;
+  onCompleteDungeonWorkout?: (exercisesCompleted: number, totalExercises: number, results: Record<string, number>, anomalyPoints?: number, formCoachBonusXp?: number, formCoachSession?: FormCoachSession) => any;
+  onFailDungeonWorkout?: () => void;
 }
 
 // ────────────────────────────────────────────────────────────
@@ -897,6 +908,7 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
   goals, onUpdateGoals, onDeleteGoal, onDeductGold, onUpdateScheduleSlots,
   scheduleProfile, dailySchedule, rescheduleQuest: rescheduleQuestProp, onSetupSchedule,
   onSlotAction, onToggleNotify, onReorderSlots, onShowInterstitialAd,
+  dungeonState, onInitializeDungeon, onUpdateDungeonState, onCompleteDungeonWorkout, onFailDungeonWorkout,
 }) => {
   // ── State ──
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -913,6 +925,46 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
   const [showGoalCreate, setShowGoalCreate] = useState(false);
   const [rescheduleQuest, setRescheduleQuest] = useState<Quest | null>(null); // Reschedule modal
   const [pastCollapsed, setPastCollapsed] = useState(true); // F6
+
+  // Daily Dungeon state
+  const [isDungeonActive, setIsDungeonActive] = useState(false);
+  const [dungeonPlan, setDungeonPlan] = useState<WorkoutDay | null>(null);
+
+  // Auto-initialize dungeon on mount
+  useEffect(() => {
+    if (!dungeonState && playerData?.healthProfile && onInitializeDungeon) {
+      onInitializeDungeon();
+    }
+  }, [dungeonState, playerData?.healthProfile, onInitializeDungeon]);
+
+  const handleEnterDungeon = useCallback(() => {
+    if (!dungeonState) return;
+    const plan = buildDungeonWorkoutPlan(dungeonState.targets);
+    setDungeonPlan(plan);
+    setIsDungeonActive(true);
+    onToggleNav?.(false);
+    playSystemSoundEffect('SYSTEM');
+  }, [dungeonState, onToggleNav]);
+
+  const handleDungeonComplete = useCallback((c: number, t: number, r: Record<string, number>, anomaly?: number, fcBonus?: number, fcSession?: FormCoachSession) => {
+    setIsDungeonActive(false);
+    setDungeonPlan(null);
+    onToggleNav?.(true);
+    onCompleteDungeonWorkout?.(c, t, r, anomaly, fcBonus, fcSession);
+  }, [onToggleNav, onCompleteDungeonWorkout]);
+
+  const handleDungeonFail = useCallback(() => {
+    setIsDungeonActive(false);
+    setDungeonPlan(null);
+    onToggleNav?.(true);
+    clearWorkoutSession(playerData?.userId || 'local');
+    onFailDungeonWorkout?.();
+  }, [onToggleNav, onFailDungeonWorkout, playerData?.userId]);
+
+  const handleToggleFormCoach = useCallback((exercise: 'PUSHUPS' | 'SQUATS') => {
+    if (!dungeonState || !onUpdateDungeonState) return;
+    onUpdateDungeonState((prev) => toggleFormCoach(prev, exercise));
+  }, [dungeonState, onUpdateDungeonState]);
 
   // F5: Rule banner auto-hide
   const [bannerDismissed, setBannerDismissed] = useState(() => {
@@ -1256,6 +1308,29 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
         </div>
       </div>
 
+
+      {/* ── DAILY DUNGEON (Sung Jin-woo Protocol) ── */}
+      {dungeonState && (
+        <div className="mb-4">
+          <DungeonQuestCards
+            dungeonState={dungeonState}
+            onEnterDungeon={handleEnterDungeon}
+            onToggleFormCoach={handleToggleFormCoach}
+          />
+        </div>
+      )}
+
+      {/* Dungeon Workout Player (fullscreen overlay) */}
+      {isDungeonActive && dungeonPlan && (
+        <div className="fixed inset-0 z-[200]">
+          <ActiveWorkoutPlayer
+            plan={dungeonPlan}
+            onComplete={handleDungeonComplete}
+            onFail={handleDungeonFail}
+            streak={playerData?.streak || 0}
+          />
+        </div>
+      )}
 
       {/* ── UNIFIED TIMELINE ── */}
       <div className="min-h-[40vh] pb-4 relative px-1">
