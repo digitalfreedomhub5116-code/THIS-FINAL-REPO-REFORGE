@@ -32,12 +32,69 @@ const COUNTRY_TIMEZONES: Record<string, string> = {
   'Other':          '',
 };
 
+// Extended timezone → country mapping for auto-detection
+// Covers common timezone prefixes and aliases
+const TIMEZONE_TO_COUNTRY: Record<string, string> = {
+  'Asia/Kolkata':     'India',
+  'Asia/Calcutta':    'India',    // Legacy alias
+  'Asia/Colombo':     'India',    // Sri Lanka but close enough
+  'Asia/Tokyo':       'Japan',
+  'Asia/Seoul':       'South Korea',
+  'Asia/Manila':      'Philippines',
+  'Asia/Jakarta':     'Indonesia',
+  'Asia/Makassar':    'Indonesia',
+  'Asia/Jayapura':    'Indonesia',
+  'Europe/London':    'United Kingdom',
+  'Europe/Berlin':    'Germany',
+  'Europe/Paris':     'France',
+  'Europe/Rome':      'France',     // Close region
+  'Australia/Sydney': 'Australia',
+  'Australia/Melbourne': 'Australia',
+  'Australia/Perth':  'Australia',
+  'Australia/Brisbane': 'Australia',
+  'Australia/Adelaide': 'Australia',
+  'America/Toronto':  'Canada',
+  'America/Vancouver': 'Canada',
+  'America/Edmonton': 'Canada',
+  'America/Winnipeg': 'Canada',
+  'America/Halifax':  'Canada',
+  'America/Sao_Paulo': 'Brazil',
+  'America/Fortaleza': 'Brazil',
+  'America/Manaus':   'Brazil',
+  'America/Mexico_City': 'Mexico',
+  'America/Cancun':   'Mexico',
+  'America/Tijuana':  'Mexico',
+  'America/Argentina/Buenos_Aires': 'Argentina',
+  'Africa/Lagos':     'Nigeria',
+};
+
+// Detect country from browser prefix as fallback
+const US_TZ_PREFIXES = ['America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles', 'America/Phoenix', 'America/Anchorage', 'US/'];
+
 function getBrowserTimezone(): string {
   try {
     return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
   } catch {
     return 'UTC';
   }
+}
+
+/** Auto-detect country from the browser's timezone */
+function detectCountryFromTimezone(): string {
+  const tz = getBrowserTimezone();
+
+  // Direct match
+  if (TIMEZONE_TO_COUNTRY[tz]) return TIMEZONE_TO_COUNTRY[tz];
+
+  // Check US-specific timezones
+  if (US_TZ_PREFIXES.some(prefix => tz.startsWith(prefix))) return 'United States';
+
+  // Fallback: match by region prefix
+  if (tz.startsWith('Asia/Kolkata') || tz.startsWith('Asia/Calcutta')) return 'India';
+  if (tz.startsWith('Europe/London')) return 'United Kingdom';
+  if (tz.startsWith('Australia/')) return 'Australia';
+
+  return 'Other';
 }
 
 function getTimezoneForCountry(country: string): string {
@@ -47,11 +104,12 @@ function getTimezoneForCountry(country: string): string {
 }
 
 const NameOnboarding: React.FC<NameOnboardingProps> = ({ onComplete }) => {
-  const [country, setCountry] = useState('United States');
+  const detectedCountry = detectCountryFromTimezone();
+  const [country, setCountry] = useState(detectedCountry);
   const [timezone, setTimezone] = useState('');
 
   useEffect(() => {
-    setTimezone(getTimezoneForCountry('United States'));
+    setTimezone(getTimezoneForCountry(detectedCountry));
   }, []);
 
   const handleCountryChange = (newCountry: string) => {
