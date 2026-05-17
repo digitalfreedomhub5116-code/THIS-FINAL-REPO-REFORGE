@@ -17,6 +17,7 @@ import { Swords, Check, ChevronRight, Shield, MapPin, AlertTriangle, X } from 'l
 import { DungeonState, DungeonExerciseTarget } from '../types';
 import { getProgressionTier, isDungeonCompletedToday, isExerciseCompletedToday } from '../lib/dungeonEngine';
 import { triggerHaptic } from '../utils/soundEngine';
+import DungeonLimitReset from './DungeonLimitReset';
 
 const EXERCISE_META: Record<string, {
   label: string;
@@ -44,6 +45,10 @@ interface DungeonQuestCardsProps {
   dungeonState: DungeonState;
   onEnterDungeon: () => void;
   onToggleFormCoach: (exercise: 'PUSHUPS' | 'SQUATS') => void;
+  playerGold?: number;
+  userId?: string;
+  onUpdateDungeonState?: (updater: (prev: DungeonState) => DungeonState) => void;
+  onDeductGold?: (amount: number) => void;
 }
 
 // ── iOS-style AI Coach Toggle ──
@@ -256,6 +261,10 @@ const DungeonQuestCards: React.FC<DungeonQuestCardsProps> = ({
   dungeonState,
   onEnterDungeon,
   onToggleFormCoach,
+  playerGold = 0,
+  userId = '',
+  onUpdateDungeonState,
+  onDeductGold,
 }) => {
   const [showConfirm, setShowConfirm] = useState(false);
   const allCompletedToday = isDungeonCompletedToday(dungeonState);
@@ -299,19 +308,16 @@ const DungeonQuestCards: React.FC<DungeonQuestCardsProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="px-2 py-1 rounded-md" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
-              <span className="text-[9px] font-mono text-gray-500">Day {dungeonState.currentDay}</span>
-            </div>
-            <div
-              className="flex items-center gap-1 px-2 py-1 rounded-md"
-              style={{
-                background: `${tier.color}06`,
-                border: `1px solid ${tier.color}12`,
-              }}
-            >
-              <Shield size={9} style={{ color: tier.color, opacity: 0.7 }} />
-              <span className="text-[9px] font-bold font-mono" style={{ color: tier.color, opacity: 0.8 }}>{tier.label}</span>
-            </div>
+            {/* Gear icon — Recalibrate Limits */}
+            {onUpdateDungeonState && onDeductGold && userId && (
+              <DungeonLimitReset
+                dungeonState={dungeonState}
+                playerGold={playerGold}
+                userId={userId}
+                onUpdateDungeonState={onUpdateDungeonState}
+                onDeductGold={onDeductGold}
+              />
+            )}
           </div>
         </div>
 
