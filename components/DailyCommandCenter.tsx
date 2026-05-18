@@ -22,7 +22,7 @@ import type { RankType } from './RankBadge';
 import QuestCard from './QuestCard';
 import DungeonQuestCards from './DungeonQuestCards';
 import ActiveWorkoutPlayer, { clearWorkoutSession } from './ActiveWorkoutPlayer';
-import { buildDungeonWorkoutPlan, toggleFormCoach } from '../lib/dungeonEngine';
+import { buildDungeonWorkoutPlan, toggleFormCoach, isExerciseCompletedToday, recordExerciseCompletions } from '../lib/dungeonEngine';
 import { PLEDGE_AMOUNTS, MANDATORY_RANKS } from './SystemPactScreen';
 import { playSystemSoundEffect } from '../utils/soundEngine';
 import { API_BASE } from '../lib/apiConfig';
@@ -940,9 +940,8 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
   const handleEnterDungeon = useCallback(() => {
     if (!dungeonState) return;
     // Build plan only for exercises not yet completed today
-    const { isExerciseCompletedToday: isExDone } = require('../lib/dungeonEngine');
     const remainingTargets = dungeonState.targets.filter(
-      (t: DungeonExerciseTarget) => !isExDone(dungeonState, t.exercise)
+      (t: DungeonExerciseTarget) => !isExerciseCompletedToday(dungeonState, t.exercise)
     );
     // If all are done, use full plan (shouldn't happen but safety)
     const targetsForPlan = remainingTargets.length > 0 ? remainingTargets : dungeonState.targets;
@@ -960,10 +959,9 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
 
     // Track per-exercise completions based on what was in the plan
     if (dungeonState && onUpdateDungeonState) {
-      const { recordExerciseCompletions, isExerciseCompletedToday: isExDone } = require('../lib/dungeonEngine');
       // The plan only contained remaining exercises; all exercises in the plan were completed
       const remainingTargets = dungeonState.targets.filter(
-        (t: DungeonExerciseTarget) => !isExDone(dungeonState, t.exercise)
+        (t: DungeonExerciseTarget) => !isExerciseCompletedToday(dungeonState, t.exercise)
       );
       const completedExNames = remainingTargets.map((t: DungeonExerciseTarget) => t.exercise);
       onUpdateDungeonState((prev: DungeonState) => recordExerciseCompletions(prev, completedExNames));
@@ -981,7 +979,6 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
     // When quitting mid-workout, record which exercises were actually completed
     // The ActiveWorkoutPlayer's currentIdx tells us how many exercises were finished
     if (dungeonState && onUpdateDungeonState && dungeonPlan) {
-      const { recordExerciseCompletions, isExerciseCompletedToday: isExDone } = require('../lib/dungeonEngine');
       // We can't easily know exact progress from here, so we DON'T mark anything as completed on fail
       // The user must complete an exercise fully within the workout player for it to count
       // This prevents the "everything gets marked cleared" bug
