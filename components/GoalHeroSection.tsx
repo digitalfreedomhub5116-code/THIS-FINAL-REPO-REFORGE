@@ -621,11 +621,11 @@ function GoalHeroImg() {
         />
       )}
       <img
-        src="/goals/hero-dart.webp"
+        src="/goals/hero_goal.png"
         alt=""
         className="w-full h-full object-cover"
         style={{
-          filter: 'grayscale(100%) brightness(0.35) contrast(1.15)',
+          filter: 'grayscale(100%)',
           opacity: loaded ? 1 : 0,
           transition: 'opacity 0.4s ease',
         }}
