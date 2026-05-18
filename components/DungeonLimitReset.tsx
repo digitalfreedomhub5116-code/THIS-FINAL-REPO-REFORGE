@@ -11,14 +11,13 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Settings, X, Lock, Coins, AlertTriangle, Check, Minus, Plus } from 'lucide-react';
+import { Settings, X, Coins, AlertTriangle, Check, Minus, Plus } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { triggerHaptic } from '../utils/soundEngine';
 import { DungeonState } from '../types';
 import { computeTargets } from '../lib/dungeonEngine';
 
 const RESET_COST = 100; // gold per exercise
-const COOLDOWN_DAYS = 7;
 
 interface ExerciseConfig {
   key: string;
@@ -112,7 +111,6 @@ export const SingleExerciseLimitReset: React.FC<SingleExerciseLimitResetProps> =
   onDeductGold,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [cooldownDaysLeft, setCooldownDaysLeft] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
@@ -134,28 +132,6 @@ export const SingleExerciseLimitReset: React.FC<SingleExerciseLimitResetProps> =
   const [newValue, setNewValue] = useState(currentTargetValue);
   const [newSets, setNewSets] = useState(originalSets);
 
-  // Fetch cooldown for this specific exercise
-  useEffect(() => {
-    if (!isOpen || !userId || userId.startsWith('local')) return;
-    (async () => {
-      const { data } = await supabase
-        .from('dungeon_limit_resets')
-        .select('cooldown_expires_at')
-        .eq('user_id', userId)
-        .eq('exercise', exercise)
-        .gt('cooldown_expires_at', new Date().toISOString())
-        .order('reset_at', { ascending: false })
-        .limit(1);
-
-      if (data && data.length > 0) {
-        const exp = new Date(data[0].cooldown_expires_at);
-        setCooldownDaysLeft(Math.ceil((exp.getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
-      } else {
-        setCooldownDaysLeft(null);
-      }
-    })();
-  }, [isOpen, userId, exercise]);
-
   // Reset values when opening — use current target (what's on the card)
   useEffect(() => {
     if (isOpen) {
@@ -165,12 +141,11 @@ export const SingleExerciseLimitReset: React.FC<SingleExerciseLimitResetProps> =
     }
   }, [isOpen]);
 
-  const isLocked = cooldownDaysLeft !== null && cooldownDaysLeft > 0;
   const hasChanged = newValue !== currentTargetValue || (!isRunning && newSets !== originalSets);
   const canAfford = playerGold >= RESET_COST;
 
   const handleConfirm = async () => {
-    if (!hasChanged || !canAfford || loading || isLocked) return;
+    if (!hasChanged || !canAfford || loading) return;
     setLoading(true);
     triggerHaptic('BUTTON_TAP');
 
@@ -290,7 +265,7 @@ export const SingleExerciseLimitReset: React.FC<SingleExerciseLimitResetProps> =
                         {config.label}
                       </h3>
                       <p className="text-[9px] text-gray-500 font-mono tracking-wider">
-                        {RESET_COST} GOLD • {COOLDOWN_DAYS}-DAY COOLDOWN
+                        {RESET_COST} GOLD PER RESET
                       </p>
                     </div>
                   </div>
@@ -324,22 +299,13 @@ export const SingleExerciseLimitReset: React.FC<SingleExerciseLimitResetProps> =
                       <Check size={28} className="text-[#00d4ff]" strokeWidth={3} />
                     </motion.div>
                     <p className="text-white font-bold text-sm">{config.label} Updated!</p>
-                    <p className="text-gray-500 text-[10px] mt-1">Next reset in {COOLDOWN_DAYS} days</p>
+                    <p className="text-gray-500 text-[10px] mt-1">-{RESET_COST} Gold deducted</p>
                   </motion.div>
                 )}
               </AnimatePresence>
 
               {/* Exercise control */}
               <div className="px-5 space-y-3 pb-3">
-                {/* Locked state */}
-                {isLocked && (
-                  <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                    <Lock size={12} className="text-gray-600" />
-                    <span className="text-[10px] text-gray-500 font-mono">
-                      Cooldown active — {cooldownDaysLeft}d remaining
-                    </span>
-                  </div>
-                )}
 
                 {/* Rep / Distance control */}
                 <div
@@ -367,7 +333,7 @@ export const SingleExerciseLimitReset: React.FC<SingleExerciseLimitResetProps> =
                       max={config.max}
                       step={config.step}
                       unit={config.unit}
-                      disabled={isLocked}
+                      disabled={false}
                     />
                   </div>
                 </div>
@@ -397,7 +363,7 @@ export const SingleExerciseLimitReset: React.FC<SingleExerciseLimitResetProps> =
                         max={config.setsMax}
                         step={1}
                         unit="sets"
-                        disabled={isLocked}
+                        disabled={false}
                       />
                     </div>
                   </div>
@@ -443,15 +409,15 @@ export const SingleExerciseLimitReset: React.FC<SingleExerciseLimitResetProps> =
                 {/* Confirm button */}
                 <button
                   onClick={handleConfirm}
-                  disabled={!hasChanged || !canAfford || loading || isLocked}
+                  disabled={!hasChanged || !canAfford || loading}
                   className="w-full py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all active:scale-[0.97]"
                   style={{
-                    background: hasChanged && canAfford && !isLocked
+                    background: hasChanged && canAfford
                       ? 'linear-gradient(135deg, rgba(0,212,255,0.15), rgba(0,180,220,0.1))'
                       : 'rgba(255,255,255,0.03)',
-                    color: hasChanged && canAfford && !isLocked ? '#6ec4d6' : '#555',
-                    border: `1px solid ${hasChanged && canAfford && !isLocked ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.05)'}`,
-                    cursor: !hasChanged || !canAfford || isLocked ? 'not-allowed' : 'pointer',
+                    color: hasChanged && canAfford ? '#6ec4d6' : '#555',
+                    border: `1px solid ${hasChanged && canAfford ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.05)'}`,
+                    cursor: !hasChanged || !canAfford ? 'not-allowed' : 'pointer',
                   }}
                 >
                   {loading ? (
@@ -462,12 +428,10 @@ export const SingleExerciseLimitReset: React.FC<SingleExerciseLimitResetProps> =
                     />
                   ) : (
                     <>
-                      {isLocked ? (
-                        <><Lock size={12} /> Cooldown Active</>
-                      ) : !hasChanged ? (
+                      {!hasChanged ? (
                         'Adjust values to recalibrate'
                       ) : !canAfford ? (
-                        <><Lock size={12} /> Insufficient Gold</>
+                        <>Insufficient Gold</>
                       ) : (
                         <><Settings size={12} /> Confirm Recalibration</>
                       )}
