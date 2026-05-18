@@ -32,12 +32,12 @@ const EXERCISE_META: Record<string, {
   SQUATS: {
     label: 'Squats',
     subtitle: 'Lower body power training',
-    image: '/dungeon/squats.webp',
+    image: '/dungeon/squats.jpeg',
   },
   RUNNING: {
     label: 'Running',
     subtitle: 'Cardio endurance drill',
-    image: '/dungeon/running.webp',
+    image: '/dungeon/running.jpeg',
   },
 };
 
