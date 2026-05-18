@@ -201,18 +201,19 @@ const ExerciseCard: React.FC<{
           src={meta.image}
           alt=""
           className="w-full h-full object-cover transition-opacity duration-700"
-          style={{ opacity: imgLoaded ? (isCompleted ? 0.2 : 0.35) : 0, filter: `saturate(0.6) brightness(${isCompleted ? 0.5 : 0.8})` }}
+          style={{ opacity: imgLoaded ? (isCompleted ? 0.35 : 0.9) : 0, filter: isCompleted ? 'saturate(0.4) brightness(0.5)' : 'saturate(1) brightness(0.95)' }}
           onLoad={() => setImgLoaded(true)}
         />
+        {/* Subtle bottom gradient for text readability only */}
         <div
           className="absolute inset-0"
           style={{
-            background: 'linear-gradient(180deg, rgba(10,10,20,0.35) 0%, rgba(10,10,20,0.7) 45%, rgba(8,8,16,0.95) 100%)',
+            background: 'linear-gradient(180deg, rgba(10,10,20,0.05) 0%, rgba(10,10,20,0.15) 40%, rgba(8,8,16,0.55) 100%)',
           }}
         />
       </div>
 
-      <div className="relative z-10 p-5 flex flex-col justify-between" style={{ minHeight: 150 }}>
+      <div className="relative z-10 p-5 flex flex-col justify-between" style={{ minHeight: 150, textShadow: '0 1px 4px rgba(0,0,0,0.7)' }}>
         {/* Top: Title + cleared badge */}
         <div>
           <div className="flex items-center gap-2.5 mb-1">
