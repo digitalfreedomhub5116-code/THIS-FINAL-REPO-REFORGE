@@ -217,7 +217,7 @@ const ExerciseCard: React.FC<{
         {/* Top: Title + cleared badge */}
         <div>
           <div className="flex items-center gap-2.5 mb-1">
-            <h3 className={`text-xl font-black tracking-tight leading-tight ${isCompleted ? 'text-gray-500' : ''}`} style={isCompleted ? {} : { color: '#000000', textShadow: 'none' }}>
+            <h3 className={`text-xl font-black tracking-tight leading-tight ${isCompleted ? 'text-gray-500' : 'text-white'}`}>
               {meta.label}
             </h3>
             {isCompleted && (
@@ -239,13 +239,7 @@ const ExerciseCard: React.FC<{
             >
               {targetText}
             </span>
-            {/* GPS + Steps indicator for running */}
-            {isRunning && (
-              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded" style={{ background: 'rgba(0,180,220,0.05)', border: '1px solid rgba(0,180,220,0.08)' }}>
-                <MapPin size={7} style={{ color: '#5ab8cc' }} />
-                <span className="text-[6px] font-mono font-bold tracking-wider" style={{ color: '#5ab8cc80' }}>GPS + Steps</span>
-              </div>
-            )}
+
           </div>
 
           {!isRunning && onToggleCoach && !isCompleted && (
