@@ -621,7 +621,7 @@ function GoalHeroImg() {
         />
       )}
       <img
-        src="/goals/hero_goal.png"
+        src="/goals/hero_goal.jpeg"
         alt=""
         className="w-full h-full object-cover"
         style={{
