@@ -121,14 +121,17 @@ export const SingleExerciseLimitReset: React.FC<SingleExerciseLimitResetProps> =
 
   const isRunning = exercise === 'RUNNING';
   const target = dungeonState.targets.find(t => t.exercise === exercise);
+  const multiplier = dungeonState.progressionMultiplier || 0.7;
 
-  // Current baseline values
-  const originalReps = exercise === 'PUSHUPS' ? dungeonState.baselinePushups
-    : exercise === 'SQUATS' ? dungeonState.baselineSquats
-    : dungeonState.baselineRunKm;
+  // Show the CURRENT TARGET values (what user sees on cards), not baselines
+  const currentTargetValue = isRunning
+    ? (target?.distanceKm ?? dungeonState.baselineRunKm * multiplier)
+    : (target?.reps ?? Math.round(
+        (exercise === 'PUSHUPS' ? dungeonState.baselinePushups : dungeonState.baselineSquats) * multiplier
+      ));
   const originalSets = target?.sets ?? 3;
 
-  const [newValue, setNewValue] = useState(originalReps);
+  const [newValue, setNewValue] = useState(currentTargetValue);
   const [newSets, setNewSets] = useState(originalSets);
 
   // Fetch cooldown for this specific exercise
@@ -153,17 +156,17 @@ export const SingleExerciseLimitReset: React.FC<SingleExerciseLimitResetProps> =
     })();
   }, [isOpen, userId, exercise]);
 
-  // Reset values when opening
+  // Reset values when opening — use current target (what's on the card)
   useEffect(() => {
     if (isOpen) {
-      setNewValue(originalReps);
+      setNewValue(currentTargetValue);
       setNewSets(originalSets);
       setSuccess(false);
     }
   }, [isOpen]);
 
   const isLocked = cooldownDaysLeft !== null && cooldownDaysLeft > 0;
-  const hasChanged = newValue !== originalReps || (!isRunning && newSets !== originalSets);
+  const hasChanged = newValue !== currentTargetValue || (!isRunning && newSets !== originalSets);
   const canAfford = playerGold >= RESET_COST;
 
   const handleConfirm = async () => {
@@ -178,26 +181,29 @@ export const SingleExerciseLimitReset: React.FC<SingleExerciseLimitResetProps> =
           user_id: userId,
           exercise,
           custom_value: isRunning ? Math.round(newValue * 10) : newValue,
-          previous_value: isRunning ? Math.round(originalReps * 10) : originalReps,
+          previous_value: isRunning ? Math.round(currentTargetValue * 10) : currentTargetValue,
           cost_paid: RESET_COST,
         });
 
       if (error) throw error;
 
-      // Update local dungeon state baselines
+      // Reverse-compute the new baseline from the desired target value
+      // target = baseline × multiplier  →  baseline = target / multiplier
       onUpdateDungeonState((prev) => {
+        const mult = prev.progressionMultiplier || 0.7;
         let bp = prev.baselinePushups;
         let bs = prev.baselineSquats;
         let br = prev.baselineRunKm;
 
-        if (exercise === 'PUSHUPS') bp = newValue;
-        if (exercise === 'SQUATS') bs = newValue;
-        if (exercise === 'RUNNING') br = newValue;
+        // Set the new baseline so that baseline × multiplier = desired value
+        if (exercise === 'PUSHUPS') bp = Math.round(newValue / mult);
+        if (exercise === 'SQUATS') bs = Math.round(newValue / mult);
+        if (exercise === 'RUNNING') br = +(newValue / mult).toFixed(1);
 
         const fcPushups = prev.targets.find(t => t.exercise === 'PUSHUPS')?.formCoachEnabled ?? false;
         const fcSquats = prev.targets.find(t => t.exercise === 'SQUATS')?.formCoachEnabled ?? false;
 
-        const newTargets = computeTargets(bp, bs, br, prev.progressionMultiplier, fcPushups, fcSquats);
+        const newTargets = computeTargets(bp, bs, br, mult, fcPushups, fcSquats);
 
         // Apply custom sets for non-running exercises
         if (!isRunning) {
@@ -350,7 +356,7 @@ export const SingleExerciseLimitReset: React.FC<SingleExerciseLimitResetProps> =
                       </span>
                       <div className="mt-0.5">
                         <span className="text-[8px] text-gray-600 font-mono">
-                          Current: {originalReps} {config.unit}
+                          Current: {currentTargetValue} {config.unit}
                         </span>
                       </div>
                     </div>
