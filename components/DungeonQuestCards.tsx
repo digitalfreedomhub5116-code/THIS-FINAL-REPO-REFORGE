@@ -201,7 +201,7 @@ const ExerciseCard: React.FC<{
           src={meta.image}
           alt=""
           className="w-full h-full object-cover transition-opacity duration-700"
-          style={{ opacity: imgLoaded ? (isCompleted ? 0.35 : 0.9) : 0, filter: isCompleted ? 'saturate(0.4) brightness(0.5)' : 'saturate(1) brightness(0.95)' }}
+          style={{ opacity: imgLoaded ? (isCompleted ? 0.4 : 1) : 0, filter: isCompleted ? 'grayscale(100%) brightness(0.4)' : 'grayscale(100%) brightness(0.9)' }}
           onLoad={() => setImgLoaded(true)}
         />
         {/* Subtle bottom gradient for text readability only */}
