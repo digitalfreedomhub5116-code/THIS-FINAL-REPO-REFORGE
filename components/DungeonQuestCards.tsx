@@ -61,20 +61,20 @@ const AICoachToggle: React.FC<{ enabled: boolean; onToggle: () => void }> = ({ e
       className="relative w-[38px] h-[20px] rounded-full transition-all"
       style={{
         background: enabled
-          ? 'linear-gradient(90deg, #ffffff, #cccccc)'
-          : 'rgba(255,255,255,0.15)',
+          ? '#000000'
+          : 'rgba(0,0,0,0.6)',
       }}
     >
       <motion.div
         className="absolute top-[2px] w-[16px] h-[16px] rounded-full shadow-sm"
-        style={{ background: enabled ? '#222' : '#666' }}
+        style={{ background: enabled ? '#ffffff' : '#999' }}
         animate={{ left: enabled ? 20 : 2 }}
         transition={{ type: 'spring', stiffness: 500, damping: 30 }}
       />
     </div>
     <span
       className="text-[9px] font-mono font-black tracking-wider uppercase"
-      style={{ color: '#ffffff', textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}
+      style={{ color: '#000000', textShadow: 'none' }}
     >
       AI Coach
     </span>
@@ -217,7 +217,7 @@ const ExerciseCard: React.FC<{
         {/* Top: Title + cleared badge */}
         <div>
           <div className="flex items-center gap-2.5 mb-1">
-            <h3 className={`text-xl font-black tracking-tight leading-tight ${isCompleted ? 'text-gray-500' : 'text-white'}`}>
+            <h3 className={`text-xl font-black tracking-tight leading-tight ${isCompleted ? 'text-gray-500' : ''}`} style={isCompleted ? {} : { color: '#000000', textShadow: 'none' }}>
               {meta.label}
             </h3>
             {isCompleted && (
@@ -227,7 +227,7 @@ const ExerciseCard: React.FC<{
               </div>
             )}
           </div>
-          <p className="text-[10px] text-gray-500 leading-snug">{meta.subtitle}</p>
+
         </div>
 
         {/* Middle: Target value + AI coach toggle / GPS indicator */}
