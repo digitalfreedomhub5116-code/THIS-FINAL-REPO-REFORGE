@@ -175,8 +175,8 @@ export const SingleExerciseLimitReset: React.FC<SingleExerciseLimitResetProps> =
         if (exercise === 'SQUATS') bs = Math.round(newValue / mult);
         if (exercise === 'RUNNING') br = +(newValue / mult).toFixed(1);
 
-        const fcPushups = prev.targets.find(t => t.exercise === 'PUSHUPS')?.formCoachEnabled ?? false;
-        const fcSquats = prev.targets.find(t => t.exercise === 'SQUATS')?.formCoachEnabled ?? false;
+        const fcPushups = prev.targets.find(t => t.exercise === 'PUSHUPS')?.formCoachEnabled ?? true;
+        const fcSquats = prev.targets.find(t => t.exercise === 'SQUATS')?.formCoachEnabled ?? true;
 
         const newTargets = computeTargets(bp, bs, br, mult, fcPushups, fcSquats);
 

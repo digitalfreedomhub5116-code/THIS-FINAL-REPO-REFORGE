@@ -38,8 +38,8 @@ export function computeTargets(
   baselineSquats: number,
   baselineRunKm: number,
   multiplier: number,
-  formCoachPushups: boolean = false,
-  formCoachSquats: boolean = false,
+  formCoachPushups: boolean = true,
+  formCoachSquats: boolean = true,
 ): DungeonExerciseTarget[] {
   return [
     {
@@ -111,8 +111,8 @@ export function getDungeonTargetsForToday(state: DungeonState): {
     );
 
     // Preserve form coach settings from current targets
-    const currentFCPushups = state.targets.find(t => t.exercise === 'PUSHUPS')?.formCoachEnabled ?? false;
-    const currentFCSquats = state.targets.find(t => t.exercise === 'SQUATS')?.formCoachEnabled ?? false;
+    const currentFCPushups = state.targets.find(t => t.exercise === 'PUSHUPS')?.formCoachEnabled ?? true;
+    const currentFCSquats = state.targets.find(t => t.exercise === 'SQUATS')?.formCoachEnabled ?? true;
 
     newState = {
       ...newState,
@@ -172,8 +172,8 @@ export function recordDungeonFailure(state: DungeonState): DungeonState {
   );
 
   // Preserve form coach settings
-  const currentFCPushups = state.targets.find(t => t.exercise === 'PUSHUPS')?.formCoachEnabled ?? false;
-  const currentFCSquats = state.targets.find(t => t.exercise === 'SQUATS')?.formCoachEnabled ?? false;
+  const currentFCPushups = state.targets.find(t => t.exercise === 'PUSHUPS')?.formCoachEnabled ?? true;
+  const currentFCSquats = state.targets.find(t => t.exercise === 'SQUATS')?.formCoachEnabled ?? true;
 
   return {
     ...state,

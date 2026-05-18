@@ -155,10 +155,17 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
   // --- FORM COACH STATE ---
   const [formCoachState, setFormCoachState] = useState<FormCoachState | null>(null);
   const lastFormCoachStateRef = useRef<FormCoachState | null>(null);
+  const initialExercise = plan.exercises[savedSession?.currentIdx ?? 0] || plan.exercises[0];
+  const shouldStartCamera = initialExercise?.formCoachEnabled && !!findFormCoachExercise(initialExercise.name);
+
   // Sub-phase for form coach exercises: PREVIEW (video full-screen) -> TRACKING (camera + PiP)
-  const [formCoachSubPhase, setFormCoachSubPhase] = useState<'PREVIEW' | 'TRACKING' | null>(null);
+  const [formCoachSubPhase, setFormCoachSubPhase] = useState<'PREVIEW' | 'TRACKING' | null>(
+    shouldStartCamera ? (savedSession?.phase === 'REST' ? 'PREVIEW' : 'TRACKING') : null
+  );
   // User-selectable tracking mode: TIMER (default, classic) vs CAMERA (AI rep counting)
-  const [trackingMode, setTrackingMode] = useState<'TIMER' | 'CAMERA'>('TIMER');
+  const [trackingMode, setTrackingMode] = useState<'TIMER' | 'CAMERA'>(
+    shouldStartCamera ? 'CAMERA' : 'TIMER'
+  );
   // Accumulated form coach data across the entire workout
   const formCoachAccumRef = useRef<{
     exercises: Map<string, { scores: number[]; totalReps: number; sets: number }>;
@@ -320,14 +327,20 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
       setTimeLeft(duration);
 
       // Form Coach: preserve user's tracking mode preference across sets
-      // Reset to TIMER for new exercises (set 1), keep current mode for subsequent sets
+      // Switch to CAMERA for new exercises if enabled by default
       if (nextSet === 1) {
-        setTrackingMode('TIMER');
-        setFormCoachSubPhase(null);
-      }
-      // If user has camera on, keep it going for subsequent sets
-      if (trackingMode === 'CAMERA' && nextSet > 1) {
-        setFormCoachSubPhase('TRACKING');
+        if (currentEx.formCoachEnabled && !!findFormCoachExercise(currentEx.name)) {
+          setTrackingMode('CAMERA');
+          setFormCoachSubPhase('PREVIEW');
+        } else {
+          setTrackingMode('TIMER');
+          setFormCoachSubPhase(null);
+        }
+      } else {
+        // If user has camera on, keep it going for subsequent sets
+        if (trackingMode === 'CAMERA') {
+          setFormCoachSubPhase('TRACKING');
+        }
       }
 
       // AI Voice Logic
