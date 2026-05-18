@@ -27,7 +27,7 @@ const EXERCISE_META: Record<string, {
   PUSHUPS: {
     label: 'Push-ups',
     subtitle: 'Upper body strength protocol',
-    image: '/dungeon/pushups.webp',
+    image: '/dungeon/pushups.jpeg',
   },
   SQUATS: {
     label: 'Squats',
