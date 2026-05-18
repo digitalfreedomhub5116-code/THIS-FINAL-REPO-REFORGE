@@ -417,6 +417,10 @@ const QuestsView: React.FC<QuestsViewProps> = ({
               dungeonState={dungeonState}
               onEnterDungeon={handleEnterDungeon}
               onToggleFormCoach={handleToggleFormCoach}
+              playerGold={playerData?.gold ?? 0}
+              userId={playerData?.userId ?? ''}
+              onUpdateDungeonState={onUpdateDungeonState}
+              onDeductGold={onDeductGold}
             />
           </div>
         )}

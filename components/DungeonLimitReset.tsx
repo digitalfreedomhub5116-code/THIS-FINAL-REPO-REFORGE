@@ -1,6 +1,6 @@
 /**
- * ── DUNGEON LIMIT RESET MODAL ──
- * Gear icon on dungeon header → opens modal to recalibrate exercise limits.
+ * ── DUNGEON LIMIT RESET ──
+ * Per-exercise gear icons on each exercise card → opens modal to recalibrate that exercise.
  * Rules:
  *  - 100 gold per exercise to reset
  *  - 7-day cooldown per exercise after reset
@@ -18,25 +18,23 @@ import { DungeonState } from '../types';
 const RESET_COST = 100; // gold per exercise
 const COOLDOWN_DAYS = 7;
 
-interface DungeonLimitResetProps {
-  dungeonState: DungeonState;
-  playerGold: number;
-  userId: string;
-  onUpdateDungeonState: (updater: (prev: DungeonState) => DungeonState) => void;
-  onDeductGold: (amount: number) => void;
+interface ExerciseConfig {
+  key: string;
+  label: string;
+  unit: string;
+  min: number;
+  max: number;
+  step: number;
+  field: string;
+  setsMin?: number;
+  setsMax?: number;
 }
 
-interface CooldownInfo {
-  exercise: string;
-  expiresAt: Date;
-  daysLeft: number;
-}
-
-const EXERCISE_CONFIG = [
-  { key: 'PUSHUPS', label: 'Push-ups', unit: 'reps', min: 5, max: 200, step: 5, field: 'baselinePushups' },
-  { key: 'SQUATS', label: 'Squats', unit: 'reps', min: 5, max: 200, step: 5, field: 'baselineSquats' },
-  { key: 'RUNNING', label: 'Running', unit: 'km', min: 0.5, max: 20, step: 0.5, field: 'baselineRunKm' },
-] as const;
+const EXERCISE_CONFIG: Record<string, ExerciseConfig> = {
+  PUSHUPS: { key: 'PUSHUPS', label: 'Push-ups', unit: 'reps', min: 5, max: 200, step: 5, field: 'baselinePushups', setsMin: 1, setsMax: 10 },
+  SQUATS: { key: 'SQUATS', label: 'Squats', unit: 'reps', min: 5, max: 200, step: 5, field: 'baselineSquats', setsMin: 1, setsMax: 10 },
+  RUNNING: { key: 'RUNNING', label: 'Running', unit: 'km', min: 0.5, max: 20, step: 0.5, field: 'baselineRunKm' },
+};
 
 // ── Stepper Input ──
 const StepperInput: React.FC<{
@@ -93,7 +91,18 @@ const StepperInput: React.FC<{
   );
 };
 
-const DungeonLimitReset: React.FC<DungeonLimitResetProps> = ({
+// ── Per-Exercise Limit Reset (gear icon + modal for a single exercise) ──
+export interface SingleExerciseLimitResetProps {
+  exercise: 'PUSHUPS' | 'SQUATS' | 'RUNNING';
+  dungeonState: DungeonState;
+  playerGold: number;
+  userId: string;
+  onUpdateDungeonState: (updater: (prev: DungeonState) => DungeonState) => void;
+  onDeductGold: (amount: number) => void;
+}
+
+export const SingleExerciseLimitReset: React.FC<SingleExerciseLimitResetProps> = ({
+  exercise,
   dungeonState,
   playerGold,
   userId,
@@ -101,133 +110,113 @@ const DungeonLimitReset: React.FC<DungeonLimitResetProps> = ({
   onDeductGold,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [cooldowns, setCooldowns] = useState<CooldownInfo[]>([]);
+  const [cooldownDaysLeft, setCooldownDaysLeft] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
-  const [values, setValues] = useState<Record<string, number>>({
-    PUSHUPS: dungeonState.baselinePushups,
-    SQUATS: dungeonState.baselineSquats,
-    RUNNING: dungeonState.baselineRunKm,
-  });
-  const [changedExercises, setChangedExercises] = useState<Set<string>>(new Set());
   const [success, setSuccess] = useState(false);
 
-  // Fetch cooldowns from Supabase
+  const config = EXERCISE_CONFIG[exercise];
+  if (!config) return null;
+
+  const isRunning = exercise === 'RUNNING';
+  const target = dungeonState.targets.find(t => t.exercise === exercise);
+
+  // Current baseline values
+  const originalReps = exercise === 'PUSHUPS' ? dungeonState.baselinePushups
+    : exercise === 'SQUATS' ? dungeonState.baselineSquats
+    : dungeonState.baselineRunKm;
+  const originalSets = target?.sets ?? 3;
+
+  const [newValue, setNewValue] = useState(originalReps);
+  const [newSets, setNewSets] = useState(originalSets);
+
+  // Fetch cooldown for this specific exercise
   useEffect(() => {
     if (!isOpen || !userId || userId.startsWith('local')) return;
     (async () => {
       const { data } = await supabase
         .from('dungeon_limit_resets')
-        .select('exercise, cooldown_expires_at')
+        .select('cooldown_expires_at')
         .eq('user_id', userId)
+        .eq('exercise', exercise)
         .gt('cooldown_expires_at', new Date().toISOString())
-        .order('reset_at', { ascending: false });
+        .order('reset_at', { ascending: false })
+        .limit(1);
 
-      if (data) {
-        const now = Date.now();
-        // Only keep latest per exercise
-        const latestByEx: Record<string, CooldownInfo> = {};
-        for (const row of data) {
-          if (!latestByEx[row.exercise]) {
-            const exp = new Date(row.cooldown_expires_at);
-            latestByEx[row.exercise] = {
-              exercise: row.exercise,
-              expiresAt: exp,
-              daysLeft: Math.ceil((exp.getTime() - now) / (1000 * 60 * 60 * 24)),
-            };
-          }
-        }
-        setCooldowns(Object.values(latestByEx));
+      if (data && data.length > 0) {
+        const exp = new Date(data[0].cooldown_expires_at);
+        setCooldownDaysLeft(Math.ceil((exp.getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
+      } else {
+        setCooldownDaysLeft(null);
       }
     })();
-  }, [isOpen, userId]);
+  }, [isOpen, userId, exercise]);
 
   // Reset values when opening
   useEffect(() => {
     if (isOpen) {
-      setValues({
-        PUSHUPS: dungeonState.baselinePushups,
-        SQUATS: dungeonState.baselineSquats,
-        RUNNING: dungeonState.baselineRunKm,
-      });
-      setChangedExercises(new Set());
+      setNewValue(originalReps);
+      setNewSets(originalSets);
       setSuccess(false);
     }
-  }, [isOpen, dungeonState]);
+  }, [isOpen]);
 
-  const getCooldown = (exercise: string) => cooldowns.find(c => c.exercise === exercise);
-  const isLocked = (exercise: string) => !!getCooldown(exercise);
-
-  const handleValueChange = (exercise: string, newValue: number) => {
-    setValues(prev => ({ ...prev, [exercise]: newValue }));
-    const originalValue = exercise === 'PUSHUPS' ? dungeonState.baselinePushups
-      : exercise === 'SQUATS' ? dungeonState.baselineSquats
-      : dungeonState.baselineRunKm;
-
-    const changed = new Set(changedExercises);
-    if (newValue !== originalValue) {
-      changed.add(exercise);
-    } else {
-      changed.delete(exercise);
-    }
-    setChangedExercises(changed);
-  };
-
-  const totalCost = changedExercises.size * RESET_COST;
-  const canAfford = playerGold >= totalCost;
+  const isLocked = cooldownDaysLeft !== null && cooldownDaysLeft > 0;
+  const hasChanged = newValue !== originalReps || (!isRunning && newSets !== originalSets);
+  const canAfford = playerGold >= RESET_COST;
 
   const handleConfirm = async () => {
-    if (changedExercises.size === 0 || !canAfford || loading) return;
+    if (!hasChanged || !canAfford || loading || isLocked) return;
     setLoading(true);
     triggerHaptic('BUTTON_TAP');
 
     try {
-      // Insert reset records to Supabase
-      const inserts = Array.from(changedExercises).map(exercise => {
-        const originalValue = exercise === 'PUSHUPS' ? dungeonState.baselinePushups
-          : exercise === 'SQUATS' ? dungeonState.baselineSquats
-          : dungeonState.baselineRunKm;
-
-        return {
-          user_id: userId,
-          exercise,
-          custom_value: exercise === 'RUNNING' ? Math.round(values[exercise] * 10) : values[exercise],
-          previous_value: exercise === 'RUNNING' ? Math.round(originalValue * 10) : originalValue,
-          cost_paid: RESET_COST,
-        };
-      });
-
       const { error } = await supabase
         .from('dungeon_limit_resets')
-        .insert(inserts);
+        .insert({
+          user_id: userId,
+          exercise,
+          custom_value: isRunning ? Math.round(newValue * 10) : newValue,
+          previous_value: isRunning ? Math.round(originalReps * 10) : originalReps,
+          cost_paid: RESET_COST,
+        });
 
       if (error) throw error;
 
       // Update local dungeon state baselines
       onUpdateDungeonState((prev) => {
         const { computeTargets } = require('../lib/dungeonEngine');
-        const newPushups = values.PUSHUPS;
-        const newSquats = values.SQUATS;
-        const newRunKm = values.RUNNING;
+        let bp = prev.baselinePushups;
+        let bs = prev.baselineSquats;
+        let br = prev.baselineRunKm;
+
+        if (exercise === 'PUSHUPS') bp = newValue;
+        if (exercise === 'SQUATS') bs = newValue;
+        if (exercise === 'RUNNING') br = newValue;
 
         const fcPushups = prev.targets.find(t => t.exercise === 'PUSHUPS')?.formCoachEnabled ?? false;
         const fcSquats = prev.targets.find(t => t.exercise === 'SQUATS')?.formCoachEnabled ?? false;
 
+        const newTargets = computeTargets(bp, bs, br, prev.progressionMultiplier, fcPushups, fcSquats);
+
+        // Apply custom sets for non-running exercises
+        if (!isRunning) {
+          const idx = newTargets.findIndex((t: any) => t.exercise === exercise);
+          if (idx !== -1) newTargets[idx].sets = newSets;
+        }
+
         return {
           ...prev,
-          baselinePushups: newPushups,
-          baselineSquats: newSquats,
-          baselineRunKm: newRunKm,
-          targets: computeTargets(newPushups, newSquats, newRunKm, prev.progressionMultiplier, fcPushups, fcSquats),
+          baselinePushups: bp,
+          baselineSquats: bs,
+          baselineRunKm: br,
+          targets: newTargets,
         };
       });
 
-      // Deduct gold
-      onDeductGold(totalCost);
-
+      onDeductGold(RESET_COST);
       setSuccess(true);
       triggerHaptic('SUCCESS');
 
-      // Close after showing success
       setTimeout(() => {
         setIsOpen(false);
         setSuccess(false);
@@ -243,14 +232,15 @@ const DungeonLimitReset: React.FC<DungeonLimitResetProps> = ({
     <>
       {/* Gear icon trigger */}
       <button
-        onClick={() => { triggerHaptic('TICK'); setIsOpen(true); }}
+        onClick={(e) => { e.stopPropagation(); triggerHaptic('TICK'); setIsOpen(true); }}
         className="w-7 h-7 rounded-lg flex items-center justify-center transition-all active:scale-90"
         style={{
-          background: 'rgba(255,255,255,0.03)',
-          border: '1px solid rgba(255,255,255,0.06)',
+          background: 'rgba(0,0,0,0.4)',
+          border: '1px solid rgba(255,255,255,0.12)',
+          backdropFilter: 'blur(4px)',
         }}
       >
-        <Settings size={12} className="text-gray-500" />
+        <Settings size={11} className="text-gray-300" />
       </button>
 
       {/* Modal */}
@@ -289,10 +279,10 @@ const DungeonLimitReset: React.FC<DungeonLimitResetProps> = ({
                     </div>
                     <div>
                       <h3 className="text-[15px] font-black text-white uppercase tracking-tight">
-                        Recalibrate Limits
+                        {config.label}
                       </h3>
                       <p className="text-[9px] text-gray-500 font-mono tracking-wider">
-                        {RESET_COST} GOLD / EXERCISE • {COOLDOWN_DAYS}-DAY COOLDOWN
+                        {RESET_COST} GOLD • {COOLDOWN_DAYS}-DAY COOLDOWN
                       </p>
                     </div>
                   </div>
@@ -325,80 +315,91 @@ const DungeonLimitReset: React.FC<DungeonLimitResetProps> = ({
                     >
                       <Check size={28} className="text-[#00d4ff]" strokeWidth={3} />
                     </motion.div>
-                    <p className="text-white font-bold text-sm">Limits Updated!</p>
+                    <p className="text-white font-bold text-sm">{config.label} Updated!</p>
                     <p className="text-gray-500 text-[10px] mt-1">Next reset in {COOLDOWN_DAYS} days</p>
                   </motion.div>
                 )}
               </AnimatePresence>
 
-              {/* Exercise rows */}
+              {/* Exercise control */}
               <div className="px-5 space-y-3 pb-3">
-                {EXERCISE_CONFIG.map((ex) => {
-                  const cooldown = getCooldown(ex.key);
-                  const locked = isLocked(ex.key);
-                  const changed = changedExercises.has(ex.key);
-                  const originalValue = ex.key === 'PUSHUPS' ? dungeonState.baselinePushups
-                    : ex.key === 'SQUATS' ? dungeonState.baselineSquats
-                    : dungeonState.baselineRunKm;
+                {/* Locked state */}
+                {isLocked && (
+                  <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <Lock size={12} className="text-gray-600" />
+                    <span className="text-[10px] text-gray-500 font-mono">
+                      Cooldown active — {cooldownDaysLeft}d remaining
+                    </span>
+                  </div>
+                )}
 
-                  return (
-                    <div
-                      key={ex.key}
-                      className="rounded-xl p-3.5"
-                      style={{
-                        background: locked ? 'rgba(255,255,255,0.02)' : changed ? 'rgba(0,212,255,0.03)' : 'rgba(255,255,255,0.02)',
-                        border: `1px solid ${changed ? 'rgba(0,212,255,0.15)' : 'rgba(255,255,255,0.05)'}`,
-                      }}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <div>
-                          <span className={`text-xs font-bold ${locked ? 'text-gray-500' : 'text-gray-200'}`}>
-                            {ex.label}
-                          </span>
-                          {locked && cooldown && (
-                            <div className="flex items-center gap-1 mt-0.5">
-                              <Lock size={8} className="text-gray-600" />
-                              <span className="text-[8px] text-gray-600 font-mono">
-                                Locked — {cooldown.daysLeft}d left
-                              </span>
-                            </div>
-                          )}
-                          {changed && !locked && (
-                            <div className="flex items-center gap-1 mt-0.5">
-                              <Coins size={8} className="text-yellow-500/60" />
-                              <span className="text-[8px] text-yellow-500/80 font-mono font-bold">
-                                {RESET_COST} gold
-                              </span>
-                            </div>
-                          )}
-                          {!changed && !locked && (
-                            <div className="mt-0.5">
-                              <span className="text-[8px] text-gray-600 font-mono">
-                                Current: {originalValue} {ex.unit}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-
-                        <StepperInput
-                          value={values[ex.key] ?? originalValue}
-                          onChange={(v) => handleValueChange(ex.key, v)}
-                          min={ex.min}
-                          max={ex.max}
-                          step={ex.step}
-                          unit={ex.unit}
-                          disabled={locked}
-                        />
+                {/* Rep / Distance control */}
+                <div
+                  className="rounded-xl p-3.5"
+                  style={{
+                    background: hasChanged ? 'rgba(0,212,255,0.03)' : 'rgba(255,255,255,0.02)',
+                    border: `1px solid ${hasChanged ? 'rgba(0,212,255,0.15)' : 'rgba(255,255,255,0.05)'}`,
+                  }}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-bold text-gray-200">
+                        {isRunning ? 'Distance' : 'Rep Count'}
+                      </span>
+                      <div className="mt-0.5">
+                        <span className="text-[8px] text-gray-600 font-mono">
+                          Current: {originalReps} {config.unit}
+                        </span>
                       </div>
                     </div>
-                  );
-                })}
+                    <StepperInput
+                      value={newValue}
+                      onChange={setNewValue}
+                      min={config.min}
+                      max={config.max}
+                      step={config.step}
+                      unit={config.unit}
+                      disabled={isLocked}
+                    />
+                  </div>
+                </div>
+
+                {/* Sets control (only for pushups and squats) */}
+                {!isRunning && config.setsMin != null && config.setsMax != null && (
+                  <div
+                    className="rounded-xl p-3.5"
+                    style={{
+                      background: newSets !== originalSets ? 'rgba(0,212,255,0.03)' : 'rgba(255,255,255,0.02)',
+                      border: `1px solid ${newSets !== originalSets ? 'rgba(0,212,255,0.15)' : 'rgba(255,255,255,0.05)'}`,
+                    }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-xs font-bold text-gray-200">Sets</span>
+                        <div className="mt-0.5">
+                          <span className="text-[8px] text-gray-600 font-mono">
+                            Current: {originalSets} sets
+                          </span>
+                        </div>
+                      </div>
+                      <StepperInput
+                        value={newSets}
+                        onChange={setNewSets}
+                        min={config.setsMin}
+                        max={config.setsMax}
+                        step={1}
+                        unit="sets"
+                        disabled={isLocked}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Footer */}
               <div className="p-5 pt-2">
                 {/* Cost summary */}
-                {changedExercises.size > 0 && (
+                {hasChanged && (
                   <div
                     className="flex items-center justify-between px-3 py-2.5 rounded-xl mb-3"
                     style={{
@@ -409,12 +410,12 @@ const DungeonLimitReset: React.FC<DungeonLimitResetProps> = ({
                     <div className="flex items-center gap-1.5">
                       <Coins size={12} className={canAfford ? 'text-yellow-500/70' : 'text-red-400/70'} />
                       <span className="text-[10px] font-bold font-mono text-gray-400">
-                        {changedExercises.size} exercise{changedExercises.size > 1 ? 's' : ''} × {RESET_COST}
+                        Recalibrate {config.label}
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
                       <span className={`text-sm font-black font-mono ${canAfford ? 'text-yellow-500' : 'text-red-400'}`}>
-                        {totalCost}
+                        {RESET_COST}
                       </span>
                       <span className="text-[8px] text-gray-600 font-mono">GOLD</span>
                     </div>
@@ -422,7 +423,7 @@ const DungeonLimitReset: React.FC<DungeonLimitResetProps> = ({
                 )}
 
                 {/* Insufficient funds warning */}
-                {changedExercises.size > 0 && !canAfford && (
+                {hasChanged && !canAfford && (
                   <div className="flex items-center gap-2 px-3 py-2 rounded-lg mb-3" style={{ background: 'rgba(239,68,68,0.06)' }}>
                     <AlertTriangle size={12} className="text-red-400/70" />
                     <span className="text-[10px] text-red-400/80">
@@ -434,15 +435,15 @@ const DungeonLimitReset: React.FC<DungeonLimitResetProps> = ({
                 {/* Confirm button */}
                 <button
                   onClick={handleConfirm}
-                  disabled={changedExercises.size === 0 || !canAfford || loading}
+                  disabled={!hasChanged || !canAfford || loading || isLocked}
                   className="w-full py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all active:scale-[0.97]"
                   style={{
-                    background: changedExercises.size > 0 && canAfford
+                    background: hasChanged && canAfford && !isLocked
                       ? 'linear-gradient(135deg, rgba(0,212,255,0.15), rgba(0,180,220,0.1))'
                       : 'rgba(255,255,255,0.03)',
-                    color: changedExercises.size > 0 && canAfford ? '#6ec4d6' : '#555',
-                    border: `1px solid ${changedExercises.size > 0 && canAfford ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.05)'}`,
-                    cursor: changedExercises.size === 0 || !canAfford ? 'not-allowed' : 'pointer',
+                    color: hasChanged && canAfford && !isLocked ? '#6ec4d6' : '#555',
+                    border: `1px solid ${hasChanged && canAfford && !isLocked ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.05)'}`,
+                    cursor: !hasChanged || !canAfford || isLocked ? 'not-allowed' : 'pointer',
                   }}
                 >
                   {loading ? (
@@ -453,18 +454,14 @@ const DungeonLimitReset: React.FC<DungeonLimitResetProps> = ({
                     />
                   ) : (
                     <>
-                      {changedExercises.size === 0 ? (
+                      {isLocked ? (
+                        <><Lock size={12} /> Cooldown Active</>
+                      ) : !hasChanged ? (
                         'Adjust values to recalibrate'
                       ) : !canAfford ? (
-                        <>
-                          <Lock size={12} />
-                          Insufficient Gold
-                        </>
+                        <><Lock size={12} /> Insufficient Gold</>
                       ) : (
-                        <>
-                          <Settings size={12} />
-                          Confirm Recalibration
-                        </>
+                        <><Settings size={12} /> Confirm Recalibration</>
                       )}
                     </>
                   )}
@@ -476,6 +473,22 @@ const DungeonLimitReset: React.FC<DungeonLimitResetProps> = ({
       </AnimatePresence>
     </>
   );
+};
+
+// ── Legacy Header Gear (kept for backward compat — renders all 3 exercises) ──
+interface DungeonLimitResetProps {
+  dungeonState: DungeonState;
+  playerGold: number;
+  userId: string;
+  onUpdateDungeonState: (updater: (prev: DungeonState) => DungeonState) => void;
+  onDeductGold: (amount: number) => void;
+}
+
+const DungeonLimitReset: React.FC<DungeonLimitResetProps> = (props) => {
+  // Header gear icon now just opens a combined view — but we keep it as a simple trigger
+  // that renders the first exercise's reset (or we can remove it from the header).
+  // For now, returning null since per-exercise gears replace this.
+  return null;
 };
 
 export default DungeonLimitReset;

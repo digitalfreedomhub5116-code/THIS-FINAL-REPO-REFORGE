@@ -17,7 +17,7 @@ import { Swords, Check, ChevronRight, Shield, MapPin, AlertTriangle, X } from 'l
 import { DungeonState, DungeonExerciseTarget } from '../types';
 import { getProgressionTier, isDungeonCompletedToday, isExerciseCompletedToday } from '../lib/dungeonEngine';
 import { triggerHaptic } from '../utils/soundEngine';
-import DungeonLimitReset from './DungeonLimitReset';
+import { SingleExerciseLimitReset } from './DungeonLimitReset';
 
 const EXERCISE_META: Record<string, {
   label: string;
@@ -172,7 +172,11 @@ const ExerciseCard: React.FC<{
   isCompleted: boolean;
   onToggleCoach?: () => void;
   index: number;
-}> = ({ target, dungeonState, isCompleted, onToggleCoach, index }) => {
+  playerGold?: number;
+  userId?: string;
+  onUpdateDungeonState?: (updater: (prev: DungeonState) => DungeonState) => void;
+  onDeductGold?: (amount: number) => void;
+}> = ({ target, dungeonState, isCompleted, onToggleCoach, index, playerGold, userId, onUpdateDungeonState, onDeductGold }) => {
   const [imgLoaded, setImgLoaded] = useState(false);
   const meta = EXERCISE_META[target.exercise];
   if (!meta) return null;
@@ -181,6 +185,8 @@ const ExerciseCard: React.FC<{
   const targetText = isRunning
     ? `${target.distanceKm || 1} km`
     : `${target.reps} reps × ${target.sets} sets`;
+
+  const showGear = onUpdateDungeonState && onDeductGold && userId;
 
   return (
     <motion.div
@@ -214,20 +220,32 @@ const ExerciseCard: React.FC<{
       </div>
 
       <div className="relative z-10 p-5 flex flex-col justify-between" style={{ minHeight: 150, textShadow: '0 1px 4px rgba(0,0,0,0.7)' }}>
-        {/* Top: Title + cleared badge */}
+        {/* Top: Title + cleared badge + gear icon */}
         <div>
-          <div className="flex items-center gap-2.5 mb-1">
-            <h3 className={`text-xl font-black tracking-tight leading-tight ${isCompleted ? 'text-gray-500' : 'text-white'}`}>
-              {meta.label}
-            </h3>
-            {isCompleted && (
-              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded" style={{ background: 'rgba(0,180,220,0.08)' }}>
-                <Check size={9} style={{ color: '#5ab8cc' }} strokeWidth={3} />
-                <span className="text-[7px] font-bold tracking-wider" style={{ color: '#5ab8cc' }}>CLEARED</span>
-              </div>
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-2.5">
+              <h3 className={`text-xl font-black tracking-tight leading-tight ${isCompleted ? 'text-gray-500' : 'text-white'}`}>
+                {meta.label}
+              </h3>
+              {isCompleted && (
+                <div className="flex items-center gap-1 px-1.5 py-0.5 rounded" style={{ background: 'rgba(0,180,220,0.08)' }}>
+                  <Check size={9} style={{ color: '#5ab8cc' }} strokeWidth={3} />
+                  <span className="text-[7px] font-bold tracking-wider" style={{ color: '#5ab8cc' }}>CLEARED</span>
+                </div>
+              )}
+            </div>
+            {/* Per-exercise gear icon for limit reset */}
+            {showGear && (
+              <SingleExerciseLimitReset
+                exercise={target.exercise}
+                dungeonState={dungeonState}
+                playerGold={playerGold ?? 0}
+                userId={userId!}
+                onUpdateDungeonState={onUpdateDungeonState!}
+                onDeductGold={onDeductGold!}
+              />
             )}
           </div>
-
         </div>
 
         {/* Middle: Target value + AI coach toggle / GPS indicator */}
@@ -301,19 +319,6 @@ const DungeonQuestCards: React.FC<DungeonQuestCardsProps> = ({
               <div className="text-sm font-bold text-gray-200 tracking-tight">Sung Jin-woo Protocol</div>
             </div>
           </div>
-
-          <div className="flex items-center gap-2">
-            {/* Gear icon — Recalibrate Limits */}
-            {onUpdateDungeonState && onDeductGold && userId && (
-              <DungeonLimitReset
-                dungeonState={dungeonState}
-                playerGold={playerGold}
-                userId={userId}
-                onUpdateDungeonState={onUpdateDungeonState}
-                onDeductGold={onDeductGold}
-              />
-            )}
-          </div>
         </div>
 
         {/* Per-exercise progress indicator (only when partial) */}
@@ -345,6 +350,10 @@ const DungeonQuestCards: React.FC<DungeonQuestCardsProps> = ({
                 ? () => onToggleFormCoach(target.exercise as 'PUSHUPS' | 'SQUATS')
                 : undefined
             }
+            playerGold={playerGold}
+            userId={userId}
+            onUpdateDungeonState={onUpdateDungeonState}
+            onDeductGold={onDeductGold}
           />
         ))}
 
