@@ -9,6 +9,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Settings, X, Lock, Coins, AlertTriangle, Check, Minus, Plus } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -243,7 +244,8 @@ export const SingleExerciseLimitReset: React.FC<SingleExerciseLimitResetProps> =
         <Settings size={11} className="text-gray-300" />
       </button>
 
-      {/* Modal */}
+      {/* Modal — rendered via portal to escape transform stacking context */}
+      {typeof document !== 'undefined' && ReactDOM.createPortal(
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -470,7 +472,8 @@ export const SingleExerciseLimitReset: React.FC<SingleExerciseLimitResetProps> =
             </motion.div>
           </motion.div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body)}
     </>
   );
 };
