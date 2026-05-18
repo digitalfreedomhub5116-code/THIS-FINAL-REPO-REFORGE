@@ -15,6 +15,7 @@ import { Settings, X, Lock, Coins, AlertTriangle, Check, Minus, Plus } from 'luc
 import { supabase } from '../lib/supabase';
 import { triggerHaptic } from '../utils/soundEngine';
 import { DungeonState } from '../types';
+import { computeTargets } from '../lib/dungeonEngine';
 
 const RESET_COST = 100; // gold per exercise
 const COOLDOWN_DAYS = 7;
@@ -185,7 +186,6 @@ export const SingleExerciseLimitReset: React.FC<SingleExerciseLimitResetProps> =
 
       // Update local dungeon state baselines
       onUpdateDungeonState((prev) => {
-        const { computeTargets } = require('../lib/dungeonEngine');
         let bp = prev.baselinePushups;
         let bs = prev.baselineSquats;
         let br = prev.baselineRunKm;
