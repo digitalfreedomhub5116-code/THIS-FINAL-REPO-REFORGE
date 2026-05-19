@@ -4701,55 +4701,67 @@ const App: React.FC = () => {
                     </Suspense>
 
                     {/* ── Promo Banners: Food Scanner & Store Deals ── */}
-                    <div className="grid grid-cols-2 gap-3 px-1">
-                      {/* Food Scanner Card */}
-                      <button
-                        onClick={() => {
-                          setHealthSubTab('NUTRITION');
-                          setActiveTab('HEALTH' as Tab);
-                        }}
-                        className="relative overflow-hidden rounded-2xl active:scale-[0.97] transition-transform text-left"
-                        style={{
-                          height: 160,
-                          boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-                          border: '1px solid rgba(255,255,255,0.08)',
-                        }}
-                      >
-                        <PromoImg
-                          src="/images/ui/food-scanner-promo.png"
-                          alt="Food Scanner"
-                          style={{ filter: 'grayscale(100%) brightness(0.4)' }}
-                        />
-                        <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.3) 55%, transparent 100%)' }} />
-                        <div className="absolute left-0 right-0 text-center px-3" style={{ top: '70%' }}>
-                          <div className="text-[14px] font-black text-white leading-tight">Scan Your Food</div>
-                        </div>
-                      </button>
+                    {(() => {
+                      // FEATURE TOGGLES: Enable/disable the dark blackish overlay individually
+                      const ENABLE_FOOD_SCANNER_OVERLAY = false;
+                      const ENABLE_STORE_DEALS_OVERLAY = false;
 
-                      {/* Store Deals Card */}
-                      <button
-                        onClick={() => {
-                          setStoreInitialTab('DEALS');
-                          setActiveTab('STORE' as Tab);
-                        }}
-                        className="relative overflow-hidden rounded-2xl active:scale-[0.97] transition-transform text-left"
-                        style={{
-                          height: 160,
-                          boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-                          border: '1px solid rgba(255,255,255,0.08)',
-                        }}
-                      >
-                        <PromoImg
-                          src="/images/ui/store-deals-promo.png"
-                          alt="Store Deals"
-                          style={{ filter: 'grayscale(100%) brightness(0.4)' }}
-                        />
-                        <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.3) 55%, transparent 100%)' }} />
-                        <div className="absolute left-0 right-0 text-center px-3" style={{ top: '70%' }}>
-                          <div className="text-[14px] font-black text-white leading-tight">Today's Deals</div>
+                      return (
+                        <div className="grid grid-cols-2 gap-3 px-1">
+                          {/* Food Scanner Card */}
+                          <button
+                            onClick={() => {
+                              setHealthSubTab('NUTRITION');
+                              setActiveTab('HEALTH' as Tab);
+                            }}
+                            className="relative overflow-hidden rounded-2xl active:scale-[0.97] transition-transform text-left"
+                            style={{
+                              height: 160,
+                              boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+                              border: '1px solid rgba(255,255,255,0.08)',
+                            }}
+                          >
+                            <PromoImg
+                              src="/images/ui/food-scanner-promo.png"
+                              alt="Food Scanner"
+                              style={{ filter: ENABLE_FOOD_SCANNER_OVERLAY ? 'grayscale(100%) brightness(0.4)' : 'grayscale(100%) brightness(0.9)' }}
+                            />
+                            {ENABLE_FOOD_SCANNER_OVERLAY && (
+                              <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.3) 55%, transparent 100%)' }} />
+                            )}
+                            <div className="absolute left-0 right-0 text-center px-3" style={{ top: '70%', textShadow: '0 2px 8px rgba(0,0,0,0.9)' }}>
+                              <div className="text-[14px] font-black text-white leading-tight">Scan Your Food</div>
+                            </div>
+                          </button>
+
+                          {/* Store Deals Card */}
+                          <button
+                            onClick={() => {
+                              setStoreInitialTab('DEALS');
+                              setActiveTab('STORE' as Tab);
+                            }}
+                            className="relative overflow-hidden rounded-2xl active:scale-[0.97] transition-transform text-left"
+                            style={{
+                              height: 160,
+                              boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+                              border: '1px solid rgba(255,255,255,0.08)',
+                            }}
+                          >
+                            <PromoImg
+                              src="/images/ui/store-deals-promo.png"
+                              alt="Store Deals"
+                              style={{ filter: ENABLE_STORE_DEALS_OVERLAY ? 'grayscale(100%) brightness(0.4)' : 'grayscale(100%) brightness(0.9)' }}
+                            />
+                            {ENABLE_STORE_DEALS_OVERLAY && (
+                              <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.3) 55%, transparent 100%)' }} />
+                            )}
+                            <div className="absolute left-0 right-0 text-center px-3" style={{ top: '70%', textShadow: '0 2px 8px rgba(0,0,0,0.9)' }}>
+                              <div className="text-[14px] font-black text-white leading-tight">Today's Deals</div>
+                            </div>
+                          </button>
                         </div>
-                      </button>
-                    </div>
+                      );
+                    })()}
 
                     {/* ── 2. Goal Hero + Pinned Goals ── */}
                     <Suspense fallback={null}>

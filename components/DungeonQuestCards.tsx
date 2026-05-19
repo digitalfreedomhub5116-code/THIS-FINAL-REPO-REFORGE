@@ -188,6 +188,16 @@ const ExerciseCard: React.FC<{
 
   const showGear = onUpdateDungeonState && onDeductGold && userId;
 
+  // FEATURE TOGGLES: Enable/disable the dark blackish overlay individually per exercise
+  const ENABLE_OVERLAY_PUSHUPS = false;
+  const ENABLE_OVERLAY_SQUATS = false;
+  const ENABLE_OVERLAY_RUNNING = false;
+  
+  const isOverlayEnabled = 
+    (target.exercise === 'PUSHUPS' && ENABLE_OVERLAY_PUSHUPS) ||
+    (target.exercise === 'SQUATS' && ENABLE_OVERLAY_SQUATS) ||
+    (target.exercise === 'RUNNING' && ENABLE_OVERLAY_RUNNING);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -207,16 +217,25 @@ const ExerciseCard: React.FC<{
           src={meta.image}
           alt=""
           className="w-full h-full object-cover transition-opacity duration-700"
-          style={{ opacity: imgLoaded ? (isCompleted ? 0.3 : 1) : 0, filter: isCompleted ? 'grayscale(100%) brightness(0.3)' : 'grayscale(100%) brightness(0.4)' }}
+          style={{ opacity: imgLoaded ? (isCompleted ? 0.3 : 1) : 0, filter: isOverlayEnabled ? (isCompleted ? 'grayscale(100%) brightness(0.3)' : 'grayscale(100%) brightness(0.4)') : (isCompleted ? 'grayscale(100%) brightness(0.4)' : 'grayscale(100%) brightness(0.9)') }}
           onLoad={() => setImgLoaded(true)}
         />
-        {/* Dark blackish overlay — matches promo banners (Scan Food / Store Deals) */}
-        <div
-          className="absolute inset-0"
-          style={{
-            background: 'linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.45) 50%, rgba(0,0,0,0.3) 100%)',
-          }}
-        />
+        {/* Overlay (subtle vs dark blackish) */}
+        {isOverlayEnabled ? (
+          <div
+            className="absolute inset-0"
+            style={{
+              background: 'linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.45) 50%, rgba(0,0,0,0.3) 100%)',
+            }}
+          />
+        ) : (
+          <div
+            className="absolute inset-0"
+            style={{
+              background: 'linear-gradient(180deg, rgba(10,10,20,0.05) 0%, rgba(10,10,20,0.15) 40%, rgba(8,8,16,0.55) 100%)',
+            }}
+          />
+        )}
       </div>
 
       <div className="relative z-10 p-5 flex flex-col justify-between" style={{ minHeight: 150, textShadow: '0 1px 4px rgba(0,0,0,0.7)' }}>
