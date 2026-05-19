@@ -4721,7 +4721,7 @@ const App: React.FC = () => {
                           style={{ filter: 'grayscale(100%) brightness(0.4)' }}
                         />
                         <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.3) 55%, transparent 100%)' }} />
-                        <div className="absolute bottom-0 left-0 right-0 px-4 pb-4">
+                        <div className="absolute left-0 right-0 text-center px-3" style={{ top: '70%' }}>
                           <div className="text-[14px] font-black text-white leading-tight">Scan Your Food</div>
                         </div>
                       </button>
@@ -4745,7 +4745,7 @@ const App: React.FC = () => {
                           style={{ filter: 'grayscale(100%) brightness(0.4)' }}
                         />
                         <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.3) 55%, transparent 100%)' }} />
-                        <div className="absolute bottom-0 left-0 right-0 px-4 pb-4">
+                        <div className="absolute left-0 right-0 text-center px-3" style={{ top: '70%' }}>
                           <div className="text-[14px] font-black text-white leading-tight">Today's Deals</div>
                         </div>
                       </button>
