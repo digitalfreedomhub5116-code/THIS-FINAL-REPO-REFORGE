@@ -1671,4 +1671,98 @@ router.delete('/remote-store/:id', async (req: Request, res: Response) => {
   }
 });
 
+// ── Inactive User Cleanup — Admin Endpoints ──────────────────────────────────
+
+// GET /cleanup/preview — Preview which users would be deleted (dry run)
+router.get('/cleanup/preview', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+  try {
+    const INACTIVE_THRESHOLD_DAYS = 21;
+    const cutoffDate = new Date(Date.now() - INACTIVE_THRESHOLD_DAYS * 24 * 60 * 60 * 1000);
+    const cutoffIso = cutoffDate.toISOString();
+    const now = new Date();
+
+    const { data: inactiveUsers, error } = await (supabaseServer() as any)
+      .from('players')
+      .select('id, supabase_id, username, name, level, rank, total_xp, gold, streak, updated_at, created_at, raw_data')
+      .lt('updated_at', cutoffIso)
+      .order('updated_at', { ascending: true })
+      .limit(200);
+
+    if (error) throw error;
+
+    // Also fetch NULL updated_at users
+    const { data: nullUsers } = await (supabaseServer() as any)
+      .from('players')
+      .select('id, supabase_id, username, name, level, rank, total_xp, gold, streak, updated_at, created_at, raw_data')
+      .is('updated_at', null)
+      .lt('created_at', cutoffIso);
+
+    const allInactive = [...(inactiveUsers || []), ...(nullUsers || [])];
+
+    // Filter out bots
+    const realInactive = allInactive.filter((p: any) => {
+      const rawData = p.raw_data || {};
+      return rawData.isBot !== true;
+    });
+
+    const preview = realInactive.map((p: any) => {
+      const lastActive = p.updated_at || p.created_at;
+      const daysSince = Math.floor((now.getTime() - new Date(lastActive).getTime()) / (1000 * 60 * 60 * 24));
+      return {
+        id: p.supabase_id || p.id,
+        username: p.username || p.name || 'unknown',
+        level: p.level,
+        rank: p.rank,
+        totalXp: p.total_xp,
+        gold: p.gold,
+        streak: p.streak,
+        lastActive: lastActive,
+        daysSinceActive: daysSince,
+      };
+    });
+
+    return res.json({
+      threshold: `${INACTIVE_THRESHOLD_DAYS} days`,
+      cutoffDate: cutoffIso,
+      totalInactive: preview.length,
+      botsExcluded: allInactive.length - realInactive.length,
+      users: preview,
+    });
+  } catch (err) {
+    console.error('[Admin cleanup preview]', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// POST /cleanup/run — Manually trigger the inactive user cleanup
+router.post('/cleanup/run', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+  try {
+    const { runInactiveUserCleanup } = await import('../lib/inactiveUserCleanup.js');
+    console.log('[Admin] Manual inactive user cleanup triggered');
+
+    const result = await runInactiveUserCleanup();
+
+    await logAdminAction('manual_inactive_cleanup', req, {
+      newValue: {
+        totalScanned: result.totalScanned,
+        totalDeleted: result.totalDeleted,
+        errors: result.errors.length,
+      },
+    });
+
+    return res.json({
+      success: true,
+      totalScanned: result.totalScanned,
+      totalDeleted: result.totalDeleted,
+      errors: result.errors,
+      deletedUsers: result.deletedUsers,
+    });
+  } catch (err) {
+    console.error('[Admin cleanup run]', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 export default router;

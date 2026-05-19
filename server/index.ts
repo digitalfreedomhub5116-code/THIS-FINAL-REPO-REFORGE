@@ -466,6 +466,29 @@ async function startServer() {
     } catch (err) {
       console.warn('[Server] Could not set up bot simulation:', err);
     }
+
+    // ── Inactive User Cleanup Cron ──
+    // Permanently deletes all data for users inactive > 21 days.
+    // Runs every 6 hours. Excludes bot users. Safe and idempotent.
+    try {
+      const { runInactiveUserCleanup } = await import('./lib/inactiveUserCleanup.js');
+
+      // Run on startup (after 30s delay to let other systems initialize)
+      setTimeout(() => {
+        console.log('[Cleanup] Running initial inactive user cleanup...');
+        runInactiveUserCleanup().catch(err => console.error('[Cleanup] Startup run failed:', err));
+      }, 30_000);
+
+      // Then run every 6 hours
+      const CLEANUP_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6 hours
+      setInterval(() => {
+        runInactiveUserCleanup().catch(err => console.error('[Cleanup] Scheduled run failed:', err));
+      }, CLEANUP_INTERVAL_MS);
+
+      console.log('[Server] Inactive user cleanup scheduled (every 6 hours, threshold: 21 days)');
+    } catch (err) {
+      console.warn('[Server] Could not set up inactive user cleanup:', err);
+    }
   });
 }
 
