@@ -61,7 +61,7 @@ export async function runInactiveUserCleanup(): Promise<CleanupResult> {
     // Exclude bot users via raw_data->isBot check.
     let offset = 0;
     let hasMore = true;
-    const inactivePlayers: { id: string; supabase_id: string; username: string; updated_at: string; raw_data: any }[] = [];
+    const inactivePlayers: { id: string; supabase_id: string; username: string; updated_at: string; raw_data: any; created_at: string }[] = [];
 
     while (hasMore) {
       const { data: batch, error: fetchErr } = await db
