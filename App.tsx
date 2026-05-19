@@ -4703,8 +4703,8 @@ const App: React.FC = () => {
                     {/* ── Promo Banners: Food Scanner & Store Deals ── */}
                     {(() => {
                       // FEATURE TOGGLES: Enable/disable the dark blackish overlay individually
-                      const ENABLE_FOOD_SCANNER_OVERLAY = false;
-                      const ENABLE_STORE_DEALS_OVERLAY = false;
+                      const ENABLE_FOOD_SCANNER_OVERLAY = true;
+                      const ENABLE_STORE_DEALS_OVERLAY = true;
 
                       return (
                         <div className="grid grid-cols-2 gap-3 px-1">
