@@ -4708,11 +4708,11 @@ const App: React.FC = () => {
                           setHealthSubTab('NUTRITION');
                           setActiveTab('HEALTH' as Tab);
                         }}
-                        className="relative overflow-hidden rounded-2xl active:scale-[0.97] transition-transform"
+                        className="relative overflow-hidden rounded-2xl active:scale-[0.97] transition-transform text-left"
                         style={{
                           height: 160,
                           boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-                          border: '1px solid rgba(0,212,255,0.15)',
+                          border: '1px solid rgba(255,255,255,0.08)',
                         }}
                       >
                         <PromoImg
@@ -4720,13 +4720,9 @@ const App: React.FC = () => {
                           alt="Food Scanner"
                           style={{ filter: 'grayscale(100%) brightness(0.4)' }}
                         />
-                        <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.2) 100%)' }} />
-                        <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-3">
-                          <div className="text-[8px] font-mono font-bold tracking-[0.25em] text-[#00d4ff] uppercase mb-1">Nutrition</div>
-                          <div className="text-[15px] font-black text-white leading-tight mb-3">Scan Your Food</div>
-                          <div className="px-4 py-1.5 rounded-lg text-[9px] font-black font-mono uppercase tracking-widest"
-                            style={{ background: 'rgba(0,212,255,0.12)', border: '1px solid rgba(0,212,255,0.3)', color: '#00d4ff' }}
-                          >Scan Meal</div>
+                        <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.3) 55%, transparent 100%)' }} />
+                        <div className="absolute bottom-0 left-0 right-0 px-4 pb-4">
+                          <div className="text-[14px] font-black text-white leading-tight">Scan Your Food</div>
                         </div>
                       </button>
 
@@ -4736,11 +4732,11 @@ const App: React.FC = () => {
                           setStoreInitialTab('DEALS');
                           setActiveTab('STORE' as Tab);
                         }}
-                        className="relative overflow-hidden rounded-2xl active:scale-[0.97] transition-transform"
+                        className="relative overflow-hidden rounded-2xl active:scale-[0.97] transition-transform text-left"
                         style={{
                           height: 160,
                           boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-                          border: '1px solid rgba(250,204,21,0.12)',
+                          border: '1px solid rgba(255,255,255,0.08)',
                         }}
                       >
                         <PromoImg
@@ -4748,13 +4744,9 @@ const App: React.FC = () => {
                           alt="Store Deals"
                           style={{ filter: 'grayscale(100%) brightness(0.4)' }}
                         />
-                        <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.2) 100%)' }} />
-                        <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-3">
-                          <div className="text-[8px] font-mono font-bold tracking-[0.25em] text-[#facc15] uppercase mb-1">Store</div>
-                          <div className="text-[15px] font-black text-white leading-tight mb-3">Today's Deals</div>
-                          <div className="px-4 py-1.5 rounded-lg text-[9px] font-black font-mono uppercase tracking-widest"
-                            style={{ background: 'rgba(250,204,21,0.1)', border: '1px solid rgba(250,204,21,0.25)', color: '#facc15' }}
-                          >View Store</div>
+                        <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.3) 55%, transparent 100%)' }} />
+                        <div className="absolute bottom-0 left-0 right-0 px-4 pb-4">
+                          <div className="text-[14px] font-black text-white leading-tight">Today's Deals</div>
                         </div>
                       </button>
                     </div>
