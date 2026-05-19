@@ -322,13 +322,12 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
   const animType = (borderItem as any).imageAnimationType;
 
   // ── Normalized overlay sizing ──
-  // imageScale from storeItems is tuned for the small in-game avatar (88px).
-  // In the overlay (130px avatar), extreme scales (1.4x eagle, 1.5x lion) look too big.
-  // We clamp the scale to [0.95, 1.15] for a uniform visual weight across all borders.
+  // imageScale from storeItems is now normalized (max ~1.40).
+  // Clamp to [0.95, 1.40] for consistent visual weight in the equip overlay.
   const avatarSize = 130;
   const overlayBorderBase = 200;
   const rawScale = borderItem.imageScale || 1.0;
-  const overlayScale = Math.min(Math.max(rawScale, 0.95), 1.15);
+  const overlayScale = Math.min(Math.max(rawScale, 0.95), 1.40);
   const borderDisplaySize = overlayBorderBase * overlayScale;
 
   // Container must hold the glow without clipping
