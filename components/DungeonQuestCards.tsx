@@ -207,14 +207,14 @@ const ExerciseCard: React.FC<{
           src={meta.image}
           alt=""
           className="w-full h-full object-cover transition-opacity duration-700"
-          style={{ opacity: imgLoaded ? (isCompleted ? 0.4 : 1) : 0, filter: isCompleted ? 'grayscale(100%) brightness(0.4)' : 'grayscale(100%) brightness(0.9)' }}
+          style={{ opacity: imgLoaded ? (isCompleted ? 0.3 : 1) : 0, filter: isCompleted ? 'grayscale(100%) brightness(0.3)' : 'grayscale(100%) brightness(0.4)' }}
           onLoad={() => setImgLoaded(true)}
         />
-        {/* Subtle bottom gradient for text readability only */}
+        {/* Dark blackish overlay — matches promo banners (Scan Food / Store Deals) */}
         <div
           className="absolute inset-0"
           style={{
-            background: 'linear-gradient(180deg, rgba(10,10,20,0.05) 0%, rgba(10,10,20,0.15) 40%, rgba(8,8,16,0.55) 100%)',
+            background: 'linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.45) 50%, rgba(0,0,0,0.3) 100%)',
           }}
         />
       </div>
