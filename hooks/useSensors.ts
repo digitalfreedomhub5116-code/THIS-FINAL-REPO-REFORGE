@@ -306,19 +306,27 @@ export function useSensors(userId: string = 'local') {
               const segmentKm = haversineKm(lastLat, lastLng, latitude, longitude);
               // Improved filters: 10m min (was 3m), 500m max, speed > 0.5 m/s
               const segmentM = segmentKm * 1000;
+              
               if (segmentM >= 10 && segmentM < 500) {
                 // Ignore standing-still drift
                 if (speed !== null && speed >= 0.5) {
                   dist += segmentKm;
+                  path.push([latitude, longitude]);
                 } else if (speed === null) {
                   dist += segmentKm; // No speed data, trust distance
+                  path.push([latitude, longitude]);
                 }
+              } else if (segmentM >= 500) {
+                // GPS jump, don't add distance but reset reference point
+                path.push([latitude, longitude]);
               }
+              // If segmentM < 10, we do NOT push to path, so we can accumulate distance over multiple small updates
+            } else {
+              // First point
+              path.push([latitude, longitude]);
             }
 
             if (speedKmh > maxSpd) maxSpd = speedKmh;
-
-            path.push([latitude, longitude]);
             if (path.length > 500) path.splice(0, path.length - 500);
 
             const updated: SensorSnapshot = { ...prev, locationPath: path, distanceRecorded: Math.round(dist * 1000) / 1000, maxSpeedKmh: Math.round(maxSpd * 10) / 10, lastUpdate: Date.now() };
@@ -334,14 +342,21 @@ export function useSensors(userId: string = 'local') {
 
     // Accelerometer for step counting (web fallback only)
     try {
-      motionListener.current = await Motion.addListener('accel', (event) => {
+      motionListener.current = await Motion.addListener('accel', (event: any) => {
         if (!isMounted.current) return;
-        const { x, y, z } = event.acceleration || { x: 0, y: 0, z: 0 };
+        
+        // Capacitor Motion API may provide acceleration (without gravity) or accelerationIncludingGravity
+        const hasGravity = !!event.accelerationIncludingGravity;
+        const accel = event.accelerationIncludingGravity || event.acceleration || { x: 0, y: 0, z: 0 };
+        const { x, y, z } = accel;
         const mag = Math.sqrt(x * x + y * y + z * z);
+        
         const now = Date.now();
         const ss = stepState.current;
 
-        const THRESHOLD = 11.8;
+        // If it includes gravity, base magnitude is ~9.8, so threshold is ~11.5 (approx +1.7 m/s^2)
+        // If it excludes gravity, base magnitude is 0, so threshold is ~2.5 m/s^2
+        const THRESHOLD = hasGravity ? 11.5 : 2.5;
         const MIN_STEP_INTERVAL = 300;
 
         if (mag > THRESHOLD && ss.lastMag <= THRESHOLD && now - ss.lastPeakTime > MIN_STEP_INTERVAL) {
