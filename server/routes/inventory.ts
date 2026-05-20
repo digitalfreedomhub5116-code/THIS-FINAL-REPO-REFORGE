@@ -19,26 +19,14 @@ const router = Router();
 const STORE_PRICES: Record<string, number> = {
   // ── Borders: ELEMENTS ──
   'border-ice-img': 600,
-  'border-starcrown-img': 900,
-  'border-elemental-tide': 2800,
-  'border-frost-tech': 3500,
   'border-video-neon': 10000,
+  'border-podium-silver': 1800,    // Silversteel Aegis (moved to Elements)
   // ── Borders: BEASTS ──
   'border-dragon-img': 1200,
-  'border-stitched-dragon': 3600,
-  'border-gold-lion': 4800,
   'border-gold-dragon': 5500,
-  'border-gold-eagle': 6200,
   'border-phoenix': 2800,
-  // ── Borders: SHIELDS ──
-  'border-podium-bronze': 1200,
-  'border-streak-silver': 1500,
-  'border-shadowthrone-img': 1500,
-  'border-podium-silver': 1800,
-  'border-streak-legendary': 2200,
   // ── Borders: EXCLUSIVE ──
   'border-streak-gold': 3000,
-  'border-podium-gold': 3500,
   'border-streak-inferno': 5000,
   'border-streak-eternal': 7500,
   // ── Themes ──
@@ -87,6 +75,13 @@ const STORE_PRICES: Record<string, number> = {
   'title-elite': 500,
   // ── Banners ──
   'banner-reforge-default': 0,
+  // ── Outfits ──
+  'outfit_starter': 0,
+  'outfit_ghost': 800,
+  'outfit_knight': 1500,
+  'outfit_assassin': 5000,
+  'outfit_vanguard': 15000,
+  'outfit_monarch': 50000,
 };
 
 // Max discount % any daily deal can offer (anti-cheat ceiling — client uses 5-20%, this gives 5% buffer)

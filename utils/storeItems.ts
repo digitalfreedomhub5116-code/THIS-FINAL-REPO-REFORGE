@@ -444,34 +444,6 @@ const BANNERS: StoreItem[] = [
 
 
 
-/* ═══ LEADERBOARD PODIUM BORDERS (now purchasable in the store) ═══ */
-const RANK_BORDERS: StoreItem[] = [
-  {
-    id: 'border-podium-gold', name: "Sovereign's Crown", category: 'border',
-    tier: 'legendary', price: 2500,
-    description: 'A regal golden frame befitting a true champion.',
-    imageBorder: '/borders/goldrank-Photoroom.webp',
-    imageScale: 0.94,
-    borderConfig: { colors: ['#FFD700', '#DAA520'], strokeWidth: 3, animated: false, glowColor: '#FFD700', glowIntensity: 0.8 },
-  },
-  {
-    id: 'border-podium-silver', name: 'Silversteel Aegis', category: 'border',
-    tier: 'premium', price: 1800,
-    description: 'Forged from silversteel — a shield of honor.',
-    imageBorder: '/borders/silverrank-Photoroom.webp',
-    imageScale: 0.94,
-    borderConfig: { colors: ['#C0C0C0', '#E0E0E0'], strokeWidth: 3, animated: false, glowColor: '#C0C0C0', glowIntensity: 0.6 },
-  },
-  {
-    id: 'border-podium-bronze', name: 'Bronze Vanguard', category: 'border',
-    tier: 'premium', price: 1200,
-    description: 'A weathered bronze frame — earned through battle.',
-    imageBorder: '/borders/bronzerank-Photoroom.webp',
-    imageScale: 0.94,
-    borderConfig: { colors: ['#CD7F32', '#B87333'], strokeWidth: 3, animated: false, glowColor: '#CD7F32', glowIntensity: 0.6 },
-  },
-];
-
 /* ═══ ALL ITEMS ═══ */
 export const ALL_STORE_ITEMS: StoreItem[] = [
   ...ALL_BORDERS,

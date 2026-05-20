@@ -239,16 +239,32 @@ const OutfitPurchaseModal: React.FC<Props> = ({
     };
   }, []);
 
+  const [purchasing, setPurchasing] = useState(false);
+  const [purchaseError, setPurchaseError] = useState<string | null>(null);
+
   const handleBuy = async () => {
-    if (purchased) return;
-    // Attempt purchase on server FIRST — only celebrate on success
+    if (purchased || purchasing) return;
+    setPurchasing(true);
+    setPurchaseError(null);
+
     try {
       const success = await onPurchase(outfit);
-      if (!success) return; // Server rejected — do nothing
-    } catch {
-      return; // Network error — do nothing
+      if (!success) {
+        // Server rejected — show error in-modal (notifications are behind this modal)
+        setPurchasing(false);
+        setPurchaseError('Purchase failed — check your gold balance and try again.');
+        setTimeout(() => setPurchaseError(null), 4000);
+        return;
+      }
+    } catch (err) {
+      setPurchasing(false);
+      setPurchaseError('Network error — please check your connection.');
+      setTimeout(() => setPurchaseError(null), 4000);
+      return;
     }
+
     // Server confirmed purchase — NOW celebrate
+    setPurchasing(false);
     setPurchased(true);
     setShowFlash(true);
     setTimeout(() => setShowFlash(false), 400);
@@ -503,6 +519,26 @@ const OutfitPurchaseModal: React.FC<Props> = ({
             </div>
           )}
 
+          {/* In-modal error banner — visible above z-9999 (notifications are hidden behind) */}
+          <AnimatePresence>
+            {purchaseError && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={{ duration: 0.2 }}
+                className="mb-3 px-4 py-2.5 rounded-xl text-xs font-bold text-center"
+                style={{
+                  background: 'rgba(239,68,68,0.15)',
+                  border: '1px solid rgba(239,68,68,0.3)',
+                  color: '#f87171',
+                }}
+              >
+                ⚠ {purchaseError}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* Action button */}
           {isUnlocked ? (
             <button
@@ -534,17 +570,21 @@ const OutfitPurchaseModal: React.FC<Props> = ({
           ) : canAfford || isFree ? (
             <button
               onClick={handleBuy}
-              disabled={purchased}
+              disabled={purchased || purchasing}
               className="w-full py-4 rounded-2xl font-black uppercase tracking-widest text-sm flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-60"
               style={{
                 background: purchased
                   ? 'rgba(255,255,255,0.06)'
+                  : purchasing
+                  ? 'linear-gradient(135deg, #b8960a, #a68500)'
                   : 'linear-gradient(135deg, #FFD700, #e6b800)',
-                boxShadow: purchased ? 'none' : '0 6px 28px rgba(255,215,0,0.45)',
+                boxShadow: purchased ? 'none' : purchasing ? '0 0 20px rgba(255,215,0,0.2)' : '0 6px 28px rgba(255,215,0,0.45)',
                 color: purchased ? '#6b7280' : '#000',
               }}
             >
-              {purchased ? '✓ PURCHASED' : isFree ? 'CLAIM FREE' : `BUY — ${outfit.cost.toLocaleString()}G`}
+              {purchased ? '✓ PURCHASED' : purchasing ? (
+                <><span className="inline-block w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" /> PURCHASING...</>
+              ) : isFree ? 'CLAIM FREE' : `BUY — ${outfit.cost.toLocaleString()}G`}
             </button>
           ) : (
             <button
