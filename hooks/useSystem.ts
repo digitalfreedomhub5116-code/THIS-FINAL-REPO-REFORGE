@@ -2359,7 +2359,7 @@ export const useSystem = () => {
     }
   }, [removeStrike, addNotification]);
 
-  const purchaseOutfit = useCallback(async (outfit: { id: string; name: string; cost: number; keyCost?: number }) => {
+  const purchaseOutfit = useCallback(async (outfit: { id: string; name: string; cost: number; keyCost?: number }): Promise<boolean> => {
     // Server-authoritative purchase: atomic gold deduction + inventory write
     try {
       const headers = getPlayerAuthHeaders();
@@ -2378,7 +2378,7 @@ export const useSystem = () => {
         } else {
           addNotification('Purchase failed. Try again.', 'DANGER');
         }
-        return;
+        return false;
       }
       const { gold: newGold } = await resp.json();
       // Server confirmed purchase — update local state
@@ -2390,8 +2390,10 @@ export const useSystem = () => {
         unlockedOutfits: [...(prev.unlockedOutfits || ['outfit_starter']), outfit.id],
         logs: [createLog(`Purchased: ${outfit.name} (-${outfit.cost}G)`, 'PURCHASE'), ...prev.logs],
       }));
+      return true;
     } catch {
       // Network error — fall back to client-side for offline resilience
+      let success = false;
       setPlayer(prev => {
         if ((prev.gold || 0) < outfit.cost) {
           addNotification('Insufficient Gold.', 'DANGER');
@@ -2401,6 +2403,7 @@ export const useSystem = () => {
         if (unlocked.includes(outfit.id)) return prev;
         playSystemSoundEffect('PURCHASE');
         addNotification(`${outfit.name} Unlocked!`, 'PURCHASE');
+        success = true;
         return {
           ...prev,
           gold: prev.gold - outfit.cost,
@@ -2408,6 +2411,7 @@ export const useSystem = () => {
           logs: [createLog(`Purchased: ${outfit.name} (-${outfit.cost}G)`, 'PURCHASE'), ...prev.logs],
         };
       });
+      return success;
     }
   }, [addNotification]);
 

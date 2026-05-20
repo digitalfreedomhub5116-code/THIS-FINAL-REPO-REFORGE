@@ -10,7 +10,7 @@ interface Props {
   gold: number;
 
   isUnlocked: boolean;
-  onPurchase: (outfit: Outfit) => void;
+  onPurchase: (outfit: Outfit) => Promise<boolean>;
   onEquip: (id: string) => void;
   onClose: () => void;
   /** Ad unlock progress for this outfit */
@@ -239,15 +239,22 @@ const OutfitPurchaseModal: React.FC<Props> = ({
     };
   }, []);
 
-  const handleBuy = () => {
+  const handleBuy = async () => {
     if (purchased) return;
+    // Attempt purchase on server FIRST — only celebrate on success
+    try {
+      const success = await onPurchase(outfit);
+      if (!success) return; // Server rejected — do nothing
+    } catch {
+      return; // Network error — do nothing
+    }
+    // Server confirmed purchase — NOW celebrate
     setPurchased(true);
     setShowFlash(true);
     setTimeout(() => setShowFlash(false), 400);
     setTimeout(() => setShowUnlocked(true), 120);
     runConfetti();
 
-    setTimeout(() => { onPurchase(outfit); }, 80);
     setTimeout(() => { onEquip(outfit.id); }, 200);
     setTimeout(() => { onClose(); }, 2800);
   };

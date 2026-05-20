@@ -13,7 +13,7 @@ interface WardrobePreviewCardProps {
   unlockedOutfits: string[];
   equippedOutfitId: string;
   outfits?: Outfit[];
-  onPurchase?: (outfit: Outfit) => void;
+  onPurchase?: (outfit: Outfit) => Promise<boolean>;
   onEquip: (id: string) => void;
   onOpenWardrobe: () => void;
   outfitStones?: Record<string, number>;
@@ -587,7 +587,7 @@ const WardrobePreviewCard: React.FC<WardrobePreviewCardProps> = ({
         gold={gold}
 
         isUnlocked={isUnlocked}
-        onPurchase={(o) => { onPurchase?.(o); }}
+        onPurchase={async (o) => { const ok = await onPurchase?.(o); return !!ok; }}
         onEquip={onEquip}
         onClose={() => setShowModal(false)}
         adProgress={adProgress[outfit.id] || null}
