@@ -16,6 +16,7 @@ import { OUTFITS } from '../utils/gameData';
 import OutfitHunterBadge, { OUTFIT_BADGE_CONFIG } from './OutfitHunterBadge';
 import AvatarWithBorder from './AvatarWithBorder';
 import { getItemById } from '../utils/storeItems';
+import { generateNPCsForUser } from '../utils/npcGenerator';
 
 // ── Types ──
 interface LeaderboardEntry {
@@ -315,31 +316,88 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, [fetchLeaderboard]);
 
-  // ── Build entries with INSTANT local XP merge ──
-  // When YOU earn XP, your card moves immediately without waiting for server refresh
-  const entries = activeTab === 'xp' ? xpEntries : streakEntries;
+  // ── Build entries with NPC merge ──
+  // Generate NPCs unique to this user, mix with real entries
+  const rawEntries = activeTab === 'xp' ? xpEntries : streakEntries;
+
+  // Generate NPCs (stable for this user + this week)
+  const npcEntries = useMemo(() => {
+    if (!player.userId) return [];
+    return generateNPCsForUser(player.userId, 8) as unknown as LeaderboardEntry[];
+  }, [player.userId]);
+
+  // Merge real entries + NPCs
+  const entries = useMemo(() => {
+    // Remove ourselves from real entries (we'll re-add as the "me" row)
+    const myId = player.userId || '';
+    const myUsername = (player.username || '').trim().toLowerCase();
+    const realOthers = rawEntries.filter(e => {
+      if (myUsername && (e.username || '').trim().toLowerCase() === myUsername) return false;
+      if (myId && e.supabase_id === myId) return false;
+      return true;
+    });
+
+    // Find ourselves in the raw data
+    const meEntry = rawEntries.find(e =>
+      (myUsername && (e.username || '').trim().toLowerCase() === myUsername) ||
+      (myId && e.supabase_id === myId)
+    );
+
+    if (activeTab === 'xp') {
+      // XP tab: Build a unique league of 10
+      // = me + up to 2 real players + fill with NPCs to reach 10
+      const leagueMembers: LeaderboardEntry[] = [];
+
+      // Add me first (from raw data or synthesize from player object)
+      if (meEntry) {
+        leagueMembers.push(meEntry);
+      } else {
+        leagueMembers.push({
+          player_id: myId,
+          supabase_id: myId,
+          username: player.username || player.name || 'You',
+          name: player.name || player.username || 'You',
+          total_xp: player.totalXp || 0,
+          daily_xp: player.dailyXp || 0,
+          weekly_xp: player.dailyXp || 0,
+          level: player.level || 1,
+          rank: player.rank || 'E',
+          streak: player.streak || 0,
+          avatar_url: null,
+          equipped_outfit_id: 'outfit_starter',
+          equipped_border: null,
+          equipped_banner: null,
+        });
+      }
+
+      // Add up to 2 real players (nearest in XP)
+      const sortedReal = [...realOthers].sort((a, b) => (b.daily_xp || 0) - (a.daily_xp || 0));
+      const realToAdd = sortedReal.slice(0, Math.min(2, sortedReal.length));
+      leagueMembers.push(...realToAdd);
+
+      // Fill remaining slots with NPCs
+      const slotsNeeded = GROUP_SIZE - leagueMembers.length;
+      leagueMembers.push(...npcEntries.slice(0, slotsNeeded));
+
+      return leagueMembers;
+    } else {
+      // Streak tab: all real entries + NPCs mixed in
+      return [...rawEntries, ...npcEntries];
+    }
+  }, [rawEntries, npcEntries, player, activeTab]);
 
   const simulatedEntries: SimEntry[] = useMemo(() => {
     const myPlayerId = player.userId || '';
     const myUsername = (player.username || '').trim().toLowerCase();
 
-    let meIndex = -1;
-    if (myUsername) {
-      meIndex = entries.findIndex(
-        e => (e.username || '').trim().toLowerCase() === myUsername
+    return entries.map((e, i) => {
+      const isMe = !!(
+        (myUsername && (e.username || '').trim().toLowerCase() === myUsername) ||
+        (myPlayerId && e.supabase_id === myPlayerId)
       );
-    }
-    if (meIndex < 0 && myPlayerId) {
-      meIndex = entries.findIndex(
-        e => e.supabase_id === myPlayerId
-      );
-    }
-
-    return [...entries].map((e, i) => {
-      const isMe = i === meIndex;
       let dominanceValue: number;
       if (activeTab === 'xp') {
-        dominanceValue = e.daily_xp || e.weekly_xp || 0; // Weekly XP
+        dominanceValue = e.daily_xp || e.weekly_xp || 0;
       } else {
         dominanceValue = e.streak || 0;
       }
@@ -362,22 +420,16 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
   const globalMyRank = myIndex >= 0 ? myIndex + 1 : 999;
   const myRank = globalMyRank;
 
-  // ── Group-of-10 computation (XP tab only) ──
+  // ── Group-of-10 (XP tab: already a league of 10, Streak: use full list) ──
   const { groupEntries, groupStart, groupEnd } = useMemo(() => {
-    if (activeTab !== 'xp' || simulatedEntries.length === 0) {
+    if (activeTab === 'xp') {
+      // XP tab: entries are already the user's league of 10
       return { groupEntries: simulatedEntries, groupStart: 1, groupEnd: simulatedEntries.length };
     }
-    // Find which group of 10 the current user belongs to
-    const userIdx = myIndex >= 0 ? myIndex : 0;
-    const groupIdx = Math.floor(userIdx / GROUP_SIZE);
-    const start = groupIdx * GROUP_SIZE;
-    const end = Math.min(start + GROUP_SIZE, simulatedEntries.length);
-    return {
-      groupEntries: simulatedEntries.slice(start, end),
-      groupStart: start + 1,
-      groupEnd: end,
-    };
-  }, [simulatedEntries, myIndex, activeTab]);
+    // Streak tab: show top 50
+    const top = simulatedEntries.slice(0, 50);
+    return { groupEntries: top, groupStart: 1, groupEnd: top.length };
+  }, [simulatedEntries, activeTab]);
 
 
   // ── Format XP ──
@@ -631,6 +683,22 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
             <span className="text-[10px] text-gray-600 font-mono">
               Weekly XP · Groups of {GROUP_SIZE} · Rewards at week end
             </span>
+            {/* Debug: Test Season Reward */}
+            <div className="mt-2">
+              {[1, 2, 3].map(rank => (
+                <button
+                  key={rank}
+                  onClick={() => {
+                    setPendingReward({ id: 'debug-test', rank, reward_gold: 0, reward_xp: 0 });
+                    setShowRewardOverlay(true);
+                  }}
+                  className="mx-1 px-2 py-1 rounded text-[8px] font-mono"
+                  style={{ background: 'rgba(255,255,255,0.05)', color: '#666', border: '1px solid rgba(255,255,255,0.08)' }}
+                >
+                  Test #{rank}
+                </button>
+              ))}
+            </div>
           </div>
         </>
       ) : simulatedEntries.length === 0 ? (
