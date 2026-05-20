@@ -17,7 +17,7 @@ import { PROFILE_BORDERS, getBorderConfig, OUTFITS } from '../utils/gameData';
 import AnimatedBorder from './AnimatedBorder';
 import OnboardingNotice from './OnboardingNotice';
 import { SystemCoin } from './icons/SystemCoin';
-import { getItemsByCategory, getTodaysDeals, getItemById, getRemoteStoreCache, type StoreItem as KitStoreItem, ALL_STORE_ITEMS, BORDERS_ELEMENTS, BORDERS_BEASTS, BORDERS_SHIELDS, BORDERS_EXCLUSIVE } from '../utils/storeItems';
+import { getItemsByCategory, getTodaysDeals, getItemById, getRemoteStoreCache, type StoreItem as KitStoreItem, ALL_STORE_ITEMS, BORDERS_ELEMENTS, BORDERS_BEASTS, BORDERS_EXCLUSIVE } from '../utils/storeItems';
 import { getEconomy, purchaseItem as kitPurchaseItem, equipItem as kitEquipItem, applyThemeVars, DEV_UNLOCK_ALL, type EquippedItems } from '../utils/storeEconomy';
 import { syncBorderToPlayers } from '../lib/borderSync';
 import { LynxCoin, BorderRing, ThemeSwatch } from './StoreComponents';
@@ -1097,40 +1097,6 @@ const ShopView: React.FC<ShopViewProps> = ({
         </div>
         <div className="store-hscroll">
           {BORDERS_BEASTS.map(item => (
-            <div key={item.id} style={{ flexShrink: 0, width: 'calc(42vw - 12px)', minWidth: 140, maxWidth: 180 }}>
-              <KitGlowCard item={item}
-                owned={isItemOwned(item.id)}
-                equipped={kitEconomy.equipped.border === item.id}
-                canAfford={DEV_UNLOCK_ALL || gold >= item.price}
-                onBuy={() => setConfirmPurchaseItem(item)}
-                onInsufficientFunds={() => setShowInsufficientFunds(item)}
-                onEquip={() => {
-                  setEquipAnimItem(item);
-                  setShowEquipAnim(true);
-                  handleKitEquip('border', item.id);
-                }}
-                onInfo={() => setKitInfoItem(item)}
-                onView={() => setKitInfoItem(item)}
-                onCardClick={() => setKitInfoItem(item)}
-                adProgress={adProgress[item.id] || null}
-              />
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── Tier 3: Shields ── */}
-      <section>
-        <div className="store-section-hdr">
-          <div className="hdr-icon" style={{ background: 'rgba(212,146,10,0.12)', border: '1px solid rgba(212,146,10,0.2)' }}>
-            <Hexagon size={15} style={{ color: '#D4920A' }} />
-          </div>
-          <span className="hdr-title">Shields</span>
-          <span style={{ fontSize: 8, fontFamily: 'monospace', color: 'rgba(255,255,255,0.3)', padding: '2px 8px', background: 'rgba(212,146,10,0.06)', borderRadius: 6, border: '1px solid rgba(212,146,10,0.1)' }}>ARMOR · RUNES · VANGUARD</span>
-          <div className="hdr-line" />
-        </div>
-        <div className="store-hscroll">
-          {BORDERS_SHIELDS.map(item => (
             <div key={item.id} style={{ flexShrink: 0, width: 'calc(42vw - 12px)', minWidth: 140, maxWidth: 180 }}>
               <KitGlowCard item={item}
                 owned={isItemOwned(item.id)}

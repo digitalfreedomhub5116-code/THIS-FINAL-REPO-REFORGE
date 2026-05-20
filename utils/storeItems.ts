@@ -99,6 +99,14 @@ export const BORDERS_ELEMENTS: StoreItem[] = [
     adUnlock: true, adsRequired: 10,
     borderConfig: { colors: ['#00d4ff', '#ff00ff', '#00ff88'], strokeWidth: 3, animated: false, glowColor: '#00d4ff', glowIntensity: 0.9 },
   },
+  {
+    id: 'border-podium-silver', name: 'Silversteel Aegis', category: 'border', tier: 'premium', price: 1800, tierColor: ELEMENTS_COLOR,
+    description: 'Forged from silversteel \u2014 a shield of honor.',
+    imageBorder: '/borders/silverrank-Photoroom.webp',
+    imageScale: 0.94,
+    adUnlock: true, adsRequired: 5,
+    borderConfig: { colors: ['#C0C0C0', '#E0E0E0'], strokeWidth: 3, animated: false, glowColor: '#C0C0C0', glowIntensity: 0.6 },
+  },
 ];
 
 /** Tier 2: BEASTS — Dragons, lions, eagles, phoenixes */
@@ -124,19 +132,6 @@ export const BORDERS_BEASTS: StoreItem[] = [
     imageBorder: '/borders/border-phoenix.webp',
     imageScale: 0.89,
     borderConfig: { colors: ['#DAA520', '#FF8C00', '#FFD700'], strokeWidth: 3, animated: false, glowColor: '#DAA520', glowIntensity: 0.8 },
-  },
-];
-
-/** Tier 3: SHIELDS — Armor, runes, defensive frames */
-const SHIELDS_COLOR = '#D4920A'; // Amber Gold
-export const BORDERS_SHIELDS: StoreItem[] = [
-  {
-    id: 'border-podium-silver', name: 'Silversteel Aegis', category: 'border', tier: 'premium', price: 1800, tierColor: SHIELDS_COLOR,
-    description: 'Forged from silversteel — a shield of honor.',
-    imageBorder: '/borders/silverrank-Photoroom.webp',
-    imageScale: 0.94,
-    adUnlock: true, adsRequired: 5,
-    borderConfig: { colors: ['#C0C0C0', '#E0E0E0'], strokeWidth: 3, animated: false, glowColor: '#C0C0C0', glowIntensity: 0.6 },
   },
 ];
 
@@ -209,7 +204,6 @@ export const BORDERS_PRO_EXCLUSIVE: StoreItem[] = [
 const ALL_BORDERS: StoreItem[] = [
   ...BORDERS_ELEMENTS,
   ...BORDERS_BEASTS,
-  ...BORDERS_SHIELDS,
   ...BORDERS_EXCLUSIVE,
   ...BORDERS_PRO_EXCLUSIVE,
 ];
