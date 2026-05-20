@@ -11,7 +11,7 @@ import { API_BASE } from '../lib/apiConfig';
 import { getPlayerAuthHeaders } from '../lib/playerApi';
 import { useSystem } from '../hooks/useSystem';
 import { playSystemSoundEffect } from '../utils/soundEngine';
-import RankRewardOverlay from './RankRewardOverlay';
+import SeasonRewardOverlay from './SeasonRewardOverlay';
 import { OUTFITS } from '../utils/gameData';
 import OutfitHunterBadge, { OUTFIT_BADGE_CONFIG } from './OutfitHunterBadge';
 import AvatarWithBorder from './AvatarWithBorder';
@@ -183,6 +183,41 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
   } | null>(null);
   const [showRewardOverlay, setShowRewardOverlay] = useState(false);
   const rewardCheckedRef = useRef(false);
+
+  // ── Season reward generation logic ──
+  const seasonRewardData = useMemo(() => {
+    if (!pendingReward) return null;
+    const rank = Math.min(pendingReward.rank, 3); // cap at 3 for chest display
+
+    // Border selection based on rank
+    const exclusiveBorders = [
+      { name: 'Golden Dragon', image: '/borders/border-golddragon.webp' },
+      { name: 'Streak Inferno', image: '/borders/border-streak-inferno.webp' },
+      { name: 'Phoenix Rising', image: '/borders/border-phoenix.webp' },
+      { name: 'Streak Gold', image: '/borders/border-streak-gold.webp' },
+      { name: 'Streak Eternal', image: '/borders/border-streak-eternal.webp' },
+    ];
+    const cheapBorders = [
+      { name: 'Ice Barrier', image: '/borders/ice-transparent.webp' },
+      { name: 'Purple Aura', image: '/borders/purple.webp' },
+      { name: 'Silver Shield', image: '/borders/silverrank-Photoroom.webp' },
+      { name: 'Bronze Vanguard', image: '/borders/bronzerank-Photoroom.webp' },
+    ];
+
+    const borderPool = rank <= 2 ? exclusiveBorders : cheapBorders;
+    const border = borderPool[Math.floor(Math.random() * borderPool.length)];
+
+    // Gold: random 3000-5000, multiple of 50
+    const goldRaw = 3000 + Math.floor(Math.random() * 41) * 50; // 3000 to 5000 in steps of 50
+
+    return {
+      rank,
+      borderName: border.name,
+      borderImage: border.image,
+      goldAmount: goldRaw,
+      keys: 3,
+    };
+  }, [pendingReward]);
 
   // Check for unclaimed rank rewards on mount (per-user via API)
   useEffect(() => {
@@ -1029,22 +1064,18 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
       document.body
       )}
 
-      {/* ── RANK REWARD OVERLAY ── */}
+      {/* ── SEASON REWARD OVERLAY (replaces old RankRewardOverlay) ── */}
       <AnimatePresence>
-        {showRewardOverlay && pendingReward && (
-          <RankRewardOverlay
-            rank={pendingReward.rank}
-            gold={pendingReward.reward_gold}
-            xp={pendingReward.reward_xp}
-
-            username={player.username || player.name || 'Hunter'}
+        {showRewardOverlay && pendingReward && seasonRewardData && (
+          <SeasonRewardOverlay
+            reward={seasonRewardData}
             onClaim={async () => {
               setShowRewardOverlay(false);
               addNotification(
-                `Leaderboard Reward: Rank #${pendingReward.rank} — +${pendingReward.reward_gold}G, +${pendingReward.reward_xp}XP`,
+                `Season Reward: Rank #${pendingReward.rank} — +${seasonRewardData.goldAmount}G, +3 Keys, ${seasonRewardData.borderName} Border`,
                 'SUCCESS'
               );
-              // Claim on server — server credits rewards and returns authoritative values
+              // Claim on server
               try {
                 const res = await fetch(`${API_BASE}/api/leaderboard/rewards/claim`, {
                   method: 'POST',
@@ -1055,12 +1086,10 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                 if (res.ok) {
                   const result = await res.json();
                   if (result.player && !result.already_claimed) {
-                    // Apply server-authoritative values directly (no double-counting)
                     const p = result.player;
                     setPlayer(prev => ({
                       ...prev,
                       gold: p.gold,
-
                       currentXp: p.currentXp,
                       requiredXp: p.requiredXp,
                       level: p.level,
@@ -1068,11 +1097,9 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                       totalXp: p.totalXp,
                       dailyXp: p.dailyXp,
                     }));
-                    // Update server baseline so the sync loop doesn't compute wrong deltas
                     updateServerBaseline(p.gold);
                   }
                 }
-                // Also trigger sync to catch any other pending changes
                 setTimeout(() => window.dispatchEvent(new Event('reforge:sync-needed')), 500);
               } catch { /* will retry next time */ }
               setPendingReward(null);
