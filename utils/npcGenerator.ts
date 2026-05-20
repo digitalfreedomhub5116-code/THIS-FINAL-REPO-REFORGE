@@ -67,15 +67,14 @@ const LAST_INITIALS = [
   'S', 'K', 'R', 'M', 'P', 'D', 'V', 'G', 'T', 'A', 'N', 'B', 'J', 'C', 'L',
 ];
 
-// Available borders that NPCs can equip
+// Available borders that NPCs can equip (must match IDs in storeItems.ts)
 const NPC_BORDER_POOL = [
   'border-ice-img',
   'border-dragon-img',
   'border-podium-silver',
-  'border-podium-bronze',
-  'border-streak-gold',
+  'border-gold-dragon',
   'border-phoenix',
-  null, null, null, null, null, null, null, // ~65% chance of no border
+  'border-streak-gold',
 ];
 
 // ── Generate a realistic username from the name pool ──
@@ -130,7 +129,11 @@ function computeRank(level: number): string {
 
 /**
  * Generate NPCs for a specific user for the current week.
- * Returns 8 NPCs with realistic stats.
+ * Returns 8 NPCs with realistic, naturally-growing stats.
+ * 
+ * Each NPC has a seeded "join date" and their stats grow
+ * organically from that date — level, XP, and streak all
+ * look like a real player who's been using the app for weeks.
  */
 export function generateNPCsForUser(userId: string, count = 8): NPCEntry[] {
   const weekNum = getWeekNumber();
@@ -155,33 +158,52 @@ export function generateNPCsForUser(userId: string, count = 8): NPCEntry[] {
 
     const username = generateUsername(npcRng, nameIndices[i]);
 
-    // ── Level: 5 - 45 ──
-    const level = Math.floor(npcRng() * 40) + 5;
+    // ── "Join date": how many days ago this NPC "joined" (10-200 days) ──
+    const daysActive = Math.floor(npcRng() * 190) + 10;
 
-    // ── Daily XP: 300 - 600 ──
-    // Each NPC gets a base daily XP, with slight day-to-day variation
-    const baseXp = Math.floor(npcRng() * 301) + 300; // 300-600
-    const dayVariation = Math.floor(
-      mulberry32(hashString(`${userId}-${weekNum}-${i}-day-${dayOfYear}`))() * 100 - 50
-    ); // ±50
-    const dailyXp = Math.max(100, baseXp + dayVariation);
+    // ── Avg daily XP this NPC earns: 300-600 ──
+    const avgDailyXp = Math.floor(npcRng() * 301) + 300;
 
-    // ── Total XP: based on level (realistic accumulation) ──
-    const totalXp = level * 800 + Math.floor(npcRng() * 5000);
+    // ── Total XP: accumulates naturally from join date ──
+    // Not every day is active — ~70-85% active rate
+    const activeRate = 0.7 + npcRng() * 0.15;
+    const activeDays = Math.floor(daysActive * activeRate);
+    const totalXp = activeDays * avgDailyXp + Math.floor(npcRng() * 2000);
 
-    // ── Streak: breaks every 7-10 days ──
+    // ── Level: derived from total XP (realistic growth) ──
+    // ~800 XP per level on average (matches the game's curve)
+    const baseLevel = Math.floor(totalXp / 800);
+    const level = Math.min(Math.max(baseLevel, 1), 99);
+
+    // ── Daily XP: today's XP with variation ──
+    const todayVariation = mulberry32(
+      hashString(`${userId}-${weekNum}-${i}-day-${dayOfYear}`)
+    )();
+    const dailyXp = Math.floor(avgDailyXp * (0.7 + todayVariation * 0.6)); // ±30% of avg
+
+    // ── Streak: natural build-up + periodic break ──
+    // Each NPC has a break interval (7-10 days) and a "last break" anchor
     const breakInterval = 7 + Math.floor(npcRng() * 4); // 7, 8, 9, or 10
-    const daysSinceBreak = dayOfYear % breakInterval;
+    const breakOffset = Math.floor(npcRng() * breakInterval); // stagger break days
+    const dayInCycle = (dayOfYear + breakOffset) % breakInterval;
     let streak: number;
-    if (daysSinceBreak <= 1) {
-      streak = 0; // just broke
+    if (dayInCycle === 0) {
+      // Break day — streak just broke today
+      streak = 0;
     } else {
-      streak = daysSinceBreak;
+      // Streak is building: 1, 2, 3, 4, ...
+      streak = dayInCycle;
     }
+    // Cap streak to not exceed days active
+    streak = Math.min(streak, daysActive);
 
-    // ── Border: ~35% chance ──
-    const borderIdx = Math.floor(npcRng() * NPC_BORDER_POOL.length);
-    const border = NPC_BORDER_POOL[borderIdx];
+    // ── Border: higher level NPCs more likely to have borders ──
+    let border: string | null = null;
+    const borderChance = level > 30 ? 0.5 : level > 15 ? 0.3 : 0.15;
+    if (npcRng() < borderChance) {
+      const borderIdx = Math.floor(npcRng() * NPC_BORDER_POOL.length);
+      border = NPC_BORDER_POOL[borderIdx] || null;
+    }
 
     npcs.push({
       player_id: `npc-${userId.slice(0, 8)}-${i}`,
