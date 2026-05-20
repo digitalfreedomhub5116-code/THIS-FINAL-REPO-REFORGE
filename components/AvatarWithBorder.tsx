@@ -65,8 +65,9 @@ const AvatarWithBorder: React.FC<AvatarWithBorderProps> = ({
     const cfg = storeItem.borderConfig;
     const glow = cfg?.glowColor || '#00d4ff';
     const scale = storeItem.imageScale || 1.0;
-    const outerSize = size + 20;
-    const borderSize = outerSize * scale;
+    // Container matches `size` so bordered/unbordered avatars occupy the same layout footprint
+    const outerSize = size;
+    const borderSize = (size + 20) * scale;
     const offsetY = (storeItem as any).imageOffsetY || 0;
 
     return (
@@ -120,8 +121,10 @@ const AvatarWithBorder: React.FC<AvatarWithBorderProps> = ({
     const cfg = storeItem.borderConfig;
     const glow = cfg?.glowColor || '#00d4ff';
     const scale = storeItem.imageScale || 1.0;
-    const outerSize = size + 20;
-    const borderImgSize = outerSize * scale;
+    // Container matches `size` so bordered/unbordered avatars occupy the same
+    // layout footprint. The border image overflows via overflow:visible.
+    const outerSize = size;
+    const borderImgSize = (size + 20) * scale;
     const offsetY = (storeItem as any).imageOffsetY || 0;
     const isAnimated = storeItem.imageAnimated;
     const animType = (storeItem as any).imageAnimationType;
