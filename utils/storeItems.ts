@@ -92,30 +92,6 @@ export const BORDERS_ELEMENTS: StoreItem[] = [
     borderConfig: { colors: ['#00BFFF', '#E0FFFF'], strokeWidth: 3, animated: false, glowColor: '#00BFFF', glowIntensity: 0.6 },
   },
   {
-    id: 'border-starcrown-img', name: 'Star Crown', category: 'border', tier: 'premium', price: 900, tierColor: ELEMENTS_COLOR,
-    description: 'Celestial stars orbiting your portrait like a crown.',
-    imageBorder: '/borders/rotate.webp',
-    imageScale: 0.85,
-    imageAnimated: true,
-    imageAnimationType: 'pulse',
-    borderConfig: { colors: ['#E2E8F0', '#94A3B8'], strokeWidth: 3, animated: false, glowColor: '#E2E8F0', glowIntensity: 0.5 },
-  },
-  {
-    id: 'border-elemental-tide', name: 'Elemental Tide', category: 'border', tier: 'legendary', price: 2800, tierColor: ELEMENTS_COLOR,
-    description: 'Japanese waves and sacred flames entwine around your avatar.',
-    imageBorder: '/borders/border-mixed.webp',
-    imageScale: 1.15,
-    borderConfig: { colors: ['#1E90FF', '#FF6347', '#C8A84E'], strokeWidth: 3, animated: false, glowColor: '#1E90FF', glowIntensity: 0.7 },
-  },
-
-  {
-    id: 'border-frost-tech', name: 'Frost Tech', category: 'border', tier: 'legendary', price: 3500, tierColor: ELEMENTS_COLOR,
-    description: 'Cryo-tech crystals and snowflakes forge a futuristic ice frame.',
-    imageBorder: '/borders/border-frost-tech.webp',
-    imageScale: 1.10,
-    borderConfig: { colors: ['#00CED1', '#87CEEB', '#E0FFFF'], strokeWidth: 3, animated: false, glowColor: '#00CED1', glowIntensity: 0.8 },
-  },
-  {
     id: 'border-video-neon', name: 'Neon Pulse Ring', category: 'border', tier: 'legendary', price: 10000, tierColor: ELEMENTS_COLOR,
     description: 'Animated neon energy pulses around your avatar — alive and electric.',
     videoBorder: '/borders/videoborder1.webm',
@@ -136,33 +112,11 @@ export const BORDERS_BEASTS: StoreItem[] = [
     borderConfig: { colors: ['#60A5FA', '#93C5FD'], strokeWidth: 3, animated: false, glowColor: '#60A5FA', glowIntensity: 0.7 },
   },
   {
-    id: 'border-stitched-dragon', name: 'Stitched Dragon', category: 'border', tier: 'legendary', price: 3600, tierColor: BEASTS_COLOR,
-    description: 'A crimson dragon coils in stitched leather and gold — ancient fury.',
-    imageBorder: '/borders/border-stitched-dragon.webp',
-    imageScale: 1.19,
-    borderConfig: { colors: ['#8B0000', '#C8A84E', '#FF4500'], strokeWidth: 3, animated: false, glowColor: '#8B0000', glowIntensity: 0.8 },
-  },
-  {
-    id: 'border-gold-lion', name: 'Gold Lion', category: 'border', tier: 'legendary', price: 4800, tierColor: BEASTS_COLOR,
-    description: 'A majestic golden lion crowns your avatar — royalty unleashed.',
-    imageBorder: '/borders/border-goldlion.webp',
-    imageScale: 1.06,
-    borderConfig: { colors: ['#C8A84E', '#0E8585', '#DAA520'], strokeWidth: 3, animated: false, glowColor: '#C8A84E', glowIntensity: 0.8 },
-  },
-  {
     id: 'border-gold-dragon', name: 'Gold Dragon', category: 'border', tier: 'legendary', price: 5500, tierColor: BEASTS_COLOR,
     description: 'An ancient golden dragon coils around your avatar — ultimate power.',
     imageBorder: '/borders/border-golddragon.webp',
     imageScale: 0.94,
     borderConfig: { colors: ['#C8A84E', '#F59E0B', '#DAA520'], strokeWidth: 3, animated: false, glowColor: '#C8A84E', glowIntensity: 0.8 },
-  },
-  {
-    id: 'border-gold-eagle', name: 'Golden Eagle', category: 'border', tier: 'legendary', price: 6200, tierColor: BEASTS_COLOR,
-    description: 'Bronze wings of an apex predator crown your avatar — soar above all.',
-    imageBorder: '/borders/border-eagle.webp',
-    imageScale: 0.89,
-    adUnlock: true, adsRequired: 5,
-    borderConfig: { colors: ['#B87333', '#C8A84E', '#DAA520'], strokeWidth: 3, animated: false, glowColor: '#B87333', glowIntensity: 0.8 },
   },
   {
     id: 'border-phoenix', name: 'Phoenix Blaze', category: 'border', tier: 'legendary', price: 2800, tierColor: BEASTS_COLOR,
@@ -177,40 +131,12 @@ export const BORDERS_BEASTS: StoreItem[] = [
 const SHIELDS_COLOR = '#D4920A'; // Amber Gold
 export const BORDERS_SHIELDS: StoreItem[] = [
   {
-    id: 'border-podium-bronze', name: 'Bronze Vanguard', category: 'border', tier: 'premium', price: 1200, tierColor: SHIELDS_COLOR,
-    description: 'A weathered bronze frame — earned through battle.',
-    imageBorder: '/borders/bronzerank-Photoroom.webp',
-    imageScale: 0.94,
-    borderConfig: { colors: ['#CD7F32', '#B87333'], strokeWidth: 3, animated: false, glowColor: '#CD7F32', glowIntensity: 0.6 },
-  },
-  {
-    id: 'border-streak-silver', name: 'Forged in Fire', category: 'border', tier: 'premium', price: 1500, tierColor: SHIELDS_COLOR,
-    description: 'A silver frost ring forged through dedication.',
-    imageBorder: '/borders/border-streak-silver.webp',
-    imageScale: 0.85,
-    borderConfig: { colors: ['#C0C0C0', '#E0E0E0'], strokeWidth: 3, animated: false, glowColor: '#C0C0C0', glowIntensity: 0.6 },
-  },
-  {
-    id: 'border-shadowthrone-img', name: 'Shadow Throne', category: 'border', tier: 'legendary', price: 1500, tierColor: SHIELDS_COLOR,
-    description: 'Ornate dark-magic thorns weaving a royal frame.',
-    imageBorder: '/borders/purple.webp',
-    imageScale: 0.94,
-    borderConfig: { colors: ['#C084FC', '#A855F7'], strokeWidth: 3, animated: false, glowColor: '#C084FC', glowIntensity: 0.7 },
-  },
-  {
     id: 'border-podium-silver', name: 'Silversteel Aegis', category: 'border', tier: 'premium', price: 1800, tierColor: SHIELDS_COLOR,
     description: 'Forged from silversteel — a shield of honor.',
     imageBorder: '/borders/silverrank-Photoroom.webp',
     imageScale: 0.94,
     adUnlock: true, adsRequired: 5,
     borderConfig: { colors: ['#C0C0C0', '#E0E0E0'], strokeWidth: 3, animated: false, glowColor: '#C0C0C0', glowIntensity: 0.6 },
-  },
-  {
-    id: 'border-streak-legendary', name: 'Legendary', category: 'border', tier: 'legendary', price: 2200, tierColor: SHIELDS_COLOR,
-    description: 'A divine golden ring — legendary status.',
-    imageBorder: '/borders/border-streak-legendary.webp',
-    imageScale: 0.85,
-    borderConfig: { colors: ['#EAB308', '#A855F7', '#EF4444'], strokeWidth: 3, animated: false, glowColor: '#EAB308', glowIntensity: 1.0 },
   },
 ];
 
