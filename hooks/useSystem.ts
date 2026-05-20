@@ -531,7 +531,11 @@ export const useSystem = () => {
 
   const addNotification = useCallback((message: string, type: NotificationType) => {
     const id = Date.now().toString();
-    setNotifications(prev => [...prev, { id, message, type }]);
+    // Only 1 visible notification at a time — replace any existing one
+    setNotifications([{ id, message, type }]);
+    // Clear any previous timer
+    notificationTimers.current.forEach(t => clearTimeout(t));
+    notificationTimers.current.clear();
     const timer = setTimeout(() => {
       setNotifications(prev => prev.filter(n => n.id !== id));
       notificationTimers.current.delete(timer);

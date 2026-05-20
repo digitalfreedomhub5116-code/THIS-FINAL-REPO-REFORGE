@@ -327,10 +327,13 @@ const SeasonRewardOverlay: React.FC<SeasonRewardOverlayProps> = ({ reward, onCla
                   opacity: t.opacity, rotateY: t.rotateY,
                 }}
                 transition={{
-                  duration: 0.65,
-                  type: 'spring',
-                  stiffness: 150,
-                  damping: 20,
+                  // Position uses spring for snappy feel
+                  x: { duration: 0.6, type: 'spring', stiffness: 150, damping: 20 },
+                  y: { duration: 0.6, type: 'spring', stiffness: 150, damping: 20 },
+                  scale: { duration: 0.5, ease: 'easeInOut' },
+                  opacity: { duration: 0.3 },
+                  // rotateY uses tween (NO spring) to prevent overshoot past 180° which would flash the back
+                  rotateY: { duration: 0.6, ease: 'easeInOut' },
                 }}
               >
                 {/* Card BACK (face-down) */}

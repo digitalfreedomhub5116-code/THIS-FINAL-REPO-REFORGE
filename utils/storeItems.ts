@@ -166,19 +166,6 @@ export const BORDERS_EXCLUSIVE: StoreItem[] = [
 const PRO_COLOR = '#facc15'; // Premium Gold
 export const BORDERS_PRO_EXCLUSIVE: StoreItem[] = [
   {
-    id: 'border-pro-crown', name: 'Reforge Crown', category: 'border', tier: 'legendary', price: 0, tierColor: PRO_COLOR,
-    description: 'An exclusive golden crown aura — only for Reforge Pro subscribers.',
-    requiresPremium: true,
-    auraConfig: {
-      colors: ['#facc15', '#f59e0b', '#eab308'],
-      blur: 18,
-      spread: 4,
-      animated: true,
-      pulseSpeed: 3,
-    },
-    borderConfig: { colors: ['#facc15', '#f59e0b', '#eab308'], strokeWidth: 3, animated: true, animationType: 'shimmer', glowColor: '#facc15', glowIntensity: 1.0 },
-  },
-  {
     id: 'border-pro-void', name: 'Void Sovereign', category: 'border', tier: 'legendary', price: 0, tierColor: PRO_COLOR,
     description: 'A deep purple void aura with pulsing dark energy — Pro exclusive.',
     requiresPremium: true,
