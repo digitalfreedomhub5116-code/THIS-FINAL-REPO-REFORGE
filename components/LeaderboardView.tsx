@@ -201,13 +201,12 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
     const beastsBorders = [
       { name: 'Gold Dragon', image: '/borders/border-golddragon.webp' },
       { name: 'Phoenix Blaze', image: '/borders/border-phoenix.webp' },
-      { name: 'Dragon Coil', image: '/borders/border-stitched-dragon.webp' },
+      { name: 'Dragon Coil', image: '/borders/dragon.webp' },
     ];
 
-    // #3: ELEMENTS borders (ice, nature, tech)
+    // #3: ELEMENTS borders (ice, nature)
     const elementsBorders = [
       { name: 'Ice Crown', image: '/borders/ice-transparent.webp' },
-      { name: 'Frost Tech', image: '/borders/border-frost-tech.webp' },
       { name: 'Silversteel Aegis', image: '/borders/silverrank-Photoroom.webp' },
     ];
 
