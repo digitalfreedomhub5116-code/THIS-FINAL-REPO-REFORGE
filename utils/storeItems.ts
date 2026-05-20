@@ -146,13 +146,6 @@ export const BORDERS_EXCLUSIVE: StoreItem[] = [
     borderConfig: { colors: ['#EAB308', '#F59E0B'], strokeWidth: 3, animated: false, glowColor: '#EAB308', glowIntensity: 0.7 },
   },
   {
-    id: 'border-podium-gold', name: "Sovereign's Crown", category: 'border', tier: 'legendary', price: 3500, tierColor: EXCLUSIVE_COLOR,
-    description: 'A regal golden frame befitting a true champion.',
-    imageBorder: '/borders/goldrank-Photoroom.webp',
-    imageScale: 0.94,
-    borderConfig: { colors: ['#FFD700', '#DAA520'], strokeWidth: 3, animated: false, glowColor: '#FFD700', glowIntensity: 0.8 },
-  },
-  {
     id: 'border-streak-inferno', name: 'Inferno', category: 'border', tier: 'legendary', price: 5000, tierColor: EXCLUSIVE_COLOR,
     description: 'Cyan inferno flames of relentless dedication.',
     imageBorder: '/borders/border-streak-inferno.webp',
