@@ -304,7 +304,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
       const isMe = i === meIndex;
       let dominanceValue: number;
       if (activeTab === 'xp') {
-        dominanceValue = e.total_xp || 0; // Accumulative XP
+        dominanceValue = e.daily_xp || e.weekly_xp || 0; // Weekly XP
       } else {
         dominanceValue = e.streak || 0;
       }
@@ -441,57 +441,57 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
               <div className="text-sm font-black text-white tracking-tight">Top 3 Chest Rewards</div>
             </div>
 
-            {/* 3 Chests in a row — #1 center (biggest), #2 left, #3 right */}
-            <div className="flex items-end justify-center gap-2 px-4 pt-2 pb-3" style={{ minHeight: 160 }}>
-              {/* 2nd Place (left) */}
-              <div className="flex flex-col items-center flex-1">
-                <div className="relative" style={{ width: CHEST_REWARDS[1].size, height: CHEST_REWARDS[1].size }}>
+            {/* 3 Chests — centered: 2nd | 1st (big) | 3rd */}
+            <div className="flex items-end justify-center px-6 pt-2 pb-3" style={{ minHeight: 160 }}>
+              {/* 2nd Place */}
+              <div className="flex flex-col items-center" style={{ width: 100 }}>
+                <div className="relative" style={{ width: CHEST_REWARDS[1].size, height: CHEST_REWARDS[1].size, margin: '0 auto' }}>
                   <div className="absolute inset-0" style={{ background: CHEST_REWARDS[1].bgGlow }} />
                   {chestAnims[CHEST_REWARDS[1].lottie] && (
-                    <Lottie animationData={chestAnims[CHEST_REWARDS[1].lottie]} loop autoplay style={{ width: '100%', height: '100%' }} />
+                    <Lottie animationData={chestAnims[CHEST_REWARDS[1].lottie]} loop={false} autoplay={false} initialSegment={[0, 1]} style={{ width: '100%', height: '100%' }} />
                   )}
                 </div>
                 <div className="mt-1 px-2 py-0.5 rounded-full text-[8px] font-black tracking-wider" style={{
                   background: 'rgba(192,192,192,0.12)', border: '1px solid rgba(192,192,192,0.25)', color: '#C0C0C0',
                 }}>
-                  2ND · 2x
+                  🥈 2ND
                 </div>
               </div>
 
               {/* 1st Place (center — BIGGEST, PREMIUM) */}
-              <div className="flex flex-col items-center flex-1 -mt-4 relative">
+              <div className="flex flex-col items-center -mt-4 relative mx-2" style={{ width: 130 }}>
                 {/* Golden halo pulse */}
                 <motion.div
                   className="absolute rounded-full pointer-events-none"
                   style={{
-                    width: CHEST_REWARDS[0].size + 40,
-                    height: CHEST_REWARDS[0].size + 40,
-                    top: -20,
+                    width: CHEST_REWARDS[0].size + 30,
+                    height: CHEST_REWARDS[0].size + 30,
+                    top: -12,
                     left: '50%',
                     transform: 'translateX(-50%)',
                     background: 'radial-gradient(circle, rgba(255,215,0,0.12) 0%, transparent 70%)',
                   }}
-                  animate={{ scale: [1, 1.15, 1], opacity: [0.6, 1, 0.6] }}
+                  animate={{ scale: [1, 1.12, 1], opacity: [0.5, 0.9, 0.5] }}
                   transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
                 />
                 {/* Floating particles */}
-                {[0, 1, 2, 3, 4].map(i => (
+                {[0, 1, 2, 3].map(i => (
                   <motion.div
                     key={`p-${i}`}
                     className="absolute w-1 h-1 rounded-full pointer-events-none"
                     style={{
                       background: '#FFD700',
-                      left: `${20 + i * 15}%`,
-                      bottom: `${30 + (i % 3) * 15}%`,
+                      left: `${25 + i * 18}%`,
+                      bottom: `${35 + (i % 2) * 20}%`,
                       boxShadow: '0 0 6px #FFD700',
                     }}
-                    animate={{ y: [-2, -18, -2], opacity: [0.8, 0.15, 0.8] }}
-                    transition={{ duration: 2 + i * 0.4, repeat: Infinity, delay: i * 0.3 }}
+                    animate={{ y: [-2, -16, -2], opacity: [0.7, 0.1, 0.7] }}
+                    transition={{ duration: 2 + i * 0.5, repeat: Infinity, delay: i * 0.35 }}
                   />
                 ))}
-                <div className="relative" style={{ width: CHEST_REWARDS[0].size, height: CHEST_REWARDS[0].size, filter: 'drop-shadow(0 0 20px rgba(255,215,0,0.4))' }}>
+                <div className="relative" style={{ width: CHEST_REWARDS[0].size, height: CHEST_REWARDS[0].size, margin: '0 auto', filter: 'drop-shadow(0 0 18px rgba(255,215,0,0.35))' }}>
                   {chestAnims[CHEST_REWARDS[0].lottie] && (
-                    <Lottie animationData={chestAnims[CHEST_REWARDS[0].lottie]} loop autoplay style={{ width: '100%', height: '100%' }} />
+                    <Lottie animationData={chestAnims[CHEST_REWARDS[0].lottie]} loop={false} autoplay={false} initialSegment={[0, 1]} style={{ width: '100%', height: '100%' }} />
                   )}
                 </div>
                 <div className="mt-1 px-2.5 py-1 rounded-full text-[9px] font-black tracking-wider" style={{
@@ -500,41 +500,26 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                   color: '#FFD700',
                   boxShadow: '0 0 12px rgba(255,215,0,0.2)',
                 }}>
-                  👑 1ST · 3x
+                  👑 1ST
                 </div>
               </div>
 
-              {/* 3rd Place (right) */}
-              <div className="flex flex-col items-center flex-1">
-                <div className="relative" style={{ width: CHEST_REWARDS[2].size, height: CHEST_REWARDS[2].size }}>
+              {/* 3rd Place */}
+              <div className="flex flex-col items-center" style={{ width: 100 }}>
+                <div className="relative" style={{ width: CHEST_REWARDS[2].size, height: CHEST_REWARDS[2].size, margin: '0 auto' }}>
                   <div className="absolute inset-0" style={{ background: CHEST_REWARDS[2].bgGlow }} />
                   {chestAnims[CHEST_REWARDS[2].lottie] && (
-                    <Lottie animationData={chestAnims[CHEST_REWARDS[2].lottie]} loop autoplay style={{ width: '100%', height: '100%' }} />
+                    <Lottie animationData={chestAnims[CHEST_REWARDS[2].lottie]} loop={false} autoplay={false} initialSegment={[0, 1]} style={{ width: '100%', height: '100%' }} />
                   )}
                 </div>
                 <div className="mt-1 px-2 py-0.5 rounded-full text-[8px] font-black tracking-wider" style={{
                   background: 'rgba(205,127,50,0.12)', border: '1px solid rgba(205,127,50,0.25)', color: '#CD7F32',
                 }}>
-                  3RD · 1.5x
+                  🥉 3RD
                 </div>
               </div>
             </div>
 
-            {/* Reward info bar */}
-            <div className="flex items-center justify-center gap-3 px-4 py-2.5 mx-3 mb-3 rounded-xl" style={{
-              background: 'rgba(255,255,255,0.03)',
-              border: '1px solid rgba(255,255,255,0.06)',
-            }}>
-              <div className="flex items-center gap-1">
-                <Coins size={11} className="text-yellow-500" />
-                <span className="text-[9px] font-black text-gray-300 font-mono">1 XP = 1 GOLD</span>
-              </div>
-              <div className="w-px h-3 bg-gray-700" />
-              <div className="flex items-center gap-1">
-                <Trophy size={11} className="text-yellow-500" />
-                <span className="text-[9px] font-black text-gray-300 font-mono">TOP 3 GET BONUS</span>
-              </div>
-            </div>
           </div>
 
           {/* ═══ YOUR LEAGUE — GROUP OF 10 ═══ */}
@@ -594,15 +579,6 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-black text-white truncate">{entry.username || entry.name}</span>
                       {entry.isMe && <span className="text-[8px] px-1.5 py-0.5 rounded bg-[#00d4ff]/15 text-[#00d4ff] font-black tracking-wider">you</span>}
-                      {isTop3 && (
-                        <span className="text-[7px] px-1 py-0.5 rounded font-black tracking-wider" style={{
-                          background: `${rankColor}15`,
-                          color: rankColor,
-                          border: `1px solid ${rankColor}30`,
-                        }}>
-                          {rankInGroup === 1 ? '👑' : rankInGroup === 2 ? '🥈' : '🥉'} {CHEST_REWARDS[rankInGroup - 1].multiplier}x
-                        </span>
-                      )}
                     </div>
                   </div>
 
@@ -618,7 +594,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
 
           <div className="text-center py-4 mt-2">
             <span className="text-[10px] text-gray-600 font-mono">
-              Weekly XP · Groups of {GROUP_SIZE} · 1 XP = 1 Gold at week end
+              Weekly XP · Groups of {GROUP_SIZE} · Rewards at week end
             </span>
           </div>
         </>
