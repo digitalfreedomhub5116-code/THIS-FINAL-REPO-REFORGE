@@ -188,35 +188,56 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
   // ── Season reward generation logic ──
   const seasonRewardData = useMemo(() => {
     if (!pendingReward) return null;
-    const rank = Math.min(pendingReward.rank, 3); // cap at 3 for chest display
+    const rank = Math.min(pendingReward.rank, 3);
 
-    // Border selection based on rank
+    // #1: EXCLUSIVE borders (premium, streak rewards)
     const exclusiveBorders = [
-      { name: 'Golden Dragon', image: '/borders/border-golddragon.webp' },
-      { name: 'Streak Inferno', image: '/borders/border-streak-inferno.webp' },
-      { name: 'Phoenix Rising', image: '/borders/border-phoenix.webp' },
-      { name: 'Streak Gold', image: '/borders/border-streak-gold.webp' },
-      { name: 'Streak Eternal', image: '/borders/border-streak-eternal.webp' },
-    ];
-    const cheapBorders = [
-      { name: 'Ice Barrier', image: '/borders/ice-transparent.webp' },
-      { name: 'Purple Aura', image: '/borders/purple.webp' },
-      { name: 'Silver Shield', image: '/borders/silverrank-Photoroom.webp' },
-      { name: 'Bronze Vanguard', image: '/borders/bronzerank-Photoroom.webp' },
+      { name: 'Iron Will', image: '/borders/border-streak-gold.webp' },
+      { name: 'Inferno', image: '/borders/border-streak-inferno.webp' },
+      { name: 'Eternal Flame', image: '/borders/border-streak-eternal.webp' },
     ];
 
-    const borderPool = rank <= 2 ? exclusiveBorders : cheapBorders;
+    // #2: BEASTS borders (dragons, phoenixes)
+    const beastsBorders = [
+      { name: 'Gold Dragon', image: '/borders/border-golddragon.webp' },
+      { name: 'Phoenix Blaze', image: '/borders/border-phoenix.webp' },
+      { name: 'Dragon Coil', image: '/borders/border-stitched-dragon.webp' },
+    ];
+
+    // #3: ELEMENTS borders (ice, nature, tech)
+    const elementsBorders = [
+      { name: 'Ice Crown', image: '/borders/ice-transparent.webp' },
+      { name: 'Frost Tech', image: '/borders/border-frost-tech.webp' },
+      { name: 'Silversteel Aegis', image: '/borders/silverrank-Photoroom.webp' },
+    ];
+
+    let borderPool: { name: string; image: string }[];
+    let goldMin: number;
+    let goldMax: number;
+    let keys: number;
+
+    if (rank === 1) {
+      borderPool = exclusiveBorders;
+      goldMin = 3000; goldMax = 5000; keys = 3;
+    } else if (rank === 2) {
+      borderPool = beastsBorders;
+      goldMin = 2000; goldMax = 3000; keys = 2;
+    } else {
+      borderPool = elementsBorders;
+      goldMin = 1000; goldMax = 2000; keys = 1;
+    }
+
     const border = borderPool[Math.floor(Math.random() * borderPool.length)];
-
-    // Gold: random 3000-5000, multiple of 50
-    const goldRaw = 3000 + Math.floor(Math.random() * 41) * 50; // 3000 to 5000 in steps of 50
+    // Gold in multiples of 50
+    const goldSteps = Math.floor((goldMax - goldMin) / 50);
+    const goldAmount = goldMin + Math.floor(Math.random() * (goldSteps + 1)) * 50;
 
     return {
       rank,
       borderName: border.name,
       borderImage: border.image,
-      goldAmount: goldRaw,
-      keys: 3,
+      goldAmount,
+      keys,
     };
   }, [pendingReward]);
 
@@ -1140,7 +1161,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
             onClaim={async () => {
               setShowRewardOverlay(false);
               addNotification(
-                `Season Reward: Rank #${pendingReward.rank} — +${seasonRewardData.goldAmount}G, +3 Keys, ${seasonRewardData.borderName} Border`,
+                `Season Reward: Rank #${pendingReward.rank} — +${seasonRewardData.goldAmount}G, +${seasonRewardData.keys} Keys, ${seasonRewardData.borderName} Border`,
                 'SUCCESS'
               );
               // Claim on server
