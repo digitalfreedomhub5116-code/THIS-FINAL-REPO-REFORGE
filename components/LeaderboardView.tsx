@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import Lottie from 'lottie-react';
 import {
   RefreshCw,
-  X, Zap, Flag, AlertTriangle, CheckSquare, Square, Send, Flame, Clock,
+  X, Zap, Flag, AlertTriangle, CheckSquare, Square, Send, Flame, Clock, Trophy, Gift, Coins,
 } from 'lucide-react';
 import { PlayerData, Outfit } from '../types';
 import { API_BASE } from '../lib/apiConfig';
@@ -52,7 +53,15 @@ interface LeaderboardViewProps {
 }
 
 type TabMode = 'xp' | 'streak';
-type XpMode = 'daily' | 'global';
+
+const GROUP_SIZE = 10;
+
+// ── Chest Reward Config ──
+const CHEST_REWARDS = [
+  { rank: 1, label: '1ST', multiplier: 3, lottie: '/assets/lottie/legendary_chest.json', size: 120, color: '#FFD700', glowColor: 'rgba(255,215,0,0.5)', bgGlow: 'radial-gradient(ellipse at 50% 50%, rgba(255,215,0,0.15) 0%, transparent 70%)' },
+  { rank: 2, label: '2ND', multiplier: 2, lottie: '/assets/lottie/alliance_chest.json', size: 90, color: '#C0C0C0', glowColor: 'rgba(192,192,192,0.4)', bgGlow: 'radial-gradient(ellipse at 50% 50%, rgba(192,192,192,0.1) 0%, transparent 70%)' },
+  { rank: 3, label: '3RD', multiplier: 1.5, lottie: '/assets/lottie/daily_chest.json', size: 70, color: '#CD7F32', glowColor: 'rgba(205,127,50,0.35)', bgGlow: 'radial-gradient(ellipse at 50% 50%, rgba(205,127,50,0.08) 0%, transparent 70%)' },
+];
 
 // ── Constants ──
 const RANK_COLORS: Record<string, string> = {
@@ -93,7 +102,16 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
   const [xpEntries, setXpEntries] = useState<LeaderboardEntry[]>([]);
   const [streakEntries, setStreakEntries] = useState<LeaderboardEntry[]>([]);
   const [activeTab, setActiveTab] = useState<TabMode>('xp');
-  const [xpMode, setXpMode] = useState<XpMode>('daily');
+
+  // Lottie animation data
+  const [chestAnims, setChestAnims] = useState<Record<string, any>>({});
+  useEffect(() => {
+    CHEST_REWARDS.forEach(c => {
+      fetch(c.lottie).then(r => r.json()).then(data => {
+        setChestAnims(prev => ({ ...prev, [c.lottie]: data }));
+      }).catch(() => {});
+    });
+  }, []);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [weekEnd, setWeekEnd] = useState<string | null>(null);
@@ -286,7 +304,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
       const isMe = i === meIndex;
       let dominanceValue: number;
       if (activeTab === 'xp') {
-        dominanceValue = e.daily_xp || e.weekly_xp || 0; // Always today's XP
+        dominanceValue = e.total_xp || 0; // Accumulative XP
       } else {
         dominanceValue = e.streak || 0;
       }
@@ -303,11 +321,28 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
         bannerId: e.equipped_banner || null,
       };
     }).sort((a, b) => b.dominance - a.dominance);
-  }, [entries, player.userId, player.username, activeTab, xpMode]);
+  }, [entries, player.userId, player.username, activeTab]);
 
   const myIndex = simulatedEntries.findIndex(e => e.isMe);
   const globalMyRank = myIndex >= 0 ? myIndex + 1 : 999;
   const myRank = globalMyRank;
+
+  // ── Group-of-10 computation (XP tab only) ──
+  const { groupEntries, groupStart, groupEnd } = useMemo(() => {
+    if (activeTab !== 'xp' || simulatedEntries.length === 0) {
+      return { groupEntries: simulatedEntries, groupStart: 1, groupEnd: simulatedEntries.length };
+    }
+    // Find which group of 10 the current user belongs to
+    const userIdx = myIndex >= 0 ? myIndex : 0;
+    const groupIdx = Math.floor(userIdx / GROUP_SIZE);
+    const start = groupIdx * GROUP_SIZE;
+    const end = Math.min(start + GROUP_SIZE, simulatedEntries.length);
+    return {
+      groupEntries: simulatedEntries.slice(start, end),
+      groupStart: start + 1,
+      groupEnd: end,
+    };
+  }, [simulatedEntries, myIndex, activeTab]);
 
 
   // ── Format XP ──
@@ -345,9 +380,9 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
           <div>
             <h1 className="text-2xl font-black text-white tracking-tight">Leaderboard</h1>
             <div className="text-xs text-gray-400 mt-0.5">
-              {activeTab === 'xp' ? 'Daily XP rankings' : 'Top players by streak'}{myIndex >= 0 ? <span className="text-[#00d4ff] font-bold"> — You're #{myRank}</span> : ''}
+              {activeTab === 'xp' ? 'Your League · Weekly XP' : 'Top players by streak'}{myIndex >= 0 ? <span className="text-[#00d4ff] font-bold"> — #{myRank} overall</span> : ''}
               {activeTab === 'xp' && countdown && (
-                <span className="text-[10px] font-mono text-gray-500 ml-1">· Resets {countdown}</span>
+                <span className="text-[10px] font-mono text-gray-500 ml-1">· Rewards in {countdown}</span>
               )}
             </div>
           </div>
@@ -390,100 +425,191 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
       ) : activeTab === 'xp' && simulatedEntries.length === 0 ? (
         <div className="text-center py-16 px-6">
           <div className="text-3xl mb-3">⚡</div>
-          <div className="text-sm font-black text-white mb-1">No XP Earned Today Yet</div>
+          <div className="text-sm font-black text-white mb-1">No Players Yet</div>
           <div className="text-xs text-gray-500 font-mono">Complete quests to start climbing the leaderboard.</div>
         </div>
       ) : activeTab === 'xp' ? (
         <>
-          {/* ── PODIUM — Medal Style (matches streak tab) ── */}
-          {simulatedEntries.length >= 3 && (
-            <div className="flex items-end justify-center gap-3 px-4 pt-2 pb-6">
-              {/* 2nd place (left) */}
-              {(() => {
-                const e = simulatedEntries[1];
-                return (
-                  <div className="flex flex-col items-center gap-1.5 flex-1 cursor-pointer" onClick={() => setProfileTarget(e)}>
-                    <div className="text-lg">🥈</div>
-                    <AvatarWithBorder avatarUrl={e.avatar_url} borderId={e.equipped_border || null} size={64} />
-                    <div className="text-[11px] font-black text-white truncate max-w-[80px] text-center">
-                      {e.username || e.name}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Zap size={13} className="text-cyan-400" />
-                      <span className="text-sm font-black text-cyan-400">{formatXp(e.dominance)}</span>
-                    </div>
-                  </div>
-                );
-              })()}
-
-              {/* 1st place (center, elevated) */}
-              {(() => {
-                const e = simulatedEntries[0];
-                return (
-                  <div className="flex flex-col items-center gap-1.5 flex-1 -mt-4 cursor-pointer" onClick={() => setProfileTarget(e)}>
-                    <div className="text-2xl">👑</div>
-                    <AvatarWithBorder avatarUrl={e.avatar_url} borderId={e.equipped_border || null} size={80} />
-                    <div className="text-xs font-black text-white truncate max-w-[90px] text-center">
-                      {e.username || e.name}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Zap size={14} className="text-yellow-400" />
-                      <span className="text-base font-black text-yellow-400">{formatXp(e.dominance)}</span>
-                    </div>
-                  </div>
-                );
-              })()}
-
-              {/* 3rd place (right) */}
-              {(() => {
-                const e = simulatedEntries[2];
-                return (
-                  <div className="flex flex-col items-center gap-1.5 flex-1 cursor-pointer" onClick={() => setProfileTarget(e)}>
-                    <div className="text-lg">🥉</div>
-                    <AvatarWithBorder avatarUrl={e.avatar_url} borderId={e.equipped_border || null} size={64} />
-                    <div className="text-[11px] font-black text-white truncate max-w-[80px] text-center">
-                      {e.username || e.name}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Zap size={13} className="text-cyan-400" />
-                      <span className="text-sm font-black text-cyan-400">{formatXp(e.dominance)}</span>
-                    </div>
-                  </div>
-                );
-              })()}
+          {/* ═══ CHEST REWARDS BANNER ═══ */}
+          <div className="mx-4 mb-4 rounded-2xl overflow-hidden" style={{
+            background: 'linear-gradient(180deg, rgba(255,215,0,0.04) 0%, rgba(10,10,15,0.95) 100%)',
+            border: '1px solid rgba(255,215,0,0.12)',
+          }}>
+            {/* Title */}
+            <div className="text-center pt-4 pb-1">
+              <div className="text-[8px] font-mono tracking-[0.3em] uppercase text-gray-500 mb-1">// Weekly Rewards</div>
+              <div className="text-sm font-black text-white tracking-tight">Top 3 Chest Rewards</div>
             </div>
-          )}
 
-          {/* ── REMAINING PLAYERS (4th onward) ── */}
+            {/* 3 Chests in a row — #1 center (biggest), #2 left, #3 right */}
+            <div className="flex items-end justify-center gap-2 px-4 pt-2 pb-3" style={{ minHeight: 160 }}>
+              {/* 2nd Place (left) */}
+              <div className="flex flex-col items-center flex-1">
+                <div className="relative" style={{ width: CHEST_REWARDS[1].size, height: CHEST_REWARDS[1].size }}>
+                  <div className="absolute inset-0" style={{ background: CHEST_REWARDS[1].bgGlow }} />
+                  {chestAnims[CHEST_REWARDS[1].lottie] && (
+                    <Lottie animationData={chestAnims[CHEST_REWARDS[1].lottie]} loop autoplay style={{ width: '100%', height: '100%' }} />
+                  )}
+                </div>
+                <div className="mt-1 px-2 py-0.5 rounded-full text-[8px] font-black tracking-wider" style={{
+                  background: 'rgba(192,192,192,0.12)', border: '1px solid rgba(192,192,192,0.25)', color: '#C0C0C0',
+                }}>
+                  2ND · 2x
+                </div>
+              </div>
+
+              {/* 1st Place (center — BIGGEST, PREMIUM) */}
+              <div className="flex flex-col items-center flex-1 -mt-4 relative">
+                {/* Golden halo pulse */}
+                <motion.div
+                  className="absolute rounded-full pointer-events-none"
+                  style={{
+                    width: CHEST_REWARDS[0].size + 40,
+                    height: CHEST_REWARDS[0].size + 40,
+                    top: -20,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    background: 'radial-gradient(circle, rgba(255,215,0,0.12) 0%, transparent 70%)',
+                  }}
+                  animate={{ scale: [1, 1.15, 1], opacity: [0.6, 1, 0.6] }}
+                  transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+                />
+                {/* Floating particles */}
+                {[0, 1, 2, 3, 4].map(i => (
+                  <motion.div
+                    key={`p-${i}`}
+                    className="absolute w-1 h-1 rounded-full pointer-events-none"
+                    style={{
+                      background: '#FFD700',
+                      left: `${20 + i * 15}%`,
+                      bottom: `${30 + (i % 3) * 15}%`,
+                      boxShadow: '0 0 6px #FFD700',
+                    }}
+                    animate={{ y: [-2, -18, -2], opacity: [0.8, 0.15, 0.8] }}
+                    transition={{ duration: 2 + i * 0.4, repeat: Infinity, delay: i * 0.3 }}
+                  />
+                ))}
+                <div className="relative" style={{ width: CHEST_REWARDS[0].size, height: CHEST_REWARDS[0].size, filter: 'drop-shadow(0 0 20px rgba(255,215,0,0.4))' }}>
+                  {chestAnims[CHEST_REWARDS[0].lottie] && (
+                    <Lottie animationData={chestAnims[CHEST_REWARDS[0].lottie]} loop autoplay style={{ width: '100%', height: '100%' }} />
+                  )}
+                </div>
+                <div className="mt-1 px-2.5 py-1 rounded-full text-[9px] font-black tracking-wider" style={{
+                  background: 'linear-gradient(135deg, rgba(255,215,0,0.2), rgba(234,179,8,0.15))',
+                  border: '1px solid rgba(255,215,0,0.4)',
+                  color: '#FFD700',
+                  boxShadow: '0 0 12px rgba(255,215,0,0.2)',
+                }}>
+                  👑 1ST · 3x
+                </div>
+              </div>
+
+              {/* 3rd Place (right) */}
+              <div className="flex flex-col items-center flex-1">
+                <div className="relative" style={{ width: CHEST_REWARDS[2].size, height: CHEST_REWARDS[2].size }}>
+                  <div className="absolute inset-0" style={{ background: CHEST_REWARDS[2].bgGlow }} />
+                  {chestAnims[CHEST_REWARDS[2].lottie] && (
+                    <Lottie animationData={chestAnims[CHEST_REWARDS[2].lottie]} loop autoplay style={{ width: '100%', height: '100%' }} />
+                  )}
+                </div>
+                <div className="mt-1 px-2 py-0.5 rounded-full text-[8px] font-black tracking-wider" style={{
+                  background: 'rgba(205,127,50,0.12)', border: '1px solid rgba(205,127,50,0.25)', color: '#CD7F32',
+                }}>
+                  3RD · 1.5x
+                </div>
+              </div>
+            </div>
+
+            {/* Reward info bar */}
+            <div className="flex items-center justify-center gap-3 px-4 py-2.5 mx-3 mb-3 rounded-xl" style={{
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid rgba(255,255,255,0.06)',
+            }}>
+              <div className="flex items-center gap-1">
+                <Coins size={11} className="text-yellow-500" />
+                <span className="text-[9px] font-black text-gray-300 font-mono">1 XP = 1 GOLD</span>
+              </div>
+              <div className="w-px h-3 bg-gray-700" />
+              <div className="flex items-center gap-1">
+                <Trophy size={11} className="text-yellow-500" />
+                <span className="text-[9px] font-black text-gray-300 font-mono">TOP 3 GET BONUS</span>
+              </div>
+            </div>
+          </div>
+
+          {/* ═══ YOUR LEAGUE — GROUP OF 10 ═══ */}
+          <div className="px-4 mb-2 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: 'rgba(0,212,255,0.1)', border: '1px solid rgba(0,212,255,0.2)' }}>
+                <Trophy size={12} className="text-[#00d4ff]" />
+              </div>
+              <div>
+                <span className="text-xs font-black text-white tracking-tight">Your League</span>
+                <span className="text-[9px] font-mono text-gray-500 ml-2">Ranks {groupStart}–{groupEnd}</span>
+              </div>
+            </div>
+            <span className="text-[9px] font-mono text-gray-600">{groupEntries.length} hunters</span>
+          </div>
+
           <div className="px-4 space-y-2">
-            {simulatedEntries.slice(simulatedEntries.length >= 3 ? 3 : 0).map((entry, index) => {
-              const actualRank = simulatedEntries.length >= 3 ? index + 4 : index + 1;
+            {groupEntries.map((entry, index) => {
+              const actualRank = groupStart + index;
+              const rankInGroup = index + 1;
+              const isTop3 = rankInGroup <= 3;
+              const rankColors = ['#FFD700', '#C0C0C0', '#CD7F32'];
+              const rankColor = isTop3 ? rankColors[rankInGroup - 1] : undefined;
+
               return (
                 <motion.div
                   key={`xp-${entry.username || entry.name}`}
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.2, delay: index * 0.02 }}
+                  transition={{ duration: 0.2, delay: index * 0.025 }}
                   className="flex items-center gap-3 px-4 py-3.5 rounded-2xl cursor-pointer active:scale-[0.98] transition-transform"
                   style={{
-                    background: entry.isMe ? 'rgba(0,212,255,0.08)' : 'rgba(255,255,255,0.03)',
-                    ...(entry.isMe ? { border: '1.5px solid rgba(0,212,255,0.25)', boxShadow: '0 0 16px rgba(0,212,255,0.1)' } : {}),
+                    background: entry.isMe
+                      ? 'rgba(0,212,255,0.08)'
+                      : isTop3
+                      ? `rgba(${rankColor === '#FFD700' ? '255,215,0' : rankColor === '#C0C0C0' ? '192,192,192' : '205,127,50'},0.04)`
+                      : 'rgba(255,255,255,0.03)',
+                    ...(entry.isMe ? { border: '1.5px solid rgba(0,212,255,0.25)', boxShadow: '0 0 16px rgba(0,212,255,0.1)' }
+                      : isTop3 ? { border: `1px solid ${rankColor}22` } : {}),
                   }}
                   onClick={() => setProfileTarget(entry)}
                 >
+                  {/* Rank number */}
                   <div className="w-7 text-center">
-                    <span className={`text-sm font-black font-mono ${entry.isMe ? 'text-[#00d4ff]' : 'text-gray-500'}`}>{actualRank}</span>
+                    {isTop3 ? (
+                      <span className="text-sm font-black font-mono" style={{ color: rankColor }}>{rankInGroup}</span>
+                    ) : (
+                      <span className={`text-sm font-black font-mono ${entry.isMe ? 'text-[#00d4ff]' : 'text-gray-500'}`}>{rankInGroup}</span>
+                    )}
                   </div>
+
+                  {/* Avatar */}
                   <AvatarWithBorder avatarUrl={entry.avatar_url} borderId={entry.equipped_border || null} size={44} className="shrink-0" />
+
+                  {/* Name + tags */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-black text-white truncate">{entry.username || entry.name}</span>
                       {entry.isMe && <span className="text-[8px] px-1.5 py-0.5 rounded bg-[#00d4ff]/15 text-[#00d4ff] font-black tracking-wider">you</span>}
+                      {isTop3 && (
+                        <span className="text-[7px] px-1 py-0.5 rounded font-black tracking-wider" style={{
+                          background: `${rankColor}15`,
+                          color: rankColor,
+                          border: `1px solid ${rankColor}30`,
+                        }}>
+                          {rankInGroup === 1 ? '👑' : rankInGroup === 2 ? '🥈' : '🥉'} {CHEST_REWARDS[rankInGroup - 1].multiplier}x
+                        </span>
+                      )}
                     </div>
                   </div>
+
+                  {/* XP value */}
                   <div className="flex items-center gap-1 shrink-0">
-                    <span className="text-base font-black text-cyan-400">{formatXp(entry.dominance)}</span>
-                    <Zap size={15} className="text-cyan-400" />
+                    <span className={`text-base font-black ${isTop3 ? '' : 'text-cyan-400'}`} style={isTop3 ? { color: rankColor } : {}}>{formatXp(entry.dominance)}</span>
+                    <Zap size={15} className={isTop3 ? '' : 'text-cyan-400'} style={isTop3 ? { color: rankColor } : {}} />
                   </div>
                 </motion.div>
               );
@@ -492,7 +618,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
 
           <div className="text-center py-4 mt-2">
             <span className="text-[10px] text-gray-600 font-mono">
-              Daily XP · Resets at midnight UTC · Top hunters
+              Weekly XP · Groups of {GROUP_SIZE} · 1 XP = 1 Gold at week end
             </span>
           </div>
         </>
