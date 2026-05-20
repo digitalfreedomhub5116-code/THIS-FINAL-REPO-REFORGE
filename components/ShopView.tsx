@@ -1872,8 +1872,8 @@ const KitGlowCard = React.memo(function KitGlowCard({ item, discount, owned, equ
               const scale = item.imageScale || 1;
               const baseSize = 72;
               const containerSize = Math.min(Math.round(baseSize * scale), 105);
-              const pfpSize = Math.round(42 * (item.imagePfpScale || 1));
-              const svgSize = Math.round(30 * (item.imagePfpScale || 1));
+              const pfpSize = 42;
+              const svgSize = 30;
               return (
                 <div style={{ position: 'relative', width: containerSize, height: containerSize, flexShrink: 0, overflow: 'hidden' }}>
                   {/* Avatar silhouette */}
@@ -1891,11 +1891,11 @@ const KitGlowCard = React.memo(function KitGlowCard({ item, discount, owned, equ
                 const baseSize = 96;
                 // Container grows with scale so the border actually appears bigger
                 const containerSize = Math.min(Math.round(baseSize * scale), 140);
-                const pfpSize = Math.round(56 * (item.imagePfpScale || 1));
-                const svgSize = Math.round(40 * (item.imagePfpScale || 1));
+                const pfpSize = 56;
+                const svgSize = 40;
                 return (
                   <div style={{ position: 'relative', width: containerSize, height: containerSize, flexShrink: 0, overflow: 'hidden' }}>
-                    {/* Avatar silhouette — scales per item via imagePfpScale */}
+                    {/* Avatar silhouette — fixed size for all borders */}
                     <div style={{ position: 'absolute', top: '50%', left: '50%', width: pfpSize, height: pfpSize, borderRadius: '50%', background: 'radial-gradient(circle, #3a3a4a, #1a1a24)', transform: 'translate(-50%, -50%)', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                       <svg width={svgSize} height={svgSize} viewBox="0 0 40 40"><circle cx="20" cy="16" r="7" fill="#555568" /><ellipse cx="20" cy="35" rx="13" ry="10" fill="#4a4a5a" /></svg>
                     </div>
@@ -2087,15 +2087,13 @@ function KitBorderPreviewModal({ item, onClose, owned, equipped, canAfford, onBu
   // their container shrunk AND their image re-scaled, causing visual breakage.
   // The card thumbnails (KitGlowCard) use a separate formula and are NOT affected.
   const scale = item.imageScale || 1;
-  const pfpFactor = item.imagePfpScale || 1;
 
   // Fixed container — same for ALL borders (no per-item container resizing)
   const size = 200;
   const wrapperSize = size + 60;
-  // PFP scales down inversely with border scale so larger borders don't dwarf the avatar
-  const pfpPct = 0.52 / Math.max(scale, 1);
-  const pfpSize = Math.max(size * pfpPct * pfpFactor, 70);
-  const svgPx = Math.round(pfpSize * 0.7);
+  // PFP is a FIXED size — never changes per border
+  const pfpSize = 104;
+  const svgPx = 73;
 
   return ReactDOM.createPortal(
     <div onClick={onClose} style={{
