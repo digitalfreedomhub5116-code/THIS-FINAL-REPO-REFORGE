@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Crown, Check, Loader2, RotateCcw, ChevronRight, ChevronLeft,
+  Crown, Check, Loader2, RotateCcw, ChevronRight,
   Target, Zap, Shield, Dumbbell, Camera, Star,
   UtensilsCrossed, Trophy, Sparkles, MessageCircle, ShieldAlert
 } from 'lucide-react';
@@ -53,11 +53,13 @@ const FEATURES = [
     icon: Trophy, title: 'Leaderboard & Ranks',
     desc: 'Compete with players worldwide. Climb from E-Rank to S-Rank. Your streaks and XP determine your rank.',
     color: '#facc15', bg: 'rgba(250,204,21,0.06)',
+    screenshot: '/paywall/ss_leaderboard.webp',
   },
   {
     icon: MessageCircle, title: 'Unlimited AI Mentor',
     desc: 'Chat with Dusk — your personal AI fitness mentor. Get guidance on training, nutrition, mindset. No limits.',
     color: '#818cf8', bg: 'rgba(129,140,248,0.06)',
+    screenshot: '/paywall/ss_mentor.webp',
   },
 ];
 
@@ -198,68 +200,66 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({
               <p className="text-[11px] text-gray-500 font-mono mt-1 tracking-wide">EVERYTHING INCLUDED • NO LIMITS</p>
             </motion.div>
 
-            {/* Feature Card Carousel */}
-            <motion.div initial={{ y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.15 }} className="relative mb-5">
-              <div className="rounded-2xl overflow-hidden relative" style={{ background: feature.bg, border: `1px solid ${feature.color}15`, minHeight: 150 }}>
-                <AnimatePresence mode="wait">
-                  <motion.div key={featureSlide} initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} transition={{ duration: 0.25 }} className="px-5 py-5">
-                    <div className="flex gap-3">
-                      {/* Screenshot preview */}
-                      {(feature as any).screenshot && (
-                        <div className="w-[90px] h-[160px] rounded-xl overflow-hidden flex-shrink-0 border border-white/10"
-                          style={{ boxShadow: `0 0 20px ${feature.color}15` }}>
-                          <img src={(feature as any).screenshot} alt={feature.title} className="w-full h-full object-cover" loading="lazy" />
-                        </div>
+            {/* ── Image Marquee ── */}
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }} className="mb-5 -mx-5 overflow-hidden">
+              <style>{`
+                @keyframes marquee-scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+                .marquee-track { display: flex; animation: marquee-scroll 25s linear infinite; width: max-content; }
+                .marquee-track:hover, .marquee-track:active { animation-play-state: paused; }
+              `}</style>
+              <div className="marquee-track">
+                {[...FEATURES, ...FEATURES].map((f, i) => (
+                  <button key={i} onClick={() => { setFeatureSlide(i % FEATURES.length); resetAutoPlay(); }}
+                    className="flex-shrink-0 mx-1.5 relative group"
+                    style={{ width: 110, height: 195 }}>
+                    <div className="w-full h-full rounded-2xl overflow-hidden relative"
+                      style={{
+                        border: `2px solid ${i % FEATURES.length === featureSlide ? f.color : 'rgba(255,255,255,0.06)'}`,
+                        boxShadow: i % FEATURES.length === featureSlide ? `0 0 20px ${f.color}25` : 'none',
+                        transition: 'all 0.3s ease',
+                      }}>
+                      {(f as any).screenshot && (
+                        <img src={(f as any).screenshot} alt={f.title} className="w-full h-full object-cover" loading="lazy" />
                       )}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${feature.color}15`, border: `1px solid ${feature.color}25` }}>
-                            <feature.icon size={16} style={{ color: feature.color }} />
-                          </div>
-                          <span className="text-[14px] font-black text-white leading-tight">{feature.title}</span>
-                        </div>
-                        <p className="text-[11px] text-gray-400 leading-relaxed font-medium">{feature.desc}</p>
+                      {/* Gradient overlay */}
+                      <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 40%, transparent 60%)' }} />
+                      {/* Label */}
+                      <div className="absolute bottom-0 left-0 right-0 px-2 pb-2.5 pt-4">
+                        <span className="text-[9px] font-black text-white leading-tight block" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>
+                          {f.title}
+                        </span>
+                        <div className="w-4 h-[2px] rounded-full mt-1" style={{ background: f.color }} />
                       </div>
                     </div>
-                  </motion.div>
-                </AnimatePresence>
-
-                <button onClick={() => { setFeatureSlide((featureSlide - 1 + FEATURES.length) % FEATURES.length); resetAutoPlay(); }}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.05)' }}>
-                  <ChevronLeft size={14} className="text-gray-400" />
-                </button>
-                <button onClick={() => { setFeatureSlide((featureSlide + 1) % FEATURES.length); resetAutoPlay(); }}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.05)' }}>
-                  <ChevronRight size={14} className="text-gray-400" />
-                </button>
-              </div>
-
-              {/* Dots */}
-              <div className="flex items-center justify-center gap-1.5 mt-3">
-                {FEATURES.map((_, i) => (
-                  <button key={i} onClick={() => { setFeatureSlide(i); resetAutoPlay(); }} className="rounded-full transition-all duration-300"
-                    style={{ width: i === featureSlide ? 16 : 5, height: 5, background: i === featureSlide ? '#00d4ff' : 'rgba(255,255,255,0.1)' }} />
+                  </button>
                 ))}
               </div>
             </motion.div>
 
-            {/* Feature icon grid — quick visual of all features */}
-            <motion.div initial={{ y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.25 }}
-              className="grid grid-cols-4 gap-2 mb-6">
+            {/* ── Selected Feature Detail ── */}
+            <AnimatePresence mode="wait">
+              <motion.div key={featureSlide}
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.2 }}
+                className="rounded-2xl px-4 py-4 mb-5"
+                style={{ background: feature.bg, border: `1px solid ${feature.color}18` }}>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: `${feature.color}15` }}>
+                    <feature.icon size={14} style={{ color: feature.color }} />
+                  </div>
+                  <span className="text-[13px] font-black text-white">{feature.title}</span>
+                </div>
+                <p className="text-[11px] text-gray-400 leading-relaxed font-medium">{feature.desc}</p>
+              </motion.div>
+            </AnimatePresence>
+
+            {/* Dots */}
+            <div className="flex items-center justify-center gap-1.5 mb-5">
               {FEATURES.map((f, i) => (
-                <button key={i} onClick={() => { setFeatureSlide(i); resetAutoPlay(); }}
-                  className="flex flex-col items-center gap-1.5 py-3 rounded-xl transition-all"
-                  style={{
-                    background: i === featureSlide ? `${f.color}08` : 'rgba(255,255,255,0.015)',
-                    border: `1px solid ${i === featureSlide ? f.color + '25' : 'rgba(255,255,255,0.04)'}`,
-                  }}>
-                  <f.icon size={16} style={{ color: i === featureSlide ? f.color : '#4b5563' }} />
-                  <span className="text-[8px] font-mono text-gray-500 text-center leading-tight px-1" style={i === featureSlide ? { color: f.color } : undefined}>
-                    {f.title.split(' ').slice(-1)[0]}
-                  </span>
-                </button>
+                <button key={i} onClick={() => { setFeatureSlide(i); resetAutoPlay(); }} className="rounded-full transition-all duration-300"
+                  style={{ width: i === featureSlide ? 16 : 5, height: 5, background: i === featureSlide ? f.color : 'rgba(255,255,255,0.1)' }} />
               ))}
-            </motion.div>
+            </div>
 
             {/* CTA */}
             <motion.div initial={{ y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.35 }}>
