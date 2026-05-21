@@ -183,7 +183,7 @@ const GOAL_RANK_COLORS: Record<string, string> = {
 
 const CATEGORY_ICONS: Record<string, string> = {
   ACADEMIC: '📚', FITNESS: '💪', FINANCIAL: '💰', SKILL: '🎯',
-  CAREER: '🚀', HEALTH: '❤️', CREATIVE: '🎨',
+  CAREER: '🚀', HEALTH: '❤️', CREATIVE: '🎨', DEFAULT: '⚔️',
 };
 
 function getUserTimezone(): string {

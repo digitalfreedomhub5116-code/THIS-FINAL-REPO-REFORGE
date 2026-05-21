@@ -10,7 +10,7 @@ const RANK_COLORS: Record<string, string> = {
 
 const CATEGORY_ICONS: Record<string, string> = {
   ACADEMIC: '📚', FITNESS: '💪', FINANCIAL: '💰', SKILL: '🎯',
-  CAREER: '🚀', HEALTH: '❤️', CREATIVE: '🎨',
+  CAREER: '🚀', HEALTH: '❤️', CREATIVE: '🎨', DEFAULT: '⚔️',
 };
 
 interface GoalCardProps {
@@ -127,8 +127,12 @@ function PinnedGoalCardContent({ goal, onTap }: GoalCardProps) {
 // ── Standard Goal Card ──
 export default function GoalCard({ goal, onTap }: GoalCardProps) {
   // If this goal has a cover image (e.g. system dungeon goal), show the pinned visual card
-  if (goal.coverImage && goal.isSystemGoal) {
-    return <PinnedGoalCardContent goal={goal} onTap={onTap} />;
+  if ((goal.coverImage || goal.category === 'DEFAULT') && goal.isSystemGoal) {
+    // For DEFAULT category, auto-assign the manga cover image
+    const goalWithCover = goal.category === 'DEFAULT' && !goal.coverImage
+      ? { ...goal, coverImage: '/dungeon/jinwoo-protocol.png' }
+      : goal;
+    return <PinnedGoalCardContent goal={goalWithCover} onTap={onTap} />;
   }
 
   const goalStartTime = goal.startDate || goal.createdAt || Date.now();

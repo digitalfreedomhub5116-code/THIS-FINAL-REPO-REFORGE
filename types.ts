@@ -587,7 +587,7 @@ export interface DailySchedule {
 }
 
 // --- SHADOW MISSION (Long-Term Goals) ---
-export type GoalCategory = 'ACADEMIC' | 'FITNESS' | 'FINANCIAL' | 'SKILL' | 'CAREER' | 'HEALTH' | 'CREATIVE';
+export type GoalCategory = 'ACADEMIC' | 'FITNESS' | 'FINANCIAL' | 'SKILL' | 'CAREER' | 'HEALTH' | 'CREATIVE' | 'DEFAULT';
 export type GoalStatus = 'INTERVIEW' | 'REVIEW' | 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'ABANDONED';
 
 export interface GoalMilestone {

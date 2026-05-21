@@ -2102,7 +2102,7 @@ export const useSystem = () => {
   const createDungeonGoal = (): Goal => ({
     id: DUNGEON_GOAL_ID,
     title: 'Sung Jin-woo Protocol',
-    category: 'FITNESS' as any,
+    category: 'DEFAULT' as any,
     goalRank: 'S' as any,
     successProbability: 100,
     status: 'ACTIVE',
