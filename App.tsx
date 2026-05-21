@@ -712,7 +712,9 @@ const App: React.FC = () => {
   // ── RevenueCat (Premium / Reforge Pro) ──
   const [rcState, rcActions] = useRevenueCat();
   const [showManaPowerUpsell, setShowManaPowerUpsell] = useState(false);
-  const [showPaywall, setShowPaywall] = useState(true);
+  const [showPaywall, setShowPaywall] = useState(() => {
+    try { return !localStorage.getItem('reforge_paywall_seen'); } catch { return true; }
+  });
 
   // ── VIP override: fetch auth email and check whitelist ──
   const [authEmail, setAuthEmail] = useState<string | null>(null);
@@ -3702,6 +3704,7 @@ const App: React.FC = () => {
           onPurchase={async (pkg) => {
             const result = await rcActions.purchasePackage(pkg);
             if (result.success) {
+              try { localStorage.setItem('reforge_paywall_seen', '1'); } catch {}
               addNotification('⚡ Welcome to REFORGE! Your journey begins now.', 'SUCCESS');
             }
             return result;
@@ -3712,7 +3715,7 @@ const App: React.FC = () => {
               addNotification('✅ Subscription restored — welcome back!', 'SUCCESS');
             }
           }}
-          onSkip={() => setShowPaywall(false)}
+          onSkip={() => { try { localStorage.setItem('reforge_paywall_seen', '1'); } catch {} setShowPaywall(false); }}
         />
       </Suspense>
     );
