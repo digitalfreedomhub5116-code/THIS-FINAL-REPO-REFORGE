@@ -969,7 +969,7 @@ const ShopView: React.FC<ShopViewProps> = ({
         </div>
         {/* gridAutoRows:'1fr' = every row forced to tallest card height */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, padding: '0 16px', gridAutoRows: '1fr' }}>
-          {getTodaysDeals(4).map(d => (
+          {getTodaysDeals(2).map(d => (
             <div key={d.item.id}>
               <KitGlowCard item={d.item} discount={d.discount}
                 owned={isItemOwned(d.item.id)}

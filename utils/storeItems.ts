@@ -180,12 +180,11 @@ export const BORDERS_PRO_EXCLUSIVE: StoreItem[] = [
   },
 ];
 
-/** All borders combined */
+/** All borders combined (image-only — no CSS-only aura borders) */
 const ALL_BORDERS: StoreItem[] = [
   ...BORDERS_ELEMENTS,
   ...BORDERS_BEASTS,
   ...BORDERS_EXCLUSIVE,
-  ...BORDERS_PRO_EXCLUSIVE,
 ];
 
 
@@ -468,12 +467,12 @@ export function getItemById(id: string): StoreItem | undefined {
 }
 
 /* ═══ Rotating Deals (borders only, includes remote items) ═══ */
-export function getTodaysDeals(count = 4): { item: StoreItem; discount: number }[] {
+export function getTodaysDeals(count = 2): { item: StoreItem; discount: number }[] {
   // Seed based on date so deals are consistent throughout the day
   const seed = parseInt(new Date().toISOString().split('T')[0].replace(/-/g, ''), 10);
-  // Pool: ONLY borders (hardcoded + remote)
+  // Pool: ONLY borders with actual images (exclude CSS-only aura borders)
   const pool = [...ALL_STORE_ITEMS, ..._remoteStoreCache]
-    .filter(i => i.category === 'border');
+    .filter(i => i.category === 'border' && (i.imageBorder || i.videoBorder));
   const shuffled = pool
     .sort((a, b) => {
       // Use multiple chars for better distribution (prevents remote- items from clustering)
