@@ -243,7 +243,7 @@ const PinnedGoalCard: React.FC<{
         {/* Banner image — 100% B&W */}
         <div className="relative w-full h-16 overflow-hidden rounded-t-xl">
           <img src={getCategoryBanner(goal.category)} alt="" className="w-full h-full object-cover"
-            style={{ filter: 'grayscale(100%) brightness(0.4)' }} />
+            style={{ objectPosition: 'center 20%', filter: 'grayscale(100%) brightness(0.4)' }} />
           <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, transparent 30%, #0d0d18 100%)' }} />
           <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded text-[7px] font-mono font-bold tracking-widest uppercase"
             style={{ background: `${catColor}25`, color: catColor, border: `1px solid ${catColor}40` }}>
