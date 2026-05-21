@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Crown, Check, Loader2, RotateCcw, ChevronRight,
@@ -6,6 +6,37 @@ import {
   UtensilsCrossed, Trophy, Sparkles, MessageCircle, ShieldAlert
 } from 'lucide-react';
 import type { PurchasesOfferings, PurchasesPackage } from '@revenuecat/purchases-capacitor';
+
+/* ── Skeleton Shimmer ── */
+const shimmerStyle = `
+@keyframes paywall-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.pw-skeleton {
+  background: linear-gradient(90deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.08) 40%, rgba(255,255,255,0.04) 80%);
+  background-size: 200% 100%;
+  animation: paywall-shimmer 1.5s ease-in-out infinite;
+}
+`;
+
+const SkeletonImage: React.FC<{
+  src: string; alt: string; className?: string; style?: React.CSSProperties;
+  skeletonClass?: string; skeletonStyle?: React.CSSProperties;
+}> = ({ src, alt, className, style, skeletonClass, skeletonStyle }) => {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <>
+      {!loaded && (
+        <div className={`pw-skeleton ${skeletonClass || ''}`}
+          style={{ position: 'absolute', inset: 0, ...skeletonStyle }} />
+      )}
+      <img src={src} alt={alt} className={className}
+        style={{ ...style, ...(!loaded ? { opacity: 0 } : {}) }}
+        loading="lazy" onLoad={() => setLoaded(true)} />
+    </>
+  );
+};
 
 /* ── Types ── */
 interface PremiumPaywallProps {
@@ -155,7 +186,7 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({
     if (phase !== 'FEATURES') { if (autoPlayRef.current) clearInterval(autoPlayRef.current); return; }
     autoPlayRef.current = setInterval(() => {
       setFeatureSlide(prev => (prev + 1) % FEATURES.length);
-    }, 3500);
+    }, 5000);
     return () => { if (autoPlayRef.current) clearInterval(autoPlayRef.current); };
   }, [phase]);
 
@@ -163,7 +194,7 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({
     if (autoPlayRef.current) clearInterval(autoPlayRef.current);
     autoPlayRef.current = setInterval(() => {
       setFeatureSlide(prev => (prev + 1) % FEATURES.length);
-    }, 3500);
+    }, 5000);
   };
 
   // Extract monthly package
@@ -185,6 +216,7 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({
   if (phase === 'FEATURES') {
     return (
       <div className="fixed inset-0 z-[9999] flex flex-col" style={{ background: 'linear-gradient(180deg, #040410 0%, #080818 50%, #060612 100%)' }}>
+        <style>{shimmerStyle}</style>
         <div className="absolute top-0 left-0 right-0 h-40 pointer-events-none"
           style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(0,212,255,0.04) 0%, transparent 70%)' }} />
         <div className="flex-1 overflow-y-auto" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 20px)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)' }}>
@@ -210,8 +242,8 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({
                   transition={{ duration: 0.35, ease: 'easeInOut' }}
                   className="relative w-full">
                   {(feature as any).screenshot && (
-                    <img src={(feature as any).screenshot} alt={feature.title}
-                      className="w-full h-auto block" loading="lazy" />
+                    <SkeletonImage src={(feature as any).screenshot} alt={feature.title}
+                      className="w-full h-auto block" skeletonStyle={{ position: 'relative', width: '100%', paddingBottom: '177%', borderRadius: 0 }} />
                   )}
 
                   {/* Heavy bottom shadow for text */}
@@ -281,6 +313,7 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({
   if (phase === 'TESTIMONIALS') {
     return (
       <div className="fixed inset-0 z-[9999] flex flex-col" style={{ background: 'linear-gradient(180deg, #040410 0%, #080818 50%, #060612 100%)' }}>
+        <style>{shimmerStyle}</style>
         <div className="flex-1 overflow-y-auto" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)' }}>
           <div className="px-5 max-w-md mx-auto">
 
@@ -299,14 +332,15 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({
                 <button key={i} onClick={() => setSelectedTestimonial(i)}
                   className="relative transition-all duration-300"
                   style={{ transform: i === selectedTestimonial ? 'scale(1.15)' : 'scale(0.9)', opacity: i === selectedTestimonial ? 1 : 0.5 }}>
-                  <div className="w-[52px] h-[52px] rounded-full overflow-hidden p-[2px] transition-all duration-300"
+                  <div className="w-[52px] h-[52px] rounded-full overflow-hidden p-[2px] transition-all duration-300 relative"
                     style={{
                       background: i === selectedTestimonial
                         ? 'linear-gradient(135deg, #00d4ff, #0099cc)'
                         : 'rgba(255,255,255,0.1)',
                       boxShadow: i === selectedTestimonial ? '0 0 20px rgba(0,212,255,0.3)' : 'none',
                     }}>
-                    <img src={t.afterImg} alt={t.name} className="w-full h-full rounded-full object-cover" loading="lazy" />
+                    <SkeletonImage src={t.afterImg} alt={t.name} className="w-full h-full rounded-full object-cover"
+                      skeletonStyle={{ borderRadius: '50%' }} />
                   </div>
                   {i === selectedTestimonial && (
                     <motion.div layoutId="testimonial-indicator" className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#00d4ff]" />
@@ -326,8 +360,9 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({
                 {/* Before / After Photos */}
                 <div className="flex items-center justify-center gap-5 mb-3">
                   <div className="text-center">
-                    <div className="w-[72px] h-[72px] rounded-full overflow-hidden p-[2px] bg-gradient-to-br from-gray-700 to-gray-900">
-                      <img src={testimonial.beforeImg} alt="Before" className="w-full h-full rounded-full object-cover" loading="lazy" />
+                    <div className="w-[72px] h-[72px] rounded-full overflow-hidden p-[2px] bg-gradient-to-br from-gray-700 to-gray-900 relative">
+                      <SkeletonImage src={testimonial.beforeImg} alt="Before" className="w-full h-full rounded-full object-cover"
+                        skeletonStyle={{ borderRadius: '50%' }} />
                     </div>
                     <span className="text-gray-500 text-[9px] mt-1.5 block font-medium">Day 1</span>
                   </div>
@@ -336,9 +371,10 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({
                     <span className="text-gray-600 text-[8px] tracking-wider uppercase">{testimonial.stats.days} days</span>
                   </div>
                   <div className="text-center">
-                    <div className="w-[72px] h-[72px] rounded-full overflow-hidden p-[2px] bg-gradient-to-br from-[#00d4ff] to-[#0088aa]"
+                    <div className="w-[72px] h-[72px] rounded-full overflow-hidden p-[2px] bg-gradient-to-br from-[#00d4ff] to-[#0088aa] relative"
                       style={{ boxShadow: '0 0 20px rgba(0,212,255,0.2)' }}>
-                      <img src={testimonial.afterImg} alt="After" className="w-full h-full rounded-full object-cover" loading="lazy" />
+                      <SkeletonImage src={testimonial.afterImg} alt="After" className="w-full h-full rounded-full object-cover"
+                        skeletonStyle={{ borderRadius: '50%' }} />
                     </div>
                     <span className="text-[#00d4ff] text-[9px] mt-1.5 block font-semibold">Day {testimonial.stats.days}</span>
                   </div>
