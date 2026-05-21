@@ -217,7 +217,7 @@ const ExerciseCard: React.FC<{
           src={meta.image}
           alt=""
           className="w-full h-full object-cover transition-opacity duration-700"
-          style={{ opacity: imgLoaded ? (isCompleted ? 0.3 : 1) : 0, filter: isOverlayEnabled ? (isCompleted ? 'grayscale(100%) brightness(0.3)' : 'grayscale(100%) brightness(0.4)') : (isCompleted ? 'grayscale(100%) brightness(0.4)' : 'grayscale(100%) brightness(0.9)') }}
+          style={{ objectPosition: 'center 15%', opacity: imgLoaded ? (isCompleted ? 0.3 : 1) : 0, filter: isOverlayEnabled ? (isCompleted ? 'grayscale(100%) brightness(0.3)' : 'grayscale(100%) brightness(0.4)') : (isCompleted ? 'grayscale(100%) brightness(0.4)' : 'grayscale(100%) brightness(0.9)') }}
           onLoad={() => setImgLoaded(true)}
         />
         {/* Overlay (subtle vs dark blackish) */}
