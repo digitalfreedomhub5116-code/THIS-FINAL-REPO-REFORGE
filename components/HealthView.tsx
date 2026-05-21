@@ -960,7 +960,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
 
 
 
-        <div id="tut-health" className="flex flex-col gap-6 font-mono">
+        <div id="tut-health" className="flex flex-col gap-6">
             <div className="flex gap-2 sticky top-20 z-30 pt-1 pb-2 bg-transparent">
                 {visibleTabs.map(t => {
                     const isTabLocked = t === 'NUTRITION' && nutritionLocked;
@@ -969,7 +969,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
                         key={t}
                         id={t === 'NUTRITION' ? 'tut-health-nutrition-tab' : undefined}
                         onClick={() => !isTabLocked && setActiveTab(t as any)}
-                        className={`flex-1 py-2.5 text-xs font-bold tracking-widest rounded-lg transition-all duration-200 border ${
+                        className={`flex-1 py-2.5 text-xs font-bold font-mono tracking-widest rounded-lg transition-all duration-200 border ${
                             isTabLocked
                                 ? 'text-gray-700 border-gray-800/50 cursor-not-allowed opacity-50'
                                 : activeTab === t
@@ -1013,7 +1013,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                 }}
                             >
                                 {/* Top Header */}
-                                <div className="text-[10px] font-black tracking-[0.2em] mb-4 text-[#00d4ff]">
+                                <div className="text-[10px] font-black font-mono tracking-[0.2em] mb-4 text-[#00d4ff]">
                                     ACTIVE STREAK
                                 </div>
 
@@ -1021,7 +1021,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                     {/* Left side: Days count and subtitle */}
                                     <div>
                                         <div key={streakAnimKey} className="flex items-baseline gap-2 animate-streak-pop">
-                                            <span className="text-7xl font-semibold leading-none text-white tracking-tighter">
+                                            <span className="text-7xl font-semibold leading-none text-white tracking-tighter font-heading">
                                                 {playerData.streak}
                                             </span>
                                             <span className="text-xl font-bold text-gray-400 mb-1">days</span>
@@ -1062,10 +1062,10 @@ export const HealthView: React.FC<HealthViewProps> = ({
                             {/* ── PLANS SECTION (above map) ── */}
                             <div>
                                 <div className="flex items-center justify-between mb-3">
-                                    <div className="text-xs font-black text-white uppercase tracking-widest">Training Programs</div>
+                                    <div className="text-xs font-black text-white uppercase tracking-widest font-heading">Training Programs</div>
                                     {(healthProfile as any)?.aiPlanUsed ? (
                                         <span
-                                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider opacity-50 cursor-not-allowed"
+                                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black font-mono uppercase tracking-wider opacity-50 cursor-not-allowed"
                                             style={{ background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.2)', color: '#9ca3af' }}
                                         >
                                             <Check size={10} />
@@ -1074,7 +1074,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                     ) : (
                                         <button
                                             onClick={() => { setAiPlanError(null); setAiConfirmStep(0); setShowAIConfirm(true); }}
-                                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all"
+                                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black font-mono uppercase tracking-wider transition-all"
                                             style={{ background: 'rgba(168,85,247,0.15)', border: '1px solid rgba(168,85,247,0.35)', color: '#33dfff', boxShadow: '0 0 12px rgba(168,85,247,0.15)' }}
                                         >
                                             <Sparkles size={10} />
@@ -1127,11 +1127,11 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                                     <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.1) 100%)' }} />
                                                     <div className="absolute inset-0 p-3.5 flex flex-col justify-between">
                                                         <div className="flex items-start justify-between">
-                                                            <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-purple-900/80 text-[#33dfff]">AI GENERATED</span>
-                                                            {isAiActive && <span className="text-[8px] font-black text-system-neon bg-black/60 px-1.5 py-0.5 rounded-full border border-system-neon/30">ACTIVE</span>}
+                                                            <span className="text-[9px] font-black font-mono px-2 py-0.5 rounded-full bg-purple-900/80 text-[#33dfff]">AI GENERATED</span>
+                                                            {isAiActive && <span className="text-[8px] font-black font-mono text-system-neon bg-black/60 px-1.5 py-0.5 rounded-full border border-system-neon/30">ACTIVE</span>}
                                                         </div>
                                                         <div>
-                                                            <div className="text-sm font-black text-white leading-tight mb-1.5">{aiPlanName}</div>
+                                                            <div className="text-sm font-black text-white leading-tight mb-1.5 font-heading">{aiPlanName}</div>
                                                             <div className="text-[9px] text-[#33dfff]/70 font-mono">Personalized for you</div>
                                                         </div>
                                                     </div>
@@ -1187,11 +1187,11 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                                     <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.55) 45%, rgba(0,0,0,0.1) 100%)' }} />
                                                     <div className="absolute inset-0 p-3.5 flex flex-col justify-between">
                                                         <div className="flex items-start justify-between">
-                                                            <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${dc.badge}`}>{plan.difficulty}</span>
-                                                            {isActive && <span className="text-[8px] font-black text-system-neon bg-black/60 px-1.5 py-0.5 rounded-full border border-system-neon/30">ACTIVE</span>}
+                                                            <span className={`text-[9px] font-black font-mono px-2 py-0.5 rounded-full ${dc.badge}`}>{plan.difficulty}</span>
+                                                            {isActive && <span className="text-[8px] font-black font-mono text-system-neon bg-black/60 px-1.5 py-0.5 rounded-full border border-system-neon/30">ACTIVE</span>}
                                                         </div>
                                                         <div>
-                                                            <div className="text-sm font-black text-white leading-tight mb-1.5">{plan.name}</div>
+                                                            <div className="text-sm font-black text-white leading-tight mb-1.5 font-heading">{plan.name}</div>
                                                             <div className="flex gap-2 text-[9px] text-gray-400 font-mono">
                                                                 <span>{plan.duration_weeks}w</span>
                                                                 <span>·</span>
