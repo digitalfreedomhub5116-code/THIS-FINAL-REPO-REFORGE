@@ -3779,7 +3779,7 @@ const App: React.FC = () => {
       {!dataReady ? (
         <div style={{
           position: 'fixed', inset: 0, zIndex: 99999,
-          background: '#060610',
+          background: '#000000',
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
         }}>
           <video
@@ -3787,10 +3787,12 @@ const App: React.FC = () => {
             loop
             muted
             playsInline
+            preload="auto"
             style={{
               width: '100%',
               height: '100%',
               objectFit: 'cover',
+              background: '#000000',
             }}
           >
             <source src="/reforge_loading.mp4" type="video/mp4" />
