@@ -104,6 +104,7 @@ const WorkoutMap: React.FC<WorkoutMapProps> = ({
   const completedDays = useMemo(() => Object.values(dayMap).filter(o => o === 'completed' || o === 'cheated').length, [dayMap]);
   const [selectedPreview, setSelectedPreview] = useState<number | null>(null);
   const [showReward, setShowReward] = useState<{ id: number, type: string } | null>(null);
+  const [showKeyEarned, setShowKeyEarned] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const currentDayRef = useRef<HTMLDivElement>(null);
   
@@ -245,16 +246,26 @@ const WorkoutMap: React.FC<WorkoutMapProps> = ({
                         return (
                             <div
                                 key={`reward-${point.id}`}
-                                className="absolute z-30 pointer-events-none"
-                                style={{ left: `calc(50% + ${midX}px)`, top: midY, transform: 'translate(-50%, -50%)', opacity: isClaimed ? 1 : 0.6 }}
+                                className="absolute z-30"
+                                style={{ left: `calc(50% + ${midX}px)`, top: midY, transform: 'translate(-50%, -50%)', opacity: isClaimed ? 1 : 0.6, cursor: isClaimed ? 'pointer' : 'default' }}
+                                onClick={() => { if (isClaimed) setShowKeyEarned(true); }}
                             >
                                 <div className="relative flex flex-col items-center">
-                                    <div className="absolute inset-0 w-10 h-10 rounded-full blur-md" style={{ background: isClaimed ? 'rgba(168,85,247,0.35)' : 'rgba(168,85,247,0.12)', top: -2, left: '50%', transform: 'translateX(-50%)' }} />
+                                    <div className="absolute inset-0 w-12 h-12 rounded-full blur-lg" style={{ background: isClaimed ? 'rgba(168,85,247,0.4)' : 'rgba(168,85,247,0.12)', top: -4, left: '50%', transform: 'translateX(-50%)' }} />
                                     <motion.div
-                                        animate={{ y: [0, -5, 0] }}
+                                        animate={{ y: [0, -6, 0] }}
                                         transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
                                     >
-                                        <KeyRound size={22} style={{ color: isClaimed ? '#a855f7' : '#7c3aed80', filter: isClaimed ? 'drop-shadow(0 0 6px rgba(168,85,247,0.6))' : 'none' }} />
+                                        <img
+                                            src="/assets/store/keyless-Photoroom.png"
+                                            alt="Shadow Key"
+                                            style={{
+                                                width: 32, height: 32, objectFit: 'contain',
+                                                filter: isClaimed
+                                                    ? 'drop-shadow(0 0 8px rgba(168,85,247,0.7))'
+                                                    : 'drop-shadow(0 0 4px rgba(168,85,247,0.2)) grayscale(0.5) opacity(0.5)',
+                                            }}
+                                        />
                                     </motion.div>
                                     <div className="text-[7px] font-mono font-bold tracking-widest mt-1" style={{ color: isClaimed ? '#a855f7' : '#555' }}>
                                         DAY {index + 1}
@@ -521,6 +532,15 @@ const WorkoutMap: React.FC<WorkoutMapProps> = ({
                      </button>
                  </div>
             )}
+
+            {/* Debug: Test Key Earned Overlay */}
+            <button
+                onClick={() => setShowKeyEarned(true)}
+                className="absolute bottom-3 left-3 z-30 px-2 py-1 rounded text-[8px] font-mono pointer-events-auto"
+                style={{ background: 'rgba(255,255,255,0.05)', color: '#666', border: '1px solid rgba(255,255,255,0.08)' }}
+            >
+                🔑 Test Key
+            </button>
         </div>
 
         {/* 3D Reward Pop-up (For Completed Boss Nodes) */}
@@ -575,6 +595,83 @@ const WorkoutMap: React.FC<WorkoutMapProps> = ({
                         </button>
                     </motion.div>
                 </div>,
+                document.body
+            )}
+        </AnimatePresence>
+
+        {/* ── KEY EARNED CELEBRATION OVERLAY ── */}
+        <AnimatePresence>
+            {showKeyEarned && createPortal(
+                <motion.div
+                    className="fixed inset-0 z-[200] flex flex-col items-center justify-center p-6 font-mono"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    style={{ background: 'rgba(0,0,0,0.96)', backdropFilter: 'blur(16px)' }}
+                >
+                    {/* Ambient glow */}
+                    <motion.div
+                        className="absolute rounded-full"
+                        style={{ width: 300, height: 300, background: 'radial-gradient(circle, rgba(168,85,247,0.2) 0%, transparent 70%)' }}
+                        animate={{ scale: [1, 1.2, 1], opacity: [0.4, 0.8, 0.4] }}
+                        transition={{ duration: 3, repeat: Infinity }}
+                    />
+
+                    {/* Shadow Key Image */}
+                    <motion.div
+                        initial={{ scale: 0.3, opacity: 0, y: 30 }}
+                        animate={{ scale: 1, opacity: 1, y: 0 }}
+                        transition={{ type: 'spring', stiffness: 150, damping: 18 }}
+                    >
+                        <motion.img
+                            src="/assets/store/keyless-Photoroom.png"
+                            alt="Shadow Key"
+                            style={{ width: 140, height: 140, objectFit: 'contain', filter: 'drop-shadow(0 0 30px rgba(168,85,247,0.6))' }}
+                            animate={{ y: [0, -10, 0] }}
+                            transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+                        />
+                    </motion.div>
+
+                    {/* Text */}
+                    <motion.div
+                        className="flex flex-col items-center gap-2 mt-8"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.4, duration: 0.5 }}
+                    >
+                        <div className="text-[10px] font-mono tracking-[0.5em] uppercase text-purple-400/70 mb-1">// Milestone Reward</div>
+                        <div className="text-2xl font-black text-white tracking-tight">🎉 CONGRATULATIONS!</div>
+                        <div className="text-base font-bold text-purple-300 mt-1">You earned a Shadow Key</div>
+                        <div className="text-[10px] text-gray-500 font-mono mt-2 max-w-[200px] text-center leading-relaxed">
+                            Shadow Keys unlock exclusive rewards in the Chest Vault.
+                        </div>
+                    </motion.div>
+
+                    {/* +1 Key badge */}
+                    <motion.div
+                        className="mt-6 flex items-center gap-2 px-5 py-2.5 rounded-full"
+                        style={{ background: 'rgba(168,85,247,0.15)', border: '1px solid rgba(168,85,247,0.3)' }}
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.7 }}
+                    >
+                        <img src="/assets/store/keyless-Photoroom.png" alt="Key" style={{ width: 20, height: 20, objectFit: 'contain' }} />
+                        <span className="text-lg font-black text-purple-300">+1</span>
+                        <span className="text-[10px] font-mono text-purple-400 tracking-widest uppercase">KEY</span>
+                    </motion.div>
+
+                    {/* Continue button */}
+                    <motion.button
+                        className="mt-10 px-12 py-4 rounded-2xl font-black uppercase tracking-widest text-sm text-black active:scale-95 transition-transform"
+                        style={{ background: 'linear-gradient(135deg, #a855f7, #7c3aed)', boxShadow: '0 6px 28px rgba(168,85,247,0.4)' }}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 1.0 }}
+                        onClick={() => setShowKeyEarned(false)}
+                    >
+                        ✨ CONTINUE
+                    </motion.button>
+                </motion.div>,
                 document.body
             )}
         </AnimatePresence>
