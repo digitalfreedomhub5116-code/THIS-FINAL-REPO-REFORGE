@@ -712,6 +712,7 @@ const App: React.FC = () => {
   // ── RevenueCat (Premium / Reforge Pro) ──
   const [rcState, rcActions] = useRevenueCat();
   const [showManaPowerUpsell, setShowManaPowerUpsell] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(true);
 
   // ── VIP override: fetch auth email and check whitelist ──
   const [authEmail, setAuthEmail] = useState<string | null>(null);
@@ -3688,10 +3689,10 @@ const App: React.FC = () => {
   }
 
 
-  // ── HARD PAYWALL — blocks all access until ₹1 is paid ──
-  // Shown after onboarding completes if user has no active subscription.
-  // Once subscribed (isPremium = true), falls through to the main app.
-  if (!isPremium && rcState.isReady) {
+  // ── SOFT PAYWALL — shown after onboarding, skippable ──
+  // Shown if user has no active subscription and hasn't skipped this session.
+  // Once subscribed (isPremium = true) OR skipped, falls through to the main app.
+  if (!isPremium && rcState.isReady && showPaywall) {
     return (
       <Suspense fallback={<SkeletonGenericPage />}>
         <PremiumPaywall
@@ -3711,6 +3712,7 @@ const App: React.FC = () => {
               addNotification('✅ Subscription restored — welcome back!', 'SUCCESS');
             }
           }}
+          onSkip={() => setShowPaywall(false)}
         />
       </Suspense>
     );
