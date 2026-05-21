@@ -198,8 +198,8 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({
 
             {/* ── Full-width single image slider ── */}
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
-              className="mb-4 relative rounded-[20px] overflow-hidden mx-auto"
-              style={{ width: '85%', aspectRatio: '9/17', background: '#0a0a1a' }}>
+              className="mb-4 relative rounded-2xl overflow-hidden mx-auto"
+              style={{ width: '88%', background: '#0a0a1a' }}>
 
               {/* Screenshot */}
               <AnimatePresence mode="wait">
@@ -208,39 +208,39 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -60 }}
                   transition={{ duration: 0.35, ease: 'easeInOut' }}
-                  className="absolute inset-0 flex items-start justify-center">
+                  className="relative w-full">
                   {(feature as any).screenshot && (
                     <img src={(feature as any).screenshot} alt={feature.title}
-                      className="w-full h-full object-contain object-top" loading="lazy" />
+                      className="w-full h-auto block" loading="lazy" />
                   )}
+
+                  {/* Heavy bottom shadow for text */}
+                  <div className="absolute inset-0 pointer-events-none"
+                    style={{ background: 'linear-gradient(to top, rgba(2,2,8,1) 0%, rgba(2,2,8,0.95) 10%, rgba(2,2,8,0.75) 20%, rgba(2,2,8,0.35) 32%, transparent 48%)' }} />
+
+                  {/* Feature info overlay */}
+                  <div className="absolute bottom-0 left-0 right-0 px-5 pb-5 z-10">
+                    <div className="flex items-center gap-2.5 mb-2.5">
+                      <div className="w-8 h-8 rounded-xl flex items-center justify-center"
+                        style={{ background: `${feature.color}20`, border: `1px solid ${feature.color}35`, backdropFilter: 'blur(8px)' }}>
+                        <feature.icon size={16} style={{ color: feature.color }} />
+                      </div>
+                      <span className="text-[16px] font-black text-white tracking-tight"
+                        style={{ textShadow: '0 2px 8px rgba(0,0,0,0.9), 0 0 20px rgba(0,0,0,0.5)' }}>
+                        {feature.title}
+                      </span>
+                    </div>
+                    <p className="text-[12px] text-white leading-[1.7] font-medium"
+                      style={{ textShadow: '0 1px 6px rgba(0,0,0,0.9), 0 0 12px rgba(0,0,0,0.4)', opacity: 0.9 }}>
+                      {feature.desc}
+                    </p>
+                  </div>
                 </motion.div>
               </AnimatePresence>
 
-              {/* Heavy bottom shadow for text */}
-              <div className="absolute inset-0 pointer-events-none"
-                style={{ background: 'linear-gradient(to top, rgba(2,2,8,1) 0%, rgba(2,2,8,0.92) 12%, rgba(2,2,8,0.7) 22%, rgba(2,2,8,0.3) 35%, transparent 50%)' }} />
-
-              {/* Feature info overlay */}
-              <div className="absolute bottom-0 left-0 right-0 px-5 pb-5 z-10">
-                <div className="flex items-center gap-2.5 mb-2.5">
-                  <div className="w-8 h-8 rounded-xl flex items-center justify-center"
-                    style={{ background: `${feature.color}20`, border: `1px solid ${feature.color}35`, backdropFilter: 'blur(8px)' }}>
-                    <feature.icon size={16} style={{ color: feature.color }} />
-                  </div>
-                  <span className="text-[16px] font-black text-white tracking-tight"
-                    style={{ textShadow: '0 2px 8px rgba(0,0,0,0.9), 0 0 20px rgba(0,0,0,0.5)' }}>
-                    {feature.title}
-                  </span>
-                </div>
-                <p className="text-[12px] text-white leading-[1.7] font-medium"
-                  style={{ textShadow: '0 1px 6px rgba(0,0,0,0.9), 0 0 12px rgba(0,0,0,0.4)', opacity: 0.9 }}>
-                  {feature.desc}
-                </p>
-              </div>
-
               {/* Subtle border */}
-              <div className="absolute inset-0 rounded-[20px] pointer-events-none"
-                style={{ border: `1px solid rgba(255,255,255,0.06)` }} />
+              <div className="absolute inset-0 rounded-2xl pointer-events-none"
+                style={{ border: '1px solid rgba(255,255,255,0.06)' }} />
             </motion.div>
 
             {/* ── Dot Tracker ── */}
