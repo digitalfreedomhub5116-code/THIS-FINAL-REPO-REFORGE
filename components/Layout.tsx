@@ -461,32 +461,34 @@ const Layout: React.FC<LayoutProps> = ({
                         </div>
                       )}
                     </div>
-                    {/* PRO/FREE badge */}
-                    <div className="absolute -bottom-0.5 -right-0.5 z-30 px-[5px] py-[1px] rounded-[4px] text-[6px] font-black font-mono tracking-wider"
-                      style={isPremium ? {
-                        background: 'linear-gradient(135deg, #00d4ff, #0099cc)',
-                        color: '#020208',
-                        boxShadow: '0 0 6px rgba(0,212,255,0.4), 0 1px 3px rgba(0,0,0,0.5)',
-                        border: '1px solid rgba(0,212,255,0.6)',
-                      } : {
-                        background: 'linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.06))',
-                        color: 'rgba(255,255,255,0.5)',
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.5)',
-                        border: '1px solid rgba(255,255,255,0.1)',
-                      }}>
-                      {isPremium ? 'PRO' : 'FREE'}
-                    </div>
                   </button>
 
                   {/* Lv label + thin bar (to the right of avatar, bottom-aligned) */}
                   <div style={{ marginLeft: -4, paddingTop: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    {/* Level label */}
-                    <span
-                      className="font-mono font-black text-white"
-                      style={{ fontSize: 12, marginLeft: 12, textShadow: '0 1px 4px rgba(0,0,0,0.6)', letterSpacing: '0.02em' }}
-                    >
-                      Lv.{playerLevel}
-                    </span>
+                    {/* Level label + PRO/FREE badge */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginLeft: 12 }}>
+                      <span
+                        className="font-mono font-black text-white"
+                        style={{ fontSize: 12, textShadow: '0 1px 4px rgba(0,0,0,0.6)', letterSpacing: '0.02em' }}
+                      >
+                        Lv.{playerLevel}
+                      </span>
+                      <span className="font-mono font-black tracking-wider"
+                        style={isPremium ? {
+                          fontSize: 7, padding: '1px 5px', borderRadius: 4,
+                          background: 'linear-gradient(135deg, #00d4ff, #0099cc)',
+                          color: '#020208',
+                          boxShadow: '0 0 6px rgba(0,212,255,0.4)',
+                          border: '1px solid rgba(0,212,255,0.6)',
+                        } : {
+                          fontSize: 7, padding: '1px 5px', borderRadius: 4,
+                          background: 'rgba(255,255,255,0.08)',
+                          color: 'rgba(255,255,255,0.4)',
+                          border: '1px solid rgba(255,255,255,0.08)',
+                        }}>
+                        {isPremium ? 'PRO' : 'FREE'}
+                      </span>
+                    </div>
 
                     {/* Bar row with connecting dot */}
                     <div className="flex items-center">
