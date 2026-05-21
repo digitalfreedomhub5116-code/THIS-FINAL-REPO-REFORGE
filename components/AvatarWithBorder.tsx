@@ -20,6 +20,8 @@ interface AvatarWithBorderProps {
   borderId?: string | null;
   /** Avatar circle diameter in pixels */
   size?: number;
+  /** Extra scale multiplier for the border overlay (default 1.0). Use <1 to shrink borders. */
+  borderScale?: number;
   /** Extra className for the outermost container */
   className?: string;
   /** Extra style for the outermost container */
@@ -30,6 +32,7 @@ const AvatarWithBorder: React.FC<AvatarWithBorderProps> = ({
   avatarUrl,
   borderId,
   size = 88,
+  borderScale = 1.0,
   className = '',
   style,
 }) => {
@@ -64,7 +67,7 @@ const AvatarWithBorder: React.FC<AvatarWithBorderProps> = ({
   if (hasVideoBorder && storeItem) {
     const cfg = storeItem.borderConfig;
     const glow = cfg?.glowColor || '#00d4ff';
-    const scale = storeItem.imageScale || 1.0;
+    const scale = (storeItem.imageScale || 1.0) * borderScale;
     // Container matches `size` so bordered/unbordered avatars occupy the same layout footprint
     const outerSize = size;
     const borderSize = (size + 20) * scale;
@@ -120,7 +123,7 @@ const AvatarWithBorder: React.FC<AvatarWithBorderProps> = ({
   if (hasImageBorder && storeItem) {
     const cfg = storeItem.borderConfig;
     const glow = cfg?.glowColor || '#00d4ff';
-    const scale = storeItem.imageScale || 1.0;
+    const scale = (storeItem.imageScale || 1.0) * borderScale;
     // Container matches `size` so bordered/unbordered avatars occupy the same
     // layout footprint. The border image overflows via overflow:visible.
     const outerSize = size;
