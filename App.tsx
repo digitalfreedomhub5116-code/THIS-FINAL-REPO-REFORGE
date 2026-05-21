@@ -55,6 +55,7 @@ import {
 } from './components/SkeletonLoaders';
 
 const ManaPowerScreen = React.lazy(() => import('./components/ManaPowerScreen'));
+const PremiumPaywall = React.lazy(() => import('./components/PremiumPaywall'));
 
 import { useSystem, isLocalUser, safeLevelUp } from './hooks/useSystem';
 
@@ -3687,6 +3688,33 @@ const App: React.FC = () => {
   }
 
 
+  // ── HARD PAYWALL — blocks all access until ₹1 is paid ──
+  // Shown after onboarding completes if user has no active subscription.
+  // Once subscribed (isPremium = true), falls through to the main app.
+  if (!isPremium && rcState.isReady) {
+    return (
+      <Suspense fallback={<SkeletonGenericPage />}>
+        <PremiumPaywall
+          offerings={rcState.offerings}
+          isPurchasing={rcState.isPurchasing}
+          error={rcState.error}
+          onPurchase={async (pkg) => {
+            const result = await rcActions.purchasePackage(pkg);
+            if (result.success) {
+              addNotification('⚡ Welcome to REFORGE! Your journey begins now.', 'SUCCESS');
+            }
+            return result;
+          }}
+          onRestore={async () => {
+            await rcActions.restorePurchases();
+            if (rcState.hasManaPower) {
+              addNotification('✅ Subscription restored — welcome back!', 'SUCCESS');
+            }
+          }}
+        />
+      </Suspense>
+    );
+  }
 
   // ── Penalty Zone ──
 

@@ -22,6 +22,7 @@ import type { RankType } from './RankBadge';
 import QuestCard from './QuestCard';
 import DungeonQuestCards from './DungeonQuestCards';
 import ActiveWorkoutPlayer, { clearWorkoutSession } from './ActiveWorkoutPlayer';
+import DungeonRewardAnimation from './DungeonRewardAnimation';
 import { buildDungeonWorkoutPlan, toggleFormCoach, isExerciseCompletedToday, recordExerciseCompletions } from '../lib/dungeonEngine';
 import { PLEDGE_AMOUNTS, MANDATORY_RANKS } from './SystemPactScreen';
 import { playSystemSoundEffect } from '../utils/soundEngine';
@@ -929,6 +930,7 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
   // Daily Dungeon state
   const [isDungeonActive, setIsDungeonActive] = useState(false);
   const [dungeonPlan, setDungeonPlan] = useState<WorkoutDay | null>(null);
+  const [dungeonRewardAnim, setDungeonRewardAnim] = useState<{ xp: number; gold: number } | null>(null);
 
   // Auto-initialize dungeon on mount (also patches existing goals if needed)
   useEffect(() => {
@@ -967,7 +969,21 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
       onUpdateDungeonState((prev: DungeonState) => recordExerciseCompletions(prev, completedExNames));
     }
 
-    onCompleteDungeonWorkout?.(c, t, r, anomaly, fcBonus, fcSession);
+    const rewards = onCompleteDungeonWorkout?.(c, t, r, anomaly, fcBonus, fcSession);
+
+    // Extract XP and gold from returned rewards for fly animation
+    if (Array.isArray(rewards) && rewards.length > 0) {
+      let xp = 0, gold = 0;
+      for (const rw of rewards) {
+        if (rw.type === 'XP') xp += rw.amount;
+        if (rw.type === 'GOLD') gold += rw.amount;
+      }
+      // Also add base XP (exercises × 40) since the pool rewards don't include it
+      xp += c * 40;
+      if (xp > 0 || gold > 0) {
+        setDungeonRewardAnim({ xp, gold });
+      }
+    }
   }, [onToggleNav, onCompleteDungeonWorkout, dungeonState, onUpdateDungeonState]);
 
   const handleDungeonFail = useCallback(() => {
@@ -1363,6 +1379,15 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
             streak={playerData?.streak || 0}
           />
         </div>
+      )}
+
+      {/* Dungeon reward fly animation (XP orbs + gold crystals) */}
+      {dungeonRewardAnim && (
+        <DungeonRewardAnimation
+          xpEarned={dungeonRewardAnim.xp}
+          goldEarned={dungeonRewardAnim.gold}
+          onComplete={() => setDungeonRewardAnim(null)}
+        />
       )}
 
       {/* ── UNIFIED TIMELINE ── */}
