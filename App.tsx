@@ -3791,7 +3791,7 @@ const App: React.FC = () => {
             style={{
               width: '100%',
               height: '100%',
-              objectFit: 'cover',
+              objectFit: 'contain',
               background: '#000000',
             }}
           >
