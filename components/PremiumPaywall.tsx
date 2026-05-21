@@ -23,26 +23,31 @@ const FEATURES = [
     icon: Target, title: 'AI Quest System',
     desc: 'Get personalized daily missions that adapt to your goals. Complete quests to earn XP, gold, and climb the ranks.',
     color: '#00d4ff', bg: 'rgba(0,212,255,0.06)',
+    screenshot: '/paywall/ss_quests.webp',
   },
   {
     icon: Camera, title: 'AI Motion Coach',
     desc: 'Real-time form correction using your camera. Never do an exercise wrong again — your AI coach watches every rep.',
     color: '#f97316', bg: 'rgba(249,115,22,0.06)',
+    screenshot: '/paywall/ss_motion.webp',
   },
   {
     icon: UtensilsCrossed, title: 'AI Nutrition Scanner',
     desc: 'Snap a photo of any meal — instantly get calories, macros, and whether it fits your goals.',
     color: '#4ade80', bg: 'rgba(74,222,128,0.06)',
+    screenshot: '/paywall/ss_nutrition.webp',
   },
   {
     icon: Dumbbell, title: 'Daily Dungeon Workouts',
     desc: 'The Sung Jin-woo Protocol. Push-ups, squats, running — complete daily dungeons to level up your real body.',
     color: '#a78bfa', bg: 'rgba(167,139,250,0.06)',
+    screenshot: '/paywall/ss_dungeon.webp',
   },
   {
     icon: ShieldAlert, title: 'Anti-Cheat System',
     desc: 'Advanced cheat detection ensures fair play. Camera verification, motion tracking, and anomaly detection keep everyone honest.',
     color: '#f87171', bg: 'rgba(248,113,113,0.06)',
+    screenshot: '/paywall/ss_anticheat.webp',
   },
   {
     icon: Trophy, title: 'Leaderboard & Ranks',
@@ -198,13 +203,24 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({
               <div className="rounded-2xl overflow-hidden relative" style={{ background: feature.bg, border: `1px solid ${feature.color}15`, minHeight: 150 }}>
                 <AnimatePresence mode="wait">
                   <motion.div key={featureSlide} initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} transition={{ duration: 0.25 }} className="px-5 py-5">
-                    <div className="flex items-center gap-2.5 mb-3">
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${feature.color}15`, border: `1px solid ${feature.color}25` }}>
-                        <feature.icon size={20} style={{ color: feature.color }} />
+                    <div className="flex gap-3">
+                      {/* Screenshot preview */}
+                      {(feature as any).screenshot && (
+                        <div className="w-[90px] h-[160px] rounded-xl overflow-hidden flex-shrink-0 border border-white/10"
+                          style={{ boxShadow: `0 0 20px ${feature.color}15` }}>
+                          <img src={(feature as any).screenshot} alt={feature.title} className="w-full h-full object-cover" loading="lazy" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${feature.color}15`, border: `1px solid ${feature.color}25` }}>
+                            <feature.icon size={16} style={{ color: feature.color }} />
+                          </div>
+                          <span className="text-[14px] font-black text-white leading-tight">{feature.title}</span>
+                        </div>
+                        <p className="text-[11px] text-gray-400 leading-relaxed font-medium">{feature.desc}</p>
                       </div>
-                      <span className="text-[15px] font-black text-white">{feature.title}</span>
                     </div>
-                    <p className="text-[12px] text-gray-400 leading-relaxed font-medium">{feature.desc}</p>
                   </motion.div>
                 </AnimatePresence>
 
