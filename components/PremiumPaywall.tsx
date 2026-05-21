@@ -104,6 +104,13 @@ const TESTIMONIALS = [
     quote: "Best 90 days of my life. Lost 8kg, gained confidence, fixed my sleep schedule. The system pushed me every single day.",
     highlight: 'Best 90 days of my life',
     stats: { overall: { before: 55, after: 94 }, days: 90 },
+    timeline: [
+      { day: 'Day 1', label: 'Rock Bottom', text: 'No routine, sleeping late, eating junk, scrolling for hours. Body felt sluggish. Zero discipline. Decided to try Reforge as a last shot.', tasks: ['30 push-ups daily', 'Wake up at 7 AM', 'Track all meals'] },
+      { day: 'Day 14', label: 'First Streak', text: 'Two weeks without missing a quest. The streak counter became my motivation — didn\'t want to lose my 14-day fire. Energy was noticeably up.', tasks: ['50 push-ups daily', 'Wake at 6:30 AM', 'No phone before 8 AM'] },
+      { day: 'Day 33', label: 'Visible Changes', text: 'Friends started noticing. Lost face bloat, clothes fit better. Progressive difficulty kept pushing me just a bit harder each week.', tasks: ['Full workout 4x/week', 'Meal prep Sundays', 'Cold showers'] },
+      { day: 'Day 66', label: 'The Breakthrough', text: 'Hit Level 30. Habits felt automatic — discipline replaced willpower. Body was visibly different. Couldn\'t imagine going back.', tasks: ['6-day training split', '7h consistent sleep', 'Zero junk food weeks'] },
+      { day: 'Day 90', label: 'Fully Transformed', text: 'Completely different person. Lost 8kg, gained confidence, fixed sleep. The system pushed me every single day. Best 90 days of my life.' },
+    ],
   },
   {
     name: 'Riya', age: 19, location: 'Delhi, India',
@@ -113,6 +120,12 @@ const TESTIMONIALS = [
     quote: "I was a complete couch potato. The quest system made fitness feel like a game. 45 days in and I've never felt stronger.",
     highlight: "never felt stronger",
     stats: { overall: { before: 40, after: 72 }, days: 45 },
+    timeline: [
+      { day: 'Day 1', label: 'Couch Potato Mode', text: 'Hadn\'t exercised in months. Walking to the kitchen felt like a workout. Downloaded Reforge because the anime theme looked cool honestly.', tasks: ['10 push-ups', '15 min walk', 'Drink 2L water'] },
+      { day: 'Day 10', label: 'Actually Enjoying It', text: 'The quest system made it feel like a game. Completing daily dungeons gave me XP and I got weirdly competitive about my rank. Didn\'t feel like "exercise" anymore.', tasks: ['25 push-ups', '20 squats', '30 min walk daily'] },
+      { day: 'Day 25', label: 'Mom Noticed', text: 'My mom asked if I was sick because I was waking up at 6 AM voluntarily. Nope — just chasing a streak. Lost 2kg without even trying. Clothes looser.', tasks: ['Bodyweight circuit 3x/week', 'No sugar Mon-Fri', 'Stairs only'] },
+      { day: 'Day 45', label: 'Never Felt Stronger', text: 'Did 40 push-ups in one set — could barely do 5 when I started. Energy through the roof, skin clearer, sleeping better. I\'m hooked.', tasks: ['Full workout 5x/week', 'Protein tracking', '10K steps daily'] },
+    ],
   },
   {
     name: 'Karan', age: 24, location: 'Bangalore, India',
@@ -122,6 +135,12 @@ const TESTIMONIALS = [
     quote: "The AI coach caught my squat form on day 1. Probably saved me from a back injury. This app actually cares about doing it right.",
     highlight: "saved me from a back injury",
     stats: { overall: { before: 48, after: 78 }, days: 60 },
+    timeline: [
+      { day: 'Day 1', label: 'Form Check Reality', text: 'Did my first squat with AI coach on. It flagged my form immediately — knees caving in, back rounding. Was doing this wrong for months at the gym.', tasks: ['Learn proper squat form', 'Mobility stretches', 'Watch form videos'] },
+      { day: 'Day 15', label: 'Pain-Free Training', text: 'For the first time in months, my lower back didn\'t hurt after leg day. The form correction was genuinely saving me. Started trusting the system.', tasks: ['Squat 3x/week', 'Hip stretches daily', 'Core work 4x/week'] },
+      { day: 'Day 35', label: 'Strength Gains', text: 'Added 15kg to my squat in a month of proper form. The anti-cheat system kept me honest — no half reps. Every rep had to be clean.', tasks: ['Progressive overload tracking', 'Deload week planned', 'Nutrition on point'] },
+      { day: 'Day 60', label: 'Gym Bros Asking Me', text: 'People at the gym started asking about my form. Showed them the AI coach feature. Went from the guy who was going to hurt himself to the guy with the best squat form.', tasks: ['Full PPL split', 'PR attempts monthly', 'Helping others with form'] },
+    ],
   },
   {
     name: 'Sneha', age: 21, location: 'Pune, India',
@@ -131,6 +150,12 @@ const TESTIMONIALS = [
     quote: "I've tried 10+ fitness apps. This is the only one I opened every single day for 60 days straight. The streak system is addicting.",
     highlight: "every single day for 60 days",
     stats: { overall: { before: 35, after: 71 }, days: 60 },
+    timeline: [
+      { day: 'Day 1', label: 'App Graveyard', text: 'Had 10+ fitness apps collecting dust. Expected to delete this one too after a week. But the daily quest notification hit different — felt like a game challenge.', tasks: ['Complete first quest', 'Set up profile', 'First workout'] },
+      { day: 'Day 7', label: 'One Week Streak!', text: 'First time I\'ve ever used a fitness app for a full week. The XP system and rank progression kept me coming back. I was already D-Rank.', tasks: ['Morning workout routine', 'Track meals', '7-day streak maintained'] },
+      { day: 'Day 30', label: 'The Addiction Kicked In', text: 'Realized I hadn\'t missed a single day. The streak was 30 days and I was terrified to break it. Lost 3kg. My stamina doubled. C-Rank achieved.', tasks: ['HIIT 3x/week', 'Yoga 2x/week', 'Meal prep started'] },
+      { day: 'Day 60', label: '60 Day Warrior', text: '60 days straight. Never done anything this consistently in my life. Down 6kg, gained definition. The app didn\'t just build my body — it built discipline.', tasks: ['5x/week training', 'Macro counting', 'B-Rank achieved'] },
+    ],
   },
   {
     name: 'Vikram', age: 26, location: 'Hyderabad, India',
@@ -140,6 +165,13 @@ const TESTIMONIALS = [
     quote: "Lost 12kg in 3 months. The progressive difficulty is genius — it keeps pushing you just enough. E-Rank to B-Rank.",
     highlight: "Lost 12kg in 3 months",
     stats: { overall: { before: 42, after: 83 }, days: 90 },
+    timeline: [
+      { day: 'Day 1', label: '92kg Starting', text: 'Weighed 92kg. Tried diets before but always quit after 2 weeks. The daily dungeon system felt different — small wins that kept adding up.', tasks: ['20 push-ups', '15 squats', '2km walk', 'No fried food'] },
+      { day: 'Day 21', label: 'First 3kg Down', text: 'Lost 3kg in 3 weeks just by being consistent. The nutrition scanner helped — stopped eating 500cal more than I thought. D-Rank reached.', tasks: ['Scan all meals', 'Walk 5K steps', 'Complete daily dungeons'] },
+      { day: 'Day 50', label: 'Belt Notch Down', text: 'Lost 7kg total. Had to tighten my belt by 2 notches. Wife noticed my face looked slimmer. The progressive difficulty kept challenging me — workouts got harder but I got stronger.', tasks: ['Run 3K 3x/week', 'Full body workout', 'Track macros daily'] },
+      { day: 'Day 75', label: 'C-Rank Warrior', text: 'Down 10kg. Running 5K without stopping — couldn\'t run 500m on Day 1. The leaderboard kept me competitive. Climbed to C-Rank.', tasks: ['5K runs', '6-day training', 'Meal prep expert'] },
+      { day: 'Day 90', label: '12kg Transformation', text: '80kg. Lost 12kg in 90 days. Went from E-Rank to B-Rank. People at work don\'t recognize me. This app literally changed my life trajectory.' },
+    ],
   },
   {
     name: 'Priya', age: 20, location: 'Chennai, India',
@@ -149,6 +181,12 @@ const TESTIMONIALS = [
     quote: "My parents noticed the change before I did. Better sleep, better focus, better everything. This app literally changed my life.",
     highlight: "literally changed my life",
     stats: { overall: { before: 38, after: 68 }, days: 30 },
+    timeline: [
+      { day: 'Day 1', label: 'Exam Stress', text: 'Was stress-eating during exam season. Barely sleeping, anxiety through the roof. A friend recommended Reforge. Thought fitness would add more stress but tried anyway.', tasks: ['10 min morning stretch', 'Walk after dinner', 'Sleep by 11 PM'] },
+      { day: 'Day 10', label: 'Sleeping Better', text: 'The evening walks became my therapy. Stress levels dropped noticeably. Was sleeping by 10:30 PM instead of 1 AM. Focus during study sessions improved.', tasks: ['20 min workout', 'No caffeine after 3 PM', 'Meditation 5 min'] },
+      { day: 'Day 20', label: 'Parents Noticed', text: 'Dad asked "what happened to you?" because I was up early, exercising, eating breakfast. Mom said my skin looked better. I hadn\'t even noticed the changes myself.', tasks: ['30 min daily workout', 'Balanced meals', 'Digital detox after 9 PM'] },
+      { day: 'Day 30', label: 'New Person', text: 'Aced my exams, lost 2kg, and gained a routine I actually love. Better sleep, better focus, better everything. Parents are proud. I\'m proud of myself.' },
+    ],
   },
 ];
 
@@ -411,6 +449,59 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({
                     ))}"
                   </p>
                 </div>
+
+                {/* ── Journey Timeline ── */}
+                {(testimonial as any).timeline && (
+                  <div className="mb-4">
+                    <div className="flex items-center gap-2 mb-3 px-1">
+                      <div className="w-1 h-4 rounded-full bg-[#00d4ff]" />
+                      <span className="text-[10px] font-mono font-bold tracking-[0.2em] text-gray-500 uppercase">
+                        {testimonial.name}'s Journey
+                      </span>
+                    </div>
+                    <div className="relative pl-5">
+                      {/* Timeline line */}
+                      <div className="absolute left-[7px] top-2 bottom-2 w-[2px]"
+                        style={{ background: 'linear-gradient(to bottom, #00d4ff, rgba(0,212,255,0.1))' }} />
+
+                      {((testimonial as any).timeline as Array<{ day: string; label: string; text: string; tasks?: string[] }>).map((milestone, mi, arr) => (
+                        <div key={mi} className="relative mb-4 last:mb-0">
+                          {/* Dot */}
+                          <div className="absolute -left-5 top-[5px] w-[14px] h-[14px] rounded-full flex items-center justify-center"
+                            style={{
+                              background: mi === arr.length - 1 ? '#00d4ff' : '#0a0a1a',
+                              border: `2px solid ${mi === arr.length - 1 ? '#00d4ff' : 'rgba(0,212,255,0.3)'}`,
+                              boxShadow: mi === arr.length - 1 ? '0 0 8px rgba(0,212,255,0.4)' : 'none',
+                            }}>
+                            {mi === arr.length - 1 && (
+                              <div className="w-[6px] h-[6px] rounded-full bg-white" />
+                            )}
+                          </div>
+
+                          {/* Content */}
+                          <div className="rounded-lg px-3 py-2.5" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-[10px] font-mono font-bold text-[#00d4ff]">{milestone.day}</span>
+                              <span className="text-[8px] text-gray-600">•</span>
+                              <span className="text-[10px] font-bold text-white">{milestone.label}</span>
+                            </div>
+                            <p className="text-[10px] text-gray-400 leading-[1.6]">{milestone.text}</p>
+                            {milestone.tasks && (
+                              <div className="flex flex-wrap gap-1 mt-2">
+                                {milestone.tasks.map((task, ti) => (
+                                  <span key={ti} className="text-[8px] font-mono px-1.5 py-0.5 rounded-md"
+                                    style={{ background: 'rgba(0,212,255,0.06)', color: 'rgba(0,212,255,0.7)', border: '1px solid rgba(0,212,255,0.1)' }}>
+                                    {task}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Star rating */}
                 <div className="flex items-center justify-center gap-1 mb-4">
