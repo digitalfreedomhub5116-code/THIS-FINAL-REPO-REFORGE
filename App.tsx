@@ -3779,19 +3779,22 @@ const App: React.FC = () => {
       {!dataReady ? (
         <div style={{
           position: 'fixed', inset: 0, zIndex: 99999,
-          background: 'linear-gradient(180deg, #06060f 0%, #0a0a1a 50%, #06060f 100%)',
-          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16,
+          background: '#060610',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
         }}>
-          <div style={{
-            width: 48, height: 48, borderRadius: '50%',
-            border: '3px solid rgba(0,212,255,0.15)',
-            borderTopColor: '#00d4ff',
-            animation: 'spin 0.8s linear infinite',
-          }} />
-          <div style={{ color: '#00d4ff', fontSize: 12, fontFamily: 'monospace', fontWeight: 700, letterSpacing: '0.15em', opacity: 0.7 }}>
-            SYNCING DATA
-          </div>
-          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+            }}
+          >
+            <source src="/reforge_loading.mp4" type="video/mp4" />
+          </video>
         </div>
       ) : (
 
