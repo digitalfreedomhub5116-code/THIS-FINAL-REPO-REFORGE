@@ -65,6 +65,7 @@ interface LayoutProps {
   headerDisabled?: boolean;
   forceHeaderVisible?: boolean;
   hideAmbientGlow?: boolean;
+  isPremium?: boolean;
 }
 
 const glassDropdownDark = {
@@ -109,6 +110,7 @@ const Layout: React.FC<LayoutProps> = ({
   headerDisabled = false,
   forceHeaderVisible = false,
   hideAmbientGlow = false,
+  isPremium = false,
 }) => {
   const { theme } = useThemeContext();
   const isLight = theme === 'light';
@@ -458,6 +460,21 @@ const Layout: React.FC<LayoutProps> = ({
                           {initial}
                         </div>
                       )}
+                    </div>
+                    {/* PRO/FREE badge */}
+                    <div className="absolute -bottom-0.5 -right-0.5 z-30 px-[5px] py-[1px] rounded-[4px] text-[6px] font-black font-mono tracking-wider"
+                      style={isPremium ? {
+                        background: 'linear-gradient(135deg, #00d4ff, #0099cc)',
+                        color: '#020208',
+                        boxShadow: '0 0 6px rgba(0,212,255,0.4), 0 1px 3px rgba(0,0,0,0.5)',
+                        border: '1px solid rgba(0,212,255,0.6)',
+                      } : {
+                        background: 'linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.06))',
+                        color: 'rgba(255,255,255,0.5)',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.5)',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                      }}>
+                      {isPremium ? 'PRO' : 'FREE'}
                     </div>
                   </button>
 

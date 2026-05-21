@@ -4670,6 +4670,8 @@ const App: React.FC = () => {
 
             hideAmbientGlow={activeTab === 'PROFILE'}
 
+            isPremium={isPremium}
+
             onGoldClick={!isDungeonMode ? () => navigateTo('STORE') : undefined}
 
             onLogout={() => setShowLogoutChoice(true)}
