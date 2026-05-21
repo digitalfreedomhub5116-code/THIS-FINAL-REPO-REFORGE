@@ -198,8 +198,8 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({
 
             {/* ── Full-width single image slider ── */}
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
-              className="mb-4 relative rounded-2xl overflow-hidden mx-auto"
-              style={{ width: '88%', background: '#0a0a1a' }}>
+              className="mb-4 relative overflow-hidden mx-auto"
+              style={{ width: '88%', background: '#0a0a1a', borderRadius: 12, paddingTop: 12 }}>
 
               {/* Screenshot */}
               <AnimatePresence mode="wait">
@@ -239,8 +239,8 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({
               </AnimatePresence>
 
               {/* Subtle border */}
-              <div className="absolute inset-0 rounded-2xl pointer-events-none"
-                style={{ border: '1px solid rgba(255,255,255,0.06)' }} />
+              <div className="absolute inset-0 pointer-events-none"
+                style={{ border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12 }} />
             </motion.div>
 
             {/* ── Dot Tracker ── */}
