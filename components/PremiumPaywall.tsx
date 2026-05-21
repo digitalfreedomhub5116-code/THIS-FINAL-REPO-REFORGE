@@ -220,6 +220,11 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({
   const [showAllPerks, setShowAllPerks] = useState(false);
   const autoPlayRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Mark paywall as seen immediately — so reload/kill always goes to home
+  useEffect(() => {
+    try { localStorage.setItem('reforge_paywall_seen', '1'); } catch {}
+  }, []);
+
   // Auto-advance feature carousel
   useEffect(() => {
     if (phase !== 'FEATURES') { if (autoPlayRef.current) clearInterval(autoPlayRef.current); return; }
