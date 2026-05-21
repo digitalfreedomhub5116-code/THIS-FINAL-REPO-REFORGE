@@ -2179,7 +2179,7 @@ const App: React.FC = () => {
           // Merge DB goals with system goal patches (coverImage, isSystemGoal, etc.)
           const mergedGoals = dbGoals.map((g: any) => {
             if (g.id === 'system-goal-daily-dungeon') {
-              return { ...g, coverImage: '/dungeon/jinwoo-protocol.png', isSystemGoal: true, systemGoalType: 'DAILY_DUNGEON' };
+              return { ...g, coverImage: '/dungeon/jinwoo-protocol.png', category: 'DEFAULT', isSystemGoal: true, systemGoalType: 'DAILY_DUNGEON' };
             }
             return g;
           });

@@ -12,6 +12,7 @@ const CATEGORY_BANNERS: Record<GoalCategory | string, string> = {
   SKILL: '/goals/mindset.png',
   CAREER: '/goals/career.png',
   CREATIVE: '/goals/social.png',
+  DEFAULT: '/dungeon/jinwoo-protocol.png',
 };
 
 const getCategoryBanner = (cat: GoalCategory | string): string =>
@@ -21,6 +22,7 @@ const getCategoryColor = (cat: GoalCategory | string): string => {
   const map: Record<string, string> = {
     FITNESS: '#f87171', HEALTH: '#4ade80', FINANCIAL: '#fbbf24',
     ACADEMIC: '#60a5fa', SKILL: '#a78bfa', CAREER: '#00d4ff', CREATIVE: '#f472b6',
+    DEFAULT: '#00d4ff',
   };
   return map[cat] || '#00d4ff';
 };

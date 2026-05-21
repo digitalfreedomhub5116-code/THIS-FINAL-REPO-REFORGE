@@ -2069,15 +2069,18 @@ export const useSystem = () => {
       const existingDungeonGoal = existingGoals.find(g => g.id === DUNGEON_GOAL_ID);
       
       if (prev.dungeonState) {
-        // Already initialized — but patch the goal if coverImage is missing
-        if (existingDungeonGoal && !existingDungeonGoal.coverImage) {
-          return {
-            ...prev,
-            goals: existingGoals.map(g => g.id === DUNGEON_GOAL_ID
-              ? { ...g, coverImage: '/dungeon/jinwoo-protocol.png', isSystemGoal: true, systemGoalType: 'DAILY_DUNGEON' as const }
-              : g
-            ),
-          };
+        // Already initialized — always patch the dungeon goal with correct data
+        if (existingDungeonGoal) {
+          const needsPatch = existingDungeonGoal.coverImage !== '/dungeon/jinwoo-protocol.png' || existingDungeonGoal.category !== 'DEFAULT';
+          if (needsPatch) {
+            return {
+              ...prev,
+              goals: existingGoals.map(g => g.id === DUNGEON_GOAL_ID
+                ? { ...g, coverImage: '/dungeon/jinwoo-protocol.png', category: 'DEFAULT' as any, isSystemGoal: true, systemGoalType: 'DAILY_DUNGEON' as const }
+                : g
+              ),
+            };
+          }
         }
         // Also inject goal if it somehow doesn't exist
         if (!existingDungeonGoal) {
