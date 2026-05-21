@@ -2074,7 +2074,7 @@ export const useSystem = () => {
           return {
             ...prev,
             goals: existingGoals.map(g => g.id === DUNGEON_GOAL_ID
-              ? { ...g, coverImage: '/dungeon/running.webp', isSystemGoal: true, systemGoalType: 'DAILY_DUNGEON' as const }
+              ? { ...g, coverImage: '/dungeon/jinwoo-protocol.png', isSystemGoal: true, systemGoalType: 'DAILY_DUNGEON' as const }
               : g
             ),
           };
@@ -2126,7 +2126,7 @@ export const useSystem = () => {
     createdAt: Date.now(),
     isSystemGoal: true,
     systemGoalType: 'DAILY_DUNGEON',
-    coverImage: '/dungeon/running.webp',
+    coverImage: '/dungeon/jinwoo-protocol.png',
   });
 
   const updateDungeonState = (updater: (prev: any) => any) => {
