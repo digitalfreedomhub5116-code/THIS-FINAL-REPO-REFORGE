@@ -417,7 +417,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
       );
       let dominanceValue: number;
       if (activeTab === 'xp') {
-        dominanceValue = e.daily_xp || e.weekly_xp || 0;
+        dominanceValue = e.weekly_xp || e.daily_xp || 0;
       } else {
         dominanceValue = e.streak || 0;
       }
@@ -703,22 +703,6 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
             <span className="text-[10px] text-gray-600 font-mono">
               Weekly XP · Groups of {GROUP_SIZE} · Rewards at week end
             </span>
-            {/* Debug: Test Season Reward */}
-            <div className="mt-2">
-              {[1, 2, 3].map(rank => (
-                <button
-                  key={rank}
-                  onClick={() => {
-                    setPendingReward({ id: 'debug-test', rank, reward_gold: 0, reward_xp: 0 });
-                    setShowRewardOverlay(true);
-                  }}
-                  className="mx-1 px-2 py-1 rounded text-[8px] font-mono"
-                  style={{ background: 'rgba(255,255,255,0.05)', color: '#666', border: '1px solid rgba(255,255,255,0.08)' }}
-                >
-                  Test #{rank}
-                </button>
-              ))}
-            </div>
           </div>
         </>
       ) : simulatedEntries.length === 0 ? (
@@ -1159,17 +1143,59 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
             reward={seasonRewardData}
             onClaim={async () => {
               setShowRewardOverlay(false);
+
+              // Actually add gold, keys, and equip border on the player
+              const earnedGold = seasonRewardData.goldAmount;
+              const earnedKeys = seasonRewardData.keys;
+              const earnedBorderId = (() => {
+                // Map border name to store item ID
+                const borderMap: Record<string, string> = {
+                  'Iron Will': 'border-streak-gold',
+                  'Inferno': 'border-streak-inferno',
+                  'Eternal Flame': 'border-streak-eternal',
+                  'Gold Dragon': 'border-gold-dragon',
+                  'Phoenix Blaze': 'border-phoenix',
+                  'Dragon Coil': 'border-dragon-img',
+                  'Ice Crown': 'border-ice-img',
+                  'Silversteel Aegis': 'border-podium-silver',
+                };
+                return borderMap[seasonRewardData.borderName] || null;
+              })();
+
+              // Update local player state immediately
+              setPlayer(prev => {
+                const newGold = (prev.gold || 0) + earnedGold;
+                const newKeys = (prev.keys || 0) + earnedKeys;
+                const newOwned = [...(prev.ownedBorders || [])];
+                if (earnedBorderId && !newOwned.includes(earnedBorderId)) {
+                  newOwned.push(earnedBorderId);
+                }
+                return {
+                  ...prev,
+                  gold: newGold,
+                  keys: newKeys,
+                  ownedBorders: newOwned,
+                  equippedBorder: earnedBorderId || prev.equippedBorder,
+                };
+              });
+
               addNotification(
-                `Season Reward: Rank #${pendingReward.rank} — +${seasonRewardData.goldAmount}G, +${seasonRewardData.keys} Keys, ${seasonRewardData.borderName} Border`,
+                `Season Reward: Rank #${pendingReward.rank} — +${earnedGold}G, +${earnedKeys} Keys, ${seasonRewardData.borderName} Border`,
                 'SUCCESS'
               );
-              // Claim on server
+
+              // Claim on server for persistence
               try {
                 const res = await fetch(`${API_BASE}/api/leaderboard/rewards/claim`, {
                   method: 'POST',
                   credentials: 'include',
                   headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
-                  body: JSON.stringify({ snapshotId: pendingReward.id }),
+                  body: JSON.stringify({
+                    snapshotId: pendingReward.id,
+                    goldAmount: earnedGold,
+                    keys: earnedKeys,
+                    borderId: earnedBorderId,
+                  }),
                 });
                 if (res.ok) {
                   const result = await res.json();
@@ -1177,15 +1203,15 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                     const p = result.player;
                     setPlayer(prev => ({
                       ...prev,
-                      gold: p.gold,
-                      currentXp: p.currentXp,
-                      requiredXp: p.requiredXp,
-                      level: p.level,
-                      rank: p.rank,
-                      totalXp: p.totalXp,
-                      dailyXp: p.dailyXp,
+                      gold: p.gold ?? prev.gold,
+                      keys: p.keys ?? prev.keys,
+                      currentXp: p.currentXp ?? prev.currentXp,
+                      requiredXp: p.requiredXp ?? prev.requiredXp,
+                      level: p.level ?? prev.level,
+                      rank: p.rank ?? prev.rank,
+                      totalXp: p.totalXp ?? prev.totalXp,
                     }));
-                    updateServerBaseline(p.gold);
+                    updateServerBaseline(p.gold ?? 0);
                   }
                 }
                 setTimeout(() => window.dispatchEvent(new Event('reforge:sync-needed')), 500);

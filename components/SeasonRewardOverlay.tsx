@@ -71,6 +71,7 @@ const SeasonRewardOverlay: React.FC<SeasonRewardOverlayProps> = ({ reward, onCla
   const [phase, setPhase] = useState(0);
   const [chestAnim, setChestAnim] = useState<any>(null);
   const [goldCounter, setGoldCounter] = useState(0);
+  const [keysCounter, setKeysCounter] = useState(0);
   // Track which cards have been revealed (content swaps from back→front)
   const [revealedCards, setRevealedCards] = useState<Set<number>>(new Set());
   // Track which card is currently in flip animation (scaleX squish)
@@ -104,17 +105,17 @@ const SeasonRewardOverlay: React.FC<SeasonRewardOverlayProps> = ({ reward, onCla
       setTimeout(() => setPhase(3), 2800),       // cards settle bottom
       // Card 0 spotlight
       setTimeout(() => setPhase(4), 3500),       // card 0 rises
-      setTimeout(() => { setPhase(5); setFlippingCard(0); }, 4200), // card 0 flip start
-      setTimeout(() => { setRevealedCards(s => new Set([...s, 0])); }, 4500), // swap content at midpoint
-      setTimeout(() => { setFlippingCard(null); setPhase(6); }, 4800), // flip done, return
+      setTimeout(() => { setPhase(5); setFlippingCard(0); if (navigator.vibrate) navigator.vibrate(30); }, 4200),
+      setTimeout(() => { setRevealedCards(s => new Set([...s, 0])); }, 4500),
+      setTimeout(() => { setFlippingCard(null); setPhase(6); }, 4800),
       // Card 1 spotlight
       setTimeout(() => setPhase(7), 5500),
-      setTimeout(() => { setPhase(8); setFlippingCard(1); }, 6200),
+      setTimeout(() => { setPhase(8); setFlippingCard(1); if (navigator.vibrate) navigator.vibrate(30); }, 6200),
       setTimeout(() => { setRevealedCards(s => new Set([...s, 1])); }, 6500),
       setTimeout(() => { setFlippingCard(null); setPhase(9); }, 6800),
       // Card 2 spotlight
       setTimeout(() => setPhase(10), 7500),
-      setTimeout(() => { setPhase(11); setFlippingCard(2); }, 8200),
+      setTimeout(() => { setPhase(11); setFlippingCard(2); if (navigator.vibrate) navigator.vibrate(30); }, 8200),
       setTimeout(() => { setRevealedCards(s => new Set([...s, 2])); }, 8500),
       setTimeout(() => { setFlippingCard(null); setPhase(12); }, 8800),
       // All revealed → claim
@@ -151,9 +152,26 @@ const SeasonRewardOverlay: React.FC<SeasonRewardOverlayProps> = ({ reward, onCla
     return () => cancelAnimationFrame(raf);
   }, [phase, reward.goldAmount]);
 
-  // Keys → border → exit
+  // Keys counter animation (phase 15)
   useEffect(() => {
-    if (phase === 15) setTimeout(() => setPhase(16), 1200);
+    if (phase !== 15) return;
+    const target = reward.keys;
+    const start = performance.now();
+    const dur = 800;
+    let raf: number;
+    const tick = (now: number) => {
+      const p = Math.min((now - start) / dur, 1);
+      const eased = 1 - Math.pow(1 - p, 3);
+      setKeysCounter(Math.round(eased * target));
+      if (p < 1) raf = requestAnimationFrame(tick);
+      else { setKeysCounter(target); setTimeout(() => setPhase(16), 600); }
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [phase, reward.keys]);
+
+  // Border → exit
+  useEffect(() => {
     if (phase === 16) setTimeout(() => setPhase(17), 1500);
     if (phase === 17) setTimeout(() => onClaim(), 600);
   }, [phase, onClaim]);
@@ -343,7 +361,7 @@ const SeasonRewardOverlay: React.FC<SeasonRewardOverlayProps> = ({ reward, onCla
               style={{ filter: 'drop-shadow(0 0 12px rgba(168,85,247,0.4))' }} />
             <div className="text-3xl font-black font-mono" style={{
               color: '#a855f7', textShadow: '0 0 20px rgba(168,85,247,0.5)',
-            }}>+{reward.keys}</div>
+            }}>+{keysCounter}</div>
             <div className="text-[9px] font-mono text-gray-500 tracking-widest">
               {reward.keys === 1 ? 'KEY RECEIVED' : 'KEYS RECEIVED'}
             </div>
