@@ -292,7 +292,7 @@ const ProfileHero: React.FC<{
             avatarUrl={player.avatarUrl}
             borderId={borderId}
             size={88}
-            borderScale={0.9}
+            borderScale={0.8}
           />
           {/* Camera badge — bottom-right */}
           <div style={{
