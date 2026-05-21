@@ -4680,6 +4680,8 @@ const App: React.FC = () => {
 
             isPremium={isPremium}
 
+            onUpgradePro={() => setShowManaPowerUpsell(true)}
+
             onGoldClick={!isDungeonMode ? () => navigateTo('STORE') : undefined}
 
             onLogout={() => setShowLogoutChoice(true)}
@@ -5134,6 +5136,10 @@ const App: React.FC = () => {
                           onNavigate={(tab) => setActiveTab(tab)}
 
                           onOpenDusk={() => setShowDuskChat(true)}
+
+                          onUpgradePro={() => setShowManaPowerUpsell(true)}
+
+                          isPremium={isPremium}
 
                           onDeleteAccount={async () => {
 

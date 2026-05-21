@@ -6,7 +6,7 @@ import {
   MessageCircle,
   X, ChevronRight, Lock as LockIcon,
   Swords, Dumbbell, Brain, Users, Shield, Target, Zap,
-  Camera, ImagePlus, Loader2, Flame, TrendingUp, Sparkles,
+  Camera, ImagePlus, Loader2, Flame, TrendingUp, Sparkles, Crown,
 } from 'lucide-react';
 import { PlayerData, HealthProfile, Outfit, Tab, Rank, CoreStats } from '../types';
 import AvatarWithBorder from './AvatarWithBorder';
@@ -82,6 +82,8 @@ interface YouViewProps {
   onDeleteAccount?: () => Promise<void>;
   onNavigate?: (tab: Tab) => void;
   onOpenDusk?: () => void;
+  onUpgradePro?: () => void;
+  isPremium?: boolean;
 }
 
 
@@ -1045,7 +1047,7 @@ const StatsDrawer: React.FC<{ player: PlayerData; history?: import('../types').H
 
 // ─── Main YouView ────────────────────────────────────────────────────
 const YouView: React.FC<YouViewProps> = ({
-  player, equippedOutfit, history, onUpdate, onAvatarChange, onLogout, onDeleteAccount, onNavigate, onOpenDusk,
+  player, equippedOutfit, history, onUpdate, onAvatarChange, onLogout, onDeleteAccount, onNavigate, onOpenDusk, onUpgradePro, isPremium,
 }) => {
   const [showRank, setShowRank] = useState(false);
   const [showRankProgression, setShowRankProgression] = useState(false);
@@ -1130,6 +1132,30 @@ const YouView: React.FC<YouViewProps> = ({
           onClick={() => setShowConfig(true)}
         />
       </div>
+
+      {/* ── Upgrade to Reforge Pro Button ── */}
+      {!isPremium && onUpgradePro && (
+        <div className="px-4 mt-5">
+          <button
+            onClick={onUpgradePro}
+            className="w-full active:scale-[0.97] transition-transform"
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+              padding: '14px 20px', borderRadius: 14, cursor: 'pointer', border: 'none',
+              background: 'linear-gradient(135deg, #00d4ff 0%, #0099cc 50%, #006699 100%)',
+              color: '#020208', fontSize: 14, fontWeight: 900, letterSpacing: '0.04em',
+              boxShadow: '0 0 24px rgba(0,212,255,0.35), 0 4px 16px rgba(0,0,0,0.3)',
+              textTransform: 'uppercase',
+            }}
+          >
+            <Crown size={18} strokeWidth={2.5} />
+            Upgrade to Reforge Pro
+          </button>
+          <div style={{ textAlign: 'center', marginTop: 6, fontSize: 10, color: 'rgba(0,212,255,0.5)', fontFamily: 'monospace', fontWeight: 700, letterSpacing: '0.1em' }}>
+            14 DAYS FREE TRIAL · CANCEL ANYTIME
+          </div>
+        </div>
+      )}
 
       {/* Daily Fortune — variable reward widget */}
       <div className="mt-4 px-1">

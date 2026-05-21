@@ -66,6 +66,7 @@ interface LayoutProps {
   forceHeaderVisible?: boolean;
   hideAmbientGlow?: boolean;
   isPremium?: boolean;
+  onUpgradePro?: () => void;
 }
 
 const glassDropdownDark = {
@@ -111,6 +112,7 @@ const Layout: React.FC<LayoutProps> = ({
   forceHeaderVisible = false,
   hideAmbientGlow = false,
   isPremium = false,
+  onUpgradePro,
 }) => {
   const { theme } = useThemeContext();
   const isLight = theme === 'light';
@@ -474,6 +476,7 @@ const Layout: React.FC<LayoutProps> = ({
                         Lv.{playerLevel}
                       </span>
                       <span className="font-mono font-black tracking-wider"
+                        onClick={(e) => { if (!isPremium && onUpgradePro) { e.stopPropagation(); onUpgradePro(); } }}
                         style={isPremium ? {
                           fontSize: 7, padding: '1px 5px', borderRadius: 4,
                           background: 'linear-gradient(135deg, #00d4ff, #0099cc)',
@@ -485,6 +488,7 @@ const Layout: React.FC<LayoutProps> = ({
                           background: 'rgba(255,255,255,0.08)',
                           color: 'rgba(255,255,255,0.4)',
                           border: '1px solid rgba(255,255,255,0.08)',
+                          cursor: 'pointer',
                         }}>
                         {isPremium ? 'PRO' : 'FREE'}
                       </span>
