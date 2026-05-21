@@ -150,61 +150,19 @@ const ManaPowerScreen: React.FC<ManaPowerScreenProps> = ({
           </motion.p>
         </div>
 
-        {/* ── Triple Phone Mockup using real screenshots ── */}
+        {/* ── Triple Phone Mockup ── */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.15, duration: 0.5 }}
-          className="relative flex justify-center items-end mb-4 -mx-2"
-          style={{ height: 200 }}
+          className="relative flex justify-center mb-4 -mx-2"
         >
           {/* Glow behind phones */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className="w-[80%] h-[70%] rounded-full"
               style={{ background: 'radial-gradient(ellipse, rgba(250,204,21,0.06) 0%, rgba(0,212,255,0.03) 50%, transparent 70%)', filter: 'blur(30px)' }} />
           </div>
-
-          {/* Left phone — AI Motion Coach */}
-          <motion.div
-            initial={{ x: -20, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ delay: 0.2, duration: 0.4 }}
-            className="absolute left-[5%] bottom-0 z-10"
-            style={{ width: '32%', transform: 'rotate(-8deg)' }}
-          >
-            <div className="rounded-[12px] overflow-hidden shadow-2xl"
-              style={{ border: '2px solid rgba(255,255,255,0.12)', boxShadow: '0 10px 40px rgba(0,0,0,0.6)' }}>
-              <img src="/paywall/ss_motion.webp" alt="AI Motion Coach" className="w-full h-auto block" />
-            </div>
-          </motion.div>
-
-          {/* Center phone — Dusk AI Chat (larger, in front) */}
-          <motion.div
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.25, duration: 0.4 }}
-            className="relative z-20"
-            style={{ width: '36%' }}
-          >
-            <div className="rounded-[14px] overflow-hidden shadow-2xl"
-              style={{ border: '2.5px solid rgba(255,255,255,0.15)', boxShadow: '0 15px 50px rgba(0,0,0,0.7), 0 0 20px rgba(250,204,21,0.08)' }}>
-              <img src="/paywall/ss_mentor.webp" alt="Dusk AI Chat" className="w-full h-auto block" />
-            </div>
-          </motion.div>
-
-          {/* Right phone — AI Quests */}
-          <motion.div
-            initial={{ x: 20, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ delay: 0.3, duration: 0.4 }}
-            className="absolute right-[5%] bottom-0 z-10"
-            style={{ width: '32%', transform: 'rotate(8deg)' }}
-          >
-            <div className="rounded-[12px] overflow-hidden shadow-2xl"
-              style={{ border: '2px solid rgba(255,255,255,0.12)', boxShadow: '0 10px 40px rgba(0,0,0,0.6)' }}>
-              <img src="/paywall/ss_quests.webp" alt="AI Quests" className="w-full h-auto block" />
-            </div>
-          </motion.div>
+          <img src="/paywall/triple_mockup.webp" alt="Reforge Pro Features" className="w-full h-auto relative z-10" loading="lazy" />
         </motion.div>
 
         {/* ── Feature Marquee ── */}
