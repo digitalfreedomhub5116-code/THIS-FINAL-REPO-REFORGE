@@ -2053,7 +2053,7 @@ function KitBorderPreviewModal({ item, onClose, owned, equipped, canAfford, onBu
   // This prevents the double-scaling bug where high-scale borders (1.7x+) got
   // their container shrunk AND their image re-scaled, causing visual breakage.
   // The card thumbnails (KitGlowCard) use a separate formula and are NOT affected.
-  const scale = item.imageScale || 1;
+  const scale = (item.imageScale || 1) * 0.9; // 10% reduction for concentric fit in preview
 
   // Fixed container — same for ALL borders (no per-item container resizing)
   const size = 200;
