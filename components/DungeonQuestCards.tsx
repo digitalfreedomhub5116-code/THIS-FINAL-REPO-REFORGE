@@ -329,13 +329,31 @@ const DungeonQuestCards: React.FC<DungeonQuestCardsProps> = ({
           background: 'rgba(0,212,255,0.01)',
         }}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-1 mb-1">
-          <div className="flex items-center gap-2.5">
-            <Swords size={13} style={{ color: '#5ab8cc' }} />
-            <div>
-              <div className="text-[8px] font-mono uppercase tracking-[0.25em] text-gray-600">Daily Dungeon</div>
-              <div className="text-sm font-bold text-gray-200 tracking-tight">Sung Jin-woo Protocol</div>
+        {/* Header Card with Protocol Image */}
+        <div className="relative rounded-2xl overflow-hidden" style={{ minHeight: 120, border: '1px solid rgba(0,212,255,0.12)' }}>
+          {/* Background image */}
+          <div className="absolute inset-0 z-0">
+            <img
+              src="/dungeon/jinwoo-protocol.png"
+              alt=""
+              className="w-full h-full object-cover"
+              style={{ objectPosition: 'center 15%', filter: 'grayscale(100%) brightness(0.9)' }}
+            />
+            <div
+              className="absolute inset-0"
+              style={{
+                background: 'linear-gradient(180deg, rgba(10,10,20,0.05) 0%, rgba(10,10,20,0.15) 40%, rgba(8,8,16,0.65) 100%)',
+              }}
+            />
+          </div>
+          {/* Content */}
+          <div className="relative z-10 p-5 flex flex-col justify-end" style={{ minHeight: 120, textShadow: '0 1px 4px rgba(0,0,0,0.7)' }}>
+            <div className="flex items-center gap-2.5">
+              <Swords size={13} style={{ color: '#5ab8cc' }} />
+              <div>
+                <div className="text-[8px] font-mono uppercase tracking-[0.25em] text-gray-400">Daily Dungeon</div>
+                <div className="text-sm font-bold text-white tracking-tight">Sung Jin-woo Protocol</div>
+              </div>
             </div>
           </div>
         </div>
