@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { triggerHaptic } from '../utils/soundEngine';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Crown, Check, Loader2, RotateCcw, ChevronRight,
@@ -316,7 +317,7 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({
             {/* ── Dot Tracker ── */}
             <div className="flex items-center justify-center gap-2 mb-5 py-2">
               {FEATURES.map((f, i) => (
-                <button key={i} onClick={() => { setFeatureSlide(i); resetAutoPlay(); }}
+                <button key={i} onClick={() => { triggerHaptic('BUTTON_TAP'); setFeatureSlide(i); resetAutoPlay(); }}
                   className="relative flex items-center justify-center"
                   style={{ width: 20, height: 20 }}>
                   <motion.div
@@ -335,7 +336,7 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({
 
             {/* CTA */}
             <motion.div initial={{ y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.35 }}>
-              <motion.button whileTap={{ scale: 0.97 }} onClick={() => setPhase('TESTIMONIALS')}
+              <motion.button whileTap={{ scale: 0.97 }} onClick={() => { triggerHaptic('BUTTON_TAP'); setPhase('TESTIMONIALS'); }}
                 className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-black text-[14px] tracking-wide"
                 style={{ background: 'linear-gradient(135deg, #00d4ff 0%, #0099cc 100%)', color: '#020208', boxShadow: '0 6px 30px rgba(0,212,255,0.25)' }}>
                 See Real Results <ChevronRight size={16} />
@@ -367,7 +368,7 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
               className="flex items-center justify-center gap-3 mb-5">
               {TESTIMONIALS.map((t, i) => (
-                <button key={i} onClick={() => setSelectedTestimonial(i)}
+                <button key={i} onClick={() => { triggerHaptic('BUTTON_TAP'); setSelectedTestimonial(i); }}
                   className="relative transition-all duration-300"
                   style={{ transform: i === selectedTestimonial ? 'scale(1.15)' : 'scale(0.9)', opacity: i === selectedTestimonial ? 1 : 0.5 }}>
                   <div className="w-[52px] h-[52px] rounded-full overflow-hidden p-[2px] transition-all duration-300 relative"
@@ -531,7 +532,7 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({
 
             {/* CTA */}
             <motion.div initial={{ y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.35 }}>
-              <motion.button whileTap={{ scale: 0.97 }} onClick={() => setPhase('PAYWALL')}
+              <motion.button whileTap={{ scale: 0.97 }} onClick={() => { triggerHaptic('BUTTON_TAP'); setPhase('PAYWALL'); }}
                 className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-black text-[14px] tracking-wide"
                 style={{ background: 'linear-gradient(135deg, #00d4ff 0%, #0099cc 100%)', color: '#020208', boxShadow: '0 6px 30px rgba(0,212,255,0.25)' }}>
                 Unlock Full Access <ChevronRight size={16} />
@@ -559,8 +560,8 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({
 
           {/* Phone Mockup */}
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1, duration: 0.5 }}
-            className="flex justify-center mb-5">
-            <img src="/paywall/mockup_phones.webp" alt="App Preview" className="w-[75%] h-auto" loading="lazy" />
+            className="flex justify-center mb-2 -mt-2">
+            <img src="/paywall/mockup_phones.webp" alt="App Preview" className="w-[95%] h-auto" loading="lazy" />
           </motion.div>
 
           {/* ── Feature Marquee Cards ── */}
@@ -602,7 +603,7 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({
 
           {/* CTA */}
           <motion.div initial={{ y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.4 }}>
-            <motion.button onClick={handlePurchase} disabled={isPurchasing || !monthlyPkg} whileTap={{ scale: 0.97 }}
+            <motion.button onClick={() => { triggerHaptic('BUTTON_TAP'); handlePurchase(); }} disabled={isPurchasing || !monthlyPkg} whileTap={{ scale: 0.97 }}
               className="w-full flex items-center justify-center gap-2.5 py-4 rounded-2xl font-black text-[15px] tracking-wide transition-all disabled:opacity-40"
               style={{ background: 'linear-gradient(135deg, #00d4ff 0%, #0099cc 100%)', color: '#020208', boxShadow: '0 6px 30px rgba(0,212,255,0.25), 0 0 60px rgba(0,212,255,0.08)' }}>
               {isPurchasing ? (<><Loader2 size={18} className="animate-spin" /> Processing...</>) : (<><Zap size={18} /> Start My Free Trial</>)}
@@ -623,7 +624,7 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({
           {/* Trust section */}
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="mt-5">
             <div className="flex items-center justify-center gap-3 mb-3">
-              <button onClick={handleRestore} disabled={isRestoring}
+              <button onClick={() => { triggerHaptic('BUTTON_TAP'); handleRestore(); }} disabled={isRestoring}
                 className="flex items-center gap-1 text-[10px] font-mono text-gray-500 active:text-gray-300 transition-colors">
                 <RotateCcw size={10} className={isRestoring ? 'animate-spin' : ''} />
                 Restore Purchases
@@ -641,7 +642,7 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({
           {/* Continue with free — small grey button */}
           {onSkip && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }} className="mt-5 mb-4">
-              <button onClick={onSkip} className="w-full text-center py-2 text-[11px] text-gray-600 font-mono active:text-gray-400 transition-colors">
+              <button onClick={() => { triggerHaptic('BUTTON_TAP'); onSkip(); }} className="w-full text-center py-2 text-[11px] text-gray-600 font-mono active:text-gray-400 transition-colors">
                 Continue with free
               </button>
             </motion.div>
