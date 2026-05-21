@@ -260,7 +260,7 @@ const WorkoutMap: React.FC<WorkoutMapProps> = ({
                                             src="/assets/store/keyless-Photoroom.png"
                                             alt="Shadow Key"
                                             style={{
-                                                width: 32, height: 32, objectFit: 'contain',
+                                                width: 44, height: 44, objectFit: 'contain',
                                                 filter: isClaimed
                                                     ? 'drop-shadow(0 0 8px rgba(168,85,247,0.7))'
                                                     : 'drop-shadow(0 0 4px rgba(168,85,247,0.2)) grayscale(0.5) opacity(0.5)',
@@ -533,13 +533,16 @@ const WorkoutMap: React.FC<WorkoutMapProps> = ({
                  </div>
             )}
 
-            {/* Debug: Test Key Earned Overlay */}
+        </div>
+
+        {/* Debug: Test Key Earned Overlay — outside overflow-hidden container */}
+        <div className="flex justify-start mt-2">
             <button
                 onClick={() => setShowKeyEarned(true)}
-                className="absolute bottom-3 left-3 z-30 px-2 py-1 rounded text-[8px] font-mono pointer-events-auto"
-                style={{ background: 'rgba(255,255,255,0.05)', color: '#666', border: '1px solid rgba(255,255,255,0.08)' }}
+                className="px-3 py-1.5 rounded-lg text-[9px] font-mono"
+                style={{ background: 'rgba(168,85,247,0.1)', color: '#a855f7', border: '1px solid rgba(168,85,247,0.25)' }}
             >
-                🔑 Test Key
+                🔑 Test Key Reward
             </button>
         </div>
 

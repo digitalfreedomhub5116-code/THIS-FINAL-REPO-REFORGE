@@ -1197,7 +1197,6 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                                                 <span>·</span>
                                                                 <span>{plan.days_per_week}d/wk</span>
                                                             </div>
-                                                            {plan.description && <div className="text-[9px] text-gray-500 mt-1.5 leading-snug line-clamp-2">{plan.description}</div>}
                                                         </div>
                                                     </div>
                                                 </motion.button>
