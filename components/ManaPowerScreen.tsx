@@ -202,22 +202,29 @@ const ManaPowerScreen: React.FC<ManaPowerScreenProps> = ({
             <div className="w-1 h-4 rounded-full bg-[#facc15]" />
             <span className="text-[10px] font-mono font-bold tracking-[0.2em] text-gray-500 uppercase">What's Included</span>
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-2.5">
             {PERKS.map((perk, i) => (
               <motion.div
                 key={perk.label}
                 initial={{ y: 10, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.35 + i * 0.03 }}
-                className="flex flex-col items-center text-center px-2 py-3 rounded-xl"
-                style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}
+                className="relative rounded-xl overflow-hidden"
+                style={{
+                  background: 'rgba(255,255,255,0.025)',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                }}
               >
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center mb-1.5"
-                  style={{ background: `${perk.color}12`, border: `1px solid ${perk.color}20` }}>
-                  <perk.icon size={14} style={{ color: perk.color }} />
+                <div className="flex items-center gap-2.5 px-3 py-3">
+                  <perk.icon size={15} style={{ color: perk.color, flexShrink: 0, opacity: 0.9 }} />
+                  <span className="text-[11px] font-bold text-white/85 leading-tight">{perk.label}</span>
                 </div>
-                <div className="text-[10px] font-bold text-white leading-tight">{perk.label}</div>
-                <div className="text-[8px] text-gray-600 font-mono mt-0.5 leading-tight">{perk.desc}</div>
+                {/* Bottom glow bar */}
+                <div style={{
+                  position: 'absolute', bottom: 0, left: '10%', right: '10%', height: 2,
+                  background: `linear-gradient(90deg, transparent, ${perk.color}80, transparent)`,
+                  borderRadius: 2,
+                }} />
               </motion.div>
             ))}
           </div>
