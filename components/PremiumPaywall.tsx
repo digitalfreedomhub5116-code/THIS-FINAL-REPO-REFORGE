@@ -558,11 +558,34 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({
             <p className="text-[11px] text-gray-500 font-mono mt-1.5 tracking-wide">EVERYTHING INCLUDED • NO LIMITS</p>
           </motion.div>
 
-          {/* Phone Mockup */}
+          {/* Phone Mockup with ambient effects */}
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1, duration: 0.5 }}
-            className="flex justify-center mb-2 -mt-2">
-            <img src="/paywall/mockup_phones.webp" alt="App Preview" className="w-[95%] h-auto" loading="lazy" />
+            className="relative flex justify-center mb-3 -mt-1">
+            {/* Ambient glow behind phones */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="w-[70%] h-[60%] rounded-full"
+                style={{ background: 'radial-gradient(ellipse, rgba(0,212,255,0.08) 0%, rgba(0,100,200,0.04) 40%, transparent 70%)', filter: 'blur(30px)' }} />
+            </div>
+            <div className="absolute top-[20%] left-[10%] w-[80px] h-[80px] rounded-full pointer-events-none"
+              style={{ background: 'radial-gradient(circle, rgba(248,113,113,0.06) 0%, transparent 70%)', filter: 'blur(20px)' }} />
+            <div className="absolute bottom-[25%] right-[8%] w-[60px] h-[60px] rounded-full pointer-events-none"
+              style={{ background: 'radial-gradient(circle, rgba(0,212,255,0.06) 0%, transparent 70%)', filter: 'blur(15px)' }} />
+            {/* Floating dots */}
+            <motion.div animate={{ y: [-3, 3, -3] }} transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+              className="absolute top-[15%] right-[15%] w-1.5 h-1.5 rounded-full bg-[#00d4ff] opacity-20" />
+            <motion.div animate={{ y: [3, -3, 3] }} transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+              className="absolute bottom-[30%] left-[12%] w-1 h-1 rounded-full bg-[#f87171] opacity-20" />
+            <motion.div animate={{ y: [-2, 4, -2] }} transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
+              className="absolute top-[40%] left-[5%] w-1 h-1 rounded-full bg-white opacity-10" />
+            {/* Image */}
+            <img src="/paywall/mockup_phones.webp" alt="App Preview" className="w-[95%] h-auto relative z-10" loading="lazy" />
           </motion.div>
+
+          {/* Tagline under mockup */}
+          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
+            className="text-center text-[10px] text-gray-500 font-mono mb-4 tracking-wide">
+            AI-POWERED FITNESS • ANTI-CHEAT • MOTION TRACKING
+          </motion.p>
 
           {/* ── Feature Marquee Cards ── */}
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
