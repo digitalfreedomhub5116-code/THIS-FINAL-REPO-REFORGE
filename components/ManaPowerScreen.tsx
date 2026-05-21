@@ -163,6 +163,9 @@ const ManaPowerScreen: React.FC<ManaPowerScreenProps> = ({
               style={{ background: 'radial-gradient(ellipse, rgba(250,204,21,0.06) 0%, rgba(0,212,255,0.03) 50%, transparent 70%)', filter: 'blur(30px)' }} />
           </div>
           <img src="/paywall/triple_mockup.webp" alt="Reforge Pro Features" className="w-full h-auto relative z-10" loading="lazy" />
+          {/* Edge fade shadows */}
+          <div className="absolute inset-0 z-20 pointer-events-none"
+            style={{ boxShadow: 'inset 0 40px 30px -10px #060610, inset 0 -40px 30px -10px #060610, inset 40px 0 30px -10px #060610, inset -40px 0 30px -10px #060610' }} />
         </motion.div>
 
         {/* ── Feature Marquee ── */}
@@ -269,6 +272,29 @@ const ManaPowerScreen: React.FC<ManaPowerScreenProps> = ({
               )}
             </button>
           ))}
+        </motion.div>
+
+        {/* ── 14 Days Free Trial Card ── */}
+        <motion.div
+          initial={{ y: 16, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.45 }}
+          className="rounded-2xl p-4 mb-5 relative overflow-hidden"
+          style={{ background: 'linear-gradient(135deg, rgba(250,204,21,0.06) 0%, rgba(250,204,21,0.02) 100%)', border: '1px solid rgba(250,204,21,0.15)' }}
+        >
+          <div className="absolute -top-0.5 right-4 px-2.5 py-1 rounded-b-lg"
+            style={{ background: 'linear-gradient(135deg, #4ade80, #22c55e)', boxShadow: '0 2px 12px rgba(74,222,128,0.3)' }}>
+            <span className="text-[7px] font-black font-mono tracking-[0.2em] text-black uppercase">Free Trial</span>
+          </div>
+          <div className="text-center mt-1">
+            <div className="flex items-baseline justify-center gap-1.5">
+              <span className="text-[32px] font-black text-white">14 Days</span>
+              <span className="text-[12px] text-gray-500 font-mono">FREE</span>
+            </div>
+            <p className="text-[11px] text-gray-500 font-mono mt-1">
+              Try everything free • <span className="text-[#4ade80] font-bold">Cancel anytime</span>
+            </p>
+          </div>
         </motion.div>
 
         {/* Error message */}
