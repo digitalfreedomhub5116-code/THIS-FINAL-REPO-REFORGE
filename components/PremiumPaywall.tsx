@@ -551,68 +551,39 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({
       <div className="flex-1 overflow-y-auto" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)' }}>
         <div className="px-5 max-w-md mx-auto">
 
-          {/* Header */}
-          <motion.div initial={{ y: -10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="text-center mb-5">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-3"
-              style={{ background: 'linear-gradient(135deg, rgba(0,212,255,0.12) 0%, rgba(0,212,255,0.04) 100%)', border: '1px solid rgba(0,212,255,0.2)', boxShadow: '0 0 30px rgba(0,212,255,0.1)' }}>
-              <Crown size={26} style={{ color: '#00d4ff' }} />
+          {/* Header — no crown icon */}
+          <motion.div initial={{ y: -10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="text-center mb-4">
+            <h1 className="text-[22px] font-black text-white leading-tight">Become the Best Version<br/>of Yourself</h1>
+            <p className="text-[11px] text-gray-500 font-mono mt-1.5 tracking-wide">EVERYTHING INCLUDED • NO LIMITS</p>
+          </motion.div>
+
+          {/* Phone Mockup */}
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1, duration: 0.5 }}
+            className="flex justify-center mb-5">
+            <img src="/paywall/mockup_phones.webp" alt="App Preview" className="w-[75%] h-auto" loading="lazy" />
+          </motion.div>
+
+          {/* ── Feature Marquee Cards ── */}
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
+            className="mb-5 -mx-5 overflow-hidden">
+            <style>{`
+              @keyframes perks-scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+              .perks-marquee { display: flex; animation: perks-scroll 20s linear infinite; width: max-content; }
+            `}</style>
+            <div className="perks-marquee">
+              {[...PERKS_LIST, ...PERKS_LIST].map((perk, i) => (
+                <div key={i} className="flex-shrink-0 mx-1.5 flex items-center gap-2 px-3.5 py-2.5 rounded-xl"
+                  style={{ background: 'rgba(0,212,255,0.04)', border: '1px solid rgba(0,212,255,0.1)' }}>
+                  <Check size={12} style={{ color: '#4ade80', flexShrink: 0 }} />
+                  <span className="text-[11px] text-gray-200 font-medium whitespace-nowrap">{perk}</span>
+                </div>
+              ))}
             </div>
-            <h1 className="text-[24px] font-black text-white leading-tight">Your Fitness RPG Awaits</h1>
-            <p className="text-[11px] text-gray-500 font-mono mt-1 tracking-wide">EVERYTHING INCLUDED • NO LIMITS</p>
-          </motion.div>
-
-          {/* Feature mini-icons row */}
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}
-            className="flex items-center justify-center gap-2.5 mb-5">
-            {FEATURES.map((f, i) => (
-              <div key={i} className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${f.color}10`, border: `1px solid ${f.color}18` }}>
-                <f.icon size={14} style={{ color: f.color }} />
-              </div>
-            ))}
-          </motion.div>
-
-          {/* What's Included */}
-          <motion.div initial={{ y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }} className="mb-5">
-            <button onClick={() => setShowAllPerks(!showAllPerks)}
-              className="w-full flex items-center justify-between px-3 py-2 rounded-xl mb-2"
-              style={{ background: 'rgba(255,255,255,0.025)' }}>
-              <span className="text-[10px] font-mono font-bold tracking-[0.2em] text-gray-500 uppercase">What's Included</span>
-              <motion.div animate={{ rotate: showAllPerks ? 90 : 0 }}>
-                <ChevronRight size={12} className="text-gray-600" />
-              </motion.div>
-            </button>
-            <AnimatePresence>
-              {showAllPerks && (
-                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25 }} className="overflow-hidden">
-                  <div className="space-y-1 px-1">
-                    {PERKS_LIST.map((perk, i) => (
-                      <div key={i} className="flex items-center gap-2.5 py-1.5">
-                        <Check size={12} style={{ color: '#4ade80', flexShrink: 0 }} />
-                        <span className="text-[11px] text-gray-300 font-medium">{perk}</span>
-                      </div>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-            {!showAllPerks && (
-              <div className="space-y-1 px-1">
-                {PERKS_LIST.slice(0, 4).map((perk, i) => (
-                  <div key={i} className="flex items-center gap-2.5 py-1.5">
-                    <Check size={12} style={{ color: '#4ade80', flexShrink: 0 }} />
-                    <span className="text-[11px] text-gray-300 font-medium">{perk}</span>
-                  </div>
-                ))}
-                <button onClick={() => setShowAllPerks(true)} className="text-[10px] font-mono text-[#00d4ff] font-bold ml-6 mt-1">
-                  +{PERKS_LIST.length - 4} more features →
-                </button>
-              </div>
-            )}
           </motion.div>
 
           {/* Pricing Card */}
           <motion.div initial={{ y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }}
-            className="rounded-2xl p-4 mb-4 relative overflow-hidden"
+            className="rounded-2xl p-5 mb-4 relative overflow-hidden"
             style={{ background: 'linear-gradient(135deg, rgba(0,212,255,0.06) 0%, rgba(0,212,255,0.02) 100%)', border: '1px solid rgba(0,212,255,0.12)' }}>
             <div className="absolute -top-0.5 right-4 px-2.5 py-1 rounded-b-lg"
               style={{ background: 'linear-gradient(135deg, #4ade80, #22c55e)', boxShadow: '0 2px 12px rgba(74,222,128,0.3)' }}>
@@ -623,7 +594,9 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({
                 <span className="text-[36px] font-black text-white">14 Days</span>
                 <span className="text-[12px] text-gray-500 font-mono">FREE</span>
               </div>
-              <p className="text-[10px] text-gray-500 font-mono mt-1">Then {priceString}/month • Cancel anytime</p>
+              <p className="text-[11px] text-gray-500 font-mono mt-1">
+                Then {priceString}/month • <span className="text-[#4ade80] font-bold">Cancel anytime</span>
+              </p>
             </div>
           </motion.div>
 
@@ -656,7 +629,7 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({
                 Restore Purchases
               </button>
               <span className="text-gray-800 text-[8px]">•</span>
-              <span className="text-[10px] font-mono text-gray-500">Cancel anytime</span>
+              <span className="text-[10px] font-mono text-[#4ade80] font-bold">Cancel anytime</span>
             </div>
             <p className="text-center text-[8px] text-gray-700 font-mono leading-relaxed px-2">
               Start with a 14-day free trial. After your trial, subscription auto-renews at {priceString}/month.
