@@ -198,49 +198,68 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({
 
             {/* ── Full-width single image slider ── */}
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
-              className="mb-5 relative rounded-2xl overflow-hidden"
-              style={{ aspectRatio: '9/16', maxHeight: 420 }}>
+              className="mb-4 relative rounded-[20px] overflow-hidden mx-auto"
+              style={{ width: '85%', aspectRatio: '9/17', background: '#0a0a1a' }}>
+
+              {/* Screenshot */}
               <AnimatePresence mode="wait">
                 <motion.div key={featureSlide}
-                  initial={{ opacity: 0, scale: 1.04 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.96 }}
-                  transition={{ duration: 0.4 }}
-                  className="absolute inset-0">
+                  initial={{ opacity: 0, x: 60 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -60 }}
+                  transition={{ duration: 0.35, ease: 'easeInOut' }}
+                  className="absolute inset-0 flex items-start justify-center">
                   {(feature as any).screenshot && (
                     <img src={(feature as any).screenshot} alt={feature.title}
-                      className="w-full h-full object-cover" loading="lazy" />
+                      className="w-full h-full object-contain object-top" loading="lazy" />
                   )}
-                  {/* Gradient overlay */}
-                  <div className="absolute inset-0"
-                    style={{ background: 'linear-gradient(to top, rgba(4,4,16,0.95) 0%, rgba(4,4,16,0.5) 30%, transparent 55%)' }} />
-                  {/* Feature info overlay */}
-                  <div className="absolute bottom-0 left-0 right-0 px-5 pb-5">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-7 h-7 rounded-lg flex items-center justify-center"
-                        style={{ background: `${feature.color}20`, border: `1px solid ${feature.color}30` }}>
-                        <feature.icon size={14} style={{ color: feature.color }} />
-                      </div>
-                      <span className="text-[15px] font-black text-white" style={{ textShadow: '0 1px 6px rgba(0,0,0,0.6)' }}>
-                        {feature.title}
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-gray-300 leading-relaxed font-medium" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.5)' }}>
-                      {feature.desc}
-                    </p>
-                  </div>
                 </motion.div>
               </AnimatePresence>
-              {/* Border glow */}
-              <div className="absolute inset-0 rounded-2xl pointer-events-none"
-                style={{ border: `1px solid ${feature.color}20`, boxShadow: `inset 0 0 30px ${feature.color}08` }} />
+
+              {/* Heavy bottom shadow for text */}
+              <div className="absolute inset-0 pointer-events-none"
+                style={{ background: 'linear-gradient(to top, rgba(2,2,8,1) 0%, rgba(2,2,8,0.92) 12%, rgba(2,2,8,0.7) 22%, rgba(2,2,8,0.3) 35%, transparent 50%)' }} />
+
+              {/* Feature info overlay */}
+              <div className="absolute bottom-0 left-0 right-0 px-5 pb-5 z-10">
+                <div className="flex items-center gap-2.5 mb-2.5">
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center"
+                    style={{ background: `${feature.color}20`, border: `1px solid ${feature.color}35`, backdropFilter: 'blur(8px)' }}>
+                    <feature.icon size={16} style={{ color: feature.color }} />
+                  </div>
+                  <span className="text-[16px] font-black text-white tracking-tight"
+                    style={{ textShadow: '0 2px 8px rgba(0,0,0,0.9), 0 0 20px rgba(0,0,0,0.5)' }}>
+                    {feature.title}
+                  </span>
+                </div>
+                <p className="text-[12px] text-white leading-[1.7] font-medium"
+                  style={{ textShadow: '0 1px 6px rgba(0,0,0,0.9), 0 0 12px rgba(0,0,0,0.4)', opacity: 0.9 }}>
+                  {feature.desc}
+                </p>
+              </div>
+
+              {/* Subtle border */}
+              <div className="absolute inset-0 rounded-[20px] pointer-events-none"
+                style={{ border: `1px solid rgba(255,255,255,0.06)` }} />
             </motion.div>
 
-            {/* Dots */}
-            <div className="flex items-center justify-center gap-1.5 mb-5">
+            {/* ── Dot Tracker ── */}
+            <div className="flex items-center justify-center gap-2 mb-5 py-2">
               {FEATURES.map((f, i) => (
-                <button key={i} onClick={() => { setFeatureSlide(i); resetAutoPlay(); }} className="rounded-full transition-all duration-300"
-                  style={{ width: i === featureSlide ? 18 : 6, height: 6, background: i === featureSlide ? f.color : 'rgba(255,255,255,0.12)' }} />
+                <button key={i} onClick={() => { setFeatureSlide(i); resetAutoPlay(); }}
+                  className="relative flex items-center justify-center"
+                  style={{ width: 20, height: 20 }}>
+                  <motion.div
+                    className="rounded-full"
+                    animate={{
+                      width: i === featureSlide ? 22 : 7,
+                      height: 7,
+                      backgroundColor: i === featureSlide ? f.color : 'rgba(255,255,255,0.15)',
+                      boxShadow: i === featureSlide ? `0 0 10px ${f.color}50` : 'none',
+                    }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                  />
+                </button>
               ))}
             </div>
 
