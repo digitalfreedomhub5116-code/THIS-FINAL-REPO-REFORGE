@@ -1,7 +1,9 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Target, Pin, ChevronRight, ArrowLeft, Calendar, Clock, TrendingUp, Zap, Flame, Loader2, CheckCircle, Info, X } from 'lucide-react';
+import { Plus, Target, Pin, ChevronRight, ArrowLeft, Calendar, Clock, TrendingUp, Zap, Flame, Loader2, CheckCircle, Info, X, Sparkles } from 'lucide-react';
 import { Goal, GoalCategory } from '../types';
+
+const HowItWorksScreen = lazy(() => import('./HowItWorksScreen'));
 
 // ── Category → banner image mapping ──
 const CATEGORY_BANNERS: Record<GoalCategory | string, string> = {
@@ -314,6 +316,7 @@ const GoalHeroSection: React.FC<GoalHeroSectionProps> = ({ goals, onCreateGoal, 
   );
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
   const [showGoalInfo, setShowGoalInfo] = useState(false);
+  const [showHowItWorks, setShowHowItWorks] = useState(false);
 
   // ── FREE USER: Pro upsell on top, system goals below ──
   if (!isPremium) {
@@ -373,6 +376,22 @@ const GoalHeroSection: React.FC<GoalHeroSectionProps> = ({ goals, onCreateGoal, 
               <Zap size={16} />
               Unlock AI Autopilot
             </motion.button>
+
+            {/* How It Works button */}
+            <button
+              onClick={() => setShowHowItWorks(true)}
+              className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg font-mono text-[10px] font-bold tracking-[0.15em] uppercase transition-all"
+              style={{
+                background: 'rgba(0,212,255,0.06)',
+                border: '1px solid rgba(0,212,255,0.12)',
+                color: 'rgba(0,212,255,0.5)',
+                cursor: 'pointer',
+                marginTop: 10,
+              }}
+            >
+              <Sparkles size={12} />
+              How It Works
+            </button>
           </div>
         </motion.div>
 
@@ -406,6 +425,18 @@ const GoalHeroSection: React.FC<GoalHeroSectionProps> = ({ goals, onCreateGoal, 
               goal={selectedGoal}
               onClose={() => setSelectedGoal(null)}
             />
+          )}
+        </AnimatePresence>
+
+        {/* How It Works full-screen */}
+        <AnimatePresence>
+          {showHowItWorks && (
+            <Suspense fallback={null}>
+              <HowItWorksScreen
+                onClose={() => setShowHowItWorks(false)}
+                onClaimTrial={() => { setShowHowItWorks(false); onUpgrade?.(); }}
+              />
+            </Suspense>
           )}
         </AnimatePresence>
       </div>
