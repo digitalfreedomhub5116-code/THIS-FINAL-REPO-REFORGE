@@ -33,6 +33,7 @@ import SystemToastOverlay from './components/SystemToast';
 import ErrorBoundary from './components/ErrorBoundary';
 import StreakMilestoneOverlay from './components/StreakMilestoneOverlay';
 import LeaguePromotionOverlay from './components/LeaguePromotionOverlay';
+import ReviewPromptSheet from './components/ReviewPromptSheet';
 import { unlockItem } from './utils/storeEconomy';
 import { setRemoteStoreCache, StoreItem, StoreCategory, ItemTier } from './utils/storeItems';
 
@@ -3918,6 +3919,9 @@ const App: React.FC = () => {
                   </ErrorBoundary>
                 </Suspense>
               )}
+
+              {/* ── In-App Review Prompt (listens for global event) ── */}
+              <ReviewPromptSheet />
 
               {/* ── Streak Milestone Overlay ── */}
               {showStreakMilestone && streakMilestoneData && (

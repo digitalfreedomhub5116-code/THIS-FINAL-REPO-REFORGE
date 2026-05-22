@@ -15,6 +15,7 @@ import { OUTFITS, getOutfitXpBoost, getStoneConfig, getUnlockedBadgeCount, BADGE
 import { scheduleQuestDeadline, cancelDailyReminders } from './useLocalNotifications';
 import { safeLevelUp, computeRank } from '../lib/levelSystem';
 import { createInitialDungeonState, recordDungeonCompletion, getDungeonTargetsForToday, recordDungeonFailure } from '../lib/dungeonEngine';
+import { incrementDungeonClear, shouldTriggerReview, dispatchShowReviewPrompt } from '../lib/appReview';
 export { safeLevelUp, computeRank };
 
 export const isEmbed = (url: string) => {
@@ -2165,6 +2166,15 @@ export const useSystem = () => {
     });
 
     addNotification('⚔️ DUNGEON CLEARED — Sung Jin-woo Protocol Complete!', 'SUCCESS');
+
+    // ── In-App Review trigger: after the 2nd lifetime dungeon clear ──
+    try {
+      incrementDungeonClear();
+      if (shouldTriggerReview()) {
+        // Delay so the prompt appears after the dungeon reward animation, not during.
+        setTimeout(() => dispatchShowReviewPrompt(), 2500);
+      }
+    } catch {}
 
     // Write session log so the workout map shows "Dungeon Cleared" for today
     try {
