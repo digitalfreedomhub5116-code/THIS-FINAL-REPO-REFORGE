@@ -148,6 +148,12 @@ interface LightboxProps {
 }
 
 const Lightbox: React.FC<LightboxProps> = ({ src, alt, stepNum, onClose }) => {
+  const details = [
+    "Enter any target goal — career, fitness, finance, skill, or exam. The system instantly structures a personalised roadmap for you.",
+    "Adaptive questions analyse your availability, experience level, and deadlines to model the optimal path forward.",
+    "Receive daily quests with curated resources — YouTube videos, articles, and interactive tools — embedded for each mission."
+  ];
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -158,7 +164,12 @@ const Lightbox: React.FC<LightboxProps> = ({ src, alt, stepNum, onClose }) => {
     >
       <div className="relative w-full max-w-sm sm:max-w-md flex flex-col gap-4" onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div className="flex items-center justify-end">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded" style={{ background: 'rgba(0,212,255,0.1)', color: '#00d4ff', border: '1px solid rgba(0,212,255,0.2)' }}>
+              Step 0{stepNum}
+            </span>
+          </div>
           <button 
             onClick={onClose}
             className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-white transition-colors"
@@ -193,7 +204,7 @@ const Lightbox: React.FC<LightboxProps> = ({ src, alt, stepNum, onClose }) => {
             color: '#9ca3af'
           }}
         >
-          <p>The system intelligently breaks down your long-term goals into a personalized roadmap and daily resource-rich quests.</p>
+          <p>{details[stepNum - 1]}</p>
         </div>
       </div>
     </motion.div>
@@ -201,7 +212,7 @@ const Lightbox: React.FC<LightboxProps> = ({ src, alt, stepNum, onClose }) => {
 };
 
 // ═══════════════════════════════════════════════════════════════
-// Main Export — HowItWorksScreen
+// Step Card wrapper with fade-in
 // ═══════════════════════════════════════════════════════════════
 const StepCard: React.FC<{
   stepNum: number;
@@ -309,19 +320,52 @@ const HowItWorksScreen: React.FC<HowItWorksScreenProps> = ({ onClose, onClaimTri
         </div>
 
         {/* ── Steps ── */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={stepsVisible ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.6, ease: 'easeOut' }}
-          className="w-full mt-4"
-        >
-          <PremiumMockup 
-            src="/paywall/triple_mockup.jpeg" 
-            alt="How the system works" 
+        <div className="space-y-8">
+          <StepCard
             stepNum={1}
-            onExpand={handleExpand}
-          />
-        </motion.div>
+            title="Type your long-term goal"
+            description="Like crack your dream exam, or lose 30kg weight"
+            delay={0}
+            visible={stepsVisible}
+          >
+            <PremiumMockup 
+              src="/assets/step1_goal_input.png" 
+              alt="Step 1: Declare your goal" 
+              stepNum={1}
+              onExpand={handleExpand}
+            />
+          </StepCard>
+
+          <StepCard
+            stepNum={2}
+            title="Answer a few quick questions"
+            description="We tailor the plan to your schedule, level, and deadline"
+            delay={0.3}
+            visible={stepsVisible}
+          >
+            <PremiumMockup 
+              src="/assets/step2_questionnaire.png" 
+              alt="Step 2: Calibrate parameters" 
+              stepNum={2}
+              onExpand={handleExpand}
+            />
+          </StepCard>
+
+          <StepCard
+            stepNum={3}
+            title="Get daily quests with resources"
+            description="Realistically planned quests with YT videos, blogs, and study material"
+            delay={0.6}
+            visible={stepsVisible}
+          >
+            <PremiumMockup 
+              src="/assets/step3_quests.png" 
+              alt="Step 3: Receive planned quests and resources" 
+              stepNum={3}
+              onExpand={handleExpand}
+            />
+          </StepCard>
+        </div>
 
         {/* ── CTA Section ── */}
         <motion.div
