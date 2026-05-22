@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Play, BookOpen, Link2, ChevronRight, Sparkles, Maximize2 } from 'lucide-react';
+import { X, Sparkles, Maximize2 } from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════════
 // Typewriter with per-word vibration
@@ -58,51 +59,33 @@ const TypewriterQuestion: React.FC<{ text: string; onComplete?: () => void }> = 
 };
 
 // ═══════════════════════════════════════════════════════════════
-// Premium Mockup Component with Aspect Ratio & Cyberpunk Accents
+// Clean Premium Mockup — no scan lines, no HUD overlays
 // ═══════════════════════════════════════════════════════════════
 interface PremiumMockupProps {
   src: string;
   alt: string;
-  label: string;
   stepNum: number;
-  onExpand: (src: string, alt: string, label: string, stepNum: number) => void;
+  onExpand: (src: string, alt: string, stepNum: number) => void;
 }
 
-const PremiumMockup: React.FC<PremiumMockupProps> = ({ src, alt, label, stepNum, onExpand }) => {
+const PremiumMockup: React.FC<PremiumMockupProps> = ({ src, alt, stepNum, onExpand }) => {
   const [loaded, setLoaded] = useState(false);
   
   return (
     <div 
-      onClick={() => onExpand(src, alt, label, stepNum)}
-      className="w-full aspect-square rounded-xl overflow-hidden shadow-2xl relative group cursor-pointer" 
+      onClick={() => onExpand(src, alt, stepNum)}
+      className="w-full rounded-xl overflow-hidden shadow-2xl relative group cursor-pointer" 
       style={{ 
-        background: '#020208',
-        border: '1px solid rgba(0, 212, 255, 0.18)',
-        boxShadow: '0 8px 32px rgba(0, 212, 255, 0.08)',
-        aspectRatio: '1 / 1'
+        background: '#0a0a12',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
       }}
     >
-      {/* Glow highlight on hover */}
+      {/* Subtle glow highlight on hover */}
       <div 
-        className="absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity duration-500 pointer-events-none"
+        className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-500 pointer-events-none"
         style={{
           background: 'radial-gradient(circle at center, #00d4ff 0%, transparent 70%)'
-        }}
-      />
-
-      {/* Cyber Corners HUD style */}
-      <div className="absolute top-1.5 left-1.5 w-2.5 h-2.5 border-t-2 border-l-2 border-[#00d4ff]/40 pointer-events-none group-hover:border-[#00d4ff]/80 transition-colors z-10" />
-      <div className="absolute top-1.5 right-1.5 w-2.5 h-2.5 border-t-2 border-r-2 border-[#00d4ff]/40 pointer-events-none group-hover:border-[#00d4ff]/80 transition-colors z-10" />
-      <div className="absolute bottom-1.5 left-1.5 w-2.5 h-2.5 border-b-2 border-l-2 border-[#00d4ff]/40 pointer-events-none group-hover:border-[#00d4ff]/80 transition-colors z-10" />
-      <div className="absolute bottom-1.5 right-1.5 w-2.5 h-2.5 border-b-2 border-r-2 border-[#00d4ff]/40 pointer-events-none group-hover:border-[#00d4ff]/80 transition-colors z-10" />
-
-      {/* Futuristic Scan Line */}
-      <div 
-        className="absolute left-0 right-0 h-[2px] pointer-events-none z-10"
-        style={{
-          background: 'linear-gradient(90deg, transparent, rgba(0, 212, 255, 0.6), transparent)',
-          boxShadow: '0 0 8px rgba(0, 212, 255, 0.6)',
-          animation: 'scan-line 3.5s linear infinite'
         }}
       />
 
@@ -111,7 +94,7 @@ const PremiumMockup: React.FC<PremiumMockupProps> = ({ src, alt, label, stepNum,
         <div
           className="absolute inset-0 z-0"
           style={{
-            background: 'linear-gradient(110deg, #020208 30%, rgba(0, 212, 255, 0.08) 50%, #020208 70%)',
+            background: 'linear-gradient(110deg, #0a0a12 30%, rgba(255, 255, 255, 0.04) 50%, #0a0a12 70%)',
             backgroundSize: '200% 100%',
             animation: 'shimmer-effect 1.5s ease-in-out infinite',
           }}
@@ -123,48 +106,28 @@ const PremiumMockup: React.FC<PremiumMockupProps> = ({ src, alt, label, stepNum,
         src={src} 
         alt={alt} 
         onLoad={() => setLoaded(true)}
-        className={`w-full h-full object-cover block transition-all duration-700 ease-out ${
-          loaded ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
-        } group-hover:scale-[1.03]`}
+        className={`w-full h-auto block transition-all duration-700 ease-out ${
+          loaded ? 'opacity-100 scale-100' : 'opacity-0 scale-[0.98]'
+        } group-hover:scale-[1.02]`}
       />
 
-      {/* Interactive hover overlay with click-to-expand text */}
-      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center pointer-events-none">
+      {/* Tap-to-expand hint on hover */}
+      <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center pointer-events-none">
         <div 
           className="px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-[9px] font-mono font-bold tracking-wider uppercase"
           style={{ 
-            background: 'rgba(2, 2, 8, 0.85)', 
-            border: '1px solid rgba(0, 212, 255, 0.3)',
-            color: '#00d4ff',
-            boxShadow: '0 4px 12px rgba(0, 212, 255, 0.2)'
+            background: 'rgba(0, 0, 0, 0.7)', 
+            border: '1px solid rgba(255, 255, 255, 0.15)',
+            color: '#ffffff',
           }}
         >
           <Maximize2 size={10} />
-          Expand Blueprint
+          Tap to expand
         </div>
       </div>
 
-      {/* Tactical UI Footer Badge */}
-      <div 
-        className="absolute bottom-3 left-3 px-2 py-0.5 rounded text-[7px] font-mono tracking-widest font-black pointer-events-none z-10"
-        style={{
-          background: 'rgba(2, 2, 8, 0.8)',
-          border: '1px solid rgba(0, 212, 255, 0.15)',
-          color: 'rgba(0, 212, 255, 0.7)'
-        }}
-      >
-        <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#00d4ff] mr-1 animate-pulse" />
-        {label}
-      </div>
-
-      {/* CSS Keyframes injected locally */}
+      {/* CSS Keyframes */}
       <style>{`
-        @keyframes scan-line {
-          0% { top: 0%; opacity: 0; }
-          5% { opacity: 1; }
-          95% { opacity: 1; }
-          100% { top: 100%; opacity: 0; }
-        }
         @keyframes shimmer-effect {
           0%   { background-position: 200% 0; }
           100% { background-position: -200% 0; }
@@ -175,21 +138,20 @@ const PremiumMockup: React.FC<PremiumMockupProps> = ({ src, alt, label, stepNum,
 };
 
 // ═══════════════════════════════════════════════════════════════
-// Cyber Lightbox Modal for Detailed Screen Expansion
+// Clean Lightbox Modal
 // ═══════════════════════════════════════════════════════════════
 interface LightboxProps {
   src: string;
   alt: string;
-  label: string;
   stepNum: number;
   onClose: () => void;
 }
 
-const Lightbox: React.FC<LightboxProps> = ({ src, alt, label, stepNum, onClose }) => {
+const Lightbox: React.FC<LightboxProps> = ({ src, alt, stepNum, onClose }) => {
   const details = [
-    "[COGNITIVE ASSESSMENT]: Enter any target goal (career, fitness, finance, skill, exam). The System instantly structures a deep cognitive framework.",
-    "[PARAMETER CALIBRATION]: Adaptive questionnaire parses availability, experience, and deadlines to model optimal scaling coefficients.",
-    "[TACTICAL QUESTS GENERATED]: Realtime task injection daily. Links to high-quality curated learning materials (YouTube videos, articles, interactive tools) are embedded for each mission."
+    "Enter any target goal — career, fitness, finance, skill, or exam. The system instantly structures a personalised roadmap for you.",
+    "Adaptive questions analyse your availability, experience level, and deadlines to model the optimal path forward.",
+    "Receive daily quests with curated resources — YouTube videos, articles, and interactive tools — embedded for each mission."
   ];
 
   return (
@@ -200,23 +162,12 @@ const Lightbox: React.FC<LightboxProps> = ({ src, alt, label, stepNum, onClose }
       className="fixed inset-0 z-[100000] flex flex-col items-center justify-center p-4 bg-black/95 backdrop-blur-md"
       onClick={onClose}
     >
-      {/* Futuristic corner frame overlays for full screen */}
-      <div className="absolute inset-4 border border-white/5 pointer-events-none">
-        <div className="absolute top-0 left-0 w-8 h-8 border-t border-l border-[#00d4ff]/30" />
-        <div className="absolute top-0 right-0 w-8 h-8 border-t border-r border-[#00d4ff]/30" />
-        <div className="absolute bottom-0 left-0 w-8 h-8 border-b border-l border-[#00d4ff]/30" />
-        <div className="absolute bottom-0 right-0 w-8 h-8 border-b border-r border-[#00d4ff]/30" />
-      </div>
-
       <div className="relative w-full max-w-sm sm:max-w-md flex flex-col gap-4" onClick={e => e.stopPropagation()}>
-        {/* Header HUD info */}
+        {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded animate-pulse" style={{ background: 'rgba(0,212,255,0.1)', color: '#00d4ff', border: '1px solid rgba(0,212,255,0.2)' }}>
-              PHASE 0{stepNum}
-            </span>
-            <span className="text-[9px] font-mono text-gray-500 tracking-wider">
-              {label}
+            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded" style={{ background: 'rgba(0,212,255,0.1)', color: '#00d4ff', border: '1px solid rgba(0,212,255,0.2)' }}>
+              Step 0{stepNum}
             </span>
           </div>
           <button 
@@ -228,50 +179,31 @@ const Lightbox: React.FC<LightboxProps> = ({ src, alt, label, stepNum, onClose }
           </button>
         </div>
 
-        {/* The Image Container */}
+        {/* Image */}
         <div 
-          className="w-full aspect-square rounded-2xl overflow-hidden relative"
+          className="w-full rounded-2xl overflow-hidden relative"
           style={{ 
-            background: '#020208',
-            border: '1px solid rgba(0, 212, 255, 0.25)',
-            boxShadow: '0 0 40px rgba(0, 212, 255, 0.15)'
+            background: '#0a0a12',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            boxShadow: '0 0 40px rgba(0, 0, 0, 0.5)'
           }}
         >
-          {/* Cyber accents */}
-          <div className="absolute top-2 left-2 w-3.5 h-3.5 border-t-2 border-l-2 border-[#00d4ff]" />
-          <div className="absolute top-2 right-2 w-3.5 h-3.5 border-t-2 border-r-2 border-[#00d4ff]" />
-          <div className="absolute bottom-2 left-2 w-3.5 h-3.5 border-b-2 border-l-2 border-[#00d4ff]" />
-          <div className="absolute bottom-2 right-2 w-3.5 h-3.5 border-b-2 border-r-2 border-[#00d4ff]" />
-
-          {/* Scanning sweep line */}
-          <div 
-            className="absolute left-0 right-0 h-[2px] pointer-events-none z-10"
-            style={{
-              background: 'linear-gradient(90deg, transparent, rgba(0, 212, 255, 0.8), transparent)',
-              boxShadow: '0 0 14px rgba(0, 212, 255, 0.8)',
-              animation: 'scan-line 4s linear infinite'
-            }}
-          />
-
           <img 
             src={src} 
             alt={alt} 
-            className="w-full h-full object-cover block"
+            className="w-full h-auto block"
           />
         </div>
 
-        {/* Detailed Assessment Card */}
+        {/* Description */}
         <div 
-          className="rounded-xl p-3.5 font-mono text-[10px] sm:text-[11px] leading-relaxed"
+          className="rounded-xl p-3.5 text-[11px] sm:text-[12px] leading-relaxed"
           style={{ 
-            background: 'rgba(2, 2, 8, 0.85)', 
-            border: '1px solid rgba(0, 212, 255, 0.15)',
+            background: 'rgba(255, 255, 255, 0.03)', 
+            border: '1px solid rgba(255, 255, 255, 0.06)',
             color: '#9ca3af'
           }}
         >
-          <div className="text-[8px] tracking-widest font-black uppercase text-[#00d4ff] mb-1.5">
-            // TACTICAL OPERATION REPORT
-          </div>
           <p>{details[stepNum - 1]}</p>
         </div>
       </div>
@@ -298,7 +230,7 @@ const StepCard: React.FC<{
   >
     {/* Step label */}
     <div className="flex items-center gap-2.5 mb-3">
-      <div className="w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-black font-mono animate-pulse"
+      <div className="w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-black font-mono"
         style={{ background: 'rgba(0,212,255,0.1)', border: '1px solid rgba(0,212,255,0.2)', color: '#00d4ff' }}>
         {stepNum}
       </div>
@@ -328,7 +260,6 @@ const HowItWorksScreen: React.FC<HowItWorksScreenProps> = ({ onClose, onClaimTri
   const [activeLightbox, setActiveLightbox] = useState<{
     src: string;
     alt: string;
-    label: string;
     stepNum: number;
   } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -338,41 +269,36 @@ const HowItWorksScreen: React.FC<HowItWorksScreenProps> = ({ onClose, onClaimTri
     setTimeout(() => setStepsVisible(true), 400);
   }, []);
 
-  const handleExpand = useCallback((src: string, alt: string, label: string, stepNum: number) => {
-    setActiveLightbox({ src, alt, label, stepNum });
+  const handleExpand = useCallback((src: string, alt: string, stepNum: number) => {
+    setActiveLightbox({ src, alt, stepNum });
   }, []);
 
-  return (
+  const content = (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.3 }}
-      className="fixed inset-0 z-[10000] flex flex-col"
+      className="fixed inset-0 z-[100000] flex flex-col"
       style={{ background: '#050509' }}
     >
-      {/* Header */}
-      <div className="flex items-center justify-between px-5 pt-4 pb-2 flex-shrink-0">
+      {/* Minimal header — label only, no close button */}
+      <div className="flex items-center px-5 pt-3 pb-1 flex-shrink-0"
+        style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}
+      >
         <div className="flex items-center gap-2">
           <Sparkles size={14} style={{ color: '#00d4ff' }} />
           <span className="text-[9px] font-mono font-bold tracking-[0.2em] uppercase text-gray-500">
             How It Works
           </span>
         </div>
-        <button
-          onClick={onClose}
-          className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors"
-          style={{ background: 'rgba(255,255,255,0.05)' }}
-        >
-          <X size={14} className="text-gray-500" />
-        </button>
       </div>
 
-      {/* Scrollable content */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 pb-8" style={{ WebkitOverflowScrolling: 'touch' }}>
+      {/* Scrollable content — flush to edges, no bottom gap */}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 pb-4" style={{ WebkitOverflowScrolling: 'touch' }}>
 
         {/* ── Question Section ── */}
-        <div className="pt-8 pb-10 flex flex-col items-center">
+        <div className="pt-6 pb-8 flex flex-col items-center">
           {/* Subtle glow behind question */}
           <div className="relative">
             <div className="absolute inset-0 -m-10 rounded-full opacity-20 blur-3xl"
@@ -388,7 +314,7 @@ const HowItWorksScreen: React.FC<HowItWorksScreenProps> = ({ onClose, onClaimTri
             initial={{ opacity: 0, scaleX: 0 }}
             animate={questionDone ? { opacity: 1, scaleX: 1 } : {}}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="w-16 h-[1px] mt-8"
+            className="w-16 h-[1px] mt-6"
             style={{ background: 'linear-gradient(90deg, transparent, rgba(0,212,255,0.3), transparent)' }}
           />
         </div>
@@ -405,7 +331,6 @@ const HowItWorksScreen: React.FC<HowItWorksScreenProps> = ({ onClose, onClaimTri
             <PremiumMockup 
               src="/assets/step1_goal_input.png" 
               alt="Step 1: Declare your goal" 
-              label="SYSTEM_GOAL_INPUT_DECK"
               stepNum={1}
               onExpand={handleExpand}
             />
@@ -421,7 +346,6 @@ const HowItWorksScreen: React.FC<HowItWorksScreenProps> = ({ onClose, onClaimTri
             <PremiumMockup 
               src="/assets/step2_questionnaire.png" 
               alt="Step 2: Calibrate parameters" 
-              label="CALIBRATION_FLOW_DECK"
               stepNum={2}
               onExpand={handleExpand}
             />
@@ -437,7 +361,6 @@ const HowItWorksScreen: React.FC<HowItWorksScreenProps> = ({ onClose, onClaimTri
             <PremiumMockup 
               src="/assets/step3_quests.png" 
               alt="Step 3: Receive planned quests and resources" 
-              label="DAILY_QUEST_CORE_ENGINE"
               stepNum={3}
               onExpand={handleExpand}
             />
@@ -449,9 +372,10 @@ const HowItWorksScreen: React.FC<HowItWorksScreenProps> = ({ onClose, onClaimTri
           initial={{ opacity: 0, y: 20 }}
           animate={stepsVisible ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.5, delay: 1.2 }}
-          className="mt-10 mb-4"
+          className="mt-10 mb-6"
+          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)' }}
         >
-          {/* Claim trial */}
+          {/* Claim trial — primary exit */}
           <motion.button
             whileTap={{ scale: 0.97 }}
             onClick={() => onClaimTrial?.()}
@@ -466,25 +390,24 @@ const HowItWorksScreen: React.FC<HowItWorksScreenProps> = ({ onClose, onClaimTri
             Claim 14 Days Free Trial
           </motion.button>
 
-          {/* Skip */}
+          {/* Skip — secondary exit (greyed out) */}
           <button
             onClick={onClose}
-            className="w-full py-3 mt-3 rounded-xl text-[11px] font-mono font-medium tracking-wide transition-all"
-            style={{ color: '#6b7280' }}
+            className="w-full py-3 mt-2 rounded-xl text-[11px] font-mono font-medium tracking-wide transition-all"
+            style={{ color: '#4b5563' }}
           >
-            I will subscribe later
+            I'll buy later
           </button>
         </motion.div>
 
       </div>
 
-      {/* Cyber Lightbox Modal */}
+      {/* Lightbox Modal */}
       <AnimatePresence>
         {activeLightbox && (
           <Lightbox 
             src={activeLightbox.src}
             alt={activeLightbox.alt}
-            label={activeLightbox.label}
             stepNum={activeLightbox.stepNum}
             onClose={() => setActiveLightbox(null)}
           />
@@ -493,6 +416,10 @@ const HowItWorksScreen: React.FC<HowItWorksScreenProps> = ({ onClose, onClaimTri
 
     </motion.div>
   );
+
+  // Safely portal to document.body, fallback to returning the content directly if running in a non-browser environment
+  if (typeof document === 'undefined') return content;
+  return createPortal(content, document.body);
 };
 
 export default HowItWorksScreen;
