@@ -14,7 +14,7 @@ import { Capacitor } from '@capacitor/core';
 // When false: SDK is never initialized, no ad calls are made,
 // all functions return safe no-op values immediately.
 // ══════════════════════════════════════════════════════════════
-const ADS_ENABLED = false; // 🚫 ADS DISABLED — set to true to re-enable
+const ADS_ENABLED = true; // ✅ ADS ENABLED — set to false to globally disable
 
 // ── Toggle for test ads (set to false for production builds) ──
 const USE_TEST_ADS = true; // 🧪 TEST MODE — switch to false once AdMob app is approved

@@ -21,6 +21,7 @@ import RankBadge from './RankBadge';
 import type { RankType } from './RankBadge';
 import QuestCard from './QuestCard';
 import DungeonQuestCards from './DungeonQuestCards';
+import AdMobTestPanel from './AdMobTestPanel';
 import ActiveWorkoutPlayer, { clearWorkoutSession } from './ActiveWorkoutPlayer';
 import DungeonRewardAnimation from './DungeonRewardAnimation';
 import { buildDungeonWorkoutPlan, toggleFormCoach, isExerciseCompletedToday, recordExerciseCompletions } from '../lib/dungeonEngine';
@@ -127,6 +128,12 @@ interface DailyCommandCenterProps {
   onToggleNotify?: (slotId: string, enabled: boolean, slots: ScheduleSlot[]) => void;
   onReorderSlots?: (slots: ScheduleSlot[]) => void;
   onShowInterstitialAd?: () => Promise<boolean>;
+
+  // AdMob test panel — temporary debug surface
+  adShowInterstitial?: (adUnitId: string) => Promise<boolean>;
+  adShowRewarded?: (adUnitId: string) => Promise<{ rewarded: boolean; type?: string; amount?: number }>;
+  adUnits?: { KEY_REWARD: string; BORDER_REWARD: string; DUNGEON_INTERSTITIAL: string };
+  adsReady?: boolean;
 
   // Daily Dungeon (Sung Jin-woo Protocol)
   dungeonState?: DungeonState;
@@ -909,6 +916,7 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
   goals, onUpdateGoals, onDeleteGoal, onDeductGold, onUpdateScheduleSlots,
   scheduleProfile, dailySchedule, rescheduleQuest: rescheduleQuestProp, onSetupSchedule,
   onSlotAction, onToggleNotify, onReorderSlots, onShowInterstitialAd,
+  adShowInterstitial, adShowRewarded, adUnits, adsReady,
   dungeonState, onInitializeDungeon, onUpdateDungeonState, onCompleteDungeonWorkout, onFailDungeonWorkout,
 }) => {
   // ── State ──
@@ -1537,6 +1545,16 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
         )}
       </div>
 
+
+      {/* ── 🧪 AdMob Test Panel (debug) ── */}
+      {adShowInterstitial && adShowRewarded && adUnits && (
+        <AdMobTestPanel
+          showInterstitialAd={adShowInterstitial}
+          showRewardedAd={adShowRewarded}
+          AD_UNITS={adUnits}
+          isReady={!!adsReady}
+        />
+      )}
 
       {/* Spacing for nav */}
       <div className="h-20" />

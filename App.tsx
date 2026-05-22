@@ -360,7 +360,7 @@ const App: React.FC = () => {
 
   } = useSystem();
 
-  const { showRewardedAd, showInterstitialAd } = useAdMob();
+  const { showRewardedAd, showInterstitialAd, isReady: adsReady } = useAdMob();
 
 
   const sensors = useSensors();
@@ -4864,7 +4864,11 @@ const App: React.FC = () => {
                             onUpdateGoals={handleUpdateGoals}
                             onDeleteGoal={handleDeleteGoal}
                             onDeductGold={(amount) => setPlayer(prev => ({ ...prev, gold: Math.max(0, prev.gold - amount) }))}
-                          /* ADS DISABLED — onShowInterstitialAd removed */
+                          /* AdMob test panel wiring */
+                          adShowInterstitial={showInterstitialAd}
+                          adShowRewarded={showRewardedAd}
+                          adUnits={AD_UNITS}
+                          adsReady={adsReady}
 
                           dungeonState={player.dungeonState}
                           onInitializeDungeon={initializeDungeon}
