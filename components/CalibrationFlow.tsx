@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence, Variants, animate } from 'framer-motion';
-import { User, Activity, Ruler, Weight, Target, ChevronLeft, ChevronRight, Zap, Clock, TrendingUp, ShieldCheck, Dumbbell, Brain, Shield, Users, Hourglass, Sparkles, AlertTriangle, Eye, BookOpen, Moon, Heart } from 'lucide-react';
+import { User, Activity, Ruler, Weight, Target, ChevronLeft, ChevronRight, Zap, Clock, TrendingUp, ShieldCheck, Dumbbell, Brain, Shield, Users, Hourglass, Sparkles, AlertTriangle, Eye, BookOpen, Moon, Heart, ExternalLink } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { HealthProfile, CoreStats, BaselineStats } from '../types';
 import SystemPersonalizationScreen from './SystemPersonalizationScreen';
@@ -272,7 +272,7 @@ const CalibrationReport: React.FC<{ profile: HealthProfile, onContinue: () => vo
 
             {/* Sticky bottom CTA — always visible so new users don't miss the Accept Protocols button */}
             <div
-                className="shrink-0 px-4 sm:px-6 pt-6 pb-4 bg-gradient-to-t from-black via-black/95 to-transparent flex justify-center"
+                className="shrink-0 px-4 sm:px-6 pt-6 pb-4 bg-gradient-to-t from-black via-black/95 to-transparent flex flex-col items-center gap-3"
                 style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)' }}
             >
                 <button 
@@ -282,6 +282,25 @@ const CalibrationReport: React.FC<{ profile: HealthProfile, onContinue: () => vo
                     <ShieldCheck size={16} /> Enter The System
                     <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
                 </button>
+
+                {/* Instagram CTA — Shadow Cult */}
+                <motion.a
+                    href="https://www.instagram.com/reforgesystem?igsh=MWx4YjQ1OHc5ODlpYQ=="
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="group relative inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold tracking-wide transition-all overflow-hidden"
+                    style={{
+                        background: 'linear-gradient(135deg, #E1306C 0%, #833AB4 50%, #F77737 100%)',
+                        boxShadow: '0 4px 20px rgba(225,48,108,0.4), 0 0 0 1px rgba(255,255,255,0.1)',
+                    }}
+                >
+                    <span className="relative z-10 flex items-center gap-2 text-white">
+                        Support the shadow cult on instagram
+                        <ExternalLink size={12} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                    </span>
+                </motion.a>
             </div>
         </motion.div>
     );
