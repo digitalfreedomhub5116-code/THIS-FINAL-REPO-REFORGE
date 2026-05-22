@@ -95,16 +95,16 @@ const ManaPowerScreen: React.FC<ManaPowerScreenProps> = ({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-[9999] flex flex-col"
-      style={{ background: '#060610' }}
+      style={{ background: '#000000' }}
     >
       {/* Ambient background effects */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-[10%] left-[20%] w-[200px] h-[200px] rounded-full"
-          style={{ background: 'radial-gradient(circle, rgba(250,204,21,0.06) 0%, transparent 70%)', filter: 'blur(40px)' }} />
+          style={{ background: 'radial-gradient(circle, rgba(250,204,21,0.02) 0%, transparent 70%)', filter: 'blur(40px)' }} />
         <div className="absolute bottom-[30%] right-[10%] w-[150px] h-[150px] rounded-full"
-          style={{ background: 'radial-gradient(circle, rgba(0,212,255,0.05) 0%, transparent 70%)', filter: 'blur(30px)' }} />
+          style={{ background: 'radial-gradient(circle, rgba(0,212,255,0.015) 0%, transparent 70%)', filter: 'blur(30px)' }} />
         <div className="absolute top-[50%] left-[5%] w-[100px] h-[100px] rounded-full"
-          style={{ background: 'radial-gradient(circle, rgba(167,139,250,0.05) 0%, transparent 70%)', filter: 'blur(25px)' }} />
+          style={{ background: 'radial-gradient(circle, rgba(167,139,250,0.015) 0%, transparent 70%)', filter: 'blur(25px)' }} />
 
         {/* Floating particles */}
         <motion.div animate={{ y: [-5, 5, -5], x: [0, 3, 0] }} transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
@@ -155,17 +155,42 @@ const ManaPowerScreen: React.FC<ManaPowerScreenProps> = ({
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.15, duration: 0.5 }}
-          className="relative flex justify-center mb-4 -mx-2"
+          className="relative flex justify-center mb-3 -mx-2 overflow-hidden"
+          style={{ height: '180px' }}
         >
           {/* Glow behind phones */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className="w-[80%] h-[70%] rounded-full"
               style={{ background: 'radial-gradient(ellipse, rgba(250,204,21,0.06) 0%, rgba(0,212,255,0.03) 50%, transparent 70%)', filter: 'blur(30px)' }} />
           </div>
-          <img src="/paywall/triple_mockup.jpeg" alt="Reforge Pro Features" className="w-full h-auto relative z-10" loading="lazy" />
+          <img src="/paywall/triple_mockup.jpeg" alt="Reforge Pro Features" className="w-full h-auto relative z-10" style={{ objectFit: 'cover', objectPosition: 'center', height: '100%' }} loading="lazy" />
           {/* Edge fade shadows */}
           <div className="absolute inset-0 z-20 pointer-events-none"
-            style={{ boxShadow: 'inset 0 40px 30px -10px #060610, inset 0 -40px 30px -10px #060610, inset 40px 0 30px -10px #060610, inset -40px 0 30px -10px #060610' }} />
+            style={{ boxShadow: 'inset 0 40px 30px -10px #000000, inset 0 -40px 30px -10px #000000, inset 40px 0 30px -10px #000000, inset -40px 0 30px -10px #000000' }} />
+        </motion.div>
+
+        {/* ── Stats Trust Strip ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="flex items-center justify-center gap-4 mb-5 px-1"
+        >
+          <div className="flex items-center gap-1">
+            <span className="text-[10px] font-mono text-gray-400">10,000+</span>
+            <span className="text-[10px] font-mono text-gray-500">Hunters</span>
+          </div>
+          <span className="text-gray-800 text-[10px]">•</span>
+          <div className="flex items-center gap-1">
+            <span className="text-[10px] font-mono text-gray-400">4.8</span>
+            <span className="text-[10px] text-gray-500">★</span>
+            <span className="text-[10px] font-mono text-gray-500">Rating</span>
+          </div>
+          <span className="text-gray-800 text-[10px]">•</span>
+          <div className="flex items-center gap-1">
+            <span className="text-[10px] font-mono text-gray-400">90-Day</span>
+            <span className="text-[10px] font-mono text-gray-500">Transformations</span>
+          </div>
         </motion.div>
 
         {/* ── Feature Marquee ── */}

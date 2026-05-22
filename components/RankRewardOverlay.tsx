@@ -230,11 +230,12 @@ const RankRewardOverlay: React.FC<RankRewardOverlayProps> = ({ rank, gold, xp, u
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }}
             style={{
-              position: 'absolute', top: '50%', left: '50%', width: 500, height: 500,
+              position: 'absolute', top: '50%', left: '50%', width: 380, height: 380,
               transform: 'translate(-50%, -60%)',
-              background: `conic-gradient(from 0deg, transparent, ${cfg.color}0F 10%, transparent 20%, transparent 30%, ${cfg.color}0A 40%, transparent 50%, transparent 60%, ${cfg.color}0F 70%, transparent 80%)`,
-              borderRadius: '50%', filter: 'blur(2px)',
+              background: `conic-gradient(from 0deg, transparent, ${cfg.color}0F 25%, transparent 50%, ${cfg.color}0A 75%, transparent)`,
+              borderRadius: '50%',
               animation: 'spin 12s linear infinite',
+              willChange: 'transform',
             }}
           />
         )}

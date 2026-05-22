@@ -45,7 +45,7 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
   // Create confetti instance bound to our canvas (inside the overlay, above the backdrop)
   useEffect(() => {
     if (visible && confettiCanvasRef.current && !confettiInstanceRef.current) {
-      confettiInstanceRef.current = confetti.create(confettiCanvasRef.current, { resize: true, useWorker: true });
+      confettiInstanceRef.current = confetti.create(confettiCanvasRef.current, { resize: true, useWorker: false });
     }
     return () => {
       if (confettiInstanceRef.current) {
@@ -92,16 +92,16 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
     glowColor,
   ];
 
-  // ── Sun ray starburst gradient (12 thick beams) ──
+  // ── Sun ray starburst gradient (6 thick beams — reduced from 12 for Android WebView GPU safety) ──
   const sunRayGradient = (() => {
-    const beams = 12;
-    const w = 9;
+    const beams = 6;
+    const w = 18;
     const stops: string[] = [];
     for (let i = 0; i < beams; i++) {
-      const s = i * 30;
+      const s = i * 60;
       stops.push(`transparent ${s}deg`);
-      stops.push(`${glowColor}65 ${s + 2}deg`);
-      stops.push(`${glowColor}65 ${s + w - 2}deg`);
+      stops.push(`${glowColor}65 ${s + 4}deg`);
+      stops.push(`${glowColor}65 ${s + w - 4}deg`);
       stops.push(`transparent ${s + w}deg`);
     }
     return `conic-gradient(from 0deg, ${stops.join(', ')})`;
@@ -368,16 +368,15 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
         flexShrink: 0,
       }}>
         {/* ── Sun Ray Starburst Glow (behind everything) ── */}
-        {/* Use 150vmax so the circle's diameter always exceeds the screen diagonal,
-            guaranteeing full-screen coverage on any phone/tablet/desktop */}
+        {/* Reduced from 150vmax to 480px fixed to fit Android WebView GPU budget */}
         <div style={{
           position: 'absolute',
-          width: '150vmax', height: '150vmax',
+          width: 480, height: 480,
           top: '50%', left: '50%',
-          transform: 'translate3d(-50%, -50%, 0)', /* GPU layer for sunburst */
+          marginLeft: -240, marginTop: -240,
           pointerEvents: 'none',
           zIndex: 0,
-          overflow: 'visible',
+          overflow: 'hidden',
           willChange: 'transform',
         }}>
           <div
@@ -386,7 +385,7 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
               width: '100%', height: '100%',
               borderRadius: '50%',
               position: 'relative',
-              overflow: 'visible',
+              overflow: 'hidden',
             }}
           >
             {/* Base radial glow */}
@@ -397,11 +396,11 @@ const BorderEquipOverlay: React.FC<BorderEquipOverlayProps> = ({
             }} />
             {/* Rotating thick sun rays */}
             <div style={{
-              position: 'absolute', inset: '-35%',
+              position: 'absolute', inset: 0,
               background: sunRayGradient,
               borderRadius: '50%',
               animation: 'sunray-rotate 25s linear infinite',
-              filter: 'blur(6px)',
+              filter: 'blur(2px)',
               opacity: 0.85,
               willChange: 'transform', /* GPU-accelerate rotation */
               transform: 'translate3d(0,0,0)',

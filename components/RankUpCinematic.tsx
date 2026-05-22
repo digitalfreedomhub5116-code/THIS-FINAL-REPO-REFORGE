@@ -90,20 +90,20 @@ const RankUpCinematic: React.FC<RankUpCinematicProps> = ({ oldRank, newRank, onC
   const confettiColors = [glowColor, colorShade(glowColor, 0.15), colorShade(glowColor, -0.12), '#c0c0c0', '#d4d4d4', '#ffffff'];
   const confettiColorsCenter = [colorShade(glowColor, 0.15), '#d4d4d4', '#ffffff', glowColor];
 
-  // Sun ray starburst
+  // Sun ray starburst — reduced from 12 rays (48 stops) to 6 rays (24 stops) for GPU safety
   const sunRayGradient = (() => {
     const stops: string[] = [];
-    for (let i = 0; i < 12; i++) {
-      const s = i * 30;
-      stops.push(`transparent ${s}deg`, `${glowColor}65 ${s + 2}deg`, `${glowColor}65 ${s + 7}deg`, `transparent ${s + 9}deg`);
+    for (let i = 0; i < 6; i++) {
+      const s = i * 60;
+      stops.push(`transparent ${s}deg`, `${glowColor}65 ${s + 4}deg`, `${glowColor}65 ${s + 14}deg`, `transparent ${s + 18}deg`);
     }
     return `conic-gradient(from 0deg, ${stops.join(', ')})`;
   })();
 
-  // Create confetti instance
+  // Create confetti instance — useWorker disabled on Capacitor to avoid GPU contention with GSAP
   useEffect(() => {
     if (confettiCanvasRef.current && !confettiRef.current) {
-      confettiRef.current = confetti.create(confettiCanvasRef.current, { resize: true, useWorker: true });
+      confettiRef.current = confetti.create(confettiCanvasRef.current, { resize: true, useWorker: false });
     }
     return () => { if (confettiRef.current) { confettiRef.current.reset(); confettiRef.current = null; } };
   }, []);
@@ -123,20 +123,21 @@ const RankUpCinematic: React.FC<RankUpCinematicProps> = ({ oldRank, newRank, onC
 
   const fireMegaConfetti = useCallback(() => {
     const fire = confettiRef.current || confetti;
-    fire({ particleCount: 150, angle: 55, spread: 75, origin: { x: 0.05, y: 1 }, colors: confettiColors, startVelocity: 50, gravity: 0.9, drift: 0.5, scalar: 1.6, ticks: 450, decay: 0.93, shapes: ['circle', 'square'] as any, disableForReducedMotion: true });
-    fire({ particleCount: 150, angle: 125, spread: 75, origin: { x: 0.95, y: 1 }, colors: confettiColors, startVelocity: 50, gravity: 0.9, drift: -0.5, scalar: 1.6, ticks: 450, decay: 0.93, shapes: ['circle', 'square'] as any, disableForReducedMotion: true });
+    // Reduced particle counts to lower GPU pressure on Android WebView
+    fire({ particleCount: 80, angle: 55, spread: 75, origin: { x: 0.05, y: 1 }, colors: confettiColors, startVelocity: 50, gravity: 0.9, drift: 0.5, scalar: 1.4, ticks: 350, decay: 0.93, shapes: ['circle', 'square'] as any, disableForReducedMotion: true });
+    fire({ particleCount: 80, angle: 125, spread: 75, origin: { x: 0.95, y: 1 }, colors: confettiColors, startVelocity: 50, gravity: 0.9, drift: -0.5, scalar: 1.4, ticks: 350, decay: 0.93, shapes: ['circle', 'square'] as any, disableForReducedMotion: true });
     setTimeout(() => {
       const f = confettiRef.current || confetti;
-      f({ particleCount: 60, spread: 100, origin: { x: 0.5, y: 0.55 }, colors: confettiColorsCenter, startVelocity: 28, gravity: 0.8, scalar: 1.3, ticks: 400, decay: 0.91, shapes: ['circle'] as any, disableForReducedMotion: true });
+      f({ particleCount: 30, spread: 100, origin: { x: 0.5, y: 0.55 }, colors: confettiColorsCenter, startVelocity: 28, gravity: 0.8, scalar: 1.2, ticks: 300, decay: 0.91, shapes: ['circle'] as any, disableForReducedMotion: true });
     }, 100);
     setTimeout(() => {
       const f = confettiRef.current || confetti;
-      f({ particleCount: 80, angle: 60, spread: 55, origin: { x: 0.1, y: 0.8 }, colors: confettiColors, startVelocity: 35, gravity: 0.85, scalar: 1.4, ticks: 400, decay: 0.92, shapes: ['circle', 'square'] as any, disableForReducedMotion: true });
-      f({ particleCount: 80, angle: 120, spread: 55, origin: { x: 0.9, y: 0.8 }, colors: confettiColors, startVelocity: 35, gravity: 0.85, scalar: 1.4, ticks: 400, decay: 0.92, shapes: ['circle', 'square'] as any, disableForReducedMotion: true });
+      f({ particleCount: 40, angle: 60, spread: 55, origin: { x: 0.1, y: 0.8 }, colors: confettiColors, startVelocity: 35, gravity: 0.85, scalar: 1.3, ticks: 300, decay: 0.92, shapes: ['circle', 'square'] as any, disableForReducedMotion: true });
+      f({ particleCount: 40, angle: 120, spread: 55, origin: { x: 0.9, y: 0.8 }, colors: confettiColors, startVelocity: 35, gravity: 0.85, scalar: 1.3, ticks: 300, decay: 0.92, shapes: ['circle', 'square'] as any, disableForReducedMotion: true });
     }, 400);
     setTimeout(() => {
       const f = confettiRef.current || confetti;
-      f({ particleCount: 50, angle: 270, spread: 120, origin: { x: 0.5, y: -0.1 }, colors: confettiColorsCenter, startVelocity: 25, gravity: 1.2, scalar: 1.2, ticks: 350, decay: 0.93, shapes: ['circle', 'square'] as any, disableForReducedMotion: true });
+      f({ particleCount: 30, angle: 270, spread: 120, origin: { x: 0.5, y: -0.1 }, colors: confettiColorsCenter, startVelocity: 25, gravity: 1.2, scalar: 1.1, ticks: 280, decay: 0.93, shapes: ['circle', 'square'] as any, disableForReducedMotion: true });
     }, 650);
   }, [confettiColors, confettiColorsCenter]);
 
@@ -279,17 +280,17 @@ const RankUpCinematic: React.FC<RankUpCinematicProps> = ({ oldRank, newRank, onC
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         overflow: 'visible', flexShrink: 0,
       }}>
-        {/* Sun ray glow (behind badge) */}
+        {/* Sun ray glow (behind badge) — reduced from 100vmin to 420px to fit GPU budget */}
         <div style={{
-          position: 'absolute', width: '100vmin', height: '100vmin',
-          top: '50%', left: '50%', transform: 'translate3d(-50%, -50%, 0)',
-          pointerEvents: 'none', zIndex: 0, overflow: 'visible',
+          position: 'absolute', width: 420, height: 420,
+          top: '50%', left: '50%', marginLeft: -210, marginTop: -210,
+          pointerEvents: 'none', zIndex: 0, overflow: 'hidden',
         }}>
-          <div ref={glowRef} style={{ width: '100%', height: '100%', borderRadius: '50%', position: 'relative', overflow: 'visible' }}>
+          <div ref={glowRef} style={{ width: '100%', height: '100%', borderRadius: '50%', position: 'relative', overflow: 'hidden' }}>
             <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: `radial-gradient(circle, ${glowColor}60 0%, ${glowColor}30 40%, transparent 70%)` }} />
             <div style={{
-              position: 'absolute', inset: '-35%', background: sunRayGradient, borderRadius: '50%',
-              animation: 'sunray-rotate 25s linear infinite', filter: 'blur(6px)', opacity: 0.85,
+              position: 'absolute', inset: 0, background: sunRayGradient, borderRadius: '50%',
+              animation: 'sunray-rotate 25s linear infinite', filter: 'blur(2px)', opacity: 0.85,
               willChange: 'transform', transform: 'translate3d(0,0,0)',
             }} />
             <div style={{ position: 'absolute', inset: '12%', borderRadius: '50%', background: `radial-gradient(circle, ${glowColor}55 0%, transparent 65%)` }} />
@@ -362,7 +363,7 @@ const RankUpCinematic: React.FC<RankUpCinematicProps> = ({ oldRank, newRank, onC
           <img src={newMeta.image} alt={`${newRank} Rank`} draggable={false}
             style={{
               width: '100%', height: '100%', objectFit: 'contain',
-              filter: `drop-shadow(0 0 20px ${glowColor}60)`,
+              filter: `drop-shadow(0 0 10px ${glowColor}60)`,
             }} />
         </div>
       </div>
