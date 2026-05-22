@@ -583,7 +583,7 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({
             <motion.div animate={{ y: [-2, 4, -2] }} transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
               className="absolute top-[40%] left-[5%] w-1 h-1 rounded-full bg-white opacity-10" />
             {/* Image */}
-            <img src="/paywall/mockup_phones.webp" alt="App Preview" className="w-[95%] h-auto relative z-10" loading="lazy" />
+            <img src="/paywall/triple_mockup.jpeg" alt="App Preview" className="w-[95%] h-auto relative z-10" loading="lazy" />
           </motion.div>
 
           {/* Tagline under mockup */}
