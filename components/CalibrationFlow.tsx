@@ -1314,34 +1314,39 @@ const CommitmentSlider: React.FC<{ onComplete: (value: number) => void }> = ({ o
     const progress = ((value - 1) / (STEPS - 1)) * 100;
 
     return (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-[200] bg-black flex flex-col font-mono"
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-[200] bg-black flex flex-col font-sans"
             style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 48px)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }}>
             <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 50% 30%, rgba(0,212,255,0.04) 0%, transparent 60%)' }} />
             <div className="relative z-10 flex-1 flex flex-col px-6 max-w-lg mx-auto w-full">
                 {/* Header */}
                 <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-                    <div className="text-[#00d4ff] text-xs font-bold tracking-[0.3em] uppercase mb-4">COMMITMENT CHECK</div>
-                    <h1 className="text-[24px] font-black text-white leading-snug">
-                        How confident are you that you can stick with a daily routine for <motion.span key={value} initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="text-[#00d4ff] inline-block">{value} {value === 1 ? 'day' : 'days'}</motion.span>?
+                    <div className="text-[#00d4ff] text-[10px] font-bold tracking-[0.25em] uppercase mb-3">COMMITMENT CHECK</div>
+                    <h1 className="text-[26px] font-black text-white leading-tight" style={{ fontFamily: 'Outfit, Inter, sans-serif' }}>
+                        On a scale of 1–10, how confident are you in sticking to the System?
                     </h1>
-                    <p className="text-gray-500 text-[13px] mt-2">Be honest — there's no wrong answer.</p>
+                    <p className="text-gray-500 text-[13px] mt-2.5 font-normal">Be honest — there's no wrong answer.</p>
                 </motion.div>
 
                 {/* Large number display */}
-                <motion.div className="flex justify-center mb-10" initial={{ scale: 0.8 }} animate={{ scale: 1 }}>
-                    <motion.div
-                        key={value}
-                        initial={{ scale: 0.7, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                        className="text-[72px] font-black leading-none tabular-nums"
-                        style={{
-                            color: value <= 3 ? '#6b7280' : value <= 6 ? '#9ca3af' : '#00d4ff',
-                            textShadow: value >= 7 ? '0 0 30px rgba(0,212,255,0.4)' : 'none',
-                        }}
-                    >
-                        {value}
-                    </motion.div>
+                <motion.div className="flex flex-col items-center justify-center mb-10" initial={{ scale: 0.8 }} animate={{ scale: 1 }}>
+                    <div className="text-[10px] font-bold tracking-[0.25em] uppercase mb-1" style={{ color: value <= 3 ? '#6b7280' : value <= 6 ? '#9ca3af' : '#00d4ff' }}>YOUR SCORE</div>
+                    <div className="flex items-end gap-1">
+                        <motion.span
+                            key={value}
+                            initial={{ scale: 0.7, opacity: 0, y: -8 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                            className="text-[80px] font-black leading-none tabular-nums"
+                            style={{
+                                color: value <= 3 ? '#6b7280' : value <= 6 ? '#9ca3af' : '#00d4ff',
+                                textShadow: value >= 7 ? '0 0 30px rgba(0,212,255,0.4)' : 'none',
+                                fontFamily: 'Outfit, Inter, sans-serif',
+                            }}
+                        >
+                            {value}
+                        </motion.span>
+                        <span className="text-[28px] font-bold text-gray-600 leading-none mb-3 tabular-nums">/10</span>
+                    </div>
                 </motion.div>
 
                 {/* Slider track */}
@@ -1399,18 +1404,18 @@ const CommitmentSlider: React.FC<{ onComplete: (value: number) => void }> = ({ o
 
                     {/* Labels row */}
                     <div className="flex justify-between mt-1 px-0">
-                        <span className="text-gray-600 text-[10px] font-bold tracking-wide">Not confident</span>
-                        <span className="text-[#00d4ff]/60 text-[10px] font-bold tracking-wide">Very confident</span>
+                        <span className="text-gray-600 text-[11px] font-semibold">Not confident</span>
+                        <span className="text-[#00d4ff]/60 text-[11px] font-semibold">Very confident</span>
                     </div>
                 </motion.div>
 
                 {/* Motivational text based on value */}
                 <motion.div className="text-center mt-6 min-h-[40px]" key={value} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }}>
-                    <p className="text-gray-400 text-[13px] leading-relaxed">
-                        {value <= 2 && "That's okay. The System is designed for exactly this — it starts small."}
-                        {value >= 3 && value <= 5 && "Good enough to start. The System will build your momentum."}
+                    <p className="text-gray-400 text-[13px] leading-relaxed font-normal">
+                        {value <= 2 && "That's okay. The System starts small and builds you up from zero."}
+                        {value >= 3 && value <= 5 && "Good enough to start. The System will build your momentum daily."}
                         {value >= 6 && value <= 8 && "Strong foundation. The System will amplify your discipline."}
-                        {value >= 9 && "The System recognizes your resolve. You're ready."}
+                        {value >= 9 && "The System recognizes your resolve. You are ready to be reforged."}
                     </p>
                 </motion.div>
 
@@ -1424,9 +1429,10 @@ const CommitmentSlider: React.FC<{ onComplete: (value: number) => void }> = ({ o
                                 background: value >= 7 ? 'linear-gradient(135deg, #00d4ff, #33dfff)' : '#ffffff',
                                 color: '#000',
                                 boxShadow: value >= 7 ? '0 0 30px rgba(0,212,255,0.3)' : 'none',
+                                fontFamily: 'Outfit, Inter, sans-serif',
                             }}
                         >
-                            I'm Ready to Commit
+                            Lock In My Commitment
                         </button>
                     </motion.div>
                 )}
