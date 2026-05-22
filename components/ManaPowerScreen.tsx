@@ -162,7 +162,7 @@ const ManaPowerScreen: React.FC<ManaPowerScreenProps> = ({
             <div className="w-[80%] h-[70%] rounded-full"
               style={{ background: 'radial-gradient(ellipse, rgba(250,204,21,0.06) 0%, rgba(0,212,255,0.03) 50%, transparent 70%)', filter: 'blur(30px)' }} />
           </div>
-          <img src="/paywall/triple_mockup.webp" alt="Reforge Pro Features" className="w-full h-auto relative z-10" loading="lazy" />
+          <img src="/paywall/triple_mockup.jpeg" alt="Reforge Pro Features" className="w-full h-auto relative z-10" loading="lazy" />
           {/* Edge fade shadows */}
           <div className="absolute inset-0 z-20 pointer-events-none"
             style={{ boxShadow: 'inset 0 40px 30px -10px #060610, inset 0 -40px 30px -10px #060610, inset 40px 0 30px -10px #060610, inset -40px 0 30px -10px #060610' }} />
