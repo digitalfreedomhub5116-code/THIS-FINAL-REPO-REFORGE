@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Play, BookOpen, Link2, ChevronRight, Sparkles } from 'lucide-react';
+import { X, Play, BookOpen, Link2, ChevronRight, Sparkles, Maximize2 } from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════════
 // Typewriter with per-word vibration
@@ -15,7 +15,13 @@ const TypewriterQuestion: React.FC<{ text: string; onComplete?: () => void }> = 
       if (!completed.current) { completed.current = true; onComplete?.(); }
       return;
     }
-    const timeout = setTimeout(() => setVisibleCount(prev => prev + 1), 120);
+    const timeout = setTimeout(() => {
+      setVisibleCount(prev => prev + 1);
+      // Trigger a light haptic tap on each word render (guarded)
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate(12);
+      }
+    }, 120);
     return () => clearTimeout(timeout);
   }, [visibleCount, words.length, onComplete]);
 
@@ -52,167 +58,226 @@ const TypewriterQuestion: React.FC<{ text: string; onComplete?: () => void }> = 
 };
 
 // ═══════════════════════════════════════════════════════════════
-// Step 1 Mockup — Goal Input Box
+// Premium Mockup Component with Aspect Ratio & Cyberpunk Accents
 // ═══════════════════════════════════════════════════════════════
-const Step1Mockup: React.FC = () => {
-  const [typedText, setTypedText] = useState('');
-  const fullText = 'Crack my dream exam...';
-  const indexRef = useRef(0);
+interface PremiumMockupProps {
+  src: string;
+  alt: string;
+  label: string;
+  stepNum: number;
+  onExpand: (src: string, alt: string, label: string, stepNum: number) => void;
+}
 
-  useEffect(() => {
-    indexRef.current = 0;
-    setTypedText('');
-    const interval = setInterval(() => {
-      if (indexRef.current < fullText.length) {
-        indexRef.current++;
-        setTypedText(fullText.slice(0, indexRef.current));
-      } else {
-        clearInterval(interval);
-      }
-    }, 80);
-    return () => clearInterval(interval);
-  }, []);
-
+const PremiumMockup: React.FC<PremiumMockupProps> = ({ src, alt, label, stepNum, onExpand }) => {
+  const [loaded, setLoaded] = useState(false);
+  
   return (
-    <div className="w-full rounded-xl overflow-hidden" style={{ background: '#08080f', border: '1px solid rgba(255,255,255,0.06)' }}>
-      {/* Top bar */}
-      <div className="flex items-center gap-2 px-4 py-2.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-        <div className="w-2 h-2 rounded-full" style={{ background: '#00d4ff' }} />
-        <span className="text-[9px] font-mono font-bold tracking-[0.15em] uppercase text-gray-500">New Goal</span>
-      </div>
-      {/* Input area */}
-      <div className="px-4 py-5">
-        <div className="text-[8px] font-mono text-gray-600 uppercase tracking-wider mb-2">What's your long-term goal?</div>
-        <div className="flex items-center gap-2 px-3 py-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(0,212,255,0.12)' }}>
-          <span className="text-[13px] text-white/90 font-medium">{typedText}</span>
-          <motion.span
-            animate={{ opacity: [1, 0] }}
-            transition={{ duration: 0.5, repeat: Infinity }}
-            className="w-[2px] h-4"
-            style={{ background: '#00d4ff' }}
-          />
+    <div 
+      onClick={() => onExpand(src, alt, label, stepNum)}
+      className="w-full aspect-square rounded-xl overflow-hidden shadow-2xl relative group cursor-pointer" 
+      style={{ 
+        background: '#020208',
+        border: '1px solid rgba(0, 212, 255, 0.18)',
+        boxShadow: '0 8px 32px rgba(0, 212, 255, 0.08)',
+        aspectRatio: '1 / 1'
+      }}
+    >
+      {/* Glow highlight on hover */}
+      <div 
+        className="absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity duration-500 pointer-events-none"
+        style={{
+          background: 'radial-gradient(circle at center, #00d4ff 0%, transparent 70%)'
+        }}
+      />
+
+      {/* Cyber Corners HUD style */}
+      <div className="absolute top-1.5 left-1.5 w-2.5 h-2.5 border-t-2 border-l-2 border-[#00d4ff]/40 pointer-events-none group-hover:border-[#00d4ff]/80 transition-colors z-10" />
+      <div className="absolute top-1.5 right-1.5 w-2.5 h-2.5 border-t-2 border-r-2 border-[#00d4ff]/40 pointer-events-none group-hover:border-[#00d4ff]/80 transition-colors z-10" />
+      <div className="absolute bottom-1.5 left-1.5 w-2.5 h-2.5 border-b-2 border-l-2 border-[#00d4ff]/40 pointer-events-none group-hover:border-[#00d4ff]/80 transition-colors z-10" />
+      <div className="absolute bottom-1.5 right-1.5 w-2.5 h-2.5 border-b-2 border-r-2 border-[#00d4ff]/40 pointer-events-none group-hover:border-[#00d4ff]/80 transition-colors z-10" />
+
+      {/* Futuristic Scan Line */}
+      <div 
+        className="absolute left-0 right-0 h-[2px] pointer-events-none z-10"
+        style={{
+          background: 'linear-gradient(90deg, transparent, rgba(0, 212, 255, 0.6), transparent)',
+          boxShadow: '0 0 8px rgba(0, 212, 255, 0.6)',
+          animation: 'scan-line 3.5s linear infinite'
+        }}
+      />
+
+      {/* Shimmer/Skeleton loader */}
+      {!loaded && (
+        <div
+          className="absolute inset-0 z-0"
+          style={{
+            background: 'linear-gradient(110deg, #020208 30%, rgba(0, 212, 255, 0.08) 50%, #020208 70%)',
+            backgroundSize: '200% 100%',
+            animation: 'shimmer-effect 1.5s ease-in-out infinite',
+          }}
+        />
+      )}
+
+      {/* The actual image */}
+      <img 
+        src={src} 
+        alt={alt} 
+        onLoad={() => setLoaded(true)}
+        className={`w-full h-full object-cover block transition-all duration-700 ease-out ${
+          loaded ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+        } group-hover:scale-[1.03]`}
+      />
+
+      {/* Interactive hover overlay with click-to-expand text */}
+      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center pointer-events-none">
+        <div 
+          className="px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-[9px] font-mono font-bold tracking-wider uppercase"
+          style={{ 
+            background: 'rgba(2, 2, 8, 0.85)', 
+            border: '1px solid rgba(0, 212, 255, 0.3)',
+            color: '#00d4ff',
+            boxShadow: '0 4px 12px rgba(0, 212, 255, 0.2)'
+          }}
+        >
+          <Maximize2 size={10} />
+          Expand Blueprint
         </div>
-        {/* Example chips */}
-        <div className="flex flex-wrap gap-1.5 mt-3">
-          {['Lose 30kg', 'Learn Guitar', 'Build a Startup'].map(ex => (
-            <span key={ex} className="px-2.5 py-1 rounded-md text-[8px] font-mono text-gray-500"
-              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
-              {ex}
-            </span>
-          ))}
-        </div>
       </div>
+
+      {/* Tactical UI Footer Badge */}
+      <div 
+        className="absolute bottom-3 left-3 px-2 py-0.5 rounded text-[7px] font-mono tracking-widest font-black pointer-events-none z-10"
+        style={{
+          background: 'rgba(2, 2, 8, 0.8)',
+          border: '1px solid rgba(0, 212, 255, 0.15)',
+          color: 'rgba(0, 212, 255, 0.7)'
+        }}
+      >
+        <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#00d4ff] mr-1 animate-pulse" />
+        {label}
+      </div>
+
+      {/* CSS Keyframes injected locally */}
+      <style>{`
+        @keyframes scan-line {
+          0% { top: 0%; opacity: 0; }
+          5% { opacity: 1; }
+          95% { opacity: 1; }
+          100% { top: 100%; opacity: 0; }
+        }
+        @keyframes shimmer-effect {
+          0%   { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+      `}</style>
     </div>
   );
 };
 
 // ═══════════════════════════════════════════════════════════════
-// Step 2 Mockup — Questionnaire
+// Cyber Lightbox Modal for Detailed Screen Expansion
 // ═══════════════════════════════════════════════════════════════
-const Step2Mockup: React.FC = () => (
-  <div className="w-full rounded-xl overflow-hidden" style={{ background: '#08080f', border: '1px solid rgba(255,255,255,0.06)' }}>
-    <div className="flex items-center gap-2 px-4 py-2.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-      <div className="w-2 h-2 rounded-full" style={{ background: '#3b82f6' }} />
-      <span className="text-[9px] font-mono font-bold tracking-[0.15em] uppercase text-gray-500">Goal Setup</span>
-      <span className="text-[8px] font-mono text-[#00d4ff]/50 ml-auto">2 of 4</span>
-    </div>
-    <div className="px-4 py-4 space-y-3">
-      {/* Q1 */}
-      <div>
-        <div className="text-[9px] font-mono text-gray-500 mb-1.5">How many hours can you commit daily?</div>
-        <div className="flex gap-2">
-          {['1 hr', '2 hrs', '3 hrs'].map((opt, i) => (
-            <div key={opt} className="flex-1 text-center py-2 rounded-lg text-[10px] font-bold"
-              style={i === 1 ? { background: 'rgba(0,212,255,0.1)', border: '1px solid rgba(0,212,255,0.25)', color: '#00d4ff' }
-                : { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', color: '#6b7280' }}>
-              {opt}
-            </div>
-          ))}
-        </div>
-      </div>
-      {/* Q2 */}
-      <div>
-        <div className="text-[9px] font-mono text-gray-500 mb-1.5">Current preparation level?</div>
-        <div className="flex gap-2">
-          {['Beginner', 'Intermediate'].map((opt, i) => (
-            <div key={opt} className="flex-1 text-center py-2 rounded-lg text-[10px] font-bold"
-              style={i === 0 ? { background: 'rgba(0,212,255,0.1)', border: '1px solid rgba(0,212,255,0.25)', color: '#00d4ff' }
-                : { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', color: '#6b7280' }}>
-              {opt}
-            </div>
-          ))}
-        </div>
-      </div>
-      {/* Q3 */}
-      <div>
-        <div className="text-[9px] font-mono text-gray-500 mb-1.5">Target deadline?</div>
-        <div className="px-3 py-2 rounded-lg text-[10px] text-white/60 font-mono"
-          style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-          6 months from now
-        </div>
-      </div>
-    </div>
-  </div>
-);
+interface LightboxProps {
+  src: string;
+  alt: string;
+  label: string;
+  stepNum: number;
+  onClose: () => void;
+}
 
-// ═══════════════════════════════════════════════════════════════
-// Step 3 Mockup — Quests + Resources
-// ═══════════════════════════════════════════════════════════════
-const Step3Mockup: React.FC = () => (
-  <div className="w-full rounded-xl overflow-hidden" style={{ background: '#08080f', border: '1px solid rgba(255,255,255,0.06)' }}>
-    <div className="flex items-center gap-2 px-4 py-2.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-      <div className="w-2 h-2 rounded-full" style={{ background: '#00d4ff' }} />
-      <span className="text-[9px] font-mono font-bold tracking-[0.15em] uppercase text-gray-500">Today's Quests</span>
-      <span className="text-[8px] font-mono text-gray-600 ml-auto">Day 12</span>
-    </div>
-    <div className="px-4 py-3 space-y-2.5">
-      {/* Quest 1 */}
-      <div className="rounded-lg p-3" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
-        <div className="flex items-center gap-2 mb-2">
-          <div className="w-5 h-5 rounded flex items-center justify-center text-[8px] font-black"
-            style={{ background: 'rgba(0,212,255,0.15)', color: '#00d4ff' }}>1</div>
-          <span className="text-[11px] font-bold text-white/90">Solve 20 MCQs — Organic Chemistry</span>
+const Lightbox: React.FC<LightboxProps> = ({ src, alt, label, stepNum, onClose }) => {
+  const details = [
+    "[COGNITIVE ASSESSMENT]: Enter any target goal (career, fitness, finance, skill, exam). The System instantly structures a deep cognitive framework.",
+    "[PARAMETER CALIBRATION]: Adaptive questionnaire parses availability, experience, and deadlines to model optimal scaling coefficients.",
+    "[TACTICAL QUESTS GENERATED]: Realtime task injection daily. Links to high-quality curated learning materials (YouTube videos, articles, interactive tools) are embedded for each mission."
+  ];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[100000] flex flex-col items-center justify-center p-4 bg-black/95 backdrop-blur-md"
+      onClick={onClose}
+    >
+      {/* Futuristic corner frame overlays for full screen */}
+      <div className="absolute inset-4 border border-white/5 pointer-events-none">
+        <div className="absolute top-0 left-0 w-8 h-8 border-t border-l border-[#00d4ff]/30" />
+        <div className="absolute top-0 right-0 w-8 h-8 border-t border-r border-[#00d4ff]/30" />
+        <div className="absolute bottom-0 left-0 w-8 h-8 border-b border-l border-[#00d4ff]/30" />
+        <div className="absolute bottom-0 right-0 w-8 h-8 border-b border-r border-[#00d4ff]/30" />
+      </div>
+
+      <div className="relative w-full max-w-sm sm:max-w-md flex flex-col gap-4" onClick={e => e.stopPropagation()}>
+        {/* Header HUD info */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded animate-pulse" style={{ background: 'rgba(0,212,255,0.1)', color: '#00d4ff', border: '1px solid rgba(0,212,255,0.2)' }}>
+              PHASE 0{stepNum}
+            </span>
+            <span className="text-[9px] font-mono text-gray-500 tracking-wider">
+              {label}
+            </span>
+          </div>
+          <button 
+            onClick={onClose}
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-white transition-colors"
+            style={{ background: 'rgba(255,255,255,0.05)' }}
+          >
+            <X size={14} />
+          </button>
         </div>
-        <div className="flex items-center gap-3 ml-7">
-          <div className="flex items-center gap-1">
-            <Play size={8} style={{ color: '#ef4444' }} />
-            <span className="text-[8px] font-mono text-gray-500">YT: Reaction Mechanisms</span>
+
+        {/* The Image Container */}
+        <div 
+          className="w-full aspect-square rounded-2xl overflow-hidden relative"
+          style={{ 
+            background: '#020208',
+            border: '1px solid rgba(0, 212, 255, 0.25)',
+            boxShadow: '0 0 40px rgba(0, 212, 255, 0.15)'
+          }}
+        >
+          {/* Cyber accents */}
+          <div className="absolute top-2 left-2 w-3.5 h-3.5 border-t-2 border-l-2 border-[#00d4ff]" />
+          <div className="absolute top-2 right-2 w-3.5 h-3.5 border-t-2 border-r-2 border-[#00d4ff]" />
+          <div className="absolute bottom-2 left-2 w-3.5 h-3.5 border-b-2 border-l-2 border-[#00d4ff]" />
+          <div className="absolute bottom-2 right-2 w-3.5 h-3.5 border-b-2 border-r-2 border-[#00d4ff]" />
+
+          {/* Scanning sweep line */}
+          <div 
+            className="absolute left-0 right-0 h-[2px] pointer-events-none z-10"
+            style={{
+              background: 'linear-gradient(90deg, transparent, rgba(0, 212, 255, 0.8), transparent)',
+              boxShadow: '0 0 14px rgba(0, 212, 255, 0.8)',
+              animation: 'scan-line 4s linear infinite'
+            }}
+          />
+
+          <img 
+            src={src} 
+            alt={alt} 
+            className="w-full h-full object-cover block"
+          />
+        </div>
+
+        {/* Detailed Assessment Card */}
+        <div 
+          className="rounded-xl p-3.5 font-mono text-[10px] sm:text-[11px] leading-relaxed"
+          style={{ 
+            background: 'rgba(2, 2, 8, 0.85)', 
+            border: '1px solid rgba(0, 212, 255, 0.15)',
+            color: '#9ca3af'
+          }}
+        >
+          <div className="text-[8px] tracking-widest font-black uppercase text-[#00d4ff] mb-1.5">
+            // TACTICAL OPERATION REPORT
           </div>
-          <div className="flex items-center gap-1">
-            <BookOpen size={8} style={{ color: '#3b82f6' }} />
-            <span className="text-[8px] font-mono text-gray-500">Blog: Quick Revision</span>
-          </div>
+          <p>{details[stepNum - 1]}</p>
         </div>
       </div>
-      {/* Quest 2 */}
-      <div className="rounded-lg p-3" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
-        <div className="flex items-center gap-2 mb-2">
-          <div className="w-5 h-5 rounded flex items-center justify-center text-[8px] font-black"
-            style={{ background: 'rgba(0,212,255,0.15)', color: '#00d4ff' }}>2</div>
-          <span className="text-[11px] font-bold text-white/90">Read Chapter 14 — Thermodynamics</span>
-        </div>
-        <div className="flex items-center gap-3 ml-7">
-          <div className="flex items-center gap-1">
-            <Play size={8} style={{ color: '#ef4444' }} />
-            <span className="text-[8px] font-mono text-gray-500">YT: Entropy Explained</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <Link2 size={8} style={{ color: '#a78bfa' }} />
-            <span className="text-[8px] font-mono text-gray-500">Notes PDF</span>
-          </div>
-        </div>
-      </div>
-      {/* Quest 3 — partial */}
-      <div className="rounded-lg p-3 opacity-50" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
-        <div className="flex items-center gap-2">
-          <div className="w-5 h-5 rounded flex items-center justify-center text-[8px] font-black"
-            style={{ background: 'rgba(0,212,255,0.15)', color: '#00d4ff' }}>3</div>
-          <span className="text-[11px] font-bold text-white/90">Practice Mock Test — 45 min</span>
-        </div>
-      </div>
-    </div>
-  </div>
-);
+    </motion.div>
+  );
+};
 
 // ═══════════════════════════════════════════════════════════════
 // Step Card wrapper with fade-in
@@ -233,7 +298,7 @@ const StepCard: React.FC<{
   >
     {/* Step label */}
     <div className="flex items-center gap-2.5 mb-3">
-      <div className="w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-black font-mono"
+      <div className="w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-black font-mono animate-pulse"
         style={{ background: 'rgba(0,212,255,0.1)', border: '1px solid rgba(0,212,255,0.2)', color: '#00d4ff' }}>
         {stepNum}
       </div>
@@ -260,11 +325,21 @@ interface HowItWorksScreenProps {
 const HowItWorksScreen: React.FC<HowItWorksScreenProps> = ({ onClose, onClaimTrial }) => {
   const [questionDone, setQuestionDone] = useState(false);
   const [stepsVisible, setStepsVisible] = useState(false);
+  const [activeLightbox, setActiveLightbox] = useState<{
+    src: string;
+    alt: string;
+    label: string;
+    stepNum: number;
+  } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const handleQuestionComplete = useCallback(() => {
     setQuestionDone(true);
     setTimeout(() => setStepsVisible(true), 400);
+  }, []);
+
+  const handleExpand = useCallback((src: string, alt: string, label: string, stepNum: number) => {
+    setActiveLightbox({ src, alt, label, stepNum });
   }, []);
 
   return (
@@ -327,7 +402,13 @@ const HowItWorksScreen: React.FC<HowItWorksScreenProps> = ({ onClose, onClaimTri
             delay={0}
             visible={stepsVisible}
           >
-            <Step1Mockup />
+            <PremiumMockup 
+              src="/assets/step1_goal_input.png" 
+              alt="Step 1: Declare your goal" 
+              label="SYSTEM_GOAL_INPUT_DECK"
+              stepNum={1}
+              onExpand={handleExpand}
+            />
           </StepCard>
 
           <StepCard
@@ -337,7 +418,13 @@ const HowItWorksScreen: React.FC<HowItWorksScreenProps> = ({ onClose, onClaimTri
             delay={0.3}
             visible={stepsVisible}
           >
-            <Step2Mockup />
+            <PremiumMockup 
+              src="/assets/step2_questionnaire.png" 
+              alt="Step 2: Calibrate parameters" 
+              label="CALIBRATION_FLOW_DECK"
+              stepNum={2}
+              onExpand={handleExpand}
+            />
           </StepCard>
 
           <StepCard
@@ -347,7 +434,13 @@ const HowItWorksScreen: React.FC<HowItWorksScreenProps> = ({ onClose, onClaimTri
             delay={0.6}
             visible={stepsVisible}
           >
-            <Step3Mockup />
+            <PremiumMockup 
+              src="/assets/step3_quests.png" 
+              alt="Step 3: Receive planned quests and resources" 
+              label="DAILY_QUEST_CORE_ENGINE"
+              stepNum={3}
+              onExpand={handleExpand}
+            />
           </StepCard>
         </div>
 
@@ -384,6 +477,20 @@ const HowItWorksScreen: React.FC<HowItWorksScreenProps> = ({ onClose, onClaimTri
         </motion.div>
 
       </div>
+
+      {/* Cyber Lightbox Modal */}
+      <AnimatePresence>
+        {activeLightbox && (
+          <Lightbox 
+            src={activeLightbox.src}
+            alt={activeLightbox.alt}
+            label={activeLightbox.label}
+            stepNum={activeLightbox.stepNum}
+            onClose={() => setActiveLightbox(null)}
+          />
+        )}
+      </AnimatePresence>
+
     </motion.div>
   );
 };
