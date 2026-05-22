@@ -329,7 +329,7 @@ const HowItWorksScreen: React.FC<HowItWorksScreenProps> = ({ onClose, onClaimTri
             visible={stepsVisible}
           >
             <PremiumMockup 
-              src="/assets/step1_goal_input.png" 
+              src="/assets/step1_goal_input.webp" 
               alt="Step 1: Declare your goal" 
               stepNum={1}
               onExpand={handleExpand}
@@ -344,7 +344,7 @@ const HowItWorksScreen: React.FC<HowItWorksScreenProps> = ({ onClose, onClaimTri
             visible={stepsVisible}
           >
             <PremiumMockup 
-              src="/assets/step2_questionnaire.png" 
+              src="/assets/step2_questionnaire.webp" 
               alt="Step 2: Calibrate parameters" 
               stepNum={2}
               onExpand={handleExpand}
@@ -359,7 +359,7 @@ const HowItWorksScreen: React.FC<HowItWorksScreenProps> = ({ onClose, onClaimTri
             visible={stepsVisible}
           >
             <PremiumMockup 
-              src="/assets/step3_quests.png" 
+              src="/assets/step3_quests.webp" 
               alt="Step 3: Receive planned quests and resources" 
               stepNum={3}
               onExpand={handleExpand}
