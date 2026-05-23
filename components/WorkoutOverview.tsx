@@ -31,7 +31,7 @@ interface WorkoutOverviewProps {
   onStart: (modifiedPlan: WorkoutDay) => void;
   onCancel: () => void;
   userWeight?: number;
-  onShowDungeonAd?: () => Promise<boolean>;
+  showRewardedAd?: (adUnitId: string) => Promise<{ rewarded: boolean; type?: string; amount?: number }>;
   isPremium?: boolean;
 }
 
@@ -204,7 +204,7 @@ const ExerciseRow: React.FC<{ exercise: Exercise; calories: number; hasFormCoach
     );
 };
 
-const WorkoutOverview: React.FC<WorkoutOverviewProps> = ({ plan, focusVideos, onStart, onCancel, userWeight = 70, onShowDungeonAd, isPremium }) => {
+const WorkoutOverview: React.FC<WorkoutOverviewProps> = ({ plan, focusVideos, onStart, onCancel, userWeight = 70, showRewardedAd, isPremium }) => {
   const { player } = useSystem();
   const [adLoading, setAdLoading] = useState(false);
 
@@ -233,12 +233,13 @@ const WorkoutOverview: React.FC<WorkoutOverviewProps> = ({ plan, focusVideos, on
   }, [plan, userWeight]);
 
   const handleStart = async () => {
-      // Show ad before entering dungeon
-      if (onShowDungeonAd) {
+      // Show rewarded ad before entering workout — user can watch or skip, always enters after
+      if (showRewardedAd) {
         setAdLoading(true);
         try {
-          await onShowDungeonAd();
-        } finally {
+          await showRewardedAd('ca-app-pub-3940256099942544/5224354917');
+        } catch { /* proceed anyway if ad fails */ }
+        finally {
           setAdLoading(false);
         }
       }

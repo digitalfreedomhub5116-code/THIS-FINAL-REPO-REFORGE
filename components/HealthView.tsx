@@ -82,8 +82,8 @@ interface HealthViewProps {
   onUpdateSkillProgress?: (progress: import('../types').SkillProgress[]) => void;
   playerLevel?: number;
   initialSubTab?: 'WORKOUT' | 'NUTRITION' | 'SKILLS';
-  onShowDungeonAd?: () => Promise<boolean>;
-  onWatchAdToDouble?: () => Promise<boolean>;
+  showRewardedAd?: (adUnitId: string) => Promise<{ rewarded: boolean; type?: string; amount?: number }>;
+  showInterstitialAd?: (adUnitId: string) => Promise<boolean>;
 }
 
 
@@ -122,7 +122,7 @@ const PlanCardImage: React.FC<{ src: string; alt: string }> = ({ src, alt }) => 
 };
 
 export const HealthView: React.FC<HealthViewProps> = ({ 
-  healthProfile, onSaveProfile, onCompleteWorkout, onFailWorkout, onLogMeal, onDeleteMeal: _onDeleteMeal, playerData, onToggleNav, onConsumeMana, onRefundMana, onAddRewards, onUpdateSkillProgress, playerLevel = 99, initialSubTab, onShowDungeonAd, onWatchAdToDouble
+  healthProfile, onSaveProfile, onCompleteWorkout, onFailWorkout, onLogMeal, onDeleteMeal: _onDeleteMeal, playerData, onToggleNav, onConsumeMana, onRefundMana, onAddRewards, onUpdateSkillProgress, playerLevel = 99, initialSubTab, showRewardedAd, showInterstitialAd
 }) => {
   const [viewMode, setViewMode] = useState<'MAP' | 'OVERVIEW' | 'ACTIVE' | 'SETUP' | 'PROCESSING' | 'DIAGNOSIS' | 'PROJECTION' | 'FINALIZING' | 'PLAN_SELECT'>('MAP');
   const { isPremium } = useSystem();
@@ -619,6 +619,11 @@ export const HealthView: React.FC<HealthViewProps> = ({
           return;
       }
 
+      // Show interstitial ad before opening camera — proceed regardless of ad result
+      if (showInterstitialAd) {
+        try { await showInterstitialAd('ca-app-pub-3940256099942544/1033173712'); } catch { /* proceed anyway */ }
+      }
+
       try {
           const photo = await CapCamera.getPhoto({
               quality: 80,
@@ -704,6 +709,11 @@ export const HealthView: React.FC<HealthViewProps> = ({
           setShowKeysAlert(true);
           e.target.value = '';
           return;
+      }
+
+      // Show interstitial ad before file upload — proceed regardless of ad result
+      if (showInterstitialAd) {
+        try { await showInterstitialAd('ca-app-pub-3940256099942544/1033173712'); } catch { /* proceed anyway */ }
       }
 
       const file = e.target.files?.[0];
@@ -873,7 +883,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
       );
   }
 
-  if (viewMode === 'OVERVIEW' && activePlan) return <WorkoutOverview plan={activePlan} focusVideos={playerData.focusVideos} onStart={(p) => { setActivePlan(p); setViewMode('ACTIVE'); }} onCancel={() => setViewMode('MAP')} userWeight={healthProfile?.weight} onShowDungeonAd={onShowDungeonAd} isPremium={isPremium} />;
+  if (viewMode === 'OVERVIEW' && activePlan) return <WorkoutOverview plan={activePlan} focusVideos={playerData.focusVideos} onStart={(p) => { setActivePlan(p); setViewMode('ACTIVE'); }} onCancel={() => setViewMode('MAP')} userWeight={healthProfile?.weight} showRewardedAd={showRewardedAd} isPremium={isPremium} />;
   if (viewMode === 'ACTIVE' && activePlan) return (
     <>
       <ActiveWorkoutPlayer

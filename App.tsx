@@ -5119,9 +5119,8 @@ const App: React.FC = () => {
 
                           initialSubTab={healthSubTab}
 
-                          /* ADS DISABLED — onShowDungeonAd removed */
-                          onShowDungeonAd={async () => true} /* Always allow through — no ad gate */
-                        /* ADS DISABLED — onWatchAdToDouble removed */
+                          showRewardedAd={showRewardedAd}
+                          showInterstitialAd={showInterstitialAd}
 
                         />
 

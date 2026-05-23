@@ -49,10 +49,8 @@ interface DungeonQuestCardsProps {
   userId?: string;
   onUpdateDungeonState?: (updater: (prev: DungeonState) => DungeonState) => void;
   onDeductGold?: (amount: number) => void;
-  /** Called before entering dungeon; should show interstitial ad and resolve when done */
-  onShowDungeonAd?: () => Promise<void>;
-  /** Alias for onShowDungeonAd — used by parent DailyCommandCenter */
-  onShowInterstitialAd?: () => Promise<boolean>;
+  /** Called before entering dungeon; shows rewarded ad, user always enters after */
+  showRewardedAd?: (adUnitId: string) => Promise<{ rewarded: boolean; type?: string; amount?: number }>;
 }
 
 // ── iOS-style AI Coach Toggle ──
@@ -301,8 +299,7 @@ const DungeonQuestCards: React.FC<DungeonQuestCardsProps> = ({
   userId = '',
   onUpdateDungeonState,
   onDeductGold,
-  onShowDungeonAd,
-  onShowInterstitialAd,
+  showRewardedAd,
 }) => {
   const [showConfirm, setShowConfirm] = useState(false);
   const allCompletedToday = isDungeonCompletedToday(dungeonState);
@@ -322,11 +319,9 @@ const DungeonQuestCards: React.FC<DungeonQuestCardsProps> = ({
 
   const handleConfirmEnter = async () => {
     setShowConfirm(false);
-    // Show compulsory interstitial ad before entering dungeon
-    if (onShowDungeonAd) {
-      try { await onShowDungeonAd(); } catch { /* proceed anyway if ad fails */ }
-    } else if (onShowInterstitialAd) {
-      try { await onShowInterstitialAd(); } catch { /* proceed anyway if ad fails */ }
+    // Show rewarded ad before entering dungeon — user can watch or skip, always enters after
+    if (showRewardedAd) {
+      try { await showRewardedAd('ca-app-pub-3940256099942544/5224354917'); } catch { /* proceed anyway if ad fails */ }
     }
     onEnterDungeon();
   };

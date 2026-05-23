@@ -1379,7 +1379,7 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
             userId={playerData?.userId ?? ''}
             onUpdateDungeonState={onUpdateDungeonState}
             onDeductGold={onDeductGold}
-            onShowInterstitialAd={onShowInterstitialAd}
+            showRewardedAd={adShowRewarded}
           />
         </div>
       )}
