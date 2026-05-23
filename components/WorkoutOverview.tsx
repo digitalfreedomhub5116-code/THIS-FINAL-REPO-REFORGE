@@ -8,6 +8,7 @@ import { useSystem, isEmbed } from '../hooks/useSystem';
 import { EXERCISE_VIDEOS, fixVideoPath } from '../lib/exerciseVideos';
 import { calculateExerciseCalories } from '../utils/workoutGenerator';
 import { isFormCoachSupported } from '../lib/formCoachConfig';
+import { AD_UNITS } from '../hooks/useAdMob';
 
 /** Check if an exercise is rep-based (not time-based like "5 min" or "30s") */
 const isRepBasedExercise = (ex: Exercise): boolean => {
@@ -237,7 +238,7 @@ const WorkoutOverview: React.FC<WorkoutOverviewProps> = ({ plan, focusVideos, on
       if (showRewardedAd) {
         setAdLoading(true);
         try {
-          await showRewardedAd('ca-app-pub-3940256099942544/5224354917');
+          await showRewardedAd(AD_UNITS.KEY_REWARD);
         } catch { /* proceed anyway if ad fails */ }
         finally {
           setAdLoading(false);

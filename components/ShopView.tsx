@@ -443,16 +443,30 @@ const FreeKeyAdBanner: React.FC<{
       }} />
 
       <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 14 }}>
-        {/* Key icon */}
+        {/* Shadow Key Image */}
         <div style={{
           flexShrink: 0,
-          width: 54, height: 54, borderRadius: 14,
-          background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+          width: 88, height: 88,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 0 16px rgba(168,85,247,0.5), inset 0 1px 0 rgba(255,255,255,0.2)',
-          border: '1px solid rgba(255,255,255,0.15)',
+          position: 'relative',
         }}>
-          <Key size={28} style={{ color: '#fff', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.4))' }} strokeWidth={2.4} />
+          {/* Glow halo behind the key */}
+          <div style={{
+            position: 'absolute', inset: -6, borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(168,85,247,0.55) 0%, rgba(168,85,247,0.18) 45%, transparent 70%)',
+            filter: 'blur(6px)',
+            pointerEvents: 'none',
+          }} />
+          <img
+            src="/assets/store/keyless-Photoroom.png"
+            alt="Shadow Key"
+            style={{
+              position: 'relative',
+              width: '100%', height: '100%',
+              objectFit: 'contain',
+              filter: 'drop-shadow(0 4px 10px rgba(168,85,247,0.7)) drop-shadow(0 2px 4px rgba(0,0,0,0.5))',
+            }}
+          />
         </div>
 
         {/* Content */}

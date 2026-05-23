@@ -36,6 +36,7 @@ import {
 import SetupWizard from './health/SetupWizard';
 import { ProcessingView, DiagnosisView, ProjectionView, FinalizingView, GeneratingPlanOverlay, PlanCompleteView } from './health/OverlayViews';
 import { useSystem } from '../hooks/useSystem';
+import { AD_UNITS } from '../hooks/useAdMob';
 
 // ── Module-level scan session (survives tab switches / component remounts) ──
 type ScanStateType = 'IDLE' | 'SCANNING' | 'RESULT' | 'ERROR';
@@ -621,7 +622,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
 
       // Show interstitial ad before opening camera — proceed regardless of ad result
       if (showInterstitialAd) {
-        try { await showInterstitialAd('ca-app-pub-3940256099942544/1033173712'); } catch { /* proceed anyway */ }
+        try { await showInterstitialAd(AD_UNITS.DUNGEON_INTERSTITIAL); } catch { /* proceed anyway */ }
       }
 
       try {
@@ -713,7 +714,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
 
       // Show interstitial ad before file upload — proceed regardless of ad result
       if (showInterstitialAd) {
-        try { await showInterstitialAd('ca-app-pub-3940256099942544/1033173712'); } catch { /* proceed anyway */ }
+        try { await showInterstitialAd(AD_UNITS.DUNGEON_INTERSTITIAL); } catch { /* proceed anyway */ }
       }
 
       const file = e.target.files?.[0];

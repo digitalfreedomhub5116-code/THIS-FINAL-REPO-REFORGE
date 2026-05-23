@@ -17,7 +17,7 @@ import { Capacitor } from '@capacitor/core';
 const ADS_ENABLED = true; // ✅ ADS ENABLED — set to false to globally disable
 
 // ── Toggle for test ads (set to false for production builds) ──
-const USE_TEST_ADS = true; // 🧪 TEST MODE — switch to false once AdMob app is approved
+const USE_TEST_ADS = false; // 🚀 PRODUCTION — real AdMob ads are live
 
 // Google's official test ad unit IDs (always return test ads, safe to use)
 const TEST_AD_UNITS = {

@@ -18,6 +18,7 @@ import { DungeonState, DungeonExerciseTarget } from '../types';
 import { getProgressionTier, isDungeonCompletedToday, isExerciseCompletedToday } from '../lib/dungeonEngine';
 import { triggerHaptic } from '../utils/soundEngine';
 import { SingleExerciseLimitReset } from './DungeonLimitReset';
+import { AD_UNITS } from '../hooks/useAdMob';
 
 const EXERCISE_META: Record<string, {
   label: string;
@@ -321,7 +322,7 @@ const DungeonQuestCards: React.FC<DungeonQuestCardsProps> = ({
     setShowConfirm(false);
     // Show rewarded ad before entering dungeon — user can watch or skip, always enters after
     if (showRewardedAd) {
-      try { await showRewardedAd('ca-app-pub-3940256099942544/5224354917'); } catch { /* proceed anyway if ad fails */ }
+      try { await showRewardedAd(AD_UNITS.KEY_REWARD); } catch { /* proceed anyway if ad fails */ }
     }
     onEnterDungeon();
   };
