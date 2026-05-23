@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, lazy, Suspense, useCallback, type CSSProperties } from 'react';
 import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Coins, Timer, Key, CheckCircle2, Lock, ChevronLeft, ChevronRight, Heart, Star, Zap, Ghost, Hexagon, ShoppingBag, Shirt, CircleDot, Palette, Frame, Clock, ImageIcon, Flame, Shield, Wrench, Eye, Sparkles, Crown, Gift } from 'lucide-react';
+import { Coins, Timer, Key, CheckCircle2, Lock, ChevronLeft, ChevronRight, Heart, Star, Zap, Ghost, Hexagon, ShoppingBag, Shirt, CircleDot, Palette, Frame, Clock, ImageIcon, Flame, Shield, Wrench, Eye, Sparkles, Crown, Gift, Play } from 'lucide-react';
 import type { RevenueCatState, RevenueCatActions } from '../hooks/useRevenueCat';
 import { CONSUMABLE_CREDITS } from '../hooks/useRevenueCat';
 import ManaKeyStore from './ManaKeyStore';
@@ -86,6 +86,12 @@ interface ShopViewProps {
   rcState?: RevenueCatState;
   /** RevenueCat actions for purchasing */
   rcActions?: RevenueCatActions;
+  /** AdMob: show rewarded ad. Returns { rewarded: boolean } */
+  onWatchRewardedAd?: (adUnitId: string) => Promise<{ rewarded: boolean }>;
+  /** Ad unit IDs from useAdMob */
+  adUnits?: { KEY_REWARD: string; BORDER_REWARD: string; DUNGEON_INTERSTITIAL: string };
+  /** Notification helper for success/failure messages */
+  addNotification?: (msg: string, type: 'SUCCESS' | 'WARNING' | 'DANGER' | 'INFO') => void;
 }
 
 
@@ -358,6 +364,162 @@ const ItemsTab: React.FC<{ gold: number }> = ({ gold }) => {
 };
 
 
+/* ═══════════════════════════════════
+   FreeKeyAdBanner — Watch 3 ads to earn 1 Key Crystal
+   ═══════════════════════════════════ */
+const FREE_KEY_PROGRESS_KEY = 'reforge:freeKeyAdProgress';
+const ADS_PER_KEY = 3;
+
+const FreeKeyAdBanner: React.FC<{
+  onWatchRewardedAd?: (adUnitId: string) => Promise<{ rewarded: boolean }>;
+  adUnitId?: string;
+  onClaimKey: () => void;
+  addNotification?: (msg: string, type: 'SUCCESS' | 'WARNING' | 'DANGER' | 'INFO') => void;
+}> = ({ onWatchRewardedAd, adUnitId, onClaimKey, addNotification }) => {
+  const [progress, setProgress] = useState<number>(() => {
+    try { return Math.min(ADS_PER_KEY, parseInt(localStorage.getItem(FREE_KEY_PROGRESS_KEY) || '0', 10) || 0); } catch { return 0; }
+  });
+  const [watching, setWatching] = useState(false);
+  const ready = progress >= ADS_PER_KEY;
+
+  const persist = (n: number) => {
+    try { localStorage.setItem(FREE_KEY_PROGRESS_KEY, String(n)); } catch {}
+    setProgress(n);
+  };
+
+  const handleWatch = async () => {
+    if (watching) return;
+    if (!onWatchRewardedAd || !adUnitId) {
+      addNotification?.('Ads not ready yet — try again in a moment', 'WARNING');
+      return;
+    }
+    setWatching(true);
+    try {
+      const res = await onWatchRewardedAd(adUnitId);
+      if (res.rewarded) {
+        const next = Math.min(ADS_PER_KEY, progress + 1);
+        persist(next);
+        if (next >= ADS_PER_KEY) {
+          addNotification?.('🎁 Ready to claim your free Key!', 'SUCCESS');
+        } else {
+          addNotification?.(`Ad watched! ${ADS_PER_KEY - next} more to earn a Key.`, 'INFO');
+        }
+      } else {
+        addNotification?.('Ad not completed — no progress', 'WARNING');
+      }
+    } catch (e) {
+      addNotification?.('Ad failed to load — try again', 'DANGER');
+    } finally {
+      setWatching(false);
+    }
+  };
+
+  const handleClaim = () => {
+    onClaimKey();
+    persist(0);
+    addNotification?.('🔑 +1 Key Crystal claimed!', 'SUCCESS');
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      style={{
+        position: 'relative',
+        borderRadius: 16,
+        padding: '16px 14px',
+        background: 'linear-gradient(135deg, rgba(155,93,229,0.18) 0%, rgba(124,58,237,0.12) 50%, rgba(91,33,182,0.18) 100%)',
+        border: '1.5px solid rgba(155,93,229,0.45)',
+        boxShadow: '0 0 24px rgba(155,93,229,0.25), 0 4px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08)',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Ambient glow */}
+      <div style={{
+        position: 'absolute', top: -40, right: -40, width: 140, height: 140, borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(168,85,247,0.25) 0%, transparent 70%)',
+        pointerEvents: 'none',
+      }} />
+
+      <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 14 }}>
+        {/* Key icon */}
+        <div style={{
+          flexShrink: 0,
+          width: 54, height: 54, borderRadius: 14,
+          background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: '0 0 16px rgba(168,85,247,0.5), inset 0 1px 0 rgba(255,255,255,0.2)',
+          border: '1px solid rgba(255,255,255,0.15)',
+        }}>
+          <Key size={28} style={{ color: '#fff', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.4))' }} strokeWidth={2.4} />
+        </div>
+
+        {/* Content */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: 900, color: '#fff', marginBottom: 2, letterSpacing: '0.02em' }}>
+            Watch 3 Ads to Earn a Free Key
+          </div>
+          <div style={{ fontSize: 10, color: 'rgba(214,188,250,0.75)', fontFamily: 'monospace', marginBottom: 8 }}>
+            {ready ? 'Ready! Claim your reward' : `Progress: ${progress} / ${ADS_PER_KEY} ads`}
+          </div>
+
+          {/* Progress bar */}
+          <div style={{ display: 'flex', gap: 4, marginBottom: 10 }}>
+            {Array.from({ length: ADS_PER_KEY }).map((_, i) => (
+              <div key={i} style={{
+                flex: 1, height: 5, borderRadius: 3,
+                background: i < progress
+                  ? 'linear-gradient(90deg, #a855f7, #c084fc)'
+                  : 'rgba(255,255,255,0.08)',
+                boxShadow: i < progress ? '0 0 6px rgba(168,85,247,0.6)' : 'none',
+                transition: 'all 0.3s',
+              }} />
+            ))}
+          </div>
+
+          {/* Action button */}
+          {ready ? (
+            <button
+              onClick={handleClaim}
+              style={{
+                width: '100%', padding: '8px 14px', borderRadius: 10, border: 'none', cursor: 'pointer',
+                background: 'linear-gradient(135deg, #fbbf24, #d97706)',
+                color: '#1a0f00', fontSize: 11, fontWeight: 900, letterSpacing: '0.05em',
+                boxShadow: '0 0 16px rgba(251,191,36,0.4), inset 0 1px 0 rgba(255,255,255,0.3)',
+                textTransform: 'uppercase' as const,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              }}
+            >
+              <Gift size={13} /> Claim Free Key
+            </button>
+          ) : (
+            <button
+              onClick={handleWatch}
+              disabled={watching}
+              style={{
+                width: '100%', padding: '8px 14px', borderRadius: 10, border: 'none',
+                cursor: watching ? 'wait' : 'pointer',
+                background: watching
+                  ? 'rgba(168,85,247,0.4)'
+                  : 'linear-gradient(135deg, #a855f7, #7c3aed)',
+                color: '#fff', fontSize: 11, fontWeight: 900, letterSpacing: '0.05em',
+                boxShadow: watching ? 'none' : '0 0 14px rgba(168,85,247,0.45), inset 0 1px 0 rgba(255,255,255,0.15)',
+                opacity: watching ? 0.7 : 1,
+                textTransform: 'uppercase' as const,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              }}
+            >
+              {watching ? '⏳ Loading Ad...' : <>▶ Watch Ad</>}
+            </button>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+
 const ShopView: React.FC<ShopViewProps> = ({
   gold,
   items,
@@ -391,6 +553,9 @@ const ShopView: React.FC<ShopViewProps> = ({
   onKeysUpdate,
   rcState,
   rcActions,
+  onWatchRewardedAd,
+  adUnits,
+  addNotification,
 }) => {
   const [storeTab, setStoreTab] = useState<'OUTFITS' | 'BADGES' | 'BORDERS' | 'DEALS' | 'ITEMS' | 'THEMES' | 'BANNERS_SHOP'>(initialStoreTab || 'OUTFITS');
   const [showMore, setShowMore] = useState(false);
@@ -420,7 +585,45 @@ const ShopView: React.FC<ShopViewProps> = ({
 
   // ── Ad unlock progress tracking (per-item ad watch counts) ──
   type AdProgress = Record<string, { adsWatched: number; adsRequired: number; unlocked: boolean }>;
-  const [adProgress, setAdProgress] = useState<AdProgress>({});
+  const [adProgress, setAdProgress] = useState<AdProgress>(() => {
+    try {
+      const raw = localStorage.getItem('reforge:borderAdProgress');
+      if (raw) return JSON.parse(raw);
+    } catch { }
+    return {};
+  });
+
+  const persistBorderAdProgress = useCallback((next: AdProgress) => {
+    try { localStorage.setItem('reforge:borderAdProgress', JSON.stringify(next)); } catch { }
+  }, []);
+
+  const handleWatchAdForBorder = useCallback(async (item: KitStoreItem) => {
+    if (!item.adUnlock || !item.adsRequired || !onWatchRewardedAd) return;
+    const progress = adProgress[item.id] || { adsWatched: 0, adsRequired: item.adsRequired, unlocked: false };
+    if (progress.unlocked) return;
+
+    try {
+      const result = await onWatchRewardedAd(adUnits.BORDER_REWARD);
+      if (result.rewarded) {
+        const nextWatched = progress.adsWatched + 1;
+        const nextProgress: AdProgress = {
+          ...adProgress,
+          [item.id]: { ...progress, adsWatched: nextWatched, unlocked: nextWatched >= item.adsRequired },
+        };
+        setAdProgress(nextProgress);
+        persistBorderAdProgress(nextProgress);
+        if (nextWatched >= item.adsRequired) {
+          addNotification?.(`🔓 ${item.name} unlocked! Tap "Unlock" to claim.`, 'SUCCESS');
+        } else {
+          addNotification?.(`📺 Ad watched! ${nextWatched}/${item.adsRequired} for ${item.name}`, 'INFO');
+        }
+      } else {
+        addNotification?.('Ad skipped — no progress earned.', 'WARNING');
+      }
+    } catch {
+      addNotification?.('Ad failed to load. Try again later.', 'WARNING');
+    }
+  }, [adProgress, onWatchRewardedAd, adUnits, addNotification, persistBorderAdProgress]);
 
   // ── Image preloader: eagerly load border images so celebration overlay doesn't flash ──
   const preloadedImagesRef = useRef<Set<string>>(new Set());
@@ -1134,6 +1337,16 @@ const ShopView: React.FC<ShopViewProps> = ({
       )}
 
       {/* ═══════════════════════════════════════════
+           🎁 FREE KEY AD BANNER (Watch 3 ads → 1 Key)
+         ═══════════════════════════════════════════ */}
+      <FreeKeyAdBanner
+        onWatchRewardedAd={onWatchRewardedAd}
+        adUnitId={adUnits?.KEY_REWARD}
+        onClaimKey={() => onKeysUpdate?.((keys ?? 0) + 1)}
+        addNotification={addNotification}
+      />
+
+      {/* ═══════════════════════════════════════════
            🔑 KEY CRYSTAL STORE
          ═══════════════════════════════════════════ */}
       <ManaKeyStore
@@ -1277,26 +1490,38 @@ const ShopView: React.FC<ShopViewProps> = ({
           <div className="hdr-line" />
         </div>
         <div className="store-hscroll">
-          {BORDERS_EXCLUSIVE.map(item => (
-            <div key={item.id} style={{ flexShrink: 0, width: 'calc(42vw - 12px)', minWidth: 140, maxWidth: 180 }}>
-              <KitGlowCard item={item}
-                owned={isItemOwned(item.id)}
-                equipped={kitEconomy.equipped.border === item.id}
-                canAfford={DEV_UNLOCK_ALL || gold >= item.price}
-                onBuy={() => setConfirmPurchaseItem(item)}
-                onInsufficientFunds={() => setShowInsufficientFunds(item)}
-                onEquip={() => {
-                  setEquipAnimItem(item);
-                  setShowEquipAnim(true);
-                  handleKitEquip('border', item.id);
-                }}
-                onInfo={() => setKitInfoItem(item)}
-                onView={() => setKitInfoItem(item)}
-                onCardClick={() => setKitInfoItem(item)}
-                adProgress={adProgress[item.id] || null}
-              />
-            </div>
-          ))}
+          {BORDERS_EXCLUSIVE.map(item => {
+            const prog = adProgress[item.id];
+            const isAdUnlocked = item.adUnlock && prog?.unlocked;
+            return (
+              <div key={item.id} style={{ flexShrink: 0, width: 'calc(42vw - 12px)', minWidth: 140, maxWidth: 180 }}>
+                <KitGlowCard item={item}
+                  owned={isItemOwned(item.id)}
+                  equipped={kitEconomy.equipped.border === item.id}
+                  canAfford={DEV_UNLOCK_ALL || gold >= item.price || isAdUnlocked}
+                  onBuy={() => {
+                    if (isAdUnlocked) {
+                      // Directly unlock ad-gated border without purchase modal
+                      handleKitPurchase(item);
+                    } else {
+                      setConfirmPurchaseItem(item);
+                    }
+                  }}
+                  onInsufficientFunds={() => setShowInsufficientFunds(item)}
+                  onEquip={() => {
+                    setEquipAnimItem(item);
+                    setShowEquipAnim(true);
+                    handleKitEquip('border', item.id);
+                  }}
+                  onInfo={() => setKitInfoItem(item)}
+                  onView={() => setKitInfoItem(item)}
+                  onCardClick={() => setKitInfoItem(item)}
+                  adProgress={prog || null}
+                  onWatchAd={() => handleWatchAdForBorder(item)}
+                />
+              </div>
+            );
+          })}
         </div>
         <div style={{ textAlign: 'center', fontSize: 9, fontFamily: 'monospace', color: 'rgba(255,255,255,0.25)', paddingTop: 2 }}>
           Borders are permanent · Visible on profile & leaderboard
@@ -1731,11 +1956,12 @@ const KIT_CAT_COLORS: Record<string, string> = {
   border: '#00d4ff', theme: '#8B5CF6', deals: '#F59E0B', banner: '#06B6D4', consumable: '#22C55E', title: '#F59E0B',
 };
 
-const KitGlowCard = React.memo(function KitGlowCard({ item, discount, owned, equipped, canAfford, onBuy, onInsufficientFunds, onEquip, onInfo, onView, onCardClick, dealColor, adProgress }: {
+const KitGlowCard = React.memo(function KitGlowCard({ item, discount, owned, equipped, canAfford, onBuy, onInsufficientFunds, onEquip, onInfo, onView, onCardClick, dealColor, adProgress, onWatchAd }: {
   item: KitStoreItem; discount?: number; owned?: boolean; equipped?: boolean;
   canAfford: boolean; onBuy: () => void; onInsufficientFunds?: () => void; onEquip?: () => void; onInfo?: () => void; onView?: () => void;
   onCardClick?: () => void; dealColor?: string;
   adProgress?: { adsWatched: number; adsRequired: number; unlocked: boolean } | null;
+  onWatchAd?: () => void;
 }) {
   const catColor = item.tierColor || dealColor || KIT_CAT_COLORS[item.category] || '#00d4ff';
   const finalPrice = discount ? Math.round(item.price * (1 - discount / 100)) : item.price;
@@ -1925,9 +2151,49 @@ const KitGlowCard = React.memo(function KitGlowCard({ item, discount, owned, equ
               ) : (
                 <span style={{ fontSize: 11, fontWeight: 700, color: '#22C55E' }}>✓ Owned</span>
               )
-            ) : /* ADS DISABLED — ad-gated items now show as gold purchasable */ item.adUnlock ? (
-              /* ── Previously ad-gated item: show as locked/coming soon ── */
-              <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(168,85,247,0.6)', fontFamily: 'monospace', letterSpacing: '0.05em' }}>🔒 COMING SOON</span>
+            ) : item.adUnlock && adProgress && !adProgress.unlocked ? (
+              /* ── Ad-gated item: Watch ads to unlock ── */
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, width: '100%' }}>
+                <div style={{ fontSize: 9, fontWeight: 800, color: 'rgba(168,85,247,0.8)', fontFamily: 'monospace', letterSpacing: '0.05em' }}>
+                  {adProgress.adsWatched} / {adProgress.adsRequired} ADS
+                </div>
+                {/* Mini progress bar */}
+                <div style={{ display: 'flex', gap: 2, width: '80%' }}>
+                  {Array.from({ length: adProgress.adsRequired }).map((_, i) => (
+                    <div key={i} style={{
+                      flex: 1, height: 3, borderRadius: 2,
+                      background: i < adProgress.adsWatched ? '#a855f7' : 'rgba(255,255,255,0.08)',
+                      transition: 'all 0.3s',
+                    }} />
+                  ))}
+                </div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); onWatchAd?.(); }}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                    padding: '6px 16px', borderRadius: 16, cursor: 'pointer',
+                    background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+                    border: 'none',
+                    color: '#fff',
+                    fontSize: 10, fontWeight: 900, letterSpacing: '0.05em',
+                    boxShadow: '0 0 12px rgba(168,85,247,0.35)',
+                  }}
+                >
+                  <Play size={10} /> Watch Ad
+                </button>
+              </div>
+            ) : item.adUnlock && adProgress?.unlocked ? (
+              /* ── Ad-gated item: Ready to unlock ── */
+              <button onClick={(e) => { e.stopPropagation(); onBuy(); }} style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                padding: '8px 24px', border: 'none', cursor: 'pointer', borderRadius: 20,
+                background: 'linear-gradient(135deg, #22C55E, #16A34A)',
+                color: '#000', fontSize: 11, fontWeight: 800, letterSpacing: 0.5,
+                boxShadow: '0 0 14px rgba(34,197,94,0.4)',
+                transition: 'all 0.2s',
+              }}>
+                ✓ Unlock
+              </button>
             ) : (
               <button onClick={(e) => { e.stopPropagation(); if (canAfford) { onBuy(); } else if (onInsufficientFunds) { onInsufficientFunds(); } }} style={{
                 display: 'inline-flex', alignItems: 'center', gap: 4,

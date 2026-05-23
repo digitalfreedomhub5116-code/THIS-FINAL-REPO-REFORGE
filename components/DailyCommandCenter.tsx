@@ -24,6 +24,7 @@ import DungeonQuestCards from './DungeonQuestCards';
 import AdMobTestPanel from './AdMobTestPanel';
 import ActiveWorkoutPlayer, { clearWorkoutSession } from './ActiveWorkoutPlayer';
 import DungeonRewardAnimation from './DungeonRewardAnimation';
+import DoubleRewardModal from './DoubleRewardModal';
 import { buildDungeonWorkoutPlan, toggleFormCoach, isExerciseCompletedToday, recordExerciseCompletions } from '../lib/dungeonEngine';
 import { PLEDGE_AMOUNTS, MANDATORY_RANKS } from './SystemPactScreen';
 import { playSystemSoundEffect } from '../utils/soundEngine';
@@ -141,6 +142,9 @@ interface DailyCommandCenterProps {
   onUpdateDungeonState?: (updater: (prev: DungeonState) => DungeonState) => void;
   onCompleteDungeonWorkout?: (exercisesCompleted: number, totalExercises: number, results: Record<string, number>, anomalyPoints?: number, formCoachBonusXp?: number, formCoachSession?: FormCoachSession) => any;
   onFailDungeonWorkout?: () => void;
+
+  // Reward doubling
+  onAddRewards?: (gold: number, xp: number) => void;
 }
 
 // ────────────────────────────────────────────────────────────
@@ -918,6 +922,7 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
   onSlotAction, onToggleNotify, onReorderSlots, onShowInterstitialAd,
   adShowInterstitial, adShowRewarded, adUnits, adsReady,
   dungeonState, onInitializeDungeon, onUpdateDungeonState, onCompleteDungeonWorkout, onFailDungeonWorkout,
+  onAddRewards,
 }) => {
   // ── State ──
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -939,6 +944,7 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
   const [isDungeonActive, setIsDungeonActive] = useState(false);
   const [dungeonPlan, setDungeonPlan] = useState<WorkoutDay | null>(null);
   const [dungeonRewardAnim, setDungeonRewardAnim] = useState<{ xp: number; gold: number } | null>(null);
+  const [pendingDungeonRewards, setPendingDungeonRewards] = useState<{ xp: number; gold: number } | null>(null);
 
   // Auto-initialize dungeon on mount (also patches existing goals if needed)
   useEffect(() => {
@@ -989,7 +995,7 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
       // Also add base XP (exercises × 40) since the pool rewards don't include it
       xp += c * 40;
       if (xp > 0 || gold > 0) {
-        setDungeonRewardAnim({ xp, gold });
+        setPendingDungeonRewards({ xp, gold });
       }
     }
   }, [onToggleNav, onCompleteDungeonWorkout, dungeonState, onUpdateDungeonState]);
@@ -1373,6 +1379,7 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
             userId={playerData?.userId ?? ''}
             onUpdateDungeonState={onUpdateDungeonState}
             onDeductGold={onDeductGold}
+            onShowInterstitialAd={onShowInterstitialAd}
           />
         </div>
       )}
@@ -1395,6 +1402,35 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
           xpEarned={dungeonRewardAnim.xp}
           goldEarned={dungeonRewardAnim.gold}
           onComplete={() => setDungeonRewardAnim(null)}
+        />
+      )}
+
+      {/* Dungeon 2× reward modal */}
+      {pendingDungeonRewards && (
+        <DoubleRewardModal
+          title="Dungeon Cleared!"
+          subtitle="Watch a short ad to double your dungeon rewards."
+          rewards={[
+            ...(pendingDungeonRewards.xp > 0 ? [{ icon: 'xp' as const, label: 'XP', amount: pendingDungeonRewards.xp }] : []),
+            ...(pendingDungeonRewards.gold > 0 ? [{ icon: 'gold' as const, label: 'Gold', amount: pendingDungeonRewards.gold }] : []),
+          ]}
+          onWatchAd={async () => {
+            if (!adShowRewarded || !adUnits?.KEY_REWARD) return { rewarded: false };
+            return adShowRewarded(adUnits.KEY_REWARD);
+          }}
+          onClaim={(multiplier) => {
+            const { xp, gold } = pendingDungeonRewards;
+            setPendingDungeonRewards(null);
+            if (multiplier === 2 && onAddRewards) {
+              onAddRewards(gold, xp);
+            }
+            setDungeonRewardAnim({ xp: xp * multiplier, gold: gold * multiplier });
+          }}
+          onSkip={() => {
+            const { xp, gold } = pendingDungeonRewards;
+            setPendingDungeonRewards(null);
+            setDungeonRewardAnim({ xp, gold });
+          }}
         />
       )}
 

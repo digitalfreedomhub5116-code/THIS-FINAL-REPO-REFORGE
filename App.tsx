@@ -3841,6 +3841,10 @@ const App: React.FC = () => {
 
                     }}
 
+                    adShowRewarded={showRewardedAd}
+
+                    adUnits={AD_UNITS}
+
                   />
 
                 </ErrorBoundary>
@@ -4869,12 +4873,14 @@ const App: React.FC = () => {
                           adShowRewarded={showRewardedAd}
                           adUnits={AD_UNITS}
                           adsReady={adsReady}
+                          onShowInterstitialAd={showInterstitialAd}
 
                           dungeonState={player.dungeonState}
                           onInitializeDungeon={initializeDungeon}
                           onUpdateDungeonState={updateDungeonState}
                           onCompleteDungeonWorkout={completeDungeonWorkout}
                           onFailDungeonWorkout={failDungeonWorkout}
+                          onAddRewards={addRewards}
                           />
                         </ErrorBoundary>
                       </Suspense>
@@ -4965,6 +4971,12 @@ const App: React.FC = () => {
 
                           rcActions={rcActions}
 
+                          onWatchRewardedAd={showRewardedAd}
+
+                          adUnits={AD_UNITS}
+
+                          addNotification={addNotification}
+
                         />
 
                       </ErrorBoundary>
@@ -5039,6 +5051,16 @@ const App: React.FC = () => {
                           playerAvatarUrl={player.avatarUrl}
 
                           onGoldUpdate={(newGold) => setPlayer(prev => ({ ...prev, gold: newGold }))}
+
+                          keys={player.keys ?? 0}
+
+                          onKeysUpdate={(newKeys) => setPlayer(prev => ({ ...prev, keys: newKeys }))}
+
+                          onWatchRewardedAd={showRewardedAd}
+
+                          adUnits={AD_UNITS}
+
+                          addNotification={addNotification}
 
                         />
 

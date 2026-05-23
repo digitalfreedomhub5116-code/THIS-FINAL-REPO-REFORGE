@@ -96,7 +96,6 @@ export const BORDERS_ELEMENTS: StoreItem[] = [
     description: 'Animated neon energy pulses around your avatar — alive and electric.',
     videoBorder: '/borders/videoborder1.webm',
     imageScale: 1.08,
-    adUnlock: true, adsRequired: 10,
     borderConfig: { colors: ['#00d4ff', '#ff00ff', '#00ff88'], strokeWidth: 3, animated: false, glowColor: '#00d4ff', glowIntensity: 0.9 },
   },
   {
@@ -104,7 +103,6 @@ export const BORDERS_ELEMENTS: StoreItem[] = [
     description: 'Forged from silversteel \u2014 a shield of honor.',
     imageBorder: '/borders/silverrank-Photoroom.webp',
     imageScale: 1.1,
-    adUnlock: true, adsRequired: 5,
     borderConfig: { colors: ['#C0C0C0', '#E0E0E0'], strokeWidth: 3, animated: false, glowColor: '#C0C0C0', glowIntensity: 0.6 },
   },
 ];
@@ -139,10 +137,11 @@ export const BORDERS_BEASTS: StoreItem[] = [
 const EXCLUSIVE_COLOR = '#9B5DE5'; // Royal Purple
 export const BORDERS_EXCLUSIVE: StoreItem[] = [
   {
-    id: 'border-streak-gold', name: 'Iron Will', category: 'border', tier: 'legendary', price: 3000, tierColor: EXCLUSIVE_COLOR,
-    description: 'A golden rune ring of iron will — unyielding.',
+    id: 'border-streak-gold', name: 'Iron Will', category: 'border', tier: 'legendary', price: 0, tierColor: EXCLUSIVE_COLOR,
+    description: 'A golden rune ring of iron will — unyielding. Unlock by watching 10 ads.',
     imageBorder: '/borders/border-streak-gold.webp',
     imageScale: 1.08,
+    adUnlock: true, adsRequired: 10,
     borderConfig: { colors: ['#EAB308', '#F59E0B'], strokeWidth: 3, animated: false, glowColor: '#EAB308', glowIntensity: 0.7 },
   },
   {
@@ -150,14 +149,14 @@ export const BORDERS_EXCLUSIVE: StoreItem[] = [
     description: 'Cyan inferno flames of relentless dedication.',
     imageBorder: '/borders/border-streak-inferno.webp',
     imageScale: 1.08,
-    adUnlock: true, adsRequired: 5,
     borderConfig: { colors: ['#00d4ff', '#06B6D4'], strokeWidth: 3, animated: false, glowColor: '#00d4ff', glowIntensity: 0.8 },
   },
   {
-    id: 'border-streak-eternal', name: 'Eternal Flame', category: 'border', tier: 'legendary', price: 7500, tierColor: EXCLUSIVE_COLOR,
-    description: 'Purple arcane flames of eternal power.',
+    id: 'border-streak-eternal', name: 'Eternal Flame', category: 'border', tier: 'legendary', price: 0, tierColor: EXCLUSIVE_COLOR,
+    description: 'Purple arcane flames of eternal power. Unlock by watching 10 ads.',
     imageBorder: '/borders/border-streak-eternal.webp',
     imageScale: 1.08,
+    adUnlock: true, adsRequired: 10,
     borderConfig: { colors: ['#A855F7', '#7C3AED'], strokeWidth: 3, animated: false, glowColor: '#A855F7', glowIntensity: 0.9 },
   },
 ];

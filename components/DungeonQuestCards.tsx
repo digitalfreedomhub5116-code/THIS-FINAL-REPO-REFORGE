@@ -49,6 +49,10 @@ interface DungeonQuestCardsProps {
   userId?: string;
   onUpdateDungeonState?: (updater: (prev: DungeonState) => DungeonState) => void;
   onDeductGold?: (amount: number) => void;
+  /** Called before entering dungeon; should show interstitial ad and resolve when done */
+  onShowDungeonAd?: () => Promise<void>;
+  /** Alias for onShowDungeonAd — used by parent DailyCommandCenter */
+  onShowInterstitialAd?: () => Promise<boolean>;
 }
 
 // ── iOS-style AI Coach Toggle ──
@@ -297,6 +301,8 @@ const DungeonQuestCards: React.FC<DungeonQuestCardsProps> = ({
   userId = '',
   onUpdateDungeonState,
   onDeductGold,
+  onShowDungeonAd,
+  onShowInterstitialAd,
 }) => {
   const [showConfirm, setShowConfirm] = useState(false);
   const allCompletedToday = isDungeonCompletedToday(dungeonState);
@@ -314,8 +320,14 @@ const DungeonQuestCards: React.FC<DungeonQuestCardsProps> = ({
     setShowConfirm(true);
   };
 
-  const handleConfirmEnter = () => {
+  const handleConfirmEnter = async () => {
     setShowConfirm(false);
+    // Show compulsory interstitial ad before entering dungeon
+    if (onShowDungeonAd) {
+      try { await onShowDungeonAd(); } catch { /* proceed anyway if ad fails */ }
+    } else if (onShowInterstitialAd) {
+      try { await onShowInterstitialAd(); } catch { /* proceed anyway if ad fails */ }
+    }
     onEnterDungeon();
   };
 
