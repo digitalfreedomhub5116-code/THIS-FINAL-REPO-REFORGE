@@ -40,7 +40,7 @@ router.get('/:id/sync', async (req: Request, res: Response) => {
   try {
     const { data, error } = await (supabaseServer() as any)
       .from('players')
-      .select('gold, keys, is_banned, cheat_strikes, total_strikes_ever, pending_notifications, level, current_xp, required_xp, total_xp, daily_xp, rank, streak, last_login_date, streak_shields, streak_before_break, streak_broken_at, hp, max_hp, mp, max_mp, updated_at, sync_version, daily_stats, weekly_stats, monthly_stats, last_daily_reset, last_weekly_reset, last_monthly_reset, raw_data->unlockedOutfits, raw_data->equippedOutfitId, raw_data->outfitStones')
+      .select('gold, keys, is_banned, cheat_strikes, total_strikes_ever, pending_notifications, level, current_xp, required_xp, total_xp, daily_xp, rank, streak, last_login_date, streak_shields, streak_before_break, streak_broken_at, hp, max_hp, mp, max_mp, updated_at, sync_version, daily_stats, weekly_stats, monthly_stats, last_daily_reset, last_weekly_reset, last_monthly_reset, consecutive_missed_workouts, raw_data->unlockedOutfits, raw_data->equippedOutfitId, raw_data->outfitStones')
       .eq('supabase_id', id)
       .single();
 
@@ -291,6 +291,7 @@ router.get('/:id/sync', async (req: Request, res: Response) => {
       streakBeforeBreak: streakBroke ? (row.streak_before_break ?? row.streak ?? 0) : (row.streak_before_break ?? 0),
       streakBrokenAt: row.streak_broken_at || null,
       streakMilestone,
+      consecutiveMissedWorkouts: row.consecutive_missed_workouts ?? 0,
       hp: row.hp ?? 100,
       maxHp: row.max_hp ?? 100,
       mp: row.mp ?? 100,

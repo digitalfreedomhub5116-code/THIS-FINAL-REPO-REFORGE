@@ -277,4 +277,29 @@ router.post('/log-complete', async (req: Request, res: Response) => {
   }
 });
 
+// ── POST /quit-dungeon — Record that the user quit a dungeon mid-workout ──
+// This marks today as a "miss day" for the missed-workout penalty cron.
+router.post('/quit-dungeon', async (req: Request, res: Response) => {
+  try {
+    const { getAuthenticatedUserId } = await import('../lib/playerAuth.js');
+    const userId = getAuthenticatedUserId(req);
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const { error } = await (supabaseServer() as any)
+      .from('players')
+      .update({ last_dungeon_quit_date: todayStr })
+      .eq('supabase_id', userId);
+
+    if (error) {
+      console.error('[Workout] quit-dungeon error:', error);
+      return res.status(500).json({ error: 'Failed to record quit' });
+    }
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('[Workout] quit-dungeon failed:', err);
+    return res.status(500).json({ error: 'Internal error' });
+  }
+});
+
 export default router;

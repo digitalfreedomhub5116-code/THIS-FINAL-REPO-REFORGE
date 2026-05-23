@@ -74,6 +74,7 @@ const NOTIF_IDS = {
   WORKOUT_REMINDER:   6003,
   LEADERBOARD_NUDGE:  6004,
   COMEBACK_PING:      6005,
+  MISSED_WORKOUT_WARNING: 6006,
   QUEST_DEADLINE_BASE: 7000, // +hash(questId) per quest
 };
 
@@ -223,6 +224,52 @@ export async function scheduleStreakReminder(
   }
 }
 
+// ─── Missed Workout Warning (8 PM, only if no workout/dungeon today) ──
+// Last-chance nudge before midnight reset triggers the XP penalty cron.
+export async function scheduleMissedWorkoutWarning(
+  hasWorkedOutToday: boolean,
+  consecutiveMisses: number,
+  playerName?: string
+): Promise<void> {
+  if (!isNative()) return;
+  try {
+    await LocalNotifications.cancel({ notifications: [{ id: NOTIF_IDS.MISSED_WORKOUT_WARNING }] });
+    if (hasWorkedOutToday) return; // Already done — nothing to warn about
+    const at = nextTimeAt(20, 0);
+    if (at.getDate() !== new Date().getDate()) return; // After 8 PM today — skip
+
+    // Penalty preview matches server PENALTY_TABLE: 50/100/150/200
+    const nextPenalty = consecutiveMisses === 0
+      ? 50
+      : consecutiveMisses === 1
+      ? 100
+      : consecutiveMisses === 2
+      ? 150
+      : 200;
+
+    const name = playerName || 'Hunter';
+    const title = consecutiveMisses >= 3
+      ? '⚠️ The System is watching'
+      : '⚔️ Don\'t miss today\'s workout';
+    const body = consecutiveMisses === 0
+      ? `${name}, complete a workout before midnight or lose ${nextPenalty} XP.`
+      : `${name}, ${consecutiveMisses} day(s) missed already. Train now or lose ${nextPenalty} more XP at midnight.`;
+
+    await LocalNotifications.schedule({
+      notifications: [{
+        id: NOTIF_IDS.MISSED_WORKOUT_WARNING,
+        schedule: { at },
+        title,
+        body,
+        smallIcon: 'ic_stat_notification',
+      }],
+    });
+    console.log('[Notif] Missed-workout warning →', at.toLocaleTimeString(), `(misses=${consecutiveMisses}, penalty=-${nextPenalty})`);
+  } catch (err) {
+    console.warn('[Notif] scheduleMissedWorkoutWarning failed:', err);
+  }
+}
+
 // ─── Leaderboard Nudge (9 PM, only if user has daily XP today) ──
 
 export async function scheduleLeaderboardNudge(hasDailyXp: boolean): Promise<void> {
@@ -283,6 +330,7 @@ export async function cancelDailyReminders(): Promise<void> {
         { id: NOTIF_IDS.WORKOUT_REMINDER },
         { id: NOTIF_IDS.STREAK_WARNING },
         { id: NOTIF_IDS.LEADERBOARD_NUDGE },
+        { id: NOTIF_IDS.MISSED_WORKOUT_WARNING },
       ],
     });
     console.log('[Notif] Daily reminders cancelled (workout done)');

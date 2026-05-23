@@ -36,6 +36,7 @@ import LeaguePromotionOverlay from './components/LeaguePromotionOverlay';
 import ReviewPromptSheet from './components/ReviewPromptSheet';
 import { unlockItem } from './utils/storeEconomy';
 import { setRemoteStoreCache, StoreItem, StoreCategory, ItemTier } from './utils/storeItems';
+import { triggerHaptic } from './utils/soundEngine';
 
 import {
 
@@ -107,6 +108,8 @@ import {
   scheduleComebackPing,
 
   scheduleQuestDeadline,
+
+  scheduleMissedWorkoutWarning,
 
   cancelQuestStartNotification,
 
@@ -218,6 +221,8 @@ const ForgeGuardWidget = lazy(() => import('./components/ForgeGuardWidget'));
 const StreakCelebration = lazy(() => import('./components/StreakCelebration'));
 
 const StreakBreakPrompt = lazy(() => import('./components/StreakBreakPrompt'));
+
+const MissedWorkoutPenaltyPopup = lazy(() => import('./components/MissedWorkoutPenaltyPopup'));
 
 const ChestOpeningOverlay = lazy(() => import('./components/ChestOpeningOverlay'));
 
@@ -608,6 +613,13 @@ const App: React.FC = () => {
     await scheduleLeaderboardNudge(hasDailyXp);
 
     await scheduleComebackPing(name);
+
+    // Missed-workout 8 PM warning — fires only if user hasn't worked out yet today
+    await scheduleMissedWorkoutWarning(
+      hasWorkedOutToday,
+      (player as any).consecutiveMissedWorkouts || 0,
+      name
+    );
 
     for (const q of player.quests) {
 
@@ -1099,7 +1111,9 @@ const App: React.FC = () => {
   const [showStreakCelebration, setShowStreakCelebration] = useState(false);
 
   // ── Streak Break Prompt ──
+
   const [showStreakBreakPrompt, setShowStreakBreakPrompt] = useState(false);
+
   const [streakBreakData, setStreakBreakData] = useState<{
     previousStreak: number; brokenAt: string; shieldCount: number;
   } | null>(null);
@@ -1109,6 +1123,13 @@ const App: React.FC = () => {
   const [showStreakMilestone, setShowStreakMilestone] = useState(false);
   const [streakMilestoneData, setStreakMilestoneData] = useState<any>(null);
   const streakMilestoneCheckedRef = useRef(false);
+
+  // ── Missed Workout Penalty Popup ──
+  const [showMissedWorkoutPenalty, setShowMissedWorkoutPenalty] = useState(false);
+  const [missedWorkoutData, setMissedWorkoutData] = useState<{
+    notifId: string; consecutiveDays: number; xpLost: number;
+  } | null>(null);
+  const missedWorkoutCheckedRef = useRef(false);
 
   // ── League Promotion/Relegation Overlay ──
   const [showLeaguePromotion, setShowLeaguePromotion] = useState(false);
@@ -1647,6 +1668,22 @@ const App: React.FC = () => {
 
           setStrikeLiftedNotifId(strikeLiftedNotif.id);
 
+        }
+
+        // Check for pending missed-workout penalty notification
+        if (isFirstPoll && !missedWorkoutCheckedRef.current) {
+          missedWorkoutCheckedRef.current = true;
+          const penaltyNotif = pendingNotifs.find(
+            (n: any) => n?.type === 'missed_workout_penalty'
+          );
+          if (penaltyNotif && penaltyNotif.xpLost > 0) {
+            setMissedWorkoutData({
+              notifId: penaltyNotif.id,
+              consecutiveDays: penaltyNotif.consecutiveDays || 1,
+              xpLost: penaltyNotif.xpLost,
+            });
+            // Don't show yet — the queue effect below will show it after streak overlays
+          }
         }
 
         // ── Streak Break Detection: show prompt if streak just broke ──
@@ -2643,6 +2680,41 @@ const App: React.FC = () => {
     }, 700);
     return () => clearTimeout(timer);
   }, [player.isConfigured, player.userId, onboardingPhase, dataReady, enqueueOverlay]);
+
+
+
+  // ── Missed Workout Penalty Popup ──
+  // Shows AFTER streak celebration AND streak break prompt close.
+  // Pops in only once per missed-workout notification (deduped via missedWorkoutData state).
+  useEffect(() => {
+    if (!player.isConfigured || !dataReady) return;
+    if (!missedWorkoutData) return;
+    if (showMissedWorkoutPenalty) return;
+    // Wait until streak overlays are done
+    if (showStreakCelebration || showStreakBreakPrompt) return;
+    // Don't pile on top of daily login or other priority overlays
+    if (showDailyLogin || showLevelUp || showLevelDown || rankUpData || showWelcomeChest) return;
+    if (showRankReveal) return;
+
+    const timer = setTimeout(() => {
+      setShowMissedWorkoutPenalty(true);
+      triggerHaptic('WARNING');
+    }, 1200); // Small breath after streak closes
+    return () => clearTimeout(timer);
+  }, [
+    player.isConfigured,
+    dataReady,
+    missedWorkoutData,
+    showMissedWorkoutPenalty,
+    showStreakCelebration,
+    showStreakBreakPrompt,
+    showDailyLogin,
+    showLevelUp,
+    showLevelDown,
+    rankUpData,
+    showWelcomeChest,
+    showRankReveal,
+  ]);
 
 
 
@@ -3925,6 +3997,32 @@ const App: React.FC = () => {
                       onDismiss={() => {
                         setShowStreakBreakPrompt(false);
                         setStreakBreakData(null);
+                      }}
+                    />
+                  </ErrorBoundary>
+                </Suspense>
+              )}
+
+              {/* ── Missed Workout XP Penalty Popup ── */}
+              {showMissedWorkoutPenalty && missedWorkoutData && (
+                <Suspense fallback={null}>
+                  <ErrorBoundary>
+                    <MissedWorkoutPenaltyPopup
+                      consecutiveDays={missedWorkoutData.consecutiveDays}
+                      xpLost={missedWorkoutData.xpLost}
+                      onDismiss={() => {
+                        const notifId = missedWorkoutData.notifId;
+                        const userId = player.userId;
+                        setShowMissedWorkoutPenalty(false);
+                        setMissedWorkoutData(null);
+                        // Clear from server so it doesn't re-show on next login
+                        if (userId && !isLocalUser(userId)) {
+                          fetch(`${API_BASE}/api/player/${userId}/notification/${notifId}`, {
+                            method: 'DELETE',
+                            credentials: 'include',
+                            headers: { ...getPlayerAuthHeaders() },
+                          }).catch(() => { });
+                        }
                       }}
                     />
                   </ErrorBoundary>

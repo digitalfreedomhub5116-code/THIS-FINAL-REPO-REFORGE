@@ -26,7 +26,7 @@ import DungeonRewardAnimation from './DungeonRewardAnimation';
 import DoubleRewardModal from './DoubleRewardModal';
 import { buildDungeonWorkoutPlan, buildDungeonWorkoutPlanForEquipment, toggleFormCoach, isExerciseCompletedToday, recordExerciseCompletions } from '../lib/dungeonEngine';
 import { PLEDGE_AMOUNTS, MANDATORY_RANKS } from './SystemPactScreen';
-import { playSystemSoundEffect } from '../utils/soundEngine';
+import { playSystemSoundEffect, triggerHaptic } from '../utils/soundEngine';
 import { API_BASE } from '../lib/apiConfig';
 import { getPlayerAuthHeaders } from '../lib/playerApi';
 import OnboardingNotice from './OnboardingNotice';
@@ -1421,7 +1421,10 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
           return (
             <button
               key={tab}
-              onClick={() => setTodayCategoryTab(tab)}
+              onClick={() => {
+                if (todayCategoryTab !== tab) triggerHaptic('TAB_SWITCH');
+                setTodayCategoryTab(tab);
+              }}
               className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg transition-all active:scale-[0.98]"
               style={{
                 background: isActive ? 'rgba(0,212,255,0.12)' : 'transparent',

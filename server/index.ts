@@ -489,6 +489,33 @@ async function startServer() {
     } catch (err) {
       console.warn('[Server] Could not set up inactive user cleanup:', err);
     }
+
+    // ── Missed Workout Penalty Cron ──
+    // Evaluates each user once per day, deducts XP for consecutive missed workouts,
+    // and pushes a pending_notifications entry that the client renders as a popup.
+    try {
+      const { runMissedWorkoutPenaltyCron } = await import('./lib/missedWorkoutPenalty.js');
+
+      // Run on startup (after 45s delay so other systems init first)
+      setTimeout(() => {
+        console.log('[MissedWorkoutPenalty] Running initial penalty check...');
+        runMissedWorkoutPenaltyCron().catch(err =>
+          console.error('[MissedWorkoutPenalty] Startup run failed:', err)
+        );
+      }, 45_000);
+
+      // Then run every hour — idempotent via last_miss_check_date so this is safe
+      const PENALTY_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
+      setInterval(() => {
+        runMissedWorkoutPenaltyCron().catch(err =>
+          console.error('[MissedWorkoutPenalty] Scheduled run failed:', err)
+        );
+      }, PENALTY_INTERVAL_MS);
+
+      console.log('[Server] Missed workout penalty cron scheduled (every hour)');
+    } catch (err) {
+      console.warn('[Server] Could not set up missed workout penalty cron:', err);
+    }
   });
 }
 
