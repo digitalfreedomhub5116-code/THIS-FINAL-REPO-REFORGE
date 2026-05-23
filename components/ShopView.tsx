@@ -624,6 +624,8 @@ const ShopView: React.FC<ShopViewProps> = ({
   const [highlightGoldStore, setHighlightGoldStore] = useState(false);
 
   // ── Ad unlock progress tracking (per-item ad watch counts) ──
+  // Server-authoritative: progress lives in the ad_unlock_progress table.
+  // localStorage is used only as a transient cache while the network call is in flight.
   type AdProgress = Record<string, { adsWatched: number; adsRequired: number; unlocked: boolean }>;
   const [adProgress, setAdProgress] = useState<AdProgress>(() => {
     try {
@@ -644,21 +646,39 @@ const ShopView: React.FC<ShopViewProps> = ({
 
     try {
       const result = await onWatchRewardedAd(adUnits?.BORDER_REWARD ?? AD_UNITS.BORDER_REWARD);
-      if (result.rewarded) {
-        const nextWatched = progress.adsWatched + 1;
-        const nextProgress: AdProgress = {
-          ...adProgress,
-          [item.id]: { ...progress, adsWatched: nextWatched, unlocked: nextWatched >= item.adsRequired },
-        };
-        setAdProgress(nextProgress);
-        persistBorderAdProgress(nextProgress);
-        if (nextWatched >= item.adsRequired) {
-          addNotification?.(`🔓 ${item.name} unlocked! Tap "Unlock" to claim.`, 'SUCCESS');
-        } else {
-          addNotification?.(`📺 Ad watched! ${nextWatched}/${item.adsRequired} for ${item.name}`, 'INFO');
-        }
-      } else {
+      if (!result.rewarded) {
         addNotification?.('Ad skipped — no progress earned.', 'WARNING');
+        return;
+      }
+      // ── Server is the source of truth ──
+      const headers = getPlayerAuthHeaders();
+      const resp = await fetch(`${API_BASE}/api/ad-unlock/watch`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', ...headers },
+        body: JSON.stringify({ itemId: item.id, adsRequired: item.adsRequired }),
+      });
+      if (!resp.ok) {
+        addNotification?.('Ad credit failed — please try again.', 'WARNING');
+        return;
+      }
+      const data: { adsWatched: number; adsRequired: number; unlocked: boolean; justUnlocked?: boolean } = await resp.json();
+      const nextProgress: AdProgress = {
+        ...adProgress,
+        [item.id]: { adsWatched: data.adsWatched, adsRequired: data.adsRequired, unlocked: data.unlocked },
+      };
+      setAdProgress(nextProgress);
+      persistBorderAdProgress(nextProgress);
+
+      if (data.unlocked) {
+        // Server already inserted the item into user_inventory — refresh local cache
+        fetch(`${API_BASE}/api/inventory`, { credentials: 'include', headers })
+          .then(r => r.ok ? r.json() : { items: [] })
+          .then(d => { if (Array.isArray(d.items)) setServerInventory(d.items); })
+          .catch(() => { });
+        addNotification?.(`🔓 ${item.name} unlocked!`, 'SUCCESS');
+      } else {
+        addNotification?.(`📺 Ad watched! ${data.adsWatched}/${data.adsRequired} for ${item.name}`, 'INFO');
       }
     } catch {
       addNotification?.('Ad failed to load. Try again later.', 'WARNING');
@@ -723,14 +743,29 @@ const ShopView: React.FC<ShopViewProps> = ({
       .catch(() => setInventoryLoaded(true));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── ADS DISABLED — ad unlock progress fetch removed ──
-  // useEffect(() => {
-  //   const headers = getPlayerAuthHeaders();
-  //   fetch(`${API_BASE}/api/ad-unlock/progress`, { credentials: 'include', headers })
-  //     .then(r => r.ok ? r.json() : { progress: {} })
-  //     .then(data => { if (data.progress) setAdProgress(data.progress); })
-  //     .catch(() => {});
-  // }, []);
+  // ── Listen for inventory-refresh events (e.g. from ad-unlock claim button) ──
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (Array.isArray(detail?.items)) setServerInventory(detail.items);
+    };
+    window.addEventListener('reforge:inventory-refresh', handler);
+    return () => window.removeEventListener('reforge:inventory-refresh', handler);
+  }, []);
+
+  // ── Fetch server-authoritative ad-unlock progress on mount ──
+  useEffect(() => {
+    const headers = getPlayerAuthHeaders();
+    fetch(`${API_BASE}/api/ad-unlock/progress`, { credentials: 'include', headers })
+      .then(r => (r.ok ? r.json() : { progress: {} }))
+      .then(data => {
+        if (data.progress && typeof data.progress === 'object') {
+          setAdProgress(data.progress);
+          persistBorderAdProgress(data.progress);
+        }
+      })
+      .catch(() => { /* offline — fall back to local cache already in state */ });
+  }, [persistBorderAdProgress]);
 
 
   // Event Banner Carousel
@@ -2218,16 +2253,34 @@ const KitGlowCard = React.memo(function KitGlowCard({ item, discount, owned, equ
                 </button>
               </div>
             ) : item.adUnlock && adProgress?.unlocked ? (
-              /* ── Ad-gated item: Ready to unlock ── */
-              <button onClick={(e) => { e.stopPropagation(); onBuy(); }} style={{
-                display: 'inline-flex', alignItems: 'center', gap: 4,
-                padding: '8px 24px', border: 'none', cursor: 'pointer', borderRadius: 20,
-                background: 'linear-gradient(135deg, #22C55E, #16A34A)',
-                color: '#000', fontSize: 11, fontWeight: 800, letterSpacing: 0.5,
-                boxShadow: '0 0 14px rgba(34,197,94,0.4)',
-                transition: 'all 0.2s',
-              }}>
-                ✓ Unlock
+              /* ── Ad-gated item: Already unlocked server-side. Refreshing inventory will flip this to "Owned". ── */
+              <button
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  // Server already inserted item into user_inventory at threshold.
+                  // Just refresh inventory to surface it. Don't open the gold modal.
+                  try {
+                    const headers = getPlayerAuthHeaders();
+                    const r = await fetch(`${API_BASE}/api/inventory`, { credentials: 'include', headers });
+                    if (r.ok) {
+                      const d = await r.json();
+                      if (Array.isArray(d.items)) {
+                        // Dispatch via custom event so the parent updates serverInventory
+                        window.dispatchEvent(new CustomEvent('reforge:inventory-refresh', { detail: { items: d.items } }));
+                      }
+                    }
+                  } catch { /* offline */ }
+                }}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 4,
+                  padding: '8px 24px', border: 'none', cursor: 'pointer', borderRadius: 20,
+                  background: 'linear-gradient(135deg, #22C55E, #16A34A)',
+                  color: '#000', fontSize: 11, fontWeight: 800, letterSpacing: 0.5,
+                  boxShadow: '0 0 14px rgba(34,197,94,0.4)',
+                  transition: 'all 0.2s',
+                }}
+              >
+                ✓ Claim
               </button>
             ) : (
               <button onClick={(e) => { e.stopPropagation(); if (canAfford) { onBuy(); } else if (onInsufficientFunds) { onInsufficientFunds(); } }} style={{

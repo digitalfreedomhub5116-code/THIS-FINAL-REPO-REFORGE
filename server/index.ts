@@ -217,10 +217,8 @@ async function startServer() {
   app.use('/api/economy', generalRateLimit, economyRouter.default);
   app.use('/api/inventory', generalRateLimit, inventoryRouter.default);
   app.use('/api/iap', generalRateLimit, iapRouter.default);
-  // ADS DISABLED — ad-unlock route returns 410 for all endpoints
-  app.use('/api/ad-unlock', (_req, res) => {
-    res.status(410).json({ error: 'Ad unlock is no longer available.' });
-  });
+  // Ad-unlock route — server-authoritative ad watch progress + auto-grant on threshold
+  app.use('/api/ad-unlock', generalRateLimit, adUnlockRouter.default);
 
   // Google OAuth setup
   setupGoogleAuth(app);
