@@ -942,6 +942,7 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
   const [showGoalCreate, setShowGoalCreate] = useState(false);
   const [rescheduleQuest, setRescheduleQuest] = useState<Quest | null>(null); // Reschedule modal
   const [pastCollapsed, setPastCollapsed] = useState(true); // F6
+  const [todayCategoryTab, setTodayCategoryTab] = useState<'DEFAULT' | 'CUSTOM'>('DEFAULT');
 
   // Daily Dungeon state
   const [isDungeonActive, setIsDungeonActive] = useState(false);
@@ -1108,18 +1109,41 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
       });
   }, [quests]);
 
+  // ── Default vs Custom split ──
+  // Default: recurring/system quests (isDaily AND not goal-generated) — pairs with the Sung Jin-woo dungeon
+  // Custom: goal-generated quests (have goalId) OR one-time custom quests (isDaily=false)
+  const defaultTodaysQuests = useMemo(
+    () => todaysQuests.filter(q => !q.goalId && q.isDaily),
+    [todaysQuests]
+  );
+  const customTodaysQuests = useMemo(
+    () => todaysQuests.filter(q => !!q.goalId || !q.isDaily),
+    [todaysQuests]
+  );
+  const activeDefaultCount = useMemo(
+    () => defaultTodaysQuests.filter(q => !q.isCompleted && !q.failed).length,
+    [defaultTodaysQuests]
+  );
+  const activeCustomCount = useMemo(
+    () => customTodaysQuests.filter(q => !q.isCompleted && !q.failed).length,
+    [customTodaysQuests]
+  );
+  const visibleTodaysQuests = todayCategoryTab === 'DEFAULT' ? defaultTodaysQuests : customTodaysQuests;
+
   // Build merged timeline: schedule slots + quests interlaced by time
   const timeline = useMemo(() => {
     const entries: { type: 'SLOT' | 'QUEST'; time: number; slot?: ScheduleSlot; quest?: Quest }[] = [];
 
-    // Add schedule slots (skip QUEST type — those are goal-quest slots, we show them as quest cards)
-    scheduleSlots.forEach(slot => {
-      if (slot.type === 'QUEST') return; // Goal quest slots — rendered as quest cards below
-      entries.push({ type: 'SLOT', time: timeToMinutes(slot.startTime), slot });
-    });
+    // Add schedule slots only on DEFAULT tab — Custom tab focuses purely on user/goal quests
+    if (todayCategoryTab === 'DEFAULT') {
+      scheduleSlots.forEach(slot => {
+        if (slot.type === 'QUEST') return; // Goal quest slots — rendered as quest cards below
+        entries.push({ type: 'SLOT', time: timeToMinutes(slot.startTime), slot });
+      });
+    }
 
-    // Add quests
-    todaysQuests.forEach(quest => {
+    // Add quests (filtered by current subsection)
+    visibleTodaysQuests.forEach(quest => {
       const t = quest.scheduledTime
         ? timeToMinutes(quest.scheduledTime.includes('T') ? quest.scheduledTime.split('T')[1].slice(0, 5) : quest.scheduledTime)
         : 9999;
@@ -1130,7 +1154,7 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
     entries.sort((a, b) => a.time - b.time);
 
     return entries;
-  }, [scheduleSlots, todaysQuests]);
+  }, [scheduleSlots, visibleTodaysQuests, todayCategoryTab]);
 
   // Determine which entry is "current"
   const currentEntryIdx = useMemo(() => {
@@ -1383,8 +1407,52 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
 
 
 
-      {/* ── DAILY DUNGEON (Sung Jin-woo Protocol) ── */}
-      {dungeonState && (
+      {/* ── DEFAULT / CUSTOM SUBSECTION TABS ── */}
+      <div
+        className="flex items-center gap-1 p-1 rounded-xl mx-1"
+        style={{
+          background: 'rgba(255,255,255,0.03)',
+          border: '1px solid rgba(255,255,255,0.06)',
+        }}
+      >
+        {(['DEFAULT', 'CUSTOM'] as const).map(tab => {
+          const isActive = todayCategoryTab === tab;
+          const count = tab === 'DEFAULT' ? activeDefaultCount : activeCustomCount;
+          return (
+            <button
+              key={tab}
+              onClick={() => setTodayCategoryTab(tab)}
+              className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg transition-all active:scale-[0.98]"
+              style={{
+                background: isActive ? 'rgba(0,212,255,0.12)' : 'transparent',
+                border: isActive ? '1px solid rgba(0,212,255,0.35)' : '1px solid transparent',
+                boxShadow: isActive ? '0 0 14px rgba(0,212,255,0.18)' : 'none',
+              }}
+            >
+              <span
+                className="text-[10px] font-black font-mono uppercase tracking-[0.18em]"
+                style={{ color: isActive ? '#00d4ff' : 'rgba(156,163,175,0.85)' }}
+              >
+                {tab === 'DEFAULT' ? 'Default' : 'Custom'}
+              </span>
+              <span
+                className="px-1.5 py-0.5 rounded-full text-[9px] font-mono font-bold tabular-nums"
+                style={{
+                  background: isActive ? 'rgba(0,212,255,0.18)' : 'rgba(255,255,255,0.06)',
+                  color: isActive ? '#00d4ff' : '#9ca3af',
+                  minWidth: 18,
+                }}
+              >
+                {count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+
+      {/* ── DAILY DUNGEON (Sung Jin-woo Protocol) — DEFAULT TAB ONLY ── */}
+      {todayCategoryTab === 'DEFAULT' && dungeonState && (
         <div className="mb-4">
           <DungeonQuestCards
             dungeonState={dungeonState}
@@ -1582,9 +1650,11 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
         })()}
 
         {/* Empty state */}
-        {timeline.length === 0 && todaysQuests.length === 0 && (
+        {timeline.length === 0 && visibleTodaysQuests.length === 0 && (
           <div className="text-center py-20 text-gray-600 font-mono text-sm border-2 border-dashed border-gray-800 rounded-lg bg-black/20">
-            NO ACTIVE PROTOCOLS. INITIATE QUEST.
+            {todayCategoryTab === 'CUSTOM'
+              ? 'NO CUSTOM QUESTS. CREATE A QUEST OR GENERATE FROM A GOAL.'
+              : 'NO DEFAULT PROTOCOLS. INITIATE QUEST.'}
           </div>
         )}
 

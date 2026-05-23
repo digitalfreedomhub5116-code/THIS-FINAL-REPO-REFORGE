@@ -107,7 +107,6 @@ const QuestsView: React.FC<QuestsViewProps> = ({
   quests, addQuest, completeQuest, failQuest, resetQuest, deleteQuest, tutorialStep, onTutorialAction, onTutorialAnalysisFail, playerData, onToggleNav, onShowPact, onStartTracking, onStopTracking, onConsumeMana, onRefundMana, isQuestOnboarding, onTutorialManaOut, goals, onUpdateGoals, onDeleteGoal, onDeductGold, onShowInterstitialAd, dungeonState, onInitializeDungeon, onUpdateDungeonState, onCompleteDungeonWorkout, onFailDungeonWorkout,
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<'QUESTS' | 'GOALS'>('QUESTS');
-  const [todayCategoryTab, setTodayCategoryTab] = useState<'DEFAULT' | 'CUSTOM'>('DEFAULT');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -184,15 +183,6 @@ const QuestsView: React.FC<QuestsViewProps> = ({
 
   const timelineQuests = [...quests].sort((a, b) => b.createdAt - a.createdAt);
   const activeCount = quests.filter(q => !q.isCompleted && !q.failed).length;
-
-  // ── Filter quests for Default vs Custom subsection ──
-  // Custom = goal-generated quests (have goalId) OR user-created quests with isDaily=false (one-time custom)
-  // Default = system/recurring quests (no goalId AND isDaily=true) — fallback bucket
-  const customQuests = timelineQuests.filter(q => !!q.goalId || !q.isDaily);
-  const defaultQuests = timelineQuests.filter(q => !q.goalId && q.isDaily);
-  const activeCustomCount = customQuests.filter(q => !q.isCompleted && !q.failed).length;
-  const activeDefaultCount = defaultQuests.filter(q => !q.isCompleted && !q.failed).length;
-  const visibleQuests = todayCategoryTab === 'DEFAULT' ? defaultQuests : customQuests;
 
   const now = new Date();
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
@@ -420,6 +410,21 @@ const QuestsView: React.FC<QuestsViewProps> = ({
 
       {activeSubTab === 'QUESTS' && <>
 
+        {/* ── DAILY DUNGEON (Sung Jin-woo Protocol) ── */}
+        {dungeonState && (
+          <div className="px-0">
+            <DungeonQuestCards
+              dungeonState={dungeonState}
+              onEnterDungeon={handleEnterDungeon}
+              onToggleFormCoach={handleToggleFormCoach}
+              playerGold={playerData?.gold ?? 0}
+              userId={playerData?.userId ?? ''}
+              onUpdateDungeonState={onUpdateDungeonState}
+              onDeductGold={onDeductGold}
+            />
+          </div>
+        )}
+
         {/* Dungeon Workout Player (fullscreen overlay) */}
         {isDungeonActive && dungeonPlan && (
           <ActiveWorkoutPlayer
@@ -467,69 +472,11 @@ const QuestsView: React.FC<QuestsViewProps> = ({
           </button>
         </div>
 
-        {/* ── DEFAULT / CUSTOM SUBSECTION TABS ── */}
-        <div
-          className="flex items-center gap-1 p-1 rounded-xl"
-          style={{
-            background: 'rgba(255,255,255,0.03)',
-            border: '1px solid rgba(255,255,255,0.06)',
-          }}
-        >
-          {(['DEFAULT', 'CUSTOM'] as const).map(tab => {
-            const isActive = todayCategoryTab === tab;
-            const count = tab === 'DEFAULT' ? activeDefaultCount : activeCustomCount;
-            return (
-              <button
-                key={tab}
-                onClick={() => setTodayCategoryTab(tab)}
-                className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg transition-all active:scale-[0.98]"
-                style={{
-                  background: isActive ? 'rgba(0,212,255,0.12)' : 'transparent',
-                  border: isActive ? '1px solid rgba(0,212,255,0.35)' : '1px solid transparent',
-                  boxShadow: isActive ? '0 0 14px rgba(0,212,255,0.18)' : 'none',
-                }}
-              >
-                <span
-                  className="text-[10px] font-black font-mono uppercase tracking-[0.18em]"
-                  style={{ color: isActive ? '#00d4ff' : 'rgba(156,163,175,0.85)' }}
-                >
-                  {tab === 'DEFAULT' ? 'Default' : 'Custom'}
-                </span>
-                <span
-                  className="px-1.5 py-0.5 rounded-full text-[9px] font-mono font-bold"
-                  style={{
-                    background: isActive ? 'rgba(0,212,255,0.18)' : 'rgba(255,255,255,0.06)',
-                    color: isActive ? '#00d4ff' : '#9ca3af',
-                    minWidth: 18,
-                  }}
-                >
-                  {count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* ── DAILY DUNGEON (Sung Jin-woo Protocol) — DEFAULT TAB ONLY ── */}
-        {todayCategoryTab === 'DEFAULT' && dungeonState && (
-          <div className="px-0">
-            <DungeonQuestCards
-              dungeonState={dungeonState}
-              onEnterDungeon={handleEnterDungeon}
-              onToggleFormCoach={handleToggleFormCoach}
-              playerGold={playerData?.gold ?? 0}
-              userId={playerData?.userId ?? ''}
-              onUpdateDungeonState={onUpdateDungeonState}
-              onDeductGold={onDeductGold}
-            />
-          </div>
-        )}
-
       {/* Quest List */}
       <div id="quest-list-container" className="space-y-4 md:space-y-5 min-h-[50vh] pb-20 relative">
         {/* Timeline line removed — caused visual artifact below quest cards */}
         <AnimatePresence mode="popLayout">
-          {visibleQuests.map((quest, index) => {
+          {timelineQuests.map((quest, index) => {
             const isTutorialWelcomePhase = false;
             let isLocked = false;
             if (isTutorialWelcomePhase) {
@@ -562,14 +509,12 @@ const QuestsView: React.FC<QuestsViewProps> = ({
             );
           })}
         </AnimatePresence>
-        {visibleQuests.length === 0 && !(todayCategoryTab === 'DEFAULT' && dungeonState) && (
+        {timelineQuests.length === 0 && (
           <div className="text-center py-20 text-gray-600 font-mono text-sm border-2 border-dashed border-system-border rounded-lg bg-black/20">
-            {todayCategoryTab === 'CUSTOM'
-              ? 'NO CUSTOM QUESTS. CREATE A QUEST OR GENERATE FROM A GOAL.'
-              : 'NO DEFAULT PROTOCOLS. INITIATE DAILY QUEST.'}
+            NO ACTIVE PROTOCOLS. INITIATE QUEST.
           </div>
         )}
-        {visibleQuests.length > 0 && (
+        {timelineQuests.length > 0 && (
           <div className="flex justify-center mt-8">
             <div className="text-[10px] text-gray-700 font-mono flex items-center gap-2">
               <Skull size={12} /> END OF LINE
