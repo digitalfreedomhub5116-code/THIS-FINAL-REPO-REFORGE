@@ -9,6 +9,7 @@ import { showSystemToast } from './SystemToast';
 import { playSystemSoundEffect } from '../utils/soundEngine';
 import { API_BASE } from '../lib/apiConfig';
 import { getPlayerAuthHeaders } from '../lib/playerApi';
+import { buildDungeonGoalQuest, buildDungeonGoalDailyTask } from '../lib/dungeonGoalQuest';
 
 // ── Helpers ──
 function todayStr(): string { return new Date().toISOString().split('T')[0]; }
@@ -105,6 +106,38 @@ export default function GoalsView({
         try {
           const goalStartTime = goal.startDate || goal.createdAt || Date.now();
           const currentDay = Math.max(1, Math.floor((Date.now() - goalStartTime) / (1000 * 60 * 60 * 24)) + 1);
+
+          // ── FITNESS GOAL SHORT-CIRCUIT (auto-gen path) ──
+          // Skip the AI; synthesize a single dungeon-linked quest. No keys consumed.
+          if (goal.category === 'FITNESS' as any) {
+            const currentTime = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+            const dungeonQuest = buildDungeonGoalQuest({ goal, todayStr: today, currentTime });
+            const newDailyTask = buildDungeonGoalDailyTask({ goal, todayStr: today, dayNumber: currentDay, currentTime });
+            const updatedGoal: Goal = {
+              ...goal,
+              dailyTasks: [...(goal.dailyTasks || []).filter(t => t.date !== today), newDailyTask],
+            };
+            updatedGoals = updatedGoals.map(g => g.id === goal.id ? updatedGoal : g);
+            allNewQuests = [...allNewQuests, dungeonQuest];
+            if (dungeonQuest.scheduledTime) {
+              allScheduleSlots = [...allScheduleSlots, {
+                id: `sched-quest-${dungeonQuest.id}`,
+                startTime: dungeonQuest.scheduledTime,
+                endTime: addMins(dungeonQuest.scheduledTime, dungeonQuest.estimatedDuration || 30),
+                type: 'WORKOUT' as const,
+                label: dungeonQuest.title,
+                questId: dungeonQuest.id,
+                goalId: goal.id,
+                status: 'PENDING' as const,
+                isFlexible: true,
+                isCarryOver: false,
+                notifyEnabled: true,
+              }];
+            }
+            _autoGenTracker[goal.id] = today;
+            successCount++;
+            continue;
+          }
 
           const otherGoalTasksToday = goals
             .filter(g => g.id !== goal.id && g.status === 'ACTIVE')

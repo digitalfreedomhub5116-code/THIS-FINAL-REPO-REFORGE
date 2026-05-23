@@ -164,7 +164,18 @@ Users type on mobile. If the goal has typos but intent is clear, interpret corre
 - Always include the most common/recommended option as "prefilled".
 - For experience questions: use levels like "Complete Beginner", "Some Experience", "Intermediate", "Advanced".
 - For time questions: use "30 min", "1 hour", "1.5 hours", "2 hours", "3+ hours".
-- For yes/no questions: use "mcq" with ["Yes", "No"] options.`;
+- For yes/no questions: use "mcq" with ["Yes", "No"] options.
+
+=== FITNESS GOAL — MANDATORY EQUIPMENT QUESTION (NON-NEGOTIABLE) ===
+If category === "FITNESS" (weight loss, muscle gain, get fit, abs, body recomposition, strength, endurance, etc.), the FIRST interview question MUST be EXACTLY:
+  {
+    "id": "equipment",
+    "question": "What equipment do you have access to?",
+    "type": "mcq",
+    "options": ["Full Gym", "Home Dumbbells Only", "Bodyweight Only"],
+    "prefilled": "Bodyweight Only"
+  }
+The options array MUST contain EXACTLY those 3 strings (in that order). Do NOT add other equipment options. Do NOT skip this question for fitness goals.`;
 
     const { result, modelName } = await generateWithFallback(ai, [...DEFAULT_MODEL_CHAIN], prompt);
     const text = result.response.text().trim();
@@ -382,14 +393,40 @@ SCHEDULING RULES:
 1. Place WORKOUT quests during the user's preferred workout time
 2. Place STUDY/READING quests during the user's preferred study time
 3. Place LIGHT tasks (revision, flashcards) in evening or near wind-down
-4. Leave 15-min gaps between consecutive quests
-5. Never schedule quests during blocked times
-6. Never schedule quests after bedtime
-${currentTime ? `7. CRITICAL — CURRENT TIME IS ${currentTime}. The user is generating quests RIGHT NOW. You MUST NOT schedule ANY quest before ${currentTime}. All quests MUST start at least 10 minutes AFTER ${currentTime}. Any time before ${currentTime} is IN THE PAST and cannot be used.` : ''}
+4. Never schedule quests during blocked times
+5. Never schedule quests after bedtime
 
-For EACH quest, include a "scheduledTime" field in "HH:MM" format (24-hour).${currentTime ? `\nREMEMBER: Current time is ${currentTime}. The EARLIEST any quest can start is ${currentTime} + 10 minutes. Do NOT use any time before that.` : ''}
+For EACH quest, include a "scheduledTime" field in "HH:MM" format (24-hour).
 `;
     }
+
+    // ── TIMING CONTRACT — applies whether or not scheduleProfile exists ──
+    const timingContract = currentTime ? `
+=== ⏰ TIMING CONTRACT (CRITICAL — APPLIES TO EVERY QUEST) ===
+CURRENT TIME RIGHT NOW: ${currentTime}
+
+RULE A — FIRST QUEST BUFFER:
+  The FIRST quest's "scheduledTime" MUST be EXACTLY ${addMin(currentTime, 15)} OR LATER.
+  Never schedule the first quest before ${addMin(currentTime, 15)}.
+  Never use any time before ${currentTime} — that is in the past.
+
+RULE B — INTER-QUEST GAP (AI DECIDES SMARTLY):
+  After each quest finishes (its scheduledTime + estimatedDuration), choose a cooldown gap based on quest intensity:
+    • HEAVY quest (≥25 min duration, OR involves: deep practice, intense workout, problem solving, coding, deep reading) → 60-min gap before next quest.
+    • LIGHT quest (<25 min, OR involves: revision, flashcards, brief reading, stretching, journaling) → 30-min gap before next quest.
+  In each quest's "reasoning" field, include one short line like: "Heavy quest — 60min cooldown before next." so the gap choice is explicit.
+
+RULE C — STRICTLY FORWARD-ONLY:
+  Each quest's scheduledTime MUST be ≥ (previous quest's scheduledTime + previous quest's estimatedDuration + chosen gap).
+  No overlaps. No backwards times.
+
+WORKED EXAMPLE (current time = 11:00):
+  Q1: scheduledTime = 11:15, duration = 50, intensity = HEAVY → next earliest = 11:15 + 50 + 60 = 13:05
+  Q2: scheduledTime = 13:05, duration = 20, intensity = LIGHT → next earliest = 13:05 + 20 + 30 = 13:55
+  Q3: scheduledTime = 13:55, duration = 30, intensity = HEAVY → next earliest = 13:55 + 30 + 60 = 15:25
+
+Follow this contract precisely. The server will enforce these rules and rewrite any violations.
+` : '';
 
     const prompt = `You are ForgeGuard — an elite AI MENTOR, not a syllabus generator. You create hyper-realistic, bite-sized MICRO-QUESTS that a real human can actually complete without burning out.
 
@@ -404,7 +441,7 @@ Sample Daily Pattern for this phase: ${JSON.stringify(milestone?.sampleDailyPatt
 User Country: ${userCountry}
 User Language: ${userLanguage}
 Daily commitment for this goal: ${goal.dailyCommitmentMin || remainingMinutes || 90} min
-${scheduleContext}
+${scheduleContext}${timingContract}
 === CONTINUITY DATA (recent days — PICK UP WHERE THE USER LEFT OFF) ===
 ${recentContext || 'No previous data (Day 1 — start from the very beginning, absolute basics)'}
 CRITICAL: Study the recent task titles carefully. If yesterday's task was "Read pages 1-4 of Chapter 1", today MUST start from page 5. NEVER repeat content the user already covered. Track exact page numbers, exercise progressions, lesson numbers, etc.
@@ -568,25 +605,31 @@ URL RULES:
         completed: false,
       }));
 
-      // ── POST-PROCESS: Force-fix quests scheduled in the past ──
-      if (currentTime && parsed.quests) {
+      // ── DETERMINISTIC TIMING ENFORCER (always runs when currentTime exists) ──
+      // Snaps any past or overlapping quests forward using the same rules the AI was told.
+      if (currentTime && parsed.quests && parsed.quests.length > 0) {
         const toMin = (t: string) => { const [h, m] = (t || '00:00').split(':').map(Number); return h * 60 + m; };
         const toHHMM = (mins: number) => `${String(Math.floor(mins / 60) % 24).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
-        const nowMins = toMin(currentTime) + 10; // 10-min buffer from current time
 
-        let nextSlot = nowMins;
+        const FIRST_QUEST_BUFFER = 15;
+        const HEAVY_GAP = 60;
+        const LIGHT_GAP = 30;
+        const HEAVY_PATTERN = /workout|practice|solve|implement|build|run\b|train|deep|intense|chapter|exam|coding|debug|code|exercise|lift|cardio/i;
+
+        const isHeavy = (q: any) => (q.estimatedDuration ?? 20) >= 25 || HEAVY_PATTERN.test(q.title || '');
+
+        const earliestStart = toMin(currentTime) + FIRST_QUEST_BUFFER;
+        let cursor = earliestStart;
+
         parsed.quests = parsed.quests.map((q: any) => {
-          if (!q.scheduledTime) return q;
-          const qMins = toMin(q.scheduledTime);
-          if (qMins < nowMins) {
-            // Quest is in the past — reschedule to next available slot
-            const fixedTime = toHHMM(nextSlot);
-            nextSlot += (q.estimatedDuration || 20) + 10; // quest duration + 10min gap
-            return { ...q, scheduledTime: fixedTime };
-          }
-          // Quest is already in the future — update nextSlot tracker
-          nextSlot = Math.max(nextSlot, qMins + (q.estimatedDuration || 20) + 10);
-          return q;
+          const aiTime = q.scheduledTime ? toMin(q.scheduledTime) : 0;
+          // Snap to whichever is later: AI's pick or our cursor
+          const startMins = Math.max(aiTime, cursor);
+          const fixed = toHHMM(startMins);
+          const duration = q.estimatedDuration ?? 20;
+          const gap = isHeavy(q) ? HEAVY_GAP : LIGHT_GAP;
+          cursor = startMins + duration + gap;
+          return { ...q, scheduledTime: fixed };
         });
       }
     }

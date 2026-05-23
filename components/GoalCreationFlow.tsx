@@ -232,6 +232,19 @@ export default function GoalCreationFlow({
   const handleAcceptMission = useCallback(() => {
     if (!planData) return;
 
+    // Extract equipment selection from interview (fitness goals only)
+    let equipment: 'GYM' | 'HOME_DUMBBELLS' | 'BODYWEIGHT' | undefined;
+    if (category === 'FITNESS') {
+      const eqQ = questions.find(q =>
+        String(q.id) === 'equipment' ||
+        /equipment/i.test(q.question || '')
+      );
+      const ans = String(eqQ?.answer ?? eqQ?.prefilled ?? '').toLowerCase();
+      if (ans.includes('gym')) equipment = 'GYM';
+      else if (ans.includes('dumbbell') || ans.includes('home')) equipment = 'HOME_DUMBBELLS';
+      else equipment = 'BODYWEIGHT';
+    }
+
     const now = Date.now();
     const newGoal: Goal = {
       id: `goal-${now}-${Math.random().toString(36).slice(2, 8)}`,
@@ -255,6 +268,7 @@ export default function GoalCreationFlow({
       streak: 0,
       dailyTasks: [],
       createdAt: now,
+      ...(equipment ? { equipment } : {}),
     };
 
     playSystemSoundEffect('LEVEL_UP');
@@ -278,90 +292,194 @@ export default function GoalCreationFlow({
         className="w-full max-w-md max-h-[85vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl"
         style={{ background: '#0a0a0f', border: '1px solid rgba(255,255,255,0.06)', marginBottom: 80 }}
       >
-        {/* Header */}
-        <div className="sticky top-0 z-10 flex items-center justify-between px-5 pt-5 pb-3" style={{ background: '#0a0a0f' }}>
-          <div>
-            <h2 className="text-sm font-black text-white uppercase tracking-wider">
-              {step === 'INPUT' && 'New Shadow Mission'}
-              {step === 'ANALYZING' && 'Analyzing Goal...'}
-              {step === 'INTERVIEW' && 'Mission Intel'}
-              {step === 'PLANNING' && 'Generating Plan...'}
-              {step === 'REVIEW' && 'Mission Briefing'}
-              {step === 'ERROR' && 'Mission Rejected'}
-            </h2>
-            <p className="text-[10px] text-gray-600 font-mono mt-0.5">
-              {step === 'INPUT' && 'Define your long-term goal'}
-              {step === 'INTERVIEW' && 'Answer to refine your plan'}
-              {step === 'REVIEW' && 'Review and accept your mission'}
-            </p>
+        {/* Header (hidden for INPUT step — it has its own image hero) */}
+        {step !== 'INPUT' && (
+          <div className="sticky top-0 z-10 flex items-center justify-between px-5 pt-5 pb-3" style={{ background: '#0a0a0f' }}>
+            <div>
+              <h2 className="text-sm font-black text-white uppercase tracking-wider">
+                {step === 'ANALYZING' && 'Analyzing Goal...'}
+                {step === 'INTERVIEW' && 'Mission Intel'}
+                {step === 'PLANNING' && 'Generating Plan...'}
+                {step === 'REVIEW' && 'Mission Briefing'}
+                {step === 'ERROR' && 'Mission Rejected'}
+              </h2>
+              <p className="text-[10px] text-gray-600 font-mono mt-0.5">
+                {step === 'INTERVIEW' && 'Answer to refine your plan'}
+                {step === 'REVIEW' && 'Review and accept your mission'}
+              </p>
+            </div>
+            <button onClick={onClose} className="p-2 rounded-xl hover:bg-white/5 transition-colors">
+              <X className="w-4 h-4 text-gray-500" />
+            </button>
           </div>
-          <button onClick={onClose} className="p-2 rounded-xl hover:bg-white/5 transition-colors">
-            <X className="w-4 h-4 text-gray-500" />
-          </button>
-        </div>
+        )}
 
-        <div className="px-5 pb-6">
+        <div className={step === 'INPUT' ? '' : 'px-5 pb-6'}>
           <AnimatePresence mode="wait">
-            {/* ── INPUT STEP ── */}
+            {/* ── INPUT STEP — IMAGE HERO LAYOUT ── */}
             {step === 'INPUT' && (
-              <motion.div key="input" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-                <div className="mb-4">
-                  <label className="block text-[10px] font-mono text-gray-500 uppercase tracking-wider mb-2">
-                    What do you want to achieve?
-                  </label>
+              <motion.div key="input" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                {/* Hero image — top 60% */}
+                <div style={{
+                  position: 'relative',
+                  width: '100%',
+                  height: 360,
+                  overflow: 'hidden',
+                  borderTopLeftRadius: 24,
+                  borderTopRightRadius: 24,
+                }}>
+                  <img
+                    src="/onboarding/arrow_target.webp"
+                    alt=""
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      objectPosition: 'center 30%',
+                      display: 'block',
+                    }}
+                  />
+                  {/* Shadow fade gradient */}
+                  <div style={{
+                    position: 'absolute', inset: 0,
+                    background: 'linear-gradient(180deg, rgba(10,10,15,0.15) 0%, transparent 35%, rgba(10,10,15,0.6) 75%, #0a0a0f 100%)',
+                    pointerEvents: 'none',
+                  }} />
+                  {/* Floating close button */}
+                  <button
+                    onClick={onClose}
+                    style={{
+                      position: 'absolute', top: 14, right: 14,
+                      width: 36, height: 36,
+                      borderRadius: 12,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: 'rgba(0,0,0,0.55)',
+                      backdropFilter: 'blur(8px)',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <X size={16} color="#fff" />
+                  </button>
+                  {/* Title overlay near bottom of hero */}
+                  <div style={{
+                    position: 'absolute', left: 24, right: 24, bottom: 18,
+                    pointerEvents: 'none',
+                  }}>
+                    <h2 style={{
+                      fontFamily: 'Orbitron, system-ui, sans-serif',
+                      fontSize: 22, fontWeight: 900,
+                      letterSpacing: '0.04em',
+                      color: '#fff',
+                      margin: 0,
+                      textShadow: '0 2px 12px rgba(0,0,0,0.7)',
+                    }}>
+                      FORGE YOUR MISSION
+                    </h2>
+                    <p style={{
+                      fontSize: 12,
+                      color: 'rgba(255,255,255,0.7)',
+                      margin: '4px 0 0 0',
+                      fontWeight: 500,
+                      textShadow: '0 1px 6px rgba(0,0,0,0.7)',
+                    }}>
+                      What do you want to achieve?
+                    </p>
+                  </div>
+                </div>
+
+                {/* Form content below image */}
+                <div style={{ padding: '20px 20px 24px' }}>
                   <textarea
                     value={goalText}
                     onChange={e => { setGoalText(e.target.value); setError(null); }}
-                    placeholder='e.g. "Crack my dream exam" or "Earn ₹1 Lakh/month" or "Get into the best shape of my life"'
+                    placeholder='Lose 10 kg • Crack JEE • Earn ₹1L/mo'
                     maxLength={200}
-                    rows={3}
-                    className="w-full rounded-xl p-3.5 text-white text-sm focus:outline-none transition-all placeholder:text-gray-700 font-mono resize-none"
-                    style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', boxShadow: 'inset 0 1px 4px rgba(0,0,0,0.3)' }}
+                    rows={2}
+                    style={{
+                      width: '100%',
+                      borderRadius: 14,
+                      padding: '14px 16px',
+                      color: '#fff',
+                      fontSize: 15,
+                      fontWeight: 500,
+                      background: 'rgba(255,255,255,0.04)',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      boxShadow: 'inset 0 1px 4px rgba(0,0,0,0.3)',
+                      outline: 'none',
+                      resize: 'none',
+                      fontFamily: 'system-ui, sans-serif',
+                    }}
                     autoFocus
                   />
-                  <div className="flex justify-between mt-1.5 px-0.5">
-                    <span className="text-[9px] text-gray-600 font-mono">7 days – 365 days scope</span>
-                    <span className="text-[9px] text-gray-700 font-mono">{goalText.length}/200</span>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 6, paddingRight: 4 }}>
+                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontFamily: 'monospace' }}>
+                      {goalText.length}/200
+                    </span>
                   </div>
+
+                  {/* Compact tips */}
+                  <div style={{
+                    marginTop: 14,
+                    borderRadius: 12,
+                    padding: 12,
+                    background: 'rgba(255,255,255,0.02)',
+                    border: '1px solid rgba(255,255,255,0.05)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 6,
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>
+                      <Target size={12} color="#00d4ff" style={{ flexShrink: 0 }} />
+                      <span>Be specific — use exact numbers.</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>
+                      <Calendar size={12} color="#00d4ff" style={{ flexShrink: 0 }} />
+                      <span>Achievable within 365 days.</span>
+                    </div>
+                  </div>
+
+                  {error && (
+                    <div style={{
+                      marginTop: 14,
+                      borderRadius: 12,
+                      padding: 12,
+                      background: 'rgba(0,212,255,0.06)',
+                      border: '1px solid rgba(0,212,255,0.15)',
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: 8,
+                    }}>
+                      <AlertTriangle size={14} color="#00d4ff" style={{ flexShrink: 0, marginTop: 2 }} />
+                      <span style={{ fontSize: 11, color: '#d1d5db' }}>{error}</span>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={handleAnalyze}
+                    disabled={goalText.trim().length < 5}
+                    style={{
+                      width: '100%',
+                      marginTop: 16,
+                      padding: '14px 0',
+                      borderRadius: 14,
+                      fontSize: 13,
+                      fontWeight: 900,
+                      letterSpacing: '0.12em',
+                      textTransform: 'uppercase',
+                      border: 'none',
+                      cursor: goalText.trim().length < 5 ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.2s',
+                      background: goalText.trim().length < 5
+                        ? 'rgba(255,255,255,0.05)'
+                        : 'linear-gradient(135deg, #00d4ff, #0099cc)',
+                      color: goalText.trim().length < 5 ? 'rgba(255,255,255,0.3)' : '#000',
+                      boxShadow: goalText.trim().length < 5 ? 'none' : '0 4px 20px rgba(0,212,255,0.3)',
+                    }}
+                  >
+                    Analyze — {KEY_COST} Keys
+                  </button>
                 </div>
-
-                {/* Rules note */}
-                <div className="rounded-xl p-3 mb-4" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
-                  <div className="text-[9px] font-mono text-gray-500 space-y-1">
-                    <div className="flex items-center gap-2">
-                      <Target className="w-3 h-3 text-[#00d4ff] flex-shrink-0" />
-                      <span>Be specific — "Lose 15kg" not "Lose weight"</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-3 h-3 text-[#00d4ff] flex-shrink-0" />
-                      <span>Goals must be achievable within 1 year (365 days)</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Shield className="w-3 h-3 text-[#00d4ff] flex-shrink-0" />
-                      <span>AI will calculate realistic timeline for you</span>
-                    </div>
-                  </div>
-                </div>
-
-                {error && (
-                  <div className="rounded-xl p-3 mb-4 flex items-start gap-2" style={{ background: 'rgba(0,212,255,0.06)', border: '1px solid rgba(0,212,255,0.15)' }}>
-                    <AlertTriangle className="w-3.5 h-3.5 text-[#00d4ff] flex-shrink-0 mt-0.5" />
-                    <span className="text-[10px] text-gray-300 font-mono">{error}</span>
-                  </div>
-                )}
-
-                <button
-                  onClick={handleAnalyze}
-                  disabled={goalText.trim().length < 5}
-                  className={`w-full py-3.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
-                    goalText.trim().length < 5
-                      ? 'bg-white/5 text-gray-600 cursor-not-allowed'
-                      : 'text-black'
-                  }`}
-                  style={goalText.trim().length >= 5 ? { background: 'linear-gradient(135deg, #00d4ff, #00d4ff)' } : undefined}
-                >
-                  Analyze Goal — {KEY_COST} Keys
-                </button>
               </motion.div>
             )}
 

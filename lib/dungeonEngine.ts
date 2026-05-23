@@ -300,6 +300,131 @@ export function buildDungeonWorkoutPlan(targets: DungeonExerciseTarget[]): Worko
   };
 }
 
+// ── Equipment-aware dungeon plan (used when entering from a fitness goal) ──
+// Reuses the user's baseline reps so progression carries over across plans.
+export type DungeonEquipment = 'GYM' | 'HOME_DUMBBELLS' | 'BODYWEIGHT';
+
+export function buildDungeonWorkoutPlanForEquipment(
+  state: DungeonState,
+  equipment: DungeonEquipment
+): WorkoutDay {
+  // Bodyweight = the original Sung Jin-woo Protocol (no behaviour change)
+  if (equipment === 'BODYWEIGHT') {
+    return buildDungeonWorkoutPlan(state.targets);
+  }
+
+  const pushupTarget = state.targets.find(t => t.exercise === 'PUSHUPS');
+  const squatTarget = state.targets.find(t => t.exercise === 'SQUATS');
+  const runTarget = state.targets.find(t => t.exercise === 'RUNNING');
+
+  const baseReps = pushupTarget?.reps || 10;
+  const squatReps = squatTarget?.reps || 12;
+  const sets = pushupTarget?.sets || DEFAULT_SETS;
+  const fcPushups = pushupTarget?.formCoachEnabled ?? true;
+  const fcSquats = squatTarget?.formCoachEnabled ?? true;
+
+  if (equipment === 'HOME_DUMBBELLS') {
+    return {
+      day: 'Daily Dungeon',
+      focus: 'DAILY DUNGEON — Dumbbell Protocol',
+      exercises: [
+        {
+          name: 'Dumbbell Goblet Squats',
+          sets,
+          reps: String(squatReps),
+          duration: sets * 60,
+          completed: false,
+          type: 'COMPOUND' as const,
+          notes: `Hold one dumbbell at chest — ${squatReps} reps × ${sets} sets`,
+          formCoachEnabled: fcSquats,
+        },
+        {
+          name: 'Dumbbell Floor Press',
+          sets,
+          reps: String(baseReps),
+          duration: sets * 60,
+          completed: false,
+          type: 'COMPOUND' as const,
+          notes: `Lie on floor, press dumbbells up — ${baseReps} reps × ${sets} sets`,
+          formCoachEnabled: fcPushups,
+        },
+        {
+          name: 'Bent-Over Dumbbell Rows',
+          sets,
+          reps: String(baseReps),
+          duration: sets * 60,
+          completed: false,
+          type: 'COMPOUND' as const,
+          notes: `Hinge at hips, row dumbbells to ribs — ${baseReps} reps × ${sets} sets`,
+          formCoachEnabled: false,
+        },
+        ...(runTarget ? [{
+          name: 'Running',
+          sets: 1,
+          reps: `${runTarget.distanceKm || 1} km`,
+          duration: (runTarget.distanceKm || 1) * 6 * 60,
+          completed: false,
+          type: 'CARDIO' as const,
+          notes: `Cardio finisher — ${runTarget.distanceKm || 1} km`,
+          formCoachEnabled: false,
+          sensorRequirements: { distanceKm: runTarget.distanceKm || 1 },
+        } as any] : []),
+      ],
+      totalDuration: Math.ceil((sets * 60 * 3 + (runTarget ? (runTarget.distanceKm || 1) * 6 * 60 : 0)) / 60),
+    };
+  }
+
+  // GYM
+  return {
+    day: 'Daily Dungeon',
+    focus: 'DAILY DUNGEON — Gym Protocol',
+    exercises: [
+      {
+        name: 'Barbell Back Squats',
+        sets,
+        reps: String(Math.max(5, Math.round(squatReps * 0.7))),
+        duration: sets * 90,
+        completed: false,
+        type: 'COMPOUND' as const,
+        notes: `Use a moderate weight — ${Math.max(5, Math.round(squatReps * 0.7))} reps × ${sets} sets`,
+        formCoachEnabled: fcSquats,
+      },
+      {
+        name: 'Barbell Bench Press',
+        sets,
+        reps: String(Math.max(5, Math.round(baseReps * 0.7))),
+        duration: sets * 90,
+        completed: false,
+        type: 'COMPOUND' as const,
+        notes: `Controlled tempo — ${Math.max(5, Math.round(baseReps * 0.7))} reps × ${sets} sets`,
+        formCoachEnabled: fcPushups,
+      },
+      {
+        name: 'Lat Pulldown',
+        sets,
+        reps: String(Math.max(8, baseReps)),
+        duration: sets * 60,
+        completed: false,
+        type: 'COMPOUND' as const,
+        notes: `Wide grip — ${Math.max(8, baseReps)} reps × ${sets} sets`,
+        formCoachEnabled: false,
+      },
+      ...(runTarget ? [{
+        name: 'Treadmill Run',
+        sets: 1,
+        reps: `${runTarget.distanceKm || 1} km`,
+        duration: (runTarget.distanceKm || 1) * 6 * 60,
+        completed: false,
+        type: 'CARDIO' as const,
+        notes: `Cardio finisher — ${runTarget.distanceKm || 1} km`,
+        formCoachEnabled: false,
+        sensorRequirements: { distanceKm: runTarget.distanceKm || 1 },
+      } as any] : []),
+    ],
+    totalDuration: Math.ceil((sets * (90 + 90 + 60) + (runTarget ? (runTarget.distanceKm || 1) * 6 * 60 : 0)) / 60),
+  };
+}
+
 // ── Get progression tier label (for UI) ──
 export function getProgressionTier(state: DungeonState): { label: string; color: string; level: number } {
   const mult = state.progressionMultiplier;

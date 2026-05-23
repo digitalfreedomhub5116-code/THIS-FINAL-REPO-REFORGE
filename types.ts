@@ -220,6 +220,9 @@ export interface Quest {
   goalQuestResources?: GoalQuestResource[];
   goalQuestSteps?: string[];
   connectionToPrevious?: string;
+  // Dungeon-linked quest (fitness goal → daily dungeon)
+  isDungeonQuest?: boolean;
+  dungeonEquipment?: 'GYM' | 'HOME_DUMBBELLS' | 'BODYWEIGHT';
 }
 
 export interface ShopItem {
@@ -631,6 +634,10 @@ export interface GoalQuest {
   completed?: boolean;
   stepByStep?: string[];
   resources?: GoalQuestResource[];
+  scheduledTime?: string;
+  // Dungeon-linked goal quest (fitness goals)
+  isDungeonQuest?: boolean;
+  dungeonEquipment?: 'GYM' | 'HOME_DUMBBELLS' | 'BODYWEIGHT';
 }
 
 export interface GoalDailyTask {
@@ -673,6 +680,9 @@ export interface Goal {
   isSystemGoal?: boolean;
   systemGoalType?: 'DAILY_DUNGEON';
   coverImage?: string; // Background image for visual goal cards
+
+  // Fitness goal equipment (selected during goal creation interview)
+  equipment?: 'GYM' | 'HOME_DUMBBELLS' | 'BODYWEIGHT';
 }
 
 export interface PlayerData {

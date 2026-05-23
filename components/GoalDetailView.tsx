@@ -5,6 +5,7 @@ import { Goal, GoalDailyTask, GoalQuest, GoalQuestResource, PlayerData, Quest, R
 import { playSystemSoundEffect } from '../utils/soundEngine';
 import { API_BASE } from '../lib/apiConfig';
 import { getPlayerAuthHeaders } from '../lib/playerApi';
+import { buildDungeonGoalQuest, buildDungeonGoalDailyTask } from '../lib/dungeonGoalQuest';
 
 function addMins(time: string, mins: number): string {
   const [h, m] = time.split(':').map(Number);
@@ -271,6 +272,45 @@ export function startQuestGeneration(params: {
   }
 
   updateQuestGenStore({ state: 'GENERATING', goalId: goal.id, todayTasks: null, error: null, pendingGoalUpdate: null, pendingFeedQuests: [], pendingScheduleSlots: [] });
+
+  // ── FITNESS GOAL SHORT-CIRCUIT ──
+  // For fitness goals, skip the AI entirely and synthesize a single "Enter Today's Dungeon" quest.
+  // This connects fitness goals to the daily dungeon flow (no key cost).
+  if (goal.category === 'FITNESS' as any) {
+    const currentTime = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+    const dungeonQuest = buildDungeonGoalQuest({ goal, todayStr, currentTime });
+    const newDailyTask = buildDungeonGoalDailyTask({ goal, todayStr, dayNumber: currentDay, currentTime });
+
+    const updatedGoal: Goal = {
+      ...goal,
+      dailyTasks: [...(goal.dailyTasks || []).filter(t => t.date !== todayStr), newDailyTask],
+    };
+
+    const scheduleSlots = dungeonQuest.scheduledTime ? [{
+      id: `sched-quest-${dungeonQuest.id}`,
+      startTime: dungeonQuest.scheduledTime,
+      endTime: addMins(dungeonQuest.scheduledTime, dungeonQuest.estimatedDuration || 30),
+      type: 'WORKOUT' as const,
+      label: dungeonQuest.title,
+      questId: dungeonQuest.id,
+      goalId: goal.id,
+      status: 'PENDING' as const,
+      isFlexible: true,
+      isCarryOver: false,
+      notifyEnabled: true,
+    }] : [];
+
+    updateQuestGenStore({
+      state: 'DONE',
+      todayTasks: newDailyTask,
+      error: null,
+      pendingGoalUpdate: updatedGoal,
+      pendingFeedQuests: [dungeonQuest],
+      pendingScheduleSlots: scheduleSlots,
+    });
+    playSystemSoundEffect('PURCHASE');
+    return;
+  }
 
   const otherGoalTasksToday = allGoals
     .filter(g => g.id !== goal.id && g.status === 'ACTIVE')
