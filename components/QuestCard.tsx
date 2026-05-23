@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Check, X, Dumbbell, Brain, Shield, Users, Zap, Trash2, ZapOff, Lock, Coins, Flame, Eye, MapPin, Activity, Play, Square, Target, ExternalLink, BookOpen, Youtube, Search, ChevronDown, ChevronUp } from 'lucide-react';
+import { Check, X, Dumbbell, Brain, Shield, Users, Zap, Trash2, ZapOff, Lock, Coins, Flame, Eye, MapPin, Activity, Play, Square, Target, ExternalLink, BookOpen, Youtube, Search, ChevronDown, ChevronUp, Swords } from 'lucide-react';
 import { Quest, CoreStats, Rank } from '../types';
 import { SystemCoin } from './icons/SystemCoin';
 
@@ -16,6 +16,8 @@ interface QuestCardProps {
   onReschedule?: () => void;
   onStartTracking?: (id: string, requirements?: { steps?: number; distanceKm?: number; activeMinutes?: number }) => void;
   onStopTracking?: (id: string) => void;
+  /** Called when user taps "Enter Dungeon" on a fitness-goal dungeon quest */
+  onEnterDungeon?: (equipment?: 'GYM' | 'HOME_DUMBBELLS' | 'BODYWEIGHT') => void;
 }
 
 const RANK_BAR: Record<Rank, string> = {
@@ -84,7 +86,7 @@ const SensorBar: React.FC<{
   );
 };
 
-const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDelete, isLocked, lockMessage, onReschedule, onStartTracking, onStopTracking }) => {
+const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDelete, isLocked, lockMessage, onReschedule, onStartTracking, onStopTracking, onEnterDungeon }) => {
   const [isMiniView, setIsMiniView] = useState(false);
   const [showResources, setShowResources] = useState(false);
   const [titleExpanded, setTitleExpanded] = useState(false);
@@ -399,17 +401,31 @@ const QuestCard: React.FC<QuestCardProps> = ({ quest, onComplete, onFail, onDele
               style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.15)', color: 'rgba(239,68,68,0.35)' }}>
               <X size={12} strokeWidth={2.5} />
             </button>
-            {/* Complete — compact */}
-            <button onClick={handleComplete}
-              className="flex items-center gap-1.5 h-7 px-3.5 rounded-lg text-[10px] font-black font-mono uppercase tracking-wide active:scale-95"
-              style={{
-                background: isMiniActive ? 'rgba(0,212,255,0.1)' : 'rgba(34,197,94,0.1)',
-                border: isMiniActive ? '1px solid rgba(0,212,255,0.3)' : '1px solid rgba(34,197,94,0.3)',
-                color: isMiniActive ? '#00d4ff' : '#4ade80',
-              }}>
-              <Check size={11} strokeWidth={3} />
-              {isMiniActive ? `+${Math.floor(quest.xpReward * 0.1)}` : 'Complete'}
-            </button>
+            {/* Complete — compact (or Enter Dungeon for fitness goals) */}
+            {quest.isDungeonQuest ? (
+              <button onClick={() => onEnterDungeon?.(quest.dungeonEquipment)}
+                className="flex items-center gap-1.5 h-7 px-3.5 rounded-lg text-[10px] font-black font-mono uppercase tracking-wide active:scale-95"
+                style={{
+                  background: 'rgba(0,212,255,0.12)',
+                  border: '1px solid rgba(0,212,255,0.4)',
+                  color: '#00d4ff',
+                  boxShadow: '0 0 12px rgba(0,212,255,0.15)',
+                }}>
+                <Swords size={11} />
+                Enter Dungeon
+              </button>
+            ) : (
+              <button onClick={handleComplete}
+                className="flex items-center gap-1.5 h-7 px-3.5 rounded-lg text-[10px] font-black font-mono uppercase tracking-wide active:scale-95"
+                style={{
+                  background: isMiniActive ? 'rgba(0,212,255,0.1)' : 'rgba(34,197,94,0.1)',
+                  border: isMiniActive ? '1px solid rgba(0,212,255,0.3)' : '1px solid rgba(34,197,94,0.3)',
+                  color: isMiniActive ? '#00d4ff' : '#4ade80',
+                }}>
+                <Check size={11} strokeWidth={3} />
+                {isMiniActive ? `+${Math.floor(quest.xpReward * 0.1)}` : 'Complete'}
+              </button>
+            )}
           </div>
         )}
 

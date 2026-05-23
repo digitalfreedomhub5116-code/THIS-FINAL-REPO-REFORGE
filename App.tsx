@@ -814,6 +814,7 @@ const App: React.FC = () => {
 
 
   const [isDungeonMode] = useState(false);
+  const [dungeonEntryTrigger, setDungeonEntryTrigger] = useState<{ equipment?: 'GYM' | 'HOME_DUMBBELLS' | 'BODYWEIGHT'; timestamp: number } | null>(null);
 
 
 
@@ -4887,6 +4888,7 @@ const App: React.FC = () => {
                           onCompleteDungeonWorkout={completeDungeonWorkout}
                           onFailDungeonWorkout={failDungeonWorkout}
                           onAddRewards={addRewards}
+                          dungeonEntryTrigger={dungeonEntryTrigger ?? undefined}
                           />
                         </ErrorBoundary>
                       </Suspense>

@@ -24,7 +24,7 @@ import DungeonQuestCards from './DungeonQuestCards';
 import ActiveWorkoutPlayer, { clearWorkoutSession } from './ActiveWorkoutPlayer';
 import DungeonRewardAnimation from './DungeonRewardAnimation';
 import DoubleRewardModal from './DoubleRewardModal';
-import { buildDungeonWorkoutPlan, toggleFormCoach, isExerciseCompletedToday, recordExerciseCompletions } from '../lib/dungeonEngine';
+import { buildDungeonWorkoutPlan, buildDungeonWorkoutPlanForEquipment, toggleFormCoach, isExerciseCompletedToday, recordExerciseCompletions } from '../lib/dungeonEngine';
 import { PLEDGE_AMOUNTS, MANDATORY_RANKS } from './SystemPactScreen';
 import { playSystemSoundEffect } from '../utils/soundEngine';
 import { API_BASE } from '../lib/apiConfig';
@@ -141,6 +141,8 @@ interface DailyCommandCenterProps {
   onUpdateDungeonState?: (updater: (prev: DungeonState) => DungeonState) => void;
   onCompleteDungeonWorkout?: (exercisesCompleted: number, totalExercises: number, results: Record<string, number>, anomalyPoints?: number, formCoachBonusXp?: number, formCoachSession?: FormCoachSession) => any;
   onFailDungeonWorkout?: () => void;
+  /** If set, DCC should auto-enter dungeon with this equipment */
+  dungeonEntryTrigger?: { equipment?: 'GYM' | 'HOME_DUMBBELLS' | 'BODYWEIGHT'; timestamp: number };
 
   // Reward doubling
   onAddRewards?: (gold: number, xp: number) => void;
@@ -758,7 +760,8 @@ const QuestTimelineRow: React.FC<{
   onReschedule?: (quest: Quest) => void;
   onStartTracking?: (id: string, requirements?: any) => void;
   onStopTracking?: (id: string) => void;
-}> = ({ quest, currentMinutes, isCurrent, isPast, isLast, onComplete, onFail, onReset, onDelete, onReschedule, onStartTracking, onStopTracking }) => {
+  onEnterDungeon?: (equipment?: 'GYM' | 'HOME_DUMBBELLS' | 'BODYWEIGHT') => void;
+}> = ({ quest, currentMinutes, isCurrent, isPast, isLast, onComplete, onFail, onReset, onDelete, onReschedule, onStartTracking, onStopTracking, onEnterDungeon }) => {
   const scheduledStr = quest.scheduledTime?.includes('T')
     ? quest.scheduledTime.split('T')[1].slice(0, 5)
     : (quest.scheduledTime || '00:00');
@@ -851,6 +854,7 @@ const QuestTimelineRow: React.FC<{
             onDelete={onDelete}
             onStartTracking={onStartTracking}
             onStopTracking={onStopTracking}
+            onEnterDungeon={onEnterDungeon}
           />
         </div>
       </div>
@@ -921,7 +925,7 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
   onSlotAction, onToggleNotify, onReorderSlots, onShowInterstitialAd,
   adShowInterstitial, adShowRewarded, adUnits, adsReady,
   dungeonState, onInitializeDungeon, onUpdateDungeonState, onCompleteDungeonWorkout, onFailDungeonWorkout,
-  onAddRewards,
+  onAddRewards, dungeonEntryTrigger,
 }) => {
   // ── State ──
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -952,15 +956,27 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
     }
   }, [playerData?.healthProfile, onInitializeDungeon]);
 
-  const handleEnterDungeon = useCallback(() => {
+  // Auto-enter dungeon when triggered from a goal quest card
+  useEffect(() => {
+    if (dungeonEntryTrigger && dungeonEntryTrigger.timestamp > 0) {
+      handleEnterDungeon(dungeonEntryTrigger.equipment);
+    }
+  }, [dungeonEntryTrigger?.timestamp]);
+
+  const handleEnterDungeon = useCallback((equipmentOverride?: 'GYM' | 'HOME_DUMBBELLS' | 'BODYWEIGHT') => {
     if (!dungeonState) return;
-    // Build plan only for exercises not yet completed today
-    const remainingTargets = dungeonState.targets.filter(
-      (t: DungeonExerciseTarget) => !isExerciseCompletedToday(dungeonState, t.exercise)
-    );
-    // If all are done, use full plan (shouldn't happen but safety)
-    const targetsForPlan = remainingTargets.length > 0 ? remainingTargets : dungeonState.targets;
-    const plan = buildDungeonWorkoutPlan(targetsForPlan);
+    let plan;
+    if (equipmentOverride) {
+      plan = buildDungeonWorkoutPlanForEquipment(dungeonState, equipmentOverride);
+    } else {
+      // Build plan only for exercises not yet completed today
+      const remainingTargets = dungeonState.targets.filter(
+        (t: DungeonExerciseTarget) => !isExerciseCompletedToday(dungeonState, t.exercise)
+      );
+      // If all are done, use full plan (shouldn't happen but safety)
+      const targetsForPlan = remainingTargets.length > 0 ? remainingTargets : dungeonState.targets;
+      plan = buildDungeonWorkoutPlan(targetsForPlan);
+    }
     setDungeonPlan(plan);
     setIsDungeonActive(true);
     onToggleNav?.(false);
@@ -1553,6 +1569,7 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
                         onReschedule={rescheduleQuestProp ? (q) => setRescheduleQuest(q) : undefined}
                         onStartTracking={onStartTracking}
                         onStopTracking={onStopTracking}
+                        onEnterDungeon={(equipment) => handleEnterDungeon(equipment)}
                       />
                     </motion.div>
                   );
