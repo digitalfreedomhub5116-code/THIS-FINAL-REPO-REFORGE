@@ -25,6 +25,13 @@
       ::-webkit-scrollbar-track { background: #000000; }
       ::-webkit-scrollbar-thumb { background: #1f1f1f; border-radius: 4px; }
       ::-webkit-scrollbar-thumb:hover { background: #8b5cf6; }
+      /* Suppress native video player chrome on Android WebView */
+      video::-webkit-media-controls { display: none !important; }
+      video::-webkit-media-controls-enclosure { display: none !important; }
+      video::-webkit-media-controls-panel { display: none !important; }
+      video::-webkit-media-controls-play-button { display: none !important; }
+      video::-internal-media-controls-download-button { display: none !important; }
+      video { -webkit-media-controls: none; }
     </style>
   </head>
   <body>

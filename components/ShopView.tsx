@@ -365,10 +365,10 @@ const ItemsTab: React.FC<{ gold: number }> = ({ gold }) => {
 
 
 /* ═══════════════════════════════════
-   FreeKeyAdBanner — Watch 3 ads to earn 1 Key Crystal
+   FreeKeyAdBanner — Watch 2 ads to earn 1 Key Crystal
    ═══════════════════════════════════ */
 const FREE_KEY_PROGRESS_KEY = 'reforge:freeKeyAdProgress';
-const ADS_PER_KEY = 3;
+const ADS_PER_KEY = 2;
 
 const FreeKeyAdBanner: React.FC<{
   onWatchRewardedAd?: (adUnitId: string) => Promise<{ rewarded: boolean }>;
@@ -472,7 +472,7 @@ const FreeKeyAdBanner: React.FC<{
         {/* Content */}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 13, fontWeight: 900, color: '#fff', marginBottom: 2, letterSpacing: '0.02em' }}>
-            Watch 3 Ads to Earn a Free Key
+            Watch 2 Ads to Earn a Free Key
           </div>
           <div style={{ fontSize: 10, color: 'rgba(214,188,250,0.75)', fontFamily: 'monospace', marginBottom: 8 }}>
             {ready ? 'Ready! Claim your reward' : `Progress: ${progress} / ${ADS_PER_KEY} ads`}

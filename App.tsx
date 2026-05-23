@@ -3789,12 +3789,18 @@ const App: React.FC = () => {
             muted
             playsInline
             preload="auto"
+            disablePictureInPicture
+            disableRemotePlayback
             style={{
               width: '100%',
               height: '100%',
               objectFit: 'contain',
               background: '#000000',
+              display: 'block',
+              outline: 'none',
+              WebkitAppearance: 'none',
             }}
+            onCanPlay={(e) => { (e.target as HTMLVideoElement).play().catch(() => {}); }}
           >
             <source src="/reforge_loading.mp4" type="video/mp4" />
           </video>

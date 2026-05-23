@@ -145,14 +145,20 @@ export function useAdMob() {
         console.log('[AdMob] ✅ Ad LOADED:', info);
       }));
 
+      let rewardReceived = false;
+
       listeners.push(AdMob.addListener(RewardAdPluginEvents.Rewarded, (reward: any) => {
         console.log('[AdMob] 🎉 REWARDED!', reward);
+        rewardReceived = true;
         finish({ rewarded: true, type: reward?.type, amount: reward?.amount });
       }));
 
       listeners.push(AdMob.addListener(RewardAdPluginEvents.Dismissed, () => {
         console.log('[AdMob] 👋 Ad dismissed');
-        setTimeout(() => finish({ rewarded: false }), 500);
+        // Delay so Rewarded event (fired just before Dismissed) can process first
+        setTimeout(() => {
+          if (!rewardReceived) finish({ rewarded: false });
+        }, 800);
       }));
 
       listeners.push(AdMob.addListener(RewardAdPluginEvents.FailedToLoad, (err: any) => {
@@ -181,13 +187,13 @@ export function useAdMob() {
           finish({ rewarded: false });
         });
 
-      // Safety timeout — 20 seconds max
+      // Safety timeout — 30 seconds max
       setTimeout(() => {
         if (!resolved) {
-          console.warn('[AdMob] ⏰ Timeout after 20s — no ad response');
+          console.warn('[AdMob] ⏰ Timeout after 30s — no ad response');
           finish({ rewarded: false });
         }
-      }, 20000);
+      }, 30000);
     });
   }, []);
 
