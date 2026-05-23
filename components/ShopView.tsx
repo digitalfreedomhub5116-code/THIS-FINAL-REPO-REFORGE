@@ -374,13 +374,14 @@ const ADS_PER_KEY = 2;
 const FreeKeyAdBanner: React.FC<{
   onWatchRewardedAd?: (adUnitId: string) => Promise<{ rewarded: boolean }>;
   adUnitId?: string;
-  onClaimKey: () => void;
+  onClaimKey: (serverKeys: number) => void;
   addNotification?: (msg: string, type: 'SUCCESS' | 'WARNING' | 'DANGER' | 'INFO') => void;
 }> = ({ onWatchRewardedAd, adUnitId, onClaimKey, addNotification }) => {
   const [progress, setProgress] = useState<number>(() => {
     try { return Math.min(ADS_PER_KEY, parseInt(localStorage.getItem(FREE_KEY_PROGRESS_KEY) || '0', 10) || 0); } catch { return 0; }
   });
   const [watching, setWatching] = useState(false);
+  const [claiming, setClaiming] = useState(false);
   const ready = progress >= ADS_PER_KEY;
 
   const persist = (n: number) => {
@@ -415,10 +416,29 @@ const FreeKeyAdBanner: React.FC<{
     }
   };
 
-  const handleClaim = () => {
-    onClaimKey();
-    persist(0);
-    addNotification?.('🔑 +1 Key Crystal claimed!', 'SUCCESS');
+  const handleClaim = async () => {
+    if (claiming) return;
+    setClaiming(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/economy/grant-keys`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
+        credentials: 'include',
+        body: JSON.stringify({ amount: 1, source: 'ad_reward' }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success && data.keys != null) {
+        onClaimKey(data.keys);
+        persist(0);
+        addNotification?.('🔑 +1 Key Crystal claimed!', 'SUCCESS');
+      } else {
+        addNotification?.('Failed to claim key — try again', 'DANGER');
+      }
+    } catch {
+      addNotification?.('Network error — try again', 'DANGER');
+    } finally {
+      setClaiming(false);
+    }
   };
 
   return (
@@ -497,16 +517,21 @@ const FreeKeyAdBanner: React.FC<{
           {ready ? (
             <button
               onClick={handleClaim}
+              disabled={claiming}
               style={{
-                width: '100%', padding: '8px 14px', borderRadius: 10, border: 'none', cursor: 'pointer',
-                background: 'linear-gradient(135deg, #fbbf24, #d97706)',
+                width: '100%', padding: '8px 14px', borderRadius: 10, border: 'none',
+                cursor: claiming ? 'wait' : 'pointer',
+                background: claiming
+                  ? 'rgba(251,191,36,0.4)'
+                  : 'linear-gradient(135deg, #fbbf24, #d97706)',
                 color: '#1a0f00', fontSize: 11, fontWeight: 900, letterSpacing: '0.05em',
-                boxShadow: '0 0 16px rgba(251,191,36,0.4), inset 0 1px 0 rgba(255,255,255,0.3)',
+                boxShadow: claiming ? 'none' : '0 0 16px rgba(251,191,36,0.4), inset 0 1px 0 rgba(255,255,255,0.3)',
+                opacity: claiming ? 0.7 : 1,
                 textTransform: 'uppercase' as const,
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
               }}
             >
-              <Gift size={13} /> Claim Free Key
+              {claiming ? '⏳ Claiming...' : <><Gift size={13} /> Claim Free Key</>}
             </button>
           ) : (
             <button
@@ -1357,7 +1382,7 @@ const ShopView: React.FC<ShopViewProps> = ({
       <FreeKeyAdBanner
         onWatchRewardedAd={onWatchRewardedAd}
         adUnitId={adUnits?.KEY_REWARD}
-        onClaimKey={() => onKeysUpdate?.((keys ?? 0) + 1)}
+        onClaimKey={(serverKeys: number) => onKeysUpdate?.(serverKeys)}
         addNotification={addNotification}
       />
 

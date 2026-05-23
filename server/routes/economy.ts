@@ -158,7 +158,7 @@ router.post('/grant-keys', async (req: Request, res: Response) => {
   }
 
   // Validate source to prevent abuse
-  const VALID_SOURCES = ['workout_reward', 'leaderboard_reward', 'achievement'];
+  const VALID_SOURCES = ['workout_reward', 'leaderboard_reward', 'achievement', 'ad_reward'];
   if (!source || !VALID_SOURCES.includes(source)) {
     return res.status(400).json({ error: 'Invalid source' });
   }
