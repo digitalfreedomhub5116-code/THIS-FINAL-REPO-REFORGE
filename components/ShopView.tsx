@@ -23,6 +23,7 @@ import { syncBorderToPlayers } from '../lib/borderSync';
 import { LynxCoin, BorderRing, ThemeSwatch } from './StoreComponents';
 import { Package } from 'lucide-react';
 import AvatarWithBorder, { BorderVideo } from './AvatarWithBorder';
+import { AD_UNITS } from '../hooks/useAdMob';
 
 const WardrobePreviewCard = lazy(() => import('./WardrobePreviewCard'));
 const BadgesSection = lazy(() => import('./BadgesSection'));
@@ -617,7 +618,7 @@ const ShopView: React.FC<ShopViewProps> = ({
     if (progress.unlocked) return;
 
     try {
-      const result = await onWatchRewardedAd(adUnits.BORDER_REWARD);
+      const result = await onWatchRewardedAd(adUnits?.BORDER_REWARD ?? AD_UNITS.BORDER_REWARD);
       if (result.rewarded) {
         const nextWatched = progress.adsWatched + 1;
         const nextProgress: AdProgress = {
@@ -1512,14 +1513,9 @@ const ShopView: React.FC<ShopViewProps> = ({
                 <KitGlowCard item={item}
                   owned={isItemOwned(item.id)}
                   equipped={kitEconomy.equipped.border === item.id}
-                  canAfford={DEV_UNLOCK_ALL || gold >= item.price || isAdUnlocked}
+                  canAfford={DEV_UNLOCK_ALL || gold >= item.price || !!isAdUnlocked}
                   onBuy={() => {
-                    if (isAdUnlocked) {
-                      // Directly unlock ad-gated border without purchase modal
-                      handleKitPurchase(item);
-                    } else {
-                      setConfirmPurchaseItem(item);
-                    }
+                    setConfirmPurchaseItem(item);
                   }}
                   onInsufficientFunds={() => setShowInsufficientFunds(item)}
                   onEquip={() => {
