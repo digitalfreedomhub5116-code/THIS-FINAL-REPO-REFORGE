@@ -21,7 +21,6 @@ import RankBadge from './RankBadge';
 import type { RankType } from './RankBadge';
 import QuestCard from './QuestCard';
 import DungeonQuestCards from './DungeonQuestCards';
-import AdMobTestPanel from './AdMobTestPanel';
 import ActiveWorkoutPlayer, { clearWorkoutSession } from './ActiveWorkoutPlayer';
 import DungeonRewardAnimation from './DungeonRewardAnimation';
 import DoubleRewardModal from './DoubleRewardModal';
@@ -1582,15 +1581,6 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
       </div>
 
 
-      {/* ── 🧪 AdMob Test Panel (debug) ── */}
-      {adShowInterstitial && adShowRewarded && adUnits && (
-        <AdMobTestPanel
-          showInterstitialAd={adShowInterstitial}
-          showRewardedAd={adShowRewarded}
-          AD_UNITS={adUnits}
-          isReady={!!adsReady}
-        />
-      )}
 
       {/* Spacing for nav */}
       <div className="h-20" />
