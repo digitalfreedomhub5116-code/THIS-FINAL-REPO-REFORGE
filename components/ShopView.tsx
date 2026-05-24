@@ -1300,13 +1300,17 @@ const ShopView: React.FC<ShopViewProps> = ({
                     <video
                       src={outfit.loopVideoUrl}
                       muted autoPlay loop playsInline
+                      poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
                       style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center', zIndex: 1 }}
+                      onCanPlay={(e) => (e.target as HTMLVideoElement).classList.add('video-ready')}
                     />
                   ) : outfit.introVideoUrl ? (
                     <video
                       src={outfit.introVideoUrl}
                       muted autoPlay loop playsInline
+                      poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
                       style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center', zIndex: 1 }}
+                      onCanPlay={(e) => (e.target as HTMLVideoElement).classList.add('video-ready')}
                     />
                   ) : null}
                   {/* Lock overlay */}

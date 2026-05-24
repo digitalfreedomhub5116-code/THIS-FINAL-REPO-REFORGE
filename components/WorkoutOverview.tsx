@@ -112,6 +112,7 @@ const HolographicBody: React.FC<{ focus: string; isCardio: boolean; videos: Reco
                 loop
                 muted // Critical: Browsers block autoplay if not muted
                 playsInline // Critical: Required for iOS
+                onCanPlay={(e) => (e.target as HTMLVideoElement).classList.add('video-ready')}
                 onError={() => {
                     console.error(`Video Error loading: ${videoUrl}`);
                     setHasError(true);

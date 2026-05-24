@@ -464,6 +464,7 @@ const WardrobePreviewCard: React.FC<WardrobePreviewCardProps> = ({
             poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
             className="absolute inset-0 w-full h-full bg-transparent"
             style={{ objectFit: 'contain', objectPosition: 'center top', display: videoPhase === 'intro' ? 'block' : 'none' }}
+            onCanPlay={(e) => (e.target as HTMLVideoElement).classList.add('video-ready')}
           />
 
           {/* Loop video */}
@@ -475,6 +476,7 @@ const WardrobePreviewCard: React.FC<WardrobePreviewCardProps> = ({
             poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
             className="absolute inset-0 w-full h-full bg-transparent"
             style={{ objectFit: 'contain', objectPosition: 'center top', display: videoPhase === 'loop' ? 'block' : 'none' }}
+            onCanPlay={(e) => (e.target as HTMLVideoElement).classList.add('video-ready')}
           />
 
           {/* LEFT fade */}

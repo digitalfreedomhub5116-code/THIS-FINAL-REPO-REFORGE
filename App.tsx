@@ -3864,6 +3864,7 @@ const App: React.FC = () => {
             preload="auto"
             disablePictureInPicture
             disableRemotePlayback
+            poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
             style={{
               width: '100%',
               height: '100%',
@@ -3873,7 +3874,11 @@ const App: React.FC = () => {
               outline: 'none',
               WebkitAppearance: 'none',
             }}
-            onCanPlay={(e) => { (e.target as HTMLVideoElement).play().catch(() => {}); }}
+            onCanPlay={(e) => {
+              const vid = e.target as HTMLVideoElement;
+              vid.classList.add('video-ready');
+              vid.play().catch(() => {});
+            }}
           >
             <source src="/reforge_loading.mp4" type="video/mp4" />
           </video>

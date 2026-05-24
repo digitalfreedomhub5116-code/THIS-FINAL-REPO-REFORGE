@@ -535,6 +535,7 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
                 transition: 'opacity 0.6s ease-in-out',
                 pointerEvents: videoPhase === 'intro' || videoPhase === 'crossfade' ? 'auto' : 'none',
               }}
+              onCanPlay={(e) => (e.target as HTMLVideoElement).classList.add('video-ready')}
             />
             <video
               ref={loopRef}
@@ -545,6 +546,7 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
                 opacity: videoPhase === 'loop' || videoPhase === 'crossfade' ? 1 : 0,
                 transition: 'opacity 0.6s ease-in-out',
               }}
+              onCanPlay={(e) => (e.target as HTMLVideoElement).classList.add('video-ready')}
             />
             {videoPhase === 'image' && equippedOutfit?.image && (
               <img src={equippedOutfit.image} alt={equippedOutfit.name} className="absolute inset-0 w-full h-full object-cover object-center brightness-75" />
@@ -555,6 +557,7 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
                 poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
                 src="https://res.cloudinary.com/dcnqnbvp0/video/upload/v1769167952/Subject_animestyle_shadow_202601231701_vl45_ayicwk.mp4"
                 className="absolute inset-0 w-full h-full object-cover object-center bg-transparent"
+                onCanPlay={(e) => (e.target as HTMLVideoElement).classList.add('video-ready')}
               />
             )}
           </div>

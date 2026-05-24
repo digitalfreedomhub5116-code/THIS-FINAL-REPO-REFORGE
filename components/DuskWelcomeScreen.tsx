@@ -312,6 +312,7 @@ const DuskWelcomeScreen: React.FC<DuskWelcomeScreenProps> = ({ onComplete }) => 
             preload="auto"
             // @ts-ignore — webkit attribute for iOS/Android
             webkit-playsinline="true"
+            onCanPlay={(e) => (e.target as HTMLVideoElement).classList.add('video-ready')}
           />
 
           {/* Intro video — fades out when done */}
@@ -328,6 +329,7 @@ const DuskWelcomeScreen: React.FC<DuskWelcomeScreenProps> = ({ onComplete }) => 
             onEnded={handleIntroEnd}
             animate={{ opacity: introEnded ? 0 : 1 }}
             transition={{ duration: 0.4 }}
+            onCanPlay={(e: any) => (e.target as HTMLVideoElement).classList.add('video-ready')}
           />
 
           {/* Heavy vignette overlay - all edges */}

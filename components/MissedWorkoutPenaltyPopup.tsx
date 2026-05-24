@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertTriangle, X, TrendingDown, Skull } from 'lucide-react';
+import { TrendingDown, Skull } from 'lucide-react';
 import { triggerHaptic } from '../utils/soundEngine';
 
 interface MissedWorkoutPenaltyPopupProps {
@@ -72,76 +72,31 @@ const MissedWorkoutPenaltyPopup: React.FC<MissedWorkoutPenaltyPopupProps> = ({
     <AnimatePresence>
       <motion.div
         className="fixed inset-0 z-[9600] flex items-center justify-center"
-        style={{ background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(10px)' }}
+        style={{ background: 'rgba(0,0,0,0.85)' }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
       >
-        {/* Pulsing red ambient glow */}
         <motion.div
-          className="absolute inset-0 pointer-events-none"
-          animate={{
-            background: [
-              'radial-gradient(circle at 50% 40%, rgba(239,68,68,0.18) 0%, transparent 60%)',
-              'radial-gradient(circle at 50% 40%, rgba(239,68,68,0.32) 0%, transparent 60%)',
-              'radial-gradient(circle at 50% 40%, rgba(239,68,68,0.18) 0%, transparent 60%)',
-            ],
-          }}
-          transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
-        />
-
-        {/* Diagonal scan lines */}
-        <div
-          className="absolute inset-0 pointer-events-none opacity-20"
+          className="relative w-full max-w-[340px] mx-4 rounded-2xl overflow-hidden"
           style={{
-            backgroundImage:
-              'repeating-linear-gradient(45deg, transparent 0, transparent 8px, rgba(239,68,68,0.08) 8px, rgba(239,68,68,0.08) 9px)',
+            background: '#0f0f14',
+            border: '1px solid rgba(255,255,255,0.06)',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
           }}
-        />
-
-        <motion.div
-          className="relative w-full max-w-[380px] mx-4 rounded-2xl overflow-hidden"
-          style={{
-            background: 'linear-gradient(180deg, #1a0606 0%, #0a0a14 100%)',
-            border: '1px solid rgba(239,68,68,0.35)',
-            boxShadow: '0 0 60px rgba(239,68,68,0.2), inset 0 1px 0 rgba(255,255,255,0.04)',
-          }}
-          initial={{ y: 60, opacity: 0, scale: 0.92 }}
+          initial={{ y: 50, opacity: 0, scale: 0.95 }}
           animate={{ y: 0, opacity: 1, scale: 1 }}
-          exit={{ y: 60, opacity: 0, scale: 0.92 }}
-          transition={{ type: 'spring', stiffness: 260, damping: 22 }}
+          exit={{ y: 50, opacity: 0, scale: 0.95 }}
+          transition={{ type: 'spring', stiffness: 280, damping: 24 }}
         >
-          {/* Top accent bar with shimmer */}
-          <motion.div
-            style={{
-              height: 3,
-              background: 'linear-gradient(90deg, #DC2626, #EF4444, #DC2626)',
-              backgroundSize: '200% 100%',
-            }}
-            animate={{ backgroundPosition: ['0% 0%', '200% 0%'] }}
-            transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-          />
+          {/* Thin top accent */}
+          <div style={{ height: 2, background: '#DC2626' }} />
 
           {/* Header */}
-          <div className="px-6 pt-6 pb-3 text-center relative">
-            <motion.div
-              className="mx-auto mb-3 w-14 h-14 rounded-full flex items-center justify-center"
-              style={{
-                background: 'rgba(239,68,68,0.12)',
-                border: '1.5px solid rgba(239,68,68,0.4)',
-              }}
-              animate={
-                phase >= 1
-                  ? { scale: [1, 1.08, 1], boxShadow: ['0 0 0 rgba(239,68,68,0)', '0 0 24px rgba(239,68,68,0.5)', '0 0 0 rgba(239,68,68,0)'] }
-                  : {}
-              }
-              transition={{ duration: 1.6, repeat: Infinity }}
-            >
-              <AlertTriangle size={26} className="text-red-400" strokeWidth={2.2} />
-            </motion.div>
-
+          <div className="px-6 pt-6 pb-3 text-center">
             <motion.h2
-              className="text-base font-black text-red-400 tracking-[0.2em] font-mono"
+              className="text-sm font-black tracking-[0.2em] font-mono"
+              style={{ color: '#ef4444' }}
               initial={{ opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
@@ -150,7 +105,7 @@ const MissedWorkoutPenaltyPopup: React.FC<MissedWorkoutPenaltyPopupProps> = ({
             </motion.h2>
 
             <motion.p
-              className="text-[11px] text-gray-400 font-mono mt-2 leading-relaxed px-2"
+              className="text-[11px] text-gray-500 font-mono mt-2 leading-relaxed px-2"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.5 }}
@@ -164,7 +119,7 @@ const MissedWorkoutPenaltyPopup: React.FC<MissedWorkoutPenaltyPopupProps> = ({
             <div
               className="flex items-center justify-between px-3 py-2 rounded-lg"
               style={{
-                background: 'rgba(255,255,255,0.025)',
+                background: 'rgba(255,255,255,0.02)',
                 border: '1px solid rgba(255,255,255,0.05)',
               }}
             >
@@ -172,11 +127,11 @@ const MissedWorkoutPenaltyPopup: React.FC<MissedWorkoutPenaltyPopupProps> = ({
                 Consecutive misses
               </span>
               <div className="flex items-center gap-1.5">
-                <Skull size={12} className="text-red-400" />
-                <span className="text-sm font-black text-red-400 font-mono tabular-nums">
+                <Skull size={12} className="text-gray-500" />
+                <span className="text-sm font-black text-gray-300 font-mono tabular-nums">
                   {consecutiveDays}
                 </span>
-                <span className="text-[10px] text-gray-500 font-mono">
+                <span className="text-[10px] text-gray-600 font-mono">
                   {consecutiveDays === 1 ? 'day' : 'days'}
                 </span>
               </div>
@@ -186,37 +141,35 @@ const MissedWorkoutPenaltyPopup: React.FC<MissedWorkoutPenaltyPopupProps> = ({
           {/* XP loss display */}
           <div className="px-6 pb-5">
             <div
-              className="rounded-xl px-5 py-4 text-center relative overflow-hidden"
+              className="rounded-xl px-5 py-4 text-center"
               style={{
-                background:
-                  'linear-gradient(135deg, rgba(239,68,68,0.12) 0%, rgba(127,29,29,0.18) 100%)',
-                border: '1px solid rgba(239,68,68,0.25)',
+                background: 'rgba(239,68,68,0.06)',
+                border: '1px solid rgba(239,68,68,0.12)',
               }}
             >
               <div className="flex items-center justify-center gap-2 mb-1">
-                <TrendingDown size={14} className="text-red-400" />
-                <span className="text-[9px] font-mono font-bold text-red-300 tracking-[0.25em] uppercase">
+                <TrendingDown size={13} className="text-gray-500" />
+                <span className="text-[9px] font-mono font-bold text-gray-500 tracking-[0.2em] uppercase">
                   XP Penalty
                 </span>
               </div>
               <motion.div
                 className="font-black font-mono tabular-nums leading-none"
                 style={{
-                  fontSize: 44,
-                  color: '#fca5a5',
-                  textShadow: '0 0 22px rgba(239,68,68,0.55)',
+                  fontSize: 40,
+                  color: '#ef4444',
                   letterSpacing: '-0.02em',
                 }}
                 animate={
                   phase >= 2
-                    ? { scale: [1, 1.06, 1] }
+                    ? { scale: [1, 1.04, 1] }
                     : {}
                 }
-                transition={{ duration: 0.55 }}
+                transition={{ duration: 0.4 }}
               >
                 -{displayXp}
               </motion.div>
-              <div className="text-[10px] font-mono text-gray-500 mt-1">XP deducted from total</div>
+              <div className="text-[10px] font-mono text-gray-600 mt-1">XP deducted from total</div>
             </div>
           </div>
 
@@ -229,9 +182,8 @@ const MissedWorkoutPenaltyPopup: React.FC<MissedWorkoutPenaltyPopupProps> = ({
               }}
               className="w-full py-3 rounded-xl text-[11px] font-black font-mono tracking-[0.18em] uppercase transition-all active:scale-[0.98]"
               style={{
-                background: 'linear-gradient(135deg, #DC2626, #991B1B)',
+                background: '#DC2626',
                 color: '#fff',
-                boxShadow: '0 4px 18px rgba(220,38,38,0.35), inset 0 1px 0 rgba(255,255,255,0.1)',
               }}
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: phase >= 3 ? 1 : 0, y: phase >= 3 ? 0 : 8 }}

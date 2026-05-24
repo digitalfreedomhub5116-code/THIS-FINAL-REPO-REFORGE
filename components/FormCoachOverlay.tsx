@@ -208,7 +208,7 @@ const FormCoachOverlay: React.FC<FormCoachOverlayProps> = ({ exercise, isActive,
       {/* Camera feed */}
       <video
         ref={videoRef}
-        className="w-full h-full object-cover"
+        className="w-full h-full object-cover video-ready"
         style={{ transform: 'scaleX(-1)' }} // Mirror
         playsInline
         muted

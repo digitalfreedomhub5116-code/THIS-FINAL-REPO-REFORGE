@@ -329,6 +329,7 @@ const OutfitPurchaseModal: React.FC<Props> = ({
             poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
             className="absolute inset-0 w-full h-full object-contain bg-transparent"
             style={{ display: videoPhase === 'intro' ? 'block' : 'none' }}
+            onCanPlay={(e) => (e.target as HTMLVideoElement).classList.add('video-ready')}
           />
 
           {/* Loop video */}
@@ -342,6 +343,7 @@ const OutfitPurchaseModal: React.FC<Props> = ({
             poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
             className="absolute inset-0 w-full h-full object-contain bg-transparent"
             style={{ display: videoPhase === 'loop' ? 'block' : 'none' }}
+            onCanPlay={(e) => (e.target as HTMLVideoElement).classList.add('video-ready')}
           />
 
           {/* Avatar fallback — HunterBadge instead of real photo */}

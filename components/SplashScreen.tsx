@@ -105,6 +105,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
         preload="auto"
         muted
         playsInline
+        className="video-ready"
         style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }}
         onCanPlay={handleVideoReady}
         onError={handleVideoReady}
@@ -114,6 +115,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
         preload="auto"
         muted
         playsInline
+        className="video-ready"
         style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }}
         onCanPlay={handleVideoReady}
         onError={handleVideoReady}

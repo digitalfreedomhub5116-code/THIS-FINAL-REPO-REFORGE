@@ -753,6 +753,8 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
                                     src={videoSource}
                                     className="w-full h-full object-cover object-top"
                                     autoPlay loop muted playsInline
+                                    poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+                                    onCanPlay={(e) => (e.target as HTMLVideoElement).classList.add('video-ready')}
                                 />
                                 {/* UPCOMING overlay */}
                                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent flex flex-col items-center justify-end pb-16">
@@ -812,6 +814,8 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
                                             src={videoSource}
                                             className="w-full h-full object-cover object-top"
                                             autoPlay loop muted playsInline
+                                            poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+                                            onCanPlay={(e) => (e.target as HTMLVideoElement).classList.add('video-ready')}
                                         />
                                         {/* PiP label */}
                                         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent px-1.5 py-1">
@@ -860,6 +864,7 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
                                 loop 
                                 muted 
                                 playsInline 
+                                onCanPlay={(e) => (e.target as HTMLVideoElement).classList.add('video-ready')}
                             />
                         </>
                     )

@@ -415,6 +415,7 @@ export function BorderVideo({ src, glowColor, borderId }: { src: string; glowCol
             playsInline
             style={mediaStyle}
             onLoadedData={() => setLoaded(true)}
+            onCanPlay={(e) => (e.target as HTMLVideoElement).classList.add('video-ready')}
           />
         )}
       </div>
