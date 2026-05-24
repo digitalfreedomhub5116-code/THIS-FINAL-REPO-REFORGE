@@ -271,8 +271,8 @@ const PinnedGoalCard: React.FC<{
         </div>
       </button>
 
-      {/* Per-goal Generate Quests button */}
-      {onGenerate && (
+      {/* Per-goal Generate Quests button — hidden for system goals (e.g. Sung Jin-woo Protocol) */}
+      {onGenerate && !goal.isSystemGoal && (
         <button
           onClick={(e) => { e.stopPropagation(); if (!hasQuestsToday && !isGenerating) onGenerate(); }}
           disabled={hasQuestsToday || isGenerating}

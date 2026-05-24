@@ -1220,8 +1220,15 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
     [todaysQuests]
   );
   const activeDefaultCount = useMemo(
-    () => defaultTodaysQuests.filter(q => !q.isCompleted && !q.failed).length,
-    [defaultTodaysQuests]
+    () => {
+      // System goal (Sung Jin-woo Protocol) renders 3 dungeon exercise cards
+      // under the DEFAULT tab — count them whenever the dungeon is active so
+      // the badge reflects what the user actually sees on the tab.
+      const dungeonExerciseCount = dungeonState ? (dungeonState.targets?.length ?? 0) : 0;
+      const questCount = defaultTodaysQuests.filter(q => !q.isCompleted && !q.failed).length;
+      return dungeonExerciseCount + questCount;
+    },
+    [defaultTodaysQuests, dungeonState]
   );
   const activeCustomCount = useMemo(
     () => customTodaysQuests.filter(q => !q.isCompleted && !q.failed).length,
