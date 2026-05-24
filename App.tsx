@@ -746,6 +746,20 @@ const App: React.FC = () => {
   // ── Sync premium status into useSystem for XP multiplier etc. ──
   useEffect(() => { setIsPremium(isPremium); }, [isPremium, setIsPremium]);
 
+  // ── Auto-unlock ad-gated borders for Pro users ──
+  const PRO_AD_BORDERS = ['border-streak-gold', 'border-streak-eternal'];
+  const proBordersUnlockedRef = useRef(false);
+  useEffect(() => {
+    if (!isPremium || proBordersUnlockedRef.current) return;
+    setPlayer(prev => {
+      const owned = prev.ownedBorders || ['border_default'];
+      const missing = PRO_AD_BORDERS.filter(id => !owned.includes(id));
+      if (missing.length === 0) return prev;
+      proBordersUnlockedRef.current = true;
+      return { ...prev, ownedBorders: [...owned, ...missing] };
+    });
+  }, [isPremium, setPlayer]);
+
   // ── Identify user with RevenueCat so entitlements are per-account, not per-device ──
   const rcLoginDoneRef = useRef<string | null>(null);
   useEffect(() => {
@@ -2428,24 +2442,22 @@ const App: React.FC = () => {
 
 
 
-    setStreakAnimData({
-
-      oldStreak: previousStreak,
-
-      newStreak: player.streak,
-
-      weeklyActivity: weekly,
-
-      streakBroken: isBroken,
-
-    });
-
-    setShowStreakCelebration(true);
-
-    // Only enqueue if not already active to prevent double-show
-    if (activeOverlay !== 'streak') {
-      enqueueOverlay('streak');
-    }
+    // Small delay so rank reveal (600ms) and welcome chest (700ms) enqueue first;
+    // priority sorting then ensures correct order: rankReveal → welcomeChest → streak.
+    const streakTimer = setTimeout(() => {
+      setStreakAnimData({
+        oldStreak: previousStreak,
+        newStreak: player.streak,
+        weeklyActivity: weekly,
+        streakBroken: isBroken,
+      });
+      setShowStreakCelebration(true);
+      // Only enqueue if not already active to prevent double-show
+      if (activeOverlay !== 'streak') {
+        enqueueOverlay('streak');
+      }
+    }, 800);
+    return () => clearTimeout(streakTimer);
 
   }, [player.isConfigured, player.lastLoginDate, player.userId]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -2666,10 +2678,12 @@ const App: React.FC = () => {
 
   // ── Rank Reveal for first-time users (UNRANKED → E) ──
   // Now uses overlay queue so it fires FIRST, before welcome chest and streak.
+  // Accept both UNRANKED and E: the server creates new users with rank='E'
+  // immediately, so rank='UNRANKED' alone is unreliable after the first sync.
   useEffect(() => {
     if (!player.isConfigured || !dataReady) return;
     if (player.rankRevealed) return;
-    if (player.rank !== 'UNRANKED') return;
+    if (player.rank !== 'UNRANKED' && player.rank !== 'E') return;
     if (onboardingPhase !== 'APP') return;
 
     // Small delay to let the app settle
@@ -2875,7 +2889,8 @@ const App: React.FC = () => {
 
   const handleRankRevealComplete = useCallback(() => {
     setShowRankReveal(false);
-    setPlayer(prev => ({ ...prev, rank: 'E', rankRevealed: true }));
+    // Only upgrade rank to E if still UNRANKED; server may have already set it to E
+    setPlayer(prev => ({ ...prev, rank: prev.rank === 'UNRANKED' ? 'E' : prev.rank, rankRevealed: true }));
     dismissOverlay(); // Advance queue to next (welcomeChest)
   }, [setPlayer, dismissOverlay]);
 
@@ -4449,8 +4464,8 @@ const App: React.FC = () => {
                     goldAmount={600}
                     keysAmount={10}
                     onComplete={() => {
-                      // Persist to server via raw_data (survives logout/reinstall/device-switch)
-                      setPlayer(prev => ({ ...prev, welcomeChestShown: true }));
+                      // Grant rewards + persist flag (survives logout/reinstall/device-switch)
+                      setPlayer(prev => ({ ...prev, welcomeChestShown: true, gold: prev.gold + 600, keys: prev.keys + 10 }));
                       setShowWelcomeChest(false);
                       dismissOverlay(); // Advance queue to streak
                     }}
@@ -4998,7 +5013,6 @@ const App: React.FC = () => {
                           adShowRewarded={showRewardedAd}
                           adUnits={AD_UNITS}
                           adsReady={adsReady}
-                          onShowInterstitialAd={showInterstitialAd}
 
                           dungeonState={player.dungeonState}
                           onInitializeDungeon={initializeDungeon}

@@ -164,17 +164,21 @@ function migratePlayerData(raw: Partial<PlayerData>): PlayerData {
   if (!merged.ownedBorders) merged.ownedBorders = ['border_default'];
   if (merged.equippedBorder === undefined) merged.equippedBorder = null;
   merged.tutorialComplete = (raw as any)?.tutorialComplete ?? false;
-  // Feature gate migration — existing configured users get everything unlocked
+  // Rank reveal & welcome chest: ALWAYS default to false.
+  // Legacy users won't trigger rank reveal (their rank isn't UNRANKED),
+  // and seeing the welcome chest is a bonus, not a bug.
+  // Previously these were auto-set to true for configured users with rank != UNRANKED,
+  // but the server creates new users with rank='E' immediately, so after any page
+  // reload (OAuth redirect, etc.) brand-new users were incorrectly treated as legacy.
+  if (merged.rankRevealed === undefined) merged.rankRevealed = false;
+  if (merged.welcomeChestShown === undefined) merged.welcomeChestShown = false;
+  // Feature gate migration — existing configured users get quest/workout onboarding skipped
   if (raw.isConfigured && raw.rank !== 'UNRANKED') {
     if (merged.featureUnlocksShown === undefined) merged.featureUnlocksShown = [5, 10];
-    if (merged.rankRevealed === undefined) merged.rankRevealed = true;
-    if (merged.welcomeChestShown === undefined) merged.welcomeChestShown = true;
     if (merged.questOnboardingDone === undefined) merged.questOnboardingDone = true;
     if (merged.workoutOnboardingDone === undefined) merged.workoutOnboardingDone = true;
   } else {
     if (merged.featureUnlocksShown === undefined) merged.featureUnlocksShown = [];
-    if (merged.rankRevealed === undefined) merged.rankRevealed = false;
-    if (merged.welcomeChestShown === undefined) merged.welcomeChestShown = false;
     if (merged.questOnboardingDone === undefined) merged.questOnboardingDone = false;
     if (merged.workoutOnboardingDone === undefined) merged.workoutOnboardingDone = false;
   }

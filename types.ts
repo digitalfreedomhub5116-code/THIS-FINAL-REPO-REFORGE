@@ -238,7 +238,7 @@ export interface AwakeningData {
   antiVision: string[];
 }
 
-export type NotificationType = 'SUCCESS' | 'WARNING' | 'DANGER' | 'LEVEL_UP' | 'SYSTEM' | 'PURCHASE';
+export type NotificationType = 'SUCCESS' | 'WARNING' | 'DANGER' | 'INFO' | 'LEVEL_UP' | 'SYSTEM' | 'PURCHASE';
 
 export interface SystemNotification {
   id: string;

@@ -92,7 +92,7 @@ interface ShopViewProps {
   /** Ad unit IDs from useAdMob */
   adUnits?: { KEY_REWARD: string; BORDER_REWARD: string; DUNGEON_INTERSTITIAL: string };
   /** Notification helper for success/failure messages */
-  addNotification?: (msg: string, type: 'SUCCESS' | 'WARNING' | 'DANGER' | 'INFO') => void;
+  addNotification?: (msg: string, type: import('../types').NotificationType) => void;
 }
 
 
@@ -375,7 +375,7 @@ const FreeKeyAdBanner: React.FC<{
   onWatchRewardedAd?: (adUnitId: string) => Promise<{ rewarded: boolean }>;
   adUnitId?: string;
   onClaimKey: (serverKeys: number) => void;
-  addNotification?: (msg: string, type: 'SUCCESS' | 'WARNING' | 'DANGER' | 'INFO') => void;
+  addNotification?: (msg: string, type: import('../types').NotificationType) => void;
 }> = ({ onWatchRewardedAd, adUnitId, onClaimKey, addNotification }) => {
   const [progress, setProgress] = useState<number>(() => {
     try { return Math.min(ADS_PER_KEY, parseInt(localStorage.getItem(FREE_KEY_PROGRESS_KEY) || '0', 10) || 0); } catch { return 0; }
