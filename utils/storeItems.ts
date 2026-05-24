@@ -138,10 +138,10 @@ const EXCLUSIVE_COLOR = '#9B5DE5'; // Royal Purple
 export const BORDERS_EXCLUSIVE: StoreItem[] = [
   {
     id: 'border-streak-gold', name: 'Iron Will', category: 'border', tier: 'legendary', price: 0, tierColor: EXCLUSIVE_COLOR,
-    description: 'A golden rune ring of iron will — unyielding. Unlock by watching 10 ads.',
+    description: 'A golden rune ring of iron will — unyielding. Unlock by watching 5 ads.',
     imageBorder: '/borders/border-streak-gold.webp',
     imageScale: 1.08,
-    adUnlock: true, adsRequired: 10,
+    adUnlock: true, adsRequired: 5,
     borderConfig: { colors: ['#EAB308', '#F59E0B'], strokeWidth: 3, animated: false, glowColor: '#EAB308', glowIntensity: 0.7 },
   },
   {
@@ -153,10 +153,10 @@ export const BORDERS_EXCLUSIVE: StoreItem[] = [
   },
   {
     id: 'border-streak-eternal', name: 'Eternal Flame', category: 'border', tier: 'legendary', price: 0, tierColor: EXCLUSIVE_COLOR,
-    description: 'Purple arcane flames of eternal power. Unlock by watching 10 ads.',
+    description: 'Purple arcane flames of eternal power. Unlock by watching 5 ads.',
     imageBorder: '/borders/border-streak-eternal.webp',
     imageScale: 1.08,
-    adUnlock: true, adsRequired: 10,
+    adUnlock: true, adsRequired: 5,
     borderConfig: { colors: ['#A855F7', '#7C3AED'], strokeWidth: 3, animated: false, glowColor: '#A855F7', glowIntensity: 0.9 },
   },
 ];

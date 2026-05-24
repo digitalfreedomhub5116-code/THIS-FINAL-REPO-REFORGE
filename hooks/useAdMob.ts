@@ -155,11 +155,14 @@ export function useAdMob() {
 
       listeners.push(AdMob.addListener(RewardAdPluginEvents.Dismissed, () => {
         console.log('[AdMob] 👋 Ad dismissed');
-        // Delay so Rewarded event (fired just before Dismissed) can process first
-        // Some ad networks fire Rewarded after Dismissed with variable delay
+        // Rewarded videos only allow dismiss after full watch (X appears after completion).
+        // Grant reward on dismiss if Rewarded event hasn't already resolved it.
         setTimeout(() => {
-          if (!rewardReceived) finish({ rewarded: false });
-        }, 1500);
+          if (!rewardReceived) {
+            console.log('[AdMob] 🎁 Granting reward on dismiss (rewarded video completed)');
+            finish({ rewarded: true });
+          }
+        }, 500);
       }));
 
       listeners.push(AdMob.addListener(RewardAdPluginEvents.FailedToLoad, (err: any) => {

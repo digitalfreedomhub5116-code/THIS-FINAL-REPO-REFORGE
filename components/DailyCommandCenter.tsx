@@ -1498,7 +1498,7 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
             <span className="text-xs font-heading font-extrabold tracking-[0.25em] text-white uppercase">
               TODAY
             </span>
-            <ProgressRing completed={completedQuests.length} total={totalTasks} />
+            <ProgressRing completed={completedQuests.length} total={Math.max(3, totalTasks)} />
           </div>
 
           <button

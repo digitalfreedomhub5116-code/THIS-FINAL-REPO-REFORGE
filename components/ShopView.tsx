@@ -18,7 +18,7 @@ import AnimatedBorder from './AnimatedBorder';
 import OnboardingNotice from './OnboardingNotice';
 import { SystemCoin } from './icons/SystemCoin';
 import { getItemsByCategory, getTodaysDeals, getItemById, getRemoteStoreCache, type StoreItem as KitStoreItem, ALL_STORE_ITEMS, BORDERS_ELEMENTS, BORDERS_BEASTS, BORDERS_EXCLUSIVE } from '../utils/storeItems';
-import { getEconomy, purchaseItem as kitPurchaseItem, equipItem as kitEquipItem, applyThemeVars, DEV_UNLOCK_ALL, type EquippedItems } from '../utils/storeEconomy';
+import { getEconomy, purchaseItem as kitPurchaseItem, equipItem as kitEquipItem, unlockItem as kitUnlockItem, applyThemeVars, DEV_UNLOCK_ALL, type EquippedItems } from '../utils/storeEconomy';
 import { syncBorderToPlayers } from '../lib/borderSync';
 import { LynxCoin, BorderRing, ThemeSwatch } from './StoreComponents';
 import { Package } from 'lucide-react';
@@ -650,35 +650,28 @@ const ShopView: React.FC<ShopViewProps> = ({
         addNotification?.('Ad skipped — no progress earned.', 'WARNING');
         return;
       }
-      // ── Server is the source of truth ──
-      const headers = getPlayerAuthHeaders();
-      const resp = await fetch(`${API_BASE}/api/ad-unlock/watch`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json', ...headers },
-        body: JSON.stringify({ itemId: item.id, adsRequired: item.adsRequired }),
-      });
-      if (!resp.ok) {
-        addNotification?.('Ad credit failed — please try again.', 'WARNING');
-        return;
-      }
-      const data: { adsWatched: number; adsRequired: number; unlocked: boolean; justUnlocked?: boolean } = await resp.json();
+
+      // ── Offline-only: track progress in localStorage ──
+      const newWatched = progress.adsWatched + 1;
+      const justUnlocked = newWatched >= item.adsRequired;
       const nextProgress: AdProgress = {
         ...adProgress,
-        [item.id]: { adsWatched: data.adsWatched, adsRequired: data.adsRequired, unlocked: data.unlocked },
+        [item.id]: { adsWatched: newWatched, adsRequired: item.adsRequired, unlocked: justUnlocked },
       };
       setAdProgress(nextProgress);
       persistBorderAdProgress(nextProgress);
 
-      if (data.unlocked) {
-        // Server already inserted the item into user_inventory — refresh local cache
-        fetch(`${API_BASE}/api/inventory`, { credentials: 'include', headers })
-          .then(r => r.ok ? r.json() : { items: [] })
-          .then(d => { if (Array.isArray(d.items)) setServerInventory(d.items); })
-          .catch(() => { });
-        addNotification?.(`🔓 ${item.name} unlocked!`, 'SUCCESS');
+      if (justUnlocked) {
+        // Permanently unlock in local economy
+        const newEco = kitUnlockItem(item.id);
+        setKitEconomy(newEco);
+        // Equip + play celebration animation
+        handleKitEquip('border', item.id);
+        setEquipAnimItem(item);
+        setShowEquipAnim(true);
+        addNotification?.(`🔓 ${item.name} unlocked permanently!`, 'SUCCESS');
       } else {
-        addNotification?.(`📺 Ad watched! ${data.adsWatched}/${data.adsRequired} for ${item.name}`, 'INFO');
+        addNotification?.(`📺 Ad watched! ${newWatched}/${item.adsRequired} for ${item.name}`, 'INFO');
       }
     } catch {
       addNotification?.('Ad failed to load. Try again later.', 'WARNING');
@@ -700,11 +693,14 @@ const ShopView: React.FC<ShopViewProps> = ({
   const [inventoryLoaded, setInventoryLoaded] = useState(false);
   const [showInventoryPanel, setShowInventoryPanel] = useState(false);
 
-  // Helper: check if item is owned (server inventory)
+  // Helper: check if item is owned (server inventory OR local economy)
   const isItemOwned = useCallback((itemId: string) => {
     if (DEV_UNLOCK_ALL) return true;
-    return serverInventory.some(i => i.item_id === itemId);
-  }, [serverInventory]);
+    if (serverInventory.some(i => i.item_id === itemId)) return true;
+    if (kitEconomy.owned.includes(itemId)) return true;
+    if (adProgress[itemId]?.unlocked) return true;
+    return false;
+  }, [serverInventory, kitEconomy, adProgress]);
 
   // Fetch inventory on mount
   useEffect(() => {
@@ -2225,18 +2221,18 @@ const KitGlowCard = React.memo(function KitGlowCard({ item, discount, owned, equ
               ) : (
                 <span style={{ fontSize: 11, fontWeight: 700, color: '#22C55E' }}>✓ Owned</span>
               )
-            ) : item.adUnlock && adProgress && !adProgress.unlocked ? (
+            ) : item.adUnlock && !(adProgress?.unlocked) ? (
               /* ── Ad-gated item: Watch ads to unlock ── */
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, width: '100%' }}>
                 <div style={{ fontSize: 9, fontWeight: 800, color: 'rgba(168,85,247,0.8)', fontFamily: 'monospace', letterSpacing: '0.05em' }}>
-                  {adProgress.adsWatched} / {adProgress.adsRequired} ADS
+                  {adProgress?.adsWatched ?? 0} / {adProgress?.adsRequired ?? item.adsRequired ?? 5} ADS
                 </div>
                 {/* Mini progress bar */}
                 <div style={{ display: 'flex', gap: 2, width: '80%' }}>
-                  {Array.from({ length: adProgress.adsRequired }).map((_, i) => (
+                  {Array.from({ length: adProgress?.adsRequired ?? item.adsRequired ?? 5 }).map((_, i) => (
                     <div key={i} style={{
                       flex: 1, height: 3, borderRadius: 2,
-                      background: i < adProgress.adsWatched ? '#a855f7' : 'rgba(255,255,255,0.08)',
+                      background: i < (adProgress?.adsWatched ?? 0) ? '#a855f7' : 'rgba(255,255,255,0.08)',
                       transition: 'all 0.3s',
                     }} />
                   ))}
@@ -2257,24 +2253,9 @@ const KitGlowCard = React.memo(function KitGlowCard({ item, discount, owned, equ
                 </button>
               </div>
             ) : item.adUnlock && adProgress?.unlocked ? (
-              /* ── Ad-gated item: Already unlocked server-side. Refreshing inventory will flip this to "Owned". ── */
+              /* ── Ad-gated item: Unlocked — show equip ── */
               <button
-                onClick={async (e) => {
-                  e.stopPropagation();
-                  // Server already inserted item into user_inventory at threshold.
-                  // Just refresh inventory to surface it. Don't open the gold modal.
-                  try {
-                    const headers = getPlayerAuthHeaders();
-                    const r = await fetch(`${API_BASE}/api/inventory`, { credentials: 'include', headers });
-                    if (r.ok) {
-                      const d = await r.json();
-                      if (Array.isArray(d.items)) {
-                        // Dispatch via custom event so the parent updates serverInventory
-                        window.dispatchEvent(new CustomEvent('reforge:inventory-refresh', { detail: { items: d.items } }));
-                      }
-                    }
-                  } catch { /* offline */ }
-                }}
+                onClick={(e) => { e.stopPropagation(); onEquip?.(); }}
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: 4,
                   padding: '8px 24px', border: 'none', cursor: 'pointer', borderRadius: 20,
@@ -2284,7 +2265,7 @@ const KitGlowCard = React.memo(function KitGlowCard({ item, discount, owned, equ
                   transition: 'all 0.2s',
                 }}
               >
-                ✓ Claim
+                EQUIP
               </button>
             ) : (
               <button onClick={(e) => { e.stopPropagation(); if (canAfford) { onBuy(); } else if (onInsufficientFunds) { onInsufficientFunds(); } }} style={{
