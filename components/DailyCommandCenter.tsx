@@ -15,7 +15,7 @@ import {
   DungeonState, DungeonExerciseTarget, WorkoutDay, FormCoachSession
 } from '../types';
 import GoalCard from './GoalCard';
-import GoalDetailView from './GoalDetailView';
+import GoalDetailView, { onQuestGenStoreUpdate } from './GoalDetailView';
 import GoalCreationFlow from './GoalCreationFlow';
 import RankBadge from './RankBadge';
 import type { RankType } from './RankBadge';
@@ -31,6 +31,59 @@ import { API_BASE } from '../lib/apiConfig';
 import { getPlayerAuthHeaders } from '../lib/playerApi';
 import OnboardingNotice from './OnboardingNotice';
 import { scheduleSlotReminder, cancelScheduleSlotReminder, scheduleQuestStartNotification } from '../hooks/useLocalNotifications';
+
+// ────────────────────────────────────────────────────────────
+// AUTO-SWITCH QUEST TAB — pure decision helpers
+// ────────────────────────────────────────────────────────────
+// These helpers encode the decision logic for the auto-switch-quest-tab
+// feature. They are exported so tests can import them without mounting the
+// component. They have no React dependencies and no side effects.
+
+/** A `CategoryTab` value matching `DailyCommandCenter`'s `todayCategoryTab` state. */
+export type CategoryTab = 'DEFAULT' | 'CUSTOM';
+
+/** Lifecycle states emitted by `_questGenStore` in `GoalDetailView`. */
+export type QuestGenStoreState = 'IDLE' | 'GENERATING' | 'DONE' | 'ERROR';
+
+/**
+ * Returns true iff the resulting quest belongs in the Custom tab.
+ * Mirrors the Custom_Tab filter: `!!q.goalId || q.isDaily === false`.
+ */
+export function isCustomQuest(q: Quest): boolean {
+  return !!q.goalId || q.isDaily === false;
+}
+
+/**
+ * Decides whether the manual quest creation modal should auto-switch the
+ * active category tab to `CUSTOM`. Returns true iff the user is currently
+ * on the `DEFAULT` tab, not in tutorial mode, and the newly created quest
+ * is a Custom_Quest.
+ */
+export function shouldSwitchOnManualCreate(args: {
+  newQuest: Quest;
+  currentTab: CategoryTab;
+  isTutorial: boolean;
+}): boolean {
+  const { newQuest, currentTab, isTutorial } = args;
+  return currentTab === 'DEFAULT' && !isTutorial && isCustomQuest(newQuest);
+}
+
+/**
+ * Decides whether a `DONE` transition from goal-based quest generation
+ * should auto-switch the active category tab to `CUSTOM`. Returns true iff
+ * the store reached `DONE`, produced at least one quest, and the user is
+ * currently on the `DEFAULT` tab.
+ */
+export function shouldSwitchOnGoalGenDone(args: {
+  storeState: QuestGenStoreState;
+  pendingFeedQuestsCount: number;
+  currentTab: CategoryTab;
+}): boolean {
+  const { storeState, pendingFeedQuestsCount, currentTab } = args;
+  return storeState === 'DONE'
+    && pendingFeedQuestsCount > 0
+    && currentTab === 'DEFAULT';
+}
 
 // ────────────────────────────────────────────────────────────
 // DAILY ANALYSIS TRACKING (matches QuestsView)
@@ -950,6 +1003,46 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
   const [dungeonRewardAnim, setDungeonRewardAnim] = useState<{ xp: number; gold: number } | null>(null);
   const [pendingDungeonRewards, setPendingDungeonRewards] = useState<{ xp: number; gold: number } | null>(null);
 
+  // ──────────────────────────────────────────────────────────
+  // AUTO-SWITCH QUEST TAB — goal-gen `DONE` listener
+  // ──────────────────────────────────────────────────────────
+  // Subscribes to the existing `_questGenListeners` Set in GoalDetailView so
+  // we can flip `todayCategoryTab` to 'CUSTOM' once goal-based generation
+  // finishes producing quests on the DEFAULT tab.
+  //
+  // Listener-ordering invariant: `App.tsx`'s top-level `useEffect` registers
+  // its `onQuestGenStoreUpdate` callback at app-mount time, BEFORE this
+  // component mounts. Because `Set` iteration follows insertion order, when
+  // `updateQuestGenStore({state:'DONE', ...})` fires the synchronous
+  // `forEach`, App's listener runs first and dispatches `addQuest` for every
+  // pending feed quest; this listener runs second and only switches the tab.
+  // We therefore deliberately do NOT call `addQuest` here — App.tsx remains
+  // the sole dispatcher. React batches the queued state updates so the next
+  // render shows the new quests under the freshly-active 'CUSTOM' tab.
+  const lastHandledDoneRef = useRef<{ goalId: string | null; ts: number } | null>(null);
+  useEffect(() => {
+    const unsub = onQuestGenStoreUpdate((store) => {
+      if (store.state !== 'DONE') return;
+
+      // Exactly-once guard (Req 2.6): suppress double-fire within a 50ms
+      // window keyed on goalId. Protects against React StrictMode's
+      // dev-time double-invoke of effects and any rapid re-emit edge case.
+      const sig = { goalId: store.goalId ?? null, ts: Date.now() };
+      const prev = lastHandledDoneRef.current;
+      if (prev && prev.goalId === sig.goalId && (sig.ts - prev.ts) < 50) return;
+      lastHandledDoneRef.current = sig;
+
+      if (shouldSwitchOnGoalGenDone({
+        storeState: store.state,
+        pendingFeedQuestsCount: store.pendingFeedQuests?.length ?? 0,
+        currentTab: todayCategoryTab,
+      })) {
+        setTodayCategoryTab('CUSTOM');
+      }
+    });
+    return unsub;
+  }, [todayCategoryTab]);
+
   // Auto-initialize dungeon on mount (also patches existing goals if needed)
   useEffect(() => {
     if (playerData?.healthProfile && onInitializeDungeon) {
@@ -1336,7 +1429,19 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
       addQuest(newQuest); resetForm();
       if (onTutorialAction) onTutorialAction(5);
     } else {
-      addQuest(newQuest); setIsModalOpen(false); resetForm();
+      addQuest(newQuest);
+      // ── auto-switch-quest-tab feature: if the new quest is a Custom_Quest
+      // and the user is currently viewing DEFAULT, flip the tab to CUSTOM
+      // BEFORE closing the modal so the user lands on the tab that contains
+      // their newly created quest. Tutorial mode is excluded by branch above.
+      if (shouldSwitchOnManualCreate({
+        newQuest,
+        currentTab: todayCategoryTab,
+        isTutorial: false,
+      })) {
+        setTodayCategoryTab('CUSTOM');
+      }
+      setIsModalOpen(false); resetForm();
       // Schedule notification for when quest starts
       scheduleQuestStartNotification(newQuest.id, newQuest.title, scheduleTime);
       // ADS DISABLED — interstitial ad after quest creation removed
