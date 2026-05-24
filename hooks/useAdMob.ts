@@ -16,8 +16,31 @@ import { Capacitor } from '@capacitor/core';
 // ══════════════════════════════════════════════════════════════
 const ADS_ENABLED = true; // ✅ ADS ENABLED — set to false to globally disable
 
-// ── Toggle for test ads (set to false for production builds) ──
-const USE_TEST_ADS = false; // 🚀 PRODUCTION — real AdMob ads are live
+// ── Test vs Production ad unit selection ──
+//
+// Driven by the build-time env var VITE_AD_MODE:
+//   • unset / 'test'  → test ads (Google's safe demo unit IDs, no real revenue)
+//   • 'prod'          → real production ads (only when shipping to Play Store)
+//
+// Default is test ads so any local debug/dev build never accidentally serves
+// real ads to your own device — that's the fastest path to an AdMob policy
+// strike. To produce a real-ads release build:
+//
+//     VITE_AD_MODE=prod npm run build && npx cap sync android
+//     cd android && ./gradlew assembleRelease
+//
+// Override flags below are escape hatches for QA scenarios — leave at false
+// for normal use.
+const FORCE_TEST_ADS = false;       // true → always use test ads, even in release
+const FORCE_PROD_ADS_IN_DEV = false; // true → use real ads even when env says test (DANGEROUS)
+
+const adModeEnv = (() => {
+  try {
+    return (import.meta as any).env?.VITE_AD_MODE as string | undefined;
+  } catch { return undefined; }
+})();
+
+const USE_TEST_ADS = FORCE_TEST_ADS || (adModeEnv !== 'prod' && !FORCE_PROD_ADS_IN_DEV);
 
 // Google's official test ad unit IDs (always return test ads, safe to use)
 const TEST_AD_UNITS = {
@@ -34,6 +57,10 @@ const PROD_AD_UNITS = {
 } as const;
 
 export const AD_UNITS = USE_TEST_ADS ? TEST_AD_UNITS : PROD_AD_UNITS;
+
+if (typeof console !== 'undefined') {
+  console.log('[AdMob] Mode:', USE_TEST_ADS ? 'TEST ADS (safe for dev)' : 'PROD ADS (real impressions)');
+}
 
 // Lazy-load the AdMob plugin only on native
 let AdMobPlugin: any = null;
@@ -120,9 +147,19 @@ export function useAdMob() {
   //    (covers SDK builds where Rewarded event is missed on certain devices).
   //  • Emits a window event 'admob:diag' on every terminal transition so the UI can
   //    surface a diagnostic banner without needing logcat (release builds strip console.log).
-  const MIN_WATCH_MS = 10_000; // 10s: real rewarded videos run 15-30s; 10s rejects accidental dismiss
+  //  • Uses an internal generation counter so listeners from a previous (resolved) call
+  //    cannot cross-fire into a new call. Without this, watching one ad and then another
+  //    in the same session leaks reward signals between them and the second resolves false.
+  // Watch-time threshold for the dismiss-fallback grant. Test ads run ~5s
+  // (Google's demo creative); real rewarded videos run 15-30s. Use a lower
+  // floor in test mode so dev builds correctly count completed test watches,
+  // and a stricter floor in prod so accidental fast-dismisses don't get a
+  // reward they didn't earn.
+  const MIN_WATCH_MS = USE_TEST_ADS ? 3_000 : 10_000;
+  const adCallGenRef = useRef(0);
   const showRewardedAd = useCallback(async (adUnitId: string): Promise<{ rewarded: boolean; type?: string; amount?: number }> => {
-    console.log('[AdMob] 🎬 showRewardedAd called | adId:', adUnitId);
+    const myGen = ++adCallGenRef.current;
+    console.log('[AdMob] 🎬 showRewardedAd called | adId:', adUnitId, '| gen:', myGen);
 
     const result = await loadAdMob();
     if (!result) {
@@ -139,6 +176,7 @@ export function useAdMob() {
       let tShown = 0; // ms timestamp when ad surface became visible
       let rewardReceived = false;
       const listeners: any[] = [];
+      const isStaleCall = () => myGen !== adCallGenRef.current;
 
       const emitDiag = (detail: any) => {
         try { window.dispatchEvent(new CustomEvent('admob:diag', { detail })); } catch {}
@@ -151,13 +189,14 @@ export function useAdMob() {
         const diag = { ...outcome, watchedMs, ts: Date.now() };
         console.log('[AdMob] 🏁 Ad result:', diag);
         emitDiag({ stage: 'finish', ...diag });
-        setTimeout(() => {
-          listeners.forEach(l => { try { l?.remove?.(); } catch {} });
-        }, 300);
+        // Synchronous teardown: prevents next ad call from receiving stale events.
+        listeners.forEach(l => { try { l?.remove?.(); } catch {} });
+        listeners.length = 0;
         resolve({ rewarded: outcome.rewarded, type: outcome.type, amount: outcome.amount });
       };
 
       listeners.push(AdMob.addListener(RewardAdPluginEvents.Loaded, (info: any) => {
+        if (isStaleCall()) return;
         console.log('[AdMob] ✅ Ad LOADED:', info);
         emitDiag({ stage: 'loaded' });
       }));
@@ -168,6 +207,7 @@ export function useAdMob() {
         ?? (RewardAdPluginEvents as any).Show;
       if (showedEvent) {
         listeners.push(AdMob.addListener(showedEvent, () => {
+          if (isStaleCall()) return;
           tShown = Date.now();
           console.log('[AdMob] 📺 Ad shown at', tShown);
           emitDiag({ stage: 'shown', tShown });
@@ -175,12 +215,14 @@ export function useAdMob() {
       }
 
       listeners.push(AdMob.addListener(RewardAdPluginEvents.Rewarded, (reward: any) => {
+        if (isStaleCall()) return;
         console.log('[AdMob] 🎉 REWARDED!', reward);
         rewardReceived = true;
         finish({ rewarded: true, type: reward?.type, amount: reward?.amount, reason: 'rewarded-event' });
       }));
 
       listeners.push(AdMob.addListener(RewardAdPluginEvents.Dismissed, () => {
+        if (isStaleCall()) return;
         const now = Date.now();
         const watchedMs = tShown > 0 ? now - tShown : 0;
         console.log('[AdMob] 👋 Ad dismissed | watchedMs:', watchedMs);
@@ -206,11 +248,13 @@ export function useAdMob() {
       }));
 
       listeners.push(AdMob.addListener(RewardAdPluginEvents.FailedToLoad, (err: any) => {
+        if (isStaleCall()) return;
         console.error('[AdMob] ❌ Ad FAILED TO LOAD:', err);
         finish({ rewarded: false, reason: 'failed-to-load' });
       }));
 
       listeners.push(AdMob.addListener(RewardAdPluginEvents.FailedToShow, (err: any) => {
+        if (isStaleCall()) return;
         console.error('[AdMob] ❌ Ad FAILED TO SHOW:', err);
         finish({ rewarded: false, reason: 'failed-to-show' });
       }));

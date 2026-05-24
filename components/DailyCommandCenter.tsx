@@ -188,6 +188,9 @@ interface DailyCommandCenterProps {
   adUnits?: { KEY_REWARD: string; BORDER_REWARD: string; DUNGEON_INTERSTITIAL: string };
   adsReady?: boolean;
 
+  /** Premium / Reforge Pro flag — when true, ad gates (e.g. before dungeon entry) are skipped. */
+  isPremium?: boolean;
+
   // Daily Dungeon (Sung Jin-woo Protocol)
   dungeonState?: DungeonState;
   onInitializeDungeon?: () => void;
@@ -976,7 +979,7 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
   goals, onUpdateGoals, onDeleteGoal, onDeductGold, onUpdateScheduleSlots,
   scheduleProfile, dailySchedule, rescheduleQuest: rescheduleQuestProp, onSetupSchedule,
   onSlotAction, onToggleNotify, onReorderSlots, onShowInterstitialAd,
-  adShowInterstitial, adShowRewarded, adUnits, adsReady,
+  adShowInterstitial, adShowRewarded, adUnits, adsReady, isPremium,
   dungeonState, onInitializeDungeon, onUpdateDungeonState, onCompleteDungeonWorkout, onFailDungeonWorkout,
   onAddRewards, dungeonEntryTrigger,
 }) => {
@@ -1584,6 +1587,7 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
             onUpdateDungeonState={onUpdateDungeonState}
             onDeductGold={onDeductGold}
             showRewardedAd={adShowRewarded}
+            isPremium={!!isPremium}
           />
         </div>
       )}
