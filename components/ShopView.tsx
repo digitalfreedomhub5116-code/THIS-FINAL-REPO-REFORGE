@@ -382,7 +382,24 @@ const FreeKeyAdBanner: React.FC<{
   });
   const [watching, setWatching] = useState(false);
   const [claiming, setClaiming] = useState(false);
+  const [diag, setDiag] = useState<string | null>(null);
   const ready = progress >= ADS_PER_KEY;
+
+  // Listen to admob:diag events from useAdMob to surface the ad lifecycle without logcat
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail || {};
+      const stage = detail.stage || '?';
+      const watched = detail.watchedMs != null ? `${Math.round(detail.watchedMs/1000)}s` : '';
+      const reason = detail.reason ? ` (${detail.reason})` : '';
+      const rew = detail.rewarded != null ? ` rewarded=${detail.rewarded}` : '';
+      setDiag(`[ad] ${stage}${watched ? ' ' + watched : ''}${rew}${reason}`);
+      // Auto-clear after 10s
+      setTimeout(() => setDiag(null), 10000);
+    };
+    window.addEventListener('admob:diag', handler);
+    return () => window.removeEventListener('admob:diag', handler);
+  }, []);
 
   const persist = (n: number) => {
     try { localStorage.setItem(FREE_KEY_PROGRESS_KEY, String(n)); } catch {}
@@ -555,6 +572,19 @@ const FreeKeyAdBanner: React.FC<{
           )}
         </div>
       </div>
+
+      {/* Diagnostic strip — surfaces ad lifecycle without logcat (auto-hides after 10s) */}
+      {diag && (
+        <div style={{
+          position: 'relative', marginTop: 8, padding: '6px 10px',
+          borderRadius: 8, background: 'rgba(0,0,0,0.45)',
+          border: '1px solid rgba(168,85,247,0.25)',
+          fontSize: 10, fontFamily: 'monospace', color: 'rgba(214,188,250,0.95)',
+          letterSpacing: '0.02em', wordBreak: 'break-all',
+        }}>
+          {diag}
+        </div>
+      )}
     </motion.div>
   );
 };

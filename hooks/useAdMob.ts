@@ -113,12 +113,21 @@ export function useAdMob() {
   }, []);
 
   // ── Show Rewarded Ad ──
+  // Hardened state machine:
+  //  • Tracks a tShown timestamp from the SDK lifecycle.
+  //  • Resolves rewarded=true if Rewarded event fires (Google's authoritative signal).
+  //  • If only Dismissed fires AND we observed >= MIN_WATCH_MS of audio focus, grant reward
+  //    (covers SDK builds where Rewarded event is missed on certain devices).
+  //  • Emits a window event 'admob:diag' on every terminal transition so the UI can
+  //    surface a diagnostic banner without needing logcat (release builds strip console.log).
+  const MIN_WATCH_MS = 10_000; // 10s: real rewarded videos run 15-30s; 10s rejects accidental dismiss
   const showRewardedAd = useCallback(async (adUnitId: string): Promise<{ rewarded: boolean; type?: string; amount?: number }> => {
     console.log('[AdMob] 🎬 showRewardedAd called | adId:', adUnitId);
 
     const result = await loadAdMob();
     if (!result) {
       console.warn('[AdMob] Plugin not loaded — cannot show ad');
+      try { window.dispatchEvent(new CustomEvent('admob:diag', { detail: { stage: 'no-plugin', rewarded: false } })); } catch {}
       return { rewarded: false };
     }
 
@@ -127,57 +136,88 @@ export function useAdMob() {
 
     return new Promise<{ rewarded: boolean; type?: string; amount?: number }>((resolve) => {
       let resolved = false;
+      let tShown = 0; // ms timestamp when ad surface became visible
+      let rewardReceived = false;
       const listeners: any[] = [];
 
-      const finish = (outcome: { rewarded: boolean; type?: string; amount?: number }) => {
+      const emitDiag = (detail: any) => {
+        try { window.dispatchEvent(new CustomEvent('admob:diag', { detail })); } catch {}
+      };
+
+      const finish = (outcome: { rewarded: boolean; type?: string; amount?: number; reason?: string }) => {
         if (resolved) return;
         resolved = true;
-        console.log('[AdMob] 🏁 Ad result:', outcome);
-        // Clean up all listeners
+        const watchedMs = tShown > 0 ? Date.now() - tShown : 0;
+        const diag = { ...outcome, watchedMs, ts: Date.now() };
+        console.log('[AdMob] 🏁 Ad result:', diag);
+        emitDiag({ stage: 'finish', ...diag });
         setTimeout(() => {
           listeners.forEach(l => { try { l?.remove?.(); } catch {} });
         }, 300);
-        resolve(outcome);
+        resolve({ rewarded: outcome.rewarded, type: outcome.type, amount: outcome.amount });
       };
 
-      // Listen for reward
       listeners.push(AdMob.addListener(RewardAdPluginEvents.Loaded, (info: any) => {
         console.log('[AdMob] ✅ Ad LOADED:', info);
+        emitDiag({ stage: 'loaded' });
       }));
 
-      let rewardReceived = false;
+      // Some SDK versions expose a `Showed` / `Opened` event — try both names defensively.
+      const showedEvent = RewardAdPluginEvents.Showed
+        ?? (RewardAdPluginEvents as any).Opened
+        ?? (RewardAdPluginEvents as any).Show;
+      if (showedEvent) {
+        listeners.push(AdMob.addListener(showedEvent, () => {
+          tShown = Date.now();
+          console.log('[AdMob] 📺 Ad shown at', tShown);
+          emitDiag({ stage: 'shown', tShown });
+        }));
+      }
 
       listeners.push(AdMob.addListener(RewardAdPluginEvents.Rewarded, (reward: any) => {
         console.log('[AdMob] 🎉 REWARDED!', reward);
         rewardReceived = true;
-        finish({ rewarded: true, type: reward?.type, amount: reward?.amount });
+        finish({ rewarded: true, type: reward?.type, amount: reward?.amount, reason: 'rewarded-event' });
       }));
 
       listeners.push(AdMob.addListener(RewardAdPluginEvents.Dismissed, () => {
-        console.log('[AdMob] 👋 Ad dismissed');
-        // Rewarded videos only allow dismiss after full watch (X appears after completion).
-        // Grant reward on dismiss if Rewarded event hasn't already resolved it.
+        const now = Date.now();
+        const watchedMs = tShown > 0 ? now - tShown : 0;
+        console.log('[AdMob] 👋 Ad dismissed | watchedMs:', watchedMs);
+        emitDiag({ stage: 'dismissed', watchedMs });
+
+        // Wait briefly for a possibly-late Rewarded event before deciding.
         setTimeout(() => {
-          if (!rewardReceived) {
-            console.log('[AdMob] 🎁 Granting reward on dismiss (rewarded video completed)');
-            finish({ rewarded: true });
+          if (rewardReceived || resolved) return;
+          // Fallback grant if user actually watched long enough.
+          if (watchedMs >= MIN_WATCH_MS) {
+            console.log('[AdMob] 🎁 Granting reward via watch-time fallback (', watchedMs, 'ms)');
+            finish({ rewarded: true, reason: `watch-fallback-${watchedMs}ms` });
+          } else if (tShown === 0) {
+            // No Showed event was emitted — assume Capacitor build doesn't expose it.
+            // Trust the Dismissed event after full ad lifecycle.
+            console.log('[AdMob] 🎁 Granting reward via dismiss-no-showed-event fallback');
+            finish({ rewarded: true, reason: 'no-showed-event' });
+          } else {
+            console.log('[AdMob] ⛔ Dismissed too early (', watchedMs, 'ms) — no reward');
+            finish({ rewarded: false, reason: `too-early-${watchedMs}ms` });
           }
-        }, 500);
+        }, 1200);
       }));
 
       listeners.push(AdMob.addListener(RewardAdPluginEvents.FailedToLoad, (err: any) => {
         console.error('[AdMob] ❌ Ad FAILED TO LOAD:', err);
-        finish({ rewarded: false });
+        finish({ rewarded: false, reason: 'failed-to-load' });
       }));
 
       listeners.push(AdMob.addListener(RewardAdPluginEvents.FailedToShow, (err: any) => {
         console.error('[AdMob] ❌ Ad FAILED TO SHOW:', err);
-        finish({ rewarded: false });
+        finish({ rewarded: false, reason: 'failed-to-show' });
       }));
 
-      // Step 1: Prepare the ad
       console.log('[AdMob] 📦 Preparing rewarded ad...', { adId: adUnitId, isTesting: USE_TEST_ADS });
-      
+      emitDiag({ stage: 'preparing', adId: adUnitId });
+
       AdMob.prepareRewardVideoAd({ adId: adUnitId, isTesting: USE_TEST_ADS })
         .then(() => {
           console.log('[AdMob] ✅ Ad prepared, now showing...');
@@ -185,19 +225,21 @@ export function useAdMob() {
         })
         .then(() => {
           console.log('[AdMob] 📺 Ad is displaying...');
+          // Belt-and-braces: if Showed event never fires, mark tShown now.
+          if (tShown === 0) tShown = Date.now();
         })
         .catch((err: any) => {
           console.error('[AdMob] ❌ prepare/show error:', err?.message || err);
-          finish({ rewarded: false });
+          finish({ rewarded: false, reason: 'prepare-or-show-error' });
         });
 
-      // Safety timeout — 30 seconds max
+      // Safety timeout — 60 seconds max (real rewarded ads top out around 30s, +buffer).
       setTimeout(() => {
         if (!resolved) {
-          console.warn('[AdMob] ⏰ Timeout after 30s — no ad response');
-          finish({ rewarded: false });
+          console.warn('[AdMob] ⏰ Timeout after 60s — no ad response');
+          finish({ rewarded: false, reason: 'timeout' });
         }
-      }, 30000);
+      }, 60000);
     });
   }, []);
 
