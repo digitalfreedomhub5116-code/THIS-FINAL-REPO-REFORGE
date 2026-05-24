@@ -1094,6 +1094,12 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
 
     const rewards = onCompleteDungeonWorkout?.(c, t, r, anomaly, fcBonus, fcSession);
 
+    // Auto-complete the fitness goal dungeon quest
+    const dungeonGoalQuest = quests.find(q => q.isDungeonQuest && !q.isCompleted && !q.failed);
+    if (dungeonGoalQuest) {
+      completeQuest(dungeonGoalQuest.id);
+    }
+
     // Extract XP and gold from returned rewards for fly animation
     if (Array.isArray(rewards) && rewards.length > 0) {
       let xp = 0, gold = 0;
@@ -1107,7 +1113,7 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
         setPendingDungeonRewards({ xp, gold });
       }
     }
-  }, [onToggleNav, onCompleteDungeonWorkout, dungeonState, onUpdateDungeonState]);
+  }, [onToggleNav, onCompleteDungeonWorkout, dungeonState, onUpdateDungeonState, quests, completeQuest]);
 
   const handleDungeonFail = useCallback(() => {
     setIsDungeonActive(false);
