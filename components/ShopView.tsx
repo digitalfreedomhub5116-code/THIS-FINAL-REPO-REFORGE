@@ -149,7 +149,7 @@ const REWARD_SHORT: Record<string, (a: number) => string> = {
 };
 
 // ── ITEMS TAB: Streak Shield & Repair ──
-import { getPlayerAuthHeaders } from '../lib/playerApi';
+import { getPlayerAuthHeaders, getOrRefreshPlayerHeaders } from '../lib/playerApi';
 
 const ItemsTab: React.FC<{ gold: number }> = ({ gold }) => {
   const [shieldCount, setShieldCount] = useState(0);
@@ -427,7 +427,9 @@ const FreeKeyAdBanner: React.FC<{
   });
   const [watching, setWatching] = useState(false);
   const [claiming, setClaiming] = useState(false);
+  const [claimError, setClaimError] = useState<string | null>(null);
   const [diag, setDiag] = useState<string | null>(null);
+  const autoClaimedRef = useRef(false);
   const ready = progress >= ADS_PER_KEY;
 
   // Listen to admob:diag events from useAdMob to surface the ad lifecycle without logcat
@@ -446,10 +448,10 @@ const FreeKeyAdBanner: React.FC<{
     return () => window.removeEventListener('admob:diag', handler);
   }, []);
 
-  const persist = (n: number) => {
+  const persist = useCallback((n: number) => {
     try { localStorage.setItem(FREE_KEY_PROGRESS_KEY, String(n)); } catch {}
     setProgress(n);
-  };
+  }, []);
 
   const handleWatch = async () => {
     if (watching) return;
@@ -464,7 +466,9 @@ const FreeKeyAdBanner: React.FC<{
         const next = Math.min(ADS_PER_KEY, progress + 1);
         persist(next);
         if (next >= ADS_PER_KEY) {
-          addNotification?.('🎁 Ready to claim your free Key!', 'SUCCESS');
+          // Reset auto-claim guard so this fresh 2/2 transition triggers a claim.
+          autoClaimedRef.current = false;
+          addNotification?.('🎁 Granting your free Key…', 'SUCCESS');
         } else {
           addNotification?.(`Ad watched! ${ADS_PER_KEY - next} more to earn a Key.`, 'INFO');
         }
@@ -478,30 +482,63 @@ const FreeKeyAdBanner: React.FC<{
     }
   };
 
-  const handleClaim = async () => {
+  // Server claim helper — called both by auto-fire effect and the retry button.
+  const performClaim = useCallback(async () => {
     if (claiming) return;
     setClaiming(true);
+    setClaimError(null);
     try {
-      const res = await fetch(`${API_BASE}/api/economy/grant-keys`, {
+      let res = await fetch(`${API_BASE}/api/economy/grant-keys`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
         credentials: 'include',
         body: JSON.stringify({ amount: 1, source: 'ad_reward' }),
       });
-      const data = await res.json();
+      let data = await res.json().catch(() => ({}));
+
+      if (res.status === 401) {
+        const refreshed = await getOrRefreshPlayerHeaders(API_BASE);
+        if (refreshed.Authorization) {
+          res = await fetch(`${API_BASE}/api/economy/grant-keys`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...refreshed },
+            credentials: 'include',
+            body: JSON.stringify({ amount: 1, source: 'ad_reward' }),
+          });
+          data = await res.json().catch(() => ({}));
+        }
+      }
+
       if (res.ok && data.success && data.keys != null) {
         onClaimKey(data.keys);
         persist(0);
+        autoClaimedRef.current = false; // ready for next cycle
         addNotification?.('🔑 +1 Key Crystal claimed!', 'SUCCESS');
       } else {
-        addNotification?.('Failed to claim key — try again', 'DANGER');
+        const reason = data.error || `HTTP ${res.status}`;
+        setClaimError(reason);
+        addNotification?.(`Failed to claim key: ${reason}`, 'DANGER');
       }
-    } catch {
-      addNotification?.('Network error — try again', 'DANGER');
+    } catch (err: any) {
+      const reason = err?.message || 'unknown';
+      setClaimError(reason);
+      addNotification?.(`Network error: ${reason}`, 'DANGER');
     } finally {
       setClaiming(false);
     }
-  };
+  }, [claiming, onClaimKey, persist, addNotification]);
+
+  // Auto-claim when progress hits the threshold. Guarded by autoClaimedRef so
+  // it only fires once per 2/2 transition. If the claim fails, the user gets a
+  // "Tap to retry" button (rendered below) so they're not stuck.
+  useEffect(() => {
+    if (progress < ADS_PER_KEY) return;
+    if (autoClaimedRef.current) return;
+    if (claiming) return;
+    if (claimError) return; // wait for user to tap retry
+    autoClaimedRef.current = true;
+    performClaim();
+  }, [progress, claiming, claimError, performClaim]);
 
   return (
     <motion.div
@@ -575,26 +612,41 @@ const FreeKeyAdBanner: React.FC<{
             ))}
           </div>
 
-          {/* Action button */}
+          {/* Action button — auto-claims when ready; falls back to "Tap to retry" on server error */}
           {ready ? (
-            <button
-              onClick={handleClaim}
-              disabled={claiming}
-              style={{
-                width: '100%', padding: '8px 14px', borderRadius: 10, border: 'none',
-                cursor: claiming ? 'wait' : 'pointer',
-                background: claiming
-                  ? 'rgba(251,191,36,0.4)'
-                  : 'linear-gradient(135deg, #fbbf24, #d97706)',
-                color: '#1a0f00', fontSize: 11, fontWeight: 900, letterSpacing: '0.05em',
-                boxShadow: claiming ? 'none' : '0 0 16px rgba(251,191,36,0.4), inset 0 1px 0 rgba(255,255,255,0.3)',
-                opacity: claiming ? 0.7 : 1,
-                textTransform: 'uppercase' as const,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              }}
-            >
-              {claiming ? '⏳ Claiming...' : <><Gift size={13} /> Claim Free Key</>}
-            </button>
+            claimError ? (
+              // Claim failed — let the user retry instead of being stuck.
+              <button
+                onClick={() => { setClaimError(null); autoClaimedRef.current = false; performClaim(); }}
+                disabled={claiming}
+                style={{
+                  width: '100%', padding: '8px 14px', borderRadius: 10, border: 'none',
+                  cursor: claiming ? 'wait' : 'pointer',
+                  background: claiming ? 'rgba(239,68,68,0.4)' : 'linear-gradient(135deg, #ef4444, #b91c1c)',
+                  color: '#fff', fontSize: 10, fontWeight: 900, letterSpacing: '0.05em',
+                  boxShadow: claiming ? 'none' : '0 0 12px rgba(239,68,68,0.45)',
+                  opacity: claiming ? 0.7 : 1,
+                  textTransform: 'uppercase' as const,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                }}
+              >
+                {claiming ? '⏳ Retrying...' : `↻ Tap to retry — ${claimError}`}
+              </button>
+            ) : (
+              // Auto-claim in progress — non-interactive loading state.
+              <div
+                style={{
+                  width: '100%', padding: '8px 14px', borderRadius: 10,
+                  background: 'rgba(251,191,36,0.4)',
+                  color: '#1a0f00', fontSize: 11, fontWeight: 900, letterSpacing: '0.05em',
+                  textTransform: 'uppercase' as const,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  opacity: 0.85,
+                }}
+              >
+                ⏳ Granting Free Key...
+              </div>
+            )
           ) : (
             <button
               onClick={handleWatch}
