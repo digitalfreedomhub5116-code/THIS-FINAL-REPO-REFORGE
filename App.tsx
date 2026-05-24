@@ -1640,7 +1640,22 @@ const App: React.FC = () => {
 
           }
 
-
+          // ── Level-Down detection (missed-workout penalty, or admin XP removal) ──
+          // The server writes the corrected level into the DB. When we detect the
+          // synced level is lower than what the player had before, push a LEVEL_DOWN
+          // log entry. App.tsx's existing effect (line ~2483) watches for this and
+          // triggers the LevelDownCinematic overlay.
+          const updatesLevel: number | undefined = updates.level;
+          if (typeof updatesLevel === 'number' && updatesLevel < prev.level) {
+            const levelDownLog = {
+              id: `leveldown_${Date.now()}`,
+              type: 'LEVEL_DOWN' as const,
+              message: `LEVEL LOST — dropped from Level ${prev.level} to Level ${updatesLevel}`,
+              timestamp: Date.now(),
+              xp: 0,
+            };
+            merged.logs = [levelDownLog, ...(merged.logs || [])].slice(0, 60);
+          }
 
           return merged;
 

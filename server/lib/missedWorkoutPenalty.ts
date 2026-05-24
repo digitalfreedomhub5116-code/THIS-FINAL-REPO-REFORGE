@@ -18,6 +18,7 @@
  * pending_notifications entry that the client renders as a popup after streak.
  */
 import { supabaseServer } from './supabase.js';
+import { computeLevelFromTotalXp } from '../../lib/levelSystem.js';
 
 const PENALTY_TABLE: Record<number, number> = {
   1: 50,
@@ -129,11 +130,21 @@ export async function checkAndApplyMissedWorkoutPenalty(
     return null;
   }
 
-  // ── Apply penalty ──
+  // ── Apply penalty — compute new XP totals ──
   const newConsecutive = (row.consecutive_missed_workouts || 0) + 1;
   const penalty = computePenaltyXp(newConsecutive);
   const newTotalXp = Math.max(0, (row.total_xp || 0) - penalty);
-  const newCurrentXp = Math.max(0, (row.current_xp || 0) - penalty);
+
+  // ── Recompute level from scratch using new total XP ──
+  // This is the source-of-truth: if the player drops below their level
+  // threshold, their level, currentXp and requiredXp are all corrected.
+  const recomputed = computeLevelFromTotalXp(newTotalXp);
+  const oldLevel = row.level || 1;
+  const newLevel = recomputed.level;
+  const newCurrentXp = recomputed.currentXp;
+  const newRequiredXp = recomputed.requiredXp;
+  const newRank = recomputed.rank;
+  const didLevelDown = newLevel < oldLevel;
 
   // Push pending notification for the client popup
   const existingNotifs = Array.isArray(row.pending_notifications)
@@ -146,6 +157,8 @@ export async function checkAndApplyMissedWorkoutPenalty(
     consecutiveDays: newConsecutive,
     xpLost: penalty,
     forDate: yesterdayStr,
+    // Include level-down info so the client can trigger the cinematic
+    ...(didLevelDown ? { levelBefore: oldLevel, levelAfter: newLevel } : {}),
   };
 
 
@@ -155,15 +168,24 @@ export async function checkAndApplyMissedWorkoutPenalty(
   );
   filteredNotifs.push(notif);
 
+  const updatePayload: Record<string, any> = {
+    total_xp: newTotalXp,
+    current_xp: newCurrentXp,
+    required_xp: newRequiredXp,
+    consecutive_missed_workouts: newConsecutive,
+    last_miss_check_date: yesterdayStr,
+    pending_notifications: filteredNotifs,
+  };
+
+  // Only write level/rank columns when the player actually deleveled
+  if (didLevelDown) {
+    updatePayload.level = newLevel;
+    updatePayload.rank = newRank;
+  }
+
   const { error: updateErr } = await db
     .from('players')
-    .update({
-      total_xp: newTotalXp,
-      current_xp: newCurrentXp,
-      consecutive_missed_workouts: newConsecutive,
-      last_miss_check_date: yesterdayStr,
-      pending_notifications: filteredNotifs,
-    })
+    .update(updatePayload)
     .eq('id', row.id);
 
   if (updateErr) {
@@ -172,7 +194,8 @@ export async function checkAndApplyMissedWorkoutPenalty(
   }
 
   console.log(
-    `[MissedWorkoutPenalty] ${userId.slice(-8)}: ${newConsecutive} consecutive misses → -${penalty} XP (was ${row.total_xp}, now ${newTotalXp})`
+    `[MissedWorkoutPenalty] ${userId.slice(-8)}: ${newConsecutive} consecutive misses → -${penalty} XP ` +
+    `(totalXp: ${row.total_xp} → ${newTotalXp}, level: ${oldLevel} → ${newLevel}${ didLevelDown ? ' ⬇ LEVEL DOWN' : '' })`
   );
 
   return { applied: true, newConsecutive, penalty, newTotalXp };
