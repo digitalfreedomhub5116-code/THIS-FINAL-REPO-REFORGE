@@ -2524,6 +2524,33 @@ const App: React.FC = () => {
   }, [activeTab, isDungeonMode]);
 
 
+  // ── Auto-scroll to Daily Sung Jin-woo Protocol section on first dashboard view per app launch ──
+  // The Sung Jin-woo Protocol (Daily Dungeon) is a primary daily action surface. After the loading
+  // screen dismisses and the dashboard appears, jump the page directly to that section so the user
+  // doesn't have to scroll past the status card to find it. Runs at most once per app launch.
+  const dungeonScrolledRef = useRef(false);
+  useEffect(() => {
+    if (dungeonScrolledRef.current) return;
+    if (!dataReady) return;
+    if (activeTab !== 'DASHBOARD') return;
+    if (!player.dungeonState) return;
+    // Wait a beat for the dashboard's framer-motion mount transition (250ms) and DOM paint.
+    const t = setTimeout(() => {
+      const el = document.getElementById('dungeon-protocol-section');
+      if (!el) return;
+      try {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        dungeonScrolledRef.current = true;
+      } catch {
+        // Older WebViews — fall back to instant scroll.
+        const y = el.getBoundingClientRect().top + window.scrollY - 16;
+        window.scrollTo(0, y);
+        dungeonScrolledRef.current = true;
+      }
+    }, 350);
+    return () => clearTimeout(t);
+  }, [dataReady, activeTab, player.dungeonState]);
+
 
   // ── Level 1 Quest Onboarding Trigger ──
 
