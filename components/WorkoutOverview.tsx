@@ -235,8 +235,8 @@ const WorkoutOverview: React.FC<WorkoutOverviewProps> = ({ plan, focusVideos, on
   }, [plan, userWeight]);
 
   const handleStart = async () => {
-      // Show rewarded ad before entering workout — user can watch or skip, always enters after
-      if (showRewardedAd) {
+      // Show rewarded ad before entering workout — skip for pro users
+      if (showRewardedAd && !isPremium) {
         setAdLoading(true);
         try {
           await showRewardedAd(AD_UNITS.KEY_REWARD);

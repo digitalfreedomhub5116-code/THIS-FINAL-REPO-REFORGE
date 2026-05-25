@@ -145,6 +145,9 @@ export const HealthView: React.FC<HealthViewProps> = ({
   const prevStreakRef = useRef(playerData.streak);
   const [activeTab, setActiveTab] = useState<'WORKOUT' | 'NUTRITION' | 'SKILLS'>(initialSubTab || 'WORKOUT');
   const nutritionLocked = false;
+
+  // Session counter for nutrition interstitial ads — shows every 2nd meal logged
+  const mealLogCountRef = useRef(0);
   const visibleTabs = SKILLS_ENABLED ? ['WORKOUT', 'NUTRITION', 'SKILLS'] : ['WORKOUT', 'NUTRITION'];
   
   // Track if user skipped setup
@@ -620,11 +623,6 @@ export const HealthView: React.FC<HealthViewProps> = ({
           return;
       }
 
-      // Show interstitial ad before opening camera — proceed regardless of ad result
-      if (showInterstitialAd) {
-        try { await showInterstitialAd(AD_UNITS.DUNGEON_INTERSTITIAL); } catch { /* proceed anyway */ }
-      }
-
       try {
           const photo = await CapCamera.getPhoto({
               quality: 80,
@@ -712,11 +710,6 @@ export const HealthView: React.FC<HealthViewProps> = ({
           return;
       }
 
-      // Show interstitial ad before file upload — proceed regardless of ad result
-      if (showInterstitialAd) {
-        try { await showInterstitialAd(AD_UNITS.DUNGEON_INTERSTITIAL); } catch { /* proceed anyway */ }
-      }
-
       const file = e.target.files?.[0];
       if (!file) return;
 
@@ -785,11 +778,16 @@ export const HealthView: React.FC<HealthViewProps> = ({
       }
   };
 
-  const confirmLog = () => {
+  const confirmLog = async () => {
       if (onLogMeal && scanResult) {
           const detailedItems = scanItems.map((item, idx) => ({ id: `scan_item_${idx}_${Date.now()}`, name: item.name, calories: item.calories, protein: item.protein, carbs: item.carbs, fats: item.fat, servingSize: item.quantity, quantity: 1 }));
           onLogMeal({ id: Math.random().toString(36).substr(2, 9), label: scanResult.name, items: detailedItems.length > 0 ? detailedItems : [{ ...scanResult, quantity: 1 }], totalCalories: scanResult.calories, totalProtein: scanResult.protein, totalCarbs: scanResult.carbs, totalFats: scanResult.fats, timestamp: Date.now(), imageUrl: scannedImage || undefined, mealType: selectedMealType });
           resetScanner();
+          // Interstitial ad every 2nd meal logged — skip for pro users
+          mealLogCountRef.current += 1;
+          if (!isPremium && showInterstitialAd && mealLogCountRef.current % 2 === 0) {
+            try { await showInterstitialAd(AD_UNITS.DUNGEON_INTERSTITIAL); } catch { /* proceed anyway */ }
+          }
       }
   };
 
@@ -2356,7 +2354,15 @@ export const HealthView: React.FC<HealthViewProps> = ({
             {showFoodLibrary && onLogMeal && (
                 <FoodLibrary
                     onClose={() => setShowFoodLibrary(false)}
-                    onLogFood={(meal) => { onLogMeal(meal); setShowFoodLibrary(false); }}
+                    onLogFood={async (meal) => {
+                    onLogMeal(meal);
+                    setShowFoodLibrary(false);
+                    // Interstitial ad every 2nd meal logged — skip for pro users
+                    mealLogCountRef.current += 1;
+                    if (!isPremium && showInterstitialAd && mealLogCountRef.current % 2 === 0) {
+                      try { await showInterstitialAd(AD_UNITS.DUNGEON_INTERSTITIAL); } catch { /* proceed anyway */ }
+                    }
+                }}
                     selectedMealType={selectedMealType}
                 />
             )}

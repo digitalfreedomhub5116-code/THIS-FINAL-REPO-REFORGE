@@ -424,8 +424,10 @@ router.put('/:id', async (req: Request, res: Response) => {
     // Arrays with IDs (quests, logs, nutritionLogs, history) are merged by ID.
     // Items from both DB and client are kept; client version wins on conflicts.
     const dbRaw = (currentRow?.raw_data as Record<string, any>) || {};
-    // Strip gold/keys from client raw data to prevent tampering
-    const { gold: _cGold, keys: _cKeys, ...cleanClientData } = cleanData;
+    // Strip server-authoritative fields from client raw data to prevent tampering and
+    // accidental overwrites (gold, keys, adKeysWatched all live in raw_data on read,
+    // but are mutated only by server endpoints — never by the PUT sync).
+    const { gold: _cGold, keys: _cKeys, adKeysWatched: _cAdKeys, ...cleanClientData } = cleanData;
     const clientRaw = { ...cleanClientData, gold: newGold, keys: newKeys };
 
     // Helper: merge two arrays by item ID, preferring client items on conflict

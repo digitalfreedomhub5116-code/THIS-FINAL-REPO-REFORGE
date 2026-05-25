@@ -147,10 +147,132 @@ router.post('/exchange', async (_req: Request, res: Response) => {
 });
 
 
+// ── POST /ad-key-watch — Server-authoritative free key from ads ──
+// The client calls this once per completed rewarded ad. The server
+// increments the cumulative counter and grants 1 free key for every
+// 2 ads watched. No client state, no claim step, no race conditions.
+//
+// Returns: { adsWatched: number, keysGranted: number, totalKeys: number }
+//   adsWatched   — cumulative ads ever watched (modulo display: % 2 == slot)
+//   keysGranted  — 0 or 1, whether THIS call crossed a 2-ad boundary
+//   totalKeys    — current key balance after the (possible) grant
+router.post('/ad-key-watch', async (req: Request, res: Response) => {
+  const userId = getAuthenticatedUserId(req);
+  if (!userId) {
+    const authHeader = req.headers['authorization'];
+    const hasBearer = typeof authHeader === 'string' && authHeader.startsWith('Bearer ');
+    const hasSession = !!(req.session as any)?.userId;
+    console.warn(
+      '[Economy ad-key-watch] 401 Unauthorized',
+      JSON.stringify({ hasBearer, bearerLen: hasBearer ? (authHeader as string).slice(7).length : 0, hasSession }),
+    );
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const ADS_PER_KEY = 2;
+
+  try {
+    const db = supabaseServer() as any;
+
+    // Read the player's current state. We use raw_data.adKeysWatched as the
+    // counter so no schema migration is needed — raw_data is an existing JSONB.
+    const { data: player, error: fetchErr } = await db
+      .from('players')
+      .select('id, keys, raw_data')
+      .eq('supabase_id', userId)
+      .single();
+    if (fetchErr || !player) {
+      return res.status(404).json({ error: 'Player not found' });
+    }
+
+    const rawData = (player.raw_data as Record<string, any>) || {};
+    const prevWatched: number = Number(rawData.adKeysWatched) || 0;
+    const newWatched = prevWatched + 1;
+
+    // Grant a key whenever the new total crosses a 2-ad boundary.
+    // This handles every multiple of 2 — no off-by-one, no missed grants.
+    const prevKeysFromAds = Math.floor(prevWatched / ADS_PER_KEY);
+    const newKeysFromAds = Math.floor(newWatched / ADS_PER_KEY);
+    const keysGranted = newKeysFromAds - prevKeysFromAds;
+
+    const newKeys = (player.keys || 0) + keysGranted;
+    const newRawData = { ...rawData, adKeysWatched: newWatched };
+
+    const { error: updateErr } = await db
+      .from('players')
+      .update({
+        keys: newKeys,
+        raw_data: newRawData,
+      })
+      .eq('id', player.id);
+
+    if (updateErr) {
+      console.error('[Economy ad-key-watch] update error:', updateErr);
+      return res.status(500).json({ error: 'Failed to record ad watch' });
+    }
+
+    if (keysGranted > 0) {
+      console.log(`[Economy] ${userId.slice(-8)}: +${keysGranted}🔑 (ad_reward) → ${newKeys} total | adsWatched=${newWatched}`);
+    }
+
+    return res.json({
+      success: true,
+      adsWatched: newWatched,
+      keysGranted,
+      totalKeys: newKeys,
+      adsPerKey: ADS_PER_KEY,
+    });
+  } catch (err) {
+    console.error('[Economy ad-key-watch]', err);
+    return res.status(500).json({ error: 'Failed to record ad watch' });
+  }
+});
+
+// ── GET /ad-key-progress — Get current ad-watch progress for the user ──
+router.get('/ad-key-progress', async (req: Request, res: Response) => {
+  const userId = getAuthenticatedUserId(req);
+  if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+  try {
+    const db = supabaseServer() as any;
+    const { data, error } = await db
+      .from('players')
+      .select('raw_data')
+      .eq('supabase_id', userId)
+      .single();
+    if (error || !data) {
+      return res.status(404).json({ error: 'Player not found' });
+    }
+    const rawData = (data.raw_data as Record<string, any>) || {};
+    const adsWatched: number = Number(rawData.adKeysWatched) || 0;
+    return res.json({ adsWatched, adsPerKey: 2 });
+  } catch (err) {
+    console.error('[Economy ad-key-progress]', err);
+    return res.status(500).json({ error: 'Failed to fetch ad-key progress' });
+  }
+});
+
 // ── POST /grant-keys — Server-validated key granting (for workout rewards, etc.) ──
 router.post('/grant-keys', async (req: Request, res: Response) => {
   const userId = getAuthenticatedUserId(req);
-  if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+  if (!userId) {
+    // Diagnostic: surface why auth failed so we can tell whether the JWT was
+    // missing, invalid, or expired vs the session being dead.
+    const authHeader = req.headers['authorization'];
+    const hasBearer = typeof authHeader === 'string' && authHeader.startsWith('Bearer ');
+    const hasSession = !!(req.session as any)?.userId;
+    console.warn(
+      '[Economy grant-keys] 401 Unauthorized',
+      JSON.stringify({
+        hasBearer,
+        bearerLen: hasBearer ? (authHeader as string).slice(7).length : 0,
+        hasSession,
+        source: req.body?.source,
+        ip: (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.ip,
+      }),
+    );
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
 
   const { amount, source } = req.body;
   if (typeof amount !== 'number' || amount <= 0 || amount > 5) {

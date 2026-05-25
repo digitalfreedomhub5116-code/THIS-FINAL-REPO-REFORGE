@@ -52,6 +52,8 @@ interface DungeonQuestCardsProps {
   onDeductGold?: (amount: number) => void;
   /** Called before entering dungeon; shows rewarded ad, user always enters after */
   showRewardedAd?: (adUnitId: string) => Promise<{ rewarded: boolean; type?: string; amount?: number }>;
+  /** When true (Reforge Pro / VIP), skip the pre-entry rewarded ad */
+  isPremium?: boolean;
 }
 
 // ── iOS-style AI Coach Toggle ──
@@ -301,8 +303,10 @@ const DungeonQuestCards: React.FC<DungeonQuestCardsProps> = ({
   onUpdateDungeonState,
   onDeductGold,
   showRewardedAd,
+  isPremium = false,
 }) => {
   const [showConfirm, setShowConfirm] = useState(false);
+  const [adLoading, setAdLoading] = useState(false);
   const allCompletedToday = isDungeonCompletedToday(dungeonState);
   const tier = getProgressionTier(dungeonState);
 
@@ -320,9 +324,18 @@ const DungeonQuestCards: React.FC<DungeonQuestCardsProps> = ({
 
   const handleConfirmEnter = async () => {
     setShowConfirm(false);
-    // Show rewarded ad before entering dungeon — user can watch or skip, always enters after
-    if (showRewardedAd) {
-      try { await showRewardedAd(AD_UNITS.KEY_REWARD); } catch { /* proceed anyway if ad fails */ }
+    // Mandatory rewarded ad before entering dungeon for non-premium users.
+    // If the ad fails to load, allow entry (per product spec — never block on
+    // ad infrastructure issues). Premium users always skip the ad.
+    if (!isPremium && showRewardedAd) {
+      setAdLoading(true);
+      try {
+        await showRewardedAd(AD_UNITS.KEY_REWARD);
+      } catch {
+        /* ad infrastructure failed — allow entry anyway */
+      } finally {
+        setAdLoading(false);
+      }
     }
     onEnterDungeon();
   };

@@ -9,7 +9,7 @@ import type { RankType } from './RankBadge';
 import QuestCard from './QuestCard';
 import DungeonQuestCards from './DungeonQuestCards';
 import ActiveWorkoutPlayer, { clearWorkoutSession } from './ActiveWorkoutPlayer';
-import { buildDungeonWorkoutPlan, toggleFormCoach } from '../lib/dungeonEngine';
+import { buildDungeonWorkoutPlan, buildDungeonWorkoutPlanForEquipment, toggleFormCoach } from '../lib/dungeonEngine';
 
 import { playSystemSoundEffect } from '../utils/soundEngine';
 import { API_BASE } from '../lib/apiConfig';
@@ -132,14 +132,19 @@ const QuestsView: React.FC<QuestsViewProps> = ({
     }
   }, [dungeonState, playerData?.healthProfile, onInitializeDungeon]);
 
-  const handleEnterDungeon = () => {
+  const handleEnterDungeon = (equipmentOverride?: 'GYM' | 'HOME_DUMBBELLS' | 'BODYWEIGHT') => {
     if (!dungeonState) return;
-    const { isExerciseCompletedToday: isExDone } = require('../lib/dungeonEngine');
-    const remainingTargets = dungeonState.targets.filter(
-      (t: any) => !isExDone(dungeonState, t.exercise)
-    );
-    const targetsForPlan = remainingTargets.length > 0 ? remainingTargets : dungeonState.targets;
-    const plan = buildDungeonWorkoutPlan(targetsForPlan);
+    let plan;
+    if (equipmentOverride) {
+      plan = buildDungeonWorkoutPlanForEquipment(dungeonState, equipmentOverride);
+    } else {
+      const { isExerciseCompletedToday: isExDone } = require('../lib/dungeonEngine');
+      const remainingTargets = dungeonState.targets.filter(
+        (t: any) => !isExDone(dungeonState, t.exercise)
+      );
+      const targetsForPlan = remainingTargets.length > 0 ? remainingTargets : dungeonState.targets;
+      plan = buildDungeonWorkoutPlan(targetsForPlan);
+    }
     setDungeonPlan(plan);
     setIsDungeonActive(true);
     onToggleNav?.(false);
@@ -161,6 +166,11 @@ const QuestsView: React.FC<QuestsViewProps> = ({
     }
     if (onCompleteDungeonWorkout) {
       onCompleteDungeonWorkout(c, t, r, anomaly, fcBonus, fcSession);
+    }
+    // Auto-complete the fitness goal dungeon quest
+    const dungeonGoalQuest = quests.find(q => q.isDungeonQuest && !q.isCompleted && !q.failed);
+    if (dungeonGoalQuest) {
+      completeQuest(dungeonGoalQuest.id);
     }
   };
 
@@ -504,6 +514,7 @@ const QuestsView: React.FC<QuestsViewProps> = ({
                 isLocked={isLocked}
                 onStartTracking={onStartTracking}
                 onStopTracking={onStopTracking}
+                onEnterDungeon={(equipment) => handleEnterDungeon(equipment)}
               />
             </motion.div>
             );

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef, lazy, Suspense, useCallback, type CSSProperties } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense, useCallback, useMemo, type CSSProperties } from 'react';
 import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Coins, Timer, Key, CheckCircle2, Lock, ChevronLeft, ChevronRight, Heart, Star, Zap, Ghost, Hexagon, ShoppingBag, Shirt, CircleDot, Palette, Frame, Clock, ImageIcon, Flame, Shield, Wrench, Eye, Sparkles, Crown, Gift, Play } from 'lucide-react';
@@ -18,7 +18,7 @@ import AnimatedBorder from './AnimatedBorder';
 import OnboardingNotice from './OnboardingNotice';
 import { SystemCoin } from './icons/SystemCoin';
 import { getItemsByCategory, getTodaysDeals, getItemById, getRemoteStoreCache, type StoreItem as KitStoreItem, ALL_STORE_ITEMS, BORDERS_ELEMENTS, BORDERS_BEASTS, BORDERS_EXCLUSIVE } from '../utils/storeItems';
-import { getEconomy, purchaseItem as kitPurchaseItem, equipItem as kitEquipItem, applyThemeVars, DEV_UNLOCK_ALL, type EquippedItems } from '../utils/storeEconomy';
+import { getEconomy, purchaseItem as kitPurchaseItem, equipItem as kitEquipItem, unlockItem as kitUnlockItem, applyThemeVars, DEV_UNLOCK_ALL, type EquippedItems } from '../utils/storeEconomy';
 import { syncBorderToPlayers } from '../lib/borderSync';
 import { LynxCoin, BorderRing, ThemeSwatch } from './StoreComponents';
 import { Package } from 'lucide-react';
@@ -92,7 +92,9 @@ interface ShopViewProps {
   /** Ad unit IDs from useAdMob */
   adUnits?: { KEY_REWARD: string; BORDER_REWARD: string; DUNGEON_INTERSTITIAL: string };
   /** Notification helper for success/failure messages */
-  addNotification?: (msg: string, type: 'SUCCESS' | 'WARNING' | 'DANGER' | 'INFO') => void;
+  addNotification?: (msg: string, type: import('../types').NotificationType) => void;
+  /** Current player's userId — used to scope localStorage keys per-account */
+  userId?: string;
 }
 
 
@@ -149,7 +151,7 @@ const REWARD_SHORT: Record<string, (a: number) => string> = {
 };
 
 // ── ITEMS TAB: Streak Shield & Repair ──
-import { getPlayerAuthHeaders } from '../lib/playerApi';
+import { getPlayerAuthHeaders, getOrRefreshPlayerHeaders } from '../lib/playerApi';
 
 const ItemsTab: React.FC<{ gold: number }> = ({ gold }) => {
   const [shieldCount, setShieldCount] = useState(0);
@@ -367,27 +369,153 @@ const ItemsTab: React.FC<{ gold: number }> = ({ gold }) => {
 
 /* ═══════════════════════════════════
    FreeKeyAdBanner — Watch 2 ads to earn 1 Key Crystal
+   ─────────────────────────────────────
+   Server-authoritative: every ad watched is reported to
+   /api/economy/ad-key-watch which atomically increments the
+   counter and grants 1 key for every 2 ads. No localStorage,
+   no claim step, no race conditions across accounts/devices.
    ═══════════════════════════════════ */
-const FREE_KEY_PROGRESS_KEY = 'reforge:freeKeyAdProgress';
 const ADS_PER_KEY = 2;
+
+/* ═══════════════════════════════════
+   GlobalAdDiag — listens to admob:diag events from useAdMob and any
+   ad-watch surface, displays a small floating strip with the latest
+   lifecycle stage. Auto-hides after 12s. Helps diagnose why an ad
+   didn't grant a reward without needing logcat.
+   ═══════════════════════════════════ */
+const GlobalAdDiag: React.FC = () => {
+  const [diag, setDiag] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail || {};
+      const stage = detail.stage || '?';
+      const watched = detail.watchedMs != null ? `${Math.round(detail.watchedMs / 1000)}s` : '';
+      const reason = detail.reason ? ` (${detail.reason})` : '';
+      const rew = detail.rewarded != null ? ` rewarded=${detail.rewarded}` : '';
+      const item = detail.itemId ? ` ${detail.itemId}` : '';
+      setDiag(`[ad] ${stage}${watched ? ' ' + watched : ''}${rew}${reason}${item}`);
+    };
+    window.addEventListener('admob:diag', handler);
+    return () => window.removeEventListener('admob:diag', handler);
+  }, []);
+
+  useEffect(() => {
+    if (!diag) return;
+    const id = setTimeout(() => setDiag(null), 12000);
+    return () => clearTimeout(id);
+  }, [diag]);
+
+  if (!diag) return null;
+  return (
+    <div style={{
+      position: 'fixed', top: 8, left: 8, right: 8, zIndex: 99999,
+      padding: '6px 10px', borderRadius: 8,
+      background: 'rgba(0,0,0,0.85)',
+      border: '1px solid rgba(168,85,247,0.5)',
+      fontSize: 10, fontFamily: 'monospace', color: 'rgba(214,188,250,0.95)',
+      letterSpacing: '0.02em', wordBreak: 'break-all', textAlign: 'center',
+      pointerEvents: 'none',
+    }}>
+      {diag}
+    </div>
+  );
+};
 
 const FreeKeyAdBanner: React.FC<{
   onWatchRewardedAd?: (adUnitId: string) => Promise<{ rewarded: boolean }>;
   adUnitId?: string;
   onClaimKey: (serverKeys: number) => void;
-  addNotification?: (msg: string, type: 'SUCCESS' | 'WARNING' | 'DANGER' | 'INFO') => void;
-}> = ({ onWatchRewardedAd, adUnitId, onClaimKey, addNotification }) => {
-  const [progress, setProgress] = useState<number>(() => {
-    try { return Math.min(ADS_PER_KEY, parseInt(localStorage.getItem(FREE_KEY_PROGRESS_KEY) || '0', 10) || 0); } catch { return 0; }
-  });
+  addNotification?: (msg: string, type: import('../types').NotificationType) => void;
+  userId?: string;
+}> = ({ onWatchRewardedAd, adUnitId, onClaimKey, addNotification, userId }) => {
+  // Cumulative ads watched (mod ADS_PER_KEY for the displayed slot count).
+  // Server is authoritative — we just mirror what the server tells us.
+  const [adsWatched, setAdsWatched] = useState<number>(0);
   const [watching, setWatching] = useState(false);
-  const [claiming, setClaiming] = useState(false);
-  const ready = progress >= ADS_PER_KEY;
+  const [, setDiag] = useState<string | null>(null);
 
-  const persist = (n: number) => {
-    try { localStorage.setItem(FREE_KEY_PROGRESS_KEY, String(n)); } catch {}
-    setProgress(n);
-  };
+  // Slot progress is the cumulative count modulo 2 — when slot fills, server
+  // already granted the key, the counter rolls over, and the slots reset to 0.
+  const slotProgress = adsWatched % ADS_PER_KEY;
+
+  // Fetch initial server state on mount and whenever the user changes.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/economy/ad-key-progress`, {
+          credentials: 'include',
+          headers: { ...getPlayerAuthHeaders() },
+        });
+        if (!res.ok) return;
+        const data = await res.json().catch(() => ({}));
+        if (!cancelled && typeof data.adsWatched === 'number') {
+          setAdsWatched(data.adsWatched);
+        }
+      } catch { /* offline / not signed in — show 0/2 */ }
+    })();
+    return () => { cancelled = true; };
+  }, [userId]);
+
+  // Listen to admob:diag events from useAdMob to surface the ad lifecycle without logcat
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail || {};
+      const stage = detail.stage || '?';
+      const watched = detail.watchedMs != null ? `${Math.round(detail.watchedMs/1000)}s` : '';
+      const reason = detail.reason ? ` (${detail.reason})` : '';
+      const rew = detail.rewarded != null ? ` rewarded=${detail.rewarded}` : '';
+      setDiag(`[ad] ${stage}${watched ? ' ' + watched : ''}${rew}${reason}`);
+      // Auto-clear after 10s
+      setTimeout(() => setDiag(null), 10000);
+    };
+    window.addEventListener('admob:diag', handler);
+    return () => window.removeEventListener('admob:diag', handler);
+  }, []);
+
+  // Report a completed ad watch to the server. The server increments the
+  // cumulative counter and, if it crosses a 2-ad boundary, atomically grants
+  // 1 key. No client-side claim step.
+  const reportAdWatch = useCallback(async (): Promise<{ ok: boolean; reason?: string }> => {
+    const doFetch = (headers: Record<string, string>) => fetch(`${API_BASE}/api/economy/ad-key-watch`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...headers },
+      credentials: 'include',
+      body: JSON.stringify({}),
+    });
+
+    try {
+      let res = await doFetch(getPlayerAuthHeaders());
+
+      // 401: try one forced JWT refresh, then retry. If still 401, we surface
+      // a clear "sign in again" message because the session itself is dead.
+      if (res.status === 401) {
+        const refreshed = await getOrRefreshPlayerHeaders(API_BASE, true);
+        if (refreshed.Authorization) {
+          res = await doFetch(refreshed);
+        } else {
+          return { ok: false, reason: 'Session expired — please sign in again' };
+        }
+      }
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        return { ok: false, reason: data?.error || `HTTP ${res.status}` };
+      }
+      if (typeof data.adsWatched === 'number') setAdsWatched(data.adsWatched);
+      if (typeof data.totalKeys === 'number') onClaimKey(data.totalKeys);
+      if (data.keysGranted > 0) {
+        addNotification?.(`🔑 +${data.keysGranted} Key Crystal earned!`, 'SUCCESS');
+      } else {
+        const remaining = ADS_PER_KEY - (data.adsWatched % ADS_PER_KEY || ADS_PER_KEY);
+        addNotification?.(`Ad watched! ${remaining} more to earn a Key.`, 'INFO');
+      }
+      return { ok: true };
+    } catch (err: any) {
+      return { ok: false, reason: err?.message || 'network error' };
+    }
+  }, [onClaimKey, addNotification]);
 
   const handleWatch = async () => {
     if (watching) return;
@@ -398,46 +526,19 @@ const FreeKeyAdBanner: React.FC<{
     setWatching(true);
     try {
       const res = await onWatchRewardedAd(adUnitId);
-      if (res.rewarded) {
-        const next = Math.min(ADS_PER_KEY, progress + 1);
-        persist(next);
-        if (next >= ADS_PER_KEY) {
-          addNotification?.('🎁 Ready to claim your free Key!', 'SUCCESS');
-        } else {
-          addNotification?.(`Ad watched! ${ADS_PER_KEY - next} more to earn a Key.`, 'INFO');
-        }
-      } else {
+      if (!res.rewarded) {
         addNotification?.('Ad not completed — no progress', 'WARNING');
+        return;
       }
-    } catch (e) {
+      // Ad fully watched — credit it on the server.
+      const reported = await reportAdWatch();
+      if (!reported.ok) {
+        addNotification?.(`Couldn't credit ad: ${reported.reason}`, 'DANGER');
+      }
+    } catch {
       addNotification?.('Ad failed to load — try again', 'DANGER');
     } finally {
       setWatching(false);
-    }
-  };
-
-  const handleClaim = async () => {
-    if (claiming) return;
-    setClaiming(true);
-    try {
-      const res = await fetch(`${API_BASE}/api/economy/grant-keys`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
-        credentials: 'include',
-        body: JSON.stringify({ amount: 1, source: 'ad_reward' }),
-      });
-      const data = await res.json();
-      if (res.ok && data.success && data.keys != null) {
-        onClaimKey(data.keys);
-        persist(0);
-        addNotification?.('🔑 +1 Key Crystal claimed!', 'SUCCESS');
-      } else {
-        addNotification?.('Failed to claim key — try again', 'DANGER');
-      }
-    } catch {
-      addNotification?.('Network error — try again', 'DANGER');
-    } finally {
-      setClaiming(false);
     }
   };
 
@@ -496,7 +597,7 @@ const FreeKeyAdBanner: React.FC<{
             Watch 2 Ads to Earn a Free Key
           </div>
           <div style={{ fontSize: 10, color: 'rgba(214,188,250,0.75)', fontFamily: 'monospace', marginBottom: 8 }}>
-            {ready ? 'Ready! Claim your reward' : `Progress: ${progress} / ${ADS_PER_KEY} ads`}
+            {`Progress: ${slotProgress} / ${ADS_PER_KEY} ads`}
           </div>
 
           {/* Progress bar */}
@@ -504,55 +605,35 @@ const FreeKeyAdBanner: React.FC<{
             {Array.from({ length: ADS_PER_KEY }).map((_, i) => (
               <div key={i} style={{
                 flex: 1, height: 5, borderRadius: 3,
-                background: i < progress
+                background: i < slotProgress
                   ? 'linear-gradient(90deg, #a855f7, #c084fc)'
                   : 'rgba(255,255,255,0.08)',
-                boxShadow: i < progress ? '0 0 6px rgba(168,85,247,0.6)' : 'none',
+                boxShadow: i < slotProgress ? '0 0 6px rgba(168,85,247,0.6)' : 'none',
                 transition: 'all 0.3s',
               }} />
             ))}
           </div>
 
-          {/* Action button */}
-          {ready ? (
-            <button
-              onClick={handleClaim}
-              disabled={claiming}
-              style={{
-                width: '100%', padding: '8px 14px', borderRadius: 10, border: 'none',
-                cursor: claiming ? 'wait' : 'pointer',
-                background: claiming
-                  ? 'rgba(251,191,36,0.4)'
-                  : 'linear-gradient(135deg, #fbbf24, #d97706)',
-                color: '#1a0f00', fontSize: 11, fontWeight: 900, letterSpacing: '0.05em',
-                boxShadow: claiming ? 'none' : '0 0 16px rgba(251,191,36,0.4), inset 0 1px 0 rgba(255,255,255,0.3)',
-                opacity: claiming ? 0.7 : 1,
-                textTransform: 'uppercase' as const,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              }}
-            >
-              {claiming ? '⏳ Claiming...' : <><Gift size={13} /> Claim Free Key</>}
-            </button>
-          ) : (
-            <button
-              onClick={handleWatch}
-              disabled={watching}
-              style={{
-                width: '100%', padding: '8px 14px', borderRadius: 10, border: 'none',
-                cursor: watching ? 'wait' : 'pointer',
-                background: watching
-                  ? 'rgba(168,85,247,0.4)'
-                  : 'linear-gradient(135deg, #a855f7, #7c3aed)',
-                color: '#fff', fontSize: 11, fontWeight: 900, letterSpacing: '0.05em',
-                boxShadow: watching ? 'none' : '0 0 14px rgba(168,85,247,0.45), inset 0 1px 0 rgba(255,255,255,0.15)',
-                opacity: watching ? 0.7 : 1,
-                textTransform: 'uppercase' as const,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              }}
-            >
-              {watching ? '⏳ Loading Ad...' : <>▶ Watch Ad</>}
-            </button>
-          )}
+          {/* Single action button — keys are auto-granted by the server every
+              2 ads; the user just keeps watching. */}
+          <button
+            onClick={handleWatch}
+            disabled={watching}
+            style={{
+              width: '100%', padding: '8px 14px', borderRadius: 10, border: 'none',
+              cursor: watching ? 'wait' : 'pointer',
+              background: watching
+                ? 'rgba(168,85,247,0.4)'
+                : 'linear-gradient(135deg, #a855f7, #7c3aed)',
+              color: '#fff', fontSize: 11, fontWeight: 900, letterSpacing: '0.05em',
+              boxShadow: watching ? 'none' : '0 0 14px rgba(168,85,247,0.45), inset 0 1px 0 rgba(255,255,255,0.15)',
+              opacity: watching ? 0.7 : 1,
+              textTransform: 'uppercase' as const,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            }}
+          >
+            {watching ? '⏳ Loading ad...' : <><Play size={13} /> Watch Ad</>}
+          </button>
         </div>
       </div>
     </motion.div>
@@ -596,6 +677,7 @@ const ShopView: React.FC<ShopViewProps> = ({
   onWatchRewardedAd,
   adUnits,
   addNotification,
+  userId,
 }) => {
   const [storeTab, setStoreTab] = useState<'OUTFITS' | 'BADGES' | 'BORDERS' | 'DEALS' | 'ITEMS' | 'THEMES' | 'BANNERS_SHOP'>(initialStoreTab || 'OUTFITS');
   const [showMore, setShowMore] = useState(false);
@@ -639,51 +721,59 @@ const ShopView: React.FC<ShopViewProps> = ({
     try { localStorage.setItem('reforge:borderAdProgress', JSON.stringify(next)); } catch { }
   }, []);
 
+  // Per-item ad-loading flag: prevents rapid taps from queuing multiple ad requests.
+  // Holds the item id of the ad currently being watched, or null when idle.
+  const [watchingItemId, setWatchingItemId] = useState<string | null>(null);
+
   const handleWatchAdForBorder = useCallback(async (item: KitStoreItem) => {
     if (!item.adUnlock || !item.adsRequired || !onWatchRewardedAd) return;
+    if (watchingItemId) return; // already watching another ad — ignore tap
     const progress = adProgress[item.id] || { adsWatched: 0, adsRequired: item.adsRequired, unlocked: false };
     if (progress.unlocked) return;
 
+    setWatchingItemId(item.id);
     try {
       const result = await onWatchRewardedAd(adUnits?.BORDER_REWARD ?? AD_UNITS.BORDER_REWARD);
+      // Surface the verdict via the same diag channel the FreeKeyAdBanner uses, so
+      // when borders fail to count we can see whether result.rewarded was true/false.
+      try {
+        window.dispatchEvent(new CustomEvent('admob:diag', {
+          detail: { stage: 'border-result', rewarded: result.rewarded, itemId: item.id }
+        }));
+      } catch {}
       if (!result.rewarded) {
         addNotification?.('Ad skipped — no progress earned.', 'WARNING');
         return;
       }
-      // ── Server is the source of truth ──
-      const headers = getPlayerAuthHeaders();
-      const resp = await fetch(`${API_BASE}/api/ad-unlock/watch`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json', ...headers },
-        body: JSON.stringify({ itemId: item.id, adsRequired: item.adsRequired }),
-      });
-      if (!resp.ok) {
-        addNotification?.('Ad credit failed — please try again.', 'WARNING');
-        return;
-      }
-      const data: { adsWatched: number; adsRequired: number; unlocked: boolean; justUnlocked?: boolean } = await resp.json();
+
+      // ── Offline-only: track progress in localStorage ──
+      const newWatched = progress.adsWatched + 1;
+      const justUnlocked = newWatched >= item.adsRequired;
       const nextProgress: AdProgress = {
         ...adProgress,
-        [item.id]: { adsWatched: data.adsWatched, adsRequired: data.adsRequired, unlocked: data.unlocked },
+        [item.id]: { adsWatched: newWatched, adsRequired: item.adsRequired, unlocked: justUnlocked },
       };
       setAdProgress(nextProgress);
       persistBorderAdProgress(nextProgress);
 
-      if (data.unlocked) {
-        // Server already inserted the item into user_inventory — refresh local cache
-        fetch(`${API_BASE}/api/inventory`, { credentials: 'include', headers })
-          .then(r => r.ok ? r.json() : { items: [] })
-          .then(d => { if (Array.isArray(d.items)) setServerInventory(d.items); })
-          .catch(() => { });
-        addNotification?.(`🔓 ${item.name} unlocked!`, 'SUCCESS');
+      if (justUnlocked) {
+        // Permanently unlock in local economy
+        const newEco = kitUnlockItem(item.id);
+        setKitEconomy(newEco);
+        // Equip + play celebration animation
+        handleKitEquip('border', item.id);
+        setEquipAnimItem(item);
+        setShowEquipAnim(true);
+        addNotification?.(`🔓 ${item.name} unlocked permanently!`, 'SUCCESS');
       } else {
-        addNotification?.(`📺 Ad watched! ${data.adsWatched}/${data.adsRequired} for ${item.name}`, 'INFO');
+        addNotification?.(`📺 Ad watched! ${newWatched}/${item.adsRequired} for ${item.name}`, 'INFO');
       }
     } catch {
       addNotification?.('Ad failed to load. Try again later.', 'WARNING');
+    } finally {
+      setWatchingItemId(null);
     }
-  }, [adProgress, onWatchRewardedAd, adUnits, addNotification, persistBorderAdProgress]);
+  }, [adProgress, onWatchRewardedAd, adUnits, addNotification, persistBorderAdProgress, watchingItemId]);
 
   // ── Image preloader: eagerly load border images so celebration overlay doesn't flash ──
   const preloadedImagesRef = useRef<Set<string>>(new Set());
@@ -700,11 +790,14 @@ const ShopView: React.FC<ShopViewProps> = ({
   const [inventoryLoaded, setInventoryLoaded] = useState(false);
   const [showInventoryPanel, setShowInventoryPanel] = useState(false);
 
-  // Helper: check if item is owned (server inventory)
+  // Helper: check if item is owned (server inventory OR local economy)
   const isItemOwned = useCallback((itemId: string) => {
     if (DEV_UNLOCK_ALL) return true;
-    return serverInventory.some(i => i.item_id === itemId);
-  }, [serverInventory]);
+    if (serverInventory.some(i => i.item_id === itemId)) return true;
+    if (kitEconomy.owned.includes(itemId)) return true;
+    if (adProgress[itemId]?.unlocked) return true;
+    return false;
+  }, [serverInventory, kitEconomy, adProgress]);
 
   // Fetch inventory on mount
   useEffect(() => {
@@ -873,6 +966,8 @@ const ShopView: React.FC<ShopViewProps> = ({
 
   return (
     <div id="tut-store" className="space-y-7 pb-24">
+      {/* Global ad diagnostic overlay — listens to admob:diag events from any ad-watch surface */}
+      <GlobalAdDiag />
 
       {/* ═══ GOLD BALANCE + INVENTORY BUTTON (top bar) ═══ */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px' }}>
@@ -1423,6 +1518,7 @@ const ShopView: React.FC<ShopViewProps> = ({
         adUnitId={adUnits?.KEY_REWARD}
         onClaimKey={(serverKeys: number) => onKeysUpdate?.(serverKeys)}
         addNotification={addNotification}
+        userId={userId}
       />
 
       {/* ═══════════════════════════════════════════
@@ -1592,6 +1688,7 @@ const ShopView: React.FC<ShopViewProps> = ({
                   onCardClick={() => setKitInfoItem(item)}
                   adProgress={prog || null}
                   onWatchAd={() => handleWatchAdForBorder(item)}
+                  watchingAd={watchingItemId === item.id}
                 />
               </div>
             );
@@ -1766,6 +1863,9 @@ const ShopView: React.FC<ShopViewProps> = ({
           }}
           playerAvatarUrl={playerAvatarUrl}
           discount={kitInfoDiscount}
+          adProgress={adProgress[kitInfoItem.id] || null}
+          onWatchAd={kitInfoItem.adUnlock ? () => handleWatchAdForBorder(kitInfoItem) : undefined}
+          watchingAd={watchingItemId === kitInfoItem.id}
         />
       )}
 
@@ -2030,12 +2130,13 @@ const KIT_CAT_COLORS: Record<string, string> = {
   border: '#00d4ff', theme: '#8B5CF6', deals: '#F59E0B', banner: '#06B6D4', consumable: '#22C55E', title: '#F59E0B',
 };
 
-const KitGlowCard = React.memo(function KitGlowCard({ item, discount, owned, equipped, canAfford, onBuy, onInsufficientFunds, onEquip, onInfo, onView, onCardClick, dealColor, adProgress, onWatchAd }: {
+const KitGlowCard = React.memo(function KitGlowCard({ item, discount, owned, equipped, canAfford, onBuy, onInsufficientFunds, onEquip, onInfo, onView, onCardClick, dealColor, adProgress, onWatchAd, watchingAd }: {
   item: KitStoreItem; discount?: number; owned?: boolean; equipped?: boolean;
   canAfford: boolean; onBuy: () => void; onInsufficientFunds?: () => void; onEquip?: () => void; onInfo?: () => void; onView?: () => void;
   onCardClick?: () => void; dealColor?: string;
   adProgress?: { adsWatched: number; adsRequired: number; unlocked: boolean } | null;
   onWatchAd?: () => void;
+  watchingAd?: boolean;
 }) {
   const catColor = item.tierColor || dealColor || KIT_CAT_COLORS[item.category] || '#00d4ff';
   const finalPrice = discount ? Math.round(item.price * (1 - discount / 100)) : item.price;
@@ -2225,56 +2326,44 @@ const KitGlowCard = React.memo(function KitGlowCard({ item, discount, owned, equ
               ) : (
                 <span style={{ fontSize: 11, fontWeight: 700, color: '#22C55E' }}>✓ Owned</span>
               )
-            ) : item.adUnlock && adProgress && !adProgress.unlocked ? (
+            ) : item.adUnlock && !(adProgress?.unlocked) ? (
               /* ── Ad-gated item: Watch ads to unlock ── */
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, width: '100%' }}>
                 <div style={{ fontSize: 9, fontWeight: 800, color: 'rgba(168,85,247,0.8)', fontFamily: 'monospace', letterSpacing: '0.05em' }}>
-                  {adProgress.adsWatched} / {adProgress.adsRequired} ADS
+                  {adProgress?.adsWatched ?? 0} / {adProgress?.adsRequired ?? item.adsRequired ?? 5} ADS
                 </div>
                 {/* Mini progress bar */}
                 <div style={{ display: 'flex', gap: 2, width: '80%' }}>
-                  {Array.from({ length: adProgress.adsRequired }).map((_, i) => (
+                  {Array.from({ length: adProgress?.adsRequired ?? item.adsRequired ?? 5 }).map((_, i) => (
                     <div key={i} style={{
                       flex: 1, height: 3, borderRadius: 2,
-                      background: i < adProgress.adsWatched ? '#a855f7' : 'rgba(255,255,255,0.08)',
+                      background: i < (adProgress?.adsWatched ?? 0) ? '#a855f7' : 'rgba(255,255,255,0.08)',
                       transition: 'all 0.3s',
                     }} />
                   ))}
                 </div>
                 <button
-                  onClick={(e) => { e.stopPropagation(); onWatchAd?.(); }}
+                  onClick={(e) => { e.stopPropagation(); if (!watchingAd) onWatchAd?.(); }}
+                  disabled={!!watchingAd}
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: 4,
-                    padding: '6px 16px', borderRadius: 16, cursor: 'pointer',
-                    background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+                    padding: '6px 16px', borderRadius: 16,
+                    cursor: watchingAd ? 'wait' : 'pointer',
+                    background: watchingAd ? 'rgba(168,85,247,0.4)' : 'linear-gradient(135deg, #a855f7, #7c3aed)',
                     border: 'none',
                     color: '#fff',
                     fontSize: 10, fontWeight: 900, letterSpacing: '0.05em',
-                    boxShadow: '0 0 12px rgba(168,85,247,0.35)',
+                    boxShadow: watchingAd ? 'none' : '0 0 12px rgba(168,85,247,0.35)',
+                    opacity: watchingAd ? 0.7 : 1,
                   }}
                 >
-                  <Play size={10} /> Watch Ad
+                  {watchingAd ? <>⏳ Loading...</> : <><Play size={10} /> Watch Ad</>}
                 </button>
               </div>
             ) : item.adUnlock && adProgress?.unlocked ? (
-              /* ── Ad-gated item: Already unlocked server-side. Refreshing inventory will flip this to "Owned". ── */
+              /* ── Ad-gated item: Unlocked — show equip ── */
               <button
-                onClick={async (e) => {
-                  e.stopPropagation();
-                  // Server already inserted item into user_inventory at threshold.
-                  // Just refresh inventory to surface it. Don't open the gold modal.
-                  try {
-                    const headers = getPlayerAuthHeaders();
-                    const r = await fetch(`${API_BASE}/api/inventory`, { credentials: 'include', headers });
-                    if (r.ok) {
-                      const d = await r.json();
-                      if (Array.isArray(d.items)) {
-                        // Dispatch via custom event so the parent updates serverInventory
-                        window.dispatchEvent(new CustomEvent('reforge:inventory-refresh', { detail: { items: d.items } }));
-                      }
-                    }
-                  } catch { /* offline */ }
-                }}
+                onClick={(e) => { e.stopPropagation(); onEquip?.(); }}
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: 4,
                   padding: '8px 24px', border: 'none', cursor: 'pointer', borderRadius: 20,
@@ -2284,7 +2373,7 @@ const KitGlowCard = React.memo(function KitGlowCard({ item, discount, owned, equ
                   transition: 'all 0.2s',
                 }}
               >
-                ✓ Claim
+                EQUIP
               </button>
             ) : (
               <button onClick={(e) => { e.stopPropagation(); if (canAfford) { onBuy(); } else if (onInsufficientFunds) { onInsufficientFunds(); } }} style={{
@@ -2397,12 +2486,15 @@ function KitThemePreviewModal({ item, onClose }: { item: KitStoreItem; onClose: 
 /* ═══════════════════════════════════
    KitBorderPreviewModal
    ═══════════════════════════════════ */
-function KitBorderPreviewModal({ item, onClose, owned, equipped, canAfford, onBuy, onEquip, playerAvatarUrl, discount }: {
+function KitBorderPreviewModal({ item, onClose, owned, equipped, canAfford, onBuy, onEquip, playerAvatarUrl, discount, adProgress, onWatchAd, watchingAd }: {
   item: KitStoreItem; onClose: () => void;
   owned?: boolean; equipped?: boolean; canAfford?: boolean;
   onBuy?: () => void; onEquip?: () => void;
   playerAvatarUrl?: string | null;
   discount?: number;
+  adProgress?: { adsWatched: number; adsRequired: number; unlocked: boolean } | null;
+  onWatchAd?: () => void;
+  watchingAd?: boolean;
 }) {
   const glow = item.borderConfig?.glowColor || item.auraConfig?.colors?.[0] || '#C8A84E';
 
@@ -2512,6 +2604,39 @@ function KitBorderPreviewModal({ item, onClose, owned, equipped, canAfford, onBu
             ) : (
               <span style={{ fontSize: 13, fontWeight: 700, color: '#22C55E' }}>✓ Owned</span>
             )
+          ) : item.adUnlock && !(adProgress?.unlocked) ? (
+            /* ── Ad-gated item: Watch ads to unlock (no crystal price) ── */
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, width: '100%' }}>
+              <div style={{ fontSize: 11, fontWeight: 800, color: 'rgba(168,85,247,0.85)', fontFamily: 'monospace', letterSpacing: '0.08em' }}>
+                {adProgress?.adsWatched ?? 0} / {adProgress?.adsRequired ?? item.adsRequired ?? 5} ADS
+              </div>
+              <div style={{ display: 'flex', gap: 4, width: '70%' }}>
+                {Array.from({ length: adProgress?.adsRequired ?? item.adsRequired ?? 5 }).map((_, i) => (
+                  <div key={i} style={{
+                    flex: 1, height: 4, borderRadius: 2,
+                    background: i < (adProgress?.adsWatched ?? 0) ? '#a855f7' : 'rgba(255,255,255,0.08)',
+                    transition: 'all 0.3s',
+                  }} />
+                ))}
+              </div>
+              <button
+                onClick={(e) => { e.stopPropagation(); if (!watchingAd) onWatchAd?.(); }}
+                disabled={!!watchingAd}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 8,
+                  padding: '12px 32px', borderRadius: 14,
+                  cursor: watchingAd ? 'wait' : 'pointer',
+                  background: watchingAd ? 'rgba(168,85,247,0.4)' : 'linear-gradient(135deg, #a855f7, #7c3aed)',
+                  border: 'none',
+                  color: '#fff', fontSize: 14, fontWeight: 900, letterSpacing: '0.05em',
+                  boxShadow: watchingAd ? 'none' : '0 0 16px rgba(168,85,247,0.45)',
+                  opacity: watchingAd ? 0.7 : 1,
+                  transition: 'all 0.2s',
+                }}
+              >
+                {watchingAd ? <>⏳ Loading Ad...</> : <><Play size={14} /> Watch Ad</>}
+              </button>
+            </div>
           ) : onBuy ? (
             <button onClick={onBuy} disabled={!canAfford} style={{
               display: 'inline-flex', alignItems: 'center', gap: 8,

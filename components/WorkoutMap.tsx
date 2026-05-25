@@ -535,17 +535,6 @@ const WorkoutMap: React.FC<WorkoutMapProps> = ({
 
         </div>
 
-        {/* Debug: Test Key Earned Overlay — outside overflow-hidden container */}
-        <div className="flex justify-start mt-2">
-            <button
-                onClick={() => setShowKeyEarned(true)}
-                className="px-3 py-1.5 rounded-lg text-[9px] font-mono"
-                style={{ background: 'rgba(168,85,247,0.1)', color: '#a855f7', border: '1px solid rgba(168,85,247,0.25)' }}
-            >
-                🔑 Test Key Reward
-            </button>
-        </div>
-
         {/* 3D Reward Pop-up (For Completed Boss Nodes) */}
         <AnimatePresence>
             {showReward && createPortal(

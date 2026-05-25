@@ -321,8 +321,6 @@ interface XpCollectionState {
 
 }
 
-
-
 const App: React.FC = () => {
 
   const {
@@ -746,6 +744,20 @@ const App: React.FC = () => {
   // ── Sync premium status into useSystem for XP multiplier etc. ──
   useEffect(() => { setIsPremium(isPremium); }, [isPremium, setIsPremium]);
 
+  // ── Auto-unlock ad-gated borders for Pro users ──
+  const PRO_AD_BORDERS = ['border-streak-gold', 'border-streak-eternal'];
+  const proBordersUnlockedRef = useRef(false);
+  useEffect(() => {
+    if (!isPremium || proBordersUnlockedRef.current) return;
+    setPlayer(prev => {
+      const owned = prev.ownedBorders || ['border_default'];
+      const missing = PRO_AD_BORDERS.filter(id => !owned.includes(id));
+      if (missing.length === 0) return prev;
+      proBordersUnlockedRef.current = true;
+      return { ...prev, ownedBorders: [...owned, ...missing] };
+    });
+  }, [isPremium, setPlayer]);
+
   // ── Identify user with RevenueCat so entitlements are per-account, not per-device ──
   const rcLoginDoneRef = useRef<string | null>(null);
   useEffect(() => {
@@ -1148,11 +1160,12 @@ const App: React.FC = () => {
 
   // ── Overlay Queue System ──
 
-  // Only one gameplay-interrupting overlay at a time. Priority: streak > levelUp > levelDown > rankUp > dailyLogin > notifPrompt
-
+  // Only one gameplay-interrupting overlay at a time. Priority order matches new-user
+  // first-launch flow: rank reveal → streak celebration → welcome chest, then any
+  // mid-game overlays. Lower number = higher priority (queued first).
   type OverlayType = 'rankReveal' | 'welcomeChest' | 'streak' | 'levelUp' | 'levelDown' | 'rankUp' | 'dailyLogin' | 'notifPrompt';
 
-  const OVERLAY_PRIORITY: Record<OverlayType, number> = { rankReveal: 0, welcomeChest: 1, streak: 2, levelUp: 3, levelDown: 4, rankUp: 5, dailyLogin: 6, notifPrompt: 7 };
+  const OVERLAY_PRIORITY: Record<OverlayType, number> = { rankReveal: 0, streak: 1, welcomeChest: 2, levelUp: 3, levelDown: 4, rankUp: 5, dailyLogin: 6, notifPrompt: 7 };
 
   const overlayQueueRef = useRef<OverlayType[]>([]);
 
@@ -2354,100 +2367,57 @@ const App: React.FC = () => {
 
 
 
-  // ── Streak Celebration Trigger ──
-
-  // Fires EXACTLY ONCE per calendar day per user on first login.
-
-  // Uses server's lastLoginDate (set by /sync) as the sole trigger source
-
-  // to avoid timezone mismatch between server (UTC) and client (local).
-
+  // ── Streak Celebration Trigger (legacy users / day-2+) ──
+  //
+  // For brand-new users, the chain in handleRankRevealComplete() handles streak
+  // animation directly (synchronous after rank reveal closes). This effect
+  // remains as the day-2+ trigger for users who already completed rank reveal.
+  // It bails for users who haven't completed rank reveal yet to avoid racing
+  // with the chain.
   useEffect(() => {
-
-    // Must be configured with a real user + wait for Supabase data
-
     if (!player.isConfigured || !player.userId || !dataReady) return;
+    // New users go through the chain; skip this effect to avoid races.
+    if (!player.rankRevealed) return;
 
-    // Use server's lastLoginDate (set by /sync endpoint in UTC)
-    // instead of computing local date — this eliminates timezone mismatch
     const serverDate = player.lastLoginDate;
-    if (!serverDate) return;
+    const triggerDate = serverDate || new Date().toISOString().split('T')[0];
+    const guardKey = `reforge_streak_shown_${player.userId}_${triggerDate}`;
+    const sessionKey = `${player.userId}_${triggerDate}`;
 
-    // Per-user + per-day guard (handles account switching + page reload)
-
-    const guardKey = `reforge_streak_shown_${player.userId}_${serverDate}`;
-
-    const sessionKey = `${player.userId}_${serverDate}`;
-
-    if (streakShownRef.current === sessionKey) return; // Already shown this session for this user+day
-
-    if (localStorage.getItem(guardKey)) return; // Already shown (persists across reloads)
-
-
-
-    // Mark as shown IMMEDIATELY
+    if (streakShownRef.current === sessionKey) return;
+    if (localStorage.getItem(guardKey)) return;
 
     streakShownRef.current = sessionKey;
-
     localStorage.setItem(guardKey, '1');
 
-
-
-    // Detect if streak was broken (reset to 0)
-
     const isBroken = player.streak === 0 || (player.streak === 1 && oldStreakRef.current > 1);
-
     const previousStreak = isBroken ? oldStreakRef.current : Math.max(0, player.streak - 1);
 
-
-
-    // Compute weekly activity (Mon=0 ... Sun=6)
     const now = new Date();
-
-    const dow = now.getDay(); // 0=Sun, 1=Mon...
-
+    const dow = now.getDay();
     const mondayOffset = dow === 0 ? -6 : 1 - dow;
-
     const weekly: boolean[] = [];
-
     for (let i = 0; i < 7; i++) {
-
       const date = new Date(now);
-
       date.setDate(now.getDate() + mondayOffset + i);
-
       const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-
       const inHistory = (player.history || []).some(h => h.date === dateStr);
-
       const isToday = dateStr === serverDate;
-
       weekly.push(inHistory || isToday);
-
     }
 
-
-
-    setStreakAnimData({
-
-      oldStreak: previousStreak,
-
-      newStreak: player.streak,
-
-      weeklyActivity: weekly,
-
-      streakBroken: isBroken,
-
-    });
-
-    setShowStreakCelebration(true);
-
-    // Only enqueue if not already active to prevent double-show
-    if (activeOverlay !== 'streak') {
-      enqueueOverlay('streak');
-    }
-
-  }, [player.isConfigured, player.lastLoginDate, player.userId]); // eslint-disable-line react-hooks/exhaustive-deps
+    const streakTimer = setTimeout(() => {
+      setStreakAnimData({
+        oldStreak: previousStreak,
+        newStreak: player.streak,
+        weeklyActivity: weekly,
+        streakBroken: isBroken,
+      });
+      setShowStreakCelebration(true);
+      if (activeOverlay !== 'streak') enqueueOverlay('streak');
+    }, 800);
+    return () => clearTimeout(streakTimer);
+  }, [player.isConfigured, player.lastLoginDate, player.userId, player.rankRevealed, dataReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
 
 
@@ -2666,10 +2636,12 @@ const App: React.FC = () => {
 
   // ── Rank Reveal for first-time users (UNRANKED → E) ──
   // Now uses overlay queue so it fires FIRST, before welcome chest and streak.
+  // Accept both UNRANKED and E: the server creates new users with rank='E'
+  // immediately, so rank='UNRANKED' alone is unreliable after the first sync.
   useEffect(() => {
     if (!player.isConfigured || !dataReady) return;
     if (player.rankRevealed) return;
-    if (player.rank !== 'UNRANKED') return;
+    if (player.rank !== 'UNRANKED' && player.rank !== 'E') return;
     if (onboardingPhase !== 'APP') return;
 
     // Small delay to let the app settle
@@ -2680,20 +2652,13 @@ const App: React.FC = () => {
     return () => clearTimeout(timer);
   }, [player.isConfigured, player.rankRevealed, player.rank, onboardingPhase, dataReady, enqueueOverlay]);
 
-  // ── Welcome Reward Chest for first-time users ──
-  // Shows AFTER rank reveal (priority 1 in queue), BEFORE streak (priority 2).
+  // ── Welcome Reward Chest ──
+  // The render is still wired below; the trigger is now handled by the chain
+  // in handleRankRevealComplete + StreakCelebration.onComplete (see those
+  // handlers). This effect is intentionally left empty so the existing dep
+  // wiring elsewhere doesn't break, but no longer enqueues the overlay.
   useEffect(() => {
-    if (!player.isConfigured || !dataReady) return;
-    if (!player.userId) return;
-    if (onboardingPhase !== 'APP') return;
-    if (player.welcomeChestShown) return; // Already shown — server-persisted flag
-
-    // Small delay so rank reveal enqueues first
-    const timer = setTimeout(() => {
-      setShowWelcomeChest(true);
-      enqueueOverlay('welcomeChest');
-    }, 700);
-    return () => clearTimeout(timer);
+    // No-op: chained from rank reveal → streak → welcome chest path now.
   }, [player.isConfigured, player.userId, onboardingPhase, dataReady, enqueueOverlay]);
 
 
@@ -2875,9 +2840,71 @@ const App: React.FC = () => {
 
   const handleRankRevealComplete = useCallback(() => {
     setShowRankReveal(false);
-    setPlayer(prev => ({ ...prev, rank: 'E', rankRevealed: true }));
+    // Only upgrade rank to E if still UNRANKED; server may have already set it to E
+    setPlayer(prev => ({ ...prev, rank: prev.rank === 'UNRANKED' ? 'E' : prev.rank, rankRevealed: true }));
     dismissOverlay(); // Advance queue to next (welcomeChest)
-  }, [setPlayer, dismissOverlay]);
+
+    // Hard-coded post-rank-reveal flow for first-time + returning users.
+    //
+    // For brand-new users (welcomeChestShown=false): show streak (0→1) THEN welcome
+    // chest. The chest's onComplete grants the rewards and sets the persistent flag.
+    //
+    // For returning users (welcomeChestShown=true) on a new login day: show streak
+    // with current count.
+    //
+    // This bypasses the previous useEffect-driven chain which raced with /sync and
+    // dataReady; the chain now runs synchronously after the user dismisses the rank
+    // reveal cinematic, which is the only reliable trigger we have.
+    setTimeout(() => {
+      const isNewUser = !player.welcomeChestShown;
+      const today = new Date().toISOString().split('T')[0];
+      const streakGuardKey = `reforge_streak_shown_${player.userId || 'local'}_${today}`;
+      const alreadyShownStreakToday = !!localStorage.getItem(streakGuardKey);
+
+      if (isNewUser) {
+        // Day-1: streak 0→1, weekly activity = today only
+        const dow = new Date().getDay();
+        const todayIdx = dow === 0 ? 6 : dow - 1; // Mon=0 .. Sun=6
+        const weekly = Array.from({ length: 7 }, (_, i) => i === todayIdx);
+        try { localStorage.setItem(streakGuardKey, '1'); } catch {}
+        setStreakAnimData({
+          oldStreak: 0,
+          newStreak: 1,
+          weeklyActivity: weekly,
+          streakBroken: false,
+        });
+        setShowStreakCelebration(true);
+        enqueueOverlay('streak');
+        // welcome chest will be enqueued by the streak's onComplete handler
+      } else if (!alreadyShownStreakToday && player.userId) {
+        // Returning user on a fresh login day: show streak animation
+        const dow = new Date().getDay();
+        const todayIdx = dow === 0 ? 6 : dow - 1;
+        const weekly: boolean[] = [];
+        const todayDate = new Date(); todayDate.setHours(0, 0, 0, 0);
+        const monday = new Date(todayDate);
+        monday.setDate(todayDate.getDate() + (dow === 0 ? -6 : 1 - dow));
+        for (let i = 0; i < 7; i++) {
+          const d = new Date(monday);
+          d.setDate(monday.getDate() + i);
+          const dateStr = d.toISOString().split('T')[0];
+          const inHistory = (player.history || []).some(h => h.date === dateStr);
+          weekly.push(inHistory || i === todayIdx);
+        }
+        const previousStreak = Math.max(0, player.streak - 1);
+        const isBroken = player.streak === 0 && previousStreak > 0;
+        try { localStorage.setItem(streakGuardKey, '1'); } catch {}
+        setStreakAnimData({
+          oldStreak: isBroken ? oldStreakRef.current : previousStreak,
+          newStreak: player.streak,
+          weeklyActivity: weekly,
+          streakBroken: isBroken,
+        });
+        setShowStreakCelebration(true);
+        enqueueOverlay('streak');
+      }
+    }, 250);
+  }, [setPlayer, dismissOverlay, player.welcomeChestShown, player.userId, player.streak, player.history, enqueueOverlay]);
 
 
 
@@ -3984,6 +4011,15 @@ const App: React.FC = () => {
 
                         }
 
+                        // ── New-user chain: streak just finished → enqueue welcome chest.
+                        // The chest's onComplete grants 600G + 10K and persists welcomeChestShown.
+                        if (!player.welcomeChestShown) {
+                          setTimeout(() => {
+                            setShowWelcomeChest(true);
+                            enqueueOverlay('welcomeChest');
+                          }, 200);
+                        }
+
                       }}
 
                     />
@@ -4449,8 +4485,8 @@ const App: React.FC = () => {
                     goldAmount={600}
                     keysAmount={10}
                     onComplete={() => {
-                      // Persist to server via raw_data (survives logout/reinstall/device-switch)
-                      setPlayer(prev => ({ ...prev, welcomeChestShown: true }));
+                      // Grant rewards + persist flag (survives logout/reinstall/device-switch)
+                      setPlayer(prev => ({ ...prev, welcomeChestShown: true, gold: prev.gold + 600, keys: prev.keys + 10 }));
                       setShowWelcomeChest(false);
                       dismissOverlay(); // Advance queue to streak
                     }}
@@ -4998,7 +5034,7 @@ const App: React.FC = () => {
                           adShowRewarded={showRewardedAd}
                           adUnits={AD_UNITS}
                           adsReady={adsReady}
-                          onShowInterstitialAd={showInterstitialAd}
+                          isPremium={isPremium}
 
                           dungeonState={player.dungeonState}
                           onInitializeDungeon={initializeDungeon}
@@ -5103,6 +5139,8 @@ const App: React.FC = () => {
 
                           addNotification={addNotification}
 
+                          userId={player.userId}
+
                         />
 
                       </ErrorBoundary>
@@ -5187,6 +5225,8 @@ const App: React.FC = () => {
                           adUnits={AD_UNITS}
 
                           addNotification={addNotification}
+
+                          userId={player.userId}
 
                         />
 
