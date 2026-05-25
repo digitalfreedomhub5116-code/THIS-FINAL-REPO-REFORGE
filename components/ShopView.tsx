@@ -87,8 +87,11 @@ interface ShopViewProps {
   rcState?: RevenueCatState;
   /** RevenueCat actions for purchasing */
   rcActions?: RevenueCatActions;
-  /** AdMob: show rewarded ad. Returns { rewarded: boolean } */
-  onWatchRewardedAd?: (adUnitId: string) => Promise<{ rewarded: boolean }>;
+  /** AdMob: show rewarded ad. Returns { rewarded: boolean }.
+   *  Optionally pass an `opts.userId` so the AdMob plugin forwards it to the
+   *  Server-Side Verification callback (lets the server tie an SSV ping to a
+   *  specific player without trusting client claims). */
+  onWatchRewardedAd?: (adUnitId: string, opts?: { userId?: string; customData?: string }) => Promise<{ rewarded: boolean }>;
   /** Ad unit IDs from useAdMob */
   adUnits?: { KEY_REWARD: string; BORDER_REWARD: string; DUNGEON_INTERSTITIAL: string };
   /** Notification helper for success/failure messages */
@@ -377,53 +380,8 @@ const ItemsTab: React.FC<{ gold: number }> = ({ gold }) => {
    ═══════════════════════════════════ */
 const ADS_PER_KEY = 2;
 
-/* ═══════════════════════════════════
-   GlobalAdDiag — listens to admob:diag events from useAdMob and any
-   ad-watch surface, displays a small floating strip with the latest
-   lifecycle stage. Auto-hides after 12s. Helps diagnose why an ad
-   didn't grant a reward without needing logcat.
-   ═══════════════════════════════════ */
-const GlobalAdDiag: React.FC = () => {
-  const [diag, setDiag] = useState<string | null>(null);
-
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail || {};
-      const stage = detail.stage || '?';
-      const watched = detail.watchedMs != null ? `${Math.round(detail.watchedMs / 1000)}s` : '';
-      const reason = detail.reason ? ` (${detail.reason})` : '';
-      const rew = detail.rewarded != null ? ` rewarded=${detail.rewarded}` : '';
-      const item = detail.itemId ? ` ${detail.itemId}` : '';
-      setDiag(`[ad] ${stage}${watched ? ' ' + watched : ''}${rew}${reason}${item}`);
-    };
-    window.addEventListener('admob:diag', handler);
-    return () => window.removeEventListener('admob:diag', handler);
-  }, []);
-
-  useEffect(() => {
-    if (!diag) return;
-    const id = setTimeout(() => setDiag(null), 12000);
-    return () => clearTimeout(id);
-  }, [diag]);
-
-  if (!diag) return null;
-  return (
-    <div style={{
-      position: 'fixed', top: 8, left: 8, right: 8, zIndex: 99999,
-      padding: '6px 10px', borderRadius: 8,
-      background: 'rgba(0,0,0,0.85)',
-      border: '1px solid rgba(168,85,247,0.5)',
-      fontSize: 10, fontFamily: 'monospace', color: 'rgba(214,188,250,0.95)',
-      letterSpacing: '0.02em', wordBreak: 'break-all', textAlign: 'center',
-      pointerEvents: 'none',
-    }}>
-      {diag}
-    </div>
-  );
-};
-
 const FreeKeyAdBanner: React.FC<{
-  onWatchRewardedAd?: (adUnitId: string) => Promise<{ rewarded: boolean }>;
+  onWatchRewardedAd?: (adUnitId: string, opts?: { userId?: string; customData?: string }) => Promise<{ rewarded: boolean }>;
   adUnitId?: string;
   onClaimKey: (serverKeys: number) => void;
   addNotification?: (msg: string, type: import('../types').NotificationType) => void;
@@ -525,7 +483,11 @@ const FreeKeyAdBanner: React.FC<{
     }
     setWatching(true);
     try {
-      const res = await onWatchRewardedAd(adUnitId);
+      // Pass userId so the AdMob plugin attaches it to the SSV callback —
+      // Google will include `user_id=<userId>` in the signed callback to our
+      // /api/ads/ssv-callback, allowing the server to verify the watch came
+      // from this specific player.
+      const res = await onWatchRewardedAd(adUnitId, userId ? { userId } : undefined);
       if (!res.rewarded) {
         addNotification?.('Ad not completed — no progress', 'WARNING');
         return;
@@ -733,7 +695,10 @@ const ShopView: React.FC<ShopViewProps> = ({
 
     setWatchingItemId(item.id);
     try {
-      const result = await onWatchRewardedAd(adUnits?.BORDER_REWARD ?? AD_UNITS.BORDER_REWARD);
+      const result = await onWatchRewardedAd(
+        adUnits?.BORDER_REWARD ?? AD_UNITS.BORDER_REWARD,
+        userId ? { userId } : undefined,
+      );
       // Surface the verdict via the same diag channel the FreeKeyAdBanner uses, so
       // when borders fail to count we can see whether result.rewarded was true/false.
       try {
@@ -773,7 +738,7 @@ const ShopView: React.FC<ShopViewProps> = ({
     } finally {
       setWatchingItemId(null);
     }
-  }, [adProgress, onWatchRewardedAd, adUnits, addNotification, persistBorderAdProgress, watchingItemId]);
+  }, [adProgress, onWatchRewardedAd, adUnits, addNotification, persistBorderAdProgress, watchingItemId, userId]);
 
   // ── Image preloader: eagerly load border images so celebration overlay doesn't flash ──
   const preloadedImagesRef = useRef<Set<string>>(new Set());
@@ -966,9 +931,6 @@ const ShopView: React.FC<ShopViewProps> = ({
 
   return (
     <div id="tut-store" className="space-y-7 pb-24">
-      {/* Global ad diagnostic overlay — listens to admob:diag events from any ad-watch surface */}
-      <GlobalAdDiag />
-
       {/* ═══ GOLD BALANCE + INVENTORY BUTTON (top bar) ═══ */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px' }}>
         <div id="shop-wallet-balance" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

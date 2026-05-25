@@ -425,9 +425,19 @@ router.put('/:id', async (req: Request, res: Response) => {
     // Items from both DB and client are kept; client version wins on conflicts.
     const dbRaw = (currentRow?.raw_data as Record<string, any>) || {};
     // Strip server-authoritative fields from client raw data to prevent tampering and
-    // accidental overwrites (gold, keys, adKeysWatched all live in raw_data on read,
-    // but are mutated only by server endpoints — never by the PUT sync).
-    const { gold: _cGold, keys: _cKeys, adKeysWatched: _cAdKeys, ...cleanClientData } = cleanData;
+    // accidental overwrites. Gold/keys are stored in raw_data on read for the client,
+    // but mutated only by server endpoints. The ad-keys SSV trail is also strictly
+    // server-only — the client must never write to these.
+    const {
+      gold: _cGold,
+      keys: _cKeys,
+      adKeysWatched: _cAdKeys,
+      adKeysSsvConfirmed: _cSsvConfirmed,
+      adKeysSsvTxns: _cSsvTxns,
+      adKeysSsvLastAt: _cSsvLastAt,
+      adKeysSsvDelta: _cSsvDelta,
+      ...cleanClientData
+    } = cleanData;
     const clientRaw = { ...cleanClientData, gold: newGold, keys: newKeys };
 
     // Helper: merge two arrays by item ID, preferring client items on conflict

@@ -62,6 +62,7 @@ async function startServer() {
   const inventoryRouter = await import('./routes/inventory.js');
   const iapRouter = await import('./routes/iap.js');
   const adUnlockRouter = await import('./routes/adUnlock.js');
+  const adsRouter = await import('./routes/ads.js');
 
   const app = express();
   const PORT = process.env.PORT ? parseInt(process.env.PORT) : 8001;
@@ -219,6 +220,11 @@ async function startServer() {
   app.use('/api/iap', generalRateLimit, iapRouter.default);
   // Ad-unlock route — server-authoritative ad watch progress + auto-grant on threshold
   app.use('/api/ad-unlock', generalRateLimit, adUnlockRouter.default);
+
+  // AdMob ads — Server-Side Verification (SSV) callback. PUBLIC (called by
+  // Google's ad servers, not by the user), authenticated by ECDSA signature.
+  // Does NOT use the general rate limiter because Google can burst-call us.
+  app.use('/api/ads', adsRouter.default);
 
   // Google OAuth setup
   setupGoogleAuth(app);

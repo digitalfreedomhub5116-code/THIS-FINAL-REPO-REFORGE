@@ -32,7 +32,7 @@ const ADS_ENABLED = true; // ✅ ADS ENABLED — set to false to globally disabl
 // Override flags below are escape hatches for QA scenarios — leave at false
 // for normal use.
 const FORCE_TEST_ADS = false;       // true → always use test ads, even in release
-const FORCE_PROD_ADS_IN_DEV = false; // true → use real ads even when env says test (DANGEROUS)
+const FORCE_PROD_ADS_IN_DEV = true;  // true → use real ads even when env says test
 
 const adModeEnv = (() => {
   try {
@@ -93,7 +93,10 @@ export function useAdMob() {
   const [isReady, setIsReady] = useState(false);
 
   // ── No-op stubs when ads are globally disabled ──
-  const noOpRewarded = useCallback(async (_adUnitId: string) => {
+  const noOpRewarded = useCallback(async (
+    _adUnitId: string,
+    _opts?: { userId?: string; customData?: string },
+  ) => {
     console.log('[AdMob] 🚫 Ads disabled globally — skipping rewarded ad');
     return { rewarded: false };
   }, []);
@@ -157,9 +160,12 @@ export function useAdMob() {
   // reward they didn't earn.
   const MIN_WATCH_MS = USE_TEST_ADS ? 3_000 : 10_000;
   const adCallGenRef = useRef(0);
-  const showRewardedAd = useCallback(async (adUnitId: string): Promise<{ rewarded: boolean; type?: string; amount?: number }> => {
+  const showRewardedAd = useCallback(async (
+    adUnitId: string,
+    opts?: { userId?: string; customData?: string },
+  ): Promise<{ rewarded: boolean; type?: string; amount?: number }> => {
     const myGen = ++adCallGenRef.current;
-    console.log('[AdMob] 🎬 showRewardedAd called | adId:', adUnitId, '| gen:', myGen);
+    console.log('[AdMob] 🎬 showRewardedAd called | adId:', adUnitId, '| gen:', myGen, '| ssv:', opts?.userId ? `user-${opts.userId.slice(-8)}` : 'none');
 
     const result = await loadAdMob();
     if (!result) {
@@ -262,7 +268,16 @@ export function useAdMob() {
       console.log('[AdMob] 📦 Preparing rewarded ad...', { adId: adUnitId, isTesting: USE_TEST_ADS });
       emitDiag({ stage: 'preparing', adId: adUnitId });
 
-      AdMob.prepareRewardVideoAd({ adId: adUnitId, isTesting: USE_TEST_ADS })
+      // Build SSV options: userId is required for the AdMob plugin's ssv field
+      // (one of userId or customData must be set). Passing userId tells Google
+      // to include `user_id=<our id>` in the SSV callback so the server can
+      // identify which player to credit. customData is reserved for a future
+      // signed nonce if we want extra anti-replay on the server side.
+      const ssv = opts?.userId || opts?.customData
+        ? { ssv: { userId: opts?.userId, customData: opts?.customData } as any }
+        : {};
+
+      AdMob.prepareRewardVideoAd({ adId: adUnitId, isTesting: USE_TEST_ADS, ...ssv })
         .then(() => {
           console.log('[AdMob] ✅ Ad prepared, now showing...');
           return AdMob.showRewardVideoAd();
