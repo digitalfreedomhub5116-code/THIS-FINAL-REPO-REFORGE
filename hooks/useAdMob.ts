@@ -153,12 +153,14 @@ export function useAdMob() {
   //  • Uses an internal generation counter so listeners from a previous (resolved) call
   //    cannot cross-fire into a new call. Without this, watching one ad and then another
   //    in the same session leaks reward signals between them and the second resolves false.
-  // Watch-time threshold for the dismiss-fallback grant. Test ads run ~5s
-  // (Google's demo creative); real rewarded videos run 15-30s. Use a lower
-  // floor in test mode so dev builds correctly count completed test watches,
-  // and a stricter floor in prod so accidental fast-dismisses don't get a
-  // reward they didn't earn.
-  const MIN_WATCH_MS = USE_TEST_ADS ? 3_000 : 10_000;
+  // Watch-time threshold for the dismiss-fallback grant. Production rewarded
+  // videos run 15–30s, but the AdMob plugin's `Rewarded` event is often skipped
+  // entirely on Capacitor — the user dismisses with the X button after the
+  // reward fires server-side, and we get only the `Dismissed` event with no
+  // explicit rewarded signal. SSV (verified Google→server callback) is the
+  // authoritative anti-fraud layer, so the client gate just needs to confirm
+  // an ad actually played: a few seconds of watch time is enough.
+  const MIN_WATCH_MS = USE_TEST_ADS ? 3_000 : 5_000;
   const adCallGenRef = useRef(0);
   const showRewardedAd = useCallback(async (
     adUnitId: string,
@@ -237,18 +239,27 @@ export function useAdMob() {
         // Wait briefly for a possibly-late Rewarded event before deciding.
         setTimeout(() => {
           if (rewardReceived || resolved) return;
-          // Fallback grant if user actually watched long enough.
-          if (watchedMs >= MIN_WATCH_MS) {
+          // Two-part fallback:
+          //
+          //  (a) If the ad surface fired its `Showed` event AND the user
+          //      stayed in the ad container (we got a Dismissed event after
+          //      Showed), trust that they completed the watch. SSV is the
+          //      authoritative anti-fraud layer — a fast-dismiss here will
+          //      simply not be confirmed by Google and will surface as a
+          //      delta in raw_data.adKeysSsvDelta.
+          //
+          //  (b) If we never saw `Showed` (some Capacitor builds skip it)
+          //      but watchedMs >= MIN_WATCH_MS via the post-show timestamp
+          //      we set as a belt-and-braces, also grant.
+          if (tShown > 0) {
+            console.log('[AdMob] 🎁 Granting reward via shown→dismissed path (', watchedMs, 'ms)');
+            finish({ rewarded: true, reason: `shown-dismissed-${watchedMs}ms` });
+          } else if (watchedMs >= MIN_WATCH_MS) {
             console.log('[AdMob] 🎁 Granting reward via watch-time fallback (', watchedMs, 'ms)');
             finish({ rewarded: true, reason: `watch-fallback-${watchedMs}ms` });
-          } else if (tShown === 0) {
-            // No Showed event was emitted — assume Capacitor build doesn't expose it.
-            // Trust the Dismissed event after full ad lifecycle.
-            console.log('[AdMob] 🎁 Granting reward via dismiss-no-showed-event fallback');
-            finish({ rewarded: true, reason: 'no-showed-event' });
           } else {
-            console.log('[AdMob] ⛔ Dismissed too early (', watchedMs, 'ms) — no reward');
-            finish({ rewarded: false, reason: `too-early-${watchedMs}ms` });
+            console.log('[AdMob] ⛔ Dismissed before any show event (', watchedMs, 'ms) — no reward');
+            finish({ rewarded: false, reason: `no-show-${watchedMs}ms` });
           }
         }, 1200);
       }));
@@ -282,10 +293,26 @@ export function useAdMob() {
           console.log('[AdMob] ✅ Ad prepared, now showing...');
           return AdMob.showRewardVideoAd();
         })
-        .then(() => {
-          console.log('[AdMob] 📺 Ad is displaying...');
+        .then((reward: any) => {
+          console.log('[AdMob] 📺 Ad is displaying... | showResolved=', reward);
           // Belt-and-braces: if Showed event never fires, mark tShown now.
           if (tShown === 0) tShown = Date.now();
+          // PRIMARY REWARD SIGNAL: capacitor-community/admob's
+          // showRewardVideoAd() resolves with the AdMobRewardItem after the
+          // reward is granted on Google's side. This is more reliable than
+          // the Rewarded event listener (which is sometimes skipped on
+          // Capacitor builds — the user just sees the ad complete and taps
+          // the X to close). If we got an amount > 0 here, treat it as a
+          // confirmed reward immediately.
+          if (reward && (reward.amount > 0 || reward.type)) {
+            rewardReceived = true;
+            finish({
+              rewarded: true,
+              type: reward.type,
+              amount: reward.amount,
+              reason: 'show-resolved-with-reward',
+            });
+          }
         })
         .catch((err: any) => {
           console.error('[AdMob] ❌ prepare/show error:', err?.message || err);
