@@ -245,7 +245,8 @@ router.get('/ad-key-progress', async (req: Request, res: Response) => {
     }
     const rawData = (data.raw_data as Record<string, any>) || {};
     const adsWatched: number = Number(rawData.adKeysWatched) || 0;
-    return res.json({ adsWatched, adsPerKey: 2 });
+    const adsSsvConfirmed: number = Number(rawData.adKeysSsvConfirmed) || 0;
+    return res.json({ adsWatched, adsSsvConfirmed, adsPerKey: 2 });
   } catch (err) {
     console.error('[Economy ad-key-progress]', err);
     return res.status(500).json({ error: 'Failed to fetch ad-key progress' });
