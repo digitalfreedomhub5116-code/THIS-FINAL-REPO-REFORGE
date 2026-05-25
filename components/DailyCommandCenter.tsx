@@ -1577,7 +1577,7 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
 
       {/* ── DAILY DUNGEON (Sung Jin-woo Protocol) — DEFAULT TAB ONLY ── */}
       {todayCategoryTab === 'DEFAULT' && dungeonState && (
-        <div className="mb-4">
+        <div id="dungeon-protocol-section" className="mb-4">
           <DungeonQuestCards
             dungeonState={dungeonState}
             onEnterDungeon={handleEnterDungeon}
