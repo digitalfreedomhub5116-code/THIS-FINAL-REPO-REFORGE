@@ -470,8 +470,10 @@ export function getTodaysDeals(count = 2): { item: StoreItem; discount: number }
   // Seed based on date so deals are consistent throughout the day
   const seed = parseInt(new Date().toISOString().split('T')[0].replace(/-/g, ''), 10);
   // Pool: ONLY borders with actual images (exclude CSS-only aura borders)
+  // Also exclude ad-unlock items (Iron Will, Eternal Flame) — those are
+  // free via watching ads in the store, so a "discount" makes no sense.
   const pool = [...ALL_STORE_ITEMS, ..._remoteStoreCache]
-    .filter(i => i.category === 'border' && (i.imageBorder || i.videoBorder));
+    .filter(i => i.category === 'border' && (i.imageBorder || i.videoBorder) && !i.adUnlock);
   const shuffled = pool
     .sort((a, b) => {
       // Use multiple chars for better distribution (prevents remote- items from clustering)
