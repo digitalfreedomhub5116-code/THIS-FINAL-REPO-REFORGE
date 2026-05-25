@@ -181,7 +181,8 @@ export function useAdMob() {
 
     return new Promise<{ rewarded: boolean; type?: string; amount?: number }>((resolve) => {
       let resolved = false;
-      let tShown = 0; // ms timestamp when ad surface became visible
+      let tShown = 0;       // ms timestamp when ad surface became visible (Showed event)
+      let tShowCalled = 0;  // ms timestamp when WE called showRewardVideoAd() — this always fires
       let rewardReceived = false;
       const listeners: any[] = [];
       const isStaleCall = () => myGen !== adCallGenRef.current;
@@ -193,7 +194,7 @@ export function useAdMob() {
       const finish = (outcome: { rewarded: boolean; type?: string; amount?: number; reason?: string }) => {
         if (resolved) return;
         resolved = true;
-        const watchedMs = tShown > 0 ? Date.now() - tShown : 0;
+        const watchedMs = tShown > 0 ? Date.now() - tShown : (tShowCalled > 0 ? Date.now() - tShowCalled : 0);
         const diag = { ...outcome, watchedMs, ts: Date.now() };
         console.log('[AdMob] 🏁 Ad result:', diag);
         emitDiag({ stage: 'finish', ...diag });
@@ -232,34 +233,37 @@ export function useAdMob() {
       listeners.push(AdMob.addListener(RewardAdPluginEvents.Dismissed, () => {
         if (isStaleCall()) return;
         const now = Date.now();
-        const watchedMs = tShown > 0 ? now - tShown : 0;
-        console.log('[AdMob] 👋 Ad dismissed | watchedMs:', watchedMs);
+        // Use Showed-event timestamp if available; otherwise fall back to the
+        // wall-clock from when we invoked showRewardVideoAd() (always set).
+        const watchedFrom = tShown > 0 ? tShown : tShowCalled;
+        const watchedMs = watchedFrom > 0 ? now - watchedFrom : 0;
+        console.log('[AdMob] 👋 Ad dismissed | watchedMs:', watchedMs, '| tShown:', tShown, '| tShowCalled:', tShowCalled);
         emitDiag({ stage: 'dismissed', watchedMs });
 
-        // Wait briefly for a possibly-late Rewarded event before deciding.
+        // Wait briefly for a possibly-late Rewarded event or showRewardVideoAd
+        // resolution before deciding.
         setTimeout(() => {
           if (rewardReceived || resolved) return;
-          // Two-part fallback:
+
+          // Decision matrix (anti-fraud is enforced by SSV — Google verifies
+          // every ad watch via signed callback, so the client just needs to
+          // confirm an ad played):
           //
-          //  (a) If the ad surface fired its `Showed` event AND the user
-          //      stayed in the ad container (we got a Dismissed event after
-          //      Showed), trust that they completed the watch. SSV is the
-          //      authoritative anti-fraud layer — a fast-dismiss here will
-          //      simply not be confirmed by Google and will surface as a
-          //      delta in raw_data.adKeysSsvDelta.
-          //
-          //  (b) If we never saw `Showed` (some Capacitor builds skip it)
-          //      but watchedMs >= MIN_WATCH_MS via the post-show timestamp
-          //      we set as a belt-and-braces, also grant.
+          //   • Showed event fired AND user dismissed afterward → ad played, grant
+          //   • No Showed event but >= MIN_WATCH_MS elapsed since
+          //     showRewardVideoAd() was called → ad played, grant
+          //     (this covers Capacitor builds where Showed isn't emitted)
+          //   • Otherwise (very fast dismiss before any meaningful elapsed time)
+          //     → reject as a true accidental tap
           if (tShown > 0) {
             console.log('[AdMob] 🎁 Granting reward via shown→dismissed path (', watchedMs, 'ms)');
             finish({ rewarded: true, reason: `shown-dismissed-${watchedMs}ms` });
           } else if (watchedMs >= MIN_WATCH_MS) {
-            console.log('[AdMob] 🎁 Granting reward via watch-time fallback (', watchedMs, 'ms)');
-            finish({ rewarded: true, reason: `watch-fallback-${watchedMs}ms` });
+            console.log('[AdMob] 🎁 Granting reward via wall-clock fallback (', watchedMs, 'ms)');
+            finish({ rewarded: true, reason: `wallclock-fallback-${watchedMs}ms` });
           } else {
-            console.log('[AdMob] ⛔ Dismissed before any show event (', watchedMs, 'ms) — no reward');
-            finish({ rewarded: false, reason: `no-show-${watchedMs}ms` });
+            console.log('[AdMob] ⛔ Dismissed too quickly (', watchedMs, 'ms) — no reward');
+            finish({ rewarded: false, reason: `too-fast-${watchedMs}ms` });
           }
         }, 1200);
       }));
@@ -291,6 +295,10 @@ export function useAdMob() {
       AdMob.prepareRewardVideoAd({ adId: adUnitId, isTesting: USE_TEST_ADS, ...ssv })
         .then(() => {
           console.log('[AdMob] ✅ Ad prepared, now showing...');
+          // Mark the moment we asked the SDK to show the ad. From this point
+          // on, if the user later dismisses with >= MIN_WATCH_MS elapsed, we
+          // trust an ad played even when no Showed/Rewarded events fired.
+          tShowCalled = Date.now();
           return AdMob.showRewardVideoAd();
         })
         .then((reward: any) => {

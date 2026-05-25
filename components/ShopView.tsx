@@ -482,21 +482,72 @@ const FreeKeyAdBanner: React.FC<{
       return;
     }
     setWatching(true);
+    // Snapshot the SSV-confirmed count before the ad so we can detect a
+    // verified watch even if the client signals failure (some Capacitor
+    // builds don't fire Showed/Rewarded/return-from-show — we then rely on
+    // Google's SSV ping as the source of truth).
+    let ssvBefore = -1;
+    try {
+      const r = await fetch(`${API_BASE}/api/economy/ad-key-progress`, {
+        credentials: 'include',
+        headers: { ...getPlayerAuthHeaders() },
+      });
+      if (r.ok) {
+        const j = await r.json().catch(() => ({}));
+        if (typeof j.adsSsvConfirmed === 'number') ssvBefore = j.adsSsvConfirmed;
+      }
+    } catch { /* offline — skip the safety net */ }
+
     try {
       // Pass userId so the AdMob plugin attaches it to the SSV callback —
       // Google will include `user_id=<userId>` in the signed callback to our
       // /api/ads/ssv-callback, allowing the server to verify the watch came
       // from this specific player.
       const res = await onWatchRewardedAd(adUnitId, userId ? { userId } : undefined);
-      if (!res.rewarded) {
-        addNotification?.('Ad not completed — no progress', 'WARNING');
+      if (res.rewarded) {
+        // Client confirmed the watch — credit it on the server immediately.
+        const reported = await reportAdWatch();
+        if (!reported.ok) {
+          addNotification?.(`Couldn't credit ad: ${reported.reason}`, 'DANGER');
+        }
         return;
       }
-      // Ad fully watched — credit it on the server.
-      const reported = await reportAdWatch();
-      if (!reported.ok) {
-        addNotification?.(`Couldn't credit ad: ${reported.reason}`, 'DANGER');
+
+      // Client said the ad wasn't rewarded. Final safety net: poll the
+      // server's SSV count for a few seconds. If Google's ECDSA-signed ping
+      // arrives confirming the watch, credit retroactively. SSV typically
+      // takes 0.5–3s to arrive after the ad completes.
+      if (ssvBefore >= 0 && userId) {
+        addNotification?.('Verifying ad…', 'INFO');
+        const deadline = Date.now() + 8000; // wait up to 8s for SSV
+        let confirmed = false;
+        while (Date.now() < deadline) {
+          await new Promise(r => setTimeout(r, 1000));
+          try {
+            const r = await fetch(`${API_BASE}/api/economy/ad-key-progress`, {
+              credentials: 'include',
+              headers: { ...getPlayerAuthHeaders() },
+            });
+            if (!r.ok) continue;
+            const j = await r.json().catch(() => ({}));
+            if (typeof j.adsSsvConfirmed === 'number' && j.adsSsvConfirmed > ssvBefore) {
+              confirmed = true;
+              break;
+            }
+          } catch { /* keep polling */ }
+        }
+        if (confirmed) {
+          // SSV verified the watch — credit the client-side counter too.
+          const reported = await reportAdWatch();
+          if (!reported.ok) {
+            addNotification?.(`Couldn't credit ad: ${reported.reason}`, 'DANGER');
+          }
+          return;
+        }
       }
+
+      // Neither client nor SSV confirmed — really wasn't a completed watch.
+      addNotification?.('Ad not completed — no progress', 'WARNING');
     } catch {
       addNotification?.('Ad failed to load — try again', 'DANGER');
     } finally {
