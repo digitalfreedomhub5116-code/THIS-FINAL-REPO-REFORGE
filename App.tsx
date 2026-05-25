@@ -5139,6 +5139,8 @@ const App: React.FC = () => {
 
                           addNotification={addNotification}
 
+                          userId={player.userId}
+
                         />
 
                       </ErrorBoundary>
@@ -5223,6 +5225,8 @@ const App: React.FC = () => {
                           adUnits={AD_UNITS}
 
                           addNotification={addNotification}
+
+                          userId={player.userId}
 
                         />
 

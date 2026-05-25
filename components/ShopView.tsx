@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef, lazy, Suspense, useCallback, type CSSProperties } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense, useCallback, useMemo, type CSSProperties } from 'react';
 import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Coins, Timer, Key, CheckCircle2, Lock, ChevronLeft, ChevronRight, Heart, Star, Zap, Ghost, Hexagon, ShoppingBag, Shirt, CircleDot, Palette, Frame, Clock, ImageIcon, Flame, Shield, Wrench, Eye, Sparkles, Crown, Gift, Play } from 'lucide-react';
@@ -93,6 +93,8 @@ interface ShopViewProps {
   adUnits?: { KEY_REWARD: string; BORDER_REWARD: string; DUNGEON_INTERSTITIAL: string };
   /** Notification helper for success/failure messages */
   addNotification?: (msg: string, type: import('../types').NotificationType) => void;
+  /** Current player's userId — used to scope localStorage keys per-account */
+  userId?: string;
 }
 
 
@@ -367,8 +369,12 @@ const ItemsTab: React.FC<{ gold: number }> = ({ gold }) => {
 
 /* ═══════════════════════════════════
    FreeKeyAdBanner — Watch 2 ads to earn 1 Key Crystal
+   ─────────────────────────────────────
+   Server-authoritative: every ad watched is reported to
+   /api/economy/ad-key-watch which atomically increments the
+   counter and grants 1 key for every 2 ads. No localStorage,
+   no claim step, no race conditions across accounts/devices.
    ═══════════════════════════════════ */
-const FREE_KEY_PROGRESS_KEY = 'reforge:freeKeyAdProgress';
 const ADS_PER_KEY = 2;
 
 /* ═══════════════════════════════════
@@ -421,16 +427,36 @@ const FreeKeyAdBanner: React.FC<{
   adUnitId?: string;
   onClaimKey: (serverKeys: number) => void;
   addNotification?: (msg: string, type: import('../types').NotificationType) => void;
-}> = ({ onWatchRewardedAd, adUnitId, onClaimKey, addNotification }) => {
-  const [progress, setProgress] = useState<number>(() => {
-    try { return Math.min(ADS_PER_KEY, parseInt(localStorage.getItem(FREE_KEY_PROGRESS_KEY) || '0', 10) || 0); } catch { return 0; }
-  });
+  userId?: string;
+}> = ({ onWatchRewardedAd, adUnitId, onClaimKey, addNotification, userId }) => {
+  // Cumulative ads watched (mod ADS_PER_KEY for the displayed slot count).
+  // Server is authoritative — we just mirror what the server tells us.
+  const [adsWatched, setAdsWatched] = useState<number>(0);
   const [watching, setWatching] = useState(false);
-  const [claiming, setClaiming] = useState(false);
-  const [claimError, setClaimError] = useState<string | null>(null);
-  const [diag, setDiag] = useState<string | null>(null);
-  const autoClaimedRef = useRef(false);
-  const ready = progress >= ADS_PER_KEY;
+  const [, setDiag] = useState<string | null>(null);
+
+  // Slot progress is the cumulative count modulo 2 — when slot fills, server
+  // already granted the key, the counter rolls over, and the slots reset to 0.
+  const slotProgress = adsWatched % ADS_PER_KEY;
+
+  // Fetch initial server state on mount and whenever the user changes.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/economy/ad-key-progress`, {
+          credentials: 'include',
+          headers: { ...getPlayerAuthHeaders() },
+        });
+        if (!res.ok) return;
+        const data = await res.json().catch(() => ({}));
+        if (!cancelled && typeof data.adsWatched === 'number') {
+          setAdsWatched(data.adsWatched);
+        }
+      } catch { /* offline / not signed in — show 0/2 */ }
+    })();
+    return () => { cancelled = true; };
+  }, [userId]);
 
   // Listen to admob:diag events from useAdMob to surface the ad lifecycle without logcat
   useEffect(() => {
@@ -448,10 +474,48 @@ const FreeKeyAdBanner: React.FC<{
     return () => window.removeEventListener('admob:diag', handler);
   }, []);
 
-  const persist = useCallback((n: number) => {
-    try { localStorage.setItem(FREE_KEY_PROGRESS_KEY, String(n)); } catch {}
-    setProgress(n);
-  }, []);
+  // Report a completed ad watch to the server. The server increments the
+  // cumulative counter and, if it crosses a 2-ad boundary, atomically grants
+  // 1 key. No client-side claim step.
+  const reportAdWatch = useCallback(async (): Promise<{ ok: boolean; reason?: string }> => {
+    const doFetch = (headers: Record<string, string>) => fetch(`${API_BASE}/api/economy/ad-key-watch`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...headers },
+      credentials: 'include',
+      body: JSON.stringify({}),
+    });
+
+    try {
+      let res = await doFetch(getPlayerAuthHeaders());
+
+      // 401: try one forced JWT refresh, then retry. If still 401, we surface
+      // a clear "sign in again" message because the session itself is dead.
+      if (res.status === 401) {
+        const refreshed = await getOrRefreshPlayerHeaders(API_BASE, true);
+        if (refreshed.Authorization) {
+          res = await doFetch(refreshed);
+        } else {
+          return { ok: false, reason: 'Session expired — please sign in again' };
+        }
+      }
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        return { ok: false, reason: data?.error || `HTTP ${res.status}` };
+      }
+      if (typeof data.adsWatched === 'number') setAdsWatched(data.adsWatched);
+      if (typeof data.totalKeys === 'number') onClaimKey(data.totalKeys);
+      if (data.keysGranted > 0) {
+        addNotification?.(`🔑 +${data.keysGranted} Key Crystal earned!`, 'SUCCESS');
+      } else {
+        const remaining = ADS_PER_KEY - (data.adsWatched % ADS_PER_KEY || ADS_PER_KEY);
+        addNotification?.(`Ad watched! ${remaining} more to earn a Key.`, 'INFO');
+      }
+      return { ok: true };
+    } catch (err: any) {
+      return { ok: false, reason: err?.message || 'network error' };
+    }
+  }, [onClaimKey, addNotification]);
 
   const handleWatch = async () => {
     if (watching) return;
@@ -462,83 +526,21 @@ const FreeKeyAdBanner: React.FC<{
     setWatching(true);
     try {
       const res = await onWatchRewardedAd(adUnitId);
-      if (res.rewarded) {
-        const next = Math.min(ADS_PER_KEY, progress + 1);
-        persist(next);
-        if (next >= ADS_PER_KEY) {
-          // Reset auto-claim guard so this fresh 2/2 transition triggers a claim.
-          autoClaimedRef.current = false;
-          addNotification?.('🎁 Granting your free Key…', 'SUCCESS');
-        } else {
-          addNotification?.(`Ad watched! ${ADS_PER_KEY - next} more to earn a Key.`, 'INFO');
-        }
-      } else {
+      if (!res.rewarded) {
         addNotification?.('Ad not completed — no progress', 'WARNING');
+        return;
       }
-    } catch (e) {
+      // Ad fully watched — credit it on the server.
+      const reported = await reportAdWatch();
+      if (!reported.ok) {
+        addNotification?.(`Couldn't credit ad: ${reported.reason}`, 'DANGER');
+      }
+    } catch {
       addNotification?.('Ad failed to load — try again', 'DANGER');
     } finally {
       setWatching(false);
     }
   };
-
-  // Server claim helper — called both by auto-fire effect and the retry button.
-  const performClaim = useCallback(async () => {
-    if (claiming) return;
-    setClaiming(true);
-    setClaimError(null);
-    try {
-      let res = await fetch(`${API_BASE}/api/economy/grant-keys`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
-        credentials: 'include',
-        body: JSON.stringify({ amount: 1, source: 'ad_reward' }),
-      });
-      let data = await res.json().catch(() => ({}));
-
-      if (res.status === 401) {
-        const refreshed = await getOrRefreshPlayerHeaders(API_BASE);
-        if (refreshed.Authorization) {
-          res = await fetch(`${API_BASE}/api/economy/grant-keys`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...refreshed },
-            credentials: 'include',
-            body: JSON.stringify({ amount: 1, source: 'ad_reward' }),
-          });
-          data = await res.json().catch(() => ({}));
-        }
-      }
-
-      if (res.ok && data.success && data.keys != null) {
-        onClaimKey(data.keys);
-        persist(0);
-        autoClaimedRef.current = false; // ready for next cycle
-        addNotification?.('🔑 +1 Key Crystal claimed!', 'SUCCESS');
-      } else {
-        const reason = data.error || `HTTP ${res.status}`;
-        setClaimError(reason);
-        addNotification?.(`Failed to claim key: ${reason}`, 'DANGER');
-      }
-    } catch (err: any) {
-      const reason = err?.message || 'unknown';
-      setClaimError(reason);
-      addNotification?.(`Network error: ${reason}`, 'DANGER');
-    } finally {
-      setClaiming(false);
-    }
-  }, [claiming, onClaimKey, persist, addNotification]);
-
-  // Auto-claim when progress hits the threshold. Guarded by autoClaimedRef so
-  // it only fires once per 2/2 transition. If the claim fails, the user gets a
-  // "Tap to retry" button (rendered below) so they're not stuck.
-  useEffect(() => {
-    if (progress < ADS_PER_KEY) return;
-    if (autoClaimedRef.current) return;
-    if (claiming) return;
-    if (claimError) return; // wait for user to tap retry
-    autoClaimedRef.current = true;
-    performClaim();
-  }, [progress, claiming, claimError, performClaim]);
 
   return (
     <motion.div
@@ -595,7 +597,7 @@ const FreeKeyAdBanner: React.FC<{
             Watch 2 Ads to Earn a Free Key
           </div>
           <div style={{ fontSize: 10, color: 'rgba(214,188,250,0.75)', fontFamily: 'monospace', marginBottom: 8 }}>
-            {ready ? 'Ready! Claim your reward' : `Progress: ${progress} / ${ADS_PER_KEY} ads`}
+            {`Progress: ${slotProgress} / ${ADS_PER_KEY} ads`}
           </div>
 
           {/* Progress bar */}
@@ -603,85 +605,37 @@ const FreeKeyAdBanner: React.FC<{
             {Array.from({ length: ADS_PER_KEY }).map((_, i) => (
               <div key={i} style={{
                 flex: 1, height: 5, borderRadius: 3,
-                background: i < progress
+                background: i < slotProgress
                   ? 'linear-gradient(90deg, #a855f7, #c084fc)'
                   : 'rgba(255,255,255,0.08)',
-                boxShadow: i < progress ? '0 0 6px rgba(168,85,247,0.6)' : 'none',
+                boxShadow: i < slotProgress ? '0 0 6px rgba(168,85,247,0.6)' : 'none',
                 transition: 'all 0.3s',
               }} />
             ))}
           </div>
 
-          {/* Action button — auto-claims when ready; falls back to "Tap to retry" on server error */}
-          {ready ? (
-            claimError ? (
-              // Claim failed — let the user retry instead of being stuck.
-              <button
-                onClick={() => { setClaimError(null); autoClaimedRef.current = false; performClaim(); }}
-                disabled={claiming}
-                style={{
-                  width: '100%', padding: '8px 14px', borderRadius: 10, border: 'none',
-                  cursor: claiming ? 'wait' : 'pointer',
-                  background: claiming ? 'rgba(239,68,68,0.4)' : 'linear-gradient(135deg, #ef4444, #b91c1c)',
-                  color: '#fff', fontSize: 10, fontWeight: 900, letterSpacing: '0.05em',
-                  boxShadow: claiming ? 'none' : '0 0 12px rgba(239,68,68,0.45)',
-                  opacity: claiming ? 0.7 : 1,
-                  textTransform: 'uppercase' as const,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                }}
-              >
-                {claiming ? '⏳ Retrying...' : `↻ Tap to retry — ${claimError}`}
-              </button>
-            ) : (
-              // Auto-claim in progress — non-interactive loading state.
-              <div
-                style={{
-                  width: '100%', padding: '8px 14px', borderRadius: 10,
-                  background: 'rgba(251,191,36,0.4)',
-                  color: '#1a0f00', fontSize: 11, fontWeight: 900, letterSpacing: '0.05em',
-                  textTransform: 'uppercase' as const,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                  opacity: 0.85,
-                }}
-              >
-                ⏳ Granting Free Key...
-              </div>
-            )
-          ) : (
-            <button
-              onClick={handleWatch}
-              disabled={watching}
-              style={{
-                width: '100%', padding: '8px 14px', borderRadius: 10, border: 'none',
-                cursor: watching ? 'wait' : 'pointer',
-                background: watching
-                  ? 'rgba(168,85,247,0.4)'
-                  : 'linear-gradient(135deg, #a855f7, #7c3aed)',
-                color: '#fff', fontSize: 11, fontWeight: 900, letterSpacing: '0.05em',
-                boxShadow: watching ? 'none' : '0 0 14px rgba(168,85,247,0.45), inset 0 1px 0 rgba(255,255,255,0.15)',
-                opacity: watching ? 0.7 : 1,
-                textTransform: 'uppercase' as const,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              }}
-            >
-              {watching ? '⏳ Loading Ad...' : <>▶ Watch Ad</>}
-            </button>
-          )}
+          {/* Single action button — keys are auto-granted by the server every
+              2 ads; the user just keeps watching. */}
+          <button
+            onClick={handleWatch}
+            disabled={watching}
+            style={{
+              width: '100%', padding: '8px 14px', borderRadius: 10, border: 'none',
+              cursor: watching ? 'wait' : 'pointer',
+              background: watching
+                ? 'rgba(168,85,247,0.4)'
+                : 'linear-gradient(135deg, #a855f7, #7c3aed)',
+              color: '#fff', fontSize: 11, fontWeight: 900, letterSpacing: '0.05em',
+              boxShadow: watching ? 'none' : '0 0 14px rgba(168,85,247,0.45), inset 0 1px 0 rgba(255,255,255,0.15)',
+              opacity: watching ? 0.7 : 1,
+              textTransform: 'uppercase' as const,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            }}
+          >
+            {watching ? '⏳ Loading ad...' : <><Play size={13} /> Watch Ad</>}
+          </button>
         </div>
       </div>
-
-      {/* Diagnostic strip — surfaces ad lifecycle without logcat (auto-hides after 10s) */}
-      {diag && (
-        <div style={{
-          position: 'relative', marginTop: 8, padding: '6px 10px',
-          borderRadius: 8, background: 'rgba(0,0,0,0.45)',
-          border: '1px solid rgba(168,85,247,0.25)',
-          fontSize: 10, fontFamily: 'monospace', color: 'rgba(214,188,250,0.95)',
-          letterSpacing: '0.02em', wordBreak: 'break-all',
-        }}>
-          {diag}
-        </div>
-      )}
     </motion.div>
   );
 };
@@ -723,6 +677,7 @@ const ShopView: React.FC<ShopViewProps> = ({
   onWatchRewardedAd,
   adUnits,
   addNotification,
+  userId,
 }) => {
   const [storeTab, setStoreTab] = useState<'OUTFITS' | 'BADGES' | 'BORDERS' | 'DEALS' | 'ITEMS' | 'THEMES' | 'BANNERS_SHOP'>(initialStoreTab || 'OUTFITS');
   const [showMore, setShowMore] = useState(false);
@@ -1563,6 +1518,7 @@ const ShopView: React.FC<ShopViewProps> = ({
         adUnitId={adUnits?.KEY_REWARD}
         onClaimKey={(serverKeys: number) => onKeysUpdate?.(serverKeys)}
         addNotification={addNotification}
+        userId={userId}
       />
 
       {/* ═══════════════════════════════════════════

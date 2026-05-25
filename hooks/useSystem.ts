@@ -1894,7 +1894,7 @@ export const useSystem = () => {
       if (keyReward && keyReward.amount > 0) {
         fetch(`${API_BASE}/api/economy/grant-keys`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
           credentials: 'include',
           body: JSON.stringify({ amount: keyReward.amount, source: 'workout_reward' }),
         }).catch(() => {});
