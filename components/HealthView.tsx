@@ -14,7 +14,7 @@ import PlanCustomizer from './PlanCustomizer';
 import { generateSystemProtocol, calculateTimeEstimate } from '../utils/workoutGenerator';
 import { playSystemSoundEffect } from '../utils/soundEngine';
 import { API_BASE } from '../lib/apiConfig';
-import { getPlayerAuthHeaders } from '../lib/playerApi';
+import { getPlayerAuthHeaders, authenticatedFetch } from '../lib/playerApi';
 import { DEFAULT_PLANS, getRecommendedPlan } from '../lib/defaultPlans';
 import OnboardingNotice from './OnboardingNotice';
 import FoodLibrary from './FoodLibrary';
@@ -204,6 +204,46 @@ export const HealthView: React.FC<HealthViewProps> = ({
   // Workout Reward Modal State
   const [workoutRewards, setWorkoutRewards] = useState<WorkoutReward[] | null>(null);
   const [workoutAnomalyPoints, setWorkoutAnomalyPoints] = useState(0);
+
+  // Double rewards ad watcher callback
+  const onWatchAdToDouble = async (): Promise<boolean> => {
+    if (!showRewardedAd) {
+      console.warn('[HealthView] showRewardedAd prop is not available');
+      return false;
+    }
+    try {
+      // Use KEY_REWARD ad unit for double reward ad
+      const result = await showRewardedAd(AD_UNITS.KEY_REWARD);
+      if (result.rewarded) {
+        if (workoutRewards && onAddRewards) {
+          let xpToGrant = 0;
+          let goldToGrant = 0;
+          let keysToGrant = 0;
+          for (const r of workoutRewards) {
+            if (r.type === 'XP') xpToGrant += r.amount;
+            if (r.type === 'GOLD') goldToGrant += r.amount;
+            if (r.type === 'KEYS') keysToGrant += r.amount;
+          }
+          if (xpToGrant > 0 || goldToGrant > 0) {
+            onAddRewards(goldToGrant, xpToGrant);
+          }
+          if (keysToGrant > 0) {
+            authenticatedFetch(`${API_BASE}/api/economy/grant-keys`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
+              body: JSON.stringify({ amount: keysToGrant, source: 'workout_reward_double' }),
+            }).catch(() => {});
+          }
+        }
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('[HealthView] Failed to watch ad to double rewards:', err);
+      return false;
+    }
+  };
+
 
   // Session Resume State
   const [savedSession, setSavedSession] = useState<SavedWorkoutSession | null>(null);
@@ -650,10 +690,9 @@ export const HealthView: React.FC<HealthViewProps> = ({
           setShowMicros(false);
 
           const imageBase64 = compressedDataUrl.split(',')[1];
-          const response = await fetch(`${API_BASE}/api/nutrition/analyze`, {
+          const response = await authenticatedFetch(`${API_BASE}/api/nutrition/analyze`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
-              credentials: 'include',
               body: JSON.stringify({ imageBase64, mimeType: 'image/jpeg' }),
           });
 
@@ -732,10 +771,9 @@ export const HealthView: React.FC<HealthViewProps> = ({
 
           const imageBase64 = compressedDataUrl.split(',')[1];
 
-          const response = await fetch(`${API_BASE}/api/nutrition/analyze`, {
+          const response = await authenticatedFetch(`${API_BASE}/api/nutrition/analyze`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
-              credentials: 'include',
               body: JSON.stringify({ imageBase64, mimeType: 'image/jpeg' }),
           });
 
