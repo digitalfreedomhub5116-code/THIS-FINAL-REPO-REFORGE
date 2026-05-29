@@ -1,64 +1,82 @@
 /**
  * HunterStatusWindow.tsx
  *
- * A faithful Solo Leveling "STATUS" window — the floating cyan frame that
- * pops up in the show when a hunter checks their stat sheet. Used as a
- * drop-in replacement for the Growth Terminal at the top of the dashboard.
+ * Solo Leveling–style "STATUS" panel rendered as a hybrid raster + HTML
+ * overlay:
  *
- * Design checklist (matched against the reference still):
- *   • Outer rectangle frame with notched/chipped corners (rendered in SVG so
- *     the notches are pixel-perfect at any scale).
- *   • L-bracket alignment ticks at all 4 corners and at midpoints — these are
- *     the small offset rectangles that float just outside the main border.
- *   • Cyan stroke + soft outer glow filter so the frame reads as energy
- *     emission, not just a flat 1px outline.
- *   • Inset gritty diagonal scratch texture (faint white lines) for the
- *     screen-interference look.
- *   • Centered "STATUS" title plate that overlaps the top edge.
- *   • Three sections divided by hairline cyan rules with a small rotated
- *     square as a midpoint marker.
- *   • Subtle floating animation (~4px translate, 6s loop) and pulsing outer
- *     drop-shadow.
+ *   Layer 1 (back):  <img src="/assets/status-frame.jpg" />  (1024 × 583)
+ *   Layer 2:         absolutely-positioned safe-zone overlay (insets 14/8/14/8 %)
+ *   Layer 3 (front): STATUS title plate, LEVEL / STREAK row, XP bar,
+ *                    6-stat grid (STR / INT, DIS / SOC, FOC / WIL).
  *
- * Data shown (per the spec confirmed with the user):
- *   • Big LEVEL number on the left
- *   • Streak count on the right (no fire emoji)
- *   • Single XP bar with current/required readout
- *   • 6-stat grid: STR INT / DIS SOC / FOC WIL — these are the cumulative
- *     `player.stats` (universal totals, increase per quest/workout)
+ * Stats render exclusively from the cumulative `player.stats` totals.
+ * Daily / weekly / monthly stat slices are intentionally not consulted —
+ * this is the universal hunter sheet.
  *
- * No HP/MP bars, no "Job"/"Title" rows, no toggle.
+ * Reversibility: gated by HUNTER_STATUS_WINDOW_ENABLED in App.tsx. The
+ * legacy PlayerStatusCard is left untouched, so flipping the flag back
+ * to `false` restores the prior dashboard with no migration.
  *
- * The component is fully self-contained (no external state, no plug-ins).
- * To revert the dashboard to the old Growth Terminal, flip the
- * HUNTER_STATUS_WINDOW_ENABLED feature flag in App.tsx — the old
- * PlayerStatusCard is left untouched.
+ * The component is a single file. Component-scoped CSS lives in an
+ * inline <style> tag emitted once on first mount; no companion .css /
+ * .module.css file is created.
  */
-import React from 'react';
-import { motion } from 'framer-motion';
-import type { PlayerData } from '../types';
+import React, { useEffect, useRef, useState } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
+import type { CoreStats, PlayerData } from '../types';
 
 interface HunterStatusWindowProps {
   player: PlayerData;
 }
 
-// ── Theme tokens ────────────────────────────────────────────────────────────
-const CYAN = '#00d4ff';
-const CYAN_DIM = 'rgba(0, 212, 255, 0.55)';
-const CYAN_FAINT = 'rgba(0, 212, 255, 0.22)';
-const FRAME_BG = 'rgba(6, 12, 22, 0.92)';
-const TEXT_PRIMARY = '#dff5ff';
-const TEXT_DIM = 'rgba(196, 226, 240, 0.65)';
-const TEXT_LABEL = 'rgba(174, 218, 235, 0.78)';
+// ────────────────────────────────────────────────────────────────────────────
+// Pure helpers (exported via test only — kept module-private at runtime).
+// ────────────────────────────────────────────────────────────────────────────
 
-// Stat row config — order matches the SL window's left/right pairing.
-const STAT_ROWS: { left: keyof PlayerData['stats']; right: keyof PlayerData['stats'] }[] = [
-  { left: 'strength', right: 'intelligence' },
-  { left: 'discipline', right: 'social' },
-  { left: 'focus', right: 'willpower' },
-];
+function safeNumber(value: unknown, fallback: number): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return fallback;
+  return value;
+}
 
-const STAT_LABEL: Record<keyof PlayerData['stats'], string> = {
+function formatNum(n: number): string {
+  if (!Number.isFinite(n) || n < 0) return '0';
+  return Math.floor(n).toLocaleString();
+}
+
+interface ViewModel {
+  level: number;
+  currentXp: number;
+  requiredXp: number;
+  xpPct: number;
+  streak: number;
+  stats: CoreStats;
+}
+
+function deriveViewModel(player: PlayerData): ViewModel {
+  const level = Math.max(1, safeNumber(player?.level, 1));
+  const currentXp = Math.max(0, safeNumber(player?.currentXp, 0));
+  const requiredXp = Math.max(1, safeNumber(player?.requiredXp, 100));
+  const streak = Math.max(0, safeNumber(player?.streak, 0));
+  const xpPct = Math.min(100, Math.round((currentXp / requiredXp) * 100));
+
+  const raw = (player?.stats || {}) as Partial<CoreStats>;
+  const stats: CoreStats = {
+    strength: Math.max(0, safeNumber(raw.strength, 0)),
+    intelligence: Math.max(0, safeNumber(raw.intelligence, 0)),
+    discipline: Math.max(0, safeNumber(raw.discipline, 0)),
+    social: Math.max(0, safeNumber(raw.social, 0)),
+    focus: Math.max(0, safeNumber(raw.focus, 0)),
+    willpower: Math.max(0, safeNumber(raw.willpower, 0)),
+  };
+
+  return { level, currentXp, requiredXp, xpPct, streak, stats };
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Stat metadata.
+// ────────────────────────────────────────────────────────────────────────────
+
+const STAT_LABEL: Record<keyof CoreStats, string> = {
   strength: 'STR',
   intelligence: 'INT',
   discipline: 'DIS',
@@ -67,385 +85,504 @@ const STAT_LABEL: Record<keyof PlayerData['stats'], string> = {
   willpower: 'WIL',
 };
 
-// Tiny SVG icons next to each stat value — kept abstract on purpose, just
-// enough to mimic the SL "icon + label : number" pattern without committing
-// to a literal sword/heart that would feel off in a habit-tracking app.
-const StatIcon: React.FC<{ stat: keyof PlayerData['stats'] }> = ({ stat }) => {
-  const common = { stroke: CYAN, strokeWidth: 1.5, fill: 'none', strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
+// Row-major 2x3 grid: STR/INT, DIS/SOC, FOC/WIL.
+const STAT_ORDER: (keyof CoreStats)[] = [
+  'strength',
+  'intelligence',
+  'discipline',
+  'social',
+  'focus',
+  'willpower',
+];
+
+// ────────────────────────────────────────────────────────────────────────────
+// Component-scoped CSS (single file constraint — emitted once on mount).
+// ────────────────────────────────────────────────────────────────────────────
+
+const STYLES_ID = 'hsw-component-styles';
+
+const STYLES_CSS = `
+.hsw-wrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1024 / 583;
+  user-select: none;
+  font-family: 'Rajdhani', 'Bai Jamjuree', monospace, sans-serif;
+}
+.hsw-motion {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  will-change: transform, filter;
+}
+.hsw-frame,
+.hsw-frame-fallback {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 4px;
+  pointer-events: none;
+}
+.hsw-frame { object-fit: fill; }
+.hsw-frame-fallback {
+  background: linear-gradient(180deg, #060d18 0%, #02060c 100%);
+  border: 1.5px solid #00d4ff;
+  box-shadow:
+    0 0 18px rgba(0, 212, 255, 0.35),
+    inset 0 0 16px rgba(0, 212, 255, 0.08);
+}
+
+.hsw-safezone {
+  position: absolute;
+  top: 14%;
+  right: 8%;
+  bottom: 14%;
+  left: 8%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 4px;
+  padding: 6px 4px 4px;
+  background: rgba(4, 10, 20, 0.55);
+  backdrop-filter: blur(2px) saturate(110%);
+  -webkit-backdrop-filter: blur(2px) saturate(110%);
+  border-radius: 2px;
+}
+
+.hsw-title-plate {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 4px 18px;
+  background: rgba(4, 10, 20, 0.92);
+  border: 1.5px solid #00d4ff;
+  border-radius: 2px;
+  box-shadow:
+    0 0 10px rgba(0, 212, 255, 0.35),
+    inset 0 0 8px rgba(0, 212, 255, 0.18);
+  font-family: 'Rajdhani', 'Bai Jamjuree', sans-serif;
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.32em;
+  color: #ffffff;
+  text-shadow: 0 0 6px rgba(0, 212, 255, 0.55);
+  white-space: nowrap;
+  z-index: 2;
+}
+
+.hsw-row {
+  display: flex;
+  align-items: center;
+}
+.hsw-row-level {
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 4px 0;
+}
+.hsw-level-block { display: flex; align-items: baseline; gap: 8px; }
+.hsw-streak-block { display: flex; align-items: baseline; gap: 8px; }
+.hsw-level-num {
+  font-family: 'Rajdhani', 'Bai Jamjuree', sans-serif;
+  font-weight: 700;
+  font-size: 36px;
+  line-height: 1;
+  color: #ffffff;
+  text-shadow:
+    0 0 14px rgba(0, 212, 255, 0.85),
+    0 0 4px rgba(255, 255, 255, 0.5);
+}
+.hsw-level-label,
+.hsw-streak-label {
+  font-family: 'Rajdhani', 'Bai Jamjuree', sans-serif;
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.28em;
+  color: rgba(220, 240, 250, 0.78);
+}
+.hsw-streak-num {
+  font-family: 'Rajdhani', 'Bai Jamjuree', sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  line-height: 1;
+  color: #ffffff;
+  text-shadow: 0 0 10px rgba(0, 212, 255, 0.7);
+}
+
+.hsw-row-xp {
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 4px;
+}
+.hsw-xp-label {
+  font-family: 'Rajdhani', 'Bai Jamjuree', sans-serif;
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.24em;
+  color: rgba(220, 240, 250, 0.78);
+  text-align: center;
+}
+.hsw-xp-bar {
+  position: relative;
+  height: 10px;
+  background: rgba(0, 212, 255, 0.06);
+  border: 1px solid rgba(0, 212, 255, 0.55);
+  border-radius: 2px;
+  overflow: hidden;
+  box-shadow: inset 0 0 8px rgba(0, 212, 255, 0.10);
+}
+.hsw-xp-bar-fill {
+  position: absolute;
+  inset: 0;
+  width: var(--xp-pct, 0%);
+  background: linear-gradient(
+    90deg,
+    rgba(0, 212, 255, 0.55) 0%,
+    rgba(140, 230, 255, 0.95) 100%
+  );
+  box-shadow:
+    0 0 12px rgba(0, 212, 255, 0.55),
+    inset 0 0 6px rgba(255, 255, 255, 0.4);
+  transition: width 600ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.hsw-xp-bar-ticks {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent 0 16px,
+    rgba(2, 8, 16, 0.55) 16px 17px
+  );
+  pointer-events: none;
+}
+.hsw-xp-readout {
+  font-family: 'Rajdhani', 'Bai Jamjuree', sans-serif;
+  font-weight: 700;
+  font-size: 11px;
+  text-align: right;
+  white-space: nowrap;
+}
+.hsw-xp-current {
+  color: #ffffff;
+  text-shadow: 0 0 6px rgba(0, 212, 255, 0.6);
+}
+.hsw-xp-required {
+  color: rgba(220, 240, 250, 0.55);
+}
+
+.hsw-divider {
+  position: relative;
+  height: 1px;
+  margin: 4px 6px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(0, 212, 255, 0.55) 50%,
+    transparent 100%
+  );
+}
+.hsw-divider::after {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  transform: translateX(-50%) rotate(45deg);
+  background: #00d4ff;
+  box-shadow: 0 0 8px #00d4ff;
+}
+
+.hsw-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: repeat(3, auto);
+  column-gap: 22px;
+  row-gap: 6px;
+  padding: 4px 4px 0;
+}
+.hsw-stat-row {
+  display: grid;
+  grid-template-columns: 16px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.hsw-stat-icon {
+  width: 12px;
+  height: 12px;
+  flex: none;
+}
+.hsw-stat-label {
+  font-family: 'Rajdhani', 'Bai Jamjuree', sans-serif;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  color: rgba(220, 240, 250, 0.78);
+  white-space: nowrap;
+}
+.hsw-stat-value {
+  font-family: 'Rajdhani', 'Bai Jamjuree', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: #ffffff;
+  text-shadow: 0 0 10px rgba(0, 212, 255, 0.75);
+  text-align: right;
+  min-width: 28px;
+}
+
+/* Large phone */
+@media (min-width: 480px) {
+  .hsw-title-plate { font-size: 11px; padding: 5px 20px; }
+  .hsw-level-num   { font-size: 42px; }
+  .hsw-streak-num  { font-size: 22px; }
+  .hsw-xp-bar      { height: 12px; }
+  .hsw-stats-grid  { column-gap: 28px; row-gap: 8px; }
+  .hsw-stat-icon   { width: 14px; height: 14px; }
+  .hsw-stat-row    { grid-template-columns: 18px 1fr auto; }
+  .hsw-stat-value  { font-size: 16px; }
+}
+
+/* Tablet */
+@media (min-width: 768px) {
+  .hsw-title-plate { font-size: 12px; padding: 6px 24px; }
+  .hsw-level-num   { font-size: 56px; }
+  .hsw-streak-num  { font-size: 26px; }
+  .hsw-xp-bar      { height: 14px; }
+  .hsw-stats-grid  { column-gap: 32px; row-gap: 10px; }
+  .hsw-stat-icon   { width: 16px; height: 16px; }
+  .hsw-stat-row    { grid-template-columns: 20px 1fr auto; }
+  .hsw-stat-value  { font-size: 18px; }
+}
+
+/* Desktop */
+@media (min-width: 1024px) {
+  .hsw-level-num   { font-size: 64px; }
+  .hsw-stats-grid  { column-gap: 40px; }
+}
+
+/* Reduced-motion: kill the XP fill transition (animation suppression on
+   the motion wrapper is handled in JS via useReducedMotion). */
+@media (prefers-reduced-motion: reduce) {
+  .hsw-xp-bar-fill { transition: none !important; }
+}
+`;
+
+function ensureStylesInjected(): void {
+  if (typeof document === 'undefined') return;
+  if (document.getElementById(STYLES_ID)) return;
+  const style = document.createElement('style');
+  style.id = STYLES_ID;
+  style.textContent = STYLES_CSS;
+  document.head.appendChild(style);
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Internal subcomponents.
+// ────────────────────────────────────────────────────────────────────────────
+
+const Divider: React.FC = () => <div className="hsw-divider" aria-hidden="true" />;
+
+/**
+ * Bold filled white SVG glyph with a soft white drop-shadow halo.
+ * Per spec: fill: #ffffff, stroke: none. No outline-style icons.
+ */
+const StatIcon: React.FC<{ stat: keyof CoreStats }> = ({ stat }) => {
+  const common = {
+    className: 'hsw-stat-icon',
+    viewBox: '0 0 24 24',
+    fill: '#ffffff',
+    stroke: 'none',
+    filter: 'url(#hsw-icon-glow)',
+    'aria-hidden': true as const,
+  };
+
   switch (stat) {
     case 'strength':
-      // crossed energy lines
+      // Filled bolt — angular energy glyph.
       return (
-        <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden>
-          <path d="M2 8 L14 8" {...common} />
-          <path d="M5 5 L11 11 M11 5 L5 11" {...common} />
+        <svg {...common}>
+          <path d="M12 2 L20 11 L14 11 L18 22 L4 12 L10 12 L6 2 Z" />
         </svg>
       );
     case 'intelligence':
-      // brain dot cluster
+      // Filled disc with cyan eye-dot (still purely filled, no stroke).
       return (
-        <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden>
-          <circle cx="8" cy="8" r="5" {...common} />
-          <circle cx="8" cy="8" r="1.5" stroke="none" fill={CYAN} />
+        <svg {...common}>
+          <circle cx="12" cy="12" r="8" />
+          <circle cx="12" cy="12" r="2.6" fill="#00d4ff" />
         </svg>
       );
     case 'discipline':
-      // shield outline
+      // Filled shield.
       return (
-        <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden>
-          <path d="M8 2 L13 4 V8 C13 11 8 14 8 14 C8 14 3 11 3 8 V4 Z" {...common} />
+        <svg {...common}>
+          <path d="M12 2 L21 6 V12 C21 17 12 22 12 22 C12 22 3 17 3 12 V6 Z" />
         </svg>
       );
     case 'social':
-      // two arcs
+      // Two overlapping filled circles.
       return (
-        <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden>
-          <circle cx="6" cy="6" r="2.5" {...common} />
-          <circle cx="10" cy="10" r="2.5" {...common} />
+        <svg {...common}>
+          <circle cx="9" cy="10" r="5" />
+          <circle cx="15" cy="14" r="5" />
         </svg>
       );
     case 'focus':
-      // crosshair
+      // Filled bullseye — outer disc + cyan ring + center dot, all filled.
       return (
-        <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden>
-          <circle cx="8" cy="8" r="4" {...common} />
-          <path d="M8 1 V4 M8 12 V15 M1 8 H4 M12 8 H15" {...common} />
+        <svg {...common}>
+          <circle cx="12" cy="12" r="9" />
+          <circle cx="12" cy="12" r="6" fill="#040a14" />
+          <circle cx="12" cy="12" r="3" />
         </svg>
       );
     case 'willpower':
-      // flame
+      // Filled flame — broad teardrop with a curl.
       return (
-        <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden>
-          <path d="M8 14 C5 14 3 11.5 3 9 C3 6 5.5 4 6 1 C7 3.5 9 4.5 11 6.5 C13 8.5 13 12 11 13 C9.5 14 9 14 8 14 Z" {...common} />
+        <svg {...common}>
+          <path d="M12 22 C7 22 4 18 4 14 C4 10 7 7 8 3 C10 6 13 7 16 10 C19 13 19 18 16 20 C14 21.5 13 22 12 22 Z" />
         </svg>
       );
   }
 };
 
-const formatNum = (n: number): string => {
-  if (!Number.isFinite(n)) return '0';
-  return Math.max(0, Math.floor(n)).toLocaleString();
-};
+const StatRow: React.FC<{ stat: keyof CoreStats; value: number }> = ({ stat, value }) => (
+  <div className="hsw-stat-row">
+    <StatIcon stat={stat} />
+    <span className="hsw-stat-label">{STAT_LABEL[stat]}</span>
+    <span className="hsw-stat-value">{formatNum(value)}</span>
+  </div>
+);
+
+// ────────────────────────────────────────────────────────────────────────────
+// Main component.
+// ────────────────────────────────────────────────────────────────────────────
 
 const HunterStatusWindow: React.FC<HunterStatusWindowProps> = ({ player }) => {
-  const level = Math.max(1, player.level || 1);
-  const currentXp = Math.max(0, player.currentXp || 0);
-  const requiredXp = Math.max(1, player.requiredXp || 100);
-  const xpPct = Math.min(100, Math.round((currentXp / requiredXp) * 100));
-  const streak = Math.max(0, player.streak || 0);
-  const stats = player.stats || ({} as PlayerData['stats']);
+  const vm = deriveViewModel(player);
+  const [frameLoaded, setFrameLoaded] = useState(true);
+  const reduceMotion = useReducedMotion();
+  const styleInjected = useRef(false);
+
+  useEffect(() => {
+    if (styleInjected.current) return;
+    ensureStylesInjected();
+    styleInjected.current = true;
+  }, []);
+
+  // Float keyframes — gentle Y bob plus a breathing cyan halo.
+  const floatAnim = reduceMotion
+    ? undefined
+    : {
+        y: [0, -3, 0, 3, 0],
+        filter: [
+          'drop-shadow(0 0 18px rgba(0, 212, 255, 0.22))',
+          'drop-shadow(0 0 26px rgba(0, 212, 255, 0.55))',
+          'drop-shadow(0 0 18px rgba(0, 212, 255, 0.22))',
+        ],
+      };
+
+  const floatTransition = reduceMotion
+    ? undefined
+    : { duration: 6, repeat: Infinity, ease: 'easeInOut' as const };
 
   return (
-    <div
-      className="relative w-full"
-      style={{
-        // Reserve a touch of vertical room above the frame for the floating
-        // L-brackets and the STATUS title plate that overhangs the top edge.
-        paddingTop: 14,
-        paddingBottom: 10,
-      }}
-    >
-      <motion.div
-        // Subtle floating animation — small Y-bob + breathing glow.
-        animate={{
-          y: [0, -3, 0, 3, 0],
-          filter: [
-            `drop-shadow(0 0 18px ${CYAN_FAINT}) drop-shadow(0 8px 32px rgba(0,0,0,0.6))`,
-            `drop-shadow(0 0 26px ${CYAN_DIM}) drop-shadow(0 12px 36px rgba(0,0,0,0.6))`,
-            `drop-shadow(0 0 18px ${CYAN_FAINT}) drop-shadow(0 8px 32px rgba(0,0,0,0.6))`,
-          ],
-        }}
-        transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
-        style={{ position: 'relative' }}
+    <div className="hsw-wrapper">
+      {/* SVG <defs> for the filled-icon white glow filter — declared once. */}
+      <svg
+        width="0"
+        height="0"
+        style={{ position: 'absolute', width: 0, height: 0 }}
+        aria-hidden="true"
       >
-        {/* ── SVG frame ─────────────────────────────────────────────────── */}
-        {/* viewBox is 100×100 but we use vector-effect=non-scaling-stroke
-            so strokes stay crisp regardless of CSS width. The path is
-            declared as a single closed shape with notched corners. */}
-        <svg
-          viewBox="0 0 1000 600"
-          preserveAspectRatio="none"
-          className="absolute inset-0 w-full h-full"
-          style={{ pointerEvents: 'none' }}
-          aria-hidden
-        >
-          <defs>
-            {/* Inner gradient fill (deep navy → black) */}
-            <linearGradient id="hsw-fill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" stopColor="#081420" stopOpacity="0.96" />
-              <stop offset="0.6" stopColor="#040a14" stopOpacity="0.96" />
-              <stop offset="1" stopColor="#020610" stopOpacity="0.98" />
-            </linearGradient>
-
-            {/* Cyan emission glow filter for the stroke */}
-            <filter id="hsw-glow" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="3.5" result="b" />
-              <feMerge>
-                <feMergeNode in="b" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-
-            {/* Diagonal scratch texture pattern */}
-            <pattern id="hsw-scratch" x="0" y="0" width="80" height="80" patternUnits="userSpaceOnUse" patternTransform="rotate(-22)">
-              <line x1="0" y1="0" x2="0" y2="80" stroke="rgba(180, 220, 240, 0.045)" strokeWidth="0.6" />
-              <line x1="14" y1="0" x2="14" y2="80" stroke="rgba(180, 220, 240, 0.025)" strokeWidth="0.4" />
-              <line x1="33" y1="0" x2="33" y2="80" stroke="rgba(180, 220, 240, 0.06)" strokeWidth="0.5" />
-              <line x1="55" y1="0" x2="55" y2="80" stroke="rgba(180, 220, 240, 0.03)" strokeWidth="0.45" />
-            </pattern>
-          </defs>
-
-          {/* Notched-corner frame — single closed path. The `c` value
-              controls how big each corner notch is. */}
-          {(() => {
-            const W = 1000;
-            const H = 600;
-            const c = 18; // notch size
-            const path = [
-              `M ${c},0`,
-              `L ${W - c},0`,
-              `L ${W},${c}`,
-              `L ${W},${H - c}`,
-              `L ${W - c},${H}`,
-              `L ${c},${H}`,
-              `L 0,${H - c}`,
-              `L 0,${c}`,
-              'Z',
-            ].join(' ');
-            return (
-              <>
-                {/* fill */}
-                <path d={path} fill="url(#hsw-fill)" />
-                {/* scratch texture overlay */}
-                <path d={path} fill="url(#hsw-scratch)" />
-                {/* stroke + glow */}
-                <path
-                  d={path}
-                  fill="none"
-                  stroke={CYAN}
-                  strokeWidth="2"
-                  strokeOpacity="0.9"
-                  vectorEffect="non-scaling-stroke"
-                  filter="url(#hsw-glow)"
-                />
-                {/* second softer outer stroke for the energy halo */}
-                <path
-                  d={path}
-                  fill="none"
-                  stroke={CYAN}
-                  strokeWidth="0.8"
-                  strokeOpacity="0.45"
-                  vectorEffect="non-scaling-stroke"
-                />
-              </>
-            );
-          })()}
-
-          {/* ── L-bracket alignment ticks (the floating little marks) ──
-              Four corners + 4 edge midpoints. Drawn as small open rectangles
-              offset slightly outside the main frame. */}
-          {(() => {
-            const W = 1000;
-            const H = 600;
-            const off = 9;        // distance outside the frame
-            const arm = 28;       // length of each L arm
-            const sw = 1.6;
-            const stroke = { stroke: CYAN, strokeWidth: sw, fill: 'none', strokeOpacity: 0.85, vectorEffect: 'non-scaling-stroke' as const };
-
-            const corner = (cx: number, cy: number, hx: number, hy: number) => {
-              // hx/hy are signs (+1/-1) indicating which way the L opens.
-              const x1 = cx;
-              const y1 = cy;
-              const x2 = cx + hx * arm;
-              const y2 = cy;
-              const x3 = cx;
-              const y3 = cy + hy * arm;
-              return <path key={`c-${cx}-${cy}`} d={`M ${x2} ${y2} L ${x1} ${y1} L ${x3} ${y3}`} {...stroke} />;
-            };
-
-            return (
-              <g>
-                {/* corners */}
-                {corner(-off, -off, +1, +1)}
-                {corner(W + off, -off, -1, +1)}
-                {corner(-off, H + off, +1, -1)}
-                {corner(W + off, H + off, -1, -1)}
-                {/* edge midpoint dashes */}
-                <line x1={W / 2 - 18} y1={-off} x2={W / 2 + 18} y2={-off} {...stroke} />
-                <line x1={W / 2 - 18} y1={H + off} x2={W / 2 + 18} y2={H + off} {...stroke} />
-                <line x1={-off} y1={H / 2 - 18} x2={-off} y2={H / 2 + 18} {...stroke} />
-                <line x1={W + off} y1={H / 2 - 18} x2={W + off} y2={H / 2 + 18} {...stroke} />
-              </g>
-            );
-          })()}
-        </svg>
-
-        {/* ── HTML content layer ────────────────────────────────────────── */}
-        <div className="relative" style={{ padding: '34px 22px 26px' }}>
-          {/* STATUS title plate — overlaps the top frame edge */}
-          <div
-            style={{
-              position: 'absolute',
-              top: -2,
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              padding: '6px 22px',
-              background: '#040a14',
-              border: `1.5px solid ${CYAN}`,
-              borderRadius: 2,
-              boxShadow: `0 0 14px ${CYAN_FAINT}, inset 0 0 8px rgba(0, 212, 255, 0.18)`,
-              letterSpacing: '0.32em',
-              fontWeight: 800,
-              fontSize: 12,
-              color: TEXT_PRIMARY,
-              textShadow: `0 0 6px ${CYAN_DIM}`,
-              fontFamily: 'Rajdhani, "Bai Jamjuree", monospace, sans-serif',
-            }}
+        <defs>
+          <filter
+            id="hsw-icon-glow"
+            x="-50%"
+            y="-50%"
+            width="200%"
+            height="200%"
           >
-            STATUS
-          </div>
+            <feGaussianBlur stdDeviation="0.8" result="blur" />
+            <feFlood floodColor="#ffffff" floodOpacity="0.85" />
+            <feComposite in2="blur" operator="in" result="glow" />
+            <feMerge>
+              <feMergeNode in="glow" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+      </svg>
 
-          {/* ── ROW 1: LEVEL (left) and STREAK (right) ─────────────────── */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 4 }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-              <span
-                style={{
-                  fontSize: 44,
-                  fontWeight: 800,
-                  lineHeight: 1,
-                  color: TEXT_PRIMARY,
-                  textShadow: `0 0 14px ${CYAN_DIM}, 0 0 4px rgba(255,255,255,0.4)`,
-                  fontFamily: 'Rajdhani, "Bai Jamjuree", monospace, sans-serif',
-                }}
-              >
-                {level}
-              </span>
-              <span
-                style={{
-                  fontSize: 11,
-                  letterSpacing: '0.28em',
-                  color: TEXT_LABEL,
-                  fontWeight: 700,
-                  fontFamily: 'Rajdhani, monospace, sans-serif',
-                }}
-              >
-                LEVEL
-              </span>
+      <motion.div
+        className="hsw-motion"
+        animate={floatAnim}
+        transition={floatTransition}
+      >
+        {/* Layer 1: raster frame, or CSS fallback if the asset fails. */}
+        {frameLoaded ? (
+          <img
+            className="hsw-frame"
+            src="/assets/status-frame.jpg"
+            alt=""
+            aria-hidden="true"
+            draggable={false}
+            onError={() => setFrameLoaded(false)}
+          />
+        ) : (
+          <div className="hsw-frame-fallback" aria-hidden="true" />
+        )}
+
+        {/* Layer 2: safe-zone overlay with translucent glass. */}
+        <div className="hsw-safezone">
+          <div className="hsw-title-plate">STATUS</div>
+
+          {/* ── Row 1: LEVEL ‖ STREAK ── */}
+          <div className="hsw-row hsw-row-level">
+            <div className="hsw-level-block">
+              <span className="hsw-level-num">{formatNum(vm.level)}</span>
+              <span className="hsw-level-label">LEVEL</span>
             </div>
-
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-              <span
-                style={{
-                  fontSize: 11,
-                  letterSpacing: '0.28em',
-                  color: TEXT_LABEL,
-                  fontWeight: 700,
-                  fontFamily: 'Rajdhani, monospace, sans-serif',
-                }}
-              >
-                STREAK
-              </span>
-              <span
-                style={{
-                  fontSize: 22,
-                  fontWeight: 800,
-                  lineHeight: 1,
-                  color: TEXT_PRIMARY,
-                  textShadow: `0 0 10px ${CYAN_DIM}`,
-                  fontFamily: 'Rajdhani, monospace, sans-serif',
-                }}
-              >
-                {formatNum(streak)}
-              </span>
+            <div className="hsw-streak-block">
+              <span className="hsw-streak-label">STREAK</span>
+              <span className="hsw-streak-num">{formatNum(vm.streak)}</span>
             </div>
           </div>
 
-          {/* hairline divider with diamond marker */}
           <Divider />
 
-          {/* ── ROW 2: XP BAR ─────────────────────────────────────────── */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 4px 12px' }}>
+          {/* ── Row 2: XP bar ── */}
+          <div className="hsw-row-xp">
+            <span className="hsw-xp-label">XP</span>
             <div
-              style={{
-                fontSize: 10,
-                letterSpacing: '0.24em',
-                color: TEXT_LABEL,
-                fontWeight: 700,
-                fontFamily: 'Rajdhani, monospace, sans-serif',
-                width: 26,
-                textAlign: 'center',
-              }}
-              aria-label="XP"
+              className="hsw-xp-bar"
+              role="progressbar"
+              aria-valuenow={vm.xpPct}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label="XP progress"
+              style={{ ['--xp-pct' as any]: `${vm.xpPct}%` }}
             >
-              XP
+              <div className="hsw-xp-bar-fill" />
+              <div className="hsw-xp-bar-ticks" />
             </div>
-            <div
-              style={{
-                flex: 1,
-                position: 'relative',
-                height: 14,
-                background: 'rgba(0, 212, 255, 0.06)',
-                border: `1px solid ${CYAN_DIM}`,
-                borderRadius: 2,
-                overflow: 'hidden',
-                boxShadow: `inset 0 0 8px rgba(0, 212, 255, 0.1)`,
-              }}
-            >
-              {/* Filled portion */}
-              <div
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  width: `${xpPct}%`,
-                  background: `linear-gradient(90deg, rgba(0, 212, 255, 0.55), rgba(140, 230, 255, 0.95))`,
-                  boxShadow: `0 0 12px ${CYAN_DIM}, inset 0 0 6px rgba(255,255,255,0.4)`,
-                  transition: 'width 600ms cubic-bezier(0.22, 1, 0.36, 1)',
-                }}
-              />
-              {/* Subtle tick segments for the SL "segmented bar" feel */}
-              <div
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  background:
-                    'repeating-linear-gradient(90deg, transparent 0 18px, rgba(2, 8, 16, 0.55) 18px 19px)',
-                  pointerEvents: 'none',
-                }}
-              />
-            </div>
-            <div
-              style={{
-                fontSize: 11,
-                color: TEXT_DIM,
-                letterSpacing: '0.04em',
-                fontFamily: 'Rajdhani, monospace, sans-serif',
-                fontWeight: 600,
-                minWidth: 78,
-                textAlign: 'right',
-              }}
-            >
-              <span style={{ color: TEXT_PRIMARY, textShadow: `0 0 6px ${CYAN_DIM}` }}>{formatNum(currentXp)}</span>
-              <span style={{ opacity: 0.55 }}> / {formatNum(requiredXp)}</span>
-            </div>
+            <span className="hsw-xp-readout">
+              <span className="hsw-xp-current">{formatNum(vm.currentXp)}</span>
+              <span className="hsw-xp-required"> / {formatNum(vm.requiredXp)}</span>
+            </span>
           </div>
 
-          {/* hairline divider with diamond marker */}
           <Divider />
 
-          {/* ── ROW 3: STATS GRID ─────────────────────────────────────── */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '12px 26px',
-              padding: '14px 8px 4px',
-            }}
-          >
-            {STAT_ROWS.map((row, i) => (
-              <React.Fragment key={i}>
-                <StatRow stat={row.left} value={(stats as any)[row.left] ?? 0} />
-                <StatRow stat={row.right} value={(stats as any)[row.right] ?? 0} />
-              </React.Fragment>
+          {/* ── Row 3: 6-stat grid (STR/INT, DIS/SOC, FOC/WIL) ── */}
+          <div className="hsw-stats-grid">
+            {STAT_ORDER.map((key) => (
+              <StatRow key={key} stat={key} value={vm.stats[key]} />
             ))}
           </div>
         </div>
@@ -453,65 +590,5 @@ const HunterStatusWindow: React.FC<HunterStatusWindowProps> = ({ player }) => {
     </div>
   );
 };
-
-// ── Internal subcomponents ──────────────────────────────────────────────────
-
-const Divider: React.FC = () => (
-  <div
-    style={{
-      position: 'relative',
-      height: 1,
-      margin: '4px 6px',
-      background: `linear-gradient(90deg, transparent, ${CYAN_DIM}, transparent)`,
-    }}
-  >
-    <div
-      style={{
-        position: 'absolute',
-        top: -3,
-        left: '50%',
-        transform: 'translateX(-50%) rotate(45deg)',
-        width: 6,
-        height: 6,
-        background: CYAN,
-        boxShadow: `0 0 8px ${CYAN}`,
-      }}
-    />
-  </div>
-);
-
-const StatRow: React.FC<{ stat: keyof PlayerData['stats']; value: number }> = ({ stat, value }) => (
-  <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '2px 0' }}>
-    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 18 }}>
-      <StatIcon stat={stat} />
-    </span>
-    <span
-      style={{
-        fontSize: 12,
-        letterSpacing: '0.18em',
-        color: TEXT_LABEL,
-        fontWeight: 700,
-        fontFamily: 'Rajdhani, monospace, sans-serif',
-        flex: 1,
-      }}
-    >
-      {STAT_LABEL[stat]}
-    </span>
-    <span style={{ color: TEXT_DIM, fontFamily: 'Rajdhani, monospace, sans-serif', fontWeight: 600 }}>:</span>
-    <span
-      style={{
-        fontSize: 16,
-        fontWeight: 800,
-        color: TEXT_PRIMARY,
-        textShadow: `0 0 10px ${CYAN_DIM}`,
-        fontFamily: 'Rajdhani, monospace, sans-serif',
-        minWidth: 30,
-        textAlign: 'right',
-      }}
-    >
-      {formatNum(value)}
-    </span>
-  </div>
-);
 
 export default HunterStatusWindow;
