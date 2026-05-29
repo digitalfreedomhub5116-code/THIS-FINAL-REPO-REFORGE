@@ -182,50 +182,85 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
   // ── SENSOR TRACKING for Running Exercises (GPS + Steps hybrid) ──
   const sensorReqs = (exercise as any)?.sensorRequirements as { distanceKm?: number } | undefined;
   const isRunningExercise = !!sensorReqs?.distanceKm;
-  const { startTracking, stopTracking, finalizeTracking, snapshot: sensorSnapshot, tracking: sensorTracking, requestPermissions } = useSensors(player.userId || 'local');
+  const { startTracking, stopTracking, finalizeTracking, clearStoredSession, snapshot: sensorSnapshot, tracking: sensorTracking, requestPermissions } = useSensors(player.userId || 'local');
   const sensorStartedRef = useRef(false);
+  // Unique-per-entry questId so the next dungeon run never resumes leftover
+  // distance/steps from an earlier session in localStorage.
+  const runQuestIdRef = useRef<string>(`dungeon-run-${Date.now()}`);
 
   // Step-based distance estimation: ~0.7m per step for running, ~0.65m for walking
   const stepEstimatedKm = (sensorSnapshot?.stepsRecorded || 0) * 0.0007; // 0.7m per step
   // Best distance = whichever is higher between GPS and step-estimated
   const bestDistanceKm = Math.max(sensorSnapshot?.distanceRecorded || 0, stepEstimatedKm);
 
-  // Auto-start tracking when a running exercise becomes active
+  // Auto-start tracking when a running exercise becomes active.
+  // Fresh-start every time so the bar always begins at 0 km.
   useEffect(() => {
     if (isRunningExercise && phase === 'WORK' && !sensorStartedRef.current) {
       sensorStartedRef.current = true;
+      // Generate a fresh questId for this entry so even cross-day localStorage
+      // entries can't leak in (defence in depth alongside freshStart).
+      runQuestIdRef.current = `dungeon-run-${Date.now()}`;
+      const qid = runQuestIdRef.current;
+      const targetKm = sensorReqs?.distanceKm;
       (async () => {
-        await requestPermissions();
-        await startTracking('dungeon-run', { distanceKm: sensorReqs!.distanceKm });
+        try {
+          // Belt-and-suspenders: clear any legacy 'dungeon-run' key from older
+          // builds that hardcoded that questId.
+          clearStoredSession('dungeon-run');
+          await requestPermissions();
+          await startTracking(qid, { distanceKm: targetKm }, { freshStart: true });
+        } catch (err) {
+          console.warn('[ActiveWorkout] Sensor start failed:', err);
+          // Allow re-entry: the user can quit and resume; never crash.
+          sensorStartedRef.current = false;
+        }
       })();
     }
     // Reset flag when moving away from running exercise
     if (!isRunningExercise) {
       sensorStartedRef.current = false;
     }
-  }, [isRunningExercise, phase, currentIdx]);
+  }, [isRunningExercise, phase, currentIdx, requestPermissions, startTracking, clearStoredSession, sensorReqs?.distanceKm]);
 
-  // Auto-complete running exercise when distance target is met
+  // Auto-complete running exercise when distance target is met.
+  // Gate on `sensorTracking` so we never fire from a stale snapshot before
+  // the new session has actually started — that race used to crash the app.
   const runAutoCompleteRef = useRef(false);
   useEffect(() => {
-    if (!isRunningExercise || !sensorSnapshot || runAutoCompleteRef.current) return;
+    if (!isRunningExercise || !sensorTracking || !sensorSnapshot || runAutoCompleteRef.current) return;
     const targetKm = sensorReqs?.distanceKm || 1;
     if (bestDistanceKm >= targetKm) {
       runAutoCompleteRef.current = true;
-      stopTracking().then(() => {
-        finalizeTracking('dungeon-run');
+      const qid = runQuestIdRef.current;
+      (async () => {
+        try {
+          await stopTracking();
+        } catch { /* ignore */ }
+        try {
+          finalizeTracking(qid);
+        } catch { /* ignore */ }
         completeSet();
-      });
+      })();
     }
-  }, [bestDistanceKm, isRunningExercise]);
+  }, [bestDistanceKm, isRunningExercise, sensorTracking, sensorSnapshot, sensorReqs?.distanceKm, stopTracking, finalizeTracking]);
 
-  // On unmount: STOP tracking but DON'T finalize — so progress is preserved for resume
+  // On unmount: STOP tracking AND clear the stored session — nothing about a
+  // half-finished run should bleed into the next entry.
   useEffect(() => {
     return () => {
+      const qid = runQuestIdRef.current;
       if (sensorStartedRef.current) {
-        stopTracking(); // Session stays in localStorage for resume
+        stopTracking().catch(() => { /* ignore */ });
+        // Clear the unique-per-entry session so the next dungeon entry starts
+        // at zero distance even if the user quits mid-run.
+        try { finalizeTracking(qid); } catch { /* ignore */ }
+        try { clearStoredSession(qid); } catch { /* ignore */ }
       }
+      // Also wipe the legacy hardcoded key for older app installs.
+      try { clearStoredSession('dungeon-run'); } catch { /* ignore */ }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Auto-detect if current exercise should use Form Coach (rep-based + has config)
@@ -406,14 +441,27 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
 
   const completeSet = useCallback(() => {
       playSystemSoundEffect('SUCCESS');
-      
+
       // --- ANTI-CHEAT: Check if set was completed too fast (before 70% of duration) ---
-      if (!exercise.isSupplementary) {
+      // Skip the time check entirely when the user has a legitimate non-time
+      // completion source:
+      //   1. CAMERA mode + AI Coach counted >= target reps — reps are the truth.
+      //   2. Running exercises auto-completed by GPS/step distance target.
+      //   3. Supplementary exercises (already exempt below).
+      const targetReps = parseInt(exercise.reps) || 0;
+      const aiHitTarget = trackingMode === 'CAMERA'
+        && !!formCoachConfig
+        && targetReps > 0
+        && (lastFormCoachStateRef.current?.repCount ?? formCoachState?.repCount ?? 0) >= targetReps;
+      const isRunningAuto = !!(exercise as any)?.sensorRequirements?.distanceKm;
+      const skipTimeAnomaly = aiHitTarget || isRunningAuto;
+
+      if (!exercise.isSupplementary && !skipTimeAnomaly) {
         const totalDuration = getExerciseDuration(exercise.reps);
         const elapsedMs = Date.now() - phaseStartTime;
         const elapsedSec = elapsedMs / 1000;
         const threshold = totalDuration * 0.7;
-        
+
         if (elapsedSec < threshold && totalDuration > 10) {
           setAnomalyPoints(prev => prev + 1);
         }
@@ -457,7 +505,7 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
       } else {
         handleExerciseComplete();
       }
-  }, [currentSet, exercise?.sets, exercise?.name, exercise?.reps, exercise?.type, exercise?.isSupplementary, handleExerciseComplete, phaseStartTime]);
+  }, [currentSet, exercise?.sets, exercise?.name, exercise?.reps, exercise?.type, exercise?.isSupplementary, handleExerciseComplete, phaseStartTime, trackingMode, formCoachConfig, formCoachState?.repCount]);
 
   const handleTimerComplete = useCallback(() => {
     if (phase === 'WORK') {

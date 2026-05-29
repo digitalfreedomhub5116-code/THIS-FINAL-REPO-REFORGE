@@ -157,17 +157,21 @@ export function useSensors(userId: string = 'local') {
 
     try {
       // Motion plugin doesn't have a formal permission API on web,
-      // but on Android ACTIVITY_RECOGNITION is requested at runtime via the OS
-      // We'll try to read a single event to trigger the permission dialog
-      await new Promise<void>((resolve, reject) => {
-        const timeout = setTimeout(() => { resolve(); }, 2000);
-        Motion.addListener('accel', () => {
-          clearTimeout(timeout);
-          resolve();
-        }).catch(() => { clearTimeout(timeout); resolve(); });
-        // Remove after first event
-        setTimeout(() => { Motion.removeAllListeners(); }, 2100);
-      });
+      // but on Android ACTIVITY_RECOGNITION is requested at runtime via the OS.
+      // We trigger the permission dialog by registering a temporary listener,
+      // then remove ONLY that handle (never call Motion.removeAllListeners()
+      // globally — that would yank listeners owned by other useSensors callers).
+      let probeHandle: any = null;
+      try {
+        probeHandle = await Motion.addListener('accel', () => {});
+      } catch { probeHandle = null; }
+      // Wait briefly for the OS dialog to settle, then drop our handle.
+      await new Promise<void>((resolve) => setTimeout(resolve, 800));
+      try {
+        if (probeHandle && typeof probeHandle.remove === 'function') {
+          await probeHandle.remove();
+        }
+      } catch { /* listener may already be gone */ }
       motionGranted = true;
     } catch {
       motionGranted = false;
@@ -196,12 +200,20 @@ export function useSensors(userId: string = 'local') {
 
   const startTracking = useCallback(async (
     questId: string,
-    requirements?: SensorRequirements
+    requirements?: SensorRequirements,
+    options?: { freshStart?: boolean }
   ): Promise<boolean> => {
     if (tracking) return false;
 
+    // freshStart=true wipes any persisted snapshot for this questId so the
+    // session starts at zero. Used by the dungeon run so leftover distance
+    // from a previous session never bleeds into the new one.
+    if (options?.freshStart) {
+      clearSession(questId, userId);
+    }
+
     // Try to resume an existing session
-    const existing = loadSession(questId, userId);
+    const existing = options?.freshStart ? null : loadSession(questId, userId);
     const now = Date.now();
     const initial: SensorSnapshot = existing || {
       stepsRecorded: 0,
@@ -428,8 +440,7 @@ export function useSensors(userId: string = 'local') {
     }
 
     if (motionListener.current) {
-      motionListener.current.remove?.();
-      Motion.removeAllListeners().catch(() => {});
+      try { await motionListener.current.remove?.(); } catch { /* ignore */ }
       motionListener.current = null;
     }
 
@@ -514,11 +525,22 @@ export function useSensors(userId: string = 'local') {
       if (geoWatchId.current) {
         Geolocation.clearWatch({ id: geoWatchId.current }).catch(() => {});
       }
-      Motion.removeAllListeners().catch(() => {});
+      // Remove only our own motion listener (never call removeAllListeners
+      // globally — that would yank handles owned by other useSensors callers).
+      if (motionListener.current) {
+        try { motionListener.current.remove?.(); } catch { /* ignore */ }
+        motionListener.current = null;
+      }
       if (activeMinutesTimer.current) clearInterval(activeMinutesTimer.current);
       if (nativePollingTimer.current) clearInterval(nativePollingTimer.current);
     };
   }, []);
+
+  // Hand-clear stored session for a questId without touching tracking state.
+  // Useful when a caller wants to guarantee a fresh start before startTracking.
+  const clearStoredSession = useCallback((questId: string) => {
+    clearSession(questId, userId);
+  }, [userId]);
 
   return {
     // State
@@ -533,6 +555,7 @@ export function useSensors(userId: string = 'local') {
     startTracking,
     stopTracking,
     finalizeTracking,
+    clearStoredSession,
     validateCompletion,
   };
 }
