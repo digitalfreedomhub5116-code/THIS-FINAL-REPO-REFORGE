@@ -34,5 +34,7 @@ mcp-setup.md
 # Test screenshots
 test-results/
 
-# Built APK files (too large for git — use Releases instead)
+# Built APK/AAB files (too large for git — use Releases instead)
 *.apk
+*.aab
+bundle_info.txt
