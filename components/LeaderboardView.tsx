@@ -342,9 +342,9 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
 
   // Generate NPCs (stable for this user + this week)
   const npcEntries = useMemo(() => {
-    if (!player.userId) return [];
-    return generateNPCsForUser(player.userId, 8) as unknown as LeaderboardEntry[];
-  }, [player.userId]);
+    const seedId = player.userId || player.username || 'local-guest';
+    return generateNPCsForUser(seedId, 15) as unknown as LeaderboardEntry[];
+  }, [player.userId, player.username]);
 
   // Merge real entries + NPCs
   const entries = useMemo(() => {

@@ -8,7 +8,7 @@ import GoalDetailView from './GoalDetailView';
 import { showSystemToast } from './SystemToast';
 import { playSystemSoundEffect } from '../utils/soundEngine';
 import { API_BASE } from '../lib/apiConfig';
-import { getPlayerAuthHeaders } from '../lib/playerApi';
+import { getPlayerAuthHeaders, authenticatedFetch } from '../lib/playerApi';
 import { buildDungeonGoalQuest, buildDungeonGoalDailyTask } from '../lib/dungeonGoalQuest';
 
 // ── Helpers ──
@@ -152,10 +152,9 @@ export default function GoalsView({
           const remainingMinutes = Math.max(30, (playerData?.healthProfile?.sessionDuration ?? 120) - otherGoalsMinutes);
           const recentTasks = (goal.dailyTasks || []).slice(-7);
 
-          const res = await fetch(`${API_BASE}/api/goals/daily-quests`, {
+          const res = await authenticatedFetch(`${API_BASE}/api/goals/daily-quests`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
-            credentials: 'include',
             body: JSON.stringify({
               goal,
               recentTasks,

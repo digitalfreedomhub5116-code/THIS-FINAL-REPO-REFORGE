@@ -5,7 +5,7 @@ import {
   ReplitUser, HistoryEntry, Goal, FormCoachSession
 } from '../types';
 import { playSystemSoundEffect } from '../utils/soundEngine';
-import { getPlayerAuthHeaders } from '../lib/playerApi';
+import { getPlayerAuthHeaders, authenticatedFetch } from '../lib/playerApi';
 import { clearAuthNative } from '../lib/nativeAuth';
 import { REWARD_SCHEDULE } from '../lib/rewards';
 import { API_BASE } from '../lib/apiConfig';
@@ -390,10 +390,9 @@ export const useSystem = () => {
         consumables: data.consumables || {}
       };
       
-      const res = await fetch(`${API_BASE}/api/player/${data.userId}`, {
+      const res = await authenticatedFetch(`${API_BASE}/api/player/${data.userId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
-        credentials: 'include',
         body: JSON.stringify(syncData)
       });
 
@@ -1279,10 +1278,9 @@ export const useSystem = () => {
         if (hasPact && pactAmount > 0 && prev.userId) {
           const weekStart = new Date();
           weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-          fetch(`${API_BASE}/api/system-pact/burn`, {
+          authenticatedFetch(`${API_BASE}/api/system-pact/burn`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
             body: JSON.stringify({
               quest_id: quest.id,
               amount: pactAmount,
@@ -1394,10 +1392,9 @@ export const useSystem = () => {
 
       // Fire-and-forget: mark pact as honored on server
       if (hasPact && prev.userId) {
-        fetch(`${API_BASE}/api/system-pact/resolve`, {
+        authenticatedFetch(`${API_BASE}/api/system-pact/resolve`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
           body: JSON.stringify({ quest_id: quest.id, status: 'honored' }),
         }).catch(() => {});
       }
@@ -1469,10 +1466,9 @@ export const useSystem = () => {
       if (qHasPact && qPactAmount > 0 && prev.userId) {
         const weekStart = new Date();
         weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-        fetch(`${API_BASE}/api/system-pact/burn`, {
+        authenticatedFetch(`${API_BASE}/api/system-pact/burn`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
           body: JSON.stringify({
             quest_id: q.id,
             amount: qPactAmount,
@@ -1876,10 +1872,9 @@ export const useSystem = () => {
 
     // Persist to workouts table (fire-and-forget)
     if (player.userId && !isLocalUser(player.userId)) {
-      fetch(`${API_BASE}/api/workout/log-complete`, {
+      authenticatedFetch(`${API_BASE}/api/workout/log-complete`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({
           exercises_completed: exercisesCompleted,
           total_exercises: totalExercises,
@@ -1892,10 +1887,9 @@ export const useSystem = () => {
       // We must call the economy/grant-keys endpoint to persist key rewards to Supabase.
       const keyReward = rewards.find(r => r.type === 'KEYS');
       if (keyReward && keyReward.amount > 0) {
-        fetch(`${API_BASE}/api/economy/grant-keys`, {
+        authenticatedFetch(`${API_BASE}/api/economy/grant-keys`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
-          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ amount: keyReward.amount, source: 'workout_reward' }),
         }).catch(() => {});
       }
@@ -2263,10 +2257,8 @@ export const useSystem = () => {
     // Persist strike to DB via dedicated endpoint (fire-and-forget, outside state updater)
     setTimeout(() => {
       if (capturedUserId && !isLocalUser(capturedUserId)) {
-        fetch(`${API_BASE}/api/player/${capturedUserId}/record-strike`, {
+        authenticatedFetch(`${API_BASE}/api/player/${capturedUserId}/record-strike`, {
           method: 'POST',
-          headers: { ...getPlayerAuthHeaders() },
-          credentials: 'include',
         }).then(res => {
           if (!res.ok) {
             console.error(`[ForgeGuard] Strike sync failed: ${res.status} ${res.statusText}`);
@@ -2316,10 +2308,9 @@ export const useSystem = () => {
       const failedQuests = player.quests.filter(q => q.failed).map(q => q.title).join(', ');
       const activeQuests = player.quests.filter(q => !q.isCompleted && !q.failed).map(q => q.title).join(', ');
 
-      const res = await fetch(`${API_BASE}/api/dusk/chat`, {
+      const res = await authenticatedFetch(`${API_BASE}/api/dusk/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({
           message: `[SYSTEM_EVENT] ${eventText}`,
           history: history.slice(-8),
@@ -2363,10 +2354,9 @@ export const useSystem = () => {
 
   const verifyTicket = useCallback(async (proof: string, reason: string, originalSelfie?: string) => {
     try {
-      const res = await fetch(`${API_BASE}/api/forge-guard/verify-proof`, {
+      const res = await authenticatedFetch(`${API_BASE}/api/forge-guard/verify-proof`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({ imageBase64: proof, reason, context: originalSelfie })
       });
       const data = await res.json();
@@ -2383,11 +2373,9 @@ export const useSystem = () => {
   const purchaseOutfit = useCallback(async (outfit: { id: string; name: string; cost: number; keyCost?: number }): Promise<boolean> => {
     // Server-authoritative purchase: atomic gold deduction + inventory write
     try {
-      const headers = getPlayerAuthHeaders();
-      const resp = await fetch(`${API_BASE}/api/inventory/purchase`, {
+      const resp = await authenticatedFetch(`${API_BASE}/api/inventory/purchase`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...headers },
-        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ itemId: outfit.id, itemType: 'outfit', price: outfit.cost }),
       });
       if (!resp.ok) {

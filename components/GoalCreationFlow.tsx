@@ -4,7 +4,7 @@ import { X, Loader2, Target, AlertTriangle, ChevronRight, CheckCircle, Shield, C
 import { Goal, GoalInterviewQuestion, GoalMilestone, PlayerData, Rank } from '../types';
 import { playSystemSoundEffect, triggerHaptic } from '../utils/soundEngine';
 import { API_BASE } from '../lib/apiConfig';
-import { getPlayerAuthHeaders } from '../lib/playerApi';
+import { getPlayerAuthHeaders, authenticatedFetch } from '../lib/playerApi';
 
 const RANK_COLORS: Record<string, string> = {
   E: '#9ca3af', D: '#fb923c', C: '#facc15', B: '#4ade80', A: '#00d4ff', S: '#33dfff',
@@ -140,10 +140,9 @@ export default function GoalCreationFlow({
     playSystemSoundEffect('SYSTEM');
 
     try {
-      const res = await fetch(`${API_BASE}/api/goals/analyze`, {
+      const res = await authenticatedFetch(`${API_BASE}/api/goals/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
-        credentials: 'include',
         body: JSON.stringify({
           goalText: goalText.trim(),
           playerStats: playerData?.stats,
@@ -197,10 +196,9 @@ export default function GoalCreationFlow({
     playSystemSoundEffect('SYSTEM');
 
     try {
-      const res = await fetch(`${API_BASE}/api/goals/plan`, {
+      const res = await authenticatedFetch(`${API_BASE}/api/goals/plan`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
-        credentials: 'include',
         body: JSON.stringify({
           goalText: goalText.trim(),
           category,

@@ -32,6 +32,7 @@ import SystemToastOverlay from './components/SystemToast';
 
 import ErrorBoundary from './components/ErrorBoundary';
 import StreakMilestoneOverlay from './components/StreakMilestoneOverlay';
+import HunterStatusWindow from './components/HunterStatusWindow';
 import LeaguePromotionOverlay from './components/LeaguePromotionOverlay';
 import ReviewPromptSheet from './components/ReviewPromptSheet';
 import { unlockItem } from './utils/storeEconomy';
@@ -73,7 +74,7 @@ import { OUTFITS } from './utils/gameData';
 
 import { DAILY_REWARDS_ENABLED } from './lib/rewards';
 
-import { getPlayerAuthHeaders, getOrRefreshPlayerHeaders } from './lib/playerApi';
+import { getPlayerAuthHeaders, getOrRefreshPlayerHeaders, authenticatedFetch } from './lib/playerApi';
 
 import { saveAuthNative, clearAuthNative } from './lib/nativeAuth';
 import { clearEconomySession } from './utils/storeEconomy';
@@ -1299,7 +1300,7 @@ const App: React.FC = () => {
 
         // Use lightweight /sync endpoint (~1KB) instead of full GET (~50KB)
 
-        const res = await fetch(`${API_BASE}/api/player/${player.userId}/sync`, { credentials: 'include', headers: { ...getPlayerAuthHeaders() } });
+        const res = await authenticatedFetch(`${API_BASE}/api/player/${player.userId}/sync`, { headers: { ...getPlayerAuthHeaders() } });
 
         if (!res.ok) return;
 
@@ -1753,8 +1754,8 @@ const App: React.FC = () => {
             leaguePromotionCheckedRef.current = true;
             (async () => {
               try {
-                const promoRes = await fetch(`${API_BASE}/api/league/promotion-status`, {
-                  credentials: 'include', headers: { ...getPlayerAuthHeaders() },
+                const promoRes = await authenticatedFetch(`${API_BASE}/api/league/promotion-status`, {
+                  headers: { ...getPlayerAuthHeaders() },
                 });
                 if (promoRes.ok) {
                   const promoData = await promoRes.json();
@@ -2005,7 +2006,7 @@ const App: React.FC = () => {
 
       try {
 
-        const res = await fetch(`${API_BASE}/api/auth/local/whoami`, { credentials: 'include', headers: { ...getPlayerAuthHeaders() } });
+        const res = await authenticatedFetch(`${API_BASE}/api/auth/local/whoami`, { headers: { ...getPlayerAuthHeaders() } });
 
         if (!res.ok) return;
 
@@ -2029,7 +2030,7 @@ const App: React.FC = () => {
 
         try {
 
-          const playerRes = await fetch(`${API_BASE}/api/player/${uid}`, { credentials: 'include', headers: { ...getPlayerAuthHeaders() } });
+          const playerRes = await authenticatedFetch(`${API_BASE}/api/player/${uid}`, { headers: { ...getPlayerAuthHeaders() } });
 
           if (playerRes.ok) {
 
@@ -2238,8 +2239,7 @@ const App: React.FC = () => {
   const fetchGoalsFromDb = useCallback(async () => {
     if (!player.isConfigured || !player.userId) return;
     try {
-      const res = await fetch(`${API_BASE}/api/goals`, {
-        credentials: 'include',
+      const res = await authenticatedFetch(`${API_BASE}/api/goals`, {
         headers: { ...getPlayerAuthHeaders() },
       });
       if (!res.ok) return;
@@ -2271,9 +2271,8 @@ const App: React.FC = () => {
   const saveGoalToDb = useCallback(async (goal: any) => {
     if (!player.userId) return;
     try {
-      await fetch(`${API_BASE}/api/goals/save`, {
+      await authenticatedFetch(`${API_BASE}/api/goals/save`, {
         method: 'POST',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
         body: JSON.stringify({ goal }),
       });
@@ -2308,9 +2307,8 @@ const App: React.FC = () => {
     }
     if (player.userId) {
       try {
-        await fetch(`${API_BASE}/api/goals/${goalId}`, {
+        await authenticatedFetch(`${API_BASE}/api/goals/${goalId}`, {
           method: 'DELETE',
-          credentials: 'include',
           headers: { ...getPlayerAuthHeaders() },
         });
       } catch (e) { console.warn('[Goals] Failed to delete from DB:', e); }
@@ -4100,9 +4098,8 @@ const App: React.FC = () => {
                         setMissedWorkoutData(null);
                         // Clear from server so it doesn't re-show on next login
                         if (userId && !isLocalUser(userId)) {
-                          fetch(`${API_BASE}/api/player/${userId}/notification/${notifId}`, {
+                          authenticatedFetch(`${API_BASE}/api/player/${userId}/notification/${notifId}`, {
                             method: 'DELETE',
-                            credentials: 'include',
                             headers: { ...getPlayerAuthHeaders() },
                           }).catch(() => { });
                         }
@@ -4368,13 +4365,11 @@ const App: React.FC = () => {
 
                           try {
 
-                            await fetch(`${API_BASE}/api/player/${player.userId}/notification/${strikeLiftedNotifId}`, {
+                            await authenticatedFetch(`${API_BASE}/api/player/${player.userId}/notification/${strikeLiftedNotifId}`, {
 
                               method: 'DELETE',
 
                               headers: { ...getPlayerAuthHeaders() },
-
-                              credentials: 'include',
 
                             });
 
@@ -4924,19 +4919,33 @@ const App: React.FC = () => {
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     className="space-y-6 md:space-y-8"
-                  >              {/* ── 1. Growth Terminal (Radar + Calendar + Mana + ForgeGuard) ── */}
-                    <Suspense fallback={<SkeletonStatsChart />}>
-                      <ErrorBoundary fallbackLabel="Status card failed">
-                        <PlayerStatusCard
-                          player={player}
-                          equippedOutfit={dbOutfits.find(o => o.id === player.equippedOutfitId) || OUTFITS.find(o => o.id === player.equippedOutfitId)}
-                          mentorMessages={mentorMessages}
-                          onDismissMentorMessage={(id) => setMentorMessages(prev => prev.filter(m => m.id !== id))}
-                          history={player.history || []}
-                          onOpenDuskChat={() => setShowDuskChat(true)}
-                        />
-                      </ErrorBoundary>
-                    </Suspense>
+                  >              {/* ── 1. Top status card — Hunter Status Window (SL-style) ──
+                       Reversible: flip HUNTER_STATUS_WINDOW_ENABLED to false to
+                       restore the legacy Growth Terminal exactly as it was. */}
+                    {(() => {
+                      const HUNTER_STATUS_WINDOW_ENABLED = true;
+                      if (HUNTER_STATUS_WINDOW_ENABLED) {
+                        return (
+                          <ErrorBoundary fallbackLabel="Hunter Status Window failed">
+                            <HunterStatusWindow player={player} />
+                          </ErrorBoundary>
+                        );
+                      }
+                      return (
+                        <Suspense fallback={<SkeletonStatsChart />}>
+                          <ErrorBoundary fallbackLabel="Status card failed">
+                            <PlayerStatusCard
+                              player={player}
+                              equippedOutfit={dbOutfits.find(o => o.id === player.equippedOutfitId) || OUTFITS.find(o => o.id === player.equippedOutfitId)}
+                              mentorMessages={mentorMessages}
+                              onDismissMentorMessage={(id) => setMentorMessages(prev => prev.filter(m => m.id !== id))}
+                              history={player.history || []}
+                              onOpenDuskChat={() => setShowDuskChat(true)}
+                            />
+                          </ErrorBoundary>
+                        </Suspense>
+                      );
+                    })()}
 
                     {/* ── Promo Banners: Food Scanner & Store Deals ── */}
                     {(() => {
@@ -5535,13 +5544,11 @@ const App: React.FC = () => {
 
                         if (prevUserId && !isLocalUser(prevUserId)) {
 
-                          await fetch(`${API_BASE}/api/player/${prevUserId}`, {
+                          await authenticatedFetch(`${API_BASE}/api/player/${prevUserId}`, {
 
                             method: 'PUT',
 
                             headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
-
-                            credentials: 'include',
 
                             body: JSON.stringify(prevPlayer),
 

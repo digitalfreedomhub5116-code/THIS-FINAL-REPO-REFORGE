@@ -154,7 +154,7 @@ const REWARD_SHORT: Record<string, (a: number) => string> = {
 };
 
 // ── ITEMS TAB: Streak Shield & Repair ──
-import { getPlayerAuthHeaders, getOrRefreshPlayerHeaders } from '../lib/playerApi';
+import { getPlayerAuthHeaders, getOrRefreshPlayerHeaders, authenticatedFetch } from '../lib/playerApi';
 
 const ItemsTab: React.FC<{ gold: number }> = ({ gold }) => {
   const [shieldCount, setShieldCount] = useState(0);
@@ -818,7 +818,7 @@ const ShopView: React.FC<ShopViewProps> = ({
   // Fetch inventory on mount
   useEffect(() => {
     const headers = getPlayerAuthHeaders();
-    fetch(`${API_BASE}/api/inventory`, { credentials: 'include', headers })
+    authenticatedFetch(`${API_BASE}/api/inventory`, { headers })
       .then(r => r.ok ? r.json() : { items: [] })
       .then(data => {
         if (Array.isArray(data.items)) {
@@ -840,7 +840,7 @@ const ShopView: React.FC<ShopViewProps> = ({
             }).then(r => r.ok ? r.json() : null).then(res => {
               if (res?.migrated > 0) {
                 // Re-fetch inventory after migration
-                fetch(`${API_BASE}/api/inventory`, { credentials: 'include', headers })
+                authenticatedFetch(`${API_BASE}/api/inventory`, { headers })
                   .then(r => r.ok ? r.json() : { items: [] })
                   .then(d => { if (Array.isArray(d.items)) setServerInventory(d.items); });
               }
@@ -1971,9 +1971,9 @@ const ShopView: React.FC<ShopViewProps> = ({
                     }
                     try {
                       const headers = getPlayerAuthHeaders();
-                      const resp = await fetch(`${API_BASE}/api/inventory/purchase`, {
+                      const resp = await authenticatedFetch(`${API_BASE}/api/inventory/purchase`, {
                         method: 'POST', headers: { 'Content-Type': 'application/json', ...headers },
-                        credentials: 'include', body: JSON.stringify({ itemId: item.id, itemType: item.category, price: confirmPurchaseDiscount > 0 ? Math.round(item.price * (1 - confirmPurchaseDiscount / 100)) : item.price }),
+                        body: JSON.stringify({ itemId: item.id, itemType: item.category, price: confirmPurchaseDiscount > 0 ? Math.round(item.price * (1 - confirmPurchaseDiscount / 100)) : item.price }),
                       });
                       if (!resp.ok) {
                         const errData = await resp.json().catch(() => ({}));

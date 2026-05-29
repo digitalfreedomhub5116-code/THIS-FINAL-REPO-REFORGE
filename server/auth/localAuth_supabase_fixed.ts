@@ -558,4 +558,39 @@ router.get('/whoami', async (req, res) => {
   }
 });
 
+// ── REFRESH TOKEN — Cookie-free token renewal for native apps ──
+// Accepts a valid (but potentially near-expiry) JWT and returns a fresh one.
+// This replaces the session-cookie-dependent whoami refresh for Android WebView.
+router.post('/refresh-token', async (req, res) => {
+  try {
+    const authHeader = req.headers['authorization'];
+    if (!authHeader?.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Missing Authorization header' });
+    }
+    const token = authHeader.slice(7);
+    const userId = verifyPlayerToken(token);
+    if (!userId) {
+      return res.status(401).json({ error: 'Invalid or expired token' });
+    }
+
+    // Verify user still exists in DB
+    const { data: user, error } = await (supabaseServer() as any)
+      .from('players')
+      .select('supabase_id, username, name, email, level, gold, keys')
+      .eq('supabase_id', userId)
+      .single();
+
+    if (error || !user) {
+      return res.status(401).json({ error: 'User not found' });
+    }
+
+    // Issue fresh token
+    const playerToken = generatePlayerToken(user.supabase_id);
+    return res.json({ user, playerToken });
+  } catch (err) {
+    console.error('[Local Auth Refresh]', err);
+    return res.status(500).json({ error: 'Token refresh failed' });
+  }
+});
+
 export default router;
