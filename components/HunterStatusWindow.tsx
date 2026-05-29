@@ -125,13 +125,52 @@ const STYLES_CSS = `
   border-radius: 4px;
   pointer-events: none;
 }
-.hsw-frame { object-fit: fill; }
+.hsw-frame { object-fit: fill; opacity: 0; transition: opacity 280ms ease-out; }
+.hsw-frame.is-loaded { opacity: 1; }
 .hsw-frame-fallback {
   background: linear-gradient(180deg, #060d18 0%, #02060c 100%);
   border: 1.5px solid #00d4ff;
   box-shadow:
     0 0 18px rgba(0, 212, 255, 0.35),
     inset 0 0 16px rgba(0, 212, 255, 0.08);
+}
+
+/* Skeletal loader — shows while the frame asset is in flight.
+   A muted dark plate with a faint cyan border and a slow shimmer sweep. */
+.hsw-frame-skeleton {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 4px;
+  pointer-events: none;
+  background: linear-gradient(180deg, #060d18 0%, #02060c 100%);
+  border: 1.5px solid rgba(0, 212, 255, 0.35);
+  box-shadow:
+    0 0 12px rgba(0, 212, 255, 0.18),
+    inset 0 0 14px rgba(0, 212, 255, 0.06);
+  overflow: hidden;
+}
+.hsw-frame-skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 30%,
+    rgba(0, 212, 255, 0.08) 50%,
+    transparent 70%
+  );
+  background-size: 200% 100%;
+  animation: hsw-shimmer 1.4s linear infinite;
+}
+@keyframes hsw-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hsw-frame-skeleton::after { animation: none; }
+  .hsw-frame { transition: none; }
 }
 
 .hsw-safezone {
@@ -458,13 +497,25 @@ const StatRow: React.FC<{ stat: keyof CoreStats; value: number }> = ({ stat, val
 const HunterStatusWindow: React.FC<HunterStatusWindowProps> = ({ player }) => {
   const vm = deriveViewModel(player);
   const [frameLoaded, setFrameLoaded] = useState(true);
+  const [frameReady, setFrameReady] = useState(false);
   const reduceMotion = useReducedMotion();
   const styleInjected = useRef(false);
+  const imgRef = useRef<HTMLImageElement | null>(null);
 
   useEffect(() => {
     if (styleInjected.current) return;
     ensureStylesInjected();
     styleInjected.current = true;
+  }, []);
+
+  // If the asset is already cached the <img> may fire load before React wires
+  // its onLoad handler. After mount, check `complete && naturalWidth > 0` to
+  // catch that case and reveal the frame immediately.
+  useEffect(() => {
+    const el = imgRef.current;
+    if (el && el.complete && el.naturalWidth > 0) {
+      setFrameReady(true);
+    }
   }, []);
 
   // Float keyframes — gentle Y bob plus a breathing cyan halo.
@@ -518,14 +569,22 @@ const HunterStatusWindow: React.FC<HunterStatusWindowProps> = ({ player }) => {
       >
         {/* Layer 1: raster frame, or CSS fallback if the asset fails. */}
         {frameLoaded ? (
-          <img
-            className="hsw-frame"
-            src="/assets/status-frame.jpg"
-            alt=""
-            aria-hidden="true"
-            draggable={false}
-            onError={() => setFrameLoaded(false)}
-          />
+          <>
+            {/* Skeletal loader — visible until the <img> reports it's painted. */}
+            {!frameReady && <div className="hsw-frame-skeleton" aria-hidden="true" />}
+            <img
+              ref={imgRef}
+              className={`hsw-frame${frameReady ? ' is-loaded' : ''}`}
+              src="/assets/status-frame.jpg"
+              alt=""
+              aria-hidden="true"
+              draggable={false}
+              decoding="async"
+              loading="eager"
+              onLoad={() => setFrameReady(true)}
+              onError={() => { setFrameLoaded(false); setFrameReady(true); }}
+            />
+          </>
         ) : (
           <div className="hsw-frame-fallback" aria-hidden="true" />
         )}
