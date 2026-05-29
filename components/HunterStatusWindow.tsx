@@ -136,15 +136,18 @@ const STYLES_CSS = `
 
 .hsw-safezone {
   position: absolute;
-  top: 14%;
+  /* Tightened from 14/14 to 10/9 — the actual frame's decorative bands
+     are narrower than the spec's worst-case padding, so we reclaim the
+     vertical room here for the 3-row stats grid. */
+  top: 10%;
   right: 8%;
-  bottom: 14%;
+  bottom: 9%;
   left: 8%;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 4px;
-  padding: 6px 4px 4px;
+  gap: 2px;
+  padding: 4px 4px 2px;
   background: rgba(4, 10, 20, 0.55);
   backdrop-filter: blur(2px) saturate(110%);
   -webkit-backdrop-filter: blur(2px) saturate(110%);
@@ -180,7 +183,7 @@ const STYLES_CSS = `
 .hsw-row-level {
   justify-content: space-between;
   gap: 12px;
-  padding: 4px 4px 0;
+  padding: 2px 4px 0;
 }
 .hsw-level-block { display: flex; align-items: baseline; gap: 8px; }
 .hsw-streak-block { display: flex; align-items: baseline; gap: 8px; }
@@ -216,7 +219,7 @@ const STYLES_CSS = `
   grid-template-columns: 22px 1fr auto;
   align-items: center;
   gap: 8px;
-  padding: 2px 4px;
+  padding: 0 4px;
 }
 .hsw-xp-label {
   font-family: 'Rajdhani', 'Bai Jamjuree', sans-serif;
@@ -277,7 +280,7 @@ const STYLES_CSS = `
 .hsw-divider {
   position: relative;
   height: 1px;
-  margin: 4px 6px;
+  margin: 2px 6px;
   background: linear-gradient(
     90deg,
     transparent 0%,
@@ -285,25 +288,14 @@ const STYLES_CSS = `
     transparent 100%
   );
 }
-.hsw-divider::after {
-  content: '';
-  position: absolute;
-  top: -3px;
-  left: 50%;
-  width: 6px;
-  height: 6px;
-  transform: translateX(-50%) rotate(45deg);
-  background: #00d4ff;
-  box-shadow: 0 0 8px #00d4ff;
-}
 
 .hsw-stats-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-template-rows: repeat(3, auto);
   column-gap: 22px;
-  row-gap: 6px;
-  padding: 4px 4px 0;
+  row-gap: 4px;
+  padding: 2px 4px 0;
 }
 .hsw-stat-row {
   display: grid;
@@ -341,7 +333,7 @@ const STYLES_CSS = `
   .hsw-level-num   { font-size: 42px; }
   .hsw-streak-num  { font-size: 22px; }
   .hsw-xp-bar      { height: 12px; }
-  .hsw-stats-grid  { column-gap: 28px; row-gap: 8px; }
+  .hsw-stats-grid  { column-gap: 28px; row-gap: 6px; }
   .hsw-stat-icon   { width: 14px; height: 14px; }
   .hsw-stat-row    { grid-template-columns: 18px 1fr auto; }
   .hsw-stat-value  { font-size: 16px; }
@@ -353,7 +345,7 @@ const STYLES_CSS = `
   .hsw-level-num   { font-size: 56px; }
   .hsw-streak-num  { font-size: 26px; }
   .hsw-xp-bar      { height: 14px; }
-  .hsw-stats-grid  { column-gap: 32px; row-gap: 10px; }
+  .hsw-stats-grid  { column-gap: 32px; row-gap: 8px; }
   .hsw-stat-icon   { width: 16px; height: 16px; }
   .hsw-stat-row    { grid-template-columns: 20px 1fr auto; }
   .hsw-stat-value  { font-size: 18px; }
