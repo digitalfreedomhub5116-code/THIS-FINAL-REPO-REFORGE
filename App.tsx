@@ -32,6 +32,7 @@ import SystemToastOverlay from './components/SystemToast';
 
 import ErrorBoundary from './components/ErrorBoundary';
 import StreakMilestoneOverlay from './components/StreakMilestoneOverlay';
+import HunterStatusWindow from './components/HunterStatusWindow';
 import LeaguePromotionOverlay from './components/LeaguePromotionOverlay';
 import ReviewPromptSheet from './components/ReviewPromptSheet';
 import { unlockItem } from './utils/storeEconomy';
@@ -4918,19 +4919,33 @@ const App: React.FC = () => {
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     className="space-y-6 md:space-y-8"
-                  >              {/* ── 1. Growth Terminal (Radar + Calendar + Mana + ForgeGuard) ── */}
-                    <Suspense fallback={<SkeletonStatsChart />}>
-                      <ErrorBoundary fallbackLabel="Status card failed">
-                        <PlayerStatusCard
-                          player={player}
-                          equippedOutfit={dbOutfits.find(o => o.id === player.equippedOutfitId) || OUTFITS.find(o => o.id === player.equippedOutfitId)}
-                          mentorMessages={mentorMessages}
-                          onDismissMentorMessage={(id) => setMentorMessages(prev => prev.filter(m => m.id !== id))}
-                          history={player.history || []}
-                          onOpenDuskChat={() => setShowDuskChat(true)}
-                        />
-                      </ErrorBoundary>
-                    </Suspense>
+                  >              {/* ── 1. Top status card — Hunter Status Window (SL-style) ──
+                       Reversible: flip HUNTER_STATUS_WINDOW_ENABLED to false to
+                       restore the legacy Growth Terminal exactly as it was. */}
+                    {(() => {
+                      const HUNTER_STATUS_WINDOW_ENABLED = true;
+                      if (HUNTER_STATUS_WINDOW_ENABLED) {
+                        return (
+                          <ErrorBoundary fallbackLabel="Hunter Status Window failed">
+                            <HunterStatusWindow player={player} />
+                          </ErrorBoundary>
+                        );
+                      }
+                      return (
+                        <Suspense fallback={<SkeletonStatsChart />}>
+                          <ErrorBoundary fallbackLabel="Status card failed">
+                            <PlayerStatusCard
+                              player={player}
+                              equippedOutfit={dbOutfits.find(o => o.id === player.equippedOutfitId) || OUTFITS.find(o => o.id === player.equippedOutfitId)}
+                              mentorMessages={mentorMessages}
+                              onDismissMentorMessage={(id) => setMentorMessages(prev => prev.filter(m => m.id !== id))}
+                              history={player.history || []}
+                              onOpenDuskChat={() => setShowDuskChat(true)}
+                            />
+                          </ErrorBoundary>
+                        </Suspense>
+                      );
+                    })()}
 
                     {/* ── Promo Banners: Food Scanner & Store Deals ── */}
                     {(() => {
