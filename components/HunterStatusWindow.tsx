@@ -108,6 +108,9 @@ const STYLES_CSS = `
   aspect-ratio: 1024 / 583;
   user-select: none;
   font-family: 'Rajdhani', 'Bai Jamjuree', monospace, sans-serif;
+  /* 30% transparent overall — frame + safe-zone + content all fade
+     together so the dashboard background subtly bleeds through. */
+  opacity: 0.7;
 }
 .hsw-motion {
   position: absolute;
