@@ -15,8 +15,8 @@ import React from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 
 const CYAN = '#00d4ff';
-const CYAN_DIM = 'rgba(0, 212, 255, 0.55)';
-const CYAN_FAINT = 'rgba(0, 212, 255, 0.18)';
+const CYAN_DIM = 'rgba(0, 212, 255, 0.35)';
+const CYAN_FAINT = 'rgba(0, 212, 255, 0.10)';
 
 interface HudButtonProps {
   label: string;
@@ -36,14 +36,15 @@ const HudButton: React.FC<HudButtonProps> = ({
 }) => {
   const reduceMotion = useReducedMotion();
 
-  // Breathing glow keyframes — disabled when prefers-reduced-motion is on.
+  // Breathing glow keyframes — subtler now (lower max blur, lower alpha) and
+  // disabled entirely when prefers-reduced-motion is on.
   const animate = reduceMotion
     ? undefined
     : {
         filter: [
-          `drop-shadow(0 0 8px ${CYAN_FAINT})`,
-          `drop-shadow(0 0 14px ${CYAN_DIM})`,
-          `drop-shadow(0 0 8px ${CYAN_FAINT})`,
+          `drop-shadow(0 0 4px ${CYAN_FAINT})`,
+          `drop-shadow(0 0 7px ${CYAN_DIM})`,
+          `drop-shadow(0 0 4px ${CYAN_FAINT})`,
         ],
       };
 
@@ -87,15 +88,15 @@ const HudButton: React.FC<HudButtonProps> = ({
       >
         <defs>
           <filter id="hud-glow" x="-20%" y="-50%" width="140%" height="200%">
-            <feGaussianBlur stdDeviation="1.2" result="b" />
+            <feGaussianBlur stdDeviation="0.7" result="b" />
             <feMerge>
               <feMergeNode in="b" />
               <feMergeNode in="SourceGraphic" />
             </feMerge>
           </filter>
           <linearGradient id="hud-fill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="rgba(0, 212, 255, 0.10)" />
-            <stop offset="1" stopColor="rgba(0, 212, 255, 0.03)" />
+            <stop offset="0" stopColor="rgba(0, 212, 255, 0.06)" />
+            <stop offset="1" stopColor="rgba(0, 212, 255, 0.02)" />
           </linearGradient>
         </defs>
 
@@ -138,8 +139,8 @@ const HudButton: React.FC<HudButtonProps> = ({
                 d={path}
                 fill="none"
                 stroke={CYAN}
-                strokeWidth="1.6"
-                strokeOpacity="0.95"
+                strokeWidth="1.4"
+                strokeOpacity="0.85"
                 vectorEffect="non-scaling-stroke"
                 filter="url(#hud-glow)"
               />
@@ -148,8 +149,8 @@ const HudButton: React.FC<HudButtonProps> = ({
                 d={path}
                 fill="none"
                 stroke={CYAN}
-                strokeWidth="0.8"
-                strokeOpacity="0.45"
+                strokeWidth="0.6"
+                strokeOpacity="0.25"
                 vectorEffect="non-scaling-stroke"
               />
               {/* inner thin bevel */}
@@ -157,8 +158,8 @@ const HudButton: React.FC<HudButtonProps> = ({
                 d={innerPath}
                 fill="none"
                 stroke={CYAN}
-                strokeWidth="0.7"
-                strokeOpacity="0.7"
+                strokeWidth="0.6"
+                strokeOpacity="0.45"
                 vectorEffect="non-scaling-stroke"
               />
             </>
@@ -171,8 +172,8 @@ const HudButton: React.FC<HudButtonProps> = ({
           const off = 1.5;
           const brkStyle = {
             stroke: CYAN,
-            strokeWidth: 1.4,
-            strokeOpacity: 0.85,
+            strokeWidth: 1.2,
+            strokeOpacity: 0.6,
             fill: 'none',
             vectorEffect: 'non-scaling-stroke' as const,
           };
@@ -210,7 +211,7 @@ const HudButton: React.FC<HudButtonProps> = ({
               alignItems: 'center',
               justifyContent: 'center',
               color: CYAN,
-              filter: `drop-shadow(0 0 4px ${CYAN_DIM})`,
+              filter: `drop-shadow(0 0 2px ${CYAN_DIM})`,
             }}
           >
             {icon}
@@ -223,7 +224,7 @@ const HudButton: React.FC<HudButtonProps> = ({
             fontSize: 'clamp(12px, 3.4vw, 16px)',
             letterSpacing: '0.18em',
             color: '#ffffff',
-            textShadow: `0 0 8px ${CYAN}, 0 0 14px ${CYAN_DIM}`,
+            textShadow: `0 0 4px ${CYAN_DIM}, 0 0 8px ${CYAN_FAINT}`,
             whiteSpace: 'nowrap',
           }}
         >

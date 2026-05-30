@@ -521,6 +521,30 @@ const HunterStatusWindow: React.FC<HunterStatusWindowProps> = ({ player }) => {
     }
   }, []);
 
+  // Holographic-window entrance: a thin horizontal line first, then it
+  // expands vertically into the full panel. Mirrors the classic SL anime
+  // status-screen reveal. Skipped entirely when prefers-reduced-motion.
+  const entrancePanel = reduceMotion
+    ? { scaleY: 1 }
+    : {
+        scaleY: [0.02, 0.02, 1],
+        opacity: [0.85, 1, 1],
+      };
+  const entrancePanelTransition = reduceMotion
+    ? undefined
+    : {
+        duration: 0.8,
+        times: [0, 0.35, 1],
+        ease: [0.22, 1, 0.36, 1] as const,
+      };
+  // Content fades in only after the panel has unfolded.
+  const entranceContent = reduceMotion
+    ? { opacity: 1 }
+    : { opacity: [0, 0, 1] };
+  const entranceContentTransition = reduceMotion
+    ? undefined
+    : { duration: 0.9, times: [0, 0.55, 1], ease: 'easeOut' as const };
+
   // Float keyframes — gentle Y bob plus a breathing cyan halo.
   const floatAnim = reduceMotion
     ? undefined
@@ -567,9 +591,55 @@ const HunterStatusWindow: React.FC<HunterStatusWindowProps> = ({ player }) => {
 
       <motion.div
         className="hsw-motion"
-        animate={floatAnim}
-        transition={floatTransition}
+        // Holographic entrance: scaleY 0.02 (a thin line) -> 1.
+        // The float bob/glow runs on a separate inner motion div so it
+        // can loop without interfering with the entrance keyframes.
+        initial={reduceMotion ? false : { scaleY: 0.02, opacity: 0.85 }}
+        animate={entrancePanel}
+        transition={entrancePanelTransition}
+        style={{ transformOrigin: '50% 50%' }}
       >
+        {/* A bright horizontal scan line that streaks across the wrapper
+            during the first ~350ms — sells the "energy beam unfolds into a
+            holographic screen" reveal. Disabled under reduced-motion. */}
+        {!reduceMotion && (
+          <motion.div
+            aria-hidden="true"
+            initial={{ scaleX: 0, opacity: 0.9 }}
+            animate={{ scaleX: [0, 1, 1], opacity: [0.9, 0.9, 0] }}
+            transition={{ duration: 0.55, times: [0, 0.6, 1], ease: 'easeOut' }}
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              top: '50%',
+              height: 2,
+              transform: 'translateY(-50%)',
+              transformOrigin: '50% 50%',
+              background:
+                'linear-gradient(90deg, transparent 0%, rgba(0, 212, 255, 0.95) 50%, transparent 100%)',
+              boxShadow:
+                '0 0 14px rgba(0, 212, 255, 0.85), 0 0 28px rgba(0, 212, 255, 0.45)',
+              pointerEvents: 'none',
+              zIndex: 3,
+            }}
+          />
+        )}
+
+        {/* Inner wrapper handles the breathing float + glow loop after the
+            entrance has played. Content also fades in once the panel is
+            actually big enough to show it. */}
+        <motion.div
+          style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }}
+          animate={floatAnim}
+          transition={floatTransition}
+        >
+          <motion.div
+            style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }}
+            initial={reduceMotion ? false : { opacity: 0 }}
+            animate={entranceContent}
+            transition={entranceContentTransition}
+          >
         {/* Layer 1: raster frame, or CSS fallback if the asset fails. */}
         {frameLoaded ? (
           <>
@@ -640,6 +710,8 @@ const HunterStatusWindow: React.FC<HunterStatusWindowProps> = ({ player }) => {
             ))}
           </div>
         </div>
+          </motion.div>
+        </motion.div>
       </motion.div>
     </div>
   );
