@@ -515,3 +515,44 @@ export async function cancelQuestStartNotification(questId: string): Promise<voi
   }
 }
 
+
+
+// ─── Daily Reset Reminder (fires at local midnight when new dungeon + quests go live) ──
+
+const DAILY_RESET_NOTIF_ID = 6007;
+
+const DAILY_RESET_MESSAGES = [
+  "{name}, today's dungeon and daily quests are live. Complete them before midnight.",
+  "New quests, new dungeon, {name}. Open the app and clear today's protocol.",
+  "{name}, the System has refreshed your quests. Today's dungeon awaits.",
+  "Daily reset complete, {name}. Tap in and complete today's dungeon quests.",
+  "{name}, fresh quests + a new dungeon are unlocked. Begin today's grind.",
+];
+
+/**
+ * Schedule a notification at the next local midnight announcing the daily reset.
+ * Re-call on every app open so it always points at the next upcoming midnight.
+ */
+export async function scheduleDailyResetReminder(playerName = 'Hunter'): Promise<void> {
+  if (!isNative()) return;
+  try {
+    await LocalNotifications.cancel({ notifications: [{ id: DAILY_RESET_NOTIF_ID }] });
+    // Compute next local midnight (start of tomorrow).
+    const at = new Date();
+    at.setHours(0, 0, 0, 0);
+    at.setDate(at.getDate() + 1);
+    await LocalNotifications.schedule({
+      notifications: [{
+        id: DAILY_RESET_NOTIF_ID,
+        title: '⚔️ New quests unlocked',
+        body: personalize(pick(DAILY_RESET_MESSAGES), playerName),
+        schedule: { at, allowWhileIdle: true },
+        smallIcon: 'ic_stat_notification',
+        channelId: 'reforge_quests',
+      }],
+    });
+    console.log('[Notif] Daily reset reminder →', at.toLocaleString());
+  } catch (err) {
+    console.warn('[Notif] scheduleDailyResetReminder failed:', err);
+  }
+}

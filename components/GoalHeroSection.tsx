@@ -318,14 +318,37 @@ const GoalHeroSection: React.FC<GoalHeroSectionProps> = ({ goals, onCreateGoal, 
   const [showGoalInfo, setShowGoalInfo] = useState(false);
   const [showHowItWorks, setShowHowItWorks] = useState(false);
 
-  // ── FREE USER: Pro upsell on top, system goals below ──
+  // ── FREE USER: System goals on top, Pro upsell below ──
   if (!isPremium) {
     const systemGoals = activeGoals.filter(g => g.isSystemGoal);
 
     return (
       <div className="space-y-3">
 
-        {/* Pro upsell — on top */}
+        {/* System goals on top — same tilted pinned style as premium */}
+        {systemGoals.length > 0 && (
+          <div>
+            <div className="flex items-center gap-1.5 mb-3 px-1">
+              <Pin size={10} className="text-[#00d4ff]" style={{ transform: 'rotate(45deg)' }} />
+              <span className="text-[9px] font-mono font-bold tracking-[0.2em] text-gray-500 uppercase">
+                Active Goals
+              </span>
+              <span className="text-[8px] font-mono text-[#00d4ff]/60 ml-auto">
+                {systemGoals.length} pinned
+              </span>
+            </div>
+            {/* Same grid layout as premium — tilted cards */}
+            <div className="grid grid-cols-2 gap-3 px-1 pt-3">
+              {systemGoals.map((goal, i) => (
+                <PinnedGoalCard key={goal.id} goal={goal} index={i}
+                  onClick={() => setSelectedGoal(goal)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Pro upsell — below the active goals */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -344,9 +367,10 @@ const GoalHeroSection: React.FC<GoalHeroSectionProps> = ({ goals, onCreateGoal, 
             }} />
           </div>
 
-          {/* Content overlay */}
-          <div className="absolute bottom-0 left-0 right-0 px-5 pb-5">
-            {/* Premium badge */}
+          {/* Content overlay — extra horizontal padding so the rounded
+              card corner never clips the Reforge Pro chip on the left. */}
+          <div className="absolute bottom-0 left-0 right-0" style={{ padding: '0 22px 20px' }}>
+            {/* Premium badge — bumped down slightly so it clears the rounded edge */}
             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg mb-2"
               style={{ background: 'rgba(250,204,21,0.1)', border: '1px solid rgba(250,204,21,0.2)' }}>
               <Zap size={10} style={{ color: '#facc15' }} />
@@ -394,29 +418,6 @@ const GoalHeroSection: React.FC<GoalHeroSectionProps> = ({ goals, onCreateGoal, 
             </button>
           </div>
         </motion.div>
-
-        {/* System goals below — same tilted pinned style as premium */}
-        {systemGoals.length > 0 && (
-          <div>
-            <div className="flex items-center gap-1.5 mb-3 px-1">
-              <Pin size={10} className="text-[#00d4ff]" style={{ transform: 'rotate(45deg)' }} />
-              <span className="text-[9px] font-mono font-bold tracking-[0.2em] text-gray-500 uppercase">
-                Active Goals
-              </span>
-              <span className="text-[8px] font-mono text-[#00d4ff]/60 ml-auto">
-                {systemGoals.length} pinned
-              </span>
-            </div>
-            {/* Same grid layout as premium — tilted cards */}
-            <div className="grid grid-cols-2 gap-3 px-1 pt-3">
-              {systemGoals.map((goal, i) => (
-                <PinnedGoalCard key={goal.id} goal={goal} index={i}
-                  onClick={() => setSelectedGoal(goal)}
-                />
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Goal Details Popup for system goals */}
         <AnimatePresence>

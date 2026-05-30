@@ -34,6 +34,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import StreakMilestoneOverlay from './components/StreakMilestoneOverlay';
 import HunterStatusWindow from './components/HunterStatusWindow';
 import HudButton from './components/HudButton';
+import QuestUnlockTimer from './components/QuestUnlockTimer';
 import LeaguePromotionOverlay from './components/LeaguePromotionOverlay';
 import ReviewPromptSheet from './components/ReviewPromptSheet';
 import { unlockItem } from './utils/storeEconomy';
@@ -112,6 +113,8 @@ import {
   scheduleQuestDeadline,
 
   scheduleMissedWorkoutWarning,
+
+  scheduleDailyResetReminder,
 
   cancelQuestStartNotification,
 
@@ -620,6 +623,9 @@ const App: React.FC = () => {
       (player as any).consecutiveMissedWorkouts || 0,
       name
     );
+
+    // Daily reset reminder — fires at next local midnight when new dungeon + quests go live
+    await scheduleDailyResetReminder(name);
 
     for (const q of player.quests) {
 
@@ -4993,6 +4999,7 @@ const App: React.FC = () => {
                     </Suspense>
 
                     {/* ── 3. Daily Quests ── */}
+                    <QuestUnlockTimer />
                     <div id="daily-command-center">
                       <Suspense fallback={<SkeletonQuestsPage />}>
                         <ErrorBoundary fallbackLabel="Quests failed to load">
