@@ -95,14 +95,27 @@ public class TrackingPlugin extends Plugin {
         intent.putExtra("reqDistanceKm", call.getDouble("reqDistanceKm", 0.0));
         intent.putExtra("reqActiveMinutes", call.getInt("reqActiveMinutes", 0));
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            context.startForegroundService(intent);
-        } else {
-            context.startService(intent);
+        // Android 8+ requires startForegroundService and the service MUST call
+        // startForeground() within 5s. Android 12+ additionally throws
+        // ForegroundServiceStartNotAllowedException if we try to start while the
+        // app is fully backgrounded — we catch that and resolve cleanly so the
+        // WebView fallback can take over instead of crashing the process.
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(intent);
+            } else {
+                context.startService(intent);
+            }
+            Log.i(TAG, "Start tracking requested — quest=" + questId + " mode=" + mode);
+            call.resolve(new JSObject().put("started", true));
+        } catch (Exception e) {
+            // ForegroundServiceStartNotAllowedException, IllegalStateException,
+            // or any subclass thereof. We don't crash; we tell JS that native
+            // start failed so it can decide to fall back to the in-WebView
+            // location/motion APIs.
+            Log.w(TAG, "Start tracking refused by OS — falling back to WebView path", e);
+            call.resolve(new JSObject().put("started", false));
         }
-
-        Log.i(TAG, "Start tracking requested — quest=" + questId + " mode=" + mode);
-        call.resolve(new JSObject().put("started", true));
     }
 
     @PluginMethod()
@@ -111,10 +124,25 @@ public class TrackingPlugin extends Plugin {
         Intent intent = new Intent(context, TrackingService.class);
         intent.setAction(TrackingService.ACTION_STOP);
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            context.startForegroundService(intent);
-        } else {
+        // IMPORTANT: use plain startService for ACTION_STOP, NOT startForegroundService.
+        //
+        // startForegroundService() requires the service to call startForeground()
+        // within 5 seconds. Our STOP path immediately stops the service instead,
+        // which trips android.app.RemoteServiceException$ForegroundServiceDidNotStartInTimeException
+        // and force-kills the entire app.
+        //
+        // startService() is allowed for an already-running service (which is what
+        // STOP targets), and Android does not impose the 5-second foreground rule.
+        // This path falls through to TrackingService.onStartCommand → ACTION_STOP
+        // → stopTrackingInternal() → stopForeground() → stopSelf(), which is the
+        // intended sequence.
+        try {
             context.startService(intent);
+        } catch (IllegalStateException e) {
+            // Service was already stopped or background-restricted on Android 12+.
+            // The snapshot below is still valid because the WebView keeps its own
+            // copy in localStorage, so we just log and proceed.
+            Log.w(TAG, "stop: service start refused (already stopped or background-restricted)", e);
         }
 
         // Return the final snapshot

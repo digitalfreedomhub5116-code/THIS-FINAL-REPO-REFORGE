@@ -92,6 +92,25 @@ public class TrackingService extends Service implements StepCounterHelper.StepLi
         if (intent == null) return START_NOT_STICKY;
 
         String action = intent.getAction();
+
+        // CRITICAL: if we were launched via startForegroundService(), Android
+        // gives us a hard 5-second deadline to call startForeground() or it
+        // throws ForegroundServiceDidNotStartInTimeException and force-kills
+        // the entire app process. We always promote to foreground first — even
+        // for the STOP path — so that deadline is never missed. The matching
+        // stopForeground()/stopSelf() inside stopTrackingInternal() then drops
+        // the foreground state again immediately.
+        try {
+            startForeground(NOTIFICATION_ID, buildNotification());
+        } catch (Exception e) {
+            // Android 12+ may throw ForegroundServiceStartNotAllowedException
+            // if the app is in the background and we don't hold an FGS-allowed
+            // permission. Log and continue — better to skip foreground than to
+            // crash. The 5-second rule is also waived in that case because the
+            // OS knows it refused the foreground promotion.
+            Log.w(TAG, "startForeground refused — continuing without foreground promotion", e);
+        }
+
         if (ACTION_STOP.equals(action)) {
             stopTrackingInternal();
             return START_NOT_STICKY;
@@ -118,9 +137,10 @@ public class TrackingService extends Service implements StepCounterHelper.StepLi
             lastUpdate = System.currentTimeMillis();
             isRunning = true;
 
-            // Start as foreground service
-            Notification notification = buildNotification();
-            startForeground(NOTIFICATION_ID, notification);
+            // We already called startForeground() above with the default
+            // notification; refresh it now that we have the real questId/mode
+            // so the user sees the right title and progress text.
+            updateNotification();
 
             // Start sensors based on mode
             if ("FULL".equals(mode)) {
