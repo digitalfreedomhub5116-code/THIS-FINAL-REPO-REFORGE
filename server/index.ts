@@ -63,6 +63,7 @@ async function startServer() {
   const iapRouter = await import('./routes/iap.js');
   const adUnlockRouter = await import('./routes/adUnlock.js');
   const adsRouter = await import('./routes/ads.js');
+  const searchRouter = await import('./routes/search.js');
 
   const app = express();
   const PORT = process.env.PORT ? parseInt(process.env.PORT) : 8001;
@@ -225,6 +226,11 @@ async function startServer() {
   // Google's ad servers, not by the user), authenticated by ECDSA signature.
   // Does NOT use the general rate limiter because Google can burst-call us.
   app.use('/api/ads', adsRouter.default);
+
+  // Vertex AI Search proxy — used by client search UI (food/exercise/skill picker).
+  // Routes through service-account auth on the server so credentials never ship
+  // to the browser.
+  app.use('/api/search', generalRateLimit, searchRouter.default);
 
   // Google OAuth setup
   setupGoogleAuth(app);

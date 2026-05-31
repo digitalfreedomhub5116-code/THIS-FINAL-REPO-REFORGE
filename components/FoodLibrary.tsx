@@ -1,8 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, X, Plus, Minus, ChevronLeft, Flame, Beef, Wheat, Droplets, Leaf } from 'lucide-react';
 import { FOOD_DATABASE, FOOD_CATEGORIES, FoodCategory, FoodDBItem } from '../lib/foodDatabase';
 import { MealLog, MealType } from '../types';
+import { searchCatalogue } from '../lib/searchClient';
 
 interface FoodLibraryProps {
   onClose: () => void;
@@ -16,17 +17,55 @@ const FoodLibrary: React.FC<FoodLibraryProps> = ({ onClose, onLogFood, selectedM
   const [selectedItem, setSelectedItem] = useState<FoodDBItem | null>(null);
   const [servings, setServings] = useState(1);
 
+  // ── Hybrid search: server-side Vertex AI Search when available, Fuse.js
+  //    fallback otherwise. Debounced so we don't fire one request per keystroke.
+  const [remoteResults, setRemoteResults] = useState<FoodDBItem[] | null>(null);
+  const debounceRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    // No query → don't call the API; let the local filter below take over.
+    if (!search.trim()) {
+      setRemoteResults(null);
+      return;
+    }
+    if (debounceRef.current) window.clearTimeout(debounceRef.current);
+    debounceRef.current = window.setTimeout(async () => {
+      try {
+        const out = await searchCatalogue<FoodDBItem>(search, 'food', {
+          fallbackItems: FOOD_DATABASE,
+          fallbackKeys: ['name'],
+          pageSize: 24,
+        });
+        setRemoteResults(out.results);
+      } catch {
+        setRemoteResults(null);
+      }
+    }, 200);
+    return () => {
+      if (debounceRef.current) window.clearTimeout(debounceRef.current);
+    };
+  }, [search]);
+
   const filtered = useMemo(() => {
+    // Search-mode: when the user is typing, prefer the remote/Fuse output and
+    // intersect with the active category if the user has one.
+    if (search.trim() && remoteResults) {
+      if (activeCategory === 'ALL') return remoteResults;
+      return remoteResults.filter(i => i.category === activeCategory);
+    }
+    // Browse-mode: no search query, just filter by category.
     let items = FOOD_DATABASE;
     if (activeCategory !== 'ALL') {
       items = items.filter(i => i.category === activeCategory);
     }
     if (search.trim()) {
+      // Server hasn't responded yet — use cheap local substring match so the
+      // list isn't empty during the debounce window.
       const q = search.toLowerCase().trim();
       items = items.filter(i => i.name.toLowerCase().includes(q));
     }
     return items;
-  }, [search, activeCategory]);
+  }, [search, activeCategory, remoteResults]);
 
   const logItem = (item: FoodDBItem, qty: number) => {
     const meal: MealLog = {
