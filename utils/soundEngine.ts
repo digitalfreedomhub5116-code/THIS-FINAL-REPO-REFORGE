@@ -1,6 +1,19 @@
 
-// AudioContext singleton to prevent multiple contexts
+// AudioContext singleton to prevent multiple contexts.
+//
+// Android WebView (Capacitor) and Chrome both block AudioContext until a real
+// user gesture has fired AND the audio call happens within the same gesture
+// task, no async hops in between. Many of our SFX calls happen after a
+// setTimeout / promise / state update, which breaks that chain. We work around
+// that by:
+//   1. Lazily creating the context inside getContext().
+//   2. Calling primeAudio() once from a top-level pointer/touch listener so
+//      the context is already 'running' by the time any deferred SFX fires.
+//   3. Calling ctx.resume() defensively before every playback (cheap no-op
+//      if already running, recovers from the OS auto-suspending the context
+//      after long idle periods on some Android OEM ROMs).
 let audioCtx: AudioContext | null = null;
+let audioPrimed = false;
 
 const getContext = () => {
     if (!audioCtx) {
@@ -9,6 +22,57 @@ const getContext = () => {
     }
     return audioCtx;
 }
+
+/**
+ * Call once from a real user-gesture listener (e.g. on first touchstart /
+ * pointerdown anywhere in the app). This both creates the context and resumes
+ * it inside the gesture, satisfying the WebView autoplay policy. Idempotent.
+ *
+ * Hard-coded into the app shell via setupAudioPriming() below.
+ */
+export const primeAudio = (): void => {
+    if (audioPrimed) return;
+    try {
+        const ctx = getContext();
+        // ctx.resume() returns a Promise but we ignore it — the side effect of
+        // calling it inside the gesture is what matters.
+        if (ctx.state === 'suspended') {
+            ctx.resume().catch(() => { /* ignore */ });
+        }
+        // Play a one-sample silent tone to fully unlock the context on
+        // stricter Android WebView builds. The tone is below the noise floor
+        // and has zero perceptible impact.
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0, ctx.currentTime);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.01);
+        audioPrimed = true;
+    } catch (err) {
+        console.warn('[soundEngine] primeAudio failed:', err);
+    }
+};
+
+/**
+ * Wires a one-shot listener on the document so the FIRST user interaction
+ * primes the audio context. Removes itself after firing. Safe to call
+ * multiple times; subsequent calls no-op once primed.
+ */
+export const setupAudioPriming = (): void => {
+    if (audioPrimed) return;
+    if (typeof document === 'undefined') return;
+    const handler = () => {
+        primeAudio();
+        document.removeEventListener('pointerdown', handler);
+        document.removeEventListener('touchstart', handler);
+        document.removeEventListener('keydown', handler);
+    };
+    document.addEventListener('pointerdown', handler, { passive: true });
+    document.addEventListener('touchstart', handler, { passive: true });
+    document.addEventListener('keydown', handler);
+};
 
 export const speakSystemMessage = (text: string) => {
     try {

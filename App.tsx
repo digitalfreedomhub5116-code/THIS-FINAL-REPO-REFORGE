@@ -39,7 +39,7 @@ import LeaguePromotionOverlay from './components/LeaguePromotionOverlay';
 import ReviewPromptSheet from './components/ReviewPromptSheet';
 import { unlockItem } from './utils/storeEconomy';
 import { setRemoteStoreCache, StoreItem, StoreCategory, ItemTier } from './utils/storeItems';
-import { triggerHaptic } from './utils/soundEngine';
+import { triggerHaptic, setupAudioPriming } from './utils/soundEngine';
 
 import {
 
@@ -380,6 +380,14 @@ const App: React.FC = () => {
   const [showChestOpening, setShowChestOpening] = useState(false);
 
 
+
+  // ── Audio priming — wires a one-shot listener so the first user gesture
+  //    unlocks the WebView AudioContext. Required on Android Capacitor where
+  //    autoplay policy is stricter than Chrome and silently blocks oscillator
+  //    SFX until a real touch happens. Idempotent. ──
+  useEffect(() => {
+    setupAudioPriming();
+  }, []);
 
   // ── Sensor tracking handlers ──
 
