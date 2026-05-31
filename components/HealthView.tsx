@@ -962,6 +962,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
             setViewMode('MAP');
           }}
           onWatchAdToDouble={onWatchAdToDouble}
+          isPremium={isPremium}
         />
       )}
     </>

@@ -212,6 +212,7 @@ const GoalHeroSection = lazy(() => import('./components/GoalHeroSection'));
 const GoalCreationFlow = lazy(() => import('./components/GoalCreationFlow'));
 const HunterCommandDeck = lazy(() => import('./components/HunterCommandDeck'));
 import { startQuestGeneration, onQuestGenStoreUpdate } from './components/GoalDetailView';
+import { onGoalPlanStoreUpdate } from './components/GoalCreationFlow';
 
 const RankUpCinematic = lazy(() => import('./components/RankUpCinematic'));
 
@@ -896,6 +897,91 @@ const App: React.FC = () => {
     });
     return unsub;
   }, [addQuest, setPlayer]);
+
+  // ── Background goal-plan generation listener (Task 11 add-on) ──
+  // Fires when the user picked "Continue in Background" during goal creation.
+  // On DONE: merges the AI plan into the placeholder goal, persists, and
+  // schedules a local notification telling the user the plan is ready.
+  // On ERROR: marks the placeholder card as failed so the user can retry.
+  useEffect(() => {
+    const unsub = onGoalPlanStoreUpdate(async (store) => {
+      if (!store.tempGoalId) return;
+
+      if (store.state === 'DONE' && store.payload) {
+        const payload = store.payload;
+        const tempId = store.tempGoalId;
+
+        setPlayer((prev: any) => {
+          const goals = prev.goals || [];
+          const placeholder = goals.find((g: any) => g.id === tempId);
+          if (!placeholder) return prev; // user might have deleted the placeholder
+
+          const now = Date.now();
+          const totalDays = payload.totalDurationDays || placeholder.totalDurationDays || 30;
+          const merged = {
+            ...placeholder,
+            goalRank: (payload.goalRank || placeholder.goalRank || 'D'),
+            successProbability: payload.successProbability ?? 0,
+            milestones: payload.milestones || [],
+            dailyCommitmentMin: payload.dailyCommitmentMinutes || 0,
+            totalDurationDays: totalDays,
+            smartDurationReasoning: payload.smartDurationReasoning || '',
+            weeklyRestDay: payload.weeklyRestDay || 'Sunday',
+            riskFactors: payload.riskFactors || [],
+            reasoning: payload.reasoning || '',
+            targetDate: now + totalDays * 24 * 60 * 60 * 1000,
+            isPlanning: false,
+            planFailed: false,
+            planError: undefined,
+          };
+
+          // Persist via the ref so we don't depend on saveGoalToDb directly
+          saveGoalToDbRef.current(merged);
+
+          return {
+            ...prev,
+            goals: goals.map((g: any) => g.id === tempId ? merged : g),
+          };
+        });
+
+        // In-app notification banner
+        addNotification(`Your "${(store.payload.milestones?.[0]?.title || 'goal').toString().slice(0, 32)}…" mission is forged. Tap to review.`, 'INFO');
+
+        // Native local notification (fire immediately)
+        try {
+          const { Capacitor } = await import('@capacitor/core');
+          if (Capacitor.isNativePlatform()) {
+            const { LocalNotifications } = await import('@capacitor/local-notifications');
+            await LocalNotifications.schedule({
+              notifications: [{
+                id: 990001 + Math.abs(tempId.charCodeAt(tempId.length - 1) || 0),
+                title: 'Mission Ready',
+                body: 'ForgeGuard finished forging your goal plan. Open Reforge to review.',
+                schedule: { at: new Date(Date.now() + 500) },
+                smallIcon: 'ic_stat_icon',
+              }],
+            });
+          }
+        } catch (e) {
+          console.warn('[GoalPlan] Failed to schedule local notification:', e);
+        }
+      } else if (store.state === 'ERROR') {
+        const tempId = store.tempGoalId;
+        const errMsg = store.error || 'Plan generation failed.';
+        setPlayer((prev: any) => {
+          const goals = prev.goals || [];
+          return {
+            ...prev,
+            goals: goals.map((g: any) =>
+              g.id === tempId ? { ...g, isPlanning: false, planFailed: true, planError: errMsg } : g
+            ),
+          };
+        });
+        addNotification('Mission forge failed. Tap the goal card to retry.', 'WARNING');
+      }
+    });
+    return unsub;
+  }, [setPlayer, addNotification]);
 
   const [showBanReversalNotice, setShowBanReversalNotice] = useState(false);
 
@@ -2400,9 +2486,13 @@ const App: React.FC = () => {
     if (streakShownRef.current === sessionKey) return;
     if (localStorage.getItem(guardKey)) return;
 
-    streakShownRef.current = sessionKey;
-    localStorage.setItem(guardKey, '1');
-
+    // ── Bug fix (Task 11): do NOT set the guard up-front. If this effect's
+    // deps change within the 800ms window (sync arrives, rankRevealed flips,
+    // lastLoginDate updates) React calls the cleanup which clears the timer
+    // BEFORE the celebration fires — but with the old code the guard was
+    // already set, so the next mount bailed and the streak never showed.
+    // Solution: set the guards INSIDE the setTimeout right before the state
+    // flip, so the "shown" mark only happens when we actually show it.
     const isBroken = player.streak === 0 || (player.streak === 1 && oldStreakRef.current > 1);
     const previousStreak = isBroken ? oldStreakRef.current : Math.max(0, player.streak - 1);
 
@@ -2420,6 +2510,14 @@ const App: React.FC = () => {
     }
 
     const streakTimer = setTimeout(() => {
+      // Re-check guards inside the timeout in case another path set them
+      // (e.g. handleRankRevealComplete on first-time users).
+      if (streakShownRef.current === sessionKey) return;
+      if (localStorage.getItem(guardKey)) return;
+
+      streakShownRef.current = sessionKey;
+      try { localStorage.setItem(guardKey, '1'); } catch {}
+
       setStreakAnimData({
         oldStreak: previousStreak,
         newStreak: player.streak,
@@ -4011,6 +4109,8 @@ const App: React.FC = () => {
 
                     adUnits={AD_UNITS}
 
+                    isPremium={isPremium}
+
                   />
 
                 </ErrorBoundary>
@@ -5147,6 +5247,8 @@ const App: React.FC = () => {
 
                           userId={player.userId}
 
+                          isPremium={isPremium}
+
                         />
 
                       </ErrorBoundary>
@@ -5233,6 +5335,8 @@ const App: React.FC = () => {
                           addNotification={addNotification}
 
                           userId={player.userId}
+
+                          isPremium={isPremium}
 
                         />
 

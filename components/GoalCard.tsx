@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Target, Calendar, Flame, ChevronRight, Pause, Trophy, Pin, Swords } from 'lucide-react';
+import { Target, Calendar, Flame, ChevronRight, Pause, Trophy, Pin, Swords, Loader2 } from 'lucide-react';
 import { Goal, Rank } from '../types';
 
 const RANK_COLORS: Record<string, string> = {
@@ -124,8 +124,115 @@ function PinnedGoalCardContent({ goal, onTap }: GoalCardProps) {
   );
 }
 
+// ── Forging (Background Plan Generation) Skeleton Card ──
+// Shown while /api/goals/plan generates in the background after the user
+// chose "Continue in Background" during goal creation. Replaced by the real
+// card once App.tsx merges the plan payload into the goal.
+function ForgingGoalCard({ goal, onTap }: GoalCardProps) {
+  const failed = !!goal.planFailed;
+  const accent = failed ? '#fb7185' : '#00d4ff';
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileTap={{ scale: 0.98 }}
+      onClick={() => onTap(goal)}
+      className="relative rounded-2xl overflow-hidden cursor-pointer p-4"
+      style={{
+        background: 'linear-gradient(135deg, rgba(10,10,18,0.95) 0%, rgba(8,12,22,0.98) 100%)',
+        border: `1px solid ${failed ? 'rgba(251,113,133,0.25)' : 'rgba(0,212,255,0.15)'}`,
+        minHeight: 130,
+      }}
+    >
+      {/* Shimmer sweep — only while planning, not on failure */}
+      {!failed && (
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: 'linear-gradient(90deg, transparent 0%, rgba(0,212,255,0.05) 50%, transparent 100%)',
+            animation: 'shimmer 2s infinite linear',
+            backgroundSize: '200% 100%',
+          }}
+        />
+      )}
+      <style>{`
+        @keyframes shimmer {
+          0% { background-position: -100% 0; }
+          100% { background-position: 100% 0; }
+        }
+      `}</style>
+
+      {/* Status badge row */}
+      <div className="flex items-center justify-between mb-3 relative z-10">
+        <div className="flex items-center gap-2">
+          {failed ? (
+            <span className="text-[7px] font-mono font-bold uppercase tracking-[0.2em]" style={{ color: accent }}>
+              ⚠ Forge Failed
+            </span>
+          ) : (
+            <>
+              <Loader2 className="w-3 h-3 animate-spin" style={{ color: accent }} />
+              <span className="text-[7px] font-mono font-bold uppercase tracking-[0.2em]" style={{ color: accent }}>
+                Forging Mission
+              </span>
+            </>
+          )}
+        </div>
+        <span className="text-[7px] font-mono font-bold uppercase tracking-wider text-gray-600">
+          {goal.category || 'PENDING'}
+        </span>
+      </div>
+
+      {/* Title */}
+      <h3 className="text-base font-bold text-gray-100 mb-2 relative z-10">{goal.title}</h3>
+
+      {/* Status text */}
+      {failed ? (
+        <p className="text-[10px] text-rose-300/80 font-mono leading-snug relative z-10">
+          {goal.planError || 'Plan generation failed. Tap to retry.'}
+        </p>
+      ) : (
+        <>
+          <p className="text-[10px] text-gray-500 font-mono leading-snug relative z-10">
+            ForgeGuard is calculating milestones, daily tasks, and risk factors. This usually takes 10–20 seconds.
+          </p>
+          {/* Skeleton bars */}
+          <div className="mt-3 space-y-1.5 relative z-10">
+            <div className="h-1.5 rounded bg-white/[0.04] overflow-hidden" style={{ width: '70%' }}>
+              <div
+                className="h-full"
+                style={{
+                  background: `linear-gradient(90deg, transparent, ${accent}40, transparent)`,
+                  animation: 'shimmer 1.6s infinite linear',
+                  backgroundSize: '200% 100%',
+                }}
+              />
+            </div>
+            <div className="h-1.5 rounded bg-white/[0.04] overflow-hidden" style={{ width: '50%' }}>
+              <div
+                className="h-full"
+                style={{
+                  background: `linear-gradient(90deg, transparent, ${accent}40, transparent)`,
+                  animation: 'shimmer 1.6s infinite linear 0.3s',
+                  backgroundSize: '200% 100%',
+                }}
+              />
+            </div>
+          </div>
+        </>
+      )}
+    </motion.div>
+  );
+}
+
 // ── Standard Goal Card ──
 export default function GoalCard({ goal, onTap }: GoalCardProps) {
+  // ── Background-planning placeholder: render the forging skeleton ──
+  if (goal.isPlanning || goal.planFailed) {
+    return <ForgingGoalCard goal={goal} onTap={onTap} />;
+  }
+
   // If this goal has a cover image (e.g. system dungeon goal), show the pinned visual card
   if ((goal.coverImage || goal.category === 'DEFAULT') && goal.isSystemGoal) {
     // For DEFAULT category, auto-assign the manga cover image

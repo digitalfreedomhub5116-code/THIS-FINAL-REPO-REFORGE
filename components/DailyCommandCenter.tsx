@@ -1113,10 +1113,15 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
       // Also add base XP (exercises × 40) since the pool rewards don't include it
       xp += c * 40;
       if (xp > 0 || gold > 0) {
-        setPendingDungeonRewards({ xp, gold });
+        // Pro users skip the watch-ad-to-double modal — fly base rewards immediately
+        if (isPremium) {
+          setDungeonRewardAnim({ xp, gold });
+        } else {
+          setPendingDungeonRewards({ xp, gold });
+        }
       }
     }
-  }, [onToggleNav, onCompleteDungeonWorkout, dungeonState, onUpdateDungeonState, quests, completeQuest]);
+  }, [onToggleNav, onCompleteDungeonWorkout, dungeonState, onUpdateDungeonState, quests, completeQuest, isPremium]);
 
   const handleDungeonFail = useCallback(() => {
     setIsDungeonActive(false);

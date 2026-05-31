@@ -56,6 +56,120 @@ interface GoalCreationFlowProps {
 
 type Step = 'INPUT' | 'ANALYZING' | 'INTERVIEW' | 'PLANNING' | 'REVIEW' | 'ERROR';
 
+// ═══════════════════════════════════════════════════════════════════════════
+//  MODULE-LEVEL GOAL-PLAN STORE (Task 11 add-on)
+//
+//  Mirrors the pattern used by GoalDetailView for daily-quest generation.
+//  When the user picks "Continue in Background" after the interview step,
+//  we kick off `startGoalPlanGeneration` which fetches /api/goals/plan
+//  independently of the modal lifecycle. App.tsx listens for DONE/ERROR
+//  events and patches the placeholder goal in player.goals.
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface GoalPlanStore {
+  state: 'IDLE' | 'PLANNING' | 'DONE' | 'ERROR';
+  /** ID of the placeholder goal created when the user clicked "Continue in Background". */
+  tempGoalId: string | null;
+  /** The full plan payload returned from /api/goals/plan once DONE. */
+  payload: {
+    goalRank?: string;
+    successProbability?: number;
+    dailyCommitmentMinutes?: number;
+    totalDurationDays?: number;
+    smartDurationReasoning?: string;
+    weeklyRestDay?: string;
+    riskFactors?: string[];
+    reasoning?: string;
+    milestones?: GoalMilestone[];
+  } | null;
+  error: string | null;
+}
+
+const _goalPlanStore: GoalPlanStore = {
+  state: 'IDLE',
+  tempGoalId: null,
+  payload: null,
+  error: null,
+};
+
+const _goalPlanListeners = new Set<(s: GoalPlanStore) => void>();
+
+export function onGoalPlanStoreUpdate(cb: (s: GoalPlanStore) => void): () => void {
+  _goalPlanListeners.add(cb);
+  return () => { _goalPlanListeners.delete(cb); };
+}
+
+export function getGoalPlanStore(): GoalPlanStore {
+  return { ..._goalPlanStore };
+}
+
+function updateGoalPlanStore(patch: Partial<GoalPlanStore>) {
+  Object.assign(_goalPlanStore, patch);
+  const snapshot = { ..._goalPlanStore };
+  _goalPlanListeners.forEach(cb => cb(snapshot));
+}
+
+/**
+ * Kick off background generation of the goal plan. Returns immediately;
+ * subscribers via onGoalPlanStoreUpdate receive DONE / ERROR transitions.
+ */
+export function startGoalPlanGeneration(params: {
+  tempGoalId: string;
+  goalText: string;
+  category: string;
+  estimatedDurationDays: number;
+  interviewAnswers: Array<{ question: string; answer: any }>;
+  playerStats?: any;
+  healthProfile?: any;
+  otherGoals?: Array<{ title: string; dailyCommitmentMin: number }>;
+  timezone?: string;
+}): void {
+  if (_goalPlanStore.state === 'PLANNING') {
+    // Don't fire two in parallel — bail silently.
+    return;
+  }
+
+  updateGoalPlanStore({
+    state: 'PLANNING',
+    tempGoalId: params.tempGoalId,
+    payload: null,
+    error: null,
+  });
+
+  authenticatedFetch(`${API_BASE}/api/goals/plan`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
+    body: JSON.stringify({
+      goalText: params.goalText,
+      category: params.category,
+      estimatedDurationDays: params.estimatedDurationDays,
+      interviewAnswers: params.interviewAnswers,
+      playerStats: params.playerStats,
+      healthProfile: params.healthProfile,
+      otherGoals: params.otherGoals || [],
+      timezone: params.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+    }),
+  })
+    .then(async (res) => {
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({} as any));
+        throw new Error(errData.error || `Plan generation failed (HTTP ${res.status})`);
+      }
+      const data = await res.json();
+      updateGoalPlanStore({ state: 'DONE', payload: data, error: null });
+    })
+    .catch((err: any) => {
+      console.error('[GoalCreation] Background plan failed:', err);
+      updateGoalPlanStore({
+        state: 'ERROR',
+        payload: null,
+        error: friendlyError(err?.message || 'Plan generation failed.'),
+      });
+    });
+}
+
+
+
 // Sanitize raw server/network errors into user-friendly messages
 function friendlyError(raw: string): string {
   const lower = raw.toLowerCase();
@@ -225,6 +339,86 @@ export default function GoalCreationFlow({
       setStep('INTERVIEW');
     }
   }, [questions, goalText, category, estimatedDays, playerData, existingGoals]);
+
+  // ── Step 2-alt: Continue in Background ──
+  // Creates a placeholder goal immediately so the card appears in the goals
+  // section, kicks off /api/goals/plan in the background, and closes the modal.
+  // App.tsx's onGoalPlanStoreUpdate listener patches the placeholder when DONE.
+  const handleContinueInBackground = useCallback(() => {
+    const unanswered = questions.filter(q => {
+      const val = q.answer ?? q.prefilled;
+      return val === null || val === undefined || val === '';
+    });
+    if (unanswered.length > 0) {
+      setError('Please answer all questions before proceeding.');
+      return;
+    }
+
+    // Equipment extraction (fitness goals only) — same logic as handleAcceptMission
+    let equipment: 'GYM' | 'HOME_DUMBBELLS' | 'BODYWEIGHT' | undefined;
+    if (category === 'FITNESS') {
+      const eqQ = questions.find(q =>
+        String(q.id) === 'equipment' || /equipment/i.test(q.question || '')
+      );
+      const ans = String(eqQ?.answer ?? eqQ?.prefilled ?? '').toLowerCase();
+      if (ans.includes('gym')) equipment = 'GYM';
+      else if (ans.includes('dumbbell') || ans.includes('home')) equipment = 'HOME_DUMBBELLS';
+      else equipment = 'BODYWEIGHT';
+    }
+
+    const now = Date.now();
+    const tempId = `goal-pending-${now}-${Math.random().toString(36).slice(2, 8)}`;
+
+    // Build placeholder goal with the bare minimum so the card can render.
+    // estimatedDurationDays is the analyst's first-pass estimate; it'll be
+    // refined by /api/goals/plan and merged in by App.tsx when DONE.
+    const placeholderGoal: Goal = {
+      id: tempId,
+      userId: playerData?.userId,
+      title: goalText.trim(),
+      category: category as any,
+      goalRank: 'D' as Rank, // provisional — refined by plan
+      successProbability: 0,
+      status: 'ACTIVE',
+      milestones: [],
+      currentMilestone: 0,
+      interviewQA: questions,
+      dailyCommitmentMin: 0,
+      totalDurationDays: estimatedDays || 30,
+      smartDurationReasoning: '',
+      weeklyRestDay: 'Sunday',
+      riskFactors: [],
+      reasoning: '',
+      startDate: now,
+      targetDate: now + (estimatedDays || 30) * 24 * 60 * 60 * 1000,
+      streak: 0,
+      dailyTasks: [],
+      createdAt: now,
+      isPlanning: true, // shows the "forging" skeleton card
+      ...(equipment ? { equipment } : {}),
+    };
+
+    // Inject placeholder + close modal
+    onGoalCreated(placeholderGoal);
+
+    // Kick off background generation
+    startGoalPlanGeneration({
+      tempGoalId: tempId,
+      goalText: goalText.trim(),
+      category,
+      estimatedDurationDays: estimatedDays,
+      interviewAnswers: questions.map(q => ({ question: q.question, answer: q.answer ?? q.prefilled })),
+      playerStats: playerData?.stats,
+      healthProfile: playerData?.healthProfile,
+      otherGoals: existingGoals.filter(g => g.status === 'ACTIVE').map(g => ({
+        title: g.title,
+        dailyCommitmentMin: g.dailyCommitmentMin,
+      })),
+      timezone: playerData?.timezone,
+    });
+
+    playSystemSoundEffect('SYSTEM');
+  }, [questions, goalText, category, estimatedDays, playerData, existingGoals, onGoalCreated]);
 
   // ── Step 3: Accept Mission ──
   const handleAcceptMission = useCallback(() => {
@@ -579,6 +773,22 @@ export default function GoalCreationFlow({
                 >
                   Generate Mission Plan
                 </button>
+
+                {/* ── Continue in Background — fast path for users who don't want to wait ── */}
+                <button
+                  onClick={handleContinueInBackground}
+                  className="w-full mt-2 py-3 rounded-xl text-[11px] font-bold uppercase tracking-widest"
+                  style={{
+                    background: 'transparent',
+                    border: '1px solid rgba(0,212,255,0.25)',
+                    color: 'rgba(0,212,255,0.85)',
+                  }}
+                >
+                  Continue in Background
+                </button>
+                <p className="text-[9px] text-gray-600 font-mono text-center mt-1.5 px-3 leading-snug">
+                  We'll forge your plan in the background. You'll get a notification when it's ready.
+                </p>
               </motion.div>
             )}
 

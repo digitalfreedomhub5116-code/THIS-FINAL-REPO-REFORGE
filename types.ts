@@ -683,6 +683,16 @@ export interface Goal {
 
   // Fitness goal equipment (selected during goal creation interview)
   equipment?: 'GYM' | 'HOME_DUMBBELLS' | 'BODYWEIGHT';
+
+  // ── Background goal-plan generation (Task 11 add-on) ──
+  // When true, this goal is a placeholder created from the user's interview answers
+  // while the AI plan generates in the background. The card shows a "Forging…" skeleton.
+  // Cleared by App.tsx's onGoalPlanStoreUpdate listener when the plan arrives.
+  isPlanning?: boolean;
+  /** Failure flag set when background generation errors out — surfaces a retry option. */
+  planFailed?: boolean;
+  /** Error message displayed under planFailed cards. */
+  planError?: string;
 }
 
 export interface PlayerData {

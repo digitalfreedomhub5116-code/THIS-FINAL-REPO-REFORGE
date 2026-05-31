@@ -98,6 +98,8 @@ interface ShopViewProps {
   addNotification?: (msg: string, type: import('../types').NotificationType) => void;
   /** Current player's userId — used to scope localStorage keys per-account */
   userId?: string;
+  /** When true (Reforge Pro / VIP), the FreeKeyAdBanner is hidden — Pro users should never see ad-watch surfaces. */
+  isPremium?: boolean;
 }
 
 
@@ -691,6 +693,7 @@ const ShopView: React.FC<ShopViewProps> = ({
   adUnits,
   addNotification,
   userId,
+  isPremium = false,
 }) => {
   const [storeTab, setStoreTab] = useState<'OUTFITS' | 'BADGES' | 'BORDERS' | 'DEALS' | 'ITEMS' | 'THEMES' | 'BANNERS_SHOP'>(initialStoreTab || 'OUTFITS');
   const [showMore, setShowMore] = useState(false);
@@ -1525,14 +1528,17 @@ const ShopView: React.FC<ShopViewProps> = ({
 
       {/* ═══════════════════════════════════════════
            🎁 FREE KEY AD BANNER (Watch 3 ads → 1 Key)
+           Hidden for Pro users — they earn keys through subscription benefits
          ═══════════════════════════════════════════ */}
-      <FreeKeyAdBanner
-        onWatchRewardedAd={onWatchRewardedAd}
-        adUnitId={adUnits?.KEY_REWARD}
-        onClaimKey={(serverKeys: number) => onKeysUpdate?.(serverKeys)}
-        addNotification={addNotification}
-        userId={userId}
-      />
+      {!isPremium && (
+        <FreeKeyAdBanner
+          onWatchRewardedAd={onWatchRewardedAd}
+          adUnitId={adUnits?.KEY_REWARD}
+          onClaimKey={(serverKeys: number) => onKeysUpdate?.(serverKeys)}
+          addNotification={addNotification}
+          userId={userId}
+        />
+      )}
 
       {/* ═══════════════════════════════════════════
            🔑 KEY CRYSTAL STORE

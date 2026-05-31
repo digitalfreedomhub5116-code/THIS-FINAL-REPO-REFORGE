@@ -16,6 +16,8 @@ interface WorkoutRewardModalProps {
   anomalyPoints: number;
   onClose: () => void;
   onWatchAdToDouble?: () => Promise<boolean>;
+  /** When true (Reforge Pro / VIP), the "Watch Ad to Double" button is hidden entirely. */
+  isPremium?: boolean;
 }
 
 const REWARD_CONFIG: Record<string, { icon: React.ReactNode; accent: string; accentRgb: string }> = {
@@ -58,7 +60,7 @@ const LineBurst: React.FC = () => {
   );
 };
 
-const WorkoutRewardModal: React.FC<WorkoutRewardModalProps> = ({ rewards, anomalyPoints, onClose, onWatchAdToDouble }) => {
+const WorkoutRewardModal: React.FC<WorkoutRewardModalProps> = ({ rewards, anomalyPoints, onClose, onWatchAdToDouble, isPremium = false }) => {
   const [revealedCount, setRevealedCount] = useState(0);
   const [allRevealed, setAllRevealed] = useState(false);
   const [isDoubled, setIsDoubled] = useState(false);
@@ -295,8 +297,8 @@ const WorkoutRewardModal: React.FC<WorkoutRewardModalProps> = ({ rewards, anomal
         })}
       </div>
 
-      {/* Watch Ad to Double */}
-      {allRevealed && onWatchAdToDouble && !adWatched && (
+      {/* Watch Ad to Double — hidden entirely for Reforge Pro users */}
+      {allRevealed && onWatchAdToDouble && !adWatched && !isPremium && (
         <motion.button
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}

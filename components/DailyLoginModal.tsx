@@ -9,9 +9,11 @@ interface DailyLoginModalProps {
   onChestReward?: () => void;
   adShowRewarded?: (adUnitId: string) => Promise<{ rewarded: boolean; type?: string; amount?: number }>;
   adUnits?: { KEY_REWARD: string; BORDER_REWARD: string; DUNGEON_INTERSTITIAL: string };
+  /** When true (Reforge Pro / VIP), the chest auto-claims at 1× and the watch-ad doubling modal is skipped entirely. */
+  isPremium?: boolean;
 }
 
-const DailyLoginModal: React.FC<DailyLoginModalProps> = ({ onClose, onChestReward, adShowRewarded, adUnits }) => {
+const DailyLoginModal: React.FC<DailyLoginModalProps> = ({ onClose, onChestReward, adShowRewarded, adUnits, isPremium = false }) => {
   const { player, claimDailyReward } = useSystem();
   const [pendingChestDouble, setPendingChestDouble] = useState(false);
 
@@ -34,6 +36,11 @@ const DailyLoginModal: React.FC<DailyLoginModalProps> = ({ onClose, onChestRewar
   const handleClaim = (rect: DOMRect | null) => {
     if (!todayReward || isClaimed) return;
     if (todayReward.type === 'CHEST_LEGENDARY') {
+      // Pro users skip the watch-ad-to-double modal — auto-claim at 1×
+      if (isPremium) {
+        handleChestClaim(1, rect);
+        return;
+      }
       setPendingChestDouble(true);
       return;
     }
