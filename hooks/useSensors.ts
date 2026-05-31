@@ -247,7 +247,7 @@ export function useSensors(userId: string = 'local') {
         const needsFullTracking = !!(requirements?.steps || requirements?.distanceKm);
         const mode = needsFullTracking ? 'FULL' : 'TIME_ONLY';
 
-        await NativeTracking.start({
+        const startResp = await NativeTracking.start({
           questId,
           mode,
           reqSteps: requirements?.steps || 0,
@@ -260,8 +260,17 @@ export function useSensors(userId: string = 'local') {
           startedAt: initial.startedAt,
         });
 
-        // Poll native service for updates every 3 seconds
-        nativePollingTimer.current = setInterval(async () => {
+        // Native plugin can refuse the start (Android 14+ missing FGS permission,
+        // Android 12+ background restriction, etc). When that happens it returns
+        // `started: false` instead of throwing — we honour that and fall back to
+        // the WebView geolocation/motion path below.
+        if (!startResp || (startResp as any).started === false) {
+          console.warn('[Sensors] Native start refused — falling back to WebView path');
+          // Fall through to the WebView fallback below — don't return early.
+        } else {
+          // Native succeeded — set up the polling loop and return.
+          // Poll native service for updates every 3 seconds
+          nativePollingTimer.current = setInterval(async () => {
           if (!isMounted.current || !NativeTracking) return;
           try {
             const snap = await NativeTracking.getSnapshot();
@@ -283,10 +292,11 @@ export function useSensors(userId: string = 'local') {
             snapshotRef.current = updated;
             saveSession(questId, userId, updated);
           } catch { /* ignore polling errors */ }
-        }, 3000);
+          }, 3000);
 
-        console.log('[Sensors] Native tracking started — mode:', mode);
-        return true;
+          console.log('[Sensors] Native tracking started — mode:', mode);
+          return true;
+        }
       } catch (e) {
         console.warn('[Sensors] Native tracking failed, falling back to web:', e);
         // Fall through to web-based tracking

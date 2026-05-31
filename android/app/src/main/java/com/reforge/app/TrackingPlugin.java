@@ -82,6 +82,21 @@ public class TrackingPlugin extends Plugin {
         String questId = call.getString("questId", "unknown");
         String mode = call.getString("mode", "TIME_ONLY");
 
+        // ── Pre-flight check: the service is declared with foregroundServiceType="location"
+        //    and Android 14+ hard-enforces that startForeground() can ONLY be called when
+        //    the matching runtime permission is granted. If we let the service start
+        //    without the permission, startForeground() throws SecurityException and the
+        //    5-second foreground-deadline still fires, killing the entire app process.
+        //    Refuse cleanly here so JS can fall back to the in-WebView Geolocation API. ──
+        if ("FULL".equals(mode)) {
+            boolean hasLocation = "granted".equals(getPermissionState("location"));
+            if (!hasLocation) {
+                Log.w(TAG, "start refused — FULL mode requires ACCESS_FINE_LOCATION at runtime");
+                call.resolve(new JSObject().put("started", false).put("reason", "missing_location_permission"));
+                return;
+            }
+        }
+
         Intent intent = new Intent(context, TrackingService.class);
         intent.setAction(TrackingService.ACTION_START);
         intent.putExtra("questId", questId);
@@ -114,7 +129,7 @@ public class TrackingPlugin extends Plugin {
             // start failed so it can decide to fall back to the in-WebView
             // location/motion APIs.
             Log.w(TAG, "Start tracking refused by OS — falling back to WebView path", e);
-            call.resolve(new JSObject().put("started", false));
+            call.resolve(new JSObject().put("started", false).put("reason", "os_refused"));
         }
     }
 
