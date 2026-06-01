@@ -38,6 +38,7 @@ import QuestUnlockTimer from './components/QuestUnlockTimer';
 import LeaguePromotionOverlay from './components/LeaguePromotionOverlay';
 import ReviewPromptSheet from './components/ReviewPromptSheet';
 import { unlockItem } from './utils/storeEconomy';
+import DungeonLockScreen from './components/DungeonLockScreen';
 import { setRemoteStoreCache, StoreItem, StoreCategory, ItemTier } from './utils/storeItems';
 import { triggerHaptic, setupAudioPriming } from './utils/soundEngine';
 
@@ -377,6 +378,80 @@ const App: React.FC = () => {
 
 
   const [showChestOpening, setShowChestOpening] = useState(false);
+  const [activeLockdown, setActiveLockdown] = useState<{ active: boolean; packageName: string; appName: string; requiredReps: number } | null>(null);
+
+  // Focus Shield key consumer
+  const handleConsumeLockdownKey = async (): Promise<boolean> => {
+    try {
+      const authHeaders = getPlayerAuthHeaders();
+      if (authHeaders && authHeaders['Authorization']) {
+        const res = await authenticatedFetch(`${API_BASE}/api/economy/spend-key`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...authHeaders },
+          body: JSON.stringify({ amount: 1, action: 'focus_shield_bypass' })
+        });
+        if (!res.ok) {
+          console.error("Server key consumption failed");
+          return false;
+        }
+      }
+      setPlayer((prev: any) => ({ ...prev, keys: Math.max(0, prev.keys - 1) }));
+      return true;
+    } catch (e) {
+      console.error("Error consuming lockdown key", e);
+      return false;
+    }
+  };
+
+  // Monitor background lockdown events
+  useEffect(() => {
+    const checkColdStartLockdown = async () => {
+      try {
+        const plugin = (window as any).Capacitor?.Plugins?.TrackingPlugin;
+        if (plugin) {
+          const res = await plugin.getActiveLockdown();
+          if (res.active && res.packageName) {
+            const savedAppsStr = localStorage.getItem('reforge_focus_shield_apps');
+            const lockedApps = savedAppsStr ? JSON.parse(savedAppsStr) : [];
+            const appConfig = lockedApps.find((a: any) => a.packageName === res.packageName);
+
+            setActiveLockdown({
+              active: true,
+              packageName: res.packageName,
+              appName: appConfig?.appName || 'Distracting App',
+              requiredReps: appConfig?.questReps || 20
+            });
+          }
+        }
+      } catch (e) {
+        console.error("Failed to check cold start lockdown", e);
+      }
+    };
+
+    checkColdStartLockdown();
+
+    const plugin = (window as any).Capacitor?.Plugins?.TrackingPlugin;
+    let listener: any = null;
+    if (plugin) {
+      listener = plugin.addListener('focusShieldLockdown', (data: any) => {
+        console.log("Real-time Focus Shield lockdown event:", data);
+        const savedAppsStr = localStorage.getItem('reforge_focus_shield_apps');
+        const lockedApps = savedAppsStr ? JSON.parse(savedAppsStr) : [];
+        const appConfig = lockedApps.find((a: any) => a.packageName === data.packageName);
+
+        setActiveLockdown({
+          active: true,
+          packageName: data.packageName,
+          appName: appConfig?.appName || 'Distracting App',
+          requiredReps: appConfig?.questReps || 20
+        });
+      });
+    }
+
+    return () => {
+      if (listener) listener.remove();
+    };
+  }, []);
 
 
 
@@ -5839,6 +5914,17 @@ const App: React.FC = () => {
           <SystemToastOverlay />
         </>
 
+      )}
+
+      {activeLockdown && activeLockdown.active && (
+        <DungeonLockScreen
+          packageName={activeLockdown.packageName}
+          appName={activeLockdown.appName}
+          requiredReps={activeLockdown.requiredReps}
+          playerData={player}
+          onConsumeKey={handleConsumeLockdownKey}
+          onClose={() => setActiveLockdown(null)}
+        />
       )}
 
     </ThemeContext.Provider>

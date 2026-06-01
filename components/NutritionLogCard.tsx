@@ -780,11 +780,10 @@ const NutritionLogCard: React.FC<NutritionLogCardProps> = ({
         )}
 
         {/* SCAN FOOD trigger — HUD-style chamfered plate (matches Enter Dungeon).
-            Constrained width + tall ratio keeps it compact, not full-bleed. */}
+            Full width to match the dungeon button style. */}
         <div style={{
           width: '100%',
-          maxWidth: 240,
-          margin: '2px auto 0',
+          margin: '2px 0 0',
           opacity: scanPhase === 'SCANNING' ? 0.55 : 1,
           pointerEvents: scanPhase === 'SCANNING' ? 'none' : 'auto',
         }}>

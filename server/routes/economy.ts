@@ -115,6 +115,34 @@ router.post('/spend', async (req: Request, res: Response) => {
   }
 });
 
+// ── POST /spend-key — Spend a mana key securely on the server ──
+router.post('/spend-key', async (req: Request, res: Response) => {
+  const userId = getAuthenticatedUserId(req);
+  if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+  const { amount, action } = req.body;
+  const deductAmount = typeof amount === 'number' ? amount : 1;
+  const spendAction = action || 'focus_shield_bypass';
+
+  try {
+    const { deductKeys } = await import('../lib/keyGate.js');
+    const result = await deductKeys(userId, deductAmount);
+
+    if (!result.success) {
+      return res.status(402).json({ 
+        error: result.error || 'Not enough keys', 
+        keysRemaining: result.remaining 
+      });
+    }
+
+    console.log(`[Economy] ${userId.slice(-8)}: -${deductAmount}🔑 (${spendAction}) → ${result.remaining} remaining`);
+    return res.json({ success: true, keys: result.remaining, spent: deductAmount });
+  } catch (err) {
+    console.error('[Economy spend-key]', err);
+    return res.status(500).json({ error: 'Failed to deduct keys' });
+  }
+});
+
 // ── GET /balance — Get current gold and key balance ──
 router.get('/balance', async (req: Request, res: Response) => {
   const userId = getAuthenticatedUserId(req);

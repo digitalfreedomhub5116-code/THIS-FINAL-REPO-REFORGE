@@ -10,6 +10,7 @@ import { playSystemSoundEffect } from '../utils/soundEngine';
 import { API_BASE } from '../lib/apiConfig';
 import { getPlayerAuthHeaders, authenticatedFetch } from '../lib/playerApi';
 import { buildDungeonGoalQuest, buildDungeonGoalDailyTask } from '../lib/dungeonGoalQuest';
+import FocusShieldSettings from './FocusShieldSettings';
 
 // ── Helpers ──
 function todayStr(): string { return new Date().toISOString().split('T')[0]; }
@@ -48,6 +49,7 @@ export default function GoalsView({
 }: GoalsViewProps) {
   const [showCreate, setShowCreate] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
+  const [subTab, setSubTab] = useState<'SHADOW_MISSIONS' | 'FOCUS_SHIELD'>('SHADOW_MISSIONS');
 
   // Auto-generation state
   const [autoGenState, setAutoGenState] = useState<'IDLE' | 'GENERATING' | 'DONE'>('IDLE');
@@ -313,141 +315,182 @@ export default function GoalsView({
 
   return (
     <div className="min-h-[60vh] pb-4">
-      {/* Auto-generation loader */}
-      <AnimatePresence>
-        {autoGenState === 'GENERATING' && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="rounded-2xl p-4 mb-4 overflow-hidden relative"
-            style={{
-              background: 'rgba(0,212,255,0.03)',
-              border: '1px solid rgba(0,212,255,0.12)',
-              boxShadow: '0 0 30px rgba(0,212,255,0.06)',
-            }}
-          >
-            {/* Animated scanning line */}
+      {/* Premium PRO Tab Header Bar */}
+      <div className="flex p-1 bg-gray-950/80 border border-gray-800/80 rounded-xl mb-6 relative overflow-hidden max-w-sm mx-auto">
+        <button
+          onClick={() => { playSystemSoundEffect('TAB_SWITCH'); setSubTab('SHADOW_MISSIONS'); }}
+          className={`flex-1 text-center py-2 text-[10px] font-bold font-mono tracking-wider transition-colors relative z-10 ${
+            subTab === 'SHADOW_MISSIONS' ? 'text-black' : 'text-gray-400 hover:text-gray-200'
+          }`}
+        >
+          {subTab === 'SHADOW_MISSIONS' && (
             <motion.div
-              className="absolute top-0 left-0 right-0 h-[2px]"
-              style={{ background: 'linear-gradient(90deg, transparent, #00d4ff, transparent)' }}
-              animate={{ x: ['-100%', '100%'] }}
-              transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+              layoutId="active-pro-tab"
+              className="absolute inset-0 bg-system-neon rounded-lg -z-10 shadow-[0_0_15px_#00d4ff]"
+              transition={{ type: 'spring', stiffness: 350, damping: 25 }}
             />
+          )}
+          SHADOW MISSIONS
+        </button>
+        <button
+          onClick={() => { playSystemSoundEffect('TAB_SWITCH'); setSubTab('FOCUS_SHIELD'); }}
+          className={`flex-1 text-center py-2 text-[10px] font-bold font-mono tracking-wider transition-colors relative z-10 flex items-center justify-center gap-1.5 ${
+            subTab === 'FOCUS_SHIELD' ? 'text-black' : 'text-gray-400 hover:text-gray-200'
+          }`}
+        >
+          {subTab === 'FOCUS_SHIELD' && (
+            <motion.div
+              layoutId="active-pro-tab"
+              className="absolute inset-0 bg-system-neon rounded-lg -z-10 shadow-[0_0_15px_#00d4ff]"
+              transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+            />
+          )}
+          FOCUS SHIELD
+          <span className="text-[7px] bg-red-500/20 text-red-400 border border-red-500/40 px-1 rounded font-sans tracking-normal font-black">PRO</span>
+        </button>
+      </div>
 
-            <div className="flex items-center gap-3">
+      {subTab === 'FOCUS_SHIELD' ? (
+        <FocusShieldSettings playerData={playerData} />
+      ) : (
+        <>
+          {/* Auto-generation loader */}
+          <AnimatePresence>
+            {autoGenState === 'GENERATING' && (
               <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="rounded-2xl p-4 mb-4 overflow-hidden relative"
+                style={{
+                  background: 'rgba(0,212,255,0.03)',
+                  border: '1px solid rgba(0,212,255,0.12)',
+                  boxShadow: '0 0 30px rgba(0,212,255,0.06)',
+                }}
               >
-                <Loader2 className="w-5 h-5 text-[#00d4ff]" />
-              </motion.div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-[8px] font-black font-mono uppercase tracking-[0.3em] text-[#00d4ff]/60">SYSTEM</span>
+                {/* Animated scanning line */}
+                <motion.div
+                  className="absolute top-0 left-0 right-0 h-[2px]"
+                  style={{ background: 'linear-gradient(90deg, transparent, #00d4ff, transparent)' }}
+                  animate={{ x: ['-100%', '100%'] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                />
+
+                <div className="flex items-center gap-3">
                   <motion.div
-                    className="w-1.5 h-1.5 rounded-full bg-[#00d4ff]"
-                    animate={{ opacity: [1, 0.3, 1] }}
-                    transition={{ duration: 1, repeat: Infinity }}
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                  >
+                    <Loader2 className="w-5 h-5 text-[#00d4ff]" />
+                  </motion.div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[8px] font-black font-mono uppercase tracking-[0.3em] text-[#00d4ff]/60">SYSTEM</span>
+                      <motion.div
+                        className="w-1.5 h-1.5 rounded-full bg-[#00d4ff]"
+                        animate={{ opacity: [1, 0.3, 1] }}
+                        transition={{ duration: 1, repeat: Infinity }}
+                      />
+                    </div>
+                    <div className="text-xs font-bold text-white mt-0.5">
+                      Forging today's quests...
+                    </div>
+                    <div className="text-[9px] text-gray-500 font-mono mt-0.5">
+                      Goal {autoGenProgress.current}/{autoGenProgress.total} • AI generating micro-quests
+                    </div>
+                  </div>
+                  <Swords className="w-4 h-4 text-[#00d4ff]/30 flex-shrink-0" />
+                </div>
+
+                {/* Progress bar */}
+                <div className="mt-3 h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                  <motion.div
+                    className="h-full rounded-full"
+                    style={{ background: 'linear-gradient(90deg, #00d4ff, #00d4ff)' }}
+                    initial={{ width: '0%' }}
+                    animate={{ width: `${autoGenProgress.total > 0 ? (autoGenProgress.current / autoGenProgress.total) * 100 : 0}%` }}
+                    transition={{ duration: 0.5 }}
                   />
                 </div>
-                <div className="text-xs font-bold text-white mt-0.5">
-                  Forging today's quests...
-                </div>
-                <div className="text-[9px] text-gray-500 font-mono mt-0.5">
-                  Goal {autoGenProgress.current}/{autoGenProgress.total} • AI generating micro-quests
-                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Active Goals */}
+          {activeGoals.length > 0 && (
+            <div className="space-y-3 mb-4">
+              {activeGoals.map(goal => (
+                <GoalCard
+                  key={goal.id}
+                  goal={goal}
+                  onTap={(g) => setSelectedGoal(g)}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Empty State */}
+          {activeGoals.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-16 px-6">
+              <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ background: 'rgba(34,211,238,0.06)' }}>
+                <Target className="w-7 h-7 text-[#00d4ff]" />
               </div>
-              <Swords className="w-4 h-4 text-[#00d4ff]/30 flex-shrink-0" />
+              <h3 className="text-sm font-bold text-white mb-1">No Active Goals</h3>
+              <p className="text-[10px] text-gray-500 font-mono text-center mb-5 max-w-[240px]">
+                Set a long-term goal and AI will create a daily action plan to help you achieve it.
+              </p>
+              <button
+                onClick={() => setShowCreate(true)}
+                className="px-6 py-3 rounded-xl text-xs font-black text-black uppercase tracking-wider"
+                style={{ background: 'linear-gradient(135deg, #00d4ff, #00d4ff)' }}
+              >
+                Create Shadow Mission
+              </button>
             </div>
+          )}
 
-            {/* Progress bar */}
-            <div className="mt-3 h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)' }}>
-              <motion.div
-                className="h-full rounded-full"
-                style={{ background: 'linear-gradient(90deg, #00d4ff, #00d4ff)' }}
-                initial={{ width: '0%' }}
-                animate={{ width: `${autoGenProgress.total > 0 ? (autoGenProgress.current / autoGenProgress.total) * 100 : 0}%` }}
-                transition={{ duration: 0.5 }}
+          {/* Completed Goals */}
+          {completedGoals.length > 0 && (
+            <div className="mt-6">
+              <div className="flex items-center gap-2 mb-3">
+                <Trophy className="w-3.5 h-3.5 text-amber-400" />
+                <span className="text-[10px] font-mono text-gray-500 uppercase tracking-wider">Completed Missions</span>
+              </div>
+              <div className="space-y-2">
+                {completedGoals.map(goal => (
+                  <GoalCard key={goal.id} goal={goal} onTap={(g) => setSelectedGoal(g)} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* FAB — only show if there are existing goals */}
+          {activeGoals.length > 0 && activeGoals.length < 3 && (
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={() => setShowCreate(true)}
+              className="fixed bottom-24 right-5 w-13 h-13 rounded-full flex items-center justify-center z-50 shadow-lg"
+              style={{ background: 'linear-gradient(135deg, #00d4ff, #00d4ff)', width: 52, height: 52 }}
+            >
+              <Plus className="w-5 h-5 text-black" />
+            </motion.button>
+          )}
+
+          {/* Creation Flow Modal */}
+          <AnimatePresence>
+            {showCreate && (
+              <GoalCreationFlow
+                playerData={playerData}
+                existingGoals={goals}
+                onClose={() => setShowCreate(false)}
+                onGoalCreated={handleGoalCreated}
+                onConsumeMana={onConsumeMana}
+                onRefundMana={onRefundMana}
               />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Active Goals */}
-      {activeGoals.length > 0 && (
-        <div className="space-y-3 mb-4">
-          {activeGoals.map(goal => (
-            <GoalCard
-              key={goal.id}
-              goal={goal}
-              onTap={(g) => setSelectedGoal(g)}
-            />
-          ))}
-        </div>
+            )}
+          </AnimatePresence>
+        </>
       )}
-
-      {/* Empty State */}
-      {activeGoals.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-16 px-6">
-          <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ background: 'rgba(34,211,238,0.06)' }}>
-            <Target className="w-7 h-7 text-[#00d4ff]" />
-          </div>
-          <h3 className="text-sm font-bold text-white mb-1">No Active Goals</h3>
-          <p className="text-[10px] text-gray-500 font-mono text-center mb-5 max-w-[240px]">
-            Set a long-term goal and AI will create a daily action plan to help you achieve it.
-          </p>
-          <button
-            onClick={() => setShowCreate(true)}
-            className="px-6 py-3 rounded-xl text-xs font-black text-black uppercase tracking-wider"
-            style={{ background: 'linear-gradient(135deg, #00d4ff, #00d4ff)' }}
-          >
-            Create Shadow Mission
-          </button>
-        </div>
-      )}
-
-      {/* Completed Goals */}
-      {completedGoals.length > 0 && (
-        <div className="mt-6">
-          <div className="flex items-center gap-2 mb-3">
-            <Trophy className="w-3.5 h-3.5 text-amber-400" />
-            <span className="text-[10px] font-mono text-gray-500 uppercase tracking-wider">Completed Missions</span>
-          </div>
-          <div className="space-y-2">
-            {completedGoals.map(goal => (
-              <GoalCard key={goal.id} goal={goal} onTap={(g) => setSelectedGoal(g)} />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* FAB — only show if there are existing goals */}
-      {activeGoals.length > 0 && activeGoals.length < 3 && (
-        <motion.button
-          whileTap={{ scale: 0.9 }}
-          onClick={() => setShowCreate(true)}
-          className="fixed bottom-24 right-5 w-13 h-13 rounded-full flex items-center justify-center z-50 shadow-lg"
-          style={{ background: 'linear-gradient(135deg, #00d4ff, #00d4ff)', width: 52, height: 52 }}
-        >
-          <Plus className="w-5 h-5 text-black" />
-        </motion.button>
-      )}
-
-      {/* Creation Flow Modal */}
-      <AnimatePresence>
-        {showCreate && (
-          <GoalCreationFlow
-            playerData={playerData}
-            existingGoals={goals}
-            onClose={() => setShowCreate(false)}
-            onGoalCreated={handleGoalCreated}
-            onConsumeMana={onConsumeMana}
-            onRefundMana={onRefundMana}
-          />
-        )}
-      </AnimatePresence>
     </div>
   );
 }

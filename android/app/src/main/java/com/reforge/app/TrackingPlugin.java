@@ -2,7 +2,10 @@ package com.reforge.app;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.Build;
+import android.provider.Settings;
 import android.util.Log;
 
 import com.getcapacitor.JSObject;
@@ -217,5 +220,132 @@ public class TrackingPlugin extends Plugin {
     public void clear(PluginCall call) {
         TrackingService.clearSnapshot(getContext());
         call.resolve(new JSObject().put("cleared", true));
+    }
+
+    @PluginMethod()
+    public void checkFocusShieldPermissions(PluginCall call) {
+        boolean usageGranted = FocusShieldService.hasUsageStatsPermission(getContext());
+        boolean overlayGranted = true;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            overlayGranted = Settings.canDrawOverlays(getContext());
+        }
+        JSObject res = new JSObject();
+        res.put("usageGranted", usageGranted);
+        res.put("overlayGranted", overlayGranted);
+        call.resolve(res);
+    }
+
+    @PluginMethod()
+    public void requestUsagePermission(PluginCall call) {
+        Intent intent = new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        getContext().startActivity(intent);
+        call.resolve();
+    }
+
+    @PluginMethod()
+    public void requestOverlayPermission(PluginCall call) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, 
+                Uri.parse("package:" + getContext().getPackageName()));
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getContext().startActivity(intent);
+        }
+        call.resolve();
+    }
+
+    @PluginMethod()
+    public void startFocusShield(PluginCall call) {
+        Context context = getContext();
+        Intent intent = new Intent(context, FocusShieldService.class);
+        intent.setAction(FocusShieldService.ACTION_START);
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(intent);
+            } else {
+                context.startService(intent);
+            }
+            call.resolve(new JSObject().put("started", true));
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to start FocusShieldService", e);
+            call.resolve(new JSObject().put("started", false).put("reason", e.getMessage()));
+        }
+    }
+
+    @PluginMethod()
+    public void stopFocusShield(PluginCall call) {
+        Context context = getContext();
+        Intent intent = new Intent(context, FocusShieldService.class);
+        intent.setAction(FocusShieldService.ACTION_STOP);
+        try {
+            context.startService(intent);
+            call.resolve(new JSObject().put("stopped", true));
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to stop FocusShieldService", e);
+            call.resolve(new JSObject().put("stopped", false).put("reason", e.getMessage()));
+        }
+    }
+
+    @PluginMethod()
+    public void updateFocusShieldConfig(PluginCall call) {
+        JSObject apps = call.getObject("lockedApps");
+        if (apps != null) {
+            SharedPreferences prefs = getContext().getSharedPreferences("reforge_focus_shield_prefs", Context.MODE_PRIVATE);
+            prefs.edit().putString("locked_apps", apps.toString()).apply();
+            call.resolve(new JSObject().put("success", true));
+        } else {
+            call.reject("lockedApps object is required");
+        }
+    }
+
+    @PluginMethod()
+    public void grantBypass(PluginCall call) {
+        String pkg = call.getString("packageName");
+        int mins = call.getInt("durationMinutes", 15);
+        if (pkg != null) {
+            SharedPreferences prefs = getContext().getSharedPreferences("reforge_focus_shield_prefs", Context.MODE_PRIVATE);
+            String bypassJsonStr = prefs.getString("bypass_timestamps", "{}");
+            try {
+                JSONObject bypassObj = bypassJsonStr.isEmpty() ? new JSONObject() : new JSONObject(bypassJsonStr);
+                long expiry = System.currentTimeMillis() + ((long) mins * 60 * 1000);
+                bypassObj.put(pkg, expiry);
+                prefs.edit().putString("bypass_timestamps", bypassObj.toString()).apply();
+                call.resolve(new JSObject().put("success", true));
+            } catch (Exception e) {
+                call.reject(e.getMessage());
+            }
+        } else {
+            call.reject("packageName is required");
+        }
+    }
+
+    @PluginMethod()
+    public void minimizeApp(PluginCall call) {
+        Intent startMain = new Intent(Intent.ACTION_MAIN);
+        startMain.addCategory(Intent.CATEGORY_HOME);
+        startMain.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        getContext().startActivity(startMain);
+        call.resolve();
+    }
+
+    @PluginMethod()
+    public void getActiveLockdown(PluginCall call) {
+        SharedPreferences prefs = getContext().getSharedPreferences("reforge_focus_shield_prefs", Context.MODE_PRIVATE);
+        boolean active = prefs.getBoolean("active_lockdown", false);
+        String pkg = prefs.getString("lockdown_package", "");
+        JSObject res = new JSObject();
+        res.put("active", active);
+        res.put("packageName", pkg);
+        call.resolve(res);
+    }
+
+    @PluginMethod()
+    public void clearActiveLockdown(PluginCall call) {
+        SharedPreferences prefs = getContext().getSharedPreferences("reforge_focus_shield_prefs", Context.MODE_PRIVATE);
+        prefs.edit()
+            .putBoolean("active_lockdown", false)
+            .putString("lockdown_package", "")
+            .apply();
+        call.resolve();
     }
 }

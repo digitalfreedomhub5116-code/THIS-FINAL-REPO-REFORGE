@@ -37,6 +37,45 @@ public class MainActivity extends BridgeActivity {
         // Initialize In-App Update check
         appUpdateManager = AppUpdateManagerFactory.create(this);
         checkForAppUpdate();
+        
+        handleLockdownIntent(getIntent());
+    }
+
+    @Override
+    protected void onNewIntent(android.content.Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        handleLockdownIntent(intent);
+    }
+
+    private void handleLockdownIntent(android.content.Intent intent) {
+        if (intent != null && intent.getBooleanExtra("focus_shield_lockdown", false)) {
+            String targetPackage = intent.getStringExtra("focus_shield_package");
+            Log.i("MainActivity", "Received Focus Shield lockdown intent for: " + targetPackage);
+
+            // Save the lockdown state in SharedPreferences
+            getSharedPreferences("reforge_focus_shield_prefs", MODE_PRIVATE)
+                .edit()
+                .putBoolean("active_lockdown", true)
+                .putString("lockdown_package", targetPackage)
+                .apply();
+
+            // Notify JS plugin if it exists
+            try {
+                com.getcapacitor.PluginHandle handle = bridge.getPlugin("TrackingPlugin");
+                if (handle != null) {
+                    TrackingPlugin plugin = (TrackingPlugin) handle.getInstance();
+                    if (plugin != null) {
+                        com.getcapacitor.JSObject data = new com.getcapacitor.JSObject();
+                        data.put("lockdown", true);
+                        data.put("packageName", targetPackage);
+                        plugin.notifyListeners("focusShieldLockdown", data);
+                    }
+                }
+            } catch (Exception e) {
+                Log.e("MainActivity", "Failed to notify TrackingPlugin of active lockdown", e);
+            }
+        }
     }
 
     // ═══════════════════════════════════════════════════════════════
