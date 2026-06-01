@@ -165,10 +165,12 @@ export const SingleExerciseLimitReset: React.FC<SingleExerciseLimitResetProps> =
         let bs = prev.baselineSquats;
         let br = prev.baselineRunKm;
 
-        // Set the new baseline so that baseline × multiplier × 3 (or baseline × multiplier for running) = desired value
-        if (exercise === 'PUSHUPS') bp = Math.round(newValue / (mult * 3));
-        if (exercise === 'SQUATS') bs = Math.round(newValue / (mult * 3));
-        if (exercise === 'RUNNING') br = +(newValue / mult).toFixed(1);
+        // Set the new baseline so that baseline × multiplier × 3 (or baseline × multiplier for running) = desired value.
+        // We preserve bp, bs, and br as precise floats rather than rounding them. This avoids rounding drift,
+        // ensuring that the target is set to EXACTLY newValue when computeTargets(bp, bs, br) runs.
+        if (exercise === 'PUSHUPS') bp = newValue / (mult * 3);
+        if (exercise === 'SQUATS') bs = newValue / (mult * 3);
+        if (exercise === 'RUNNING') br = newValue / mult;
 
         const fcPushups = prev.targets.find(t => t.exercise === 'PUSHUPS')?.formCoachEnabled ?? true;
         const fcSquats = prev.targets.find(t => t.exercise === 'SQUATS')?.formCoachEnabled ?? true;
