@@ -42,6 +42,7 @@ import { Camera as CapCamera, CameraResultType, CameraSource } from '@capacitor/
 import type { FoodItem, HealthProfile, MealLog, MealType, PlayerData } from '../types';
 import { API_BASE } from '../lib/apiConfig';
 import { authenticatedFetch, getPlayerAuthHeaders } from '../lib/playerApi';
+import HudButton from './HudButton';
 
 // ────────────────────────────────────────────────────────────────────────────
 // Theme — exact colors taken from the reference image.
@@ -778,31 +779,23 @@ const NutritionLogCard: React.FC<NutritionLogCardProps> = ({
           </div>
         )}
 
-        {/* SCAN FOOD trigger (matches the bordered cyan button in the mockup) */}
-        <button
-          type="button"
-          onClick={() => setShowScanSheet(true)}
-          disabled={scanPhase === 'SCANNING'}
-          style={{
-            width: '100%',
-            padding: '16px 0',
-            background: 'rgba(0,212,255,0.06)',
-            border: `1px solid ${COLOR.cyan}`,
-            borderRadius: 14,
-            color: COLOR.cyan,
-            fontFamily: "'Rajdhani', 'Bai Jamjuree', sans-serif",
-            fontWeight: 700, fontSize: 16, letterSpacing: '0.32em',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
-            cursor: scanPhase === 'SCANNING' ? 'wait' : 'pointer',
-            opacity: scanPhase === 'SCANNING' ? 0.55 : 1,
-            boxShadow: `0 0 18px rgba(0, 212, 255, 0.18), inset 0 0 12px rgba(0, 212, 255, 0.08)`,
-            textShadow: `0 0 8px ${COLOR.cyanDim}`,
-            transition: 'background 160ms ease',
-          }}
-        >
-          <ScanLine size={20} strokeWidth={2.2} />
-          SCAN FOOD
-        </button>
+        {/* SCAN FOOD trigger — HUD-style chamfered plate (matches Enter Dungeon).
+            Constrained width + tall ratio keeps it compact, not full-bleed. */}
+        <div style={{
+          width: '100%',
+          maxWidth: 240,
+          margin: '2px auto 0',
+          opacity: scanPhase === 'SCANNING' ? 0.55 : 1,
+          pointerEvents: scanPhase === 'SCANNING' ? 'none' : 'auto',
+        }}>
+          <HudButton
+            label="SCAN FOOD"
+            icon={<ScanLine size={16} strokeWidth={2.2} />}
+            onClick={() => setShowScanSheet(true)}
+            ratio={5.5}
+            ariaLabel="Scan food"
+          />
+        </div>
 
         {/* Hidden file input — web fallback when CapCamera is unavailable */}
         <input
