@@ -174,12 +174,11 @@ const EnterConfirmPopup: React.FC<{
 
 // ── HUD Card Border overlay component ──
 const HudCardBorder: React.FC<{ isCompleted: boolean }> = ({ isCompleted }) => {
-  const CYAN = '#00d4ff';
-  const CYAN_DIM = 'rgba(0, 212, 255, 0.35)';
-  const CYAN_FAINT = 'rgba(0, 212, 255, 0.10)';
+  const NAVY_GLOW = '#2e5b88';
+  const COMPLETED_COLOR = 'rgba(31, 64, 104, 0.4)';
 
-  const strokeColor = isCompleted ? 'rgba(0,180,220,0.4)' : CYAN;
-  const strokeOpacity = isCompleted ? 0.5 : 0.85;
+  const strokeColor = isCompleted ? COMPLETED_COLOR : NAVY_GLOW;
+  const strokeOpacity = isCompleted ? 0.4 : 0.9;
 
   return (
     <svg
@@ -204,8 +203,8 @@ const HudCardBorder: React.FC<{ isCompleted: boolean }> = ({ isCompleted }) => {
           </feMerge>
         </filter>
         <linearGradient id="hud-fill-card" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor={isCompleted ? "rgba(0, 180, 220, 0.02)" : "rgba(0, 212, 255, 0.06)"} />
-          <stop offset="1" stopColor={isCompleted ? "rgba(0, 180, 220, 0.01)" : "rgba(0, 212, 255, 0.02)"} />
+          <stop offset="0" stopColor={isCompleted ? "rgba(15, 23, 42, 0.15)" : "rgba(31, 64, 104, 0.12)"} />
+          <stop offset="1" stopColor={isCompleted ? "rgba(15, 23, 42, 0.03)" : "rgba(31, 64, 104, 0.03)"} />
         </linearGradient>
       </defs>
 
@@ -319,9 +318,12 @@ const ExerciseCard: React.FC<{
   if (!meta) return null;
 
   const isRunning = target.exercise === 'RUNNING';
+  const isCore = target.exercise === 'PUSHUPS' || target.exercise === 'SQUATS';
   const targetText = isRunning
     ? `${target.distanceKm || 1} km`
-    : `${target.reps} reps × ${target.sets} sets`;
+    : isCore
+      ? `${target.reps} Reps`
+      : `${target.reps} reps × ${target.sets} sets`;
 
   const showGear = onUpdateDungeonState && onDeductGold && userId;
 
@@ -344,8 +346,8 @@ const ExerciseCard: React.FC<{
       style={{
         minHeight: 150,
         background: 'transparent',
-        clipPath: 'polygon(6px 0%, calc(100% - 6px) 0%, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0% calc(100% - 6px), 0% 6px)',
-        WebkitClipPath: 'polygon(6px 0%, calc(100% - 6px) 0%, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0% calc(100% - 6px), 0% 6px)',
+        clipPath: 'polygon(3.5% 0%, 96.5% 0%, 100% 14%, 100% 86%, 96.5% 100%, 3.5% 100%, 0% 86%, 0% 14%)',
+        WebkitClipPath: 'polygon(3.5% 0%, 96.5% 0%, 100% 14%, 100% 86%, 96.5% 100%, 3.5% 100%, 0% 86%, 0% 14%)',
       }}
     >
       <HudCardBorder isCompleted={isCompleted} />
@@ -449,8 +451,8 @@ const CustomExerciseCard: React.FC<{
       style={{
         minHeight: 96,
         background: 'rgba(8,8,16,0.5)',
-        clipPath: 'polygon(6px 0%, calc(100% - 6px) 0%, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0% calc(100% - 6px), 0% 6px)',
-        WebkitClipPath: 'polygon(6px 0%, calc(100% - 6px) 0%, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0% calc(100% - 6px), 0% 6px)',
+        clipPath: 'polygon(3.5% 0%, 96.5% 0%, 100% 14%, 100% 86%, 96.5% 100%, 3.5% 100%, 0% 86%, 0% 14%)',
+        WebkitClipPath: 'polygon(3.5% 0%, 96.5% 0%, 100% 14%, 100% 86%, 96.5% 100%, 3.5% 100%, 0% 86%, 0% 14%)',
       }}
     >
       <HudCardBorder isCompleted={isCompleted} />

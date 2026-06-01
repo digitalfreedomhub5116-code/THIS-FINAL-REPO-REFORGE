@@ -48,14 +48,14 @@ export function computeTargets(
   return [
     {
       exercise: 'PUSHUPS',
-      sets: DEFAULT_SETS,
-      reps: Math.max(3, Math.round(baselinePushups * multiplier)),
+      sets: 1,
+      reps: Math.max(10, Math.round(baselinePushups * multiplier * 3)),
       formCoachEnabled: formCoachPushups,
     },
     {
       exercise: 'SQUATS',
-      sets: DEFAULT_SETS,
-      reps: Math.max(5, Math.round(baselineSquats * multiplier)),
+      sets: 1,
+      reps: Math.max(15, Math.round(baselineSquats * multiplier * 3)),
       formCoachEnabled: formCoachSquats,
     },
     {
@@ -389,14 +389,25 @@ export function buildDungeonWorkoutPlan(targets: DungeonExerciseTarget[]): Worko
       };
     }
 
+    const isPushups = t.exercise === 'PUSHUPS';
+    const isSquats = t.exercise === 'SQUATS';
+    let duration = t.sets * 60;
+    if (isPushups) {
+      duration = Math.max(60, t.reps * 4); // 4 seconds per rep, min 60 seconds
+    } else if (isSquats) {
+      duration = Math.max(60, t.reps * 5); // 5 seconds per rep, min 60 seconds
+    }
+
     return {
       name: t.exercise === 'PUSHUPS' ? 'Push Ups' : 'Squats',
       sets: t.sets,
       reps: String(t.reps),
-      duration: t.sets * 60,
+      duration,
       completed: false,
       type: 'COMPOUND' as const,
-      notes: `Sung Jin-woo Protocol — ${t.reps} reps × ${t.sets} sets`,
+      notes: (isPushups || isSquats)
+        ? `Sung Jin-woo Protocol — ${t.reps} reps`
+        : `Sung Jin-woo Protocol — ${t.reps} reps × ${t.sets} sets`,
       formCoachEnabled: t.formCoachEnabled,
     };
   });
@@ -434,94 +445,56 @@ export function buildDungeonWorkoutPlanForEquipment(
   const fcPushups = pushupTarget?.formCoachEnabled ?? true;
   const fcSquats = squatTarget?.formCoachEnabled ?? true;
 
-  if (equipment === 'HOME_DUMBBELLS') {
-    return {
-      day: 'Daily Dungeon',
-      focus: 'DAILY DUNGEON — Dumbbell Protocol',
-      exercises: [
-        {
-          name: 'Dumbbell Goblet Squats',
-          sets,
-          reps: String(squatReps),
-          duration: sets * 60,
-          completed: false,
-          type: 'COMPOUND' as const,
-          notes: `Hold one dumbbell at chest — ${squatReps} reps × ${sets} sets`,
-          formCoachEnabled: fcSquats,
-        },
-        {
-          name: 'Dumbbell Floor Press',
-          sets,
-          reps: String(baseReps),
-          duration: sets * 60,
-          completed: false,
-          type: 'COMPOUND' as const,
-          notes: `Lie on floor, press dumbbells up — ${baseReps} reps × ${sets} sets`,
-          formCoachEnabled: fcPushups,
-        },
-        {
-          name: 'Bent-Over Dumbbell Rows',
-          sets,
-          reps: String(baseReps),
-          duration: sets * 60,
-          completed: false,
-          type: 'COMPOUND' as const,
-          notes: `Hinge at hips, row dumbbells to ribs — ${baseReps} reps × ${sets} sets`,
-          formCoachEnabled: false,
-        },
-        ...(runTarget ? [{
-          name: 'Running',
-          sets: 1,
-          reps: `${runTarget.distanceKm || 1} km`,
-          duration: (runTarget.distanceKm || 1) * 6 * 60,
-          completed: false,
-          type: 'CARDIO' as const,
-          notes: `Cardio finisher — ${runTarget.distanceKm || 1} km`,
-          formCoachEnabled: false,
-          sensorRequirements: { distanceKm: runTarget.distanceKm || 1 },
-        } as any] : []),
-      ],
-      totalDuration: Math.ceil((sets * 60 * 3 + (runTarget ? (runTarget.distanceKm || 1) * 6 * 60 : 0)) / 60),
-    };
-  }
+  const isSingleSet = sets === 1;
 
-  // GYM
-  return {
-    day: 'Daily Dungeon',
-    focus: 'DAILY DUNGEON — Gym Protocol',
-    exercises: [
+  if (equipment === 'HOME_DUMBBELLS') {
+    const squatDur = isSingleSet ? Math.max(60, squatReps * 5) : sets * 60;
+    const pressDur = isSingleSet ? Math.max(60, baseReps * 4) : sets * 60;
+    const rowDur = isSingleSet ? Math.max(60, baseReps * 4) : sets * 60;
+
+    const squatNotes = isSingleSet
+      ? `Hold one dumbbell at chest — ${squatReps} reps`
+      : `Hold one dumbbell at chest — ${squatReps} reps × ${sets} sets`;
+    const pressNotes = isSingleSet
+      ? `Lie on floor, press dumbbells up — ${baseReps} reps`
+      : `Lie on floor, press dumbbells up — ${baseReps} reps × ${sets} sets`;
+    const rowNotes = isSingleSet
+      ? `Hinge at hips, row dumbbells to ribs — ${baseReps} reps`
+      : `Hinge at hips, row dumbbells to ribs — ${baseReps} reps × ${sets} sets`;
+
+    const exercises = [
       {
-        name: 'Barbell Back Squats',
+        name: 'Dumbbell Goblet Squats',
         sets,
-        reps: String(Math.max(5, Math.round(squatReps * 0.7))),
-        duration: sets * 90,
+        reps: String(squatReps),
+        duration: squatDur,
         completed: false,
         type: 'COMPOUND' as const,
-        notes: `Use a moderate weight — ${Math.max(5, Math.round(squatReps * 0.7))} reps × ${sets} sets`,
+        notes: squatNotes,
         formCoachEnabled: fcSquats,
       },
       {
-        name: 'Barbell Bench Press',
+        name: 'Dumbbell Floor Press',
         sets,
-        reps: String(Math.max(5, Math.round(baseReps * 0.7))),
-        duration: sets * 90,
+        reps: String(baseReps),
+        duration: pressDur,
         completed: false,
         type: 'COMPOUND' as const,
-        notes: `Controlled tempo — ${Math.max(5, Math.round(baseReps * 0.7))} reps × ${sets} sets`,
+        notes: pressNotes,
         formCoachEnabled: fcPushups,
       },
       {
-        name: 'Lat Pulldown',
+        name: 'Bent-Over Dumbbell Rows',
         sets,
-        reps: String(Math.max(8, baseReps)),
-        duration: sets * 60,
+        reps: String(baseReps),
+        duration: rowDur,
         completed: false,
         type: 'COMPOUND' as const,
-        notes: `Wide grip — ${Math.max(8, baseReps)} reps × ${sets} sets`,
+        notes: rowNotes,
         formCoachEnabled: false,
       },
       ...(runTarget ? [{
-        name: 'Treadmill Run',
+        name: 'Running',
         sets: 1,
         reps: `${runTarget.distanceKm || 1} km`,
         duration: (runTarget.distanceKm || 1) * 6 * 60,
@@ -531,8 +504,88 @@ export function buildDungeonWorkoutPlanForEquipment(
         formCoachEnabled: false,
         sensorRequirements: { distanceKm: runTarget.distanceKm || 1 },
       } as any] : []),
-    ],
-    totalDuration: Math.ceil((sets * (90 + 90 + 60) + (runTarget ? (runTarget.distanceKm || 1) * 6 * 60 : 0)) / 60),
+    ];
+
+    const totalDuration = exercises.reduce((sum, e) => sum + e.duration, 0) / 60;
+
+    return {
+      day: 'Daily Dungeon',
+      focus: 'DAILY DUNGEON — Dumbbell Protocol',
+      exercises,
+      totalDuration: Math.ceil(totalDuration),
+    };
+  }
+
+  // GYM
+  const squatGymReps = Math.max(5, Math.round(squatReps * 0.7));
+  const pressGymReps = Math.max(5, Math.round(baseReps * 0.7));
+  const rowGymReps = Math.max(8, baseReps);
+
+  const squatDur = isSingleSet ? Math.max(60, squatGymReps * 5) : sets * 90;
+  const pressDur = isSingleSet ? Math.max(60, pressGymReps * 4) : sets * 90;
+  const rowDur = isSingleSet ? Math.max(60, rowGymReps * 4) : sets * 60;
+
+  const squatNotes = isSingleSet
+    ? `Use a moderate weight — ${squatGymReps} reps`
+    : `Use a moderate weight — ${squatGymReps} reps × ${sets} sets`;
+  const pressNotes = isSingleSet
+    ? `Controlled tempo — ${pressGymReps} reps`
+    : `Controlled tempo — ${pressGymReps} reps × ${sets} sets`;
+  const rowNotes = isSingleSet
+    ? `Wide grip — ${rowGymReps} reps`
+    : `Wide grip — ${rowGymReps} reps × ${sets} sets`;
+
+  const exercises = [
+    {
+      name: 'Barbell Back Squats',
+      sets,
+      reps: String(squatGymReps),
+      duration: squatDur,
+      completed: false,
+      type: 'COMPOUND' as const,
+      notes: squatNotes,
+      formCoachEnabled: fcSquats,
+    },
+    {
+      name: 'Barbell Bench Press',
+      sets,
+      reps: String(pressGymReps),
+      duration: pressDur,
+      completed: false,
+      type: 'COMPOUND' as const,
+      notes: pressNotes,
+      formCoachEnabled: fcPushups,
+    },
+    {
+      name: 'Lat Pulldown',
+      sets,
+      reps: String(rowGymReps),
+      duration: rowDur,
+      completed: false,
+      type: 'COMPOUND' as const,
+      notes: rowNotes,
+      formCoachEnabled: false,
+    },
+    ...(runTarget ? [{
+      name: 'Treadmill Run',
+      sets: 1,
+      reps: `${runTarget.distanceKm || 1} km`,
+      duration: (runTarget.distanceKm || 1) * 6 * 60,
+      completed: false,
+      type: 'CARDIO' as const,
+      notes: `Cardio finisher — ${runTarget.distanceKm || 1} km`,
+      formCoachEnabled: false,
+      sensorRequirements: { distanceKm: runTarget.distanceKm || 1 },
+    } as any] : []),
+  ];
+
+  const totalDuration = exercises.reduce((sum, e) => sum + e.duration, 0) / 60;
+
+  return {
+    day: 'Daily Dungeon',
+    focus: 'DAILY DUNGEON — Gym Protocol',
+    exercises,
+    totalDuration: Math.ceil(totalDuration),
   };
 }
 
