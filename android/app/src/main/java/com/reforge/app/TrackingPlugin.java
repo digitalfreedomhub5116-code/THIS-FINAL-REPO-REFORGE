@@ -3,11 +3,14 @@ package com.reforge.app;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.Settings;
 import android.util.Log;
 
+import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -17,6 +20,11 @@ import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
 
 import org.json.JSONObject;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 
 /**
  * Capacitor Plugin that bridges JavaScript ↔ TrackingService.
@@ -354,5 +362,50 @@ public class TrackingPlugin extends Plugin {
         data.put("lockdown", true);
         data.put("packageName", packageName);
         notifyListeners("focusShieldLockdown", data);
+    }
+
+    @PluginMethod()
+    public void getInstalledApps(PluginCall call) {
+        try {
+            PackageManager pm = getContext().getPackageManager();
+            Intent intent = new Intent(Intent.ACTION_MAIN, null);
+            intent.addCategory(Intent.CATEGORY_LAUNCHER);
+            List<ResolveInfo> list = pm.queryIntentActivities(intent, 0);
+
+            // Polish: sort apps alphabetically by name
+            Collections.sort(list, new Comparator<ResolveInfo>() {
+                @Override
+                public int compare(ResolveInfo o1, ResolveInfo o2) {
+                    String name1 = o1.loadLabel(pm).toString();
+                    String name2 = o2.loadLabel(pm).toString();
+                    return name1.compareToIgnoreCase(name2);
+                }
+            });
+
+            JSArray appsArray = new JSArray();
+            String ourPkg = getContext().getPackageName();
+
+            for (ResolveInfo info : list) {
+                String appName = info.loadLabel(pm).toString();
+                String pkgName = info.activityInfo.packageName;
+                
+                // Avoid monitoring our own app
+                if (pkgName.equals(ourPkg)) {
+                    continue;
+                }
+
+                JSObject appObj = new JSObject();
+                appObj.put("appName", appName);
+                appObj.put("packageName", pkgName);
+                appsArray.put(appObj);
+            }
+
+            JSObject res = new JSObject();
+            res.put("apps", appsArray);
+            call.resolve(res);
+        } catch (Exception e) {
+            Log.e(TAG, "Error listing installed apps", e);
+            call.reject("Failed to get installed apps: " + e.getMessage());
+        }
     }
 }

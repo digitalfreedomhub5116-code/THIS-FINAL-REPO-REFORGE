@@ -4,6 +4,7 @@ import { ShieldAlert, Zap, Swords, Lock, RefreshCw, Key } from 'lucide-react';
 import FormCoachOverlay from './FormCoachOverlay';
 import { playSystemSoundEffect } from '../utils/soundEngine';
 import { showSystemToast } from './SystemToast';
+import { findFormCoachExercise } from '../lib/formCoachConfig';
 
 interface DungeonLockScreenProps {
   packageName: string;
@@ -27,18 +28,9 @@ export default function DungeonLockScreen({
   const [repCount, setRepCount] = useState(0);
   const [bypassLoading, setBypassLoading] = useState(false);
 
-  // Focus Shield pushup exercise definition for MediaPipe FormCoach
-  const PUSHUP_EXERCISE = {
-    name: 'Push-ups',
-    sets: 1,
-    reps: requiredReps.toString(),
-    duration: 300,
-    setupTips: [
-      'Place device on the floor or lean it securely.',
-      'Align your full body in the camera frame.',
-      'Lower chest fully and extend arms on reps.'
-    ]
-  } as any;
+  // Load real push-up configuration from FormCoach Config to ensure all landmarks,
+  // angle limits, and rep detection thresholds (like bottomAngleMax) are fully defined.
+  const PUSHUP_EXERCISE = findFormCoachExercise('Push-Up')!;
 
   const handleDungeonClear = async () => {
     if (clearing) return;
@@ -219,18 +211,15 @@ export default function DungeonLockScreen({
       <div className="w-full max-w-sm mx-auto flex flex-col items-center gap-4 mb-6">
         <div className="w-full h-px bg-gray-900/60" />
         
-        {/* Mana Key Shadow Extraction Bypass */}
+        {/* Mana Key Emergency Bypass */}
         <div className="w-full bg-gray-950/40 border border-gray-900/60 rounded-xl px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-purple-500/10 border border-purple-500/20 rounded-lg text-purple-400">
-              <Key className="w-4 h-4" />
-            </div>
-            <div>
-              <h4 className="text-[10px] font-bold text-white font-mono uppercase tracking-wide">Shadow Extraction</h4>
-              <p className="text-[9px] text-gray-500 font-mono mt-0.5">
-                Bypass shield for 15 mins (Cost: 1 Key)
-              </p>
-            </div>
+          <div className="flex-1">
+            <span className="text-[10px] text-gray-400 font-mono tracking-wider">
+              OR use a key to bypass
+            </span>
+            <p className="text-[8px] text-gray-600 font-mono mt-0.5">
+              Cost: 1 Mana Key for 15m unlock
+            </p>
           </div>
 
           <button
