@@ -15,7 +15,7 @@ import {
   DungeonState, DungeonExerciseTarget, WorkoutDay, FormCoachSession
 } from '../types';
 import GoalCard from './GoalCard';
-import GoalDetailView, { onQuestGenStoreUpdate } from './GoalDetailView';
+import GoalDetailView from './GoalDetailView';
 import GoalCreationFlow from './GoalCreationFlow';
 import RankBadge from './RankBadge';
 import type { RankType } from './RankBadge';
@@ -39,51 +39,8 @@ import { scheduleSlotReminder, cancelScheduleSlotReminder, scheduleQuestStartNot
 // feature. They are exported so tests can import them without mounting the
 // component. They have no React dependencies and no side effects.
 
-/** A `CategoryTab` value matching `DailyCommandCenter`'s `todayCategoryTab` state. */
-export type CategoryTab = 'DEFAULT' | 'CUSTOM';
-
 /** Lifecycle states emitted by `_questGenStore` in `GoalDetailView`. */
 export type QuestGenStoreState = 'IDLE' | 'GENERATING' | 'DONE' | 'ERROR';
-
-/**
- * Returns true iff the resulting quest belongs in the Custom tab.
- * Mirrors the Custom_Tab filter: `!!q.goalId || q.isDaily === false`.
- */
-export function isCustomQuest(q: Quest): boolean {
-  return !!q.goalId || q.isDaily === false;
-}
-
-/**
- * Decides whether the manual quest creation modal should auto-switch the
- * active category tab to `CUSTOM`. Returns true iff the user is currently
- * on the `DEFAULT` tab, not in tutorial mode, and the newly created quest
- * is a Custom_Quest.
- */
-export function shouldSwitchOnManualCreate(args: {
-  newQuest: Quest;
-  currentTab: CategoryTab;
-  isTutorial: boolean;
-}): boolean {
-  const { newQuest, currentTab, isTutorial } = args;
-  return currentTab === 'DEFAULT' && !isTutorial && isCustomQuest(newQuest);
-}
-
-/**
- * Decides whether a `DONE` transition from goal-based quest generation
- * should auto-switch the active category tab to `CUSTOM`. Returns true iff
- * the store reached `DONE`, produced at least one quest, and the user is
- * currently on the `DEFAULT` tab.
- */
-export function shouldSwitchOnGoalGenDone(args: {
-  storeState: QuestGenStoreState;
-  pendingFeedQuestsCount: number;
-  currentTab: CategoryTab;
-}): boolean {
-  const { storeState, pendingFeedQuestsCount, currentTab } = args;
-  return storeState === 'DONE'
-    && pendingFeedQuestsCount > 0
-    && currentTab === 'DEFAULT';
-}
 
 // ────────────────────────────────────────────────────────────
 // DAILY ANALYSIS TRACKING (matches QuestsView)
@@ -181,6 +138,11 @@ interface DailyCommandCenterProps {
   onToggleNotify?: (slotId: string, enabled: boolean, slots: ScheduleSlot[]) => void;
   onReorderSlots?: (slots: ScheduleSlot[]) => void;
   onShowInterstitialAd?: () => Promise<boolean>;
+
+  /** When true (default), the in-header "+" create-quest button is shown. Set false to hide it (e.g. on the Dashboard where creation lives on the Goals page). */
+  showCreateButton?: boolean;
+  /** Increment this value to programmatically open the quest creation modal from outside (e.g. the Goals page "+" button). */
+  openCreateTrigger?: number;
 
   // AdMob test panel — temporary debug surface
   adShowInterstitial?: (adUnitId: string) => Promise<boolean>;
@@ -979,6 +941,7 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
   goals, onUpdateGoals, onDeleteGoal, onDeductGold, onUpdateScheduleSlots,
   scheduleProfile, dailySchedule, rescheduleQuest: rescheduleQuestProp, onSetupSchedule,
   onSlotAction, onToggleNotify, onReorderSlots, onShowInterstitialAd,
+  showCreateButton = true, openCreateTrigger,
   adShowInterstitial, adShowRewarded, adUnits, adsReady, isPremium,
   dungeonState, onInitializeDungeon, onUpdateDungeonState, onCompleteDungeonWorkout, onFailDungeonWorkout,
   onAddRewards, dungeonEntryTrigger,
@@ -998,53 +961,12 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
   const [showGoalCreate, setShowGoalCreate] = useState(false);
   const [rescheduleQuest, setRescheduleQuest] = useState<Quest | null>(null); // Reschedule modal
   const [pastCollapsed, setPastCollapsed] = useState(true); // F6
-  const [todayCategoryTab, setTodayCategoryTab] = useState<'DEFAULT' | 'CUSTOM'>('DEFAULT');
 
   // Daily Dungeon state
   const [isDungeonActive, setIsDungeonActive] = useState(false);
   const [dungeonPlan, setDungeonPlan] = useState<WorkoutDay | null>(null);
   const [dungeonRewardAnim, setDungeonRewardAnim] = useState<{ xp: number; gold: number } | null>(null);
   const [pendingDungeonRewards, setPendingDungeonRewards] = useState<{ xp: number; gold: number } | null>(null);
-
-  // ──────────────────────────────────────────────────────────
-  // AUTO-SWITCH QUEST TAB — goal-gen `DONE` listener
-  // ──────────────────────────────────────────────────────────
-  // Subscribes to the existing `_questGenListeners` Set in GoalDetailView so
-  // we can flip `todayCategoryTab` to 'CUSTOM' once goal-based generation
-  // finishes producing quests on the DEFAULT tab.
-  //
-  // Listener-ordering invariant: `App.tsx`'s top-level `useEffect` registers
-  // its `onQuestGenStoreUpdate` callback at app-mount time, BEFORE this
-  // component mounts. Because `Set` iteration follows insertion order, when
-  // `updateQuestGenStore({state:'DONE', ...})` fires the synchronous
-  // `forEach`, App's listener runs first and dispatches `addQuest` for every
-  // pending feed quest; this listener runs second and only switches the tab.
-  // We therefore deliberately do NOT call `addQuest` here — App.tsx remains
-  // the sole dispatcher. React batches the queued state updates so the next
-  // render shows the new quests under the freshly-active 'CUSTOM' tab.
-  const lastHandledDoneRef = useRef<{ goalId: string | null; ts: number } | null>(null);
-  useEffect(() => {
-    const unsub = onQuestGenStoreUpdate((store) => {
-      if (store.state !== 'DONE') return;
-
-      // Exactly-once guard (Req 2.6): suppress double-fire within a 50ms
-      // window keyed on goalId. Protects against React StrictMode's
-      // dev-time double-invoke of effects and any rapid re-emit edge case.
-      const sig = { goalId: store.goalId ?? null, ts: Date.now() };
-      const prev = lastHandledDoneRef.current;
-      if (prev && prev.goalId === sig.goalId && (sig.ts - prev.ts) < 50) return;
-      lastHandledDoneRef.current = sig;
-
-      if (shouldSwitchOnGoalGenDone({
-        storeState: store.state,
-        pendingFeedQuestsCount: store.pendingFeedQuests?.length ?? 0,
-        currentTab: todayCategoryTab,
-      })) {
-        setTodayCategoryTab('CUSTOM');
-      }
-    });
-    return unsub;
-  }, [todayCategoryTab]);
 
   // Auto-initialize dungeon on mount (also patches existing goals if needed)
   useEffect(() => {
@@ -1176,6 +1098,15 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
     onToggleNav?.(!isModalOpen);
   }, [isModalOpen, onToggleNav]);
 
+  // Open the create-quest modal when an external trigger increments (e.g. Goals page "+").
+  const lastCreateTriggerRef = useRef<number | undefined>(openCreateTrigger);
+  useEffect(() => {
+    if (openCreateTrigger === undefined) return;
+    if (lastCreateTriggerRef.current === openCreateTrigger) return;
+    lastCreateTriggerRef.current = openCreateTrigger;
+    setIsModalOpen(true);
+  }, [openCreateTrigger]);
+
 
 
   // ── Build unified timeline ──
@@ -1235,14 +1166,15 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
     () => customTodaysQuests.filter(q => !q.isCompleted && !q.failed).length,
     [customTodaysQuests]
   );
-  const visibleTodaysQuests = todayCategoryTab === 'DEFAULT' ? defaultTodaysQuests : customTodaysQuests;
+  // Tab removed — show every quest scheduled for today (default + custom merged).
+  const visibleTodaysQuests = todaysQuests;
 
   // Build merged timeline: schedule slots + quests interlaced by time
   const timeline = useMemo(() => {
     const entries: { type: 'SLOT' | 'QUEST'; time: number; slot?: ScheduleSlot; quest?: Quest }[] = [];
 
-    // Add schedule slots only on DEFAULT tab — Custom tab focuses purely on user/goal quests
-    if (todayCategoryTab === 'DEFAULT') {
+    // Schedule slots (routine, school, meals, sleep) — always shown now the tab is gone
+    {
       scheduleSlots.forEach(slot => {
         if (slot.type === 'QUEST') return; // Goal quest slots — rendered as quest cards below
         entries.push({ type: 'SLOT', time: timeToMinutes(slot.startTime), slot });
@@ -1261,7 +1193,7 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
     entries.sort((a, b) => a.time - b.time);
 
     return entries;
-  }, [scheduleSlots, visibleTodaysQuests, todayCategoryTab]);
+  }, [scheduleSlots, visibleTodaysQuests]);
 
   // Determine which entry is "current"
   const currentEntryIdx = useMemo(() => {
@@ -1444,17 +1376,6 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
       if (onTutorialAction) onTutorialAction(5);
     } else {
       addQuest(newQuest);
-      // ── auto-switch-quest-tab feature: if the new quest is a Custom_Quest
-      // and the user is currently viewing DEFAULT, flip the tab to CUSTOM
-      // BEFORE closing the modal so the user lands on the tab that contains
-      // their newly created quest. Tutorial mode is excluded by branch above.
-      if (shouldSwitchOnManualCreate({
-        newQuest,
-        currentTab: todayCategoryTab,
-        isTutorial: false,
-      })) {
-        setTodayCategoryTab('CUSTOM');
-      }
       setIsModalOpen(false); resetForm();
       // Schedule notification for when quest starts
       scheduleQuestStartNotification(newQuest.id, newQuest.title, scheduleTime);
@@ -1509,72 +1430,25 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
             <ProgressRing completed={completedQuests.length} total={Math.max(3, totalTasks)} />
           </div>
 
-          <button
-            id="tut-add-quest"
-            onClick={() => {
-              setIsModalOpen(true);
-              if (tutorialStep === 1 && onTutorialAction) onTutorialAction(2);
-            }}
-            className="w-11 h-11 md:w-13 md:h-13 rounded-full flex items-center justify-center active:scale-90 transition-all"
-            style={{ background: 'linear-gradient(135deg, #00d4ff, #0099cc)', boxShadow: '0 0 20px rgba(0,212,255,0.4), 0 4px 14px rgba(0,0,0,0.35)' }}
-          >
-            <Plus size={22} className="text-black" strokeWidth={3} />
-          </button>
+          {(showCreateButton || tutorialStep === 1) && (
+            <button
+              id="tut-add-quest"
+              onClick={() => {
+                setIsModalOpen(true);
+                if (tutorialStep === 1 && onTutorialAction) onTutorialAction(2);
+              }}
+              className="w-11 h-11 md:w-13 md:h-13 rounded-full flex items-center justify-center active:scale-90 transition-all"
+              style={{ background: 'linear-gradient(135deg, #00d4ff, #0099cc)', boxShadow: '0 0 20px rgba(0,212,255,0.4), 0 4px 14px rgba(0,0,0,0.35)' }}
+            >
+              <Plus size={22} className="text-black" strokeWidth={3} />
+            </button>
+          )}
         </div>
       </div>
 
 
-
-
-      {/* ── DEFAULT / CUSTOM SUBSECTION TABS ── */}
-      <div
-        className="flex items-center gap-1 p-1 rounded-xl mx-1"
-        style={{
-          background: 'rgba(255,255,255,0.03)',
-          border: '1px solid rgba(255,255,255,0.06)',
-        }}
-      >
-        {(['DEFAULT', 'CUSTOM'] as const).map(tab => {
-          const isActive = todayCategoryTab === tab;
-          const count = tab === 'DEFAULT' ? activeDefaultCount : activeCustomCount;
-          return (
-            <button
-              key={tab}
-              onClick={() => {
-                if (todayCategoryTab !== tab) triggerHaptic('TAB_SWITCH');
-                setTodayCategoryTab(tab);
-              }}
-              className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg transition-all active:scale-[0.98]"
-              style={{
-                background: isActive ? 'rgba(0,212,255,0.12)' : 'transparent',
-                border: isActive ? '1px solid rgba(0,212,255,0.35)' : '1px solid transparent',
-                boxShadow: isActive ? '0 0 14px rgba(0,212,255,0.18)' : 'none',
-              }}
-            >
-              <span
-                className="text-[10px] font-black font-mono uppercase tracking-[0.18em]"
-                style={{ color: isActive ? '#00d4ff' : 'rgba(156,163,175,0.85)' }}
-              >
-                {tab === 'DEFAULT' ? 'Default' : 'Custom'}
-              </span>
-              <span
-                className="px-1.5 py-0.5 rounded-full text-[9px] font-mono font-bold tabular-nums"
-                style={{
-                  background: isActive ? 'rgba(0,212,255,0.18)' : 'rgba(255,255,255,0.06)',
-                  color: isActive ? '#00d4ff' : '#9ca3af',
-                  minWidth: 18,
-                }}
-              >
-                {count}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
-
-      {/* ── DAILY DUNGEON (Sung Jin-woo Protocol) — DEFAULT TAB ONLY ── */}
-      {todayCategoryTab === 'DEFAULT' && dungeonState && (
+      {/* ── DAILY DUNGEON (Sung Jin-woo Protocol) ── */}
+      {dungeonState && (
         <div id="dungeon-protocol-section" className="mb-4">
           <DungeonQuestCards
             dungeonState={dungeonState}
@@ -1775,9 +1649,7 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
         {/* Empty state */}
         {timeline.length === 0 && visibleTodaysQuests.length === 0 && (
           <div className="text-center py-20 text-gray-600 font-mono text-sm border-2 border-dashed border-gray-800 rounded-lg bg-black/20">
-            {todayCategoryTab === 'CUSTOM'
-              ? 'NO CUSTOM QUESTS. CREATE A QUEST OR GENERATE FROM A GOAL.'
-              : 'NO DEFAULT PROTOCOLS. INITIATE QUEST.'}
+            {'NO QUESTS TODAY. CREATE A QUEST OR GENERATE FROM A GOAL.'}
           </div>
         )}
 

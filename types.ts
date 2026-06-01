@@ -7,7 +7,7 @@ export enum SystemState {
   LOCKED = 'LOCKED'
 }
 
-export type Tab = 'DASHBOARD' | 'QUESTS' | 'ARMORY' | 'STORE' | 'LEADERBOARD' | 'REWARDS' | 'GROWTH' | 'HEALTH' | 'CASTLE' | 'PROFILE';
+export type Tab = 'DASHBOARD' | 'QUESTS' | 'ARMORY' | 'STORE' | 'LEADERBOARD' | 'REWARDS' | 'GROWTH' | 'HEALTH' | 'GOALS' | 'CASTLE' | 'PROFILE';
 
 export interface NavItem {
   label: string;

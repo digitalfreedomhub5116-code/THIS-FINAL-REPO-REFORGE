@@ -88,7 +88,7 @@ const VIP_EMAILS = new Set([
   'reforgesystem@gmail.com',
 ]);
 
-import { Terminal, Flame } from 'lucide-react';
+import { Terminal, Flame, Plus } from 'lucide-react';
 
 import { getLockedTabs } from './components/FeatureGate';
 
@@ -205,8 +205,6 @@ const ProfileView = lazy(() => import('./components/ProfileView'));
 const YouView = lazy(() => import('./components/YouView'));
 
 const DuskFloatingPill = lazy(() => import('./components/DuskFloatingPill'));
-
-const DashboardView = lazy(() => import('./components/DashboardView'));
 
 const GoalHeroSection = lazy(() => import('./components/GoalHeroSection'));
 const GoalCreationFlow = lazy(() => import('./components/GoalCreationFlow'));
@@ -700,6 +698,9 @@ const App: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<Tab>('DASHBOARD');
   const tabHistoryRef = useRef<Tab[]>(['DASHBOARD']);
+
+  // Increment to open the quest-creation modal inside DailyCommandCenter (from the Goals page "+").
+  const [questCreateTrigger, setQuestCreateTrigger] = useState(0);
 
   // ── Nav badge dots — conditional visibility ──
   const [navBadges, setNavBadges] = useState<Record<string, boolean>>({});
@@ -5075,32 +5076,7 @@ const App: React.FC = () => {
                       />
                     </ErrorBoundary>
 
-                    {/* ── 2. Goal Hero + Pinned Goals ── */}
-                    <Suspense fallback={null}>
-                      <ErrorBoundary fallbackLabel="Goals failed">
-                        <GoalHeroSection
-                          goals={player.goals || []}
-                          onCreateGoal={() => setShowGoalCreate(true)}
-                          generatingGoalId={generatingGoalId}
-                          isPremium={isPremium}
-                          onUpgrade={() => setShowManaPowerUpsell(true)}
-                          onGenerateQuests={(goalId) => {
-                            const goal = (player.goals || []).find(g => g.id === goalId);
-                            if (!goal) return;
-                            const todayStr = new Date().toISOString().split('T')[0];
-                            const currentDay = Math.max(1, Math.floor((Date.now() - goal.startDate) / (1000 * 60 * 60 * 24)) + 1);
-                            startQuestGeneration({
-                              goal,
-                              allGoals: player.goals || [],
-                              playerData: player,
-                              todayStr,
-                              currentDay,
-                              existingQuests: player.quests,
-                            });
-                          }}
-                        />
-                      </ErrorBoundary>
-                    </Suspense>
+                    {/* ── Goals moved to the dedicated Goals tab ── */}
 
                     {/* ── 3. Daily Quests ── */}
                     <QuestUnlockTimer />
@@ -5109,6 +5085,8 @@ const App: React.FC = () => {
                         <ErrorBoundary fallbackLabel="Quests failed to load">
                           <DailyCommandCenter
                             quests={player.quests}
+                            showCreateButton={false}
+                            openCreateTrigger={questCreateTrigger}
                             addQuest={addQuest}
                             completeQuest={handleQuestComplete}
                             failQuest={failQuest}
@@ -5406,6 +5384,62 @@ const App: React.FC = () => {
 
 
 
+
+
+
+
+                {/* ── GOALS ── */}
+
+                {activeTab === 'GOALS' && (
+
+                  <motion.div key="goals" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6 md:space-y-8">
+
+                    {/* Header — title + create-custom-quest button */}
+                    <div className="sticky top-0 z-20 pt-2 pb-3 px-0" style={{ backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
+                      <div className="flex items-center justify-between px-1">
+                        <span className="text-xs font-heading font-extrabold tracking-[0.25em] text-white uppercase">
+                          GOALS
+                        </span>
+                        <button
+                          onClick={() => { setActiveTab('DASHBOARD' as Tab); setQuestCreateTrigger(n => n + 1); }}
+                          className="w-11 h-11 md:w-13 md:h-13 rounded-full flex items-center justify-center active:scale-90 transition-all"
+                          style={{ background: 'linear-gradient(135deg, #00d4ff, #0099cc)', boxShadow: '0 0 20px rgba(0,212,255,0.4), 0 4px 14px rgba(0,0,0,0.35)' }}
+                          aria-label="Create custom quest"
+                        >
+                          <Plus size={22} className="text-black" strokeWidth={3} />
+                        </button>
+                      </div>
+                    </div>
+
+                    <Suspense fallback={null}>
+                      <ErrorBoundary fallbackLabel="Goals failed">
+                        <GoalHeroSection
+                          goals={player.goals || []}
+                          onCreateGoal={() => setShowGoalCreate(true)}
+                          generatingGoalId={generatingGoalId}
+                          isPremium={isPremium}
+                          onUpgrade={() => setShowManaPowerUpsell(true)}
+                          onGenerateQuests={(goalId) => {
+                            const goal = (player.goals || []).find(g => g.id === goalId);
+                            if (!goal) return;
+                            const todayStr = new Date().toISOString().split('T')[0];
+                            const currentDay = Math.max(1, Math.floor((Date.now() - goal.startDate) / (1000 * 60 * 60 * 24)) + 1);
+                            startQuestGeneration({
+                              goal,
+                              allGoals: player.goals || [],
+                              playerData: player,
+                              todayStr,
+                              currentDay,
+                              existingQuests: player.quests,
+                            });
+                          }}
+                        />
+                      </ErrorBoundary>
+                    </Suspense>
+
+                  </motion.div>
+
+                )}
 
 
 
