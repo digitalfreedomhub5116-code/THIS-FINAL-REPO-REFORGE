@@ -927,6 +927,8 @@ const App: React.FC = () => {
 
   const prevRankRef = useRef<string | null>(null);
 
+  const lastKnownLevelRef = useRef<number | null>(null);
+
   const banReversalShownRef = useRef(false);
 
 
@@ -2627,29 +2629,38 @@ const App: React.FC = () => {
 
 
 
-  // Global event listener for level up (much more reliable than checking logs)
-
+  // ── Production-Grade State-Driven Level Observer ──
+  // Completely immune to event race conditions, thread blocks, or initialization misses.
   useEffect(() => {
+    if (!player.isConfigured) return;
 
-    const handleLevelUp = (e: Event) => {
+    // Initialize on first state mount
+    if (lastKnownLevelRef.current === null) {
+      lastKnownLevelRef.current = player.level;
+      return;
+    }
 
-      const level = (e as CustomEvent).detail?.level;
+    // Direct state transition detection
+    if (player.level > lastKnownLevelRef.current) {
+      lastKnownLevelRef.current = player.level;
+      setShowLevelUp(true);
+      enqueueOverlay('levelUp');
+    } else if (player.level < lastKnownLevelRef.current) {
+      // Sync deleveled thresholds (e.g. missed-workout penalty drops)
+      lastKnownLevelRef.current = player.level;
+    }
+  }, [player.level, player.isConfigured, enqueueOverlay]);
 
-      if (level) {
-
-        setShowLevelUp(true);
-
-        enqueueOverlay('levelUp');
-
-      }
-
-    };
-
-    window.addEventListener('player:levelup', handleLevelUp);
-
-    return () => window.removeEventListener('player:levelup', handleLevelUp);
-
-  }, [enqueueOverlay]);
+  // ── Predictive Cinematic Chunk Prefetcher ──
+  // Automatically pre-downloads the async LevelUpCinematic component bundle
+  // in the background once the player is within 85% of their next level.
+  useEffect(() => {
+    if (!player.isConfigured || !player.requiredXp) return;
+    const xpRatio = player.currentXp / player.requiredXp;
+    if (xpRatio > 0.85) {
+      import('./components/LevelUpCinematic').catch(() => { /* silent prefetch */ });
+    }
+  }, [player.currentXp, player.requiredXp, player.isConfigured]);
 
 
 
