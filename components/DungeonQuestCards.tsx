@@ -13,12 +13,13 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Swords, Check, ChevronRight, Shield, MapPin, AlertTriangle, X } from 'lucide-react';
+import { Swords, Check, Shield, MapPin, AlertTriangle, X } from 'lucide-react';
 import { DungeonState, DungeonExerciseTarget } from '../types';
 import { getProgressionTier, isDungeonCompletedToday, isExerciseCompletedToday } from '../lib/dungeonEngine';
 import { triggerHaptic } from '../utils/soundEngine';
 import { SingleExerciseLimitReset } from './DungeonLimitReset';
 import { AD_UNITS } from '../hooks/useAdMob';
+import HudButton from './HudButton';
 
 const EXERCISE_META: Record<string, {
   label: string;
@@ -416,23 +417,20 @@ const DungeonQuestCards: React.FC<DungeonQuestCardsProps> = ({
               </span>
             </motion.div>
           ) : (
-            <motion.button
+            <motion.div
               key="enter"
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={handleEnterClick}
-              className="w-full flex items-center justify-center gap-2.5 py-4 rounded-xl font-bold text-sm uppercase tracking-wider transition-all"
-              style={{
-                background: 'linear-gradient(135deg, rgba(0,180,220,0.15) 0%, rgba(0,140,180,0.1) 100%)',
-                color: '#6ec4d6',
-                border: '1px solid rgba(0,180,220,0.15)',
-              }}
+              className="w-full"
             >
-              <Swords size={14} />
-              {hasPartialProgress ? 'Resume Dungeon' : 'Enter Dungeon'}
-              <ChevronRight size={13} strokeWidth={3} />
-            </motion.button>
+              <HudButton
+                label={hasPartialProgress ? 'RESUME DUNGEON' : 'ENTER DUNGEON'}
+                icon={<Swords size={16} strokeWidth={2.4} />}
+                onClick={handleEnterClick}
+                ratio={5}
+                ariaLabel={hasPartialProgress ? 'Resume Dungeon' : 'Enter Dungeon'}
+              />
+            </motion.div>
           )}
         </AnimatePresence>
       </div>

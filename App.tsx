@@ -34,7 +34,6 @@ import ErrorBoundary from './components/ErrorBoundary';
 import StreakMilestoneOverlay from './components/StreakMilestoneOverlay';
 import HunterStatusWindow from './components/HunterStatusWindow';
 import NutritionLogCard from './components/NutritionLogCard';
-import HudButton from './components/HudButton';
 import QuestUnlockTimer from './components/QuestUnlockTimer';
 import LeaguePromotionOverlay from './components/LeaguePromotionOverlay';
 import ReviewPromptSheet from './components/ReviewPromptSheet';
@@ -89,7 +88,7 @@ const VIP_EMAILS = new Set([
   'reforgesystem@gmail.com',
 ]);
 
-import { Terminal, Flame, Trophy } from 'lucide-react';
+import { Terminal, Flame } from 'lucide-react';
 
 import { getLockedTabs } from './components/FeatureGate';
 
@@ -5075,15 +5074,6 @@ const App: React.FC = () => {
                         }}
                       />
                     </ErrorBoundary>
-
-                    {/* ── HUD action buttons: Leaderboard ── */}
-                    <div className="grid grid-cols-1 gap-3 px-1">
-                      <HudButton
-                        label="LEADERBOARD"
-                        icon={<Trophy size={18} strokeWidth={2.2} />}
-                        onClick={() => navigateTo('LEADERBOARD' as Tab)}
-                      />
-                    </div>
 
                     {/* ── 2. Goal Hero + Pinned Goals ── */}
                     <Suspense fallback={null}>
