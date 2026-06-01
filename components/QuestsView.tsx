@@ -38,14 +38,22 @@ interface ForgeGuardResult {
 
 const FREE_DAILY_ANALYSES = 3;
 
+function todayStr(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 function getDailyAnalysisCount(userId?: string): number {
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayStr();
   const key = `reforge_daily_analyses_${userId || 'local'}_${today}`;
   return parseInt(localStorage.getItem(key) || '0', 10);
 }
 
 function incrementDailyAnalysisCount(userId?: string): void {
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayStr();
   const key = `reforge_daily_analyses_${userId || 'local'}_${today}`;
   const current = parseInt(localStorage.getItem(key) || '0', 10);
   localStorage.setItem(key, String(current + 1));

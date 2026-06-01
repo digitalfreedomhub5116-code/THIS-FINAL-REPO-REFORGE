@@ -1402,7 +1402,9 @@ const App: React.FC = () => {
 
         // Use lightweight /sync endpoint (~1KB) instead of full GET (~50KB)
 
-        const res = await authenticatedFetch(`${API_BASE}/api/player/${player.userId}/sync`, { headers: { ...getPlayerAuthHeaders() } });
+        const d = new Date();
+        const localDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        const res = await authenticatedFetch(`${API_BASE}/api/player/${player.userId}/sync?localDate=${localDate}`, { headers: { ...getPlayerAuthHeaders() } });
 
         if (!res.ok) return;
 

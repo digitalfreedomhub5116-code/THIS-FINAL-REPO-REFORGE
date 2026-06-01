@@ -23,7 +23,11 @@ const DEFAULT_SETS = 3;             // Classic 3-set structure
 
 // ── Helpers ──
 function todayStr(): string {
-  return new Date().toISOString().split('T')[0];
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 function daysBetween(date1: string, date2: string): number {

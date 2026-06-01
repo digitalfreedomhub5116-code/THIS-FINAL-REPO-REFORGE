@@ -172,6 +172,136 @@ const EnterConfirmPopup: React.FC<{
   </motion.div>
 );
 
+// ── HUD Card Border overlay component ──
+const HudCardBorder: React.FC<{ isCompleted: boolean }> = ({ isCompleted }) => {
+  const CYAN = '#00d4ff';
+  const CYAN_DIM = 'rgba(0, 212, 255, 0.35)';
+  const CYAN_FAINT = 'rgba(0, 212, 255, 0.10)';
+
+  const strokeColor = isCompleted ? 'rgba(0,180,220,0.4)' : CYAN;
+  const strokeOpacity = isCompleted ? 0.5 : 0.85;
+
+  return (
+    <svg
+      viewBox="0 0 200 50"
+      preserveAspectRatio="none"
+      style={{
+        position: 'absolute',
+        inset: 0,
+        width: '100%',
+        height: '100%',
+        pointerEvents: 'none',
+        zIndex: 5,
+      }}
+      aria-hidden="true"
+    >
+      <defs>
+        <filter id="hud-glow-card" x="-20%" y="-50%" width="140%" height="200%">
+          <feGaussianBlur stdDeviation="0.7" result="b" />
+          <feMerge>
+            <feMergeNode in="b" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+        <linearGradient id="hud-fill-card" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor={isCompleted ? "rgba(0, 180, 220, 0.02)" : "rgba(0, 212, 255, 0.06)"} />
+          <stop offset="1" stopColor={isCompleted ? "rgba(0, 180, 220, 0.01)" : "rgba(0, 212, 255, 0.02)"} />
+        </linearGradient>
+      </defs>
+
+      {/* Outer chamfered plate — single closed path with notched corners */}
+      {(() => {
+        const W = 200;
+        const H = 50;
+        const c = 6; // chamfer size
+        const path = [
+          `M ${c},0`,
+          `L ${W - c},0`,
+          `L ${W},${c}`,
+          `L ${W},${H - c}`,
+          `L ${W - c},${H}`,
+          `L ${c},${H}`,
+          `L 0,${H - c}`,
+          `L 0,${c}`,
+          'Z',
+        ].join(' ');
+        // Inner double-line bevel (offset inwards)
+        const ic = c - 2; // tighter chamfer for the inner stroke
+        const inset = 3;
+        const innerPath = [
+          `M ${ic + inset},${inset}`,
+          `L ${W - ic - inset},${inset}`,
+          `L ${W - inset},${ic + inset}`,
+          `L ${W - inset},${H - ic - inset}`,
+          `L ${W - ic - inset},${H - inset}`,
+          `L ${ic + inset},${H - inset}`,
+          `L ${inset},${H - ic - inset}`,
+          `L ${inset},${ic + inset}`,
+          'Z',
+        ].join(' ');
+        return (
+          <>
+            {/* fill */}
+            <path d={path} fill="url(#hud-fill-card)" />
+            {/* outer glowing stroke */}
+            <path
+              d={path}
+              fill="none"
+              stroke={strokeColor}
+              strokeWidth="1.4"
+              strokeOpacity={strokeOpacity}
+              vectorEffect="non-scaling-stroke"
+              filter={isCompleted ? undefined : "url(#hud-glow-card)"}
+            />
+            {/* outer halo */}
+            <path
+              d={path}
+              fill="none"
+              stroke={strokeColor}
+              strokeWidth="0.6"
+              strokeOpacity={isCompleted ? 0.2 : 0.25}
+              vectorEffect="non-scaling-stroke"
+            />
+            {/* inner thin bevel */}
+            <path
+              d={innerPath}
+              fill="none"
+              stroke={strokeColor}
+              strokeWidth="0.6"
+              strokeOpacity={isCompleted ? 0.3 : 0.45}
+              vectorEffect="non-scaling-stroke"
+            />
+          </>
+        );
+      })()}
+
+      {/* Corner alignment brackets (top-left + bottom-right) */}
+      {(() => {
+        const arm = 10;
+        const off = 1.5;
+        const brkStyle = {
+          stroke: strokeColor,
+          strokeWidth: 1.2,
+          strokeOpacity: isCompleted ? 0.4 : 0.6,
+          fill: 'none',
+          vectorEffect: 'non-scaling-stroke' as const,
+        };
+        return (
+          <g>
+            {/* top-left */}
+            <path d={`M ${off + arm} ${off} L ${off} ${off} L ${off} ${off + arm}`} {...brkStyle} />
+            {/* bottom-right */}
+            <path
+              d={`M ${200 - off - arm} ${50 - off} L ${200 - off} ${50 - off} L ${200 - off} ${50 - off - arm}`}
+              {...brkStyle}
+            />
+          </g>
+        );
+      })()}
+    </svg>
+  );
+};
+
 // ── Individual Exercise Card ──
 const ExerciseCard: React.FC<{
   target: DungeonExerciseTarget;
@@ -210,14 +340,16 @@ const ExerciseCard: React.FC<{
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.06 }}
-      className="relative rounded-2xl overflow-hidden"
+      className="relative overflow-hidden"
       style={{
         minHeight: 150,
-        border: isCompleted
-          ? '1px solid rgba(0,180,220,0.2)'
-          : '1px solid rgba(0,212,255,0.08)',
+        background: 'transparent',
+        clipPath: 'polygon(6px 0%, calc(100% - 6px) 0%, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0% calc(100% - 6px), 0% 6px)',
+        WebkitClipPath: 'polygon(6px 0%, calc(100% - 6px) 0%, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0% calc(100% - 6px), 0% 6px)',
       }}
     >
+      <HudCardBorder isCompleted={isCompleted} />
+
       {/* Background image */}
       <div className="absolute inset-0 z-0">
         <img
@@ -254,7 +386,7 @@ const ExerciseCard: React.FC<{
                 {meta.label}
               </h3>
               {isCompleted && (
-                <div className="flex items-center gap-1 px-1.5 py-0.5 rounded" style={{ background: 'rgba(0,180,220,0.08)' }}>
+                <div className="flex items-center gap-1 px-1.5 py-0.5 rounded" style={{ background: 'rgba(0,180,220,0.08)', textShadow: 'none' }}>
                   <Check size={9} style={{ color: '#5ab8cc' }} strokeWidth={3} />
                   <span className="text-[7px] font-bold tracking-wider" style={{ color: '#5ab8cc' }}>CLEARED</span>
                 </div>
@@ -313,13 +445,16 @@ const CustomExerciseCard: React.FC<{
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, height: 0, marginTop: 0 }}
       transition={{ delay: index * 0.04 }}
-      className="relative rounded-2xl overflow-hidden"
+      className="relative overflow-hidden"
       style={{
         minHeight: 96,
-        border: isCompleted ? '1px solid rgba(0,180,220,0.2)' : '1px solid rgba(0,212,255,0.12)',
-        background: 'linear-gradient(135deg, rgba(0,212,255,0.04) 0%, rgba(8,8,16,0.6) 100%)',
+        background: 'rgba(8,8,16,0.5)',
+        clipPath: 'polygon(6px 0%, calc(100% - 6px) 0%, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0% calc(100% - 6px), 0% 6px)',
+        WebkitClipPath: 'polygon(6px 0%, calc(100% - 6px) 0%, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0% calc(100% - 6px), 0% 6px)',
       }}
     >
+      <HudCardBorder isCompleted={isCompleted} />
+
       <div className="relative z-10 p-4 flex flex-col justify-between" style={{ minHeight: 96 }}>
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
@@ -349,7 +484,7 @@ const CustomExerciseCard: React.FC<{
             <button
               onClick={(e) => { e.stopPropagation(); triggerHaptic('TICK'); onRemove(); }}
               className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-gray-600 hover:text-red-400 transition-colors"
-              style={{ background: 'rgba(255,255,255,0.03)' }}
+              style={{ background: 'rgba(255,255,255,0.03)', zIndex: 10 }}
               aria-label="Remove exercise"
             >
               <Trash2 size={13} />

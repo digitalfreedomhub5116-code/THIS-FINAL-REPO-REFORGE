@@ -60,7 +60,10 @@ router.get('/:id/sync', async (req: Request, res: Response) => {
     //   - `updated_at` is refreshed on EVERY sync so it tracks last-active time
     const now = new Date();
     const nowIso = now.toISOString();
-    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const localDate = req.query.localDate as string | undefined;
+    const todayStr = localDate && /^\d{4}-\d{2}-\d{2}$/.test(localDate)
+      ? localDate
+      : `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const lastLogin = row.last_login_date as string | null;
     let currentStreak = row.streak ?? 0;
     let streakUpdated = false;

@@ -67,8 +67,8 @@ router.get('/', async (req: Request, res: Response) => {
       }
 
       const entries = (data || []).map((row: any) => {
-        // Only count daily_xp if the player synced today — otherwise it's stale
-        const isToday = row.last_daily_reset === todayStr;
+        const lastActive = row.updated_at ? new Date(row.updated_at) : null;
+        const isToday = lastActive && (Date.now() - lastActive.getTime()) < 24 * 60 * 60 * 1000;
         const effectiveDailyXp = isToday ? (row.daily_xp || 0) : 0;
 
         return {
@@ -105,21 +105,24 @@ router.get('/', async (req: Request, res: Response) => {
           try {
             const { data: me } = await (supabaseServer() as any)
               .from('players')
-              .select('id, supabase_id, username, name, total_xp, daily_xp, last_daily_reset, level, rank, streak, avatar_url, raw_data, equipped_border')
+              .select('id, supabase_id, username, name, total_xp, daily_xp, last_daily_reset, level, rank, streak, avatar_url, raw_data, equipped_border, updated_at')
               .eq('supabase_id', userId)
               .eq('is_banned', false)
               .single();
 
             if (me) {
-              const meIsToday = me.last_daily_reset === todayStr;
+              const lastActiveMe = me.updated_at ? new Date(me.updated_at) : null;
+              const meIsToday = lastActiveMe && (Date.now() - lastActiveMe.getTime()) < 24 * 60 * 60 * 1000;
               const myDailyXp = meIsToday ? (me.daily_xp || 0) : 0;
 
-              // Count players above — only those who synced today
+              const activeTimeCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+              // Count players above — only those who were active in the last 24 hours
               const { count } = await (supabaseServer() as any)
                 .from('players')
                 .select('id', { count: 'exact', head: true })
                 .eq('is_banned', false)
-                .eq('last_daily_reset', todayStr)
+                .gte('updated_at', activeTimeCutoff)
                 .gt('daily_xp', myDailyXp);
 
               yourRank = (count || 0) + 1;
@@ -140,22 +143,22 @@ router.get('/', async (req: Request, res: Response) => {
                 equipped_banner: me.raw_data?.equippedBanner || null,
               };
 
-              // Get 2 players just above (higher daily_xp, synced today)
+              // Get 2 players just above (higher daily_xp, active in last 24 hours)
               const { data: aboveData } = await (supabaseServer() as any)
                 .from('players')
-                .select('id, supabase_id, username, name, total_xp, daily_xp, last_daily_reset, level, rank, streak, avatar_url, raw_data, equipped_border')
+                .select('id, supabase_id, username, name, total_xp, daily_xp, last_daily_reset, level, rank, streak, avatar_url, raw_data, equipped_border, updated_at')
                 .eq('is_banned', false)
-                .eq('last_daily_reset', todayStr)
+                .gte('updated_at', activeTimeCutoff)
                 .gt('daily_xp', myDailyXp)
                 .order('daily_xp', { ascending: true })
                 .limit(2);
 
-              // Get 2 players just below (lower daily_xp, synced today)
+              // Get 2 players just below (lower daily_xp, active in last 24 hours)
               const { data: belowData } = await (supabaseServer() as any)
                 .from('players')
-                .select('id, supabase_id, username, name, total_xp, daily_xp, last_daily_reset, level, rank, streak, avatar_url, raw_data, equipped_border')
+                .select('id, supabase_id, username, name, total_xp, daily_xp, last_daily_reset, level, rank, streak, avatar_url, raw_data, equipped_border, updated_at')
                 .eq('is_banned', false)
-                .eq('last_daily_reset', todayStr)
+                .gte('updated_at', activeTimeCutoff)
                 .lt('daily_xp', myDailyXp)
                 .order('daily_xp', { ascending: false })
                 .limit(2);
