@@ -4,8 +4,8 @@
  * Solo Leveling–style "STATUS" panel rendered as a hybrid raster + HTML
  * overlay:
  *
- *   Layer 1 (back):  <img src="/assets/status-frame.jpg" />  (373 × 669 — tall portrait)
- *   Layer 2:         absolutely-positioned safe-zone overlay (insets 13/9/12/9 %)
+ *   Layer 1 (back):  <img src="/assets/status-frame.jpg" />  (2400 × 1792 — wide landscape)
+ *   Layer 2:         absolutely-positioned safe-zone overlay (insets 14/5/12/5 %)
  *   Layer 3 (front): STATUS title plate, LEVEL / STREAK row, XP bar,
  *                    6-stat grid (STR / INT, DIS / SOC, FOC / WIL).
  *
@@ -105,12 +105,13 @@ const STYLES_CSS = `
 .hsw-wrapper {
   position: relative;
   width: 100%;
-  /* Tall portrait frame — capped width so it reads as a "popup" status card
-     rather than a full-screen panel. ~320px on phones gives a 574-pixel-tall
-     card which fills the visual hierarchy without crushing other widgets. */
-  max-width: 320px;
+  /* Wide landscape frame (~4:3). Capped width so it reads as a hero status
+     card rather than a full-bleed banner. ~440px on phones gives a card
+     that's ~328px tall — a strong horizontal anchor at the top of the
+     dashboard without crushing the widgets below. */
+  max-width: 440px;
   margin: 0 auto;
-  aspect-ratio: 373 / 669;
+  aspect-ratio: 2400 / 1792;
   user-select: none;
   font-family: 'Rajdhani', 'Bai Jamjuree', monospace, sans-serif;
   /* 30% transparent overall — frame + safe-zone + content all fade
@@ -183,19 +184,19 @@ const STYLES_CSS = `
 
 .hsw-safezone {
   position: absolute;
-  /* Tall frame (373 × 669) — STATUS title plate sits at the very top with
-     decorative cyan band, and there's a smaller bottom band. Side gutters
-     are narrower than the original wide frame. Tuned for the elongated
-     vertical version. */
-  top: 13%;
-  right: 9%;
+  /* Landscape frame (2400 × 1792). Brightness profiling shows a decorative
+     cyan band at top (~0–12%) and a smaller band at bottom (~90–100%);
+     side decoration is thin (~5%). Insets carve out the dark interior
+     plate so HTML content sits inside the rendered frame, not over it. */
+  top: 14%;
+  right: 5%;
   bottom: 12%;
-  left: 9%;
+  left: 5%;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 6px;
-  padding: 6px 4px 4px;
+  gap: 8px;
+  padding: 8px 10px 6px;
   background: rgba(4, 10, 20, 0.55);
   backdrop-filter: blur(2px) saturate(110%);
   -webkit-backdrop-filter: blur(2px) saturate(110%);
@@ -238,7 +239,7 @@ const STYLES_CSS = `
 .hsw-level-num {
   font-family: 'Rajdhani', 'Bai Jamjuree', sans-serif;
   font-weight: 700;
-  font-size: 36px;
+  font-size: 32px;
   line-height: 1;
   color: #ffffff;
   text-shadow:
@@ -339,12 +340,13 @@ const STYLES_CSS = `
 
 .hsw-stats-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: repeat(3, auto);
-  /* Tall frame — narrower horizontal space, but lots of vertical room.
-     Tighter column gap, generous row gap so stats spread out vertically. */
-  column-gap: 14px;
-  row-gap: 10px;
+  /* Landscape frame — width is more abundant than height. Use 3 columns ×
+     2 rows so each stat has a wider lane and the grid stays compact
+     vertically (the inner safe-zone is shorter than tall now). */
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(2, auto);
+  column-gap: 10px;
+  row-gap: 6px;
   padding: 2px 4px 0;
 }
 .hsw-stat-row {
@@ -379,12 +381,12 @@ const STYLES_CSS = `
 
 /* Large phone */
 @media (min-width: 480px) {
-  .hsw-wrapper    { max-width: 360px; }
+  .hsw-wrapper    { max-width: 500px; }
   .hsw-title-plate { font-size: 11px; padding: 5px 20px; }
-  .hsw-level-num   { font-size: 48px; }
+  .hsw-level-num   { font-size: 44px; }
   .hsw-streak-num  { font-size: 22px; }
   .hsw-xp-bar      { height: 12px; }
-  .hsw-stats-grid  { column-gap: 18px; row-gap: 14px; }
+  .hsw-stats-grid  { column-gap: 14px; row-gap: 8px; }
   .hsw-stat-icon   { width: 14px; height: 14px; }
   .hsw-stat-row    { grid-template-columns: 18px 1fr auto; }
   .hsw-stat-label  { font-size: 11px; }
@@ -393,23 +395,23 @@ const STYLES_CSS = `
 
 /* Tablet */
 @media (min-width: 768px) {
-  .hsw-wrapper    { max-width: 420px; }
+  .hsw-wrapper    { max-width: 620px; }
   .hsw-title-plate { font-size: 12px; padding: 6px 24px; }
-  .hsw-level-num   { font-size: 60px; }
+  .hsw-level-num   { font-size: 56px; }
   .hsw-streak-num  { font-size: 26px; }
   .hsw-xp-bar      { height: 14px; }
-  .hsw-stats-grid  { column-gap: 22px; row-gap: 18px; }
+  .hsw-stats-grid  { column-gap: 18px; row-gap: 10px; }
   .hsw-stat-icon   { width: 16px; height: 16px; }
   .hsw-stat-row    { grid-template-columns: 20px 1fr auto; }
   .hsw-stat-label  { font-size: 12px; }
   .hsw-stat-value  { font-size: 18px; }
 }
 
-/* Desktop — tall frame stays compact even at large sizes */
+/* Desktop — landscape frame can spread wider on big screens */
 @media (min-width: 1024px) {
-  .hsw-wrapper    { max-width: 480px; }
-  .hsw-level-num   { font-size: 68px; }
-  .hsw-stats-grid  { column-gap: 26px; row-gap: 22px; }
+  .hsw-wrapper    { max-width: 760px; }
+  .hsw-level-num   { font-size: 64px; }
+  .hsw-stats-grid  { column-gap: 22px; row-gap: 12px; }
 }
 
 /* Reduced-motion: kill the XP fill transition (animation suppression on
