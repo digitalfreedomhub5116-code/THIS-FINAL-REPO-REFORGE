@@ -9,7 +9,7 @@ import type { RankType } from './RankBadge';
 import QuestCard from './QuestCard';
 import DungeonQuestCards from './DungeonQuestCards';
 import ActiveWorkoutPlayer, { clearWorkoutSession } from './ActiveWorkoutPlayer';
-import { buildDungeonWorkoutPlan, buildDungeonWorkoutPlanForEquipment, toggleFormCoach } from '../lib/dungeonEngine';
+import { buildDungeonWorkoutPlan, buildDungeonWorkoutPlanForEquipment, buildRemainingDungeonPlan, getRemainingDungeonKeys, toggleFormCoach } from '../lib/dungeonEngine';
 
 import { playSystemSoundEffect } from '../utils/soundEngine';
 import { API_BASE } from '../lib/apiConfig';
@@ -138,12 +138,8 @@ const QuestsView: React.FC<QuestsViewProps> = ({
     if (equipmentOverride) {
       plan = buildDungeonWorkoutPlanForEquipment(dungeonState, equipmentOverride);
     } else {
-      const { isExerciseCompletedToday: isExDone } = require('../lib/dungeonEngine');
-      const remainingTargets = dungeonState.targets.filter(
-        (t: any) => !isExDone(dungeonState, t.exercise)
-      );
-      const targetsForPlan = remainingTargets.length > 0 ? remainingTargets : dungeonState.targets;
-      plan = buildDungeonWorkoutPlan(targetsForPlan);
+      // Remaining base + custom exercises not completed today.
+      plan = buildRemainingDungeonPlan(dungeonState);
     }
     setDungeonPlan(plan);
     setIsDungeonActive(true);
@@ -155,14 +151,11 @@ const QuestsView: React.FC<QuestsViewProps> = ({
     setIsDungeonActive(false);
     setDungeonPlan(null);
     onToggleNav?.(true);
-    // Track per-exercise completions
+    // Track per-exercise completions (base names + custom ids)
     if (dungeonState && onUpdateDungeonState) {
-      const { recordExerciseCompletions, isExerciseCompletedToday: isExDone } = require('../lib/dungeonEngine');
-      const remainingTargets = dungeonState.targets.filter(
-        (t: any) => !isExDone(dungeonState, t.exercise)
-      );
-      const completedExNames = remainingTargets.map((t: any) => t.exercise);
-      onUpdateDungeonState((prev: any) => recordExerciseCompletions(prev, completedExNames));
+      const { recordExerciseCompletions } = require('../lib/dungeonEngine');
+      const completedKeys = getRemainingDungeonKeys(dungeonState);
+      onUpdateDungeonState((prev: any) => recordExerciseCompletions(prev, completedKeys));
     }
     if (onCompleteDungeonWorkout) {
       onCompleteDungeonWorkout(c, t, r, anomaly, fcBonus, fcSession);

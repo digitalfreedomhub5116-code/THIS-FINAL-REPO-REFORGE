@@ -215,11 +215,16 @@ export function toggleFormCoach(state: DungeonState, exercise: 'PUSHUPS' | 'SQUA
 
 // ── Check if dungeon was already completed today (ALL exercises done) ──
 export function isDungeonCompletedToday(state: DungeonState): boolean {
-  // New per-exercise tracking: all exercises must be individually completed today
+  // New per-exercise tracking: all exercises (base + custom) must be
+  // individually completed today.
   const today = todayStr();
   const completed = state.completedExercisesToday || {};
-  const allDone = state.targets.every(t => completed[t.exercise] === today);
-  // Fallback: also check the legacy lastCompletedDate
+  const allBaseDone = state.targets.every(t => completed[t.exercise] === today);
+  const allCustomDone = (state.customExercises || []).every(c => completed[c.id] === today);
+  const allDone = allBaseDone && allCustomDone;
+  // Fallback: also check the legacy lastCompletedDate, but only when there
+  // are no custom exercises (custom exercises must be explicitly cleared).
+  if ((state.customExercises || []).length > 0) return allDone;
   return allDone || state.lastCompletedDate === today;
 }
 
@@ -250,13 +255,115 @@ export function recordExerciseCompletions(
 
   const updatedState = { ...state, completedExercisesToday: existing };
 
-  // If ALL exercises are now completed → trigger full dungeon completion
-  const allDone = state.targets.every(t => existing[t.exercise] === today);
-  if (allDone && state.lastCompletedDate !== today) {
+  // If ALL exercises (base + custom) are now completed → trigger full dungeon completion
+  const allBaseDone = state.targets.every(t => existing[t.exercise] === today);
+  const allCustomDone = (state.customExercises || []).every(c => existing[c.id] === today);
+  if (allBaseDone && allCustomDone && state.lastCompletedDate !== today) {
     return recordDungeonCompletion(updatedState);
   }
 
   return updatedState;
+}
+
+// ── Custom exercise management ──────────────────────────────────────────────
+
+import { DungeonCustomExercise } from '../types';
+
+/** Add a custom exercise to the dungeon (deduped by name, case-insensitive). */
+export function addCustomDungeonExercise(
+  state: DungeonState,
+  exercise: Omit<DungeonCustomExercise, 'id' | 'addedAt'>
+): DungeonState {
+  const existing = state.customExercises || [];
+  // Skip if an exercise with the same name is already present.
+  if (existing.some(c => c.name.toLowerCase() === exercise.name.toLowerCase())) {
+    return state;
+  }
+  const id = `custom_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+  const entry: DungeonCustomExercise = { ...exercise, id, addedAt: Date.now() };
+  return { ...state, customExercises: [...existing, entry] };
+}
+
+/** Remove a custom exercise (and clear any completion record for it). */
+export function removeCustomDungeonExercise(state: DungeonState, id: string): DungeonState {
+  const customExercises = (state.customExercises || []).filter(c => c.id !== id);
+  const completed = { ...(state.completedExercisesToday || {}) };
+  delete completed[id];
+  return { ...state, customExercises, completedExercisesToday: completed };
+}
+
+/** Map custom dungeon exercises → WorkoutDay exercises (for the player). */
+export function buildCustomExercisesForPlan(custom: DungeonCustomExercise[]) {
+  return custom.map(c => {
+    if (c.type === 'CARDIO' && c.distanceKm) {
+      return {
+        id: c.id,
+        name: c.name,
+        sets: 1,
+        reps: `${c.distanceKm} km`,
+        duration: c.distanceKm * 6 * 60,
+        completed: false,
+        type: 'CARDIO' as const,
+        notes: `Custom dungeon exercise — ${c.distanceKm} km`,
+        formCoachEnabled: false,
+        sensorRequirements: { distanceKm: c.distanceKm },
+      } as any;
+    }
+    return {
+      id: c.id,
+      name: c.name,
+      sets: c.sets,
+      reps: c.reps,
+      duration: c.sets * 60,
+      completed: false,
+      type: c.type,
+      notes: `Custom dungeon exercise — ${c.reps} reps × ${c.sets} sets`,
+      formCoachEnabled: false,
+      videoUrl: c.videoUrl,
+    };
+  });
+}
+
+/**
+ * Build the dungeon plan for the exercises NOT yet completed today, including
+ * both base targets and custom exercises. Used on dungeon entry so the player
+ * only trains what's left, and XP is granted per exercise actually completed.
+ */
+export function buildRemainingDungeonPlan(state: DungeonState): WorkoutDay {
+  const today = todayStr();
+  const completed = state.completedExercisesToday || {};
+
+  const remainingBase = state.targets.filter(t => completed[t.exercise] !== today);
+  const remainingCustom = (state.customExercises || []).filter(c => completed[c.id] !== today);
+
+  // If somehow nothing is remaining, fall back to the full set.
+  const baseTargets = remainingBase.length > 0 || remainingCustom.length > 0
+    ? remainingBase
+    : state.targets;
+  const customTargets = remainingBase.length > 0 || remainingCustom.length > 0
+    ? remainingCustom
+    : (state.customExercises || []);
+
+  const basePlan = buildDungeonWorkoutPlan(baseTargets);
+  const customExercises = buildCustomExercisesForPlan(customTargets);
+
+  const exercises = [...basePlan.exercises, ...customExercises];
+  const totalDuration = exercises.reduce((sum, e) => sum + (e.duration || 0), 0) / 60;
+
+  return {
+    ...basePlan,
+    exercises,
+    totalDuration: Math.ceil(totalDuration),
+  };
+}
+
+/** Names of all exercise completion-keys remaining today (base names + custom ids). */
+export function getRemainingDungeonKeys(state: DungeonState): string[] {
+  const today = todayStr();
+  const completed = state.completedExercisesToday || {};
+  const baseKeys = state.targets.filter(t => completed[t.exercise] !== today).map(t => t.exercise);
+  const customKeys = (state.customExercises || []).filter(c => completed[c.id] !== today).map(c => c.id);
+  return [...baseKeys, ...customKeys];
 }
 
 // ── Build a WorkoutDay plan from dungeon targets ──

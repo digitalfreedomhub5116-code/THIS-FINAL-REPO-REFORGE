@@ -854,6 +854,28 @@ export interface DungeonExerciseTarget {
   formCoachEnabled: boolean;
 }
 
+/**
+ * User-added custom dungeon exercise.
+ *
+ * Lives in its own array (DungeonState.customExercises) — NOT in `targets` —
+ * because the progression engine recomputes `targets` from scratch on every
+ * level-up / deload and would otherwise wipe anything the user added. Custom
+ * exercises are fixed (not auto-scaled) and persist across progression.
+ *
+ * Completion is tracked in DungeonState.completedExercisesToday keyed by `id`.
+ */
+export interface DungeonCustomExercise {
+  id: string;             // unique completion key, e.g. "custom_42_169..."
+  name: string;
+  type: 'COMPOUND' | 'ACCESSORY' | 'CARDIO' | 'STRETCH';
+  sets: number;
+  reps: string;           // e.g. "12, 12, 10" or "15"
+  distanceKm?: number;    // for CARDIO entries
+  videoUrl?: string;
+  muscleGroup?: string;
+  addedAt: number;
+}
+
 export interface DungeonState {
   // Progression tracking
   currentDay: number;            // Days since first dungeon
@@ -866,6 +888,9 @@ export interface DungeonState {
 
   // Current targets (computed from baselines + progression)
   targets: DungeonExerciseTarget[];
+
+  // User-added custom exercises (persist across progression; not auto-scaled)
+  customExercises?: DungeonCustomExercise[];
 
   // Per-exercise completion tracking for today
   // Keys are exercise names (PUSHUPS, SQUATS, RUNNING), values are completion dates

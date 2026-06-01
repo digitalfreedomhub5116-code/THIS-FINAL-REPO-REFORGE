@@ -13,13 +13,14 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Swords, Check, Shield, MapPin, AlertTriangle, X } from 'lucide-react';
-import { DungeonState, DungeonExerciseTarget } from '../types';
-import { getProgressionTier, isDungeonCompletedToday, isExerciseCompletedToday } from '../lib/dungeonEngine';
+import { Swords, Check, Shield, MapPin, AlertTriangle, X, Plus, Trash2 } from 'lucide-react';
+import { DungeonState, DungeonExerciseTarget, DungeonCustomExercise } from '../types';
+import { getProgressionTier, isDungeonCompletedToday, isExerciseCompletedToday, addCustomDungeonExercise, removeCustomDungeonExercise } from '../lib/dungeonEngine';
 import { triggerHaptic } from '../utils/soundEngine';
 import { SingleExerciseLimitReset } from './DungeonLimitReset';
 import { AD_UNITS } from '../hooks/useAdMob';
 import HudButton from './HudButton';
+import DungeonAddExercise from './DungeonAddExercise';
 
 const EXERCISE_META: Record<string, {
   label: string;
@@ -294,6 +295,80 @@ const ExerciseCard: React.FC<{
   );
 };
 
+// ── Custom (user-added) Exercise Card ──
+const CustomExerciseCard: React.FC<{
+  exercise: DungeonCustomExercise;
+  isCompleted: boolean;
+  index: number;
+  onRemove?: () => void;
+}> = ({ exercise, isCompleted, index, onRemove }) => {
+  const isCardio = exercise.type === 'CARDIO';
+  const targetText = isCardio && exercise.distanceKm
+    ? `${exercise.distanceKm} km`
+    : `${exercise.reps} reps × ${exercise.sets} sets`;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, height: 0, marginTop: 0 }}
+      transition={{ delay: index * 0.04 }}
+      className="relative rounded-2xl overflow-hidden"
+      style={{
+        minHeight: 96,
+        border: isCompleted ? '1px solid rgba(0,180,220,0.2)' : '1px solid rgba(0,212,255,0.12)',
+        background: 'linear-gradient(135deg, rgba(0,212,255,0.04) 0%, rgba(8,8,16,0.6) 100%)',
+      }}
+    >
+      <div className="relative z-10 p-4 flex flex-col justify-between" style={{ minHeight: 96 }}>
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+              style={{ background: 'rgba(0,212,255,0.08)', border: '1px solid rgba(0,212,255,0.18)' }}>
+              <Swords size={14} style={{ color: '#5ab8cc' }} />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <h3 className={`text-base font-black tracking-tight leading-tight truncate ${isCompleted ? 'text-gray-500' : 'text-white'}`}>
+                  {exercise.name}
+                </h3>
+                {isCompleted && (
+                  <div className="flex items-center gap-1 px-1.5 py-0.5 rounded shrink-0" style={{ background: 'rgba(0,180,220,0.08)' }}>
+                    <Check size={9} style={{ color: '#5ab8cc' }} strokeWidth={3} />
+                    <span className="text-[7px] font-bold tracking-wider" style={{ color: '#5ab8cc' }}>CLEARED</span>
+                  </div>
+                )}
+              </div>
+              {exercise.muscleGroup && (
+                <div className="text-[9px] text-gray-500 font-mono uppercase tracking-wider mt-0.5">{exercise.muscleGroup}</div>
+              )}
+            </div>
+          </div>
+          {/* Remove button — only when not completed */}
+          {onRemove && !isCompleted && (
+            <button
+              onClick={(e) => { e.stopPropagation(); triggerHaptic('TICK'); onRemove(); }}
+              className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-gray-600 hover:text-red-400 transition-colors"
+              style={{ background: 'rgba(255,255,255,0.03)' }}
+              aria-label="Remove exercise"
+            >
+              <Trash2 size={13} />
+            </button>
+          )}
+        </div>
+        <div className="mt-3">
+          <span
+            className="text-sm font-bold font-mono tracking-wide"
+            style={{ color: isCompleted ? '#888' : '#ffffff', textDecoration: isCompleted ? 'line-through' : 'none' }}
+          >
+            {targetText}
+          </span>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
 // ── Main DungeonQuestCards Component ──
 const DungeonQuestCards: React.FC<DungeonQuestCardsProps> = ({
   dungeonState,
@@ -308,15 +383,47 @@ const DungeonQuestCards: React.FC<DungeonQuestCardsProps> = ({
 }) => {
   const [showConfirm, setShowConfirm] = useState(false);
   const [adLoading, setAdLoading] = useState(false);
+  const [showAddExercise, setShowAddExercise] = useState(false);
   const allCompletedToday = isDungeonCompletedToday(dungeonState);
   const tier = getProgressionTier(dungeonState);
 
-  // Count per-exercise completions
-  const completedCount = dungeonState.targets.filter(
+  const customExercises = dungeonState.customExercises || [];
+
+  // Count per-exercise completions (base + custom)
+  const completedBase = dungeonState.targets.filter(
     t => isExerciseCompletedToday(dungeonState, t.exercise)
   ).length;
-  const totalCount = dungeonState.targets.length;
+  const completedCustom = customExercises.filter(
+    c => isExerciseCompletedToday(dungeonState, c.id)
+  ).length;
+  const completedCount = completedBase + completedCustom;
+  const totalCount = dungeonState.targets.length + customExercises.length;
   const hasPartialProgress = completedCount > 0 && completedCount < totalCount;
+
+  // Names already in the dungeon (base + custom) — used to disable duplicates
+  // in the exercise picker.
+  const baseNames = dungeonState.targets.map(t => {
+    const meta = EXERCISE_META[t.exercise];
+    return meta ? meta.label : t.exercise;
+  });
+  const existingNames = [...baseNames, ...customExercises.map(c => c.name)];
+
+  const canManageCustom = Boolean(onUpdateDungeonState);
+
+  const handleAddExercises = (toAdd: Omit<DungeonCustomExercise, 'id' | 'addedAt'>[]) => {
+    if (!onUpdateDungeonState) return;
+    onUpdateDungeonState(prev => {
+      let next = prev;
+      for (const ex of toAdd) next = addCustomDungeonExercise(next, ex);
+      return next;
+    });
+    triggerHaptic('BUTTON_TAP');
+  };
+
+  const handleRemoveCustom = (id: string) => {
+    if (!onUpdateDungeonState) return;
+    onUpdateDungeonState(prev => removeCustomDungeonExercise(prev, id));
+  };
 
   const handleEnterClick = () => {
     triggerHaptic('BUTTON_TAP');
@@ -398,6 +505,38 @@ const DungeonQuestCards: React.FC<DungeonQuestCardsProps> = ({
           />
         ))}
 
+        {/* Custom (user-added) exercise cards */}
+        <AnimatePresence>
+          {customExercises.map((ex, i) => (
+            <CustomExerciseCard
+              key={ex.id}
+              exercise={ex}
+              isCompleted={isExerciseCompletedToday(dungeonState, ex.id)}
+              index={i}
+              onRemove={canManageCustom ? () => handleRemoveCustom(ex.id) : undefined}
+            />
+          ))}
+        </AnimatePresence>
+
+        {/* Add More Exercise button — opens the exercise picker */}
+        {canManageCustom && !allCompletedToday && (
+          <motion.button
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => { triggerHaptic('TICK'); setShowAddExercise(true); }}
+            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-[0.2em] transition-all"
+            style={{
+              background: 'rgba(0,212,255,0.03)',
+              border: '1px dashed rgba(0,212,255,0.3)',
+              color: '#5ab8cc',
+            }}
+          >
+            <Plus size={15} strokeWidth={2.6} />
+            Add More Exercise
+          </motion.button>
+        )}
+
         {/* Enter Dungeon / Cleared */}
         <AnimatePresence mode="wait">
           {allCompletedToday ? (
@@ -442,6 +581,17 @@ const DungeonQuestCards: React.FC<DungeonQuestCardsProps> = ({
             onConfirm={handleConfirmEnter}
             onCancel={() => setShowConfirm(false)}
             tier={tier}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Add-exercise picker */}
+      <AnimatePresence>
+        {showAddExercise && (
+          <DungeonAddExercise
+            existingNames={existingNames}
+            onClose={() => setShowAddExercise(false)}
+            onAdd={handleAddExercises}
           />
         )}
       </AnimatePresence>

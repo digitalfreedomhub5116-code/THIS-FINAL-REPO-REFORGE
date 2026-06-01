@@ -24,7 +24,7 @@ import DungeonQuestCards from './DungeonQuestCards';
 import ActiveWorkoutPlayer, { clearWorkoutSession } from './ActiveWorkoutPlayer';
 import DungeonRewardAnimation from './DungeonRewardAnimation';
 import DoubleRewardModal from './DoubleRewardModal';
-import { buildDungeonWorkoutPlan, buildDungeonWorkoutPlanForEquipment, toggleFormCoach, isExerciseCompletedToday, recordExerciseCompletions } from '../lib/dungeonEngine';
+import { buildDungeonWorkoutPlan, buildDungeonWorkoutPlanForEquipment, buildRemainingDungeonPlan, getRemainingDungeonKeys, toggleFormCoach, isExerciseCompletedToday, recordExerciseCompletions } from '../lib/dungeonEngine';
 import { PLEDGE_AMOUNTS, MANDATORY_RANKS } from './SystemPactScreen';
 import { playSystemSoundEffect, triggerHaptic } from '../utils/soundEngine';
 import { API_BASE } from '../lib/apiConfig';
@@ -1066,13 +1066,8 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
     if (equipmentOverride) {
       plan = buildDungeonWorkoutPlanForEquipment(dungeonState, equipmentOverride);
     } else {
-      // Build plan only for exercises not yet completed today
-      const remainingTargets = dungeonState.targets.filter(
-        (t: DungeonExerciseTarget) => !isExerciseCompletedToday(dungeonState, t.exercise)
-      );
-      // If all are done, use full plan (shouldn't happen but safety)
-      const targetsForPlan = remainingTargets.length > 0 ? remainingTargets : dungeonState.targets;
-      plan = buildDungeonWorkoutPlan(targetsForPlan);
+      // Build plan only for exercises not yet completed today — base + custom.
+      plan = buildRemainingDungeonPlan(dungeonState);
     }
     setDungeonPlan(plan);
     setIsDungeonActive(true);
@@ -1087,12 +1082,10 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
 
     // Track per-exercise completions based on what was in the plan
     if (dungeonState && onUpdateDungeonState) {
-      // The plan only contained remaining exercises; all exercises in the plan were completed
-      const remainingTargets = dungeonState.targets.filter(
-        (t: DungeonExerciseTarget) => !isExerciseCompletedToday(dungeonState, t.exercise)
-      );
-      const completedExNames = remainingTargets.map((t: DungeonExerciseTarget) => t.exercise);
-      onUpdateDungeonState((prev: DungeonState) => recordExerciseCompletions(prev, completedExNames));
+      // The plan only contained remaining exercises (base + custom); all of
+      // them were completed. Mark base exercise names AND custom exercise ids.
+      const completedKeys = getRemainingDungeonKeys(dungeonState);
+      onUpdateDungeonState((prev: DungeonState) => recordExerciseCompletions(prev, completedKeys));
     }
 
     const rewards = onCompleteDungeonWorkout?.(c, t, r, anomaly, fcBonus, fcSession);
