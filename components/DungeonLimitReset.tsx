@@ -27,13 +27,11 @@ interface ExerciseConfig {
   max: number;
   step: number;
   field: string;
-  setsMin?: number;
-  setsMax?: number;
 }
 
 const EXERCISE_CONFIG: Record<string, ExerciseConfig> = {
-  PUSHUPS: { key: 'PUSHUPS', label: 'Push-ups', unit: 'reps', min: 5, max: 200, step: 5, field: 'baselinePushups', setsMin: 1, setsMax: 10 },
-  SQUATS: { key: 'SQUATS', label: 'Squats', unit: 'reps', min: 5, max: 200, step: 5, field: 'baselineSquats', setsMin: 1, setsMax: 10 },
+  PUSHUPS: { key: 'PUSHUPS', label: 'Push-ups', unit: 'reps', min: 5, max: 200, step: 5, field: 'baselinePushups' },
+  SQUATS: { key: 'SQUATS', label: 'Squats', unit: 'reps', min: 5, max: 200, step: 5, field: 'baselineSquats' },
   RUNNING: { key: 'RUNNING', label: 'Running', unit: 'km', min: 0.5, max: 20, step: 0.5, field: 'baselineRunKm' },
 };
 
@@ -127,21 +125,18 @@ export const SingleExerciseLimitReset: React.FC<SingleExerciseLimitResetProps> =
     : (target?.reps ?? Math.round(
         (exercise === 'PUSHUPS' ? dungeonState.baselinePushups : dungeonState.baselineSquats) * multiplier
       ));
-  const originalSets = target?.sets ?? 3;
 
   const [newValue, setNewValue] = useState(currentTargetValue);
-  const [newSets, setNewSets] = useState(originalSets);
 
   // Reset values when opening — use current target (what's on the card)
   useEffect(() => {
     if (isOpen) {
       setNewValue(currentTargetValue);
-      setNewSets(originalSets);
       setSuccess(false);
     }
   }, [isOpen]);
 
-  const hasChanged = newValue !== currentTargetValue || (!isRunning && newSets !== originalSets);
+  const hasChanged = newValue !== currentTargetValue;
   const canAfford = playerGold >= RESET_COST;
 
   const handleConfirm = async () => {
@@ -179,12 +174,6 @@ export const SingleExerciseLimitReset: React.FC<SingleExerciseLimitResetProps> =
         const fcSquats = prev.targets.find(t => t.exercise === 'SQUATS')?.formCoachEnabled ?? true;
 
         const newTargets = computeTargets(bp, bs, br, mult, fcPushups, fcSquats);
-
-        // Apply custom sets for non-running exercises
-        if (!isRunning) {
-          const idx = newTargets.findIndex((t: any) => t.exercise === exercise);
-          if (idx !== -1) newTargets[idx].sets = newSets;
-        }
 
         return {
           ...prev,
@@ -337,37 +326,6 @@ export const SingleExerciseLimitReset: React.FC<SingleExerciseLimitResetProps> =
                     />
                   </div>
                 </div>
-
-                {/* Sets control (only for pushups and squats) */}
-                {!isRunning && config.setsMin != null && config.setsMax != null && (
-                  <div
-                    className="rounded-xl p-3.5"
-                    style={{
-                      background: newSets !== originalSets ? 'rgba(0,212,255,0.03)' : 'rgba(255,255,255,0.02)',
-                      border: `1px solid ${newSets !== originalSets ? 'rgba(0,212,255,0.15)' : 'rgba(255,255,255,0.05)'}`,
-                    }}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-xs font-bold text-gray-200">Sets</span>
-                        <div className="mt-0.5">
-                          <span className="text-[8px] text-gray-600 font-mono">
-                            Current: {originalSets} sets
-                          </span>
-                        </div>
-                      </div>
-                      <StepperInput
-                        value={newSets}
-                        onChange={setNewSets}
-                        min={config.setsMin}
-                        max={config.setsMax}
-                        step={1}
-                        unit="sets"
-                        disabled={false}
-                      />
-                    </div>
-                  </div>
-                )}
               </div>
 
               {/* Footer */}
