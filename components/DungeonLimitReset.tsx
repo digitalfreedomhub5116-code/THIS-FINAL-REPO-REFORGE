@@ -123,7 +123,7 @@ export const SingleExerciseLimitReset: React.FC<SingleExerciseLimitResetProps> =
   const currentTargetValue = isRunning
     ? (target?.distanceKm ?? dungeonState.baselineRunKm * multiplier)
     : (target?.reps ?? Math.round(
-        (exercise === 'PUSHUPS' ? dungeonState.baselinePushups : dungeonState.baselineSquats) * multiplier
+        (exercise === 'PUSHUPS' ? dungeonState.baselinePushups : dungeonState.baselineSquats) * multiplier * 3
       ));
 
   const [newValue, setNewValue] = useState(currentTargetValue);
@@ -158,16 +158,16 @@ export const SingleExerciseLimitReset: React.FC<SingleExerciseLimitResetProps> =
       if (error) throw error;
 
       // Reverse-compute the new baseline from the desired target value
-      // target = baseline × multiplier  →  baseline = target / multiplier
+      // target = baseline × multiplier × 3  →  baseline = target / (multiplier × 3)
       onUpdateDungeonState((prev) => {
         const mult = prev.progressionMultiplier || 0.7;
         let bp = prev.baselinePushups;
         let bs = prev.baselineSquats;
         let br = prev.baselineRunKm;
 
-        // Set the new baseline so that baseline × multiplier = desired value
-        if (exercise === 'PUSHUPS') bp = Math.round(newValue / mult);
-        if (exercise === 'SQUATS') bs = Math.round(newValue / mult);
+        // Set the new baseline so that baseline × multiplier × 3 (or baseline × multiplier for running) = desired value
+        if (exercise === 'PUSHUPS') bp = Math.round(newValue / (mult * 3));
+        if (exercise === 'SQUATS') bs = Math.round(newValue / (mult * 3));
         if (exercise === 'RUNNING') br = +(newValue / mult).toFixed(1);
 
         const fcPushups = prev.targets.find(t => t.exercise === 'PUSHUPS')?.formCoachEnabled ?? true;
