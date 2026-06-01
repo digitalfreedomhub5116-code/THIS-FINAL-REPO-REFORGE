@@ -208,6 +208,7 @@ const YouView = lazy(() => import('./components/YouView'));
 const DuskFloatingPill = lazy(() => import('./components/DuskFloatingPill'));
 
 const GoalHeroSection = lazy(() => import('./components/GoalHeroSection'));
+const GoalsView = lazy(() => import('./components/GoalsView'));
 const GoalCreationFlow = lazy(() => import('./components/GoalCreationFlow'));
 const HunterCommandDeck = lazy(() => import('./components/HunterCommandDeck'));
 import { startQuestGeneration, onQuestGenStoreUpdate } from './components/GoalDetailView';
@@ -5490,26 +5491,26 @@ const App: React.FC = () => {
 
                     <Suspense fallback={null}>
                       <ErrorBoundary fallbackLabel="Goals failed">
-                        <GoalHeroSection
+                        <GoalsView
                           goals={player.goals || []}
-                          onCreateGoal={() => setShowGoalCreate(true)}
-                          generatingGoalId={generatingGoalId}
-                          isPremium={isPremium}
-                          onUpgrade={() => setShowManaPowerUpsell(true)}
-                          onGenerateQuests={(goalId) => {
-                            const goal = (player.goals || []).find(g => g.id === goalId);
-                            if (!goal) return;
-                            const todayStr = new Date().toISOString().split('T')[0];
-                            const currentDay = Math.max(1, Math.floor((Date.now() - goal.startDate) / (1000 * 60 * 60 * 24)) + 1);
-                            startQuestGeneration({
-                              goal,
-                              allGoals: player.goals || [],
-                              playerData: player,
-                              todayStr,
-                              currentDay,
-                              existingQuests: player.quests,
+                          playerData={player}
+                          onUpdateGoals={handleUpdateGoals}
+                          onDeleteGoal={handleDeleteGoal}
+                          onConsumeMana={consumeMana}
+                          onRefundMana={refundMana}
+                          onDeductGold={(amount) => setPlayer(prev => ({ ...prev, gold: Math.max(0, prev.gold - amount) }))}
+                          onAddQuestToFeed={addQuest}
+                          onUpdateScheduleSlots={(slots) => {
+                            setPlayer((prev: any) => {
+                              const newSchedule = {
+                                ...(prev.dailySchedule || {}),
+                                slots
+                              };
+                              return { ...prev, dailySchedule: newSchedule };
                             });
                           }}
+                          isPremium={isPremium}
+                          onUpgradePro={() => setShowManaPowerUpsell(true)}
                         />
                       </ErrorBoundary>
                     </Suspense>

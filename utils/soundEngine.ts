@@ -1,4 +1,6 @@
 
+import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
+
 // AudioContext singleton to prevent multiple contexts.
 //
 // Android WebView (Capacitor) and Chrome both block AudioContext until a real
@@ -136,13 +138,37 @@ const HAPTIC_PATTERNS: Record<string, number | number[]> = {
     SWIPE: 18,
 };
 
-export const triggerHaptic = (type: string = 'CLICK') => {
+export const triggerHaptic = async (type: string = 'CLICK') => {
     try {
-        if (!navigator.vibrate) return;
-        // Respect a separate haptic mute flag (defaults to enabled)
         if (localStorage.getItem('system_haptic_disabled') === 'true') return;
-        const pattern = HAPTIC_PATTERNS[type] || HAPTIC_PATTERNS.CLICK;
-        navigator.vibrate(pattern);
+        const isCapacitor = (window as any).Capacitor?.isPluginAvailable('Haptics');
+        if (isCapacitor) {
+            switch (type) {
+                case 'SUCCESS':
+                case 'PURCHASE':
+                case 'LEVEL_UP':
+                case 'RANK_UP':
+                    await Haptics.notification({ type: NotificationType.Success });
+                    break;
+                case 'WARNING':
+                case 'DANGER':
+                    await Haptics.notification({ type: NotificationType.Error });
+                    break;
+                case 'CLICK':
+                case 'BUTTON_TAP':
+                case 'TAB_SWITCH':
+                case 'TICK':
+                case 'SWIPE':
+                default:
+                    await Haptics.impact({ style: ImpactStyle.Light });
+                    break;
+            }
+            return;
+        }
+        if (navigator.vibrate) {
+            const pattern = HAPTIC_PATTERNS[type] || HAPTIC_PATTERNS.CLICK;
+            navigator.vibrate(pattern);
+        }
     } catch { /* silent fail */ }
 };
 

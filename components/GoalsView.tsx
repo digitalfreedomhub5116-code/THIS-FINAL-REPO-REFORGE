@@ -34,6 +34,8 @@ interface GoalsViewProps {
   onDeductGold?: (amount: number) => void;
   onAddQuestToFeed?: (quest: Quest) => void;
   onUpdateScheduleSlots?: (slots: any[]) => void;
+  isPremium?: boolean;
+  onUpgradePro?: () => void;
 }
 
 export default function GoalsView({
@@ -46,6 +48,8 @@ export default function GoalsView({
   onDeductGold,
   onAddQuestToFeed,
   onUpdateScheduleSlots,
+  isPremium = false,
+  onUpgradePro,
 }: GoalsViewProps) {
   const [showCreate, setShowCreate] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
@@ -333,7 +337,21 @@ export default function GoalsView({
           SHADOW MISSIONS
         </button>
         <button
-          onClick={() => { playSystemSoundEffect('TAB_SWITCH'); setSubTab('FOCUS_SHIELD'); }}
+          onClick={() => {
+            if (!isPremium) {
+              playSystemSoundEffect('DEBUFF_CAST');
+              showSystemToast({
+                type: 'WARNING',
+                title: 'Premium Required',
+                subtitle: 'Focus Shield is a Reforge Pro feature.',
+                durationMs: 4000
+              });
+              onUpgradePro?.();
+              return;
+            }
+            playSystemSoundEffect('TAB_SWITCH');
+            setSubTab('FOCUS_SHIELD');
+          }}
           className={`flex-1 text-center py-2 text-[10px] font-bold font-mono tracking-wider transition-colors relative z-10 flex items-center justify-center gap-1.5 ${
             subTab === 'FOCUS_SHIELD' ? 'text-black' : 'text-gray-400 hover:text-gray-200'
           }`}
@@ -440,7 +458,20 @@ export default function GoalsView({
                 Set a long-term goal and AI will create a daily action plan to help you achieve it.
               </p>
               <button
-                onClick={() => setShowCreate(true)}
+                onClick={() => {
+                  if (!isPremium) {
+                    playSystemSoundEffect('DEBUFF_CAST');
+                    showSystemToast({
+                      type: 'WARNING',
+                      title: 'Premium Required',
+                      subtitle: 'Custom goals are a Reforge Pro feature.',
+                      durationMs: 4000
+                    });
+                    onUpgradePro?.();
+                    return;
+                  }
+                  setShowCreate(true);
+                }}
                 className="px-6 py-3 rounded-xl text-xs font-black text-black uppercase tracking-wider"
                 style={{ background: 'linear-gradient(135deg, #00d4ff, #00d4ff)' }}
               >
@@ -468,7 +499,20 @@ export default function GoalsView({
           {activeGoals.length > 0 && activeGoals.length < 3 && (
             <motion.button
               whileTap={{ scale: 0.9 }}
-              onClick={() => setShowCreate(true)}
+              onClick={() => {
+                if (!isPremium) {
+                  playSystemSoundEffect('DEBUFF_CAST');
+                  showSystemToast({
+                    type: 'WARNING',
+                    title: 'Premium Required',
+                    subtitle: 'Custom goals are a Reforge Pro feature.',
+                    durationMs: 4000
+                  });
+                  onUpgradePro?.();
+                  return;
+                }
+                setShowCreate(true);
+              }}
               className="fixed bottom-24 right-5 w-13 h-13 rounded-full flex items-center justify-center z-50 shadow-lg"
               style={{ background: 'linear-gradient(135deg, #00d4ff, #00d4ff)', width: 52, height: 52 }}
             >
