@@ -204,7 +204,7 @@ export const SingleExerciseLimitReset: React.FC<SingleExerciseLimitResetProps> =
       {/* Reset Limit trigger button */}
       <button
         onClick={(e) => { e.stopPropagation(); triggerHaptic('TICK'); setIsOpen(true); }}
-        className="px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 transition-all active:scale-95 font-mono text-[9px] font-bold tracking-wider uppercase shrink-0"
+        className="px-2.5 py-1.5 rounded-lg flex items-center transition-all active:scale-95 font-mono text-[9px] font-bold tracking-wider uppercase shrink-0"
         style={{
           background: 'rgba(0, 0, 0, 0.4)',
           border: '1px solid rgba(255, 255, 255, 0.12)',
@@ -212,7 +212,6 @@ export const SingleExerciseLimitReset: React.FC<SingleExerciseLimitResetProps> =
           color: '#cbd5e1',
         }}
       >
-        <Settings size={10} className="text-gray-400" />
         Reset Limit
       </button>
 
