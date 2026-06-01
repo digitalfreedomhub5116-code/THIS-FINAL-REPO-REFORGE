@@ -201,17 +201,19 @@ export const SingleExerciseLimitReset: React.FC<SingleExerciseLimitResetProps> =
 
   return (
     <>
-      {/* Gear icon trigger */}
+      {/* Reset Limit trigger button */}
       <button
         onClick={(e) => { e.stopPropagation(); triggerHaptic('TICK'); setIsOpen(true); }}
-        className="w-7 h-7 rounded-lg flex items-center justify-center transition-all active:scale-90"
+        className="px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 transition-all active:scale-95 font-mono text-[9px] font-bold tracking-wider uppercase shrink-0"
         style={{
-          background: 'rgba(0,0,0,0.4)',
-          border: '1px solid rgba(255,255,255,0.12)',
+          background: 'rgba(0, 0, 0, 0.4)',
+          border: '1px solid rgba(255, 255, 255, 0.12)',
           backdropFilter: 'blur(4px)',
+          color: '#cbd5e1',
         }}
       >
-        <Settings size={11} className="text-gray-300" />
+        <Settings size={10} className="text-gray-400" />
+        Reset Limit
       </button>
 
       {/* Modal — rendered via portal to escape transform stacking context */}
