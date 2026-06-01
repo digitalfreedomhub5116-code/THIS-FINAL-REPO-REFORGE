@@ -66,10 +66,7 @@ public class MainActivity extends BridgeActivity {
                 if (handle != null) {
                     TrackingPlugin plugin = (TrackingPlugin) handle.getInstance();
                     if (plugin != null) {
-                        com.getcapacitor.JSObject data = new com.getcapacitor.JSObject();
-                        data.put("lockdown", true);
-                        data.put("packageName", targetPackage);
-                        plugin.notifyListeners("focusShieldLockdown", data);
+                        plugin.notifyFocusShieldLockdown(targetPackage);
                     }
                 }
             } catch (Exception e) {

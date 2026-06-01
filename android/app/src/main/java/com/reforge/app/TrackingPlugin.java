@@ -348,4 +348,11 @@ public class TrackingPlugin extends Plugin {
             .apply();
         call.resolve();
     }
+
+    public void notifyFocusShieldLockdown(String packageName) {
+        JSObject data = new JSObject();
+        data.put("lockdown", true);
+        data.put("packageName", packageName);
+        notifyListeners("focusShieldLockdown", data);
+    }
 }
