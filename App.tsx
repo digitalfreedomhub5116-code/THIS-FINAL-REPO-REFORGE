@@ -33,6 +33,7 @@ import SystemToastOverlay from './components/SystemToast';
 import ErrorBoundary from './components/ErrorBoundary';
 import StreakMilestoneOverlay from './components/StreakMilestoneOverlay';
 import HunterStatusWindow from './components/HunterStatusWindow';
+import NutritionLogCard from './components/NutritionLogCard';
 import HudButton from './components/HudButton';
 import QuestUnlockTimer from './components/QuestUnlockTimer';
 import LeaguePromotionOverlay from './components/LeaguePromotionOverlay';
@@ -88,7 +89,7 @@ const VIP_EMAILS = new Set([
   'reforgesystem@gmail.com',
 ]);
 
-import { Terminal, Flame, ScanLine, Trophy } from 'lucide-react';
+import { Terminal, Flame, Trophy } from 'lucide-react';
 
 import { getLockedTabs } from './components/FeatureGate';
 
@@ -5062,16 +5063,21 @@ const App: React.FC = () => {
                       );
                     })()}
 
-                    {/* ── HUD action buttons: Scan Food + Leaderboard ── */}
-                    <div className="grid grid-cols-2 gap-3 px-1">
-                      <HudButton
-                        label="SCAN FOOD"
-                        icon={<ScanLine size={18} strokeWidth={2.2} />}
-                        onClick={() => {
+                    {/* ── Nutrition + Food Log card (sits directly under the Status Window) ── */}
+                    <ErrorBoundary fallbackLabel="Nutrition card failed">
+                      <NutritionLogCard
+                        player={player}
+                        onLogMeal={logMeal}
+                        onSaveProfile={saveHealthProfile}
+                        onOpenFullNutrition={() => {
                           setHealthSubTab('NUTRITION');
                           setActiveTab('HEALTH' as Tab);
                         }}
                       />
+                    </ErrorBoundary>
+
+                    {/* ── HUD action buttons: Leaderboard ── */}
+                    <div className="grid grid-cols-1 gap-3 px-1">
                       <HudButton
                         label="LEADERBOARD"
                         icon={<Trophy size={18} strokeWidth={2.2} />}
