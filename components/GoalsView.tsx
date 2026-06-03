@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Target, Trophy, Sparkles, Loader2, Swords } from 'lucide-react';
+import { Plus, Target, Trophy, Sparkles, Loader2, Swords, Zap } from 'lucide-react';
 import { Goal, GoalDailyTask, PlayerData, Quest, Rank } from '../types';
 import GoalCard from './GoalCard';
 import GoalCreationFlow from './GoalCreationFlow';
@@ -11,6 +11,8 @@ import { API_BASE } from '../lib/apiConfig';
 import { getPlayerAuthHeaders, authenticatedFetch } from '../lib/playerApi';
 import { buildDungeonGoalQuest, buildDungeonGoalDailyTask } from '../lib/dungeonGoalQuest';
 import FocusShieldSettings from './FocusShieldSettings';
+
+const HowItWorksScreen = React.lazy(() => import('./HowItWorksScreen'));
 
 // ── Helpers ──
 function todayStr(): string { return new Date().toISOString().split('T')[0]; }
@@ -29,59 +31,99 @@ interface ShadowMissionsProUpsellProps {
 }
 
 function ShadowMissionsProUpsell({ onUpgradePro }: ShadowMissionsProUpsellProps) {
+  const [showHowItWorks, setShowHowItWorks] = useState(false);
+
   return (
-    <div className="flex flex-col items-center justify-center p-8 bg-[#0a0c16]/90 border border-cyan-500/20 rounded-2xl max-w-sm mx-auto text-center relative overflow-hidden min-h-[350px] shadow-[0_0_25px_rgba(6,182,212,0.15)] mt-4">
-      {/* Background Image with opacity overlay */}
-      <div 
-        className="absolute inset-0 bg-cover bg-center opacity-[0.08] mix-blend-luminosity"
-        style={{ backgroundImage: `url('/banners/defaultreforgebanner.webp')` }}
-      />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.08),transparent_80%)] pointer-events-none" />
+    <div className="space-y-3 max-w-sm mx-auto mt-4">
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="relative w-full rounded-2xl overflow-hidden"
+        style={{
+          background: '#0a0a14',
+          border: '1px solid rgba(0,212,255,0.15)',
+          boxShadow: '0 16px 48px rgba(0,0,0,0.6)',
+        }}
+      >
+        {/* Background image */}
+        <div className="relative w-full" style={{ height: 200 }}>
+          <GoalHeroImg />
+          <div className="absolute inset-0" style={{
+            background: 'linear-gradient(180deg, rgba(10,10,20,0.15) 0%, rgba(10,10,20,0.5) 30%, rgba(10,10,20,0.85) 55%, #0a0a14 78%)',
+          }} />
+        </div>
 
-      {/* Decorative tech corners */}
-      <div className="absolute top-0 left-0 w-3.5 h-3.5 border-t-2 border-l-2 border-cyan-500/30" />
-      <div className="absolute top-0 right-0 w-3.5 h-3.5 border-t-2 border-r-2 border-cyan-500/30" />
-      <div className="absolute bottom-0 left-0 w-3.5 h-3.5 border-b-2 border-l-2 border-cyan-500/30" />
-      <div className="absolute bottom-0 right-0 w-3.5 h-3.5 border-b-2 border-r-2 border-cyan-500/30" />
+        {/* Content overlay */}
+        <div className="absolute bottom-0 left-0 right-0" style={{ padding: '0 22px 20px' }}>
+          {/* Premium badge */}
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg mb-2"
+            style={{ background: 'rgba(250,204,21,0.1)', border: '1px solid rgba(250,204,21,0.2)' }}>
+            <Zap size={10} style={{ color: '#facc15' }} />
+            <span className="text-[8px] font-mono font-bold tracking-[0.2em] uppercase" style={{ color: '#facc15' }}>
+              Reforge Pro
+            </span>
+          </div>
 
-      <div className="p-3 bg-cyan-950/20 border border-cyan-500/20 rounded-2xl mb-4 relative z-10">
-        <Target className="w-8 h-8 text-cyan-400" />
-      </div>
+          <h2 className="text-xl font-black text-white leading-none mb-1.5"
+            style={{ textShadow: '0 4px 20px rgba(0,0,0,0.8)' }}>
+            Create Custom Goals
+          </h2>
+          <p className="text-[10px] text-gray-400 leading-relaxed mb-3 max-w-[280px]">
+            AI generates daily quests, tracks milestones, and keeps you on track — automatically.
+          </p>
 
-      <span className="text-[10px] font-black font-mono uppercase tracking-[0.25em] text-cyan-400 relative z-10">
-        PRO Clearance Required
-      </span>
-      <h3 className="text-[15px] font-heading font-black text-white uppercase tracking-wider mt-1.5 relative z-10">
-        Shadow Missions System
-      </h3>
-      <div className="h-px w-14 bg-cyan-500/20 my-3.5 relative z-10" />
+          <motion.button
+            onClick={() => {
+              playSystemSoundEffect('SELECT');
+              onUpgradePro?.();
+            }}
+            whileTap={{ scale: 0.96 }}
+            className="w-full flex items-center justify-center gap-2.5 py-3 rounded-xl font-bold text-sm tracking-wide transition-all"
+            style={{
+              background: 'linear-gradient(135deg, #facc15 0%, #f59e0b 100%)',
+              color: '#0a0a14',
+              boxShadow: '0 4px 24px rgba(250,204,21,0.3), 0 0 0 1px rgba(250,204,21,0.2)',
+            }}
+          >
+            <Zap size={16} />
+            Unlock AI Autopilot
+          </motion.button>
 
-      <p className="text-[11px] text-slate-400 leading-relaxed font-sans max-w-[260px] mb-6 relative z-10">
-        Custom goals and shadow missions are S-Rank features. Upgrade to Pro to formulate custom targets, deploy daily micro-quests, and unlock live AI telemetry tracking.
-      </p>
+          {/* How It Works button */}
+          <button
+            onClick={() => {
+              playSystemSoundEffect('SELECT');
+              setShowHowItWorks(true);
+            }}
+            className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg font-mono text-[10px] font-bold tracking-[0.15em] uppercase transition-all"
+            style={{
+              background: 'rgba(0,212,255,0.06)',
+              border: '1px solid rgba(0,212,255,0.12)',
+              color: 'rgba(0,212,255,0.5)',
+              cursor: 'pointer',
+              marginTop: 10,
+            }}
+          >
+            <Sparkles size={12} />
+            How It Works
+          </button>
+        </div>
+      </motion.div>
 
-      {/* 2 Buttons */}
-      <div className="flex flex-col w-full gap-2.5 relative z-10 px-2">
-        <button
-          onClick={() => {
-            playSystemSoundEffect('SELECT');
-            onUpgradePro?.();
-          }}
-          className="w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-black text-xs font-black font-mono uppercase tracking-widest rounded-xl transition-all shadow-[0_0_15px_rgba(6,182,212,0.25)] hover:brightness-110 active:scale-[0.98]"
-        >
-          Upgrade to S-Rank (Pro)
-        </button>
-        
-        <button
-          onClick={() => {
-            playSystemSoundEffect('SELECT');
-            onUpgradePro?.();
-          }}
-          className="w-full py-2.5 bg-slate-900 border border-slate-800 text-slate-400 text-[10px] font-bold font-mono uppercase tracking-wider rounded-xl transition-all hover:text-white"
-        >
-          Restore Clearance
-        </button>
-      </div>
+      {/* How It Works full-screen */}
+      <AnimatePresence>
+        {showHowItWorks && (
+          <React.Suspense fallback={null}>
+            <HowItWorksScreen
+              onClose={() => setShowHowItWorks(false)}
+              onClaimTrial={() => {
+                setShowHowItWorks(false);
+                onUpgradePro?.();
+              }}
+            />
+          </React.Suspense>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -574,5 +616,35 @@ export default function GoalsView({
         </>
       )}
     </div>
+  );
+}
+
+function GoalHeroImg() {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <>
+      {!loaded && (
+        <div
+          className="absolute inset-0"
+          style={{
+            background: 'linear-gradient(110deg, rgba(255,255,255,0.03) 30%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.03) 70%)',
+            backgroundSize: '200% 100%',
+            animation: 'goal-shimmer 1.5s ease-in-out infinite',
+          }}
+        />
+      )}
+      <img
+        src="/goals/hero_goal.jpeg"
+        alt=""
+        className="w-full h-full object-cover"
+        style={{
+          filter: 'grayscale(100%)',
+          opacity: loaded ? 1 : 0,
+          transition: 'opacity 0.4s ease',
+        }}
+        onLoad={() => setLoaded(true)}
+      />
+      <style>{`@keyframes goal-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
+    </>
   );
 }
