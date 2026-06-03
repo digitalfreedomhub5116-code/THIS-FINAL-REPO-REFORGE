@@ -73,13 +73,8 @@ public class MainActivity extends BridgeActivity {
                 Log.e("MainActivity", "Failed to notify TrackingPlugin of active lockdown", e);
             }
         } else {
-            // User opened Reforge manually! Clear the active lockdown in SharedPreferences.
-            Log.i("MainActivity", "Clear active lockdown via manual launch/resume");
-            getSharedPreferences("reforge_focus_shield_prefs", MODE_PRIVATE)
-                .edit()
-                .putBoolean("active_lockdown", false)
-                .putString("lockdown_package", "")
-                .apply();
+            // User opened Reforge manually! Preserve the active lockdown state if it exists.
+            Log.i("MainActivity", "Manual launch/resume - preserving active lockdown state");
         }
     }
 

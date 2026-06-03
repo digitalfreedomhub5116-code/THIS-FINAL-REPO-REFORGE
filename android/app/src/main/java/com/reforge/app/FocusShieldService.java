@@ -137,28 +137,12 @@ public class FocusShieldService extends Service {
                     }
 
                     if (shouldLock) {
-                        boolean alreadyLocked = prefs.getBoolean("active_lockdown", false);
-                        String currentLockedPkg = prefs.getString("lockdown_package", "");
-                        
-                        if (!alreadyLocked || !activePackage.equals(currentLockedPkg)) {
-                            Log.i(TAG, "LOCKDOWN TRIGGERED: " + activePackage);
-                            prefs.edit()
-                                .putBoolean("active_lockdown", true)
-                                .putString("lockdown_package", activePackage)
-                                .apply();
-                            triggerLockdown(activePackage);
-                        }
-                    } else {
-                        // User is on the launcher, settings, or another safe app (and not our app)
-                        // Clear the lockdown state so they are not blocked when they open Reforge manually
-                        boolean alreadyLocked = prefs.getBoolean("active_lockdown", false);
-                        if (alreadyLocked) {
-                            Log.i(TAG, "Clearing active lockdown because user switched to safe package: " + activePackage);
-                            prefs.edit()
-                                .putBoolean("active_lockdown", false)
-                                .putString("lockdown_package", "")
-                                .apply();
-                        }
+                        Log.i(TAG, "LOCKDOWN TRIGGERED/ENFORCED: " + activePackage);
+                        prefs.edit()
+                            .putBoolean("active_lockdown", true)
+                            .putString("lockdown_package", activePackage)
+                            .apply();
+                        triggerLockdown(activePackage);
                     }
                 } catch (InterruptedException e) {
                     break;

@@ -291,13 +291,29 @@ export default function FocusShieldSettings({ playerData, isPremium = false, onU
   const handleMasterToggleClick = () => {
     if (!isPremium) {
       playSystemSoundEffect('DEBUFF_CAST');
-      setShowProModal(true);
+      showSystemToast({
+        type: 'WARNING',
+        title: 'Pro Feature Required',
+        subtitle: 'The Focus Shield is a Reforge Pro feature.',
+        durationMs: 5000
+      });
+      onUpgradePro?.();
       return;
     }
     toggleShieldMaster();
   };
 
   const updateAppLockState = async (packageName: string, enabled: boolean) => {
+    if (!isShieldEnabled) {
+      playSystemSoundEffect('DEBUFF_CAST');
+      showSystemToast({
+        type: 'WARNING',
+        title: 'Master Switch Offline',
+        subtitle: 'Enable the Master System Switch first.',
+        durationMs: 3000
+      });
+      return;
+    }
     playSystemSoundEffect('SELECT');
     const updated = lockedApps.map(app => app.packageName === packageName ? { ...app, enabled } : app);
     setLockedApps(updated);
@@ -335,13 +351,19 @@ export default function FocusShieldSettings({ playerData, isPremium = false, onU
 
   const activeAppsCount = lockedApps.filter(app => app.enabled).length;
 
-  // Filter apps
-  const filteredApps = lockedApps.filter(app => {
-    const matchesSearch = app.appName.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          app.packageName.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesFilter = filterEnabledOnly ? app.enabled : true;
-    return matchesSearch && matchesFilter;
-  });
+  // Filter and sort apps (active apps float to the top)
+  const filteredApps = lockedApps
+    .filter(app => {
+      const matchesSearch = app.appName.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                            app.packageName.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesFilter = filterEnabledOnly ? app.enabled : true;
+      return matchesSearch && matchesFilter;
+    })
+    .sort((a, b) => {
+      if (a.enabled && !b.enabled) return -1;
+      if (!a.enabled && b.enabled) return 1;
+      return a.appName.localeCompare(b.appName);
+    });
 
   if (!isSupported) {
     return (
@@ -537,6 +559,7 @@ export default function FocusShieldSettings({ playerData, isPremium = false, onU
               <AnimatePresence initial={false}>
                 {filteredApps.map((app) => {
                   const isSelected = selectedAppPackage === app.packageName;
+                  const isAppEffectiveEnabled = isShieldEnabled && app.enabled;
 
                   return (
                     <motion.div 
@@ -547,7 +570,7 @@ export default function FocusShieldSettings({ playerData, isPremium = false, onU
                       exit={{ opacity: 0, scale: 0.95 }}
                       transition={{ duration: 0.2 }}
                       className={`border rounded-xl transition-all duration-300 ${
-                        app.enabled 
+                        isAppEffectiveEnabled 
                           ? isSelected 
                             ? 'bg-[#0B0D13] border-[#00d4ff] shadow-[0_0_15px_rgba(6,182,212,0.1)]' 
                             : 'bg-[#0B0D13]/85 border-[#171B26]'
@@ -557,12 +580,26 @@ export default function FocusShieldSettings({ playerData, isPremium = false, onU
                       {/* Header Row */}
                       <div className="flex items-center justify-between px-4 py-3.5 gap-3">
                         <div 
-                          onClick={() => app.enabled && setSelectedAppPackage(isSelected ? null : app.packageName)}
+                          onClick={() => {
+                            if (!isShieldEnabled) {
+                              playSystemSoundEffect('DEBUFF_CAST');
+                              showSystemToast({
+                                type: 'WARNING',
+                                title: 'Master Switch Offline',
+                                subtitle: 'Enable the Master System Switch first.',
+                                durationMs: 3000
+                              });
+                              return;
+                            }
+                            if (app.enabled) {
+                              setSelectedAppPackage(isSelected ? null : app.packageName);
+                            }
+                          }}
                           className="flex items-center gap-3.5 flex-1 min-w-0 cursor-pointer select-none"
                         >
                           {/* Stylized App Icon matching mockup */}
                           <div className={`w-9 h-9 shrink-0 rounded-lg flex items-center justify-center border transition-colors ${
-                            app.enabled 
+                            isAppEffectiveEnabled 
                               ? 'bg-[#151D2A] border-[#00d4ff]/30 text-[#00d4ff] shadow-[0_0_10px_rgba(6,182,212,0.05)]' 
                               : 'bg-slate-950 border-slate-900 text-slate-700'
                           }`}>
@@ -582,10 +619,10 @@ export default function FocusShieldSettings({ playerData, isPremium = false, onU
                         {/* Custom switch on the right */}
                         <div className="flex items-center gap-3">
                           <CustomToggleSwitch 
-                            active={app.enabled} 
+                            active={isAppEffectiveEnabled} 
                             onChange={() => updateAppLockState(app.packageName, !app.enabled)} 
                           />
-                          {app.enabled && (
+                          {isAppEffectiveEnabled && (
                             <button
                               onClick={() => setSelectedAppPackage(isSelected ? null : app.packageName)}
                               className="text-slate-400 p-1 hover:text-white"
@@ -597,7 +634,7 @@ export default function FocusShieldSettings({ playerData, isPremium = false, onU
                       </div>
 
                       {/* Calibration sliding panel */}
-                      {isSelected && app.enabled && (
+                      {isSelected && isAppEffectiveEnabled && (
                         <div className="px-4 pb-5 pt-3 border-t border-slate-900/60 space-y-4">
                           <div className="text-[9px] font-mono text-[#00d4ff] uppercase tracking-widest flex items-center gap-1.5">
                             <Sliders className="w-3 h-3 text-[#00d4ff]" /> Lock Calibration
