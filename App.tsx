@@ -28,7 +28,7 @@ import LogoutChoiceScreen from './components/LogoutChoiceScreen';
 
 import SystemMessage from './components/SystemMessage';
 
-import SystemToastOverlay from './components/SystemToast';
+import SystemToastOverlay, { showSystemToast } from './components/SystemToast';
 
 import ErrorBoundary from './components/ErrorBoundary';
 import StreakMilestoneOverlay from './components/StreakMilestoneOverlay';
@@ -380,6 +380,7 @@ const App: React.FC = () => {
 
   const [showChestOpening, setShowChestOpening] = useState(false);
   const [activeLockdown, setActiveLockdown] = useState<{ active: boolean; packageName: string; appName: string; requiredReps: number } | null>(null);
+  const [goalsCreateTrigger, setGoalsCreateTrigger] = useState(0);
 
   // Focus Shield key consumer
   const handleConsumeLockdownKey = async (): Promise<boolean> => {
@@ -5495,17 +5496,30 @@ const App: React.FC = () => {
 
                   <motion.div key="goals" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6 md:space-y-8">
 
-                    {/* Header — title + create-custom-quest button */}
+                    {/* Header — title + create-custom-goal button */}
                     <div className="sticky top-0 z-20 pt-2 pb-3 px-0" style={{ backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
                       <div className="flex items-center justify-between px-1">
                         <span className="text-xs font-heading font-extrabold tracking-[0.25em] text-white uppercase">
                           GOALS
                         </span>
                         <button
-                          onClick={() => { setActiveTab('DASHBOARD' as Tab); setQuestCreateTrigger(n => n + 1); }}
+                          onClick={() => {
+                            if (!isPremium) {
+                              playSystemSoundEffect('DEBUFF_CAST');
+                              showSystemToast({
+                                type: 'WARNING',
+                                title: 'Pro Feature Required',
+                                subtitle: 'Shadow Missions (Goals) is a Reforge Pro feature.',
+                                durationMs: 5000
+                              });
+                              setShowManaPowerUpsell(true);
+                              return;
+                            }
+                            setGoalsCreateTrigger(n => n + 1);
+                          }}
                           className="w-11 h-11 md:w-13 md:h-13 rounded-full flex items-center justify-center active:scale-90 transition-all"
                           style={{ background: 'linear-gradient(135deg, #00d4ff, #0099cc)', boxShadow: '0 0 20px rgba(0,212,255,0.4), 0 4px 14px rgba(0,0,0,0.35)' }}
-                          aria-label="Create custom quest"
+                          aria-label="Create custom goal"
                         >
                           <Plus size={22} className="text-black" strokeWidth={3} />
                         </button>
@@ -5534,6 +5548,7 @@ const App: React.FC = () => {
                           }}
                           isPremium={isPremium}
                           onUpgradePro={() => setShowManaPowerUpsell(true)}
+                          goalCreateTrigger={goalsCreateTrigger}
                         />
                       </ErrorBoundary>
                     </Suspense>

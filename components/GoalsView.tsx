@@ -24,6 +24,68 @@ function addMins(time: string, mins: number): string {
 // Track which dates we've already auto-generated for (prevents duplicates on tab re-opens)
 const _autoGenTracker: Record<string, string> = {}; // goalId -> lastAutoGenDate
 
+interface ShadowMissionsProUpsellProps {
+  onUpgradePro?: () => void;
+}
+
+function ShadowMissionsProUpsell({ onUpgradePro }: ShadowMissionsProUpsellProps) {
+  return (
+    <div className="flex flex-col items-center justify-center p-8 bg-[#0a0c16]/90 border border-cyan-500/20 rounded-2xl max-w-sm mx-auto text-center relative overflow-hidden min-h-[350px] shadow-[0_0_25px_rgba(6,182,212,0.15)] mt-4">
+      {/* Background Image with opacity overlay */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center opacity-[0.08] mix-blend-luminosity"
+        style={{ backgroundImage: `url('/banners/defaultreforgebanner.webp')` }}
+      />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.08),transparent_80%)] pointer-events-none" />
+
+      {/* Decorative tech corners */}
+      <div className="absolute top-0 left-0 w-3.5 h-3.5 border-t-2 border-l-2 border-cyan-500/30" />
+      <div className="absolute top-0 right-0 w-3.5 h-3.5 border-t-2 border-r-2 border-cyan-500/30" />
+      <div className="absolute bottom-0 left-0 w-3.5 h-3.5 border-b-2 border-l-2 border-cyan-500/30" />
+      <div className="absolute bottom-0 right-0 w-3.5 h-3.5 border-b-2 border-r-2 border-cyan-500/30" />
+
+      <div className="p-3 bg-cyan-950/20 border border-cyan-500/20 rounded-2xl mb-4 relative z-10">
+        <Target className="w-8 h-8 text-cyan-400" />
+      </div>
+
+      <span className="text-[10px] font-black font-mono uppercase tracking-[0.25em] text-cyan-400 relative z-10">
+        PRO Clearance Required
+      </span>
+      <h3 className="text-[15px] font-heading font-black text-white uppercase tracking-wider mt-1.5 relative z-10">
+        Shadow Missions System
+      </h3>
+      <div className="h-px w-14 bg-cyan-500/20 my-3.5 relative z-10" />
+
+      <p className="text-[11px] text-slate-400 leading-relaxed font-sans max-w-[260px] mb-6 relative z-10">
+        Custom goals and shadow missions are S-Rank features. Upgrade to Pro to formulate custom targets, deploy daily micro-quests, and unlock live AI telemetry tracking.
+      </p>
+
+      {/* 2 Buttons */}
+      <div className="flex flex-col w-full gap-2.5 relative z-10 px-2">
+        <button
+          onClick={() => {
+            playSystemSoundEffect('SELECT');
+            onUpgradePro?.();
+          }}
+          className="w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-black text-xs font-black font-mono uppercase tracking-widest rounded-xl transition-all shadow-[0_0_15px_rgba(6,182,212,0.25)] hover:brightness-110 active:scale-[0.98]"
+        >
+          Upgrade to S-Rank (Pro)
+        </button>
+        
+        <button
+          onClick={() => {
+            playSystemSoundEffect('SELECT');
+            onUpgradePro?.();
+          }}
+          className="w-full py-2.5 bg-slate-900 border border-slate-800 text-slate-400 text-[10px] font-bold font-mono uppercase tracking-wider rounded-xl transition-all hover:text-white"
+        >
+          Restore Clearance
+        </button>
+      </div>
+    </div>
+  );
+}
+
 interface GoalsViewProps {
   goals: Goal[];
   playerData?: PlayerData;
@@ -36,6 +98,7 @@ interface GoalsViewProps {
   onUpdateScheduleSlots?: (slots: any[]) => void;
   isPremium?: boolean;
   onUpgradePro?: () => void;
+  goalCreateTrigger?: number;
 }
 
 export default function GoalsView({
@@ -50,10 +113,18 @@ export default function GoalsView({
   onUpdateScheduleSlots,
   isPremium = false,
   onUpgradePro,
+  goalCreateTrigger = 0,
 }: GoalsViewProps) {
   const [showCreate, setShowCreate] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
   const [subTab, setSubTab] = useState<'SHADOW_MISSIONS' | 'FOCUS_SHIELD'>('SHADOW_MISSIONS');
+
+  // Listen to top header + button trigger from App.tsx
+  useEffect(() => {
+    if (goalCreateTrigger > 0) {
+      setShowCreate(true);
+    }
+  }, [goalCreateTrigger]);
 
   // Auto-generation state
   const [autoGenState, setAutoGenState] = useState<'IDLE' | 'GENERATING' | 'DONE'>('IDLE');
@@ -353,12 +424,13 @@ export default function GoalsView({
             />
           )}
           FOCUS SHIELD
-          <span className="text-[7px] bg-red-500/20 text-red-400 border border-red-500/40 px-1 rounded font-sans tracking-normal font-black">PRO</span>
         </button>
       </div>
 
       {subTab === 'FOCUS_SHIELD' ? (
         <FocusShieldSettings playerData={playerData} isPremium={isPremium} onUpgradePro={onUpgradePro} />
+      ) : !isPremium ? (
+        <ShadowMissionsProUpsell onUpgradePro={onUpgradePro} />
       ) : (
         <>
           {/* Auto-generation loader */}
@@ -484,30 +556,7 @@ export default function GoalsView({
             </div>
           )}
 
-          {/* FAB — only show if there are existing goals */}
-          {activeGoals.length > 0 && activeGoals.length < 3 && (
-            <motion.button
-              whileTap={{ scale: 0.9 }}
-              onClick={() => {
-                if (!isPremium) {
-                  playSystemSoundEffect('DEBUFF_CAST');
-                  showSystemToast({
-                    type: 'WARNING',
-                    title: 'Premium Required',
-                    subtitle: 'Custom goals are a Reforge Pro feature.',
-                    durationMs: 4000
-                  });
-                  onUpgradePro?.();
-                  return;
-                }
-                setShowCreate(true);
-              }}
-              className="fixed bottom-24 right-5 w-13 h-13 rounded-full flex items-center justify-center z-50 shadow-lg"
-              style={{ background: 'linear-gradient(135deg, #00d4ff, #00d4ff)', width: 52, height: 52 }}
-            >
-              <Plus className="w-5 h-5 text-black" />
-            </motion.button>
-          )}
+
 
           {/* Creation Flow Modal */}
           <AnimatePresence>
