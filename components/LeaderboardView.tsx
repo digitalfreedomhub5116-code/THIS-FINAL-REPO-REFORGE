@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { PlayerData, Outfit } from '../types';
 import { API_BASE } from '../lib/apiConfig';
-import { getPlayerAuthHeaders } from '../lib/playerApi';
+import { getPlayerAuthHeaders, authenticatedFetch } from '../lib/playerApi';
 import { useSystem } from '../hooks/useSystem';
 import { playSystemSoundEffect } from '../utils/soundEngine';
 import SeasonRewardOverlay from './SeasonRewardOverlay';
@@ -153,10 +153,9 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
     if (reportChecks.hacking) reasons.push('Hacking');
     if (reportChecks.unusualActivity) reasons.push('Unusual Activity');
     try {
-      await fetch(`${API_BASE}/api/reports`, {
+      await authenticatedFetch(`${API_BASE}/api/reports`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
-        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           reporterUserId: player.userId,
           reporterName: player.username || player.name,
@@ -247,9 +246,8 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
 
     (async () => {
       try {
-        const res = await fetch(
-          `${API_BASE}/api/leaderboard/rewards?userId=${player.userId}`,
-          { credentials: 'include', headers: { ...getPlayerAuthHeaders() } }
+        const res = await authenticatedFetch(
+          `${API_BASE}/api/leaderboard/rewards?userId=${player.userId}`
         );
         if (!res.ok) return;
         const { reward } = await res.json();
@@ -266,8 +264,8 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
     if (showRefresh) setRefreshing(true);
     try {
       const [xpRes, streakRes] = await Promise.all([
-        fetch(`${API_BASE}/api/leaderboard?type=xp&userId=${encodeURIComponent(player.userId || '')}`, { credentials: 'include', headers: { ...getPlayerAuthHeaders() } }),
-        fetch(`${API_BASE}/api/leaderboard?type=streak&userId=${encodeURIComponent(player.userId || '')}`, { credentials: 'include', headers: { ...getPlayerAuthHeaders() } }),
+        authenticatedFetch(`${API_BASE}/api/leaderboard?type=xp&userId=${encodeURIComponent(player.userId || '')}`),
+        authenticatedFetch(`${API_BASE}/api/leaderboard?type=streak&userId=${encodeURIComponent(player.userId || '')}`),
       ]);
       if (xpRes.ok) {
         const xpData = await xpRes.json();
@@ -1186,10 +1184,9 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
 
               // Claim on server for persistence
               try {
-                const res = await fetch(`${API_BASE}/api/leaderboard/rewards/claim`, {
+                const res = await authenticatedFetch(`${API_BASE}/api/leaderboard/rewards/claim`, {
                   method: 'POST',
-                  credentials: 'include',
-                  headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
+                  headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
                     snapshotId: pendingReward.id,
                     goldAmount: earnedGold,
@@ -1210,13 +1207,20 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                       level: p.level ?? prev.level,
                       rank: p.rank ?? prev.rank,
                       totalXp: p.totalXp ?? prev.totalXp,
+                      equippedBorder: p.equippedBorder ?? prev.equippedBorder,
+                      ownedBorders: p.ownedBorders ?? prev.ownedBorders,
                     }));
                     updateServerBaseline(p.gold ?? 0);
                   }
+                  // ONLY clear the pending reward locally if the server successfully recorded the claim
+                  setPendingReward(null);
+                } else {
+                  addNotification('Failed to save rewards on server. Try reopening the leaderboard to retry.', 'DANGER');
                 }
                 setTimeout(() => window.dispatchEvent(new Event('reforge:sync-needed')), 500);
-              } catch { /* will retry next time */ }
-              setPendingReward(null);
+              } catch {
+                addNotification('Failed to save rewards on server. Try reopening the leaderboard to retry.', 'DANGER');
+              }
             }}
           />
         )}

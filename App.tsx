@@ -422,6 +422,8 @@ const App: React.FC = () => {
               appName: appConfig?.appName || 'Distracting App',
               requiredReps: appConfig?.questReps || 20
             });
+          } else {
+            setActiveLockdown(null);
           }
         }
       } catch (e) {
@@ -433,6 +435,8 @@ const App: React.FC = () => {
 
     const plugin = (window as any).Capacitor?.Plugins?.TrackingPlugin;
     let listener: any = null;
+    let capAppStateListener: any = null;
+
     if (plugin) {
       listener = plugin.addListener('focusShieldLockdown', (data: any) => {
         console.log("Real-time Focus Shield lockdown event:", data);
@@ -449,8 +453,16 @@ const App: React.FC = () => {
       });
     }
 
+    // Refresh active lockdown status when the app is resumed
+    CapApp.addListener('appStateChange', ({ isActive }) => {
+      if (isActive) {
+        checkColdStartLockdown();
+      }
+    }).then(l => { capAppStateListener = l; }).catch(() => {});
+
     return () => {
       if (listener) listener.remove();
+      if (capAppStateListener) capAppStateListener.remove();
     };
   }, []);
 

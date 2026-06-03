@@ -98,15 +98,23 @@ public class FocusShieldService extends Service {
 
                     // 1. Get current foreground app package name
                     String activePackage = getActiveForegroundPackage(usm);
-                    if (activePackage == null || activePackage.isEmpty() || activePackage.equals(getPackageName())) {
+                    if (activePackage == null || activePackage.isEmpty()) {
+                        continue;
+                    }
+
+                    SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+                    String ourPkg = getPackageName();
+
+                    // If user is actively inside our app (doing pushups/bypass), preserve the state as-is
+                    if (activePackage.equals(ourPkg)) {
                         continue;
                     }
 
                     // 2. Check if activePackage is a locked app in our preferences
-                    SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
                     String lockedJsonStr = prefs.getString("locked_apps", "{}");
                     JSONObject lockedApps = new JSONObject(lockedJsonStr);
 
+                    boolean shouldLock = false;
                     if (lockedApps.has(activePackage)) {
                         int limitMinutes = lockedApps.getInt(activePackage);
                         
@@ -123,10 +131,33 @@ public class FocusShieldService extends Service {
                             long bypassExpiry = bypassTimestamps.optLong(activePackage, 0);
 
                             if (System.currentTimeMillis() > bypassExpiry) {
-                                // Exceeded & NOT bypassed -> Trigger Lockdown overlay!
-                                Log.i(TAG, "LOCKDOWN TRIGGERED: " + activePackage + " exceeded limit (" + usageMinutes + "m >= " + limitMinutes + "m)");
-                                triggerLockdown(activePackage);
+                                shouldLock = true;
                             }
+                        }
+                    }
+
+                    if (shouldLock) {
+                        boolean alreadyLocked = prefs.getBoolean("active_lockdown", false);
+                        String currentLockedPkg = prefs.getString("lockdown_package", "");
+                        
+                        if (!alreadyLocked || !activePackage.equals(currentLockedPkg)) {
+                            Log.i(TAG, "LOCKDOWN TRIGGERED: " + activePackage);
+                            prefs.edit()
+                                .putBoolean("active_lockdown", true)
+                                .putString("lockdown_package", activePackage)
+                                .apply();
+                            triggerLockdown(activePackage);
+                        }
+                    } else {
+                        // User is on the launcher, settings, or another safe app (and not our app)
+                        // Clear the lockdown state so they are not blocked when they open Reforge manually
+                        boolean alreadyLocked = prefs.getBoolean("active_lockdown", false);
+                        if (alreadyLocked) {
+                            Log.i(TAG, "Clearing active lockdown because user switched to safe package: " + activePackage);
+                            prefs.edit()
+                                .putBoolean("active_lockdown", false)
+                                .putString("lockdown_package", "")
+                                .apply();
                         }
                     }
                 } catch (InterruptedException e) {

@@ -379,7 +379,7 @@ router.post('/rewards/claim', async (req: Request, res: Response) => {
   const authUserId = getAuthenticatedUserId(req);
   if (!authUserId) return res.status(401).json({ error: 'Unauthorized' });
 
-  const { snapshotId } = req.body;
+  const { snapshotId, goldAmount, keys, borderId } = req.body;
   if (!snapshotId) return res.status(400).json({ error: 'snapshotId required' });
 
   try {
@@ -388,7 +388,7 @@ router.post('/rewards/claim', async (req: Request, res: Response) => {
     // 1. Fetch snapshot and verify it exists + not already claimed
     const { data: snapshot, error: snapErr } = await db
       .from('daily_rank_snapshots')
-      .select('id, player_id, reward_gold, reward_xp, reward_keys, claimed')
+      .select('id, player_id, snapshot_date, rank, reward_gold, reward_xp, reward_keys, claimed')
       .eq('id', snapshotId)
       .single();
 
@@ -402,7 +402,7 @@ router.post('/rewards/claim', async (req: Request, res: Response) => {
     // 2. Verify the requesting user owns this snapshot
     const { data: playerRow, error: playerErr } = await db
       .from('players')
-      .select('id, gold, keys, total_xp, current_xp, required_xp, daily_xp, level, rank')
+      .select('id, gold, keys, total_xp, current_xp, required_xp, daily_xp, level, rank, equipped_border')
       .eq('supabase_id', authUserId)
       .single();
 
@@ -413,10 +413,58 @@ router.post('/rewards/claim', async (req: Request, res: Response) => {
       return res.status(403).json({ error: 'Forbidden — snapshot does not belong to you' });
     }
 
-    // 3. Credit rewards to the player's DB account
+    // 3. Validate and credit rewards to the player's DB account
     const rewardXp = snapshot.reward_xp || 0;
-    const newGold = (playerRow.gold || 0) + (snapshot.reward_gold || 0);
-    const newKeys = (playerRow.keys || 0) + (snapshot.reward_keys || 0);
+    const rank = Math.min(snapshot.rank || 999, 3);
+    let finalGold = snapshot.reward_gold || 0;
+    let finalKeys = snapshot.reward_keys || 0;
+
+    // Validate client-sent gold/keys against max acceptable boundaries per rank
+    if (typeof goldAmount === 'number' && goldAmount >= 0) {
+      let maxGold = 100;
+      if (rank === 1) maxGold = 5000;
+      else if (rank === 2) maxGold = 3000;
+      else if (rank === 3) maxGold = 2000;
+
+      if (goldAmount <= maxGold) {
+        finalGold = goldAmount;
+      } else {
+        console.warn(`[Leaderboard Claim] goldAmount ${goldAmount} exceeds max ${maxGold} for rank ${rank}`);
+      }
+    }
+
+    if (typeof keys === 'number' && keys >= 0) {
+      let maxKeys = 0;
+      if (rank === 1) maxKeys = 3;
+      else if (rank === 2) maxKeys = 2;
+      else if (rank === 3) maxKeys = 1;
+
+      if (keys <= maxKeys) {
+        finalKeys = keys;
+      } else {
+        console.warn(`[Leaderboard Claim] keys ${keys} exceeds max ${maxKeys} for rank ${rank}`);
+      }
+    }
+
+    // Validate borderId
+    const borderMap: Record<string, string> = {
+      'Iron Will': 'border-streak-gold',
+      'Inferno': 'border-streak-inferno',
+      'Eternal Flame': 'border-streak-eternal',
+      'Gold Dragon': 'border-gold-dragon',
+      'Phoenix Blaze': 'border-phoenix',
+      'Dragon Coil': 'border-dragon-img',
+      'Ice Crown': 'border-ice-img',
+      'Silversteel Aegis': 'border-podium-silver',
+    };
+    const validBorders = Object.values(borderMap);
+    if (borderId && !validBorders.includes(borderId)) {
+      console.warn(`[Leaderboard Claim] Invalid borderId: ${borderId}`);
+      return res.status(400).json({ error: 'Invalid border reward' });
+    }
+
+    const newGold = (playerRow.gold || 0) + finalGold;
+    const newKeys = (playerRow.keys || 0) + finalKeys;
     const newTotalXp = (playerRow.total_xp || 0) + rewardXp;
     const newDailyXp = (playerRow.daily_xp || 0) + rewardXp;
 
@@ -427,18 +475,50 @@ router.post('/rewards/claim', async (req: Request, res: Response) => {
       playerRow.level || 1
     );
 
+    // 3.5. If a border was awarded, grant it in user_inventory
+    if (borderId) {
+      const { data: existingBorder } = await db
+        .from('user_inventory')
+        .select('id')
+        .eq('player_id', playerRow.id)
+        .eq('item_id', borderId)
+        .limit(1)
+        .maybeSingle();
+
+      if (!existingBorder) {
+        const { error: borderInvErr } = await db
+          .from('user_inventory')
+          .insert({
+            player_id: playerRow.id,
+            item_id: borderId,
+            item_type: 'border',
+            price_paid: 0,
+            source: 'leaderboard_reward',
+          });
+        if (borderInvErr) {
+          console.error('[Leaderboard Rewards Claim] Failed to insert border into inventory:', borderInvErr);
+        }
+      }
+    }
+
+    const updateFields: Record<string, any> = {
+      gold: newGold,
+      keys: newKeys,
+      total_xp: newTotalXp,
+      daily_xp: newDailyXp,
+      current_xp: lu.currentXp,
+      required_xp: lu.requiredXp,
+      level: lu.level,
+      rank: lu.rank,
+    };
+
+    if (borderId) {
+      updateFields.equipped_border = borderId;
+    }
+
     const { error: creditErr } = await db
       .from('players')
-      .update({
-        gold: newGold,
-        keys: newKeys,
-        total_xp: newTotalXp,
-        daily_xp: newDailyXp,
-        current_xp: lu.currentXp,
-        required_xp: lu.requiredXp,
-        level: lu.level,
-        rank: lu.rank,
-      })
+      .update(updateFields)
       .eq('id', playerRow.id);
 
     if (creditErr) {
@@ -456,11 +536,31 @@ router.post('/rewards/claim', async (req: Request, res: Response) => {
       console.error('[Leaderboard Rewards Claim] Mark claimed failed:', claimErr);
     }
 
-    console.log(`[Leaderboard Claim] Player ${authUserId} claimed rank reward: +${snapshot.reward_gold}G, +${snapshot.reward_xp}XP, +${snapshot.reward_keys}K (lvl ${lu.level})`);
+    // Fetch all owned borders to return back to user
+    const { data: borderRows } = await db
+      .from('user_inventory')
+      .select('item_id')
+      .eq('player_id', playerRow.id)
+      .eq('item_type', 'border');
+
+    const ownedBorders = (borderRows || []).map((b: any) => b.item_id);
+
+    console.log(`[Leaderboard Claim] Player ${authUserId} claimed rank reward: +${finalGold}G, +${rewardXp}XP, +${finalKeys}K, border: ${borderId || 'none'} (lvl ${lu.level})`);
     return res.json({
       success: true,
-      rewards: { gold: snapshot.reward_gold, xp: snapshot.reward_xp, keys: snapshot.reward_keys },
-      player: { gold: newGold, keys: newKeys, currentXp: lu.currentXp, requiredXp: lu.requiredXp, level: lu.level, rank: lu.rank, totalXp: newTotalXp, dailyXp: newDailyXp },
+      rewards: { gold: finalGold, xp: rewardXp, keys: finalKeys, borderId },
+      player: {
+        gold: newGold,
+        keys: newKeys,
+        currentXp: lu.currentXp,
+        requiredXp: lu.requiredXp,
+        level: lu.level,
+        rank: lu.rank,
+        totalXp: newTotalXp,
+        dailyXp: newDailyXp,
+        equippedBorder: borderId || playerRow.equipped_border || null,
+        ownedBorders: ownedBorders,
+      },
     });
   } catch (err) {
     console.error('[Leaderboard Rewards Claim]', err);

@@ -1,11 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, ShieldAlert, ShieldCheck, Settings, RefreshCw, AlertCircle, Search, Filter } from 'lucide-react';
+import { 
+  Shield, ShieldAlert, ShieldCheck, Settings, RefreshCw, AlertCircle, 
+  Search, Filter, Sliders, Cpu, Info, ChevronDown, ChevronUp, Lock, 
+  LayoutGrid, Camera, Play, Youtube, Facebook, Twitter, Chrome, Gamepad, AppWindow, AlertTriangle
+} from 'lucide-react';
 import { showSystemToast } from './SystemToast';
 import { playSystemSoundEffect } from '../utils/soundEngine';
 
 interface FocusShieldSettingsProps {
   playerData?: any;
+  isPremium?: boolean;
+  onUpgradePro?: () => void;
 }
 
 interface AppLockConfig {
@@ -25,7 +31,44 @@ const DEFAULT_APPS: AppLockConfig[] = [
   { packageName: 'com.twitter.android', appName: 'Twitter / X', limitMinutes: 30, questReps: 15, bypassMinutes: 45, enabled: false }
 ];
 
-export default function FocusShieldSettings({ playerData }: FocusShieldSettingsProps) {
+const getAppIcon = (packageName: string) => {
+  const pkg = packageName.toLowerCase();
+  if (pkg.includes('instagram') || pkg.includes('snapchat')) return <Camera className="w-4 h-4 text-slate-400" />;
+  if (pkg.includes('youtube')) return <Youtube className="w-4 h-4 text-slate-400" />;
+  if (pkg.includes('facebook')) return <Facebook className="w-4 h-4 text-slate-400" />;
+  if (pkg.includes('twitter') || pkg.includes('x.android')) return <Twitter className="w-4 h-4 text-slate-400" />;
+  if (pkg.includes('tiktok') || pkg.includes('musically')) return <Play className="w-4 h-4 text-slate-400" />;
+  if (pkg.includes('chrome') || pkg.includes('browser') || pkg.includes('firefox')) return <Chrome className="w-4 h-4 text-slate-400" />;
+  if (pkg.includes('game') || pkg.includes('play') || pkg.includes('unity')) return <Gamepad className="w-4 h-4 text-slate-400" />;
+  return <AppWindow className="w-4 h-4 text-slate-400" />;
+};
+
+const CustomToggleSwitch = ({ active, onChange }: { active: boolean; onChange: () => void }) => {
+  return (
+    <div 
+      onClick={(e) => {
+        e.stopPropagation();
+        onChange();
+      }}
+      className={`w-[52px] h-7 rounded-full p-0.5 cursor-pointer transition-all duration-300 flex items-center relative border ${
+        active 
+          ? 'bg-cyan-950/40 border-cyan-500/50 justify-end shadow-[0_0_10px_rgba(6,182,212,0.15)]' 
+          : 'bg-slate-950 border-slate-800 justify-start'
+      }`}
+    >
+      <motion.div 
+        layout
+        className={`w-[22px] h-[22px] rounded-full flex items-center justify-center transition-all ${
+          active ? 'bg-blue-600 shadow-[0_0_8px_rgba(37,99,235,0.8)]' : 'bg-slate-700'
+        }`}
+      >
+        {active && <span className="text-white text-[10px] font-black font-sans leading-none">✓</span>}
+      </motion.div>
+    </div>
+  );
+};
+
+export default function FocusShieldSettings({ playerData, isPremium = false, onUpgradePro }: FocusShieldSettingsProps) {
   const [isSupported, setIsSupported] = useState(true);
   const [permissions, setPermissions] = useState({ usageGranted: false, overlayGranted: false });
   const [isShieldEnabled, setIsShieldEnabled] = useState(false);
@@ -36,6 +79,9 @@ export default function FocusShieldSettings({ playerData }: FocusShieldSettingsP
   const [searchQuery, setSearchQuery] = useState('');
   const [filterEnabledOnly, setFilterEnabledOnly] = useState(false);
   const [loadingApps, setLoadingApps] = useState(false);
+
+  // Premium lock dialog
+  const [showProModal, setShowProModal] = useState(false);
 
   // Check support and load initial permissions & configurations
   useEffect(() => {
@@ -56,10 +102,27 @@ export default function FocusShieldSettings({ playerData }: FocusShieldSettingsP
     return () => window.removeEventListener('focus', handleFocus);
   }, []);
 
+  // Force system off if premium runs out
+  useEffect(() => {
+    if (!isPremium && isShieldEnabled) {
+      setIsShieldEnabled(false);
+      localStorage.setItem('reforge_focus_shield_enabled', 'false');
+      const stopService = async () => {
+        try {
+          const plugin = (window as any).Capacitor?.Plugins?.TrackingPlugin;
+          if (plugin) {
+            await plugin.stopFocusShield();
+          }
+        } catch {}
+      };
+      stopService();
+    }
+  }, [isPremium, isShieldEnabled]);
+
   const loadSettingsAndApps = async () => {
     setLoadingApps(true);
     try {
-      const enabled = localStorage.getItem('reforge_focus_shield_enabled') === 'true';
+      const enabled = localStorage.getItem('reforge_focus_shield_enabled') === 'true' && isPremium;
       setIsShieldEnabled(enabled);
 
       let savedApps: AppLockConfig[] = DEFAULT_APPS;
@@ -110,7 +173,7 @@ export default function FocusShieldSettings({ playerData }: FocusShieldSettingsP
       setPermissions({ usageGranted: res.usageGranted, overlayGranted: res.overlayGranted });
 
       // If permissions are active and shield is marked enabled, ensure native service is running
-      const enabled = localStorage.getItem('reforge_focus_shield_enabled') === 'true';
+      const enabled = localStorage.getItem('reforge_focus_shield_enabled') === 'true' && isPremium;
       if (res.usageGranted && res.overlayGranted) {
         if (enabled) {
           await plugin.startFocusShield();
@@ -118,7 +181,7 @@ export default function FocusShieldSettings({ playerData }: FocusShieldSettingsP
 
         // Auto-deploy loop: if user returning from granting settings
         const deploying = localStorage.getItem('reforge_focus_shield_deploying') === 'true';
-        if (deploying) {
+        if (deploying && isPremium) {
           localStorage.removeItem('reforge_focus_shield_deploying');
           const startRes = await plugin.startFocusShield();
           if (startRes.started) {
@@ -225,6 +288,15 @@ export default function FocusShieldSettings({ playerData }: FocusShieldSettingsP
     }
   };
 
+  const handleMasterToggleClick = () => {
+    if (!isPremium) {
+      playSystemSoundEffect('DEBUFF_CAST');
+      setShowProModal(true);
+      return;
+    }
+    toggleShieldMaster();
+  };
+
   const updateAppLockState = async (packageName: string, enabled: boolean) => {
     playSystemSoundEffect('SELECT');
     const updated = lockedApps.map(app => app.packageName === packageName ? { ...app, enabled } : app);
@@ -261,7 +333,6 @@ export default function FocusShieldSettings({ playerData }: FocusShieldSettingsP
     }
   };
 
-  const hasAllPermissions = permissions.usageGranted && permissions.overlayGranted;
   const activeAppsCount = lockedApps.filter(app => app.enabled).length;
 
   // Filter apps
@@ -274,152 +345,165 @@ export default function FocusShieldSettings({ playerData }: FocusShieldSettingsP
 
   if (!isSupported) {
     return (
-      <div className="flex flex-col items-center justify-center p-8 bg-gray-950/40 border border-gray-900 rounded-2xl max-w-md mx-auto text-center">
-        <ShieldAlert className="w-12 h-12 text-red-500/80 mb-4" />
-        <h3 className="text-sm font-extrabold text-white uppercase tracking-wider mb-2">Android Exclusive Feature</h3>
-        <p className="text-xs text-gray-500 font-mono leading-relaxed">
-          Due to operating system sandboxing security restrictions, Focus Shield is exclusively available on Android devices. iOS restricts background app activity monitoring.
+      <div className="flex flex-col items-center justify-center p-8 bg-slate-950/40 border border-rose-500/20 rounded-2xl max-w-md mx-auto text-center relative overflow-hidden shadow-neon-red animate-fade-in">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(239,68,68,0.05),transparent)] pointer-events-none" />
+        
+        <ShieldAlert className="w-12 h-12 text-rose-500 mb-4 animate-pulse" />
+        <h3 className="text-sm font-extrabold text-white font-heading uppercase tracking-widest mb-2">
+          Gate Refused: iOS Restriction
+        </h3>
+        <p className="text-xs text-slate-400 font-sans leading-relaxed max-w-[280px]">
+          Due to Apple sandboxing constraints, Focus Shield telemetry is unavailable. This module is exclusive to Android OS.
         </p>
+        <div className="mt-6 border-t border-slate-900 pt-4 w-full flex items-center justify-center gap-1.5 text-[9px] font-mono text-slate-650">
+          <span>INTERFACE ACCESS ERROR</span>
+          <span>•</span>
+          <span>CODE: PLATFORM_MUTATION_LIMIT</span>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 max-w-md mx-auto pb-8">
-      {/* Active Service Status */}
-      <div className="bg-gray-950/60 border border-gray-800/80 rounded-2xl p-5 relative overflow-hidden">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className={`p-2.5 rounded-xl border ${
-              isShieldEnabled 
-                ? 'bg-system-neon/10 border-system-neon/40 text-system-neon shadow-[0_0_15px_rgba(0,212,255,0.1)]' 
-                : 'bg-gray-900 border-gray-800 text-gray-500'
-            }`}>
-              <Shield className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-xs font-bold text-white font-mono tracking-wider uppercase">Focus Shield System</h3>
-              <p className="text-[10px] text-gray-500 font-mono mt-0.5">
-                {isShieldEnabled ? 'SHIELD DEPLOYED • MONITORING ACTIVE' : 'SYSTEM STANDBY'}
-              </p>
-            </div>
-          </div>
-          
-          <button
-            onClick={toggleShieldMaster}
-            className={`px-4 py-2 rounded-xl text-[10px] font-bold font-mono tracking-wider transition-all duration-300 border uppercase ${
-              isShieldEnabled
-                ? 'bg-red-500/10 hover:bg-red-500/20 border-red-500/30 text-red-400'
-                : 'bg-system-neon/10 hover:bg-system-neon/20 border-system-neon/30 text-system-neon shadow-[0_0_15px_rgba(0,212,255,0.15)]'
-            }`}
-          >
-            {isShieldEnabled ? 'Shutdown' : 'Deploy'}
-          </button>
+    <div className="space-y-6 max-w-md mx-auto pb-8 animate-fade-in px-4">
+      {/* Visual Header matching the screenshot */}
+      <div className="flex items-center justify-between border-b border-slate-900 pb-3 mb-6 px-1">
+        <LayoutGrid className="w-5 h-5 text-slate-400 cursor-pointer active:scale-90 transition-transform" />
+        <span className="text-sm font-heading font-black text-white tracking-[0.05em] uppercase">
+          SYSTEM INTERFACE
+        </span>
+        <Settings className="w-5 h-5 text-slate-400 cursor-pointer active:scale-90 transition-transform" />
+      </div>
+
+      {/* Switch Card (Master System Switch) */}
+      <div className="flex flex-col items-center justify-center p-6 bg-[#0B0D13]/90 border border-[#171B26] rounded-2xl relative overflow-hidden">
+        <span className="text-xs font-heading font-black text-white uppercase tracking-widest text-center">
+          MASTER SYSTEM SWITCH
+        </span>
+        <span className="text-[9px] font-mono mt-1 text-center font-bold flex items-center gap-1.5 justify-center uppercase">
+          {isShieldEnabled ? (
+            <>
+              <span className="w-1.5 h-1.5 rounded-full bg-[#00d4ff] animate-pulse" />
+              <span className="text-[#00d4ff] tracking-wide">DEPLOYED & RUNNING</span>
+            </>
+          ) : (
+            <>
+              <span className="w-1.5 h-1.5 rounded-full bg-slate-600" />
+              <span className="text-slate-500 tracking-wide">SYSTEM OFFLINE</span>
+            </>
+          )}
+        </span>
+        
+        <div className="mt-6">
+          <CustomToggleSwitch active={isShieldEnabled} onChange={handleMasterToggleClick} />
         </div>
       </div>
 
-      {/* Permissions Workspace */}
+      {/* SYSTEM GATES */}
       <div className="space-y-3">
-        <div className="flex items-center gap-2 px-1">
-          <Settings className="w-3.5 h-3.5 text-gray-500" />
-          <span className="text-[10px] font-mono text-gray-500 uppercase tracking-wider">Required Native Access</span>
-          <button 
-            onClick={checkPermissions}
-            className="ml-auto text-[9px] font-mono text-system-neon flex items-center gap-1 hover:underline animate-pulse"
-          >
-            <RefreshCw className="w-2.5 h-2.5" /> Check Status
-          </button>
+        <div className="flex items-center gap-2 px-1 text-slate-500 font-mono text-[10px] tracking-wider uppercase">
+          <Cpu className="w-4 h-4" /> System Gates
         </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          {/* Usage Access Permission */}
-          <div className="bg-gray-950/40 border border-gray-900 rounded-xl p-4 flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between">
-                <span className="text-[9px] font-bold font-mono text-gray-400 uppercase">Usage Access</span>
-                {permissions.usageGranted ? (
-                  <ShieldCheck className="w-4 h-4 text-green-400 animate-bounce" />
-                ) : (
-                  <ShieldAlert className="w-4 h-4 text-red-400" />
-                )}
+        
+        <div className="space-y-2.5">
+          {/* Gate 1: Usage Access */}
+          <div className={`bg-[#0B0D13]/70 border border-[#171B26] rounded-xl flex items-center justify-between p-4 relative overflow-hidden ${
+            permissions.usageGranted ? 'border-l-4 border-l-[#00d4ff]' : 'border-l-4 border-l-rose-500/80'
+          }`}>
+            <div className="flex items-center gap-3">
+              <div className={`${permissions.usageGranted ? 'text-[#00d4ff]' : 'text-rose-500'}`}>
+                <RefreshCw className={`w-5 h-5 ${permissions.usageGranted ? 'animate-spin-slow' : ''}`} />
               </div>
-              <p className="text-[10px] text-gray-500 mt-2 font-sans leading-normal">
-                Allows measurement of screen time limits of distracting apps.
-              </p>
+              <span className="text-xs font-bold text-white font-mono tracking-wide">
+                Gate 1: Usage Access
+              </span>
             </div>
-            {!permissions.usageGranted && (
-              <button
-                onClick={grantUsagePermission}
-                className="mt-4 w-full py-1.5 bg-system-neon/10 hover:bg-system-neon/20 border border-system-neon/30 rounded-lg text-[9px] font-bold font-mono text-system-neon uppercase tracking-wider transition-colors"
-              >
-                Configure
-              </button>
-            )}
-          </div>
-
-          {/* Overlay Permission */}
-          <div className="bg-gray-950/40 border border-gray-900 rounded-xl p-4 flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between">
-                <span className="text-[9px] font-bold font-mono text-gray-400 uppercase">Draw Over Apps</span>
-                {permissions.overlayGranted ? (
-                  <ShieldCheck className="w-4 h-4 text-green-400 animate-bounce" />
-                ) : (
-                  <ShieldAlert className="w-4 h-4 text-red-400" />
-                )}
-              </div>
-              <p className="text-[10px] text-gray-500 mt-2 font-sans leading-normal">
-                Enables un-dismissible quest lock overlay when limit is hit.
-              </p>
-            </div>
-            {!permissions.overlayGranted && (
-              <button
-                onClick={grantOverlayPermission}
-                className="mt-4 w-full py-1.5 bg-system-neon/10 hover:bg-system-neon/20 border border-system-neon/30 rounded-lg text-[9px] font-bold font-mono text-system-neon uppercase tracking-wider transition-colors"
-              >
-                Configure
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Target Focus Apps Workspace */}
-      <div className="space-y-3">
-        {/* Workspace Title & Search Controls */}
-        <div className="flex flex-col gap-2.5">
-          <div className="flex items-center justify-between px-1">
+            
             <div className="flex items-center gap-2">
-              <AlertCircle className="w-3.5 h-3.5 text-gray-500" />
-              <span className="text-[10px] font-mono text-gray-500 uppercase tracking-wider">Monitored Distractions</span>
+              {permissions.usageGranted ? (
+                <span className="text-[9px] font-mono text-[#00d4ff] font-bold bg-[#00d4ff]/10 border border-[#00d4ff]/30 px-2.5 py-1 rounded">
+                  GRANTED
+                </span>
+              ) : (
+                <>
+                  <span className="text-[9px] font-mono text-rose-400 font-bold bg-rose-950/20 border border-rose-500/30 px-2.5 py-1 rounded">
+                    DENIED
+                  </span>
+                  <button
+                    onClick={grantUsagePermission}
+                    className="bg-[#121620] border border-[#1e2535] text-slate-350 font-mono text-[9px] font-bold px-3 py-1.5 rounded-lg active:scale-95 transition-all hover:bg-slate-800 hover:text-white"
+                  >
+                    CONFIGURE
+                  </button>
+                </>
+              )}
             </div>
-            <span className="text-[9px] font-mono text-gray-500 uppercase tracking-widest bg-gray-900/40 px-2 py-0.5 rounded border border-gray-800/40">
-              Active: {activeAppsCount}
-            </span>
           </div>
 
-          {/* Holographic Search & Filter Bar */}
-          <div className="flex items-center gap-2">
-            <div className="flex-1 relative">
-              <Search className="w-3.5 h-3.5 text-gray-600 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input 
-                type="text"
-                placeholder="Search package or application..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-gray-950/60 border border-gray-900 rounded-xl pl-9 pr-4 py-2 text-xs font-mono text-white placeholder-gray-600 focus:outline-none focus:border-system-neon/50 focus:ring-1 focus:ring-system-neon/20 transition-all"
-              />
+          {/* Gate 2: Draw Over Apps */}
+          <div className={`bg-[#0B0D13]/70 border border-[#171B26] rounded-xl flex items-center justify-between p-4 relative overflow-hidden ${
+            permissions.overlayGranted ? 'border-l-4 border-l-[#00d4ff]' : 'border-l-4 border-l-rose-500/80'
+          }`}>
+            <div className="flex items-center gap-3">
+              <div className={`${permissions.overlayGranted ? 'text-[#00d4ff]' : 'text-rose-500'}`}>
+                <Cpu className="w-5 h-5" />
+              </div>
+              <span className="text-xs font-bold text-white font-mono tracking-wide">
+                Gate 2: Draw Over Apps
+              </span>
             </div>
+            
+            <div className="flex items-center gap-2">
+              {permissions.overlayGranted ? (
+                <span className="text-[9px] font-mono text-[#00d4ff] font-bold bg-[#00d4ff]/10 border border-[#00d4ff]/30 px-2.5 py-1 rounded">
+                  GRANTED
+                </span>
+              ) : (
+                <>
+                  <span className="text-[9px] font-mono text-rose-400 font-bold bg-rose-950/20 border border-rose-500/30 px-2.5 py-1 rounded">
+                    DENIED
+                  </span>
+                  <button
+                    onClick={grantOverlayPermission}
+                    className="bg-[#121620] border border-[#1e2535] text-slate-350 font-mono text-[9px] font-bold px-3 py-1.5 rounded-lg active:scale-95 transition-all hover:bg-slate-800 hover:text-white"
+                  >
+                    CONFIGURE
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
 
-            {/* Filter Toggle Pills */}
+      {/* Targeted Containment List */}
+      <div className="space-y-3">
+        {/* Holographic Search & Filter Bar */}
+        <div className="space-y-3">
+          <div className="relative">
+            <Search className="w-4 h-4 text-slate-500 absolute left-4 top-1/2 -translate-y-1/2" />
+            <input 
+              type="text"
+              placeholder="Search targets..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-[#05070B] border border-[#171B26] focus:border-[#00d4ff]/40 focus:ring-1 focus:ring-[#00d4ff]/20 rounded-xl pl-11 pr-4 py-3 text-xs font-mono text-white placeholder-slate-650 focus:outline-none transition-all"
+            />
+          </div>
+
+          <div className="flex items-center justify-between px-1">
+            <div className="flex items-center gap-1.5 text-slate-500 font-mono text-[10px] uppercase font-bold">
+              <Lock className="w-3.5 h-3.5" />
+              <span>LOCKED: <span className="text-[#00d4ff]">{activeAppsCount}</span> / <span className="text-[#00d4ff]">{lockedApps.length}</span> APPS</span>
+            </div>
+            
             <button
               onClick={() => { playSystemSoundEffect('SELECT'); setFilterEnabledOnly(!filterEnabledOnly); }}
-              className={`p-2 border rounded-xl flex items-center justify-center transition-all ${
+              className={`p-1.5 border rounded-lg flex items-center justify-center transition-all ${
                 filterEnabledOnly 
-                  ? 'bg-system-neon/10 border-system-neon/40 text-system-neon' 
-                  : 'bg-gray-950/40 border-gray-900 text-gray-600 hover:text-gray-400'
+                  ? 'bg-cyan-950/40 border-cyan-500/50 text-[#00d4ff] shadow-[0_0_8px_rgba(6,182,212,0.15)]' 
+                  : 'bg-[#0B0D13] border-[#171B26] text-slate-550 hover:text-slate-350'
               }`}
-              title="Show active monitors only"
             >
               <Filter className="w-3.5 h-3.5" />
             </button>
@@ -427,129 +511,268 @@ export default function FocusShieldSettings({ playerData }: FocusShieldSettingsP
         </div>
 
         {/* Dynamic App List */}
-        <div className="bg-gray-950/20 border border-gray-900 rounded-2xl p-2 relative">
+        <div className="bg-[#05070B]/40 border border-[#171B26] rounded-2xl p-2 relative overflow-hidden">
           {loadingApps ? (
-            <div className="flex flex-col items-center justify-center py-16 gap-3">
-              <div className="w-7 h-7 border-2 border-system-neon border-t-transparent rounded-full animate-spin" />
-              <span className="text-[9px] font-mono text-gray-600 uppercase tracking-widest">Querying launchable systems...</span>
+            <div className="flex flex-col items-center justify-center py-20 gap-3">
+              <div className="relative flex items-center justify-center">
+                <div className="w-8 h-8 border border-[#00d4ff] border-t-transparent rounded-full animate-spin" />
+                <Cpu className="w-3 h-3 text-[#00d4ff] absolute animate-pulse" />
+              </div>
+              <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest animate-pulse">
+                Scanning target directory...
+              </span>
             </div>
           ) : filteredApps.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
-              <ShieldAlert className="w-8 h-8 text-gray-700 mb-2" />
-              <h4 className="text-xs font-bold text-gray-500 font-mono uppercase">No apps found</h4>
-              <p className="text-[9px] text-gray-600 font-mono mt-0.5 max-w-[200px]">
-                {searchQuery ? 'Adjust your search string.' : 'No launchable user apps detected on device.'}
+              <ShieldAlert className="w-8 h-8 text-slate-700 mb-3" />
+              <h4 className="text-xs font-bold text-slate-400 font-mono uppercase">No Entities Found</h4>
+              <p className="text-[9px] text-slate-650 font-mono mt-1 max-w-[240px]">
+                {searchQuery 
+                  ? 'The scanner search string matches no active launcher package.' 
+                  : 'No queryable user application processes detected.'}
               </p>
             </div>
           ) : (
-            <div className="max-h-[380px] overflow-y-auto pr-1 space-y-2 custom-focus-app-scrollbar">
-              {filteredApps.map((app) => {
-                const isSelected = selectedAppPackage === app.packageName;
+            <div className="max-h-[380px] overflow-y-auto pr-1 space-y-2.5 custom-focus-app-scrollbar">
+              <AnimatePresence initial={false}>
+                {filteredApps.map((app) => {
+                  const isSelected = selectedAppPackage === app.packageName;
 
-                return (
-                  <div 
-                    key={app.packageName}
-                    className={`border rounded-xl transition-all duration-300 ${
-                      app.enabled 
-                        ? isSelected 
-                          ? 'bg-gray-950 border-system-neon/40 shadow-[0_0_15px_rgba(0,212,255,0.05)]' 
-                          : 'bg-gray-950/60 border-gray-800'
-                        : 'bg-gray-950/10 border-gray-900/60 opacity-60'
-                    }`}
-                  >
-                    {/* Header Row */}
-                    <div className="flex items-center justify-between px-4 py-3">
-                      <div 
-                        onClick={() => app.enabled && setSelectedAppPackage(isSelected ? null : app.packageName)}
-                        className="flex-1 cursor-pointer"
-                      >
-                        <span className="text-xs font-bold text-white font-mono tracking-wide">{app.appName}</span>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-[8px] text-gray-500 font-mono max-w-[180px] truncate block" title={app.packageName}>
-                            {app.packageName}
-                          </span>
+                  return (
+                    <motion.div 
+                      key={app.packageName}
+                      layout
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ duration: 0.2 }}
+                      className={`border rounded-xl transition-all duration-300 ${
+                        app.enabled 
+                          ? isSelected 
+                            ? 'bg-[#0B0D13] border-[#00d4ff] shadow-[0_0_15px_rgba(6,182,212,0.1)]' 
+                            : 'bg-[#0B0D13]/85 border-[#171B26]'
+                          : 'bg-[#0B0D13]/30 border-[#171B26]/30 opacity-40 hover:opacity-60'
+                      }`}
+                    >
+                      {/* Header Row */}
+                      <div className="flex items-center justify-between px-4 py-3.5 gap-3">
+                        <div 
+                          onClick={() => app.enabled && setSelectedAppPackage(isSelected ? null : app.packageName)}
+                          className="flex items-center gap-3.5 flex-1 min-w-0 cursor-pointer select-none"
+                        >
+                          {/* Stylized App Icon matching mockup */}
+                          <div className={`w-9 h-9 shrink-0 rounded-lg flex items-center justify-center border transition-colors ${
+                            app.enabled 
+                              ? 'bg-[#151D2A] border-[#00d4ff]/30 text-[#00d4ff] shadow-[0_0_10px_rgba(6,182,212,0.05)]' 
+                              : 'bg-slate-950 border-slate-900 text-slate-700'
+                          }`}>
+                            {getAppIcon(app.packageName)}
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <span className="text-xs font-bold text-white tracking-wide block truncate">
+                              {app.appName}
+                            </span>
+                            <span className="text-[8px] text-slate-500 font-mono block truncate mt-0.5 max-w-[120px] xs:max-w-[170px]">
+                              {app.packageName}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Custom switch on the right */}
+                        <div className="flex items-center gap-3">
+                          <CustomToggleSwitch 
+                            active={app.enabled} 
+                            onChange={() => updateAppLockState(app.packageName, !app.enabled)} 
+                          />
                           {app.enabled && (
-                            <>
-                              <span className="text-[8px] text-gray-600 font-mono">•</span>
-                              <span className="text-[9px] text-system-neon font-mono font-bold">{app.limitMinutes}m limit</span>
-                              <span className="text-[8px] text-gray-600 font-mono">•</span>
-                              <span className="text-[9px] text-purple-400 font-mono font-bold">{app.questReps} rep</span>
-                            </>
+                            <button
+                              onClick={() => setSelectedAppPackage(isSelected ? null : app.packageName)}
+                              className="text-slate-400 p-1 hover:text-white"
+                            >
+                              {isSelected ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                            </button>
                           )}
                         </div>
                       </div>
 
-                      <input 
-                        type="checkbox"
-                        checked={app.enabled}
-                        onChange={(e) => updateAppLockState(app.packageName, e.target.checked)}
-                        className="w-4 h-4 rounded border-gray-800 bg-gray-950 text-system-neon focus:ring-system-neon transition-all"
-                      />
-                    </div>
-
-                    {/* Configuration Slider Panel */}
-                    {isSelected && app.enabled && (
-                      <div className="px-4 pb-4 pt-1.5 border-t border-gray-900 space-y-4">
-                        {/* Time limit slider */}
-                        <div>
-                          <div className="flex justify-between text-[9px] font-mono text-gray-500 mb-1.5">
-                            <span>DAILY SCREEN TIME LIMIT</span>
-                            <span className="text-white font-bold">{app.limitMinutes} MINUTES</span>
+                      {/* Calibration sliding panel */}
+                      {isSelected && app.enabled && (
+                        <div className="px-4 pb-5 pt-3 border-t border-slate-900/60 space-y-4">
+                          <div className="text-[9px] font-mono text-[#00d4ff] uppercase tracking-widest flex items-center gap-1.5">
+                            <Sliders className="w-3 h-3 text-[#00d4ff]" /> Lock Calibration
                           </div>
-                          <input 
-                            type="range"
-                            min="10"
-                            max="120"
-                            step="5"
-                            value={app.limitMinutes}
-                            onChange={(e) => updateAppParams(app.packageName, parseInt(e.target.value), app.questReps)}
-                            className="w-full h-1 bg-gray-900 rounded-lg appearance-none cursor-pointer accent-system-neon"
-                          />
-                        </div>
 
-                        {/* Quest rep slider */}
-                        <div>
-                          <div className="flex justify-between text-[9px] font-mono text-gray-500 mb-1.5">
-                            <span>UNLOCK QUEST TARGET</span>
-                            <span className="text-white font-bold">{app.questReps} PUSHUPS</span>
+                          {/* Time limit slider */}
+                          <div className="space-y-1.5">
+                            <div className="flex justify-between items-center text-[9px] font-mono">
+                              <span className="text-slate-450 uppercase">Daily Time Limit</span>
+                              <span className="text-[#00d4ff] font-bold text-xs">
+                                {app.limitMinutes} <span className="text-[9px] font-normal text-slate-500">m</span>
+                              </span>
+                            </div>
+                            <input 
+                              type="range"
+                              min="10"
+                              max="128"
+                              step="1"
+                              value={app.limitMinutes}
+                              onChange={(e) => updateAppParams(app.packageName, parseInt(e.target.value), app.questReps)}
+                              className="focus-range-input"
+                            />
+                            <div className="flex justify-between text-[7px] text-slate-600 font-mono px-0.5">
+                              <span>10m</span>
+                              <span>128m</span>
+                            </div>
                           </div>
-                          <input 
-                            type="range"
-                            min="10"
-                            max="40"
-                            step="5"
-                            value={app.questReps}
-                            onChange={(e) => updateAppParams(app.packageName, app.limitMinutes, parseInt(e.target.value))}
-                            className="w-full h-1 bg-gray-900 rounded-lg appearance-none cursor-pointer accent-system-neon"
-                          />
+
+                          {/* Quest rep slider */}
+                          <div className="space-y-1.5">
+                            <div className="flex justify-between items-center text-[9px] font-mono">
+                              <span className="text-slate-450 uppercase">Quest Repetitions</span>
+                              <span className="text-[#00d4ff] font-bold text-xs">
+                                {app.questReps} <span className="text-[9px] font-normal text-slate-500">reps</span>
+                              </span>
+                            </div>
+                            <input 
+                              type="range"
+                              min="10"
+                              max="50"
+                              step="1"
+                              value={app.questReps}
+                              onChange={(e) => updateAppParams(app.packageName, app.limitMinutes, parseInt(e.target.value))}
+                              className="focus-range-input"
+                            />
+                            <div className="flex justify-between text-[7px] text-slate-600 font-mono px-0.5">
+                              <span>10</span>
+                              <span>50</span>
+                            </div>
+                          </div>
+
+                          {/* Strict Mode Alert Warning */}
+                          <div className="bg-[#1F0E11] p-3 rounded-lg border border-red-500/20 text-[9px] text-[#F87171] font-sans leading-relaxed flex gap-2.5">
+                            <AlertTriangle className="w-4 h-4 text-[#F87171] shrink-0 mt-0.5" />
+                            <span>
+                              <span className="font-bold">Strict Mode Active:</span> Dungeon verification required via front camera upon limit reach.
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                      )}
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
             </div>
           )}
         </div>
       </div>
       
-      {/* Scrollbar style overlay */}
+      {/* Scrollbar & Range Custom Styles */}
       <style>{`
         .custom-focus-app-scrollbar::-webkit-scrollbar {
           width: 4px;
         }
         .custom-focus-app-scrollbar::-webkit-scrollbar-track {
-          background: rgba(255,255,255,0.02);
+          background: rgba(0,0,0,0.2);
           border-radius: 4px;
         }
         .custom-focus-app-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(255,255,255,0.08);
+          background: rgba(0,212,255,0.15);
           border-radius: 4px;
         }
         .custom-focus-app-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(0,212,255,0.3);
+          background: rgba(0,212,255,0.4);
+        }
+
+        /* Range Slider Overrides */
+        .focus-range-input {
+          -webkit-appearance: none;
+          width: 100%;
+          height: 3px;
+          background: #111520;
+          border: 1px solid #1c2333;
+          border-radius: 9999px;
+          outline: none;
+        }
+
+        .focus-range-input::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          appearance: none;
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+          background: #00d4ff;
+          cursor: pointer;
+          box-shadow: 0 0 8px rgba(0,212,255,0.8);
+          border: 1px solid #000;
+          transition: transform 0.1s ease;
+        }
+
+        .focus-range-input::-webkit-slider-thumb:hover {
+          transform: scale(1.2);
         }
       `}</style>
+
+      {/* Pro Paywall Modal */}
+      <AnimatePresence>
+        {showProModal && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-6 animate-fade-in">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="w-full max-w-sm bg-[#0A0B10] border border-cyan-500/30 rounded-2xl p-6 relative overflow-hidden shadow-neon-blue"
+            >
+              {/* Neon corner lines */}
+              <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-cyan-400" />
+              <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-cyan-400" />
+              <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-cyan-400" />
+              <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-cyan-400" />
+              
+              <div className="flex flex-col items-center text-center">
+                <div className="p-3 bg-cyan-950/30 border border-cyan-500/20 rounded-2xl mb-4 animate-pulse">
+                  <Lock className="w-8 h-8 text-cyan-400" />
+                </div>
+                
+                <span className="text-[10px] font-black font-mono uppercase tracking-[0.25em] text-cyan-400">
+                  PRO Clearance Required
+                </span>
+                <h2 className="text-lg font-heading font-extrabold text-white uppercase tracking-wider mt-2">
+                  Focus Containment Core
+                </h2>
+                <div className="h-px w-16 bg-cyan-500/20 my-3" />
+                
+                <p className="text-xs text-slate-400 leading-relaxed font-sans mb-6">
+                  Activating the Focus Shield quarantine system requires S-Rank access. Upgrade to Pro to configure limits, track background usages, and unlock camera-verified dungeons.
+                </p>
+                
+                <div className="flex flex-col w-full gap-2.5">
+                  <button
+                    onClick={() => {
+                      playSystemSoundEffect('SELECT');
+                      setShowProModal(false);
+                      onUpgradePro?.();
+                    }}
+                    className="w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-black text-xs font-black font-mono uppercase tracking-widest rounded-xl transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:brightness-110 active:scale-[0.98]"
+                  >
+                    Upgrade to S-Rank (Pro)
+                  </button>
+                  
+                  <button
+                    onClick={() => {
+                      playSystemSoundEffect('SELECT');
+                      setShowProModal(false);
+                    }}
+                    className="w-full py-2.5 bg-slate-900 border border-slate-800 text-slate-500 text-[10px] font-bold font-mono uppercase tracking-wider rounded-xl transition-all hover:text-slate-350"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

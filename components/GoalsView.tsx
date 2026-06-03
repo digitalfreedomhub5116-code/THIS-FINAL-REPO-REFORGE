@@ -338,17 +338,6 @@ export default function GoalsView({
         </button>
         <button
           onClick={() => {
-            if (!isPremium) {
-              playSystemSoundEffect('DEBUFF_CAST');
-              showSystemToast({
-                type: 'WARNING',
-                title: 'Premium Required',
-                subtitle: 'Focus Shield is a Reforge Pro feature.',
-                durationMs: 4000
-              });
-              onUpgradePro?.();
-              return;
-            }
             playSystemSoundEffect('TAB_SWITCH');
             setSubTab('FOCUS_SHIELD');
           }}
@@ -369,7 +358,7 @@ export default function GoalsView({
       </div>
 
       {subTab === 'FOCUS_SHIELD' ? (
-        <FocusShieldSettings playerData={playerData} />
+        <FocusShieldSettings playerData={playerData} isPremium={isPremium} onUpgradePro={onUpgradePro} />
       ) : (
         <>
           {/* Auto-generation loader */}

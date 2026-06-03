@@ -364,6 +364,14 @@ async function assignPlayerToLeague(db: any, playerId: string, weekStart: string
 // ── Weekly league assignment + promotion/relegation (called by cron) ──
 export async function runLeagueAssignmentCron(db: any): Promise<void> {
   const now = new Date();
+  
+  // Restrict to UTC Mondays — leagues are strictly weekly.
+  // Running this daily shuffles players incorrectly and triggers daily resets/payouts.
+  if (now.getUTCDay() !== 1) {
+    console.log('[League Cron] Today is not Monday (UTC). Skipping weekly league assignment.');
+    return;
+  }
+
   const thisMonday = now.toISOString().split('T')[0];
 
   // Calculate last week's Monday
