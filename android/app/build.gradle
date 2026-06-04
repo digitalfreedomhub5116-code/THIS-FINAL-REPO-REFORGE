@@ -14,8 +14,8 @@ android {
         applicationId "com.reforge.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 110224
-        versionName "11.2.24"
+        versionCode 110225
+        versionName "11.2.25"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

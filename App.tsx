@@ -5509,7 +5509,7 @@ const App: React.FC = () => {
                               showSystemToast({
                                 type: 'WARNING',
                                 title: 'Pro Feature Required',
-                                subtitle: 'Shadow Missions (Goals) is a Reforge Pro feature.',
+                                subtitle: 'Custom Goals is a Reforge Pro feature.',
                                 durationMs: 5000
                               });
                               setShowManaPowerUpsell(true);

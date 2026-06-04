@@ -55,15 +55,6 @@ function ShadowMissionsProUpsell({ onUpgradePro }: ShadowMissionsProUpsellProps)
 
         {/* Content overlay */}
         <div className="absolute bottom-0 left-0 right-0" style={{ padding: '0 22px 20px' }}>
-          {/* Premium badge */}
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg mb-2"
-            style={{ background: 'rgba(250,204,21,0.1)', border: '1px solid rgba(250,204,21,0.2)' }}>
-            <Zap size={10} style={{ color: '#facc15' }} />
-            <span className="text-[8px] font-mono font-bold tracking-[0.2em] uppercase" style={{ color: '#facc15' }}>
-              Reforge Pro
-            </span>
-          </div>
-
           <h2 className="text-xl font-black text-white leading-none mb-1.5"
             style={{ textShadow: '0 4px 20px rgba(0,0,0,0.8)' }}>
             Create Custom Goals
@@ -447,7 +438,7 @@ export default function GoalsView({
               transition={{ type: 'spring', stiffness: 350, damping: 25 }}
             />
           )}
-          SHADOW MISSIONS
+          GOALS
         </button>
         <button
           onClick={() => {
@@ -578,7 +569,7 @@ export default function GoalsView({
                 className="px-6 py-3 rounded-xl text-xs font-black text-black uppercase tracking-wider"
                 style={{ background: 'linear-gradient(135deg, #00d4ff, #00d4ff)' }}
               >
-                Create Shadow Mission
+                Create Goal
               </button>
             </div>
           )}
@@ -588,7 +579,7 @@ export default function GoalsView({
             <div className="mt-6">
               <div className="flex items-center gap-2 mb-3">
                 <Trophy className="w-3.5 h-3.5 text-amber-400" />
-                <span className="text-[10px] font-mono text-gray-500 uppercase tracking-wider">Completed Missions</span>
+                <span className="text-[10px] font-mono text-gray-500 uppercase tracking-wider">Completed Goals</span>
               </div>
               <div className="space-y-2">
                 {completedGoals.map(goal => (
