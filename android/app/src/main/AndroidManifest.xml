@@ -46,6 +46,21 @@
                 android:value="Focus Shield Blocker" />
         </service>
 
+        <!-- Holographic HUD Status Widget Receiver -->
+        <receiver
+            android:name=".ReforgeWidgetProvider"
+            android:label="Reforge Status Widget"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.reforge.app.ACTION_FORCE_UPDATE" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/reforge_widget_info" />
+        </receiver>
+
         <!-- AdMob App ID -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"

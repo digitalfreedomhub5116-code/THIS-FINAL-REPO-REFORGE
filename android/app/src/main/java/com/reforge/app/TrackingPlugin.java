@@ -408,4 +408,13 @@ public class TrackingPlugin extends Plugin {
             call.reject("Failed to get installed apps: " + e.getMessage());
         }
     }
+
+    @PluginMethod()
+    public void updateWidget(PluginCall call) {
+        Context context = getContext();
+        Intent intent = new Intent(context, ReforgeWidgetProvider.class);
+        intent.setAction(ReforgeWidgetProvider.ACTION_FORCE_UPDATE);
+        context.sendBroadcast(intent);
+        call.resolve();
+    }
 }

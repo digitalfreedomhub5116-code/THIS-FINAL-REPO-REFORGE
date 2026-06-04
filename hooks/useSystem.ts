@@ -7,6 +7,7 @@ import {
 import { playSystemSoundEffect } from '../utils/soundEngine';
 import { getPlayerAuthHeaders, authenticatedFetch } from '../lib/playerApi';
 import { clearAuthNative } from '../lib/nativeAuth';
+import { Preferences } from '@capacitor/preferences';
 import { REWARD_SCHEDULE } from '../lib/rewards';
 import { API_BASE } from '../lib/apiConfig';
 import { initEconomyForUser, clearEconomySession } from '../utils/storeEconomy';
@@ -288,7 +289,35 @@ export const useSystem = () => {
   const serverGoldRef = useRef(player.gold);
 
   useEffect(() => {
-    try { localStorage.setItem(`reforge_player_v2_${player.userId || 'local'}`, JSON.stringify(player)); } catch { /* quota exceeded or private mode */ }
+    try {
+      localStorage.setItem(`reforge_player_v2_${player.userId || 'local'}`, JSON.stringify(player));
+      
+      // Opt-in background synchronization to standard Android preferences for Home Screen Widget updates
+      (async () => {
+        try {
+          const stats = player.stats || { strength: 0, intelligence: 0, discipline: 0, social: 0, focus: 0, willpower: 0 };
+          await Promise.all([
+            Preferences.set({ key: 'widget_level', value: String(player.level || 1) }),
+            Preferences.set({ key: 'widget_streak', value: String(player.streak || 0) }),
+            Preferences.set({ key: 'widget_currentXp', value: String(player.currentXp || 0) }),
+            Preferences.set({ key: 'widget_requiredXp', value: String(player.requiredXp || 100) }),
+            Preferences.set({ key: 'widget_strength', value: String(stats.strength || 0) }),
+            Preferences.set({ key: 'widget_intelligence', value: String(stats.intelligence || 0) }),
+            Preferences.set({ key: 'widget_discipline', value: String(stats.discipline || 0) }),
+            Preferences.set({ key: 'widget_social', value: String(stats.social || 0) }),
+            Preferences.set({ key: 'widget_focus', value: String(stats.focus || 0) }),
+            Preferences.set({ key: 'widget_willpower', value: String(stats.willpower || 0) }),
+          ]);
+          // Notify native widget to redraw immediately via the Custom plugin action
+          const plugin = (window as any).Capacitor?.Plugins?.TrackingPlugin;
+          if (plugin && plugin.updateWidget) {
+            await plugin.updateWidget();
+          }
+        } catch (prefErr) {
+          console.warn("Failed to update widget preferences", prefErr);
+        }
+      })();
+    } catch { /* quota exceeded or private mode */ }
   }, [player]);
 
   useEffect(() => {
