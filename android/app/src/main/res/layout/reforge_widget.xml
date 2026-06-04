@@ -20,7 +20,6 @@
         android:textColor="#FFFFFF"
         android:textSize="9sp"
         android:textStyle="bold"
-        android:letterSpacing="0.3"
         android:paddingLeft="14dp"
         android:paddingRight="14dp"
         android:paddingTop="3dp"
@@ -74,7 +73,6 @@
                     android:textColor="#B4D0FA"
                     android:textSize="8sp"
                     android:textStyle="bold"
-                    android:letterSpacing="0.25"
                     android:alpha="0.8" />
             </LinearLayout>
 
@@ -95,7 +93,6 @@
                     android:textColor="#B4D0FA"
                     android:textSize="8sp"
                     android:textStyle="bold"
-                    android:letterSpacing="0.25"
                     android:alpha="0.8" />
 
                 <TextView
@@ -114,7 +111,7 @@
         </RelativeLayout>
 
         <!-- Divider -->
-        <View
+        <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:layout_marginTop="4dp"
@@ -138,7 +135,6 @@
                 android:textColor="#B4D0FA"
                 android:textSize="8sp"
                 android:textStyle="bold"
-                android:letterSpacing="0.2"
                 android:alpha="0.8" />
 
             <TextView
@@ -150,12 +146,11 @@
                 android:text="0 / 100"
                 android:textColor="#B4D0FA"
                 android:textSize="9sp"
-                android:textStyle="bold"
-                android:fontFamily="monospace" />
+                android:textStyle="bold" />
 
             <ProgressBar
                 android:id="@+id/widget_xp_progress"
-                style="?android:attr/progressBarStyleHorizontal"
+                style="@android:style/Widget.ProgressBar.Horizontal"
                 android:layout_width="match_parent"
                 android:layout_height="8dp"
                 android:layout_toRightOf="@id/label_xp"
@@ -169,7 +164,7 @@
         </RelativeLayout>
 
         <!-- Divider -->
-        <View
+        <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:layout_marginTop="4dp"
@@ -193,35 +188,36 @@
                 android:layout_marginBottom="5dp">
 
                 <!-- STR -->
-                <LinearLayout
+                <RelativeLayout
                     android:layout_width="0dp"
                     android:layout_weight="1"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
+                    android:layout_height="wrap_content">
                     <ImageView
+                        android:id="@+id/ic_str"
                         android:layout_width="11dp"
                         android:layout_height="11dp"
                         android:src="@drawable/ic_bolt"
+                        android:layout_alignParentLeft="true"
+                        android:layout_centerVertical="true"
                         android:alpha="0.9" />
                     <TextView
+                        android:id="@+id/lbl_str"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_toRightOf="@id/ic_str"
                         android:layout_marginLeft="4dp"
+                        android:layout_centerVertical="true"
                         android:text="STR"
                         android:textColor="#B4D0FA"
                         android:textSize="8sp"
                         android:textStyle="bold"
-                        android:letterSpacing="0.15"
                         android:alpha="0.8" />
-                    <View
-                        android:layout_width="0dp"
-                        android:layout_weight="1"
-                        android:layout_height="0dp" />
                     <TextView
                         android:id="@+id/widget_stat_str"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_alignParentRight="true"
+                        android:layout_centerVertical="true"
                         android:text="0"
                         android:textColor="#FFFFFF"
                         android:textSize="12sp"
@@ -229,38 +225,39 @@
                         android:shadowColor="#B300D4FF"
                         android:shadowRadius="5"
                         android:layout_marginRight="6dp" />
-                </LinearLayout>
+                </RelativeLayout>
 
                 <!-- INT -->
-                <LinearLayout
+                <RelativeLayout
                     android:layout_width="0dp"
                     android:layout_weight="1"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
+                    android:layout_height="wrap_content">
                     <ImageView
+                        android:id="@+id/ic_int"
                         android:layout_width="11dp"
                         android:layout_height="11dp"
                         android:src="@drawable/ic_intelligence"
+                        android:layout_alignParentLeft="true"
+                        android:layout_centerVertical="true"
                         android:alpha="0.9" />
                     <TextView
+                        android:id="@+id/lbl_int"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_toRightOf="@id/ic_int"
                         android:layout_marginLeft="4dp"
+                        android:layout_centerVertical="true"
                         android:text="INT"
                         android:textColor="#B4D0FA"
                         android:textSize="8sp"
                         android:textStyle="bold"
-                        android:letterSpacing="0.15"
                         android:alpha="0.8" />
-                    <View
-                        android:layout_width="0dp"
-                        android:layout_weight="1"
-                        android:layout_height="0dp" />
                     <TextView
                         android:id="@+id/widget_stat_int"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_alignParentRight="true"
+                        android:layout_centerVertical="true"
                         android:text="0"
                         android:textColor="#FFFFFF"
                         android:textSize="12sp"
@@ -268,38 +265,39 @@
                         android:shadowColor="#B300D4FF"
                         android:shadowRadius="5"
                         android:layout_marginRight="6dp" />
-                </LinearLayout>
+                </RelativeLayout>
 
                 <!-- DIS -->
-                <LinearLayout
+                <RelativeLayout
                     android:layout_width="0dp"
                     android:layout_weight="1"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
+                    android:layout_height="wrap_content">
                     <ImageView
+                        android:id="@+id/ic_dis"
                         android:layout_width="11dp"
                         android:layout_height="11dp"
                         android:src="@drawable/ic_discipline"
+                        android:layout_alignParentLeft="true"
+                        android:layout_centerVertical="true"
                         android:alpha="0.9" />
                     <TextView
+                        android:id="@+id/lbl_dis"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_toRightOf="@id/ic_dis"
                         android:layout_marginLeft="4dp"
+                        android:layout_centerVertical="true"
                         android:text="DIS"
                         android:textColor="#B4D0FA"
                         android:textSize="8sp"
                         android:textStyle="bold"
-                        android:letterSpacing="0.15"
                         android:alpha="0.8" />
-                    <View
-                        android:layout_width="0dp"
-                        android:layout_weight="1"
-                        android:layout_height="0dp" />
                     <TextView
                         android:id="@+id/widget_stat_dis"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_alignParentRight="true"
+                        android:layout_centerVertical="true"
                         android:text="0"
                         android:textColor="#FFFFFF"
                         android:textSize="12sp"
@@ -307,7 +305,7 @@
                         android:shadowColor="#B300D4FF"
                         android:shadowRadius="5"
                         android:layout_marginRight="6dp" />
-                </LinearLayout>
+                </RelativeLayout>
             </LinearLayout>
 
             <!-- Grid Row 2 (SOC, FOC, WIL) -->
@@ -317,35 +315,36 @@
                 android:orientation="horizontal">
 
                 <!-- SOC -->
-                <LinearLayout
+                <RelativeLayout
                     android:layout_width="0dp"
                     android:layout_weight="1"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
+                    android:layout_height="wrap_content">
                     <ImageView
+                        android:id="@+id/ic_soc"
                         android:layout_width="11dp"
                         android:layout_height="11dp"
                         android:src="@drawable/ic_social"
+                        android:layout_alignParentLeft="true"
+                        android:layout_centerVertical="true"
                         android:alpha="0.9" />
                     <TextView
+                        android:id="@+id/lbl_soc"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_toRightOf="@id/ic_soc"
                         android:layout_marginLeft="4dp"
+                        android:layout_centerVertical="true"
                         android:text="SOC"
                         android:textColor="#B4D0FA"
                         android:textSize="8sp"
                         android:textStyle="bold"
-                        android:letterSpacing="0.15"
                         android:alpha="0.8" />
-                    <View
-                        android:layout_width="0dp"
-                        android:layout_weight="1"
-                        android:layout_height="0dp" />
                     <TextView
                         android:id="@+id/widget_stat_soc"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_alignParentRight="true"
+                        android:layout_centerVertical="true"
                         android:text="0"
                         android:textColor="#FFFFFF"
                         android:textSize="12sp"
@@ -353,38 +352,39 @@
                         android:shadowColor="#B300D4FF"
                         android:shadowRadius="5"
                         android:layout_marginRight="6dp" />
-                </LinearLayout>
+                </RelativeLayout>
 
                 <!-- FOC -->
-                <LinearLayout
+                <RelativeLayout
                     android:layout_width="0dp"
                     android:layout_weight="1"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
+                    android:layout_height="wrap_content">
                     <ImageView
+                        android:id="@+id/ic_foc"
                         android:layout_width="11dp"
                         android:layout_height="11dp"
                         android:src="@drawable/ic_focus"
+                        android:layout_alignParentLeft="true"
+                        android:layout_centerVertical="true"
                         android:alpha="0.9" />
                     <TextView
+                        android:id="@+id/lbl_foc"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_toRightOf="@id/ic_foc"
                         android:layout_marginLeft="4dp"
+                        android:layout_centerVertical="true"
                         android:text="FOC"
                         android:textColor="#B4D0FA"
                         android:textSize="8sp"
                         android:textStyle="bold"
-                        android:letterSpacing="0.15"
                         android:alpha="0.8" />
-                    <View
-                        android:layout_width="0dp"
-                        android:layout_weight="1"
-                        android:layout_height="0dp" />
                     <TextView
                         android:id="@+id/widget_stat_foc"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_alignParentRight="true"
+                        android:layout_centerVertical="true"
                         android:text="0"
                         android:textColor="#FFFFFF"
                         android:textSize="12sp"
@@ -392,38 +392,39 @@
                         android:shadowColor="#B300D4FF"
                         android:shadowRadius="5"
                         android:layout_marginRight="6dp" />
-                </LinearLayout>
+                </RelativeLayout>
 
                 <!-- WIL -->
-                <LinearLayout
+                <RelativeLayout
                     android:layout_width="0dp"
                     android:layout_weight="1"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
+                    android:layout_height="wrap_content">
                     <ImageView
+                        android:id="@+id/ic_wil"
                         android:layout_width="11dp"
                         android:layout_height="11dp"
                         android:src="@drawable/ic_willpower"
+                        android:layout_alignParentLeft="true"
+                        android:layout_centerVertical="true"
                         android:alpha="0.9" />
                     <TextView
+                        android:id="@+id/lbl_wil"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_toRightOf="@id/ic_wil"
                         android:layout_marginLeft="4dp"
+                        android:layout_centerVertical="true"
                         android:text="WIL"
                         android:textColor="#B4D0FA"
                         android:textSize="8sp"
                         android:textStyle="bold"
-                        android:letterSpacing="0.15"
                         android:alpha="0.8" />
-                    <View
-                        android:layout_width="0dp"
-                        android:layout_weight="1"
-                        android:layout_height="0dp" />
                     <TextView
                         android:id="@+id/widget_stat_wil"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_alignParentRight="true"
+                        android:layout_centerVertical="true"
                         android:text="0"
                         android:textColor="#FFFFFF"
                         android:textSize="12sp"
@@ -431,7 +432,7 @@
                         android:shadowColor="#B300D4FF"
                         android:shadowRadius="5"
                         android:layout_marginRight="6dp" />
-                </LinearLayout>
+                </RelativeLayout>
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>
