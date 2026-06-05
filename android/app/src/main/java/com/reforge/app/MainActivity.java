@@ -73,8 +73,15 @@ public class MainActivity extends BridgeActivity {
                 Log.e("MainActivity", "Failed to notify TrackingPlugin of active lockdown", e);
             }
         } else {
-            // User opened Reforge manually! Preserve the active lockdown state if it exists.
-            Log.i("MainActivity", "Manual launch/resume - preserving active lockdown state");
+            // User opened Reforge manually (from launcher/app grid) — NOT from a lockdown trigger.
+            // Clear the active lockdown state so the DungeonLockScreen doesn't persist inside Reforge.
+            // The FocusShieldService will re-trigger lockdown when the user opens the blocked app again.
+            Log.i("MainActivity", "Manual launch/resume - clearing stale lockdown state");
+            getSharedPreferences("reforge_focus_shield_prefs", MODE_PRIVATE)
+                .edit()
+                .putBoolean("active_lockdown", false)
+                .putString("lockdown_package", "")
+                .apply();
         }
     }
 

@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Target, Trophy, Sparkles, Loader2, Swords, Zap } from 'lucide-react';
+import { Plus, Target, Trophy, Sparkles, Loader2, Swords, Zap, Crown, Shield, ShieldAlert, Clock, Camera, Youtube, Play, Dumbbell } from 'lucide-react';
 import { Goal, GoalDailyTask, PlayerData, Quest, Rank } from '../types';
 import GoalCard from './GoalCard';
 import GoalCreationFlow from './GoalCreationFlow';
@@ -115,6 +115,316 @@ function ShadowMissionsProUpsell({ onUpgradePro }: ShadowMissionsProUpsellProps)
           </React.Suspense>
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/* PRO SHOWCASE PAGE — unified preview for non-premium users */
+/* ═══════════════════════════════════════════════════════════ */
+function ProShowcasePage({ onUpgradePro }: { onUpgradePro?: () => void }) {
+  return (
+    <div className="space-y-6 pb-10">
+
+      {/* ═══ HERO HEADER ═══ */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="text-center pt-2"
+      >
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full mb-3"
+          style={{ background: 'rgba(250,204,21,0.06)', border: '1px solid rgba(250,204,21,0.15)' }}>
+          <Crown size={12} style={{ color: '#facc15' }} />
+          <span className="text-[8px] font-mono font-black tracking-[0.3em] uppercase" style={{ color: '#facc15' }}>
+            REFORGE PRO
+          </span>
+        </div>
+        <h2 className="text-lg font-black text-white leading-tight">
+          Unlock Your Full<br/>Potential
+        </h2>
+        <p className="text-[10px] text-gray-500 font-mono mt-1.5 tracking-wide">
+          EVERYTHING BELOW • INCLUDED IN PRO
+        </p>
+      </motion.div>
+
+      {/* ═══ SECTION 1: AI GOALS ═══ */}
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+      >
+        {/* Section label */}
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-1 h-5 rounded-full" style={{ background: 'linear-gradient(180deg, #facc15, #f59e0b)' }} />
+          <span className="text-[9px] font-mono font-black tracking-[0.3em] uppercase" style={{ color: '#facc15' }}>
+            AI GOAL SYSTEM
+          </span>
+        </div>
+
+        {/* Goals hero card */}
+        <div
+          className="relative w-full rounded-2xl overflow-hidden"
+          style={{
+            background: '#0a0a14',
+            border: '1px solid rgba(250,204,21,0.12)',
+            boxShadow: '0 16px 48px rgba(0,0,0,0.6), 0 0 40px rgba(250,204,21,0.04)',
+          }}
+        >
+          <div className="relative w-full" style={{ height: 200 }}>
+            <GoalHeroImg />
+            <div className="absolute inset-0" style={{
+              background: 'linear-gradient(180deg, rgba(10,10,20,0.15) 0%, rgba(10,10,20,0.5) 30%, rgba(10,10,20,0.85) 55%, #0a0a14 78%)',
+            }} />
+          </div>
+          <div className="absolute bottom-0 left-0 right-0" style={{ padding: '0 22px 20px' }}>
+            <h2 className="text-xl font-black text-white leading-none mb-1.5"
+              style={{ textShadow: '0 4px 20px rgba(0,0,0,0.8)' }}>
+              AI-Powered Goals
+            </h2>
+            <p className="text-[10px] text-gray-400 leading-relaxed mb-3 max-w-[280px]">
+              Set any goal — fitness, career, study, habits. AI generates daily quests, tracks milestones, and keeps you accountable.
+            </p>
+            <motion.button
+              onClick={() => { playSystemSoundEffect('SELECT'); onUpgradePro?.(); }}
+              whileTap={{ scale: 0.96 }}
+              className="w-full flex items-center justify-center gap-2.5 py-3 rounded-xl font-bold text-sm tracking-wide"
+              style={{
+                background: 'linear-gradient(135deg, #facc15 0%, #f59e0b 100%)',
+                color: '#0a0a14',
+                boxShadow: '0 4px 24px rgba(250,204,21,0.3)',
+              }}
+            >
+              <Zap size={16} />
+              Unlock AI Autopilot
+            </motion.button>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* ═══ PINNED PREVIEW CARDS (tilted) ═══ */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.2 }}
+        className="flex justify-center items-start gap-4 px-6"
+      >
+        <motion.div
+          className="w-[130px] rounded-xl overflow-hidden"
+          style={{
+            transform: 'rotate(-6deg) translateY(8px)',
+            border: '2px solid rgba(255,255,255,0.08)',
+            boxShadow: '0 12px 32px rgba(0,0,0,0.6), 0 0 20px rgba(250,204,21,0.05)',
+          }}
+        >
+          <img src="/paywall/ss_quests.webp" alt="AI Quests Preview" className="w-full h-auto block" loading="lazy" />
+        </motion.div>
+        <motion.div
+          className="w-[130px] rounded-xl overflow-hidden"
+          style={{
+            transform: 'rotate(5deg) translateY(-4px)',
+            border: '2px solid rgba(255,255,255,0.08)',
+            boxShadow: '0 12px 32px rgba(0,0,0,0.6), 0 0 20px rgba(0,212,255,0.05)',
+          }}
+        >
+          <img src="/paywall/ss_nutrition.webp" alt="Nutrition Scanner Preview" className="w-full h-auto block" loading="lazy" />
+        </motion.div>
+      </motion.div>
+
+      {/* ═══ DIVIDER ═══ */}
+      <div className="flex items-center gap-3 px-2">
+        <div className="flex-1 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent)' }} />
+        <Sparkles size={10} className="text-gray-700" />
+        <div className="flex-1 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent)' }} />
+      </div>
+
+      {/* ═══ SECTION 2: FOCUS SHIELD ═══ */}
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+      >
+        {/* Section label */}
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-1 h-5 rounded-full" style={{ background: 'linear-gradient(180deg, #00d4ff, #0088aa)' }} />
+          <span className="text-[9px] font-mono font-black tracking-[0.3em] uppercase" style={{ color: '#00d4ff' }}>
+            FOCUS SHIELD
+          </span>
+          <div className="px-2 py-0.5 rounded-full" style={{ background: 'rgba(0,212,255,0.08)', border: '1px solid rgba(0,212,255,0.15)' }}>
+            <span className="text-[7px] font-mono font-bold tracking-wider" style={{ color: '#00d4ff' }}>APP BLOCKER</span>
+          </div>
+        </div>
+
+        {/* Master Switch Card */}
+        <div
+          className="rounded-2xl p-5 mb-5 relative overflow-hidden"
+          style={{
+            background: 'linear-gradient(135deg, rgba(0,212,255,0.05) 0%, rgba(0,100,180,0.03) 100%)',
+            border: '1px solid rgba(0,212,255,0.12)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.3), 0 0 60px rgba(0,212,255,0.03)',
+          }}
+        >
+          {/* Background glow */}
+          <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full pointer-events-none"
+            style={{ background: 'radial-gradient(circle, rgba(0,212,255,0.06) 0%, transparent 70%)' }} />
+
+          <div className="flex items-center justify-between relative z-10">
+            <div className="flex items-center gap-4">
+              <motion.div
+                animate={{ boxShadow: ['0 0 15px rgba(0,212,255,0.2)', '0 0 25px rgba(0,212,255,0.4)', '0 0 15px rgba(0,212,255,0.2)'] }}
+                transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+                className="w-12 h-12 rounded-xl flex items-center justify-center"
+                style={{ background: 'rgba(0,212,255,0.1)', border: '1px solid rgba(0,212,255,0.2)' }}
+              >
+                <Shield className="w-6 h-6 text-[#00d4ff]" />
+              </motion.div>
+              <div>
+                <div className="text-[15px] font-black text-white">Focus Shield</div>
+                <div className="text-[9px] text-gray-500 font-mono tracking-wider">BLOCK DISTRACTING APPS</div>
+              </div>
+            </div>
+            {/* Decorative ON toggle */}
+            <div className="w-[56px] h-8 rounded-full p-0.5 flex items-center justify-end"
+              style={{
+                background: 'rgba(0,40,60,0.6)',
+                border: '1px solid rgba(0,212,255,0.3)',
+                boxShadow: '0 0 12px rgba(0,212,255,0.15), inset 0 0 8px rgba(0,212,255,0.05)',
+              }}>
+              <motion.div
+                animate={{ boxShadow: ['0 0 6px rgba(0,212,255,0.6)', '0 0 12px rgba(0,212,255,0.9)', '0 0 6px rgba(0,212,255,0.6)'] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="w-6 h-6 rounded-full flex items-center justify-center"
+                style={{ background: 'linear-gradient(135deg, #00d4ff, #0099cc)' }}
+              >
+                <span className="text-black text-[10px] font-black">✓</span>
+              </motion.div>
+            </div>
+          </div>
+        </div>
+
+        {/* HOW IT WORKS — Step-by-step */}
+        <div className="rounded-2xl overflow-hidden mb-5"
+          style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
+          <div className="px-4 py-3 border-b" style={{ borderColor: 'rgba(255,255,255,0.04)' }}>
+            <span className="text-[9px] font-mono font-bold tracking-[0.2em] uppercase text-gray-500">
+              HOW IT WORKS
+            </span>
+          </div>
+          <div className="p-4 space-y-5">
+            {[
+              {
+                step: '01', icon: Clock, color: '#facc15',
+                bg: 'rgba(250,204,21,0.08)', border: 'rgba(250,204,21,0.15)',
+                title: 'Set Daily App Limits',
+                desc: 'Choose which apps to restrict and set daily screen time limits for each one.',
+              },
+              {
+                step: '02', icon: ShieldAlert, color: '#f87171',
+                bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.15)',
+                title: 'Shield Activates on Limit',
+                desc: 'When you hit your limit, the app is blocked with a full-screen lockdown overlay.',
+              },
+              {
+                step: '03', icon: Dumbbell, color: '#4ade80',
+                bg: 'rgba(74,222,128,0.08)', border: 'rgba(74,222,128,0.15)',
+                title: 'Exercise to Unlock',
+                desc: 'Complete push-ups verified by your camera to earn temporary access. Real discipline.',
+              },
+            ].map((item, i) => (
+              <motion.div
+                key={item.step}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.35 + i * 0.1 }}
+                className="flex items-start gap-3"
+              >
+                <div className="relative flex flex-col items-center">
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ background: item.bg, border: `1px solid ${item.border}` }}>
+                    <item.icon className="w-4 h-4" style={{ color: item.color }} />
+                  </div>
+                  {i < 2 && (
+                    <div className="w-px h-5 mt-1" style={{ background: `${item.color}25` }} />
+                  )}
+                </div>
+                <div className="pt-1">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="text-[8px] font-mono font-bold" style={{ color: `${item.color}80` }}>
+                      STEP {item.step}
+                    </span>
+                  </div>
+                  <div className="text-xs font-bold text-white mb-0.5">{item.title}</div>
+                  <div className="text-[10px] text-gray-500 leading-relaxed">{item.desc}</div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+
+        {/* APP LOCK PREVIEW LIST */}
+        <div className="rounded-2xl overflow-hidden"
+          style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
+          <div className="px-4 py-3 border-b flex items-center justify-between"
+            style={{ borderColor: 'rgba(255,255,255,0.04)' }}>
+            <span className="text-[9px] font-mono font-bold tracking-[0.2em] uppercase text-gray-500">
+              APPS YOU CAN BLOCK
+            </span>
+            <span className="text-[8px] font-mono text-gray-600">PREVIEW</span>
+          </div>
+          <div>
+            {[
+              { name: 'Instagram', AppIcon: Camera, limit: '30 min/day' },
+              { name: 'YouTube', AppIcon: Youtube, limit: '45 min/day' },
+              { name: 'TikTok', AppIcon: Play, limit: '20 min/day' },
+              { name: 'Facebook', AppIcon: Crown, limit: '30 min/day' },
+              { name: 'Twitter / X', AppIcon: Target, limit: '30 min/day' },
+            ].map((app, i) => (
+              <div key={app.name}
+                className="flex items-center gap-3 px-4 py-3"
+                style={{ borderBottom: i < 4 ? '1px solid rgba(255,255,255,0.03)' : 'none' }}>
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <app.AppIcon className="w-4 h-4 text-gray-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[12px] font-semibold text-white">{app.name}</div>
+                  <div className="text-[9px] text-gray-600 font-mono">{app.limit}</div>
+                </div>
+                {/* Decorative toggle */}
+                <div className="w-[44px] h-[24px] rounded-full p-[2px] flex items-center justify-end"
+                  style={{ background: 'rgba(0,30,40,0.5)', border: '1px solid rgba(0,212,255,0.2)' }}>
+                  <div className="w-[20px] h-[20px] rounded-full"
+                    style={{ background: '#00d4ff', boxShadow: '0 0 6px rgba(0,212,255,0.5)' }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </motion.div>
+
+      {/* ═══ BOTTOM CTA ═══ */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.45 }}
+        className="pt-2"
+      >
+        <motion.button
+          onClick={() => { playSystemSoundEffect('SELECT'); onUpgradePro?.(); }}
+          whileTap={{ scale: 0.97 }}
+          className="w-full flex items-center justify-center gap-2.5 py-4 rounded-2xl font-black text-[14px] tracking-wide"
+          style={{
+            background: 'linear-gradient(135deg, #facc15 0%, #f59e0b 100%)',
+            color: '#0a0a14',
+            boxShadow: '0 6px 30px rgba(250,204,21,0.25), 0 0 60px rgba(250,204,21,0.06)',
+          }}
+        >
+          <Crown size={18} />
+          Unlock All Pro Features
+        </motion.button>
+        <p className="text-center text-[8px] text-gray-600 font-mono mt-2">
+          14-DAY FREE TRIAL • CANCEL ANYTIME
+        </p>
+      </motion.div>
     </div>
   );
 }
@@ -421,6 +731,15 @@ export default function GoalsView({
     );
   }
 
+  // Non-premium users: unified showcase page (no tabs)
+  if (!isPremium) {
+    return (
+      <div className="min-h-[60vh] pb-4">
+        <ProShowcasePage onUpgradePro={onUpgradePro} />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-[60vh] pb-4">
       {/* Premium PRO Tab Header Bar */}
@@ -462,8 +781,6 @@ export default function GoalsView({
 
       {subTab === 'FOCUS_SHIELD' ? (
         <FocusShieldSettings playerData={playerData} isPremium={isPremium} onUpgradePro={onUpgradePro} />
-      ) : !isPremium ? (
-        <ShadowMissionsProUpsell onUpgradePro={onUpgradePro} />
       ) : (
         <>
           {/* Auto-generation loader */}

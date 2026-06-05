@@ -935,6 +935,8 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                 transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                 onClick={e => e.stopPropagation()}
               >
+                {/* Scrollable content wrapper */}
+                <div style={{ maxHeight: '85vh', overflowY: 'auto', overflowX: 'hidden' }}>
                 {/* ── Banner — shows player's real equipped banner ── */}
                 {(() => {
                   const bannerStoreItem = pEntry.bannerId ? getItemById(pEntry.bannerId) : null;
@@ -966,7 +968,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                 })()}
 
                 {/* ── Profile Content ── */}
-                <div className="px-5 pb-8 -mt-8 relative z-10">
+                <div className="px-5 pb-10 -mt-8 relative z-10">
                   {/* Avatar + Info */}
                   <div className="flex items-end gap-4 mb-5">
                     <AvatarWithBorder avatarUrl={pEntry.avatar_url} borderId={pEntry.borderId} size={72} className="shrink-0" style={{ boxShadow: '0 0 20px rgba(0,0,0,0.8)' }} />
@@ -1033,6 +1035,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                     </div>
                   )}
                 </div>
+                </div>{/* end scrollable content wrapper */}
               </motion.div>
             </motion.div>
           );

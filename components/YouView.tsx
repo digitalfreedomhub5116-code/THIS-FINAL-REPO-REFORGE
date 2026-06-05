@@ -252,11 +252,11 @@ const ProfileHero: React.FC<{
       <style>{PARTICLE_CSS}</style>
 
       {/* ── Banner ── */}
-      <div className="relative w-full overflow-hidden" style={{ height: 160, borderRadius: '0 0 16px 16px', background: '#000' }}>
+      <div className="relative w-full" style={{ height: 160, borderRadius: '0 0 16px 16px', background: '#000', overflow: 'hidden' }}>
         <img src={bannerSrc} alt="" className="w-full h-full object-cover" style={{ objectPosition: 'center center' }} />
         <div className="absolute bottom-0 left-0 right-0 pointer-events-none" style={{ height: 100, background: 'linear-gradient(to top, rgba(5,5,10,0.95) 0%, transparent 100%)' }} />
         {/* Name + streak flame — bottom left */}
-        <div className="absolute bottom-3 left-4 z-10" style={{ maxWidth: 'calc(50% - 60px)' }}>
+        <div className="absolute bottom-3 left-4 z-10" style={{ maxWidth: 'calc(60%)' }}>
           <div className="flex items-center gap-2">
             <div className="text-white font-bold text-lg leading-tight truncate" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.8)' }}>
               {player.name || 'Player'}
@@ -274,10 +274,6 @@ const ProfileHero: React.FC<{
             </div>
           )}
         </div>
-        {/* Rank badge — center-right of banner */}
-        <button onClick={onRankTap} className="absolute right-3 z-10" style={{ top: '32%', transform: 'translateY(-50%)' }} aria-label="View rank">
-          <RankBadge rank={(player.rank || 'E') as RankType} size={54} animated showLabel />
-        </button>
       </div>
 
       {/* ── Centered Avatar with equipped border — breathing animation ── */}
@@ -429,6 +425,11 @@ const ProfileHero: React.FC<{
           />
         </motion.div>
       </div>
+
+      {/* ── Rank badge — bottom right of the entire card ── */}
+      <button onClick={onRankTap} className="absolute z-20" style={{ bottom: 12, right: 16 }} aria-label="View rank">
+        <RankBadge rank={(player.rank || 'E') as RankType} size={48} animated />
+      </button>
     </div>
   );
 };

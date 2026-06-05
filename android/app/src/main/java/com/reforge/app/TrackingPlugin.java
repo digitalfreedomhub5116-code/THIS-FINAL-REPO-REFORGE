@@ -410,6 +410,76 @@ public class TrackingPlugin extends Plugin {
     }
 
     @PluginMethod()
+    public void getAppUsageStats(PluginCall call) {
+        try {
+            Context context = getContext();
+
+            // Check usage stats permission first
+            if (!FocusShieldService.hasUsageStatsPermission(context)) {
+                call.resolve(new JSObject().put("permitted", false).put("apps", new JSArray()));
+                return;
+            }
+
+            android.app.usage.UsageStatsManager usm =
+                (android.app.usage.UsageStatsManager) context.getSystemService(Context.USAGE_STATS_SERVICE);
+
+            // Query usage since midnight today
+            java.util.Calendar calendar = java.util.Calendar.getInstance();
+            calendar.set(java.util.Calendar.HOUR_OF_DAY, 0);
+            calendar.set(java.util.Calendar.MINUTE, 0);
+            calendar.set(java.util.Calendar.SECOND, 0);
+            calendar.set(java.util.Calendar.MILLISECOND, 0);
+            long startTime = calendar.getTimeInMillis();
+            long endTime = System.currentTimeMillis();
+
+            List<android.app.usage.UsageStats> stats =
+                usm.queryUsageStats(android.app.usage.UsageStatsManager.INTERVAL_DAILY, startTime, endTime);
+
+            // Build a map of packageName -> usage minutes
+            java.util.Map<String, Long> usageMap = new java.util.HashMap<>();
+            if (stats != null) {
+                for (android.app.usage.UsageStats us : stats) {
+                    long ms = us.getTotalTimeInForeground();
+                    if (ms > 0) {
+                        usageMap.put(us.getPackageName(), ms / (1000 * 60));
+                    }
+                }
+            }
+
+            // Merge with installed launchable apps to get app names
+            PackageManager pm = context.getPackageManager();
+            Intent intent = new Intent(Intent.ACTION_MAIN, null);
+            intent.addCategory(Intent.CATEGORY_LAUNCHER);
+            List<ResolveInfo> launchable = pm.queryIntentActivities(intent, 0);
+
+            JSArray appsArray = new JSArray();
+            String ourPkg = context.getPackageName();
+
+            for (ResolveInfo info : launchable) {
+                String pkgName = info.activityInfo.packageName;
+                if (pkgName.equals(ourPkg)) continue;
+
+                Long minutes = usageMap.get(pkgName);
+                if (minutes != null && minutes > 0) {
+                    JSObject appObj = new JSObject();
+                    appObj.put("packageName", pkgName);
+                    appObj.put("appName", info.loadLabel(pm).toString());
+                    appObj.put("usageMinutes", minutes);
+                    appsArray.put(appObj);
+                }
+            }
+
+            JSObject res = new JSObject();
+            res.put("permitted", true);
+            res.put("apps", appsArray);
+            call.resolve(res);
+        } catch (Exception e) {
+            Log.e(TAG, "Error getting app usage stats", e);
+            call.reject("Failed to get usage stats: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod()
     public void updateWidget(PluginCall call) {
         Context context = getContext();
         Intent intent = new Intent(context, ReforgeWidgetProvider.class);

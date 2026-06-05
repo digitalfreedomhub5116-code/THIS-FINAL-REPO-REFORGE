@@ -40,7 +40,7 @@ import ReviewPromptSheet from './components/ReviewPromptSheet';
 import { unlockItem } from './utils/storeEconomy';
 import DungeonLockScreen from './components/DungeonLockScreen';
 import { setRemoteStoreCache, StoreItem, StoreCategory, ItemTier } from './utils/storeItems';
-import { triggerHaptic, setupAudioPriming } from './utils/soundEngine';
+import { triggerHaptic, setupAudioPriming, playSystemSoundEffect } from './utils/soundEngine';
 
 import {
 
@@ -455,9 +455,11 @@ const App: React.FC = () => {
     }
 
     // Refresh active lockdown status when the app is resumed
+    // Small delay ensures native handleLockdownIntent has time to clear or set SharedPreferences
+    // before JS reads them (avoids race condition with stale lockdown state)
     CapApp.addListener('appStateChange', ({ isActive }) => {
       if (isActive) {
-        checkColdStartLockdown();
+        setTimeout(() => checkColdStartLockdown(), 300);
       }
     }).then(l => { capAppStateListener = l; }).catch(() => {});
 

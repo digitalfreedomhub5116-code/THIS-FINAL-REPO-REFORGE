@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Shield, ShieldAlert, ShieldCheck, Settings, RefreshCw, AlertCircle, 
   Search, Filter, Sliders, Cpu, Info, ChevronDown, ChevronUp, Lock, 
-  LayoutGrid, Camera, Play, Youtube, Facebook, Twitter, Chrome, Gamepad, AppWindow, AlertTriangle
+  LayoutGrid, Camera, Play, Youtube, Facebook, Twitter, Chrome, Gamepad, AppWindow, AlertTriangle,
+  Clock, BarChart3, Smartphone
 } from 'lucide-react';
 import { showSystemToast } from './SystemToast';
 import { playSystemSoundEffect } from '../utils/soundEngine';
@@ -80,6 +81,11 @@ export default function FocusShieldSettings({ playerData, isPremium = false, onU
   const [filterEnabledOnly, setFilterEnabledOnly] = useState(false);
   const [loadingApps, setLoadingApps] = useState(false);
 
+  // Screen Time Usage Stats
+  const [usageStats, setUsageStats] = useState<{ packageName: string; appName: string; usageMinutes: number }[]>([]);
+  const [usagePermitted, setUsagePermitted] = useState(false);
+  const [loadingUsage, setLoadingUsage] = useState(false);
+
   // Premium lock dialog
   const [showProModal, setShowProModal] = useState(false);
 
@@ -93,6 +99,7 @@ export default function FocusShieldSettings({ playerData, isPremium = false, onU
 
     loadSettingsAndApps();
     checkPermissions();
+    fetchUsageStats();
 
     // Check permissions periodically on window focus
     const handleFocus = () => {
@@ -152,6 +159,7 @@ export default function FocusShieldSettings({ playerData, isPremium = false, onU
           });
           setLockedApps(merged);
           setLoadingApps(false);
+          fetchUsageStats();
           return;
         }
       }
@@ -207,6 +215,27 @@ export default function FocusShieldSettings({ playerData, isPremium = false, onU
     } catch (e) {
       console.error('Permission check failed', e);
     }
+  };
+
+  const fetchUsageStats = async () => {
+    setLoadingUsage(true);
+    try {
+      const plugin = (window as any).Capacitor?.Plugins?.TrackingPlugin;
+      if (!plugin?.getAppUsageStats) {
+        setLoadingUsage(false);
+        return;
+      }
+      const res = await plugin.getAppUsageStats();
+      setUsagePermitted(res.permitted ?? false);
+      if (res.permitted && res.apps) {
+        // Sort by usage descending
+        const sorted = [...res.apps].sort((a: any, b: any) => b.usageMinutes - a.usageMinutes);
+        setUsageStats(sorted);
+      }
+    } catch (e) {
+      console.error('Failed to fetch usage stats', e);
+    }
+    setLoadingUsage(false);
   };
 
   const grantUsagePermission = async () => {
@@ -386,6 +415,12 @@ export default function FocusShieldSettings({ playerData, isPremium = false, onU
     );
   }
 
+  const totalUsageMinutes = usageStats.reduce((sum, a) => sum + a.usageMinutes, 0);
+  const totalHours = Math.floor(totalUsageMinutes / 60);
+  const totalMins = totalUsageMinutes % 60;
+  const topUsageApps = usageStats.slice(0, 3);
+  const maxUsage = topUsageApps.length > 0 ? topUsageApps[0].usageMinutes : 1;
+
   return (
     <div className="space-y-6 max-w-md mx-auto pb-8 animate-fade-in px-4">
       {/* Visual Header matching the screenshot */}
@@ -395,6 +430,91 @@ export default function FocusShieldSettings({ playerData, isPremium = false, onU
           SYSTEM INTERFACE
         </span>
         <Settings className="w-5 h-5 text-slate-400 cursor-pointer active:scale-90 transition-transform" />
+      </div>
+
+      {/* ═══ App Screen Time Usage Dashboard ═══ */}
+      <div className="bg-[#0B0D13]/90 border border-[#171B26] rounded-2xl relative overflow-hidden">
+        {/* Dashboard header */}
+        <div className="flex items-center justify-between px-5 pt-5 pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-violet-950/50 border border-violet-500/30 flex items-center justify-center">
+              <Clock className="w-4 h-4 text-violet-400" />
+            </div>
+            <div>
+              <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest block">Today's Screen Time</span>
+              <span className="text-lg font-heading font-black text-white">
+                {loadingUsage ? (
+                  <span className="text-xs text-slate-500 animate-pulse">Scanning...</span>
+                ) : (
+                  <>{totalHours}<span className="text-xs text-slate-500 font-mono">h</span> {totalMins}<span className="text-xs text-slate-500 font-mono">m</span></>
+                )}
+              </span>
+            </div>
+          </div>
+          <button 
+            onClick={fetchUsageStats}
+            className="p-2 rounded-lg bg-[#121620] border border-[#1e2535] text-slate-500 hover:text-violet-400 transition-colors active:scale-90"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loadingUsage ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
+
+        {/* Top apps usage bars */}
+        {!loadingUsage && usagePermitted && topUsageApps.length > 0 && (
+          <div className="px-5 pb-5 space-y-2.5">
+            {topUsageApps.map((app, idx) => {
+              const pct = Math.max(5, Math.round((app.usageMinutes / maxUsage) * 100));
+              const barColors = [
+                'from-violet-500 to-purple-600',
+                'from-cyan-500 to-blue-600', 
+                'from-emerald-500 to-teal-600'
+              ];
+              return (
+                <div key={app.packageName} className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-5 h-5 rounded flex items-center justify-center bg-slate-900 border border-slate-800">
+                        {getAppIcon(app.packageName)}
+                      </div>
+                      <span className="text-[10px] font-bold text-slate-300 truncate max-w-[140px]">{app.appName}</span>
+                    </div>
+                    <span className="text-[10px] font-mono text-slate-400">
+                      {app.usageMinutes >= 60 
+                        ? `${Math.floor(app.usageMinutes / 60)}h ${app.usageMinutes % 60}m`
+                        : `${app.usageMinutes}m`
+                      }
+                    </span>
+                  </div>
+                  <div className="h-1.5 bg-slate-900 rounded-full overflow-hidden">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${pct}%` }}
+                      transition={{ duration: 0.8, delay: idx * 0.15, ease: 'easeOut' }}
+                      className={`h-full rounded-full bg-gradient-to-r ${barColors[idx] || barColors[0]}`}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+            {usageStats.length > 3 && (
+              <div className="text-center pt-1">
+                <span className="text-[8px] font-mono text-slate-600 uppercase tracking-widest">
+                  +{usageStats.length - 3} more apps tracked
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Permission not granted state */}
+        {!loadingUsage && !usagePermitted && (
+          <div className="px-5 pb-5">
+            <div className="flex items-center gap-2 text-[9px] font-mono text-amber-500/80 bg-amber-950/20 border border-amber-500/10 rounded-lg p-3">
+              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+              <span>Grant Usage Access permission (Gate 1) to view screen time data.</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Switch Card (Master System Switch) */}
@@ -555,7 +675,7 @@ export default function FocusShieldSettings({ playerData, isPremium = false, onU
               </p>
             </div>
           ) : (
-            <div className="max-h-[380px] overflow-y-auto pr-1 space-y-2.5 custom-focus-app-scrollbar">
+            <div className="space-y-2.5">
               <AnimatePresence initial={false}>
                 {filteredApps.map((app) => {
                   const isSelected = selectedAppPackage === app.packageName;
@@ -609,9 +729,6 @@ export default function FocusShieldSettings({ playerData, isPremium = false, onU
                           <div className="flex-1 min-w-0">
                             <span className="text-xs font-bold text-white tracking-wide block truncate">
                               {app.appName}
-                            </span>
-                            <span className="text-[8px] text-slate-500 font-mono block truncate mt-0.5 max-w-[120px] xs:max-w-[170px]">
-                              {app.packageName}
                             </span>
                           </div>
                         </div>
