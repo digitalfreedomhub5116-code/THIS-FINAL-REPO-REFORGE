@@ -406,27 +406,7 @@ function ProShowcasePage({
   return (
     <div className="space-y-6 pb-10">
 
-      {/* ═══ HERO HEADER ═══ */}
-      <motion.div
-        initial={{ opacity: 0, y: 15 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="text-center pt-2"
-      >
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full mb-3"
-          style={{ background: 'rgba(250,204,21,0.06)', border: '1px solid rgba(250,204,21,0.15)' }}>
-          <Crown size={12} style={{ color: '#facc15' }} />
-          <span className="text-[8px] font-mono font-black tracking-[0.3em] uppercase" style={{ color: '#facc15' }}>
-            REFORGE PRO
-          </span>
-        </div>
-        <h2 className="text-lg font-black text-white leading-tight">
-          Unlock Your Full<br/>Potential
-        </h2>
-        <p className="text-[10px] text-gray-500 font-mono mt-1.5 tracking-wide">
-          EVERYTHING BELOW • INCLUDED IN PRO
-        </p>
-      </motion.div>
+
 
       {/* ═══ SECTION 1: AI GOALS ═══ */}
       <motion.div
