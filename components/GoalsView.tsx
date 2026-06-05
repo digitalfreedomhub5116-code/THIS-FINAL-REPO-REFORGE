@@ -209,14 +209,208 @@ function ShowcaseGoalCard({ title, progress, streak, coverImage, rankColor, rota
 /* ═══════════════════════════════════════════════════════════ */
 /* PRO SHOWCASE PAGE — unified preview for non-premium users */
 /* ═══════════════════════════════════════════════════════════ */
-function ProShowcasePage({ onUpgradePro }: { onUpgradePro?: () => void }) {
+
+// Fully featured mock goals so that GoalDetailView loads them without issue
+export const MOCK_PINNED_GOAL: Goal = {
+  id: 'mock-pinned-goal',
+  title: 'Daily Dungeon: Sung Jin-Woo Protocol',
+  category: 'FITNESS',
+  goalRank: 'A',
+  successProbability: 85,
+  status: 'ACTIVE',
+  milestones: [
+    {
+      phase: 1,
+      title: 'Dungeon Entry & Conditioning',
+      description: 'Acclimate to daily workouts.',
+      startDay: 1,
+      endDay: 10,
+      targetOutcome: 'Complete 30 reps per set',
+      sampleDailyPattern: ['Morning condition check', 'Pushups set of 30', '10km run'],
+      connectionToNext: 'Phase 2: Shadow extraction prep',
+    },
+    {
+      phase: 2,
+      title: 'Shadow Extraction Preparation',
+      description: 'Increase fatigue resistance and endurance.',
+      startDay: 11,
+      endDay: 20,
+      targetOutcome: 'Complete 50 reps per set',
+      sampleDailyPattern: [],
+      connectionToNext: '',
+    }
+  ],
+  currentMilestone: 1,
+  interviewQA: [
+    { id: 1, question: 'What is your primary fitness focus?', type: 'mcq', answer: 'Strength & Stamina', options: ['Weight Loss', 'Strength & Stamina', 'Endurance'] },
+    { id: 2, question: 'What equipment do you have access to?', type: 'mcq', answer: 'Bodyweight', options: ['Gym', 'Dumbbells', 'Bodyweight'] }
+  ],
+  dailyCommitmentMin: 45,
+  totalDurationDays: 30,
+  smartDurationReasoning: 'AI determined 30 days is the optimal calibration time to establish base stats.',
+  weeklyRestDay: 'NONE',
+  riskFactors: ['Fatigue accumulation', 'High intensity workouts without proper rest'],
+  reasoning: 'Forging S-rank physical conditioning requires strict discipline and automated daily quests.',
+  startDate: Date.now() - 3 * 24 * 60 * 60 * 1000,
+  targetDate: Date.now() + 27 * 24 * 60 * 60 * 1000,
+  streak: 4,
+  dailyTasks: [
+    {
+      id: 'dt-mock-pinned-today',
+      goalId: 'mock-pinned-goal',
+      date: new Date().toISOString().split('T')[0],
+      dayNumber: 4,
+      quests: [
+        { id: 'mq1', title: 'Conditioning Check: Push-ups', estimatedDuration: 15, categories: ['strength'], rank: 'A', xp: 75, reasoning: 'Build chest and core strength.', completed: false },
+        { id: 'mq2', title: 'Conditioning Check: Squats', estimatedDuration: 15, categories: ['strength'], rank: 'B', xp: 50, reasoning: 'Strengthen leg muscles.', completed: true }
+      ],
+      completedCount: 1,
+      totalCount: 2,
+      dailyNote: 'Dungeon gate active. Prepare to test chest and legs.',
+      progressUpdate: 'You are gaining steady strength.',
+      createdAt: Date.now(),
+    }
+  ],
+  createdAt: Date.now() - 3 * 24 * 60 * 60 * 1000,
+  isSystemGoal: true,
+  coverImage: '/dungeon/running.jpeg',
+};
+
+export const MOCK_ACADEMIC_GOAL: Goal = {
+  id: 'mock-academic-goal',
+  title: 'Master Full-Stack Engineering',
+  category: 'ACADEMIC',
+  goalRank: 'B',
+  successProbability: 92,
+  status: 'ACTIVE',
+  milestones: [
+    {
+      phase: 1,
+      title: 'System Design Foundations',
+      description: 'Study system architecture and scaling.',
+      startDay: 1,
+      endDay: 15,
+      targetOutcome: 'Design 3 microservices',
+      sampleDailyPattern: ['Study system design book', 'Draw design diagrams'],
+      connectionToNext: 'Phase 2: Database architecture',
+    }
+  ],
+  currentMilestone: 1,
+  interviewQA: [
+    { id: 1, question: 'What is your learning goal?', type: 'text', answer: 'Master backend scalability and frontend system architecture' }
+  ],
+  dailyCommitmentMin: 60,
+  totalDurationDays: 60,
+  smartDurationReasoning: '60 days allows deep learning of advanced patterns plus hands-on implementation.',
+  weeklyRestDay: 'SUNDAY',
+  riskFactors: ['Topic complexity overload', 'Lack of practical design execution'],
+  reasoning: 'Software engineering scaling requires structured system design templates and daily practice.',
+  startDate: Date.now() - 5 * 24 * 60 * 60 * 1000,
+  targetDate: Date.now() + 55 * 24 * 60 * 60 * 1000,
+  streak: 5,
+  dailyTasks: [
+    {
+      id: 'dt-mock-academic-today',
+      goalId: 'mock-academic-goal',
+      date: new Date().toISOString().split('T')[0],
+      dayNumber: 6,
+      quests: [
+        { id: 'maq1', title: 'Study Load Balancing Patterns', estimatedDuration: 30, categories: ['intelligence'], rank: 'B', xp: 60, reasoning: 'Understand how traffic is distributed.', completed: false },
+        { id: 'maq2', title: 'Draft High Availability Diagram', estimatedDuration: 30, categories: ['intelligence'], rank: 'B', xp: 65, reasoning: 'Practice system design.', completed: false }
+      ],
+      completedCount: 0,
+      totalCount: 2,
+      dailyNote: 'Focus on horizontal scaling and database replication today.',
+      progressUpdate: 'Consistent progress on architectures.',
+      createdAt: Date.now(),
+    }
+  ],
+  createdAt: Date.now() - 5 * 24 * 60 * 60 * 1000,
+  coverImage: '/goals/hero-dart.webp',
+};
+
+export const MOCK_FINANCIAL_GOAL: Goal = {
+  id: 'mock-financial-goal',
+  title: 'Monarch Gold Grind Plan',
+  category: 'FINANCIAL',
+  goalRank: 'S',
+  successProbability: 98,
+  status: 'ACTIVE',
+  milestones: [
+    {
+      phase: 1,
+      title: 'Passive Income Streams',
+      description: 'Set up side projects and monetization.',
+      startDay: 1,
+      endDay: 30,
+      targetOutcome: 'Earn 1000 gold equivalent daily',
+      sampleDailyPattern: ['Build digital assets', 'Write sales copies'],
+      connectionToNext: 'Phase 2: Capital deployment',
+    }
+  ],
+  currentMilestone: 1,
+  interviewQA: [
+    { id: 1, question: 'What is your target income source?', type: 'mcq', answer: 'SaaS products', options: ['SaaS products', 'Trading', 'Content creation'] }
+  ],
+  dailyCommitmentMin: 30,
+  totalDurationDays: 90,
+  smartDurationReasoning: '90 days allows building, launching, and scaling digital products to steady revenue.',
+  weeklyRestDay: 'NONE',
+  riskFactors: ['High market competition', 'Burnout from solo building'],
+  reasoning: 'Monarch wealth requires steady cash flow extraction and passive income asset construction.',
+  startDate: Date.now() - 14 * 24 * 60 * 60 * 1000,
+  targetDate: Date.now() + 76 * 24 * 60 * 60 * 1000,
+  streak: 12,
+  dailyTasks: [
+    {
+      id: 'dt-mock-financial-today',
+      goalId: 'mock-financial-goal',
+      date: new Date().toISOString().split('T')[0],
+      dayNumber: 15,
+      quests: [
+        { id: 'mfq1', title: 'Write Landing Page copy', estimatedDuration: 20, categories: ['social'], rank: 'S', xp: 120, reasoning: 'Craft high-converting hooks.', completed: true }
+      ],
+      completedCount: 1,
+      totalCount: 1,
+      dailyNote: 'Your marketing assets are scaling up. Keep copy crisp.',
+      progressUpdate: 'You have hit 15 days of consistent output.',
+      createdAt: Date.now(),
+    }
+  ],
+  createdAt: Date.now() - 14 * 24 * 60 * 60 * 1000,
+  coverImage: '/onboarding/forge_breaker.webp',
+};
+
+function ProShowcasePage({
+  onUpgradePro,
+  setSelectedGoal,
+  showcaseGoals,
+}: {
+  onUpgradePro?: () => void;
+  setSelectedGoal: (goal: Goal) => void;
+  showcaseGoals: Goal[];
+}) {
+  const [showHowItWorks, setShowHowItWorks] = useState(false);
+
+  const mockPinnedGoal = showcaseGoals.find(g => g.id === 'mock-pinned-goal') || MOCK_PINNED_GOAL;
+  const mockAcademicGoal = showcaseGoals.find(g => g.id === 'mock-academic-goal') || MOCK_ACADEMIC_GOAL;
+  const mockFinancialGoal = showcaseGoals.find(g => g.id === 'mock-financial-goal') || MOCK_FINANCIAL_GOAL;
+
+  const todayStrVal = new Date().toISOString().split('T')[0];
+  const getMockProgress = (g: Goal) => {
+    const todayTask = g.dailyTasks?.find(t => t.date === todayStrVal);
+    if (!todayTask || todayTask.totalCount === 0) return 0;
+    return Math.round((todayTask.completedCount / todayTask.totalCount) * 100);
+  };
+
   return (
     <div className="space-y-6 pb-10">
 
       {/* ═══ HERO HEADER ═══ */}
       <motion.div
-        initial={{ opacity: 0, y: -10 }}
+        initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
         className="text-center pt-2"
       >
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full mb-3"
@@ -238,7 +432,7 @@ function ProShowcasePage({ onUpgradePro }: { onUpgradePro?: () => void }) {
       <motion.div
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
+        transition={{ delay: 0.1, duration: 0.5 }}
       >
         {/* Section label */}
         <div className="flex items-center gap-2 mb-3">
@@ -284,63 +478,146 @@ function ProShowcasePage({ onUpgradePro }: { onUpgradePro?: () => void }) {
               <Zap size={16} />
               Unlock AI Autopilot
             </motion.button>
+            
+            {/* How It Works button */}
+            <button
+              onClick={() => {
+                playSystemSoundEffect('SELECT');
+                setShowHowItWorks(true);
+              }}
+              className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg font-mono text-[10px] font-bold tracking-[0.15em] uppercase transition-all"
+              style={{
+                background: 'rgba(0,212,255,0.06)',
+                border: '1px solid rgba(0,212,255,0.12)',
+                color: 'rgba(0,212,255,0.5)',
+                cursor: 'pointer',
+                marginTop: 10,
+              }}
+            >
+              <Sparkles size={12} />
+              How It Works
+            </button>
           </div>
         </div>
       </motion.div>
 
-      {/* ═══ PINNED PREVIEW CARDS (side-by-side tilted row) ═══ */}
-      <div
-        className="no-scrollbar"
-        style={{
-          display: 'flex',
-          gap: '14px',
-          overflowX: 'auto',
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none',
-          paddingLeft: '20px',
-          paddingRight: '20px',
-          paddingBottom: '24px',
-          paddingTop: '16px',
-          WebkitOverflowScrolling: 'touch',
-          alignItems: 'center',
-        }}
+      {/* ═══ ACTIVE GOALS SECTION (side-by-side tilted row) ═══ */}
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2, duration: 0.5 }}
       >
-        <style>{`
-          .no-scrollbar::-webkit-scrollbar {
-            display: none;
-          }
-        `}</style>
-        <ShowcaseGoalCard
-          title="Sung Jin-Woo Protocol"
-          progress={40}
-          streak={4}
-          coverImage="/dungeon/running.jpeg"
-          rankColor="#00d4ff"
-          rotation="rotate(-4deg)"
-          yOffset="translateY(4px)"
-          onTap={() => { playSystemSoundEffect('SELECT'); onUpgradePro?.(); }}
-        />
-        <ShowcaseGoalCard
-          title="Master Full-Stack Eng."
-          progress={60}
-          streak={5}
-          coverImage="/goals/hero-dart.webp"
-          rankColor="#facc15"
-          rotation="rotate(3deg)"
-          yOffset="translateY(-4px)"
-          onTap={() => { playSystemSoundEffect('SELECT'); onUpgradePro?.(); }}
-        />
-        <ShowcaseGoalCard
-          title="Monarch Gold Grind"
-          progress={75}
-          streak={12}
-          coverImage="/onboarding/forge_breaker.webp"
-          rankColor="#33dfff"
-          rotation="rotate(-3deg)"
-          yOffset="translateY(2px)"
-          onTap={() => { playSystemSoundEffect('SELECT'); onUpgradePro?.(); }}
-        />
-      </div>
+        <div className="flex items-center gap-2 px-5 mb-2 mt-4">
+          <div className="w-1 h-4 rounded-full" style={{ background: 'linear-gradient(180deg, #facc15, #f59e0b)' }} />
+          <span className="text-[9px] font-mono font-black tracking-[0.3em] uppercase" style={{ color: '#facc15' }}>
+            ACTIVE GOALS
+          </span>
+        </div>
+
+        <div
+          className="no-scrollbar"
+          style={{
+            display: 'flex',
+            gap: '14px',
+            overflowX: 'auto',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+            paddingLeft: '20px',
+            paddingRight: '20px',
+            paddingBottom: '24px',
+            paddingTop: '16px',
+            WebkitOverflowScrolling: 'touch',
+            alignItems: 'center',
+          }}
+        >
+          <style>{`
+            .no-scrollbar::-webkit-scrollbar {
+              display: none;
+            }
+          `}</style>
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.22, duration: 0.4 }}
+          >
+            <ShowcaseGoalCard
+              title="Sung Jin-Woo Protocol"
+              progress={getMockProgress(mockPinnedGoal)}
+              streak={mockPinnedGoal.status === 'ABANDONED' ? 0 : mockPinnedGoal.streak}
+              coverImage="/dungeon/running.jpeg"
+              rankColor="#00d4ff"
+              rotation="rotate(-4deg)"
+              yOffset="translateY(4px)"
+              onTap={() => {
+                if (mockPinnedGoal.status === 'ABANDONED') {
+                  showSystemToast({
+                    type: 'WARNING',
+                    title: 'Mission Abandoned',
+                    subtitle: 'This dummy goal was abandoned. You can still inspect it.',
+                    durationMs: 3000
+                  });
+                }
+                playSystemSoundEffect('SELECT');
+                setSelectedGoal(mockPinnedGoal);
+              }}
+            />
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.26, duration: 0.4 }}
+          >
+            <ShowcaseGoalCard
+              title="Master Full-Stack Eng."
+              progress={getMockProgress(mockAcademicGoal)}
+              streak={mockAcademicGoal.status === 'ABANDONED' ? 0 : mockAcademicGoal.streak}
+              coverImage="/goals/hero-dart.webp"
+              rankColor="#facc15"
+              rotation="rotate(3deg)"
+              yOffset="translateY(-4px)"
+              onTap={() => {
+                if (mockAcademicGoal.status === 'ABANDONED') {
+                  showSystemToast({
+                    type: 'WARNING',
+                    title: 'Mission Abandoned',
+                    subtitle: 'This dummy goal was abandoned. You can still inspect it.',
+                    durationMs: 3000
+                  });
+                }
+                playSystemSoundEffect('SELECT');
+                setSelectedGoal(mockAcademicGoal);
+              }}
+            />
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.4 }}
+          >
+            <ShowcaseGoalCard
+              title="Monarch Gold Grind"
+              progress={getMockProgress(mockFinancialGoal)}
+              streak={mockFinancialGoal.status === 'ABANDONED' ? 0 : mockFinancialGoal.streak}
+              coverImage="/onboarding/forge_breaker.webp"
+              rankColor="#33dfff"
+              rotation="rotate(-3deg)"
+              yOffset="translateY(2px)"
+              onTap={() => {
+                if (mockFinancialGoal.status === 'ABANDONED') {
+                  showSystemToast({
+                    type: 'WARNING',
+                    title: 'Mission Abandoned',
+                    subtitle: 'This dummy goal was abandoned. You can still inspect it.',
+                    durationMs: 3000
+                  });
+                }
+                playSystemSoundEffect('SELECT');
+                setSelectedGoal(mockFinancialGoal);
+              }}
+            />
+          </motion.div>
+        </div>
+      </motion.div>
 
       {/* ═══ DIVIDER ═══ */}
       <div className="flex items-center gap-3 px-2">
@@ -537,6 +814,21 @@ function ProShowcasePage({ onUpgradePro }: { onUpgradePro?: () => void }) {
           14-DAY FREE TRIAL • CANCEL ANYTIME
         </p>
       </motion.div>
+
+      {/* How It Works Modal overlay */}
+      <AnimatePresence>
+        {showHowItWorks && (
+          <React.Suspense fallback={null}>
+            <HowItWorksScreen
+              onClose={() => setShowHowItWorks(false)}
+              onClaimTrial={() => {
+                setShowHowItWorks(false);
+                onUpgradePro?.();
+              }}
+            />
+          </React.Suspense>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -573,6 +865,13 @@ export default function GoalsView({
   const [showCreate, setShowCreate] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
   const [subTab, setSubTab] = useState<'SHADOW_MISSIONS' | 'FOCUS_SHIELD'>('SHADOW_MISSIONS');
+
+  // Showcase goals state to support fully functional interaction & persistence
+  const [showcaseGoals, setShowcaseGoals] = useState<Goal[]>(() => [
+    MOCK_PINNED_GOAL,
+    MOCK_ACADEMIC_GOAL,
+    MOCK_FINANCIAL_GOAL
+  ]);
 
   // Listen to top header + button trigger from App.tsx
   useEffect(() => {
@@ -814,21 +1113,32 @@ export default function GoalsView({
   }, [goals, onUpdateGoals]);
 
   const handleUpdateGoal = useCallback((updatedGoal: Goal) => {
-    onUpdateGoals(goals.map(g => g.id === updatedGoal.id ? updatedGoal : g));
+    if (updatedGoal.id.startsWith('mock-')) {
+      setShowcaseGoals(prev => prev.map(g => g.id === updatedGoal.id ? updatedGoal : g));
+    } else {
+      onUpdateGoals(goals.map(g => g.id === updatedGoal.id ? updatedGoal : g));
+    }
     setSelectedGoal(updatedGoal);
   }, [goals, onUpdateGoals]);
 
   const handleDeleteGoal = useCallback((goalId: string) => {
-    const updated = goals.map(g => g.id === goalId ? { ...g, status: 'ABANDONED' as const } : g);
-    onUpdateGoals(updated);
-    setSelectedGoal(null);
-    if (onDeleteGoal) onDeleteGoal(goalId);
-    if (onDeductGold) onDeductGold(50);
+    if (goalId.startsWith('mock-')) {
+      setShowcaseGoals(prev => prev.map(g => g.id === goalId ? { ...g, status: 'ABANDONED' as const } : g));
+      setSelectedGoal(null);
+    } else {
+      const updated = goals.map(g => g.id === goalId ? { ...g, status: 'ABANDONED' as const } : g);
+      onUpdateGoals(updated);
+      setSelectedGoal(null);
+      if (onDeleteGoal) onDeleteGoal(goalId);
+      if (onDeductGold) onDeductGold(50);
+    }
   }, [goals, onUpdateGoals, onDeleteGoal, onDeductGold]);
 
   // If a goal detail is selected, show that
   if (selectedGoal) {
-    const liveGoal = goals.find(g => g.id === selectedGoal.id) || selectedGoal;
+    const liveGoal = selectedGoal.id.startsWith('mock-')
+      ? (showcaseGoals.find(g => g.id === selectedGoal.id) || selectedGoal)
+      : (goals.find(g => g.id === selectedGoal.id) || selectedGoal);
     return (
       <GoalDetailView
         goal={liveGoal}
@@ -847,7 +1157,11 @@ export default function GoalsView({
   if (!isPremium) {
     return (
       <div className="min-h-[60vh] pb-4">
-        <ProShowcasePage onUpgradePro={onUpgradePro} />
+        <ProShowcasePage 
+          onUpgradePro={onUpgradePro} 
+          setSelectedGoal={setSelectedGoal} 
+          showcaseGoals={showcaseGoals}
+        />
       </div>
     );
   }
@@ -855,7 +1169,12 @@ export default function GoalsView({
   return (
     <div className="min-h-[60vh] pb-4">
       {/* Premium PRO Tab Header Bar */}
-      <div className="flex p-1 bg-gray-950/80 border border-gray-800/80 rounded-xl mb-6 relative overflow-hidden max-w-sm mx-auto">
+      <motion.div 
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="flex p-1 bg-gray-950/80 border border-gray-800/80 rounded-xl mb-6 relative overflow-hidden max-w-sm mx-auto"
+      >
         <button
           onClick={() => { playSystemSoundEffect('TAB_SWITCH'); setSubTab('SHADOW_MISSIONS'); }}
           className={`flex-1 text-center py-2 text-[10px] font-bold font-mono tracking-wider transition-colors relative z-10 ${
@@ -889,7 +1208,7 @@ export default function GoalsView({
           )}
           FOCUS SHIELD
         </button>
-      </div>
+      </motion.div>
 
       {subTab === 'FOCUS_SHIELD' ? (
         <FocusShieldSettings playerData={playerData} isPremium={isPremium} onUpgradePro={onUpgradePro} />
@@ -960,19 +1279,30 @@ export default function GoalsView({
           {/* Active Goals */}
           {activeGoals.length > 0 && (
             <div className="space-y-3 mb-4">
-              {activeGoals.map(goal => (
-                <GoalCard
+              {activeGoals.map((goal, idx) => (
+                <motion.div
                   key={goal.id}
-                  goal={goal}
-                  onTap={(g) => setSelectedGoal(g)}
-                />
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.08, duration: 0.4 }}
+                >
+                  <GoalCard
+                    goal={goal}
+                    onTap={(g) => setSelectedGoal(g)}
+                  />
+                </motion.div>
               ))}
             </div>
           )}
 
           {/* Empty State */}
           {activeGoals.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-16 px-6">
+            <motion.div 
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+              className="flex flex-col items-center justify-center py-16 px-6"
+            >
               <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ background: 'rgba(34,211,238,0.06)' }}>
                 <Target className="w-7 h-7 text-[#00d4ff]" />
               </div>
@@ -1000,12 +1330,17 @@ export default function GoalsView({
               >
                 Create Goal
               </button>
-            </div>
+            </motion.div>
           )}
 
           {/* Completed Goals */}
           {completedGoals.length > 0 && (
-            <div className="mt-6">
+            <motion.div 
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, duration: 0.4 }}
+              className="mt-6"
+            >
               <div className="flex items-center gap-2 mb-3">
                 <Trophy className="w-3.5 h-3.5 text-amber-400" />
                 <span className="text-[10px] font-mono text-gray-500 uppercase tracking-wider">Completed Goals</span>
@@ -1015,10 +1350,8 @@ export default function GoalsView({
                   <GoalCard key={goal.id} goal={goal} onTap={(g) => setSelectedGoal(g)} />
                 ))}
               </div>
-            </div>
+            </motion.div>
           )}
-
-
 
           {/* Creation Flow Modal */}
           <AnimatePresence>

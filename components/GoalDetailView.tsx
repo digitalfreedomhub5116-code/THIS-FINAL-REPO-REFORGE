@@ -254,6 +254,68 @@ export function startQuestGeneration(params: {
 }) {
   const { goal, allGoals, playerData, todayStr, currentDay, existingQuests } = params;
 
+  if (goal.id.startsWith('mock-')) {
+    updateQuestGenStore({ state: 'GENERATING', goalId: goal.id, todayTasks: null, error: null, pendingGoalUpdate: null, pendingFeedQuests: [], pendingScheduleSlots: [] });
+    setTimeout(() => {
+      const generatedQuests = goal.id === 'mock-academic-goal' ? [
+        { id: 'maq1', title: 'Study Load Balancing Patterns', estimatedDuration: 30, categories: ['intelligence'], rank: 'B', xp: 60, reasoning: 'Understand how traffic is distributed.', completed: false },
+        { id: 'maq2', title: 'Draft High Availability Diagram', estimatedDuration: 30, categories: ['intelligence'], rank: 'B', xp: 65, reasoning: 'Practice system design.', completed: false }
+      ] : goal.id === 'mock-financial-goal' ? [
+        { id: 'mfq1', title: 'Write Landing Page copy', estimatedDuration: 20, categories: ['social'], rank: 'S', xp: 120, reasoning: 'Craft high-converting hooks.', completed: false }
+      ] : [
+        { id: 'mq1', title: 'Conditioning Check: Push-ups', estimatedDuration: 15, categories: ['strength'], rank: 'A', xp: 75, reasoning: 'Build chest and core strength.', completed: false },
+        { id: 'mq2', title: 'Conditioning Check: Squats', estimatedDuration: 15, categories: ['strength'], rank: 'B', xp: 50, reasoning: 'Strengthen leg muscles.', completed: false }
+      ];
+
+      const newDailyTask: GoalDailyTask = {
+        id: `dt-${goal.id}-${todayStr}`,
+        goalId: goal.id,
+        date: todayStr,
+        dayNumber: currentDay,
+        quests: generatedQuests,
+        completedCount: 0,
+        totalCount: generatedQuests.length,
+        dailyNote: 'AI-generated plan calibration complete.',
+        progressUpdate: 'Consistent progress.',
+        createdAt: Date.now(),
+      };
+
+      const updatedGoal: Goal = {
+        ...goal,
+        dailyTasks: [...(goal.dailyTasks || []).filter(t => t.date !== todayStr), newDailyTask],
+      };
+
+      const feedQuests: Quest[] = generatedQuests.map((gq: any, idx: number) => ({
+        id: gq.id || `goal-quest-${goal.id}-${Date.now()}-${idx}`,
+        title: gq.title,
+        description: gq.reasoning || `Goal quest for: ${goal.title}`,
+        rank: (gq.rank || 'D') as Rank,
+        priority: 'MEDIUM' as any,
+        category: (gq.categories?.[0] || 'intelligence') as any,
+        categories: gq.categories,
+        xpReward: Math.round((gq.xp || 50) * 1.5),
+        isCompleted: false,
+        createdAt: Date.now(),
+        isDaily: true,
+        estimatedDuration: gq.estimatedDuration,
+        aiReasoning: gq.reasoning,
+        goalId: goal.id,
+        goalTitle: goal.title,
+      }));
+
+      updateQuestGenStore({
+        state: 'DONE',
+        todayTasks: newDailyTask,
+        error: null,
+        pendingGoalUpdate: updatedGoal,
+        pendingFeedQuests: feedQuests,
+        pendingScheduleSlots: [],
+      });
+      playSystemSoundEffect('PURCHASE');
+    }, 1200);
+    return;
+  }
+
   if (_questGenStore.state === 'GENERATING') return; // already in-flight
 
   // FIX Loophole 6: Rest day check (skip if user chose NONE)
@@ -603,7 +665,14 @@ export default function GoalDetailView({
   }, [goal, onUpdateGoal]);
 
   return (
-    <div className="min-h-screen pb-24" style={{ background: '#07070d' }}>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 20 }}
+      transition={{ duration: 0.3 }}
+      className="min-h-screen pb-24"
+      style={{ background: '#07070d' }}
+    >
       {/* Header */}
       <div className="sticky top-0 z-10 px-4 pb-3" style={{ background: '#07070d', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)' }}>
         <div className="flex items-center gap-3">
@@ -951,6 +1020,6 @@ export default function GoalDetailView({
           )}
         </AnimatePresence>
       </div>
-    </div>
+    </motion.div>
   );
 }
