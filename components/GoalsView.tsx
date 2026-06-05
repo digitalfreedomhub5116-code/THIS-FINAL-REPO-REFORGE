@@ -164,7 +164,7 @@ function ProShowcasePage({ onUpgradePro }: { onUpgradePro?: () => void }) {
     id: 'mock-academic-goal',
     title: 'Master Full-Stack Engineering',
     category: 'ACADEMIC',
-    goalRank: 'S',
+    goalRank: 'B',
     successProbability: 92,
     status: 'ACTIVE',
     milestones: [
@@ -192,6 +192,40 @@ function ProShowcasePage({ onUpgradePro }: { onUpgradePro?: () => void }) {
     streak: 5,
     dailyTasks: [],
     createdAt: Date.now() - 5 * 24 * 60 * 60 * 1000,
+  };
+
+  const mockFinancialGoal: Goal = {
+    id: 'mock-financial-goal',
+    title: 'Monarch Gold Grind Plan',
+    category: 'FINANCIAL',
+    goalRank: 'S',
+    successProbability: 98,
+    status: 'ACTIVE',
+    milestones: [
+      {
+        phase: 1,
+        title: 'Passive Income Streams',
+        description: 'Set up side projects and monetization.',
+        startDay: 1,
+        endDay: 30,
+        targetOutcome: 'Earn 1000 gold equivalent daily',
+        sampleDailyPattern: [],
+        connectionToNext: '',
+      }
+    ],
+    currentMilestone: 1,
+    interviewQA: [],
+    dailyCommitmentMin: 30,
+    totalDurationDays: 90,
+    smartDurationReasoning: '',
+    weeklyRestDay: 'NONE',
+    riskFactors: [],
+    reasoning: '',
+    startDate: Date.now() - 14 * 24 * 60 * 60 * 1000,
+    targetDate: Date.now() + 76 * 24 * 60 * 60 * 1000,
+    streak: 12,
+    dailyTasks: [],
+    createdAt: Date.now() - 14 * 24 * 60 * 60 * 1000,
   };
 
   return (
@@ -272,36 +306,41 @@ function ProShowcasePage({ onUpgradePro }: { onUpgradePro?: () => void }) {
         </div>
       </motion.div>
 
-      {/* ═══ PINNED PREVIEW CARDS (tilted & stacked) ═══ */}
-      <div className="relative h-[230px] w-full flex items-center justify-center py-2 px-4">
-        {/* Background Card (Academic Goal) */}
-        <motion.div
-          className="absolute w-full max-w-[290px] z-10"
-          style={{
-            transform: 'rotate(5deg) translateY(-12px) translateX(20px)',
-            opacity: 0.5,
-            pointerEvents: 'none',
-          }}
-        >
-          <GoalCard
-            goal={mockAcademicGoal}
-            onTap={() => {}}
-          />
-        </motion.div>
-
-        {/* Foreground Card (Pinned Fitness/Dungeon Goal with cover image) */}
-        <motion.div
-          className="absolute w-full max-w-[290px] z-20"
-          style={{
-            transform: 'rotate(-4deg) translateY(12px) translateX(-15px)',
-            boxShadow: '0 20px 40px rgba(0,0,0,0.8), 0 0 30px rgba(250,204,21,0.05)',
-          }}
-        >
-          <GoalCard
-            goal={mockPinnedGoal}
-            onTap={() => { playSystemSoundEffect('SELECT'); onUpgradePro?.(); }}
-          />
-        </motion.div>
+      {/* ═══ PINNED PREVIEW CARDS (side-by-side row) ═══ */}
+      <div
+        className="no-scrollbar"
+        style={{
+          display: 'flex',
+          gap: '12px',
+          overflowX: 'auto',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+          paddingLeft: '4px',
+          paddingRight: '4px',
+          paddingBottom: '16px',
+          paddingTop: '8px',
+          WebkitOverflowScrolling: 'touch',
+        }}
+      >
+        <style>{`
+          .no-scrollbar::-webkit-scrollbar {
+            display: none;
+          }
+        `}</style>
+        {[mockPinnedGoal, mockAcademicGoal, mockFinancialGoal].map((mockGoal) => (
+          <div
+            key={mockGoal.id}
+            className="w-[230px] flex-shrink-0"
+            style={{
+              boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+            }}
+          >
+            <GoalCard
+              goal={mockGoal}
+              onTap={() => { playSystemSoundEffect('SELECT'); onUpgradePro?.(); }}
+            />
+          </div>
+        ))}
       </div>
 
       {/* ═══ DIVIDER ═══ */}
