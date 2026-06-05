@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Target, Trophy, Sparkles, Loader2, Swords, Zap, Crown, Shield, ShieldAlert, Clock, Camera, Youtube, Play, Dumbbell } from 'lucide-react';
+import { Plus, Target, Trophy, Sparkles, Loader2, Swords, Zap, Crown, Shield, ShieldAlert, Clock, Camera, Youtube, Play, Dumbbell, Flame } from 'lucide-react';
 import { Goal, GoalDailyTask, PlayerData, Quest, Rank } from '../types';
 import GoalCard from './GoalCard';
 import GoalCreationFlow from './GoalCreationFlow';
@@ -122,112 +122,94 @@ function ShadowMissionsProUpsell({ onUpgradePro }: ShadowMissionsProUpsellProps)
 /* ═══════════════════════════════════════════════════════════ */
 /* PRO SHOWCASE PAGE — unified preview for non-premium users */
 /* ═══════════════════════════════════════════════════════════ */
+interface ShowcaseGoalCardProps {
+  title: string;
+  progress: number;
+  streak: number;
+  coverImage: string;
+  rankColor: string;
+  rotation: string;
+  yOffset: string;
+  onTap?: () => void;
+}
+
+function ShowcaseGoalCard({ title, progress, streak, coverImage, rankColor, rotation, yOffset, onTap }: ShowcaseGoalCardProps) {
+  const [imgLoaded, setImgLoaded] = useState(false);
+
+  return (
+    <motion.div
+      whileTap={{ scale: 0.96 }}
+      onClick={onTap}
+      className="relative rounded-xl overflow-hidden cursor-pointer flex-shrink-0 flex flex-col justify-between p-3"
+      style={{
+        width: 130,
+        height: 110,
+        background: '#0c0c16',
+        border: `1px solid ${rankColor}33`,
+        transform: `${rotation} ${yOffset}`,
+        boxShadow: '0 8px 20px rgba(0,0,0,0.5)',
+      }}
+    >
+      {/* Background Image */}
+      <div className="absolute inset-0 z-0">
+        <img
+          src={coverImage}
+          alt=""
+          className="w-full h-full object-cover transition-opacity duration-500"
+          style={{ opacity: imgLoaded ? 0.35 : 0, filter: 'saturate(0.6) brightness(0.7)' }}
+          onLoad={() => setImgLoaded(true)}
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            background: 'linear-gradient(180deg, rgba(8,8,18,0.2) 0%, rgba(6,6,14,0.85) 100%)',
+          }}
+        />
+      </div>
+
+      {/* Content */}
+      <div className="relative z-10 flex flex-col justify-between h-full w-full">
+        {/* Title */}
+        <h4 className="text-[10px] font-bold text-gray-100 leading-snug line-clamp-2">
+          {title}
+        </h4>
+
+        {/* Bottom part: Progress + Streak */}
+        <div className="space-y-1.5 mt-auto">
+          {/* Progress bar */}
+          <div>
+            <div className="flex justify-between items-center text-[7px] font-mono text-gray-400 mb-0.5">
+              <span>PROGRESS</span>
+              <span>{progress}%</span>
+            </div>
+            <div className="h-0.5 rounded-full bg-white/10 overflow-hidden">
+              <div
+                className="h-full rounded-full"
+                style={{
+                  background: `linear-gradient(90deg, ${rankColor}88, ${rankColor})`,
+                  width: `${progress}%`,
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Streak */}
+          {streak > 0 && (
+            <div className="flex items-center gap-0.5 text-[8px] font-mono font-bold" style={{ color: '#fb923c' }}>
+              <Flame className="w-2.5 h-2.5" />
+              <span>{streak}d</span>
+            </div>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/* PRO SHOWCASE PAGE — unified preview for non-premium users */
+/* ═══════════════════════════════════════════════════════════ */
 function ProShowcasePage({ onUpgradePro }: { onUpgradePro?: () => void }) {
-  // Mock goals for premium preview
-  const mockPinnedGoal: Goal = {
-    id: 'mock-pinned-goal',
-    title: 'Daily Dungeon: Sung Jin-Woo Protocol',
-    category: 'FITNESS',
-    goalRank: 'A',
-    successProbability: 85,
-    status: 'ACTIVE',
-    milestones: [
-      {
-        phase: 1,
-        title: 'Dungeon Entry & Conditioning',
-        description: 'Acclimate to daily workouts.',
-        startDay: 1,
-        endDay: 10,
-        targetOutcome: 'Complete 30 reps per set',
-        sampleDailyPattern: [],
-        connectionToNext: '',
-      }
-    ],
-    currentMilestone: 1,
-    interviewQA: [],
-    dailyCommitmentMin: 45,
-    totalDurationDays: 30,
-    smartDurationReasoning: '',
-    weeklyRestDay: 'NONE',
-    riskFactors: [],
-    reasoning: '',
-    startDate: Date.now() - 3 * 24 * 60 * 60 * 1000,
-    targetDate: Date.now() + 27 * 24 * 60 * 60 * 1000,
-    streak: 4,
-    dailyTasks: [],
-    createdAt: Date.now() - 3 * 24 * 60 * 60 * 1000,
-    isSystemGoal: true,
-    coverImage: '/dungeon/running.jpeg',
-  };
-
-  const mockAcademicGoal: Goal = {
-    id: 'mock-academic-goal',
-    title: 'Master Full-Stack Engineering',
-    category: 'ACADEMIC',
-    goalRank: 'B',
-    successProbability: 92,
-    status: 'ACTIVE',
-    milestones: [
-      {
-        phase: 1,
-        title: 'System Design Foundations',
-        description: 'Study system architecture.',
-        startDay: 1,
-        endDay: 15,
-        targetOutcome: 'Design 3 microservices',
-        sampleDailyPattern: [],
-        connectionToNext: '',
-      }
-    ],
-    currentMilestone: 1,
-    interviewQA: [],
-    dailyCommitmentMin: 60,
-    totalDurationDays: 60,
-    smartDurationReasoning: '',
-    weeklyRestDay: 'SUNDAY',
-    riskFactors: [],
-    reasoning: '',
-    startDate: Date.now() - 5 * 24 * 60 * 60 * 1000,
-    targetDate: Date.now() + 55 * 24 * 60 * 60 * 1000,
-    streak: 5,
-    dailyTasks: [],
-    createdAt: Date.now() - 5 * 24 * 60 * 60 * 1000,
-  };
-
-  const mockFinancialGoal: Goal = {
-    id: 'mock-financial-goal',
-    title: 'Monarch Gold Grind Plan',
-    category: 'FINANCIAL',
-    goalRank: 'S',
-    successProbability: 98,
-    status: 'ACTIVE',
-    milestones: [
-      {
-        phase: 1,
-        title: 'Passive Income Streams',
-        description: 'Set up side projects and monetization.',
-        startDay: 1,
-        endDay: 30,
-        targetOutcome: 'Earn 1000 gold equivalent daily',
-        sampleDailyPattern: [],
-        connectionToNext: '',
-      }
-    ],
-    currentMilestone: 1,
-    interviewQA: [],
-    dailyCommitmentMin: 30,
-    totalDurationDays: 90,
-    smartDurationReasoning: '',
-    weeklyRestDay: 'NONE',
-    riskFactors: [],
-    reasoning: '',
-    startDate: Date.now() - 14 * 24 * 60 * 60 * 1000,
-    targetDate: Date.now() + 76 * 24 * 60 * 60 * 1000,
-    streak: 12,
-    dailyTasks: [],
-    createdAt: Date.now() - 14 * 24 * 60 * 60 * 1000,
-  };
-
   return (
     <div className="space-y-6 pb-10">
 
@@ -306,20 +288,21 @@ function ProShowcasePage({ onUpgradePro }: { onUpgradePro?: () => void }) {
         </div>
       </motion.div>
 
-      {/* ═══ PINNED PREVIEW CARDS (side-by-side row) ═══ */}
+      {/* ═══ PINNED PREVIEW CARDS (side-by-side tilted row) ═══ */}
       <div
         className="no-scrollbar"
         style={{
           display: 'flex',
-          gap: '12px',
+          gap: '14px',
           overflowX: 'auto',
           scrollbarWidth: 'none',
           msOverflowStyle: 'none',
-          paddingLeft: '4px',
-          paddingRight: '4px',
-          paddingBottom: '16px',
-          paddingTop: '8px',
+          paddingLeft: '20px',
+          paddingRight: '20px',
+          paddingBottom: '24px',
+          paddingTop: '16px',
           WebkitOverflowScrolling: 'touch',
+          alignItems: 'center',
         }}
       >
         <style>{`
@@ -327,20 +310,36 @@ function ProShowcasePage({ onUpgradePro }: { onUpgradePro?: () => void }) {
             display: none;
           }
         `}</style>
-        {[mockPinnedGoal, mockAcademicGoal, mockFinancialGoal].map((mockGoal) => (
-          <div
-            key={mockGoal.id}
-            className="w-[230px] flex-shrink-0"
-            style={{
-              boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
-            }}
-          >
-            <GoalCard
-              goal={mockGoal}
-              onTap={() => { playSystemSoundEffect('SELECT'); onUpgradePro?.(); }}
-            />
-          </div>
-        ))}
+        <ShowcaseGoalCard
+          title="Sung Jin-Woo Protocol"
+          progress={40}
+          streak={4}
+          coverImage="/dungeon/running.jpeg"
+          rankColor="#00d4ff"
+          rotation="rotate(-4deg)"
+          yOffset="translateY(4px)"
+          onTap={() => { playSystemSoundEffect('SELECT'); onUpgradePro?.(); }}
+        />
+        <ShowcaseGoalCard
+          title="Master Full-Stack Eng."
+          progress={60}
+          streak={5}
+          coverImage="/goals/hero-dart.webp"
+          rankColor="#facc15"
+          rotation="rotate(3deg)"
+          yOffset="translateY(-4px)"
+          onTap={() => { playSystemSoundEffect('SELECT'); onUpgradePro?.(); }}
+        />
+        <ShowcaseGoalCard
+          title="Monarch Gold Grind"
+          progress={75}
+          streak={12}
+          coverImage="/onboarding/forge_breaker.webp"
+          rankColor="#33dfff"
+          rotation="rotate(-3deg)"
+          yOffset="translateY(2px)"
+          onTap={() => { playSystemSoundEffect('SELECT'); onUpgradePro?.(); }}
+        />
       </div>
 
       {/* ═══ DIVIDER ═══ */}
