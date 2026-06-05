@@ -619,9 +619,6 @@ function ProShowcasePage({
           <span className="text-[9px] font-mono font-black tracking-[0.3em] uppercase" style={{ color: '#00d4ff' }}>
             FOCUS SHIELD
           </span>
-          <div className="px-2 py-0.5 rounded-full" style={{ background: 'rgba(0,212,255,0.08)', border: '1px solid rgba(0,212,255,0.15)' }}>
-            <span className="text-[7px] font-mono font-bold tracking-wider" style={{ color: '#00d4ff' }}>APP BLOCKER</span>
-          </div>
         </div>
 
         {/* Master Switch Card */}
