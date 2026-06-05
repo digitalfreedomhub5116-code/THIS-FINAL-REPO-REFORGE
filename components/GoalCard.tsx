@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Target, Calendar, Flame, ChevronRight, Pause, Trophy, Pin, Swords, Loader2 } from 'lucide-react';
+import { Target, Calendar, Flame, ChevronRight, Pause, Trophy, Pin, Swords, Loader2, GraduationCap, Dumbbell, Coins, Rocket, Heart, Palette } from 'lucide-react';
 import { Goal, Rank } from '../types';
 
 const RANK_COLORS: Record<string, string> = {
@@ -8,9 +8,15 @@ const RANK_COLORS: Record<string, string> = {
   UNRANKED: '#6b7280',
 };
 
-const CATEGORY_ICONS: Record<string, string> = {
-  ACADEMIC: '📚', FITNESS: '💪', FINANCIAL: '💰', SKILL: '🎯',
-  CAREER: '🚀', HEALTH: '❤️', CREATIVE: '🎨', DEFAULT: '⚔️',
+const CATEGORY_ICONS: Record<string, React.ComponentType<any>> = {
+  ACADEMIC: GraduationCap,
+  FITNESS: Dumbbell,
+  FINANCIAL: Coins,
+  SKILL: Target,
+  CAREER: Rocket,
+  HEALTH: Heart,
+  CREATIVE: Palette,
+  DEFAULT: Swords,
 };
 
 interface GoalCardProps {
@@ -248,7 +254,7 @@ export default function GoalCard({ goal, onTap }: GoalCardProps) {
   const daysRemaining = Math.max(0, totalDays - currentDay);
   const progress = Math.min(100, Math.round((currentDay / totalDays) * 100));
   const rankColor = RANK_COLORS[goal.goalRank] || RANK_COLORS.E;
-  const icon = CATEGORY_ICONS[goal.category] || '🎯';
+  const IconComponent = CATEGORY_ICONS[goal.category] || Target;
 
   const currentMilestone = goal.milestones?.find(m =>
     currentDay >= m.startDay && currentDay <= m.endDay
@@ -276,7 +282,9 @@ export default function GoalCard({ goal, onTap }: GoalCardProps) {
         {/* Header */}
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center gap-2.5 flex-1 min-w-0">
-            <span className="text-lg">{icon}</span>
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `${rankColor}10`, border: `1px solid ${rankColor}25` }}>
+              <IconComponent className="w-4 h-4" style={{ color: rankColor }} />
+            </div>
             <div className="min-w-0 flex-1">
               <h3 className="text-sm font-bold text-white truncate">{goal.title}</h3>
               <div className="flex items-center gap-2 mt-0.5">
@@ -288,9 +296,9 @@ export default function GoalCard({ goal, onTap }: GoalCardProps) {
                 </span>
                 <span className="text-[9px] text-gray-500 font-mono">{goal.category}</span>
                 {goal.isSystemGoal && (
-                  <span className="flex items-center gap-0.5 text-[9px] text-[#00d4ff] font-mono font-black px-1.5 py-0.5 rounded"
+                  <span className="flex items-center gap-1 text-[9px] text-[#00d4ff] font-mono font-black px-1.5 py-0.5 rounded"
                     style={{ background: 'rgba(0,212,255,0.1)', border: '1px solid rgba(0,212,255,0.2)' }}>
-                    ⚔️ SYSTEM
+                    <Swords className="w-2.5 h-2.5" /> SYSTEM
                   </span>
                 )}
                 {isPaused && (

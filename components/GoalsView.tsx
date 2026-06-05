@@ -123,6 +123,77 @@ function ShadowMissionsProUpsell({ onUpgradePro }: ShadowMissionsProUpsellProps)
 /* PRO SHOWCASE PAGE — unified preview for non-premium users */
 /* ═══════════════════════════════════════════════════════════ */
 function ProShowcasePage({ onUpgradePro }: { onUpgradePro?: () => void }) {
+  // Mock goals for premium preview
+  const mockPinnedGoal: Goal = {
+    id: 'mock-pinned-goal',
+    title: 'Daily Dungeon: Sung Jin-Woo Protocol',
+    category: 'FITNESS',
+    goalRank: 'A',
+    successProbability: 85,
+    status: 'ACTIVE',
+    milestones: [
+      {
+        phase: 1,
+        title: 'Dungeon Entry & Conditioning',
+        description: 'Acclimate to daily workouts.',
+        startDay: 1,
+        endDay: 10,
+        targetOutcome: 'Complete 30 reps per set',
+        sampleDailyPattern: [],
+        connectionToNext: '',
+      }
+    ],
+    currentMilestone: 1,
+    interviewQA: [],
+    dailyCommitmentMin: 45,
+    totalDurationDays: 30,
+    smartDurationReasoning: '',
+    weeklyRestDay: 'NONE',
+    riskFactors: [],
+    reasoning: '',
+    startDate: Date.now() - 3 * 24 * 60 * 60 * 1000,
+    targetDate: Date.now() + 27 * 24 * 60 * 60 * 1000,
+    streak: 4,
+    dailyTasks: [],
+    createdAt: Date.now() - 3 * 24 * 60 * 60 * 1000,
+    isSystemGoal: true,
+    coverImage: '/dungeon/running.jpeg',
+  };
+
+  const mockAcademicGoal: Goal = {
+    id: 'mock-academic-goal',
+    title: 'Master Full-Stack Engineering',
+    category: 'ACADEMIC',
+    goalRank: 'S',
+    successProbability: 92,
+    status: 'ACTIVE',
+    milestones: [
+      {
+        phase: 1,
+        title: 'System Design Foundations',
+        description: 'Study system architecture.',
+        startDay: 1,
+        endDay: 15,
+        targetOutcome: 'Design 3 microservices',
+        sampleDailyPattern: [],
+        connectionToNext: '',
+      }
+    ],
+    currentMilestone: 1,
+    interviewQA: [],
+    dailyCommitmentMin: 60,
+    totalDurationDays: 60,
+    smartDurationReasoning: '',
+    weeklyRestDay: 'SUNDAY',
+    riskFactors: [],
+    reasoning: '',
+    startDate: Date.now() - 5 * 24 * 60 * 60 * 1000,
+    targetDate: Date.now() + 55 * 24 * 60 * 60 * 1000,
+    streak: 5,
+    dailyTasks: [],
+    createdAt: Date.now() - 5 * 24 * 60 * 60 * 1000,
+  };
+
   return (
     <div className="space-y-6 pb-10">
 
@@ -201,34 +272,37 @@ function ProShowcasePage({ onUpgradePro }: { onUpgradePro?: () => void }) {
         </div>
       </motion.div>
 
-      {/* ═══ PINNED PREVIEW CARDS (tilted) ═══ */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.2 }}
-        className="flex justify-center items-start gap-4 px-6"
-      >
+      {/* ═══ PINNED PREVIEW CARDS (tilted & stacked) ═══ */}
+      <div className="relative h-[230px] w-full flex items-center justify-center py-2 px-4">
+        {/* Background Card (Academic Goal) */}
         <motion.div
-          className="w-[130px] rounded-xl overflow-hidden"
+          className="absolute w-full max-w-[290px] z-10"
           style={{
-            transform: 'rotate(-6deg) translateY(8px)',
-            border: '2px solid rgba(255,255,255,0.08)',
-            boxShadow: '0 12px 32px rgba(0,0,0,0.6), 0 0 20px rgba(250,204,21,0.05)',
+            transform: 'rotate(5deg) translateY(-12px) translateX(20px)',
+            opacity: 0.5,
+            pointerEvents: 'none',
           }}
         >
-          <img src="/paywall/ss_quests.webp" alt="AI Quests Preview" className="w-full h-auto block" loading="lazy" />
+          <GoalCard
+            goal={mockAcademicGoal}
+            onTap={() => {}}
+          />
         </motion.div>
+
+        {/* Foreground Card (Pinned Fitness/Dungeon Goal with cover image) */}
         <motion.div
-          className="w-[130px] rounded-xl overflow-hidden"
+          className="absolute w-full max-w-[290px] z-20"
           style={{
-            transform: 'rotate(5deg) translateY(-4px)',
-            border: '2px solid rgba(255,255,255,0.08)',
-            boxShadow: '0 12px 32px rgba(0,0,0,0.6), 0 0 20px rgba(0,212,255,0.05)',
+            transform: 'rotate(-4deg) translateY(12px) translateX(-15px)',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.8), 0 0 30px rgba(250,204,21,0.05)',
           }}
         >
-          <img src="/paywall/ss_nutrition.webp" alt="Nutrition Scanner Preview" className="w-full h-auto block" loading="lazy" />
+          <GoalCard
+            goal={mockPinnedGoal}
+            onTap={() => { playSystemSoundEffect('SELECT'); onUpgradePro?.(); }}
+          />
         </motion.div>
-      </motion.div>
+      </div>
 
       {/* ═══ DIVIDER ═══ */}
       <div className="flex items-center gap-3 px-2">
@@ -382,7 +456,7 @@ function ProShowcasePage({ onUpgradePro }: { onUpgradePro?: () => void }) {
                 className="flex items-center gap-3 px-4 py-3"
                 style={{ borderBottom: i < 4 ? '1px solid rgba(255,255,255,0.03)' : 'none' }}>
                 <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                   style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
                   <app.AppIcon className="w-4 h-4 text-gray-400" />
                 </div>
                 <div className="flex-1 min-w-0">
