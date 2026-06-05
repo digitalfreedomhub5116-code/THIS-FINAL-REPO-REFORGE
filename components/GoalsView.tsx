@@ -413,6 +413,7 @@ function ProShowcasePage({
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1, duration: 0.5 }}
+        className="pt-6"
       >
         {/* Section label */}
         <div className="flex items-center gap-2 mb-3">
