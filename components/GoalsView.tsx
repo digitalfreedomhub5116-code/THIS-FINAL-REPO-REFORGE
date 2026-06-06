@@ -974,9 +974,9 @@ export default function GoalsView({
     .sort((a, b) => (b.isSystemGoal ? 1 : 0) - (a.isSystemGoal ? 1 : 0));
   const completedGoals = goals.filter(g => g.status === 'COMPLETED');
 
-  // Non-system active goals (for quest generation)
+  // All active goals available for quest generation
   const forgeableGoals = React.useMemo(
-    () => activeGoals.filter(g => !g.isSystemGoal),
+    () => activeGoals.filter(g => g.status === 'ACTIVE'),
     [activeGoals]
   );
 
@@ -998,6 +998,24 @@ export default function GoalsView({
       g.dailyTasks?.some(t => t.date === today && t.quests?.length > 0)
     );
   }, [forgeableGoals]);
+
+  // ── Midnight countdown timer ──
+  const [timeToMidnight, setTimeToMidnight] = React.useState('');
+  React.useEffect(() => {
+    const calcTime = () => {
+      const now = new Date();
+      const midnight = new Date(now);
+      midnight.setHours(24, 0, 0, 0);
+      const diff = midnight.getTime() - now.getTime();
+      const h = String(Math.floor(diff / 3600000)).padStart(2, '0');
+      const m = String(Math.floor((diff % 3600000) / 60000)).padStart(2, '0');
+      const s = String(Math.floor((diff % 60000) / 1000)).padStart(2, '0');
+      setTimeToMidnight(`${h}:${m}:${s}`);
+    };
+    calcTime();
+    const id = setInterval(calcTime, 1000);
+    return () => clearInterval(id);
+  }, []);
 
   // ── Manual quest generation handler ──
   const handleForgeGoalQuests = useCallback(async () => {
@@ -1273,6 +1291,34 @@ export default function GoalsView({
         <FocusShieldSettings playerData={playerData} isPremium={isPremium} onUpgradePro={onUpgradePro} />
       ) : (
         <>
+          {/* ═══ NEXT QUESTS COUNTDOWN TIMER ═══ */}
+          {activeGoals.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="mb-4 rounded-xl px-4 py-2.5 flex items-center justify-between"
+              style={{
+                background: 'rgba(250,204,21,0.03)',
+                border: '1px solid rgba(250,204,21,0.1)',
+              }}
+            >
+              <div className="flex items-center gap-2">
+                <Clock size={13} style={{ color: '#facc15' }} />
+                <span className="text-[9px] font-mono font-bold uppercase tracking-[0.2em]" style={{ color: 'rgba(250,204,21,0.6)' }}>
+                  NEXT QUESTS IN
+                </span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span
+                  className="text-sm font-black font-mono tabular-nums tracking-wider"
+                  style={{ color: '#facc15', textShadow: '0 0 12px rgba(250,204,21,0.4)' }}
+                >
+                  {timeToMidnight}
+                </span>
+              </div>
+            </motion.div>
+          )}
+
           {/* ═══ HORIZONTAL TILTED GOAL CARDS (max 3) ═══ */}
           {activeGoals.length > 0 && (
             <motion.div
@@ -1348,8 +1394,8 @@ export default function GoalsView({
             </motion.div>
           )}
 
-          {/* ═══ FORGE GOAL QUESTS BUTTON ═══ */}
-          {forgeableGoals.length > 0 && (
+          {/* ═══ FORGE GOAL QUESTS — FUTURISTIC BUTTON ═══ */}
+          {activeGoals.length > 0 && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -1359,48 +1405,98 @@ export default function GoalsView({
               <motion.button
                 onClick={handleForgeGoalQuests}
                 disabled={forgeState === 'GENERATING' || allForgedToday}
-                whileTap={{ scale: forgeState === 'GENERATING' ? 1 : 0.97 }}
-                className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-xl font-black text-sm tracking-wide transition-all relative overflow-hidden"
+                whileTap={{ scale: forgeState === 'GENERATING' ? 1 : 0.95 }}
+                className="w-full relative overflow-hidden rounded-2xl transition-all"
                 style={{
-                  background: allForgedToday
-                    ? 'rgba(255,255,255,0.03)'
-                    : 'linear-gradient(135deg, #facc15 0%, #f59e0b 100%)',
-                  color: allForgedToday ? 'rgba(255,255,255,0.3)' : '#0a0a14',
-                  boxShadow: allForgedToday
-                    ? 'none'
-                    : '0 4px 24px rgba(250,204,21,0.3), 0 0 0 1px rgba(250,204,21,0.2)',
-                  border: allForgedToday ? '1px solid rgba(255,255,255,0.06)' : 'none',
+                  padding: 0,
+                  border: 'none',
                   cursor: allForgedToday ? 'default' : 'pointer',
                 }}
               >
-                {/* Scanning line animation during generation */}
-                {forgeState === 'GENERATING' && (
-                  <motion.div
-                    className="absolute top-0 left-0 right-0 h-[2px]"
-                    style={{ background: 'linear-gradient(90deg, transparent, #facc15, transparent)' }}
-                    animate={{ x: ['-100%', '100%'] }}
-                    transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
-                  />
-                )}
+                {/* Outer glow border */}
+                <div
+                  className="absolute inset-0 rounded-2xl"
+                  style={{
+                    background: allForgedToday
+                      ? 'transparent'
+                      : 'linear-gradient(135deg, rgba(250,204,21,0.3), rgba(245,158,11,0.15), rgba(250,204,21,0.3))',
+                    filter: allForgedToday ? 'none' : 'blur(1px)',
+                  }}
+                />
 
-                {forgeState === 'GENERATING' ? (
-                  <>
-                    <Loader2 size={16} className="animate-spin" />
-                    <span className="font-mono text-xs">
-                      FORGING... {forgeProgress.current}/{forgeProgress.total}
+                {/* Inner content */}
+                <div
+                  className="relative rounded-2xl flex items-center justify-center gap-3 py-4 px-6"
+                  style={{
+                    background: allForgedToday
+                      ? 'rgba(255,255,255,0.02)'
+                      : 'linear-gradient(135deg, #1a1a2e 0%, #0f0f1a 50%, #1a1a2e 100%)',
+                    border: allForgedToday
+                      ? '1px solid rgba(255,255,255,0.06)'
+                      : '1px solid rgba(250,204,21,0.25)',
+                    boxShadow: allForgedToday
+                      ? 'none'
+                      : '0 0 30px rgba(250,204,21,0.15), inset 0 1px 0 rgba(250,204,21,0.1)',
+                    margin: '1px',
+                  }}
+                >
+                  {/* Animated scanning line */}
+                  {!allForgedToday && (
+                    <motion.div
+                      className="absolute top-0 left-0 right-0 h-[1px]"
+                      style={{ background: 'linear-gradient(90deg, transparent, rgba(250,204,21,0.6), transparent)' }}
+                      animate={{ x: ['-100%', '100%'] }}
+                      transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
+                    />
+                  )}
+
+                  {/* Generating spinner line */}
+                  {forgeState === 'GENERATING' && (
+                    <motion.div
+                      className="absolute bottom-0 left-0 right-0 h-[2px]"
+                      style={{ background: 'linear-gradient(90deg, transparent, #facc15, transparent)' }}
+                      animate={{ x: ['-100%', '100%'] }}
+                      transition={{ duration: 1.2, repeat: Infinity, ease: 'linear' }}
+                    />
+                  )}
+
+                  {/* Swords icon with glow */}
+                  <div className="relative">
+                    <Swords
+                      size={20}
+                      style={{
+                        color: allForgedToday ? 'rgba(255,255,255,0.2)' : '#facc15',
+                        filter: allForgedToday ? 'none' : 'drop-shadow(0 0 8px rgba(250,204,21,0.5))',
+                      }}
+                    />
+                    {!allForgedToday && (
+                      <motion.div
+                        className="absolute inset-0"
+                        animate={{ opacity: [0.5, 1, 0.5] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                        style={{ filter: 'blur(6px)', background: 'radial-gradient(circle, rgba(250,204,21,0.3), transparent)' }}
+                      />
+                    )}
+                  </div>
+
+                  {/* Button text */}
+                  {forgeState === 'GENERATING' ? (
+                    <div className="flex items-center gap-2">
+                      <Loader2 size={14} className="animate-spin" style={{ color: '#facc15' }} />
+                      <span className="text-xs font-black font-mono uppercase tracking-[0.15em]" style={{ color: '#facc15' }}>
+                        FORGING... {forgeProgress.current}/{forgeProgress.total}
+                      </span>
+                    </div>
+                  ) : allForgedToday ? (
+                    <span className="text-xs font-black font-mono uppercase tracking-[0.15em]" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                      TODAY'S QUESTS FORGED
                     </span>
-                  </>
-                ) : allForgedToday ? (
-                  <>
-                    <Swords size={16} />
-                    <span className="font-mono text-xs">TODAY'S QUESTS READY</span>
-                  </>
-                ) : (
-                  <>
-                    <Swords size={16} />
-                    FORGE GOAL QUESTS
-                  </>
-                )}
+                  ) : (
+                    <span className="text-sm font-black font-mono uppercase tracking-[0.15em]" style={{ color: '#facc15', textShadow: '0 0 12px rgba(250,204,21,0.3)' }}>
+                      FORGE GOAL QUESTS
+                    </span>
+                  )}
+                </div>
               </motion.button>
             </motion.div>
           )}
