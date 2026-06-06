@@ -1682,6 +1682,15 @@ const App: React.FC = () => {
 
             if (dbStreak !== prev.streak) updates.streak = dbStreak;
 
+            // ── FIX: Always sync lastLoginDate from server into the primary batch ──
+            // Previously lastLoginDate was only synced via a separate setPlayer call
+            // gated by row.streakUpdated. If the server already processed today's
+            // streak in a prior (interrupted) session, streakUpdated was false and
+            // lastLoginDate stayed stale, causing the streak overlay to never show.
+            if (row.lastLoginDate && row.lastLoginDate !== prev.lastLoginDate) {
+              updates.lastLoginDate = row.lastLoginDate;
+            }
+
             if (dbHp !== prev.hp) updates.hp = dbHp;
 
             if (dbMaxHp !== prev.maxHp) updates.maxHp = dbMaxHp;
@@ -1872,11 +1881,18 @@ const App: React.FC = () => {
 
         });
 
-        // ── Sync lastLoginDate from server when streak was updated for today ──
+        // ── Sync lastLoginDate from server (ALWAYS, not just when streakUpdated) ──
         // The server sets last_login_date = today in Supabase when computing
         // the daily streak. We MUST reflect this in client state so the streak
-        // celebration trigger (which gates on lastLoginDate === today) can fire.
-        if (row.streakUpdated && row.lastLoginDate) {
+        // celebration trigger (which gates on lastLoginDate) can fire.
+        // FIX: Removed the `row.streakUpdated &&` gate. If the app was opened
+        // briefly earlier today (server processed streak) but the overlay never
+        // rendered, streakUpdated is false on the next launch. Without syncing
+        // lastLoginDate, the trigger effect uses yesterday's date from
+        // localStorage and hits yesterday's guard key → streak never shows.
+        // The primary setPlayer above now also includes lastLoginDate, but this
+        // fallback covers edge cases (non-first-poll, batching gaps).
+        if (row.lastLoginDate) {
           setPlayer(prev => {
             if (prev.lastLoginDate === row.lastLoginDate) return prev;
             return { ...prev, lastLoginDate: row.lastLoginDate, streak: row.streak ?? prev.streak };
@@ -2574,8 +2590,16 @@ const App: React.FC = () => {
     // New users go through the chain; skip this effect to avoid races.
     if (!player.rankRevealed) return;
 
+    // ── FIX: Use today's local date as the canonical trigger date ──
+    // Previously used `player.lastLoginDate` which could be stale (yesterday)
+    // if the server already processed the streak but the client never synced
+    // lastLoginDate (streakUpdated was false). This caused the guard check
+    // to use yesterday's key, find it set, and silently bail.
+    const todayLocal = new Date().toISOString().split('T')[0];
     const serverDate = player.lastLoginDate;
-    const triggerDate = serverDate || new Date().toISOString().split('T')[0];
+    // Use today's date for the guard key — streak should show once per
+    // calendar day regardless of what lastLoginDate the server reports.
+    const triggerDate = todayLocal;
     const guardKey = `reforge_streak_shown_${player.userId}_${triggerDate}`;
     const sessionKey = `${player.userId}_${triggerDate}`;
 
@@ -2601,7 +2625,7 @@ const App: React.FC = () => {
       date.setDate(now.getDate() + mondayOffset + i);
       const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
       const inHistory = (player.history || []).some(h => h.date === dateStr);
-      const isToday = dateStr === serverDate;
+      const isToday = dateStr === todayLocal;
       weekly.push(inHistory || isToday);
     }
 
@@ -2624,7 +2648,7 @@ const App: React.FC = () => {
       if (activeOverlay !== 'streak') enqueueOverlay('streak');
     }, 800);
     return () => clearTimeout(streakTimer);
-  }, [player.isConfigured, player.lastLoginDate, player.userId, player.rankRevealed, dataReady]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [player.isConfigured, player.lastLoginDate, player.userId, player.rankRevealed, player.streak, dataReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
 
 

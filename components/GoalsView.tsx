@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Target, Trophy, Sparkles, Loader2, Swords, Zap, Crown, Shield, ShieldAlert, Clock, Camera, Youtube, Play, Dumbbell, Flame } from 'lucide-react';
+import { Plus, Target, Trophy, Sparkles, Loader2, Swords, Zap, Crown, Shield, ShieldAlert, Clock, Camera, Youtube, Play, Dumbbell, Flame, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Goal, GoalDailyTask, PlayerData, Quest, Rank } from '../types';
 import GoalCard from './GoalCard';
 import GoalCreationFlow from './GoalCreationFlow';
@@ -23,8 +23,32 @@ function addMins(time: string, mins: number): string {
   return `${String(Math.floor(total / 60) % 24).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
 }
 
-// Track which dates we've already auto-generated for (prevents duplicates on tab re-opens)
-const _autoGenTracker: Record<string, string> = {}; // goalId -> lastAutoGenDate
+// ── Category → Image mapping for goal cards ──
+const GOAL_CATEGORY_IMAGES: Record<string, string> = {
+  FITNESS: '/dungeon/running.jpeg',
+  ACADEMIC: '/goals/education.png',
+  FINANCIAL: '/goals/finance.png',
+  CAREER: '/goals/career.png',
+  HEALTH: '/goals/health.png',
+  CREATIVE: '/goals/mindset.png',
+  SKILL: '/goals/education.png',
+  DEFAULT: '/goals/hero_goal.jpeg',
+};
+
+function getGoalImage(goal: Goal): string {
+  if (goal.coverImage) return goal.coverImage;
+  return GOAL_CATEGORY_IMAGES[goal.category] || GOAL_CATEGORY_IMAGES.DEFAULT;
+}
+
+const TILT_PATTERNS = [
+  { rotation: 'rotate(-4deg)', yOffset: 'translateY(4px)' },
+  { rotation: 'rotate(3deg)', yOffset: 'translateY(-4px)' },
+  { rotation: 'rotate(-3deg)', yOffset: 'translateY(2px)' },
+];
+
+const RANK_ACCENT: Record<string, string> = {
+  S: '#facc15', A: '#00d4ff', B: '#22c55e', C: '#a78bfa', D: '#9ca3af', E: '#6b7280',
+};
 
 interface ShadowMissionsProUpsellProps {
   onUpgradePro?: () => void;
@@ -380,6 +404,86 @@ export const MOCK_FINANCIAL_GOAL: Goal = {
   createdAt: Date.now() - 14 * 24 * 60 * 60 * 1000,
   coverImage: '/onboarding/forge_breaker.webp',
 };
+
+/* ═══════════════════════════════════════════════════════════ */
+/* ProGoalCard — compact tilted card for real active goals    */
+/* ═══════════════════════════════════════════════════════════ */
+function ProGoalCard({ goal, index, onTap }: { goal: Goal; index: number; onTap: (g: Goal) => void }) {
+  const [imgLoaded, setImgLoaded] = useState(false);
+  const tilt = TILT_PATTERNS[index % TILT_PATTERNS.length];
+  const image = getGoalImage(goal);
+  const rankColor = RANK_ACCENT[goal.goalRank] || '#00d4ff';
+
+  const today = new Date().toISOString().split('T')[0];
+  const todayTask = goal.dailyTasks?.find(t => t.date === today);
+  const progress = todayTask && todayTask.totalCount > 0
+    ? Math.round((todayTask.completedCount / todayTask.totalCount) * 100)
+    : 0;
+
+  return (
+    <motion.div
+      whileTap={{ scale: 0.96 }}
+      onClick={() => { playSystemSoundEffect('SELECT'); onTap(goal); }}
+      className="relative rounded-xl overflow-hidden cursor-pointer flex-shrink-0 flex flex-col justify-between p-3"
+      style={{
+        width: 130,
+        height: 120,
+        background: '#0c0c16',
+        border: `1px solid ${rankColor}33`,
+        transform: `${tilt.rotation} ${tilt.yOffset}`,
+        boxShadow: '0 8px 20px rgba(0,0,0,0.5)',
+      }}
+    >
+      {/* Background Image */}
+      <div className="absolute inset-0 z-0">
+        <img
+          src={image}
+          alt=""
+          className="w-full h-full object-cover transition-opacity duration-500"
+          style={{ opacity: imgLoaded ? 0.35 : 0, filter: 'saturate(0.6) brightness(0.7)' }}
+          onLoad={() => setImgLoaded(true)}
+        />
+        <div className="absolute inset-0"
+          style={{ background: 'linear-gradient(180deg, rgba(8,8,18,0.2) 0%, rgba(6,6,14,0.85) 100%)' }}
+        />
+      </div>
+
+      {/* Content */}
+      <div className="relative z-10 flex flex-col justify-between h-full w-full">
+        <div className="flex items-center justify-between">
+          <span className="text-[7px] font-mono font-black px-1.5 py-0.5 rounded"
+            style={{ background: `${rankColor}20`, color: rankColor, border: `1px solid ${rankColor}40` }}>
+            {goal.goalRank}-RANK
+          </span>
+        </div>
+
+        <h4 className="text-[10px] font-bold text-gray-100 leading-snug line-clamp-2 mt-1">
+          {goal.title}
+        </h4>
+
+        <div className="space-y-1.5 mt-auto">
+          <div>
+            <div className="flex justify-between items-center text-[7px] font-mono text-gray-400 mb-0.5">
+              <span>PROGRESS</span>
+              <span>{progress}%</span>
+            </div>
+            <div className="h-0.5 rounded-full bg-white/10 overflow-hidden">
+              <div className="h-full rounded-full"
+                style={{ background: `linear-gradient(90deg, ${rankColor}88, ${rankColor})`, width: `${progress}%` }}
+              />
+            </div>
+          </div>
+          {goal.streak > 0 && (
+            <div className="flex items-center gap-0.5 text-[8px] font-mono font-bold" style={{ color: '#fb923c' }}>
+              <Flame className="w-2.5 h-2.5" />
+              <span>{goal.streak}d</span>
+            </div>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
 
 function ProShowcasePage({
   onUpgradePro,
@@ -858,10 +962,11 @@ export default function GoalsView({
     }
   }, [goalCreateTrigger]);
 
-  // Auto-generation state
-  const [autoGenState, setAutoGenState] = useState<'IDLE' | 'GENERATING' | 'DONE'>('IDLE');
-  const [autoGenProgress, setAutoGenProgress] = useState<{ current: number; total: number }>({ current: 0, total: 0 });
-  const autoGenRef = useRef(false); // prevent double-trigger
+  // ── Manual generation state (replaces auto-gen) ──
+  const [forgeState, setForgeState] = useState<'IDLE' | 'GENERATING' | 'DONE'>('IDLE');
+  const [forgeProgress, setForgeProgress] = useState<{ current: number; total: number }>({ current: 0, total: 0 });
+  const forgeRef = useRef(false);
+  const [showAllGoals, setShowAllGoals] = useState(false);
 
   // System goals always appear first
   const activeGoals = goals
@@ -869,221 +974,197 @@ export default function GoalsView({
     .sort((a, b) => (b.isSystemGoal ? 1 : 0) - (a.isSystemGoal ? 1 : 0));
   const completedGoals = goals.filter(g => g.status === 'COMPLETED');
 
-  // ── Auto-generate quests for all active goals on mount ──
-  useEffect(() => {
-    if (autoGenRef.current) return;
+  // Non-system active goals (for quest generation)
+  const forgeableGoals = React.useMemo(
+    () => activeGoals.filter(g => !g.isSystemGoal),
+    [activeGoals]
+  );
+
+  // Today's quests from all active goals (persisted in goal.dailyTasks)
+  const todayGoalQuests = React.useMemo(() => {
+    const today = todayStr();
+    return forgeableGoals.flatMap(g => {
+      const task = g.dailyTasks?.find(t => t.date === today);
+      if (!task || !task.quests?.length) return [];
+      return task.quests.map(q => ({ ...q, _goalTitle: g.title, _goalId: g.id }));
+    });
+  }, [forgeableGoals]);
+
+  // Check if all forgeable goals already have today's quests
+  const allForgedToday = React.useMemo(() => {
+    if (forgeableGoals.length === 0) return true;
+    const today = todayStr();
+    return forgeableGoals.every(g =>
+      g.dailyTasks?.some(t => t.date === today && t.quests?.length > 0)
+    );
+  }, [forgeableGoals]);
+
+  // ── Manual quest generation handler ──
+  const handleForgeGoalQuests = useCallback(async () => {
+    if (forgeRef.current || forgeableGoals.length === 0) return;
 
     const today = todayStr();
     const dayOfWeek = new Date().toLocaleDateString('en-US', { weekday: 'long' });
 
-    // Find active goals that don't have today's quests AND haven't been auto-generated today
-    const goalsNeedingGen = goals.filter(g => {
-      if (g.status !== 'ACTIVE') return false;
-      // Skip system goals (e.g. Daily Dungeon — has its own quest engine)
-      if (g.isSystemGoal) return false;
-      // Skip if already auto-generated today
-      if (_autoGenTracker[g.id] === today) return false;
-      // Skip if quests already exist for today
+    // Only forge goals that don't have today's quests yet
+    const goalsToForge = forgeableGoals.filter(g => {
       const hasTodayTasks = g.dailyTasks?.some(t => t.date === today && t.quests?.length > 0);
       if (hasTodayTasks) return false;
-      // Skip if today is rest day for this goal
       if (g.weeklyRestDay && g.weeklyRestDay !== 'NONE' && g.weeklyRestDay.toLowerCase() === dayOfWeek.toLowerCase()) return false;
       return true;
     });
 
-    if (goalsNeedingGen.length === 0) return;
+    if (goalsToForge.length === 0) {
+      showSystemToast({ type: 'INFO', title: 'Already forged', subtitle: "Today's quests are ready.", durationMs: 3000 });
+      return;
+    }
 
-    // Check authentication
     const authHeaders = getPlayerAuthHeaders();
-    if (!authHeaders || !authHeaders['Authorization']) return;
+    if (!authHeaders || !authHeaders['Authorization']) {
+      showSystemToast({ type: 'WARNING', title: 'Not signed in', subtitle: 'Sign in to forge quests.', durationMs: 3000 });
+      return;
+    }
 
-    autoGenRef.current = true;
-    setAutoGenState('GENERATING');
-    setAutoGenProgress({ current: 0, total: goalsNeedingGen.length });
+    forgeRef.current = true;
+    setForgeState('GENERATING');
+    setForgeProgress({ current: 0, total: goalsToForge.length });
+    playSystemSoundEffect('SYSTEM');
 
-    // Sequential generation for each goal
-    (async () => {
-      let updatedGoals = [...goals];
-      let allNewQuests: Quest[] = [];
-      let allScheduleSlots: any[] = [];
-      let successCount = 0;
+    let updatedGoals = [...goals];
+    let allNewQuests: Quest[] = [];
+    let allScheduleSlots: any[] = [];
+    let successCount = 0;
 
-      for (let i = 0; i < goalsNeedingGen.length; i++) {
-        const goal = goalsNeedingGen[i];
-        setAutoGenProgress({ current: i + 1, total: goalsNeedingGen.length });
+    for (let i = 0; i < goalsToForge.length; i++) {
+      const goal = goalsToForge[i];
+      setForgeProgress({ current: i + 1, total: goalsToForge.length });
 
-        try {
-          const goalStartTime = goal.startDate || goal.createdAt || Date.now();
-          const currentDay = Math.max(1, Math.floor((Date.now() - goalStartTime) / (1000 * 60 * 60 * 24)) + 1);
+      try {
+        const goalStartTime = goal.startDate || goal.createdAt || Date.now();
+        const currentDay = Math.max(1, Math.floor((Date.now() - goalStartTime) / (1000 * 60 * 60 * 24)) + 1);
 
-          // ── FITNESS GOAL SHORT-CIRCUIT (auto-gen path) ──
-          // Skip the AI; synthesize a single dungeon-linked quest. No keys consumed.
-          if (goal.category === 'FITNESS' as any) {
-            const currentTime = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
-            const dungeonQuest = buildDungeonGoalQuest({ goal, todayStr: today, currentTime });
-            const newDailyTask = buildDungeonGoalDailyTask({ goal, todayStr: today, dayNumber: currentDay, currentTime });
-            const updatedGoal: Goal = {
-              ...goal,
-              dailyTasks: [...(goal.dailyTasks || []).filter(t => t.date !== today), newDailyTask],
-            };
-            updatedGoals = updatedGoals.map(g => g.id === goal.id ? updatedGoal : g);
-            allNewQuests = [...allNewQuests, dungeonQuest];
-            if (dungeonQuest.scheduledTime) {
-              allScheduleSlots = [...allScheduleSlots, {
-                id: `sched-quest-${dungeonQuest.id}`,
-                startTime: dungeonQuest.scheduledTime,
-                endTime: addMins(dungeonQuest.scheduledTime, dungeonQuest.estimatedDuration || 30),
-                type: 'WORKOUT' as const,
-                label: dungeonQuest.title,
-                questId: dungeonQuest.id,
-                goalId: goal.id,
-                status: 'PENDING' as const,
-                isFlexible: true,
-                isCarryOver: false,
-                notifyEnabled: true,
-              }];
-            }
-            _autoGenTracker[goal.id] = today;
-            successCount++;
-            continue;
-          }
-
-          const otherGoalTasksToday = goals
-            .filter(g => g.id !== goal.id && g.status === 'ACTIVE')
-            .flatMap(g => g.dailyTasks?.find(t => t.date === today)?.quests || [])
-            .map(q => q.title)
-            .join(', ');
-
-          const otherGoalsMinutes = goals
-            .filter(g => g.id !== goal.id && g.status === 'ACTIVE')
-            .reduce((sum, g) => sum + (g.dailyCommitmentMin || 0), 0);
-
-          const remainingMinutes = Math.max(30, (playerData?.healthProfile?.sessionDuration ?? 120) - otherGoalsMinutes);
-          const recentTasks = (goal.dailyTasks || []).slice(-7);
-
-          const res = await authenticatedFetch(`${API_BASE}/api/goals/daily-quests`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
-            body: JSON.stringify({
-              goal,
-              recentTasks,
-              playerStats: playerData?.stats,
-              otherGoalTasksToday: otherGoalTasksToday || 'None',
-              remainingMinutes,
-              dayOfWeek,
-              userCountry: playerData?.country || 'India',
-              userLanguage: 'English',
-              scheduleProfile: playerData?.scheduleProfile || null,
-              currentTime: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }),
-            }),
-          });
-
-          if (!res.ok) {
-            const errBody = await res.json().catch(() => ({}));
-            console.error(`[AutoGen] Goal "${goal.title}" failed:`, errBody);
-            continue;
-          }
-
-          const data = await res.json();
-
-          // Build daily task
-          const newDailyTask: GoalDailyTask = {
-            id: `dt-${goal.id}-${today}`,
-            goalId: goal.id,
-            date: today,
-            dayNumber: currentDay,
-            quests: data.quests || [],
-            completedCount: 0,
-            totalCount: (data.quests || []).length,
-            dailyNote: data.dailyNote || '',
-            progressUpdate: data.progressUpdate || '',
-            createdAt: Date.now(),
-          };
-
-          // Update goal
+        // FITNESS goals: synthesize dungeon-linked quest (no AI call)
+        if (goal.category === 'FITNESS' as any) {
+          const currentTime = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+          const dungeonQuest = buildDungeonGoalQuest({ goal, todayStr: today, currentTime });
+          const newDailyTask = buildDungeonGoalDailyTask({ goal, todayStr: today, dayNumber: currentDay, currentTime });
           const updatedGoal: Goal = {
             ...goal,
             dailyTasks: [...(goal.dailyTasks || []).filter(t => t.date !== today), newDailyTask],
           };
           updatedGoals = updatedGoals.map(g => g.id === goal.id ? updatedGoal : g);
-
-          // Build feed quests
-          const feedQuests: Quest[] = (data.quests || []).map((gq: any, idx: number) => ({
-            id: gq.id || `goal-quest-${goal.id}-${Date.now()}-${idx}`,
-            title: gq.title,
-            description: gq.reasoning || `Goal quest for: ${goal.title}`,
-            rank: (gq.rank || 'D') as Rank,
-            priority: 'MEDIUM' as any,
-            category: (gq.categories?.[0] || 'intelligence') as any,
-            categories: gq.categories,
-            xpReward: Math.round((gq.xp || 50) * 1.5),
-            isCompleted: false,
-            createdAt: Date.now(),
-            isDaily: true,
-            estimatedDuration: gq.estimatedDuration,
-            aiReasoning: gq.reasoning,
-            goalId: goal.id,
-            goalTitle: goal.title,
-            goalQuestResources: gq.resources || [],
-            goalQuestSteps: gq.stepByStep || [],
-            connectionToPrevious: gq.connectionToPrevious,
-            scheduledTime: gq.scheduledTime || undefined,
-          }));
-          allNewQuests = [...allNewQuests, ...feedQuests];
-
-          // Build schedule slots
-          const scheduleSlots = feedQuests
-            .filter(q => q.scheduledTime)
-            .map(q => ({
-              id: `sched-quest-${q.id}`,
-              startTime: q.scheduledTime!,
-              endTime: addMins(q.scheduledTime!, q.estimatedDuration || 20),
-              type: 'QUEST' as const,
-              label: q.title,
-              questId: q.id,
+          allNewQuests = [...allNewQuests, dungeonQuest];
+          if (dungeonQuest.scheduledTime) {
+            allScheduleSlots = [...allScheduleSlots, {
+              id: `sched-quest-${dungeonQuest.id}`,
+              startTime: dungeonQuest.scheduledTime,
+              endTime: addMins(dungeonQuest.scheduledTime, dungeonQuest.estimatedDuration || 30),
+              type: 'WORKOUT' as const,
+              label: dungeonQuest.title,
+              questId: dungeonQuest.id,
               goalId: goal.id,
               status: 'PENDING' as const,
               isFlexible: true,
               isCarryOver: false,
               notifyEnabled: true,
-            }));
-          allScheduleSlots = [...allScheduleSlots, ...scheduleSlots];
-
-          _autoGenTracker[goal.id] = today;
+            }];
+          }
           successCount++;
-        } catch (err) {
-          console.error(`[AutoGen] Goal "${goal.title}" error:`, err);
-        }
-      }
-
-      // Apply all results at once
-      if (successCount > 0) {
-        onUpdateGoals(updatedGoals);
-
-        // Add all quest to feed
-        allNewQuests.forEach(q => onAddQuestToFeed?.(q));
-
-        // Update schedule slots
-        if (allScheduleSlots.length > 0) {
-          onUpdateScheduleSlots?.(allScheduleSlots);
+          continue;
         }
 
-        // Show SYSTEM toast
-        playSystemSoundEffect('PURCHASE');
-        showSystemToast({
-          type: 'QUEST_FORGED',
-          title: successCount === 1
-            ? `Today's quests forged!`
-            : `${successCount} goals — quests forged!`,
-          subtitle: `${allNewQuests.length} quests ready for today`,
-          durationMs: 4500,
+        // Non-fitness goals: call AI endpoint
+        const otherGoalTasksToday = goals
+          .filter(g => g.id !== goal.id && g.status === 'ACTIVE')
+          .flatMap(g => g.dailyTasks?.find(t => t.date === today)?.quests || [])
+          .map(q => q.title)
+          .join(', ');
+
+        const otherGoalsMinutes = goals
+          .filter(g => g.id !== goal.id && g.status === 'ACTIVE')
+          .reduce((sum, g) => sum + (g.dailyCommitmentMin || 0), 0);
+
+        const remainingMinutes = Math.max(30, (playerData?.healthProfile?.sessionDuration ?? 120) - otherGoalsMinutes);
+        const recentTasks = (goal.dailyTasks || []).slice(-7);
+
+        const res = await authenticatedFetch(`${API_BASE}/api/goals/daily-quests`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
+          body: JSON.stringify({
+            goal, recentTasks,
+            playerStats: playerData?.stats,
+            otherGoalTasksToday: otherGoalTasksToday || 'None',
+            remainingMinutes, dayOfWeek,
+            userCountry: playerData?.country || 'India',
+            userLanguage: 'English',
+            scheduleProfile: playerData?.scheduleProfile || null,
+            currentTime: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }),
+          }),
         });
-      }
 
-      setAutoGenState('DONE');
-      autoGenRef.current = false;
-    })();
-  }, []); // Run only on mount
+        if (!res.ok) { console.error(`[Forge] Goal "${goal.title}" failed`); continue; }
+        const data = await res.json();
+
+        const newDailyTask: GoalDailyTask = {
+          id: `dt-${goal.id}-${today}`, goalId: goal.id, date: today,
+          dayNumber: currentDay, quests: data.quests || [],
+          completedCount: 0, totalCount: (data.quests || []).length,
+          dailyNote: data.dailyNote || '', progressUpdate: data.progressUpdate || '',
+          createdAt: Date.now(),
+        };
+
+        const updatedGoal: Goal = {
+          ...goal,
+          dailyTasks: [...(goal.dailyTasks || []).filter(t => t.date !== today), newDailyTask],
+        };
+        updatedGoals = updatedGoals.map(g => g.id === goal.id ? updatedGoal : g);
+
+        const feedQuests: Quest[] = (data.quests || []).map((gq: any, idx: number) => ({
+          id: gq.id || `goal-quest-${goal.id}-${Date.now()}-${idx}`,
+          title: gq.title, description: gq.reasoning || `Goal quest for: ${goal.title}`,
+          rank: (gq.rank || 'D') as Rank, priority: 'MEDIUM' as any,
+          category: (gq.categories?.[0] || 'intelligence') as any,
+          categories: gq.categories,
+          xpReward: Math.round((gq.xp || 50) * 1.5),
+          isCompleted: false, createdAt: Date.now(), isDaily: true,
+          estimatedDuration: gq.estimatedDuration, aiReasoning: gq.reasoning,
+          goalId: goal.id, goalTitle: goal.title,
+          goalQuestResources: gq.resources || [],
+          goalQuestSteps: gq.stepByStep || [],
+          connectionToPrevious: gq.connectionToPrevious,
+          scheduledTime: gq.scheduledTime || undefined,
+        }));
+        allNewQuests = [...allNewQuests, ...feedQuests];
+
+        const schedSlots = feedQuests.filter(q => q.scheduledTime).map(q => ({
+          id: `sched-quest-${q.id}`, startTime: q.scheduledTime!,
+          endTime: addMins(q.scheduledTime!, q.estimatedDuration || 20),
+          type: 'QUEST' as const, label: q.title, questId: q.id, goalId: goal.id,
+          status: 'PENDING' as const, isFlexible: true, isCarryOver: false, notifyEnabled: true,
+        }));
+        allScheduleSlots = [...allScheduleSlots, ...schedSlots];
+        successCount++;
+      } catch (err) {
+        console.error(`[Forge] Goal "${goal.title}" error:`, err);
+      }
+    }
+
+    if (successCount > 0) {
+      onUpdateGoals(updatedGoals);
+      allNewQuests.forEach(q => onAddQuestToFeed?.(q));
+      if (allScheduleSlots.length > 0) onUpdateScheduleSlots?.(allScheduleSlots);
+      playSystemSoundEffect('PURCHASE');
+      showSystemToast({
+        type: 'QUEST_FORGED',
+        title: successCount === 1 ? `Today's quests forged!` : `${successCount} goals — quests forged!`,
+        subtitle: `${allNewQuests.length} quests ready for today`,
+        durationMs: 4500,
+      });
+    }
+
+    setForgeState('DONE');
+    forgeRef.current = false;
+  }, [goals, forgeableGoals, playerData, onUpdateGoals, onAddQuestToFeed, onUpdateScheduleSlots]);
 
   const handleGoalCreated = useCallback((newGoal: Goal) => {
     onUpdateGoals([...goals, newGoal]);
@@ -1192,85 +1273,218 @@ export default function GoalsView({
         <FocusShieldSettings playerData={playerData} isPremium={isPremium} onUpgradePro={onUpgradePro} />
       ) : (
         <>
-          {/* Auto-generation loader */}
-          <AnimatePresence>
-            {autoGenState === 'GENERATING' && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="rounded-2xl p-4 mb-4 overflow-hidden relative"
+          {/* ═══ HORIZONTAL TILTED GOAL CARDS (max 3) ═══ */}
+          {activeGoals.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              {/* Section label */}
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-1 h-4 rounded-full" style={{ background: 'linear-gradient(180deg, #facc15, #f59e0b)' }} />
+                <span className="text-[9px] font-mono font-black tracking-[0.3em] uppercase" style={{ color: '#facc15' }}>
+                  ACTIVE GOALS
+                </span>
+                <span className="text-[8px] font-mono text-gray-600 ml-auto">
+                  {activeGoals.length} goal{activeGoals.length > 1 ? 's' : ''}
+                </span>
+              </div>
+
+              {/* Tilted card row */}
+              <div
+                className="no-scrollbar"
                 style={{
-                  background: 'rgba(0,212,255,0.03)',
-                  border: '1px solid rgba(0,212,255,0.12)',
-                  boxShadow: '0 0 30px rgba(0,212,255,0.06)',
+                  display: 'flex',
+                  gap: '14px',
+                  overflowX: 'auto',
+                  scrollbarWidth: 'none',
+                  msOverflowStyle: 'none',
+                  paddingLeft: '20px',
+                  paddingRight: '20px',
+                  paddingBottom: '24px',
+                  paddingTop: '16px',
+                  WebkitOverflowScrolling: 'touch',
+                  alignItems: 'center',
                 }}
               >
-                {/* Animated scanning line */}
-                <motion.div
-                  className="absolute top-0 left-0 right-0 h-[2px]"
-                  style={{ background: 'linear-gradient(90deg, transparent, #00d4ff, transparent)' }}
-                  animate={{ x: ['-100%', '100%'] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-                />
-
-                <div className="flex items-center gap-3">
+                <style>{`.no-scrollbar::-webkit-scrollbar { display: none; }`}</style>
+                {activeGoals.slice(0, 3).map((goal, idx) => (
                   <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                    key={goal.id}
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 + idx * 0.06, duration: 0.4 }}
                   >
-                    <Loader2 className="w-5 h-5 text-[#00d4ff]" />
+                    <ProGoalCard
+                      goal={goal}
+                      index={idx}
+                      onTap={(g) => setSelectedGoal(g)}
+                    />
                   </motion.div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[8px] font-black font-mono uppercase tracking-[0.3em] text-[#00d4ff]/60">SYSTEM</span>
-                      <motion.div
-                        className="w-1.5 h-1.5 rounded-full bg-[#00d4ff]"
-                        animate={{ opacity: [1, 0.3, 1] }}
-                        transition={{ duration: 1, repeat: Infinity }}
-                      />
-                    </div>
-                    <div className="text-xs font-bold text-white mt-0.5">
-                      Forging today's quests...
-                    </div>
-                    <div className="text-[9px] text-gray-500 font-mono mt-0.5">
-                      Goal {autoGenProgress.current}/{autoGenProgress.total} • AI generating micro-quests
-                    </div>
-                  </div>
-                  <Swords className="w-4 h-4 text-[#00d4ff]/30 flex-shrink-0" />
-                </div>
+                ))}
+              </div>
 
-                {/* Progress bar */}
-                <div className="mt-3 h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)' }}>
-                  <motion.div
-                    className="h-full rounded-full"
-                    style={{ background: 'linear-gradient(90deg, #00d4ff, #00d4ff)' }}
-                    initial={{ width: '0%' }}
-                    animate={{ width: `${autoGenProgress.total > 0 ? (autoGenProgress.current / autoGenProgress.total) * 100 : 0}%` }}
-                    transition={{ duration: 0.5 }}
-                  />
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Active Goals */}
-          {activeGoals.length > 0 && (
-            <div className="space-y-3 mb-4">
-              {activeGoals.map((goal, idx) => (
-                <motion.div
-                  key={goal.id}
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.08, duration: 0.4 }}
+              {/* View More button (if >3 goals) */}
+              {activeGoals.length > 3 && (
+                <motion.button
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.4 }}
+                  onClick={() => { playSystemSoundEffect('SELECT'); setShowAllGoals(true); }}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-[10px] font-mono font-bold uppercase tracking-widest transition-all"
+                  style={{
+                    background: 'rgba(250,204,21,0.04)',
+                    border: '1px solid rgba(250,204,21,0.12)',
+                    color: 'rgba(250,204,21,0.7)',
+                    marginTop: '-8px',
+                    marginBottom: '12px',
+                  }}
                 >
-                  <GoalCard
-                    goal={goal}
-                    onTap={(g) => setSelectedGoal(g)}
+                  View All {activeGoals.length} Goals
+                  <ChevronRight size={12} />
+                </motion.button>
+              )}
+            </motion.div>
+          )}
+
+          {/* ═══ FORGE GOAL QUESTS BUTTON ═══ */}
+          {forgeableGoals.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.25, duration: 0.4 }}
+              className="mb-5"
+            >
+              <motion.button
+                onClick={handleForgeGoalQuests}
+                disabled={forgeState === 'GENERATING' || allForgedToday}
+                whileTap={{ scale: forgeState === 'GENERATING' ? 1 : 0.97 }}
+                className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-xl font-black text-sm tracking-wide transition-all relative overflow-hidden"
+                style={{
+                  background: allForgedToday
+                    ? 'rgba(255,255,255,0.03)'
+                    : 'linear-gradient(135deg, #facc15 0%, #f59e0b 100%)',
+                  color: allForgedToday ? 'rgba(255,255,255,0.3)' : '#0a0a14',
+                  boxShadow: allForgedToday
+                    ? 'none'
+                    : '0 4px 24px rgba(250,204,21,0.3), 0 0 0 1px rgba(250,204,21,0.2)',
+                  border: allForgedToday ? '1px solid rgba(255,255,255,0.06)' : 'none',
+                  cursor: allForgedToday ? 'default' : 'pointer',
+                }}
+              >
+                {/* Scanning line animation during generation */}
+                {forgeState === 'GENERATING' && (
+                  <motion.div
+                    className="absolute top-0 left-0 right-0 h-[2px]"
+                    style={{ background: 'linear-gradient(90deg, transparent, #facc15, transparent)' }}
+                    animate={{ x: ['-100%', '100%'] }}
+                    transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
                   />
-                </motion.div>
-              ))}
-            </div>
+                )}
+
+                {forgeState === 'GENERATING' ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    <span className="font-mono text-xs">
+                      FORGING... {forgeProgress.current}/{forgeProgress.total}
+                    </span>
+                  </>
+                ) : allForgedToday ? (
+                  <>
+                    <Swords size={16} />
+                    <span className="font-mono text-xs">TODAY'S QUESTS READY</span>
+                  </>
+                ) : (
+                  <>
+                    <Swords size={16} />
+                    FORGE GOAL QUESTS
+                  </>
+                )}
+              </motion.button>
+            </motion.div>
+          )}
+
+          {/* ═══ GENERATED GOAL QUESTS DISPLAY ═══ */}
+          {todayGoalQuests.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.4 }}
+              className="mb-6"
+            >
+              {/* Section header */}
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-1 h-4 rounded-full" style={{ background: 'linear-gradient(180deg, #00d4ff, #0088aa)' }} />
+                <span className="text-[9px] font-mono font-black tracking-[0.3em] uppercase" style={{ color: '#00d4ff' }}>
+                  GOAL QUESTS
+                </span>
+                <span className="text-[8px] font-mono text-gray-600 ml-auto">
+                  {todayGoalQuests.filter(q => q.completed).length}/{todayGoalQuests.length} DONE
+                </span>
+              </div>
+
+              {/* Quest list */}
+              <div className="space-y-2">
+                {todayGoalQuests.map((quest, idx) => {
+                  const qColor = RANK_ACCENT[quest.rank] || '#9ca3af';
+                  return (
+                    <motion.div
+                      key={quest.id}
+                      initial={{ opacity: 0, x: -8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.05 * idx, duration: 0.3 }}
+                      className="rounded-xl p-3 flex items-start gap-3"
+                      style={{
+                        background: quest.completed ? 'rgba(34,197,94,0.04)' : 'rgba(255,255,255,0.02)',
+                        border: quest.completed ? '1px solid rgba(34,197,94,0.15)' : '1px solid rgba(255,255,255,0.05)',
+                        opacity: quest.completed ? 0.6 : 1,
+                      }}
+                    >
+                      {/* Rank badge */}
+                      <div
+                        className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-[10px] font-black font-mono"
+                        style={{ background: `${qColor}15`, border: `1px solid ${qColor}30`, color: qColor }}
+                      >
+                        {quest.rank}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <h4 className={`text-[11px] font-bold leading-snug line-clamp-2 ${quest.completed ? 'text-gray-500 line-through' : 'text-white'}`}>
+                          {quest.title}
+                        </h4>
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
+                          <span className="text-[8px] font-mono text-gray-500 whitespace-nowrap">
+                            {quest.estimatedDuration}min
+                          </span>
+                          <span
+                            className="text-[8px] font-mono px-1.5 py-0.5 rounded whitespace-nowrap overflow-hidden text-ellipsis max-w-[100px]"
+                            style={{
+                              background: 'rgba(250,204,21,0.08)',
+                              color: 'rgba(250,204,21,0.6)',
+                              border: '1px solid rgba(250,204,21,0.15)',
+                            }}
+                          >
+                            {(quest as any)._goalTitle}
+                          </span>
+                          {quest.scheduledTime && (
+                            <span className="text-[8px] font-mono text-gray-600 tabular-nums whitespace-nowrap ml-auto flex-shrink-0">
+                              {quest.scheduledTime}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* XP */}
+                      <div className="flex items-center gap-0.5 flex-shrink-0 pt-0.5">
+                        <span className="text-[10px] font-black font-mono" style={{ color: '#00d4ff' }}>+{quest.xp}</span>
+                        <span className="text-[7px] font-mono text-gray-600">XP</span>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </motion.div>
           )}
 
           {/* Empty State */}
@@ -1342,6 +1556,52 @@ export default function GoalsView({
                 onConsumeMana={onConsumeMana}
                 onRefundMana={onRefundMana}
               />
+            )}
+          </AnimatePresence>
+
+          {/* ═══ ALL GOALS FULL-SCREEN OVERLAY ═══ */}
+          <AnimatePresence>
+            {showAllGoals && (
+              <motion.div
+                initial={{ opacity: 0, y: '100%' }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: '100%' }}
+                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                className="fixed inset-0 z-[80] overflow-y-auto"
+                style={{ background: '#08081a', paddingBottom: 'env(safe-area-inset-bottom)' }}
+              >
+                {/* Header */}
+                <div
+                  className="sticky top-0 z-10 px-5 pt-5 pb-3 flex items-center gap-3"
+                  style={{ background: '#08081a', borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+                >
+                  <button
+                    onClick={() => { playSystemSoundEffect('SELECT'); setShowAllGoals(false); }}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/5 transition-all"
+                  >
+                    <ChevronLeft size={20} />
+                  </button>
+                  <h2 className="text-sm font-black text-white font-mono tracking-[0.15em]">ALL GOALS</h2>
+                  <span className="text-[9px] font-mono text-gray-600 ml-auto">{activeGoals.length} ACTIVE</span>
+                </div>
+
+                {/* Goal list */}
+                <div className="px-5 py-4 space-y-3 pb-20">
+                  {activeGoals.map((goal, idx) => (
+                    <motion.div
+                      key={goal.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: idx * 0.05, duration: 0.3 }}
+                    >
+                      <GoalCard
+                        goal={goal}
+                        onTap={(g) => { setSelectedGoal(g); setShowAllGoals(false); }}
+                      />
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
             )}
           </AnimatePresence>
         </>

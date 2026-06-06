@@ -526,11 +526,12 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
     if (targetReps > 0 && formCoachState.repCount >= targetReps && !autoCompleteRef.current) {
       autoCompleteRef.current = true;
       playSystemSoundEffect('SYSTEM');
-      // Small delay so user sees the final rep count
+      // Small delay so user sees the final rep count (reduced from 1200ms
+      // since the RepDetector now freezes at the target — no more drift)
       const timer = setTimeout(() => {
         completeSet();
         autoCompleteRef.current = false;
-      }, 1200);
+      }, 800);
       return () => clearTimeout(timer);
     }
   }, [formCoachState?.repCount, trackingMode, phase, exercise.reps, completeSet]);
@@ -844,9 +845,16 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
                                 <FormCoachOverlay
                                     exercise={formCoachConfig}
                                     isActive={!isPaused}
+                                    targetReps={parseInt(exercise.reps) || 0}
                                     onStateChange={(s) => {
-                                        setFormCoachState(s);
-                                        lastFormCoachStateRef.current = s;
+                                        // Cap the rep count at the target so the UI
+                                        // never displays a number beyond the limit
+                                        const target = parseInt(exercise.reps) || 0;
+                                        const capped = target > 0 && s.repCount > target
+                                          ? { ...s, repCount: target }
+                                          : s;
+                                        setFormCoachState(capped);
+                                        lastFormCoachStateRef.current = capped;
                                     }}
                                 />
                                 {/* PiP Video — top-right corner like a video call */}

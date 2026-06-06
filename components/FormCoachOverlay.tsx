@@ -14,12 +14,13 @@ import { SpeechService } from '../utils/speechService';
 interface FormCoachOverlayProps {
   exercise: FormCoachExercise;
   isActive: boolean; // true during WORK phase
+  targetReps?: number; // if set, stop counting at this number
   onStateChange?: (state: FormCoachState) => void;
 }
 
 const WASM_CDN = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm';
 
-const FormCoachOverlay: React.FC<FormCoachOverlayProps> = ({ exercise, isActive, onStateChange }) => {
+const FormCoachOverlay: React.FC<FormCoachOverlayProps> = ({ exercise, isActive, targetReps, onStateChange }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const landmarkerRef = useRef<PoseLandmarker | null>(null);
@@ -75,6 +76,10 @@ const FormCoachOverlay: React.FC<FormCoachOverlayProps> = ({ exercise, isActive,
 
         // 3. Init rep detector
         detectorRef.current = new RepDetector(exercise);
+        // Cap reps at the target so the engine stops counting past it
+        if (targetReps && targetReps > 0) {
+          detectorRef.current.setMaxReps(targetReps);
+        }
 
         setPhase('CALIBRATING');
       } catch (err: any) {
@@ -94,7 +99,7 @@ const FormCoachOverlay: React.FC<FormCoachOverlayProps> = ({ exercise, isActive,
       landmarkerRef.current?.close();
       streamRef.current?.getTracks().forEach(t => t.stop());
     };
-  }, [exercise]);
+  }, [exercise, targetReps]);
 
   // Detection loop
   const detect = useCallback(() => {

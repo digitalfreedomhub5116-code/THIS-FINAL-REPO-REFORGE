@@ -137,6 +137,7 @@ export class OneEuroFilter {
 export class RepDetector {
   private state: RepState = 'IDLE';
   private repCount = 0;
+  private maxReps: number = 0; // 0 = no limit
   private angleFilter = new OneEuroFilter(1.5, 0.01);
   private frameViolations: FormViolation[] = [];
   private repViolations: FormViolation[] = [];
@@ -162,6 +163,11 @@ export class RepDetector {
     // Start with the config defaults (widened values)
     this.adaptiveBottom = exercise.repPhase.bottomAngleMax;
     this.adaptiveTop = exercise.repPhase.topAngleMin;
+  }
+
+  /** Set the maximum rep count — once reached, no more reps are counted */
+  setMaxReps(max: number): void {
+    this.maxReps = max;
   }
 
   /** Process a single frame of landmarks, returns updated state */
@@ -217,9 +223,11 @@ export class RepDetector {
     }
     frameScore = Math.max(0, frameScore);
 
-    // Rep detection (only for 'reps' mode)
+    // Rep detection (only for 'reps' mode, and only if we haven't hit the cap)
     if (this.exercise.trackingMode === 'reps') {
-      this.detectRep(angle, frameScore, timestamp);
+      if (this.maxReps <= 0 || this.repCount < this.maxReps) {
+        this.detectRep(angle, frameScore, timestamp);
+      }
     }
 
     return this.getState(angle, confidence, landmarks);
