@@ -10,6 +10,31 @@ const getContext = () => {
     return audioCtx;
 }
 
+// ── Audio Priming (iOS / Safari autoplay workaround) ──
+// iOS Safari silently blocks oscillator SFX until a real user gesture occurs.
+// This installs one-shot listeners on the first touch/pointer/click that
+// create & resume the AudioContext, then unbind themselves. Idempotent.
+let _audioPrimed = false;
+export const setupAudioPriming = () => {
+    if (_audioPrimed) return;
+    if (typeof window === 'undefined') return;
+    _audioPrimed = true;
+
+    const prime = () => {
+        try {
+            const ctx = getContext();
+            if (ctx.state === 'suspended') ctx.resume();
+        } catch { /* silent fail */ }
+        window.removeEventListener('touchstart', prime);
+        window.removeEventListener('pointerdown', prime);
+        window.removeEventListener('click', prime);
+    };
+
+    window.addEventListener('touchstart', prime, { once: true, passive: true });
+    window.addEventListener('pointerdown', prime, { once: true, passive: true });
+    window.addEventListener('click', prime, { once: true });
+};
+
 export const speakSystemMessage = (text: string) => {
     try {
         if (!('speechSynthesis' in window)) return;
