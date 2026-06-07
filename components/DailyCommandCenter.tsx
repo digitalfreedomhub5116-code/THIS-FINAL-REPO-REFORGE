@@ -1135,6 +1135,8 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
     const today = todayStr();
     return quests
       .filter(q => {
+        // Goal-generated quests live ONLY on the PRO (Goals) page, not the home timeline.
+        if (q.goalId) return false;
         const d = new Date(q.createdAt);
         d.setHours(0, 0, 0, 0);
         return d.toDateString() === new Date().toDateString();

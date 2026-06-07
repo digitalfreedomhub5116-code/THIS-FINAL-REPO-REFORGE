@@ -46,6 +46,18 @@
                 android:value="Focus Shield Blocker" />
         </service>
 
+        <!-- Restarts Focus Shield after reboot or swipe-from-recents kill -->
+        <receiver
+            android:name=".BootReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="com.reforge.app.ACTION_RESTART_SHIELD_WATCHDOG" />
+            </intent-filter>
+        </receiver>
+
         <!-- Holographic HUD Status Widget Receiver -->
         <receiver
             android:name=".ReforgeWidgetProvider"
@@ -103,6 +115,8 @@
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <!-- Allow the shield to survive aggressive OEM battery management -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <!-- Package visibility: selective queries for launchable apps (policy-compliant) -->
     <queries>
         <intent>

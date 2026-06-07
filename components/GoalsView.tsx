@@ -5,6 +5,7 @@ import { Goal, GoalDailyTask, PlayerData, Quest, Rank } from '../types';
 import GoalCard from './GoalCard';
 import GoalCreationFlow from './GoalCreationFlow';
 import GoalDetailView from './GoalDetailView';
+import QuestCard from './QuestCard';
 import { showSystemToast } from './SystemToast';
 import { playSystemSoundEffect } from '../utils/soundEngine';
 import { API_BASE } from '../lib/apiConfig';
@@ -928,6 +929,15 @@ interface GoalsViewProps {
   isPremium?: boolean;
   onUpgradePro?: () => void;
   goalCreateTrigger?: number;
+  // Live quest feed + handlers so goal quests render as real QuestCards (complete / fail / etc.)
+  quests?: Quest[];
+  completeQuest?: (id: string, asMini?: boolean) => void;
+  failQuest?: (id: string) => void;
+  resetQuest?: (id: string) => void;
+  deleteQuest?: (id: string) => void;
+  onStartTracking?: (id: string, requirements?: { steps?: number; distanceKm?: number; activeMinutes?: number }) => void;
+  onStopTracking?: (id: string) => void;
+  onEnterDungeon?: (equipment?: 'GYM' | 'HOME_DUMBBELLS' | 'BODYWEIGHT') => void;
 }
 
 export default function GoalsView({
@@ -943,6 +953,14 @@ export default function GoalsView({
   isPremium = false,
   onUpgradePro,
   goalCreateTrigger = 0,
+  quests = [],
+  completeQuest,
+  failQuest,
+  resetQuest,
+  deleteQuest,
+  onStartTracking,
+  onStopTracking,
+  onEnterDungeon,
 }: GoalsViewProps) {
   const [showCreate, setShowCreate] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
@@ -980,15 +998,27 @@ export default function GoalsView({
     [activeGoals]
   );
 
-  // Today's quests from all active goals (persisted in goal.dailyTasks)
-  const todayGoalQuests = React.useMemo(() => {
-    const today = todayStr();
-    return forgeableGoals.flatMap(g => {
-      const task = g.dailyTasks?.find(t => t.date === today);
-      if (!task || !task.quests?.length) return [];
-      return task.quests.map(q => ({ ...q, _goalTitle: g.title, _goalId: g.id }));
-    });
-  }, [forgeableGoals]);
+  // Live feed Quest objects for goal-generated quests created today.
+  // These are full Quest objects (with goalId) so they render as real QuestCards
+  // with working complete / fail / reset / delete actions.
+  const goalFeedQuests = React.useMemo(() => {
+    const todayString = new Date().toDateString();
+    return (quests || [])
+      .filter(q => {
+        if (!q.goalId) return false;
+        const d = new Date(q.createdAt);
+        return d.toDateString() === todayString;
+      })
+      .sort((a, b) => {
+        const toMin = (t?: string) => {
+          if (!t) return 9999;
+          const hm = t.includes('T') ? t.split('T')[1].slice(0, 5) : t;
+          const [h, m] = hm.split(':').map(Number);
+          return (h || 0) * 60 + (m || 0);
+        };
+        return toMin(a.scheduledTime) - toMin(b.scheduledTime);
+      });
+  }, [quests]);
 
   // Check if all forgeable goals already have today's quests
   const allForgedToday = React.useMemo(() => {
@@ -1501,8 +1531,8 @@ export default function GoalsView({
             </motion.div>
           )}
 
-          {/* ═══ GENERATED GOAL QUESTS DISPLAY ═══ */}
-          {todayGoalQuests.length > 0 && (
+          {/* ═══ GENERATED GOAL QUESTS DISPLAY (real QuestCards) ═══ */}
+          {goalFeedQuests.length > 0 && (
             <motion.div
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
@@ -1516,69 +1546,33 @@ export default function GoalsView({
                   GOAL QUESTS
                 </span>
                 <span className="text-[8px] font-mono text-gray-600 ml-auto">
-                  {todayGoalQuests.filter(q => q.completed).length}/{todayGoalQuests.length} DONE
+                  {goalFeedQuests.filter(q => q.isCompleted).length}/{goalFeedQuests.length} DONE
                 </span>
               </div>
 
-              {/* Quest list */}
+              {/* Quest list — full QuestCards with complete / fail / delete actions */}
               <div className="space-y-2">
-                {todayGoalQuests.map((quest, idx) => {
-                  const qColor = RANK_ACCENT[quest.rank] || '#9ca3af';
-                  return (
-                    <motion.div
-                      key={quest.id}
-                      initial={{ opacity: 0, x: -8 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.05 * idx, duration: 0.3 }}
-                      className="rounded-xl p-3 flex items-start gap-3"
-                      style={{
-                        background: quest.completed ? 'rgba(34,197,94,0.04)' : 'rgba(255,255,255,0.02)',
-                        border: quest.completed ? '1px solid rgba(34,197,94,0.15)' : '1px solid rgba(255,255,255,0.05)',
-                        opacity: quest.completed ? 0.6 : 1,
-                      }}
-                    >
-                      {/* Rank badge */}
-                      <div
-                        className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-[10px] font-black font-mono"
-                        style={{ background: `${qColor}15`, border: `1px solid ${qColor}30`, color: qColor }}
-                      >
-                        {quest.rank}
-                      </div>
-
-                      <div className="flex-1 min-w-0">
-                        <h4 className={`text-[11px] font-bold leading-snug line-clamp-2 ${quest.completed ? 'text-gray-500 line-through' : 'text-white'}`}>
-                          {quest.title}
-                        </h4>
-                        <div className="flex items-center gap-2 mt-1 flex-wrap">
-                          <span className="text-[8px] font-mono text-gray-500 whitespace-nowrap">
-                            {quest.estimatedDuration}min
-                          </span>
-                          <span
-                            className="text-[8px] font-mono px-1.5 py-0.5 rounded whitespace-nowrap overflow-hidden text-ellipsis max-w-[100px]"
-                            style={{
-                              background: 'rgba(250,204,21,0.08)',
-                              color: 'rgba(250,204,21,0.6)',
-                              border: '1px solid rgba(250,204,21,0.15)',
-                            }}
-                          >
-                            {(quest as any)._goalTitle}
-                          </span>
-                          {quest.scheduledTime && (
-                            <span className="text-[8px] font-mono text-gray-600 tabular-nums whitespace-nowrap ml-auto flex-shrink-0">
-                              {quest.scheduledTime}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* XP */}
-                      <div className="flex items-center gap-0.5 flex-shrink-0 pt-0.5">
-                        <span className="text-[10px] font-black font-mono" style={{ color: '#00d4ff' }}>+{quest.xp}</span>
-                        <span className="text-[7px] font-mono text-gray-600">XP</span>
-                      </div>
-                    </motion.div>
-                  );
-                })}
+                {goalFeedQuests.map((quest, idx) => (
+                  <motion.div
+                    key={quest.id}
+                    layout
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ delay: 0.05 * idx, duration: 0.3 }}
+                  >
+                    <QuestCard
+                      quest={quest}
+                      onComplete={(id, asMini) => completeQuest?.(id, asMini)}
+                      onFail={(id) => failQuest?.(id)}
+                      onReset={(id) => resetQuest?.(id)}
+                      onDelete={(id) => deleteQuest?.(id)}
+                      onStartTracking={onStartTracking}
+                      onStopTracking={onStopTracking}
+                      onEnterDungeon={onEnterDungeon}
+                    />
+                  </motion.div>
+                ))}
               </div>
             </motion.div>
           )}

@@ -7,6 +7,7 @@ import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.net.Uri;
 import android.os.Build;
+import android.os.PowerManager;
 import android.provider.Settings;
 import android.util.Log;
 
@@ -486,5 +487,83 @@ public class TrackingPlugin extends Plugin {
         intent.setAction(ReforgeWidgetProvider.ACTION_FORCE_UPDATE);
         context.sendBroadcast(intent);
         call.resolve();
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    //  BATTERY OPTIMIZATION / AUTO-START (keep the shield alive in background)
+    // ─────────────────────────────────────────────────────────────
+
+    @PluginMethod()
+    public void isIgnoringBatteryOptimizations(PluginCall call) {
+        boolean ignoring = true;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            PowerManager pm = (PowerManager) getContext().getSystemService(Context.POWER_SERVICE);
+            ignoring = pm != null && pm.isIgnoringBatteryOptimizations(getContext().getPackageName());
+        }
+        call.resolve(new JSObject().put("ignoring", ignoring));
+    }
+
+    @PluginMethod()
+    public void requestDisableBatteryOptimization(PluginCall call) {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                Intent intent = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+                intent.setData(Uri.parse("package:" + getContext().getPackageName()));
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                getContext().startActivity(intent);
+            }
+            call.resolve(new JSObject().put("requested", true));
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to request battery optimization exemption", e);
+            // Fall back to the general battery optimization settings list.
+            try {
+                Intent intent = new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS);
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                getContext().startActivity(intent);
+            } catch (Exception ignored) {}
+            call.resolve(new JSObject().put("requested", false).put("reason", e.getMessage()));
+        }
+    }
+
+    @PluginMethod()
+    public void openAutoStartSettings(PluginCall call) {
+        // Best-effort: open the OEM-specific auto-start / background-permission screen.
+        // These component names are undocumented and vary by vendor, so we try several
+        // and gracefully fall back to the app's system settings page.
+        String[][] components = new String[][] {
+            {"com.miui.securitycenter", "com.miui.permcenter.autostart.AutoStartManagementActivity"},
+            {"com.coloros.safecenter", "com.coloros.safecenter.permission.startup.StartupAppListActivity"},
+            {"com.coloros.safecenter", "com.coloros.safecenter.startupapp.StartupAppListActivity"},
+            {"com.oppo.safe", "com.oppo.safe.permission.startup.StartupAppListActivity"},
+            {"com.vivo.permissionmanager", "com.vivo.permissionmanager.activity.BgStartUpManagerActivity"},
+            {"com.iqoo.secure", "com.iqoo.secure.ui.phoneoptimize.AddWhiteListActivity"},
+            {"com.huawei.systemmanager", "com.huawei.systemmanager.startupmgr.ui.StartupNormalAppListActivity"},
+            {"com.huawei.systemmanager", "com.huawei.systemmanager.optimize.process.ProtectActivity"},
+            {"com.samsung.android.lool", "com.samsung.android.sm.ui.battery.BatteryActivity"}
+        };
+
+        for (String[] c : components) {
+            try {
+                Intent intent = new Intent();
+                intent.setClassName(c[0], c[1]);
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                getContext().startActivity(intent);
+                call.resolve(new JSObject().put("opened", true).put("vendor", c[0]));
+                return;
+            } catch (Exception ignored) {
+                // try the next candidate
+            }
+        }
+
+        // Fallback: open this app's details settings so the user can adjust manually.
+        try {
+            Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+            intent.setData(Uri.parse("package:" + getContext().getPackageName()));
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getContext().startActivity(intent);
+            call.resolve(new JSObject().put("opened", false).put("fallback", true));
+        } catch (Exception e) {
+            call.resolve(new JSObject().put("opened", false).put("reason", e.getMessage()));
+        }
     }
 }

@@ -5575,6 +5575,17 @@ const App: React.FC = () => {
                           isPremium={isPremium}
                           onUpgradePro={() => setShowManaPowerUpsell(true)}
                           goalCreateTrigger={goalsCreateTrigger}
+                          quests={player.quests}
+                          completeQuest={handleQuestComplete}
+                          failQuest={failQuest}
+                          resetQuest={resetQuest}
+                          deleteQuest={deleteQuest}
+                          onStartTracking={handleStartTracking}
+                          onStopTracking={handleStopTracking}
+                          onEnterDungeon={(equipment) => {
+                            setActiveTab('DASHBOARD');
+                            setDungeonEntryTrigger({ equipment, timestamp: Date.now() });
+                          }}
                         />
                       </ErrorBoundary>
                     </Suspense>

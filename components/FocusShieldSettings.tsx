@@ -197,6 +197,7 @@ export default function FocusShieldSettings({ playerData, isPremium = false, onU
             localStorage.setItem('reforge_focus_shield_enabled', 'true');
             // Auto sync active config
             await syncNativeConfig(lockedApps);
+            await ensureBackgroundPersistence();
             showSystemToast({
               type: 'QUEST_FORGED',
               title: 'Focus Shield Deployed',
@@ -296,6 +297,7 @@ export default function FocusShieldSettings({ playerData, isPremium = false, onU
         setIsShieldEnabled(true);
         localStorage.setItem('reforge_focus_shield_enabled', 'true');
         await syncNativeConfig(lockedApps);
+        await ensureBackgroundPersistence();
         showSystemToast({
           type: 'QUEST_FORGED',
           title: 'Focus Shield Deployed',
@@ -357,6 +359,42 @@ export default function FocusShieldSettings({ playerData, isPremium = false, onU
     setLockedApps(updated);
     localStorage.setItem('reforge_focus_shield_apps', JSON.stringify(updated));
     await syncNativeConfig(updated);
+  };
+
+  // Ensure the foreground service survives in the background. Requests the
+  // battery-optimization exemption (and surfaces OEM auto-start guidance once)
+  // so the shield keeps running after the app is swiped from recents / rebooted.
+  const ensureBackgroundPersistence = async () => {
+    try {
+      const plugin = (window as any).Capacitor?.Plugins?.TrackingPlugin;
+      if (!plugin?.isIgnoringBatteryOptimizations) return;
+
+      const res = await plugin.isIgnoringBatteryOptimizations();
+      if (!res?.ignoring) {
+        showSystemToast({
+          type: 'INFO',
+          title: 'One More Step',
+          subtitle: 'Allow Reforge to run in the background so the shield never sleeps.',
+          durationMs: 5000
+        });
+        await plugin.requestDisableBatteryOptimization();
+      }
+
+      // Show OEM auto-start guidance only once per device.
+      const autoStartShown = localStorage.getItem('reforge_autostart_prompted') === 'true';
+      if (!autoStartShown && plugin.openAutoStartSettings) {
+        localStorage.setItem('reforge_autostart_prompted', 'true');
+        showSystemToast({
+          type: 'INFO',
+          title: 'Enable Auto-Start',
+          subtitle: 'On some phones, enable "Auto-start" for Reforge to survive force-close.',
+          durationMs: 6000
+        });
+        await plugin.openAutoStartSettings();
+      }
+    } catch (e) {
+      console.error('Failed to ensure background persistence', e);
+    }
   };
 
   const syncNativeConfig = async (configs: AppLockConfig[]) => {
