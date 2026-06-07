@@ -7,7 +7,7 @@ export enum SystemState {
   LOCKED = 'LOCKED'
 }
 
-export type Tab = 'DASHBOARD' | 'QUESTS' | 'ARMORY' | 'STORE' | 'LEADERBOARD' | 'REWARDS' | 'GROWTH' | 'HEALTH' | 'CASTLE' | 'PROFILE';
+export type Tab = 'DASHBOARD' | 'QUESTS' | 'ARMORY' | 'STORE' | 'LEADERBOARD' | 'REWARDS' | 'GROWTH' | 'HEALTH' | 'GOALS' | 'CASTLE' | 'PROFILE';
 
 export interface NavItem {
   label: string;
@@ -220,6 +220,9 @@ export interface Quest {
   goalQuestResources?: GoalQuestResource[];
   goalQuestSteps?: string[];
   connectionToPrevious?: string;
+  // Dungeon-linked quest (fitness goal → daily dungeon)
+  isDungeonQuest?: boolean;
+  dungeonEquipment?: 'GYM' | 'HOME_DUMBBELLS' | 'BODYWEIGHT';
 }
 
 export interface ShopItem {
@@ -235,7 +238,7 @@ export interface AwakeningData {
   antiVision: string[];
 }
 
-export type NotificationType = 'SUCCESS' | 'WARNING' | 'DANGER' | 'LEVEL_UP' | 'SYSTEM' | 'PURCHASE';
+export type NotificationType = 'SUCCESS' | 'WARNING' | 'DANGER' | 'INFO' | 'LEVEL_UP' | 'SYSTEM' | 'PURCHASE';
 
 export interface SystemNotification {
   id: string;
@@ -317,6 +320,32 @@ export interface Exercise {
   videoUrl?: string;
   imageUrl?: string;
   isSupplementary?: boolean;
+  /** Whether AI Form Coach is enabled for this exercise (PRO feature) */
+  formCoachEnabled?: boolean;
+}
+
+/** Result from AI Motion Coach form tracking for a single set */
+export interface FormCoachResult {
+  setNumber: number;
+  repsDetected: number;
+  formScore: number; // 0-100
+  violations: { ruleId: string; message: string; severity: 'warning' | 'error'; repNumber?: number }[];
+  bonusXp: number;
+}
+
+/** Aggregated form coach data for an entire workout session */
+export interface FormCoachSession {
+  date: string; // ISO date string
+  timestamp: number;
+  exercises: {
+    name: string;
+    avgFormScore: number;
+    totalReps: number;
+    sets: number;
+  }[];
+  overallScore: number; // 0-100, weighted average
+  totalBonusXp: number;
+  perfectSets: number; // Sets with score >= 90
 }
 
 export interface WorkoutDay {
@@ -395,6 +424,7 @@ export interface SkillProgress {
 }
 
 export interface HealthProfile {
+  hunterName?: string;
   gender: 'MALE' | 'FEMALE';
   age: number;
   height: number;
@@ -431,6 +461,12 @@ export interface HealthProfile {
   aiGeneratedPlanName?: string;
   planChangedAtDay?: number;
   prevPlanName?: string;
+
+  // Sung Jin-woo Daily Dungeon baselines (from calibration)
+  baselinePushups?: number;     // Max push-ups without stopping
+  baselineSquats?: number;      // Max squats without stopping
+  baselineRunMinutes?: number;  // DEPRECATED — use baselineRunKm
+  baselineRunKm?: number;       // Max running distance (km) without stopping
 }
 
 export interface WorkoutExercise {
@@ -554,7 +590,7 @@ export interface DailySchedule {
 }
 
 // --- SHADOW MISSION (Long-Term Goals) ---
-export type GoalCategory = 'ACADEMIC' | 'FITNESS' | 'FINANCIAL' | 'SKILL' | 'CAREER' | 'HEALTH' | 'CREATIVE';
+export type GoalCategory = 'ACADEMIC' | 'FITNESS' | 'FINANCIAL' | 'SKILL' | 'CAREER' | 'HEALTH' | 'CREATIVE' | 'DEFAULT';
 export type GoalStatus = 'INTERVIEW' | 'REVIEW' | 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'ABANDONED';
 
 export interface GoalMilestone {
@@ -598,6 +634,10 @@ export interface GoalQuest {
   completed?: boolean;
   stepByStep?: string[];
   resources?: GoalQuestResource[];
+  scheduledTime?: string;
+  // Dungeon-linked goal quest (fitness goals)
+  isDungeonQuest?: boolean;
+  dungeonEquipment?: 'GYM' | 'HOME_DUMBBELLS' | 'BODYWEIGHT';
 }
 
 export interface GoalDailyTask {
@@ -635,6 +675,24 @@ export interface Goal {
   streak: number;
   dailyTasks: GoalDailyTask[];
   createdAt: number;
+
+  // System goals (cannot be deleted/modified by user)
+  isSystemGoal?: boolean;
+  systemGoalType?: 'DAILY_DUNGEON';
+  coverImage?: string; // Background image for visual goal cards
+
+  // Fitness goal equipment (selected during goal creation interview)
+  equipment?: 'GYM' | 'HOME_DUMBBELLS' | 'BODYWEIGHT';
+
+  // ── Background goal-plan generation (Task 11 add-on) ──
+  // When true, this goal is a placeholder created from the user's interview answers
+  // while the AI plan generates in the background. The card shows a "Forging…" skeleton.
+  // Cleared by App.tsx's onGoalPlanStoreUpdate listener when the plan arrives.
+  isPlanning?: boolean;
+  /** Failure flag set when background generation errors out — surfaces a retry option. */
+  planFailed?: boolean;
+  /** Error message displayed under planFailed cards. */
+  planError?: string;
 }
 
 export interface PlayerData {
@@ -778,4 +836,75 @@ export interface PlayerData {
   // Schedule Planner
   scheduleProfile?: ScheduleProfile;
   dailySchedules?: DailySchedule[];
+
+  // Form Coach (AI Motion Coach) History
+  formCoachHistory?: FormCoachSession[];
+
+  // Daily Dungeon (Sung Jin-woo Protocol)
+  dungeonState?: DungeonState;
+}
+
+// --- DAILY DUNGEON (Sung Jin-woo Protocol) ---
+export interface DungeonExerciseTarget {
+  exercise: 'PUSHUPS' | 'SQUATS' | 'RUNNING';
+  sets: number;
+  reps: number;           // For push-ups/squats
+  distanceKm?: number;    // For running (km)
+  durationMinutes?: number; // DEPRECATED — kept for backward compat
+  formCoachEnabled: boolean;
+}
+
+/**
+ * User-added custom dungeon exercise.
+ *
+ * Lives in its own array (DungeonState.customExercises) — NOT in `targets` —
+ * because the progression engine recomputes `targets` from scratch on every
+ * level-up / deload and would otherwise wipe anything the user added. Custom
+ * exercises are fixed (not auto-scaled) and persist across progression.
+ *
+ * Completion is tracked in DungeonState.completedExercisesToday keyed by `id`.
+ */
+export interface DungeonCustomExercise {
+  id: string;             // unique completion key, e.g. "custom_42_169..."
+  name: string;
+  type: 'COMPOUND' | 'ACCESSORY' | 'CARDIO' | 'STRETCH';
+  sets: number;
+  reps: string;           // e.g. "12, 12, 10" or "15"
+  distanceKm?: number;    // for CARDIO entries
+  videoUrl?: string;
+  muscleGroup?: string;
+  addedAt: number;
+}
+
+export interface DungeonState {
+  // Progression tracking
+  currentDay: number;            // Days since first dungeon
+  startDate: number;             // Timestamp when dungeon was first activated
+  lastCompletedDate: string;     // 'YYYY-MM-DD' of last completion
+  lastProgressionDate: string;   // 'YYYY-MM-DD' when reps last increased
+  consecutiveCompletions: number; // For streak-like tracking within dungeon
+  totalCompletions: number;
+  totalFailures: number;
+
+  // Current targets (computed from baselines + progression)
+  targets: DungeonExerciseTarget[];
+
+  // User-added custom exercises (persist across progression; not auto-scaled)
+  customExercises?: DungeonCustomExercise[];
+
+  // Per-exercise completion tracking for today
+  // Keys are exercise names (PUSHUPS, SQUATS, RUNNING), values are completion dates
+  completedExercisesToday?: Record<string, string>;
+
+  // Baselines snapshot (from calibration, frozen at dungeon creation)
+  baselinePushups: number;
+  baselineSquats: number;
+  baselineRunKm: number;         // Max running distance (km)
+  baselineRunMinutes?: number;   // DEPRECATED — kept for migration
+
+  // Progression multiplier (starts at 0.7, increases by ~0.08 every 3 days)
+  progressionMultiplier: number;
+
+  // History of completed dungeons (last 30 days)
+  history: { date: string; completed: boolean; pushupsTarget: number; squatsTarget: number; runKm: number }[];
 }

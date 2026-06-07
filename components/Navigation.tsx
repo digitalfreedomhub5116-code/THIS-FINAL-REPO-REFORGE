@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { LayoutGrid, Activity, Trophy, ShoppingBag, User, Lock } from 'lucide-react';
+import { LayoutGrid, Crown, Trophy, ShoppingBag, User, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Tab } from '../types';
 import SystemGlitchBadge from './SystemGlitchBadge';
@@ -19,7 +19,7 @@ interface NavigationProps {
 
 const NAV_ITEMS = [
   { id: 'DASHBOARD' as Tab, label: 'Today', icon: LayoutGrid },
-  { id: 'HEALTH' as Tab, label: 'Health', icon: Activity },
+  { id: 'GOALS' as Tab, label: 'PRO', icon: Crown },
   { id: 'LEADERBOARD' as Tab, label: 'Ranks', icon: Trophy },
   { id: 'STORE' as Tab, label: 'Store', icon: ShoppingBag },
   { id: 'PROFILE' as Tab, label: 'You', icon: User },
@@ -30,7 +30,7 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, badges,
   const isLight = theme === 'light';
   const [lockedPopup, setLockedPopup] = useState<{ label: string; level: number } | null>(null);
   const lockedTabs = getLockedTabs(playerLevel);
-  const isGuidedHealthStep = guidedStep === 7;
+  const isGuidedGoalsStep = guidedStep === 7;
 
   const handleTabClick = (tabId: Tab) => {
     if (lockedTabs[tabId]) {
@@ -39,7 +39,7 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, badges,
       setLockedPopup({ label: gate?.label || tabId, level: lockedTabs[tabId] });
       return;
     }
-    if (isGuidedHealthStep && tabId === 'HEALTH' && onGuidedAction) {
+    if (isGuidedGoalsStep && tabId === 'GOALS' && onGuidedAction) {
       onGuidedAction(7);
     }
     triggerHaptic('TAB_SWITCH');
@@ -74,7 +74,7 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, badges,
             const isActive = activeTab === item.id;
             const isLocked = !!lockedTabs[item.id];
             const Icon = item.icon;
-            const isGuidedHighlight = (isGuidedHealthStep && item.id === 'HEALTH');
+            const isGuidedHighlight = (isGuidedGoalsStep && item.id === 'GOALS');
             return (
               <button
                 key={item.id}
@@ -168,11 +168,11 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, badges,
             const isCenter = item.id === 'LEADERBOARD';
             const isLocked = !!lockedTabs[item.id];
             const Icon = item.icon;
-            const isGuidedHighlight = (isGuidedHealthStep && item.id === 'HEALTH');
+            const isGuidedHighlight = (isGuidedGoalsStep && item.id === 'GOALS');
             return (
               <button
                 key={item.id}
-                id={item.id === 'HEALTH' ? 'tut-nav-health' : item.id === 'QUESTS' ? 'nav-quests-btn' : undefined}
+                id={item.id === 'QUESTS' ? 'nav-quests-btn' : undefined}
                 onClick={() => handleTabClick(item.id)}
                 className="relative flex flex-col items-center justify-center w-12 h-12 gap-0.5"
               >

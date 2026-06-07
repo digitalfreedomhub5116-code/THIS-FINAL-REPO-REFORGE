@@ -11,7 +11,8 @@ import {
 } from 'lucide-react';
 import {
   Quest, CoreStats, Rank, Priority, PlayerData, Goal,
-  ScheduleProfile, ScheduleSlot, DailySchedule, ScheduleSlotType
+  ScheduleProfile, ScheduleSlot, DailySchedule, ScheduleSlotType,
+  DungeonState, DungeonExerciseTarget, WorkoutDay, FormCoachSession
 } from '../types';
 import GoalCard from './GoalCard';
 import GoalDetailView from './GoalDetailView';
@@ -19,12 +20,27 @@ import GoalCreationFlow from './GoalCreationFlow';
 import RankBadge from './RankBadge';
 import type { RankType } from './RankBadge';
 import QuestCard from './QuestCard';
+import DungeonQuestCards from './DungeonQuestCards';
+import ActiveWorkoutPlayer, { clearWorkoutSession } from './ActiveWorkoutPlayer';
+import DungeonRewardAnimation from './DungeonRewardAnimation';
+import DoubleRewardModal from './DoubleRewardModal';
+import { buildDungeonWorkoutPlan, buildDungeonWorkoutPlanForEquipment, buildRemainingDungeonPlan, getRemainingDungeonKeys, toggleFormCoach, isExerciseCompletedToday, recordExerciseCompletions } from '../lib/dungeonEngine';
 import { PLEDGE_AMOUNTS, MANDATORY_RANKS } from './SystemPactScreen';
-import { playSystemSoundEffect } from '../utils/soundEngine';
+import { playSystemSoundEffect, triggerHaptic } from '../utils/soundEngine';
 import { API_BASE } from '../lib/apiConfig';
 import { getPlayerAuthHeaders } from '../lib/playerApi';
 import OnboardingNotice from './OnboardingNotice';
 import { scheduleSlotReminder, cancelScheduleSlotReminder, scheduleQuestStartNotification } from '../hooks/useLocalNotifications';
+
+// ────────────────────────────────────────────────────────────
+// AUTO-SWITCH QUEST TAB — pure decision helpers
+// ────────────────────────────────────────────────────────────
+// These helpers encode the decision logic for the auto-switch-quest-tab
+// feature. They are exported so tests can import them without mounting the
+// component. They have no React dependencies and no side effects.
+
+/** Lifecycle states emitted by `_questGenStore` in `GoalDetailView`. */
+export type QuestGenStoreState = 'IDLE' | 'GENERATING' | 'DONE' | 'ERROR';
 
 // ────────────────────────────────────────────────────────────
 // DAILY ANALYSIS TRACKING (matches QuestsView)
@@ -122,6 +138,32 @@ interface DailyCommandCenterProps {
   onToggleNotify?: (slotId: string, enabled: boolean, slots: ScheduleSlot[]) => void;
   onReorderSlots?: (slots: ScheduleSlot[]) => void;
   onShowInterstitialAd?: () => Promise<boolean>;
+
+  /** When true (default), the in-header "+" create-quest button is shown. Set false to hide it (e.g. on the Dashboard where creation lives on the Goals page). */
+  showCreateButton?: boolean;
+  /** Increment this value to programmatically open the quest creation modal from outside (e.g. the Goals page "+" button). */
+  openCreateTrigger?: number;
+
+  // AdMob test panel — temporary debug surface
+  adShowInterstitial?: (adUnitId: string) => Promise<boolean>;
+  adShowRewarded?: (adUnitId: string) => Promise<{ rewarded: boolean; type?: string; amount?: number }>;
+  adUnits?: { KEY_REWARD: string; BORDER_REWARD: string; DUNGEON_INTERSTITIAL: string };
+  adsReady?: boolean;
+
+  /** Premium / Reforge Pro flag — when true, ad gates (e.g. before dungeon entry) are skipped. */
+  isPremium?: boolean;
+
+  // Daily Dungeon (Sung Jin-woo Protocol)
+  dungeonState?: DungeonState;
+  onInitializeDungeon?: () => void;
+  onUpdateDungeonState?: (updater: (prev: DungeonState) => DungeonState) => void;
+  onCompleteDungeonWorkout?: (exercisesCompleted: number, totalExercises: number, results: Record<string, number>, anomalyPoints?: number, formCoachBonusXp?: number, formCoachSession?: FormCoachSession) => any;
+  onFailDungeonWorkout?: () => void;
+  /** If set, DCC should auto-enter dungeon with this equipment */
+  dungeonEntryTrigger?: { equipment?: 'GYM' | 'HOME_DUMBBELLS' | 'BODYWEIGHT'; timestamp: number };
+
+  // Reward doubling
+  onAddRewards?: (gold: number, xp: number) => void;
 }
 
 // ────────────────────────────────────────────────────────────
@@ -172,14 +214,20 @@ const GOAL_RANK_COLORS: Record<string, string> = {
 
 const CATEGORY_ICONS: Record<string, string> = {
   ACADEMIC: '📚', FITNESS: '💪', FINANCIAL: '💰', SKILL: '🎯',
-  CAREER: '🚀', HEALTH: '❤️', CREATIVE: '🎨',
+  CAREER: '🚀', HEALTH: '❤️', CREATIVE: '🎨', DEFAULT: '⚔️',
 };
 
 function getUserTimezone(): string {
   try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { return 'UTC'; }
 }
 
-function todayStr(): string { return new Date().toISOString().split('T')[0]; }
+function todayStr(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
 
 function timeToMinutes(t: string): number {
   const [h, m] = t.split(':').map(Number);
@@ -736,7 +784,8 @@ const QuestTimelineRow: React.FC<{
   onReschedule?: (quest: Quest) => void;
   onStartTracking?: (id: string, requirements?: any) => void;
   onStopTracking?: (id: string) => void;
-}> = ({ quest, currentMinutes, isCurrent, isPast, isLast, onComplete, onFail, onReset, onDelete, onReschedule, onStartTracking, onStopTracking }) => {
+  onEnterDungeon?: (equipment?: 'GYM' | 'HOME_DUMBBELLS' | 'BODYWEIGHT') => void;
+}> = ({ quest, currentMinutes, isCurrent, isPast, isLast, onComplete, onFail, onReset, onDelete, onReschedule, onStartTracking, onStopTracking, onEnterDungeon }) => {
   const scheduledStr = quest.scheduledTime?.includes('T')
     ? quest.scheduledTime.split('T')[1].slice(0, 5)
     : (quest.scheduledTime || '00:00');
@@ -829,6 +878,7 @@ const QuestTimelineRow: React.FC<{
             onDelete={onDelete}
             onStartTracking={onStartTracking}
             onStopTracking={onStopTracking}
+            onEnterDungeon={onEnterDungeon}
           />
         </div>
       </div>
@@ -897,6 +947,10 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
   goals, onUpdateGoals, onDeleteGoal, onDeductGold, onUpdateScheduleSlots,
   scheduleProfile, dailySchedule, rescheduleQuest: rescheduleQuestProp, onSetupSchedule,
   onSlotAction, onToggleNotify, onReorderSlots, onShowInterstitialAd,
+  showCreateButton = true, openCreateTrigger,
+  adShowInterstitial, adShowRewarded, adUnits, adsReady, isPremium,
+  dungeonState, onInitializeDungeon, onUpdateDungeonState, onCompleteDungeonWorkout, onFailDungeonWorkout,
+  onAddRewards, dungeonEntryTrigger,
 }) => {
   // ── State ──
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -913,6 +967,105 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
   const [showGoalCreate, setShowGoalCreate] = useState(false);
   const [rescheduleQuest, setRescheduleQuest] = useState<Quest | null>(null); // Reschedule modal
   const [pastCollapsed, setPastCollapsed] = useState(true); // F6
+
+  // Daily Dungeon state
+  const [isDungeonActive, setIsDungeonActive] = useState(false);
+  const [dungeonPlan, setDungeonPlan] = useState<WorkoutDay | null>(null);
+  const [dungeonRewardAnim, setDungeonRewardAnim] = useState<{ xp: number; gold: number } | null>(null);
+  const [pendingDungeonRewards, setPendingDungeonRewards] = useState<{ xp: number; gold: number } | null>(null);
+
+  // Auto-initialize dungeon on mount (also patches existing goals if needed)
+  useEffect(() => {
+    if (playerData?.healthProfile && onInitializeDungeon) {
+      onInitializeDungeon();
+    }
+  }, [playerData?.healthProfile, onInitializeDungeon]);
+
+  // Auto-enter dungeon when triggered from a goal quest card
+  useEffect(() => {
+    if (dungeonEntryTrigger && dungeonEntryTrigger.timestamp > 0) {
+      handleEnterDungeon(dungeonEntryTrigger.equipment);
+    }
+  }, [dungeonEntryTrigger?.timestamp]);
+
+  const handleEnterDungeon = useCallback((equipmentOverride?: 'GYM' | 'HOME_DUMBBELLS' | 'BODYWEIGHT') => {
+    if (!dungeonState) return;
+    let plan;
+    if (equipmentOverride) {
+      plan = buildDungeonWorkoutPlanForEquipment(dungeonState, equipmentOverride);
+    } else {
+      // Build plan only for exercises not yet completed today — base + custom.
+      plan = buildRemainingDungeonPlan(dungeonState);
+    }
+    setDungeonPlan(plan);
+    setIsDungeonActive(true);
+    onToggleNav?.(false);
+    playSystemSoundEffect('SYSTEM');
+  }, [dungeonState, onToggleNav]);
+
+  const handleDungeonComplete = useCallback((c: number, t: number, r: Record<string, number>, anomaly?: number, fcBonus?: number, fcSession?: FormCoachSession) => {
+    setIsDungeonActive(false);
+    setDungeonPlan(null);
+    onToggleNav?.(true);
+
+    // Track per-exercise completions based on what was in the plan
+    if (dungeonState && onUpdateDungeonState) {
+      // The plan only contained remaining exercises (base + custom); all of
+      // them were completed. Mark base exercise names AND custom exercise ids.
+      const completedKeys = getRemainingDungeonKeys(dungeonState);
+      onUpdateDungeonState((prev: DungeonState) => recordExerciseCompletions(prev, completedKeys));
+    }
+
+    const rewards = onCompleteDungeonWorkout?.(c, t, r, anomaly, fcBonus, fcSession);
+
+    // Auto-complete the fitness goal dungeon quest
+    const dungeonGoalQuest = quests.find(q => q.isDungeonQuest && !q.isCompleted && !q.failed);
+    if (dungeonGoalQuest) {
+      completeQuest(dungeonGoalQuest.id);
+    }
+
+    // Extract XP and gold from returned rewards for fly animation
+    if (Array.isArray(rewards) && rewards.length > 0) {
+      let xp = 0, gold = 0;
+      for (const rw of rewards) {
+        if (rw.type === 'XP') xp += rw.amount;
+        if (rw.type === 'GOLD') gold += rw.amount;
+      }
+      // Also add base XP (exercises × 40) since the pool rewards don't include it
+      xp += c * 40;
+      if (xp > 0 || gold > 0) {
+        // Pro users skip the watch-ad-to-double modal — fly base rewards immediately
+        if (isPremium) {
+          setDungeonRewardAnim({ xp, gold });
+        } else {
+          setPendingDungeonRewards({ xp, gold });
+        }
+      }
+    }
+  }, [onToggleNav, onCompleteDungeonWorkout, dungeonState, onUpdateDungeonState, quests, completeQuest, isPremium]);
+
+  const handleDungeonFail = useCallback(() => {
+    setIsDungeonActive(false);
+    setDungeonPlan(null);
+    onToggleNav?.(true);
+    clearWorkoutSession(playerData?.userId || 'local');
+
+    // When quitting mid-workout, record which exercises were actually completed
+    // The ActiveWorkoutPlayer's currentIdx tells us how many exercises were finished
+    if (dungeonState && onUpdateDungeonState && dungeonPlan) {
+      // We can't easily know exact progress from here, so we DON'T mark anything as completed on fail
+      // The user must complete an exercise fully within the workout player for it to count
+      // This prevents the "everything gets marked cleared" bug
+    }
+
+    // Don't call onFailDungeonWorkout (which records a full failure/deload)
+    // Instead, the dungeon state remains unchanged — user can re-enter and continue
+  }, [onToggleNav, playerData?.userId, dungeonState, onUpdateDungeonState, dungeonPlan]);
+
+  const handleToggleFormCoach = useCallback((exercise: 'PUSHUPS' | 'SQUATS') => {
+    if (!dungeonState || !onUpdateDungeonState) return;
+    onUpdateDungeonState((prev) => toggleFormCoach(prev, exercise));
+  }, [dungeonState, onUpdateDungeonState]);
 
   // F5: Rule banner auto-hide
   const [bannerDismissed, setBannerDismissed] = useState(() => {
@@ -951,6 +1104,15 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
     onToggleNav?.(!isModalOpen);
   }, [isModalOpen, onToggleNav]);
 
+  // Open the create-quest modal when an external trigger increments (e.g. Goals page "+").
+  const lastCreateTriggerRef = useRef<number | undefined>(openCreateTrigger);
+  useEffect(() => {
+    if (openCreateTrigger === undefined) return;
+    if (lastCreateTriggerRef.current === openCreateTrigger) return;
+    lastCreateTriggerRef.current = openCreateTrigger;
+    setIsModalOpen(true);
+  }, [openCreateTrigger]);
+
 
 
   // ── Build unified timeline ──
@@ -984,18 +1146,49 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
       });
   }, [quests]);
 
+  // ── Default vs Custom split ──
+  // Default: recurring/system quests (isDaily AND not goal-generated) — pairs with the Sung Jin-woo dungeon
+  // Custom: goal-generated quests (have goalId) OR one-time custom quests (isDaily=false)
+  const defaultTodaysQuests = useMemo(
+    () => todaysQuests.filter(q => !q.goalId && q.isDaily),
+    [todaysQuests]
+  );
+  const customTodaysQuests = useMemo(
+    () => todaysQuests.filter(q => !!q.goalId || !q.isDaily),
+    [todaysQuests]
+  );
+  const activeDefaultCount = useMemo(
+    () => {
+      // System goal (Sung Jin-woo Protocol) renders 3 dungeon exercise cards
+      // under the DEFAULT tab — count them whenever the dungeon is active so
+      // the badge reflects what the user actually sees on the tab.
+      const dungeonExerciseCount = dungeonState ? (dungeonState.targets?.length ?? 0) : 0;
+      const questCount = defaultTodaysQuests.filter(q => !q.isCompleted && !q.failed).length;
+      return dungeonExerciseCount + questCount;
+    },
+    [defaultTodaysQuests, dungeonState]
+  );
+  const activeCustomCount = useMemo(
+    () => customTodaysQuests.filter(q => !q.isCompleted && !q.failed).length,
+    [customTodaysQuests]
+  );
+  // Tab removed — show every quest scheduled for today (default + custom merged).
+  const visibleTodaysQuests = todaysQuests;
+
   // Build merged timeline: schedule slots + quests interlaced by time
   const timeline = useMemo(() => {
     const entries: { type: 'SLOT' | 'QUEST'; time: number; slot?: ScheduleSlot; quest?: Quest }[] = [];
 
-    // Add schedule slots (skip QUEST type — those are goal-quest slots, we show them as quest cards)
-    scheduleSlots.forEach(slot => {
-      if (slot.type === 'QUEST') return; // Goal quest slots — rendered as quest cards below
-      entries.push({ type: 'SLOT', time: timeToMinutes(slot.startTime), slot });
-    });
+    // Schedule slots (routine, school, meals, sleep) — always shown now the tab is gone
+    {
+      scheduleSlots.forEach(slot => {
+        if (slot.type === 'QUEST') return; // Goal quest slots — rendered as quest cards below
+        entries.push({ type: 'SLOT', time: timeToMinutes(slot.startTime), slot });
+      });
+    }
 
-    // Add quests
-    todaysQuests.forEach(quest => {
+    // Add quests (filtered by current subsection)
+    visibleTodaysQuests.forEach(quest => {
       const t = quest.scheduledTime
         ? timeToMinutes(quest.scheduledTime.includes('T') ? quest.scheduledTime.split('T')[1].slice(0, 5) : quest.scheduledTime)
         : 9999;
@@ -1006,7 +1199,7 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
     entries.sort((a, b) => a.time - b.time);
 
     return entries;
-  }, [scheduleSlots, todaysQuests]);
+  }, [scheduleSlots, visibleTodaysQuests]);
 
   // Determine which entry is "current"
   const currentEntryIdx = useMemo(() => {
@@ -1188,7 +1381,8 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
       addQuest(newQuest); resetForm();
       if (onTutorialAction) onTutorialAction(5);
     } else {
-      addQuest(newQuest); setIsModalOpen(false); resetForm();
+      addQuest(newQuest);
+      setIsModalOpen(false); resetForm();
       // Schedule notification for when quest starts
       scheduleQuestStartNotification(newQuest.id, newQuest.title, scheduleTime);
       // ADS DISABLED — interstitial ad after quest creation removed
@@ -1239,23 +1433,92 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
             <span className="text-xs font-heading font-extrabold tracking-[0.25em] text-white uppercase">
               TODAY
             </span>
-            <ProgressRing completed={completedQuests.length} total={totalTasks} />
+            <ProgressRing completed={completedQuests.length} total={Math.max(3, totalTasks)} />
           </div>
 
-          <button
-            id="tut-add-quest"
-            onClick={() => {
-              setIsModalOpen(true);
-              if (tutorialStep === 1 && onTutorialAction) onTutorialAction(2);
-            }}
-            className="w-11 h-11 md:w-13 md:h-13 rounded-full flex items-center justify-center active:scale-90 transition-all"
-            style={{ background: 'linear-gradient(135deg, #00d4ff, #0099cc)', boxShadow: '0 0 20px rgba(0,212,255,0.4), 0 4px 14px rgba(0,0,0,0.35)' }}
-          >
-            <Plus size={22} className="text-black" strokeWidth={3} />
-          </button>
+          {(showCreateButton || tutorialStep === 1) && (
+            <button
+              id="tut-add-quest"
+              onClick={() => {
+                setIsModalOpen(true);
+                if (tutorialStep === 1 && onTutorialAction) onTutorialAction(2);
+              }}
+              className="w-11 h-11 md:w-13 md:h-13 rounded-full flex items-center justify-center active:scale-90 transition-all"
+              style={{ background: 'linear-gradient(135deg, #00d4ff, #0099cc)', boxShadow: '0 0 20px rgba(0,212,255,0.4), 0 4px 14px rgba(0,0,0,0.35)' }}
+            >
+              <Plus size={22} className="text-black" strokeWidth={3} />
+            </button>
+          )}
         </div>
       </div>
 
+
+      {/* ── DAILY DUNGEON (Sung Jin-woo Protocol) ── */}
+      {dungeonState && (
+        <div id="dungeon-protocol-section" className="mb-4">
+          <DungeonQuestCards
+            dungeonState={dungeonState}
+            onEnterDungeon={handleEnterDungeon}
+            onToggleFormCoach={handleToggleFormCoach}
+            playerGold={playerData?.gold ?? 0}
+            userId={playerData?.userId ?? ''}
+            onUpdateDungeonState={onUpdateDungeonState}
+            onDeductGold={onDeductGold}
+            showRewardedAd={adShowRewarded}
+            isPremium={!!isPremium}
+          />
+        </div>
+      )}
+
+      {/* Dungeon Workout Player (fullscreen overlay) */}
+      {isDungeonActive && dungeonPlan && (
+        <div className="fixed inset-0 z-[200]">
+          <ActiveWorkoutPlayer
+            plan={dungeonPlan}
+            onComplete={handleDungeonComplete}
+            onFail={handleDungeonFail}
+            streak={playerData?.streak || 0}
+          />
+        </div>
+      )}
+
+      {/* Dungeon reward fly animation (XP orbs + gold crystals) */}
+      {dungeonRewardAnim && (
+        <DungeonRewardAnimation
+          xpEarned={dungeonRewardAnim.xp}
+          goldEarned={dungeonRewardAnim.gold}
+          onComplete={() => setDungeonRewardAnim(null)}
+        />
+      )}
+
+      {/* Dungeon 2× reward modal */}
+      {pendingDungeonRewards && (
+        <DoubleRewardModal
+          title="Dungeon Cleared!"
+          subtitle="Watch a short ad to double your dungeon rewards."
+          rewards={[
+            ...(pendingDungeonRewards.xp > 0 ? [{ icon: 'xp' as const, label: 'XP', amount: pendingDungeonRewards.xp }] : []),
+            ...(pendingDungeonRewards.gold > 0 ? [{ icon: 'gold' as const, label: 'Gold', amount: pendingDungeonRewards.gold }] : []),
+          ]}
+          onWatchAd={async () => {
+            if (!adShowRewarded || !adUnits?.KEY_REWARD) return { rewarded: false };
+            return adShowRewarded(adUnits.KEY_REWARD);
+          }}
+          onClaim={(multiplier) => {
+            const { xp, gold } = pendingDungeonRewards;
+            setPendingDungeonRewards(null);
+            if (multiplier === 2 && onAddRewards) {
+              onAddRewards(gold, xp);
+            }
+            setDungeonRewardAnim({ xp: xp * multiplier, gold: gold * multiplier });
+          }}
+          onSkip={() => {
+            const { xp, gold } = pendingDungeonRewards;
+            setPendingDungeonRewards(null);
+            setDungeonRewardAnim({ xp, gold });
+          }}
+        />
+      )}
 
       {/* ── UNIFIED TIMELINE ── */}
       <div className="min-h-[40vh] pb-4 relative px-1">
@@ -1377,6 +1640,7 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
                         onReschedule={rescheduleQuestProp ? (q) => setRescheduleQuest(q) : undefined}
                         onStartTracking={onStartTracking}
                         onStopTracking={onStopTracking}
+                        onEnterDungeon={(equipment) => handleEnterDungeon(equipment)}
                       />
                     </motion.div>
                   );
@@ -1389,9 +1653,9 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
         })()}
 
         {/* Empty state */}
-        {timeline.length === 0 && todaysQuests.length === 0 && (
+        {timeline.length === 0 && visibleTodaysQuests.length === 0 && (
           <div className="text-center py-20 text-gray-600 font-mono text-sm border-2 border-dashed border-gray-800 rounded-lg bg-black/20">
-            NO ACTIVE PROTOCOLS. INITIATE QUEST.
+            {'NO QUESTS TODAY. CREATE A QUEST OR GENERATE FROM A GOAL.'}
           </div>
         )}
 
@@ -1403,6 +1667,7 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
           </div>
         )}
       </div>
+
 
 
       {/* Spacing for nav */}

@@ -13,7 +13,7 @@ interface WardrobePreviewCardProps {
   unlockedOutfits: string[];
   equippedOutfitId: string;
   outfits?: Outfit[];
-  onPurchase?: (outfit: Outfit) => void;
+  onPurchase?: (outfit: Outfit) => Promise<boolean>;
   onEquip: (id: string) => void;
   onOpenWardrobe: () => void;
   outfitStones?: Record<string, number>;
@@ -464,6 +464,7 @@ const WardrobePreviewCard: React.FC<WardrobePreviewCardProps> = ({
             poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
             className="absolute inset-0 w-full h-full bg-transparent"
             style={{ objectFit: 'contain', objectPosition: 'center top', display: videoPhase === 'intro' ? 'block' : 'none' }}
+            onCanPlay={(e) => (e.target as HTMLVideoElement).classList.add('video-ready')}
           />
 
           {/* Loop video */}
@@ -475,6 +476,7 @@ const WardrobePreviewCard: React.FC<WardrobePreviewCardProps> = ({
             poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
             className="absolute inset-0 w-full h-full bg-transparent"
             style={{ objectFit: 'contain', objectPosition: 'center top', display: videoPhase === 'loop' ? 'block' : 'none' }}
+            onCanPlay={(e) => (e.target as HTMLVideoElement).classList.add('video-ready')}
           />
 
           {/* LEFT fade */}
@@ -587,7 +589,7 @@ const WardrobePreviewCard: React.FC<WardrobePreviewCardProps> = ({
         gold={gold}
 
         isUnlocked={isUnlocked}
-        onPurchase={(o) => { onPurchase?.(o); }}
+        onPurchase={async (o) => { const ok = await onPurchase?.(o); return !!ok; }}
         onEquip={onEquip}
         onClose={() => setShowModal(false)}
         adProgress={adProgress[outfit.id] || null}

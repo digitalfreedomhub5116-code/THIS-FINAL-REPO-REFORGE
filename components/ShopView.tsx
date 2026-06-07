@@ -1,8 +1,8 @@
 
-import React, { useState, useEffect, useRef, lazy, Suspense, useCallback, type CSSProperties } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense, useCallback, useMemo, type CSSProperties } from 'react';
 import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Coins, Timer, Key, CheckCircle2, Lock, ChevronLeft, ChevronRight, Heart, Star, Zap, Ghost, Hexagon, ShoppingBag, Shirt, CircleDot, Palette, Frame, Clock, ImageIcon, Flame, Shield, Wrench, Eye, Sparkles, Crown, Gift } from 'lucide-react';
+import { Coins, Timer, Key, CheckCircle2, Lock, ChevronLeft, ChevronRight, Heart, Star, Zap, Ghost, Hexagon, ShoppingBag, Shirt, CircleDot, Palette, Frame, Clock, ImageIcon, Flame, Shield, Wrench, Eye, Sparkles, Crown, Gift, Play } from 'lucide-react';
 import type { RevenueCatState, RevenueCatActions } from '../hooks/useRevenueCat';
 import { CONSUMABLE_CREDITS } from '../hooks/useRevenueCat';
 import ManaKeyStore from './ManaKeyStore';
@@ -17,12 +17,13 @@ import { PROFILE_BORDERS, getBorderConfig, OUTFITS } from '../utils/gameData';
 import AnimatedBorder from './AnimatedBorder';
 import OnboardingNotice from './OnboardingNotice';
 import { SystemCoin } from './icons/SystemCoin';
-import { getItemsByCategory, getTodaysDeals, getItemById, getRemoteStoreCache, type StoreItem as KitStoreItem, ALL_STORE_ITEMS, BORDERS_ELEMENTS, BORDERS_BEASTS, BORDERS_SHIELDS, BORDERS_EXCLUSIVE } from '../utils/storeItems';
-import { getEconomy, purchaseItem as kitPurchaseItem, equipItem as kitEquipItem, applyThemeVars, DEV_UNLOCK_ALL, type EquippedItems } from '../utils/storeEconomy';
+import { getItemsByCategory, getTodaysDeals, getItemById, getRemoteStoreCache, type StoreItem as KitStoreItem, ALL_STORE_ITEMS, BORDERS_ELEMENTS, BORDERS_BEASTS, BORDERS_EXCLUSIVE } from '../utils/storeItems';
+import { getEconomy, purchaseItem as kitPurchaseItem, equipItem as kitEquipItem, unlockItem as kitUnlockItem, applyThemeVars, DEV_UNLOCK_ALL, type EquippedItems } from '../utils/storeEconomy';
 import { syncBorderToPlayers } from '../lib/borderSync';
 import { LynxCoin, BorderRing, ThemeSwatch } from './StoreComponents';
 import { Package } from 'lucide-react';
 import AvatarWithBorder, { BorderVideo } from './AvatarWithBorder';
+import { AD_UNITS } from '../hooks/useAdMob';
 
 const WardrobePreviewCard = lazy(() => import('./WardrobePreviewCard'));
 const BadgesSection = lazy(() => import('./BadgesSection'));
@@ -58,7 +59,7 @@ interface ShopViewProps {
   wardrobeUnlockedOutfits?: string[];
   wardrobeEquippedOutfitId?: string;
   wardrobeOutfits?: Outfit[];
-  wardrobeOnPurchase?: (outfit: Outfit) => void;
+  wardrobeOnPurchase?: (outfit: Outfit) => Promise<boolean>;
   wardrobeOnEquip?: (id: string) => void;
   // Badge system props
   outfitStones?: Record<string, number>;
@@ -86,6 +87,19 @@ interface ShopViewProps {
   rcState?: RevenueCatState;
   /** RevenueCat actions for purchasing */
   rcActions?: RevenueCatActions;
+  /** AdMob: show rewarded ad. Returns { rewarded: boolean }.
+   *  Optionally pass an `opts.userId` so the AdMob plugin forwards it to the
+   *  Server-Side Verification callback (lets the server tie an SSV ping to a
+   *  specific player without trusting client claims). */
+  onWatchRewardedAd?: (adUnitId: string, opts?: { userId?: string; customData?: string }) => Promise<{ rewarded: boolean }>;
+  /** Ad unit IDs from useAdMob */
+  adUnits?: { KEY_REWARD: string; BORDER_REWARD: string; DUNGEON_INTERSTITIAL: string };
+  /** Notification helper for success/failure messages */
+  addNotification?: (msg: string, type: import('../types').NotificationType) => void;
+  /** Current player's userId — used to scope localStorage keys per-account */
+  userId?: string;
+  /** When true (Reforge Pro / VIP), the FreeKeyAdBanner is hidden — Pro users should never see ad-watch surfaces. */
+  isPremium?: boolean;
 }
 
 
@@ -142,7 +156,7 @@ const REWARD_SHORT: Record<string, (a: number) => string> = {
 };
 
 // ── ITEMS TAB: Streak Shield & Repair ──
-import { getPlayerAuthHeaders } from '../lib/playerApi';
+import { getPlayerAuthHeaders, getOrRefreshPlayerHeaders, authenticatedFetch } from '../lib/playerApi';
 
 const ItemsTab: React.FC<{ gold: number }> = ({ gold }) => {
   const [shieldCount, setShieldCount] = useState(0);
@@ -358,6 +372,290 @@ const ItemsTab: React.FC<{ gold: number }> = ({ gold }) => {
 };
 
 
+/* ═══════════════════════════════════
+   FreeKeyAdBanner — Watch 2 ads to earn 1 Key Crystal
+   ─────────────────────────────────────
+   Server-authoritative: every ad watched is reported to
+   /api/economy/ad-key-watch which atomically increments the
+   counter and grants 1 key for every 2 ads. No localStorage,
+   no claim step, no race conditions across accounts/devices.
+   ═══════════════════════════════════ */
+const ADS_PER_KEY = 2;
+
+const FreeKeyAdBanner: React.FC<{
+  onWatchRewardedAd?: (adUnitId: string, opts?: { userId?: string; customData?: string }) => Promise<{ rewarded: boolean }>;
+  adUnitId?: string;
+  onClaimKey: (serverKeys: number) => void;
+  addNotification?: (msg: string, type: import('../types').NotificationType) => void;
+  userId?: string;
+}> = ({ onWatchRewardedAd, adUnitId, onClaimKey, addNotification, userId }) => {
+  // Cumulative ads watched (mod ADS_PER_KEY for the displayed slot count).
+  // Server is authoritative — we just mirror what the server tells us.
+  const [adsWatched, setAdsWatched] = useState<number>(0);
+  const [watching, setWatching] = useState(false);
+  const [, setDiag] = useState<string | null>(null);
+
+  // Slot progress is the cumulative count modulo 2 — when slot fills, server
+  // already granted the key, the counter rolls over, and the slots reset to 0.
+  const slotProgress = adsWatched % ADS_PER_KEY;
+
+  // Fetch initial server state on mount and whenever the user changes.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/economy/ad-key-progress`, {
+          credentials: 'include',
+          headers: { ...getPlayerAuthHeaders() },
+        });
+        if (!res.ok) return;
+        const data = await res.json().catch(() => ({}));
+        if (!cancelled && typeof data.adsWatched === 'number') {
+          setAdsWatched(data.adsWatched);
+        }
+      } catch { /* offline / not signed in — show 0/2 */ }
+    })();
+    return () => { cancelled = true; };
+  }, [userId]);
+
+  // Listen to admob:diag events from useAdMob to surface the ad lifecycle without logcat
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail || {};
+      const stage = detail.stage || '?';
+      const watched = detail.watchedMs != null ? `${Math.round(detail.watchedMs/1000)}s` : '';
+      const reason = detail.reason ? ` (${detail.reason})` : '';
+      const rew = detail.rewarded != null ? ` rewarded=${detail.rewarded}` : '';
+      setDiag(`[ad] ${stage}${watched ? ' ' + watched : ''}${rew}${reason}`);
+      // Auto-clear after 10s
+      setTimeout(() => setDiag(null), 10000);
+    };
+    window.addEventListener('admob:diag', handler);
+    return () => window.removeEventListener('admob:diag', handler);
+  }, []);
+
+  // Report a completed ad watch to the server. The server increments the
+  // cumulative counter and, if it crosses a 2-ad boundary, atomically grants
+  // 1 key. No client-side claim step.
+  const reportAdWatch = useCallback(async (): Promise<{ ok: boolean; reason?: string }> => {
+    const doFetch = (headers: Record<string, string>) => fetch(`${API_BASE}/api/economy/ad-key-watch`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...headers },
+      credentials: 'include',
+      body: JSON.stringify({}),
+    });
+
+    try {
+      let res = await doFetch(getPlayerAuthHeaders());
+
+      // 401: try one forced JWT refresh, then retry. If still 401, we surface
+      // a clear "sign in again" message because the session itself is dead.
+      if (res.status === 401) {
+        const refreshed = await getOrRefreshPlayerHeaders(API_BASE, true);
+        if (refreshed.Authorization) {
+          res = await doFetch(refreshed);
+        } else {
+          return { ok: false, reason: 'Session expired — please sign in again' };
+        }
+      }
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        return { ok: false, reason: data?.error || `HTTP ${res.status}` };
+      }
+      if (typeof data.adsWatched === 'number') setAdsWatched(data.adsWatched);
+      if (typeof data.totalKeys === 'number') onClaimKey(data.totalKeys);
+      if (data.keysGranted > 0) {
+        addNotification?.(`🔑 +${data.keysGranted} Key Crystal earned!`, 'SUCCESS');
+      } else {
+        const remaining = ADS_PER_KEY - (data.adsWatched % ADS_PER_KEY || ADS_PER_KEY);
+        addNotification?.(`Ad watched! ${remaining} more to earn a Key.`, 'INFO');
+      }
+      return { ok: true };
+    } catch (err: any) {
+      return { ok: false, reason: err?.message || 'network error' };
+    }
+  }, [onClaimKey, addNotification]);
+
+  const handleWatch = async () => {
+    if (watching) return;
+    if (!onWatchRewardedAd || !adUnitId) {
+      addNotification?.('Ads not ready yet — try again in a moment', 'WARNING');
+      return;
+    }
+    setWatching(true);
+    // Snapshot the SSV-confirmed count before the ad so we can detect a
+    // verified watch even if the client signals failure (some Capacitor
+    // builds don't fire Showed/Rewarded/return-from-show — we then rely on
+    // Google's SSV ping as the source of truth).
+    let ssvBefore = -1;
+    try {
+      const r = await fetch(`${API_BASE}/api/economy/ad-key-progress`, {
+        credentials: 'include',
+        headers: { ...getPlayerAuthHeaders() },
+      });
+      if (r.ok) {
+        const j = await r.json().catch(() => ({}));
+        if (typeof j.adsSsvConfirmed === 'number') ssvBefore = j.adsSsvConfirmed;
+      }
+    } catch { /* offline — skip the safety net */ }
+
+    try {
+      // Pass userId so the AdMob plugin attaches it to the SSV callback —
+      // Google will include `user_id=<userId>` in the signed callback to our
+      // /api/ads/ssv-callback, allowing the server to verify the watch came
+      // from this specific player.
+      const res = await onWatchRewardedAd(adUnitId, userId ? { userId } : undefined);
+      if (res.rewarded) {
+        // Client confirmed the watch — credit it on the server immediately.
+        const reported = await reportAdWatch();
+        if (!reported.ok) {
+          addNotification?.(`Couldn't credit ad: ${reported.reason}`, 'DANGER');
+        }
+        return;
+      }
+
+      // Client said the ad wasn't rewarded. Final safety net: poll the
+      // server's SSV count for a few seconds. If Google's ECDSA-signed ping
+      // arrives confirming the watch, credit retroactively. SSV typically
+      // takes 0.5–3s to arrive after the ad completes.
+      if (ssvBefore >= 0 && userId) {
+        addNotification?.('Verifying ad…', 'INFO');
+        const deadline = Date.now() + 8000; // wait up to 8s for SSV
+        let confirmed = false;
+        while (Date.now() < deadline) {
+          await new Promise(r => setTimeout(r, 1000));
+          try {
+            const r = await fetch(`${API_BASE}/api/economy/ad-key-progress`, {
+              credentials: 'include',
+              headers: { ...getPlayerAuthHeaders() },
+            });
+            if (!r.ok) continue;
+            const j = await r.json().catch(() => ({}));
+            if (typeof j.adsSsvConfirmed === 'number' && j.adsSsvConfirmed > ssvBefore) {
+              confirmed = true;
+              break;
+            }
+          } catch { /* keep polling */ }
+        }
+        if (confirmed) {
+          // SSV verified the watch — credit the client-side counter too.
+          const reported = await reportAdWatch();
+          if (!reported.ok) {
+            addNotification?.(`Couldn't credit ad: ${reported.reason}`, 'DANGER');
+          }
+          return;
+        }
+      }
+
+      // Neither client nor SSV confirmed — really wasn't a completed watch.
+      addNotification?.('Ad not completed — no progress', 'WARNING');
+    } catch {
+      addNotification?.('Ad failed to load — try again', 'DANGER');
+    } finally {
+      setWatching(false);
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      style={{
+        position: 'relative',
+        borderRadius: 16,
+        padding: '16px 14px',
+        background: 'linear-gradient(135deg, rgba(155,93,229,0.18) 0%, rgba(124,58,237,0.12) 50%, rgba(91,33,182,0.18) 100%)',
+        border: '1.5px solid rgba(155,93,229,0.45)',
+        boxShadow: '0 0 24px rgba(155,93,229,0.25), 0 4px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08)',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Ambient glow */}
+      <div style={{
+        position: 'absolute', top: -40, right: -40, width: 140, height: 140, borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(168,85,247,0.25) 0%, transparent 70%)',
+        pointerEvents: 'none',
+      }} />
+
+      <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 14 }}>
+        {/* Shadow Key Image */}
+        <div style={{
+          flexShrink: 0,
+          width: 88, height: 88,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          position: 'relative',
+        }}>
+          {/* Glow halo behind the key */}
+          <div style={{
+            position: 'absolute', inset: -6, borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(168,85,247,0.55) 0%, rgba(168,85,247,0.18) 45%, transparent 70%)',
+            filter: 'blur(6px)',
+            pointerEvents: 'none',
+          }} />
+          <img
+            src="/assets/store/keyless-Photoroom.png"
+            alt="Shadow Key"
+            style={{
+              position: 'relative',
+              width: '100%', height: '100%',
+              objectFit: 'contain',
+              filter: 'drop-shadow(0 4px 10px rgba(168,85,247,0.7)) drop-shadow(0 2px 4px rgba(0,0,0,0.5))',
+            }}
+          />
+        </div>
+
+        {/* Content */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: 900, color: '#fff', marginBottom: 2, letterSpacing: '0.02em' }}>
+            Watch 2 Ads to Earn a Free Key
+          </div>
+          <div style={{ fontSize: 10, color: 'rgba(214,188,250,0.75)', fontFamily: 'monospace', marginBottom: 8 }}>
+            {`Progress: ${slotProgress} / ${ADS_PER_KEY} ads`}
+          </div>
+
+          {/* Progress bar */}
+          <div style={{ display: 'flex', gap: 4, marginBottom: 10 }}>
+            {Array.from({ length: ADS_PER_KEY }).map((_, i) => (
+              <div key={i} style={{
+                flex: 1, height: 5, borderRadius: 3,
+                background: i < slotProgress
+                  ? 'linear-gradient(90deg, #a855f7, #c084fc)'
+                  : 'rgba(255,255,255,0.08)',
+                boxShadow: i < slotProgress ? '0 0 6px rgba(168,85,247,0.6)' : 'none',
+                transition: 'all 0.3s',
+              }} />
+            ))}
+          </div>
+
+          {/* Single action button — keys are auto-granted by the server every
+              2 ads; the user just keeps watching. */}
+          <button
+            onClick={handleWatch}
+            disabled={watching}
+            style={{
+              width: '100%', padding: '8px 14px', borderRadius: 10, border: 'none',
+              cursor: watching ? 'wait' : 'pointer',
+              background: watching
+                ? 'rgba(168,85,247,0.4)'
+                : 'linear-gradient(135deg, #a855f7, #7c3aed)',
+              color: '#fff', fontSize: 11, fontWeight: 900, letterSpacing: '0.05em',
+              boxShadow: watching ? 'none' : '0 0 14px rgba(168,85,247,0.45), inset 0 1px 0 rgba(255,255,255,0.15)',
+              opacity: watching ? 0.7 : 1,
+              textTransform: 'uppercase' as const,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            }}
+          >
+            {watching ? '⏳ Loading ad...' : <><Play size={13} /> Watch Ad</>}
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+
 const ShopView: React.FC<ShopViewProps> = ({
   gold,
   items,
@@ -391,6 +689,11 @@ const ShopView: React.FC<ShopViewProps> = ({
   onKeysUpdate,
   rcState,
   rcActions,
+  onWatchRewardedAd,
+  adUnits,
+  addNotification,
+  userId,
+  isPremium = false,
 }) => {
   const [storeTab, setStoreTab] = useState<'OUTFITS' | 'BADGES' | 'BORDERS' | 'DEALS' | 'ITEMS' | 'THEMES' | 'BANNERS_SHOP'>(initialStoreTab || 'OUTFITS');
   const [showMore, setShowMore] = useState(false);
@@ -419,8 +722,77 @@ const ShopView: React.FC<ShopViewProps> = ({
   const [highlightGoldStore, setHighlightGoldStore] = useState(false);
 
   // ── Ad unlock progress tracking (per-item ad watch counts) ──
+  // Server-authoritative: progress lives in the ad_unlock_progress table.
+  // localStorage is used only as a transient cache while the network call is in flight.
   type AdProgress = Record<string, { adsWatched: number; adsRequired: number; unlocked: boolean }>;
-  const [adProgress, setAdProgress] = useState<AdProgress>({});
+  const [adProgress, setAdProgress] = useState<AdProgress>(() => {
+    try {
+      const raw = localStorage.getItem('reforge:borderAdProgress');
+      if (raw) return JSON.parse(raw);
+    } catch { }
+    return {};
+  });
+
+  const persistBorderAdProgress = useCallback((next: AdProgress) => {
+    try { localStorage.setItem('reforge:borderAdProgress', JSON.stringify(next)); } catch { }
+  }, []);
+
+  // Per-item ad-loading flag: prevents rapid taps from queuing multiple ad requests.
+  // Holds the item id of the ad currently being watched, or null when idle.
+  const [watchingItemId, setWatchingItemId] = useState<string | null>(null);
+
+  const handleWatchAdForBorder = useCallback(async (item: KitStoreItem) => {
+    if (!item.adUnlock || !item.adsRequired || !onWatchRewardedAd) return;
+    if (watchingItemId) return; // already watching another ad — ignore tap
+    const progress = adProgress[item.id] || { adsWatched: 0, adsRequired: item.adsRequired, unlocked: false };
+    if (progress.unlocked) return;
+
+    setWatchingItemId(item.id);
+    try {
+      const result = await onWatchRewardedAd(
+        adUnits?.BORDER_REWARD ?? AD_UNITS.BORDER_REWARD,
+        userId ? { userId } : undefined,
+      );
+      // Surface the verdict via the same diag channel the FreeKeyAdBanner uses, so
+      // when borders fail to count we can see whether result.rewarded was true/false.
+      try {
+        window.dispatchEvent(new CustomEvent('admob:diag', {
+          detail: { stage: 'border-result', rewarded: result.rewarded, itemId: item.id }
+        }));
+      } catch {}
+      if (!result.rewarded) {
+        addNotification?.('Ad skipped — no progress earned.', 'WARNING');
+        return;
+      }
+
+      // ── Offline-only: track progress in localStorage ──
+      const newWatched = progress.adsWatched + 1;
+      const justUnlocked = newWatched >= item.adsRequired;
+      const nextProgress: AdProgress = {
+        ...adProgress,
+        [item.id]: { adsWatched: newWatched, adsRequired: item.adsRequired, unlocked: justUnlocked },
+      };
+      setAdProgress(nextProgress);
+      persistBorderAdProgress(nextProgress);
+
+      if (justUnlocked) {
+        // Permanently unlock in local economy
+        const newEco = kitUnlockItem(item.id);
+        setKitEconomy(newEco);
+        // Equip + play celebration animation
+        handleKitEquip('border', item.id);
+        setEquipAnimItem(item);
+        setShowEquipAnim(true);
+        addNotification?.(`🔓 ${item.name} unlocked permanently!`, 'SUCCESS');
+      } else {
+        addNotification?.(`📺 Ad watched! ${newWatched}/${item.adsRequired} for ${item.name}`, 'INFO');
+      }
+    } catch {
+      addNotification?.('Ad failed to load. Try again later.', 'WARNING');
+    } finally {
+      setWatchingItemId(null);
+    }
+  }, [adProgress, onWatchRewardedAd, adUnits, addNotification, persistBorderAdProgress, watchingItemId, userId]);
 
   // ── Image preloader: eagerly load border images so celebration overlay doesn't flash ──
   const preloadedImagesRef = useRef<Set<string>>(new Set());
@@ -437,16 +809,19 @@ const ShopView: React.FC<ShopViewProps> = ({
   const [inventoryLoaded, setInventoryLoaded] = useState(false);
   const [showInventoryPanel, setShowInventoryPanel] = useState(false);
 
-  // Helper: check if item is owned (server inventory)
+  // Helper: check if item is owned (server inventory OR local economy)
   const isItemOwned = useCallback((itemId: string) => {
     if (DEV_UNLOCK_ALL) return true;
-    return serverInventory.some(i => i.item_id === itemId);
-  }, [serverInventory]);
+    if (serverInventory.some(i => i.item_id === itemId)) return true;
+    if (kitEconomy.owned.includes(itemId)) return true;
+    if (adProgress[itemId]?.unlocked) return true;
+    return false;
+  }, [serverInventory, kitEconomy, adProgress]);
 
   // Fetch inventory on mount
   useEffect(() => {
     const headers = getPlayerAuthHeaders();
-    fetch(`${API_BASE}/api/inventory`, { credentials: 'include', headers })
+    authenticatedFetch(`${API_BASE}/api/inventory`, { headers })
       .then(r => r.ok ? r.json() : { items: [] })
       .then(data => {
         if (Array.isArray(data.items)) {
@@ -468,7 +843,7 @@ const ShopView: React.FC<ShopViewProps> = ({
             }).then(r => r.ok ? r.json() : null).then(res => {
               if (res?.migrated > 0) {
                 // Re-fetch inventory after migration
-                fetch(`${API_BASE}/api/inventory`, { credentials: 'include', headers })
+                authenticatedFetch(`${API_BASE}/api/inventory`, { headers })
                   .then(r => r.ok ? r.json() : { items: [] })
                   .then(d => { if (Array.isArray(d.items)) setServerInventory(d.items); });
               }
@@ -480,14 +855,29 @@ const ShopView: React.FC<ShopViewProps> = ({
       .catch(() => setInventoryLoaded(true));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── ADS DISABLED — ad unlock progress fetch removed ──
-  // useEffect(() => {
-  //   const headers = getPlayerAuthHeaders();
-  //   fetch(`${API_BASE}/api/ad-unlock/progress`, { credentials: 'include', headers })
-  //     .then(r => r.ok ? r.json() : { progress: {} })
-  //     .then(data => { if (data.progress) setAdProgress(data.progress); })
-  //     .catch(() => {});
-  // }, []);
+  // ── Listen for inventory-refresh events (e.g. from ad-unlock claim button) ──
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (Array.isArray(detail?.items)) setServerInventory(detail.items);
+    };
+    window.addEventListener('reforge:inventory-refresh', handler);
+    return () => window.removeEventListener('reforge:inventory-refresh', handler);
+  }, []);
+
+  // ── Fetch server-authoritative ad-unlock progress on mount ──
+  useEffect(() => {
+    const headers = getPlayerAuthHeaders();
+    fetch(`${API_BASE}/api/ad-unlock/progress`, { credentials: 'include', headers })
+      .then(r => (r.ok ? r.json() : { progress: {} }))
+      .then(data => {
+        if (data.progress && typeof data.progress === 'object') {
+          setAdProgress(data.progress);
+          persistBorderAdProgress(data.progress);
+        }
+      })
+      .catch(() => { /* offline — fall back to local cache already in state */ });
+  }, [persistBorderAdProgress]);
 
 
   // Event Banner Carousel
@@ -595,7 +985,6 @@ const ShopView: React.FC<ShopViewProps> = ({
 
   return (
     <div id="tut-store" className="space-y-7 pb-24">
-
       {/* ═══ GOLD BALANCE + INVENTORY BUTTON (top bar) ═══ */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px' }}>
         <div id="shop-wallet-balance" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -969,7 +1358,7 @@ const ShopView: React.FC<ShopViewProps> = ({
         </div>
         {/* gridAutoRows:'1fr' = every row forced to tallest card height */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, padding: '0 16px', gridAutoRows: '1fr' }}>
-          {getTodaysDeals(4).map(d => (
+          {getTodaysDeals(2).map(d => (
             <div key={d.item.id}>
               <KitGlowCard item={d.item} discount={d.discount}
                 owned={isItemOwned(d.item.id)}
@@ -985,6 +1374,171 @@ const ShopView: React.FC<ShopViewProps> = ({
           ))}
         </div>
       </section>
+
+      {/* ═══════════════════════════════════════════
+           👕 OUTFITS — individual video cards
+         ═══════════════════════════════════════════ */}
+      <section>
+        <div className="store-section-hdr">
+          <div className="hdr-icon" style={{ background: 'rgba(244,114,182,0.12)', border: '1px solid rgba(244,114,182,0.2)' }}>
+            <Shirt size={15} style={{ color: '#F472B6' }} />
+          </div>
+          <span className="hdr-title">Outfits</span>
+          <div className="hdr-line" />
+        </div>
+        <div className="store-hscroll">
+          {(wardrobeOutfits && wardrobeOutfits.length > 0 ? wardrobeOutfits : OUTFITS).map((outfit, idx) => {
+            const isUnlocked = (wardrobeUnlockedOutfits || ['outfit_starter']).includes(outfit.id);
+            const isEquipped = (wardrobeEquippedOutfitId || 'outfit_starter') === outfit.id;
+            const accent = outfit.accentColor || '#9ca3af';
+            return (
+              <div key={outfit.id} style={{
+                flexShrink: 0, width: 155, borderRadius: 18, overflow: 'hidden',
+                background: '#0A0A0F', position: 'relative',
+                border: isEquipped ? `2px solid ${accent}` : '1.5px solid rgba(255,255,255,0.06)',
+                boxShadow: isEquipped ? `0 0 24px ${accent}40` : '0 4px 20px rgba(0,0,0,0.4)',
+                display: 'flex', flexDirection: 'column',
+              }}>
+                {/* Video area */}
+                <div style={{ width: '100%', aspectRatio: '9 / 14', position: 'relative', overflow: 'hidden', background: '#000' }}>
+                  {/* Radial accent glow behind video */}
+                  <div style={{
+                    position: 'absolute', inset: 0, zIndex: 0,
+                    background: `radial-gradient(ellipse at 50% 55%, ${accent}20 0%, transparent 65%)`,
+                  }} />
+                  {/* Loop video */}
+                  {outfit.loopVideoUrl ? (
+                    <video
+                      src={outfit.loopVideoUrl}
+                      muted autoPlay loop playsInline
+                      poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+                      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center', zIndex: 1 }}
+                      onCanPlay={(e) => (e.target as HTMLVideoElement).classList.add('video-ready')}
+                    />
+                  ) : outfit.introVideoUrl ? (
+                    <video
+                      src={outfit.introVideoUrl}
+                      muted autoPlay loop playsInline
+                      poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+                      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center', zIndex: 1 }}
+                      onCanPlay={(e) => (e.target as HTMLVideoElement).classList.add('video-ready')}
+                    />
+                  ) : null}
+                  {/* Lock overlay */}
+                  {!isUnlocked && (
+                    <div style={{
+                      position: 'absolute', inset: 0, zIndex: 3,
+                      background: 'rgba(0,0,0,0.55)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Lock size={16} color="#9ca3af" />
+                      </div>
+                    </div>
+                  )}
+                  {/* Equipped badge */}
+                  {isEquipped && (
+                    <div style={{
+                      position: 'absolute', top: 8, right: 8, zIndex: 4,
+                      padding: '3px 8px', borderRadius: 6,
+                      background: accent, fontSize: 8, fontWeight: 900, color: '#000',
+                      boxShadow: `0 0 10px ${accent}80`,
+                      letterSpacing: '0.05em',
+                    }}>✓ EQUIPPED</div>
+                  )}
+                  {/* Bottom gradient */}
+                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '45%', background: 'linear-gradient(transparent, #0A0A0F)', zIndex: 2 }} />
+                </div>
+                {/* Info + Buttons */}
+                <div style={{ padding: '10px 12px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {/* Name + Tier */}
+                  <div>
+                    <div style={{
+                      display: 'inline-block', padding: '2px 7px', borderRadius: 5, marginBottom: 4,
+                      background: `${accent}1a`, border: `1px solid ${accent}40`,
+                      fontSize: 8, fontWeight: 900, color: accent, letterSpacing: '0.1em',
+                    }}>TIER {outfit.tier}</div>
+                    <div style={{ fontSize: 13, fontWeight: 900, color: '#fff', lineHeight: 1.2 }}>{outfit.name}</div>
+                    <div style={{ fontSize: 10, color: (outfit.id === 'outfit_knight' || outfit.id === 'outfit_monarch') ? '#a855f7' : outfit.cost === 0 ? '#4ade80' : 'rgba(255,255,255,0.45)', fontFamily: 'monospace', fontWeight: 700, marginTop: 2 }}>
+                      {outfit.cost === 0 ? 'FREE' : outfit.id === 'outfit_knight' ? '📺 5 ADS' : outfit.id === 'outfit_monarch' ? '📺 20 ADS' : `${outfit.cost.toLocaleString()} G`}
+                    </div>
+                  </div>
+                  {/* Buttons */}
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button onClick={() => setOutfitModalIdx(idx)} style={{
+                      flex: 1, padding: '7px 0', borderRadius: 10, cursor: 'pointer',
+                      background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+                      color: 'rgba(255,255,255,0.6)', fontSize: 10, fontWeight: 800,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+                    }}>
+                      <Eye size={11} /> View
+                    </button>
+                    {isUnlocked ? (
+                      <button onClick={() => wardrobeOnEquip?.(outfit.id)} disabled={isEquipped} style={{
+                        flex: 1, padding: '7px 0', borderRadius: 10, cursor: isEquipped ? 'default' : 'pointer',
+                        background: isEquipped ? 'rgba(255,255,255,0.04)' : `linear-gradient(135deg, ${accent}, ${accent}cc)`,
+                        border: 'none',
+                        color: isEquipped ? 'rgba(255,255,255,0.3)' : '#000',
+                        fontSize: 10, fontWeight: 900,
+                        boxShadow: isEquipped ? 'none' : `0 0 12px ${accent}40`,
+                      }}>
+                        {isEquipped ? '✓' : 'EQUIP'}
+                      </button>
+                    ) : (
+                      <button onClick={() => setOutfitModalIdx(idx)} style={{
+                        flex: 1, padding: '7px 0', borderRadius: 10, cursor: 'pointer',
+                        background: (outfit.id === 'outfit_knight' || outfit.id === 'outfit_monarch')
+                          ? 'linear-gradient(135deg, #a855f7cc, #7c3aed)'
+                          : 'linear-gradient(135deg, #fbbf24cc, #eab308)',
+                        border: 'none',
+                        color: (outfit.id === 'outfit_knight' || outfit.id === 'outfit_monarch') ? '#fff' : '#000',
+                        fontSize: 10, fontWeight: 900,
+                        boxShadow: (outfit.id === 'outfit_knight' || outfit.id === 'outfit_monarch')
+                          ? '0 0 12px rgba(168,85,247,0.3)'
+                          : '0 0 12px rgba(234,179,8,0.3)',
+                      }}>
+                        {(outfit.id === 'outfit_knight' || outfit.id === 'outfit_monarch') ? '▶ ADS' : 'BUY'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* ── OUTFIT DETAIL MODAL ── */}
+      {outfitModalIdx !== null && (
+        <Suspense fallback={null}>
+          <OutfitPurchaseModal
+            outfit={(wardrobeOutfits && wardrobeOutfits.length > 0 ? wardrobeOutfits : OUTFITS)[outfitModalIdx]}
+            gold={wardrobeGold ?? gold}
+            isUnlocked={(wardrobeUnlockedOutfits || ['outfit_starter']).includes(
+              (wardrobeOutfits && wardrobeOutfits.length > 0 ? wardrobeOutfits : OUTFITS)[outfitModalIdx]?.id
+            )}
+            onPurchase={async (o) => { const ok = await wardrobeOnPurchase?.(o); return !!ok; }}
+            onEquip={(id) => { wardrobeOnEquip?.(id); setOutfitModalIdx(null); }}
+            onClose={() => setOutfitModalIdx(null)}
+            adProgress={adProgress[(wardrobeOutfits && wardrobeOutfits.length > 0 ? wardrobeOutfits : OUTFITS)[outfitModalIdx]?.id] || null}
+            /* ADS DISABLED — onWatchAd prop removed from OutfitPurchaseModal */
+          />
+        </Suspense>
+      )}
+
+      {/* ═══════════════════════════════════════════
+           🎁 FREE KEY AD BANNER (Watch 3 ads → 1 Key)
+           Hidden for Pro users — they earn keys through subscription benefits
+         ═══════════════════════════════════════════ */}
+      {!isPremium && (
+        <FreeKeyAdBanner
+          onWatchRewardedAd={onWatchRewardedAd}
+          adUnitId={adUnits?.KEY_REWARD}
+          onClaimKey={(serverKeys: number) => onKeysUpdate?.(serverKeys)}
+          addNotification={addNotification}
+          userId={userId}
+        />
+      )}
 
       {/* ═══════════════════════════════════════════
            🔑 KEY CRYSTAL STORE
@@ -1119,40 +1673,6 @@ const ShopView: React.FC<ShopViewProps> = ({
         </div>
       </section>
 
-      {/* ── Tier 3: Shields ── */}
-      <section>
-        <div className="store-section-hdr">
-          <div className="hdr-icon" style={{ background: 'rgba(212,146,10,0.12)', border: '1px solid rgba(212,146,10,0.2)' }}>
-            <Hexagon size={15} style={{ color: '#D4920A' }} />
-          </div>
-          <span className="hdr-title">Shields</span>
-          <span style={{ fontSize: 8, fontFamily: 'monospace', color: 'rgba(255,255,255,0.3)', padding: '2px 8px', background: 'rgba(212,146,10,0.06)', borderRadius: 6, border: '1px solid rgba(212,146,10,0.1)' }}>ARMOR · RUNES · VANGUARD</span>
-          <div className="hdr-line" />
-        </div>
-        <div className="store-hscroll">
-          {BORDERS_SHIELDS.map(item => (
-            <div key={item.id} style={{ flexShrink: 0, width: 'calc(42vw - 12px)', minWidth: 140, maxWidth: 180 }}>
-              <KitGlowCard item={item}
-                owned={isItemOwned(item.id)}
-                equipped={kitEconomy.equipped.border === item.id}
-                canAfford={DEV_UNLOCK_ALL || gold >= item.price}
-                onBuy={() => setConfirmPurchaseItem(item)}
-                onInsufficientFunds={() => setShowInsufficientFunds(item)}
-                onEquip={() => {
-                  setEquipAnimItem(item);
-                  setShowEquipAnim(true);
-                  handleKitEquip('border', item.id);
-                }}
-                onInfo={() => setKitInfoItem(item)}
-                onView={() => setKitInfoItem(item)}
-                onCardClick={() => setKitInfoItem(item)}
-                adProgress={adProgress[item.id] || null}
-              />
-            </div>
-          ))}
-        </div>
-      </section>
-
       {/* ── Tier 4: Exclusive (Glow) ── */}
       <section>
         <div className="store-section-hdr">
@@ -1164,26 +1684,34 @@ const ShopView: React.FC<ShopViewProps> = ({
           <div className="hdr-line" />
         </div>
         <div className="store-hscroll">
-          {BORDERS_EXCLUSIVE.map(item => (
-            <div key={item.id} style={{ flexShrink: 0, width: 'calc(42vw - 12px)', minWidth: 140, maxWidth: 180 }}>
-              <KitGlowCard item={item}
-                owned={isItemOwned(item.id)}
-                equipped={kitEconomy.equipped.border === item.id}
-                canAfford={DEV_UNLOCK_ALL || gold >= item.price}
-                onBuy={() => setConfirmPurchaseItem(item)}
-                onInsufficientFunds={() => setShowInsufficientFunds(item)}
-                onEquip={() => {
-                  setEquipAnimItem(item);
-                  setShowEquipAnim(true);
-                  handleKitEquip('border', item.id);
-                }}
-                onInfo={() => setKitInfoItem(item)}
-                onView={() => setKitInfoItem(item)}
-                onCardClick={() => setKitInfoItem(item)}
-                adProgress={adProgress[item.id] || null}
-              />
-            </div>
-          ))}
+          {BORDERS_EXCLUSIVE.map(item => {
+            const prog = adProgress[item.id];
+            const isAdUnlocked = item.adUnlock && prog?.unlocked;
+            return (
+              <div key={item.id} style={{ flexShrink: 0, width: 'calc(42vw - 12px)', minWidth: 140, maxWidth: 180 }}>
+                <KitGlowCard item={item}
+                  owned={isItemOwned(item.id)}
+                  equipped={kitEconomy.equipped.border === item.id}
+                  canAfford={DEV_UNLOCK_ALL || gold >= item.price || !!isAdUnlocked}
+                  onBuy={() => {
+                    setConfirmPurchaseItem(item);
+                  }}
+                  onInsufficientFunds={() => setShowInsufficientFunds(item)}
+                  onEquip={() => {
+                    setEquipAnimItem(item);
+                    setShowEquipAnim(true);
+                    handleKitEquip('border', item.id);
+                  }}
+                  onInfo={() => setKitInfoItem(item)}
+                  onView={() => setKitInfoItem(item)}
+                  onCardClick={() => setKitInfoItem(item)}
+                  adProgress={prog || null}
+                  onWatchAd={() => handleWatchAdForBorder(item)}
+                  watchingAd={watchingItemId === item.id}
+                />
+              </div>
+            );
+          })}
         </div>
         <div style={{ textAlign: 'center', fontSize: 9, fontFamily: 'monospace', color: 'rgba(255,255,255,0.25)', paddingTop: 2 }}>
           Borders are permanent · Visible on profile & leaderboard
@@ -1242,152 +1770,6 @@ const ShopView: React.FC<ShopViewProps> = ({
         onHighlightDone={() => setHighlightGoldStore(false)}
       />
 
-      {/* ═══════════════════════════════════════════
-           👕 OUTFITS (last main section) — individual video cards
-         ═══════════════════════════════════════════ */}
-      <section>
-        <div className="store-section-hdr">
-          <div className="hdr-icon" style={{ background: 'rgba(244,114,182,0.12)', border: '1px solid rgba(244,114,182,0.2)' }}>
-            <Shirt size={15} style={{ color: '#F472B6' }} />
-          </div>
-          <span className="hdr-title">Outfits</span>
-          <div className="hdr-line" />
-        </div>
-        <div className="store-hscroll">
-          {(wardrobeOutfits && wardrobeOutfits.length > 0 ? wardrobeOutfits : OUTFITS).map((outfit, idx) => {
-            const isUnlocked = (wardrobeUnlockedOutfits || ['outfit_starter']).includes(outfit.id);
-            const isEquipped = (wardrobeEquippedOutfitId || 'outfit_starter') === outfit.id;
-            const accent = outfit.accentColor || '#9ca3af';
-            return (
-              <div key={outfit.id} style={{
-                flexShrink: 0, width: 155, borderRadius: 18, overflow: 'hidden',
-                background: '#0A0A0F', position: 'relative',
-                border: isEquipped ? `2px solid ${accent}` : '1.5px solid rgba(255,255,255,0.06)',
-                boxShadow: isEquipped ? `0 0 24px ${accent}40` : '0 4px 20px rgba(0,0,0,0.4)',
-                display: 'flex', flexDirection: 'column',
-              }}>
-                {/* Video area */}
-                <div style={{ width: '100%', aspectRatio: '9 / 14', position: 'relative', overflow: 'hidden', background: '#000' }}>
-                  {/* Radial accent glow behind video */}
-                  <div style={{
-                    position: 'absolute', inset: 0, zIndex: 0,
-                    background: `radial-gradient(ellipse at 50% 55%, ${accent}20 0%, transparent 65%)`,
-                  }} />
-                  {/* Loop video */}
-                  {outfit.loopVideoUrl ? (
-                    <video
-                      src={outfit.loopVideoUrl}
-                      muted autoPlay loop playsInline
-                      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center', zIndex: 1 }}
-                    />
-                  ) : outfit.introVideoUrl ? (
-                    <video
-                      src={outfit.introVideoUrl}
-                      muted autoPlay loop playsInline
-                      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center', zIndex: 1 }}
-                    />
-                  ) : null}
-                  {/* Lock overlay */}
-                  {!isUnlocked && (
-                    <div style={{
-                      position: 'absolute', inset: 0, zIndex: 3,
-                      background: 'rgba(0,0,0,0.55)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
-                      <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Lock size={16} color="#9ca3af" />
-                      </div>
-                    </div>
-                  )}
-                  {/* Equipped badge */}
-                  {isEquipped && (
-                    <div style={{
-                      position: 'absolute', top: 8, right: 8, zIndex: 4,
-                      padding: '3px 8px', borderRadius: 6,
-                      background: accent, fontSize: 8, fontWeight: 900, color: '#000',
-                      boxShadow: `0 0 10px ${accent}80`,
-                      letterSpacing: '0.05em',
-                    }}>✓ EQUIPPED</div>
-                  )}
-                  {/* Bottom gradient */}
-                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '45%', background: 'linear-gradient(transparent, #0A0A0F)', zIndex: 2 }} />
-                </div>
-                {/* Info + Buttons */}
-                <div style={{ padding: '10px 12px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {/* Name + Tier */}
-                  <div>
-                    <div style={{
-                      display: 'inline-block', padding: '2px 7px', borderRadius: 5, marginBottom: 4,
-                      background: `${accent}1a`, border: `1px solid ${accent}40`,
-                      fontSize: 8, fontWeight: 900, color: accent, letterSpacing: '0.1em',
-                    }}>TIER {outfit.tier}</div>
-                    <div style={{ fontSize: 13, fontWeight: 900, color: '#fff', lineHeight: 1.2 }}>{outfit.name}</div>
-                    <div style={{ fontSize: 10, color: (outfit.id === 'outfit_knight' || outfit.id === 'outfit_monarch') ? '#a855f7' : outfit.cost === 0 ? '#4ade80' : 'rgba(255,255,255,0.45)', fontFamily: 'monospace', fontWeight: 700, marginTop: 2 }}>
-                      {outfit.cost === 0 ? 'FREE' : outfit.id === 'outfit_knight' ? '📺 5 ADS' : outfit.id === 'outfit_monarch' ? '📺 20 ADS' : `${outfit.cost.toLocaleString()} G`}
-                    </div>
-                  </div>
-                  {/* Buttons */}
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    <button onClick={() => setOutfitModalIdx(idx)} style={{
-                      flex: 1, padding: '7px 0', borderRadius: 10, cursor: 'pointer',
-                      background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
-                      color: 'rgba(255,255,255,0.6)', fontSize: 10, fontWeight: 800,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
-                    }}>
-                      <Eye size={11} /> View
-                    </button>
-                    {isUnlocked ? (
-                      <button onClick={() => wardrobeOnEquip?.(outfit.id)} disabled={isEquipped} style={{
-                        flex: 1, padding: '7px 0', borderRadius: 10, cursor: isEquipped ? 'default' : 'pointer',
-                        background: isEquipped ? 'rgba(255,255,255,0.04)' : `linear-gradient(135deg, ${accent}, ${accent}cc)`,
-                        border: 'none',
-                        color: isEquipped ? 'rgba(255,255,255,0.3)' : '#000',
-                        fontSize: 10, fontWeight: 900,
-                        boxShadow: isEquipped ? 'none' : `0 0 12px ${accent}40`,
-                      }}>
-                        {isEquipped ? '✓' : 'EQUIP'}
-                      </button>
-                    ) : (
-                      <button onClick={() => setOutfitModalIdx(idx)} style={{
-                        flex: 1, padding: '7px 0', borderRadius: 10, cursor: 'pointer',
-                        background: (outfit.id === 'outfit_knight' || outfit.id === 'outfit_monarch')
-                          ? 'linear-gradient(135deg, #a855f7cc, #7c3aed)'
-                          : 'linear-gradient(135deg, #fbbf24cc, #eab308)',
-                        border: 'none',
-                        color: (outfit.id === 'outfit_knight' || outfit.id === 'outfit_monarch') ? '#fff' : '#000',
-                        fontSize: 10, fontWeight: 900,
-                        boxShadow: (outfit.id === 'outfit_knight' || outfit.id === 'outfit_monarch')
-                          ? '0 0 12px rgba(168,85,247,0.3)'
-                          : '0 0 12px rgba(234,179,8,0.3)',
-                      }}>
-                        {(outfit.id === 'outfit_knight' || outfit.id === 'outfit_monarch') ? '▶ ADS' : 'BUY'}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* ── OUTFIT DETAIL MODAL ── */}
-      {outfitModalIdx !== null && (
-        <Suspense fallback={null}>
-          <OutfitPurchaseModal
-            outfit={(wardrobeOutfits && wardrobeOutfits.length > 0 ? wardrobeOutfits : OUTFITS)[outfitModalIdx]}
-            gold={wardrobeGold ?? gold}
-            isUnlocked={(wardrobeUnlockedOutfits || ['outfit_starter']).includes(
-              (wardrobeOutfits && wardrobeOutfits.length > 0 ? wardrobeOutfits : OUTFITS)[outfitModalIdx]?.id
-            )}
-            onPurchase={(o) => { wardrobeOnPurchase?.(o); setOutfitModalIdx(null); }}
-            onEquip={(id) => { wardrobeOnEquip?.(id); setOutfitModalIdx(null); }}
-            onClose={() => setOutfitModalIdx(null)}
-            adProgress={adProgress[(wardrobeOutfits && wardrobeOutfits.length > 0 ? wardrobeOutfits : OUTFITS)[outfitModalIdx]?.id] || null}
-            /* ADS DISABLED — onWatchAd prop removed from OutfitPurchaseModal */
-          />
-        </Suspense>
-      )}
 
       {/* ═══════════════════════════════════════════
            ⬇️ MORE (Items / Badges) — expandable
@@ -1500,6 +1882,9 @@ const ShopView: React.FC<ShopViewProps> = ({
           }}
           playerAvatarUrl={playerAvatarUrl}
           discount={kitInfoDiscount}
+          adProgress={adProgress[kitInfoItem.id] || null}
+          onWatchAd={kitInfoItem.adUnlock ? () => handleWatchAdForBorder(kitInfoItem) : undefined}
+          watchingAd={watchingItemId === kitInfoItem.id}
         />
       )}
 
@@ -1592,9 +1977,9 @@ const ShopView: React.FC<ShopViewProps> = ({
                     }
                     try {
                       const headers = getPlayerAuthHeaders();
-                      const resp = await fetch(`${API_BASE}/api/inventory/purchase`, {
+                      const resp = await authenticatedFetch(`${API_BASE}/api/inventory/purchase`, {
                         method: 'POST', headers: { 'Content-Type': 'application/json', ...headers },
-                        credentials: 'include', body: JSON.stringify({ itemId: item.id, itemType: item.category, price: confirmPurchaseDiscount > 0 ? Math.round(item.price * (1 - confirmPurchaseDiscount / 100)) : item.price }),
+                        body: JSON.stringify({ itemId: item.id, itemType: item.category, price: confirmPurchaseDiscount > 0 ? Math.round(item.price * (1 - confirmPurchaseDiscount / 100)) : item.price }),
                       });
                       if (!resp.ok) {
                         const errData = await resp.json().catch(() => ({}));
@@ -1764,11 +2149,13 @@ const KIT_CAT_COLORS: Record<string, string> = {
   border: '#00d4ff', theme: '#8B5CF6', deals: '#F59E0B', banner: '#06B6D4', consumable: '#22C55E', title: '#F59E0B',
 };
 
-const KitGlowCard = React.memo(function KitGlowCard({ item, discount, owned, equipped, canAfford, onBuy, onInsufficientFunds, onEquip, onInfo, onView, onCardClick, dealColor, adProgress }: {
+const KitGlowCard = React.memo(function KitGlowCard({ item, discount, owned, equipped, canAfford, onBuy, onInsufficientFunds, onEquip, onInfo, onView, onCardClick, dealColor, adProgress, onWatchAd, watchingAd }: {
   item: KitStoreItem; discount?: number; owned?: boolean; equipped?: boolean;
   canAfford: boolean; onBuy: () => void; onInsufficientFunds?: () => void; onEquip?: () => void; onInfo?: () => void; onView?: () => void;
   onCardClick?: () => void; dealColor?: string;
   adProgress?: { adsWatched: number; adsRequired: number; unlocked: boolean } | null;
+  onWatchAd?: () => void;
+  watchingAd?: boolean;
 }) {
   const catColor = item.tierColor || dealColor || KIT_CAT_COLORS[item.category] || '#00d4ff';
   const finalPrice = discount ? Math.round(item.price * (1 - discount / 100)) : item.price;
@@ -1872,8 +2259,8 @@ const KitGlowCard = React.memo(function KitGlowCard({ item, discount, owned, equ
               const scale = item.imageScale || 1;
               const baseSize = 72;
               const containerSize = Math.min(Math.round(baseSize * scale), 105);
-              const pfpSize = Math.round(42 * (item.imagePfpScale || 1));
-              const svgSize = Math.round(30 * (item.imagePfpScale || 1));
+              const pfpSize = 42;
+              const svgSize = 30;
               return (
                 <div style={{ position: 'relative', width: containerSize, height: containerSize, flexShrink: 0, overflow: 'hidden' }}>
                   {/* Avatar silhouette */}
@@ -1891,11 +2278,11 @@ const KitGlowCard = React.memo(function KitGlowCard({ item, discount, owned, equ
                 const baseSize = 96;
                 // Container grows with scale so the border actually appears bigger
                 const containerSize = Math.min(Math.round(baseSize * scale), 140);
-                const pfpSize = Math.round(56 * (item.imagePfpScale || 1));
-                const svgSize = Math.round(40 * (item.imagePfpScale || 1));
+                const pfpSize = 56;
+                const svgSize = 40;
                 return (
                   <div style={{ position: 'relative', width: containerSize, height: containerSize, flexShrink: 0, overflow: 'hidden' }}>
-                    {/* Avatar silhouette — scales per item via imagePfpScale */}
+                    {/* Avatar silhouette — fixed size for all borders */}
                     <div style={{ position: 'absolute', top: '50%', left: '50%', width: pfpSize, height: pfpSize, borderRadius: '50%', background: 'radial-gradient(circle, #3a3a4a, #1a1a24)', transform: 'translate(-50%, -50%)', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                       <svg width={svgSize} height={svgSize} viewBox="0 0 40 40"><circle cx="20" cy="16" r="7" fill="#555568" /><ellipse cx="20" cy="35" rx="13" ry="10" fill="#4a4a5a" /></svg>
                     </div>
@@ -1958,9 +2345,55 @@ const KitGlowCard = React.memo(function KitGlowCard({ item, discount, owned, equ
               ) : (
                 <span style={{ fontSize: 11, fontWeight: 700, color: '#22C55E' }}>✓ Owned</span>
               )
-            ) : /* ADS DISABLED — ad-gated items now show as gold purchasable */ item.adUnlock ? (
-              /* ── Previously ad-gated item: show as locked/coming soon ── */
-              <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(168,85,247,0.6)', fontFamily: 'monospace', letterSpacing: '0.05em' }}>🔒 COMING SOON</span>
+            ) : item.adUnlock && !(adProgress?.unlocked) ? (
+              /* ── Ad-gated item: Watch ads to unlock ── */
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, width: '100%' }}>
+                <div style={{ fontSize: 9, fontWeight: 800, color: 'rgba(168,85,247,0.8)', fontFamily: 'monospace', letterSpacing: '0.05em' }}>
+                  {adProgress?.adsWatched ?? 0} / {adProgress?.adsRequired ?? item.adsRequired ?? 5} ADS
+                </div>
+                {/* Mini progress bar */}
+                <div style={{ display: 'flex', gap: 2, width: '80%' }}>
+                  {Array.from({ length: adProgress?.adsRequired ?? item.adsRequired ?? 5 }).map((_, i) => (
+                    <div key={i} style={{
+                      flex: 1, height: 3, borderRadius: 2,
+                      background: i < (adProgress?.adsWatched ?? 0) ? '#a855f7' : 'rgba(255,255,255,0.08)',
+                      transition: 'all 0.3s',
+                    }} />
+                  ))}
+                </div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); if (!watchingAd) onWatchAd?.(); }}
+                  disabled={!!watchingAd}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                    padding: '6px 16px', borderRadius: 16,
+                    cursor: watchingAd ? 'wait' : 'pointer',
+                    background: watchingAd ? 'rgba(168,85,247,0.4)' : 'linear-gradient(135deg, #a855f7, #7c3aed)',
+                    border: 'none',
+                    color: '#fff',
+                    fontSize: 10, fontWeight: 900, letterSpacing: '0.05em',
+                    boxShadow: watchingAd ? 'none' : '0 0 12px rgba(168,85,247,0.35)',
+                    opacity: watchingAd ? 0.7 : 1,
+                  }}
+                >
+                  {watchingAd ? <>⏳ Loading...</> : <><Play size={10} /> Watch Ad</>}
+                </button>
+              </div>
+            ) : item.adUnlock && adProgress?.unlocked ? (
+              /* ── Ad-gated item: Unlocked — show equip ── */
+              <button
+                onClick={(e) => { e.stopPropagation(); onEquip?.(); }}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 4,
+                  padding: '8px 24px', border: 'none', cursor: 'pointer', borderRadius: 20,
+                  background: 'linear-gradient(135deg, #22C55E, #16A34A)',
+                  color: '#000', fontSize: 11, fontWeight: 800, letterSpacing: 0.5,
+                  boxShadow: '0 0 14px rgba(34,197,94,0.4)',
+                  transition: 'all 0.2s',
+                }}
+              >
+                EQUIP
+              </button>
             ) : (
               <button onClick={(e) => { e.stopPropagation(); if (canAfford) { onBuy(); } else if (onInsufficientFunds) { onInsufficientFunds(); } }} style={{
                 display: 'inline-flex', alignItems: 'center', gap: 4,
@@ -2072,12 +2505,15 @@ function KitThemePreviewModal({ item, onClose }: { item: KitStoreItem; onClose: 
 /* ═══════════════════════════════════
    KitBorderPreviewModal
    ═══════════════════════════════════ */
-function KitBorderPreviewModal({ item, onClose, owned, equipped, canAfford, onBuy, onEquip, playerAvatarUrl, discount }: {
+function KitBorderPreviewModal({ item, onClose, owned, equipped, canAfford, onBuy, onEquip, playerAvatarUrl, discount, adProgress, onWatchAd, watchingAd }: {
   item: KitStoreItem; onClose: () => void;
   owned?: boolean; equipped?: boolean; canAfford?: boolean;
   onBuy?: () => void; onEquip?: () => void;
   playerAvatarUrl?: string | null;
   discount?: number;
+  adProgress?: { adsWatched: number; adsRequired: number; unlocked: boolean } | null;
+  onWatchAd?: () => void;
+  watchingAd?: boolean;
 }) {
   const glow = item.borderConfig?.glowColor || item.auraConfig?.colors?.[0] || '#C8A84E';
 
@@ -2086,16 +2522,14 @@ function KitBorderPreviewModal({ item, onClose, owned, equipped, canAfford, onBu
   // This prevents the double-scaling bug where high-scale borders (1.7x+) got
   // their container shrunk AND their image re-scaled, causing visual breakage.
   // The card thumbnails (KitGlowCard) use a separate formula and are NOT affected.
-  const scale = item.imageScale || 1;
-  const pfpFactor = item.imagePfpScale || 1;
+  const scale = (item.imageScale || 1) * 0.8; // 20% reduction for concentric fit in preview
 
   // Fixed container — same for ALL borders (no per-item container resizing)
   const size = 200;
   const wrapperSize = size + 60;
-  // PFP scales down inversely with border scale so larger borders don't dwarf the avatar
-  const pfpPct = 0.52 / Math.max(scale, 1);
-  const pfpSize = Math.max(size * pfpPct * pfpFactor, 70);
-  const svgPx = Math.round(pfpSize * 0.7);
+  // PFP is a FIXED size — never changes per border
+  const pfpSize = 104;
+  const svgPx = 73;
 
   return ReactDOM.createPortal(
     <div onClick={onClose} style={{
@@ -2189,6 +2623,39 @@ function KitBorderPreviewModal({ item, onClose, owned, equipped, canAfford, onBu
             ) : (
               <span style={{ fontSize: 13, fontWeight: 700, color: '#22C55E' }}>✓ Owned</span>
             )
+          ) : item.adUnlock && !(adProgress?.unlocked) ? (
+            /* ── Ad-gated item: Watch ads to unlock (no crystal price) ── */
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, width: '100%' }}>
+              <div style={{ fontSize: 11, fontWeight: 800, color: 'rgba(168,85,247,0.85)', fontFamily: 'monospace', letterSpacing: '0.08em' }}>
+                {adProgress?.adsWatched ?? 0} / {adProgress?.adsRequired ?? item.adsRequired ?? 5} ADS
+              </div>
+              <div style={{ display: 'flex', gap: 4, width: '70%' }}>
+                {Array.from({ length: adProgress?.adsRequired ?? item.adsRequired ?? 5 }).map((_, i) => (
+                  <div key={i} style={{
+                    flex: 1, height: 4, borderRadius: 2,
+                    background: i < (adProgress?.adsWatched ?? 0) ? '#a855f7' : 'rgba(255,255,255,0.08)',
+                    transition: 'all 0.3s',
+                  }} />
+                ))}
+              </div>
+              <button
+                onClick={(e) => { e.stopPropagation(); if (!watchingAd) onWatchAd?.(); }}
+                disabled={!!watchingAd}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 8,
+                  padding: '12px 32px', borderRadius: 14,
+                  cursor: watchingAd ? 'wait' : 'pointer',
+                  background: watchingAd ? 'rgba(168,85,247,0.4)' : 'linear-gradient(135deg, #a855f7, #7c3aed)',
+                  border: 'none',
+                  color: '#fff', fontSize: 14, fontWeight: 900, letterSpacing: '0.05em',
+                  boxShadow: watchingAd ? 'none' : '0 0 16px rgba(168,85,247,0.45)',
+                  opacity: watchingAd ? 0.7 : 1,
+                  transition: 'all 0.2s',
+                }}
+              >
+                {watchingAd ? <>⏳ Loading Ad...</> : <><Play size={14} /> Watch Ad</>}
+              </button>
+            </div>
           ) : onBuy ? (
             <button onClick={onBuy} disabled={!canAfford} style={{
               display: 'inline-flex', alignItems: 'center', gap: 8,

@@ -157,17 +157,21 @@ export function useSensors(userId: string = 'local') {
 
     try {
       // Motion plugin doesn't have a formal permission API on web,
-      // but on Android ACTIVITY_RECOGNITION is requested at runtime via the OS
-      // We'll try to read a single event to trigger the permission dialog
-      await new Promise<void>((resolve, reject) => {
-        const timeout = setTimeout(() => { resolve(); }, 2000);
-        Motion.addListener('accel', () => {
-          clearTimeout(timeout);
-          resolve();
-        }).catch(() => { clearTimeout(timeout); resolve(); });
-        // Remove after first event
-        setTimeout(() => { Motion.removeAllListeners(); }, 2100);
-      });
+      // but on Android ACTIVITY_RECOGNITION is requested at runtime via the OS.
+      // We trigger the permission dialog by registering a temporary listener,
+      // then remove ONLY that handle (never call Motion.removeAllListeners()
+      // globally — that would yank listeners owned by other useSensors callers).
+      let probeHandle: any = null;
+      try {
+        probeHandle = await Motion.addListener('accel', () => {});
+      } catch { probeHandle = null; }
+      // Wait briefly for the OS dialog to settle, then drop our handle.
+      await new Promise<void>((resolve) => setTimeout(resolve, 800));
+      try {
+        if (probeHandle && typeof probeHandle.remove === 'function') {
+          await probeHandle.remove();
+        }
+      } catch { /* listener may already be gone */ }
       motionGranted = true;
     } catch {
       motionGranted = false;
@@ -196,12 +200,20 @@ export function useSensors(userId: string = 'local') {
 
   const startTracking = useCallback(async (
     questId: string,
-    requirements?: SensorRequirements
+    requirements?: SensorRequirements,
+    options?: { freshStart?: boolean }
   ): Promise<boolean> => {
     if (tracking) return false;
 
+    // freshStart=true wipes any persisted snapshot for this questId so the
+    // session starts at zero. Used by the dungeon run so leftover distance
+    // from a previous session never bleeds into the new one.
+    if (options?.freshStart) {
+      clearSession(questId, userId);
+    }
+
     // Try to resume an existing session
-    const existing = loadSession(questId, userId);
+    const existing = options?.freshStart ? null : loadSession(questId, userId);
     const now = Date.now();
     const initial: SensorSnapshot = existing || {
       stepsRecorded: 0,
@@ -235,7 +247,7 @@ export function useSensors(userId: string = 'local') {
         const needsFullTracking = !!(requirements?.steps || requirements?.distanceKm);
         const mode = needsFullTracking ? 'FULL' : 'TIME_ONLY';
 
-        await NativeTracking.start({
+        const startResp = await NativeTracking.start({
           questId,
           mode,
           reqSteps: requirements?.steps || 0,
@@ -248,8 +260,17 @@ export function useSensors(userId: string = 'local') {
           startedAt: initial.startedAt,
         });
 
-        // Poll native service for updates every 3 seconds
-        nativePollingTimer.current = setInterval(async () => {
+        // Native plugin can refuse the start (Android 14+ missing FGS permission,
+        // Android 12+ background restriction, etc). When that happens it returns
+        // `started: false` instead of throwing — we honour that and fall back to
+        // the WebView geolocation/motion path below.
+        if (!startResp || (startResp as any).started === false) {
+          console.warn('[Sensors] Native start refused — falling back to WebView path');
+          // Fall through to the WebView fallback below — don't return early.
+        } else {
+          // Native succeeded — set up the polling loop and return.
+          // Poll native service for updates every 3 seconds
+          nativePollingTimer.current = setInterval(async () => {
           if (!isMounted.current || !NativeTracking) return;
           try {
             const snap = await NativeTracking.getSnapshot();
@@ -271,10 +292,11 @@ export function useSensors(userId: string = 'local') {
             snapshotRef.current = updated;
             saveSession(questId, userId, updated);
           } catch { /* ignore polling errors */ }
-        }, 3000);
+          }, 3000);
 
-        console.log('[Sensors] Native tracking started — mode:', mode);
-        return true;
+          console.log('[Sensors] Native tracking started — mode:', mode);
+          return true;
+        }
       } catch (e) {
         console.warn('[Sensors] Native tracking failed, falling back to web:', e);
         // Fall through to web-based tracking
@@ -306,19 +328,27 @@ export function useSensors(userId: string = 'local') {
               const segmentKm = haversineKm(lastLat, lastLng, latitude, longitude);
               // Improved filters: 10m min (was 3m), 500m max, speed > 0.5 m/s
               const segmentM = segmentKm * 1000;
+              
               if (segmentM >= 10 && segmentM < 500) {
                 // Ignore standing-still drift
                 if (speed !== null && speed >= 0.5) {
                   dist += segmentKm;
+                  path.push([latitude, longitude]);
                 } else if (speed === null) {
                   dist += segmentKm; // No speed data, trust distance
+                  path.push([latitude, longitude]);
                 }
+              } else if (segmentM >= 500) {
+                // GPS jump, don't add distance but reset reference point
+                path.push([latitude, longitude]);
               }
+              // If segmentM < 10, we do NOT push to path, so we can accumulate distance over multiple small updates
+            } else {
+              // First point
+              path.push([latitude, longitude]);
             }
 
             if (speedKmh > maxSpd) maxSpd = speedKmh;
-
-            path.push([latitude, longitude]);
             if (path.length > 500) path.splice(0, path.length - 500);
 
             const updated: SensorSnapshot = { ...prev, locationPath: path, distanceRecorded: Math.round(dist * 1000) / 1000, maxSpeedKmh: Math.round(maxSpd * 10) / 10, lastUpdate: Date.now() };
@@ -334,14 +364,21 @@ export function useSensors(userId: string = 'local') {
 
     // Accelerometer for step counting (web fallback only)
     try {
-      motionListener.current = await Motion.addListener('accel', (event) => {
+      motionListener.current = await Motion.addListener('accel', (event: any) => {
         if (!isMounted.current) return;
-        const { x, y, z } = event.acceleration || { x: 0, y: 0, z: 0 };
+        
+        // Capacitor Motion API may provide acceleration (without gravity) or accelerationIncludingGravity
+        const hasGravity = !!event.accelerationIncludingGravity;
+        const accel = event.accelerationIncludingGravity || event.acceleration || { x: 0, y: 0, z: 0 };
+        const { x, y, z } = accel;
         const mag = Math.sqrt(x * x + y * y + z * z);
+        
         const now = Date.now();
         const ss = stepState.current;
 
-        const THRESHOLD = 11.8;
+        // If it includes gravity, base magnitude is ~9.8, so threshold is ~11.5 (approx +1.7 m/s^2)
+        // If it excludes gravity, base magnitude is 0, so threshold is ~2.5 m/s^2
+        const THRESHOLD = hasGravity ? 11.5 : 2.5;
         const MIN_STEP_INTERVAL = 300;
 
         if (mag > THRESHOLD && ss.lastMag <= THRESHOLD && now - ss.lastPeakTime > MIN_STEP_INTERVAL) {
@@ -413,8 +450,7 @@ export function useSensors(userId: string = 'local') {
     }
 
     if (motionListener.current) {
-      motionListener.current.remove?.();
-      Motion.removeAllListeners().catch(() => {});
+      try { await motionListener.current.remove?.(); } catch { /* ignore */ }
       motionListener.current = null;
     }
 
@@ -499,11 +535,22 @@ export function useSensors(userId: string = 'local') {
       if (geoWatchId.current) {
         Geolocation.clearWatch({ id: geoWatchId.current }).catch(() => {});
       }
-      Motion.removeAllListeners().catch(() => {});
+      // Remove only our own motion listener (never call removeAllListeners
+      // globally — that would yank handles owned by other useSensors callers).
+      if (motionListener.current) {
+        try { motionListener.current.remove?.(); } catch { /* ignore */ }
+        motionListener.current = null;
+      }
       if (activeMinutesTimer.current) clearInterval(activeMinutesTimer.current);
       if (nativePollingTimer.current) clearInterval(nativePollingTimer.current);
     };
   }, []);
+
+  // Hand-clear stored session for a questId without touching tracking state.
+  // Useful when a caller wants to guarantee a fresh start before startTracking.
+  const clearStoredSession = useCallback((questId: string) => {
+    clearSession(questId, userId);
+  }, [userId]);
 
   return {
     // State
@@ -518,6 +565,7 @@ export function useSensors(userId: string = 'local') {
     startTracking,
     stopTracking,
     finalizeTracking,
+    clearStoredSession,
     validateCompletion,
   };
 }

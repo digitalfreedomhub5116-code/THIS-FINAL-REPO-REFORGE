@@ -4,7 +4,7 @@ import { X, Loader2, Target, AlertTriangle, ChevronRight, CheckCircle, Shield, C
 import { Goal, GoalInterviewQuestion, GoalMilestone, PlayerData, Rank } from '../types';
 import { playSystemSoundEffect, triggerHaptic } from '../utils/soundEngine';
 import { API_BASE } from '../lib/apiConfig';
-import { getPlayerAuthHeaders } from '../lib/playerApi';
+import { getPlayerAuthHeaders, authenticatedFetch } from '../lib/playerApi';
 
 const RANK_COLORS: Record<string, string> = {
   E: '#9ca3af', D: '#fb923c', C: '#facc15', B: '#4ade80', A: '#00d4ff', S: '#33dfff',
@@ -55,6 +55,120 @@ interface GoalCreationFlowProps {
 }
 
 type Step = 'INPUT' | 'ANALYZING' | 'INTERVIEW' | 'PLANNING' | 'REVIEW' | 'ERROR';
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  MODULE-LEVEL GOAL-PLAN STORE (Task 11 add-on)
+//
+//  Mirrors the pattern used by GoalDetailView for daily-quest generation.
+//  When the user picks "Continue in Background" after the interview step,
+//  we kick off `startGoalPlanGeneration` which fetches /api/goals/plan
+//  independently of the modal lifecycle. App.tsx listens for DONE/ERROR
+//  events and patches the placeholder goal in player.goals.
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface GoalPlanStore {
+  state: 'IDLE' | 'PLANNING' | 'DONE' | 'ERROR';
+  /** ID of the placeholder goal created when the user clicked "Continue in Background". */
+  tempGoalId: string | null;
+  /** The full plan payload returned from /api/goals/plan once DONE. */
+  payload: {
+    goalRank?: string;
+    successProbability?: number;
+    dailyCommitmentMinutes?: number;
+    totalDurationDays?: number;
+    smartDurationReasoning?: string;
+    weeklyRestDay?: string;
+    riskFactors?: string[];
+    reasoning?: string;
+    milestones?: GoalMilestone[];
+  } | null;
+  error: string | null;
+}
+
+const _goalPlanStore: GoalPlanStore = {
+  state: 'IDLE',
+  tempGoalId: null,
+  payload: null,
+  error: null,
+};
+
+const _goalPlanListeners = new Set<(s: GoalPlanStore) => void>();
+
+export function onGoalPlanStoreUpdate(cb: (s: GoalPlanStore) => void): () => void {
+  _goalPlanListeners.add(cb);
+  return () => { _goalPlanListeners.delete(cb); };
+}
+
+export function getGoalPlanStore(): GoalPlanStore {
+  return { ..._goalPlanStore };
+}
+
+function updateGoalPlanStore(patch: Partial<GoalPlanStore>) {
+  Object.assign(_goalPlanStore, patch);
+  const snapshot = { ..._goalPlanStore };
+  _goalPlanListeners.forEach(cb => cb(snapshot));
+}
+
+/**
+ * Kick off background generation of the goal plan. Returns immediately;
+ * subscribers via onGoalPlanStoreUpdate receive DONE / ERROR transitions.
+ */
+export function startGoalPlanGeneration(params: {
+  tempGoalId: string;
+  goalText: string;
+  category: string;
+  estimatedDurationDays: number;
+  interviewAnswers: Array<{ question: string; answer: any }>;
+  playerStats?: any;
+  healthProfile?: any;
+  otherGoals?: Array<{ title: string; dailyCommitmentMin: number }>;
+  timezone?: string;
+}): void {
+  if (_goalPlanStore.state === 'PLANNING') {
+    // Don't fire two in parallel — bail silently.
+    return;
+  }
+
+  updateGoalPlanStore({
+    state: 'PLANNING',
+    tempGoalId: params.tempGoalId,
+    payload: null,
+    error: null,
+  });
+
+  authenticatedFetch(`${API_BASE}/api/goals/plan`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
+    body: JSON.stringify({
+      goalText: params.goalText,
+      category: params.category,
+      estimatedDurationDays: params.estimatedDurationDays,
+      interviewAnswers: params.interviewAnswers,
+      playerStats: params.playerStats,
+      healthProfile: params.healthProfile,
+      otherGoals: params.otherGoals || [],
+      timezone: params.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+    }),
+  })
+    .then(async (res) => {
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({} as any));
+        throw new Error(errData.error || `Plan generation failed (HTTP ${res.status})`);
+      }
+      const data = await res.json();
+      updateGoalPlanStore({ state: 'DONE', payload: data, error: null });
+    })
+    .catch((err: any) => {
+      console.error('[GoalCreation] Background plan failed:', err);
+      updateGoalPlanStore({
+        state: 'ERROR',
+        payload: null,
+        error: friendlyError(err?.message || 'Plan generation failed.'),
+      });
+    });
+}
+
+
 
 // Sanitize raw server/network errors into user-friendly messages
 function friendlyError(raw: string): string {
@@ -140,10 +254,9 @@ export default function GoalCreationFlow({
     playSystemSoundEffect('SYSTEM');
 
     try {
-      const res = await fetch(`${API_BASE}/api/goals/analyze`, {
+      const res = await authenticatedFetch(`${API_BASE}/api/goals/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
-        credentials: 'include',
         body: JSON.stringify({
           goalText: goalText.trim(),
           playerStats: playerData?.stats,
@@ -197,10 +310,9 @@ export default function GoalCreationFlow({
     playSystemSoundEffect('SYSTEM');
 
     try {
-      const res = await fetch(`${API_BASE}/api/goals/plan`, {
+      const res = await authenticatedFetch(`${API_BASE}/api/goals/plan`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
-        credentials: 'include',
         body: JSON.stringify({
           goalText: goalText.trim(),
           category,
@@ -228,9 +340,102 @@ export default function GoalCreationFlow({
     }
   }, [questions, goalText, category, estimatedDays, playerData, existingGoals]);
 
+  // ── Step 2-alt: Continue in Background ──
+  // Creates a placeholder goal immediately so the card appears in the goals
+  // section, kicks off /api/goals/plan in the background, and closes the modal.
+  // App.tsx's onGoalPlanStoreUpdate listener patches the placeholder when DONE.
+  const handleContinueInBackground = useCallback(() => {
+    const unanswered = questions.filter(q => {
+      const val = q.answer ?? q.prefilled;
+      return val === null || val === undefined || val === '';
+    });
+    if (unanswered.length > 0) {
+      setError('Please answer all questions before proceeding.');
+      return;
+    }
+
+    // Equipment extraction (fitness goals only) — same logic as handleAcceptMission
+    let equipment: 'GYM' | 'HOME_DUMBBELLS' | 'BODYWEIGHT' | undefined;
+    if (category === 'FITNESS') {
+      const eqQ = questions.find(q =>
+        String(q.id) === 'equipment' || /equipment/i.test(q.question || '')
+      );
+      const ans = String(eqQ?.answer ?? eqQ?.prefilled ?? '').toLowerCase();
+      if (ans.includes('gym')) equipment = 'GYM';
+      else if (ans.includes('dumbbell') || ans.includes('home')) equipment = 'HOME_DUMBBELLS';
+      else equipment = 'BODYWEIGHT';
+    }
+
+    const now = Date.now();
+    const tempId = `goal-pending-${now}-${Math.random().toString(36).slice(2, 8)}`;
+
+    // Build placeholder goal with the bare minimum so the card can render.
+    // estimatedDurationDays is the analyst's first-pass estimate; it'll be
+    // refined by /api/goals/plan and merged in by App.tsx when DONE.
+    const placeholderGoal: Goal = {
+      id: tempId,
+      userId: playerData?.userId,
+      title: goalText.trim(),
+      category: category as any,
+      goalRank: 'D' as Rank, // provisional — refined by plan
+      successProbability: 0,
+      status: 'ACTIVE',
+      milestones: [],
+      currentMilestone: 0,
+      interviewQA: questions,
+      dailyCommitmentMin: 0,
+      totalDurationDays: estimatedDays || 30,
+      smartDurationReasoning: '',
+      weeklyRestDay: 'Sunday',
+      riskFactors: [],
+      reasoning: '',
+      startDate: now,
+      targetDate: now + (estimatedDays || 30) * 24 * 60 * 60 * 1000,
+      streak: 0,
+      dailyTasks: [],
+      createdAt: now,
+      isPlanning: true, // shows the "forging" skeleton card
+      ...(equipment ? { equipment } : {}),
+    };
+
+    // Inject placeholder + close modal
+    onGoalCreated(placeholderGoal);
+
+    // Kick off background generation
+    startGoalPlanGeneration({
+      tempGoalId: tempId,
+      goalText: goalText.trim(),
+      category,
+      estimatedDurationDays: estimatedDays,
+      interviewAnswers: questions.map(q => ({ question: q.question, answer: q.answer ?? q.prefilled })),
+      playerStats: playerData?.stats,
+      healthProfile: playerData?.healthProfile,
+      otherGoals: existingGoals.filter(g => g.status === 'ACTIVE').map(g => ({
+        title: g.title,
+        dailyCommitmentMin: g.dailyCommitmentMin,
+      })),
+      timezone: playerData?.timezone,
+    });
+
+    playSystemSoundEffect('SYSTEM');
+  }, [questions, goalText, category, estimatedDays, playerData, existingGoals, onGoalCreated]);
+
   // ── Step 3: Accept Mission ──
   const handleAcceptMission = useCallback(() => {
     if (!planData) return;
+
+    // Extract equipment selection from interview (fitness goals only)
+    let equipment: 'GYM' | 'HOME_DUMBBELLS' | 'BODYWEIGHT' | undefined;
+    if (category === 'FITNESS') {
+      const eqQ = questions.find(q =>
+        String(q.id) === 'equipment' ||
+        /equipment/i.test(q.question || '')
+      );
+      const ans = String(eqQ?.answer ?? eqQ?.prefilled ?? '').toLowerCase();
+      if (ans.includes('gym')) equipment = 'GYM';
+      else if (ans.includes('dumbbell') || ans.includes('home')) equipment = 'HOME_DUMBBELLS';
+      else equipment = 'BODYWEIGHT';
+    }
 
     const now = Date.now();
     const newGoal: Goal = {
@@ -255,6 +460,7 @@ export default function GoalCreationFlow({
       streak: 0,
       dailyTasks: [],
       createdAt: now,
+      ...(equipment ? { equipment } : {}),
     };
 
     playSystemSoundEffect('LEVEL_UP');
@@ -278,90 +484,194 @@ export default function GoalCreationFlow({
         className="w-full max-w-md max-h-[85vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl"
         style={{ background: '#0a0a0f', border: '1px solid rgba(255,255,255,0.06)', marginBottom: 80 }}
       >
-        {/* Header */}
-        <div className="sticky top-0 z-10 flex items-center justify-between px-5 pt-5 pb-3" style={{ background: '#0a0a0f' }}>
-          <div>
-            <h2 className="text-sm font-black text-white uppercase tracking-wider">
-              {step === 'INPUT' && 'New Shadow Mission'}
-              {step === 'ANALYZING' && 'Analyzing Goal...'}
-              {step === 'INTERVIEW' && 'Mission Intel'}
-              {step === 'PLANNING' && 'Generating Plan...'}
-              {step === 'REVIEW' && 'Mission Briefing'}
-              {step === 'ERROR' && 'Mission Rejected'}
-            </h2>
-            <p className="text-[10px] text-gray-600 font-mono mt-0.5">
-              {step === 'INPUT' && 'Define your long-term goal'}
-              {step === 'INTERVIEW' && 'Answer to refine your plan'}
-              {step === 'REVIEW' && 'Review and accept your mission'}
-            </p>
+        {/* Header (hidden for INPUT step — it has its own image hero) */}
+        {step !== 'INPUT' && (
+          <div className="sticky top-0 z-10 flex items-center justify-between px-5 pt-5 pb-3" style={{ background: '#0a0a0f' }}>
+            <div>
+              <h2 className="text-sm font-black text-white uppercase tracking-wider">
+                {step === 'ANALYZING' && 'Analyzing Goal...'}
+                {step === 'INTERVIEW' && 'Mission Intel'}
+                {step === 'PLANNING' && 'Generating Plan...'}
+                {step === 'REVIEW' && 'Mission Briefing'}
+                {step === 'ERROR' && 'Mission Rejected'}
+              </h2>
+              <p className="text-[10px] text-gray-600 font-mono mt-0.5">
+                {step === 'INTERVIEW' && 'Answer to refine your plan'}
+                {step === 'REVIEW' && 'Review and accept your mission'}
+              </p>
+            </div>
+            <button onClick={onClose} className="p-2 rounded-xl hover:bg-white/5 transition-colors">
+              <X className="w-4 h-4 text-gray-500" />
+            </button>
           </div>
-          <button onClick={onClose} className="p-2 rounded-xl hover:bg-white/5 transition-colors">
-            <X className="w-4 h-4 text-gray-500" />
-          </button>
-        </div>
+        )}
 
-        <div className="px-5 pb-6">
+        <div className={step === 'INPUT' ? '' : 'px-5 pb-6'}>
           <AnimatePresence mode="wait">
-            {/* ── INPUT STEP ── */}
+            {/* ── INPUT STEP — IMAGE HERO LAYOUT ── */}
             {step === 'INPUT' && (
-              <motion.div key="input" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-                <div className="mb-4">
-                  <label className="block text-[10px] font-mono text-gray-500 uppercase tracking-wider mb-2">
-                    What do you want to achieve?
-                  </label>
+              <motion.div key="input" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                {/* Hero image — top 60% */}
+                <div style={{
+                  position: 'relative',
+                  width: '100%',
+                  height: 360,
+                  overflow: 'hidden',
+                  borderTopLeftRadius: 24,
+                  borderTopRightRadius: 24,
+                }}>
+                  <img
+                    src="/onboarding/arrow_target.webp"
+                    alt=""
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      objectPosition: 'center 30%',
+                      display: 'block',
+                    }}
+                  />
+                  {/* Shadow fade gradient */}
+                  <div style={{
+                    position: 'absolute', inset: 0,
+                    background: 'linear-gradient(180deg, rgba(10,10,15,0.15) 0%, transparent 35%, rgba(10,10,15,0.6) 75%, #0a0a0f 100%)',
+                    pointerEvents: 'none',
+                  }} />
+                  {/* Floating close button */}
+                  <button
+                    onClick={onClose}
+                    style={{
+                      position: 'absolute', top: 14, right: 14,
+                      width: 36, height: 36,
+                      borderRadius: 12,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: 'rgba(0,0,0,0.55)',
+                      backdropFilter: 'blur(8px)',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <X size={16} color="#fff" />
+                  </button>
+                  {/* Title overlay near bottom of hero */}
+                  <div style={{
+                    position: 'absolute', left: 24, right: 24, bottom: 18,
+                    pointerEvents: 'none',
+                  }}>
+                    <h2 style={{
+                      fontFamily: 'Orbitron, system-ui, sans-serif',
+                      fontSize: 22, fontWeight: 900,
+                      letterSpacing: '0.04em',
+                      color: '#fff',
+                      margin: 0,
+                      textShadow: '0 2px 12px rgba(0,0,0,0.7)',
+                    }}>
+                      FORGE YOUR MISSION
+                    </h2>
+                    <p style={{
+                      fontSize: 12,
+                      color: 'rgba(255,255,255,0.7)',
+                      margin: '4px 0 0 0',
+                      fontWeight: 500,
+                      textShadow: '0 1px 6px rgba(0,0,0,0.7)',
+                    }}>
+                      What do you want to achieve?
+                    </p>
+                  </div>
+                </div>
+
+                {/* Form content below image */}
+                <div style={{ padding: '20px 20px 24px' }}>
                   <textarea
                     value={goalText}
                     onChange={e => { setGoalText(e.target.value); setError(null); }}
-                    placeholder='e.g. "Crack my dream exam" or "Earn ₹1 Lakh/month" or "Get into the best shape of my life"'
+                    placeholder='Lose 10 kg • Crack JEE • Earn ₹1L/mo'
                     maxLength={200}
-                    rows={3}
-                    className="w-full rounded-xl p-3.5 text-white text-sm focus:outline-none transition-all placeholder:text-gray-700 font-mono resize-none"
-                    style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', boxShadow: 'inset 0 1px 4px rgba(0,0,0,0.3)' }}
+                    rows={2}
+                    style={{
+                      width: '100%',
+                      borderRadius: 14,
+                      padding: '14px 16px',
+                      color: '#fff',
+                      fontSize: 15,
+                      fontWeight: 500,
+                      background: 'rgba(255,255,255,0.04)',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      boxShadow: 'inset 0 1px 4px rgba(0,0,0,0.3)',
+                      outline: 'none',
+                      resize: 'none',
+                      fontFamily: 'system-ui, sans-serif',
+                    }}
                     autoFocus
                   />
-                  <div className="flex justify-between mt-1.5 px-0.5">
-                    <span className="text-[9px] text-gray-600 font-mono">7 days – 365 days scope</span>
-                    <span className="text-[9px] text-gray-700 font-mono">{goalText.length}/200</span>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 6, paddingRight: 4 }}>
+                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontFamily: 'monospace' }}>
+                      {goalText.length}/200
+                    </span>
                   </div>
+
+                  {/* Compact tips */}
+                  <div style={{
+                    marginTop: 14,
+                    borderRadius: 12,
+                    padding: 12,
+                    background: 'rgba(255,255,255,0.02)',
+                    border: '1px solid rgba(255,255,255,0.05)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 6,
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>
+                      <Target size={12} color="#00d4ff" style={{ flexShrink: 0 }} />
+                      <span>Be specific — use exact numbers.</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>
+                      <Calendar size={12} color="#00d4ff" style={{ flexShrink: 0 }} />
+                      <span>Achievable within 365 days.</span>
+                    </div>
+                  </div>
+
+                  {error && (
+                    <div style={{
+                      marginTop: 14,
+                      borderRadius: 12,
+                      padding: 12,
+                      background: 'rgba(0,212,255,0.06)',
+                      border: '1px solid rgba(0,212,255,0.15)',
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: 8,
+                    }}>
+                      <AlertTriangle size={14} color="#00d4ff" style={{ flexShrink: 0, marginTop: 2 }} />
+                      <span style={{ fontSize: 11, color: '#d1d5db' }}>{error}</span>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={handleAnalyze}
+                    disabled={goalText.trim().length < 5}
+                    style={{
+                      width: '100%',
+                      marginTop: 16,
+                      padding: '14px 0',
+                      borderRadius: 14,
+                      fontSize: 13,
+                      fontWeight: 900,
+                      letterSpacing: '0.12em',
+                      textTransform: 'uppercase',
+                      border: 'none',
+                      cursor: goalText.trim().length < 5 ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.2s',
+                      background: goalText.trim().length < 5
+                        ? 'rgba(255,255,255,0.05)'
+                        : 'linear-gradient(135deg, #00d4ff, #0099cc)',
+                      color: goalText.trim().length < 5 ? 'rgba(255,255,255,0.3)' : '#000',
+                      boxShadow: goalText.trim().length < 5 ? 'none' : '0 4px 20px rgba(0,212,255,0.3)',
+                    }}
+                  >
+                    Analyze — {KEY_COST} Keys
+                  </button>
                 </div>
-
-                {/* Rules note */}
-                <div className="rounded-xl p-3 mb-4" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
-                  <div className="text-[9px] font-mono text-gray-500 space-y-1">
-                    <div className="flex items-center gap-2">
-                      <Target className="w-3 h-3 text-[#00d4ff] flex-shrink-0" />
-                      <span>Be specific — "Lose 15kg" not "Lose weight"</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-3 h-3 text-[#00d4ff] flex-shrink-0" />
-                      <span>Goals must be achievable within 1 year (365 days)</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Shield className="w-3 h-3 text-[#00d4ff] flex-shrink-0" />
-                      <span>AI will calculate realistic timeline for you</span>
-                    </div>
-                  </div>
-                </div>
-
-                {error && (
-                  <div className="rounded-xl p-3 mb-4 flex items-start gap-2" style={{ background: 'rgba(0,212,255,0.06)', border: '1px solid rgba(0,212,255,0.15)' }}>
-                    <AlertTriangle className="w-3.5 h-3.5 text-[#00d4ff] flex-shrink-0 mt-0.5" />
-                    <span className="text-[10px] text-gray-300 font-mono">{error}</span>
-                  </div>
-                )}
-
-                <button
-                  onClick={handleAnalyze}
-                  disabled={goalText.trim().length < 5}
-                  className={`w-full py-3.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
-                    goalText.trim().length < 5
-                      ? 'bg-white/5 text-gray-600 cursor-not-allowed'
-                      : 'text-black'
-                  }`}
-                  style={goalText.trim().length >= 5 ? { background: 'linear-gradient(135deg, #00d4ff, #00d4ff)' } : undefined}
-                >
-                  Analyze Goal — {KEY_COST} Keys
-                </button>
               </motion.div>
             )}
 
@@ -463,6 +773,22 @@ export default function GoalCreationFlow({
                 >
                   Generate Mission Plan
                 </button>
+
+                {/* ── Continue in Background — fast path for users who don't want to wait ── */}
+                <button
+                  onClick={handleContinueInBackground}
+                  className="w-full mt-2 py-3 rounded-xl text-[11px] font-bold uppercase tracking-widest"
+                  style={{
+                    background: 'transparent',
+                    border: '1px solid rgba(0,212,255,0.25)',
+                    color: 'rgba(0,212,255,0.85)',
+                  }}
+                >
+                  Continue in Background
+                </button>
+                <p className="text-[9px] text-gray-600 font-mono text-center mt-1.5 px-3 leading-snug">
+                  We'll forge your plan in the background. You'll get a notification when it's ready.
+                </p>
               </motion.div>
             )}
 

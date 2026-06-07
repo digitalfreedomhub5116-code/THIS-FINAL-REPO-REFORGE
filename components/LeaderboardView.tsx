@@ -1,20 +1,22 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import Lottie from 'lottie-react';
 import {
   RefreshCw,
-  X, Zap, Flag, AlertTriangle, CheckSquare, Square, Send, Flame, Clock,
+  X, Zap, Flag, AlertTriangle, CheckSquare, Square, Send, Flame, Clock, Trophy, Gift, Coins,
 } from 'lucide-react';
 import { PlayerData, Outfit } from '../types';
 import { API_BASE } from '../lib/apiConfig';
-import { getPlayerAuthHeaders } from '../lib/playerApi';
+import { getPlayerAuthHeaders, authenticatedFetch } from '../lib/playerApi';
 import { useSystem } from '../hooks/useSystem';
 import { playSystemSoundEffect } from '../utils/soundEngine';
-import RankRewardOverlay from './RankRewardOverlay';
+import SeasonRewardOverlay from './SeasonRewardOverlay';
 import { OUTFITS } from '../utils/gameData';
 import OutfitHunterBadge, { OUTFIT_BADGE_CONFIG } from './OutfitHunterBadge';
 import AvatarWithBorder from './AvatarWithBorder';
 import { getItemById } from '../utils/storeItems';
+import { generateNPCsForUser } from '../utils/npcGenerator';
 
 // ── Types ──
 interface LeaderboardEntry {
@@ -52,7 +54,15 @@ interface LeaderboardViewProps {
 }
 
 type TabMode = 'xp' | 'streak';
-type XpMode = 'daily' | 'global';
+
+const GROUP_SIZE = 10;
+
+// ── Chest Reward Config ──
+const CHEST_REWARDS = [
+  { rank: 1, label: '1ST', multiplier: 3, lottie: '/assets/lottie/legendary_chest.json', size: 120, color: '#FFD700', glowColor: 'rgba(255,215,0,0.5)', bgGlow: 'radial-gradient(ellipse at 50% 50%, rgba(255,215,0,0.15) 0%, transparent 70%)' },
+  { rank: 2, label: '2ND', multiplier: 2, lottie: '/assets/lottie/alliance_chest.json', size: 90, color: '#C0C0C0', glowColor: 'rgba(192,192,192,0.4)', bgGlow: 'radial-gradient(ellipse at 50% 50%, rgba(192,192,192,0.1) 0%, transparent 70%)' },
+  { rank: 3, label: '3RD', multiplier: 1.5, lottie: '/assets/lottie/daily_chest.json', size: 70, color: '#CD7F32', glowColor: 'rgba(205,127,50,0.35)', bgGlow: 'radial-gradient(ellipse at 50% 50%, rgba(205,127,50,0.08) 0%, transparent 70%)' },
+];
 
 // ── Constants ──
 const RANK_COLORS: Record<string, string> = {
@@ -93,7 +103,16 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
   const [xpEntries, setXpEntries] = useState<LeaderboardEntry[]>([]);
   const [streakEntries, setStreakEntries] = useState<LeaderboardEntry[]>([]);
   const [activeTab, setActiveTab] = useState<TabMode>('xp');
-  const [xpMode, setXpMode] = useState<XpMode>('daily');
+
+  // Lottie animation data
+  const [chestAnims, setChestAnims] = useState<Record<string, any>>({});
+  useEffect(() => {
+    CHEST_REWARDS.forEach(c => {
+      fetch(c.lottie).then(r => r.json()).then(data => {
+        setChestAnims(prev => ({ ...prev, [c.lottie]: data }));
+      }).catch(() => {});
+    });
+  }, []);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [weekEnd, setWeekEnd] = useState<string | null>(null);
@@ -134,10 +153,9 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
     if (reportChecks.hacking) reasons.push('Hacking');
     if (reportChecks.unusualActivity) reasons.push('Unusual Activity');
     try {
-      await fetch(`${API_BASE}/api/reports`, {
+      await authenticatedFetch(`${API_BASE}/api/reports`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
-        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           reporterUserId: player.userId,
           reporterName: player.username || player.name,
@@ -166,6 +184,61 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
   const [showRewardOverlay, setShowRewardOverlay] = useState(false);
   const rewardCheckedRef = useRef(false);
 
+  // ── Season reward generation logic ──
+  const seasonRewardData = useMemo(() => {
+    if (!pendingReward) return null;
+    const rank = Math.min(pendingReward.rank, 3);
+
+    // #1: EXCLUSIVE borders (premium, streak rewards)
+    const exclusiveBorders = [
+      { name: 'Iron Will', image: '/borders/border-streak-gold.webp' },
+      { name: 'Inferno', image: '/borders/border-streak-inferno.webp' },
+      { name: 'Eternal Flame', image: '/borders/border-streak-eternal.webp' },
+    ];
+
+    // #2: BEASTS borders (dragons, phoenixes)
+    const beastsBorders = [
+      { name: 'Gold Dragon', image: '/borders/border-golddragon.webp' },
+      { name: 'Phoenix Blaze', image: '/borders/border-phoenix.webp' },
+      { name: 'Dragon Coil', image: '/borders/dragon.webp' },
+    ];
+
+    // #3: ELEMENTS borders (ice, nature)
+    const elementsBorders = [
+      { name: 'Ice Crown', image: '/borders/ice-transparent.webp' },
+      { name: 'Silversteel Aegis', image: '/borders/silverrank-Photoroom.webp' },
+    ];
+
+    let borderPool: { name: string; image: string }[];
+    let goldMin: number;
+    let goldMax: number;
+    let keys: number;
+
+    if (rank === 1) {
+      borderPool = exclusiveBorders;
+      goldMin = 3000; goldMax = 5000; keys = 3;
+    } else if (rank === 2) {
+      borderPool = beastsBorders;
+      goldMin = 2000; goldMax = 3000; keys = 2;
+    } else {
+      borderPool = elementsBorders;
+      goldMin = 1000; goldMax = 2000; keys = 1;
+    }
+
+    const border = borderPool[Math.floor(Math.random() * borderPool.length)];
+    // Gold in multiples of 50
+    const goldSteps = Math.floor((goldMax - goldMin) / 50);
+    const goldAmount = goldMin + Math.floor(Math.random() * (goldSteps + 1)) * 50;
+
+    return {
+      rank,
+      borderName: border.name,
+      borderImage: border.image,
+      goldAmount,
+      keys,
+    };
+  }, [pendingReward]);
+
   // Check for unclaimed rank rewards on mount (per-user via API)
   useEffect(() => {
     if (!player.userId || rewardCheckedRef.current) return;
@@ -173,9 +246,8 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
 
     (async () => {
       try {
-        const res = await fetch(
-          `${API_BASE}/api/leaderboard/rewards?userId=${player.userId}`,
-          { credentials: 'include', headers: { ...getPlayerAuthHeaders() } }
+        const res = await authenticatedFetch(
+          `${API_BASE}/api/leaderboard/rewards?userId=${player.userId}`
         );
         if (!res.ok) return;
         const { reward } = await res.json();
@@ -192,8 +264,8 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
     if (showRefresh) setRefreshing(true);
     try {
       const [xpRes, streakRes] = await Promise.all([
-        fetch(`${API_BASE}/api/leaderboard?type=xp&userId=${encodeURIComponent(player.userId || '')}`, { credentials: 'include', headers: { ...getPlayerAuthHeaders() } }),
-        fetch(`${API_BASE}/api/leaderboard?type=streak&userId=${encodeURIComponent(player.userId || '')}`, { credentials: 'include', headers: { ...getPlayerAuthHeaders() } }),
+        authenticatedFetch(`${API_BASE}/api/leaderboard?type=xp&userId=${encodeURIComponent(player.userId || '')}`),
+        authenticatedFetch(`${API_BASE}/api/leaderboard?type=streak&userId=${encodeURIComponent(player.userId || '')}`),
       ]);
       if (xpRes.ok) {
         const xpData = await xpRes.json();
@@ -262,31 +334,88 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, [fetchLeaderboard]);
 
-  // ── Build entries with INSTANT local XP merge ──
-  // When YOU earn XP, your card moves immediately without waiting for server refresh
-  const entries = activeTab === 'xp' ? xpEntries : streakEntries;
+  // ── Build entries with NPC merge ──
+  // Generate NPCs unique to this user, mix with real entries
+  const rawEntries = activeTab === 'xp' ? xpEntries : streakEntries;
+
+  // Generate NPCs (stable for this user + this week)
+  const npcEntries = useMemo(() => {
+    const seedId = player.userId || player.username || 'local-guest';
+    return generateNPCsForUser(seedId, 15) as unknown as LeaderboardEntry[];
+  }, [player.userId, player.username]);
+
+  // Merge real entries + NPCs
+  const entries = useMemo(() => {
+    // Remove ourselves from real entries (we'll re-add as the "me" row)
+    const myId = player.userId || '';
+    const myUsername = (player.username || '').trim().toLowerCase();
+    const realOthers = rawEntries.filter(e => {
+      if (myUsername && (e.username || '').trim().toLowerCase() === myUsername) return false;
+      if (myId && e.supabase_id === myId) return false;
+      return true;
+    });
+
+    // Find ourselves in the raw data
+    const meEntry = rawEntries.find(e =>
+      (myUsername && (e.username || '').trim().toLowerCase() === myUsername) ||
+      (myId && e.supabase_id === myId)
+    );
+
+    if (activeTab === 'xp') {
+      // XP tab: Build a unique league of 10
+      // = me + up to 2 real players + fill with NPCs to reach 10
+      const leagueMembers: LeaderboardEntry[] = [];
+
+      // Add me first (from raw data or synthesize from player object)
+      if (meEntry) {
+        leagueMembers.push(meEntry);
+      } else {
+        leagueMembers.push({
+          player_id: myId,
+          supabase_id: myId,
+          username: player.username || player.name || 'You',
+          name: player.name || player.username || 'You',
+          total_xp: player.totalXp || 0,
+          daily_xp: player.dailyXp || 0,
+          weekly_xp: player.dailyXp || 0,
+          level: player.level || 1,
+          rank: player.rank || 'E',
+          streak: player.streak || 0,
+          avatar_url: null,
+          equipped_outfit_id: 'outfit_starter',
+          equipped_border: null,
+          equipped_banner: null,
+        });
+      }
+
+      // Add up to 2 real players (nearest in XP)
+      const sortedReal = [...realOthers].sort((a, b) => (b.daily_xp || 0) - (a.daily_xp || 0));
+      const realToAdd = sortedReal.slice(0, Math.min(2, sortedReal.length));
+      leagueMembers.push(...realToAdd);
+
+      // Fill remaining slots with NPCs
+      const slotsNeeded = GROUP_SIZE - leagueMembers.length;
+      leagueMembers.push(...npcEntries.slice(0, slotsNeeded));
+
+      return leagueMembers;
+    } else {
+      // Streak tab: all real entries + NPCs mixed in
+      return [...rawEntries, ...npcEntries];
+    }
+  }, [rawEntries, npcEntries, player, activeTab]);
 
   const simulatedEntries: SimEntry[] = useMemo(() => {
     const myPlayerId = player.userId || '';
     const myUsername = (player.username || '').trim().toLowerCase();
 
-    let meIndex = -1;
-    if (myUsername) {
-      meIndex = entries.findIndex(
-        e => (e.username || '').trim().toLowerCase() === myUsername
+    return entries.map((e, i) => {
+      const isMe = !!(
+        (myUsername && (e.username || '').trim().toLowerCase() === myUsername) ||
+        (myPlayerId && e.supabase_id === myPlayerId)
       );
-    }
-    if (meIndex < 0 && myPlayerId) {
-      meIndex = entries.findIndex(
-        e => e.supabase_id === myPlayerId
-      );
-    }
-
-    return [...entries].map((e, i) => {
-      const isMe = i === meIndex;
       let dominanceValue: number;
       if (activeTab === 'xp') {
-        dominanceValue = e.daily_xp || e.weekly_xp || 0; // Always today's XP
+        dominanceValue = e.weekly_xp || e.daily_xp || 0;
       } else {
         dominanceValue = e.streak || 0;
       }
@@ -303,11 +432,22 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
         bannerId: e.equipped_banner || null,
       };
     }).sort((a, b) => b.dominance - a.dominance);
-  }, [entries, player.userId, player.username, activeTab, xpMode]);
+  }, [entries, player.userId, player.username, activeTab]);
 
   const myIndex = simulatedEntries.findIndex(e => e.isMe);
   const globalMyRank = myIndex >= 0 ? myIndex + 1 : 999;
   const myRank = globalMyRank;
+
+  // ── Group-of-10 (XP tab: already a league of 10, Streak: use full list) ──
+  const { groupEntries, groupStart, groupEnd } = useMemo(() => {
+    if (activeTab === 'xp') {
+      // XP tab: entries are already the user's league of 10
+      return { groupEntries: simulatedEntries, groupStart: 1, groupEnd: simulatedEntries.length };
+    }
+    // Streak tab: show top 50
+    const top = simulatedEntries.slice(0, 50);
+    return { groupEntries: top, groupStart: 1, groupEnd: top.length };
+  }, [simulatedEntries, activeTab]);
 
 
   // ── Format XP ──
@@ -345,9 +485,9 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
           <div>
             <h1 className="text-2xl font-black text-white tracking-tight">Leaderboard</h1>
             <div className="text-xs text-gray-400 mt-0.5">
-              {activeTab === 'xp' ? 'Daily XP rankings' : 'Top players by streak'}{myIndex >= 0 ? <span className="text-[#00d4ff] font-bold"> — You're #{myRank}</span> : ''}
+              {activeTab === 'xp' ? 'Your League · Weekly XP' : 'Top players by streak'}{myIndex >= 0 ? <span className="text-[#00d4ff] font-bold"> — #{myRank} overall</span> : ''}
               {activeTab === 'xp' && countdown && (
-                <span className="text-[10px] font-mono text-gray-500 ml-1">· Resets {countdown}</span>
+                <span className="text-[10px] font-mono text-gray-500 ml-1">· Rewards in {countdown}</span>
               )}
             </div>
           </div>
@@ -390,100 +530,167 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
       ) : activeTab === 'xp' && simulatedEntries.length === 0 ? (
         <div className="text-center py-16 px-6">
           <div className="text-3xl mb-3">⚡</div>
-          <div className="text-sm font-black text-white mb-1">No XP Earned Today Yet</div>
+          <div className="text-sm font-black text-white mb-1">No Players Yet</div>
           <div className="text-xs text-gray-500 font-mono">Complete quests to start climbing the leaderboard.</div>
         </div>
       ) : activeTab === 'xp' ? (
         <>
-          {/* ── PODIUM — Medal Style (matches streak tab) ── */}
-          {simulatedEntries.length >= 3 && (
-            <div className="flex items-end justify-center gap-3 px-4 pt-2 pb-6">
-              {/* 2nd place (left) */}
-              {(() => {
-                const e = simulatedEntries[1];
-                return (
-                  <div className="flex flex-col items-center gap-1.5 flex-1 cursor-pointer" onClick={() => setProfileTarget(e)}>
-                    <div className="text-lg">🥈</div>
-                    <AvatarWithBorder avatarUrl={e.avatar_url} borderId={e.equipped_border || null} size={64} />
-                    <div className="text-[11px] font-black text-white truncate max-w-[80px] text-center">
-                      {e.username || e.name}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Zap size={13} className="text-cyan-400" />
-                      <span className="text-sm font-black text-cyan-400">{formatXp(e.dominance)}</span>
-                    </div>
-                  </div>
-                );
-              })()}
-
-              {/* 1st place (center, elevated) */}
-              {(() => {
-                const e = simulatedEntries[0];
-                return (
-                  <div className="flex flex-col items-center gap-1.5 flex-1 -mt-4 cursor-pointer" onClick={() => setProfileTarget(e)}>
-                    <div className="text-2xl">👑</div>
-                    <AvatarWithBorder avatarUrl={e.avatar_url} borderId={e.equipped_border || null} size={80} />
-                    <div className="text-xs font-black text-white truncate max-w-[90px] text-center">
-                      {e.username || e.name}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Zap size={14} className="text-yellow-400" />
-                      <span className="text-base font-black text-yellow-400">{formatXp(e.dominance)}</span>
-                    </div>
-                  </div>
-                );
-              })()}
-
-              {/* 3rd place (right) */}
-              {(() => {
-                const e = simulatedEntries[2];
-                return (
-                  <div className="flex flex-col items-center gap-1.5 flex-1 cursor-pointer" onClick={() => setProfileTarget(e)}>
-                    <div className="text-lg">🥉</div>
-                    <AvatarWithBorder avatarUrl={e.avatar_url} borderId={e.equipped_border || null} size={64} />
-                    <div className="text-[11px] font-black text-white truncate max-w-[80px] text-center">
-                      {e.username || e.name}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Zap size={13} className="text-cyan-400" />
-                      <span className="text-sm font-black text-cyan-400">{formatXp(e.dominance)}</span>
-                    </div>
-                  </div>
-                );
-              })()}
+          {/* ═══ CHEST REWARDS BANNER ═══ */}
+          <div className="mx-4 mb-4 rounded-2xl overflow-hidden" style={{
+            background: 'linear-gradient(180deg, rgba(255,215,0,0.04) 0%, rgba(10,10,15,0.95) 100%)',
+            border: '1px solid rgba(255,215,0,0.12)',
+          }}>
+            {/* Title */}
+            <div className="text-center pt-4 pb-1">
+              <div className="text-[8px] font-mono tracking-[0.3em] uppercase text-gray-500 mb-1">// Weekly Rewards</div>
+              <div className="text-sm font-black text-white tracking-tight">Top 3 Chest Rewards</div>
             </div>
-          )}
 
-          {/* ── REMAINING PLAYERS (4th onward) ── */}
+            {/* 3 Chests — centered: 2nd | 1st (big) | 3rd */}
+            <div className="flex items-end justify-center px-6 pt-2 pb-3" style={{ minHeight: 160 }}>
+              {/* 2nd Place */}
+              <div className="flex flex-col items-center" style={{ width: 100 }}>
+                <div className="relative" style={{ width: CHEST_REWARDS[1].size, height: CHEST_REWARDS[1].size, margin: '0 auto' }}>
+                  <div className="absolute inset-0" style={{ background: CHEST_REWARDS[1].bgGlow }} />
+                  {chestAnims[CHEST_REWARDS[1].lottie] && (
+                    <Lottie animationData={chestAnims[CHEST_REWARDS[1].lottie]} loop={false} autoplay={false} initialSegment={[0, 1]} style={{ width: '100%', height: '100%' }} />
+                  )}
+                </div>
+                <div className="mt-1 px-2 py-0.5 rounded-full text-[8px] font-black tracking-wider" style={{
+                  background: 'rgba(192,192,192,0.12)', border: '1px solid rgba(192,192,192,0.25)', color: '#C0C0C0',
+                }}>
+                  🥈 2ND
+                </div>
+              </div>
+
+              {/* 1st Place (center — BIGGEST, PREMIUM) */}
+              <div className="flex flex-col items-center -mt-4 relative mx-2" style={{ width: 130 }}>
+                {/* Golden halo pulse */}
+                <motion.div
+                  className="absolute rounded-full pointer-events-none"
+                  style={{
+                    width: CHEST_REWARDS[0].size + 30,
+                    height: CHEST_REWARDS[0].size + 30,
+                    top: -12,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    background: 'radial-gradient(circle, rgba(255,215,0,0.12) 0%, transparent 70%)',
+                  }}
+                  animate={{ scale: [1, 1.12, 1], opacity: [0.5, 0.9, 0.5] }}
+                  transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+                />
+                {/* Floating particles */}
+                {[0, 1, 2, 3].map(i => (
+                  <motion.div
+                    key={`p-${i}`}
+                    className="absolute w-1 h-1 rounded-full pointer-events-none"
+                    style={{
+                      background: '#FFD700',
+                      left: `${25 + i * 18}%`,
+                      bottom: `${35 + (i % 2) * 20}%`,
+                      boxShadow: '0 0 6px #FFD700',
+                    }}
+                    animate={{ y: [-2, -16, -2], opacity: [0.7, 0.1, 0.7] }}
+                    transition={{ duration: 2 + i * 0.5, repeat: Infinity, delay: i * 0.35 }}
+                  />
+                ))}
+                <div className="relative" style={{ width: CHEST_REWARDS[0].size, height: CHEST_REWARDS[0].size, margin: '0 auto', filter: 'drop-shadow(0 0 18px rgba(255,215,0,0.35))' }}>
+                  {chestAnims[CHEST_REWARDS[0].lottie] && (
+                    <Lottie animationData={chestAnims[CHEST_REWARDS[0].lottie]} loop={false} autoplay={false} initialSegment={[0, 1]} style={{ width: '100%', height: '100%' }} />
+                  )}
+                </div>
+                <div className="mt-1 px-2.5 py-1 rounded-full text-[9px] font-black tracking-wider" style={{
+                  background: 'linear-gradient(135deg, rgba(255,215,0,0.2), rgba(234,179,8,0.15))',
+                  border: '1px solid rgba(255,215,0,0.4)',
+                  color: '#FFD700',
+                  boxShadow: '0 0 12px rgba(255,215,0,0.2)',
+                }}>
+                  👑 1ST
+                </div>
+              </div>
+
+              {/* 3rd Place */}
+              <div className="flex flex-col items-center" style={{ width: 100 }}>
+                <div className="relative" style={{ width: CHEST_REWARDS[2].size, height: CHEST_REWARDS[2].size, margin: '0 auto' }}>
+                  <div className="absolute inset-0" style={{ background: CHEST_REWARDS[2].bgGlow }} />
+                  {chestAnims[CHEST_REWARDS[2].lottie] && (
+                    <Lottie animationData={chestAnims[CHEST_REWARDS[2].lottie]} loop={false} autoplay={false} initialSegment={[0, 1]} style={{ width: '100%', height: '100%' }} />
+                  )}
+                </div>
+                <div className="mt-1 px-2 py-0.5 rounded-full text-[8px] font-black tracking-wider" style={{
+                  background: 'rgba(205,127,50,0.12)', border: '1px solid rgba(205,127,50,0.25)', color: '#CD7F32',
+                }}>
+                  🥉 3RD
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          {/* ═══ YOUR LEAGUE — GROUP OF 10 ═══ */}
+          <div className="px-4 mb-2 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: 'rgba(0,212,255,0.1)', border: '1px solid rgba(0,212,255,0.2)' }}>
+                <Trophy size={12} className="text-[#00d4ff]" />
+              </div>
+              <div>
+                <span className="text-xs font-black text-white tracking-tight">Your League</span>
+                <span className="text-[9px] font-mono text-gray-500 ml-2">Ranks {groupStart}–{groupEnd}</span>
+              </div>
+            </div>
+            <span className="text-[9px] font-mono text-gray-600">{groupEntries.length} hunters</span>
+          </div>
+
           <div className="px-4 space-y-2">
-            {simulatedEntries.slice(simulatedEntries.length >= 3 ? 3 : 0).map((entry, index) => {
-              const actualRank = simulatedEntries.length >= 3 ? index + 4 : index + 1;
+            {groupEntries.map((entry, index) => {
+              const actualRank = groupStart + index;
+              const rankInGroup = index + 1;
+              const isTop3 = rankInGroup <= 3;
+              const rankColors = ['#FFD700', '#C0C0C0', '#CD7F32'];
+              const rankColor = isTop3 ? rankColors[rankInGroup - 1] : undefined;
+
               return (
                 <motion.div
                   key={`xp-${entry.username || entry.name}`}
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.2, delay: index * 0.02 }}
+                  transition={{ duration: 0.2, delay: index * 0.025 }}
                   className="flex items-center gap-3 px-4 py-3.5 rounded-2xl cursor-pointer active:scale-[0.98] transition-transform"
                   style={{
-                    background: entry.isMe ? 'rgba(0,212,255,0.08)' : 'rgba(255,255,255,0.03)',
-                    ...(entry.isMe ? { border: '1.5px solid rgba(0,212,255,0.25)', boxShadow: '0 0 16px rgba(0,212,255,0.1)' } : {}),
+                    background: entry.isMe
+                      ? 'rgba(0,212,255,0.08)'
+                      : isTop3
+                      ? `rgba(${rankColor === '#FFD700' ? '255,215,0' : rankColor === '#C0C0C0' ? '192,192,192' : '205,127,50'},0.04)`
+                      : 'rgba(255,255,255,0.03)',
+                    ...(entry.isMe ? { border: '1.5px solid rgba(0,212,255,0.25)', boxShadow: '0 0 16px rgba(0,212,255,0.1)' }
+                      : isTop3 ? { border: `1px solid ${rankColor}22` } : {}),
                   }}
                   onClick={() => setProfileTarget(entry)}
                 >
+                  {/* Rank number */}
                   <div className="w-7 text-center">
-                    <span className={`text-sm font-black font-mono ${entry.isMe ? 'text-[#00d4ff]' : 'text-gray-500'}`}>{actualRank}</span>
+                    {isTop3 ? (
+                      <span className="text-sm font-black font-mono" style={{ color: rankColor }}>{rankInGroup}</span>
+                    ) : (
+                      <span className={`text-sm font-black font-mono ${entry.isMe ? 'text-[#00d4ff]' : 'text-gray-500'}`}>{rankInGroup}</span>
+                    )}
                   </div>
+
+                  {/* Avatar */}
                   <AvatarWithBorder avatarUrl={entry.avatar_url} borderId={entry.equipped_border || null} size={44} className="shrink-0" />
+
+                  {/* Name + tags */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-black text-white truncate">{entry.username || entry.name}</span>
                       {entry.isMe && <span className="text-[8px] px-1.5 py-0.5 rounded bg-[#00d4ff]/15 text-[#00d4ff] font-black tracking-wider">you</span>}
                     </div>
                   </div>
+
+                  {/* XP value */}
                   <div className="flex items-center gap-1 shrink-0">
-                    <span className="text-base font-black text-cyan-400">{formatXp(entry.dominance)}</span>
-                    <Zap size={15} className="text-cyan-400" />
+                    <span className={`text-base font-black ${isTop3 ? '' : 'text-cyan-400'}`} style={isTop3 ? { color: rankColor } : {}}>{formatXp(entry.dominance)}</span>
+                    <Zap size={15} className={isTop3 ? '' : 'text-cyan-400'} style={isTop3 ? { color: rankColor } : {}} />
                   </div>
                 </motion.div>
               );
@@ -492,7 +699,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
 
           <div className="text-center py-4 mt-2">
             <span className="text-[10px] text-gray-600 font-mono">
-              Daily XP · Resets at midnight UTC · Top hunters
+              Weekly XP · Groups of {GROUP_SIZE} · Rewards at week end
             </span>
           </div>
         </>
@@ -728,6 +935,8 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                 transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                 onClick={e => e.stopPropagation()}
               >
+                {/* Scrollable content wrapper */}
+                <div style={{ maxHeight: '85vh', overflowY: 'auto', overflowX: 'hidden' }}>
                 {/* ── Banner — shows player's real equipped banner ── */}
                 {(() => {
                   const bannerStoreItem = pEntry.bannerId ? getItemById(pEntry.bannerId) : null;
@@ -759,7 +968,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                 })()}
 
                 {/* ── Profile Content ── */}
-                <div className="px-5 pb-8 -mt-8 relative z-10">
+                <div className="px-5 pb-10 -mt-8 relative z-10">
                   {/* Avatar + Info */}
                   <div className="flex items-end gap-4 mb-5">
                     <AvatarWithBorder avatarUrl={pEntry.avatar_url} borderId={pEntry.borderId} size={72} className="shrink-0" style={{ boxShadow: '0 0 20px rgba(0,0,0,0.8)' }} />
@@ -826,6 +1035,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                     </div>
                   )}
                 </div>
+                </div>{/* end scrollable content wrapper */}
               </motion.div>
             </motion.div>
           );
@@ -927,53 +1137,93 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
       document.body
       )}
 
-      {/* ── RANK REWARD OVERLAY ── */}
+      {/* ── SEASON REWARD OVERLAY (replaces old RankRewardOverlay) ── */}
       <AnimatePresence>
-        {showRewardOverlay && pendingReward && (
-          <RankRewardOverlay
-            rank={pendingReward.rank}
-            gold={pendingReward.reward_gold}
-            xp={pendingReward.reward_xp}
-
-            username={player.username || player.name || 'Hunter'}
+        {showRewardOverlay && pendingReward && seasonRewardData && (
+          <SeasonRewardOverlay
+            reward={seasonRewardData}
             onClaim={async () => {
               setShowRewardOverlay(false);
+
+              // Actually add gold, keys, and equip border on the player
+              const earnedGold = seasonRewardData.goldAmount;
+              const earnedKeys = seasonRewardData.keys;
+              const earnedBorderId = (() => {
+                // Map border name to store item ID
+                const borderMap: Record<string, string> = {
+                  'Iron Will': 'border-streak-gold',
+                  'Inferno': 'border-streak-inferno',
+                  'Eternal Flame': 'border-streak-eternal',
+                  'Gold Dragon': 'border-gold-dragon',
+                  'Phoenix Blaze': 'border-phoenix',
+                  'Dragon Coil': 'border-dragon-img',
+                  'Ice Crown': 'border-ice-img',
+                  'Silversteel Aegis': 'border-podium-silver',
+                };
+                return borderMap[seasonRewardData.borderName] || null;
+              })();
+
+              // Update local player state immediately
+              setPlayer(prev => {
+                const newGold = (prev.gold || 0) + earnedGold;
+                const newKeys = (prev.keys || 0) + earnedKeys;
+                const newOwned = [...(prev.ownedBorders || [])];
+                if (earnedBorderId && !newOwned.includes(earnedBorderId)) {
+                  newOwned.push(earnedBorderId);
+                }
+                return {
+                  ...prev,
+                  gold: newGold,
+                  keys: newKeys,
+                  ownedBorders: newOwned,
+                  equippedBorder: earnedBorderId || prev.equippedBorder,
+                };
+              });
+
               addNotification(
-                `Leaderboard Reward: Rank #${pendingReward.rank} — +${pendingReward.reward_gold}G, +${pendingReward.reward_xp}XP`,
+                `Season Reward: Rank #${pendingReward.rank} — +${earnedGold}G, +${earnedKeys} Keys, ${seasonRewardData.borderName} Border`,
                 'SUCCESS'
               );
-              // Claim on server — server credits rewards and returns authoritative values
+
+              // Claim on server for persistence
               try {
-                const res = await fetch(`${API_BASE}/api/leaderboard/rewards/claim`, {
+                const res = await authenticatedFetch(`${API_BASE}/api/leaderboard/rewards/claim`, {
                   method: 'POST',
-                  credentials: 'include',
-                  headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
-                  body: JSON.stringify({ snapshotId: pendingReward.id }),
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    snapshotId: pendingReward.id,
+                    goldAmount: earnedGold,
+                    keys: earnedKeys,
+                    borderId: earnedBorderId,
+                  }),
                 });
                 if (res.ok) {
                   const result = await res.json();
                   if (result.player && !result.already_claimed) {
-                    // Apply server-authoritative values directly (no double-counting)
                     const p = result.player;
                     setPlayer(prev => ({
                       ...prev,
-                      gold: p.gold,
-
-                      currentXp: p.currentXp,
-                      requiredXp: p.requiredXp,
-                      level: p.level,
-                      rank: p.rank,
-                      totalXp: p.totalXp,
-                      dailyXp: p.dailyXp,
+                      gold: p.gold ?? prev.gold,
+                      keys: p.keys ?? prev.keys,
+                      currentXp: p.currentXp ?? prev.currentXp,
+                      requiredXp: p.requiredXp ?? prev.requiredXp,
+                      level: p.level ?? prev.level,
+                      rank: p.rank ?? prev.rank,
+                      totalXp: p.totalXp ?? prev.totalXp,
+                      equippedBorder: p.equippedBorder ?? prev.equippedBorder,
+                      ownedBorders: p.ownedBorders ?? prev.ownedBorders,
                     }));
-                    // Update server baseline so the sync loop doesn't compute wrong deltas
-                    updateServerBaseline(p.gold);
+                    updateServerBaseline(p.gold ?? 0);
                   }
+                  // ONLY clear the pending reward locally if the server successfully recorded the claim
+                  setPendingReward(null);
+                } else {
+                  addNotification('Failed to save rewards on server. Try reopening the leaderboard to retry.', 'DANGER');
                 }
-                // Also trigger sync to catch any other pending changes
                 setTimeout(() => window.dispatchEvent(new Event('reforge:sync-needed')), 500);
-              } catch { /* will retry next time */ }
-              setPendingReward(null);
+              } catch {
+                addNotification('Failed to save rewards on server. Try reopening the leaderboard to retry.', 'DANGER');
+              }
             }}
           />
         )}

@@ -14,8 +14,8 @@ android {
         applicationId "com.reforge.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 110200
-        versionName "11.2.0"
+        versionCode 110300
+        versionName "11.3.00"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -38,6 +38,29 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+
+    // Disable the AGP lintVital task for release. With recent AGP + Capacitor,
+    // lintVital evicts a build artifact (merged proguard mapping) that
+    // packageReleaseBundle then expects, causing
+    //   "Expected file collection to contain exactly one file, however, it
+    //    contains no files."
+    // We don't rely on lintVital for correctness — it's a quality scan, and
+    // we run lint manually when needed.
+    lint {
+        checkReleaseBuilds = false
+        abortOnError = false
+    }
+
+    // Bundle configuration — force a universal AAB so the packageReleaseBundle
+    // task always has a merged JNI lib set to package. Without this, recent AGP
+    // versions sometimes fail with "Expected file collection to contain exactly
+    // one file" when the lint task evicts split-by-ABI native libs before the
+    // bundle task picks them up.
+    bundle {
+        language { enableSplit = true }
+        density  { enableSplit = true }
+        abi      { enableSplit = false }
+    }
 }
 
 repositories {
@@ -57,6 +80,7 @@ dependencies {
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
     implementation 'com.google.android.gms:play-services-location:21.3.0'
+    implementation 'com.google.android.play:app-update:2.1.0'
 }
 
 apply from: 'capacitor.build.gradle'

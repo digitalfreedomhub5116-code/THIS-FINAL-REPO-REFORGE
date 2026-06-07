@@ -26,6 +26,19 @@ if (!rootElement) {
 async function bootstrap() {
   await restoreAuthFromNative();
 
+  // One-time cleanup of the legacy ad-progress localStorage keys. The free-key
+  // ad counter is now server-authoritative (see /api/economy/ad-key-watch); old
+  // per-device keys would otherwise display stale "2/2 filled" state on first
+  // mount before the server fetch resolves.
+  try {
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith('reforge:freeKeyAdProgress')) keysToRemove.push(k);
+    }
+    keysToRemove.forEach(k => localStorage.removeItem(k));
+  } catch { /* localStorage unavailable — ignore */ }
+
   const root = ReactDOM.createRoot(rootElement!);
   root.render(
     <React.StrictMode>

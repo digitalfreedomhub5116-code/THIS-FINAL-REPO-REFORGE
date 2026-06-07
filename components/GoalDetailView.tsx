@@ -4,7 +4,8 @@ import { ArrowLeft, Calendar, Clock, Target, Flame, TrendingUp, Pause, Play, Tra
 import { Goal, GoalDailyTask, GoalQuest, GoalQuestResource, PlayerData, Quest, Rank } from '../types';
 import { playSystemSoundEffect } from '../utils/soundEngine';
 import { API_BASE } from '../lib/apiConfig';
-import { getPlayerAuthHeaders } from '../lib/playerApi';
+import { getPlayerAuthHeaders, authenticatedFetch } from '../lib/playerApi';
+import { buildDungeonGoalQuest, buildDungeonGoalDailyTask } from '../lib/dungeonGoalQuest';
 
 function addMins(time: string, mins: number): string {
   const [h, m] = time.split(':').map(Number);
@@ -253,6 +254,68 @@ export function startQuestGeneration(params: {
 }) {
   const { goal, allGoals, playerData, todayStr, currentDay, existingQuests } = params;
 
+  if (goal.id.startsWith('mock-')) {
+    updateQuestGenStore({ state: 'GENERATING', goalId: goal.id, todayTasks: null, error: null, pendingGoalUpdate: null, pendingFeedQuests: [], pendingScheduleSlots: [] });
+    setTimeout(() => {
+      const generatedQuests = goal.id === 'mock-academic-goal' ? [
+        { id: 'maq1', title: 'Study Load Balancing Patterns', estimatedDuration: 30, categories: ['intelligence'], rank: 'B', xp: 60, reasoning: 'Understand how traffic is distributed.', completed: false },
+        { id: 'maq2', title: 'Draft High Availability Diagram', estimatedDuration: 30, categories: ['intelligence'], rank: 'B', xp: 65, reasoning: 'Practice system design.', completed: false }
+      ] : goal.id === 'mock-financial-goal' ? [
+        { id: 'mfq1', title: 'Write Landing Page copy', estimatedDuration: 20, categories: ['social'], rank: 'S', xp: 120, reasoning: 'Craft high-converting hooks.', completed: false }
+      ] : [
+        { id: 'mq1', title: 'Conditioning Check: Push-ups', estimatedDuration: 15, categories: ['strength'], rank: 'A', xp: 75, reasoning: 'Build chest and core strength.', completed: false },
+        { id: 'mq2', title: 'Conditioning Check: Squats', estimatedDuration: 15, categories: ['strength'], rank: 'B', xp: 50, reasoning: 'Strengthen leg muscles.', completed: false }
+      ];
+
+      const newDailyTask: GoalDailyTask = {
+        id: `dt-${goal.id}-${todayStr}`,
+        goalId: goal.id,
+        date: todayStr,
+        dayNumber: currentDay,
+        quests: generatedQuests,
+        completedCount: 0,
+        totalCount: generatedQuests.length,
+        dailyNote: 'AI-generated plan calibration complete.',
+        progressUpdate: 'Consistent progress.',
+        createdAt: Date.now(),
+      };
+
+      const updatedGoal: Goal = {
+        ...goal,
+        dailyTasks: [...(goal.dailyTasks || []).filter(t => t.date !== todayStr), newDailyTask],
+      };
+
+      const feedQuests: Quest[] = generatedQuests.map((gq: any, idx: number) => ({
+        id: gq.id || `goal-quest-${goal.id}-${Date.now()}-${idx}`,
+        title: gq.title,
+        description: gq.reasoning || `Goal quest for: ${goal.title}`,
+        rank: (gq.rank || 'D') as Rank,
+        priority: 'MEDIUM' as any,
+        category: (gq.categories?.[0] || 'intelligence') as any,
+        categories: gq.categories,
+        xpReward: Math.round((gq.xp || 50) * 1.5),
+        isCompleted: false,
+        createdAt: Date.now(),
+        isDaily: true,
+        estimatedDuration: gq.estimatedDuration,
+        aiReasoning: gq.reasoning,
+        goalId: goal.id,
+        goalTitle: goal.title,
+      }));
+
+      updateQuestGenStore({
+        state: 'DONE',
+        todayTasks: newDailyTask,
+        error: null,
+        pendingGoalUpdate: updatedGoal,
+        pendingFeedQuests: feedQuests,
+        pendingScheduleSlots: [],
+      });
+      playSystemSoundEffect('PURCHASE');
+    }, 1200);
+    return;
+  }
+
   if (_questGenStore.state === 'GENERATING') return; // already in-flight
 
   // FIX Loophole 6: Rest day check (skip if user chose NONE)
@@ -272,6 +335,45 @@ export function startQuestGeneration(params: {
 
   updateQuestGenStore({ state: 'GENERATING', goalId: goal.id, todayTasks: null, error: null, pendingGoalUpdate: null, pendingFeedQuests: [], pendingScheduleSlots: [] });
 
+  // ── FITNESS GOAL SHORT-CIRCUIT ──
+  // For fitness goals, skip the AI entirely and synthesize a single "Enter Today's Dungeon" quest.
+  // This connects fitness goals to the daily dungeon flow (no key cost).
+  if (goal.category === 'FITNESS' as any) {
+    const currentTime = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+    const dungeonQuest = buildDungeonGoalQuest({ goal, todayStr, currentTime });
+    const newDailyTask = buildDungeonGoalDailyTask({ goal, todayStr, dayNumber: currentDay, currentTime });
+
+    const updatedGoal: Goal = {
+      ...goal,
+      dailyTasks: [...(goal.dailyTasks || []).filter(t => t.date !== todayStr), newDailyTask],
+    };
+
+    const scheduleSlots = dungeonQuest.scheduledTime ? [{
+      id: `sched-quest-${dungeonQuest.id}`,
+      startTime: dungeonQuest.scheduledTime,
+      endTime: addMins(dungeonQuest.scheduledTime, dungeonQuest.estimatedDuration || 30),
+      type: 'WORKOUT' as const,
+      label: dungeonQuest.title,
+      questId: dungeonQuest.id,
+      goalId: goal.id,
+      status: 'PENDING' as const,
+      isFlexible: true,
+      isCarryOver: false,
+      notifyEnabled: true,
+    }] : [];
+
+    updateQuestGenStore({
+      state: 'DONE',
+      todayTasks: newDailyTask,
+      error: null,
+      pendingGoalUpdate: updatedGoal,
+      pendingFeedQuests: [dungeonQuest],
+      pendingScheduleSlots: scheduleSlots,
+    });
+    playSystemSoundEffect('PURCHASE');
+    return;
+  }
+
   const otherGoalTasksToday = allGoals
     .filter(g => g.id !== goal.id && g.status === 'ACTIVE')
     .flatMap(g => g.dailyTasks?.find(t => t.date === todayStr)?.quests || [])
@@ -285,10 +387,9 @@ export function startQuestGeneration(params: {
   const remainingMinutes = Math.max(30, (playerData?.healthProfile?.sessionDuration ?? 120) - otherGoalsMinutes);
   const recentTasks = (goal.dailyTasks || []).slice(-7);
 
-  fetch(`${API_BASE}/api/goals/daily-quests`, {
+  authenticatedFetch(`${API_BASE}/api/goals/daily-quests`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
-    credentials: 'include',
     body: JSON.stringify({
       goal,
       recentTasks,
@@ -564,7 +665,14 @@ export default function GoalDetailView({
   }, [goal, onUpdateGoal]);
 
   return (
-    <div className="min-h-screen pb-24" style={{ background: '#07070d' }}>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 20 }}
+      transition={{ duration: 0.3 }}
+      className="min-h-screen pb-24"
+      style={{ background: '#07070d' }}
+    >
       {/* Header */}
       <div className="sticky top-0 z-10 px-4 pb-3" style={{ background: '#07070d', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)' }}>
         <div className="flex items-center gap-3">
@@ -619,7 +727,8 @@ export default function GoalDetailView({
           </div>
         </div>
 
-        {/* Rest Day Setting */}
+        {/* Rest Day Setting — hidden for system goals */}
+        {!goal.isSystemGoal && (
         <div className="rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(129,140,248,0.08)' }}>
           <button
             onClick={() => setShowRestDayPicker(!showRestDayPicker)}
@@ -687,6 +796,7 @@ export default function GoalDetailView({
             )}
           </AnimatePresence>
         </div>
+        )}
 
         {/* Today's Quests */}
         <div className="rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.03)' }}>
@@ -842,7 +952,8 @@ export default function GoalDetailView({
           </div>
         )}
 
-        {/* Actions */}
+        {/* Actions — hidden for system goals */}
+        {!goal.isSystemGoal && (
         <div className="flex gap-2 pb-4">
           <button
             onClick={togglePause}
@@ -860,6 +971,7 @@ export default function GoalDetailView({
             <Trash2 className="w-4 h-4" /> Abandon
           </button>
         </div>
+        )}
 
         {/* Abandon Confirmation */}
         <AnimatePresence>
@@ -908,6 +1020,6 @@ export default function GoalDetailView({
           )}
         </AnimatePresence>
       </div>
-    </div>
+    </motion.div>
   );
 }

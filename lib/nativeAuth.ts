@@ -78,6 +78,25 @@ export async function restoreAuthFromNative(): Promise<boolean> {
   return false;
 }
 
+// ── Get token directly from native Preferences (fallback when localStorage is empty) ──
+// Returns the token string or null if not available.
+export async function getTokenFromNative(): Promise<string | null> {
+  if (!isNative) return null;
+  try {
+    const { value } = await Preferences.get({ key: KEY_TOKEN });
+    if (value) {
+      // Also restore to localStorage so subsequent sync reads are fast
+      localStorage.setItem(KEY_TOKEN, value);
+      const { value: userId } = await Preferences.get({ key: KEY_USER_ID });
+      if (userId) localStorage.setItem(KEY_USER_ID, userId);
+      return value;
+    }
+  } catch (err) {
+    console.warn('[NativeAuth] Failed to read from Preferences:', err);
+  }
+  return null;
+}
+
 // ── Clear auth from both localStorage and native storage (call on logout) ──
 export async function clearAuthNative(): Promise<void> {
   localStorage.removeItem(KEY_TOKEN);

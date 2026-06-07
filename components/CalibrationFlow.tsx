@@ -1,10 +1,11 @@
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence, Variants, animate } from 'framer-motion';
-import { User, Activity, Ruler, Weight, Target, ChevronLeft, ChevronRight, Zap, Clock, TrendingUp, ShieldCheck, Dumbbell, Brain, Shield, Users, Hourglass, Sparkles, AlertTriangle, Eye, BookOpen, Moon, Heart } from 'lucide-react';
+import { User, Activity, Ruler, Weight, Target, ChevronLeft, ChevronRight, Zap, Clock, TrendingUp, ShieldCheck, Dumbbell, Brain, Shield, Users, Hourglass, Sparkles, AlertTriangle, Eye, BookOpen, Moon, Heart, ExternalLink } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { HealthProfile, CoreStats, BaselineStats } from '../types';
 import SystemPersonalizationScreen from './SystemPersonalizationScreen';
+import OnboardingHook from './OnboardingHook';
 import { triggerHaptic } from '../utils/soundEngine';
 
 interface CalibrationFlowProps {
@@ -12,6 +13,26 @@ interface CalibrationFlowProps {
 }
 
 const setupContainerVariants: Variants = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.1, delayChildren: 0.2 } }, exit: { opacity: 0, x: -20, transition: { duration: 0.2 } } };
+
+/* ── Shimmer Loading Image ─────────────────────────────────────── */
+const ShimmerImg: React.FC<{ src: string; alt?: string; className?: string; style?: React.CSSProperties }> = ({ src, alt = '', className = '', style }) => {
+  const [loaded, setLoaded] = useState(false);
+  const onLoad = useCallback(() => setLoaded(true), []);
+  return (
+    <div className={`relative overflow-hidden ${className}`} style={style}>
+      {!loaded && (
+        <div className="absolute inset-0 z-10" style={{
+          background: 'linear-gradient(110deg, #1a1a2e 25%, #2a2a3e 37%, #1a1a2e 50%)',
+          backgroundSize: '200% 100%',
+          animation: 'shimmer-cal 1.5s ease-in-out infinite',
+        }} />
+      )}
+      <img src={src} alt={alt} className="w-full h-full object-contain"
+        style={{ opacity: loaded ? 1 : 0, transition: 'opacity 0.4s ease' }} onLoad={onLoad} draggable={false} />
+      <style>{`@keyframes shimmer-cal { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }`}</style>
+    </div>
+  );
+};
 const setupItemVariants: Variants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } } };
 
 
@@ -251,16 +272,35 @@ const CalibrationReport: React.FC<{ profile: HealthProfile, onContinue: () => vo
 
             {/* Sticky bottom CTA — always visible so new users don't miss the Accept Protocols button */}
             <div
-                className="shrink-0 px-4 sm:px-6 pt-6 pb-4 bg-gradient-to-t from-black via-black/95 to-transparent flex justify-center"
+                className="shrink-0 px-4 sm:px-6 pt-6 pb-4 bg-gradient-to-t from-black via-black/95 to-transparent flex flex-col items-center gap-3"
                 style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)' }}
             >
                 <button 
                     onClick={() => { triggerHaptic('BUTTON_TAP'); onContinue(); }}
                     className="group relative inline-flex items-center gap-3 px-8 py-4 bg-white text-black font-black uppercase tracking-widest text-xs rounded-lg hover:bg-system-neon hover:scale-105 transition-all shadow-[0_0_20px_rgba(255,255,255,0.3)]"
                 >
-                    <ShieldCheck size={16} /> Accept Protocols
+                    <ShieldCheck size={16} /> Enter The System
                     <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
                 </button>
+
+                {/* Instagram CTA — Shadow Cult */}
+                <motion.a
+                    href="https://www.instagram.com/reforgesystem?igsh=MWx4YjQ1OHc5ODlpYQ=="
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="group relative inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold tracking-wide transition-all overflow-hidden"
+                    style={{
+                        background: 'linear-gradient(135deg, #E1306C 0%, #833AB4 50%, #F77737 100%)',
+                        boxShadow: '0 4px 20px rgba(225,48,108,0.4), 0 0 0 1px rgba(255,255,255,0.1)',
+                    }}
+                >
+                    <span className="relative z-10 flex items-center gap-2 text-white">
+                        Support the shadow cult on instagram
+                        <ExternalLink size={12} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                    </span>
+                </motion.a>
             </div>
         </motion.div>
     );
@@ -908,10 +948,561 @@ const AssessmentOverlay: React.FC<{ onComplete: () => void }> = ({ onComplete })
     );
 };
 
+// ─── HUNTER VOW SCREEN — Hold-to-confirm commitment ───────────────────────────
+const HunterVowScreen: React.FC<{ onComplete: () => void; hunterName: string }> = ({ onComplete, hunterName }) => {
+    const [holdProgress, setHoldProgress] = useState(0);
+    const [isHolding, setIsHolding] = useState(false);
+    const [isComplete, setIsComplete] = useState(false);
+    const holdRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+    const startHold = () => {
+        if (isComplete) return;
+        setIsHolding(true);
+        try { navigator.vibrate?.([10, 30]); } catch {}
+        holdRef.current = setInterval(() => {
+            setHoldProgress(prev => {
+                const next = prev + 1.8;
+                if (next >= 100) {
+                    clearInterval(holdRef.current!);
+                    setIsComplete(true);
+                    setIsHolding(false);
+                    triggerHaptic('SUCCESS');
+                    try { navigator.vibrate?.(200); } catch {}
+                    setTimeout(onComplete, 1200);
+                    return 100;
+                }
+                try { navigator.vibrate?.(8); } catch {}
+                return next;
+            });
+        }, 30);
+    };
+
+    const stopHold = () => {
+        if (holdRef.current) clearInterval(holdRef.current);
+        setIsHolding(false);
+        try { navigator.vibrate?.(0); } catch {}
+        if (!isComplete) setHoldProgress(prev => Math.max(0, prev - 5));
+    };
+
+    useEffect(() => () => { if (holdRef.current) clearInterval(holdRef.current); try { navigator.vibrate?.(0); } catch {} }, []);
+
+    return (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-[200] bg-black flex flex-col items-center justify-center px-6 font-mono">
+            <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 50% 30%, rgba(0,212,255,0.04) 0%, transparent 60%)' }} />
+            <div className="relative z-10 w-full max-w-md mx-auto flex flex-col items-center gap-8">
+                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="text-center">
+                    <div className="text-[#00d4ff] text-xs font-bold tracking-[0.3em] uppercase mb-4">⚔️ THE HUNTER'S OATH</div>
+                    <h2 className="text-2xl font-black text-white tracking-tight">Before You Enter</h2>
+                </motion.div>
+
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="bg-[#0a0a0a] border border-gray-800 rounded-2xl p-6 w-full">
+                    <p className="text-gray-300 text-[14px] leading-relaxed italic" style={{ fontFamily: 'Georgia, serif' }}>
+                        "I, <span className="text-white font-bold not-italic">{hunterName || 'Hunter'}</span>, vow to show up daily.
+                        To honor the system. To track honestly. To not quit when it gets hard.
+                        To become the version of myself that exists on the other side of discipline."
+                    </p>
+                </motion.div>
+
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }} className="w-full space-y-3">
+                    <div className="h-14 w-full bg-[#111] border border-gray-800 rounded-2xl relative overflow-hidden cursor-pointer select-none"
+                        onMouseDown={startHold} onMouseUp={stopHold} onMouseLeave={stopHold}
+                        onTouchStart={startHold} onTouchEnd={stopHold} onTouchCancel={stopHold}
+                    >
+                        <motion.div className="absolute inset-0 rounded-2xl" style={{ background: isComplete ? '#00d4ff' : 'linear-gradient(90deg, #00d4ff, #33dfff)', width: `${holdProgress}%`, transition: isHolding ? 'none' : 'width 0.3s ease-out' }} />
+                        <div className="absolute inset-0 flex items-center justify-center z-10">
+                            <span className={`font-black text-xs tracking-[0.2em] uppercase ${isComplete ? 'text-black' : holdProgress > 50 ? 'text-black' : 'text-gray-400'}`}>
+                                {isComplete ? '✓ OATH ACCEPTED' : isHolding ? 'HOLD...' : 'HOLD TO ACCEPT'}
+                            </span>
+                        </div>
+                    </div>
+                    {!isComplete && <p className="text-center text-gray-600 text-[10px]">Press and hold to seal your oath</p>}
+                </motion.div>
+            </div>
+        </motion.div>
+    );
+};
+
+// ─── COMBINED INSIGHT + GRAPH SCREEN ─────────────────────────────────────────────
+const INSIGHT_GRAPHS = [
+  { key: 'strength', Icon: Dumbbell, label: 'Strength', color: '#f87171', withSystem: [5,12,22,38,52,65,76,85,92], without: [5,8,10,12,14,15,16,17,18] },
+  { key: 'intelligence', Icon: Brain, label: 'Intelligence', color: '#60a5fa', withSystem: [10,18,30,45,55,68,78,88,95], without: [10,12,14,16,18,20,22,23,24] },
+  { key: 'focus', Icon: Eye, label: 'Focus', color: '#34d399', withSystem: [8,14,20,28,42,58,72,82,90], without: [8,10,11,13,14,15,16,17,17] },
+  { key: 'discipline', Icon: Shield, label: 'Discipline', color: '#00d4ff', withSystem: [3,10,25,40,55,70,82,90,96], without: [3,6,8,9,10,11,11,12,12] },
+  { key: 'social', Icon: Users, label: 'Social', color: '#facc15', withSystem: [12,18,26,35,45,56,65,75,82], without: [12,13,14,15,16,17,17,18,18] },
+];
+
+const EmpathyInsightScreen: React.FC<{ goal: string; profile: Partial<HealthProfile>; onComplete: () => void }> = ({ goal, profile, onComplete }) => {
+    const [typedText, setTypedText] = useState('');
+    const [showCards, setShowCards] = useState(false);
+    const [showMetrics, setShowMetrics] = useState(false);
+    const [showGraph, setShowGraph] = useState(false);
+    const [showButton, setShowButton] = useState(false);
+    const [activeGraph, setActiveGraph] = useState(0);
+
+    // Biometric calculations
+    const weight = profile.weight || 70;
+    const height = profile.height || 175;
+    const age = profile.age || 25;
+    const bmi = weight / ((height / 100) ** 2);
+    const bodyFat = (1.20 * bmi) + (0.23 * age) - (profile.gender === 'MALE' ? 16.2 : 5.4);
+    const diff = Math.abs((profile.targetWeight || weight) - weight);
+    let weeksLow = 6, weeksHigh = 9, timelineMsg = 'Body Recomposition Cycle';
+    if (goal === 'LOSE_WEIGHT' || (profile.targetWeight || 0) < weight) {
+        const raw = Math.ceil(diff / 0.75);
+        weeksLow = Math.max(3, Math.floor(raw / 3) * 3);
+        weeksHigh = weeksLow + 3;
+        timelineMsg = `Estimated range to reach ~${profile.targetWeight}kg`;
+    } else if (goal === 'BUILD_MUSCLE' || (profile.targetWeight || 0) > weight) {
+        const raw = Math.ceil(diff / 0.3);
+        weeksLow = Math.max(3, Math.floor(raw / 3) * 3);
+        weeksHigh = weeksLow + 3;
+        timelineMsg = `Estimated range to reach ~${profile.targetWeight}kg`;
+    }
+    const activityBonus: Record<string, number> = { 'SEDENTARY': 0, 'LIGHT': 10, 'MODERATE': 20, 'VERY_ACTIVE': 25 };
+    const potential = 70 + (activityBonus[profile.activityLevel || ''] || 10) + (age < 30 ? 5 : 0);
+
+    const empathyTexts: Record<string, string> = {
+        LOSE_WEIGHT: "You know what needs to change. The weight isn't just physical \u2014 it's the friction slowing down every part of your life. The System sees the gap between where you are and where you should be. That gap is not permanent.",
+        BUILD_MUSCLE: "You've been consistent before, but never with a system behind you. Raw potential isn't enough \u2014 you need structure, progression, and accountability. The System will provide all three.",
+        ENDURANCE: "Endurance isn't just cardio \u2014 it's the ability to outlast your own excuses. The System will push you past comfort zones you didn't know existed.",
+        RECOMP: "You're not starting from zero. You're rebuilding with experience. The System will strip what doesn't serve you and forge what does.",
+    };
+
+    const insightCards: Record<string, Array<{ icon: string; title: string; desc: string }>> = {
+        LOSE_WEIGHT: [
+            { icon: '\uD83C\uDF4E', title: 'Nutrition Protocol', desc: 'Fuel your body right. The System will calculate your optimal macros and meal timing.' },
+            { icon: '\uD83D\uDD25', title: 'Metabolic Reset', desc: 'Your body adapts within 2 weeks. Small deficits beat crash diets.' },
+            { icon: '\uD83E\uDDE0', title: 'Discipline is Trainable', desc: 'Each day you show up, the neural pathway gets stronger.' },
+        ],
+        BUILD_MUSCLE: [
+            { icon: '\uD83D\uDCAA', title: 'Progressive Overload', desc: 'Add weight or reps weekly. Your muscles respond to progressive challenge.' },
+            { icon: '\uD83E\uDD69', title: 'Protein Timing', desc: 'Hit your daily protein target. The System will calculate this for you.' },
+            { icon: '\uD83D\uDE34', title: 'Recovery Matters', desc: 'Muscles grow during rest. Sleep is your most powerful anabolic.' },
+        ],
+        ENDURANCE: [
+            { icon: '\uD83E\uDEC1', title: 'VO2 Max Growth', desc: 'Cardiovascular capacity improves fastest in weeks 2-6.' },
+            { icon: '\u26A1', title: 'Zone Training', desc: 'Train at the right intensity. Not too easy, not too hard.' },
+            { icon: '\uD83E\uDDD8', title: 'Mental Endurance', desc: 'Physical endurance is 40% mental. Train your mind too.' },
+        ],
+        RECOMP: [
+            { icon: '\u2696\uFE0F', title: 'Body Recomposition', desc: 'Lose fat and gain muscle simultaneously. It takes patience.' },
+            { icon: '\uD83D\uDCCA', title: 'Track Everything', desc: 'What gets measured gets managed. The System tracks for you.' },
+            { icon: '\uD83D\uDD04', title: 'Consistency Compounds', desc: 'Small daily actions create massive transformation over 90 days.' },
+        ],
+    };
+
+    const fullText = empathyTexts[goal] || empathyTexts.RECOMP;
+    const cards = insightCards[goal] || insightCards.RECOMP;
+
+    useEffect(() => {
+        let i = 0;
+        const interval = setInterval(() => {
+            i++;
+            setTypedText(fullText.slice(0, i));
+            // Subtle haptic tick every 3rd character
+            if (i % 3 === 0 && navigator.vibrate) navigator.vibrate(10);
+            if (i >= fullText.length) {
+                clearInterval(interval);
+                setTimeout(() => setShowCards(true), 400);
+                setTimeout(() => setShowMetrics(true), 900);
+                setTimeout(() => setShowGraph(true), 1400);
+                setTimeout(() => setShowButton(true), 2000);
+            }
+        }, 22);
+        return () => clearInterval(interval);
+    }, [fullText]);
+
+    // SVG graph helpers
+    const toY = (v: number) => 140 - (v / 100) * 130;
+    const toX = (i: number) => i * 55;
+    const totalW = 55 * 8;
+    const buildPath = (data: number[]) => data.map((v, i) => {
+        if (i === 0) return `M ${toX(i)},${toY(v)}`;
+        const cx = (toX(i - 1) + toX(i)) / 2;
+        return `C ${cx},${toY(data[i - 1])} ${cx},${toY(v)} ${toX(i)},${toY(v)}`;
+    }).join(' ');
+    const buildAreaPath = (data: number[]) => buildPath(data) + ` L ${toX(data.length - 1)},150 L 0,150 Z`;
+
+    const g = INSIGHT_GRAPHS[activeGraph];
+
+    return (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-[200] bg-black flex flex-col font-mono overflow-y-auto"
+            style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 32px)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }}>
+            <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 50% 20%, rgba(0,212,255,0.04) 0%, transparent 60%)' }} />
+            <div className="relative z-10 flex-1 flex flex-col px-6 max-w-lg mx-auto w-full">
+                <div className="text-[#00d4ff] text-xs font-bold tracking-[0.3em] uppercase mb-6">SYSTEM INSIGHT</div>
+                <div className="bg-[#0a0a0a] border border-gray-800 rounded-2xl p-5 mb-5">
+                    <p className="text-gray-200 text-[15px] leading-relaxed min-h-[80px]" style={{ fontFamily: 'Georgia, serif' }}>
+                        &ldquo;{typedText}<span className="animate-pulse text-[#00d4ff]">|</span>&rdquo;
+                    </p>
+                </div>
+
+                <AnimatePresence>
+                    {showCards && (
+                        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-3 mb-5">
+                            {cards.map((card, i) => (
+                                <motion.div key={i} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.15 }}
+                                    className="bg-[#111] border border-gray-800 rounded-xl p-4 flex items-start gap-3">
+                                    <span className="text-xl">{card.icon}</span>
+                                    <div>
+                                        <div className="text-white font-bold text-[13px] mb-0.5">{card.title}</div>
+                                        <div className="text-gray-400 text-[11px]">{card.desc}</div>
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                {/* Biometric Report Cards */}
+                <AnimatePresence>
+                    {showMetrics && (
+                        <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="mb-5">
+                            <div className="text-[#00d4ff] text-[10px] font-bold tracking-[0.25em] uppercase mb-3">SYSTEM REPORT</div>
+                            <div className="grid grid-cols-2 gap-3">
+                                {/* BMI */}
+                                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0 }}
+                                    className="bg-[#0f0f0f] border border-gray-800 rounded-xl p-3.5">
+                                    <div className="flex items-center gap-1.5 mb-1.5">
+                                        <div className="p-1 rounded bg-black border border-gray-700"><Activity size={12} className="text-green-500" /></div>
+                                        <span className="text-[9px] text-gray-500 uppercase tracking-widest font-bold">BMI</span>
+                                    </div>
+                                    <div className="text-xl font-black text-white font-mono">{bmi.toFixed(1)}</div>
+                                    <div className="text-[9px] text-gray-500 mt-0.5">{bmi < 18.5 ? 'Underweight' : bmi < 25 ? 'Normal Range' : 'Overweight'}</div>
+                                </motion.div>
+                                {/* Body Fat */}
+                                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }}
+                                    className="bg-[#0f0f0f] border border-gray-800 rounded-xl p-3.5">
+                                    <div className="flex items-center gap-1.5 mb-1.5">
+                                        <div className="p-1 rounded bg-black border border-gray-700"><TrendingUp size={12} className="text-blue-500" /></div>
+                                        <span className="text-[9px] text-gray-500 uppercase tracking-widest font-bold">Body Fat</span>
+                                    </div>
+                                    <div className="text-xl font-black text-white font-mono">{bodyFat.toFixed(1)}%</div>
+                                    <div className="text-[9px] text-gray-500 mt-0.5">Estimated</div>
+                                </motion.div>
+                                {/* Timeline */}
+                                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }}
+                                    className="bg-[#0f0f0f] border border-gray-800 rounded-xl p-3.5">
+                                    <div className="flex items-center gap-1.5 mb-1.5">
+                                        <div className="p-1 rounded bg-black border border-gray-700"><Clock size={12} className="text-yellow-500" /></div>
+                                        <span className="text-[9px] text-gray-500 uppercase tracking-widest font-bold">Timeline</span>
+                                    </div>
+                                    <div className="text-xl font-black text-white font-mono">{weeksLow}–{weeksHigh}w</div>
+                                    <div className="text-[9px] text-gray-500 mt-0.5 truncate">{timelineMsg}</div>
+                                </motion.div>
+                                {/* Growth Potential */}
+                                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }}
+                                    className="bg-[#0f0f0f] border border-gray-800 rounded-xl p-3.5">
+                                    <div className="flex items-center gap-1.5 mb-1.5">
+                                        <div className="p-1 rounded bg-black border border-gray-700"><Zap size={12} className="text-[#00d4ff]" /></div>
+                                        <span className="text-[9px] text-gray-500 uppercase tracking-widest font-bold">Potential</span>
+                                    </div>
+                                    <div className="text-xl font-black text-white font-mono">{potential}%</div>
+                                    <div className="text-[9px] text-gray-500 mt-0.5">Growth Sync</div>
+                                </motion.div>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                {/* Interactive Graph Section */}
+                <AnimatePresence>
+                    {showGraph && (
+                        <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="mb-5">
+                            {/* Stat icons */}
+                            <div className="flex justify-center gap-2 mb-4">
+                                {INSIGHT_GRAPHS.map((s, i) => (
+                                    <button
+                                        key={s.key}
+                                        onClick={() => { triggerHaptic('BUTTON_TAP'); setActiveGraph(i); }}
+                                        className={`p-2 rounded-xl border transition-all duration-300 ${i === activeGraph ? 'border-opacity-100' : 'border-gray-800 bg-transparent'}`}
+                                        style={i === activeGraph ? { borderColor: s.color, backgroundColor: `${s.color}15` } : undefined}
+                                    >
+                                        <s.Icon size={16} style={{ color: i === activeGraph ? s.color : '#4b5563' }} />
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Graph card */}
+                            <motion.div key={g.key} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                                className="bg-[#0a0a0a] border border-gray-800 rounded-2xl p-4">
+                                <h3 className="font-bold text-[14px] mb-3 flex items-center gap-2" style={{ color: g.color }}>
+                                    <g.Icon size={14} />
+                                    {g.label}
+                                </h3>
+                                <div className="overflow-x-auto -mx-2 px-2" style={{ WebkitOverflowScrolling: 'touch' }}>
+                                    <svg viewBox={`0 0 ${totalW} 155`} style={{ width: totalW, height: 140, minWidth: totalW }} className="block">
+                                        <defs>
+                                            <linearGradient id={`ig_${g.key}`} x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="0%" stopColor={g.color} stopOpacity="0.2" />
+                                                <stop offset="100%" stopColor={g.color} stopOpacity="0" />
+                                            </linearGradient>
+                                        </defs>
+                                        {[30,60,90,120].map(y => <line key={y} x1="0" y1={y} x2={totalW} y2={y} stroke="rgba(255,255,255,0.04)" />)}
+                                        {g.withSystem.map((_: number, i: number) => <text key={i} x={toX(i)} y={152} textAnchor="middle" fill="#4b5563" fontSize="9" fontFamily="monospace">W{i}</text>)}
+                                        <motion.path d={buildPath(g.without)} fill="none" stroke="#4b5563" strokeWidth="1.5" strokeDasharray="4 3" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1 }} />
+                                        <motion.path d={buildAreaPath(g.withSystem)} fill={`url(#ig_${g.key})`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4, duration: 0.6 }} />
+                                        <motion.path d={buildPath(g.withSystem)} fill="none" stroke={g.color} strokeWidth="2.5" strokeLinecap="round" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.2, delay: 0.2 }} />
+                                        {[0,2,4,6,8].map(wi => (
+                                            <g key={wi}>
+                                                <motion.circle cx={toX(wi)} cy={toY(g.withSystem[wi])} r="4" fill={g.color} stroke="black" strokeWidth="1.5" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.4 + wi * 0.1, duration: 0.3 }} />
+                                            </g>
+                                        ))}
+                                    </svg>
+                                </div>
+                                <div className="flex items-center gap-4 mt-2 text-[10px]">
+                                    <div className="flex items-center gap-1"><div className="w-3 h-[2px] rounded" style={{ backgroundColor: g.color }} /><span className="text-gray-400">With System</span></div>
+                                    <div className="flex items-center gap-1"><div className="w-3 h-[2px] rounded bg-gray-600" style={{ borderTop: '1px dashed #4b5563' }} /><span className="text-gray-500">Without</span></div>
+                                </div>
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                {showButton && (
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-auto pb-4">
+                        <button onClick={() => { triggerHaptic('BUTTON_TAP'); onComplete(); }}
+                            className="w-full bg-[#00d4ff] text-black font-black py-4 rounded-2xl uppercase tracking-widest text-sm shadow-[0_0_30px_rgba(0,212,255,0.3)]">
+                            Enter System
+                        </button>
+                    </motion.div>
+                )}
+            </div>
+        </motion.div>
+    );
+};
+
+// ─── COMMITMENT SLIDER — confidence check before oath ─────────────────────────
+const CommitmentSlider: React.FC<{ onComplete: (value: number) => void }> = ({ onComplete }) => {
+    const [value, setValue] = useState(5);
+    const [showButton, setShowButton] = useState(false);
+    const prevValueRef = useRef(5);
+    const trackRef = useRef<HTMLDivElement>(null);
+    const isDragging = useRef(false);
+
+    useEffect(() => {
+        const timer = setTimeout(() => setShowButton(true), 800);
+        return () => clearTimeout(timer);
+    }, []);
+
+    const STEPS = 10;
+    const labels = Array.from({ length: STEPS }, (_, i) => i + 1);
+
+    const updateFromPosition = (clientX: number) => {
+        if (!trackRef.current) return;
+        const rect = trackRef.current.getBoundingClientRect();
+        const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+        const newVal = Math.round(pct * (STEPS - 1)) + 1;
+        if (newVal !== prevValueRef.current) {
+            prevValueRef.current = newVal;
+            setValue(newVal);
+            if (navigator.vibrate) navigator.vibrate(15);
+        }
+    };
+
+    const handlePointerDown = (e: React.PointerEvent) => {
+        isDragging.current = true;
+        (e.target as HTMLElement).setPointerCapture(e.pointerId);
+        updateFromPosition(e.clientX);
+    };
+    const handlePointerMove = (e: React.PointerEvent) => {
+        if (!isDragging.current) return;
+        updateFromPosition(e.clientX);
+    };
+    const handlePointerUp = () => { isDragging.current = false; };
+
+    const progress = ((value - 1) / (STEPS - 1)) * 100;
+
+    return (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-[200] bg-black flex flex-col font-sans"
+            style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 48px)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }}>
+            <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 50% 30%, rgba(0,212,255,0.04) 0%, transparent 60%)' }} />
+            <div className="relative z-10 flex-1 flex flex-col px-6 max-w-lg mx-auto w-full">
+                {/* Header */}
+                <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
+                    <div className="text-[#00d4ff] text-[10px] font-bold tracking-[0.25em] uppercase mb-3">COMMITMENT CHECK</div>
+                    <h1 className="text-[26px] font-black text-white leading-tight" style={{ fontFamily: 'Outfit, Inter, sans-serif' }}>
+                        On a scale of 1–10, how confident are you in sticking to the System?
+                    </h1>
+                    <p className="text-gray-500 text-[13px] mt-2.5 font-normal">Be honest — there's no wrong answer.</p>
+                </motion.div>
+
+                {/* Large number display */}
+                <motion.div className="flex flex-col items-center justify-center mb-10" initial={{ scale: 0.8 }} animate={{ scale: 1 }}>
+                    <div className="text-[10px] font-bold tracking-[0.25em] uppercase mb-1" style={{ color: value <= 3 ? '#6b7280' : value <= 6 ? '#9ca3af' : '#00d4ff' }}>YOUR SCORE</div>
+                    <div className="flex items-end gap-1">
+                        <motion.span
+                            key={value}
+                            initial={{ scale: 0.7, opacity: 0, y: -8 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                            className="text-[80px] font-black leading-none tabular-nums"
+                            style={{
+                                color: value <= 3 ? '#6b7280' : value <= 6 ? '#9ca3af' : '#00d4ff',
+                                textShadow: value >= 7 ? '0 0 30px rgba(0,212,255,0.4)' : 'none',
+                                fontFamily: 'Outfit, Inter, sans-serif',
+                            }}
+                        >
+                            {value}
+                        </motion.span>
+                        <span className="text-[28px] font-bold text-gray-600 leading-none mb-3 tabular-nums">/10</span>
+                    </div>
+                </motion.div>
+
+                {/* Slider track */}
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+                    className="mb-3 px-1">
+                    <div
+                        ref={trackRef}
+                        className="relative h-12 flex items-center cursor-pointer touch-none select-none"
+                        onPointerDown={handlePointerDown}
+                        onPointerMove={handlePointerMove}
+                        onPointerUp={handlePointerUp}
+                        onPointerCancel={handlePointerUp}
+                    >
+                        {/* Background track */}
+                        <div className="absolute left-0 right-0 h-[6px] rounded-full bg-gray-800" />
+                        {/* Filled track */}
+                        <motion.div
+                            className="absolute left-0 h-[6px] rounded-full"
+                            style={{ width: `${progress}%`, background: 'linear-gradient(90deg, #00d4ff, #33dfff)' }}
+                            animate={{ width: `${progress}%` }}
+                            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                        />
+
+                        {/* Checkpoint dots */}
+                        {labels.map((day, i) => {
+                            const pos = (i / (STEPS - 1)) * 100;
+                            const isActive = day <= value;
+                            const isCurrent = day === value;
+                            return (
+                                <motion.div
+                                    key={day}
+                                    className="absolute flex flex-col items-center"
+                                    style={{ left: `${pos}%`, transform: 'translateX(-50%)' }}
+                                >
+                                    <motion.div
+                                        className="rounded-full border-2 flex items-center justify-center"
+                                        style={{
+                                            width: isCurrent ? 24 : 14,
+                                            height: isCurrent ? 24 : 14,
+                                            borderColor: isActive ? '#00d4ff' : '#374151',
+                                            backgroundColor: isActive ? (isCurrent ? '#00d4ff' : 'rgba(0,212,255,0.15)') : 'rgba(55,65,81,0.3)',
+                                            boxShadow: isCurrent ? '0 0 16px rgba(0,212,255,0.5)' : 'none',
+                                        }}
+                                        animate={{
+                                            scale: isCurrent ? [1, 1.15, 1] : 1,
+                                        }}
+                                        transition={isCurrent ? { duration: 1.5, repeat: Infinity, ease: 'easeInOut' } : {}}
+                                    >
+                                        {isCurrent && <div className="w-2 h-2 rounded-full bg-black" />}
+                                    </motion.div>
+                                </motion.div>
+                            );
+                        })}
+                    </div>
+
+                    {/* Labels row */}
+                    <div className="flex justify-between mt-1 px-0">
+                        <span className="text-gray-600 text-[11px] font-semibold">Not confident</span>
+                        <span className="text-[#00d4ff]/60 text-[11px] font-semibold">Very confident</span>
+                    </div>
+                </motion.div>
+
+                {/* Motivational text based on value */}
+                <motion.div className="text-center mt-6 min-h-[40px]" key={value} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }}>
+                    <p className="text-gray-400 text-[13px] leading-relaxed font-normal">
+                        {value <= 2 && "That's okay. The System starts small and builds you up from zero."}
+                        {value >= 3 && value <= 5 && "Good enough to start. The System will build your momentum daily."}
+                        {value >= 6 && value <= 8 && "Strong foundation. The System will amplify your discipline."}
+                        {value >= 9 && "The System recognizes your resolve. You are ready to be reforged."}
+                    </p>
+                </motion.div>
+
+                {/* Continue button */}
+                {showButton && (
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-auto pb-4">
+                        <button
+                            onClick={() => { triggerHaptic('BUTTON_TAP'); onComplete(value); }}
+                            className="w-full font-black py-4 rounded-2xl uppercase tracking-widest text-sm transition-all duration-300"
+                            style={{
+                                background: value >= 7 ? 'linear-gradient(135deg, #00d4ff, #33dfff)' : '#ffffff',
+                                color: '#000',
+                                boxShadow: value >= 7 ? '0 0 30px rgba(0,212,255,0.3)' : 'none',
+                                fontFamily: 'Outfit, Inter, sans-serif',
+                            }}
+                        >
+                            Lock In My Commitment
+                        </button>
+                    </motion.div>
+                )}
+            </div>
+        </motion.div>
+    );
+};
+
+// ─── ARCHETYPE SCREEN — Hunter class reveal with badge ────────────────────────
+const ArchetypeScreen: React.FC<{ archetype: { name: string; desc: string; badge: string }; onComplete: () => void }> = ({ archetype, onComplete }) => {
+    const [showName, setShowName] = useState(false);
+    const [showDesc, setShowDesc] = useState(false);
+    const [showButton, setShowButton] = useState(false);
+
+    useEffect(() => {
+        triggerHaptic('PHASE_TRANSITION');
+        setTimeout(() => setShowName(true), 800);
+        setTimeout(() => setShowDesc(true), 1600);
+        setTimeout(() => setShowButton(true), 2400);
+    }, []);
+
+    return (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-[200] bg-black flex flex-col items-center justify-center px-6 font-mono">
+            <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 50% 40%, rgba(0,212,255,0.06) 0%, transparent 55%)' }} />
+            <div className="relative z-10 flex flex-col items-center gap-6 max-w-sm">
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-[#00d4ff] text-[10px] font-bold tracking-[0.4em] uppercase">
+                    HUNTER CLASS IDENTIFIED
+                </motion.div>
+
+                <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.8, type: 'spring', stiffness: 200 }}
+                    className="w-40 h-40 relative">
+                    <ShimmerImg src={archetype.badge} alt="" className="w-full h-full" />
+                    <motion.div className="absolute inset-0 rounded-full" style={{ boxShadow: '0 0 60px rgba(0,212,255,0.15)' }}
+                        animate={{ opacity: [0.3, 0.6, 0.3] }} transition={{ duration: 3, repeat: Infinity }} />
+                </motion.div>
+
+                <AnimatePresence>
+                    {showName && (
+                        <motion.h2 initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="text-3xl font-black text-white tracking-tight text-center">
+                            {archetype.name}
+                        </motion.h2>
+                    )}
+                </AnimatePresence>
+
+                <AnimatePresence>
+                    {showDesc && (
+                        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-gray-400 text-[14px] text-center leading-relaxed max-w-xs" style={{ fontFamily: 'Georgia, serif' }}>
+                            &ldquo;{archetype.desc}&rdquo;
+                        </motion.p>
+                    )}
+                </AnimatePresence>
+
+                {showButton && (
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="w-full pt-6">
+                        <button onClick={() => { triggerHaptic('BUTTON_TAP'); onComplete(); }}
+                            className="w-full bg-[#00d4ff] text-black font-black py-4 rounded-2xl uppercase tracking-widest text-sm shadow-[0_0_30px_rgba(0,212,255,0.3)]">
+                            View System Report
+                        </button>
+                    </motion.div>
+                )}
+            </div>
+        </motion.div>
+    );
+};
+
 const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
   const [step, setStep] = useState(1);
-  const [viewState, setViewState] = useState<'FORM' | 'ASSESSMENT' | 'REPORT' | 'AWAKENING'>('FORM');
-  const TOTAL_STEPS = 9;
+  const [viewState, setViewState] = useState<'HOOK' | 'FORM' | 'COMMITMENT' | 'VOW' | 'ASSESSMENT' | 'EMPATHY' | 'ARCHETYPE' | 'REPORT'>('HOOK');
+  const TOTAL_STEPS = 8;
+  const [hunterName, setHunterName] = useState('');
   
   const [formData, setFormData] = useState<Partial<HealthProfile>>({
       gender: 'MALE', goal: 'RECOMP', equipment: 'GYM', workoutSplit: 'CLASSIC', age: 25, height: 175, weight: 70, targetWeight: 70,
@@ -941,20 +1532,33 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
   const toKg = (lbs: number) => Math.round(lbs / 2.20462);
 
   const handleFinish = () => {
+      setViewState('COMMITMENT');
+  };
+
+  const handleCommitmentComplete = () => {
+      setViewState('VOW');
+  };
+
+  const handleVowComplete = () => {
       setViewState('ASSESSMENT');
   };
 
   const handleAssessmentComplete = () => {
-      setViewState('REPORT');
+      setViewState('ARCHETYPE');
   };
 
-  const handleReportAccept = () => {
-      setViewState('AWAKENING');
+  const handleArchetypeComplete = () => {
+      setViewState('EMPATHY');
+  };
+
+  const handleEmpathyComplete = () => {
+      finalizeCalibration(computeBaseStats());
   };
 
   const finalizeCalibration = (stats: CoreStats) => {
       const calculatedProfile = {
           ...formData,
+          hunterName: hunterName.trim(),
           bmi: (formData.weight! / ((formData.height! / 100) ** 2)),
           bmr: 1600,
           macros: { protein: 150, carbs: 200, fats: 60, calories: 2000 },
@@ -975,9 +1579,32 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
       setFormData({ ...formData, height: cm });
   };
 
+  // Compute base stats for Empathy/Archetype/Report screens
+  const computeBaseStats = (): CoreStats => {
+      let str = 25, int = 40, dis = 20, soc = 30, foc = 25, wil = 20;
+      if (formData.activityLevel === 'SEDENTARY') { str = 15; dis = 15; foc = 20; wil = 15; }
+      if (formData.activityLevel === 'LIGHT') { str = 30; dis = 25; foc = 28; wil = 22; }
+      if (formData.activityLevel === 'MODERATE') { str = 45; dis = 40; foc = 35; wil = 35; }
+      if (formData.activityLevel === 'VERY_ACTIVE') { str = 60; dis = 55; foc = 42; wil = 45; }
+      return { strength: str, intelligence: int, discipline: dis, social: soc, focus: foc, willpower: wil };
+  };
+
+  // Archetype based on goal
+  const getArchetype = () => {
+      switch (formData.goal) {
+          case 'LOSE_WEIGHT': return { name: 'The Forge Breaker', desc: 'Strip away what holds you back. Forge a leaner, sharper version of yourself.', badge: '/onboarding/forge_breaker.webp' };
+          case 'BUILD_MUSCLE': return { name: 'The Shadow Knight', desc: 'Build the armor. Become the weapon. Rise through raw power.', badge: '/onboarding/shadow_knight.webp' };
+          case 'ENDURANCE': return { name: 'The Pathfinder', desc: 'Chart the course. Outlast every obstacle in your path.', badge: '/onboarding/pathfinder.webp' };
+          default: return { name: 'The Alchemist', desc: 'Transform what exists. Turn weakness into strength without starting over.', badge: '/onboarding/alchemist.webp' };
+      }
+  };
+
+  if (viewState === 'HOOK') return <OnboardingHook onComplete={() => setViewState('FORM')} />;
+  if (viewState === 'COMMITMENT') return <CommitmentSlider onComplete={handleCommitmentComplete} />;
+  if (viewState === 'VOW') return <HunterVowScreen onComplete={handleVowComplete} hunterName={hunterName.trim()} />;
   if (viewState === 'ASSESSMENT') return <AssessmentOverlay onComplete={handleAssessmentComplete} />;
-  if (viewState === 'REPORT') return <CalibrationReport profile={formData as HealthProfile} onContinue={handleReportAccept} />;
-  if (viewState === 'AWAKENING') return <AwakeningOverlay profile={formData} onComplete={finalizeCalibration} />;
+  if (viewState === 'EMPATHY') return <EmpathyInsightScreen goal={formData.goal || 'RECOMP'} profile={formData} onComplete={handleEmpathyComplete} />;
+  if (viewState === 'ARCHETYPE') return <ArchetypeScreen archetype={getArchetype()} onComplete={handleArchetypeComplete} />;
 
   return (
       <div className="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center p-3 sm:p-4 font-mono"
@@ -1003,11 +1630,11 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                       Step {step} of {TOTAL_STEPS}
                   </h2>
                   <motion.span
-                      animate={{ opacity: [1, 0.3, 1] }}
-                      transition={{ duration: 1.5, repeat: Infinity }}
+                      animate={{ opacity: [1, 0.5, 1] }}
+                      transition={{ duration: 2, repeat: Infinity }}
                       className="text-[10px] text-system-neon font-black bg-system-neon/10 px-2 py-0.5 rounded border border-system-neon/30"
                   >
-                      SYNCING...
+                      ⚔️ CALIBRATING
                   </motion.span>
               </div>
 
@@ -1015,32 +1642,50 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
               <div className="flex-1 overflow-y-auto px-8 pb-6">
               <AnimatePresence mode="wait">
 
-                  {/* ── STEP 1: Warning ─────────────────────────────────── */}
+                  {/* ── STEP 1: Hunter Registration (Name) ── */}
                   {step === 1 && (
-                      <motion.div key="s1" variants={setupContainerVariants} initial="hidden" animate="visible" exit="exit" className="space-y-6">
-                          <motion.div variants={setupItemVariants} className="bg-red-900/10 border border-red-500/30 p-6 rounded-xl text-center">
-                              <AlertTriangle className="text-red-500 mx-auto mb-4" size={40} />
-                              <h3 className="text-white font-black uppercase text-lg mb-2">System Warning</h3>
-                              <p className="text-gray-400 text-xs leading-relaxed">
-                                  ForgeGuard is active. Falsifying biometric data or capability baselines will result in inaccurate difficulty scaling and potential System Lockout.
-                              </p>
-                              <p className="text-red-400 font-bold text-xs mt-4 uppercase tracking-widest">
-                                  Honesty is mandatory.
-                              </p>
+                      <motion.div key="sName" variants={setupContainerVariants} initial="hidden" animate="visible" exit="exit" className="space-y-6">
+                          <motion.div variants={setupItemVariants}>
+                              <div className="flex items-center gap-2 mb-1">
+                                  <User className="text-[#00d4ff]" size={18} />
+                                  <span className="text-xs text-gray-500 uppercase tracking-widest font-bold">Hunter Registration</span>
+                              </div>
+                              <p className="text-gray-600 text-[11px]">Every hunter needs a name. What shall we call you?</p>
                           </motion.div>
-                          <motion.button
-                              variants={setupItemVariants}
-                          onClick={() => { triggerHaptic('BUTTON_TAP'); setStep(2); }}
-                              className="w-full bg-white text-black font-black py-4 rounded-xl shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:scale-105 transition-transform uppercase tracking-widest text-xs flex items-center justify-center gap-2"
-                          >
-                              I Understand <ShieldCheck size={14} />
-                          </motion.button>
+                          <motion.div variants={setupItemVariants}>
+                              <div className="relative">
+                                  <input
+                                      type="text"
+                                      value={hunterName}
+                                      onChange={e => setHunterName(e.target.value)}
+                                      className="w-full bg-black border-b-2 border-gray-800 text-center text-3xl text-white outline-none focus:border-[#00d4ff] py-6 transition-colors placeholder:text-gray-700"
+                                      placeholder="Your name"
+                                      maxLength={20}
+                                      autoFocus
+                                  />
+                              </div>
+                              {hunterName.trim() && (
+                                  <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center text-gray-500 text-[11px] mt-3">
+                                      Welcome, <span className="text-white font-bold">{hunterName.trim()}</span>. The System awaits.
+                                  </motion.p>
+                              )}
+                          </motion.div>
+                          <motion.div variants={setupItemVariants} className="sticky bottom-0 bg-[#0a0a0a] pt-3 pb-1 flex justify-end mt-4">
+                              <button
+                                  onClick={() => { triggerHaptic('BUTTON_TAP'); setStep(2); }}
+                                  disabled={!hunterName.trim()}
+                                  className="bg-system-neon text-black px-10 py-3 rounded-full font-black text-xs shadow-[0_0_15px_#00d4ff] hover:bg-white transition-all uppercase flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                              >
+                                  NEXT <ChevronRight size={14} />
+                              </button>
+                          </motion.div>
                       </motion.div>
                   )}
 
-                  {/* ── STEP 2: Hunter Identity (Gender + Age) ──────────── */}
+                  {/* ── STEP 2: Hunter Identity (Gender + Age) ── */}
+
                   {step === 2 && (
-                      <motion.div key="s2" variants={setupContainerVariants} initial="hidden" animate="visible" exit="exit" className="space-y-6">
+                      <motion.div key="s1" variants={setupContainerVariants} initial="hidden" animate="visible" exit="exit" className="space-y-6">
                           <motion.div variants={setupItemVariants}>
                               <div className="flex items-center gap-2 mb-1">
                                   <User className="text-system-neon" size={18} />
@@ -1057,7 +1702,7 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                                       <button
                                           key={g}
                                           onClick={() => { triggerHaptic('BUTTON_TAP'); setFormData({ ...formData, gender: g }); }}
-                                          className={`py-4 rounded-xl font-black text-sm tracking-widest transition-all border ${formData.gender === g ? 'bg-white text-black border-white shadow-[0_0_20px_rgba(255,255,255,0.3)]' : 'border-gray-800 text-gray-400 hover:border-gray-600'}`}
+                                          className={`py-5 rounded-2xl font-black text-sm tracking-widest transition-all border ${formData.gender === g ? 'bg-white text-black border-white shadow-[0_0_20px_rgba(255,255,255,0.3)]' : 'bg-[#141414] border-gray-800 text-gray-400 hover:border-gray-600'}`}
                                       >
                                           {g === 'MALE' ? '♂ Male' : '♀ Female'}
                                       </button>
@@ -1289,7 +1934,7 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
 
                   {/* ── STEP 7: Energy & Activity ────────────────────────── */}
                   {step === 7 && (
-                      <motion.div key="s6" variants={setupContainerVariants} initial="hidden" animate="visible" exit="exit" className="space-y-5">
+                      <motion.div key="s7" variants={setupContainerVariants} initial="hidden" animate="visible" exit="exit" className="space-y-5">
                           <motion.div variants={setupItemVariants}>
                               <div className="flex items-center gap-2 mb-1">
                                   <Zap className="text-yellow-400" size={18} />
@@ -1386,7 +2031,7 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
 
                           {/* Push-ups */}
                           <motion.div variants={setupItemVariants}>
-                              <p className="text-[10px] text-gray-500 uppercase font-bold mb-2 tracking-widest">Max Push-ups (one set)</p>
+                              <p className="text-[10px] text-gray-500 uppercase font-bold mb-2 tracking-widest">Max Push-ups (one set, no break)</p>
                               <div className="grid grid-cols-2 gap-2">
                                   {([
                                       { label: '0 – 5', val: 5 },
@@ -1394,8 +2039,44 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                                       { label: '30 – 50', val: 40 },
                                       { label: '50+', val: 60 },
                                   ]).map(opt => (
-                                      <button key={opt.val} onClick={() => { triggerHaptic('BUTTON_TAP'); setBaselines({ ...baselines, pushups: opt.val }); }}
+                                      <button key={opt.val} onClick={() => { triggerHaptic('BUTTON_TAP'); setBaselines({ ...baselines, pushups: opt.val }); setFormData(fd => ({ ...fd, baselinePushups: opt.val })); }}
                                           className={`py-3 px-3 rounded-xl border text-center transition-all ${baselines.pushups === opt.val ? 'bg-system-neon text-black border-system-neon' : 'border-gray-800 text-gray-400 hover:border-gray-600'}`}>
+                                          <div className="font-bold text-[11px]">{opt.label}</div>
+                                      </button>
+                                  ))}
+                              </div>
+                          </motion.div>
+
+                          {/* Squats */}
+                          <motion.div variants={setupItemVariants}>
+                              <p className="text-[10px] text-gray-500 uppercase font-bold mb-2 tracking-widest">Max Squats (one set, no break)</p>
+                              <div className="grid grid-cols-2 gap-2">
+                                  {([
+                                      { label: '0 – 10', val: 10 },
+                                      { label: '15 – 30', val: 20 },
+                                      { label: '40 – 60', val: 50 },
+                                      { label: '60+', val: 70 },
+                                  ]).map(opt => (
+                                      <button key={opt.val} onClick={() => { triggerHaptic('BUTTON_TAP'); setFormData(fd => ({ ...fd, baselineSquats: opt.val })); }}
+                                          className={`py-3 px-3 rounded-xl border text-center transition-all ${formData.baselineSquats === opt.val ? 'bg-green-500 text-black border-green-500' : 'border-gray-800 text-gray-400 hover:border-gray-600'}`}>
+                                          <div className="font-bold text-[11px]">{opt.label}</div>
+                                      </button>
+                                  ))}
+                              </div>
+                          </motion.div>
+
+                          {/* Running */}
+                          <motion.div variants={setupItemVariants}>
+                              <p className="text-[10px] text-gray-500 uppercase font-bold mb-2 tracking-widest">Max Running Distance (no break)</p>
+                              <div className="grid grid-cols-2 gap-2">
+                                  {([
+                                      { label: 'Under 1 km', val: 0.5 },
+                                      { label: '1 – 2 km', val: 1.5 },
+                                      { label: '3 – 5 km', val: 4 },
+                                      { label: '5+ km', val: 6 },
+                                  ]).map(opt => (
+                                      <button key={opt.val} onClick={() => { triggerHaptic('BUTTON_TAP'); setFormData(fd => ({ ...fd, baselineRunKm: opt.val })); }}
+                                          className={`py-3 px-3 rounded-xl border text-center transition-all ${formData.baselineRunKm === opt.val ? 'bg-orange-500 text-black border-orange-500' : 'border-gray-800 text-gray-400 hover:border-gray-600'}`}>
                                           <div className="font-bold text-[11px]">{opt.label}</div>
                                       </button>
                                   ))}
@@ -1444,14 +2125,14 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                               <button 
                                   onClick={() => {
                                       // Check if all three selections are made (not default values)
-                                      if (baselines.pushups !== 0 && baselines.focusDuration !== 0 && baselines.sleepAvg !== 0) {
-                                          triggerHaptic('BUTTON_TAP');
-                                          setStep(9);
+                                      if (baselines.pushups !== 0 && baselines.focusDuration !== 0 && baselines.sleepAvg !== 0 && formData.baselineSquats && formData.baselineRunKm) {
+                                          triggerHaptic('SUCCESS');
+                                          handleFinish();
                                       }
                                   }}
-                                  disabled={baselines.pushups === 0 || baselines.focusDuration === 0 || baselines.sleepAvg === 0}
+                                  disabled={baselines.pushups === 0 || baselines.focusDuration === 0 || baselines.sleepAvg === 0 || !formData.baselineSquats || !formData.baselineRunKm}
                                   className={`px-10 py-3 rounded-full font-black text-xs transition-all uppercase flex items-center gap-2 ${
-                                      baselines.pushups === 0 || baselines.focusDuration === 0 || baselines.sleepAvg === 0
+                                      baselines.pushups === 0 || baselines.focusDuration === 0 || baselines.sleepAvg === 0 || !formData.baselineSquats || !formData.baselineRunKm
                                           ? 'bg-gray-800 text-gray-600 cursor-not-allowed'
                                           : 'bg-system-neon text-black shadow-[0_0_15px_#00d4ff] hover:bg-white'
                                   }`}
@@ -1462,44 +2143,6 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                       </motion.div>
                   )}
 
-                  {/* ── STEP 9: Confirmation ─────────────────────────────── */}
-                  {step === 9 && (
-                      <motion.div key="s8" variants={setupContainerVariants} initial="hidden" animate="visible" exit="exit" className="space-y-6 text-center">
-                          <motion.div variants={setupItemVariants}>
-                              <h3 className="text-xl text-white font-black">Confirm Configuration</h3>
-                              <p className="text-gray-500 text-xs mt-1">Review your data before uploading to the System.</p>
-                          </motion.div>
-                          <motion.div variants={setupItemVariants} className="bg-gray-900/50 p-5 rounded-xl border border-gray-800 text-left space-y-2.5 font-mono text-xs">
-                              <div className="flex justify-between"><span className="text-gray-500">Profile</span><span className="text-white">{formData.gender}, {formData.age}y</span></div>
-                              <div className="flex justify-between">
-                                  <span className="text-gray-500">Height</span>
-                                  <span className="text-white">{heightUnit === 'FT' ? `${toFtIn(formData.height || 0).ft}'${toFtIn(formData.height || 0).inches}"` : `${formData.height}cm`}</span>
-                              </div>
-                              <div className="flex justify-between">
-                                  <span className="text-gray-500">Weight → Target</span>
-                                  <span className="text-white">
-                                      {weightUnit === 'LBS' ? `${toLbs(formData.weight || 0)}` : formData.weight}{weightUnit.toLowerCase()} → {weightUnit === 'LBS' ? `${toLbs(formData.targetWeight || 0)}` : formData.targetWeight}{weightUnit.toLowerCase()}
-                                  </span>
-                              </div>
-                              <div className="flex justify-between"><span className="text-gray-500">Goal</span><span className="text-white">{formData.goal === 'RECOMP' ? 'Recomp' : formData.goal?.replace('_', ' ')}</span></div>
-                              <div className="flex justify-between"><span className="text-gray-500">Equipment</span><span className="text-white">{formData.equipment?.replace('_', ' ')}</span></div>
-                              <div className="flex justify-between"><span className="text-gray-500">Injuries</span><span className="text-white">{formData.injuries?.length ? formData.injuries.join(', ') : 'None'}</span></div>
-                              <div className="flex justify-between"><span className="text-gray-500">Activity</span><span className="text-white">{formData.activityLevel}</span></div>
-                              <div className="flex justify-between"><span className="text-gray-500">Energy</span><span className="text-white">{formData.energyLevel}</span></div>
-                              <div className="flex justify-between"><span className="text-gray-500">Stress</span><span className="text-white">{formData.stressLevel}</span></div>
-                              <div className="flex justify-between"><span className="text-gray-500">Pushups</span><span className="text-white">{baselines.pushups}</span></div>
-                              <div className="flex justify-between"><span className="text-gray-500">Sleep</span><span className="text-white">{baselines.sleepAvg}h avg</span></div>
-                          </motion.div>
-                          <motion.button
-                              variants={setupItemVariants}
-                              onClick={() => { triggerHaptic('SUCCESS'); handleFinish(); }}
-                              className="w-full bg-system-neon text-black font-black py-5 rounded-xl shadow-[0_0_30px_#00d4ff] hover:scale-105 transition-transform uppercase tracking-widest"
-                          >
-                              Upload Biometrics
-                          </motion.button>
-                          <motion.button variants={setupItemVariants} onClick={() => { triggerHaptic('BUTTON_TAP'); setStep(8); }} className="text-gray-600 hover:text-white flex items-center gap-1 font-bold text-xs uppercase mx-auto"><ChevronLeft size={14} /> BACK</motion.button>
-                      </motion.div>
-                  )}
 
               </AnimatePresence>
               </div>

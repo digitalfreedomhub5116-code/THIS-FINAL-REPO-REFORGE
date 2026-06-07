@@ -33,3 +33,11 @@ mcp-setup.md
 
 # Test screenshots
 test-results/
+
+# Built APK/AAB files (too large for git — use Releases instead)
+*.apk
+*.aab
+bundle_info.txt
+
+# Vertex AI Search generated corpus (rebuild with: npx tsx scripts/build-search-corpus.ts)
+scripts/corpus.jsonl

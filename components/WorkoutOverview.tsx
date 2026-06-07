@@ -2,11 +2,29 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
-import { Clock, Flame, Dumbbell, HeartPulse, Fingerprint, ScanLine, Video, AlertTriangle, ChevronRight, CheckCircle2, X } from 'lucide-react';
+import { Clock, Flame, Dumbbell, HeartPulse, Fingerprint, ScanLine, Video, AlertTriangle, ChevronRight, CheckCircle2, X, Camera } from 'lucide-react';
 import { WorkoutDay, Exercise } from '../types';
-import { isEmbed } from '../hooks/useSystem';
+import { useSystem, isEmbed } from '../hooks/useSystem';
 import { EXERCISE_VIDEOS, fixVideoPath } from '../lib/exerciseVideos';
 import { calculateExerciseCalories } from '../utils/workoutGenerator';
+import { isFormCoachSupported } from '../lib/formCoachConfig';
+import { AD_UNITS } from '../hooks/useAdMob';
+
+/** Check if an exercise is rep-based (not time-based like "5 min" or "30s") */
+const isRepBasedExercise = (ex: Exercise): boolean => {
+  if (ex.type === 'CARDIO' || ex.type === 'STRETCH') return false;
+  const reps = ex.reps?.toLowerCase()?.trim() || '';
+  if (!reps) return false;
+  if (reps.includes('min') || reps.includes('sec') || /\d+s\b/.test(reps)) return false;
+  // Match pure numbers like "12" or comma-separated like "15, 15, 12"
+  const parts = reps.split(/[,\s]+/).filter(Boolean);
+  return parts.length > 0 && parts.every(p => /^\d+$/.test(p));
+};
+
+/** Check if exercise will get auto Form Coach (rep-based + has config) */
+const willGetFormCoach = (ex: Exercise): boolean => {
+  return isRepBasedExercise(ex) && isFormCoachSupported(ex.name);
+};
 
 interface WorkoutOverviewProps {
   plan: WorkoutDay;
@@ -14,7 +32,8 @@ interface WorkoutOverviewProps {
   onStart: (modifiedPlan: WorkoutDay) => void;
   onCancel: () => void;
   userWeight?: number;
-  onShowDungeonAd?: () => Promise<boolean>;
+  showRewardedAd?: (adUnitId: string) => Promise<{ rewarded: boolean; type?: string; amount?: number }>;
+  isPremium?: boolean;
 }
 
 // --- VISUAL ANATOMY DISPLAY (VIDEO) ---
@@ -93,6 +112,7 @@ const HolographicBody: React.FC<{ focus: string; isCardio: boolean; videos: Reco
                 loop
                 muted // Critical: Browsers block autoplay if not muted
                 playsInline // Critical: Required for iOS
+                onCanPlay={(e) => (e.target as HTMLVideoElement).classList.add('video-ready')}
                 onError={() => {
                     console.error(`Video Error loading: ${videoUrl}`);
                     setHasError(true);
@@ -147,7 +167,7 @@ const HolographicBody: React.FC<{ focus: string; isCardio: boolean; videos: Reco
 };
 
 // --- EXERCISE ROW ---
-const ExerciseRow: React.FC<{ exercise: Exercise; calories: number }> = ({ exercise, calories }) => {
+const ExerciseRow: React.FC<{ exercise: Exercise; calories: number; hasFormCoach: boolean; isPremium?: boolean }> = ({ exercise, calories, hasFormCoach, isPremium }) => {
     const videoUrl = EXERCISE_VIDEOS[exercise.name] || fixVideoPath(exercise.videoUrl || '') || '';
     const hasVideo = !!(videoUrl && videoUrl.trim() !== '');
 
@@ -186,8 +206,24 @@ const ExerciseRow: React.FC<{ exercise: Exercise; calories: number }> = ({ exerc
     );
 };
 
-const WorkoutOverview: React.FC<WorkoutOverviewProps> = ({ plan, focusVideos, onStart, onCancel, userWeight = 70, onShowDungeonAd }) => {
+const WorkoutOverview: React.FC<WorkoutOverviewProps> = ({ plan, focusVideos, onStart, onCancel, userWeight = 70, showRewardedAd, isPremium }) => {
+  const { player } = useSystem();
   const [adLoading, setAdLoading] = useState(false);
+
+  // Count how many exercises will get auto Form Coach
+  const formCoachCount = useMemo(() => {
+    return plan.exercises.filter(ex => willGetFormCoach(ex)).length;
+  }, [plan.exercises]);
+
+  // Form Coach history stats
+  const formHistory = player.formCoachHistory || [];
+  const formHistoryStats = useMemo(() => {
+    if (formHistory.length === 0) return null;
+    const lastSession = formHistory[0];
+    const avgScore = Math.round(formHistory.reduce((a, s) => a + s.overallScore, 0) / formHistory.length);
+    const totalPerfectSets = formHistory.reduce((a, s) => a + s.perfectSets, 0);
+    return { lastScore: lastSession.overallScore, sessions: formHistory.length, avgScore, totalPerfectSets };
+  }, [formHistory]);
 
   const stats = useMemo(() => {
       const sets = plan.exercises.reduce((acc, curr) => acc + curr.sets, 0);
@@ -199,17 +235,19 @@ const WorkoutOverview: React.FC<WorkoutOverviewProps> = ({ plan, focusVideos, on
   }, [plan, userWeight]);
 
   const handleStart = async () => {
-      // Show ad before entering dungeon
-      if (onShowDungeonAd) {
+      // Show rewarded ad before entering workout — skip for pro users
+      if (showRewardedAd && !isPremium) {
         setAdLoading(true);
         try {
-          await onShowDungeonAd();
-        } finally {
+          await showRewardedAd(AD_UNITS.KEY_REWARD);
+        } catch { /* proceed anyway if ad fails */ }
+        finally {
           setAdLoading(false);
         }
       }
 
-      onStart({ ...plan });
+      // No more manual toggles — ActiveWorkoutPlayer auto-detects form coach exercises
+      onStart(plan);
   };
 
   // Render via Portal to break out of any transform stacking contexts from parent layouts
@@ -256,6 +294,43 @@ const WorkoutOverview: React.FC<WorkoutOverviewProps> = ({ plan, focusVideos, on
                             </div>
                         </div>
 
+                        {/* Form Coach Stats Mini-Widget (only if history exists) */}
+                        {formHistoryStats && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.3 }}
+                            className="rounded-xl overflow-hidden"
+                            style={{
+                              background: 'linear-gradient(135deg, rgba(0,212,255,0.04) 0%, rgba(139,92,246,0.04) 100%)',
+                              border: '1px solid rgba(0,212,255,0.12)',
+                            }}
+                          >
+                            <div className="px-3 py-2 flex items-center gap-2" style={{ borderBottom: '1px solid rgba(0,212,255,0.08)' }}>
+                              <Camera size={11} className="text-system-neon" />
+                              <span className="text-[8px] font-mono font-bold tracking-[0.2em] text-system-neon">MOTION COACH STATS</span>
+                            </div>
+                            <div className="grid grid-cols-4 divide-x divide-white/5">
+                              <div className="px-2 py-2 text-center">
+                                <div className="text-sm font-black text-white font-mono">{formHistoryStats.lastScore}%</div>
+                                <div className="text-[7px] text-gray-500 font-mono tracking-wider">LAST</div>
+                              </div>
+                              <div className="px-2 py-2 text-center">
+                                <div className="text-sm font-black text-white font-mono">{formHistoryStats.avgScore}%</div>
+                                <div className="text-[7px] text-gray-500 font-mono tracking-wider">AVG</div>
+                              </div>
+                              <div className="px-2 py-2 text-center">
+                                <div className="text-sm font-black text-system-neon font-mono">{formHistoryStats.sessions}</div>
+                                <div className="text-[7px] text-gray-500 font-mono tracking-wider">SESSIONS</div>
+                              </div>
+                              <div className="px-2 py-2 text-center">
+                                <div className="text-sm font-black text-green-400 font-mono">{formHistoryStats.totalPerfectSets}</div>
+                                <div className="text-[7px] text-gray-500 font-mono tracking-wider">PERFECT</div>
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+
                         <HolographicBody focus={plan.focus} isCardio={false} videos={focusVideos} />
                     </div>
 
@@ -271,7 +346,9 @@ const WorkoutOverview: React.FC<WorkoutOverviewProps> = ({ plan, focusVideos, on
                                 <ExerciseRow 
                                     key={i} 
                                     exercise={ex} 
-                                    calories={calculateExerciseCalories(ex, userWeight)} 
+                                    calories={calculateExerciseCalories(ex, userWeight)}
+                                    hasFormCoach={willGetFormCoach(ex)}
+                                    isPremium={isPremium}
                                 />
                             ))}
                         </div>

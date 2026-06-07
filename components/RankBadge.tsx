@@ -1,6 +1,6 @@
 
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export type RankType = 'UNRANKED' | 'E' | 'D' | 'C' | 'B' | 'A' | 'S';
 
@@ -30,7 +30,7 @@ export const RANK_META: Record<RankType, {
     glow:       'rgba(74,74,90,0.0)',
     bg:         '#08080e',
     labelColor: '#5a5a6a',
-    image:      '/images/ranks/e-rank-removebg-preview.webp',
+    image:      '/images/ranks/unranked-badge.png',
   },
   E: {
     primary:    '#9eaabb',
@@ -136,7 +136,7 @@ const RankBadge: React.FC<RankBadgeProps> = ({
           objectFit: 'contain',
           position: 'relative',
           zIndex: 1,
-          filter: rank === 'UNRANKED' ? 'grayscale(0.7) brightness(0.5)' : 'none',
+          filter: 'none',
         }}
       />
 
@@ -149,6 +149,111 @@ const RankBadge: React.FC<RankBadgeProps> = ({
         </div>
       )}
     </motion.div>
+  );
+};
+
+/* ─── Rank Reveal Badge — mystery "?" shatters to reveal E-rank ──────────── */
+
+const SHARD_COUNT = 8;
+const shardAngles = Array.from({ length: SHARD_COUNT }, (_, i) => (360 / SHARD_COUNT) * i);
+
+export const RankRevealBadge: React.FC<{
+  size?: number;
+  onRevealComplete?: () => void;
+}> = ({ size = 120, onRevealComplete }) => {
+  const [phase, setPhase] = useState<'mystery' | 'shatter' | 'reveal'>('mystery');
+
+  useEffect(() => {
+    // Auto-trigger shatter after 1.5s, then reveal after shatter
+    const t1 = setTimeout(() => setPhase('shatter'), 1500);
+    const t2 = setTimeout(() => {
+      setPhase('reveal');
+      onRevealComplete?.();
+    }, 2800);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [onRevealComplete]);
+
+  return (
+    <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
+      {/* Shards flying out during shatter phase */}
+      <AnimatePresence>
+        {phase === 'shatter' && shardAngles.map((angle, i) => {
+          const rad = (angle * Math.PI) / 180;
+          const dist = size * 0.8;
+          return (
+            <motion.div
+              key={`shard-${i}`}
+              className="absolute"
+              style={{
+                width: size * 0.18,
+                height: size * 0.22,
+                background: `linear-gradient(${angle}deg, #3a3a5a, #2a2a3a)`,
+                borderRadius: 2,
+                boxShadow: '0 0 6px rgba(100,100,140,0.4)',
+              }}
+              initial={{ x: 0, y: 0, opacity: 1, rotate: 0, scale: 1 }}
+              animate={{
+                x: Math.cos(rad) * dist,
+                y: Math.sin(rad) * dist,
+                opacity: 0,
+                rotate: angle + 180,
+                scale: 0.3,
+              }}
+              transition={{ duration: 0.8, ease: 'easeOut' }}
+            />
+          );
+        })}
+      </AnimatePresence>
+
+      {/* Mystery badge — visible until shatter */}
+      <AnimatePresence>
+        {phase === 'mystery' && (
+          <motion.div
+            className="absolute inset-0 flex items-center justify-center"
+            exit={{ scale: 1.2, opacity: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <motion.img
+              src="/images/ranks/unranked-badge.png"
+              alt="Mystery Badge"
+              style={{ width: size, height: size, objectFit: 'contain' }}
+              animate={{
+                filter: ['brightness(1)', 'brightness(1.3)', 'brightness(1)'],
+              }}
+              transition={{ duration: 2, repeat: Infinity }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* E-rank badge reveal */}
+      <AnimatePresence>
+        {phase === 'reveal' && (
+          <motion.div
+            className="absolute inset-0 flex items-center justify-center"
+            initial={{ scale: 0.3, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+          >
+            <motion.div
+              className="absolute rounded-full"
+              style={{
+                width: size * 0.85,
+                height: size * 0.85,
+                background: 'radial-gradient(circle, rgba(158,170,187,0.5) 0%, transparent 70%)',
+              }}
+              animate={{ opacity: [0.4, 0.8, 0.4], scale: [0.95, 1.08, 0.95] }}
+              transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+            />
+            <motion.img
+              src="/images/ranks/e-rank-removebg-preview.webp"
+              alt="E-Rank Badge"
+              style={{ width: size, height: size, objectFit: 'contain', position: 'relative', zIndex: 1 }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 };
 

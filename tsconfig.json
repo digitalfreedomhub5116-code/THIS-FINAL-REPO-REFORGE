@@ -13,12 +13,8 @@
     "jsx": "react-jsx",
     "strict": true,
     "noFallthroughCasesInSwitch": true,
-    "types": ["vite/client", "node", "express-session"],
-    "paths": {
-      "@assets/*": ["./attached_assets/*"],
-      "@shared/*": ["./shared/*"]
-    }
+    "types": ["vite/client"]
   },
   "include": ["**/*.ts", "**/*.tsx", "vite.config.ts"],
-  "exclude": ["node_modules", "lynx-store-kit"]
+  "exclude": ["node_modules", "server", "scripts", "lynx-store-kit"]
 }

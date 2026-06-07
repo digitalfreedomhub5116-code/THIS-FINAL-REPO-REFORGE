@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Send, RefreshCw, Zap, Dumbbell, Apple, BarChart3, Target, Brain, Moon, Flame, Trash2 } from 'lucide-react';
 import { PlayerData } from '../types';
 import { API_BASE } from '../lib/apiConfig';
-import { getPlayerAuthHeaders } from '../lib/playerApi';
+import { getPlayerAuthHeaders, authenticatedFetch } from '../lib/playerApi';
 
 
 interface DuskChatProps {
@@ -282,10 +282,9 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, updatePlayer, onClose, onMa
   const generateResponse = async (userMessage: string) => {
     setIsLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/dusk/chat`, {
+      const res = await authenticatedFetch(`${API_BASE}/api/dusk/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
-        credentials: 'include',
         body: JSON.stringify({
           message: userMessage,
           history: messages.slice(-8).map(m => ({ sender: m.sender, text: m.text })),

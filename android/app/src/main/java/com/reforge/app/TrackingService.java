@@ -92,12 +92,23 @@ public class TrackingService extends Service implements StepCounterHelper.StepLi
         if (intent == null) return START_NOT_STICKY;
 
         String action = intent.getAction();
+
+        // ── STOP path ──────────────────────────────────────────────
+        // Plugin uses startService() (not startForegroundService) for STOP,
+        // so there's NO 5-second foreground deadline to satisfy here. Just
+        // tear down. stopTrackingInternal() handles dropping the foreground
+        // state if it was active.
         if (ACTION_STOP.equals(action)) {
             stopTrackingInternal();
             return START_NOT_STICKY;
         }
 
-        if (ACTION_START.equals(action) && !isRunning) {
+        // ── START path ─────────────────────────────────────────────
+        // Plugin uses startForegroundService() on Android 8+, which arms a
+        // hard 5-second deadline. We MUST call startForeground() before that
+        // expires. We do it before any heavy work so the deadline is met
+        // even if sensor setup later throws.
+        if (ACTION_START.equals(action)) {
             mode = intent.getStringExtra("mode");
             if (mode == null) mode = "TIME_ONLY";
             questId = intent.getStringExtra("questId");
@@ -116,11 +127,43 @@ public class TrackingService extends Service implements StepCounterHelper.StepLi
 
             startedAt = intent.getLongExtra("startedAt", System.currentTimeMillis());
             lastUpdate = System.currentTimeMillis();
-            isRunning = true;
 
-            // Start as foreground service
-            Notification notification = buildNotification();
-            startForeground(NOTIFICATION_ID, notification);
+            // ── Promote to foreground FIRST. Critical: this must happen
+            //    before we leave onStartCommand, otherwise Android's 5s
+            //    deadline triggers ForegroundServiceDidNotStartInTimeException.
+            //    Wrap in try/catch for two known cases:
+            //      1. Android 12+ ForegroundServiceStartNotAllowedException —
+            //         app was background-restricted at the moment of start.
+            //      2. Android 14+ MissingForegroundServiceTypeException /
+            //         SecurityException — runtime permission for the declared
+            //         foregroundServiceType (location) is missing.
+            //    If promotion fails we MUST stop ourselves so the OS doesn't
+            //    keep punishing us with the deadline.
+            try {
+                startForeground(NOTIFICATION_ID, buildNotification());
+            } catch (Exception e) {
+                Log.w(TAG, "startForeground refused — stopping service", e);
+                stopSelf();
+                return START_NOT_STICKY;
+            }
+
+            // ── Restart-while-running case: if a previous run is still wired
+            //    up (race between stop() and start() back-to-back, OR JS
+            //    calling start twice without stopping), tear sensors down
+            //    cleanly before re-arming. Without this we'd leak sensor
+            //    listeners and double-count steps.
+            if (isRunning) {
+                Log.i(TAG, "ACTION_START received while already running — restarting sensors");
+                if (stepCounter != null) stepCounter.stop();
+                if (locationCallback != null && fusedLocationClient != null) {
+                    fusedLocationClient.removeLocationUpdates(locationCallback);
+                    locationCallback = null;
+                }
+                minuteTimerRunning = false;
+                if (minuteTimerThread != null) minuteTimerThread.interrupt();
+            }
+
+            isRunning = true;
 
             // Start sensors based on mode
             if ("FULL".equals(mode)) {
@@ -131,9 +174,11 @@ public class TrackingService extends Service implements StepCounterHelper.StepLi
 
             saveSnapshot();
             Log.i(TAG, "Tracking started — mode=" + mode + " quest=" + questId);
+            return START_STICKY;
         }
 
-        return START_STICKY;
+        // Unknown action — do nothing.
+        return START_NOT_STICKY;
     }
 
     private void startStepCounter() {

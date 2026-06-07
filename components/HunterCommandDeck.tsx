@@ -184,6 +184,7 @@ const HunterCommandDeck: React.FC<HunterCommandDeckProps> = ({ player, triggerAc
             playsInline
             poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
             className="absolute inset-0 w-full h-full object-cover opacity-60 scale-110 origin-center mix-blend-screen grayscale contrast-125 group-hover:opacity-80 transition-opacity duration-700 bg-transparent"
+            onCanPlay={(e) => (e.target as HTMLVideoElement).classList.add('video-ready')}
          >
              <source src={currentVideo} type="video/mp4" />
          </video>

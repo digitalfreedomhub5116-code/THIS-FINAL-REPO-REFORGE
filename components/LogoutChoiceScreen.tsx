@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { RefreshCw, LogIn, UserPlus, X } from 'lucide-react';
+import { triggerHaptic } from '../utils/soundEngine';
 
 interface LogoutChoiceScreenProps {
   onSelect: (dest: 'CALIBRATION' | 'AUTH_SIGN_IN_PAGE' | 'AUTH_CREATE_PAGE') => void;
@@ -63,7 +64,7 @@ const LogoutChoiceScreen: React.FC<LogoutChoiceScreenProps> = ({ onSelect, onCan
 
           {/* RECALIBRATE — primary */}
           <motion.button
-            onClick={() => onSelect('CALIBRATION')}
+            onClick={() => { triggerHaptic('BUTTON_TAP'); onSelect('CALIBRATION'); }}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.97 }}
             className="w-full flex items-center gap-4 p-4 rounded-2xl text-left transition-colors"
@@ -91,7 +92,7 @@ const LogoutChoiceScreen: React.FC<LogoutChoiceScreenProps> = ({ onSelect, onCan
 
           {/* SIGN IN */}
           <motion.button
-            onClick={() => onSelect('AUTH_SIGN_IN_PAGE')}
+            onClick={() => { triggerHaptic('BUTTON_TAP'); onSelect('AUTH_SIGN_IN_PAGE'); }}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.97 }}
             className="w-full flex items-center gap-4 p-4 rounded-2xl text-left transition-colors"
@@ -118,7 +119,7 @@ const LogoutChoiceScreen: React.FC<LogoutChoiceScreenProps> = ({ onSelect, onCan
 
           {/* CREATE ACCOUNT — ghost */}
           <motion.button
-            onClick={() => onSelect('AUTH_CREATE_PAGE')}
+            onClick={() => { triggerHaptic('BUTTON_TAP'); onSelect('AUTH_CREATE_PAGE'); }}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.97 }}
             className="w-full flex items-center gap-4 p-4 rounded-2xl text-left transition-colors"

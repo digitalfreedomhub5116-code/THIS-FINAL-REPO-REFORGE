@@ -98,16 +98,22 @@ const DuskWelcomeScreen: React.FC<DuskWelcomeScreenProps> = ({ onComplete }) => 
       .catch(() => { /* fail silently — fallback image or empty */ });
   }, []);
 
-  // ── Typewriter effect ──
+  // ── Typewriter effect with haptic feedback ──
   useEffect(() => {
     let i = 0;
     const interval = setInterval(() => {
       if (i < DUSK_MESSAGE.length) {
         setDisplayedText(DUSK_MESSAGE.slice(0, i + 1));
+        // Haptic tick every 3rd visible character (skip newlines/spaces)
+        const char = DUSK_MESSAGE[i];
+        if (char !== '\n' && char !== ' ' && i % 3 === 0) {
+          triggerHaptic('TICK');
+        }
         i++;
       } else {
         clearInterval(interval);
         setTypingDone(true);
+        triggerHaptic('SUCCESS');
         setTimeout(() => setShowButton(true), 400);
       }
     }, 22);
@@ -306,6 +312,7 @@ const DuskWelcomeScreen: React.FC<DuskWelcomeScreenProps> = ({ onComplete }) => 
             preload="auto"
             // @ts-ignore — webkit attribute for iOS/Android
             webkit-playsinline="true"
+            onCanPlay={(e) => (e.target as HTMLVideoElement).classList.add('video-ready')}
           />
 
           {/* Intro video — fades out when done */}
@@ -322,6 +329,7 @@ const DuskWelcomeScreen: React.FC<DuskWelcomeScreenProps> = ({ onComplete }) => 
             onEnded={handleIntroEnd}
             animate={{ opacity: introEnded ? 0 : 1 }}
             transition={{ duration: 0.4 }}
+            onCanPlay={(e: any) => (e.target as HTMLVideoElement).classList.add('video-ready')}
           />
 
           {/* Heavy vignette overlay - all edges */}

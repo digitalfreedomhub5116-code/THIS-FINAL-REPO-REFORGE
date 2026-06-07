@@ -235,6 +235,7 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
 
   'Push-Up':                         N.pushUps,
   'Push-Ups':                        N.pushUps,
+  'Push Ups':                        N.pushUps,
   'Pushup':                          N.pushUps,
   'Pushups':                         N.pushUps,
   'Diamond Push-Ups':                N.diamondPushUps,
@@ -293,6 +294,8 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   'Hack Squat':                      N.barbellSquat,
   'Jump Squat':                      N.jumpSquat,
   'Jump Squats':                     N.jumpSquats,
+  'Squats':                          N.barbellSquat,
+  'Bodyweight Squats':               N.barbellSquat,
 
   'Romanian Deadlift':               N.romanianDeadlift,
   'Leg Press':                       N.legPress,
@@ -369,6 +372,8 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   'Elliptical Training':             N.elliptical,
   'Skater Jump':                     N.skaterJump,
   'Butt Kicks':                      N.buttKicks,
+  'Running':                         N.jogging,
+  'Run':                             N.jogging,
 
 
   // ══════════════════════════════════════════════

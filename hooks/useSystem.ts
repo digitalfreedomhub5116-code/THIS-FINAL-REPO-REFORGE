@@ -2,11 +2,12 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   PlayerData, Quest, ShopItem, SystemNotification, NotificationType,
   ActivityLog, HealthProfile, ProgressPhoto, MealLog, WorkoutDay, AdminExercise, DailyReward,
-  ReplitUser, HistoryEntry, Goal
+  ReplitUser, HistoryEntry, Goal, FormCoachSession
 } from '../types';
 import { playSystemSoundEffect } from '../utils/soundEngine';
-import { getPlayerAuthHeaders } from '../lib/playerApi';
+import { getPlayerAuthHeaders, authenticatedFetch } from '../lib/playerApi';
 import { clearAuthNative } from '../lib/nativeAuth';
+import { Preferences } from '@capacitor/preferences';
 import { REWARD_SCHEDULE } from '../lib/rewards';
 import { API_BASE } from '../lib/apiConfig';
 import { initEconomyForUser, clearEconomySession } from '../utils/storeEconomy';
@@ -14,6 +15,8 @@ import { fixVideoPath } from '../lib/exerciseVideos';
 import { OUTFITS, getOutfitXpBoost, getStoneConfig, getUnlockedBadgeCount, BADGE_TIERS } from '../utils/gameData';
 import { scheduleQuestDeadline, cancelDailyReminders } from './useLocalNotifications';
 import { safeLevelUp, computeRank } from '../lib/levelSystem';
+import { createInitialDungeonState, recordDungeonCompletion, getDungeonTargetsForToday, recordDungeonFailure } from '../lib/dungeonEngine';
+import { incrementDungeonClear, shouldTriggerReview, dispatchShowReviewPrompt } from '../lib/appReview';
 export { safeLevelUp, computeRank };
 
 export const isEmbed = (url: string) => {
@@ -162,17 +165,21 @@ function migratePlayerData(raw: Partial<PlayerData>): PlayerData {
   if (!merged.ownedBorders) merged.ownedBorders = ['border_default'];
   if (merged.equippedBorder === undefined) merged.equippedBorder = null;
   merged.tutorialComplete = (raw as any)?.tutorialComplete ?? false;
-  // Feature gate migration — existing configured users get everything unlocked
+  // Rank reveal & welcome chest: ALWAYS default to false.
+  // Legacy users won't trigger rank reveal (their rank isn't UNRANKED),
+  // and seeing the welcome chest is a bonus, not a bug.
+  // Previously these were auto-set to true for configured users with rank != UNRANKED,
+  // but the server creates new users with rank='E' immediately, so after any page
+  // reload (OAuth redirect, etc.) brand-new users were incorrectly treated as legacy.
+  if (merged.rankRevealed === undefined) merged.rankRevealed = false;
+  if (merged.welcomeChestShown === undefined) merged.welcomeChestShown = false;
+  // Feature gate migration — existing configured users get quest/workout onboarding skipped
   if (raw.isConfigured && raw.rank !== 'UNRANKED') {
     if (merged.featureUnlocksShown === undefined) merged.featureUnlocksShown = [5, 10];
-    if (merged.rankRevealed === undefined) merged.rankRevealed = true;
-    if (merged.welcomeChestShown === undefined) merged.welcomeChestShown = true;
     if (merged.questOnboardingDone === undefined) merged.questOnboardingDone = true;
     if (merged.workoutOnboardingDone === undefined) merged.workoutOnboardingDone = true;
   } else {
     if (merged.featureUnlocksShown === undefined) merged.featureUnlocksShown = [];
-    if (merged.rankRevealed === undefined) merged.rankRevealed = false;
-    if (merged.welcomeChestShown === undefined) merged.welcomeChestShown = false;
     if (merged.questOnboardingDone === undefined) merged.questOnboardingDone = false;
     if (merged.workoutOnboardingDone === undefined) merged.workoutOnboardingDone = false;
   }
@@ -282,7 +289,35 @@ export const useSystem = () => {
   const serverGoldRef = useRef(player.gold);
 
   useEffect(() => {
-    try { localStorage.setItem(`reforge_player_v2_${player.userId || 'local'}`, JSON.stringify(player)); } catch { /* quota exceeded or private mode */ }
+    try {
+      localStorage.setItem(`reforge_player_v2_${player.userId || 'local'}`, JSON.stringify(player));
+      
+      // Opt-in background synchronization to standard Android preferences for Home Screen Widget updates
+      (async () => {
+        try {
+          const stats = player.stats || { strength: 0, intelligence: 0, discipline: 0, social: 0, focus: 0, willpower: 0 };
+          await Promise.all([
+            Preferences.set({ key: 'widget_level', value: String(player.level || 1) }),
+            Preferences.set({ key: 'widget_streak', value: String(player.streak || 0) }),
+            Preferences.set({ key: 'widget_currentXp', value: String(player.currentXp || 0) }),
+            Preferences.set({ key: 'widget_requiredXp', value: String(player.requiredXp || 100) }),
+            Preferences.set({ key: 'widget_strength', value: String(stats.strength || 0) }),
+            Preferences.set({ key: 'widget_intelligence', value: String(stats.intelligence || 0) }),
+            Preferences.set({ key: 'widget_discipline', value: String(stats.discipline || 0) }),
+            Preferences.set({ key: 'widget_social', value: String(stats.social || 0) }),
+            Preferences.set({ key: 'widget_focus', value: String(stats.focus || 0) }),
+            Preferences.set({ key: 'widget_willpower', value: String(stats.willpower || 0) }),
+          ]);
+          // Notify native widget to redraw immediately via the Custom plugin action
+          const plugin = (window as any).Capacitor?.Plugins?.TrackingPlugin;
+          if (plugin && plugin.updateWidget) {
+            await plugin.updateWidget();
+          }
+        } catch (prefErr) {
+          console.warn("Failed to update widget preferences", prefErr);
+        }
+      })();
+    } catch { /* quota exceeded or private mode */ }
   }, [player]);
 
   useEffect(() => {
@@ -384,10 +419,9 @@ export const useSystem = () => {
         consumables: data.consumables || {}
       };
       
-      const res = await fetch(`${API_BASE}/api/player/${data.userId}`, {
+      const res = await authenticatedFetch(`${API_BASE}/api/player/${data.userId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
-        credentials: 'include',
         body: JSON.stringify(syncData)
       });
 
@@ -530,7 +564,11 @@ export const useSystem = () => {
 
   const addNotification = useCallback((message: string, type: NotificationType) => {
     const id = Date.now().toString();
-    setNotifications(prev => [...prev, { id, message, type }]);
+    // Only 1 visible notification at a time — replace any existing one
+    setNotifications([{ id, message, type }]);
+    // Clear any previous timer
+    notificationTimers.current.forEach(t => clearTimeout(t));
+    notificationTimers.current.clear();
     const timer = setTimeout(() => {
       setNotifications(prev => prev.filter(n => n.id !== id));
       notificationTimers.current.delete(timer);
@@ -961,7 +999,8 @@ export const useSystem = () => {
     if (lastLogin === today) return null;
 
     // Use the authoritative streak from auto-streak tracker (single source of truth)
-    const currentStreak = player.streak || 1;
+    // streak=0 means broken — use index 0 for the reward (Day 1 reward tier)
+    const currentStreak = Math.max(1, player.streak || 0);
     const rewardIndex = (currentStreak - 1) % 7;
     return REWARD_SCHEDULE[rewardIndex];
   }, [player.lastLoginDate, player.streak]);
@@ -971,7 +1010,8 @@ export const useSystem = () => {
     
     setPlayer(prev => {
       // Streak is already set by auto-streak tracker — use it directly (single source of truth)
-      const nextStreak = prev.streak || 1;
+      // If streak=0 (broken), treat as Day 1 for reward purposes
+      const nextStreak = Math.max(1, prev.streak || 0);
 
       let { currentXp, requiredXp, level, totalXp, dailyXp, gold, consumables } = prev;
       
@@ -1267,10 +1307,9 @@ export const useSystem = () => {
         if (hasPact && pactAmount > 0 && prev.userId) {
           const weekStart = new Date();
           weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-          fetch(`${API_BASE}/api/system-pact/burn`, {
+          authenticatedFetch(`${API_BASE}/api/system-pact/burn`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
             body: JSON.stringify({
               quest_id: quest.id,
               amount: pactAmount,
@@ -1382,10 +1421,9 @@ export const useSystem = () => {
 
       // Fire-and-forget: mark pact as honored on server
       if (hasPact && prev.userId) {
-        fetch(`${API_BASE}/api/system-pact/resolve`, {
+        authenticatedFetch(`${API_BASE}/api/system-pact/resolve`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
           body: JSON.stringify({ quest_id: quest.id, status: 'honored' }),
         }).catch(() => {});
       }
@@ -1457,10 +1495,9 @@ export const useSystem = () => {
       if (qHasPact && qPactAmount > 0 && prev.userId) {
         const weekStart = new Date();
         weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-        fetch(`${API_BASE}/api/system-pact/burn`, {
+        authenticatedFetch(`${API_BASE}/api/system-pact/burn`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
           body: JSON.stringify({
             quest_id: q.id,
             amount: qPactAmount,
@@ -1542,7 +1579,13 @@ export const useSystem = () => {
   };
 
   const saveHealthProfile = (profile: HealthProfile, identity: string) => {
-    setPlayer(prev => ({ ...prev, healthProfile: profile, identity }));
+    setPlayer(prev => ({
+      ...prev,
+      healthProfile: profile,
+      identity,
+      // Keep player.name in sync with healthProfile.hunterName (if set)
+      ...(profile.hunterName ? { name: profile.hunterName } : {}),
+    }));
     addNotification('Biometrics Updated. System Calibrated.', 'SUCCESS');
   };
 
@@ -1631,7 +1674,9 @@ export const useSystem = () => {
     results: Record<string, number>,
     intensityModifier: boolean,
     anomalyPoints: number = 0,
-    isCustomWorkout: boolean = false
+    isCustomWorkout: boolean = false,
+    formCoachBonusXp: number = 0,
+    formCoachSession?: FormCoachSession
   ): WorkoutReward[] => {
     // Guard against duplicate rapid calls
     if (workoutCompletingRef.current) return [];
@@ -1723,6 +1768,11 @@ export const useSystem = () => {
         totalGoldGain = Math.floor((baseXp + bonusXp) / 10) + goldReward;
       }
 
+      // Apply Form Coach bonus XP
+      if (formCoachBonusXp > 0) {
+        totalXpGain += formCoachBonusXp;
+      }
+
       const stats = { ...prev.stats };
       const dailyStats = { ...prev.dailyStats };
       const weeklyStats = { ...prev.weeklyStats };
@@ -1796,7 +1846,14 @@ export const useSystem = () => {
 
         logs: newLogs,
         lastWorkoutDate: today,
-        ...(leveledUp ? { hp: prev.maxHp, mp: prev.maxMp } : {})
+        ...(leveledUp ? { hp: prev.maxHp, mp: prev.maxMp } : {}),
+        // Store Form Coach session history (cap at 50)
+        ...(formCoachSession ? {
+          formCoachHistory: [
+            formCoachSession,
+            ...(prev.formCoachHistory || []),
+          ].slice(0, 50)
+        } : {}),
       };
     });
 
@@ -1807,18 +1864,46 @@ export const useSystem = () => {
       // Cancel today's workout/streak/leaderboard reminders — user has already trained
       cancelDailyReminders().catch(() => {});
       const rewardSummary = rewards.map(r => `${r.amount} ${r.label}`).join(', ');
-      addNotification(`Workout Complete! Rewards: ${rewardSummary}`, 'SUCCESS');
-      triggerDuskMessage(`Workout Completed: ${exercisesCompleted}/${totalExercises} exercises done. Intensity: ${intensityModifier ? 'HIGH' : 'NORMAL'}. Rewards: ${rewardSummary}.`);
+      const formCoachTag = formCoachBonusXp > 0 ? ` + ${formCoachBonusXp} Form XP` : '';
+      addNotification(`Workout Complete! Rewards: ${rewardSummary}${formCoachTag}`, 'SUCCESS');
+      if (formCoachSession && formCoachBonusXp > 0) {
+        addNotification(`🎯 Motion Coach: ${formCoachSession.overallScore}% Form Score — +${formCoachBonusXp} Bonus XP`, 'SUCCESS');
+      }
+      triggerDuskMessage(`Workout Completed: ${exercisesCompleted}/${totalExercises} exercises done. Intensity: ${intensityModifier ? 'HIGH' : 'NORMAL'}. Rewards: ${rewardSummary}.${formCoachSession ? ` Form Coach Score: ${formCoachSession.overallScore}%, Bonus: +${formCoachBonusXp} XP, Perfect Sets: ${formCoachSession.perfectSets}.` : ''}`);
       // Award random outfit stones on workout completion (2-5)
       awardRandomStones(2, 5, 'Workout');
+
+      // ── FORM COACH MILESTONES ──
+      if (formCoachSession) {
+        const historyCount = (player.formCoachHistory?.length || 0) + 1; // +1 for current session
+        const MILESTONES: { count: number; title: string; bonusStones: number }[] = [
+          { count: 1, title: '🎯 FIRST FORM CHECK — Motion Coach Activated!', bonusStones: 3 },
+          { count: 5, title: '🎯 FORM APPRENTICE — 5 Form Coach Sessions!', bonusStones: 5 },
+          { count: 10, title: '🎯 FORM SPECIALIST — 10 Form Coach Sessions!', bonusStones: 8 },
+          { count: 25, title: '🎯 FORM MASTER — 25 Form Coach Sessions!', bonusStones: 12 },
+          { count: 50, title: '🎯 IRON DISCIPLINE — 50 Form Coach Sessions!', bonusStones: 20 },
+        ];
+        for (const milestone of MILESTONES) {
+          if (historyCount === milestone.count) {
+            addNotification(milestone.title, 'SUCCESS');
+            awardRandomStones(milestone.bonusStones, milestone.bonusStones, 'Form Coach Milestone');
+            break;
+          }
+        }
+
+        // Perfect Workout achievement: all sets scored 90%+
+        if (formCoachSession.overallScore >= 90 && formCoachSession.perfectSets > 0) {
+          addNotification('⭐ PERFECT FORM — All sets scored 90%+! Bonus stones earned!', 'SUCCESS');
+          awardRandomStones(3, 5, 'Perfect Form');
+        }
+      }
     }
 
     // Persist to workouts table (fire-and-forget)
     if (player.userId && !isLocalUser(player.userId)) {
-      fetch(`${API_BASE}/api/workout/log-complete`, {
+      authenticatedFetch(`${API_BASE}/api/workout/log-complete`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({
           exercises_completed: exercisesCompleted,
           total_exercises: totalExercises,
@@ -1831,10 +1916,9 @@ export const useSystem = () => {
       // We must call the economy/grant-keys endpoint to persist key rewards to Supabase.
       const keyReward = rewards.find(r => r.type === 'KEYS');
       if (keyReward && keyReward.amount > 0) {
-        fetch(`${API_BASE}/api/economy/grant-keys`, {
+        authenticatedFetch(`${API_BASE}/api/economy/grant-keys`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
           body: JSON.stringify({ amount: keyReward.amount, source: 'workout_reward' }),
         }).catch(() => {});
       }
@@ -2000,6 +2084,160 @@ export const useSystem = () => {
     // Silent abort — no penalty, no notification
   };
 
+  // ── DAILY DUNGEON STATE MANAGEMENT ──
+  const DUNGEON_GOAL_ID = 'system-goal-daily-dungeon';
+
+  const initializeDungeon = () => {
+    setPlayer(prev => {
+      const profile = prev.healthProfile;
+      if (!profile) return prev;
+
+      // Patch existing dungeon goal to add coverImage if missing
+      const existingGoals = prev.goals || [];
+      const existingDungeonGoal = existingGoals.find(g => g.id === DUNGEON_GOAL_ID);
+      
+      if (prev.dungeonState) {
+        // Already initialized — always patch the dungeon goal with correct data
+        if (existingDungeonGoal) {
+          const needsPatch = existingDungeonGoal.coverImage !== '/dungeon/jinwoo-protocol.png' || existingDungeonGoal.category !== 'DEFAULT';
+          if (needsPatch) {
+            return {
+              ...prev,
+              goals: existingGoals.map(g => g.id === DUNGEON_GOAL_ID
+                ? { ...g, coverImage: '/dungeon/jinwoo-protocol.png', category: 'DEFAULT' as any, isSystemGoal: true, systemGoalType: 'DAILY_DUNGEON' as const }
+                : g
+              ),
+            };
+          }
+        }
+        // Also inject goal if it somehow doesn't exist
+        if (!existingDungeonGoal) {
+          const dungeonGoal = createDungeonGoal();
+          return { ...prev, goals: [dungeonGoal, ...existingGoals] };
+        }
+        return prev;
+      }
+
+      const dungeonState = createInitialDungeonState(profile);
+      const dungeonGoal = createDungeonGoal();
+
+      return {
+        ...prev,
+        dungeonState,
+        goals: existingDungeonGoal ? existingGoals.map(g => g.id === DUNGEON_GOAL_ID ? dungeonGoal : g) : [dungeonGoal, ...existingGoals],
+      };
+    });
+  };
+
+  // Helper to create the dungeon goal template
+  const createDungeonGoal = (): Goal => ({
+    id: DUNGEON_GOAL_ID,
+    title: 'Sung Jin-woo Protocol',
+    category: 'DEFAULT' as any,
+    goalRank: 'S' as any,
+    successProbability: 100,
+    status: 'ACTIVE',
+    milestones: [
+      { phase: 1, title: 'First Dungeon Clear', description: 'Complete your first 3 Daily Dungeons to establish the habit.', startDay: 1, endDay: 3, targetOutcome: 'Complete your first 3 Daily Dungeons', sampleDailyPattern: ['Push-ups', 'Squats', 'Running'], connectionToNext: 'Build the habit before increasing intensity' },
+      { phase: 2, title: 'SOLDIER Rank', description: 'Progressive overload activates. Targets increase every 3 days.', startDay: 4, endDay: 12, targetOutcome: 'Reach SOLDIER progression tier', sampleDailyPattern: ['Progressive overload active', 'Targets increase every 3 days'], connectionToNext: 'Prepare for warrior-level intensity' },
+      { phase: 3, title: 'WARRIOR Rank', description: 'High-volume training. You are becoming unstoppable.', startDay: 13, endDay: 30, targetOutcome: 'Reach WARRIOR progression tier', sampleDailyPattern: ['High-volume training', 'Consistency is key'], connectionToNext: 'Continue your path to Shadow Monarch' },
+    ],
+    currentMilestone: 0,
+    interviewQA: [],
+    dailyCommitmentMin: 15,
+    totalDurationDays: 365,
+    smartDurationReasoning: 'The Sung Jin-woo Protocol is a permanent daily training regimen. Push-ups, Squats, and Running — every day.',
+    weeklyRestDay: 'NONE',
+    riskFactors: [],
+    reasoning: 'System-assigned mandatory daily training. This goal cannot be deleted or modified.',
+    startDate: Date.now(),
+    targetDate: Date.now() + 365 * 86400000,
+    streak: 0,
+    dailyTasks: [],
+    createdAt: Date.now(),
+    isSystemGoal: true,
+    systemGoalType: 'DAILY_DUNGEON',
+    coverImage: '/dungeon/jinwoo-protocol.png',
+  });
+
+  const updateDungeonState = (updater: (prev: any) => any) => {
+    setPlayer(prev => {
+      if (!prev.dungeonState) return prev;
+      return { ...prev, dungeonState: updater(prev.dungeonState) };
+    });
+  };
+
+  const completeDungeonWorkout = (
+    exercisesCompleted: number,
+    totalExercises: number,
+    results: Record<string, number>,
+    anomalyPoints: number = 0,
+    formCoachBonusXp: number = 0,
+    formCoachSession?: FormCoachSession
+  ) => {
+    // First: give normal workout rewards
+    const rewards = completeWorkoutSession(exercisesCompleted, totalExercises, results, false, anomalyPoints, false, formCoachBonusXp, formCoachSession);
+
+    // Then: update dungeon state (record completion)
+    setPlayer(prev => {
+      if (!prev.dungeonState) return prev;
+      let newState = recordDungeonCompletion(prev.dungeonState);
+      // Check for progression
+      const { updatedState, progressionTriggered } = getDungeonTargetsForToday(newState);
+      newState = updatedState;
+      if (progressionTriggered) {
+        const newLogs = [createLog('⬆️ DAILY DUNGEON LEVEL UP — Targets increased!', 'SYSTEM'), ...prev.logs];
+        return { ...prev, dungeonState: newState, logs: newLogs };
+      }
+      return { ...prev, dungeonState: newState };
+    });
+
+    addNotification('⚔️ DUNGEON CLEARED — Sung Jin-woo Protocol Complete!', 'SUCCESS');
+
+    // ── In-App Review trigger: after the 2nd lifetime dungeon clear ──
+    try {
+      incrementDungeonClear();
+      if (shouldTriggerReview()) {
+        // Delay so the prompt appears after the dungeon reward animation, not during.
+        setTimeout(() => dispatchShowReviewPrompt(), 2500);
+      }
+    } catch {}
+
+    // Write session log so the workout map shows "Dungeon Cleared" for today
+    try {
+      const userId = player.userId || 'local';
+      const logKey = `reforge_session_logs_${userId}`;
+      const dayMapKey = `reforge_daymap_${userId}`;
+      const today = new Date().toISOString().split('T')[0];
+      const existing = JSON.parse(localStorage.getItem(logKey) || '{}');
+      const todayLogs = existing[today] || [];
+      todayLogs.push({
+        name: '⚔️ Daily Dungeon',
+        source: 'DEFAULT',
+        status: anomalyPoints >= 5 ? 'cheated' : 'completed',
+        timestamp: Date.now(),
+      });
+      existing[today] = todayLogs;
+      localStorage.setItem(logKey, JSON.stringify(existing));
+      // Also mark dayMap
+      const dayMapData = JSON.parse(localStorage.getItem(dayMapKey) || '{}');
+      dayMapData[today] = todayLogs.some((s: any) => s.status === 'completed') ? 'completed' : 'cheated';
+      localStorage.setItem(dayMapKey, JSON.stringify(dayMapData));
+    } catch {}
+
+    return rewards;
+  };
+
+  const failDungeonWorkout = () => {
+    setPlayer(prev => {
+      if (!prev.dungeonState) return prev;
+      const newState = recordDungeonFailure(prev.dungeonState);
+      const newLogs = [createLog('❌ Daily Dungeon failed — difficulty reduced for next attempt', 'WARNING'), ...prev.logs];
+      return { ...prev, dungeonState: newState, logs: newLogs };
+    });
+    addNotification('Dungeon failed — targets reduced. Try again tomorrow.', 'WARNING');
+  };
+
   const advanceTutorial = (step: number) => {
     setPlayer(prev => ({ ...prev, tutorialStep: step }));
   };
@@ -2048,10 +2286,8 @@ export const useSystem = () => {
     // Persist strike to DB via dedicated endpoint (fire-and-forget, outside state updater)
     setTimeout(() => {
       if (capturedUserId && !isLocalUser(capturedUserId)) {
-        fetch(`${API_BASE}/api/player/${capturedUserId}/record-strike`, {
+        authenticatedFetch(`${API_BASE}/api/player/${capturedUserId}/record-strike`, {
           method: 'POST',
-          headers: { ...getPlayerAuthHeaders() },
-          credentials: 'include',
         }).then(res => {
           if (!res.ok) {
             console.error(`[ForgeGuard] Strike sync failed: ${res.status} ${res.statusText}`);
@@ -2101,10 +2337,9 @@ export const useSystem = () => {
       const failedQuests = player.quests.filter(q => q.failed).map(q => q.title).join(', ');
       const activeQuests = player.quests.filter(q => !q.isCompleted && !q.failed).map(q => q.title).join(', ');
 
-      const res = await fetch(`${API_BASE}/api/dusk/chat`, {
+      const res = await authenticatedFetch(`${API_BASE}/api/dusk/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({
           message: `[SYSTEM_EVENT] ${eventText}`,
           history: history.slice(-8),
@@ -2148,10 +2383,9 @@ export const useSystem = () => {
 
   const verifyTicket = useCallback(async (proof: string, reason: string, originalSelfie?: string) => {
     try {
-      const res = await fetch(`${API_BASE}/api/forge-guard/verify-proof`, {
+      const res = await authenticatedFetch(`${API_BASE}/api/forge-guard/verify-proof`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({ imageBase64: proof, reason, context: originalSelfie })
       });
       const data = await res.json();
@@ -2165,14 +2399,12 @@ export const useSystem = () => {
     }
   }, [removeStrike, addNotification]);
 
-  const purchaseOutfit = useCallback(async (outfit: { id: string; name: string; cost: number; keyCost?: number }) => {
+  const purchaseOutfit = useCallback(async (outfit: { id: string; name: string; cost: number; keyCost?: number }): Promise<boolean> => {
     // Server-authoritative purchase: atomic gold deduction + inventory write
     try {
-      const headers = getPlayerAuthHeaders();
-      const resp = await fetch(`${API_BASE}/api/inventory/purchase`, {
+      const resp = await authenticatedFetch(`${API_BASE}/api/inventory/purchase`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...headers },
-        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ itemId: outfit.id, itemType: 'outfit', price: outfit.cost }),
       });
       if (!resp.ok) {
@@ -2184,7 +2416,7 @@ export const useSystem = () => {
         } else {
           addNotification('Purchase failed. Try again.', 'DANGER');
         }
-        return;
+        return false;
       }
       const { gold: newGold } = await resp.json();
       // Server confirmed purchase — update local state
@@ -2196,8 +2428,10 @@ export const useSystem = () => {
         unlockedOutfits: [...(prev.unlockedOutfits || ['outfit_starter']), outfit.id],
         logs: [createLog(`Purchased: ${outfit.name} (-${outfit.cost}G)`, 'PURCHASE'), ...prev.logs],
       }));
+      return true;
     } catch {
       // Network error — fall back to client-side for offline resilience
+      let success = false;
       setPlayer(prev => {
         if ((prev.gold || 0) < outfit.cost) {
           addNotification('Insufficient Gold.', 'DANGER');
@@ -2207,6 +2441,7 @@ export const useSystem = () => {
         if (unlocked.includes(outfit.id)) return prev;
         playSystemSoundEffect('PURCHASE');
         addNotification(`${outfit.name} Unlocked!`, 'PURCHASE');
+        success = true;
         return {
           ...prev,
           gold: prev.gold - outfit.cost,
@@ -2214,6 +2449,7 @@ export const useSystem = () => {
           logs: [createLog(`Purchased: ${outfit.name} (-${outfit.cost}G)`, 'PURCHASE'), ...prev.logs],
         };
       });
+      return success;
     }
   }, [addNotification]);
 
@@ -2371,5 +2607,10 @@ export const useSystem = () => {
     dataReady,
     markDataReady,
     setIsPremium,
+    isPremium,
+    initializeDungeon,
+    updateDungeonState,
+    completeDungeonWorkout,
+    failDungeonWorkout,
   };
 };

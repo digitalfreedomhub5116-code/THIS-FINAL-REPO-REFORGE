@@ -6,7 +6,7 @@ import {
   MessageCircle,
   X, ChevronRight, Lock as LockIcon,
   Swords, Dumbbell, Brain, Users, Shield, Target, Zap,
-  Camera, ImagePlus, Loader2, Flame, TrendingUp, Sparkles,
+  Camera, ImagePlus, Loader2, Flame, TrendingUp, Sparkles, Crown, ExternalLink,
 } from 'lucide-react';
 import { PlayerData, HealthProfile, Outfit, Tab, Rank, CoreStats } from '../types';
 import AvatarWithBorder from './AvatarWithBorder';
@@ -82,6 +82,8 @@ interface YouViewProps {
   onDeleteAccount?: () => Promise<void>;
   onNavigate?: (tab: Tab) => void;
   onOpenDusk?: () => void;
+  onUpgradePro?: () => void;
+  isPremium?: boolean;
 }
 
 
@@ -250,11 +252,11 @@ const ProfileHero: React.FC<{
       <style>{PARTICLE_CSS}</style>
 
       {/* ── Banner ── */}
-      <div className="relative w-full overflow-hidden" style={{ height: 160, borderRadius: '0 0 16px 16px', background: '#000' }}>
+      <div className="relative w-full" style={{ height: 160, borderRadius: '0 0 16px 16px', background: '#000', overflow: 'hidden' }}>
         <img src={bannerSrc} alt="" className="w-full h-full object-cover" style={{ objectPosition: 'center center' }} />
         <div className="absolute bottom-0 left-0 right-0 pointer-events-none" style={{ height: 100, background: 'linear-gradient(to top, rgba(5,5,10,0.95) 0%, transparent 100%)' }} />
         {/* Name + streak flame — bottom left */}
-        <div className="absolute bottom-3 left-4 z-10" style={{ maxWidth: 'calc(50% - 60px)' }}>
+        <div className="absolute bottom-3 left-4 z-10" style={{ maxWidth: 'calc(60%)' }}>
           <div className="flex items-center gap-2">
             <div className="text-white font-bold text-lg leading-tight truncate" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.8)' }}>
               {player.name || 'Player'}
@@ -272,10 +274,6 @@ const ProfileHero: React.FC<{
             </div>
           )}
         </div>
-        {/* Rank badge — center-right of banner */}
-        <button onClick={onRankTap} className="absolute right-3 z-10" style={{ top: '32%', transform: 'translateY(-50%)' }} aria-label="View rank">
-          <RankBadge rank={(player.rank || 'E') as RankType} size={54} animated showLabel />
-        </button>
       </div>
 
       {/* ── Centered Avatar with equipped border — breathing animation ── */}
@@ -427,6 +425,11 @@ const ProfileHero: React.FC<{
           />
         </motion.div>
       </div>
+
+      {/* ── Rank badge — bottom right of the entire card ── */}
+      <button onClick={onRankTap} className="absolute z-20" style={{ bottom: 12, right: 16 }} aria-label="View rank">
+        <RankBadge rank={(player.rank || 'E') as RankType} size={48} animated />
+      </button>
     </div>
   );
 };
@@ -824,6 +827,7 @@ const AvatarChangeModal: React.FC<{
     animate={{ opacity: 1 }}
     exit={{ opacity: 0 }}
     className="fixed inset-0 z-[700] bg-black/85 backdrop-blur-sm flex items-end justify-center"
+    style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 5.5rem)' }}
     onClick={onClose}
   >
     <motion.div
@@ -832,7 +836,7 @@ const AvatarChangeModal: React.FC<{
       exit={{ y: 120, opacity: 0 }}
       transition={{ type: 'spring', damping: 28, stiffness: 350 }}
       onClick={e => e.stopPropagation()}
-      className="w-full max-w-md mx-4 mb-6"
+      className="w-full max-w-md mx-4"
     >
       {uploading ? (
         <div className="bg-[#0a0a14] border border-white/10 rounded-2xl p-10 flex flex-col items-center gap-4">
@@ -1044,7 +1048,7 @@ const StatsDrawer: React.FC<{ player: PlayerData; history?: import('../types').H
 
 // ─── Main YouView ────────────────────────────────────────────────────
 const YouView: React.FC<YouViewProps> = ({
-  player, equippedOutfit, history, onUpdate, onAvatarChange, onLogout, onDeleteAccount, onNavigate, onOpenDusk,
+  player, equippedOutfit, history, onUpdate, onAvatarChange, onLogout, onDeleteAccount, onNavigate, onOpenDusk, onUpgradePro, isPremium,
 }) => {
   const [showRank, setShowRank] = useState(false);
   const [showRankProgression, setShowRankProgression] = useState(false);
@@ -1130,6 +1134,30 @@ const YouView: React.FC<YouViewProps> = ({
         />
       </div>
 
+      {/* ── Upgrade to Reforge Pro Button ── */}
+      {!isPremium && onUpgradePro && (
+        <div className="px-4 mt-5">
+          <button
+            onClick={onUpgradePro}
+            className="w-full active:scale-[0.97] transition-transform"
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+              padding: '14px 20px', borderRadius: 14, cursor: 'pointer', border: 'none',
+              background: 'linear-gradient(135deg, #00d4ff 0%, #0099cc 50%, #006699 100%)',
+              color: '#020208', fontSize: 14, fontWeight: 900, letterSpacing: '0.04em',
+              boxShadow: '0 0 24px rgba(0,212,255,0.35), 0 4px 16px rgba(0,0,0,0.3)',
+              textTransform: 'uppercase',
+            }}
+          >
+            <Crown size={18} strokeWidth={2.5} />
+            Upgrade to Reforge Pro
+          </button>
+          <div style={{ textAlign: 'center', marginTop: 6, fontSize: 10, color: 'rgba(0,212,255,0.5)', fontFamily: 'monospace', fontWeight: 700, letterSpacing: '0.1em' }}>
+            14 DAYS FREE TRIAL · CANCEL ANYTIME
+          </div>
+        </div>
+      )}
+
       {/* Daily Fortune — variable reward widget */}
       <div className="mt-4 px-1">
         <DailyFortuneWidget player={player} />
@@ -1138,6 +1166,27 @@ const YouView: React.FC<YouViewProps> = ({
       {/* Journey log */}
       <div className="mt-4">
         <JourneyLog player={player} />
+      </div>
+
+      {/* Instagram CTA — Shadow Cult */}
+      <div className="mt-6 px-4 flex justify-center">
+        <motion.a
+          href="https://www.instagram.com/reforgesystem?igsh=MWx4YjQ1OHc5ODlpYQ=="
+          target="_blank"
+          rel="noopener noreferrer"
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          className="group relative inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold tracking-wide transition-all overflow-hidden"
+          style={{
+            background: 'linear-gradient(135deg, #E1306C 0%, #833AB4 50%, #F77737 100%)',
+            boxShadow: '0 4px 20px rgba(225,48,108,0.4), 0 0 0 1px rgba(255,255,255,0.1)',
+          }}
+        >
+          <span className="relative z-10 flex items-center gap-2 text-white">
+            Support the shadow cult on instagram
+            <ExternalLink size={12} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+          </span>
+        </motion.a>
       </div>
 
       {/* Modals (non-portaled stay in AnimatePresence) */}

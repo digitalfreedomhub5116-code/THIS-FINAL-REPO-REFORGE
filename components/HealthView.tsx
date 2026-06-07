@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Activity, Ruler, Fingerprint, Flame, Target, Check, Sparkles, User, Weight, ChevronRight, ChevronLeft, ShieldCheck, ArrowRight, Clock, TrendingUp, Trash2, Utensils, Camera, Loader2, Save, Droplets, Wheat, Beef, SkipForward, Lock, Key, Cpu, Plus, X, Settings, Zap } from 'lucide-react';
-import { HealthProfile, WorkoutDay, WorkoutPlan, PlayerData, ProgressPhoto, MealLog, FoodItem, MealType } from '../types';
+import { HealthProfile, WorkoutDay, WorkoutPlan, PlayerData, ProgressPhoto, MealLog, FoodItem, MealType, FormCoachSession } from '../types';
 import ActiveWorkoutPlayer, { SavedWorkoutSession, loadWorkoutSession, clearWorkoutSession } from './ActiveWorkoutPlayer';
 import WorkoutRewardModal, { WorkoutReward } from './WorkoutRewardModal';
 import WorkoutMap from './WorkoutMap';
@@ -14,7 +14,7 @@ import PlanCustomizer from './PlanCustomizer';
 import { generateSystemProtocol, calculateTimeEstimate } from '../utils/workoutGenerator';
 import { playSystemSoundEffect } from '../utils/soundEngine';
 import { API_BASE } from '../lib/apiConfig';
-import { getPlayerAuthHeaders } from '../lib/playerApi';
+import { getPlayerAuthHeaders, authenticatedFetch } from '../lib/playerApi';
 import { DEFAULT_PLANS, getRecommendedPlan } from '../lib/defaultPlans';
 import OnboardingNotice from './OnboardingNotice';
 import FoodLibrary from './FoodLibrary';
@@ -35,6 +35,8 @@ import {
 } from './health/HealthHelpers';
 import SetupWizard from './health/SetupWizard';
 import { ProcessingView, DiagnosisView, ProjectionView, FinalizingView, GeneratingPlanOverlay, PlanCompleteView } from './health/OverlayViews';
+import { useSystem } from '../hooks/useSystem';
+import { AD_UNITS } from '../hooks/useAdMob';
 
 // ── Module-level scan session (survives tab switches / component remounts) ──
 type ScanStateType = 'IDLE' | 'SCANNING' | 'RESULT' | 'ERROR';
@@ -64,7 +66,7 @@ function updateScan(patch: Partial<ScanSessionStore>) {
 interface HealthViewProps {
   healthProfile?: HealthProfile;
   onSaveProfile: (profile: HealthProfile, identity: string) => void;
-  onCompleteWorkout: (exercisesCompleted: number, totalExercises: number, results: Record<string, number>, intensityModifier: boolean, anomalyPoints?: number, isCustomWorkout?: boolean) => WorkoutReward[] | void;
+  onCompleteWorkout: (exercisesCompleted: number, totalExercises: number, results: Record<string, number>, intensityModifier: boolean, anomalyPoints?: number, isCustomWorkout?: boolean, formCoachBonusXp?: number, formCoachSession?: FormCoachSession) => WorkoutReward[] | void;
   onFailWorkout: () => void;
   onAddPhoto?: (photo: ProgressPhoto) => void;
   onDeletePhoto?: (id: string) => void;
@@ -81,15 +83,50 @@ interface HealthViewProps {
   onUpdateSkillProgress?: (progress: import('../types').SkillProgress[]) => void;
   playerLevel?: number;
   initialSubTab?: 'WORKOUT' | 'NUTRITION' | 'SKILLS';
-  onShowDungeonAd?: () => Promise<boolean>;
-  onWatchAdToDouble?: () => Promise<boolean>;
+  showRewardedAd?: (adUnitId: string) => Promise<{ rewarded: boolean; type?: string; amount?: number }>;
+  showInterstitialAd?: (adUnitId: string) => Promise<boolean>;
 }
 
 
+// ── Plan Card Image with Skeleton Loading ──────────────────────────────────────
+const PlanCardImage: React.FC<{ src: string; alt: string }> = ({ src, alt }) => {
+  const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState(false);
+
+  if (error) {
+    return <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, #0d0d0d 0%, #1a1a1a 100%)' }} />;
+  }
+
+  return (
+    <>
+      {/* Skeleton shimmer — visible until image loads */}
+      {!loaded && (
+        <div className="absolute inset-0 z-0 flex flex-col items-center justify-center" style={{ background: 'linear-gradient(135deg, #0a0a0f 0%, #141420 40%, #0a0a0f 100%)' }}>
+          <div className="absolute inset-0 overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.04] to-transparent animate-shimmer" />
+          </div>
+          <div className="w-10 h-10 rounded-full bg-gray-800/60 border border-gray-700/30 flex items-center justify-center animate-pulse">
+            <Activity size={18} className="text-gray-600" />
+          </div>
+        </div>
+      )}
+      <img
+        src={src}
+        alt={alt}
+        className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500"
+        style={{ opacity: loaded ? 1 : 0 }}
+        onLoad={() => setLoaded(true)}
+        onError={() => setError(true)}
+      />
+    </>
+  );
+};
+
 export const HealthView: React.FC<HealthViewProps> = ({ 
-  healthProfile, onSaveProfile, onCompleteWorkout, onFailWorkout, onLogMeal, onDeleteMeal: _onDeleteMeal, playerData, onToggleNav, onConsumeMana, onRefundMana, onAddRewards, onUpdateSkillProgress, playerLevel = 99, initialSubTab, onShowDungeonAd, onWatchAdToDouble
+  healthProfile, onSaveProfile, onCompleteWorkout, onFailWorkout, onLogMeal, onDeleteMeal: _onDeleteMeal, playerData, onToggleNav, onConsumeMana, onRefundMana, onAddRewards, onUpdateSkillProgress, playerLevel = 99, initialSubTab, showRewardedAd, showInterstitialAd
 }) => {
   const [viewMode, setViewMode] = useState<'MAP' | 'OVERVIEW' | 'ACTIVE' | 'SETUP' | 'PROCESSING' | 'DIAGNOSIS' | 'PROJECTION' | 'FINALIZING' | 'PLAN_SELECT'>('MAP');
+  const { isPremium } = useSystem();
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
   const [genProgress, setGenProgress] = useState(0);
   const [showAIConfirm, setShowAIConfirm] = useState(false);
@@ -108,6 +145,9 @@ export const HealthView: React.FC<HealthViewProps> = ({
   const prevStreakRef = useRef(playerData.streak);
   const [activeTab, setActiveTab] = useState<'WORKOUT' | 'NUTRITION' | 'SKILLS'>(initialSubTab || 'WORKOUT');
   const nutritionLocked = false;
+
+  // Session counter for nutrition interstitial ads — shows every 2nd meal logged
+  const mealLogCountRef = useRef(0);
   const visibleTabs = SKILLS_ENABLED ? ['WORKOUT', 'NUTRITION', 'SKILLS'] : ['WORKOUT', 'NUTRITION'];
   
   // Track if user skipped setup
@@ -164,6 +204,46 @@ export const HealthView: React.FC<HealthViewProps> = ({
   // Workout Reward Modal State
   const [workoutRewards, setWorkoutRewards] = useState<WorkoutReward[] | null>(null);
   const [workoutAnomalyPoints, setWorkoutAnomalyPoints] = useState(0);
+
+  // Double rewards ad watcher callback
+  const onWatchAdToDouble = async (): Promise<boolean> => {
+    if (!showRewardedAd) {
+      console.warn('[HealthView] showRewardedAd prop is not available');
+      return false;
+    }
+    try {
+      // Use KEY_REWARD ad unit for double reward ad
+      const result = await showRewardedAd(AD_UNITS.KEY_REWARD);
+      if (result.rewarded) {
+        if (workoutRewards && onAddRewards) {
+          let xpToGrant = 0;
+          let goldToGrant = 0;
+          let keysToGrant = 0;
+          for (const r of workoutRewards) {
+            if (r.type === 'XP') xpToGrant += r.amount;
+            if (r.type === 'GOLD') goldToGrant += r.amount;
+            if (r.type === 'KEYS') keysToGrant += r.amount;
+          }
+          if (xpToGrant > 0 || goldToGrant > 0) {
+            onAddRewards(goldToGrant, xpToGrant);
+          }
+          if (keysToGrant > 0) {
+            authenticatedFetch(`${API_BASE}/api/economy/grant-keys`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
+              body: JSON.stringify({ amount: keysToGrant, source: 'workout_reward_double' }),
+            }).catch(() => {});
+          }
+        }
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('[HealthView] Failed to watch ad to double rewards:', err);
+      return false;
+    }
+  };
+
 
   // Session Resume State
   const [savedSession, setSavedSession] = useState<SavedWorkoutSession | null>(null);
@@ -610,10 +690,9 @@ export const HealthView: React.FC<HealthViewProps> = ({
           setShowMicros(false);
 
           const imageBase64 = compressedDataUrl.split(',')[1];
-          const response = await fetch(`${API_BASE}/api/nutrition/analyze`, {
+          const response = await authenticatedFetch(`${API_BASE}/api/nutrition/analyze`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
-              credentials: 'include',
               body: JSON.stringify({ imageBase64, mimeType: 'image/jpeg' }),
           });
 
@@ -692,10 +771,9 @@ export const HealthView: React.FC<HealthViewProps> = ({
 
           const imageBase64 = compressedDataUrl.split(',')[1];
 
-          const response = await fetch(`${API_BASE}/api/nutrition/analyze`, {
+          const response = await authenticatedFetch(`${API_BASE}/api/nutrition/analyze`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
-              credentials: 'include',
               body: JSON.stringify({ imageBase64, mimeType: 'image/jpeg' }),
           });
 
@@ -738,11 +816,16 @@ export const HealthView: React.FC<HealthViewProps> = ({
       }
   };
 
-  const confirmLog = () => {
+  const confirmLog = async () => {
       if (onLogMeal && scanResult) {
           const detailedItems = scanItems.map((item, idx) => ({ id: `scan_item_${idx}_${Date.now()}`, name: item.name, calories: item.calories, protein: item.protein, carbs: item.carbs, fats: item.fat, servingSize: item.quantity, quantity: 1 }));
           onLogMeal({ id: Math.random().toString(36).substr(2, 9), label: scanResult.name, items: detailedItems.length > 0 ? detailedItems : [{ ...scanResult, quantity: 1 }], totalCalories: scanResult.calories, totalProtein: scanResult.protein, totalCarbs: scanResult.carbs, totalFats: scanResult.fats, timestamp: Date.now(), imageUrl: scannedImage || undefined, mealType: selectedMealType });
           resetScanner();
+          // Interstitial ad every 2nd meal logged — skip for pro users
+          mealLogCountRef.current += 1;
+          if (!isPremium && showInterstitialAd && mealLogCountRef.current % 2 === 0) {
+            try { await showInterstitialAd(AD_UNITS.DUNGEON_INTERSTITIAL); } catch { /* proceed anyway */ }
+          }
       }
   };
 
@@ -837,14 +920,14 @@ export const HealthView: React.FC<HealthViewProps> = ({
       );
   }
 
-  if (viewMode === 'OVERVIEW' && activePlan) return <WorkoutOverview plan={activePlan} focusVideos={playerData.focusVideos} onStart={(p) => { setActivePlan(p); setViewMode('ACTIVE'); }} onCancel={() => setViewMode('MAP')} userWeight={healthProfile?.weight} onShowDungeonAd={onShowDungeonAd} />;
+  if (viewMode === 'OVERVIEW' && activePlan) return <WorkoutOverview plan={activePlan} focusVideos={playerData.focusVideos} onStart={(p) => { setActivePlan(p); setViewMode('ACTIVE'); }} onCancel={() => setViewMode('MAP')} userWeight={healthProfile?.weight} showRewardedAd={showRewardedAd} isPremium={isPremium} />;
   if (viewMode === 'ACTIVE' && activePlan) return (
     <>
       <ActiveWorkoutPlayer
         plan={activePlan}
-        onComplete={(c, t, r, anomaly) => {
+        onComplete={(c, t, r, anomaly, formCoachBonusXp, formCoachSession) => {
           const isCustomWorkout = activePlan.day === 'CUSTOM' || activePlan.day.includes('Custom');
-          const rewards = onCompleteWorkout(c, t, r, false, anomaly, isCustomWorkout);
+          const rewards = onCompleteWorkout(c, t, r, false, anomaly, isCustomWorkout, formCoachBonusXp, formCoachSession);
           clearWorkoutSession(playerData.userId || 'local');
           setSavedSession(null);
           // Log session and update day map
@@ -879,6 +962,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
             setViewMode('MAP');
           }}
           onWatchAdToDouble={onWatchAdToDouble}
+          isPremium={isPremium}
         />
       )}
     </>
@@ -924,7 +1008,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
 
 
 
-        <div id="tut-health" className="flex flex-col gap-6 font-mono">
+        <div id="tut-health" className="flex flex-col gap-6">
             <div className="flex gap-2 sticky top-20 z-30 pt-1 pb-2 bg-transparent">
                 {visibleTabs.map(t => {
                     const isTabLocked = t === 'NUTRITION' && nutritionLocked;
@@ -933,7 +1017,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
                         key={t}
                         id={t === 'NUTRITION' ? 'tut-health-nutrition-tab' : undefined}
                         onClick={() => !isTabLocked && setActiveTab(t as any)}
-                        className={`flex-1 py-2.5 text-xs font-bold tracking-widest rounded-lg transition-all duration-200 border ${
+                        className={`flex-1 py-2.5 text-xs font-bold font-mono tracking-widest rounded-lg transition-all duration-200 border ${
                             isTabLocked
                                 ? 'text-gray-700 border-gray-800/50 cursor-not-allowed opacity-50'
                                 : activeTab === t
@@ -977,7 +1061,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                 }}
                             >
                                 {/* Top Header */}
-                                <div className="text-[10px] font-black tracking-[0.2em] mb-4 text-[#00d4ff]">
+                                <div className="text-[10px] font-black font-mono tracking-[0.2em] mb-4 text-[#00d4ff]">
                                     ACTIVE STREAK
                                 </div>
 
@@ -985,7 +1069,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                     {/* Left side: Days count and subtitle */}
                                     <div>
                                         <div key={streakAnimKey} className="flex items-baseline gap-2 animate-streak-pop">
-                                            <span className="text-7xl font-semibold leading-none text-white tracking-tighter">
+                                            <span className="text-7xl font-semibold leading-none text-white tracking-tighter font-heading">
                                                 {playerData.streak}
                                             </span>
                                             <span className="text-xl font-bold text-gray-400 mb-1">days</span>
@@ -1026,10 +1110,10 @@ export const HealthView: React.FC<HealthViewProps> = ({
                             {/* ── PLANS SECTION (above map) ── */}
                             <div>
                                 <div className="flex items-center justify-between mb-3">
-                                    <div className="text-xs font-black text-white uppercase tracking-widest">Training Programs</div>
+                                    <div className="text-xs font-black text-white uppercase tracking-widest font-heading">Training Programs</div>
                                     {(healthProfile as any)?.aiPlanUsed ? (
                                         <span
-                                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider opacity-50 cursor-not-allowed"
+                                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black font-mono uppercase tracking-wider opacity-50 cursor-not-allowed"
                                             style={{ background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.2)', color: '#9ca3af' }}
                                         >
                                             <Check size={10} />
@@ -1038,7 +1122,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                     ) : (
                                         <button
                                             onClick={() => { setAiPlanError(null); setAiConfirmStep(0); setShowAIConfirm(true); }}
-                                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all"
+                                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black font-mono uppercase tracking-wider transition-all"
                                             style={{ background: 'rgba(168,85,247,0.15)', border: '1px solid rgba(168,85,247,0.35)', color: '#33dfff', boxShadow: '0 0 12px rgba(168,85,247,0.15)' }}
                                         >
                                             <Sparkles size={10} />
@@ -1091,11 +1175,11 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                                     <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.1) 100%)' }} />
                                                     <div className="absolute inset-0 p-3.5 flex flex-col justify-between">
                                                         <div className="flex items-start justify-between">
-                                                            <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-purple-900/80 text-[#33dfff]">AI GENERATED</span>
-                                                            {isAiActive && <span className="text-[8px] font-black text-system-neon bg-black/60 px-1.5 py-0.5 rounded-full border border-system-neon/30">ACTIVE</span>}
+                                                            <span className="text-[9px] font-black font-mono px-2 py-0.5 rounded-full bg-purple-900/80 text-[#33dfff]">AI GENERATED</span>
+                                                            {isAiActive && <span className="text-[8px] font-black font-mono text-system-neon bg-black/60 px-1.5 py-0.5 rounded-full border border-system-neon/30">ACTIVE</span>}
                                                         </div>
                                                         <div>
-                                                            <div className="text-sm font-black text-white leading-tight mb-1.5">{aiPlanName}</div>
+                                                            <div className="text-sm font-black text-white leading-tight mb-1.5 font-heading">{aiPlanName}</div>
                                                             <div className="text-[9px] text-[#33dfff]/70 font-mono">Personalized for you</div>
                                                         </div>
                                                     </div>
@@ -1144,24 +1228,23 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                                     }}
                                                 >
                                                     {plan.image_url ? (
-                                                        <img src={plan.image_url} alt={plan.name} className="absolute inset-0 w-full h-full object-cover" onError={e => { (e.target as any).style.display = 'none'; }} />
+                                                        <PlanCardImage src={plan.image_url} alt={plan.name} />
                                                     ) : (
                                                         <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, #0d0d0d 0%, #1a1a1a 100%)' }} />
                                                     )}
                                                     <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.55) 45%, rgba(0,0,0,0.1) 100%)' }} />
                                                     <div className="absolute inset-0 p-3.5 flex flex-col justify-between">
                                                         <div className="flex items-start justify-between">
-                                                            <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${dc.badge}`}>{plan.difficulty}</span>
-                                                            {isActive && <span className="text-[8px] font-black text-system-neon bg-black/60 px-1.5 py-0.5 rounded-full border border-system-neon/30">ACTIVE</span>}
+                                                            <span className={`text-[9px] font-black font-mono px-2 py-0.5 rounded-full ${dc.badge}`}>{plan.difficulty}</span>
+                                                            {isActive && <span className="text-[8px] font-black font-mono text-system-neon bg-black/60 px-1.5 py-0.5 rounded-full border border-system-neon/30">ACTIVE</span>}
                                                         </div>
                                                         <div>
-                                                            <div className="text-sm font-black text-white leading-tight mb-1.5">{plan.name}</div>
+                                                            <div className="text-sm font-black text-white leading-tight mb-1.5 font-heading">{plan.name}</div>
                                                             <div className="flex gap-2 text-[9px] text-gray-400 font-mono">
                                                                 <span>{plan.duration_weeks}w</span>
                                                                 <span>·</span>
                                                                 <span>{plan.days_per_week}d/wk</span>
                                                             </div>
-                                                            {plan.description && <div className="text-[9px] text-gray-500 mt-1.5 leading-snug line-clamp-2">{plan.description}</div>}
                                                         </div>
                                                     </div>
                                                 </motion.button>
@@ -2310,7 +2393,15 @@ export const HealthView: React.FC<HealthViewProps> = ({
             {showFoodLibrary && onLogMeal && (
                 <FoodLibrary
                     onClose={() => setShowFoodLibrary(false)}
-                    onLogFood={(meal) => { onLogMeal(meal); setShowFoodLibrary(false); }}
+                    onLogFood={async (meal) => {
+                    onLogMeal(meal);
+                    setShowFoodLibrary(false);
+                    // Interstitial ad every 2nd meal logged — skip for pro users
+                    mealLogCountRef.current += 1;
+                    if (!isPremium && showInterstitialAd && mealLogCountRef.current % 2 === 0) {
+                      try { await showInterstitialAd(AD_UNITS.DUNGEON_INTERSTITIAL); } catch { /* proceed anyway */ }
+                    }
+                }}
                     selectedMealType={selectedMealType}
                 />
             )}

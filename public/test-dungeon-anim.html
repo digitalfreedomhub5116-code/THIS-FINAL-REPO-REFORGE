@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Dungeon Reward Animation</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=JetBrains+Mono:wght@400;700;800&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #08080e;
+    color: white;
+    height: 100dvh;
+    overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* ── NAVBAR (mimics real app) ── */
+  .navbar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    height: 52px;
+    background: rgba(8,8,14,0.97);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    display: flex; align-items: center; padding: 0 14px;
+  }
+  .navbar-left { display: flex; align-items: center; gap: 8px; }
+
+  .level-badge {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: #0d1520;
+    border: 2px solid rgba(200,168,78,0.4);
+    display: flex; align-items: center; justify-content: center;
+    font: 800 12px 'JetBrains Mono', monospace; color: #C8A84E;
+  }
+
+  .xp-section {
+    display: flex; flex-direction: column; gap: 2px;
+    padding: 4px 8px; border-radius: 8px;
+    transition: background 0.3s, box-shadow 0.3s;
+  }
+  .xp-section.highlight {
+    background: rgba(200,168,78,0.08);
+    box-shadow: 0 0 20px rgba(200,168,78,0.15), inset 0 0 10px rgba(200,168,78,0.05);
+  }
+
+  .xp-label { font: 700 8px 'JetBrains Mono', monospace; color: #4b5563; letter-spacing: 0.12em; }
+
+  #navbar-xp-bar {
+    width: 100px; height: 5px; border-radius: 3px;
+    background: rgba(255,255,255,0.05);
+    overflow: hidden; position: relative;
+    transition: box-shadow 0.3s;
+  }
+  #navbar-xp-bar .fill {
+    height: 100%; border-radius: 3px;
+    background: linear-gradient(90deg, #C8A84E, #D4B04A);
+    transition: width 1s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  #navbar-xp-bar.glow {
+    box-shadow: 0 0 14px rgba(200,168,78,0.6), 0 0 4px rgba(200,168,78,0.8);
+  }
+
+  .xp-text {
+    font: 700 8px 'JetBrains Mono', monospace; color: #6b7280;
+    transition: color 0.3s;
+  }
+  .xp-text.bright { color: #C8A84E; }
+
+  /* ── TRIGGER BUTTON ── */
+  .trigger-btn {
+    padding: 16px 40px; border: none; border-radius: 14px; cursor: pointer;
+    font: 900 12px 'JetBrains Mono', monospace;
+    letter-spacing: 0.12em; color: #0a0a0f;
+    background: #C8A84E; transition: all 0.2s;
+    position: relative; z-index: 10;
+  }
+  .trigger-btn:active { transform: scale(0.96); }
+
+  /* ── REWARD OVERLAY ── */
+  .reward-overlay {
+    position: fixed; inset: 0; z-index: 200;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0); pointer-events: none;
+    opacity: 0; transition: opacity 0.6s, background 0.6s;
+  }
+  .reward-overlay.active { opacity: 1; pointer-events: all; background: rgba(4,4,8,0.96); }
+
+  .cleared-icon {
+    width: 72px; height: 72px; margin-bottom: 14px;
+    border-radius: 16px; overflow: hidden;
+    border: 2px solid rgba(200,168,78,0.2);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.5), 0 0 30px rgba(200,168,78,0.08);
+    opacity: 0; transform: scale(0.3);
+    transition: all 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .cleared-icon.show { opacity: 1; transform: scale(1); }
+  .cleared-icon img { width: 100%; height: 100%; object-fit: cover; }
+
+  .cleared-text {
+    font: 900 11px 'JetBrains Mono', monospace;
+    letter-spacing: 0.35em; color: #C8A84E;
+    opacity: 0; transform: translateY(10px);
+    transition: all 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.15s;
+  }
+  .cleared-text.show { opacity: 0.7; transform: translateY(0); }
+
+  .cleared-title {
+    font: 900 26px 'Inter', sans-serif; color: #f5f5f5; margin-top: 6px;
+    opacity: 0; transform: translateY(16px);
+    transition: all 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.25s;
+  }
+  .cleared-title.show { opacity: 1; transform: translateY(0); }
+
+  .exercise-breakdown {
+    margin-top: 24px; width: 280px;
+    opacity: 0; transform: translateY(16px);
+    transition: all 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.4s;
+  }
+  .exercise-breakdown.show { opacity: 1; transform: translateY(0); }
+  .bd-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,0.03);
+  }
+  .bd-name { font: 600 11px 'Inter', sans-serif; color: #9ca3af; }
+  .bd-rewards { display: flex; align-items: center; gap: 12px; }
+  .bd-xp { font: 800 10px 'JetBrains Mono', monospace; color: #C8A84E; }
+  .bd-gold { font: 800 10px 'JetBrains Mono', monospace; color: #C8A84E; display: flex; align-items: center; gap: 3px; }
+  .bd-gold img { width: 12px; height: 12px; object-fit: contain; border-radius: 2px; }
+
+  .reward-cards {
+    display: flex; gap: 14px; margin-top: 24px;
+    opacity: 0; transform: translateY(20px);
+    transition: all 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.55s;
+  }
+  .reward-cards.show { opacity: 1; transform: translateY(0); }
+  .reward-card {
+    width: 120px; padding: 18px 14px; border-radius: 14px; text-align: center;
+    background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.05);
+  }
+  .reward-card .icon { height: 32px; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; }
+  .reward-card .icon img { height: 28px; object-fit: contain; }
+  .reward-card .amount { font: 900 22px 'JetBrains Mono', monospace; color: #e5e7eb; }
+  .reward-card .label { font: 700 8px 'JetBrains Mono', monospace; color: #4b5563; letter-spacing: 0.15em; margin-top: 4px; }
+
+  .collect-btn {
+    margin-top: 28px; padding: 14px 44px; border: none; border-radius: 12px; cursor: pointer;
+    font: 900 11px 'JetBrains Mono', monospace; letter-spacing: 0.15em; color: #0a0a0f;
+    background: #C8A84E;
+    opacity: 0; transform: translateY(16px);
+    transition: all 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.75s;
+  }
+  .collect-btn.show { opacity: 1; transform: translateY(0); }
+  .collect-btn:active { transform: scale(0.96) translateY(0); }
+
+  /* ── GOLD COUNTER (slides down) ── */
+  .gold-counter {
+    position: fixed; z-index: 280;
+    top: 60px; left: 50%; transform: translateX(-50%) translateY(-80px);
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 20px; border-radius: 14px;
+    background: rgba(12,12,20,0.95);
+    border: 1px solid rgba(200,168,78,0.15);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 0 20px rgba(200,168,78,0.06);
+    backdrop-filter: blur(20px);
+    opacity: 0; pointer-events: none;
+    transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.4s;
+  }
+  .gold-counter.visible { opacity: 1; pointer-events: all; transform: translateX(-50%) translateY(0); }
+  .gold-counter.exit { opacity: 0; transform: translateX(-50%) translateY(-40px); transition: transform 0.4s ease-in, opacity 0.3s; }
+  .gold-counter .gc-img { width: 28px; height: 28px; object-fit: contain; border-radius: 6px; }
+  .gold-counter .gold-value { font: 900 24px 'JetBrains Mono', monospace; color: #C8A84E; min-width: 40px; }
+  .gold-counter .gold-label { font: 700 8px 'JetBrains Mono', monospace; color: #6b7280; letter-spacing: 0.1em; }
+  .gold-counter .gold-info { display: flex; flex-direction: column; gap: 1px; }
+  .gc-bump { animation: gcBump 0.2s ease; }
+  @keyframes gcBump {
+    0% { transform: translateX(-50%) scale(1); }
+    50% { transform: translateX(-50%) scale(1.06); }
+    100% { transform: translateX(-50%) scale(1); }
+  }
+
+  /* ── FLYING PARTICLES ── */
+  .xp-orb {
+    position: fixed; z-index: 300; pointer-events: none;
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #C8A84E;
+    box-shadow: 0 0 5px rgba(200,168,78,0.5), 0 0 10px rgba(200,168,78,0.2);
+  }
+
+  .gold-orb {
+    position: fixed; z-index: 300; pointer-events: none;
+    width: 20px; height: 20px;
+  }
+  .gold-orb img { width: 100%; height: 100%; object-fit: contain; border-radius: 4px; filter: drop-shadow(0 0 3px rgba(200,168,78,0.4)); }
+
+  .float-label {
+    position: fixed; z-index: 350; pointer-events: none;
+    font: 900 14px 'JetBrains Mono', monospace;
+    opacity: 0; animation: floatUp 1.4s ease-out forwards;
+  }
+  @keyframes floatUp {
+    0% { opacity: 0; transform: translateY(0) scale(0.6); }
+    15% { opacity: 1; transform: translateY(-8px) scale(1); }
+    75% { opacity: 1; transform: translateY(-35px); }
+    100% { opacity: 0; transform: translateY(-50px); }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<div class="navbar">
+  <div class="navbar-left">
+    <div class="level-badge">12</div>
+    <div class="xp-section" id="xp-section">
+      <span class="xp-label">LV. 12</span>
+      <div id="navbar-xp-bar"><div class="fill" style="width: 35%"></div></div>
+      <span class="xp-text" id="xp-text-el"><span id="xp-current">1,240</span> / 3,500</span>
+    </div>
+  </div>
+</div>
+
+<!-- GOLD COUNTER (hidden) -->
+<div class="gold-counter" id="gold-counter">
+  <img class="gc-img" src="/assets/gold-coin.png" alt="">
+  <div class="gold-info">
+    <div class="gold-value" id="gold-counter-value">0</div>
+    <div class="gold-label">GOLD EARNED</div>
+  </div>
+</div>
+
+<!-- JUST THE TRIGGER -->
+<button class="trigger-btn" id="main-trigger" onclick="startRewardSequence()">
+  ⚔ SIMULATE DUNGEON COMPLETE
+</button>
+
+<!-- REWARD OVERLAY -->
+<div class="reward-overlay" id="reward-overlay">
+  <div class="cleared-icon" id="cleared-icon"><img src="/dungeon/jinwoo-protocol.png" alt=""></div>
+  <div class="cleared-text" id="cleared-text">DUNGEON CLEARED</div>
+  <div class="cleared-title" id="cleared-title">Protocol Complete</div>
+
+  <div class="exercise-breakdown" id="exercise-breakdown">
+    <div class="bd-row"><span class="bd-name">Push-ups (200 reps)</span><div class="bd-rewards"><span class="bd-xp">+400 XP</span><span class="bd-gold"><img src="/assets/gold-coin.png"> 25</span></div></div>
+    <div class="bd-row"><span class="bd-name">Squats (200 reps)</span><div class="bd-rewards"><span class="bd-xp">+400 XP</span><span class="bd-gold"><img src="/assets/gold-coin.png"> 22</span></div></div>
+    <div class="bd-row"><span class="bd-name">Running (1.6 km)</span><div class="bd-rewards"><span class="bd-xp">+128 XP</span><span class="bd-gold"><img src="/assets/gold-coin.png"> 20</span></div></div>
+  </div>
+
+  <div class="reward-cards" id="reward-cards">
+    <div class="reward-card">
+      <div class="icon" style="font-size:28px;color:#C8A84E;">⚡</div>
+      <div class="amount">928</div><div class="label">XP EARNED</div>
+    </div>
+    <div class="reward-card">
+      <div class="icon"><img src="/assets/gold-coin.png" style="height:32px;border-radius:6px;"></div>
+      <div class="amount">67</div><div class="label">GOLD EARNED</div>
+    </div>
+  </div>
+
+  <button class="collect-btn" id="collect-btn" onclick="collectRewards()">COLLECT REWARDS</button>
+</div>
+
+<script>
+let currentXp = 1240;
+let isAnimating = false;
+const REWARDS = { totalXp: 928, totalGold: 67 };
+const ANIM_IDS = ['cleared-icon','cleared-text','cleared-title','exercise-breakdown','reward-cards','collect-btn'];
+
+function startRewardSequence() {
+  if (isAnimating) return;
+  isAnimating = true;
+  document.getElementById('main-trigger').style.display = 'none';
+  document.getElementById('reward-overlay').classList.add('active');
+  setTimeout(() => document.getElementById('cleared-icon').classList.add('show'), 100);
+  setTimeout(() => document.getElementById('cleared-text').classList.add('show'), 200);
+  setTimeout(() => document.getElementById('cleared-title').classList.add('show'), 300);
+  setTimeout(() => document.getElementById('exercise-breakdown').classList.add('show'), 450);
+  setTimeout(() => document.getElementById('reward-cards').classList.add('show'), 600);
+  setTimeout(() => document.getElementById('collect-btn').classList.add('show'), 800);
+}
+
+function collectRewards() {
+  document.getElementById('collect-btn').style.pointerEvents = 'none';
+  ANIM_IDS.forEach(id => { const el = document.getElementById(id); el.style.transition = 'opacity 0.3s'; el.style.opacity = '0'; });
+
+  // Phase 1: XP
+  setTimeout(() => {
+    highlightXpBar(true);
+    flyXpOrbs(REWARDS.totalXp, () => {
+      setTimeout(() => highlightXpBar(false), 800);
+      // Phase 2: Gold counter
+      setTimeout(() => {
+        showGoldCounter(() => {
+          flyGoldCrystals(REWARDS.totalGold, () => {
+            setTimeout(() => {
+              const c = document.getElementById('gold-counter');
+              c.classList.add('exit');
+              setTimeout(() => {
+                c.classList.remove('visible','exit');
+                document.getElementById('gold-counter-value').textContent = '0';
+                document.getElementById('reward-overlay').classList.remove('active');
+                resetOverlay();
+                document.getElementById('main-trigger').style.display = '';
+                isAnimating = false;
+              }, 500);
+            }, 1200);
+          });
+        });
+      }, 400);
+    });
+  }, 450);
+}
+
+function highlightXpBar(on) {
+  const section = document.getElementById('xp-section');
+  const bar = document.getElementById('navbar-xp-bar');
+  const text = document.getElementById('xp-text-el');
+  if (on) {
+    section.classList.add('highlight');
+    bar.classList.add('glow');
+    text.classList.add('bright');
+  } else {
+    section.classList.remove('highlight');
+    bar.classList.remove('glow');
+    text.classList.remove('bright');
+  }
+}
+
+function flyXpOrbs(totalXp, onDone) {
+  const target = document.getElementById('navbar-xp-bar');
+  const tR = target.getBoundingClientRect();
+  const tx = tR.left + tR.width / 2, ty = tR.top + tR.height / 2;
+  const cx = window.innerWidth / 2, cy = window.innerHeight / 2;
+  const count = 12; let landed = 0;
+
+  for (let i = 0; i < count; i++) {
+    const orb = document.createElement('div'); orb.className = 'xp-orb';
+    const sx = cx + (Math.random()-.5)*100, sy = cy + (Math.random()-.5)*70;
+    orb.style.left = sx+'px'; orb.style.top = sy+'px';
+    document.body.appendChild(orb);
+    const delay = i * 25, dur = 420 + Math.random()*180;
+    const cpx = (sx+tx)/2 + (Math.random()-.5)*60, cpy = Math.min(sy,ty) - 30 - Math.random()*50;
+
+    setTimeout(() => {
+      orb.animate([
+        { left:sx+'px', top:sy+'px', opacity:1, transform:'scale(1)' },
+        { left:cpx+'px', top:cpy+'px', opacity:1, transform:'scale(1.2)', offset:0.4 },
+        { left:tx+'px', top:ty+'px', opacity:0.4, transform:'scale(0.3)' },
+      ], { duration:dur, easing:'cubic-bezier(0.22,1,0.36,1)', fill:'forwards' }).onfinish = () => {
+        orb.remove(); landed++;
+        // Pulse glow on each hit
+        target.classList.remove('glow'); void target.offsetWidth; target.classList.add('glow');
+
+        if (landed === count) {
+          currentXp += totalXp;
+          target.querySelector('.fill').style.width = Math.min((currentXp/3500)*100,100)+'%';
+          document.getElementById('xp-current').textContent = currentXp.toLocaleString();
+          showFloatLabel(tx, ty - 8, `+${totalXp} XP`, '#C8A84E');
+          if (onDone) setTimeout(onDone, 200);
+        }
+      };
+    }, delay);
+  }
+}
+
+function showGoldCounter(onReady) {
+  const c = document.getElementById('gold-counter');
+  document.getElementById('gold-counter-value').textContent = '0';
+  c.classList.remove('exit'); c.classList.add('visible');
+  setTimeout(onReady, 500);
+}
+
+function flyGoldCrystals(totalGold, onDone) {
+  const counter = document.getElementById('gold-counter');
+  const tR = counter.getBoundingClientRect();
+  const tx = tR.left + tR.width/2, ty = tR.top + tR.height/2;
+  const cx = window.innerWidth/2, cy = window.innerHeight/2;
+  const count = 10; let landed = 0;
+  const perCrystal = Math.ceil(totalGold/count); let acc = 0;
+
+  for (let i = 0; i < count; i++) {
+    const orb = document.createElement('div'); orb.className = 'gold-orb';
+    const img = document.createElement('img'); img.src = '/assets/gold-coin.png'; orb.appendChild(img);
+    const sx = cx + (Math.random()-.5)*120, sy = cy + (Math.random()-.5)*80;
+    orb.style.left = sx+'px'; orb.style.top = sy+'px';
+    document.body.appendChild(orb);
+    const delay = i * 40, dur = 380 + Math.random()*180;
+    const cpx = (sx+tx)/2 + (Math.random()-.5)*50, cpy = Math.min(sy,ty) - 20 - Math.random()*40;
+
+    setTimeout(() => {
+      orb.animate([
+        { left:sx+'px', top:sy+'px', opacity:1, transform:'scale(1)' },
+        { left:cpx+'px', top:cpy+'px', opacity:1, transform:'scale(1.15)', offset:0.4 },
+        { left:tx+'px', top:ty+'px', opacity:0.5, transform:'scale(0.3)' },
+      ], { duration:dur, easing:'cubic-bezier(0.22,1,0.36,1)', fill:'forwards' }).onfinish = () => {
+        orb.remove(); landed++;
+        acc = Math.min(acc + perCrystal, totalGold);
+        document.getElementById('gold-counter-value').textContent = acc;
+        counter.classList.remove('gc-bump'); void counter.offsetWidth; counter.classList.add('gc-bump');
+
+        if (landed === count) {
+          document.getElementById('gold-counter-value').textContent = totalGold;
+          showFloatLabel(tx, ty + 40, `+${totalGold}`, '#C8A84E');
+          if (onDone) setTimeout(onDone, 200);
+        }
+      };
+    }, delay);
+  }
+}
+
+function showFloatLabel(x, y, text, color) {
+  const l = document.createElement('div'); l.className = 'float-label';
+  l.textContent = text; l.style.left = (x-30)+'px'; l.style.top = y+'px'; l.style.color = color;
+  document.body.appendChild(l); setTimeout(() => l.remove(), 1500);
+}
+
+function resetOverlay() {
+  ANIM_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    el.classList.remove('show'); el.style.opacity = ''; el.style.transition = ''; el.style.pointerEvents = '';
+  });
+}
+</script>
+</body>
+</html>

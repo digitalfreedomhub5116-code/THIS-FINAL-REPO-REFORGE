@@ -74,6 +74,7 @@ const NOTIF_IDS = {
   WORKOUT_REMINDER:   6003,
   LEADERBOARD_NUDGE:  6004,
   COMEBACK_PING:      6005,
+  MISSED_WORKOUT_WARNING: 6006,
   QUEST_DEADLINE_BASE: 7000, // +hash(questId) per quest
 };
 
@@ -223,6 +224,52 @@ export async function scheduleStreakReminder(
   }
 }
 
+// ─── Missed Workout Warning (8 PM, only if no workout/dungeon today) ──
+// Last-chance nudge before midnight reset triggers the XP penalty cron.
+export async function scheduleMissedWorkoutWarning(
+  hasWorkedOutToday: boolean,
+  consecutiveMisses: number,
+  playerName?: string
+): Promise<void> {
+  if (!isNative()) return;
+  try {
+    await LocalNotifications.cancel({ notifications: [{ id: NOTIF_IDS.MISSED_WORKOUT_WARNING }] });
+    if (hasWorkedOutToday) return; // Already done — nothing to warn about
+    const at = nextTimeAt(20, 0);
+    if (at.getDate() !== new Date().getDate()) return; // After 8 PM today — skip
+
+    // Penalty preview matches server PENALTY_TABLE: 50/100/150/200
+    const nextPenalty = consecutiveMisses === 0
+      ? 50
+      : consecutiveMisses === 1
+      ? 100
+      : consecutiveMisses === 2
+      ? 150
+      : 200;
+
+    const name = playerName || 'Hunter';
+    const title = consecutiveMisses >= 3
+      ? '⚠️ The System is watching'
+      : '⚔️ Don\'t miss today\'s workout';
+    const body = consecutiveMisses === 0
+      ? `${name}, complete a workout before midnight or lose ${nextPenalty} XP.`
+      : `${name}, ${consecutiveMisses} day(s) missed already. Train now or lose ${nextPenalty} more XP at midnight.`;
+
+    await LocalNotifications.schedule({
+      notifications: [{
+        id: NOTIF_IDS.MISSED_WORKOUT_WARNING,
+        schedule: { at },
+        title,
+        body,
+        smallIcon: 'ic_stat_notification',
+      }],
+    });
+    console.log('[Notif] Missed-workout warning →', at.toLocaleTimeString(), `(misses=${consecutiveMisses}, penalty=-${nextPenalty})`);
+  } catch (err) {
+    console.warn('[Notif] scheduleMissedWorkoutWarning failed:', err);
+  }
+}
+
 // ─── Leaderboard Nudge (9 PM, only if user has daily XP today) ──
 
 export async function scheduleLeaderboardNudge(hasDailyXp: boolean): Promise<void> {
@@ -283,6 +330,7 @@ export async function cancelDailyReminders(): Promise<void> {
         { id: NOTIF_IDS.WORKOUT_REMINDER },
         { id: NOTIF_IDS.STREAK_WARNING },
         { id: NOTIF_IDS.LEADERBOARD_NUDGE },
+        { id: NOTIF_IDS.MISSED_WORKOUT_WARNING },
       ],
     });
     console.log('[Notif] Daily reminders cancelled (workout done)');
@@ -467,3 +515,44 @@ export async function cancelQuestStartNotification(questId: string): Promise<voi
   }
 }
 
+
+
+// ─── Daily Reset Reminder (fires at local midnight when new dungeon + quests go live) ──
+
+const DAILY_RESET_NOTIF_ID = 6007;
+
+const DAILY_RESET_MESSAGES = [
+  "{name}, today's dungeon and daily quests are live. Complete them before midnight.",
+  "New quests, new dungeon, {name}. Open the app and clear today's protocol.",
+  "{name}, the System has refreshed your quests. Today's dungeon awaits.",
+  "Daily reset complete, {name}. Tap in and complete today's dungeon quests.",
+  "{name}, fresh quests + a new dungeon are unlocked. Begin today's grind.",
+];
+
+/**
+ * Schedule a notification at the next local midnight announcing the daily reset.
+ * Re-call on every app open so it always points at the next upcoming midnight.
+ */
+export async function scheduleDailyResetReminder(playerName = 'Hunter'): Promise<void> {
+  if (!isNative()) return;
+  try {
+    await LocalNotifications.cancel({ notifications: [{ id: DAILY_RESET_NOTIF_ID }] });
+    // Compute next local midnight (start of tomorrow).
+    const at = new Date();
+    at.setHours(0, 0, 0, 0);
+    at.setDate(at.getDate() + 1);
+    await LocalNotifications.schedule({
+      notifications: [{
+        id: DAILY_RESET_NOTIF_ID,
+        title: '⚔️ New quests unlocked',
+        body: personalize(pick(DAILY_RESET_MESSAGES), playerName),
+        schedule: { at, allowWhileIdle: true },
+        smallIcon: 'ic_stat_notification',
+        channelId: 'reforge_quests',
+      }],
+    });
+    console.log('[Notif] Daily reset reminder →', at.toLocaleString());
+  } catch (err) {
+    console.warn('[Notif] scheduleDailyResetReminder failed:', err);
+  }
+}

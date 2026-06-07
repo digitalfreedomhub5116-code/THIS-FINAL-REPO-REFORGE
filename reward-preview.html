@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Rank Reward Preview</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=JetBrains+Mono:wght@400;700;800&family=Outfit:wght@700;900&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #000; font-family: 'JetBrains Mono', monospace; overflow: hidden; height: 100vh; width: 100vw; }
+
+  .overlay {
+    position: fixed; inset: 0; z-index: 999;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: #050510; overflow: hidden;
+  }
+
+  /* Light beams */
+  .light-beams {
+    position: absolute; top: 50%; left: 50%; width: 500px; height: 500px;
+    transform: translate(-50%, -60%);
+    background: conic-gradient(from 0deg, transparent, rgba(251,191,36,0.06) 10%, transparent 20%, transparent 30%, rgba(251,191,36,0.04) 40%, transparent 50%, transparent 60%, rgba(251,191,36,0.06) 70%, transparent 80%, transparent 90%, rgba(251,191,36,0.04) 100%);
+    animation: rotateSlow 12s linear infinite;
+    opacity: 0; transition: opacity 1s ease;
+    border-radius: 50%;
+    filter: blur(2px);
+  }
+  .light-beams.visible { opacity: 1; }
+  @keyframes rotateSlow { to { transform: translate(-50%, -60%) rotate(360deg); } }
+
+  /* Orbital rings */
+  .orbital { position: absolute; border-radius: 50%; border: 1px dashed rgba(251,191,36,0.15); }
+  .orbital-1 { width: 180px; height: 180px; animation: orbitSpin 8s linear infinite; }
+  .orbital-2 { width: 240px; height: 240px; animation: orbitSpin 12s linear infinite reverse; border-style: dotted; }
+  .orbital-3 { width: 300px; height: 300px; animation: orbitSpin 16s linear infinite; border-color: rgba(251,191,36,0.08); }
+  @keyframes orbitSpin { to { transform: rotate(360deg); } }
+
+  /* Shockwave */
+  .shockwave {
+    position: absolute; width: 80px; height: 80px; border-radius: 50%;
+    border: 2px solid rgba(251,191,36,0.6);
+    box-shadow: 0 0 40px rgba(251,191,36,0.4);
+    animation: shockExpand 1.2s ease-out forwards;
+    opacity: 0;
+  }
+  .shockwave.active { opacity: 1; }
+  @keyframes shockExpand { 0% { transform: scale(0); opacity: 0.8; } 100% { transform: scale(6); opacity: 0; } }
+
+  /* Medal */
+  .medal-container {
+    position: relative; z-index: 20; text-align: center;
+    transform: scale(0); transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .medal-container.visible { transform: scale(1); }
+
+  .medal-glow {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 180px; height: 180px; border-radius: 50%;
+    background: rgba(251,191,36,0.25); filter: blur(50px);
+    animation: glowPulse 2.5s ease-in-out infinite;
+  }
+  @keyframes glowPulse { 0%,100% { opacity: 0.4; transform: translate(-50%,-50%) scale(1); } 50% { opacity: 0.8; transform: translate(-50%,-50%) scale(1.3); } }
+
+  .medal-img {
+    width: 120px; height: 120px; object-fit: contain; position: relative; z-index: 2;
+    filter: drop-shadow(0 0 30px rgba(251,191,36,0.5));
+    animation: medalFloat 3s ease-in-out infinite;
+  }
+  @keyframes medalFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+
+  .rank-label {
+    font-size: 13px; font-weight: 900; color: #fbbf24; letter-spacing: 0.25em;
+    margin-top: 12px; text-shadow: 0 0 20px rgba(251,191,36,0.6);
+    opacity: 0; transform: translateY(15px);
+    transition: all 0.5s ease; transition-delay: 0.4s;
+  }
+  .rank-label.visible { opacity: 1; transform: translateY(0); }
+
+  .rank-title {
+    font-size: 22px; font-weight: 900; color: #fff; letter-spacing: 0.12em;
+    font-family: 'Outfit', sans-serif;
+    margin-top: 4px; text-shadow: 0 0 30px rgba(251,191,36,0.4);
+    opacity: 0; transform: translateY(15px) scaleX(0.8);
+    transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); transition-delay: 0.7s;
+  }
+  .rank-title.visible { opacity: 1; transform: translateY(0) scaleX(1); }
+
+  .username {
+    font-size: 10px; color: rgba(255,255,255,0.35); letter-spacing: 0.15em; margin-top: 6px;
+    opacity: 0; transition: opacity 0.5s ease; transition-delay: 1s;
+  }
+  .username.visible { opacity: 1; }
+
+  /* Divider */
+  .divider {
+    width: 220px; height: 1px; margin: 24px auto 0;
+    background: linear-gradient(90deg, transparent, #fbbf24, transparent);
+    transform: scaleX(0); transition: transform 0.5s ease; transition-delay: 0s;
+  }
+  .divider.visible { transform: scaleX(1); }
+
+  /* Reward cards */
+  .reward-cards { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 20; position: relative; }
+
+  .reward-card {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 20px; border-radius: 16px; min-width: 260px;
+    background: rgba(255,255,255,0.03); backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.06);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    opacity: 0; transform: translateX(-40px);
+    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .reward-card.visible { opacity: 1; transform: translateX(0); }
+  .reward-card.gold { transition-delay: 0.1s; }
+  .reward-card.xp { transition-delay: 0.35s; }
+
+  .reward-icon {
+    width: 44px; height: 44px; border-radius: 14px; display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+  }
+  .reward-icon.gold-icon { background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.2); }
+  .reward-icon.xp-icon { background: rgba(96,165,250,0.12); border: 1px solid rgba(96,165,250,0.2); }
+
+  .reward-label { font-size: 10px; color: rgba(255,255,255,0.4); letter-spacing: 0.15em; }
+  .reward-value { font-size: 28px; font-weight: 900; }
+  .reward-value.gold-val { color: #fbbf24; }
+  .reward-value.xp-val { color: #60a5fa; }
+
+  /* Claim button */
+  .claim-btn {
+    margin-top: 32px; padding: 16px 56px; border-radius: 16px; border: none;
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    color: #0a0a1a; font-size: 14px; font-weight: 900; font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.2em; cursor: pointer; position: relative; z-index: 20;
+    box-shadow: 0 0 40px rgba(251,191,36,0.4), 0 4px 20px rgba(0,0,0,0.4);
+    opacity: 0; transform: translateY(30px) scale(0.8);
+    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    animation: none;
+  }
+  .claim-btn.visible { opacity: 1; transform: translateY(0) scale(1); animation: btnPulse 2s ease-in-out infinite; }
+  @keyframes btnPulse { 0%,100% { box-shadow: 0 0 30px rgba(251,191,36,0.3), 0 4px 20px rgba(0,0,0,0.4); } 50% { box-shadow: 0 0 50px rgba(251,191,36,0.6), 0 4px 30px rgba(0,0,0,0.4); } }
+  .claim-btn:active { transform: scale(0.95) !important; }
+
+  /* Confetti canvas */
+  #confetti { position: fixed; inset: 0; pointer-events: none; z-index: 50; }
+
+  /* Floating particles */
+  .particle {
+    position: absolute; border-radius: 50%; pointer-events: none;
+    animation: particleFloat 3s ease-out forwards;
+  }
+  @keyframes particleFloat {
+    0% { opacity: 0; transform: translateY(30px); }
+    20% { opacity: 0.8; }
+    100% { opacity: 0; transform: translateY(-200px) translateX(var(--dx)); }
+  }
+
+  .bottom-label {
+    position: absolute; bottom: 40px; font-size: 9px; color: rgba(255,255,255,0.2);
+    letter-spacing: 0.25em; text-align: center;
+    opacity: 0; transition: opacity 1s ease; transition-delay: 1s;
+  }
+  .bottom-label.visible { opacity: 1; }
+
+  /* Screen flash */
+  .flash {
+    position: fixed; inset: 0; background: white; pointer-events: none; z-index: 100;
+    opacity: 0; transition: opacity 0.05s;
+  }
+  .flash.active { opacity: 0.12; transition: opacity 0.05s; }
+
+  /* Restart button */
+  .restart { position: fixed; top: 16px; right: 16px; z-index: 200; padding: 8px 16px; border-radius: 8px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; font-size: 11px; cursor: pointer; font-family: monospace; }
+</style>
+</head>
+<body>
+<button class="restart" onclick="location.reload()">↻ Replay</button>
+<div class="overlay">
+  <div class="light-beams" id="beams"></div>
+  <div class="shockwave" id="shock1"></div>
+  <div class="shockwave" id="shock2" style="width:60px;height:60px;animation-delay:0.15s"></div>
+
+  <div class="orbital orbital-1" id="orb1" style="opacity:0;transition:opacity 0.5s"></div>
+  <div class="orbital orbital-2" id="orb2" style="opacity:0;transition:opacity 0.5s;transition-delay:0.2s"></div>
+  <div class="orbital orbital-3" id="orb3" style="opacity:0;transition:opacity 0.5s;transition-delay:0.4s"></div>
+
+  <div class="medal-container" id="medal">
+    <div class="medal-glow"></div>
+    <img src="public/images/medals/gold.webp" class="medal-img" alt="Gold Medal" onerror="this.textContent='👑';this.style.fontSize='72px'">
+    <div class="rank-label" id="rankLabel">RANK #1</div>
+    <div class="rank-title" id="rankTitle">FORGE SOVEREIGN</div>
+    <div class="username" id="username">@PlayerOne</div>
+  </div>
+
+  <div class="divider" id="divider"></div>
+
+  <div class="reward-cards" id="rewardCards">
+    <div class="reward-card gold" id="goldCard">
+      <div class="reward-icon gold-icon">🪙</div>
+      <div>
+        <div class="reward-label">GOLD EARNED</div>
+        <div class="reward-value gold-val" id="goldVal">+0</div>
+      </div>
+    </div>
+    <div class="reward-card xp" id="xpCard">
+      <div class="reward-icon xp-icon">⚡</div>
+      <div>
+        <div class="reward-label">BONUS XP</div>
+        <div class="reward-value xp-val" id="xpVal">+0</div>
+      </div>
+    </div>
+  </div>
+
+  <button class="claim-btn" id="claimBtn" onclick="handleClaim()">CLAIM REWARDS</button>
+  <div class="bottom-label" id="bottomLabel">DAILY LEADERBOARD REWARD</div>
+</div>
+
+<canvas id="confetti"></canvas>
+<div class="flash" id="flash"></div>
+
+<!-- Background particles container -->
+<div id="particles" style="position:fixed;inset:0;pointer-events:none;z-index:10;overflow:hidden"></div>
+
+<script>
+// Config
+const GOLD = 500;
+const XP = 150;
+const RANK = 1;
+
+// Spawn background particles
+function spawnParticles() {
+  const container = document.getElementById('particles');
+  for (let i = 0; i < 30; i++) {
+    setTimeout(() => {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      const size = 3 + Math.random() * 5;
+      const x = Math.random() * window.innerWidth;
+      const y = window.innerHeight * 0.5 + Math.random() * window.innerHeight * 0.3;
+      p.style.cssText = `left:${x}px;top:${y}px;width:${size}px;height:${size}px;background:#fbbf24;box-shadow:0 0 ${size*3}px #fbbf24;--dx:${(Math.random()-0.5)*150}px;animation-duration:${2+Math.random()*2}s;`;
+      container.appendChild(p);
+      setTimeout(() => p.remove(), 4000);
+    }, i * 200);
+  }
+}
+
+// Confetti system
+class ConfettiSystem {
+  constructor(canvas) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext('2d');
+    this.particles = [];
+    this.running = false;
+    this.resize();
+    window.addEventListener('resize', () => this.resize());
+  }
+  resize() { this.canvas.width = window.innerWidth; this.canvas.height = window.innerHeight; }
+  burst(x, y, count = 80) {
+    const colors = ['#fbbf24','#f59e0b','#fde68a','#ffffff','#fbbf24','#ef4444','#60a5fa','#a855f7'];
+    for (let i = 0; i < count; i++) {
+      const angle = (Math.PI * 2 * i / count) + (Math.random() - 0.5) * 0.5;
+      const speed = 4 + Math.random() * 10;
+      const size = 4 + Math.random() * 6;
+      const shape = Math.random() > 0.6 ? 'rect' : (Math.random() > 0.5 ? 'circle' : 'star');
+      this.particles.push({
+        x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed - 3,
+        size, rotation: Math.random() * 360, rotSpeed: (Math.random() - 0.5) * 15,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        life: 1, decay: 0.005 + Math.random() * 0.01, shape, gravity: 0.15,
+      });
+    }
+    if (!this.running) { this.running = true; this.animate(); }
+  }
+  rain(count = 50) {
+    const colors = ['#fbbf24','#f59e0b','#fde68a','#ffffff'];
+    for (let i = 0; i < count; i++) {
+      setTimeout(() => {
+        this.particles.push({
+          x: Math.random() * this.canvas.width, y: -20,
+          vx: (Math.random() - 0.5) * 2, vy: 2 + Math.random() * 4,
+          size: 4 + Math.random() * 5, rotation: Math.random() * 360,
+          rotSpeed: (Math.random() - 0.5) * 10,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          life: 1, decay: 0.003 + Math.random() * 0.005, shape: 'rect', gravity: 0.08,
+        });
+      }, i * 30);
+    }
+    if (!this.running) { this.running = true; this.animate(); }
+  }
+  animate() {
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    this.particles = this.particles.filter(p => p.life > 0);
+    for (const p of this.particles) {
+      p.vy += p.gravity;
+      p.x += p.vx; p.y += p.vy;
+      p.rotation += p.rotSpeed;
+      p.life -= p.decay;
+      p.vx *= 0.99;
+      this.ctx.save();
+      this.ctx.translate(p.x, p.y);
+      this.ctx.rotate(p.rotation * Math.PI / 180);
+      this.ctx.globalAlpha = Math.max(0, p.life);
+      this.ctx.fillStyle = p.color;
+      if (p.shape === 'rect') {
+        this.ctx.fillRect(-p.size/2, -p.size/4, p.size, p.size/2);
+      } else if (p.shape === 'circle') {
+        this.ctx.beginPath(); this.ctx.arc(0, 0, p.size/2, 0, Math.PI*2); this.ctx.fill();
+      } else {
+        this.ctx.beginPath();
+        for (let j = 0; j < 5; j++) {
+          const a = (j * 72 - 90) * Math.PI / 180;
+          const r = j % 2 === 0 ? p.size/2 : p.size/4;
+          j === 0 ? this.ctx.moveTo(Math.cos(a)*r, Math.sin(a)*r) : this.ctx.lineTo(Math.cos(a)*r, Math.sin(a)*r);
+        }
+        this.ctx.closePath(); this.ctx.fill();
+      }
+      this.ctx.restore();
+    }
+    if (this.particles.length > 0) requestAnimationFrame(() => this.animate());
+    else this.running = false;
+  }
+}
+
+// Animated counter
+function animateCounter(el, target, prefix = '+', duration = 800) {
+  let start = performance.now();
+  function tick(now) {
+    const p = Math.min((now - start) / duration, 1);
+    const eased = 1 - Math.pow(1 - p, 3);
+    el.textContent = prefix + Math.round(target * eased).toLocaleString();
+    if (p < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+// Sound
+function playSound(type) {
+  try {
+    const ac = new (window.AudioContext || window.webkitAudioContext)();
+    const now = ac.currentTime;
+    if (type === 'rank') {
+      [440, 554, 659, 880].forEach((freq, i) => {
+        const o = ac.createOscillator(), g = ac.createGain();
+        o.type = 'sine'; o.frequency.value = freq;
+        g.gain.setValueAtTime(0, now + i*0.08);
+        g.gain.linearRampToValueAtTime(0.12, now + i*0.08 + 0.05);
+        g.gain.exponentialRampToValueAtTime(0.001, now + i*0.08 + 1.5);
+        o.connect(g).connect(ac.destination); o.start(now + i*0.08); o.stop(now + i*0.08 + 1.5);
+      });
+    } else if (type === 'coin') {
+      [1200,1400,1600].forEach((f,i) => {
+        const o = ac.createOscillator(), g = ac.createGain();
+        o.type = 'triangle'; o.frequency.value = f;
+        g.gain.setValueAtTime(0.1, now+i*0.06);
+        g.gain.exponentialRampToValueAtTime(0.001, now+i*0.06+0.3);
+        o.connect(g).connect(ac.destination); o.start(now+i*0.06); o.stop(now+i*0.06+0.3);
+      });
+    } else if (type === 'claim') {
+      [523,659,784,1047].forEach((f,i) => {
+        const o = ac.createOscillator(), g = ac.createGain();
+        o.type = 'sine'; o.frequency.value = f;
+        g.gain.setValueAtTime(0.1, now+i*0.1);
+        g.gain.exponentialRampToValueAtTime(0.001, now+i*0.1+0.6);
+        o.connect(g).connect(ac.destination); o.start(now+i*0.1); o.stop(now+i*0.1+0.6);
+      });
+    }
+  } catch {}
+}
+
+// Init
+const confetti = new ConfettiSystem(document.getElementById('confetti'));
+
+// Phase timeline
+setTimeout(() => spawnParticles(), 100);
+
+// Phase 1: Medal reveal (400ms)
+setTimeout(() => {
+  document.getElementById('beams').classList.add('visible');
+  document.getElementById('shock1').classList.add('active');
+  document.getElementById('shock2').classList.add('active');
+  document.getElementById('medal').classList.add('visible');
+  document.getElementById('orb1').style.opacity = '1';
+  document.getElementById('orb2').style.opacity = '1';
+  document.getElementById('orb3').style.opacity = '1';
+  document.getElementById('rankLabel').classList.add('visible');
+  document.getElementById('rankTitle').classList.add('visible');
+  document.getElementById('username').classList.add('visible');
+  playSound('rank');
+  if (navigator.vibrate) navigator.vibrate([30, 50, 40]);
+}, 400);
+
+// Phase 2: Confetti + rewards (2200ms)
+setTimeout(() => {
+  // Screen flash
+  const flash = document.getElementById('flash');
+  flash.classList.add('active');
+  setTimeout(() => flash.classList.remove('active'), 120);
+
+  // Confetti burst from center
+  confetti.burst(window.innerWidth / 2, window.innerHeight * 0.35, 90);
+
+  // Show divider and reward cards
+  document.getElementById('divider').classList.add('visible');
+  document.getElementById('goldCard').classList.add('visible');
+  document.getElementById('xpCard').classList.add('visible');
+
+  // Animate counters
+  setTimeout(() => { animateCounter(document.getElementById('goldVal'), GOLD); playSound('coin'); }, 200);
+  setTimeout(() => animateCounter(document.getElementById('xpVal'), XP), 500);
+
+  if (navigator.vibrate) navigator.vibrate([40, 30, 50, 25, 60]);
+}, 2200);
+
+// Phase 3: Claim button (4200ms)
+setTimeout(() => {
+  document.getElementById('claimBtn').classList.add('visible');
+  document.getElementById('bottomLabel').classList.add('visible');
+}, 4200);
+
+function handleClaim() {
+  playSound('claim');
+  if (navigator.vibrate) navigator.vibrate([35, 40, 30, 50, 60, 80]);
+  confetti.rain(60);
+  const btn = document.getElementById('claimBtn');
+  btn.style.transform = 'scale(1.15)';
+  btn.style.opacity = '0.8';
+  setTimeout(() => {
+    btn.style.transform = 'scale(0)';
+    btn.style.opacity = '0';
+  }, 200);
+  setTimeout(() => {
+    document.querySelector('.overlay').style.opacity = '0';
+    document.querySelector('.overlay').style.transition = 'opacity 0.5s';
+  }, 1200);
+}
+</script>
+</body>
+</html>

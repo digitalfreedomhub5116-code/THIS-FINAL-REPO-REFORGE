@@ -85,6 +85,7 @@ const RankVideoBadge: React.FC<RankVideoBadgeProps> = ({ rank, className }) => {
             visibility: isActive ? 'visible' : 'hidden',
             transform: 'translateZ(0)',
         }}
+        onCanPlay={(e) => (e.target as HTMLVideoElement).classList.add('video-ready')}
       />
 
       {/* Fallback for missing media (Text Badge) */}

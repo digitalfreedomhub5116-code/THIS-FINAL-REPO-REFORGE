@@ -1,0 +1,439 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/status_frame"
+    android:paddingTop="28dp"
+    android:paddingBottom="24dp"
+    android:paddingLeft="18dp"
+    android:paddingRight="18dp"
+    android:id="@+id/widget_root">
+
+    <!-- Center top STATUS plate -->
+    <TextView
+        android:id="@+id/title_status"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:layout_alignParentTop="true"
+        android:text="STATUS"
+        android:textColor="#FFFFFF"
+        android:textSize="9sp"
+        android:textStyle="bold"
+        android:paddingLeft="14dp"
+        android:paddingRight="14dp"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp"
+        android:background="@drawable/status_plate_bg" />
+
+    <!-- Safe-zone container -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/title_status"
+        android:orientation="vertical"
+        android:layout_marginTop="6dp"
+        android:gravity="center_vertical">
+
+        <!-- Row 1: LEVEL (left) and STREAK (right) -->
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingLeft="4dp"
+            android:paddingRight="4dp">
+
+            <!-- Level Group (Number first, then label) -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentLeft="true"
+                android:orientation="horizontal"
+                android:gravity="bottom">
+
+                <TextView
+                    android:id="@+id/widget_level_num"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="1"
+                    android:textColor="#FFFFFF"
+                    android:textSize="26sp"
+                    android:textStyle="bold"
+                    android:lineSpacingMultiplier="1.0"
+                    android:shadowColor="#8000D4FF"
+                    android:shadowRadius="10"
+                    android:shadowDx="0"
+                    android:shadowDy="0" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginLeft="6dp"
+                    android:layout_marginBottom="3dp"
+                    android:text="LEVEL"
+                    android:textColor="#B4D0FA"
+                    android:textSize="8sp"
+                    android:textStyle="bold"
+                    android:alpha="0.8" />
+            </LinearLayout>
+
+            <!-- Streak Group (Label first, then number) -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentRight="true"
+                android:orientation="horizontal"
+                android:gravity="bottom">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginRight="6dp"
+                    android:layout_marginBottom="3dp"
+                    android:text="STREAK"
+                    android:textColor="#B4D0FA"
+                    android:textSize="8sp"
+                    android:textStyle="bold"
+                    android:alpha="0.8" />
+
+                <TextView
+                    android:id="@+id/widget_streak_num"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0"
+                    android:textColor="#FFFFFF"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:shadowColor="#B300D4FF"
+                    android:shadowRadius="8"
+                    android:shadowDx="0"
+                    android:shadowDy="0" />
+            </LinearLayout>
+        </RelativeLayout>
+
+        <!-- Divider -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="4dp"
+            android:background="#2600D4FF" />
+
+        <!-- Row 2: XP progress -->
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingLeft="4dp"
+            android:paddingRight="4dp">
+
+            <TextView
+                android:id="@+id/label_xp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentLeft="true"
+                android:layout_centerVertical="true"
+                android:text="XP"
+                android:textColor="#B4D0FA"
+                android:textSize="8sp"
+                android:textStyle="bold"
+                android:alpha="0.8" />
+
+            <TextView
+                android:id="@+id/widget_xp_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentRight="true"
+                android:layout_centerVertical="true"
+                android:text="0 / 100"
+                android:textColor="#B4D0FA"
+                android:textSize="9sp"
+                android:textStyle="bold" />
+
+            <ProgressBar
+                android:id="@+id/widget_xp_progress"
+                style="@android:style/Widget.ProgressBar.Horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="8dp"
+                android:layout_toRightOf="@id/label_xp"
+                android:layout_toLeftOf="@id/widget_xp_text"
+                android:layout_centerVertical="true"
+                android:layout_marginLeft="10dp"
+                android:layout_marginRight="10dp"
+                android:max="100"
+                android:progress="0"
+                android:progressDrawable="@drawable/xp_progress_bar" />
+        </RelativeLayout>
+
+        <!-- Divider -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="4dp"
+            android:background="#2600D4FF" />
+
+        <!-- Row 3: 6 Stats Grid -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="2dp"
+            android:paddingLeft="4dp"
+            android:paddingRight="4dp">
+
+            <!-- Grid Row 1 (STR, INT, DIS) -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="5dp">
+
+                <!-- STR -->
+                <RelativeLayout
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content">
+                    <ImageView
+                        android:id="@+id/ic_str"
+                        android:layout_width="11dp"
+                        android:layout_height="11dp"
+                        android:src="@drawable/ic_bolt"
+                        android:layout_alignParentLeft="true"
+                        android:layout_centerVertical="true"
+                        android:alpha="0.9" />
+                    <TextView
+                        android:id="@+id/lbl_str"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_toRightOf="@id/ic_str"
+                        android:layout_marginLeft="4dp"
+                        android:layout_centerVertical="true"
+                        android:text="STR"
+                        android:textColor="#B4D0FA"
+                        android:textSize="8sp"
+                        android:textStyle="bold"
+                        android:alpha="0.8" />
+                    <TextView
+                        android:id="@+id/widget_stat_str"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentRight="true"
+                        android:layout_centerVertical="true"
+                        android:text="0"
+                        android:textColor="#FFFFFF"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:shadowColor="#B300D4FF"
+                        android:shadowRadius="5"
+                        android:layout_marginRight="6dp" />
+                </RelativeLayout>
+
+                <!-- INT -->
+                <RelativeLayout
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content">
+                    <ImageView
+                        android:id="@+id/ic_int"
+                        android:layout_width="11dp"
+                        android:layout_height="11dp"
+                        android:src="@drawable/ic_intelligence"
+                        android:layout_alignParentLeft="true"
+                        android:layout_centerVertical="true"
+                        android:alpha="0.9" />
+                    <TextView
+                        android:id="@+id/lbl_int"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_toRightOf="@id/ic_int"
+                        android:layout_marginLeft="4dp"
+                        android:layout_centerVertical="true"
+                        android:text="INT"
+                        android:textColor="#B4D0FA"
+                        android:textSize="8sp"
+                        android:textStyle="bold"
+                        android:alpha="0.8" />
+                    <TextView
+                        android:id="@+id/widget_stat_int"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentRight="true"
+                        android:layout_centerVertical="true"
+                        android:text="0"
+                        android:textColor="#FFFFFF"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:shadowColor="#B300D4FF"
+                        android:shadowRadius="5"
+                        android:layout_marginRight="6dp" />
+                </RelativeLayout>
+
+                <!-- DIS -->
+                <RelativeLayout
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content">
+                    <ImageView
+                        android:id="@+id/ic_dis"
+                        android:layout_width="11dp"
+                        android:layout_height="11dp"
+                        android:src="@drawable/ic_discipline"
+                        android:layout_alignParentLeft="true"
+                        android:layout_centerVertical="true"
+                        android:alpha="0.9" />
+                    <TextView
+                        android:id="@+id/lbl_dis"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_toRightOf="@id/ic_dis"
+                        android:layout_marginLeft="4dp"
+                        android:layout_centerVertical="true"
+                        android:text="DIS"
+                        android:textColor="#B4D0FA"
+                        android:textSize="8sp"
+                        android:textStyle="bold"
+                        android:alpha="0.8" />
+                    <TextView
+                        android:id="@+id/widget_stat_dis"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentRight="true"
+                        android:layout_centerVertical="true"
+                        android:text="0"
+                        android:textColor="#FFFFFF"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:shadowColor="#B300D4FF"
+                        android:shadowRadius="5"
+                        android:layout_marginRight="6dp" />
+                </RelativeLayout>
+            </LinearLayout>
+
+            <!-- Grid Row 2 (SOC, FOC, WIL) -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <!-- SOC -->
+                <RelativeLayout
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content">
+                    <ImageView
+                        android:id="@+id/ic_soc"
+                        android:layout_width="11dp"
+                        android:layout_height="11dp"
+                        android:src="@drawable/ic_social"
+                        android:layout_alignParentLeft="true"
+                        android:layout_centerVertical="true"
+                        android:alpha="0.9" />
+                    <TextView
+                        android:id="@+id/lbl_soc"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_toRightOf="@id/ic_soc"
+                        android:layout_marginLeft="4dp"
+                        android:layout_centerVertical="true"
+                        android:text="SOC"
+                        android:textColor="#B4D0FA"
+                        android:textSize="8sp"
+                        android:textStyle="bold"
+                        android:alpha="0.8" />
+                    <TextView
+                        android:id="@+id/widget_stat_soc"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentRight="true"
+                        android:layout_centerVertical="true"
+                        android:text="0"
+                        android:textColor="#FFFFFF"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:shadowColor="#B300D4FF"
+                        android:shadowRadius="5"
+                        android:layout_marginRight="6dp" />
+                </RelativeLayout>
+
+                <!-- FOC -->
+                <RelativeLayout
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content">
+                    <ImageView
+                        android:id="@+id/ic_foc"
+                        android:layout_width="11dp"
+                        android:layout_height="11dp"
+                        android:src="@drawable/ic_focus"
+                        android:layout_alignParentLeft="true"
+                        android:layout_centerVertical="true"
+                        android:alpha="0.9" />
+                    <TextView
+                        android:id="@+id/lbl_foc"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_toRightOf="@id/ic_foc"
+                        android:layout_marginLeft="4dp"
+                        android:layout_centerVertical="true"
+                        android:text="FOC"
+                        android:textColor="#B4D0FA"
+                        android:textSize="8sp"
+                        android:textStyle="bold"
+                        android:alpha="0.8" />
+                    <TextView
+                        android:id="@+id/widget_stat_foc"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentRight="true"
+                        android:layout_centerVertical="true"
+                        android:text="0"
+                        android:textColor="#FFFFFF"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:shadowColor="#B300D4FF"
+                        android:shadowRadius="5"
+                        android:layout_marginRight="6dp" />
+                </RelativeLayout>
+
+                <!-- WIL -->
+                <RelativeLayout
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content">
+                    <ImageView
+                        android:id="@+id/ic_wil"
+                        android:layout_width="11dp"
+                        android:layout_height="11dp"
+                        android:src="@drawable/ic_willpower"
+                        android:layout_alignParentLeft="true"
+                        android:layout_centerVertical="true"
+                        android:alpha="0.9" />
+                    <TextView
+                        android:id="@+id/lbl_wil"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_toRightOf="@id/ic_wil"
+                        android:layout_marginLeft="4dp"
+                        android:layout_centerVertical="true"
+                        android:text="WIL"
+                        android:textColor="#B4D0FA"
+                        android:textSize="8sp"
+                        android:textStyle="bold"
+                        android:alpha="0.8" />
+                    <TextView
+                        android:id="@+id/widget_stat_wil"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentRight="true"
+                        android:layout_centerVertical="true"
+                        android:text="0"
+                        android:textColor="#FFFFFF"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:shadowColor="#B300D4FF"
+                        android:shadowRadius="5"
+                        android:layout_marginRight="6dp" />
+                </RelativeLayout>
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+</RelativeLayout>
