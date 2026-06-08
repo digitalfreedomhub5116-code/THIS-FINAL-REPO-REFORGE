@@ -925,8 +925,9 @@ export const HealthView: React.FC<HealthViewProps> = ({
     <>
       <ActiveWorkoutPlayer
         plan={activePlan}
-        onComplete={(c, t, r, anomaly, formCoachBonusXp, formCoachSession) => {
+        onComplete={(c: number, t: number, r: Record<string, number>, anomaly?: number, formCoachBonusXp?: number, formCoachSession?: FormCoachSession) => {
           const isCustomWorkout = activePlan.day === 'CUSTOM' || activePlan.day.includes('Custom');
+
           const rewards = onCompleteWorkout(c, t, r, false, anomaly, isCustomWorkout, formCoachBonusXp, formCoachSession);
           clearWorkoutSession(playerData.userId || 'local');
           setSavedSession(null);
