@@ -71,16 +71,7 @@ export const SkeletonLevelProgress: React.FC = () => (
   </SkeletonCard>
 );
 
-export const SkeletonWardrobePreview: React.FC = () => (
-  <SkeletonCard className="h-40 flex items-center gap-4">
-    <SkeletonCircle size="w-20 h-20" />
-    <div className="flex-1 flex flex-col gap-2">
-      <SkeletonLine w="w-32" h="h-5" />
-      <SkeletonLine w="w-24" h="h-3" />
-      <SkeletonLine w="w-20" h="h-8 mt-2" className="!rounded-full" />
-    </div>
-  </SkeletonCard>
-);
+
 
 export const SkeletonRankProgression: React.FC = () => (
   <SkeletonCard className="h-[160px] flex flex-col justify-between">

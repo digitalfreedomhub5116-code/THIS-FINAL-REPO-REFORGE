@@ -13,7 +13,7 @@ export const FEATURE_GATES: Record<string, FeatureGateConfig> = {
   HEALTH_NUTRITION: { level: 5, label: 'Nutrition Scanner', description: 'Scan food, log meals, and track macros with AI.' },
   HEALTH_CUSTOM_WORKOUT: { level: 5, label: 'AI Workout Generator', description: 'Generate personalized workout protocols.' },
   HEALTH_CALORIE_LIMIT: { level: 5, label: 'Custom Calorie Limit', description: 'Set a custom daily calorie target.' },
-  STORE: { level: 1, label: 'Armory & Store', description: 'Unlock outfits, chests, and more.' },
+  STORE: { level: 1, label: 'Armory & Store', description: 'Unlock profile borders, chests, and more.' },
   LEADERBOARD: { level: 1, label: 'Hunter Rankings', description: 'Compete on the global leaderboard.' },
   MOBILE_CHESTS: { level: 5, label: 'Chest Vault', description: 'Open legendary and alliance chests using gold.' },
 };

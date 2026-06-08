@@ -738,7 +738,7 @@ const GoldCoinStore: React.FC<GoldCoinStoreProps> = ({ gold, rcState, rcActions,
             lineHeight: 1.4,
           }}
         >
-          Gold Crystals unlock premium borders, outfits, banners, and store items.
+          Gold Crystals unlock premium borders, banners, and store items.
           Charged via Google Play.
         </span>
       </div>

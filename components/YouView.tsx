@@ -8,7 +8,7 @@ import {
   Swords, Dumbbell, Brain, Users, Shield, Target, Zap,
   Camera, ImagePlus, Loader2, Flame, TrendingUp, Sparkles, Crown, ExternalLink,
 } from 'lucide-react';
-import { PlayerData, HealthProfile, Outfit, Tab, Rank, CoreStats } from '../types';
+import { PlayerData, HealthProfile, Tab, Rank, CoreStats } from '../types';
 import AvatarWithBorder from './AvatarWithBorder';
 import RankBadge from './RankBadge';
 import type { RankType } from './RankBadge';
@@ -74,7 +74,6 @@ const RANK_LADDER: { rank: Exclude<Rank, 'UNRANKED'>; minLevel: number; color: s
 
 interface YouViewProps {
   player: PlayerData;
-  equippedOutfit?: Outfit;
   history?: import('../types').HistoryEntry[];
   onUpdate: (data: { name: string; username: string; job: string; title: string; healthProfile?: HealthProfile }) => void;
   onAvatarChange?: (newUrl: string) => void;
@@ -1048,7 +1047,7 @@ const StatsDrawer: React.FC<{ player: PlayerData; history?: import('../types').H
 
 // ─── Main YouView ────────────────────────────────────────────────────
 const YouView: React.FC<YouViewProps> = ({
-  player, equippedOutfit, history, onUpdate, onAvatarChange, onLogout, onDeleteAccount, onNavigate, onOpenDusk, onUpgradePro, isPremium,
+  player, history, onUpdate, onAvatarChange, onLogout, onDeleteAccount, onNavigate, onOpenDusk, onUpgradePro, isPremium,
 }) => {
   const [showRank, setShowRank] = useState(false);
   const [showRankProgression, setShowRankProgression] = useState(false);

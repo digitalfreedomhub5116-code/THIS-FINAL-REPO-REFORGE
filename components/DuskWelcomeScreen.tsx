@@ -69,34 +69,6 @@ const DuskWelcomeScreen: React.FC<DuskWelcomeScreenProps> = ({ onComplete }) => 
   const [displayedText, setDisplayedText] = useState('');
   const [typingDone, setTypingDone] = useState(false);
   const [showButton, setShowButton] = useState(false);
-  const [introEnded, setIntroEnded] = useState(false);
-
-  // Default outfit data — hardcoded Venus fallbacks so video plays instantly
-  const [introVideoUrl, setIntroVideoUrl] = useState('/assets/outfits/venusintro.mp4');
-  const [loopVideoUrl, setLoopVideoUrl] = useState('/assets/outfits/venusloop.mp4');
-  const [fallbackImage, setFallbackImage] = useState('');
-  const [videosReady, setVideosReady] = useState(false);
-
-  const introRef = useRef<HTMLVideoElement>(null);
-  const loopRef = useRef<HTMLVideoElement>(null);
-
-  // ── Fetch default outfit on mount ──
-  useEffect(() => {
-    fetch(`${API_BASE}/api/store/outfits`)
-      .then(r => r.json())
-      .then((rows: any[]) => {
-        if (!Array.isArray(rows)) return;
-        const defaultOutfit = rows.find((o: any) => o.is_default === true) || rows[0];
-        if (!defaultOutfit) return;
-        // Only override hardcoded Venus URLs if DB returns valid non-default paths
-        const dbIntro = defaultOutfit.intro_video_url || '';
-        const dbLoop = defaultOutfit.loop_video_url || '';
-        if (dbIntro && !dbIntro.includes('defaultintro')) setIntroVideoUrl(dbIntro);
-        if (dbLoop && !dbLoop.includes('defaultloop')) setLoopVideoUrl(dbLoop);
-        if (defaultOutfit.image_url) setFallbackImage(defaultOutfit.image_url);
-      })
-      .catch(() => { /* fail silently — fallback image or empty */ });
-  }, []);
 
   // ── Typewriter effect with haptic feedback ──
   useEffect(() => {
@@ -120,44 +92,7 @@ const DuskWelcomeScreen: React.FC<DuskWelcomeScreenProps> = ({ onComplete }) => 
     return () => clearInterval(interval);
   }, []);
 
-  // ── Video playback: intro → loop ──
-  useEffect(() => {
-    if (!introVideoUrl && !loopVideoUrl) return;
 
-    const intro = introRef.current;
-    const loop = loopRef.current;
-
-    if (introVideoUrl && intro) {
-      intro.src = introVideoUrl;
-      intro.load();
-      intro.play().catch(() => {
-        // If intro fails, jump to loop
-        setIntroEnded(true);
-        if (loop && loopVideoUrl) {
-          loop.src = loopVideoUrl;
-          loop.load();
-          loop.play().catch(() => {});
-        }
-      });
-      setVideosReady(true);
-    } else if (loopVideoUrl && loop) {
-      loop.src = loopVideoUrl;
-      loop.load();
-      loop.play().catch(() => {});
-      setIntroEnded(true);
-      setVideosReady(true);
-    }
-  }, [introVideoUrl, loopVideoUrl]);
-
-  const handleIntroEnd = () => {
-    setIntroEnded(true);
-    const loop = loopRef.current;
-    if (loop && loopVideoUrl) {
-      loop.src = loopVideoUrl;
-      loop.load();
-      loop.play().catch(() => {});
-    }
-  };
 
   return (
     <div className="fixed inset-0 z-[200] bg-black overflow-hidden">
@@ -290,46 +225,17 @@ const DuskWelcomeScreen: React.FC<DuskWelcomeScreenProps> = ({ onComplete }) => 
         {/* ── RIGHT / Behind on mobile: Character Video Panel ── */}
         <div className="absolute inset-0 md:relative md:w-[45%] md:h-full flex-shrink-0 flex items-center justify-center overflow-hidden">
 
-          {/* Fallback static image (shows while videos load or if no videos) */}
-          {fallbackImage && !videosReady && (
-            <img
-              src={fallbackImage}
-              alt="Character"
-              className="absolute inset-0 w-full h-full object-contain object-center"
-              style={{ filter: 'brightness(0.9)', maxHeight: '100%', maxWidth: '100%' }}
-            />
-          )}
-
-          {/* Loop video (behind intro) */}
+          {/* Default shadow video player */}
           <video
-            ref={loopRef}
-            poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
-            className="absolute inset-0 w-full h-full"
-            style={{ objectFit: 'contain', objectPosition: 'center', zIndex: 0, maxHeight: '100%', maxWidth: '100%' }}
+            autoPlay
             loop
             muted
             playsInline
-            preload="auto"
-            // @ts-ignore — webkit attribute for iOS/Android
-            webkit-playsinline="true"
-            onCanPlay={(e) => (e.target as HTMLVideoElement).classList.add('video-ready')}
-          />
-
-          {/* Intro video — fades out when done */}
-          <motion.video
-            ref={introRef}
             poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+            src="https://res.cloudinary.com/dcnqnbvp0/video/upload/v1769167952/Subject_animestyle_shadow_202601231701_vl45_ayicwk.mp4"
             className="absolute inset-0 w-full h-full"
-            style={{ objectFit: 'contain', objectPosition: 'center', zIndex: 1, maxHeight: '100%', maxWidth: '100%' }}
-            muted
-            playsInline
-            preload="auto"
-            // @ts-ignore
-            webkit-playsinline="true"
-            onEnded={handleIntroEnd}
-            animate={{ opacity: introEnded ? 0 : 1 }}
-            transition={{ duration: 0.4 }}
-            onCanPlay={(e: any) => (e.target as HTMLVideoElement).classList.add('video-ready')}
+            style={{ objectFit: 'contain', objectPosition: 'center', zIndex: 0, maxHeight: '100%', maxWidth: '100%' }}
+            onCanPlay={(e) => (e.target as HTMLVideoElement).classList.add('video-ready')}
           />
 
           {/* Heavy vignette overlay - all edges */}

@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, HelpCircle, Check, Lock, Info, Coins, Timer, Zap } from 'lucide-react';
 // ChestAnimations SVG fallbacks are used inside ChestLottieOverlays
 import { DailyChestLottie, LegendaryChestLottieV2, AllianceChestLottie, preloadChestLotties } from './ChestLottieOverlays';
-import { getStoneConfig, OUTFIT_STONE_CONFIG } from '../utils/gameData';
 import { SystemCoin } from './icons/SystemCoin';
 
 import CrystalIcon from './CrystalIcon';
@@ -24,7 +23,7 @@ type Phase = 'SELECTION' | 'HERO';
 type HeroStep = 'FLY_IN' | 'VIBRATE' | 'OPEN' | 'CARDS_OUT';
 
 interface RewardCard {
-  type: 'GOLD' | 'XP' | 'ITEM' | 'STONE';
+  type: 'GOLD' | 'XP' | 'ITEM';
   amount: number;
   label: string;
   color: string;
@@ -58,25 +57,23 @@ const REWARD_POOLS: Record<'DAILY' | 'LEGENDARY' | 'ALLIANCE', WeightedReward[]>
   DAILY: [
     { reward: { type: 'GOLD', amount: 150,  label: 'GOLD',    color: '#eab308' }, weight: 35 },
     { reward: { type: 'GOLD', amount: 300,  label: 'GOLD',    color: '#eab308' }, weight: 25 },
-    { reward: { type: 'STONE', amount: 2,    label: 'outfit_starter',  color: '#9ca3af' }, weight: 30 },
+    { reward: { type: 'XP', amount: 50,  label: 'XP',    color: '#3b82f6' }, weight: 30 },
   ],
   LEGENDARY: [
     { reward: { type: 'GOLD',  amount: 800,  label: 'GOLD',            color: '#eab308' }, weight: 25 },
     { reward: { type: 'GOLD',  amount: 1500, label: 'GOLD',            color: '#eab308' }, weight: 15 },
-    { reward: { type: 'STONE', amount: 2,    label: 'outfit_starter',  color: '#9ca3af' }, weight: 15 },
-    { reward: { type: 'STONE', amount: 2,    label: 'outfit_ghost',    color: '#4ade80' }, weight: 12 },
-    { reward: { type: 'STONE', amount: 1,    label: 'outfit_knight',   color: '#60a5fa' }, weight: 10 },
-    { reward: { type: 'STONE', amount: 1,    label: 'outfit_assassin',  color: '#33dfff' }, weight: 8 },
+    { reward: { type: 'XP', amount: 100,  label: 'XP',    color: '#3b82f6' }, weight: 15 },
+    { reward: { type: 'XP', amount: 150,  label: 'XP',    color: '#3b82f6' }, weight: 12 },
+    { reward: { type: 'XP', amount: 200,  label: 'XP',    color: '#3b82f6' }, weight: 10 },
+    { reward: { type: 'XP', amount: 300,  label: 'XP',    color: '#3b82f6' }, weight: 8 },
   ],
   ALLIANCE: [
     { reward: { type: 'GOLD',  amount: 600,  label: 'GOLD',            color: '#eab308' }, weight: 18 },
     { reward: { type: 'GOLD',  amount: 1200, label: 'GOLD',            color: '#eab308' }, weight: 15 },
-    { reward: { type: 'STONE', amount: 3,    label: 'outfit_starter',  color: '#9ca3af' }, weight: 8 },
-    { reward: { type: 'STONE', amount: 3,    label: 'outfit_ghost',    color: '#4ade80' }, weight: 8 },
-    { reward: { type: 'STONE', amount: 2,    label: 'outfit_knight',   color: '#60a5fa' }, weight: 8 },
-    { reward: { type: 'STONE', amount: 2,    label: 'outfit_assassin',  color: '#33dfff' }, weight: 8 },
-    { reward: { type: 'STONE', amount: 1,    label: 'outfit_vanguard', color: '#facc15' }, weight: 6 },
-    { reward: { type: 'STONE', amount: 1,    label: 'outfit_monarch',  color: '#f87171' }, weight: 4 },
+    { reward: { type: 'XP', amount: 150,  label: 'XP',    color: '#3b82f6' }, weight: 8 },
+    { reward: { type: 'XP', amount: 250,  label: 'XP',    color: '#3b82f6' }, weight: 8 },
+    { reward: { type: 'XP', amount: 350,  label: 'XP',    color: '#3b82f6' }, weight: 8 },
+    { reward: { type: 'XP', amount: 500,  label: 'XP',    color: '#3b82f6' }, weight: 8 },
   ],
 };
 
@@ -90,11 +87,11 @@ const CHEST_CFG = {
     bg: 'linear-gradient(135deg, #001a22 0%, #002233 100%)',
     rewards: [
       { type: 'GOLD' as const, amount: 200,  label: 'GOLD',   color: '#eab308' },
-      { type: 'STONE' as const, amount: 1,   label: 'STONES', color: '#9ca3af' },
+      { type: 'XP' as const, amount: 50,   label: 'XP', color: '#3b82f6' },
     ],
     contents: [
       { icon: '🪙', text: 'Gold — Low' },
-      { icon: '💎', text: 'Outfit Stones' },
+      { icon: '⚡', text: 'XP — Low' },
     ],
     cost: 'FREE',
     costType: 'timer' as const,
@@ -108,11 +105,11 @@ const CHEST_CFG = {
     bg: 'linear-gradient(135deg, #1a1200 0%, #2a1e00 100%)',
     rewards: [
       { type: 'GOLD' as const,  amount: 1000, label: 'GOLD',   color: '#eab308' },
-      { type: 'STONE' as const, amount: 2,    label: 'SHARDS', color: '#60a5fa' },
+      { type: 'XP' as const, amount: 150,    label: 'XP', color: '#3b82f6' },
     ],
     contents: [
       { icon: '🪙', text: 'Gold — High' },
-      { icon: '💎', text: 'Stone Shards' },
+      { icon: '⚡', text: 'XP — Medium' },
     ],
     cost: '500 Gold',
     costType: 'gold' as const,
@@ -126,11 +123,11 @@ const CHEST_CFG = {
     bg: 'linear-gradient(135deg, #0e0018 0%, #180028 100%)',
     rewards: [
       { type: 'GOLD' as const,  amount: 800,  label: 'GOLD',   color: '#eab308' },
-      { type: 'STONE' as const, amount: 3,    label: 'SHARDS', color: '#33dfff' },
+      { type: 'XP' as const, amount: 300,    label: 'XP', color: '#3b82f6' },
     ],
     contents: [
       { icon: '🪙', text: 'Gold — Very High' },
-      { icon: '💎', text: 'All Crystal Shards' },
+      { icon: '⚡', text: 'XP — High' },
     ],
     cost: '1500 Gold',
     costType: 'gold' as const,
@@ -144,7 +141,6 @@ const getRewardIcon = (type: RewardCard['type']) => {
     case 'GOLD': return <SystemCoin size={26} />;
     case 'XP':   return <span className="text-xl leading-none">⚡</span>;
     case 'ITEM':  return <span className="text-xl leading-none">🧪</span>;
-    case 'STONE': return <span className="text-xl leading-none">💎</span>;
   }
 };
 
@@ -163,7 +159,7 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
   onAddNotification,
   onOpenDuskChat,
 }) => {
-  const { player, awardRandomStones } = useSystem();
+  const { player } = useSystem();
   const DAILY_CHEST_KEY = `reforge_daily_chest_time_${player.userId || 'local'}`;
 
   const [activeModal, setActiveModal] = useState<'NONE' | 'REWARDS' | 'DUNGEON'>('NONE');
@@ -261,14 +257,10 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
   const handleCollect = () => {
     if (selectedCard === null || !activeChest) return;
     const card = cards[selectedCard];
-    if (card.type === 'STONE') {
-      awardRandomStones(1, card.amount, 'chest');
-    } else {
-      onAddRewards(
-        card.type === 'GOLD' ? card.amount : 0,
-        card.type === 'XP'   ? card.amount : 0,
-      );
-    }
+    onAddRewards(
+      card.type === 'GOLD' ? card.amount : 0,
+      card.type === 'XP'   ? card.amount : 0,
+    );
     playSystemSoundEffect('LEVEL_UP');
     setActiveModal('NONE');
   };
@@ -529,7 +521,7 @@ const MobileFloatingMenu: React.FC<MobileFloatingMenuProps> = ({
                       {getRewardIcon(card.type)}
                       <div className="text-base font-black text-white font-mono">+{card.amount}</div>
                       <div className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
-                        style={{ background: `${card.color}20`, color: card.color }}>{card.type === 'STONE' ? getStoneConfig(card.label).stoneName : card.label}</div>
+                        style={{ background: `${card.color}20`, color: card.color }}>{card.label}</div>
                     </div>
                   </>
                 ) : (

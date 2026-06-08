@@ -21,14 +21,14 @@ const LVL5_STEPS: TStepConfig[] = [
   {
     icon: <Store size={20} />,
     title: 'Store Tips',
-    subtitle: 'Browse outfits, open chests, and spend your keys and gold in the Store.',
+    subtitle: 'Browse banners, open chests, and spend your keys and gold in the Store.',
     color: '#33dfff',
     autoAdvanceMs: 4500,
   },
   {
     icon: <ShoppingBag size={20} />,
-    title: 'Outfits & Chests',
-    subtitle: 'Equip outfits to boost your XP gain. Open chests for legendary rewards.',
+    title: 'Banners & Chests',
+    subtitle: 'Equip profile banners to show off your achievements. Open chests for legendary rewards.',
     color: '#33dfff',
     autoAdvanceMs: 4500,
   },
