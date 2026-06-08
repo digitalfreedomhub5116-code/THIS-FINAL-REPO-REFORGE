@@ -7,7 +7,132 @@ export enum SystemState {
   LOCKED = 'LOCKED'
 }
 
-export type Tab = 'DASHBOARD' | 'QUESTS' | 'ARMORY' | 'STORE' | 'LEADERBOARD' | 'REWARDS' | 'GROWTH' | 'HEALTH' | 'GOALS' | 'CASTLE' | 'PROFILE';
+export type Tab = 'DASHBOARD' | 'QUESTS' | 'ARMORY' | 'STORE' | 'LEADERBOARD' | 'REWARDS' | 'GROWTH' | 'HEALTH' | 'GOALS' | 'CASTLE' | 'PROFILE' | 'GUILDS';
+
+// ── Guilds ──────────────────────────────────────────────────────────────────
+export type GuildRole = 'master' | 'vice' | 'member';
+export type GuildPrivacy = 'open' | 'invite_only';
+
+export interface GuildSummary {
+  id: string;
+  name: string;
+  tag?: string | null;
+  motto?: string;
+  icon?: string | null;
+  banner?: string | null;
+  privacy: GuildPrivacy;
+  memberCount: number;
+  memberCap: number;
+  gloryPoints: number;
+  rank: number;
+}
+
+export interface Guild {
+  id: string;
+  name: string;
+  tag?: string | null;
+  motto?: string;
+  icon?: string | null;
+  banner?: string | null;
+  privacy: GuildPrivacy;
+  masterId: string;
+  memberCap: number;
+  gloryPoints: number;
+  vaultBalance: number;
+  createdAt?: string;
+}
+
+export interface GuildMember {
+  userId: string;
+  role: GuildRole;
+  contributionPoints: number;
+  joinedAt?: string;
+  name: string;
+  avatarUrl: string | null;
+  level: number;
+  rank: string;
+  equippedBorder: string | null;
+}
+
+export interface GuildMessage {
+  id: string;
+  guildId: string;
+  userId: string | null;
+  type: 'user' | 'system' | 'workout';
+  body: string;
+  meta: Record<string, any>;
+  createdAt: string;
+  author: { userId: string; name: string; avatarUrl: string | null; level?: number; rank?: string; equippedBorder?: string | null } | null;
+  // client-only optimistic fields
+  _status?: 'sending' | 'failed' | 'sent';
+  _tempId?: string;
+}
+
+export interface GuildMission {
+  id: string;
+  title: string;
+  target: number;
+  progress: number;
+  reward: { gold?: number; glory?: number };
+  completed: boolean;
+  date: string;
+}
+
+export interface GuildWarSide {
+  id: string;
+  name: string;
+  icon?: string | null;
+  banner?: string | null;
+  score: number;
+}
+
+export interface GuildWarContributor {
+  userId: string;
+  guildId: string;
+  points: number;
+  name: string;
+  avatarUrl: string | null;
+}
+
+export interface GuildWar {
+  id: string;
+  weekStart: string;
+  status: 'scheduled' | 'active' | 'ended';
+  winnerId: string | null;
+  myGuildId: string;
+  guildA: GuildWarSide;
+  guildB: GuildWarSide;
+  contributors: GuildWarContributor[];
+}
+
+// Wraps the current war (if any) plus opt-in registration status for the upcoming week.
+export interface WarState {
+  war: GuildWar | null;
+  registered: boolean;        // guild is registered for the upcoming matchmaking
+  canRegister: boolean;       // current user is master/vice
+  registrationWeek: string | null; // the Thursday (YYYY-MM-DD) the guild is registered for
+  nextWarStart: string;       // next matchmaking Thursday (YYYY-MM-DD)
+}
+
+export interface VaultTransaction {
+  id: string;
+  userId: string;
+  kind: 'donate' | 'purchase';
+  amount: number;
+  itemKey: string | null;
+  createdAt: string;
+  name: string;
+}
+
+export interface GuildJoinRequest {
+  id: string;
+  userId: string;
+  createdAt: string;
+  name?: string;
+  avatarUrl?: string | null;
+  level?: number;
+  rank?: string;
+}
 
 export interface NavItem {
   label: string;

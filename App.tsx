@@ -16,6 +16,12 @@ import Navigation from './components/Navigation';
 
 import MobileFloatingMenu from './components/MobileFloatingMenu';
 
+import GuildsTab from './components/guilds/GuildsTab';
+
+import GuildShareWorkout from './components/guilds/GuildShareWorkout';
+
+import { recordGuildContribution } from './lib/guildApi';
+
 import SystemPersonalizationScreen from './components/SystemPersonalizationScreen';
 
 import AuthView from './components/AuthView';
@@ -949,7 +955,30 @@ const App: React.FC = () => {
 
 
   const [isDungeonMode] = useState(false);
+  const [inGuildPortal, setInGuildPortal] = useState(false);
+  const [guildShareSummary, setGuildShareSummary] = useState<{ exercises: number; total: number; xp?: number } | null>(null);
   const [dungeonEntryTrigger, setDungeonEntryTrigger] = useState<{ equipment?: 'GYM' | 'HOME_DUMBBELLS' | 'BODYWEIGHT'; timestamp: number } | null>(null);
+
+  // ── Guild contribution: every completed quest feeds the guild's daily mission & war ──
+  useEffect(() => {
+    const onQuestDone = () => { recordGuildContribution(1, 'quest'); };
+    window.addEventListener('quest:completed', onQuestDone);
+    return () => window.removeEventListener('quest:completed', onQuestDone);
+  }, []);
+
+  // Wrap dungeon completion: forward to useSystem, then record guild contribution + offer to share.
+  const handleDungeonWorkoutComplete = useCallback((
+    exercisesCompleted: number,
+    totalExercises: number,
+    results: Record<string, number>,
+    anomalyPoints: number = 0,
+    formCoachBonusXp: number = 0,
+    formCoachSession?: any,
+  ) => {
+    completeDungeonWorkout(exercisesCompleted, totalExercises, results, anomalyPoints, formCoachBonusXp, formCoachSession);
+    recordGuildContribution(Math.max(1, exercisesCompleted), 'workout');
+    setGuildShareSummary({ exercises: exercisesCompleted, total: totalExercises });
+  }, [completeDungeonWorkout]);
 
 
 
@@ -4150,7 +4179,7 @@ const App: React.FC = () => {
 
 
 
-  const shouldShowNav = showNav && !isDungeonMode;
+  const shouldShowNav = showNav && !isDungeonMode && !inGuildPortal;
 
 
 
@@ -5247,7 +5276,7 @@ const App: React.FC = () => {
                           dungeonState={player.dungeonState}
                           onInitializeDungeon={initializeDungeon}
                           onUpdateDungeonState={updateDungeonState}
-                          onCompleteDungeonWorkout={completeDungeonWorkout}
+                          onCompleteDungeonWorkout={handleDungeonWorkoutComplete}
                           onFailDungeonWorkout={failDungeonWorkout}
                           onAddRewards={addRewards}
                           dungeonEntryTrigger={dungeonEntryTrigger ?? undefined}
@@ -5594,6 +5623,32 @@ const App: React.FC = () => {
 
                 )}
 
+
+
+
+                {/* ── GUILDS ── */}
+
+                {activeTab === 'GUILDS' && (
+
+                  <motion.div key="guilds" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+
+                    <ErrorBoundary fallbackLabel="Guilds failed to load">
+
+                      <GuildsTab
+                        player={player}
+                        isPremium={isPremium}
+                        onUpgradePro={() => setShowManaPowerUpsell(true)}
+                        onPortalChange={setInGuildPortal}
+                        onExitToApp={() => setActiveTab('DASHBOARD')}
+                        onGoldChange={(g) => setPlayer(prev => ({ ...prev, gold: g }))}
+                        onToast={(type, title, subtitle) => showSystemToast({ type: type === 'ERROR' ? 'WARNING' : type, title, subtitle })}
+                      />
+
+                    </ErrorBoundary>
+
+                  </motion.div>
+
+                )}
 
 
 
@@ -5988,6 +6043,7 @@ const App: React.FC = () => {
           </Layout>
 
           <SystemToastOverlay />
+          <GuildShareWorkout summary={guildShareSummary} onDismiss={() => setGuildShareSummary(null)} />
         </>
 
       )}

@@ -62,6 +62,7 @@ async function startServer() {
   const inventoryRouter = await import('./routes/inventory.js');
   const iapRouter = await import('./routes/iap.js');
   const adUnlockRouter = await import('./routes/adUnlock.js');
+  const guildsRouter = await import('./routes/guilds.js');
 
   const app = express();
   const PORT = process.env.PORT ? parseInt(process.env.PORT) : 8001;
@@ -217,6 +218,7 @@ async function startServer() {
   app.use('/api/economy', generalRateLimit, economyRouter.default);
   app.use('/api/inventory', generalRateLimit, inventoryRouter.default);
   app.use('/api/iap', generalRateLimit, iapRouter.default);
+  app.use('/api/guilds', generalRateLimit, guildsRouter.default);
   // ADS DISABLED — ad-unlock route returns 410 for all endpoints
   app.use('/api/ad-unlock', (_req, res) => {
     res.status(410).json({ error: 'Ad unlock is no longer available.' });
@@ -465,6 +467,26 @@ async function startServer() {
       console.log('[Server] Bot simulation scheduled (checks every 60s)');
     } catch (err) {
       console.warn('[Server] Could not set up bot simulation:', err);
+    }
+
+    // ── Guild War Cron ──
+    // Thursday: create weekly matchups. Sunday: settle wars + distribute rewards.
+    // Idempotent — runs guarded inside runGuildWarCron, checked once per day.
+    try {
+      const { runGuildWarCron } = await import('./routes/guilds.js');
+      const { supabaseServer } = await import('./lib/supabase.js');
+      let lastWarCronDate = '';
+      const tickWarCron = async () => {
+        const today = new Date().toISOString().slice(0, 10);
+        if (today === lastWarCronDate) return;
+        lastWarCronDate = today;
+        await runGuildWarCron(supabaseServer() as any);
+      };
+      setTimeout(() => { tickWarCron().catch(err => console.error('[GuildWar] Startup run failed:', err)); }, 8000);
+      setInterval(() => { tickWarCron().catch(err => console.error('[GuildWar] Interval run failed:', err)); }, 60_000);
+      console.log('[Server] Guild war cron scheduled (checks every 60s)');
+    } catch (err) {
+      console.warn('[Server] Could not set up guild war cron:', err);
     }
   });
 }
