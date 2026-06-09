@@ -70,11 +70,7 @@ const GuildBrowser: React.FC<GuildBrowserProps> = ({ isPremium, onUpgradePro, on
     <div className="max-w-2xl mx-auto pb-28">
       {/* Header */}
       <div className="mb-5">
-        <div className="flex items-center gap-2 mb-1">
-          <Users size={18} style={{ color: NEON }} />
-          <span className="text-[11px] font-mono uppercase tracking-[0.2em] text-cyan-400">System_Guild · v4.2</span>
-        </div>
-        <h1 className="text-3xl font-heading font-extrabold text-white leading-tight">GUILD<br />DISCOVERY</h1>
+        <h1 className="text-3xl font-black text-white leading-tight tracking-tight uppercase">GUILD<br />DISCOVERY</h1>
         <p className="text-gray-400 text-sm mt-2 max-w-sm">Scan the global registry. Align with a faction. Forge your legacy in the digital void.</p>
       </div>
 
@@ -91,10 +87,10 @@ const GuildBrowser: React.FC<GuildBrowserProps> = ({ isPremium, onUpgradePro, on
         </div>
         <button
           onClick={() => setShowCreate(true)}
-          className="px-4 rounded-xl font-bold text-black flex items-center gap-1.5"
-          style={{ background: `linear-gradient(135deg, ${NEON}, #6d28d9)` }}
+          className="px-5 rounded-xl text-black text-xs font-black font-mono uppercase tracking-wider transition-all shadow-[0_0_15px_rgba(0,212,255,0.25)] flex items-center justify-center gap-1.5 flex-shrink-0"
+          style={{ backgroundColor: NEON }}
         >
-          <Plus size={16} /> New
+          <Plus size={14} strokeWidth={3} /> New
         </button>
       </div>
 
@@ -111,7 +107,6 @@ const GuildBrowser: React.FC<GuildBrowserProps> = ({ isPremium, onUpgradePro, on
               color: filter === f.key ? NEON : '#94a3b8',
             }}
           >
-            {f.key === 'top' && <Sparkles size={12} />}
             {f.label}
           </button>
         ))}
