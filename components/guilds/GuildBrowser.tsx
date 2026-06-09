@@ -103,11 +103,7 @@ const GuildBrowser: React.FC<GuildBrowserProps> = ({ playerGold, userId, onGoldC
     <div className="max-w-2xl mx-auto pb-28">
       {/* Header */}
       <div className="mb-5">
-        <div className="flex items-center gap-2 mb-1">
-          <Users size={18} style={{ color: NEON }} />
-          <span className="text-[11px] font-mono uppercase tracking-[0.2em] text-cyan-400">System_Guild · v4.2</span>
-        </div>
-        <h1 className="text-3xl font-heading font-extrabold text-white leading-tight">GUILD<br />DISCOVERY</h1>
+        <h1 className="text-3xl font-black text-white leading-tight tracking-tight uppercase">GUILD<br />DISCOVERY</h1>
         <p className="text-gray-400 text-sm mt-2 max-w-sm">Scan the global registry. Align with a faction. Forge your legacy in the digital void.</p>
       </div>
 
@@ -122,17 +118,14 @@ const GuildBrowser: React.FC<GuildBrowserProps> = ({ playerGold, userId, onGoldC
             className="flex-1 bg-transparent py-2.5 text-sm text-white focus:outline-none"
           />
         </div>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+        <button
           onClick={handleOpenCreate}
           disabled={preflightBusy}
-          aria-label="Create new guild"
-          className="w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0 disabled:opacity-60"
-          style={{ background: `linear-gradient(135deg, ${NEON}, #6d28d9)`, boxShadow: `0 0 20px ${NEON}66` }}
+          className="px-5 rounded-xl text-black text-xs font-black font-mono uppercase tracking-wider transition-all shadow-[0_0_15px_rgba(0,212,255,0.25)] flex items-center justify-center gap-1.5 flex-shrink-0 disabled:opacity-50"
+          style={{ backgroundColor: NEON }}
         >
-          <Plus size={24} className="text-black" />
-        </motion.button>
+          <Plus size={14} strokeWidth={3} /> New
+        </button>
       </div>
 
       {/* Filters */}
@@ -148,7 +141,6 @@ const GuildBrowser: React.FC<GuildBrowserProps> = ({ playerGold, userId, onGoldC
               color: filter === f.key ? NEON : '#94a3b8',
             }}
           >
-            {f.key === 'top' && <Sparkles size={12} />}
             {f.label}
           </button>
         ))}
