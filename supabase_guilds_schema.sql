@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS guilds (
   icon          TEXT,                         -- emoji or asset key
   banner        TEXT,                         -- asset key / gradient id
   privacy       VARCHAR(20) DEFAULT 'open',   -- 'open' | 'invite_only'
-  master_id     UUID NOT NULL,                -- players.supabase_id of the founder
+  master_id     TEXT NOT NULL,                -- players.supabase_id of the founder
   member_cap    INTEGER DEFAULT 150,
   glory_points  INTEGER DEFAULT 0,
   vault_balance INTEGER DEFAULT 0,
@@ -29,7 +29,7 @@ ALTER TABLE guilds ADD COLUMN IF NOT EXISTS war_registered_week DATE;
 CREATE TABLE IF NOT EXISTS guild_members (
   id                  UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   guild_id            UUID NOT NULL REFERENCES guilds(id) ON DELETE CASCADE,
-  user_id             UUID NOT NULL,            -- players.supabase_id
+  user_id             TEXT NOT NULL,            -- players.supabase_id
   role                VARCHAR(20) DEFAULT 'member', -- 'master' | 'vice' | 'member'
   contribution_points INTEGER DEFAULT 0,
   joined_at           TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -43,7 +43,7 @@ CREATE INDEX IF NOT EXISTS idx_guild_members_guild ON guild_members(guild_id);
 CREATE TABLE IF NOT EXISTS guild_join_requests (
   id         UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   guild_id   UUID NOT NULL REFERENCES guilds(id) ON DELETE CASCADE,
-  user_id    UUID NOT NULL,
+  user_id    TEXT NOT NULL,
   status     VARCHAR(20) DEFAULT 'pending',  -- 'pending' | 'approved' | 'rejected'
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   UNIQUE(guild_id, user_id)
@@ -54,7 +54,7 @@ CREATE INDEX IF NOT EXISTS idx_guild_requests_guild ON guild_join_requests(guild
 CREATE TABLE IF NOT EXISTS guild_chat (
   id         UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   guild_id   UUID NOT NULL REFERENCES guilds(id) ON DELETE CASCADE,
-  user_id    UUID,                            -- NULL for system messages
+  user_id    TEXT,                            -- NULL for system messages
   type       VARCHAR(20) DEFAULT 'user',      -- 'user' | 'system' | 'workout'
   body       TEXT DEFAULT '',
   meta       JSONB DEFAULT '{}',              -- workout card payload, author snapshot, etc.
@@ -97,7 +97,7 @@ CREATE TABLE IF NOT EXISTS guild_war_contributions (
   id       UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   war_id   UUID NOT NULL REFERENCES guild_wars(id) ON DELETE CASCADE,
   guild_id UUID NOT NULL REFERENCES guilds(id) ON DELETE CASCADE,
-  user_id  UUID NOT NULL,
+  user_id  TEXT NOT NULL,
   points   INTEGER DEFAULT 0,
   UNIQUE(war_id, user_id)
 );
@@ -107,7 +107,7 @@ CREATE INDEX IF NOT EXISTS idx_war_contrib_war ON guild_war_contributions(war_id
 CREATE TABLE IF NOT EXISTS guild_vault_transactions (
   id         UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   guild_id   UUID NOT NULL REFERENCES guilds(id) ON DELETE CASCADE,
-  user_id    UUID NOT NULL,
+  user_id    TEXT NOT NULL,
   kind       VARCHAR(20) NOT NULL,            -- 'donate' | 'purchase'
   amount     INTEGER NOT NULL,
   item_key   VARCHAR(60),                     -- shop item purchased (nullable)
@@ -134,7 +134,7 @@ RETURNS VOID AS $$
    WHERE guild_id = p_guild AND date = p_date;
 $$ LANGUAGE sql;
 
-CREATE OR REPLACE FUNCTION guild_member_contribute(p_guild UUID, p_user UUID, p_amount INTEGER)
+CREATE OR REPLACE FUNCTION guild_member_contribute(p_guild UUID, p_user TEXT, p_amount INTEGER)
 RETURNS VOID AS $$
   UPDATE guild_members
      SET contribution_points = contribution_points + p_amount
