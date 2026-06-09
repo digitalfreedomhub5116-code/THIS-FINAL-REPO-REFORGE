@@ -182,7 +182,7 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, badges,
 
               {NAV_ITEMS.map((item) => {
                 const isActive = activeTab === item.id;
-                const isCenter = item.id === 'LEADERBOARD';
+                const isCenter = item.id === 'GUILDS';
                 const isLocked = !!lockedTabs[item.id];
                 const Icon = item.icon;
                 const isGuidedHighlight = (isGuidedGoalsStep && item.id === 'GOALS');
