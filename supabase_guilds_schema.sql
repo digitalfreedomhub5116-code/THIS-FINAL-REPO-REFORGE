@@ -24,6 +24,8 @@ CREATE TABLE IF NOT EXISTS guilds (
 );
 -- Idempotent: add the column if upgrading an existing guilds table.
 ALTER TABLE guilds ADD COLUMN IF NOT EXISTS war_registered_week DATE;
+-- Premium guild icons the guild has unlocked via the Vault (array of icon keys).
+ALTER TABLE guilds ADD COLUMN IF NOT EXISTS unlocked_icons JSONB DEFAULT '[]'::jsonb;
 
 -- ── 2. Guild Members ─────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS guild_members (

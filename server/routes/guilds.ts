@@ -1,6 +1,6 @@
-import { Router, Request, Response } from 'express';
-import { supabaseServer } from '../lib/supabase.js';
-import { getAuthenticatedUserId } from '../lib/playerAuth.js';
+import { Router, Request, Response } from "express";
+import { supabaseServer } from "../lib/supabase.js";
+import { getAuthenticatedUserId } from "../lib/playerAuth.js";
 
 const router = Router();
 
@@ -9,89 +9,137 @@ const router = Router();
 const auth = (req: Request, res: Response): string | null => {
   const uid = getAuthenticatedUserId(req);
   if (!uid) {
-    res.status(401).json({ error: 'Not authenticated' });
+    res.status(401).json({ error: "Not authenticated" });
     return null;
   }
   return uid;
 };
 
-type Role = 'master' | 'vice' | 'member';
+type Role = "master" | "vice" | "member";
 const RANK_ROLE: Record<Role, number> = { master: 3, vice: 2, member: 1 };
 
 // ── Guild creation config ────────────────────────────────────────────────────
 const GUILD_CREATE_COST = 900;
 
 // Icon catalog: key → { emoji, free, cost }. Emoji is what gets stored/displayed.
-const GUILD_ICON_CATALOG: Record<string, { emoji: string; free: boolean; cost: number }> = {
-  shield:    { emoji: '🛡️', free: true,  cost: 0 },
-  sword:     { emoji: '⚔️', free: true,  cost: 0 },
-  trident:   { emoji: '🔱', free: true,  cost: 0 },
-  crown:     { emoji: '👑', free: true,  cost: 0 },
-  dragon:    { emoji: '🐉', free: false, cost: 1200 },
-  fire:      { emoji: '🔥', free: false, cost: 1200 },
-  lightning: { emoji: '⚡', free: false, cost: 1000 },
-  diamond:   { emoji: '💎', free: false, cost: 1500 },
-  phoenix:   { emoji: '🦅', free: false, cost: 1500 },
-  wolf:      { emoji: '🐺', free: false, cost: 1000 },
-  skull:     { emoji: '💀', free: false, cost: 1000 },
-  star:      { emoji: '⭐', free: false, cost: 800 },
+const GUILD_ICON_CATALOG: Record<
+  string,
+  { emoji: string; free: boolean; cost: number }
+> = {
+  shield: { emoji: "🛡️", free: true, cost: 0 },
+  sword: { emoji: "⚔️", free: true, cost: 0 },
+  trident: { emoji: "🔱", free: true, cost: 0 },
+  crown: { emoji: "👑", free: true, cost: 0 },
+  dragon: { emoji: "🐉", free: false, cost: 1200 },
+  fire: { emoji: "🔥", free: false, cost: 1200 },
+  lightning: { emoji: "⚡", free: false, cost: 1000 },
+  diamond: { emoji: "💎", free: false, cost: 1500 },
+  phoenix: { emoji: "🦅", free: false, cost: 1500 },
+  wolf: { emoji: "🐺", free: false, cost: 1000 },
+  skull: { emoji: "💀", free: false, cost: 1000 },
+  star: { emoji: "⭐", free: false, cost: 800 },
 };
 
 const NAME_RE = /^[A-Za-z0-9 _-]+$/;
-const BLOCKED_WORDS = ['fuck', 'shit', 'bitch', 'cunt', 'nigger', 'nigga', 'faggot', 'rape', 'nazi', 'whore', 'slut', 'dick', 'pussy', 'asshole'];
+const BLOCKED_WORDS = [
+  "fuck",
+  "shit",
+  "bitch",
+  "cunt",
+  "nigger",
+  "nigga",
+  "faggot",
+  "rape",
+  "nazi",
+  "whore",
+  "slut",
+  "dick",
+  "pussy",
+  "asshole",
+];
 
-function validateGuildName(raw: any): { ok: true; name: string } | { ok: false; error: string } {
-  const name = String(raw ?? '').trim();
-  if (name.length < 3) return { ok: false, error: 'Name must be at least 3 characters' };
-  if (name.length > 30) return { ok: false, error: 'Name must be 30 characters or fewer' };
-  if (!NAME_RE.test(name)) return { ok: false, error: 'Only letters, numbers, spaces, hyphens and underscores allowed' };
+function validateGuildName(
+  raw: any
+): { ok: true; name: string } | { ok: false; error: string } {
+  const name = String(raw ?? "").trim();
+  if (name.length < 3)
+    return { ok: false, error: "Name must be at least 3 characters" };
+  if (name.length > 30)
+    return { ok: false, error: "Name must be 30 characters or fewer" };
+  if (!NAME_RE.test(name))
+    return {
+      ok: false,
+      error: "Only letters, numbers, spaces, hyphens and underscores allowed",
+    };
   const lower = name.toLowerCase();
-  if (BLOCKED_WORDS.some((w) => lower.includes(w))) return { ok: false, error: 'Name contains blocked words' };
+  if (BLOCKED_WORDS.some((w) => lower.includes(w)))
+    return { ok: false, error: "Name contains blocked words" };
   return { ok: true, name };
 }
 
 async function guildNameTaken(db: any, name: string): Promise<boolean> {
-  const { data } = await db.from('guilds').select('id').ilike('name', name).limit(1);
+  const { data } = await db
+    .from("guilds")
+    .select("id")
+    .ilike("name", name)
+    .limit(1);
   return !!(data && data.length);
 }
 
 /** Premium guild icon keys the player has unlocked (persisted in players.raw_data). */
 async function getUnlockedIcons(db: any, uid: string): Promise<string[]> {
-  const { data } = await db.from('players').select('raw_data').eq('supabase_id', uid).maybeSingle();
+  const { data } = await db
+    .from("players")
+    .select("raw_data")
+    .eq("supabase_id", uid)
+    .maybeSingle();
   const arr = data?.raw_data?.unlockedGuildIcons;
   return Array.isArray(arr) ? arr : [];
 }
 
 async function getMembership(db: any, userId: string): Promise<any | null> {
-  const { data } = await db.from('guild_members').select('*').eq('user_id', userId).maybeSingle();
+  const { data } = await db
+    .from("guild_members")
+    .select("*")
+    .eq("user_id", userId)
+    .maybeSingle();
   return data || null;
 }
 
-async function getMembershipIn(db: any, guildId: string, userId: string): Promise<any | null> {
+async function getMembershipIn(
+  db: any,
+  guildId: string,
+  userId: string
+): Promise<any | null> {
   const { data } = await db
-    .from('guild_members')
-    .select('*')
-    .eq('guild_id', guildId)
-    .eq('user_id', userId)
+    .from("guild_members")
+    .select("*")
+    .eq("guild_id", guildId)
+    .eq("user_id", userId)
     .maybeSingle();
   return data || null;
 }
 
 /** Fetch display info (name, avatar, level, rank, border) for a set of supabase_ids. */
-async function enrichPlayers(db: any, ids: string[]): Promise<Record<string, any>> {
+async function enrichPlayers(
+  db: any,
+  ids: string[]
+): Promise<Record<string, any>> {
   if (!ids.length) return {};
   const { data } = await db
-    .from('players')
-    .select('supabase_id, username, name, level, rank, avatar_url, equipped_border, raw_data')
-    .in('supabase_id', ids);
+    .from("players")
+    .select(
+      "supabase_id, username, name, level, rank, avatar_url, equipped_border, raw_data"
+    )
+    .in("supabase_id", ids);
   const map: Record<string, any> = {};
   for (const p of data || []) {
     map[p.supabase_id] = {
       userId: p.supabase_id,
-      name: p.username || p.name || 'Hunter',
+      name: p.username || p.name || "Hunter",
       avatarUrl: p.avatar_url || null,
       level: p.level || 1,
-      rank: p.rank || 'E',
+      rank: p.rank || "E",
       equippedBorder: p.equipped_border || p.raw_data?.equippedBorder || null,
     };
   }
@@ -99,24 +147,31 @@ async function enrichPlayers(db: any, ids: string[]): Promise<Record<string, any
 }
 
 /** Server → clients fan-out via Supabase Realtime Broadcast HTTP endpoint. */
-async function broadcastToGuild(guildId: string, event: string, payload: any): Promise<void> {
+async function broadcastToGuild(
+  guildId: string,
+  event: string,
+  payload: any
+): Promise<void> {
   try {
     const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-    const key = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+    const key =
+      process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
     if (!url || !key) return;
     await fetch(`${url}/realtime/v1/api/broadcast`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         apikey: key,
         Authorization: `Bearer ${key}`,
       },
       body: JSON.stringify({
-        messages: [{ topic: `guild:${guildId}`, event, payload, private: false }],
+        messages: [
+          { topic: `guild:${guildId}`, event, payload, private: false },
+        ],
       }),
     });
   } catch (err) {
-    console.warn('[Guilds] broadcast failed:', (err as any)?.message);
+    console.warn("[Guilds] broadcast failed:", (err as any)?.message);
   }
 }
 
@@ -126,19 +181,35 @@ function todayStr(): string {
 
 // Daily mission pool — one is chosen per guild per day.
 const MISSION_POOL = [
-  { title: 'Complete 50 workouts together', target: 50, reward: { gold: 500, glory: 100 } },
-  { title: 'Earn 10,000 XP as a guild', target: 10000, reward: { gold: 600, glory: 120 } },
-  { title: 'Finish 80 quests collectively', target: 80, reward: { gold: 550, glory: 110 } },
-  { title: 'Clear 30 dungeons together', target: 30, reward: { gold: 700, glory: 150 } },
+  {
+    title: "Complete 50 workouts together",
+    target: 50,
+    reward: { gold: 500, glory: 100 },
+  },
+  {
+    title: "Earn 10,000 XP as a guild",
+    target: 10000,
+    reward: { gold: 600, glory: 120 },
+  },
+  {
+    title: "Finish 80 quests collectively",
+    target: 80,
+    reward: { gold: 550, glory: 110 },
+  },
+  {
+    title: "Clear 30 dungeons together",
+    target: 30,
+    reward: { gold: 700, glory: 150 },
+  },
 ];
 
 async function ensureTodayMission(db: any, guildId: string): Promise<any> {
   const date = todayStr();
   const { data: existing } = await db
-    .from('guild_missions')
-    .select('*')
-    .eq('guild_id', guildId)
-    .eq('date', date)
+    .from("guild_missions")
+    .select("*")
+    .eq("guild_id", guildId)
+    .eq("date", date)
     .maybeSingle();
   if (existing) return existing;
 
@@ -146,9 +217,17 @@ async function ensureTodayMission(db: any, guildId: string): Promise<any> {
   const idx = Math.abs(hashStr(guildId + date)) % MISSION_POOL.length;
   const m = MISSION_POOL[idx];
   const { data: created } = await db
-    .from('guild_missions')
-    .insert({ guild_id: guildId, date, title: m.title, target: m.target, progress: 0, reward: m.reward, completed: false })
-    .select('*')
+    .from("guild_missions")
+    .insert({
+      guild_id: guildId,
+      date,
+      title: m.title,
+      target: m.target,
+      progress: 0,
+      reward: m.reward,
+      completed: false,
+    })
+    .select("*")
     .single();
   return created;
 }
@@ -167,15 +246,22 @@ function hashStr(s: string): number {
 // ─────────────────────────────────────────────────────────────────────────────
 
 // GET /api/guilds  — ranked guild list with optional search/filter
-router.get('/', async (req: Request, res: Response) => {
+router.get("/", async (req: Request, res: Response) => {
   try {
     const db = supabaseServer() as any;
-    const search = (req.query.search as string || '').trim();
-    const filter = (req.query.filter as string || 'top') as 'top' | 'recruiting' | 'war';
+    const search = ((req.query.search as string) || "").trim();
+    const filter = ((req.query.filter as string) || "top") as
+      | "top"
+      | "recruiting"
+      | "war";
 
-    let q = db.from('guilds').select('*').order('glory_points', { ascending: false }).limit(50);
-    if (search) q = q.ilike('name', `%${search}%`);
-    if (filter === 'recruiting') q = q.eq('privacy', 'open');
+    let q = db
+      .from("guilds")
+      .select("*")
+      .order("glory_points", { ascending: false })
+      .limit(50);
+    if (search) q = q.ilike("name", `%${search}%`);
+    if (filter === "recruiting") q = q.eq("privacy", "open");
     const { data: guilds, error } = await q;
     if (error) throw error;
 
@@ -183,8 +269,25 @@ router.get('/', async (req: Request, res: Response) => {
     const ids = (guilds || []).map((g: any) => g.id);
     const counts: Record<string, number> = {};
     if (ids.length) {
-      const { data: members } = await db.from('guild_members').select('guild_id').in('guild_id', ids);
-      for (const m of members || []) counts[m.guild_id] = (counts[m.guild_id] || 0) + 1;
+      const { data: members } = await db
+        .from("guild_members")
+        .select("guild_id")
+        .in("guild_id", ids);
+      for (const m of members || [])
+        counts[m.guild_id] = (counts[m.guild_id] || 0) + 1;
+    }
+
+    // Which of these guilds has the caller already requested to join? (optional auth)
+    const viewer = getAuthenticatedUserId(req);
+    const requestedSet = new Set<string>();
+    if (viewer && ids.length) {
+      const { data: myReqs } = await db
+        .from("guild_join_requests")
+        .select("guild_id")
+        .eq("user_id", viewer)
+        .eq("status", "pending")
+        .in("guild_id", ids);
+      for (const r of myReqs || []) requestedSet.add(r.guild_id);
     }
 
     const list = (guilds || []).map((g: any, i: number) => ({
@@ -199,32 +302,43 @@ router.get('/', async (req: Request, res: Response) => {
       memberCap: g.member_cap,
       gloryPoints: g.glory_points,
       rank: i + 1,
+      requested: requestedSet.has(g.id),
     }));
     return res.json({ guilds: list });
   } catch (err) {
-    console.error('[Guilds GET /]', err);
-    return res.status(500).json({ error: 'Failed to load guilds' });
+    console.error("[Guilds GET /]", err);
+    return res.status(500).json({ error: "Failed to load guilds" });
   }
 });
 
 // GET /api/guilds/me — caller's current guild membership (or null)
-router.get('/me', async (req: Request, res: Response) => {
+router.get("/me", async (req: Request, res: Response) => {
   const uid = auth(req, res);
   if (!uid) return;
   try {
     const db = supabaseServer() as any;
     const membership = await getMembership(db, uid);
     if (!membership) return res.json({ guild: null, membership: null });
-    const { data: guild } = await db.from('guilds').select('*').eq('id', membership.guild_id).maybeSingle();
+    const { data: guild } = await db
+      .from("guilds")
+      .select("*")
+      .eq("id", membership.guild_id)
+      .maybeSingle();
     if (!guild) {
       // Stale membership (guild disbanded) — clean up.
-      await db.from('guild_members').delete().eq('id', membership.id);
+      await db.from("guild_members").delete().eq("id", membership.id);
       return res.json({ guild: null, membership: null });
     }
-    return res.json({ guild: serializeGuild(guild), membership: { role: membership.role, contributionPoints: membership.contribution_points } });
+    return res.json({
+      guild: serializeGuild(guild),
+      membership: {
+        role: membership.role,
+        contributionPoints: membership.contribution_points,
+      },
+    });
   } catch (err) {
-    console.error('[Guilds GET /me]', err);
-    return res.status(500).json({ error: 'Failed to load membership' });
+    console.error("[Guilds GET /me]", err);
+    return res.status(500).json({ error: "Failed to load membership" });
   }
 });
 
@@ -246,29 +360,34 @@ function serializeGuild(g: any) {
 }
 
 // GET /api/guilds/check-name?name=... — real-time uniqueness + validation
-router.get('/check-name', async (req: Request, res: Response) => {
+router.get("/check-name", async (req: Request, res: Response) => {
   const uid = auth(req, res);
   if (!uid) return;
   try {
     const db = supabaseServer() as any;
     const v = validateGuildName(req.query.name);
-    if (!v.ok) return res.json({ available: false, valid: false, error: v.error });
+    if (!v.ok)
+      return res.json({ available: false, valid: false, error: v.error });
     const taken = await guildNameTaken(db, v.name);
-    return res.json({ available: !taken, valid: true, error: taken ? 'Name already taken' : null });
+    return res.json({
+      available: !taken,
+      valid: true,
+      error: taken ? "Name already taken" : null,
+    });
   } catch (err) {
-    console.error('[Guilds check-name]', err);
-    return res.status(500).json({ error: 'Failed to check name' });
+    console.error("[Guilds check-name]", err);
+    return res.status(500).json({ error: "Failed to check name" });
   }
 });
 
 // GET /api/guilds/create-info — preflight data for the creation flow
-router.get('/create-info', async (req: Request, res: Response) => {
+router.get("/create-info", async (req: Request, res: Response) => {
   const uid = auth(req, res);
   if (!uid) return;
   try {
     const db = supabaseServer() as any;
     const [{ data: player }, membership] = await Promise.all([
-      db.from('players').select('gold').eq('supabase_id', uid).maybeSingle(),
+      db.from("players").select("gold").eq("supabase_id", uid).maybeSingle(),
       getMembership(db, uid),
     ]);
     const unlockedIcons = await getUnlockedIcons(db, uid);
@@ -279,60 +398,98 @@ router.get('/create-info', async (req: Request, res: Response) => {
       unlockedIcons,
     });
   } catch (err) {
-    console.error('[Guilds create-info]', err);
-    return res.status(500).json({ error: 'Failed to load create info' });
+    console.error("[Guilds create-info]", err);
+    return res.status(500).json({ error: "Failed to load create info" });
   }
 });
 
 // POST /api/guilds/purchase-icon — buy a premium guild icon with gold (persisted)
-router.post('/purchase-icon', async (req: Request, res: Response) => {
+router.post("/purchase-icon", async (req: Request, res: Response) => {
   const uid = auth(req, res);
   if (!uid) return;
   try {
     const db = supabaseServer() as any;
-    const iconKey = String(req.body?.iconKey || '');
+    const iconKey = String(req.body?.iconKey || "");
     const def = GUILD_ICON_CATALOG[iconKey];
-    if (!def) return res.status(400).json({ error: 'Unknown icon', code: 'BAD_ICON' });
-    if (def.free) return res.json({ gold: undefined, unlockedIcons: await getUnlockedIcons(db, uid), status: 'free' });
+    if (!def)
+      return res.status(400).json({ error: "Unknown icon", code: "BAD_ICON" });
+    if (def.free)
+      return res.json({
+        gold: undefined,
+        unlockedIcons: await getUnlockedIcons(db, uid),
+        status: "free",
+      });
 
-    const { data: player } = await db.from('players').select('gold, raw_data').eq('supabase_id', uid).maybeSingle();
-    const unlocked: string[] = Array.isArray(player?.raw_data?.unlockedGuildIcons) ? player.raw_data.unlockedGuildIcons : [];
+    const { data: player } = await db
+      .from("players")
+      .select("gold, raw_data")
+      .eq("supabase_id", uid)
+      .maybeSingle();
+    const unlocked: string[] = Array.isArray(
+      player?.raw_data?.unlockedGuildIcons
+    )
+      ? player.raw_data.unlockedGuildIcons
+      : [];
     if (unlocked.includes(iconKey)) {
-      return res.json({ gold: player?.gold || 0, unlockedIcons: unlocked, status: 'already_owned' });
+      return res.json({
+        gold: player?.gold || 0,
+        unlockedIcons: unlocked,
+        status: "already_owned",
+      });
     }
     if ((player?.gold || 0) < def.cost) {
-      return res.status(400).json({ error: 'Not enough gold', code: 'INSUFFICIENT_GOLD' });
+      return res
+        .status(400)
+        .json({ error: "Not enough gold", code: "INSUFFICIENT_GOLD" });
     }
 
     const newGold = (player?.gold || 0) - def.cost;
     const newUnlocked = [...unlocked, iconKey];
-    const newRaw = { ...(player?.raw_data || {}), unlockedGuildIcons: newUnlocked };
-    await db.from('players').update({ gold: newGold, raw_data: newRaw }).eq('supabase_id', uid);
-    return res.json({ gold: newGold, unlockedIcons: newUnlocked, status: 'purchased' });
+    const newRaw = {
+      ...(player?.raw_data || {}),
+      unlockedGuildIcons: newUnlocked,
+    };
+    await db
+      .from("players")
+      .update({ gold: newGold, raw_data: newRaw })
+      .eq("supabase_id", uid);
+    return res.json({
+      gold: newGold,
+      unlockedIcons: newUnlocked,
+      status: "purchased",
+    });
   } catch (err) {
-    console.error('[Guilds purchase-icon]', err);
-    return res.status(500).json({ error: 'Failed to purchase icon' });
+    console.error("[Guilds purchase-icon]", err);
+    return res.status(500).json({ error: "Failed to purchase icon" });
   }
 });
 
 // GET /api/guilds/:id — full guild detail + members
-router.get('/:id', async (req: Request, res: Response) => {
+router.get("/:id", async (req: Request, res: Response) => {
   const uid = auth(req, res);
   if (!uid) return;
   try {
     const db = supabaseServer() as any;
     const { id } = req.params as Record<string, string>;
-    const { data: guild } = await db.from('guilds').select('*').eq('id', id).maybeSingle();
-    if (!guild) return res.status(404).json({ error: 'Guild not found' });
+    const { data: guild } = await db
+      .from("guilds")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+    if (!guild) return res.status(404).json({ error: "Guild not found" });
 
     const { data: members } = await db
-      .from('guild_members')
-      .select('*')
-      .eq('guild_id', id)
-      .order('contribution_points', { ascending: false });
+      .from("guild_members")
+      .select("*")
+      .eq("guild_id", id)
+      .order("contribution_points", { ascending: false });
 
-    const info = await enrichPlayers(db, (members || []).map((m: any) => m.user_id));
-    const myMembership = (members || []).find((m: any) => m.user_id === uid) || null;
+    const info = await enrichPlayers(
+      db,
+      (members || []).map((m: any) => m.user_id)
+    );
+    const myMembership =
+      (members || []).find((m: any) => m.user_id === uid) || null;
 
     return res.json({
       guild: serializeGuild(guild),
@@ -342,17 +499,23 @@ router.get('/:id', async (req: Request, res: Response) => {
         role: m.role,
         contributionPoints: m.contribution_points,
         joinedAt: m.joined_at,
-        ...(info[m.user_id] || { name: 'Hunter', level: 1, rank: 'E', avatarUrl: null, equippedBorder: null }),
+        ...(info[m.user_id] || {
+          name: "Hunter",
+          level: 1,
+          rank: "E",
+          avatarUrl: null,
+          equippedBorder: null,
+        }),
       })),
     });
   } catch (err) {
-    console.error('[Guilds GET /:id]', err);
-    return res.status(500).json({ error: 'Failed to load guild' });
+    console.error("[Guilds GET /:id]", err);
+    return res.status(500).json({ error: "Failed to load guild" });
   }
 });
 
 // POST /api/guilds — create a guild (costs 900 gold; founder becomes master)
-router.post('/', async (req: Request, res: Response) => {
+router.post("/", async (req: Request, res: Response) => {
   const uid = auth(req, res);
   if (!uid) return;
   try {
@@ -361,72 +524,95 @@ router.post('/', async (req: Request, res: Response) => {
 
     // 1. Validate name
     const v = validateGuildName(name);
-    if (!v.ok) return res.status(400).json({ error: v.error, code: 'INVALID_NAME' });
+    if (!v.ok)
+      return res.status(400).json({ error: v.error, code: "INVALID_NAME" });
 
     // 2. Validate icon key → emoji (default: shield)
-    const iconKey = String(icon || 'shield');
+    const iconKey = String(icon || "shield");
     const iconDef = GUILD_ICON_CATALOG[iconKey];
-    if (!iconDef) return res.status(400).json({ error: 'Invalid icon', code: 'BAD_ICON' });
+    if (!iconDef)
+      return res.status(400).json({ error: "Invalid icon", code: "BAD_ICON" });
 
     // 3. Validate privacy
-    const priv = privacy === 'invite_only' ? 'invite_only' : 'open';
+    const priv = privacy === "invite_only" ? "invite_only" : "open";
 
     // 4. One guild per user
     if (await getMembership(db, uid)) {
-      return res.status(409).json({ error: 'You are already in a guild', code: 'ALREADY_IN_GUILD' });
+      return res.status(409).json({
+        error: "You are already in a guild",
+        code: "ALREADY_IN_GUILD",
+      });
     }
 
     // 5. Premium icon must be unlocked
     if (!iconDef.free) {
       const unlocked = await getUnlockedIcons(db, uid);
       if (!unlocked.includes(iconKey)) {
-        return res.status(403).json({ error: 'Icon not unlocked', code: 'ICON_LOCKED' });
+        return res
+          .status(403)
+          .json({ error: "Icon not unlocked", code: "ICON_LOCKED" });
       }
     }
 
     // 6. Gold check
-    const { data: player } = await db.from('players').select('gold').eq('supabase_id', uid).maybeSingle();
+    const { data: player } = await db
+      .from("players")
+      .select("gold")
+      .eq("supabase_id", uid)
+      .maybeSingle();
     const gold = player?.gold || 0;
     if (gold < GUILD_CREATE_COST) {
-      return res.status(400).json({ error: 'Not enough gold', code: 'INSUFFICIENT_GOLD', gold });
+      return res
+        .status(400)
+        .json({ error: "Not enough gold", code: "INSUFFICIENT_GOLD", gold });
     }
 
     // 7. Name uniqueness (case-insensitive)
     if (await guildNameTaken(db, v.name)) {
-      return res.status(409).json({ error: 'Name already taken', code: 'NAME_TAKEN' });
+      return res
+        .status(409)
+        .json({ error: "Name already taken", code: "NAME_TAKEN" });
     }
 
     // 8. Deduct gold, then create guild + master membership.
     const newGold = gold - GUILD_CREATE_COST;
-    await db.from('players').update({ gold: newGold }).eq('supabase_id', uid);
+    await db.from("players").update({ gold: newGold }).eq("supabase_id", uid);
 
     const { data: guild, error } = await db
-      .from('guilds')
+      .from("guilds")
       .insert({
         name: v.name,
-        motto: motto ? String(motto).slice(0, 60) : '',
+        motto: motto ? String(motto).slice(0, 60) : "",
         icon: iconDef.emoji,
-        banner: banner || 'gradient-cyan',
+        banner: banner || "gradient-cyan",
         privacy: priv,
         master_id: uid,
       })
-      .select('*')
+      .select("*")
       .single();
 
     if (error || !guild) {
       // Roll back the gold deduction on failure.
-      await db.from('players').update({ gold }).eq('supabase_id', uid);
-      if (error && String(error.message).includes('duplicate')) {
-        return res.status(409).json({ error: 'Name already taken', code: 'NAME_TAKEN' });
+      await db.from("players").update({ gold }).eq("supabase_id", uid);
+      if (error && String(error.message).includes("duplicate")) {
+        return res
+          .status(409)
+          .json({ error: "Name already taken", code: "NAME_TAKEN" });
       }
-      throw error || new Error('Insert failed');
+      throw error || new Error("Insert failed");
     }
 
-    await db.from('guild_members').insert({ guild_id: guild.id, user_id: uid, role: 'master' });
+    await db
+      .from("guild_members")
+      .insert({ guild_id: guild.id, user_id: uid, role: "master" });
 
     // Founder system message in guild chat.
     const info = await enrichPlayers(db, [uid]);
-    await postSystemMessage(db, guild.id, `Guild founded by ${info[uid]?.name || 'the Guild Master'}.`);
+    await postSystemMessage(
+      db,
+      guild.id,
+      `Guild founded by ${info[uid]?.name || "the Guild Master"}.`
+    );
 
     return res.json({
       success: true,
@@ -434,72 +620,168 @@ router.post('/', async (req: Request, res: Response) => {
       player: { gold: newGold, guildId: guild.id },
     });
   } catch (err) {
-    console.error('[Guilds POST /]', err);
-    return res.status(500).json({ error: 'Failed to create guild', code: 'SERVER_ERROR' });
+    console.error("[Guilds POST /]", err);
+    return res
+      .status(500)
+      .json({ error: "Failed to create guild", code: "SERVER_ERROR" });
   }
 });
 
 // POST /api/guilds/:id/join — instant join (open) or request (invite_only)
-router.post('/:id/join', async (req: Request, res: Response) => {
+router.post("/:id/join", async (req: Request, res: Response) => {
   const uid = auth(req, res);
   if (!uid) return;
   try {
     const db = supabaseServer() as any;
     const { id } = req.params as Record<string, string>;
-    if (await getMembership(db, uid)) return res.status(409).json({ error: 'You are already in a guild' });
+    if (await getMembership(db, uid))
+      return res.status(409).json({ error: "You are already in a guild" });
 
-    const { data: guild } = await db.from('guilds').select('*').eq('id', id).maybeSingle();
-    if (!guild) return res.status(404).json({ error: 'Guild not found' });
+    const { data: guild } = await db
+      .from("guilds")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+    if (!guild) return res.status(404).json({ error: "Guild not found" });
 
-    const { count } = await db.from('guild_members').select('id', { count: 'exact', head: true }).eq('guild_id', id);
-    if ((count || 0) >= guild.member_cap) return res.status(409).json({ error: 'Guild is full' });
+    const { count } = await db
+      .from("guild_members")
+      .select("id", { count: "exact", head: true })
+      .eq("guild_id", id);
+    if ((count || 0) >= guild.member_cap)
+      return res.status(409).json({ error: "Guild is full" });
 
-    if (guild.privacy === 'open') {
-      await db.from('guild_members').insert({ guild_id: id, user_id: uid, role: 'member' });
+    if (guild.privacy === "open") {
+      await db
+        .from("guild_members")
+        .insert({ guild_id: id, user_id: uid, role: "member" });
       const info = await enrichPlayers(db, [uid]);
-      await postSystemMessage(db, id, `${info[uid]?.name || 'A hunter'} joined the guild.`);
-      return res.json({ status: 'joined' });
+      await postSystemMessage(
+        db,
+        id,
+        `${info[uid]?.name || "A hunter"} joined the guild.`
+      );
+      return res.json({ status: "joined" });
     }
 
-    // invite_only → request
+    // invite_only → request. A user may hold only ONE outstanding request
+    // across all guilds at a time.
+    const { data: pendingReqs } = await db
+      .from("guild_join_requests")
+      .select("guild_id")
+      .eq("user_id", uid)
+      .eq("status", "pending");
+    const otherPending = (pendingReqs || []).find(
+      (r: any) => r.guild_id !== id
+    );
+    if (otherPending) {
+      const { data: og } = await db
+        .from("guilds")
+        .select("name")
+        .eq("id", otherPending.guild_id)
+        .maybeSingle();
+      return res.status(409).json({
+        error: `You already have a pending request to "${
+          og?.name || "another guild"
+        }". Withdraw it first.`,
+        code: "HAS_PENDING_REQUEST",
+        guildId: otherPending.guild_id,
+        guildName: og?.name || null,
+      });
+    }
+
     await db
-      .from('guild_join_requests')
-      .upsert({ guild_id: id, user_id: uid, status: 'pending' }, { onConflict: 'guild_id,user_id' });
-    return res.json({ status: 'requested' });
+      .from("guild_join_requests")
+      .upsert(
+        { guild_id: id, user_id: uid, status: "pending" },
+        { onConflict: "guild_id,user_id" }
+      );
+    return res.json({ status: "requested" });
   } catch (err) {
-    console.error('[Guilds join]', err);
-    return res.status(500).json({ error: 'Failed to join guild' });
+    console.error("[Guilds join]", err);
+    return res.status(500).json({ error: "Failed to join guild" });
   }
 });
 
-// GET /api/guilds/:id/requests — pending join requests (master/vice)
-router.get('/:id/requests', async (req: Request, res: Response) => {
+// DELETE /api/guilds/:id/request — withdraw the caller's own pending join request
+router.delete("/:id/request", async (req: Request, res: Response) => {
+  const uid = auth(req, res);
+  if (!uid) return;
+  try {
+    const db = supabaseServer() as any;
+    const { id } = req.params as Record<string, string>;
+    await db
+      .from("guild_join_requests")
+      .delete()
+      .eq("guild_id", id)
+      .eq("user_id", uid)
+      .eq("status", "pending");
+    return res.json({ status: "cancelled" });
+  } catch (err) {
+    console.error("[Guilds cancel request]", err);
+    return res.status(500).json({ error: "Failed to cancel request" });
+  }
+});
+
+// PUT /api/guilds/:id/details { motto } — edit the guild description (master/vice)
+router.put("/:id/details", async (req: Request, res: Response) => {
   const uid = auth(req, res);
   if (!uid) return;
   try {
     const db = supabaseServer() as any;
     const { id } = req.params as Record<string, string>;
     const me = await getMembershipIn(db, id, uid);
-    if (!me || RANK_ROLE[me.role as Role] < RANK_ROLE.vice) return res.status(403).json({ error: 'Insufficient role' });
+    if (!me || RANK_ROLE[me.role as Role] < RANK_ROLE.vice)
+      return res
+        .status(403)
+        .json({ error: "Only master/vice can edit the description" });
+
+    const motto = String(req.body?.motto ?? "").slice(0, 120);
+    await db.from("guilds").update({ motto }).eq("id", id);
+    return res.json({ status: "ok", motto });
+  } catch (err) {
+    console.error("[Guilds details]", err);
+    return res.status(500).json({ error: "Failed to update description" });
+  }
+});
+
+// GET /api/guilds/:id/requests — pending join requests (master/vice)
+router.get("/:id/requests", async (req: Request, res: Response) => {
+  const uid = auth(req, res);
+  if (!uid) return;
+  try {
+    const db = supabaseServer() as any;
+    const { id } = req.params as Record<string, string>;
+    const me = await getMembershipIn(db, id, uid);
+    if (!me || RANK_ROLE[me.role as Role] < RANK_ROLE.vice)
+      return res.status(403).json({ error: "Insufficient role" });
 
     const { data: reqs } = await db
-      .from('guild_join_requests')
-      .select('*')
-      .eq('guild_id', id)
-      .eq('status', 'pending')
-      .order('created_at', { ascending: true });
-    const info = await enrichPlayers(db, (reqs || []).map((r: any) => r.user_id));
+      .from("guild_join_requests")
+      .select("*")
+      .eq("guild_id", id)
+      .eq("status", "pending")
+      .order("created_at", { ascending: true });
+    const info = await enrichPlayers(
+      db,
+      (reqs || []).map((r: any) => r.user_id)
+    );
     return res.json({
-      requests: (reqs || []).map((r: any) => ({ id: r.id, userId: r.user_id, createdAt: r.created_at, ...(info[r.user_id] || {}) })),
+      requests: (reqs || []).map((r: any) => ({
+        id: r.id,
+        userId: r.user_id,
+        createdAt: r.created_at,
+        ...(info[r.user_id] || {}),
+      })),
     });
   } catch (err) {
-    console.error('[Guilds requests]', err);
-    return res.status(500).json({ error: 'Failed to load requests' });
+    console.error("[Guilds requests]", err);
+    return res.status(500).json({ error: "Failed to load requests" });
   }
 });
 
 // POST /api/guilds/:id/requests/:reqId — approve/reject (master/vice)
-router.post('/:id/requests/:reqId', async (req: Request, res: Response) => {
+router.post("/:id/requests/:reqId", async (req: Request, res: Response) => {
   const uid = auth(req, res);
   if (!uid) return;
   try {
@@ -507,134 +789,191 @@ router.post('/:id/requests/:reqId', async (req: Request, res: Response) => {
     const { id, reqId } = req.params as Record<string, string>;
     const { action } = req.body || {}; // 'approve' | 'reject'
     const me = await getMembershipIn(db, id, uid);
-    if (!me || RANK_ROLE[me.role as Role] < RANK_ROLE.vice) return res.status(403).json({ error: 'Insufficient role' });
+    if (!me || RANK_ROLE[me.role as Role] < RANK_ROLE.vice)
+      return res.status(403).json({ error: "Insufficient role" });
 
-    const { data: reqRow } = await db.from('guild_join_requests').select('*').eq('id', reqId).maybeSingle();
-    if (!reqRow || reqRow.guild_id !== id) return res.status(404).json({ error: 'Request not found' });
+    const { data: reqRow } = await db
+      .from("guild_join_requests")
+      .select("*")
+      .eq("id", reqId)
+      .maybeSingle();
+    if (!reqRow || reqRow.guild_id !== id)
+      return res.status(404).json({ error: "Request not found" });
 
-    if (action === 'approve') {
+    if (action === "approve") {
       if (await getMembership(db, reqRow.user_id)) {
-        await db.from('guild_join_requests').update({ status: 'rejected' }).eq('id', reqId);
-        return res.status(409).json({ error: 'User already joined another guild' });
+        await db
+          .from("guild_join_requests")
+          .update({ status: "rejected" })
+          .eq("id", reqId);
+        return res
+          .status(409)
+          .json({ error: "User already joined another guild" });
       }
-      const { count } = await db.from('guild_members').select('id', { count: 'exact', head: true }).eq('guild_id', id);
-      const { data: guild } = await db.from('guilds').select('member_cap').eq('id', id).maybeSingle();
-      if ((count || 0) >= (guild?.member_cap || 150)) return res.status(409).json({ error: 'Guild is full' });
+      const { count } = await db
+        .from("guild_members")
+        .select("id", { count: "exact", head: true })
+        .eq("guild_id", id);
+      const { data: guild } = await db
+        .from("guilds")
+        .select("member_cap")
+        .eq("id", id)
+        .maybeSingle();
+      if ((count || 0) >= (guild?.member_cap || 150))
+        return res.status(409).json({ error: "Guild is full" });
 
-      await db.from('guild_members').insert({ guild_id: id, user_id: reqRow.user_id, role: 'member' });
-      await db.from('guild_join_requests').update({ status: 'approved' }).eq('id', reqId);
+      await db
+        .from("guild_members")
+        .insert({ guild_id: id, user_id: reqRow.user_id, role: "member" });
+      await db
+        .from("guild_join_requests")
+        .update({ status: "approved" })
+        .eq("id", reqId);
       const info = await enrichPlayers(db, [reqRow.user_id]);
-      await postSystemMessage(db, id, `${info[reqRow.user_id]?.name || 'A hunter'} joined the guild.`);
-      return res.json({ status: 'approved' });
+      await postSystemMessage(
+        db,
+        id,
+        `${info[reqRow.user_id]?.name || "A hunter"} joined the guild.`
+      );
+      return res.json({ status: "approved" });
     }
-    await db.from('guild_join_requests').update({ status: 'rejected' }).eq('id', reqId);
-    return res.json({ status: 'rejected' });
+    await db
+      .from("guild_join_requests")
+      .update({ status: "rejected" })
+      .eq("id", reqId);
+    return res.json({ status: "rejected" });
   } catch (err) {
-    console.error('[Guilds request action]', err);
-    return res.status(500).json({ error: 'Failed to process request' });
+    console.error("[Guilds request action]", err);
+    return res.status(500).json({ error: "Failed to process request" });
   }
 });
 
 // POST /api/guilds/:id/leave
-router.post('/:id/leave', async (req: Request, res: Response) => {
+router.post("/:id/leave", async (req: Request, res: Response) => {
   const uid = auth(req, res);
   if (!uid) return;
   try {
     const db = supabaseServer() as any;
     const { id } = req.params as Record<string, string>;
     const me = await getMembershipIn(db, id, uid);
-    if (!me) return res.status(404).json({ error: 'Not a member' });
+    if (!me) return res.status(404).json({ error: "Not a member" });
 
-    if (me.role === 'master') {
+    if (me.role === "master") {
       // Promote successor (oldest vice, else oldest member). If alone → disband.
       const { data: others } = await db
-        .from('guild_members')
-        .select('*')
-        .eq('guild_id', id)
-        .neq('user_id', uid)
-        .order('role', { ascending: false })
-        .order('joined_at', { ascending: true });
+        .from("guild_members")
+        .select("*")
+        .eq("guild_id", id)
+        .neq("user_id", uid)
+        .order("role", { ascending: false })
+        .order("joined_at", { ascending: true });
       if (!others || others.length === 0) {
-        await db.from('guilds').delete().eq('id', id); // cascade
-        return res.json({ status: 'disbanded' });
+        await db.from("guilds").delete().eq("id", id); // cascade
+        return res.json({ status: "disbanded" });
       }
-      const successor = others.find((m: any) => m.role === 'vice') || others[0];
-      await db.from('guild_members').update({ role: 'master' }).eq('id', successor.id);
-      await db.from('guilds').update({ master_id: successor.user_id }).eq('id', id);
+      const successor = others.find((m: any) => m.role === "vice") || others[0];
+      await db
+        .from("guild_members")
+        .update({ role: "master" })
+        .eq("id", successor.id);
+      await db
+        .from("guilds")
+        .update({ master_id: successor.user_id })
+        .eq("id", id);
     }
-    await db.from('guild_members').delete().eq('id', me.id);
+    await db.from("guild_members").delete().eq("id", me.id);
     const info = await enrichPlayers(db, [uid]);
-    await postSystemMessage(db, id, `${info[uid]?.name || 'A hunter'} left the guild.`);
-    return res.json({ status: 'left' });
+    await postSystemMessage(
+      db,
+      id,
+      `${info[uid]?.name || "A hunter"} left the guild.`
+    );
+    return res.json({ status: "left" });
   } catch (err) {
-    console.error('[Guilds leave]', err);
-    return res.status(500).json({ error: 'Failed to leave guild' });
+    console.error("[Guilds leave]", err);
+    return res.status(500).json({ error: "Failed to leave guild" });
   }
 });
 
 // POST /api/guilds/:id/members/:userId/role — promote/demote (master only)
-router.post('/:id/members/:userId/role', async (req: Request, res: Response) => {
-  const uid = auth(req, res);
-  if (!uid) return;
-  try {
-    const db = supabaseServer() as any;
-    const { id, userId } = req.params as Record<string, string>;
-    const { role } = req.body || {}; // 'vice' | 'member'
-    const me = await getMembershipIn(db, id, uid);
-    if (!me || me.role !== 'master') return res.status(403).json({ error: 'Only the master can change roles' });
-    if (userId === uid) return res.status(400).json({ error: 'Cannot change your own role' });
-    if (!['vice', 'member'].includes(role)) return res.status(400).json({ error: 'Invalid role' });
+router.post(
+  "/:id/members/:userId/role",
+  async (req: Request, res: Response) => {
+    const uid = auth(req, res);
+    if (!uid) return;
+    try {
+      const db = supabaseServer() as any;
+      const { id, userId } = req.params as Record<string, string>;
+      const { role } = req.body || {}; // 'vice' | 'member'
+      const me = await getMembershipIn(db, id, uid);
+      if (!me || me.role !== "master")
+        return res
+          .status(403)
+          .json({ error: "Only the master can change roles" });
+      if (userId === uid)
+        return res.status(400).json({ error: "Cannot change your own role" });
+      if (!["vice", "member"].includes(role))
+        return res.status(400).json({ error: "Invalid role" });
 
-    const target = await getMembershipIn(db, id, userId);
-    if (!target) return res.status(404).json({ error: 'Member not found' });
-    await db.from('guild_members').update({ role }).eq('id', target.id);
-    return res.json({ status: 'updated' });
-  } catch (err) {
-    console.error('[Guilds role]', err);
-    return res.status(500).json({ error: 'Failed to update role' });
+      const target = await getMembershipIn(db, id, userId);
+      if (!target) return res.status(404).json({ error: "Member not found" });
+      await db.from("guild_members").update({ role }).eq("id", target.id);
+      return res.json({ status: "updated" });
+    } catch (err) {
+      console.error("[Guilds role]", err);
+      return res.status(500).json({ error: "Failed to update role" });
+    }
   }
-});
+);
 
 // DELETE /api/guilds/:id/members/:userId — kick (master/vice)
-router.delete('/:id/members/:userId', async (req: Request, res: Response) => {
+router.delete("/:id/members/:userId", async (req: Request, res: Response) => {
   const uid = auth(req, res);
   if (!uid) return;
   try {
     const db = supabaseServer() as any;
     const { id, userId } = req.params as Record<string, string>;
     const me = await getMembershipIn(db, id, uid);
-    if (!me || RANK_ROLE[me.role as Role] < RANK_ROLE.vice) return res.status(403).json({ error: 'Insufficient role' });
+    if (!me || RANK_ROLE[me.role as Role] < RANK_ROLE.vice)
+      return res.status(403).json({ error: "Insufficient role" });
     const target = await getMembershipIn(db, id, userId);
-    if (!target) return res.status(404).json({ error: 'Member not found' });
+    if (!target) return res.status(404).json({ error: "Member not found" });
     if (RANK_ROLE[target.role as Role] >= RANK_ROLE[me.role as Role]) {
-      return res.status(403).json({ error: 'Cannot kick someone of equal or higher rank' });
+      return res
+        .status(403)
+        .json({ error: "Cannot kick someone of equal or higher rank" });
     }
-    await db.from('guild_members').delete().eq('id', target.id);
+    await db.from("guild_members").delete().eq("id", target.id);
     const info = await enrichPlayers(db, [userId]);
-    await postSystemMessage(db, id, `${info[userId]?.name || 'A hunter'} was removed from the guild.`);
-    await broadcastToGuild(id, 'kicked', { userId });
-    return res.json({ status: 'kicked' });
+    await postSystemMessage(
+      db,
+      id,
+      `${info[userId]?.name || "A hunter"} was removed from the guild.`
+    );
+    await broadcastToGuild(id, "kicked", { userId });
+    return res.json({ status: "kicked" });
   } catch (err) {
-    console.error('[Guilds kick]', err);
-    return res.status(500).json({ error: 'Failed to kick member' });
+    console.error("[Guilds kick]", err);
+    return res.status(500).json({ error: "Failed to kick member" });
   }
 });
 
 // POST /api/guilds/:id/disband — master only
-router.post('/:id/disband', async (req: Request, res: Response) => {
+router.post("/:id/disband", async (req: Request, res: Response) => {
   const uid = auth(req, res);
   if (!uid) return;
   try {
     const db = supabaseServer() as any;
     const { id } = req.params as Record<string, string>;
     const me = await getMembershipIn(db, id, uid);
-    if (!me || me.role !== 'master') return res.status(403).json({ error: 'Only the master can disband' });
-    await broadcastToGuild(id, 'disbanded', {});
-    await db.from('guilds').delete().eq('id', id); // cascade removes members/chat/etc.
-    return res.json({ status: 'disbanded' });
+    if (!me || me.role !== "master")
+      return res.status(403).json({ error: "Only the master can disband" });
+    await broadcastToGuild(id, "disbanded", {});
+    await db.from("guilds").delete().eq("id", id); // cascade removes members/chat/etc.
+    return res.json({ status: "disbanded" });
   } catch (err) {
-    console.error('[Guilds disband]', err);
-    return res.status(500).json({ error: 'Failed to disband guild' });
+    console.error("[Guilds disband]", err);
+    return res.status(500).json({ error: "Failed to disband guild" });
   }
 });
 
@@ -644,11 +983,12 @@ router.post('/:id/disband', async (req: Request, res: Response) => {
 
 async function postSystemMessage(db: any, guildId: string, body: string) {
   const { data: row } = await db
-    .from('guild_chat')
-    .insert({ guild_id: guildId, user_id: null, type: 'system', body })
-    .select('*')
+    .from("guild_chat")
+    .insert({ guild_id: guildId, user_id: null, type: "system", body })
+    .select("*")
     .single();
-  if (row) await broadcastToGuild(guildId, 'message', serializeMessage(row, {}));
+  if (row)
+    await broadcastToGuild(guildId, "message", serializeMessage(row, {}));
 }
 
 function serializeMessage(row: any, info: Record<string, any>) {
@@ -665,54 +1005,72 @@ function serializeMessage(row: any, info: Record<string, any>) {
 }
 
 // GET /api/guilds/:id/chat?before=<ISO>&limit=30
-router.get('/:id/chat', async (req: Request, res: Response) => {
+router.get("/:id/chat", async (req: Request, res: Response) => {
   const uid = auth(req, res);
   if (!uid) return;
   try {
     const db = supabaseServer() as any;
     const { id } = req.params as Record<string, string>;
-    if (!(await getMembershipIn(db, id, uid))) return res.status(403).json({ error: 'Not a member' });
+    if (!(await getMembershipIn(db, id, uid)))
+      return res.status(403).json({ error: "Not a member" });
 
-    const limit = Math.min(parseInt((req.query.limit as string) || '30'), 50);
-    let q = db.from('guild_chat').select('*').eq('guild_id', id).order('created_at', { ascending: false }).limit(limit);
-    if (req.query.before) q = q.lt('created_at', req.query.before as string);
+    const limit = Math.min(parseInt((req.query.limit as string) || "30"), 50);
+    let q = db
+      .from("guild_chat")
+      .select("*")
+      .eq("guild_id", id)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    if (req.query.before) q = q.lt("created_at", req.query.before as string);
     const { data: rows } = await q;
     const ordered = (rows || []).reverse();
-    const info = await enrichPlayers(db, ordered.filter((r: any) => r.user_id).map((r: any) => r.user_id));
-    return res.json({ messages: ordered.map((r: any) => serializeMessage(r, info)) });
+    const info = await enrichPlayers(
+      db,
+      ordered.filter((r: any) => r.user_id).map((r: any) => r.user_id)
+    );
+    return res.json({
+      messages: ordered.map((r: any) => serializeMessage(r, info)),
+    });
   } catch (err) {
-    console.error('[Guilds chat GET]', err);
-    return res.status(500).json({ error: 'Failed to load chat' });
+    console.error("[Guilds chat GET]", err);
+    return res.status(500).json({ error: "Failed to load chat" });
   }
 });
 
 // POST /api/guilds/:id/chat  { body, type?, meta? }
-router.post('/:id/chat', async (req: Request, res: Response) => {
+router.post("/:id/chat", async (req: Request, res: Response) => {
   const uid = auth(req, res);
   if (!uid) return;
   try {
     const db = supabaseServer() as any;
     const { id } = req.params as Record<string, string>;
-    if (!(await getMembershipIn(db, id, uid))) return res.status(403).json({ error: 'Not a member' });
+    if (!(await getMembershipIn(db, id, uid)))
+      return res.status(403).json({ error: "Not a member" });
 
     const { body, type, meta } = req.body || {};
-    const msgType = type === 'workout' ? 'workout' : 'user';
-    if (msgType === 'user' && (!body || !String(body).trim())) {
-      return res.status(400).json({ error: 'Empty message' });
+    const msgType = type === "workout" ? "workout" : "user";
+    if (msgType === "user" && (!body || !String(body).trim())) {
+      return res.status(400).json({ error: "Empty message" });
     }
     const { data: row, error } = await db
-      .from('guild_chat')
-      .insert({ guild_id: id, user_id: uid, type: msgType, body: String(body || '').slice(0, 1000), meta: meta || {} })
-      .select('*')
+      .from("guild_chat")
+      .insert({
+        guild_id: id,
+        user_id: uid,
+        type: msgType,
+        body: String(body || "").slice(0, 1000),
+        meta: meta || {},
+      })
+      .select("*")
       .single();
     if (error) throw error;
     const info = await enrichPlayers(db, [uid]);
     const message = serializeMessage(row, info);
-    await broadcastToGuild(id, 'message', message);
+    await broadcastToGuild(id, "message", message);
     return res.json({ message });
   } catch (err) {
-    console.error('[Guilds chat POST]', err);
-    return res.status(500).json({ error: 'Failed to send message' });
+    console.error("[Guilds chat POST]", err);
+    return res.status(500).json({ error: "Failed to send message" });
   }
 });
 
@@ -721,13 +1079,14 @@ router.post('/:id/chat', async (req: Request, res: Response) => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 // GET /api/guilds/:id/mission — today's collective mission
-router.get('/:id/mission', async (req: Request, res: Response) => {
+router.get("/:id/mission", async (req: Request, res: Response) => {
   const uid = auth(req, res);
   if (!uid) return;
   try {
     const db = supabaseServer() as any;
     const { id } = req.params as Record<string, string>;
-    if (!(await getMembershipIn(db, id, uid))) return res.status(403).json({ error: 'Not a member' });
+    if (!(await getMembershipIn(db, id, uid)))
+      return res.status(403).json({ error: "Not a member" });
     const m = await ensureTodayMission(db, id);
     return res.json({
       mission: {
@@ -741,8 +1100,8 @@ router.get('/:id/mission', async (req: Request, res: Response) => {
       },
     });
   } catch (err) {
-    console.error('[Guilds mission]', err);
-    return res.status(500).json({ error: 'Failed to load mission' });
+    console.error("[Guilds mission]", err);
+    return res.status(500).json({ error: "Failed to load mission" });
   }
 });
 
@@ -751,51 +1110,73 @@ router.get('/:id/mission', async (req: Request, res: Response) => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 // GET /api/guilds/:id/war — current week's war (split-screen + contributors) + registration status
-router.get('/:id/war', async (req: Request, res: Response) => {
+router.get("/:id/war", async (req: Request, res: Response) => {
   const uid = auth(req, res);
   if (!uid) return;
   try {
     const db = supabaseServer() as any;
     const { id } = req.params as Record<string, string>;
     const me = await getMembershipIn(db, id, uid);
-    if (!me) return res.status(403).json({ error: 'Not a member' });
+    if (!me) return res.status(403).json({ error: "Not a member" });
 
     const nextWarStart = nextWarThursday(new Date());
-    const { data: guildRow } = await db.from('guilds').select('war_registered_week').eq('id', id).maybeSingle();
-    const registrationWeek: string | null = guildRow?.war_registered_week || null;
+    const { data: guildRow } = await db
+      .from("guilds")
+      .select("war_registered_week")
+      .eq("id", id)
+      .maybeSingle();
+    const registrationWeek: string | null =
+      guildRow?.war_registered_week || null;
     const registered = registrationWeek === nextWarStart;
     const canRegister = RANK_ROLE[me.role as Role] >= RANK_ROLE.vice;
 
     const { data: war } = await db
-      .from('guild_wars')
-      .select('*')
+      .from("guild_wars")
+      .select("*")
       .or(`guild_a.eq.${id},guild_b.eq.${id}`)
-      .in('status', ['active', 'ended'])
-      .order('week_start', { ascending: false })
+      .in("status", ["active", "ended"])
+      .order("week_start", { ascending: false })
       .limit(1)
       .maybeSingle();
 
     if (!war) {
-      return res.json({ war: null, registered, canRegister, registrationWeek, nextWarStart });
+      return res.json({
+        war: null,
+        registered,
+        canRegister,
+        registrationWeek,
+        nextWarStart,
+      });
     }
 
     const [ga, gb] = await Promise.all([
-      db.from('guilds').select('id, name, icon, banner').eq('id', war.guild_a).maybeSingle(),
-      db.from('guilds').select('id, name, icon, banner').eq('id', war.guild_b).maybeSingle(),
+      db
+        .from("guilds")
+        .select("id, name, icon, banner")
+        .eq("id", war.guild_a)
+        .maybeSingle(),
+      db
+        .from("guilds")
+        .select("id, name, icon, banner")
+        .eq("id", war.guild_b)
+        .maybeSingle(),
     ]);
 
     const { data: contribs } = await db
-      .from('guild_war_contributions')
-      .select('*')
-      .eq('war_id', war.id)
-      .order('points', { ascending: false })
+      .from("guild_war_contributions")
+      .select("*")
+      .eq("war_id", war.id)
+      .order("points", { ascending: false })
       .limit(20);
-    const info = await enrichPlayers(db, (contribs || []).map((c: any) => c.user_id));
+    const info = await enrichPlayers(
+      db,
+      (contribs || []).map((c: any) => c.user_id)
+    );
     const contributors = (contribs || []).map((c: any) => ({
       userId: c.user_id,
       guildId: c.guild_id,
       points: c.points,
-      ...(info[c.user_id] || { name: 'Hunter', avatarUrl: null }),
+      ...(info[c.user_id] || { name: "Hunter", avatarUrl: null }),
     }));
 
     return res.json({
@@ -815,13 +1196,13 @@ router.get('/:id/war', async (req: Request, res: Response) => {
       nextWarStart,
     });
   } catch (err) {
-    console.error('[Guilds war]', err);
-    return res.status(500).json({ error: 'Failed to load war' });
+    console.error("[Guilds war]", err);
+    return res.status(500).json({ error: "Failed to load war" });
   }
 });
 
 // POST /api/guilds/:id/war/register — opt in to the upcoming war (master/vice)
-router.post('/:id/war/register', async (req: Request, res: Response) => {
+router.post("/:id/war/register", async (req: Request, res: Response) => {
   const uid = auth(req, res);
   if (!uid) return;
   try {
@@ -829,21 +1210,36 @@ router.post('/:id/war/register', async (req: Request, res: Response) => {
     const { id } = req.params as Record<string, string>;
     const me = await getMembershipIn(db, id, uid);
     if (!me || RANK_ROLE[me.role as Role] < RANK_ROLE.vice) {
-      return res.status(403).json({ error: 'Only master/vice can register for war' });
+      return res
+        .status(403)
+        .json({ error: "Only master/vice can register for war" });
     }
     const nextWarStart = nextWarThursday(new Date());
-    await db.from('guilds').update({ war_registered_week: nextWarStart }).eq('id', id);
+    await db
+      .from("guilds")
+      .update({ war_registered_week: nextWarStart })
+      .eq("id", id);
     const info = await enrichPlayers(db, [uid]);
-    await postSystemMessage(db, id, `${info[uid]?.name || 'A leader'} registered the guild for the upcoming War.`);
-    return res.json({ status: 'registered', registrationWeek: nextWarStart, nextWarStart });
+    await postSystemMessage(
+      db,
+      id,
+      `${
+        info[uid]?.name || "A leader"
+      } registered the guild for the upcoming War.`
+    );
+    return res.json({
+      status: "registered",
+      registrationWeek: nextWarStart,
+      nextWarStart,
+    });
   } catch (err) {
-    console.error('[Guilds war register]', err);
-    return res.status(500).json({ error: 'Failed to register for war' });
+    console.error("[Guilds war register]", err);
+    return res.status(500).json({ error: "Failed to register for war" });
   }
 });
 
 // POST /api/guilds/:id/war/unregister — withdraw before matchmaking (master/vice)
-router.post('/:id/war/unregister', async (req: Request, res: Response) => {
+router.post("/:id/war/unregister", async (req: Request, res: Response) => {
   const uid = auth(req, res);
   if (!uid) return;
   try {
@@ -851,14 +1247,20 @@ router.post('/:id/war/unregister', async (req: Request, res: Response) => {
     const { id } = req.params as Record<string, string>;
     const me = await getMembershipIn(db, id, uid);
     if (!me || RANK_ROLE[me.role as Role] < RANK_ROLE.vice) {
-      return res.status(403).json({ error: 'Only master/vice can change war registration' });
+      return res
+        .status(403)
+        .json({ error: "Only master/vice can change war registration" });
     }
     const nextWarStart = nextWarThursday(new Date());
-    await db.from('guilds').update({ war_registered_week: null }).eq('id', id);
-    return res.json({ status: 'unregistered', registrationWeek: null, nextWarStart });
+    await db.from("guilds").update({ war_registered_week: null }).eq("id", id);
+    return res.json({
+      status: "unregistered",
+      registrationWeek: null,
+      nextWarStart,
+    });
   } catch (err) {
-    console.error('[Guilds war unregister]', err);
-    return res.status(500).json({ error: 'Failed to update war registration' });
+    console.error("[Guilds war unregister]", err);
+    return res.status(500).json({ error: "Failed to update war registration" });
   }
 });
 
@@ -867,26 +1269,38 @@ router.post('/:id/war/unregister', async (req: Request, res: Response) => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 // GET /api/guilds/:id/vault — balance + recent transactions
-router.get('/:id/vault', async (req: Request, res: Response) => {
+router.get("/:id/vault", async (req: Request, res: Response) => {
   const uid = auth(req, res);
   if (!uid) return;
   try {
     const db = supabaseServer() as any;
     const { id } = req.params as Record<string, string>;
     const me = await getMembershipIn(db, id, uid);
-    if (!me) return res.status(403).json({ error: 'Not a member' });
+    if (!me) return res.status(403).json({ error: "Not a member" });
 
-    const { data: guild } = await db.from('guilds').select('vault_balance').eq('id', id).maybeSingle();
+    const { data: guild } = await db
+      .from("guilds")
+      .select("vault_balance, icon, banner, unlocked_icons")
+      .eq("id", id)
+      .maybeSingle();
     const { data: txns } = await db
-      .from('guild_vault_transactions')
-      .select('*')
-      .eq('guild_id', id)
-      .order('created_at', { ascending: false })
+      .from("guild_vault_transactions")
+      .select("*")
+      .eq("guild_id", id)
+      .order("created_at", { ascending: false })
       .limit(20);
-    const info = await enrichPlayers(db, (txns || []).map((t: any) => t.user_id));
+    const info = await enrichPlayers(
+      db,
+      (txns || []).map((t: any) => t.user_id)
+    );
     return res.json({
       balance: guild?.vault_balance || 0,
       canPurchase: RANK_ROLE[me.role as Role] >= RANK_ROLE.vice,
+      icon: guild?.icon || "shield",
+      banner: guild?.banner || "gradient-cyan",
+      unlockedIcons: Array.isArray(guild?.unlocked_icons)
+        ? guild.unlocked_icons
+        : [],
       transactions: (txns || []).map((t: any) => ({
         id: t.id,
         userId: t.user_id,
@@ -894,74 +1308,225 @@ router.get('/:id/vault', async (req: Request, res: Response) => {
         amount: t.amount,
         itemKey: t.item_key,
         createdAt: t.created_at,
-        name: info[t.user_id]?.name || 'Hunter',
+        name: info[t.user_id]?.name || "Hunter",
       })),
     });
   } catch (err) {
-    console.error('[Guilds vault]', err);
-    return res.status(500).json({ error: 'Failed to load vault' });
+    console.error("[Guilds vault]", err);
+    return res.status(500).json({ error: "Failed to load vault" });
   }
 });
 
-// POST /api/guilds/:id/vault/donate { amount }
-router.post('/:id/vault/donate', async (req: Request, res: Response) => {
-  const uid = auth(req, res);
-  if (!uid) return;
-  try {
-    const db = supabaseServer() as any;
-    const { id } = req.params as Record<string, string>;
-    const amount = Math.floor(Number(req.body?.amount));
-    if (!(await getMembershipIn(db, id, uid))) return res.status(403).json({ error: 'Not a member' });
-    if (!amount || amount <= 0) return res.status(400).json({ error: 'Invalid amount' });
+// Allowed banner keys (cosmetic gradients; equippable by master/vice).
+const GUILD_BANNER_KEYS = [
+  "gradient-cyan",
+  "gradient-violet",
+  "gradient-crimson",
+  "gradient-emerald",
+  "gradient-gold",
+];
 
-    const { data: player } = await db.from('players').select('gold').eq('supabase_id', uid).maybeSingle();
-    if (!player || (player.gold || 0) < amount) return res.status(400).json({ error: 'Not enough gold' });
-
-    await db.from('players').update({ gold: player.gold - amount }).eq('supabase_id', uid);
-    await db.rpc('guild_add_vault', { p_guild: id, p_amount: amount });
-    await db.from('guild_vault_transactions').insert({ guild_id: id, user_id: uid, kind: 'donate', amount });
-    const info = await enrichPlayers(db, [uid]);
-    await postSystemMessage(db, id, `${info[uid]?.name || 'A hunter'} donated ${amount.toLocaleString()} G to the vault.`);
-
-    const { data: guild } = await db.from('guilds').select('vault_balance').eq('id', id).maybeSingle();
-    return res.json({ status: 'ok', newBalance: guild?.vault_balance || 0, playerGold: player.gold - amount });
-  } catch (err) {
-    console.error('[Guilds donate]', err);
-    return res.status(500).json({ error: 'Failed to donate' });
-  }
-});
-
-// Vault shop catalogue (server-authoritative pricing)
-const VAULT_SHOP: Record<string, { price: number; label: string; category: string }> = {
-  crest_of_valor: { price: 6000, label: 'Crest of Valor', category: 'cosmetic' },
-  fortress_lvl2: { price: 10000, label: 'Fortress Lvl 2', category: 'buff' },
-  xp_surge_24h: { price: 2500, label: 'XP Surge (24h)', category: 'buff' },
-};
-
-// POST /api/guilds/:id/vault/purchase { itemKey } — master/vice only
-router.post('/:id/vault/purchase', async (req: Request, res: Response) => {
+// POST /api/guilds/:id/vault/icon { iconKey } — equip (and buy from vault if needed). Master/vice only.
+router.post("/:id/vault/icon", async (req: Request, res: Response) => {
   const uid = auth(req, res);
   if (!uid) return;
   try {
     const db = supabaseServer() as any;
     const { id } = req.params as Record<string, string>;
     const me = await getMembershipIn(db, id, uid);
-    if (!me || RANK_ROLE[me.role as Role] < RANK_ROLE.vice) return res.status(403).json({ error: 'Only master/vice can purchase' });
+    if (!me || RANK_ROLE[me.role as Role] < RANK_ROLE.vice)
+      return res
+        .status(403)
+        .json({ error: "Only master/vice can change the icon" });
+
+    const iconKey = String(req.body?.iconKey || "");
+    const def = GUILD_ICON_CATALOG[iconKey];
+    if (!def) return res.status(400).json({ error: "Unknown icon" });
+
+    const { data: guild } = await db
+      .from("guilds")
+      .select("vault_balance, unlocked_icons")
+      .eq("id", id)
+      .maybeSingle();
+    const unlocked: string[] = Array.isArray(guild?.unlocked_icons)
+      ? guild.unlocked_icons
+      : [];
+    let balance = guild?.vault_balance || 0;
+
+    // Premium icon that the guild hasn't unlocked yet → purchase from the vault.
+    if (!def.free && !unlocked.includes(iconKey)) {
+      if (balance < def.cost)
+        return res.status(400).json({ error: "Insufficient vault balance" });
+      await db.rpc("guild_add_vault", { p_guild: id, p_amount: -def.cost });
+      await db.from("guild_vault_transactions").insert({
+        guild_id: id,
+        user_id: uid,
+        kind: "purchase",
+        amount: def.cost,
+        item_key: `icon:${iconKey}`,
+      });
+      unlocked.push(iconKey);
+      balance -= def.cost;
+      const info = await enrichPlayers(db, [uid]);
+      await postSystemMessage(
+        db,
+        id,
+        `${info[uid]?.name || "A hunter"} unlocked the ${iconKey} guild icon.`
+      );
+    }
+
+    await db
+      .from("guilds")
+      .update({ icon: iconKey, unlocked_icons: unlocked })
+      .eq("id", id);
+    return res.json({
+      status: "ok",
+      icon: iconKey,
+      unlockedIcons: unlocked,
+      newBalance: balance,
+    });
+  } catch (err) {
+    console.error("[Guilds vault/icon]", err);
+    return res.status(500).json({ error: "Failed to update icon" });
+  }
+});
+
+// POST /api/guilds/:id/vault/banner { bannerKey } — equip a banner. Master/vice only.
+router.post("/:id/vault/banner", async (req: Request, res: Response) => {
+  const uid = auth(req, res);
+  if (!uid) return;
+  try {
+    const db = supabaseServer() as any;
+    const { id } = req.params as Record<string, string>;
+    const me = await getMembershipIn(db, id, uid);
+    if (!me || RANK_ROLE[me.role as Role] < RANK_ROLE.vice)
+      return res
+        .status(403)
+        .json({ error: "Only master/vice can change the banner" });
+
+    const bannerKey = String(req.body?.bannerKey || "");
+    if (!GUILD_BANNER_KEYS.includes(bannerKey))
+      return res.status(400).json({ error: "Unknown banner" });
+
+    await db.from("guilds").update({ banner: bannerKey }).eq("id", id);
+    return res.json({ status: "ok", banner: bannerKey });
+  } catch (err) {
+    console.error("[Guilds vault/banner]", err);
+    return res.status(500).json({ error: "Failed to update banner" });
+  }
+});
+
+// POST /api/guilds/:id/vault/donate { amount }
+router.post("/:id/vault/donate", async (req: Request, res: Response) => {
+  const uid = auth(req, res);
+  if (!uid) return;
+  try {
+    const db = supabaseServer() as any;
+    const { id } = req.params as Record<string, string>;
+    const amount = Math.floor(Number(req.body?.amount));
+    if (!(await getMembershipIn(db, id, uid)))
+      return res.status(403).json({ error: "Not a member" });
+    if (!amount || amount <= 0)
+      return res.status(400).json({ error: "Invalid amount" });
+
+    const { data: player } = await db
+      .from("players")
+      .select("gold")
+      .eq("supabase_id", uid)
+      .maybeSingle();
+    if (!player || (player.gold || 0) < amount)
+      return res.status(400).json({ error: "Not enough gold" });
+
+    await db
+      .from("players")
+      .update({ gold: player.gold - amount })
+      .eq("supabase_id", uid);
+    await db.rpc("guild_add_vault", { p_guild: id, p_amount: amount });
+    await db
+      .from("guild_vault_transactions")
+      .insert({ guild_id: id, user_id: uid, kind: "donate", amount });
+    const info = await enrichPlayers(db, [uid]);
+    await postSystemMessage(
+      db,
+      id,
+      `${
+        info[uid]?.name || "A hunter"
+      } donated ${amount.toLocaleString()} G to the vault.`
+    );
+
+    const { data: guild } = await db
+      .from("guilds")
+      .select("vault_balance")
+      .eq("id", id)
+      .maybeSingle();
+    return res.json({
+      status: "ok",
+      newBalance: guild?.vault_balance || 0,
+      playerGold: player.gold - amount,
+    });
+  } catch (err) {
+    console.error("[Guilds donate]", err);
+    return res.status(500).json({ error: "Failed to donate" });
+  }
+});
+
+// Vault shop catalogue (server-authoritative pricing)
+const VAULT_SHOP: Record<
+  string,
+  { price: number; label: string; category: string }
+> = {
+  crest_of_valor: {
+    price: 6000,
+    label: "Crest of Valor",
+    category: "cosmetic",
+  },
+  fortress_lvl2: { price: 10000, label: "Fortress Lvl 2", category: "buff" },
+  xp_surge_24h: { price: 2500, label: "XP Surge (24h)", category: "buff" },
+};
+
+// POST /api/guilds/:id/vault/purchase { itemKey } — master/vice only
+router.post("/:id/vault/purchase", async (req: Request, res: Response) => {
+  const uid = auth(req, res);
+  if (!uid) return;
+  try {
+    const db = supabaseServer() as any;
+    const { id } = req.params as Record<string, string>;
+    const me = await getMembershipIn(db, id, uid);
+    if (!me || RANK_ROLE[me.role as Role] < RANK_ROLE.vice)
+      return res.status(403).json({ error: "Only master/vice can purchase" });
 
     const item = VAULT_SHOP[req.body?.itemKey];
-    if (!item) return res.status(400).json({ error: 'Unknown item' });
+    if (!item) return res.status(400).json({ error: "Unknown item" });
 
-    const { data: guild } = await db.from('guilds').select('vault_balance').eq('id', id).maybeSingle();
-    if ((guild?.vault_balance || 0) < item.price) return res.status(400).json({ error: 'Insufficient vault balance' });
+    const { data: guild } = await db
+      .from("guilds")
+      .select("vault_balance")
+      .eq("id", id)
+      .maybeSingle();
+    if ((guild?.vault_balance || 0) < item.price)
+      return res.status(400).json({ error: "Insufficient vault balance" });
 
-    await db.rpc('guild_add_vault', { p_guild: id, p_amount: -item.price });
-    await db.from('guild_vault_transactions').insert({ guild_id: id, user_id: uid, kind: 'purchase', amount: item.price, item_key: req.body.itemKey });
+    await db.rpc("guild_add_vault", { p_guild: id, p_amount: -item.price });
+    await db.from("guild_vault_transactions").insert({
+      guild_id: id,
+      user_id: uid,
+      kind: "purchase",
+      amount: item.price,
+      item_key: req.body.itemKey,
+    });
     const info = await enrichPlayers(db, [uid]);
-    await postSystemMessage(db, id, `${info[uid]?.name || 'A hunter'} purchased ${item.label}.`);
-    return res.json({ status: 'ok', newBalance: (guild?.vault_balance || 0) - item.price });
+    await postSystemMessage(
+      db,
+      id,
+      `${info[uid]?.name || "A hunter"} purchased ${item.label}.`
+    );
+    return res.json({
+      status: "ok",
+      newBalance: (guild?.vault_balance || 0) - item.price,
+    });
   } catch (err) {
-    console.error('[Guilds purchase]', err);
-    return res.status(500).json({ error: 'Failed to purchase' });
+    console.error("[Guilds purchase]", err);
+    return res.status(500).json({ error: "Failed to purchase" });
   }
 });
 
@@ -970,57 +1535,84 @@ router.post('/:id/vault/purchase', async (req: Request, res: Response) => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 // POST /api/guilds/contribute { amount, source }
-router.post('/contribute', async (req: Request, res: Response) => {
+router.post("/contribute", async (req: Request, res: Response) => {
   const uid = auth(req, res);
   if (!uid) return;
   try {
     const db = supabaseServer() as any;
     const amount = Math.max(1, Math.floor(Number(req.body?.amount) || 1));
     const membership = await getMembership(db, uid);
-    if (!membership) return res.json({ status: 'no_guild' });
+    if (!membership) return res.json({ status: "no_guild" });
 
     const guildId = membership.guild_id;
     const date = todayStr();
 
     await ensureTodayMission(db, guildId);
-    await db.rpc('guild_mission_progress', { p_guild: guildId, p_date: date, p_amount: amount });
-    await db.rpc('guild_member_contribute', { p_guild: guildId, p_user: uid, p_amount: amount });
-    await db.rpc('guild_add_glory', { p_guild: guildId, p_amount: amount });
+    await db.rpc("guild_mission_progress", {
+      p_guild: guildId,
+      p_date: date,
+      p_amount: amount,
+    });
+    await db.rpc("guild_member_contribute", {
+      p_guild: guildId,
+      p_user: uid,
+      p_amount: amount,
+    });
+    await db.rpc("guild_add_glory", { p_guild: guildId, p_amount: amount });
 
     // War points (Thu–Sat) if an active war exists for this guild
     const { data: war } = await db
-      .from('guild_wars')
-      .select('*')
+      .from("guild_wars")
+      .select("*")
       .or(`guild_a.eq.${guildId},guild_b.eq.${guildId}`)
-      .eq('status', 'active')
-      .order('week_start', { ascending: false })
+      .eq("status", "active")
+      .order("week_start", { ascending: false })
       .limit(1)
       .maybeSingle();
     if (war) {
-      const col = war.guild_a === guildId ? 'score_a' : 'score_b';
-      await db.from('guild_wars').update({ [col]: (war[col] || 0) + amount }).eq('id', war.id);
+      const col = war.guild_a === guildId ? "score_a" : "score_b";
+      await db
+        .from("guild_wars")
+        .update({ [col]: (war[col] || 0) + amount })
+        .eq("id", war.id);
       const { data: existing } = await db
-        .from('guild_war_contributions')
-        .select('*')
-        .eq('war_id', war.id)
-        .eq('user_id', uid)
+        .from("guild_war_contributions")
+        .select("*")
+        .eq("war_id", war.id)
+        .eq("user_id", uid)
         .maybeSingle();
       if (existing) {
-        await db.from('guild_war_contributions').update({ points: existing.points + amount }).eq('id', existing.id);
+        await db
+          .from("guild_war_contributions")
+          .update({ points: existing.points + amount })
+          .eq("id", existing.id);
       } else {
-        await db.from('guild_war_contributions').insert({ war_id: war.id, guild_id: guildId, user_id: uid, points: amount });
+        await db.from("guild_war_contributions").insert({
+          war_id: war.id,
+          guild_id: guildId,
+          user_id: uid,
+          points: amount,
+        });
       }
     }
 
     // Check mission completion → reward broadcast
-    const { data: mission } = await db.from('guild_missions').select('*').eq('guild_id', guildId).eq('date', date).maybeSingle();
+    const { data: mission } = await db
+      .from("guild_missions")
+      .select("*")
+      .eq("guild_id", guildId)
+      .eq("date", date)
+      .maybeSingle();
     if (mission?.completed) {
-      await broadcastToGuild(guildId, 'mission_complete', { missionId: mission.id, title: mission.title });
+      await broadcastToGuild(guildId, "mission_complete", {
+        missionId: mission.id,
+        title: mission.title,
+      });
     }
-    return res.json({ status: 'ok' });
+    return res.json({ status: "ok" });
   } catch (err) {
-    console.error('[Guilds contribute]', err);
-    return res.status(500).json({ error: 'Failed to record contribution' });
+    console.error("[Guilds contribute]", err);
+    return res.status(500).json({ error: "Failed to record contribution" });
   }
 });
 
@@ -1055,39 +1647,68 @@ export async function runGuildWarCron(db: any): Promise<void> {
   // ── Thursday: create matchups for guilds without an active war this week ──
   if (day === 4) {
     const weekStart = weekThursday(now);
-    const { data: existing } = await db.from('guild_wars').select('guild_a, guild_b').eq('week_start', weekStart);
+    const { data: existing } = await db
+      .from("guild_wars")
+      .select("guild_a, guild_b")
+      .eq("week_start", weekStart);
     const paired = new Set<string>();
-    for (const w of existing || []) { paired.add(w.guild_a); paired.add(w.guild_b); }
+    for (const w of existing || []) {
+      paired.add(w.guild_a);
+      paired.add(w.guild_b);
+    }
 
     // Opt-in only: just guilds that registered for THIS week's matchmaking.
     const { data: guilds } = await db
-      .from('guilds')
-      .select('id, glory_points')
-      .eq('war_registered_week', weekStart)
-      .order('glory_points', { ascending: false });
+      .from("guilds")
+      .select("id, glory_points")
+      .eq("war_registered_week", weekStart)
+      .order("glory_points", { ascending: false });
     const eligible = (guilds || []).filter((g: any) => !paired.has(g.id));
     for (let i = 0; i + 1 < eligible.length; i += 2) {
-      await db.from('guild_wars').insert({
+      await db.from("guild_wars").insert({
         week_start: weekStart,
         guild_a: eligible[i].id,
         guild_b: eligible[i + 1].id,
-        status: 'active',
+        status: "active",
       });
     }
   }
 
   // ── Sunday: settle active wars and distribute rewards ──
   if (day === 0) {
-    const { data: wars } = await db.from('guild_wars').select('*').eq('status', 'active');
+    const { data: wars } = await db
+      .from("guild_wars")
+      .select("*")
+      .eq("status", "active");
     for (const war of wars || []) {
-      const winner = war.score_a === war.score_b ? null : war.score_a > war.score_b ? war.guild_a : war.guild_b;
-      await db.from('guild_wars').update({ status: 'ended', winner_id: winner, rewards_distributed: true }).eq('id', war.id);
+      const winner =
+        war.score_a === war.score_b
+          ? null
+          : war.score_a > war.score_b
+          ? war.guild_a
+          : war.guild_b;
+      await db
+        .from("guild_wars")
+        .update({
+          status: "ended",
+          winner_id: winner,
+          rewards_distributed: true,
+        })
+        .eq("id", war.id);
       if (winner) {
-        await db.rpc('guild_add_glory', { p_guild: winner, p_amount: 500 });
-        await db.rpc('guild_add_vault', { p_guild: winner, p_amount: 2000 });
-        await postSystemMessage(db, winner, '🏆 Your guild won this week\'s War! +500 Glory, +2000 G to the vault.');
+        await db.rpc("guild_add_glory", { p_guild: winner, p_amount: 500 });
+        await db.rpc("guild_add_vault", { p_guild: winner, p_amount: 2000 });
+        await postSystemMessage(
+          db,
+          winner,
+          "🏆 Your guild won this week's War! +500 Glory, +2000 G to the vault."
+        );
         const loser = winner === war.guild_a ? war.guild_b : war.guild_a;
-        await postSystemMessage(db, loser, 'The War has ended. Better luck next week, hunters.');
+        await postSystemMessage(
+          db,
+          loser,
+          "The War has ended. Better luck next week, hunters."
+        );
       }
     }
   }

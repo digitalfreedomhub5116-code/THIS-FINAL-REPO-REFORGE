@@ -1,17 +1,28 @@
-
-import React from 'react';
+import React from "react";
 
 export enum SystemState {
-  INITIALIZING = 'INITIALIZING',
-  ACTIVE = 'ACTIVE',
-  LOCKED = 'LOCKED'
+  INITIALIZING = "INITIALIZING",
+  ACTIVE = "ACTIVE",
+  LOCKED = "LOCKED",
 }
 
-export type Tab = 'DASHBOARD' | 'QUESTS' | 'ARMORY' | 'STORE' | 'LEADERBOARD' | 'REWARDS' | 'GROWTH' | 'HEALTH' | 'GOALS' | 'CASTLE' | 'PROFILE' | 'GUILDS';
+export type Tab =
+  | "DASHBOARD"
+  | "QUESTS"
+  | "ARMORY"
+  | "STORE"
+  | "LEADERBOARD"
+  | "REWARDS"
+  | "GROWTH"
+  | "HEALTH"
+  | "GOALS"
+  | "CASTLE"
+  | "PROFILE"
+  | "GUILDS";
 
 // ── Guilds ──────────────────────────────────────────────────────────────────
-export type GuildRole = 'master' | 'vice' | 'member';
-export type GuildPrivacy = 'open' | 'invite_only';
+export type GuildRole = "master" | "vice" | "member";
+export type GuildPrivacy = "open" | "invite_only";
 
 export interface GuildSummary {
   id: string;
@@ -25,6 +36,8 @@ export interface GuildSummary {
   memberCap: number;
   gloryPoints: number;
   rank: number;
+  /** True if the current user has a pending join request for this (closed) guild. */
+  requested?: boolean;
 }
 
 export interface Guild {
@@ -58,13 +71,20 @@ export interface GuildMessage {
   id: string;
   guildId: string;
   userId: string | null;
-  type: 'user' | 'system' | 'workout';
+  type: "user" | "system" | "workout";
   body: string;
   meta: Record<string, any>;
   createdAt: string;
-  author: { userId: string; name: string; avatarUrl: string | null; level?: number; rank?: string; equippedBorder?: string | null } | null;
+  author: {
+    userId: string;
+    name: string;
+    avatarUrl: string | null;
+    level?: number;
+    rank?: string;
+    equippedBorder?: string | null;
+  } | null;
   // client-only optimistic fields
-  _status?: 'sending' | 'failed' | 'sent';
+  _status?: "sending" | "failed" | "sent";
   _tempId?: string;
 }
 
@@ -97,7 +117,7 @@ export interface GuildWarContributor {
 export interface GuildWar {
   id: string;
   weekStart: string;
-  status: 'scheduled' | 'active' | 'ended';
+  status: "scheduled" | "active" | "ended";
   winnerId: string | null;
   myGuildId: string;
   guildA: GuildWarSide;
@@ -108,16 +128,16 @@ export interface GuildWar {
 // Wraps the current war (if any) plus opt-in registration status for the upcoming week.
 export interface WarState {
   war: GuildWar | null;
-  registered: boolean;        // guild is registered for the upcoming matchmaking
-  canRegister: boolean;       // current user is master/vice
+  registered: boolean; // guild is registered for the upcoming matchmaking
+  canRegister: boolean; // current user is master/vice
   registrationWeek: string | null; // the Thursday (YYYY-MM-DD) the guild is registered for
-  nextWarStart: string;       // next matchmaking Thursday (YYYY-MM-DD)
+  nextWarStart: string; // next matchmaking Thursday (YYYY-MM-DD)
 }
 
 export interface VaultTransaction {
   id: string;
   userId: string;
-  kind: 'donate' | 'purchase';
+  kind: "donate" | "purchase";
   amount: number;
   itemKey: string | null;
   createdAt: string;
@@ -140,14 +160,20 @@ export interface NavItem {
   id: Tab;
 }
 
-export type Rank = 'UNRANKED' | 'E' | 'D' | 'C' | 'B' | 'A' | 'S';
-export type TierLevel = 'E' | 'D' | 'C' | 'B' | 'A' | 'S';
+export type Rank = "UNRANKED" | "E" | "D" | "C" | "B" | "A" | "S";
+export type TierLevel = "E" | "D" | "C" | "B" | "A" | "S";
 
-export type Priority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
-export type Rarity = 'COMMON' | 'RARE' | 'EPIC' | 'LEGENDARY' | 'MYTHIC';
+export type Priority = "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+export type Rarity = "COMMON" | "RARE" | "EPIC" | "LEGENDARY" | "MYTHIC";
 
 // --- DAILY REWARDS ---
-export type DailyRewardType = 'GOLD' | 'XP' | 'DUNGEON_PASS' | 'CHEST_LEGENDARY' | 'VENUS_SHARDS' | 'NONE';
+export type DailyRewardType =
+  | "GOLD"
+  | "XP"
+  | "DUNGEON_PASS"
+  | "CHEST_LEGENDARY"
+  | "VENUS_SHARDS"
+  | "NONE";
 
 export interface DailyReward {
   type: DailyRewardType;
@@ -166,7 +192,7 @@ export interface CombatStats {
 // --- SHADOW WARFARE ---
 export interface ShadowSoldier {
   id: string;
-  name: string;         // "Shadow of Arjun"
+  name: string; // "Shadow of Arjun"
   extractedAt: number;
   sourceRank: number;
 }
@@ -183,14 +209,20 @@ export interface ClashResult {
   myNewRank: number;
 }
 
-export type KillFeedType = 'CLASH_WIN' | 'CLASH_LOSE' | 'EXTRACTION' | 'EXTRACTION_FAIL' | 'FORTIFY' | 'POWER_SURGE';
+export type KillFeedType =
+  | "CLASH_WIN"
+  | "CLASH_LOSE"
+  | "EXTRACTION"
+  | "EXTRACTION_FAIL"
+  | "FORTIFY"
+  | "POWER_SURGE";
 
 export interface KillFeedEntry {
   id: string;
   type: KillFeedType;
   text: string;
   timestamp: number;
-  highlight?: boolean;  // true = involves the player
+  highlight?: boolean; // true = involves the player
 }
 
 export interface WarfareState {
@@ -240,7 +272,7 @@ export interface TierConfig {
 export interface Shadow {
   id: string;
   name: string;
-  rank: 'Minion' | 'Elite' | 'Monarch';
+  rank: "Minion" | "Elite" | "Monarch";
   image: string;
   buffs: { stat: keyof CombatStats; value: number }[];
 }
@@ -296,7 +328,19 @@ export interface ActivityLog {
   id: string;
   message: string;
   timestamp: number;
-  type: 'XP' | 'LEVEL_UP' | 'LEVEL_DOWN' | 'PENALTY' | 'SYSTEM' | 'PURCHASE' | 'STREAK' | 'WORKOUT' | 'TOURNAMENT' | 'LOOT' | 'WARNING' | 'EQUIP';
+  type:
+    | "XP"
+    | "LEVEL_UP"
+    | "LEVEL_DOWN"
+    | "PENALTY"
+    | "SYSTEM"
+    | "PURCHASE"
+    | "STREAK"
+    | "WORKOUT"
+    | "TOURNAMENT"
+    | "LOOT"
+    | "WARNING"
+    | "EQUIP";
 }
 
 export interface Quest {
@@ -325,7 +369,7 @@ export interface Quest {
   lastResetAt?: number;
   hasPact?: boolean;
   pactAmount?: number;
-  pactStatus?: 'none' | 'active' | 'honored' | 'burned' | 'partial';
+  pactStatus?: "none" | "active" | "honored" | "burned" | "partial";
   sensorRequirements?: {
     steps?: number;
     distanceKm?: number;
@@ -347,7 +391,7 @@ export interface Quest {
   connectionToPrevious?: string;
   // Dungeon-linked quest (fitness goal → daily dungeon)
   isDungeonQuest?: boolean;
-  dungeonEquipment?: 'GYM' | 'HOME_DUMBBELLS' | 'BODYWEIGHT';
+  dungeonEquipment?: "GYM" | "HOME_DUMBBELLS" | "BODYWEIGHT";
 }
 
 export interface ShopItem {
@@ -363,7 +407,14 @@ export interface AwakeningData {
   antiVision: string[];
 }
 
-export type NotificationType = 'SUCCESS' | 'WARNING' | 'DANGER' | 'INFO' | 'LEVEL_UP' | 'SYSTEM' | 'PURCHASE';
+export type NotificationType =
+  | "SUCCESS"
+  | "WARNING"
+  | "DANGER"
+  | "INFO"
+  | "LEVEL_UP"
+  | "SYSTEM"
+  | "PURCHASE";
 
 export interface SystemNotification {
   id: string;
@@ -383,9 +434,9 @@ export interface HistoryEntry {
 export interface AllianceMember {
   id: string;
   name: string;
-  role: 'LEADER' | 'OFFICER' | 'MEMBER';
+  role: "LEADER" | "OFFICER" | "MEMBER";
   totalXpContribution: number;
-  status: 'ONLINE' | 'OFFLINE';
+  status: "ONLINE" | "OFFLINE";
   lastActive: number;
   avatarUrl?: string;
 }
@@ -395,7 +446,7 @@ export interface Alliance {
   name: string;
   badge: string;
   description: string;
-  type: 'OPEN' | 'CLOSED';
+  type: "OPEN" | "CLOSED";
   members: AllianceMember[];
   memberCount: number;
   totalPower: number;
@@ -412,7 +463,7 @@ export interface AllianceChatMessage {
 
 export interface GuildLog {
   id: string;
-  type: 'SYSTEM' | 'ACHIEVEMENT';
+  type: "SYSTEM" | "ACHIEVEMENT";
   content: string;
   timestamp: number;
   user?: string;
@@ -440,7 +491,7 @@ export interface Exercise {
   rest?: number;
   duration: number;
   completed: boolean;
-  type: 'COMPOUND' | 'ACCESSORY' | 'CARDIO' | 'STRETCH';
+  type: "COMPOUND" | "ACCESSORY" | "CARDIO" | "STRETCH";
   notes?: string;
   videoUrl?: string;
   imageUrl?: string;
@@ -454,7 +505,12 @@ export interface FormCoachResult {
   setNumber: number;
   repsDetected: number;
   formScore: number; // 0-100
-  violations: { ruleId: string; message: string; severity: 'warning' | 'error'; repNumber?: number }[];
+  violations: {
+    ruleId: string;
+    message: string;
+    severity: "warning" | "error";
+    repNumber?: number;
+  }[];
   bonusXp: number;
 }
 
@@ -517,7 +573,7 @@ export interface LoggedFoodItem extends FoodItem {
   quantity: number;
 }
 
-export type MealType = 'BREAKFAST' | 'LUNCH' | 'SNACK' | 'DINNER';
+export type MealType = "BREAKFAST" | "LUNCH" | "SNACK" | "DINNER";
 
 export interface MealLog {
   id: string;
@@ -550,7 +606,7 @@ export interface SkillProgress {
 
 export interface HealthProfile {
   hunterName?: string;
-  gender: 'MALE' | 'FEMALE';
+  gender: "MALE" | "FEMALE";
   age: number;
   height: number;
   weight: number;
@@ -559,12 +615,12 @@ export interface HealthProfile {
   neck?: number;
   waist?: number;
   hip?: number;
-  activityLevel: 'SEDENTARY' | 'LIGHT' | 'MODERATE' | 'VERY_ACTIVE';
-  goal: 'LOSE_WEIGHT' | 'BUILD_MUSCLE' | 'ENDURANCE' | 'RECOMP';
-  equipment: 'GYM' | 'HOME_DUMBBELLS' | 'BODYWEIGHT';
-  workoutSplit?: 'PPL' | 'CLASSIC';
+  activityLevel: "SEDENTARY" | "LIGHT" | "MODERATE" | "VERY_ACTIVE";
+  goal: "LOSE_WEIGHT" | "BUILD_MUSCLE" | "ENDURANCE" | "RECOMP";
+  equipment: "GYM" | "HOME_DUMBBELLS" | "BODYWEIGHT";
+  workoutSplit?: "PPL" | "CLASSIC";
   sessionDuration?: number;
-  intensity?: 'LIGHT' | 'MODERATE' | 'HIGH';
+  intensity?: "LIGHT" | "MODERATE" | "HIGH";
   injuries: string[];
   bmi: number;
   bmr: number;
@@ -576,9 +632,14 @@ export interface HealthProfile {
   lastWorkoutDate?: string;
   progressPhotos?: ProgressPhoto[];
   baselines?: BaselineStats;
-  energyLevel?: 'DRAINED' | 'LOW' | 'MODERATE' | 'HIGH' | 'PEAK';
-  currentFocus?: 'FITNESS' | 'ACADEMICS' | 'CAREER' | 'CREATIVITY' | 'SPIRITUALITY';
-  stressLevel?: 'LOW' | 'MODERATE' | 'HIGH' | 'BURNOUT';
+  energyLevel?: "DRAINED" | "LOW" | "MODERATE" | "HIGH" | "PEAK";
+  currentFocus?:
+    | "FITNESS"
+    | "ACADEMICS"
+    | "CAREER"
+    | "CREATIVITY"
+    | "SPIRITUALITY";
+  stressLevel?: "LOW" | "MODERATE" | "HIGH" | "BURNOUT";
   selectedPlanId?: number | string;
   selectedPlanName?: string;
   aiPlanUsed?: boolean;
@@ -588,22 +649,22 @@ export interface HealthProfile {
   prevPlanName?: string;
 
   // Sung Jin-woo Daily Dungeon baselines (from calibration)
-  baselinePushups?: number;     // Max push-ups without stopping
-  baselineSquats?: number;      // Max squats without stopping
-  baselineRunMinutes?: number;  // DEPRECATED — use baselineRunKm
-  baselineRunKm?: number;       // Max running distance (km) without stopping
+  baselinePushups?: number; // Max push-ups without stopping
+  baselineSquats?: number; // Max squats without stopping
+  baselineRunMinutes?: number; // DEPRECATED — use baselineRunKm
+  baselineRunKm?: number; // Max running distance (km) without stopping
 }
 
 export interface WorkoutExercise {
   id: number;
   name: string;
-  type: 'COMPOUND' | 'ACCESSORY' | 'CARDIO' | 'STRETCH';
+  type: "COMPOUND" | "ACCESSORY" | "CARDIO" | "STRETCH";
   muscle_group: string;
   default_sets: number;
   default_reps: string;
   video_url: string;
   notes: string;
-  equipment: 'GYM' | 'BODYWEIGHT' | 'DUMBBELLS' | 'ANY';
+  equipment: "GYM" | "BODYWEIGHT" | "DUMBBELLS" | "ANY";
   is_active: boolean;
   display_order: number;
 }
@@ -612,8 +673,8 @@ export interface WorkoutPlan {
   id: number;
   name: string;
   description: string;
-  difficulty: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
-  equipment: 'GYM' | 'HOME_DUMBBELLS' | 'BODYWEIGHT';
+  difficulty: "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
+  equipment: "GYM" | "HOME_DUMBBELLS" | "BODYWEIGHT";
   duration_weeks: number;
   days_per_week: number;
   days: WorkoutDay[];
@@ -625,7 +686,7 @@ export interface WorkoutPlan {
 export interface PenaltyTask {
   title: string;
   description: string;
-  type: 'TIME' | 'PHYSICAL';
+  type: "TIME" | "PHYSICAL";
   duration?: number;
 }
 
@@ -645,17 +706,26 @@ export interface ReplitUser {
 }
 
 // --- SCHEDULE PLANNER ---
-export type ScheduleRole = 'STUDENT' | 'PROFESSIONAL' | 'GAP_YEAR' | 'FREELANCER';
-export type PreferredWorkoutTime = 'EARLY_MORNING' | 'MORNING' | 'AFTERNOON' | 'EVENING' | 'LATE_NIGHT';
-export type PreferredStudyTime = 'MORNING' | 'AFTERNOON' | 'EVENING' | 'NIGHT';
+export type ScheduleRole =
+  | "STUDENT"
+  | "PROFESSIONAL"
+  | "GAP_YEAR"
+  | "FREELANCER";
+export type PreferredWorkoutTime =
+  | "EARLY_MORNING"
+  | "MORNING"
+  | "AFTERNOON"
+  | "EVENING"
+  | "LATE_NIGHT";
+export type PreferredStudyTime = "MORNING" | "AFTERNOON" | "EVENING" | "NIGHT";
 
 export interface ScheduleProfile {
   role: ScheduleRole;
 
   // Time anchors
-  wakeUpTime: string;         // "06:30"
-  bedtime: string;            // "23:30" — user's choice
-  morningRoutineMin: number;  // 30
+  wakeUpTime: string; // "06:30"
+  bedtime: string; // "23:30" — user's choice
+  morningRoutineMin: number; // 30
 
   // Role-specific blocked slots
   schoolStart?: string;
@@ -671,13 +741,13 @@ export interface ScheduleProfile {
   // Preferences
   preferredWorkoutTime: PreferredWorkoutTime;
   preferredStudyTime: PreferredStudyTime;
-  dinnerTime: string;         // "20:30"
+  dinnerTime: string; // "20:30"
 
   // Flexibility
-  windDownMinutes: number;    // Before sleep, default 30
+  windDownMinutes: number; // Before sleep, default 30
   napEnabled: boolean;
   napDuration?: number;
-  fixedCommitments: string;   // Free text
+  fixedCommitments: string; // Free text
 
   // Weekend overrides
   weekendDifferent: boolean;
@@ -688,35 +758,61 @@ export interface ScheduleProfile {
   updatedAt: number;
 }
 
-export type ScheduleSlotType = 'QUEST' | 'WORKOUT' | 'BLOCKED' | 'MEAL' | 'FREE' | 'SLEEP' | 'ROUTINE';
-export type ScheduleSlotStatus = 'PENDING' | 'ACTIVE' | 'COMPLETED' | 'SKIPPED' | 'DEFERRED';
+export type ScheduleSlotType =
+  | "QUEST"
+  | "WORKOUT"
+  | "BLOCKED"
+  | "MEAL"
+  | "FREE"
+  | "SLEEP"
+  | "ROUTINE";
+export type ScheduleSlotStatus =
+  | "PENDING"
+  | "ACTIVE"
+  | "COMPLETED"
+  | "SKIPPED"
+  | "DEFERRED";
 
 export interface ScheduleSlot {
   id: string;
-  startTime: string;          // "07:00"
-  endTime: string;            // "07:30"
+  startTime: string; // "07:00"
+  endTime: string; // "07:30"
   type: ScheduleSlotType;
-  questId?: string;           // Links to Quest.id
-  goalId?: string;            // Links to Goal.id
+  questId?: string; // Links to Quest.id
+  goalId?: string; // Links to Goal.id
   label: string;
   status: ScheduleSlotStatus;
-  isFlexible: boolean;        // Can be moved/reordered
-  isCarryOver: boolean;       // Deferred from yesterday
-  notifyEnabled?: boolean;    // Send notification 15 min before
+  isFlexible: boolean; // Can be moved/reordered
+  isCarryOver: boolean; // Deferred from yesterday
+  notifyEnabled?: boolean; // Send notification 15 min before
 }
 
 export interface DailySchedule {
-  date: string;               // "2026-04-17"
+  date: string; // "2026-04-17"
   slots: ScheduleSlot[];
-  swapsUsed: number;          // Max 2/day
+  swapsUsed: number; // Max 2/day
   restDayUsed: boolean;
-  adjustedAt?: number;        // If "I'm Running Late" was used
+  adjustedAt?: number; // If "I'm Running Late" was used
   generatedAt: number;
 }
 
 // --- SHADOW MISSION (Long-Term Goals) ---
-export type GoalCategory = 'ACADEMIC' | 'FITNESS' | 'FINANCIAL' | 'SKILL' | 'CAREER' | 'HEALTH' | 'CREATIVE' | 'DEFAULT';
-export type GoalStatus = 'INTERVIEW' | 'REVIEW' | 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'ABANDONED';
+export type GoalCategory =
+  | "ACADEMIC"
+  | "FITNESS"
+  | "FINANCIAL"
+  | "SKILL"
+  | "CAREER"
+  | "HEALTH"
+  | "CREATIVE"
+  | "DEFAULT";
+export type GoalStatus =
+  | "INTERVIEW"
+  | "REVIEW"
+  | "ACTIVE"
+  | "PAUSED"
+  | "COMPLETED"
+  | "ABANDONED";
 
 export interface GoalMilestone {
   phase: number;
@@ -732,14 +828,14 @@ export interface GoalMilestone {
 export interface GoalInterviewQuestion {
   id: number;
   question: string;
-  type: 'text' | 'number' | 'mcq';
+  type: "text" | "number" | "mcq";
   prefilled?: string | number | null;
   answer?: string | number | null;
   options?: string[];
 }
 
 export interface GoalQuestResource {
-  type: 'youtube' | 'article' | 'book' | 'search_query';
+  type: "youtube" | "article" | "book" | "search_query";
   title: string;
   url?: string;
   searchQuery?: string;
@@ -762,13 +858,13 @@ export interface GoalQuest {
   scheduledTime?: string;
   // Dungeon-linked goal quest (fitness goals)
   isDungeonQuest?: boolean;
-  dungeonEquipment?: 'GYM' | 'HOME_DUMBBELLS' | 'BODYWEIGHT';
+  dungeonEquipment?: "GYM" | "HOME_DUMBBELLS" | "BODYWEIGHT";
 }
 
 export interface GoalDailyTask {
   id: string;
   goalId: string;
-  date: string;          // YYYY-MM-DD
+  date: string; // YYYY-MM-DD
   dayNumber: number;
   quests: GoalQuest[];
   completedCount: number;
@@ -803,11 +899,11 @@ export interface Goal {
 
   // System goals (cannot be deleted/modified by user)
   isSystemGoal?: boolean;
-  systemGoalType?: 'DAILY_DUNGEON';
+  systemGoalType?: "DAILY_DUNGEON";
   coverImage?: string; // Background image for visual goal cards
 
   // Fitness goal equipment (selected during goal creation interview)
-  equipment?: 'GYM' | 'HOME_DUMBBELLS' | 'BODYWEIGHT';
+  equipment?: "GYM" | "HOME_DUMBBELLS" | "BODYWEIGHT";
 
   // ── Background goal-plan generation (Task 11 add-on) ──
   // When true, this goal is a placeholder created from the user's interview answers
@@ -971,10 +1067,10 @@ export interface PlayerData {
 
 // --- DAILY DUNGEON (Sung Jin-woo Protocol) ---
 export interface DungeonExerciseTarget {
-  exercise: 'PUSHUPS' | 'SQUATS' | 'RUNNING';
+  exercise: "PUSHUPS" | "SQUATS" | "RUNNING";
   sets: number;
-  reps: number;           // For push-ups/squats
-  distanceKm?: number;    // For running (km)
+  reps: number; // For push-ups/squats
+  distanceKm?: number; // For running (km)
   durationMinutes?: number; // DEPRECATED — kept for backward compat
   formCoachEnabled: boolean;
 }
@@ -990,12 +1086,12 @@ export interface DungeonExerciseTarget {
  * Completion is tracked in DungeonState.completedExercisesToday keyed by `id`.
  */
 export interface DungeonCustomExercise {
-  id: string;             // unique completion key, e.g. "custom_42_169..."
+  id: string; // unique completion key, e.g. "custom_42_169..."
   name: string;
-  type: 'COMPOUND' | 'ACCESSORY' | 'CARDIO' | 'STRETCH';
+  type: "COMPOUND" | "ACCESSORY" | "CARDIO" | "STRETCH";
   sets: number;
-  reps: string;           // e.g. "12, 12, 10" or "15"
-  distanceKm?: number;    // for CARDIO entries
+  reps: string; // e.g. "12, 12, 10" or "15"
+  distanceKm?: number; // for CARDIO entries
   videoUrl?: string;
   muscleGroup?: string;
   addedAt: number;
@@ -1003,10 +1099,10 @@ export interface DungeonCustomExercise {
 
 export interface DungeonState {
   // Progression tracking
-  currentDay: number;            // Days since first dungeon
-  startDate: number;             // Timestamp when dungeon was first activated
-  lastCompletedDate: string;     // 'YYYY-MM-DD' of last completion
-  lastProgressionDate: string;   // 'YYYY-MM-DD' when reps last increased
+  currentDay: number; // Days since first dungeon
+  startDate: number; // Timestamp when dungeon was first activated
+  lastCompletedDate: string; // 'YYYY-MM-DD' of last completion
+  lastProgressionDate: string; // 'YYYY-MM-DD' when reps last increased
   consecutiveCompletions: number; // For streak-like tracking within dungeon
   totalCompletions: number;
   totalFailures: number;
@@ -1024,12 +1120,18 @@ export interface DungeonState {
   // Baselines snapshot (from calibration, frozen at dungeon creation)
   baselinePushups: number;
   baselineSquats: number;
-  baselineRunKm: number;         // Max running distance (km)
-  baselineRunMinutes?: number;   // DEPRECATED — kept for migration
+  baselineRunKm: number; // Max running distance (km)
+  baselineRunMinutes?: number; // DEPRECATED — kept for migration
 
   // Progression multiplier (starts at 0.7, increases by ~0.08 every 3 days)
   progressionMultiplier: number;
 
   // History of completed dungeons (last 30 days)
-  history: { date: string; completed: boolean; pushupsTarget: number; squatsTarget: number; runKm: number }[];
+  history: {
+    date: string;
+    completed: boolean;
+    pushupsTarget: number;
+    squatsTarget: number;
+    runKm: number;
+  }[];
 }
