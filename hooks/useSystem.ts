@@ -1088,13 +1088,7 @@ export const useSystem = () => {
           gold += reward.amount;
           break;
         case 'STONES': {
-          // Award stones to a random outfit using smart drop logic
-          const { updatedStones, goldToConvert } = computeSmartStoneDrop(safeStones, reward.amount);
-          Object.assign(safeStones, updatedStones);
-          gold += goldToConvert;
-          if (goldToConvert > 0) {
-            setTimeout(() => addNotification(`Converted excess stones to ${goldToConvert} Gold!`, 'SUCCESS'), 1000);
-          }
+          // Disabled - outfit system removed
           break;
         }
         case 'LEGENDARY_CHEST':
@@ -1207,25 +1201,17 @@ export const useSystem = () => {
     const legendary = player.chests?.legendary ?? 0;
     if (legendary <= 0) return null;
     const gold = Math.floor(Math.random() * 500) + 300;
-    const stones = Math.floor(Math.random() * 50) + 50;
     setPlayer(prev => {
       const safeChests = { ...(prev.chests || { legendary: 0 }) };
       safeChests.legendary = Math.max(0, safeChests.legendary - 1);
-      const safeStones = { ...(prev.outfitStones || {}) };
-      const { updatedStones, goldToConvert } = computeSmartStoneDrop(safeStones, stones, 'outfit_starter');
-      
-      if (goldToConvert > 0) {
-        setTimeout(() => addNotification(`Converted excess stones to ${goldToConvert} Gold!`, 'SUCCESS'), 1000);
-      }
 
       return {
         ...prev,
-        gold: prev.gold + gold + goldToConvert,
+        gold: prev.gold + gold,
         chests: safeChests,
-        outfitStones: updatedStones,
       };
     });
-    return { gold, stones };
+    return { gold, stones: 0 };
   };
 
   const updateFocusVideos = (videos: Record<string, string>) => {
@@ -1975,109 +1961,11 @@ export const useSystem = () => {
   };
 
   const awardRandomStones = (min: number, max: number, source: string) => {
-    const amount = Math.floor(Math.random() * (max - min + 1)) + min;
-    
-    setPlayer(prev => {
-      const prevStones = prev.outfitStones || {};
-      const { updatedStones, goldToConvert, targetId, stonesAdded } = computeSmartStoneDrop(prevStones, amount);
-      const stoneConf = getStoneConfig(targetId);
-
-      const oldCount = prevStones[targetId] || 0;
-      const newCount = updatedStones[targetId] || oldCount;
-
-      const oldBadges = getUnlockedBadgeCount(oldCount);
-      const newBadges = getUnlockedBadgeCount(newCount);
-
-      const newLogs = [...prev.logs];
-      
-      if (stonesAdded > 0) {
-        newLogs.unshift(createLog(`+${stonesAdded} ${stoneConf.stoneName} earned (${source})`, 'LOOT'));
-      }
-      if (goldToConvert > 0) {
-        newLogs.unshift(createLog(`Max capacity reached! ${amount - stonesAdded} stones converted to ${goldToConvert} Gold.`, 'LOOT'));
-        setTimeout(() => addNotification(`Converted excess stones to ${goldToConvert} Gold!`, 'SUCCESS'), 1000);
-        window.dispatchEvent(new CustomEvent('reforge:coin-earned', { detail: { goldGained: goldToConvert, startRect: null } }));
-      }
-
-      const badgeUnlocked = newBadges > oldBadges;
-      if (stonesAdded > 0 || badgeUnlocked) {
-        window.dispatchEvent(new CustomEvent('stone:earned', {
-          detail: { outfitId: targetId, amount: stonesAdded, oldCount, newCount, color: stoneConf.stoneColor, glow: stoneConf.stoneGlow, badgeUnlocked }
-        }));
-      }
-
-      if (badgeUnlocked) {
-        const unlockedTierIdx = newBadges - 1;
-        const tier = BADGE_TIERS[unlockedTierIdx];
-        if (tier) {
-          newLogs.unshift(createLog(`BADGE UNLOCKED: ${tier.name} (${tier.label}) for ${stoneConf.stoneName.replace(' Crystal', '')}!`, 'SYSTEM'));
-          window.dispatchEvent(new CustomEvent('badge:unlocked', { detail: { tierIndex: unlockedTierIdx, outfitId: targetId } }));
-        }
-      }
-
-      return {
-        ...prev,
-        gold: prev.gold + goldToConvert,
-        outfitStones: updatedStones,
-        logs: newLogs.slice(0, 60),
-      };
-    });
-
-    if (amount > 0) {
-      addNotification(`Received stones from ${source}`, 'SUCCESS');
-    }
+    // Disabled - outfit system removed
   };
 
   const awardOutfitStones = (outfitId: string, amount: number, source: string) => {
-    setPlayer(prev => {
-      const prevStones = prev.outfitStones || {};
-      const { updatedStones, goldToConvert, targetId, stonesAdded } = computeSmartStoneDrop(prevStones, amount, outfitId);
-      const stoneConf = getStoneConfig(targetId);
-
-      const oldCount = prevStones[targetId] || 0;
-      const newCount = updatedStones[targetId] || oldCount;
-
-      const oldBadges = getUnlockedBadgeCount(oldCount);
-      const newBadges = getUnlockedBadgeCount(newCount);
-
-      const newLogs = [...prev.logs];
-      
-      if (stonesAdded > 0) {
-        newLogs.unshift(createLog(`+${stonesAdded} ${stoneConf.stoneName} earned (${source})`, 'LOOT'));
-      }
-      if (goldToConvert > 0) {
-        newLogs.unshift(createLog(`Max capacity reached! ${amount - stonesAdded} stones converted to ${goldToConvert} Gold.`, 'LOOT'));
-        setTimeout(() => addNotification(`Converted excess stones to ${goldToConvert} Gold!`, 'SUCCESS'), 1000);
-        window.dispatchEvent(new CustomEvent('reforge:coin-earned', { detail: { goldGained: goldToConvert, startRect: null } }));
-      }
-
-      const badgeUnlocked = newBadges > oldBadges;
-      if (stonesAdded > 0 || badgeUnlocked) {
-        window.dispatchEvent(new CustomEvent('stone:earned', {
-          detail: { outfitId: targetId, amount: stonesAdded, oldCount, newCount, color: stoneConf.stoneColor, glow: stoneConf.stoneGlow, badgeUnlocked }
-        }));
-      }
-
-      if (badgeUnlocked) {
-        const unlockedTierIdx = newBadges - 1;
-        const tier = BADGE_TIERS[unlockedTierIdx];
-        if (tier) {
-          newLogs.unshift(createLog(`BADGE UNLOCKED: ${tier.name} (${tier.label}) for ${stoneConf.stoneName.replace(' Crystal', '')}!`, 'SYSTEM'));
-          window.dispatchEvent(new CustomEvent('badge:unlocked', { detail: { tierIndex: unlockedTierIdx, outfitId: targetId } }));
-        }
-      }
-
-      return {
-        ...prev,
-        gold: prev.gold + goldToConvert,
-        outfitStones: updatedStones,
-        logs: newLogs.slice(0, 60),
-      };
-    });
-
-    if (amount > 0) {
-      addNotification(`Received stones from ${source}`, 'SUCCESS');
-    }
+    // Disabled - outfit system removed
   };
 
   const failWorkout = () => {
@@ -2400,65 +2288,11 @@ export const useSystem = () => {
   }, [removeStrike, addNotification]);
 
   const purchaseOutfit = useCallback(async (outfit: { id: string; name: string; cost: number; keyCost?: number }): Promise<boolean> => {
-    // Server-authoritative purchase: atomic gold deduction + inventory write
-    try {
-      const resp = await authenticatedFetch(`${API_BASE}/api/inventory/purchase`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ itemId: outfit.id, itemType: 'outfit', price: outfit.cost }),
-      });
-      if (!resp.ok) {
-        const errData = await resp.json().catch(() => ({}));
-        if (errData.error === 'Not enough gold') {
-          addNotification('Insufficient Gold.', 'DANGER');
-        } else if (errData.alreadyOwned) {
-          addNotification('Already owned.', 'WARNING');
-        } else {
-          addNotification('Purchase failed. Try again.', 'DANGER');
-        }
-        return false;
-      }
-      const { gold: newGold } = await resp.json();
-      // Server confirmed purchase — update local state
-      playSystemSoundEffect('PURCHASE');
-      addNotification(`${outfit.name} Unlocked!`, 'PURCHASE');
-      setPlayer(prev => ({
-        ...prev,
-        gold: newGold,
-        unlockedOutfits: [...(prev.unlockedOutfits || ['outfit_starter']), outfit.id],
-        logs: [createLog(`Purchased: ${outfit.name} (-${outfit.cost}G)`, 'PURCHASE'), ...prev.logs],
-      }));
-      return true;
-    } catch {
-      // Network error — fall back to client-side for offline resilience
-      let success = false;
-      setPlayer(prev => {
-        if ((prev.gold || 0) < outfit.cost) {
-          addNotification('Insufficient Gold.', 'DANGER');
-          return prev;
-        }
-        const unlocked = prev.unlockedOutfits || ['outfit_starter'];
-        if (unlocked.includes(outfit.id)) return prev;
-        playSystemSoundEffect('PURCHASE');
-        addNotification(`${outfit.name} Unlocked!`, 'PURCHASE');
-        success = true;
-        return {
-          ...prev,
-          gold: prev.gold - outfit.cost,
-          unlockedOutfits: [...unlocked, outfit.id],
-          logs: [createLog(`Purchased: ${outfit.name} (-${outfit.cost}G)`, 'PURCHASE'), ...prev.logs],
-        };
-      });
-      return success;
-    }
-  }, [addNotification]);
+    return false;
+  }, []);
 
   const equipOutfit = useCallback((outfitId: string) => {
-    setPlayer(prev => ({
-      ...prev,
-      equippedOutfitId: outfitId,
-      logs: [createLog(`Equipped outfit: ${outfitId}`, 'EQUIP'), ...prev.logs]
-    }));
+    // Disabled - outfit system removed
   }, []);
 
   const resolvePenalty = () => {

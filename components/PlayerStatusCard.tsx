@@ -4,7 +4,7 @@ import {
   Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer, PolarRadiusAxis 
 } from 'recharts';
 import { ChevronLeft, ChevronRight, Zap } from 'lucide-react';
-import { PlayerData, CoreStats, Outfit, HistoryEntry } from '../types';
+import { PlayerData, CoreStats, HistoryEntry } from '../types';
 import MentorThoughtBox from './MentorThoughtBox';
 import ForgeGuardWidget from './ForgeGuardWidget';
 
@@ -31,7 +31,6 @@ const DUSK_THOUGHTS = [
 
 interface PlayerStatusCardProps {
   player: PlayerData;
-  equippedOutfit?: Outfit | null;
   mentorMessages: { id: string; text: string }[];
   onDismissMentorMessage: (id: string) => void;
   history: HistoryEntry[];
@@ -40,7 +39,6 @@ interface PlayerStatusCardProps {
 
 const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({ 
   player, 
-  equippedOutfit,
   mentorMessages,
   onDismissMentorMessage,
   history,
@@ -223,67 +221,7 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
     if (total === 0) return `No stats recorded ${modeLabel} yet.`;
     return `${highest.name} leads at ${highest.val}/${cap} ${modeLabel}. Total: ${total}/${cap * 6}.`;
   }, [activeDisplayStats, chartMode, chartDomain, isViewingPast, historyMap, selectedDate, player.dailyStats]);
-  const introRef = useRef<HTMLVideoElement>(null);
-  const loopRef = useRef<HTMLVideoElement>(null);
-  const [videoPhase, setVideoPhase] = useState<'intro' | 'crossfade' | 'loop' | 'image'>('image');
 
-  const hasVideo = !!(equippedOutfit?.introVideoUrl || equippedOutfit?.loopVideoUrl);
-
-  useEffect(() => {
-    if (!hasVideo) { setVideoPhase('image'); return; }
-    const intro = introRef.current;
-    const loop = loopRef.current;
-    if (!intro || !loop) return;
-    loop.pause();
-    loop.currentTime = 0;
-    if (equippedOutfit?.introVideoUrl) {
-      intro.src = equippedOutfit.introVideoUrl;
-      intro.load();
-      setVideoPhase('intro');
-      intro.play().catch(() => {
-        if (equippedOutfit.loopVideoUrl) startLoop();
-        else setVideoPhase('image');
-      });
-    } else if (equippedOutfit?.loopVideoUrl) {
-      startLoop();
-    }
-  }, [equippedOutfit, hasVideo]);
-
-  const startLoop = () => {
-    const loop = loopRef.current;
-    if (!loop) return;
-    if (equippedOutfit?.loopVideoUrl) {
-      loop.src = equippedOutfit.loopVideoUrl;
-      loop.load();
-      loop.loop = true;
-      // Start crossfade — both videos visible, opacity transitions
-      setVideoPhase('crossfade');
-      loop.play().catch(() => setVideoPhase('image'));
-      // After crossfade completes, fully switch to loop
-      setTimeout(() => {
-        setVideoPhase('loop');
-        // Pause intro to free resources
-        if (introRef.current) {
-          introRef.current.pause();
-        }
-      }, 600);
-    } else {
-      setVideoPhase('image');
-    }
-  };
-
-  useEffect(() => {
-    const intro = introRef.current;
-    if (!intro) return;
-    const ended = () => startLoop();
-    const error = () => startLoop();
-    intro.addEventListener('ended', ended);
-    intro.addEventListener('error', error);
-    return () => {
-      intro.removeEventListener('ended', ended);
-      intro.removeEventListener('error', error);
-    };
-  }, []);
 
   return (
     <div className="w-full relative rounded-2xl overflow-hidden flex flex-col group shadow-[0_20px_60px_rgba(0,0,0,0.7)] bg-[#0A0A0F]" style={{ border: '1px solid rgba(0,212,255,0.3)' }}>
@@ -525,41 +463,13 @@ const PlayerStatusCard: React.FC<PlayerStatusCardProps> = ({
         {/* ── RIGHT CONTAINER: VIDEO ── */}
         <div className="w-[55%] md:w-[58%] relative z-10 shrink-0 bg-[#0A0A0F] overflow-hidden">
           <div className="absolute inset-0 w-full h-full">
-            <video
-              ref={introRef}
-              muted playsInline preload="auto"
+            <video 
+              autoPlay loop muted playsInline
               poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+              src="https://res.cloudinary.com/dcnqnbvp0/video/upload/v1769167952/Subject_animestyle_shadow_202601231701_vl45_ayicwk.mp4"
               className="absolute inset-0 w-full h-full object-cover object-center bg-transparent"
-              style={{
-                opacity: videoPhase === 'intro' ? 1 : videoPhase === 'crossfade' ? 0 : 0,
-                transition: 'opacity 0.6s ease-in-out',
-                pointerEvents: videoPhase === 'intro' || videoPhase === 'crossfade' ? 'auto' : 'none',
-              }}
               onCanPlay={(e) => (e.target as HTMLVideoElement).classList.add('video-ready')}
             />
-            <video
-              ref={loopRef}
-              muted playsInline loop preload="auto"
-              poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
-              className="absolute inset-0 w-full h-full object-cover object-center bg-transparent"
-              style={{
-                opacity: videoPhase === 'loop' || videoPhase === 'crossfade' ? 1 : 0,
-                transition: 'opacity 0.6s ease-in-out',
-              }}
-              onCanPlay={(e) => (e.target as HTMLVideoElement).classList.add('video-ready')}
-            />
-            {videoPhase === 'image' && equippedOutfit?.image && (
-              <img src={equippedOutfit.image} alt={equippedOutfit.name} className="absolute inset-0 w-full h-full object-cover object-center brightness-75" />
-            )}
-            {videoPhase === 'image' && !equippedOutfit?.image && (
-              <video 
-                autoPlay loop muted playsInline
-                poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
-                src="https://res.cloudinary.com/dcnqnbvp0/video/upload/v1769167952/Subject_animestyle_shadow_202601231701_vl45_ayicwk.mp4"
-                className="absolute inset-0 w-full h-full object-cover object-center bg-transparent"
-                onCanPlay={(e) => (e.target as HTMLVideoElement).classList.add('video-ready')}
-              />
-            )}
           </div>
 
           {/* Edge gradients for blending — stronger top/bottom shadows */}

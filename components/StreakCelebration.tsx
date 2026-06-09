@@ -16,7 +16,7 @@ const DEFAULT_CFG = OUTFIT_CONFIG.outfit_starter;
 interface StreakCelebrationProps {
   oldStreak: number;
   newStreak: number;
-  outfitId: string;
+  outfitId?: string;
   weeklyActivity: boolean[]; // 7 entries, Mon→Sun
   streakBroken: boolean;     // true if streak was reset (missed >1 day)
   onComplete: () => void;
@@ -75,7 +75,7 @@ function seededRandom(seed: number): () => number {
 const StreakCelebration: React.FC<StreakCelebrationProps> = ({
   oldStreak, newStreak, outfitId, weeklyActivity, streakBroken, onComplete,
 }) => {
-  const cfg = OUTFIT_CONFIG[outfitId] || DEFAULT_CFG;
+  const cfg = (outfitId && OUTFIT_CONFIG[outfitId]) || DEFAULT_CFG;
   const [phase, setPhase] = useState(0);
   const [lottieData, setLottieData] = useState<object | null | false>(_flameLottieData);
 

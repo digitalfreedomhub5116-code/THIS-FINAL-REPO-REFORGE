@@ -2,7 +2,7 @@ import express from 'express';
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 import { supabaseServer, isSupabaseDown } from '../lib/supabase.js';
-import { generatePlayerToken, getAuthenticatedUserId } from '../lib/playerAuth.js';
+import { generatePlayerToken, getAuthenticatedUserId, verifyPlayerToken } from '../lib/playerAuth.js';
 import { generateOtp, storeOtp, sendOtpEmail, verifyOtp, sendPasswordResetEmail } from '../lib/otp.js';
 
 const router = express.Router();

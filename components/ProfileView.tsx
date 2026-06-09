@@ -633,7 +633,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ player, onUpdate, onAvatarCha
                       <li className="flex items-center gap-2"><span className="text-red-400">✕</span> All XP, level, rank, streak</li>
                       <li className="flex items-center gap-2"><span className="text-red-400">✕</span> All coins & keys</li>
                       <li className="flex items-center gap-2"><span className="text-red-400">✕</span> Workout history & nutrition logs</li>
-                      <li className="flex items-center gap-2"><span className="text-red-400">✕</span> Outfits & purchases</li>
+                      <li className="flex items-center gap-2"><span className="text-red-400">✕</span> Borders, themes & purchases</li>
                     </ul>
                     <p className="text-[10px] text-red-400 font-bold mt-3">This action CANNOT be undone.</p>
                   </div>

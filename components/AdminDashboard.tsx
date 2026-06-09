@@ -8,44 +8,9 @@ import { API_BASE } from '../lib/apiConfig';
 import { MASTER_PROTOCOL_REGISTRY } from '../utils/workoutGenerator';
 import ExerciseLibrary from './admin/ExerciseLibrary';
 import PlanBuilder from './admin/PlanBuilder';
-import OutfitHunterBadge, { OUTFIT_BADGE_CONFIG } from './OutfitHunterBadge';
 import AdminUserProfileModal from './AdminUserProfileModal';
 
-interface StoreOutfit {
-  id: number;
-  outfit_key: string;
-  name: string;
-  description: string;
-  tier: string;
-  cost: number;
-  accent_color: string;
-  image_url: string;
-  intro_video_url: string;
-  loop_video_url: string;
-  attack: number;
-  boost: number;
-  extraction: number;
-  ultimate: number;
-  is_default: boolean;
-  display_order: number;
-}
 
-const emptyForm = (): Omit<StoreOutfit, 'id' | 'is_default' | 'display_order'> & { display_order: number } => ({
-  outfit_key: '',
-  name: '',
-  description: '',
-  tier: 'E',
-  cost: 0,
-  accent_color: '#9ca3af',
-  image_url: '',
-  intro_video_url: '',
-  loop_video_url: '',
-  attack: 0,
-  boost: 0,
-  extraction: 0,
-  ultimate: 0,
-  display_order: 0,
-});
 
 interface AdminDashboardProps {
   adminToken: string;
@@ -109,8 +74,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
   const [protocolsSubTab, setProtocolsSubTab] = useState<'EXERCISES' | 'PLANS'>('EXERCISES');
 
   // Store State
-  const [storeOutfits, setStoreOutfits] = useState<StoreOutfit[]>([]);
-  const [storeSubTab, setStoreSubTab] = useState<'OUTFITS' | 'BANNERS' | 'ITEMS' | 'SHADOWS' | 'LIVE_STORE'>('OUTFITS');
+  const [storeOutfits, setStoreOutfits] = useState<any[]>([]);
+  const [storeSubTab, setStoreSubTab] = useState<'BANNERS' | 'ITEMS' | 'SHADOWS' | 'LIVE_STORE'>('BANNERS');
 
   // Remote Store (Live Store) State
   const [remoteItems, setRemoteItems] = useState<any[]>([]);
@@ -136,12 +101,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
   const [editingBanner, setEditingBanner] = useState<any>(null);
   const [bannerForm, setBannerForm] = useState({ title: '', subtitle: '', image_url: '', link_url: '', is_active: true, display_order: 0 });
   const [confirmDeleteBannerId, setConfirmDeleteBannerId] = useState<number | null>(null);
-  const [showOutfitForm, setShowOutfitForm] = useState(false);
-  const [editingOutfit, setEditingOutfit] = useState<StoreOutfit | null>(null);
-  const [outfitForm, setOutfitForm] = useState(emptyForm());
   const [storeLoading, setStoreLoading] = useState(false);
   const [storeMsg, setStoreMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
   // Region Video State
   const [regionVideos, setRegionVideos] = useState<Record<string, string>>(player.focusVideos || {});
@@ -398,7 +359,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
 
   useEffect(() => { 
       if (activeTab === 'USERS') fetchUsers();
-      if (activeTab === 'STORE') { fetchStoreOutfits(); fetchBanners(); fetchRemoteItems(); }
+      if (activeTab === 'STORE') { fetchBanners(); fetchRemoteItems(); }
       if (activeTab === 'USAGE') fetchUsage(usagePeriod);
       if (activeTab === 'REPORTS') fetchReports();
       if (activeTab === 'APPEALS') fetchAppeals();
@@ -421,92 +382,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
       return () => clearInterval(interval);
   }, [activeTab]);
 
-  // --- STORE ACTIONS ---
-  const fetchStoreOutfits = async () => {
-      setStoreLoading(true);
-      try {
-          const res = await fetch(`${API_BASE}/api/store/outfits`, { headers: { 'Authorization': `Bearer ${adminToken}` } });
-          const data = await res.json();
-          setStoreOutfits(data || []);
-      } catch { setStoreMsg({ type: 'error', text: 'Failed to load outfits' }); }
-      finally { setStoreLoading(false); }
-  };
 
-  const openCreateForm = () => {
-      setEditingOutfit(null);
-      setOutfitForm(emptyForm());
-      setShowOutfitForm(true);
-  };
-
-  const openEditForm = (o: StoreOutfit) => {
-      setEditingOutfit(o);
-      setOutfitForm({
-          outfit_key: o.outfit_key,
-          name: o.name,
-          description: o.description,
-          tier: o.tier,
-          cost: o.cost,
-          accent_color: o.accent_color,
-          image_url: o.image_url || '',
-          intro_video_url: o.intro_video_url,
-          loop_video_url: o.loop_video_url,
-          attack: o.attack,
-          boost: o.boost,
-          extraction: o.extraction,
-          ultimate: o.ultimate,
-          display_order: o.display_order,
-      });
-      setShowOutfitForm(true);
-  };
-
-  const saveOutfit = async () => {
-      setStoreLoading(true);
-      setStoreMsg(null);
-      try {
-          const url = editingOutfit ? `${API_BASE}/api/store/outfits/${editingOutfit.id}` : `${API_BASE}/api/store/outfits`;
-          const method = editingOutfit ? 'PUT' : 'POST';
-          const res = await fetch(url, {
-              method,
-              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminToken}` },
-              body: JSON.stringify(outfitForm),
-          });
-          if (!res.ok) { const e = await res.json(); throw new Error(e.error || 'Save failed'); }
-          setStoreMsg({ type: 'success', text: editingOutfit ? 'Outfit updated!' : 'Outfit created!' });
-          setShowOutfitForm(false);
-          fetchStoreOutfits();
-      } catch (err: any) {
-          setStoreMsg({ type: 'error', text: err.message });
-      } finally { setStoreLoading(false); }
-  };
-
-  const deleteOutfit = async (id: number) => {
-      setStoreLoading(true);
-      try {
-          const res = await fetch(`${API_BASE}/api/store/outfits/${id}`, {
-              method: 'DELETE',
-              headers: { 'Authorization': `Bearer ${adminToken}` },
-          });
-          if (!res.ok) { const e = await res.json(); throw new Error(e.error || 'Delete failed'); }
-          setStoreMsg({ type: 'success', text: 'Outfit removed.' });
-          setConfirmDeleteId(null);
-          fetchStoreOutfits();
-      } catch (err: any) {
-          setStoreMsg({ type: 'error', text: err.message });
-      } finally { setStoreLoading(false); }
-  };
-
-  const setDefaultOutfit = async (id: number) => {
-      setStoreLoading(true);
-      try {
-          await fetch(`${API_BASE}/api/store/outfits/${id}/set-default`, {
-              method: 'POST',
-              headers: { 'Authorization': `Bearer ${adminToken}` },
-          });
-          setStoreMsg({ type: 'success', text: 'Default outfit updated globally!' });
-          fetchStoreOutfits();
-      } catch { setStoreMsg({ type: 'error', text: 'Failed to set default' }); }
-      finally { setStoreLoading(false); }
-  };
 
   // ── Remote Store (Live Store) CRUD ──
   const fetchRemoteItems = async () => {
@@ -961,7 +837,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
 
                   {/* Sub-tabs */}
                   <div className="flex gap-2 flex-wrap">
-                      {(['OUTFITS', 'BANNERS', 'ITEMS', 'SHADOWS', 'LIVE_STORE'] as const).map(tab => (
+                      {(['BANNERS', 'ITEMS', 'SHADOWS', 'LIVE_STORE'] as const).map(tab => (
                           <button
                               key={tab}
                               onClick={() => setStoreSubTab(tab)}
@@ -971,288 +847,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
                           </button>
                       ))}
                   </div>
-
-                  {/* ── OUTFITS SUB-TAB ── */}
-                  {storeSubTab === 'OUTFITS' && (
-                      <div className="space-y-4">
-                          <div className="flex items-center justify-between">
-                              <h3 className="text-sm font-black text-white uppercase tracking-widest">Outfit Registry</h3>
-                              <button
-                                  onClick={openCreateForm}
-                                  className="flex items-center gap-1.5 px-3 py-2 bg-yellow-400 hover:bg-yellow-300 text-black rounded-lg text-xs font-black tracking-widest uppercase transition-all"
-                              >
-                                  <Plus size={12} /> CREATE NEW OUTFIT
-                              </button>
-                          </div>
-
-                          {/* Create/Edit Form */}
-                          {showOutfitForm && (
-                              <div className="bg-gray-900/80 border border-yellow-400/30 rounded-xl p-5 space-y-4">
-                                  <h4 className="text-yellow-400 font-black text-xs tracking-widest uppercase">
-                                      {editingOutfit ? `EDITING: ${editingOutfit.name}` : 'CREATE NEW OUTFIT'}
-                                  </h4>
-
-                                  <div className="grid grid-cols-2 gap-3">
-                                      <div>
-                                          <label className="text-[9px] text-gray-500 uppercase tracking-widest font-bold block mb-1">Outfit Key (unique ID)</label>
-                                          <input
-                                              value={outfitForm.outfit_key}
-                                              onChange={e => setOutfitForm(f => ({ ...f, outfit_key: e.target.value }))}
-                                              placeholder="outfit_example"
-                                              disabled={!!editingOutfit}
-                                              className="w-full bg-black border border-gray-700 rounded px-3 py-2 text-xs text-white outline-none focus:border-yellow-400 disabled:opacity-50"
-                                          />
-                                      </div>
-                                      <div>
-                                          <label className="text-[9px] text-gray-500 uppercase tracking-widest font-bold block mb-1">Name</label>
-                                          <input
-                                              value={outfitForm.name}
-                                              onChange={e => setOutfitForm(f => ({ ...f, name: e.target.value }))}
-                                              placeholder="Outfit Name"
-                                              className="w-full bg-black border border-gray-700 rounded px-3 py-2 text-xs text-white outline-none focus:border-yellow-400"
-                                          />
-                                      </div>
-                                      <div className="col-span-2">
-                                          <label className="text-[9px] text-gray-500 uppercase tracking-widest font-bold block mb-1">Description</label>
-                                          <input
-                                              value={outfitForm.description}
-                                              onChange={e => setOutfitForm(f => ({ ...f, description: e.target.value }))}
-                                              placeholder="Outfit description..."
-                                              className="w-full bg-black border border-gray-700 rounded px-3 py-2 text-xs text-white outline-none focus:border-yellow-400"
-                                          />
-                                      </div>
-                                      <div>
-                                          <label className="text-[9px] text-gray-500 uppercase tracking-widest font-bold block mb-1">Tier</label>
-                                          <select
-                                              value={outfitForm.tier}
-                                              onChange={e => setOutfitForm(f => ({ ...f, tier: e.target.value }))}
-                                              className="w-full bg-black border border-gray-700 rounded px-3 py-2 text-xs text-white outline-none focus:border-yellow-400"
-                                          >
-                                              {['E','D','C','B','A','S'].map(t => <option key={t} value={t}>{t}-Rank</option>)}
-                                          </select>
-                                      </div>
-                                      <div>
-                                          <label className="text-[9px] text-gray-500 uppercase tracking-widest font-bold block mb-1">Cost (Gold)</label>
-                                          <input
-                                              type="number"
-                                              value={outfitForm.cost}
-                                              onChange={e => setOutfitForm(f => ({ ...f, cost: parseInt(e.target.value) || 0 }))}
-                                              className="w-full bg-black border border-gray-700 rounded px-3 py-2 text-xs text-white outline-none focus:border-yellow-400"
-                                          />
-                                      </div>
-                                      <div>
-                                          <label className="text-[9px] text-gray-500 uppercase tracking-widest font-bold block mb-1">Accent Color</label>
-                                          <div className="flex gap-2">
-                                              <input
-                                                  type="color"
-                                                  value={outfitForm.accent_color}
-                                                  onChange={e => setOutfitForm(f => ({ ...f, accent_color: e.target.value }))}
-                                                  className="w-10 h-8 rounded border border-gray-700 bg-black cursor-pointer"
-                                              />
-                                              <input
-                                                  value={outfitForm.accent_color}
-                                                  onChange={e => setOutfitForm(f => ({ ...f, accent_color: e.target.value }))}
-                                                  className="flex-1 bg-black border border-gray-700 rounded px-2 py-2 text-xs text-white outline-none focus:border-yellow-400"
-                                              />
-                                          </div>
-                                      </div>
-                                      <div>
-                                          <label className="text-[9px] text-gray-500 uppercase tracking-widest font-bold block mb-1">Display Order</label>
-                                          <input
-                                              type="number"
-                                              value={outfitForm.display_order}
-                                              onChange={e => setOutfitForm(f => ({ ...f, display_order: parseInt(e.target.value) || 0 }))}
-                                              className="w-full bg-black border border-gray-700 rounded px-3 py-2 text-xs text-white outline-none focus:border-yellow-400"
-                                          />
-                                      </div>
-                                      <div className="col-span-2">
-                                          <label className="text-[9px] text-gray-500 uppercase tracking-widest font-bold block mb-1">Image URL (character photo)</label>
-                                          <div className="flex gap-2 items-center">
-                                              <input
-                                                  value={outfitForm.image_url}
-                                                  onChange={e => setOutfitForm(f => ({ ...f, image_url: e.target.value }))}
-                                                  placeholder="https://res.cloudinary.com/... or any image URL"
-                                                  className="flex-1 bg-black border border-gray-700 rounded px-3 py-2 text-xs text-white outline-none focus:border-yellow-400"
-                                              />
-                                              {outfitForm.image_url && (
-                                                  <img
-                                                      src={outfitForm.image_url}
-                                                      alt="preview"
-                                                      onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                                                      onLoad={e => { (e.target as HTMLImageElement).style.display = 'block'; }}
-                                                      className="w-10 h-14 object-cover rounded border border-gray-600 flex-shrink-0"
-                                                  />
-                                              )}
-                                          </div>
-                                      </div>
-                                      <div className="col-span-2">
-                                          <label className="text-[9px] text-gray-500 uppercase tracking-widest font-bold block mb-1">Intro Video URL (Cloudinary)</label>
-                                          <input
-                                              value={outfitForm.intro_video_url}
-                                              onChange={e => setOutfitForm(f => ({ ...f, intro_video_url: e.target.value }))}
-                                              placeholder="https://res.cloudinary.com/..."
-                                              className="w-full bg-black border border-gray-700 rounded px-3 py-2 text-xs text-white outline-none focus:border-yellow-400"
-                                          />
-                                      </div>
-                                      <div className="col-span-2">
-                                          <label className="text-[9px] text-gray-500 uppercase tracking-widest font-bold block mb-1">Loop Video URL (Cloudinary)</label>
-                                          <input
-                                              value={outfitForm.loop_video_url}
-                                              onChange={e => setOutfitForm(f => ({ ...f, loop_video_url: e.target.value }))}
-                                              placeholder="https://res.cloudinary.com/..."
-                                              className="w-full bg-black border border-gray-700 rounded px-3 py-2 text-xs text-white outline-none focus:border-yellow-400"
-                                          />
-                                      </div>
-                                  </div>
-
-                                  {/* Stats sliders */}
-                                  <div className="grid grid-cols-2 gap-4 pt-2 border-t border-gray-800">
-                                      {(['attack', 'boost', 'extraction', 'ultimate'] as const).map(stat => {
-                                          const colors: Record<string, string> = { attack: '#ef4444', boost: '#4ade80', extraction: '#3b82f6', ultimate: '#a855f7' };
-                                          const labels: Record<string, string> = { attack: 'Attack', boost: 'Boost', extraction: 'Extract', ultimate: 'Ultimate' };
-                                          return (
-                                              <div key={stat}>
-                                                  <div className="flex justify-between items-center mb-1">
-                                                      <label className="text-[9px] font-black uppercase tracking-widest" style={{ color: colors[stat] }}>{labels[stat]}</label>
-                                                      <span className="text-[10px] font-mono text-white">{outfitForm[stat]} / 100</span>
-                                                  </div>
-                                                  <div className="flex gap-2 items-center">
-                                                      <input
-                                                          type="range"
-                                                          min={0}
-                                                          max={100}
-                                                          value={outfitForm[stat]}
-                                                          onChange={e => setOutfitForm(f => ({ ...f, [stat]: parseInt(e.target.value) }))}
-                                                          className="flex-1 accent-yellow-400"
-                                                      />
-                                                      <input
-                                                          type="number"
-                                                          min={0}
-                                                          max={100}
-                                                          value={outfitForm[stat]}
-                                                          onChange={e => setOutfitForm(f => ({ ...f, [stat]: Math.min(100, Math.max(0, parseInt(e.target.value) || 0)) }))}
-                                                          className="w-14 bg-black border border-gray-700 rounded px-2 py-1 text-xs text-white outline-none text-center"
-                                                      />
-                                                  </div>
-                                              </div>
-                                          );
-                                      })}
-                                  </div>
-
-                                  <div className="flex gap-2 pt-2">
-                                      <button
-                                          onClick={saveOutfit}
-                                          disabled={storeLoading}
-                                          className="flex-1 py-2.5 bg-yellow-400 hover:bg-yellow-300 text-black rounded-lg text-xs font-black tracking-widest uppercase transition-all disabled:opacity-50"
-                                      >
-                                          {storeLoading ? 'SAVING...' : editingOutfit ? 'UPDATE OUTFIT' : 'CREATE OUTFIT'}
-                                      </button>
-                                      <button
-                                          onClick={() => setShowOutfitForm(false)}
-                                          className="px-4 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg text-xs font-bold uppercase transition-all"
-                                      >
-                                          CANCEL
-                                      </button>
-                                  </div>
-                              </div>
-                          )}
-
-                          {/* Outfit List */}
-                          {storeLoading && !showOutfitForm ? (
-                              <div className="text-center py-8 text-gray-600 text-xs font-mono">LOADING OUTFIT REGISTRY...</div>
-                          ) : (
-                              <div className="space-y-2">
-                                  {storeOutfits.map(o => (
-                                      <div key={o.id} className="bg-gray-900/60 border border-gray-800 rounded-xl p-4 hover:border-gray-700 transition-all">
-                                          <div className="flex items-start justify-between gap-3">
-                                              <div className="flex-1 min-w-0">
-                                                  <div className="flex items-center gap-2 mb-1">
-                                                      {o.image_url ? (
-                                                          <img src={o.image_url} alt="outfit" className="w-6 h-6 rounded-md object-cover border border-gray-600 flex-shrink-0" />
-                                                      ) : (
-                                                          <div className="w-6 h-6 rounded-md flex-shrink-0 border border-gray-700 flex items-center justify-center text-[8px] text-gray-500 font-black" style={{ background: o.accent_color, boxShadow: `0 0 6px ${o.accent_color}40` }}>
-                                                            {o.name[0]}
-                                                          </div>
-                                                      )}
-                                                      <span className="text-sm font-black text-white truncate">{o.name}</span>
-                                                      <span className="text-[8px] font-black tracking-widest px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: `${o.accent_color}22`, border: `1px solid ${o.accent_color}55`, color: o.accent_color }}>
-                                                          {o.tier}-RANK
-                                                      </span>
-                                                      {o.is_default && (
-                                                          <span className="flex items-center gap-0.5 text-[8px] font-black tracking-widest px-1.5 py-0.5 rounded-full bg-yellow-400/20 border border-yellow-400/50 text-yellow-400 flex-shrink-0">
-                                                              <Star size={7} /> DEFAULT
-                                                          </span>
-                                                      )}
-                                                  </div>
-                                                  <div className="text-[10px] text-gray-500 mb-2 font-mono">{o.outfit_key} · {o.cost.toLocaleString()} G</div>
-                                                  
-                                                  {/* Media Status Indicators */}
-                                                  <div className="flex gap-2 mb-3">
-                                                      <div className={`text-[8px] font-mono px-1.5 py-0.5 rounded border ${o.image_url ? 'bg-blue-500/10 border-blue-500/30 text-blue-400' : 'bg-red-500/10 border-red-500/30 text-red-400'}`}>
-                                                          IMG: {o.image_url ? 'YES' : 'NO'}
-                                                      </div>
-                                                      <div className={`text-[8px] font-mono px-1.5 py-0.5 rounded border ${o.intro_video_url ? 'bg-green-500/10 border-green-500/30 text-green-400' : 'bg-red-500/10 border-red-500/30 text-red-400'}`}>
-                                                          INTRO: {o.intro_video_url ? 'YES' : 'NO'}
-                                                      </div>
-                                                      <div className={`text-[8px] font-mono px-1.5 py-0.5 rounded border ${o.loop_video_url ? 'bg-[#00d4ff]/10 border-[#00d4ff]/30 text-[#00d4ff]' : 'bg-red-500/10 border-red-500/30 text-red-400'}`}>
-                                                          LOOP: {o.loop_video_url ? 'YES' : 'NO'}
-                                                      </div>
-                                                  </div>
-
-                                                  {/* Mini stat bars */}
-                                                  <div className="grid grid-cols-4 gap-1">
-                                                      {[
-                                                          { label: 'ATK', val: o.attack, color: '#ef4444' },
-                                                          { label: 'BST', val: o.boost, color: '#4ade80' },
-                                                          { label: 'EXT', val: o.extraction, color: '#3b82f6' },
-                                                          { label: 'ULT', val: o.ultimate, color: '#a855f7' },
-                                                      ].map(s => (
-                                                          <div key={s.label}>
-                                                              <div className="text-[7px] font-mono mb-0.5" style={{ color: s.color }}>{s.label} {s.val}</div>
-                                                              <div className="h-1 rounded-full bg-gray-800 overflow-hidden">
-                                                                  <div className="h-full rounded-full transition-all" style={{ width: `${s.val}%`, background: s.color }} />
-                                                              </div>
-                                                          </div>
-                                                      ))}
-                                                  </div>
-                                              </div>
-
-                                              {/* Action buttons */}
-                                              <div className="flex flex-col gap-1 flex-shrink-0">
-                                                  <button
-                                                      onClick={() => openEditForm(o)}
-                                                      className="flex items-center gap-1 px-2.5 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded text-[9px] font-bold tracking-widest uppercase transition-all"
-                                                  >
-                                                      <Edit3 size={10} /> EDIT
-                                                  </button>
-                                                  <button
-                                                      onClick={() => setDefaultOutfit(o.id)}
-                                                      disabled={o.is_default}
-                                                      className={`flex items-center gap-1 px-2.5 py-1.5 rounded text-[9px] font-bold tracking-widest uppercase transition-all ${o.is_default ? 'bg-yellow-400/10 text-yellow-400 cursor-default' : 'bg-gray-800 hover:bg-yellow-400/20 text-gray-300 hover:text-yellow-400'}`}
-                                                  >
-                                                      <Star size={10} /> {o.is_default ? 'DEFAULT' : 'SET DEFAULT'}
-                                                  </button>
-                                                  {confirmDeleteId === o.id ? (
-                                                      <div className="flex gap-1">
-                                                          <button onClick={() => deleteOutfit(o.id)} className="flex-1 px-2 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded text-[8px] font-black uppercase">CONFIRM</button>
-                                                          <button onClick={() => setConfirmDeleteId(null)} className="flex-1 px-2 py-1.5 bg-gray-700 text-gray-300 rounded text-[8px] font-bold">NO</button>
-                                                      </div>
-                                                  ) : (
-                                                      <button
-                                                          onClick={() => setConfirmDeleteId(o.id)}
-                                                          className="flex items-center gap-1 px-2.5 py-1.5 bg-gray-800 hover:bg-red-900/40 text-gray-300 hover:text-red-400 rounded text-[9px] font-bold tracking-widest uppercase transition-all"
-                                                      >
-                                                          <Trash2 size={10} /> REMOVE
-                                                      </button>
-                                                  )}
-                                              </div>
-                                          </div>
-                                      </div>
-                                  ))}
-                              </div>
-                          )}
-                      </div>
-                  )}
 
                   {/* ── BANNERS SUB-TAB ── */}
                   {storeSubTab === 'BANNERS' && (
@@ -1852,7 +1446,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
                           {reports.map((report: any) => {
                               const isExpanded = expandedReportId === report.id;
                               const statusColor = report.status === 'pending' ? '#f87171' : report.status === 'resolved' ? '#4ade80' : '#6b7280';
-                              const outfitCfg = OUTFIT_BADGE_CONFIG[report.reported_outfit_id] || OUTFIT_BADGE_CONFIG.outfit_starter;
+
                               return (
                                   <div key={report.id} className="bg-gray-900/40 border border-gray-800 rounded-xl overflow-hidden">
                                       {/* Report row */}
@@ -1893,7 +1487,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
                                                       { label: 'Total XP', value: Number(report.reported_xp || 0).toLocaleString() },
                                                       { label: 'Gold', value: Number(report.reported_gold || 0).toLocaleString() },
                                                       { label: 'Keys', value: report.reported_keys ?? 0 },
-                                                      { label: 'Outfits Owned', value: (report.reported_unlocked_outfits || []).length },
                                                   ].map(({ label, value }) => (
                                                       <div key={label} className="bg-gray-900/60 rounded-lg px-3 py-2 border border-gray-800">
                                                           <div className="text-[8px] text-gray-500 font-mono uppercase tracking-widest">{label}</div>
@@ -1902,25 +1495,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ adminToken, onLogout })
                                                   ))}
                                               </div>
 
-                                              {/* Equipped outfit */}
-                                              <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                                                  <OutfitHunterBadge outfitId={report.reported_outfit_id || 'outfit_starter'} size={44} />
-                                                  <div>
-                                                      <div className="text-[8px] text-gray-500 font-mono uppercase tracking-widest">Equipped Outfit</div>
-                                                      <div className="text-[11px] font-black text-white">{outfitCfg.name}</div>
-                                                      <div className="text-[8px] font-mono mt-0.5" style={{ color: outfitCfg.accent }}>{outfitCfg.tier}-Rank</div>
-                                                  </div>
-                                                  {(report.reported_unlocked_outfits || []).length > 0 && (
-                                                      <div className="ml-auto text-right">
-                                                          <div className="text-[8px] text-gray-500 font-mono uppercase tracking-widest mb-1">All Owned</div>
-                                                          <div className="flex gap-1 flex-wrap justify-end">
-                                                              {(report.reported_unlocked_outfits as string[]).map((o: string) => (
-                                                                  <span key={o} className="text-[8px] px-1.5 py-0.5 rounded bg-gray-800 text-gray-400 font-mono">{o.replace('outfit_', '')}</span>
-                                                              ))}
-                                                          </div>
-                                                      </div>
-                                                  )}
-                                              </div>
+
 
                                               {/* Actions */}
                                               {report.status === 'pending' && (

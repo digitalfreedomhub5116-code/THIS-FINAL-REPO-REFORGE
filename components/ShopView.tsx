@@ -10,10 +10,10 @@ import GoldCoinStore from './GoldCoinStore';
 import BorderEquipOverlay from './BorderEquipOverlay';
 import Lottie from 'lottie-react';
 import { REWARD_SCHEDULE, DAILY_REWARDS_ENABLED } from '../lib/rewards';
-import { ShopItem, Outfit } from '../types';
+import { ShopItem } from '../types';
 import { API_BASE } from '../lib/apiConfig';
 import ErrorBoundary from './ErrorBoundary';
-import { PROFILE_BORDERS, getBorderConfig, OUTFITS } from '../utils/gameData';
+import { PROFILE_BORDERS, getBorderConfig } from '../utils/gameData';
 import AnimatedBorder from './AnimatedBorder';
 import OnboardingNotice from './OnboardingNotice';
 import { SystemCoin } from './icons/SystemCoin';
@@ -25,9 +25,7 @@ import { Package } from 'lucide-react';
 import AvatarWithBorder, { BorderVideo } from './AvatarWithBorder';
 import { AD_UNITS } from '../hooks/useAdMob';
 
-const WardrobePreviewCard = lazy(() => import('./WardrobePreviewCard'));
-const BadgesSection = lazy(() => import('./BadgesSection'));
-const OutfitPurchaseModal = lazy(() => import('./OutfitPurchaseModal'));
+
 
 interface EventBanner {
   id: number;
@@ -54,15 +52,8 @@ interface ShopViewProps {
   onOpenDailyCalendar?: () => void;
   highlightDungeon?: boolean;
   onHighlightConsumed?: () => void;
-  // Wardrobe props (moved from home page)
-  wardrobeGold?: number;
-  wardrobeUnlockedOutfits?: string[];
-  wardrobeEquippedOutfitId?: string;
-  wardrobeOutfits?: Outfit[];
-  wardrobeOnPurchase?: (outfit: Outfit) => Promise<boolean>;
-  wardrobeOnEquip?: (id: string) => void;
   // Badge system props
-  outfitStones?: Record<string, number>;
+  // (outfitStones removed)
   // Chest inventory
   chests?: { legendary: number };
   onOpenChest?: () => void;
@@ -73,7 +64,7 @@ interface ShopViewProps {
   onPurchaseBorder?: (borderId: string, cost: number) => void;
   onEquipBorder?: (borderId: string | null) => void;
   onEquipBanner?: (bannerId: string | null) => void;
-  initialStoreTab?: 'OUTFITS' | 'BADGES' | 'BORDERS' | 'DEALS' | 'THEMES' | 'BANNERS_SHOP';
+  initialStoreTab?: 'BADGES' | 'BORDERS' | 'DEALS' | 'THEMES' | 'BANNERS_SHOP';
   playerAvatarUrl?: string | null;
   /** Called after a server-confirmed purchase to update parent gold state */
   onGoldUpdate?: (newGold: number) => void;
@@ -666,13 +657,6 @@ const ShopView: React.FC<ShopViewProps> = ({
   onOpenDailyCalendar,
   highlightDungeon = false,
   onHighlightConsumed,
-  wardrobeGold,
-  wardrobeUnlockedOutfits,
-  wardrobeEquippedOutfitId,
-  wardrobeOutfits,
-  wardrobeOnPurchase,
-  wardrobeOnEquip,
-  outfitStones = {},
   chests,
   onOpenChest,
   ownedBorders = ['border_default'],
@@ -695,10 +679,9 @@ const ShopView: React.FC<ShopViewProps> = ({
   userId,
   isPremium = false,
 }) => {
-  const [storeTab, setStoreTab] = useState<'OUTFITS' | 'BADGES' | 'BORDERS' | 'DEALS' | 'ITEMS' | 'THEMES' | 'BANNERS_SHOP'>(initialStoreTab || 'OUTFITS');
+  const [storeTab, setStoreTab] = useState<'BADGES' | 'BORDERS' | 'DEALS' | 'ITEMS' | 'THEMES' | 'BANNERS_SHOP'>(initialStoreTab || 'BADGES');
   const [showMore, setShowMore] = useState(false);
   const [moreTab, setMoreTab] = useState<'ITEMS' | 'BADGES'>('ITEMS');
-  const [outfitModalIdx, setOutfitModalIdx] = useState<number | null>(null);
   const [kitEconomy, setKitEconomy] = useState(getEconomy());
   const [dealTimer, setDealTimer] = useState('');
   const [kitInfoItem, setKitInfoItem] = useState<KitStoreItem | null>(null);
@@ -1202,53 +1185,6 @@ const ShopView: React.FC<ShopViewProps> = ({
                 );
               })()}
 
-              {/* Outfits */}
-              {(() => {
-                const ownedOutfitItems = serverInventory.filter(i => i.item_type === 'outfit');
-                if (ownedOutfitItems.length === 0) return null;
-                return (
-                  <div style={{ marginBottom: 20 }}>
-                    <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>
-                      OUTFITS ({ownedOutfitItems.length})
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
-                      {ownedOutfitItems.map(inv => {
-                        const outfitData = OUTFITS.find(o => o.id === inv.item_id);
-                        const isEquipped = wardrobeEquippedOutfitId === inv.item_id;
-                        return (
-                          <div key={inv.item_id} onClick={() => wardrobeOnEquip?.(inv.item_id)} style={{
-                            textAlign: 'center', cursor: 'pointer',
-                            padding: 10, borderRadius: 14,
-                            background: isEquipped ? 'rgba(139,92,246,0.12)' : 'rgba(255,255,255,0.02)',
-                            border: isEquipped ? '1.5px solid rgba(139,92,246,0.3)' : '1px solid rgba(255,255,255,0.06)',
-                            transition: 'all 0.2s',
-                          }}>
-                            <div style={{
-                              width: 44, height: 44, margin: '0 auto 6px', borderRadius: '50%',
-                              background: isEquipped
-                                ? `linear-gradient(135deg, ${outfitData?.accentColor || '#a78bfa'}30, ${outfitData?.accentColor || '#a78bfa'}10)`
-                                : 'rgba(255,255,255,0.05)',
-                              border: `1px solid ${isEquipped ? (outfitData?.accentColor || '#a78bfa') + '40' : 'rgba(255,255,255,0.06)'}`,
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              overflow: 'hidden',
-                            }}>
-                              {outfitData?.image ? (
-                                <img src={outfitData.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                              ) : (
-                                <span style={{ fontSize: 18 }}>⚔️</span>
-                              )}
-                            </div>
-                            <div style={{ fontSize: 9, fontWeight: 700, color: isEquipped ? '#a78bfa' : 'rgba(255,255,255,0.5)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              {outfitData?.name || inv.item_id.replace('outfit_', '').replace(/_/g, ' ')}
-                            </div>
-                            {isEquipped && <div style={{ fontSize: 7, color: '#22c55e', fontWeight: 900, marginTop: 3 }}>✓ EQUIPPED</div>}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })()}
 
               {/* Titles */}
               {(() => {
@@ -1374,157 +1310,6 @@ const ShopView: React.FC<ShopViewProps> = ({
           ))}
         </div>
       </section>
-
-      {/* ═══════════════════════════════════════════
-           👕 OUTFITS — individual video cards
-         ═══════════════════════════════════════════ */}
-      <section>
-        <div className="store-section-hdr">
-          <div className="hdr-icon" style={{ background: 'rgba(244,114,182,0.12)', border: '1px solid rgba(244,114,182,0.2)' }}>
-            <Shirt size={15} style={{ color: '#F472B6' }} />
-          </div>
-          <span className="hdr-title">Outfits</span>
-          <div className="hdr-line" />
-        </div>
-        <div className="store-hscroll">
-          {(wardrobeOutfits && wardrobeOutfits.length > 0 ? wardrobeOutfits : OUTFITS).map((outfit, idx) => {
-            const isUnlocked = (wardrobeUnlockedOutfits || ['outfit_starter']).includes(outfit.id);
-            const isEquipped = (wardrobeEquippedOutfitId || 'outfit_starter') === outfit.id;
-            const accent = outfit.accentColor || '#9ca3af';
-            return (
-              <div key={outfit.id} style={{
-                flexShrink: 0, width: 155, borderRadius: 18, overflow: 'hidden',
-                background: '#0A0A0F', position: 'relative',
-                border: isEquipped ? `2px solid ${accent}` : '1.5px solid rgba(255,255,255,0.06)',
-                boxShadow: isEquipped ? `0 0 24px ${accent}40` : '0 4px 20px rgba(0,0,0,0.4)',
-                display: 'flex', flexDirection: 'column',
-              }}>
-                {/* Video area */}
-                <div style={{ width: '100%', aspectRatio: '9 / 14', position: 'relative', overflow: 'hidden', background: '#000' }}>
-                  {/* Radial accent glow behind video */}
-                  <div style={{
-                    position: 'absolute', inset: 0, zIndex: 0,
-                    background: `radial-gradient(ellipse at 50% 55%, ${accent}20 0%, transparent 65%)`,
-                  }} />
-                  {/* Loop video */}
-                  {outfit.loopVideoUrl ? (
-                    <video
-                      src={outfit.loopVideoUrl}
-                      muted autoPlay loop playsInline
-                      poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
-                      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center', zIndex: 1 }}
-                      onCanPlay={(e) => (e.target as HTMLVideoElement).classList.add('video-ready')}
-                    />
-                  ) : outfit.introVideoUrl ? (
-                    <video
-                      src={outfit.introVideoUrl}
-                      muted autoPlay loop playsInline
-                      poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
-                      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center', zIndex: 1 }}
-                      onCanPlay={(e) => (e.target as HTMLVideoElement).classList.add('video-ready')}
-                    />
-                  ) : null}
-                  {/* Lock overlay */}
-                  {!isUnlocked && (
-                    <div style={{
-                      position: 'absolute', inset: 0, zIndex: 3,
-                      background: 'rgba(0,0,0,0.55)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
-                      <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Lock size={16} color="#9ca3af" />
-                      </div>
-                    </div>
-                  )}
-                  {/* Equipped badge */}
-                  {isEquipped && (
-                    <div style={{
-                      position: 'absolute', top: 8, right: 8, zIndex: 4,
-                      padding: '3px 8px', borderRadius: 6,
-                      background: accent, fontSize: 8, fontWeight: 900, color: '#000',
-                      boxShadow: `0 0 10px ${accent}80`,
-                      letterSpacing: '0.05em',
-                    }}>✓ EQUIPPED</div>
-                  )}
-                  {/* Bottom gradient */}
-                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '45%', background: 'linear-gradient(transparent, #0A0A0F)', zIndex: 2 }} />
-                </div>
-                {/* Info + Buttons */}
-                <div style={{ padding: '10px 12px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {/* Name + Tier */}
-                  <div>
-                    <div style={{
-                      display: 'inline-block', padding: '2px 7px', borderRadius: 5, marginBottom: 4,
-                      background: `${accent}1a`, border: `1px solid ${accent}40`,
-                      fontSize: 8, fontWeight: 900, color: accent, letterSpacing: '0.1em',
-                    }}>TIER {outfit.tier}</div>
-                    <div style={{ fontSize: 13, fontWeight: 900, color: '#fff', lineHeight: 1.2 }}>{outfit.name}</div>
-                    <div style={{ fontSize: 10, color: (outfit.id === 'outfit_knight' || outfit.id === 'outfit_monarch') ? '#a855f7' : outfit.cost === 0 ? '#4ade80' : 'rgba(255,255,255,0.45)', fontFamily: 'monospace', fontWeight: 700, marginTop: 2 }}>
-                      {outfit.cost === 0 ? 'FREE' : outfit.id === 'outfit_knight' ? '📺 5 ADS' : outfit.id === 'outfit_monarch' ? '📺 20 ADS' : `${outfit.cost.toLocaleString()} G`}
-                    </div>
-                  </div>
-                  {/* Buttons */}
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    <button onClick={() => setOutfitModalIdx(idx)} style={{
-                      flex: 1, padding: '7px 0', borderRadius: 10, cursor: 'pointer',
-                      background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
-                      color: 'rgba(255,255,255,0.6)', fontSize: 10, fontWeight: 800,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
-                    }}>
-                      <Eye size={11} /> View
-                    </button>
-                    {isUnlocked ? (
-                      <button onClick={() => wardrobeOnEquip?.(outfit.id)} disabled={isEquipped} style={{
-                        flex: 1, padding: '7px 0', borderRadius: 10, cursor: isEquipped ? 'default' : 'pointer',
-                        background: isEquipped ? 'rgba(255,255,255,0.04)' : `linear-gradient(135deg, ${accent}, ${accent}cc)`,
-                        border: 'none',
-                        color: isEquipped ? 'rgba(255,255,255,0.3)' : '#000',
-                        fontSize: 10, fontWeight: 900,
-                        boxShadow: isEquipped ? 'none' : `0 0 12px ${accent}40`,
-                      }}>
-                        {isEquipped ? '✓' : 'EQUIP'}
-                      </button>
-                    ) : (
-                      <button onClick={() => setOutfitModalIdx(idx)} style={{
-                        flex: 1, padding: '7px 0', borderRadius: 10, cursor: 'pointer',
-                        background: (outfit.id === 'outfit_knight' || outfit.id === 'outfit_monarch')
-                          ? 'linear-gradient(135deg, #a855f7cc, #7c3aed)'
-                          : 'linear-gradient(135deg, #fbbf24cc, #eab308)',
-                        border: 'none',
-                        color: (outfit.id === 'outfit_knight' || outfit.id === 'outfit_monarch') ? '#fff' : '#000',
-                        fontSize: 10, fontWeight: 900,
-                        boxShadow: (outfit.id === 'outfit_knight' || outfit.id === 'outfit_monarch')
-                          ? '0 0 12px rgba(168,85,247,0.3)'
-                          : '0 0 12px rgba(234,179,8,0.3)',
-                      }}>
-                        {(outfit.id === 'outfit_knight' || outfit.id === 'outfit_monarch') ? '▶ ADS' : 'BUY'}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* ── OUTFIT DETAIL MODAL ── */}
-      {outfitModalIdx !== null && (
-        <Suspense fallback={null}>
-          <OutfitPurchaseModal
-            outfit={(wardrobeOutfits && wardrobeOutfits.length > 0 ? wardrobeOutfits : OUTFITS)[outfitModalIdx]}
-            gold={wardrobeGold ?? gold}
-            isUnlocked={(wardrobeUnlockedOutfits || ['outfit_starter']).includes(
-              (wardrobeOutfits && wardrobeOutfits.length > 0 ? wardrobeOutfits : OUTFITS)[outfitModalIdx]?.id
-            )}
-            onPurchase={async (o) => { const ok = await wardrobeOnPurchase?.(o); return !!ok; }}
-            onEquip={(id) => { wardrobeOnEquip?.(id); setOutfitModalIdx(null); }}
-            onClose={() => setOutfitModalIdx(null)}
-            adProgress={adProgress[(wardrobeOutfits && wardrobeOutfits.length > 0 ? wardrobeOutfits : OUTFITS)[outfitModalIdx]?.id] || null}
-            /* ADS DISABLED — onWatchAd prop removed from OutfitPurchaseModal */
-          />
-        </Suspense>
-      )}
 
       {/* ═══════════════════════════════════════════
            🎁 FREE KEY AD BANNER (Watch 3 ads → 1 Key)
@@ -1788,7 +1573,7 @@ const ShopView: React.FC<ShopViewProps> = ({
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
           }}
         >
-          {showMore ? '▲ Show Less' : '▼ More — Items & Badges'}
+          {showMore ? '▲ Show Less' : '▼ More — Items'}
         </button>
 
         <AnimatePresence>
@@ -1800,38 +1585,8 @@ const ShopView: React.FC<ShopViewProps> = ({
               transition={{ duration: 0.3 }}
               style={{ overflow: 'hidden' }}
             >
-              {/* Sub-tabs */}
-              <div style={{ display: 'flex', gap: 8, padding: '16px 0 12px', justifyContent: 'center' }}>
-                {([
-                  { id: 'ITEMS' as const, label: 'Items', icon: <Shield size={13} /> },
-                  { id: 'BADGES' as const, label: 'Badges', icon: <Hexagon size={13} /> },
-                ]).map(tab => {
-                  const isActive = moreTab === tab.id;
-                  return (
-                    <button key={tab.id} onClick={() => setMoreTab(tab.id)} style={{
-                      display: 'flex', alignItems: 'center', gap: 5, padding: '8px 18px', borderRadius: 10,
-                      background: isActive ? 'rgba(0,212,255,0.15)' : 'rgba(255,255,255,0.03)',
-                      color: isActive ? '#00d4ff' : '#6b7280',
-                      fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                      border: isActive ? '1.5px solid rgba(0,212,255,0.3)' : '1.5px solid transparent',
-                      transition: 'all 0.2s', flexShrink: 0,
-                    }}>
-                      {tab.icon} {tab.label}
-                    </button>
-                  );
-                })}
-              </div>
-              {moreTab === 'ITEMS' && <ItemsTab gold={gold} />}
-              {moreTab === 'BADGES' && (
-                <Suspense fallback={<div className="h-[300px] rounded-2xl bg-[#0A0A0F] animate-pulse" />}>
-                  <BadgesSection
-                    outfitStones={outfitStones}
-                    unlockedOutfits={wardrobeUnlockedOutfits || ['outfit_starter']}
-                    equippedOutfitId={wardrobeEquippedOutfitId || 'outfit_starter'}
-                    outfits={wardrobeOutfits}
-                  />
-                </Suspense>
-              )}
+              <div style={{ padding: '16px 0 12px' }} />
+              <ItemsTab gold={gold} />
             </motion.div>
           )}
         </AnimatePresence>

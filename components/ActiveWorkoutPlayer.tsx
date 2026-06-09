@@ -4,18 +4,19 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Pause, X, AlertOctagon, Check, Activity, Film, Timer as TimerIcon, ChevronRight, Zap, Clock, Dumbbell } from 'lucide-react';
 import { EXERCISE_VIDEOS, getExerciseVideoUrl, fixVideoPath } from '../lib/exerciseVideos';
-import { WorkoutDay } from '../types';
+import { WorkoutDay, FormCoachSession } from '../types';
 import { SpeechService } from '../utils/speechService';
 import { playSystemSoundEffect } from '../utils/soundEngine';
 import { useSystem, isEmbed } from '../hooks/useSystem';
 
 interface ActiveWorkoutPlayerProps {
   plan: WorkoutDay;
-  onComplete: (exercisesCompleted: number, totalExercises: number, results: Record<string, number>, anomalyPoints?: number) => void;
+  onComplete: (exercisesCompleted: number, totalExercises: number, results: Record<string, number>, anomalyPoints?: number, formCoachBonusXp?: number, formCoachSession?: FormCoachSession) => void;
   onFail: () => void;
   streak: number;
   savedSession?: SavedWorkoutSession | null;
 }
+
 
 export interface SavedWorkoutSession {
   currentIdx: number;

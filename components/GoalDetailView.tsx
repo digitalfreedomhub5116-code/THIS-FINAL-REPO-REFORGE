@@ -257,7 +257,7 @@ export function startQuestGeneration(params: {
   if (goal.id.startsWith('mock-')) {
     updateQuestGenStore({ state: 'GENERATING', goalId: goal.id, todayTasks: null, error: null, pendingGoalUpdate: null, pendingFeedQuests: [], pendingScheduleSlots: [] });
     setTimeout(() => {
-      const generatedQuests = goal.id === 'mock-academic-goal' ? [
+      const generatedQuests: GoalQuest[] = goal.id === 'mock-academic-goal' ? [
         { id: 'maq1', title: 'Study Load Balancing Patterns', estimatedDuration: 30, categories: ['intelligence'], rank: 'B', xp: 60, reasoning: 'Understand how traffic is distributed.', completed: false },
         { id: 'maq2', title: 'Draft High Availability Diagram', estimatedDuration: 30, categories: ['intelligence'], rank: 'B', xp: 65, reasoning: 'Practice system design.', completed: false }
       ] : goal.id === 'mock-financial-goal' ? [

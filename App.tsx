@@ -4,11 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 
 
-import StoneDropAnim from './components/StoneDropAnim';
 
-import BatchStoneAnim, { BatchStoneEntry } from './components/BatchStoneAnim';
-
-import BadgeUnlockAnim from './components/BadgeUnlockAnim';
 
 import Layout from './components/Layout';
 
@@ -52,7 +48,7 @@ import {
 
   SkeletonStatsChart, SkeletonStatBoxes, SkeletonLevelProgress,
 
-  SkeletonWardrobePreview, SkeletonRankProgression, SkeletonUpcomingQuests,
+  SkeletonRankProgression, SkeletonUpcomingQuests,
 
   SkeletonDashboardWidgets, SkeletonForgeGuard,
 
@@ -75,11 +71,11 @@ import { useSensors } from './hooks/useSensors';
 
 import { useTheme, ThemeContext } from './hooks/useTheme';
 
-import { Tab, CoreStats, HealthProfile, Outfit, DbOutfit, TierLevel, PlayerData, Quest, DailyReward, MealType } from './types';
+import { Tab, CoreStats, HealthProfile, TierLevel, PlayerData, Quest, DailyReward, MealType } from './types';
 
 import { App as CapApp } from '@capacitor/app';
 
-import { OUTFITS } from './utils/gameData';
+
 
 import { DAILY_REWARDS_ENABLED } from './lib/rewards';
 
@@ -93,6 +89,7 @@ import { supabase } from './lib/supabase';
 // ── VIP emails that get all premium features unlocked ──
 const VIP_EMAILS = new Set([
   'reforgesystem@gmail.com',
+  'jk0066432@gmail.com',
 ]);
 
 import { Terminal, Flame, Plus } from 'lucide-react';
@@ -359,7 +356,7 @@ const App: React.FC = () => {
 
     startSensorTracking, stopSensorTracking, updateQuestSensorData,
 
-    verifyTicket, purchaseOutfit, equipOutfit,
+    verifyTicket,
 
     checkDailyLogin, updateSkillProgress,
 
@@ -601,7 +598,7 @@ const App: React.FC = () => {
 
 
 
-  const [dbOutfits, setDbOutfits] = useState<Outfit[]>([]);
+
 
   const [dailyReward, setDailyReward] = useState<DailyReward | null>(null);
 
@@ -833,7 +830,7 @@ const App: React.FC = () => {
 
   const [healthViewKey, setHealthViewKey] = useState(0);
   const [healthSubTab, setHealthSubTab] = useState<'WORKOUT' | 'NUTRITION' | 'SKILLS' | undefined>(undefined);
-  const [storeInitialTab, setStoreInitialTab] = useState<'OUTFITS' | 'BADGES' | 'BORDERS' | 'DEALS' | 'THEMES' | 'BANNERS_SHOP' | undefined>(undefined);
+  const [storeInitialTab, setStoreInitialTab] = useState<'BADGES' | 'BORDERS' | 'DEALS' | 'THEMES' | 'BANNERS_SHOP' | undefined>(undefined);
 
   // ── RevenueCat (Premium / Reforge Pro) ──
   const [rcState, rcActions] = useRevenueCat();
@@ -1143,23 +1140,6 @@ const App: React.FC = () => {
 
   const [level10TutStep, setLevel10TutStep] = useState(1);
 
-
-
-
-  // ── Stone Drop & Badge Unlock global animations ──
-
-  // Single-stone animation (for lone awards like quests/workouts)
-
-  const [stoneAnim, setStoneAnim] = useState<{ outfitId: string; amount: number; oldCount: number; newCount: number; color: string; glow: string } | null>(null);
-
-  // Batch animation (for dungeon cash-outs with multiple stone types)
-
-  const [batchStoneAnim, setBatchStoneAnim] = useState<BatchStoneEntry[] | null>(null);
-
-  const [badgeAnim, setBadgeAnim] = useState<{ tierIndex: number; outfitId: string } | null>(null);
-
-
-
   // ── Swipe-to-change-tab ──────────────────────────────────────────────────────
 
   const NAV_TAB_ORDER: Tab[] = ['DASHBOARD', 'HEALTH', 'LEADERBOARD', 'STORE', 'PROFILE'];
@@ -1245,101 +1225,6 @@ const App: React.FC = () => {
   }, [activeTab, navigateTo, player.level]); // eslint-disable-line react-hooks/exhaustive-deps
 
 
-
-  // Batching system: buffer rapid-fire events, then decide single vs batch
-
-  const stoneBatchBuffer = useRef<Array<{ outfitId: string; amount: number; oldCount: number; newCount: number; color: string; glow: string }>>([]);
-
-  const stoneBatchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const stoneAnimBusy = useRef(false);
-
-
-
-  const flushStoneBatch = useCallback(() => {
-
-    const batch = [...stoneBatchBuffer.current];
-
-    stoneBatchBuffer.current = [];
-
-    stoneBatchTimer.current = null;
-
-    if (batch.length === 0) { stoneAnimBusy.current = false; return; }
-
-
-
-    // Merge duplicates by outfitId (sum amounts, keep final newCount)
-
-    const merged = new Map<string, typeof batch[0]>();
-
-    for (const entry of batch) {
-
-      const existing = merged.get(entry.outfitId);
-
-      if (existing) {
-
-        existing.amount += entry.amount;
-
-        existing.newCount = Math.max(existing.newCount, entry.newCount);
-
-      } else {
-
-        merged.set(entry.outfitId, { ...entry });
-
-      }
-
-    }
-
-    const items = Array.from(merged.values());
-
-
-
-    stoneAnimBusy.current = true;
-
-    if (items.length === 1) {
-
-      setStoneAnim(items[0]);
-
-    } else {
-
-      setBatchStoneAnim(items);
-
-    }
-
-  }, []);
-
-
-
-  useEffect(() => {
-
-    const onStoneEarned = (_e: Event) => {
-      // Stone animations disabled per user request.
-      // Stones still accumulate in inventory (awardRandomStones handles that),
-      // but no visual StoneDropAnim / BatchStoneAnim plays.
-      return;
-    };
-
-    // Badge unlock cinematic disabled — stones still accumulate silently
-    // but the full-screen BadgeUnlockAnim no longer fires.
-    const onBadgeUnlocked = (_e: Event) => {
-      // No-op: badge cinematic removed per user request
-    };
-
-    window.addEventListener('stone:earned', onStoneEarned);
-
-    window.addEventListener('badge:unlocked', onBadgeUnlocked);
-
-    return () => {
-
-      window.removeEventListener('stone:earned', onStoneEarned);
-
-      window.removeEventListener('badge:unlocked', onBadgeUnlocked);
-
-      if (stoneBatchTimer.current) clearTimeout(stoneBatchTimer.current);
-
-    };
-
-  }, [flushStoneBatch]);
 
 
 
@@ -1743,57 +1628,7 @@ const App: React.FC = () => {
             }
 
 
-            // ── Outfit persistence: restore from server on first poll ──
 
-            // Uses union/max so that neither server nor local can lose purchases
-
-            // (covers page reload, cleared localStorage, and code redeploys)
-
-            const serverOutfits = row.unlockedOutfits as string[] | undefined;
-
-            if (serverOutfits && serverOutfits.length > 0) {
-
-              const union = Array.from(new Set([
-
-                ...(prev.unlockedOutfits || ['outfit_starter']),
-
-                ...serverOutfits,
-
-              ]));
-
-              if (union.length !== (prev.unlockedOutfits || []).length ||
-
-                union.some(id => !(prev.unlockedOutfits || []).includes(id))) {
-
-                updates.unlockedOutfits = union;
-
-              }
-
-            }
-
-            const serverStones = row.outfitStones as Record<string, number> | undefined;
-
-            if (serverStones && typeof serverStones === 'object') {
-
-              const merged: Record<string, number> = { ...serverStones };
-
-              for (const [k, v] of Object.entries(prev.outfitStones || {})) {
-
-                merged[k] = Math.max(merged[k] || 0, v);
-
-              }
-
-              const differs = Object.keys(merged).some(k => (prev.outfitStones || {})[k] !== merged[k]);
-
-              if (differs) updates.outfitStones = merged;
-
-            }
-
-            if (row.equippedOutfitId && row.equippedOutfitId !== prev.equippedOutfitId) {
-
-              updates.equippedOutfitId = row.equippedOutfitId as string;
-
-            }
 
           } else {
 
@@ -2152,11 +1987,7 @@ const App: React.FC = () => {
 
       if (showNotifPrompt) { setShowNotifPrompt(false); return; }
 
-      if (stoneAnim) { setStoneAnim(null); return; }
 
-      if (batchStoneAnim) { setBatchStoneAnim(null); return; }
-
-      // badgeAnim check removed — badge cinematic disabled
 
 
 
@@ -2204,7 +2035,7 @@ const App: React.FC = () => {
 
     rankUpData, showBanReversalNotice, showLogoutChoice, showNotifPrompt,
 
-    stoneAnim, batchStoneAnim, badgeAnim, activeTab, addNotification]);
+    activeTab, addNotification]);
 
 
 
@@ -2361,79 +2192,7 @@ const App: React.FC = () => {
 
 
 
-  // Fetch DB outfits — runs on mount when configured, and re-runs on window focus
 
-  // so changes saved in the admin panel are always reflected without a hard reload
-
-  const fetchDbOutfits = useCallback(() => {
-
-    if (!player.isConfigured) return;
-
-    fetch(`${API_BASE}/api/store/outfits`)
-
-      .then(r => r.json())
-
-      .then((rows: DbOutfit[]) => {
-
-        if (!Array.isArray(rows) || rows.length === 0) return;
-
-        const converted: Outfit[] = rows.map(o => {
-
-          // Fallback: if DB has empty image/video URLs, try static OUTFITS
-
-          const staticMatch = OUTFITS.find(s => s.id === o.outfit_key);
-
-          return {
-
-            id: o.outfit_key,
-
-            name: o.name,
-
-            description: o.description,
-
-            tier: o.tier as TierLevel,
-
-            image: staticMatch?.image || o.image_url || '',
-
-            baseStats: { attack: o.attack, boost: o.boost, extraction: o.extraction, ultimate: o.ultimate },
-
-            cost: o.cost,
-
-            accentColor: o.accent_color,
-
-            introVideoUrl: staticMatch?.introVideoUrl || o.intro_video_url || '',
-
-            loopVideoUrl: staticMatch?.loopVideoUrl || o.loop_video_url || '',
-
-            isDefault: o.is_default,
-
-            buffs: staticMatch?.buffs || [],
-
-          };
-
-        });
-
-        setDbOutfits(converted);
-
-      })
-
-      .catch(() => { /* silently fall back to static OUTFITS */ });
-
-  }, [player.isConfigured]);
-
-
-
-  useEffect(() => {
-
-    fetchDbOutfits();
-
-    const onFocus = () => fetchDbOutfits();
-
-    window.addEventListener('focus', onFocus);
-
-    return () => window.removeEventListener('focus', onFocus);
-
-  }, [fetchDbOutfits]);
 
   // ── Fetch remote store catalog on startup ──
   // Populates the global cache so getItemById() resolves admin-added items
@@ -4287,7 +4046,7 @@ const App: React.FC = () => {
 
                       newStreak={streakAnimData.newStreak}
 
-                      outfitId={player.equippedOutfitId}
+
 
                       weeklyActivity={streakAnimData.weeklyActivity}
 
@@ -5209,7 +4968,7 @@ const App: React.FC = () => {
                           <ErrorBoundary fallbackLabel="Status card failed">
                             <PlayerStatusCard
                               player={player}
-                              equippedOutfit={dbOutfits.find(o => o.id === player.equippedOutfitId) || OUTFITS.find(o => o.id === player.equippedOutfitId)}
+
                               mentorMessages={mentorMessages}
                               onDismissMentorMessage={(id) => setMentorMessages(prev => prev.filter(m => m.id !== id))}
                               history={player.history || []}
@@ -5324,19 +5083,7 @@ const App: React.FC = () => {
 
                           onHighlightConsumed={() => setHighlightDungeon(false)}
 
-                          wardrobeGold={player.gold}
 
-                          wardrobeUnlockedOutfits={player.unlockedOutfits || ['outfit_starter']}
-
-                          wardrobeEquippedOutfitId={player.equippedOutfitId || 'outfit_starter'}
-
-                          wardrobeOutfits={dbOutfits.length > 0 ? dbOutfits : OUTFITS}
-
-                          wardrobeOnPurchase={purchaseOutfit}
-
-                          wardrobeOnEquip={equipOutfit}
-
-                          outfitStones={player.outfitStones || {}}
 
                           chests={player.chests}
 
@@ -5406,7 +5153,7 @@ const App: React.FC = () => {
 
                           player={player}
 
-                          equippedOutfit={dbOutfits.find(o => o.id === player.equippedOutfitId) || OUTFITS.find(o => o.id === player.equippedOutfitId)}
+
 
                         />
 
@@ -5445,7 +5192,7 @@ const App: React.FC = () => {
 
                           lastLoginDate={player.lastLoginDate}
 
-                          outfitStones={player.outfitStones || {}}
+
 
                           chests={player.chests}
 
@@ -5666,7 +5413,7 @@ const App: React.FC = () => {
 
                           player={player}
 
-                          equippedOutfit={dbOutfits.find(o => o.id === player.equippedOutfitId) || OUTFITS.find(o => o.id === player.equippedOutfitId)}
+
 
                           history={player.history || []}
 
@@ -5892,62 +5639,7 @@ const App: React.FC = () => {
 
 
 
-            {/* ── Stone Drop Animation (single award) ── */}
 
-            <AnimatePresence>
-
-              {stoneAnim && (
-
-                <StoneDropAnim
-
-                  key={`stone-${stoneAnim.outfitId}-${stoneAnim.newCount}`}
-
-                  outfitId={stoneAnim.outfitId}
-
-                  amount={stoneAnim.amount}
-
-                  oldCount={stoneAnim.oldCount}
-
-                  newCount={stoneAnim.newCount}
-
-                  color={stoneAnim.color}
-
-                  glow={stoneAnim.glow}
-
-                  onComplete={() => { setStoneAnim(null); stoneAnimBusy.current = false; flushStoneBatch(); }}
-
-                />
-
-              )}
-
-            </AnimatePresence>
-
-
-
-            {/* ── Batch Stone Animation (dungeon cash-out with multiple stone types) ── */}
-
-            <AnimatePresence>
-
-              {batchStoneAnim && (
-
-                <BatchStoneAnim
-
-                  key={`batch-stones-${batchStoneAnim.map(s => s.outfitId).join('-')}`}
-
-                  stones={batchStoneAnim}
-
-                  onComplete={() => { setBatchStoneAnim(null); stoneAnimBusy.current = false; flushStoneBatch(); }}
-
-                />
-
-              )}
-
-            </AnimatePresence>
-
-
-
-            {/* Badge Tier Unlock Animation — DISABLED per user request */}
-            {/* Stones still accumulate but no cinematic plays */}
 
 
 

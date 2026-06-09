@@ -6,14 +6,12 @@ import {
   RefreshCw,
   X, Zap, Flag, AlertTriangle, CheckSquare, Square, Send, Flame, Clock, Trophy, Gift, Coins,
 } from 'lucide-react';
-import { PlayerData, Outfit } from '../types';
+import { PlayerData } from '../types';
 import { API_BASE } from '../lib/apiConfig';
 import { getPlayerAuthHeaders, authenticatedFetch } from '../lib/playerApi';
 import { useSystem } from '../hooks/useSystem';
 import { playSystemSoundEffect } from '../utils/soundEngine';
 import SeasonRewardOverlay from './SeasonRewardOverlay';
-import { OUTFITS } from '../utils/gameData';
-import OutfitHunterBadge, { OUTFIT_BADGE_CONFIG } from './OutfitHunterBadge';
 import AvatarWithBorder from './AvatarWithBorder';
 import { getItemById } from '../utils/storeItems';
 import { generateNPCsForUser } from '../utils/npcGenerator';
@@ -50,7 +48,6 @@ interface SimEntry extends LeaderboardEntry {
 
 interface LeaderboardViewProps {
   player: PlayerData;
-  equippedOutfit?: Outfit;
 }
 
 type TabMode = 'xp' | 'streak';
@@ -91,15 +88,13 @@ function computeRankFromLevel(level: number): string {
   return 'E';
 }
 
-// ── Outfit Config (accent colors for leaderboard row backgrounds) ──
-const OUTFIT_CONFIG = OUTFIT_BADGE_CONFIG;
-const DEFAULT_OUTFIT_CFG = OUTFIT_CONFIG.outfit_starter;
+
 
 
 // ═══════════════════════════════════════════════════════════════
 //  MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════
-const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfit }) => {
+const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player }) => {
   const [xpEntries, setXpEntries] = useState<LeaderboardEntry[]>([]);
   const [streakEntries, setStreakEntries] = useState<LeaderboardEntry[]>([]);
   const [activeTab, setActiveTab] = useState<TabMode>('xp');
@@ -912,8 +907,6 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
       <AnimatePresence>
         {profileTarget && (() => {
           const pEntry = profileTarget;
-          const pCfg = OUTFIT_CONFIG[pEntry.outfitId] || DEFAULT_OUTFIT_CFG;
-          const pOutfit = OUTFITS.find(o => o.id === pEntry.outfitId);
           const pRankColor = RANK_COLORS[pEntry.computedRank] || '#78716c';
           const pTitle = getHunterTitle(simulatedEntries.findIndex(e => (e.username || e.name) === (pEntry.username || pEntry.name)) + 1);
 
@@ -1000,22 +993,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player, equippedOutfi
                     ))}
                   </div>
 
-                  {/* ── Outfit Info — liquid glass ── */}
-                  <div className="rounded-2xl px-4 py-3 mb-4 flex items-center gap-3"
-                    style={{
-                      background: 'rgba(0,212,255,0.04)',
-                      backdropFilter: 'blur(12px)',
-                      WebkitBackdropFilter: 'blur(12px)',
-                      border: '1px solid rgba(0,212,255,0.08)',
-                      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03)',
-                    }}>
-                    <OutfitHunterBadge outfitId={pEntry.outfitId} size={40} />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[8px] font-mono uppercase tracking-widest" style={{ color: 'rgba(0,212,255,0.45)' }}>Equipped Outfit</div>
-                      <div className="text-[12px] font-black text-white truncate">{pOutfit?.name || pCfg.name}</div>
-                      <div className="text-[9px] font-mono" style={{ color: '#00d4ff' }}>{pCfg.tier}-Rank • {pCfg.name}</div>
-                    </div>
-                  </div>
+
 
                   {/* ── Report Button ── */}
                   {!pEntry.isMe && (

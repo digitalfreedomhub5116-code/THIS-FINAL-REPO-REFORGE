@@ -63,5 +63,14 @@ export const SpeechService = {
 
   announceFailure: () => {
     speak("System aborted. Penalty applied.", 0.9, 0.7);
+  },
+
+  announceFormCorrection: (message: string) => {
+    speak(message, 1.1, 1.0);
+  },
+
+  announceRepCounted: (count: number) => {
+    speak(`${count}`, 1.2, 1.1);
   }
 };
+
