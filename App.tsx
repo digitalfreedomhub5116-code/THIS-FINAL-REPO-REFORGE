@@ -3938,7 +3938,7 @@ const App: React.FC = () => {
 
 
 
-  const shouldShowNav = showNav && !isDungeonMode && !inGuildPortal;
+  const shouldShowNav = showNav && !isDungeonMode && !inGuildPortal && activeTab !== 'PROFILE';
 
 
 
@@ -4901,6 +4901,8 @@ const App: React.FC = () => {
 
             hideAmbientGlow={activeTab === 'PROFILE'}
 
+            hideHeader={activeTab === 'PROFILE'}
+
             isPremium={isPremium}
 
             onUpgradePro={() => setShowManaPowerUpsell(true)}
@@ -4910,6 +4912,8 @@ const App: React.FC = () => {
             onLogout={() => setShowLogoutChoice(true)}
 
             onEditProfile={() => navigateTo('PROFILE')}
+
+            onProfileClick={() => navigateTo('PROFILE')}
 
           >
 
@@ -5424,6 +5428,16 @@ const App: React.FC = () => {
                           onLogout={() => setShowLogoutChoice(true)}
 
                           onNavigate={(tab) => setActiveTab(tab)}
+
+                          onBack={() => {
+                            const hist = tabHistoryRef.current;
+                            let prev: Tab = 'DASHBOARD';
+                            while (hist.length) {
+                              const t = hist.pop();
+                              if (t && t !== 'PROFILE') { prev = t; break; }
+                            }
+                            setActiveTab(prev);
+                          }}
 
                           onOpenDusk={() => setShowDuskChat(true)}
 

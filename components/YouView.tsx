@@ -7,6 +7,7 @@ import {
   X, ChevronRight, Lock as LockIcon,
   Swords, Dumbbell, Brain, Users, Shield, Target, Zap,
   Camera, ImagePlus, Loader2, Flame, TrendingUp, Sparkles, Crown, ExternalLink,
+  ArrowLeft, Edit3, LogOut,
 } from 'lucide-react';
 import { PlayerData, HealthProfile, Tab, Rank, CoreStats } from '../types';
 import AvatarWithBorder from './AvatarWithBorder';
@@ -80,6 +81,7 @@ interface YouViewProps {
   onLogout: () => void;
   onDeleteAccount?: () => Promise<void>;
   onNavigate?: (tab: Tab) => void;
+  onBack?: () => void;
   onOpenDusk?: () => void;
   onUpgradePro?: () => void;
   isPremium?: boolean;
@@ -1047,7 +1049,7 @@ const StatsDrawer: React.FC<{ player: PlayerData; history?: import('../types').H
 
 // ─── Main YouView ────────────────────────────────────────────────────
 const YouView: React.FC<YouViewProps> = ({
-  player, history, onUpdate, onAvatarChange, onLogout, onDeleteAccount, onNavigate, onOpenDusk, onUpgradePro, isPremium,
+  player, history, onUpdate, onAvatarChange, onLogout, onDeleteAccount, onNavigate, onBack, onOpenDusk, onUpgradePro, isPremium,
 }) => {
   const [showRank, setShowRank] = useState(false);
   const [showRankProgression, setShowRankProgression] = useState(false);
@@ -1095,6 +1097,32 @@ const YouView: React.FC<YouViewProps> = ({
 
   return (
     <div className="w-full max-w-2xl mx-auto pb-24">
+      {/* ── Overlay top bar: Back + title + Edit Profile ── */}
+      <div
+        className="sticky top-0 z-30 flex items-center justify-between px-3 py-2.5 -mx-4 mb-1 backdrop-blur-md"
+        style={{ background: 'rgba(5,5,10,0.85)', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 10px)' }}
+      >
+        <button
+          onClick={() => onBack?.()}
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl active:scale-95 transition-transform"
+          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+          aria-label="Back"
+        >
+          <ArrowLeft size={16} className="text-gray-300" />
+          <span className="text-[11px] font-mono font-bold tracking-widest text-gray-300">BACK</span>
+        </button>
+        <span className="text-[11px] font-mono font-bold tracking-[0.25em] text-[#00d4ff]">PROFILE</span>
+        <button
+          onClick={() => setShowConfig(true)}
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl active:scale-95 transition-transform"
+          style={{ background: 'rgba(0,212,255,0.1)', border: '1px solid rgba(0,212,255,0.25)' }}
+          aria-label="Edit profile"
+        >
+          <Edit3 size={14} className="text-[#00d4ff]" />
+          <span className="text-[11px] font-mono font-bold tracking-widest text-[#00d4ff]">EDIT</span>
+        </button>
+      </div>
+
       {/* Hidden file inputs — camera vs gallery */}
       <input ref={cameraInputRef} type="file" accept="image/*" capture="user" className="hidden"
         onChange={e => { const f = e.target.files?.[0]; if (f) handleAvatarFile(f); }} />
@@ -1186,6 +1214,18 @@ const YouView: React.FC<YouViewProps> = ({
             <ExternalLink size={12} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
           </span>
         </motion.a>
+      </div>
+
+      {/* ── Sign Out ── */}
+      <div className="mt-6 px-4">
+        <button
+          onClick={onLogout}
+          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl active:scale-[0.98] transition-transform"
+          style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}
+        >
+          <LogOut size={15} className="text-red-400" />
+          <span className="text-[12px] font-mono font-bold tracking-widest text-red-400">SIGN OUT</span>
+        </button>
       </div>
 
       {/* Modals (non-portaled stay in AnimatePresence) */}

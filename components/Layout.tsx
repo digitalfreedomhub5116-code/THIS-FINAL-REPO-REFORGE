@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { LogOut, Edit3, Trash2, Bell } from 'lucide-react';
+import { Trash2, Bell } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SystemNotification, ReplitUser } from '../types';
 import { useThemeContext } from '../hooks/useTheme';
@@ -58,6 +58,7 @@ interface LayoutProps {
   onGoldClick?: () => void;
   onLogout?: () => void;
   onEditProfile?: () => void;
+  onProfileClick?: () => void;
   playerAvatarUrl?: string;
   onMarkNotificationsRead?: () => void;
   onClearNotificationHistory?: () => void;
@@ -105,6 +106,7 @@ const Layout: React.FC<LayoutProps> = ({
   onGoldClick,
   onLogout,
   onEditProfile,
+  onProfileClick,
   onMarkNotificationsRead,
   onClearNotificationHistory,
   hideHeader = false,
@@ -438,9 +440,9 @@ const Layout: React.FC<LayoutProps> = ({
                 <div className="relative flex items-start">
                   {/* Avatar with ring border */}
                   <button
-                    onClick={() => { setShowProfileMenu(v => !v); setShowNotifications(false); }}
+                    onClick={() => { if (onProfileClick) onProfileClick(); setShowProfileMenu(false); setShowNotifications(false); }}
                     className="relative flex-shrink-0 focus:outline-none group z-20"
-                    aria-label="Profile menu"
+                    aria-label="Open profile"
                   >
                     <div
                       className="rounded-full"
@@ -537,46 +539,6 @@ const Layout: React.FC<LayoutProps> = ({
                     </div>
                   </div>
 
-                  {/* Profile dropdown */}
-                  <AnimatePresence>
-                    {showProfileMenu && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -8, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -8, scale: 0.95 }}
-                        transition={{ duration: 0.15 }}
-                        className="absolute left-0 top-full mt-2 w-52 rounded-2xl z-50 overflow-hidden"
-                        style={isLight ? glassDropdownLight : glassDropdownDark}
-                      >
-                        <div className="px-4 py-3 border-b border-white/[0.06]">
-                          <div className="text-white font-heading font-bold text-sm truncate">{playerName}</div>
-                          {playerUsername && (
-                            <div className="text-[#00d4ff] text-[10px] font-medium tracking-widest truncate">@{playerUsername}</div>
-                          )}
-                          <div className="text-gray-600 text-[10px] font-mono mt-0.5">LVL {playerLevel}</div>
-                        </div>
-                        <div className="p-1">
-                          {onEditProfile && (
-                            <button
-                              onClick={() => { onEditProfile(); setShowProfileMenu(false); }}
-                              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/[0.06] text-gray-300 hover:text-white transition-colors text-xs font-mono group"
-                            >
-                              <Edit3 size={13} className="text-[#00d4ff]" />
-                              <span className="tracking-wide">EDIT PROFILE</span>
-                            </button>
-                          )}
-                          <div className="h-px bg-white/[0.06] my-1" />
-                          <button
-                            onClick={() => { if (onLogout) onLogout(); setShowProfileMenu(false); }}
-                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-red-500/10 text-gray-500 hover:text-red-400 transition-colors text-xs font-mono"
-                          >
-                            <LogOut size={13} />
-                            <span className="tracking-wide">LOG OUT</span>
-                          </button>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
                 </div>
               </div>
 
