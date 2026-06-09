@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { LayoutGrid, Crown, Trophy, ShoppingBag, Lock, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Tab } from '../types';
@@ -31,6 +31,20 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, badges,
   const [lockedPopup, setLockedPopup] = useState<{ label: string; level: number } | null>(null);
   const lockedTabs = getLockedTabs(playerLevel);
   const isGuidedGoalsStep = guidedStep === 7;
+  const [forceHide, setForceHide] = useState(false);
+
+  useEffect(() => {
+    const handleHide = () => setForceHide(true);
+    const handleShow = () => setForceHide(false);
+
+    window.addEventListener('reforge:hide-nav', handleHide);
+    window.addEventListener('reforge:show-nav', handleShow);
+
+    return () => {
+      window.removeEventListener('reforge:hide-nav', handleHide);
+      window.removeEventListener('reforge:show-nav', handleShow);
+    };
+  }, []);
 
   const handleTabClick = (tabId: Tab) => {
     if (lockedTabs[tabId]) {
@@ -131,135 +145,140 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, badges,
       </motion.nav>
 
       {/* Mobile Bottom Pill Bar — 3D liquid glass */}
-      <motion.nav
-        initial={{ y: 100, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.5, ease: 'easeOut' }}
-        id="tut-nav-mobile"
-        className="md:hidden fixed left-4 right-4 z-40"
-        style={{ bottom: 'calc(12px + env(safe-area-inset-bottom, 0px))' }}
-      >
-        <div
-          className="relative flex items-center justify-around rounded-[28px] px-1.5 py-1.5 overflow-hidden"
-          style={isLight ? {
-            background: 'rgba(255,255,255,0.88)',
-            backdropFilter: 'blur(28px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(28px) saturate(180%)',
-            border: '1px solid rgba(0,0,0,0.08)',
-            boxShadow: '0 -1px 8px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.08)',
-          } : {
-            background: 'linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(8,8,20,0.82) 16%, rgba(4,4,14,0.92) 100%)',
-            backdropFilter: 'blur(28px) saturate(200%)',
-            WebkitBackdropFilter: 'blur(28px) saturate(200%)',
-            borderTop: '1px solid rgba(255,255,255,0.14)',
-            borderLeft: '1px solid rgba(255,255,255,0.08)',
-            borderRight: '1px solid rgba(255,255,255,0.04)',
-            borderBottom: '1px solid rgba(255,255,255,0.03)',
-            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -1px 0 rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.5), 0 3px 8px rgba(0,0,0,0.35)',
-          }}
-        >
-          {/* Specular top-edge line */}
-          <div className="absolute top-0 left-4 right-4 h-px pointer-events-none rounded-full" style={{ background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.2) 25%, rgba(0,212,255,0.15) 55%, rgba(0,212,255,0.12) 80%, transparent 100%)' }} />
-          {/* Iridescent inner wash */}
-          <div className="absolute inset-0 pointer-events-none rounded-full" style={{ background: 'linear-gradient(135deg, rgba(0,212,255,0.03) 0%, transparent 45%, rgba(0,212,255,0.03) 100%)' }} />
+      <AnimatePresence>
+        {!forceHide && (
+          <motion.nav
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+            id="tut-nav-mobile"
+            className="md:hidden fixed left-4 right-4 z-40"
+            style={{ bottom: 'calc(12px + env(safe-area-inset-bottom, 0px))' }}
+          >
+            <div
+              className="relative flex items-center justify-around rounded-[28px] px-1.5 py-1.5 overflow-hidden"
+              style={isLight ? {
+                background: 'rgba(255,255,255,0.88)',
+                backdropFilter: 'blur(28px) saturate(180%)',
+                WebkitBackdropFilter: 'blur(28px) saturate(180%)',
+                border: '1px solid rgba(0,0,0,0.08)',
+                boxShadow: '0 -1px 8px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.08)',
+              } : {
+                background: 'linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(8,8,20,0.82) 16%, rgba(4,4,14,0.92) 100%)',
+                backdropFilter: 'blur(28px) saturate(200%)',
+                WebkitBackdropFilter: 'blur(28px) saturate(200%)',
+                borderTop: '1px solid rgba(255,255,255,0.14)',
+                borderLeft: '1px solid rgba(255,255,255,0.08)',
+                borderRight: '1px solid rgba(255,255,255,0.04)',
+                borderBottom: '1px solid rgba(255,255,255,0.03)',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -1px 0 rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.5), 0 3px 8px rgba(0,0,0,0.35)',
+              }}
+            >
+              {/* Specular top-edge line */}
+              <div className="absolute top-0 left-4 right-4 h-px pointer-events-none rounded-full" style={{ background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.2) 25%, rgba(0,212,255,0.15) 55%, rgba(0,212,255,0.12) 80%, transparent 100%)' }} />
+              {/* Iridescent inner wash */}
+              <div className="absolute inset-0 pointer-events-none rounded-full" style={{ background: 'linear-gradient(135deg, rgba(0,212,255,0.03) 0%, transparent 45%, rgba(0,212,255,0.03) 100%)' }} />
 
-          {NAV_ITEMS.map((item) => {
-            const isActive = activeTab === item.id;
-            const isCenter = item.id === 'LEADERBOARD';
-            const isLocked = !!lockedTabs[item.id];
-            const Icon = item.icon;
-            const isGuidedHighlight = (isGuidedGoalsStep && item.id === 'GOALS');
-            return (
-              <button
-                key={item.id}
-                id={item.id === 'QUESTS' ? 'nav-quests-btn' : undefined}
-                onClick={() => handleTabClick(item.id)}
-                className="relative flex flex-col items-center justify-center w-12 h-12 gap-0.5"
-              >
-                {isActive && !isLocked && (
-                  <motion.div
-                    layoutId="active-nav-pill"
-                    className="absolute inset-0 rounded-2xl"
-                    style={{
-                      background: isCenter
-                        ? 'linear-gradient(135deg, rgba(234,179,8,0.25) 0%, rgba(251,146,60,0.15) 100%)'
-                        : 'linear-gradient(135deg, rgba(0,212,255,0.3) 0%, rgba(109,40,217,0.2) 100%)',
-                      boxShadow: isCenter
-                        ? 'inset 0 1px 0 rgba(255,255,255,0.15), 0 0 14px rgba(234,179,8,0.4), 0 2px 8px rgba(0,0,0,0.4)'
-                        : 'inset 0 1px 0 rgba(255,255,255,0.12), 0 0 12px rgba(0,212,255,0.5), 0 2px 8px rgba(0,0,0,0.4)',
-                    }}
-                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                  />
-                )}
-                {isGuidedHighlight && (
-                  <motion.div
-                    className="absolute inset-0 rounded-full pointer-events-none"
-                    animate={{ boxShadow: ['0 0 6px rgba(0,212,255,0.3)', '0 0 18px rgba(0,212,255,0.8)', '0 0 6px rgba(0,212,255,0.3)'] }}
-                    transition={{ duration: 1.2, repeat: Infinity }}
-                    style={{ border: '1px solid rgba(0,212,255,0.5)' }}
-                  />
-                )}
-                <div
-                  className="relative z-10 transition-all duration-200"
-                  style={{
-                    color: isLocked
-                      ? '#2a2a3a'
-                      : isActive
-                        ? (isCenter ? '#fbbf24' : '#ffffff')
-                        : isCenter
-                          ? '#fbbf24'
-                          : '#6b7280',
-                    transform: isActive && !isLocked ? 'scale(1.15)' : 'scale(1)',
-                    filter: isLocked
-                      ? 'none'
-                      : isCenter
-                        ? `drop-shadow(0 0 ${isActive ? '8px' : '5px'} rgba(234,179,8,${isActive ? '0.8' : '0.55'}))`
-                        : 'none',
-                  }}
-                >
-                  {isLocked ? <Lock size={16} /> : <Icon size={isCenter ? 20 : 18} />}
-                </div>
-                {/* Tab label */}
-                {!isLocked && (
-                  <span
-                    className="relative z-10 font-mono font-bold uppercase tracking-wider"
-                    style={{
-                      fontSize: 7,
-                      lineHeight: 1,
-                      color: isActive
-                        ? (isCenter ? '#fbbf24' : 'rgba(255,255,255,0.9)')
-                        : isCenter
-                          ? 'rgba(251,191,36,0.55)'
-                          : 'rgba(255,255,255,0.3)',
-                      marginTop: 1,
-                    }}
+              {NAV_ITEMS.map((item) => {
+                const isActive = activeTab === item.id;
+                const isCenter = item.id === 'LEADERBOARD';
+                const isLocked = !!lockedTabs[item.id];
+                const Icon = item.icon;
+                const isGuidedHighlight = (isGuidedGoalsStep && item.id === 'GOALS');
+                return (
+                  <button
+                    key={item.id}
+                    id={item.id === 'QUESTS' ? 'nav-quests-btn' : undefined}
+                    onClick={() => handleTabClick(item.id)}
+                    className="relative flex flex-col items-center justify-center w-12 h-12 gap-0.5"
                   >
-                    {item.label}
-                  </span>
-                )}
-                {isLocked && (
-                  <div
-                    className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full flex items-center justify-center z-20"
-                    style={{
-                      background: 'rgba(20,20,35,0.95)',
-                      border: '1px solid rgba(80,80,120,0.4)',
-                      fontSize: 6,
-                      fontWeight: 900,
-                      color: '#5a5a6a',
-                      fontFamily: 'monospace',
-                    }}
-                  >
-                    {lockedTabs[item.id]}
-                  </div>
-                )}
-                {!isLocked && badges?.[item.id] && !isActive && (
-                  <div className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full z-20 shadow-[0_0_6px_rgba(239,68,68,0.8)]" />
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </motion.nav>
+                    {isActive && !isLocked && (
+                      <motion.div
+                        layoutId="active-nav-pill"
+                        className="absolute inset-0 rounded-2xl"
+                        style={{
+                          background: isCenter
+                            ? 'linear-gradient(135deg, rgba(234,179,8,0.25) 0%, rgba(251,146,60,0.15) 100%)'
+                            : 'linear-gradient(135deg, rgba(0,212,255,0.3) 0%, rgba(109,40,217,0.2) 100%)',
+                          boxShadow: isCenter
+                            ? 'inset 0 1px 0 rgba(255,255,255,0.15), 0 0 14px rgba(234,179,8,0.4), 0 2px 8px rgba(0,0,0,0.4)'
+                            : 'inset 0 1px 0 rgba(255,255,255,0.12), 0 0 12px rgba(0,212,255,0.5), 0 2px 8px rgba(0,0,0,0.4)',
+                        }}
+                        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                      />
+                    )}
+                    {isGuidedHighlight && (
+                      <motion.div
+                        className="absolute inset-0 rounded-full pointer-events-none"
+                        animate={{ boxShadow: ['0 0 6px rgba(0,212,255,0.3)', '0 0 18px rgba(0,212,255,0.8)', '0 0 6px rgba(0,212,255,0.3)'] }}
+                        transition={{ duration: 1.2, repeat: Infinity }}
+                        style={{ border: '1px solid rgba(0,212,255,0.5)' }}
+                      />
+                    )}
+                    <div
+                      className="relative z-10 transition-all duration-200"
+                      style={{
+                        color: isLocked
+                          ? '#2a2a3a'
+                          : isActive
+                            ? (isCenter ? '#fbbf24' : '#ffffff')
+                            : isCenter
+                              ? '#fbbf24'
+                              : '#6b7280',
+                        transform: isActive && !isLocked ? 'scale(1.15)' : 'scale(1)',
+                        filter: isLocked
+                          ? 'none'
+                          : isCenter
+                            ? `drop-shadow(0 0 ${isActive ? '8px' : '5px'} rgba(234,179,8,${isActive ? '0.8' : '0.55'}))`
+                            : 'none',
+                      }}
+                    >
+                      {isLocked ? <Lock size={16} /> : <Icon size={isCenter ? 20 : 18} />}
+                    </div>
+                    {/* Tab label */}
+                    {!isLocked && (
+                      <span
+                        className="relative z-10 font-mono font-bold uppercase tracking-wider"
+                        style={{
+                          fontSize: 7,
+                          lineHeight: 1,
+                          color: isActive
+                            ? (isCenter ? '#fbbf24' : 'rgba(255,255,255,0.9)')
+                            : isCenter
+                              ? 'rgba(251,191,36,0.55)'
+                              : 'rgba(255,255,255,0.3)',
+                          marginTop: 1,
+                        }}
+                      >
+                        {item.label}
+                      </span>
+                    )}
+                    {isLocked && (
+                      <div
+                        className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full flex items-center justify-center z-20"
+                        style={{
+                          background: 'rgba(20,20,35,0.95)',
+                          border: '1px solid rgba(80,80,120,0.4)',
+                          fontSize: 6,
+                          fontWeight: 900,
+                          color: '#5a5a6a',
+                          fontFamily: 'monospace',
+                        }}
+                      >
+                        {lockedTabs[item.id]}
+                      </div>
+                    )}
+                    {!isLocked && badges?.[item.id] && !isActive && (
+                      <div className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full z-20 shadow-[0_0_6px_rgba(239,68,68,0.8)]" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </motion.nav>
+        )}
+      </AnimatePresence>
     </>
   );
 };

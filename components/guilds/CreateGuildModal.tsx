@@ -39,6 +39,13 @@ const CreateGuildModal: React.FC<CreateGuildModalProps> = ({ playerGold, unlocke
   const [creating, setCreating] = useState(false);
   const [errorModal, setErrorModal] = useState<{ title: string; message: string } | null>(null);
 
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('reforge:hide-nav'));
+    return () => {
+      window.dispatchEvent(new CustomEvent('reforge:show-nav'));
+    };
+  }, []);
+
   useEffect(() => { setGold(playerGold); }, [playerGold]);
   useEffect(() => { setUnlocked(unlockedIcons); }, [unlockedIcons]);
 

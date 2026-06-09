@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Loader2, Target, AlertTriangle, ChevronRight, CheckCircle, Shield, Calendar, Flame, Brain, TrendingUp, Clock, CalendarOff } from 'lucide-react';
 import { Goal, GoalInterviewQuestion, GoalMilestone, PlayerData, Rank } from '../types';
@@ -209,6 +209,13 @@ export default function GoalCreationFlow({
   onConsumeMana,
   onRefundMana,
 }: GoalCreationFlowProps) {
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('reforge:hide-nav'));
+    return () => {
+      window.dispatchEvent(new CustomEvent('reforge:show-nav'));
+    };
+  }, []);
+
   const [step, setStep] = useState<Step>('INPUT');
   const [goalText, setGoalText] = useState('');
   const [error, setError] = useState<string | null>(null);
