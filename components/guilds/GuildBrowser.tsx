@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Users, Trophy, Sparkles, Plus, LogIn, Clock, AlertCircle, Coins } from 'lucide-react';
-import { NEON, glassPanel, bannerStyle, GUILD_CREATE_COST } from './guildTheme';
+import { NEON, glassPanel, bannerStyle, GUILD_CREATE_COST, getGuildIconUrl } from './guildTheme';
 import { fetchGuilds, joinGuild, fetchCreateInfo } from '../../lib/guildApi';
 import CreateGuildModal from './CreateGuildModal';
 import type { GuildSummary, Guild } from '../../types';
@@ -181,8 +181,8 @@ const GuildBrowser: React.FC<GuildBrowserProps> = ({ playerGold, userId, onGoldC
                   style={glassPanel}
                 >
                   <div className="flex gap-3">
-                    <div className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl flex-shrink-0" style={bannerStyle(g.banner)}>
-                      {g.icon || '🛡️'}
+                    <div className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden" style={bannerStyle(g.banner)}>
+                      <img src={getGuildIconUrl(g.icon)} alt="" className="w-10 h-10 object-contain" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">

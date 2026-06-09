@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users, Trophy, Sparkles, Crown, Shield, LogOut, Trash2, X, Check, UserPlus, ChevronUp, ChevronDown, AlertCircle } from 'lucide-react';
-import { NEON, glassPanel, bannerStyle, ROLE_LABEL, ROLE_COLOR } from './guildTheme';
+import { NEON, glassPanel, bannerStyle, ROLE_LABEL, ROLE_COLOR, getGuildIconUrl } from './guildTheme';
 import GuildAvatar from './GuildAvatar';
 import {
   fetchGuildDetail, fetchJoinRequests, resolveJoinRequest,
@@ -110,7 +110,9 @@ const GuildInfo: React.FC<GuildInfoProps> = ({ guildId, myUserId, onLeft, onToas
       <div className="h-28 rounded-2xl flex items-end p-4 mt-3 relative overflow-hidden" style={bannerStyle(guild.banner)}>
         <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, transparent, rgba(0,0,0,0.5))' }} />
         <div className="relative flex items-center gap-3">
-          <div className="w-16 h-16 rounded-2xl bg-black/40 flex items-center justify-center text-3xl">{guild.icon || '🛡️'}</div>
+          <div className="w-16 h-16 rounded-2xl bg-black/40 flex items-center justify-center overflow-hidden">
+            <img src={getGuildIconUrl(guild.icon)} alt="" className="w-12 h-12 object-contain" />
+          </div>
           <div>
             <h2 className="text-2xl font-heading font-extrabold text-white leading-tight">{guild.name}</h2>
             {guild.motto && <p className="text-white/80 text-xs italic">"{guild.motto}"</p>}

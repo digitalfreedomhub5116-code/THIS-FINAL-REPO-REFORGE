@@ -71,6 +71,27 @@ export const GUILD_ICON_CATALOG: GuildIconDef[] = [
 export const GUILD_ICON_BY_KEY: Record<string, GuildIconDef> =
   GUILD_ICON_CATALOG.reduce((m, d) => { m[d.key] = d; return m; }, {} as Record<string, GuildIconDef>);
 
+export function getGuildIconUrl(keyOrEmoji?: string | null): string {
+  if (!keyOrEmoji) return '/assets/guilds/guild-icon-shield.png';
+  
+  // Try match by key first
+  const defByKey = GUILD_ICON_BY_KEY[keyOrEmoji];
+  if (defByKey) {
+    return `/assets/guilds/guild-icon-${defByKey.key}.png`;
+  }
+  
+  // Try match by emoji
+  const defByEmoji = GUILD_ICON_CATALOG.find(
+    d => d.emoji === keyOrEmoji || d.emoji.trim() === keyOrEmoji.trim()
+  );
+  if (defByEmoji) {
+    return `/assets/guilds/guild-icon-${defByEmoji.key}.png`;
+  }
+  
+  // Return default if not matched
+  return '/assets/guilds/guild-icon-shield.png';
+}
+
 export function initials(name?: string): string {
   if (!name) return 'H';
   const parts = name.trim().split(/\s+/);

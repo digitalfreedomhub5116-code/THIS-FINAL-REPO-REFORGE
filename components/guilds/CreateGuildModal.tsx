@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Lock, Check, ArrowLeft, ArrowRight, Coins, AlertTriangle, Loader2 } from 'lucide-react';
-import { NEON, glassPanel, GUILD_ICON_CATALOG, GUILD_ICON_BY_KEY, GUILD_CREATE_COST } from './guildTheme';
+import { NEON, glassPanel, GUILD_ICON_CATALOG, GUILD_ICON_BY_KEY, GUILD_CREATE_COST, getGuildIconUrl } from './guildTheme';
 import { createGuild, checkGuildName, purchaseGuildIcon, type CreateGuildError } from '../../lib/guildApi';
 import type { Guild } from '../../types';
 
@@ -258,7 +258,7 @@ const CreateGuildModal: React.FC<CreateGuildModalProps> = ({ playerGold, unlocke
                         boxShadow: selected ? `0 0 16px ${NEON}66` : 'none',
                       }}
                     >
-                      <span className="text-4xl">{ic.emoji}</span>
+                      <img src={getGuildIconUrl(ic.key)} alt={ic.label} className="w-14 h-14 object-contain" />
 
                       {/* Badge */}
                       {ic.free ? (
@@ -279,7 +279,11 @@ const CreateGuildModal: React.FC<CreateGuildModalProps> = ({ playerGold, unlocke
                   );
                 })}
               </div>
-              <p className="text-xs text-gray-500 mt-3">Selected: {selectedIcon?.emoji} {selectedIcon?.label}</p>
+              <p className="text-xs text-gray-500 mt-3 flex items-center justify-center gap-1.5">
+                <span>Selected:</span>
+                <img src={getGuildIconUrl(selectedIcon?.key)} alt="" className="w-5 h-5 object-contain" />
+                <span className="font-bold text-white">{selectedIcon?.label}</span>
+              </p>
             </div>
           )}
 
@@ -315,8 +319,8 @@ const CreateGuildModal: React.FC<CreateGuildModalProps> = ({ playerGold, unlocke
 
           {step === 'review' && (
             <div className="flex flex-col items-center text-center pt-2">
-              <div className="w-28 h-28 rounded-3xl flex items-center justify-center mb-3" style={{ background: INPUT_BG, boxShadow: `0 0 24px ${NEON}44`, border: `1px solid ${NEON}55` }}>
-                <span className="text-6xl">{selectedIcon?.emoji}</span>
+              <div className="w-28 h-28 rounded-3xl flex items-center justify-center mb-3 overflow-hidden" style={{ background: INPUT_BG, boxShadow: `0 0 24px ${NEON}44`, border: `1px solid ${NEON}55` }}>
+                <img src={getGuildIconUrl(selectedIcon?.key)} alt={selectedIcon?.label} className="w-20 h-20 object-contain" />
               </div>
               <h3 className="text-2xl font-heading font-extrabold text-white">{name.trim()}</h3>
               {motto.trim() && <p className="text-gray-400 italic text-sm mt-1">"{motto.trim()}"</p>}
@@ -389,7 +393,9 @@ const CreateGuildModal: React.FC<CreateGuildModalProps> = ({ playerGold, unlocke
               initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="text-5xl mb-3">{GUILD_ICON_BY_KEY[purchaseConfirm]?.emoji}</div>
+              <div className="w-20 h-20 mx-auto flex items-center justify-center mb-3 overflow-hidden" style={{ background: INPUT_BG, borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <img src={getGuildIconUrl(purchaseConfirm)} alt="" className="w-14 h-14 object-contain" />
+              </div>
               <p className="text-white font-bold mb-1">Purchase {GUILD_ICON_BY_KEY[purchaseConfirm]?.label} Icon?</p>
               <p className="text-gray-400 text-sm mb-5 flex items-center justify-center gap-1">
                 <Coins size={14} style={{ color: '#fbbf24' }} /> {GUILD_ICON_BY_KEY[purchaseConfirm]?.cost.toLocaleString()} gold

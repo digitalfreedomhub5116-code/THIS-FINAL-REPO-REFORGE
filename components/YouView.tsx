@@ -427,8 +427,8 @@ const ProfileHero: React.FC<{
         </motion.div>
       </div>
 
-      {/* ── Rank badge — bottom right of the entire card ── */}
-      <button onClick={onRankTap} className="absolute z-20" style={{ bottom: 12, right: 16 }} aria-label="View rank">
+      {/* ── Rank badge — bottom right of the banner image ── */}
+      <button onClick={onRankTap} className="absolute z-30" style={{ top: 104, right: 12 }} aria-label="View rank">
         <RankBadge rank={(player.rank || 'E') as RankType} size={48} animated />
       </button>
     </div>
