@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Info,
-  FileText,
+  Target,
   MessageSquare,
   Swords,
   Landmark,
@@ -12,12 +12,12 @@ import { NEON, glassPanel, getGuildIconUrl } from "./guildTheme";
 import { subscribeToGuild } from "../../lib/guildRealtime";
 import GuildChat from "./GuildChat";
 import GuildInfo from "./GuildInfo";
-import GuildGates from "./GuildGates";
+import GuildMissions from "./GuildMissions";
 import GuildVault from "./GuildVault";
 import GuildWar from "./GuildWar";
 import type { Guild, GuildRole } from "../../types";
 
-type PortalTab = "info" | "gates" | "chat" | "war" | "vault";
+type PortalTab = "info" | "mission" | "chat" | "war" | "vault";
 
 const PORTAL_TABS: {
   key: PortalTab;
@@ -25,7 +25,7 @@ const PORTAL_TABS: {
   icon: React.ComponentType<any>;
 }[] = [
   { key: "info", label: "Info", icon: Info },
-  { key: "gates", label: "Gates", icon: FileText },
+  { key: "mission", label: "Mission", icon: Target },
   { key: "chat", label: "Chat", icon: MessageSquare },
   { key: "war", label: "War", icon: Swords },
   { key: "vault", label: "Vault", icon: Landmark },
@@ -47,6 +47,8 @@ interface GuildPortalProps {
     title: string,
     msg?: string
   ) => void;
+  unseenMessagesCount?: number;
+  onTabChange?: (tab: string) => void;
 }
 
 const GuildPortal: React.FC<GuildPortalProps> = ({
@@ -61,8 +63,14 @@ const GuildPortal: React.FC<GuildPortalProps> = ({
   onLeftGuild,
   onGuildUpdated,
   onToast,
+  unseenMessagesCount,
+  onTabChange,
 }) => {
   const [tab, setTab] = useState<PortalTab>("chat"); // Chat is default
+
+  useEffect(() => {
+    onTabChange?.(tab);
+  }, [tab, onTabChange]);
   const [missionSignal, setMissionSignal] = useState(0);
   const onLeftRef = useRef(onLeftGuild);
   onLeftRef.current = onLeftGuild;
@@ -81,7 +89,7 @@ const GuildPortal: React.FC<GuildPortalProps> = ({
         onLeftRef.current();
       },
       onMissionComplete: (p) => {
-        onToast?.("SUCCESS", "Gate cleared!", p.title);
+        onToast?.("SUCCESS", "Mission completed!", p.title);
         setMissionSignal((n) => n + 1);
       },
     });
@@ -150,8 +158,8 @@ const GuildPortal: React.FC<GuildPortalProps> = ({
                 onToast={onToast}
               />
             )}
-            {tab === "gates" && (
-              <GuildGates guildId={guild.id} completionSignal={missionSignal} />
+            {tab === "mission" && (
+              <GuildMissions guildId={guild.id} completionSignal={missionSignal} onToast={onToast} />
             )}
             {tab === "chat" && (
               <GuildChat
@@ -168,7 +176,7 @@ const GuildPortal: React.FC<GuildPortalProps> = ({
                   onLeftGuild();
                 }}
                 onMissionComplete={(p) => {
-                  onToast?.("SUCCESS", "Gate cleared!", p.title);
+                  onToast?.("SUCCESS", "Mission completed!", p.title);
                   setMissionSignal((n) => n + 1);
                 }}
               />
@@ -217,7 +225,17 @@ const GuildPortal: React.FC<GuildPortalProps> = ({
                   style={{ background: NEON, boxShadow: `0 0 8px ${NEON}` }}
                 />
               )}
-              <Icon size={20} style={{ color: active ? NEON : "#6b7280" }} />
+              <div className="relative">
+                <Icon size={20} style={{ color: active ? NEON : "#6b7280" }} />
+                {t.key === "chat" && unseenMessagesCount && unseenMessagesCount > 0 ? (
+                  <div
+                    className="absolute -top-1.5 -right-1.5 bg-red-600 text-white rounded-full flex items-center justify-center font-mono font-bold shadow-[0_0_8px_rgba(239,68,68,0.9)]"
+                    style={{ minWidth: '14px', height: '14px', fontSize: '8px', padding: '0 2px', borderRadius: '50%' }}
+                  >
+                    {unseenMessagesCount}
+                  </div>
+                ) : null}
+              </div>
               <span
                 className="text-[9px] font-mono uppercase tracking-wider"
                 style={{ color: active ? NEON : "#6b7280" }}

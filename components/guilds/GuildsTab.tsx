@@ -19,6 +19,8 @@ interface GuildsTabProps {
     title: string,
     msg?: string
   ) => void;
+  unseenMessagesCount?: number;
+  onTabChange?: (tab: string) => void;
 }
 
 const GuildsTab: React.FC<GuildsTabProps> = ({
@@ -27,6 +29,8 @@ const GuildsTab: React.FC<GuildsTabProps> = ({
   onExitToApp,
   onGoldChange,
   onToast,
+  unseenMessagesCount,
+  onTabChange,
 }) => {
   const [guild, setGuild] = useState<Guild | null>(null);
   const [myRole, setMyRole] = useState<GuildRole | null>(null);
@@ -54,6 +58,11 @@ const GuildsTab: React.FC<GuildsTabProps> = ({
     onPortalChange(!!guild && !loading);
     return () => onPortalChange(false);
   }, [guild, loading, onPortalChange]);
+
+  // Notify App about guild ID changes for realtime message tracking
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('guild:changed', { detail: { guildId: guild?.id || null } }));
+  }, [guild]);
 
   if (loading) {
     return (
@@ -91,6 +100,8 @@ const GuildsTab: React.FC<GuildsTabProps> = ({
           setGuild((g) => (g ? { ...g, ...partial } : g))
         }
         onToast={onToast}
+        unseenMessagesCount={unseenMessagesCount}
+        onTabChange={onTabChange}
       />
     );
   }

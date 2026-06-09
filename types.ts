@@ -71,7 +71,7 @@ export interface GuildMessage {
   id: string;
   guildId: string;
   userId: string | null;
-  type: "user" | "system" | "workout";
+  type: "user" | "system" | "workout" | "quest";
   body: string;
   meta: Record<string, any>;
   createdAt: string;

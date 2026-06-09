@@ -227,7 +227,7 @@ export async function fetchChatHistory(
 export async function sendChatMessage(
   id: string,
   body: string,
-  type: "user" | "workout" = "user",
+  type: "user" | "workout" | "quest" = "user",
   meta?: Record<string, any>
 ): Promise<{ message: GuildMessage }> {
   const res = await authenticatedFetch(`${base}/${id}/chat`, {
@@ -243,6 +243,21 @@ export async function fetchMission(id: string): Promise<GuildMission | null> {
   const res = await authenticatedFetch(`${base}/${id}/mission`);
   const data = await jsonOrThrow(res);
   return data.mission || null;
+}
+
+export async function fetchUnclaimedRewards(id: string): Promise<any[]> {
+  const res = await authenticatedFetch(`${base}/${id}/mission/rewards`);
+  const data = await jsonOrThrow(res);
+  return data.rewards || [];
+}
+
+export async function claimReward(id: string, rewardId: string): Promise<{ success: boolean; rewardGold: number; rewardXp: number; player: any }> {
+  const res = await authenticatedFetch(`${base}/${id}/mission/rewards/claim`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ rewardId }),
+  });
+  return jsonOrThrow(res);
 }
 
 // ── War ──

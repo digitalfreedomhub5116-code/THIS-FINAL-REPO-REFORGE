@@ -16,7 +16,7 @@ import GuildsTab from './components/guilds/GuildsTab';
 
 import GuildShareWorkout from './components/guilds/GuildShareWorkout';
 
-import { recordGuildContribution } from './lib/guildApi';
+import { recordGuildContribution, fetchMyGuild, sendChatMessage } from './lib/guildApi';
 
 import SystemPersonalizationScreen from './components/SystemPersonalizationScreen';
 
@@ -85,6 +85,7 @@ import { saveAuthNative, clearAuthNative } from './lib/nativeAuth';
 import { clearEconomySession } from './utils/storeEconomy';
 import { useRevenueCat } from './hooks/useRevenueCat';
 import { supabase } from './lib/supabase';
+import { subscribeToGuild } from './lib/guildRealtime';
 
 // ── VIP emails that get all premium features unlocked ──
 const VIP_EMAILS = new Set([
@@ -797,7 +798,7 @@ const App: React.FC = () => {
   const [questCreateTrigger, setQuestCreateTrigger] = useState(0);
 
   // ── Nav badge dots — conditional visibility ──
-  const [navBadges, setNavBadges] = useState<Record<string, boolean>>({});
+  const [navBadges, setNavBadges] = useState<Record<string, boolean | number>>({});
 
   // Helper: get current deal rotation slot (deals rotate every 8h)
   const getCurrentDealSlot = useCallback(() => {
@@ -956,12 +957,131 @@ const App: React.FC = () => {
   const [guildShareSummary, setGuildShareSummary] = useState<{ exercises: number; total: number; xp?: number } | null>(null);
   const [dungeonEntryTrigger, setDungeonEntryTrigger] = useState<{ equipment?: 'GYM' | 'HOME_DUMBBELLS' | 'BODYWEIGHT'; timestamp: number } | null>(null);
 
+  // ── Unread Guild Messages Realtime tracking ──
+  const [myGuildId, setMyGuildId] = useState<string | null>(null);
+  const [unseenMessagesCount, setUnseenMessagesCount] = useState(0);
+  const [activePortalTab, setActivePortalTab] = useState<string>('chat');
+
+  // Initialize guild ID on mount/login
+  useEffect(() => {
+    if (!player.userId || isLocalUser(player.userId)) {
+      setMyGuildId(null);
+      return;
+    }
+    let active = true;
+    fetchMyGuild()
+      .then(({ guild }) => {
+        if (active) {
+          setMyGuildId(guild?.id || null);
+        }
+      })
+      .catch(() => {
+        if (active) setMyGuildId(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [player.userId]);
+
+  // Listen to guild changes (join/leave) dispatched from GuildsTab
+  useEffect(() => {
+    const handleGuildChange = (e: Event) => {
+      const gId = (e as CustomEvent).detail?.guildId;
+      setMyGuildId(gId || null);
+    };
+    window.addEventListener('guild:changed', handleGuildChange);
+    return () => window.removeEventListener('guild:changed', handleGuildChange);
+  }, []);
+
+  // Listen to rewards claimed dispatched from GuildMissions
+  useEffect(() => {
+    const handleRewardsClaimed = (e: Event) => {
+      const updatedPlayer = (e as CustomEvent).detail?.player;
+      if (updatedPlayer) {
+        setPlayer((prev) => ({
+          ...prev,
+          gold: updatedPlayer.gold,
+          level: updatedPlayer.level,
+          currentXp: updatedPlayer.currentXp,
+          requiredXp: updatedPlayer.requiredXp,
+          totalXp: updatedPlayer.totalXp,
+          rank: updatedPlayer.rank,
+        }));
+      }
+    };
+    window.addEventListener('player:rewards_claimed', handleRewardsClaimed);
+    return () => window.removeEventListener('player:rewards_claimed', handleRewardsClaimed);
+  }, [setPlayer]);
+
+  // Realtime subscription to the user's guild channel
+  useEffect(() => {
+    if (!myGuildId) {
+      setUnseenMessagesCount(0);
+      return;
+    }
+
+    const unsub = subscribeToGuild(myGuildId, {
+      onMessage: (msg) => {
+        const isViewingChat = activeTab === 'GUILDS' && inGuildPortal && activePortalTab === 'chat';
+        if (!isViewingChat) {
+          setUnseenMessagesCount((prev) => prev + 1);
+        }
+      },
+    });
+
+    return unsub;
+  }, [myGuildId, activeTab, inGuildPortal, activePortalTab]);
+
+  // Reset unseen message count when user actively enters chat tab
+  useEffect(() => {
+    const isViewingChat = activeTab === 'GUILDS' && inGuildPortal && activePortalTab === 'chat';
+    if (isViewingChat) {
+      setUnseenMessagesCount(0);
+    }
+  }, [activeTab, inGuildPortal, activePortalTab]);
+
+  // Map unseenMessagesCount to navBadges.GUILDS
+  useEffect(() => {
+    setNavBadges((prev) => ({
+      ...prev,
+      GUILDS: unseenMessagesCount > 0 ? unseenMessagesCount : false,
+    }));
+  }, [unseenMessagesCount]);
+
   // ── Guild contribution: every completed quest feeds the guild's daily mission & war ──
   useEffect(() => {
-    const onQuestDone = () => { recordGuildContribution(1, 'quest'); };
+    const onQuestDone = async (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (!detail) return;
+      const { id, title, xpGained, streak, level, currentXp, requiredXp } = detail;
+      
+      // 1. Record guild contribution
+      recordGuildContribution(1, 'quest');
+      
+      // 2. Share quest completion card to guild chat
+      if (player.userId && !isLocalUser(player.userId)) {
+        try {
+          const { guild } = await fetchMyGuild();
+          if (guild && guild.id) {
+            const body = `Completed Quest: ${title}`;
+            await sendChatMessage(guild.id, body, 'quest', {
+              questId: id,
+              questTitle: title,
+              xpGained: xpGained || 50,
+              streak: streak || player.streak || 0,
+              level: level || player.level || 1,
+              currentXp: currentXp || player.currentXp || 0,
+              requiredXp: requiredXp || player.requiredXp || 100,
+            });
+          }
+        } catch (err) {
+          console.warn('[Quest Done Sharing] Failed to share quest completion to guild chat:', err);
+        }
+      }
+    };
     window.addEventListener('quest:completed', onQuestDone);
     return () => window.removeEventListener('quest:completed', onQuestDone);
-  }, []);
+  }, [player.userId, player.streak, player.level, player.currentXp, player.requiredXp]);
 
   // Wrap dungeon completion: forward to useSystem, then record guild contribution + offer to share.
   const handleDungeonWorkoutComplete = useCallback((
@@ -973,9 +1093,30 @@ const App: React.FC = () => {
     formCoachSession?: any,
   ) => {
     completeDungeonWorkout(exercisesCompleted, totalExercises, results, anomalyPoints, formCoachBonusXp, formCoachSession);
-    recordGuildContribution(Math.max(1, exercisesCompleted), 'workout');
+    // Fire contributions for all matching mission types:
+    // 'workout' = 1 workout logged, 'dungeon' = 1 dungeon cleared, 'exercise' = N exercises done
+    recordGuildContribution(1, 'workout');
+    recordGuildContribution(1, 'dungeon');
+    recordGuildContribution(Math.max(1, exercisesCompleted), 'exercise');
     setGuildShareSummary({ exercises: exercisesCompleted, total: totalExercises });
   }, [completeDungeonWorkout]);
+
+  // Wrap regular workout completion: forward to useSystem, then record guild contributions.
+  const handleWorkoutComplete = useCallback((
+    exercisesCompleted: number,
+    totalExercises: number,
+    results: Record<string, number>,
+    intensityModifier: boolean,
+    anomalyPoints: number = 0,
+    isCustomWorkout: boolean = false,
+    formCoachBonusXp: number = 0,
+    formCoachSession?: any,
+  ) => {
+    const rewards = completeWorkoutSession(exercisesCompleted, totalExercises, results, intensityModifier, anomalyPoints, isCustomWorkout, formCoachBonusXp, formCoachSession);
+    recordGuildContribution(1, 'workout');
+    recordGuildContribution(Math.max(1, exercisesCompleted), 'exercise');
+    return rewards;
+  }, [completeWorkoutSession]);
 
 
 
@@ -5248,7 +5389,7 @@ const App: React.FC = () => {
 
                           onSaveProfile={saveHealthProfile}
 
-                          onCompleteWorkout={completeWorkoutSession}
+                          onCompleteWorkout={handleWorkoutComplete}
 
                           onFailWorkout={failWorkout}
 
@@ -5393,6 +5534,8 @@ const App: React.FC = () => {
                         onExitToApp={() => setActiveTab('DASHBOARD')}
                         onGoldChange={(g) => setPlayer(prev => ({ ...prev, gold: g }))}
                         onToast={(type, title, subtitle) => showSystemToast({ type: type === 'ERROR' ? 'WARNING' : type, title, subtitle })}
+                        unseenMessagesCount={unseenMessagesCount}
+                        onTabChange={setActivePortalTab}
                       />
 
                     </ErrorBoundary>

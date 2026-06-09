@@ -4,6 +4,7 @@ import {
   ActivityLog, HealthProfile, ProgressPhoto, MealLog, WorkoutDay, AdminExercise, DailyReward,
   ReplitUser, HistoryEntry, Goal, FormCoachSession
 } from '../types';
+import { recordGuildContribution } from '../lib/guildApi';
 import { playSystemSoundEffect } from '../utils/soundEngine';
 import { getPlayerAuthHeaders, authenticatedFetch } from '../lib/playerApi';
 import { clearAuthNative } from '../lib/nativeAuth';
@@ -544,7 +545,17 @@ export const useSystem = () => {
         }
 
         // Dispatch quest:completed for leaderboard refresh etc.
-        window.dispatchEvent(new CustomEvent('quest:completed', { detail: { id, title } }));
+        window.dispatchEvent(new CustomEvent('quest:completed', {
+          detail: {
+            id,
+            title,
+            xpGained: xpReward,
+            streak: prev.streak || 0,
+            level: lu.level,
+            currentXp: lu.currentXp,
+            requiredXp: lu.requiredXp
+          }
+        }));
         // Trigger Dusk reaction
         triggerDuskMessage(`Goal Quest Completed: "${title}" (+${xpReward} XP)`);
 
@@ -1400,7 +1411,17 @@ export const useSystem = () => {
       }
 
       // Dispatch quest complete event
-      window.dispatchEvent(new CustomEvent('quest:completed', { detail: { id, title: quest.title } }));
+      window.dispatchEvent(new CustomEvent('quest:completed', {
+        detail: {
+          id,
+          title: quest.title,
+          xpGained: boostedReward,
+          streak: prev.streak || 0,
+          level: lu.level,
+          currentXp: lu.currentXp,
+          requiredXp: lu.requiredXp
+        }
+      }));
 
       // Trigger autonomous Dusk reaction
       triggerDuskMessage(`Quest Completed: "${quest.title}" (+${reward} XP)`);
@@ -1607,6 +1628,26 @@ export const useSystem = () => {
 
   const logMeal = (meal: MealLog) => {
     const recoveryAmount = 5;
+
+    // Daily meal scan counter for today
+    const today = toLocalDateStr();
+    const counterKey = `reforge_food_scan_count_${today}`;
+    let scanCount = 0;
+    try {
+      scanCount = parseInt(localStorage.getItem(counterKey) || '0', 10) || 0;
+    } catch {}
+    scanCount += 1;
+    try {
+      localStorage.setItem(counterKey, String(scanCount));
+    } catch {}
+
+    if (scanCount === 2) {
+      // Trigger guild contribution for food scan daily mission
+      recordGuildContribution(1, 'food').catch(err => {
+        console.warn('[Food Scan] Failed to record guild contribution:', err);
+      });
+    }
+
     setPlayer(prev => ({
       ...prev,
       hp: Math.min(prev.maxHp, prev.hp + recoveryAmount),

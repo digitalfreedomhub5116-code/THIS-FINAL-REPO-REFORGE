@@ -179,27 +179,110 @@ function todayStr(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-// Daily mission pool — one is chosen per guild per day.
-const MISSION_POOL = [
+// RPG level system helpers (authoritative server-side calculation on reward claim)
+function computeRank(level: number): string {
+  if (level >= 80) return "S";
+  if (level >= 55) return "A";
+  if (level >= 39) return "B";
+  if (level >= 27) return "C";
+  if (level >= 11) return "D";
+  return "E";
+}
+
+interface LevelUpResult {
+  currentXp: number;
+  requiredXp: number;
+  level: number;
+  leveledUp: boolean;
+  rank: string;
+}
+
+function safeLevelUp(currentXp: number, requiredXp: number, level: number): LevelUpResult {
+  if (!requiredXp || requiredXp < 50) requiredXp = 100;
+  let leveledUp = false;
+  let iterations = 0;
+  while (currentXp >= requiredXp && iterations < 100) {
+    currentXp -= requiredXp;
+    level++;
+    const next = Math.floor(requiredXp * 1.5);
+    requiredXp = next > requiredXp ? next : requiredXp + 1;
+    leveledUp = true;
+    iterations++;
+  }
+  return { currentXp, requiredXp, level, leveledUp, rank: computeRank(level) };
+}
+
+interface MissionDef {
+  key: string;
+  mission_type: string;
+  titleTemplate: string;
+  baseMultiplier: number;
+  minTarget: number;
+  reward: {
+    gold: number;
+    xp: number;
+    vault_gold: number;
+    glory: number;
+  };
+}
+
+// Updated daily mission pool (including the weekly Food Scan mission)
+const MISSION_POOL: MissionDef[] = [
   {
-    title: "Complete 50 workouts together",
-    target: 50,
-    reward: { gold: 500, glory: 100 },
+    key: "clear_dungeons",
+    mission_type: "dungeon",
+    titleTemplate: "Clear {target} dungeons collectively",
+    baseMultiplier: 0.8,
+    minTarget: 1,
+    reward: { gold: 250, xp: 150, vault_gold: 500, glory: 120 },
   },
   {
-    title: "Earn 10,000 XP as a guild",
-    target: 10000,
-    reward: { gold: 600, glory: 120 },
+    key: "complete_quests",
+    mission_type: "quest",
+    titleTemplate: "Complete {target} daily quests collectively",
+    baseMultiplier: 2.0,
+    minTarget: 2,
+    reward: { gold: 200, xp: 120, vault_gold: 400, glory: 100 },
   },
   {
-    title: "Finish 80 quests collectively",
-    target: 80,
-    reward: { gold: 550, glory: 110 },
+    key: "complete_workouts",
+    mission_type: "workout",
+    titleTemplate: "Log {target} workouts collectively",
+    baseMultiplier: 0.6,
+    minTarget: 1,
+    reward: { gold: 180, xp: 100, vault_gold: 350, glory: 80 },
   },
   {
-    title: "Clear 30 dungeons together",
-    target: 30,
-    reward: { gold: 700, glory: 150 },
+    key: "complete_exercises",
+    mission_type: "exercise",
+    titleTemplate: "Perform {target} exercises collectively",
+    baseMultiplier: 4.0,
+    minTarget: 5,
+    reward: { gold: 220, xp: 130, vault_gold: 450, glory: 110 },
+  },
+  {
+    key: "earn_xp",
+    mission_type: "xp",
+    titleTemplate: "Earn {target} XP collectively as a guild",
+    baseMultiplier: 150.0,
+    minTarget: 150,
+    reward: { gold: 240, xp: 140, vault_gold: 480, glory: 115 },
+  },
+  {
+    key: "earn_gold",
+    mission_type: "gold",
+    titleTemplate: "Earn {target} Gold collectively as a guild",
+    baseMultiplier: 120.0,
+    minTarget: 120,
+    reward: { gold: 200, xp: 125, vault_gold: 420, glory: 95 },
+  },
+  {
+    key: "scan_food",
+    mission_type: "food",
+    titleTemplate: "Scan {target} meals collectively (min 2 per member)",
+    baseMultiplier: 1.0,
+    minTarget: 2,
+    reward: { gold: 230, xp: 135, vault_gold: 460, glory: 105 },
   },
 ];
 
@@ -213,19 +296,47 @@ async function ensureTodayMission(db: any, guildId: string): Promise<any> {
     .maybeSingle();
   if (existing) return existing;
 
-  // Deterministic pick so all members see the same mission.
-  const idx = Math.abs(hashStr(guildId + date)) % MISSION_POOL.length;
-  const m = MISSION_POOL[idx];
+  // 1. Fetch current member count of this guild
+  const { count } = await db
+    .from("guild_members")
+    .select("id", { count: "exact", head: true })
+    .eq("guild_id", guildId);
+  const memberCount = count || 1;
+
+  // 2. Deterministic assignment of "Food Scan" day of week (0-6) per guild
+  // This guarantees that the "Scan Food" mission appears exactly once per week randomly per guild.
+  const now = new Date();
+  const dayOfWeek = now.getUTCDay(); // 0 (Sunday) to 6 (Saturday)
+  const foodScanDay = Math.abs(hashStr(guildId)) % 7;
+
+  let chosenMission: MissionDef;
+  if (dayOfWeek === foodScanDay) {
+    chosenMission = MISSION_POOL.find((m) => m.mission_type === "food") || MISSION_POOL[0];
+  } else {
+    const otherMissions = MISSION_POOL.filter((m) => m.mission_type !== "food");
+    const idx = Math.abs(hashStr(guildId + date)) % otherMissions.length;
+    chosenMission = otherMissions[idx];
+  }
+
+  // 3. Scale the target dynamically based on the member count
+  const target = Math.max(
+    chosenMission.minTarget,
+    Math.ceil(memberCount * chosenMission.baseMultiplier)
+  );
+  const title = chosenMission.titleTemplate.replace("{target}", target.toString());
+
   const { data: created } = await db
     .from("guild_missions")
     .insert({
       guild_id: guildId,
       date,
-      title: m.title,
-      target: m.target,
+      title,
+      target,
       progress: 0,
-      reward: m.reward,
+      reward: chosenMission.reward,
       completed: false,
+      mission_type: chosenMission.mission_type,
+      rewards_distributed: false,
     })
     .select("*")
     .single();
@@ -1048,7 +1159,7 @@ router.post("/:id/chat", async (req: Request, res: Response) => {
       return res.status(403).json({ error: "Not a member" });
 
     const { body, type, meta } = req.body || {};
-    const msgType = type === "workout" ? "workout" : "user";
+    const msgType = ["workout", "quest"].includes(type) ? type : "user";
     if (msgType === "user" && (!body || !String(body).trim())) {
       return res.status(400).json({ error: "Empty message" });
     }
@@ -1102,6 +1213,133 @@ router.get("/:id/mission", async (req: Request, res: Response) => {
   } catch (err) {
     console.error("[Guilds mission]", err);
     return res.status(500).json({ error: "Failed to load mission" });
+  }
+});
+
+// GET /api/guilds/:id/mission/rewards — fetch user's unclaimed rewards
+router.get("/:id/mission/rewards", async (req: Request, res: Response) => {
+  const uid = auth(req, res);
+  if (!uid) return;
+  try {
+    const db = supabaseServer() as any;
+    const { id } = req.params as Record<string, string>;
+    if (!(await getMembershipIn(db, id, uid)))
+      return res.status(403).json({ error: "Not a member" });
+
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const { data: rewards, error } = await db
+      .from("guild_member_rewards")
+      .select("*")
+      .eq("guild_id", id)
+      .eq("user_id", uid)
+      .eq("claimed", false)
+      .gte("created_at", sevenDaysAgo);
+
+    if (error) throw error;
+    return res.json({ rewards: rewards || [] });
+  } catch (err) {
+    console.error("[Guilds rewards GET]", err);
+    return res.status(500).json({ error: "Failed to load rewards" });
+  }
+});
+
+// POST /api/guilds/:id/mission/rewards/claim — claim a specific daily mission reward
+router.post("/:id/mission/rewards/claim", async (req: Request, res: Response) => {
+  const uid = auth(req, res);
+  if (!uid) return;
+  try {
+    const db = supabaseServer() as any;
+    const { id } = req.params as Record<string, string>;
+    const { rewardId } = req.body || {};
+    if (!rewardId) {
+      return res.status(400).json({ error: "rewardId is required" });
+    }
+
+    if (!(await getMembershipIn(db, id, uid)))
+      return res.status(403).json({ error: "Not a member" });
+
+    // Fetch the reward row
+    const { data: reward } = await db
+      .from("guild_member_rewards")
+      .select("*")
+      .eq("id", rewardId)
+      .eq("user_id", uid)
+      .eq("claimed", false)
+      .maybeSingle();
+
+    if (!reward) {
+      return res.status(404).json({ error: "Reward not found or already claimed" });
+    }
+
+    // Fetch player stats
+    const { data: player } = await db
+      .from("players")
+      .select("gold, level, current_xp, required_xp, total_xp, rank, raw_data")
+      .eq("supabase_id", uid)
+      .maybeSingle();
+
+    if (!player) {
+      return res.status(404).json({ error: "Player not found" });
+    }
+
+    const rewardGold = reward.gold || 0;
+    const rewardXp = reward.xp || 0;
+
+    const newGold = (player.gold || 0) + rewardGold;
+    const newTotalXp = (player.total_xp || 0) + rewardXp;
+    const initialCurrentXp = (player.current_xp || 0) + rewardXp;
+
+    const lvlResult = safeLevelUp(initialCurrentXp, player.required_xp || 100, player.level || 1);
+
+    const newRawData = {
+      ...(player.raw_data || {}),
+      gold: newGold,
+      level: lvlResult.level,
+      currentXp: lvlResult.currentXp,
+      requiredXp: lvlResult.requiredXp,
+      totalXp: newTotalXp,
+      rank: lvlResult.rank,
+    };
+
+    const playerUpdate = {
+      gold: newGold,
+      level: lvlResult.level,
+      current_xp: lvlResult.currentXp,
+      required_xp: lvlResult.requiredXp,
+      total_xp: newTotalXp,
+      rank: lvlResult.rank,
+      raw_data: newRawData,
+      updated_at: new Date().toISOString(),
+    };
+
+    // Update player stats and mark reward as claimed
+    await db
+      .from("players")
+      .update(playerUpdate)
+      .eq("supabase_id", uid);
+
+    await db
+      .from("guild_member_rewards")
+      .update({ claimed: true })
+      .eq("id", rewardId);
+
+    return res.json({
+      success: true,
+      rewardGold,
+      rewardXp,
+      player: {
+        gold: newGold,
+        level: lvlResult.level,
+        currentXp: lvlResult.currentXp,
+        requiredXp: lvlResult.requiredXp,
+        totalXp: newTotalXp,
+        rank: lvlResult.rank,
+        leveledUp: lvlResult.leveledUp,
+      }
+    });
+  } catch (err) {
+    console.error("[Guilds rewards claim POST]", err);
+    return res.status(500).json({ error: "Failed to claim reward" });
   }
 });
 
@@ -1534,6 +1772,84 @@ router.post("/:id/vault/purchase", async (req: Request, res: Response) => {
 // CONTRIBUTION HOOK (mission progress + war points + member contribution)
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Unified helper to record guild contribution
+export async function recordGuildContribution(
+  db: any,
+  userId: string,
+  amount: number,
+  source: string
+): Promise<void> {
+  const membership = await getMembership(db, userId);
+  if (!membership) return;
+  const guildId = membership.guild_id;
+  const date = todayStr();
+
+  const mission = await ensureTodayMission(db, guildId);
+  if (mission && mission.mission_type === source) {
+    await db.rpc("guild_mission_progress", {
+      p_guild: guildId,
+      p_date: date,
+      p_amount: amount,
+    });
+    // Check mission completion -> reward broadcast
+    const { data: updatedMission } = await db
+      .from("guild_missions")
+      .select("*")
+      .eq("guild_id", guildId)
+      .eq("date", date)
+      .maybeSingle();
+    if (updatedMission?.completed && !mission.completed) {
+      await broadcastToGuild(guildId, "mission_complete", {
+        missionId: updatedMission.id,
+        title: updatedMission.title,
+      });
+    }
+  }
+
+  await db.rpc("guild_member_contribute", {
+    p_guild: guildId,
+    p_user: userId,
+    p_amount: amount,
+  });
+  await db.rpc("guild_add_glory", { p_guild: guildId, p_amount: amount });
+
+  // War points (Thu–Sat) if an active war exists for this guild
+  const { data: war } = await db
+    .from("guild_wars")
+    .select("*")
+    .or(`guild_a.eq.${guildId},guild_b.eq.${guildId}`)
+    .eq("status", "active")
+    .order("week_start", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (war) {
+    const col = war.guild_a === guildId ? "score_a" : "score_b";
+    await db
+      .from("guild_wars")
+      .update({ [col]: (war[col] || 0) + amount })
+      .eq("id", war.id);
+    const { data: existing } = await db
+      .from("guild_war_contributions")
+      .select("*")
+      .eq("war_id", war.id)
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (existing) {
+      await db
+        .from("guild_war_contributions")
+        .update({ points: existing.points + amount })
+        .eq("id", existing.id);
+    } else {
+      await db.from("guild_war_contributions").insert({
+        war_id: war.id,
+        guild_id: guildId,
+        user_id: userId,
+        points: amount,
+      });
+    }
+  }
+}
+
 // POST /api/guilds/contribute { amount, source }
 router.post("/contribute", async (req: Request, res: Response) => {
   const uid = auth(req, res);
@@ -1541,74 +1857,11 @@ router.post("/contribute", async (req: Request, res: Response) => {
   try {
     const db = supabaseServer() as any;
     const amount = Math.max(1, Math.floor(Number(req.body?.amount) || 1));
+    const source = String(req.body?.source || "");
     const membership = await getMembership(db, uid);
     if (!membership) return res.json({ status: "no_guild" });
 
-    const guildId = membership.guild_id;
-    const date = todayStr();
-
-    await ensureTodayMission(db, guildId);
-    await db.rpc("guild_mission_progress", {
-      p_guild: guildId,
-      p_date: date,
-      p_amount: amount,
-    });
-    await db.rpc("guild_member_contribute", {
-      p_guild: guildId,
-      p_user: uid,
-      p_amount: amount,
-    });
-    await db.rpc("guild_add_glory", { p_guild: guildId, p_amount: amount });
-
-    // War points (Thu–Sat) if an active war exists for this guild
-    const { data: war } = await db
-      .from("guild_wars")
-      .select("*")
-      .or(`guild_a.eq.${guildId},guild_b.eq.${guildId}`)
-      .eq("status", "active")
-      .order("week_start", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (war) {
-      const col = war.guild_a === guildId ? "score_a" : "score_b";
-      await db
-        .from("guild_wars")
-        .update({ [col]: (war[col] || 0) + amount })
-        .eq("id", war.id);
-      const { data: existing } = await db
-        .from("guild_war_contributions")
-        .select("*")
-        .eq("war_id", war.id)
-        .eq("user_id", uid)
-        .maybeSingle();
-      if (existing) {
-        await db
-          .from("guild_war_contributions")
-          .update({ points: existing.points + amount })
-          .eq("id", existing.id);
-      } else {
-        await db.from("guild_war_contributions").insert({
-          war_id: war.id,
-          guild_id: guildId,
-          user_id: uid,
-          points: amount,
-        });
-      }
-    }
-
-    // Check mission completion → reward broadcast
-    const { data: mission } = await db
-      .from("guild_missions")
-      .select("*")
-      .eq("guild_id", guildId)
-      .eq("date", date)
-      .maybeSingle();
-    if (mission?.completed) {
-      await broadcastToGuild(guildId, "mission_complete", {
-        missionId: mission.id,
-        title: mission.title,
-      });
-    }
+    await recordGuildContribution(db, uid, amount, source);
     return res.json({ status: "ok" });
   } catch (err) {
     console.error("[Guilds contribute]", err);

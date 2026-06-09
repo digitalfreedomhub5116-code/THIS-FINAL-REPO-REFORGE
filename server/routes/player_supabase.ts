@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { supabaseServer } from '../lib/supabase.js';
 import { getAuthenticatedUserId } from '../lib/playerAuth.js';
 import sharp from 'sharp';
+import { recordGuildContribution } from './guilds.js';
 
 const router = Router();
 
@@ -371,7 +372,7 @@ router.put('/:id', async (req: Request, res: Response) => {
     // Read current DB state so we can apply only the CLIENT's delta
     const { data: currentRow, error: readError } = await (supabaseServer() as any)
       .from('players')
-      .select('gold, keys, raw_data, updated_at, sync_version')
+      .select('gold, keys, total_xp, raw_data, updated_at, sync_version')
       .eq('supabase_id', id)
       .single();
     if (readError) throw readError;
@@ -390,6 +391,7 @@ router.put('/:id', async (req: Request, res: Response) => {
 
     const dbGold = currentRow?.gold ?? 0;
     const dbKeys = currentRow?.keys ?? 0;
+    const dbTotalXp = currentRow?.total_xp ?? 0;
 
     // ── GOLD: Accept client's value if higher (quest/workout rewards increase it) ──
     // Gold goes UP on client from: quest completion, goal completion, workout rewards,
@@ -398,6 +400,8 @@ router.put('/:id', async (req: Request, res: Response) => {
     // while preventing exploits (client can't set gold lower to undo a purchase).
     const clientGold = cleanData.gold ?? 0;
     const newGold = Math.max(dbGold, clientGold);
+    const goldDelta = newGold - dbGold;
+    const xpDelta = (cleanData.totalXp ?? 0) - dbTotalXp;
 
     // ── KEYS: Server-authoritative (deducted by keyGate, added by IAP/rewards) ──
     const newKeys = dbKeys;
@@ -533,6 +537,22 @@ router.put('/:id', async (req: Request, res: Response) => {
       .eq('supabase_id', id);
 
     if (error) throw error;
+
+    // Record guild contribution for XP and Gold delta gains
+    if (xpDelta > 0) {
+      try {
+        await recordGuildContribution(supabaseServer(), id, xpDelta, 'xp');
+      } catch (err) {
+        console.warn(`[Player PUT] Failed to record guild XP contribution for ${id}:`, err);
+      }
+    }
+    if (goldDelta > 0) {
+      try {
+        await recordGuildContribution(supabaseServer(), id, goldDelta, 'gold');
+      } catch (err) {
+        console.warn(`[Player PUT] Failed to record guild Gold contribution for ${id}:`, err);
+      }
+    }
 
     console.log(`[Player PUT] ${id.slice(-8)}: SUCCESS — version ${dbVersion} → ${dbVersion + 1}, gold=${newGold}`);
     return res.json({ success: true, _serverGold: newGold, _serverKeys: newKeys, _serverUpdatedAt: nowIso, _serverSyncVersion: dbVersion + 1 });

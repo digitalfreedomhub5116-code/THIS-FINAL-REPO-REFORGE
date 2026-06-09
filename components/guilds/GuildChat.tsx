@@ -306,6 +306,86 @@ const MessageRow: React.FC<{
     );
   }
 
+  if (m.type === "quest") {
+    const meta = m.meta || {};
+    const streak = meta.streak || 0;
+    const xpGained = meta.xpGained || 50;
+    const level = meta.level || 1;
+    const currentXp = meta.currentXp || 0;
+    const requiredXp = meta.requiredXp || 100;
+    const pct = Math.min(100, Math.max(0, Math.round((currentXp / requiredXp) * 100)));
+    const nextLevel = level + 1;
+
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        className={`flex ${mine ? "justify-end" : "justify-start"}`}
+      >
+        <div className="max-w-[85%] w-72">
+          {!mine && (
+            <p className="text-[11px] text-gray-500 mb-1 ml-1">
+              {m.author?.name || "Hunter"}
+            </p>
+          )}
+          <div
+            className="rounded-2xl p-4 relative overflow-hidden"
+            style={{
+              ...glassPanel,
+              border: `1px solid rgba(0, 212, 255, 0.4)`,
+              boxShadow: `0 0 15px rgba(0, 212, 255, 0.15)`,
+            }}
+          >
+            <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-500/5 rounded-full blur-xl pointer-events-none" />
+            
+            <div className="flex items-center gap-1.5 mb-3">
+              <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+              <span className="text-[10px] font-mono font-bold tracking-[0.2em]" style={{ color: NEON }}>
+                DAILY QUEST COMPLETED
+              </span>
+            </div>
+
+            <h3 className="text-sm font-bold text-white mb-3 truncate">
+              {m.body.replace("Completed Quest: ", "")}
+            </h3>
+
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div className="bg-white/5 rounded-xl p-2.5 border border-white/5 text-center">
+                <p className="text-[9px] font-mono text-gray-500 uppercase tracking-wider mb-0.5">Streak</p>
+                <p className="text-sm font-mono font-bold text-white">
+                  {streak} {streak === 1 ? "Day" : "Days"}
+                </p>
+              </div>
+              <div className="bg-white/5 rounded-xl p-2.5 border border-white/5 text-center">
+                <p className="text-[9px] font-mono text-gray-500 uppercase tracking-wider mb-0.5">XP Gain</p>
+                <p className="text-sm font-mono font-bold text-cyan-400">
+                  +{xpGained} XP
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <div className="flex justify-between text-[9px] font-mono text-gray-400 mb-1">
+                <span>LVL {level}</span>
+                <span>{pct}% TO LVL {nextLevel}</span>
+              </div>
+              <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden border border-white/5 p-[1px]">
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{
+                    width: `${pct}%`,
+                    background: `linear-gradient(90deg, ${NEON}, #00aaff)`,
+                    boxShadow: `0 0 6px ${NEON}`,
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}

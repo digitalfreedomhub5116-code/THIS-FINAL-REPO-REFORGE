@@ -11,7 +11,7 @@ import { useThemeContext } from '../hooks/useTheme';
 interface NavigationProps {
   activeTab: Tab;
   onTabChange: (tab: Tab) => void;
-  badges?: Record<string, boolean>;
+  badges?: Record<string, boolean | number>;
   playerLevel?: number;
   guidedStep?: number;
   onGuidedAction?: (step: number) => void;
@@ -128,7 +128,13 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, badges,
                 )}
                 {!isLocked && badges?.[item.id] && (
                   <div className="relative z-10 ml-auto">
-                    <SystemGlitchBadge />
+                    {typeof badges[item.id] === 'number' ? (
+                      <div className="bg-red-600 rounded-full px-2 py-0.5 text-[10px] font-mono font-bold text-white shadow-[0_0_8px_rgba(239,68,68,0.9)]">
+                        {badges[item.id]}
+                      </div>
+                    ) : (
+                      <SystemGlitchBadge />
+                    )}
                   </div>
                 )}
               </button>
@@ -269,8 +275,17 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, badges,
                         {lockedTabs[item.id]}
                       </div>
                     )}
-                    {!isLocked && badges?.[item.id] && !isActive && (
-                      <div className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full z-20 shadow-[0_0_6px_rgba(239,68,68,0.8)]" />
+                    {!isLocked && badges?.[item.id] && (!isActive || typeof badges[item.id] === 'number') && (
+                      <div 
+                        className="absolute -top-1 -right-1 bg-red-600 text-white rounded-full z-20 flex items-center justify-center font-mono font-bold shadow-[0_0_8px_rgba(239,68,68,0.9)]"
+                        style={
+                          typeof badges[item.id] === 'number'
+                            ? { minWidth: '15px', height: '15px', fontSize: '8px', padding: '0 3px', borderRadius: '10px' }
+                            : { width: '8px', height: '8px', borderRadius: '50%' }
+                        }
+                      >
+                        {typeof badges[item.id] === 'number' ? badges[item.id] : null}
+                      </div>
                     )}
                   </button>
                 );

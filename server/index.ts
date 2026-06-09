@@ -433,8 +433,142 @@ async function startServer() {
           console.error('[Cron] League assignment failed:', leagueErr);
         }
 
+        // ── Guild Daily Missions Settlement ──
+        try {
+          console.log(`[Cron] Settling guild daily missions for ${yesterdayStr}`);
+          
+          const postGuildSystemMessage = async (dbClient: any, gId: string, msgBody: string) => {
+            const { data: row } = await dbClient
+              .from('guild_chat')
+              .insert({ guild_id: gId, user_id: null, type: 'system', body: msgBody })
+              .select('*')
+              .single();
+            
+            if (row) {
+              try {
+                const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+                const key = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+                if (url && key) {
+                  const payload = {
+                    id: row.id,
+                    guildId: row.guild_id,
+                    userId: row.user_id,
+                    type: row.type,
+                    body: row.body,
+                    meta: row.meta || {},
+                    createdAt: row.created_at,
+                    author: null,
+                  };
+                  await fetch(`${url}/realtime/v1/api/broadcast`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      apikey: key,
+                      Authorization: `Bearer ${key}`,
+                    },
+                    body: JSON.stringify({
+                      messages: [
+                        { topic: `guild:${gId}`, event: 'message', payload, private: false },
+                      ],
+                    }),
+                  });
+                }
+              } catch (err) {
+                console.warn('[Cron] Guild chat broadcast failed:', err);
+              }
+            }
+          };
+
+          // 1. Fetch completed missions from yesterday that haven't been distributed
+          const { data: missions, error: misErr } = await db
+            .from('guild_missions')
+            .select('*')
+            .eq('date', yesterdayStr)
+            .eq('completed', true)
+            .eq('rewards_distributed', false);
+            
+          if (misErr) {
+            console.error('[Cron] Failed to fetch yesterday\'s guild missions:', misErr);
+          } else if (missions && missions.length > 0) {
+            for (const m of missions) {
+              const guildId = m.guild_id;
+              const reward = m.reward || {};
+              const goldReward = reward.gold || 0;
+              const xpReward = reward.xp || 0;
+              const vaultGold = reward.vault_gold || 0;
+              
+              console.log(`[Cron] Settle mission ${m.id} for Guild ${guildId}: Individual Gold=${goldReward}, XP=${xpReward}, Vault Gold=${vaultGold}`);
+              
+              // A. Add gold directly to the Guild Vault
+              if (vaultGold > 0) {
+                await db.rpc('guild_add_vault', { p_guild: guildId, p_amount: vaultGold });
+                // Log vault transaction
+                await db.from('guild_vault_transactions').insert({
+                  guild_id: guildId,
+                  user_id: null,
+                  kind: 'donate',
+                  amount: vaultGold,
+                  item_key: 'daily_mission_settlement',
+                });
+              }
+              
+              // B. Fetch all members of this guild
+              const { data: members } = await db
+                .from('guild_members')
+                .select('user_id')
+                .eq('guild_id', guildId);
+                
+              if (members && members.length > 0) {
+                // Insert a reward snapshot for each member
+                const rewardSnapshots = members.map((mem: any) => ({
+                  user_id: mem.user_id,
+                  guild_id: guildId,
+                  mission_id: m.id,
+                  gold: goldReward,
+                  xp: xpReward,
+                  claimed: false,
+                }));
+                
+                const { error: snapErr } = await db
+                  .from('guild_member_rewards')
+                  .insert(rewardSnapshots);
+                  
+                if (snapErr) {
+                  console.error(`[Cron] Failed to insert member rewards for guild ${guildId}:`, snapErr);
+                }
+              }
+              
+              // C. Post chat announcement
+              const chatMsg = `🎉 Daily Mission Completed: "${m.title}"! Members can now claim their rewards (+${goldReward} G, +${xpReward} XP) from the Mission tab. +${vaultGold} G added to the Guild Vault.`;
+              await postGuildSystemMessage(db, guildId, chatMsg);
+              
+              // D. Mark rewards as distributed
+              await db
+                .from('guild_missions')
+                .update({ rewards_distributed: true })
+                .eq('id', m.id);
+            }
+          }
+          
+          // 2. Clean up expired rewards older than 7 days
+          const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+          const { error: cleanErr } = await db
+            .from('guild_member_rewards')
+            .delete()
+            .eq('claimed', false)
+            .lt('created_at', sevenDaysAgo);
+            
+          if (cleanErr) {
+            console.error('[Cron] Failed to clean up expired guild rewards:', cleanErr);
+          } else {
+            console.log('[Cron] Cleaned up expired guild rewards successfully');
+          }
+        } catch (guildCronErr) {
+          console.error('[Cron] Guild daily mission settlement failed:', guildCronErr);
+        }
+
         lastCronDate = todayStr;
-        console.log(`[Cron] Daily reward distribution + league assignment complete for ${yesterdayStr}`);
+        console.log(`[Cron] Daily reward distribution + guild daily missions settlement + league assignment complete for ${yesterdayStr}`);
       };
 
       // Run immediately on startup (catches up if server was down at midnight)
