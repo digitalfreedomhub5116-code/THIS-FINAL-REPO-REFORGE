@@ -42,6 +42,35 @@ export const ROLE_COLOR: Record<string, string> = {
 
 export const GUILD_ICONS = ['🛡️', '⚔️', '🐺', '🔥', '⚡', '🗡️', '👑', '💀', '🐉', '🦅', '🌑', '❄️'];
 
+// ── Guild creation: cost + icon catalog (must mirror the server's GUILD_ICON_CATALOG) ──
+export const GUILD_CREATE_COST = 900;
+
+export interface GuildIconDef {
+  key: string;
+  emoji: string;
+  label: string;
+  free: boolean;
+  cost: number;
+}
+
+export const GUILD_ICON_CATALOG: GuildIconDef[] = [
+  { key: 'shield',    emoji: '🛡️', label: 'Shield',    free: true,  cost: 0 },
+  { key: 'sword',     emoji: '⚔️', label: 'Sword',     free: true,  cost: 0 },
+  { key: 'trident',   emoji: '🔱', label: 'Trident',   free: true,  cost: 0 },
+  { key: 'crown',     emoji: '👑', label: 'Crown',     free: true,  cost: 0 },
+  { key: 'dragon',    emoji: '🐉', label: 'Dragon',    free: false, cost: 1200 },
+  { key: 'fire',      emoji: '🔥', label: 'Fire',      free: false, cost: 1200 },
+  { key: 'lightning', emoji: '⚡', label: 'Lightning', free: false, cost: 1000 },
+  { key: 'diamond',   emoji: '💎', label: 'Diamond',   free: false, cost: 1500 },
+  { key: 'phoenix',   emoji: '🦅', label: 'Phoenix',   free: false, cost: 1500 },
+  { key: 'wolf',      emoji: '🐺', label: 'Wolf',      free: false, cost: 1000 },
+  { key: 'skull',     emoji: '💀', label: 'Skull',     free: false, cost: 1000 },
+  { key: 'star',      emoji: '⭐', label: 'Star',      free: false, cost: 800 },
+];
+
+export const GUILD_ICON_BY_KEY: Record<string, GuildIconDef> =
+  GUILD_ICON_CATALOG.reduce((m, d) => { m[d.key] = d; return m; }, {} as Record<string, GuildIconDef>);
+
 export function initials(name?: string): string {
   if (!name) return 'H';
   const parts = name.trim().split(/\s+/);

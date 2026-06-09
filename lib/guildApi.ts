@@ -40,9 +40,44 @@ export async function fetchGuildDetail(id: string): Promise<{ guild: Guild; myRo
   return jsonOrThrow(res);
 }
 
-export async function createGuild(payload: { name: string; tag?: string; motto?: string; icon?: string; banner?: string; privacy?: string }): Promise<{ guild: Guild }> {
+export interface CreateGuildError extends Error {
+  code?: string;
+  gold?: number;
+}
+
+async function jsonOrThrowWithCode(res: Response) {
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const err = new Error((data as any)?.error || `Request failed (${res.status})`) as CreateGuildError;
+    err.code = (data as any)?.code;
+    err.gold = (data as any)?.gold;
+    throw err;
+  }
+  return data;
+}
+
+export async function createGuild(payload: { name: string; motto?: string; icon?: string; banner?: string; privacy?: string }): Promise<{ success: boolean; guild: Guild; player: { gold: number; guildId: string } }> {
   const res = await authenticatedFetch(base, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+  return jsonOrThrowWithCode(res);
+}
+
+export async function checkGuildName(name: string): Promise<{ available: boolean; valid: boolean; error: string | null }> {
+  const res = await authenticatedFetch(`${base}/check-name?name=${encodeURIComponent(name)}`);
   return jsonOrThrow(res);
+}
+
+export async function fetchCreateInfo(): Promise<{ gold: number; cost: number; inGuild: boolean; unlockedIcons: string[] }> {
+  const res = await authenticatedFetch(`${base}/create-info`);
+  return jsonOrThrow(res);
+}
+
+export async function purchaseGuildIcon(iconKey: string): Promise<{ gold?: number; unlockedIcons: string[]; status: string }> {
+  const res = await authenticatedFetch(`${base}/purchase-icon`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ iconKey }),
+  });
+  return jsonOrThrowWithCode(res);
 }
 
 export async function joinGuild(id: string): Promise<{ status: 'joined' | 'requested' }> {

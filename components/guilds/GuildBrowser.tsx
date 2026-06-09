@@ -1,14 +1,15 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Users, Trophy, Sparkles, Plus, LogIn, Clock, Lock as LockIcon, AlertCircle } from 'lucide-react';
-import { NEON, glassPanel, bannerStyle } from './guildTheme';
-import { fetchGuilds, joinGuild } from '../../lib/guildApi';
+import { Search, Users, Trophy, Sparkles, Plus, LogIn, Clock, AlertCircle, Coins } from 'lucide-react';
+import { NEON, glassPanel, bannerStyle, GUILD_CREATE_COST } from './guildTheme';
+import { fetchGuilds, joinGuild, fetchCreateInfo } from '../../lib/guildApi';
 import CreateGuildModal from './CreateGuildModal';
 import type { GuildSummary, Guild } from '../../types';
 
 interface GuildBrowserProps {
-  isPremium: boolean;
-  onUpgradePro: () => void;
+  playerGold: number;
+  userId?: string;
+  onGoldChange: (gold: number) => void;
   onJoined: () => void; // refetch membership → enter portal
   onToast?: (type: 'SUCCESS' | 'WARNING' | 'ERROR', title: string, msg?: string) => void;
 }
@@ -21,7 +22,7 @@ const FILTERS: { key: Filter; label: string }[] = [
   { key: 'war', label: 'War Regis' },
 ];
 
-const GuildBrowser: React.FC<GuildBrowserProps> = ({ isPremium, onUpgradePro, onJoined, onToast }) => {
+const GuildBrowser: React.FC<GuildBrowserProps> = ({ playerGold, userId, onGoldChange, onJoined, onToast }) => {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<Filter>('top');
   const [guilds, setGuilds] = useState<GuildSummary[]>([]);
@@ -29,6 +30,38 @@ const GuildBrowser: React.FC<GuildBrowserProps> = ({ isPremium, onUpgradePro, on
   const [error, setError] = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const [joiningId, setJoiningId] = useState<string | null>(null);
+
+  // ── Create flow pre-flight ──
+  const [preflightBusy, setPreflightBusy] = useState(false);
+  const [createGold, setCreateGold] = useState(playerGold);
+  const [unlockedIcons, setUnlockedIcons] = useState<string[]>([]);
+  const [goldModal, setGoldModal] = useState<number | null>(null); // shows current gold when insufficient
+
+  useEffect(() => { setCreateGold(playerGold); }, [playerGold]);
+
+  const handleOpenCreate = async () => {
+    // Check 3: authenticated
+    if (!userId) { onToast?.('WARNING', 'Sign in to create a guild'); return; }
+    setPreflightBusy(true);
+    try {
+      const info = await fetchCreateInfo();
+      setCreateGold(info.gold);
+      setUnlockedIcons(info.unlockedIcons || []);
+      // Check 1: not already in a guild
+      if (info.inGuild) {
+        onToast?.('WARNING', "You're already in a guild", 'Leave your current guild first.');
+        onJoined();
+        return;
+      }
+      // Check 2: enough gold
+      if (info.gold < info.cost) { setGoldModal(info.gold); return; }
+      setShowCreate(true);
+    } catch (e: any) {
+      onToast?.('ERROR', 'Could not start creation', e?.message);
+    } finally {
+      setPreflightBusy(false);
+    }
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -89,13 +122,17 @@ const GuildBrowser: React.FC<GuildBrowserProps> = ({ isPremium, onUpgradePro, on
             className="flex-1 bg-transparent py-2.5 text-sm text-white focus:outline-none"
           />
         </div>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="px-4 rounded-xl font-bold text-black flex items-center gap-1.5"
-          style={{ background: `linear-gradient(135deg, ${NEON}, #6d28d9)` }}
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={handleOpenCreate}
+          disabled={preflightBusy}
+          aria-label="Create new guild"
+          className="w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0 disabled:opacity-60"
+          style={{ background: `linear-gradient(135deg, ${NEON}, #6d28d9)`, boxShadow: `0 0 20px ${NEON}66` }}
         >
-          <Plus size={16} /> New
-        </button>
+          <Plus size={24} className="text-black" />
+        </motion.button>
       </div>
 
       {/* Filters */}
@@ -205,11 +242,40 @@ const GuildBrowser: React.FC<GuildBrowserProps> = ({ isPremium, onUpgradePro, on
       <AnimatePresence>
         {showCreate && (
           <CreateGuildModal
-            isPremium={isPremium}
-            onUpgradePro={() => { setShowCreate(false); onUpgradePro(); }}
+            playerGold={createGold}
+            unlockedIcons={unlockedIcons}
+            userId={userId}
+            onGoldChange={(g) => { setCreateGold(g); onGoldChange(g); }}
             onClose={() => setShowCreate(false)}
-            onCreated={(_g: Guild) => { setShowCreate(false); onToast?.('SUCCESS', 'Guild forged!', 'You are now the Guild Master.'); onJoined(); }}
+            onCreated={(_g: Guild, newGold: number) => { setShowCreate(false); onGoldChange(newGold); onJoined(); }}
+            onToast={onToast}
           />
+        )}
+      </AnimatePresence>
+
+      {/* ── Insufficient gold modal ── */}
+      <AnimatePresence>
+        {goldModal !== null && (
+          <motion.div
+            className="fixed inset-0 z-[80] flex items-center justify-center p-6"
+            style={{ background: 'rgba(0,0,0,0.8)' }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => setGoldModal(null)}
+          >
+            <motion.div
+              className="w-full max-w-xs rounded-3xl p-6 text-center"
+              style={glassPanel}
+              initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="w-14 h-14 rounded-full mx-auto flex items-center justify-center mb-3" style={{ background: 'rgba(251,191,36,0.12)' }}>
+                <Coins size={26} style={{ color: '#fbbf24' }} />
+              </div>
+              <p className="text-white font-bold mb-1">Need {GUILD_CREATE_COST} Gold to Create Guild</p>
+              <p className="text-gray-400 text-sm mb-5">You have {goldModal.toLocaleString()} gold. Earn more by completing quests and workouts.</p>
+              <button onClick={() => setGoldModal(null)} className="w-full h-10 rounded-full text-sm font-extrabold text-black" style={{ background: `linear-gradient(135deg, ${NEON}, #6d28d9)` }}>GOT IT</button>
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

@@ -18,6 +18,50 @@ const auth = (req: Request, res: Response): string | null => {
 type Role = 'master' | 'vice' | 'member';
 const RANK_ROLE: Record<Role, number> = { master: 3, vice: 2, member: 1 };
 
+// ── Guild creation config ────────────────────────────────────────────────────
+const GUILD_CREATE_COST = 900;
+
+// Icon catalog: key → { emoji, free, cost }. Emoji is what gets stored/displayed.
+const GUILD_ICON_CATALOG: Record<string, { emoji: string; free: boolean; cost: number }> = {
+  shield:    { emoji: '🛡️', free: true,  cost: 0 },
+  sword:     { emoji: '⚔️', free: true,  cost: 0 },
+  trident:   { emoji: '🔱', free: true,  cost: 0 },
+  crown:     { emoji: '👑', free: true,  cost: 0 },
+  dragon:    { emoji: '🐉', free: false, cost: 1200 },
+  fire:      { emoji: '🔥', free: false, cost: 1200 },
+  lightning: { emoji: '⚡', free: false, cost: 1000 },
+  diamond:   { emoji: '💎', free: false, cost: 1500 },
+  phoenix:   { emoji: '🦅', free: false, cost: 1500 },
+  wolf:      { emoji: '🐺', free: false, cost: 1000 },
+  skull:     { emoji: '💀', free: false, cost: 1000 },
+  star:      { emoji: '⭐', free: false, cost: 800 },
+};
+
+const NAME_RE = /^[A-Za-z0-9 _-]+$/;
+const BLOCKED_WORDS = ['fuck', 'shit', 'bitch', 'cunt', 'nigger', 'nigga', 'faggot', 'rape', 'nazi', 'whore', 'slut', 'dick', 'pussy', 'asshole'];
+
+function validateGuildName(raw: any): { ok: true; name: string } | { ok: false; error: string } {
+  const name = String(raw ?? '').trim();
+  if (name.length < 3) return { ok: false, error: 'Name must be at least 3 characters' };
+  if (name.length > 30) return { ok: false, error: 'Name must be 30 characters or fewer' };
+  if (!NAME_RE.test(name)) return { ok: false, error: 'Only letters, numbers, spaces, hyphens and underscores allowed' };
+  const lower = name.toLowerCase();
+  if (BLOCKED_WORDS.some((w) => lower.includes(w))) return { ok: false, error: 'Name contains blocked words' };
+  return { ok: true, name };
+}
+
+async function guildNameTaken(db: any, name: string): Promise<boolean> {
+  const { data } = await db.from('guilds').select('id').ilike('name', name).limit(1);
+  return !!(data && data.length);
+}
+
+/** Premium guild icon keys the player has unlocked (persisted in players.raw_data). */
+async function getUnlockedIcons(db: any, uid: string): Promise<string[]> {
+  const { data } = await db.from('players').select('raw_data').eq('supabase_id', uid).maybeSingle();
+  const arr = data?.raw_data?.unlockedGuildIcons;
+  return Array.isArray(arr) ? arr : [];
+}
+
 async function getMembership(db: any, userId: string): Promise<any | null> {
   const { data } = await db.from('guild_members').select('*').eq('user_id', userId).maybeSingle();
   return data || null;
@@ -201,6 +245,76 @@ function serializeGuild(g: any) {
   };
 }
 
+// GET /api/guilds/check-name?name=... — real-time uniqueness + validation
+router.get('/check-name', async (req: Request, res: Response) => {
+  const uid = auth(req, res);
+  if (!uid) return;
+  try {
+    const db = supabaseServer() as any;
+    const v = validateGuildName(req.query.name);
+    if (!v.ok) return res.json({ available: false, valid: false, error: v.error });
+    const taken = await guildNameTaken(db, v.name);
+    return res.json({ available: !taken, valid: true, error: taken ? 'Name already taken' : null });
+  } catch (err) {
+    console.error('[Guilds check-name]', err);
+    return res.status(500).json({ error: 'Failed to check name' });
+  }
+});
+
+// GET /api/guilds/create-info — preflight data for the creation flow
+router.get('/create-info', async (req: Request, res: Response) => {
+  const uid = auth(req, res);
+  if (!uid) return;
+  try {
+    const db = supabaseServer() as any;
+    const [{ data: player }, membership] = await Promise.all([
+      db.from('players').select('gold').eq('supabase_id', uid).maybeSingle(),
+      getMembership(db, uid),
+    ]);
+    const unlockedIcons = await getUnlockedIcons(db, uid);
+    return res.json({
+      gold: player?.gold || 0,
+      cost: GUILD_CREATE_COST,
+      inGuild: !!membership,
+      unlockedIcons,
+    });
+  } catch (err) {
+    console.error('[Guilds create-info]', err);
+    return res.status(500).json({ error: 'Failed to load create info' });
+  }
+});
+
+// POST /api/guilds/purchase-icon — buy a premium guild icon with gold (persisted)
+router.post('/purchase-icon', async (req: Request, res: Response) => {
+  const uid = auth(req, res);
+  if (!uid) return;
+  try {
+    const db = supabaseServer() as any;
+    const iconKey = String(req.body?.iconKey || '');
+    const def = GUILD_ICON_CATALOG[iconKey];
+    if (!def) return res.status(400).json({ error: 'Unknown icon', code: 'BAD_ICON' });
+    if (def.free) return res.json({ gold: undefined, unlockedIcons: await getUnlockedIcons(db, uid), status: 'free' });
+
+    const { data: player } = await db.from('players').select('gold, raw_data').eq('supabase_id', uid).maybeSingle();
+    const unlocked: string[] = Array.isArray(player?.raw_data?.unlockedGuildIcons) ? player.raw_data.unlockedGuildIcons : [];
+    if (unlocked.includes(iconKey)) {
+      return res.json({ gold: player?.gold || 0, unlockedIcons: unlocked, status: 'already_owned' });
+    }
+    if ((player?.gold || 0) < def.cost) {
+      return res.status(400).json({ error: 'Not enough gold', code: 'INSUFFICIENT_GOLD' });
+    }
+
+    const newGold = (player?.gold || 0) - def.cost;
+    const newUnlocked = [...unlocked, iconKey];
+    const newRaw = { ...(player?.raw_data || {}), unlockedGuildIcons: newUnlocked };
+    await db.from('players').update({ gold: newGold, raw_data: newRaw }).eq('supabase_id', uid);
+    return res.json({ gold: newGold, unlockedIcons: newUnlocked, status: 'purchased' });
+  } catch (err) {
+    console.error('[Guilds purchase-icon]', err);
+    return res.status(500).json({ error: 'Failed to purchase icon' });
+  }
+});
+
 // GET /api/guilds/:id — full guild detail + members
 router.get('/:id', async (req: Request, res: Response) => {
   const uid = auth(req, res);
@@ -237,43 +351,91 @@ router.get('/:id', async (req: Request, res: Response) => {
   }
 });
 
-// POST /api/guilds — create a guild (Pro-gated on client)
+// POST /api/guilds — create a guild (costs 900 gold; founder becomes master)
 router.post('/', async (req: Request, res: Response) => {
   const uid = auth(req, res);
   if (!uid) return;
   try {
     const db = supabaseServer() as any;
-    const { name, tag, motto, icon, banner, privacy } = req.body || {};
-    if (!name || String(name).trim().length < 3) {
-      return res.status(400).json({ error: 'Guild name must be at least 3 characters' });
+    const { name, motto, icon, banner, privacy } = req.body || {};
+
+    // 1. Validate name
+    const v = validateGuildName(name);
+    if (!v.ok) return res.status(400).json({ error: v.error, code: 'INVALID_NAME' });
+
+    // 2. Validate icon key → emoji (default: shield)
+    const iconKey = String(icon || 'shield');
+    const iconDef = GUILD_ICON_CATALOG[iconKey];
+    if (!iconDef) return res.status(400).json({ error: 'Invalid icon', code: 'BAD_ICON' });
+
+    // 3. Validate privacy
+    const priv = privacy === 'invite_only' ? 'invite_only' : 'open';
+
+    // 4. One guild per user
+    if (await getMembership(db, uid)) {
+      return res.status(409).json({ error: 'You are already in a guild', code: 'ALREADY_IN_GUILD' });
     }
-    // One guild per user
-    const existing = await getMembership(db, uid);
-    if (existing) return res.status(409).json({ error: 'You are already in a guild' });
+
+    // 5. Premium icon must be unlocked
+    if (!iconDef.free) {
+      const unlocked = await getUnlockedIcons(db, uid);
+      if (!unlocked.includes(iconKey)) {
+        return res.status(403).json({ error: 'Icon not unlocked', code: 'ICON_LOCKED' });
+      }
+    }
+
+    // 6. Gold check
+    const { data: player } = await db.from('players').select('gold').eq('supabase_id', uid).maybeSingle();
+    const gold = player?.gold || 0;
+    if (gold < GUILD_CREATE_COST) {
+      return res.status(400).json({ error: 'Not enough gold', code: 'INSUFFICIENT_GOLD', gold });
+    }
+
+    // 7. Name uniqueness (case-insensitive)
+    if (await guildNameTaken(db, v.name)) {
+      return res.status(409).json({ error: 'Name already taken', code: 'NAME_TAKEN' });
+    }
+
+    // 8. Deduct gold, then create guild + master membership.
+    const newGold = gold - GUILD_CREATE_COST;
+    await db.from('players').update({ gold: newGold }).eq('supabase_id', uid);
 
     const { data: guild, error } = await db
       .from('guilds')
       .insert({
-        name: String(name).trim(),
-        tag: tag ? String(tag).trim().slice(0, 6) : null,
-        motto: motto ? String(motto).slice(0, 120) : '',
-        icon: icon || '🛡️',
+        name: v.name,
+        motto: motto ? String(motto).slice(0, 60) : '',
+        icon: iconDef.emoji,
         banner: banner || 'gradient-cyan',
-        privacy: privacy === 'invite_only' ? 'invite_only' : 'open',
+        privacy: priv,
         master_id: uid,
       })
       .select('*')
       .single();
-    if (error) {
-      if (String(error.message).includes('duplicate')) return res.status(409).json({ error: 'Guild name already taken' });
-      throw error;
+
+    if (error || !guild) {
+      // Roll back the gold deduction on failure.
+      await db.from('players').update({ gold }).eq('supabase_id', uid);
+      if (error && String(error.message).includes('duplicate')) {
+        return res.status(409).json({ error: 'Name already taken', code: 'NAME_TAKEN' });
+      }
+      throw error || new Error('Insert failed');
     }
 
     await db.from('guild_members').insert({ guild_id: guild.id, user_id: uid, role: 'master' });
-    return res.json({ guild: serializeGuild(guild) });
+
+    // Founder system message in guild chat.
+    const info = await enrichPlayers(db, [uid]);
+    await postSystemMessage(db, guild.id, `Guild founded by ${info[uid]?.name || 'the Guild Master'}.`);
+
+    return res.json({
+      success: true,
+      guild: serializeGuild(guild),
+      player: { gold: newGold, guildId: guild.id },
+    });
   } catch (err) {
     console.error('[Guilds POST /]', err);
-    return res.status(500).json({ error: 'Failed to create guild' });
+    return res.status(500).json({ error: 'Failed to create guild', code: 'SERVER_ERROR' });
   }
 });
 

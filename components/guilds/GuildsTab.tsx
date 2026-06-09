@@ -17,7 +17,7 @@ interface GuildsTabProps {
   onToast?: (type: 'SUCCESS' | 'WARNING' | 'ERROR', title: string, msg?: string) => void;
 }
 
-const GuildsTab: React.FC<GuildsTabProps> = ({ player, isPremium, onUpgradePro, onPortalChange, onExitToApp, onGoldChange, onToast }) => {
+const GuildsTab: React.FC<GuildsTabProps> = ({ player, onPortalChange, onExitToApp, onGoldChange, onToast }) => {
   const [guild, setGuild] = useState<Guild | null>(null);
   const [myRole, setMyRole] = useState<GuildRole | null>(null);
   const [loading, setLoading] = useState(true);
@@ -71,8 +71,9 @@ const GuildsTab: React.FC<GuildsTabProps> = ({ player, isPremium, onUpgradePro, 
 
   return (
     <GuildBrowser
-      isPremium={isPremium}
-      onUpgradePro={onUpgradePro}
+      playerGold={player.gold}
+      userId={player.userId || ''}
+      onGoldChange={onGoldChange}
       onJoined={refresh}
       onToast={onToast}
     />
