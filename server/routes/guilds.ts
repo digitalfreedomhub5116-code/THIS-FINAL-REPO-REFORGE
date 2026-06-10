@@ -41,7 +41,7 @@ const GUILD_ICON_CATALOG: Record<
 };
 
 const NAME_RE = /^[A-Za-z0-9 _-]+$/;
-const BLOCKED_WORDS = [
+const CHAT_BANNED_WORDS = [
   "fuck",
   "shit",
   "bitch",
@@ -56,7 +56,23 @@ const BLOCKED_WORDS = [
   "dick",
   "pussy",
   "asshole",
+  "porn",
+  "sex"
 ];
+
+function censorChatBody(text: string): string {
+  let censored = text;
+  for (const word of CHAT_BANNED_WORDS) {
+    // Match word boundaries or substring depending on how strict we want to be
+    // Using a regex with word boundaries avoids false positives in words like "association" or "document"
+    const regex = new RegExp(`\\b${word}\\b`, "gi");
+    censored = censored.replace(regex, (match) => {
+      if (match.length <= 2) return "*".repeat(match.length);
+      return match[0] + "*".repeat(match.length - 2) + match[match.length - 1];
+    });
+  }
+  return censored;
+}
 
 function validateGuildName(
   raw: any
@@ -72,7 +88,7 @@ function validateGuildName(
       error: "Only letters, numbers, spaces, hyphens and underscores allowed",
     };
   const lower = name.toLowerCase();
-  if (BLOCKED_WORDS.some((w) => lower.includes(w)))
+  if (CHAT_BANNED_WORDS.some((w) => lower.includes(w)))
     return { ok: false, error: "Name contains blocked words" };
   return { ok: true, name };
 }
@@ -1168,13 +1184,14 @@ router.post("/:id/chat", async (req: Request, res: Response) => {
     if (msgType === "user" && (!body || !String(body).trim())) {
       return res.status(400).json({ error: "Empty message" });
     }
+    const cleanBody = msgType === "user" ? censorChatBody(String(body || "")) : String(body || "");
     const { data: row, error } = await db
       .from("guild_chat")
       .insert({
         guild_id: id,
         user_id: uid,
         type: msgType,
-        body: String(body || "").slice(0, 1000),
+        body: cleanBody.slice(0, 1000),
         meta: meta || {},
       })
       .select("*")
