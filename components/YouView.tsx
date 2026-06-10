@@ -1228,6 +1228,18 @@ const YouView: React.FC<YouViewProps> = ({
         </button>
       </div>
 
+      {/* Test entry point for review popup */}
+      <div className="mt-6 px-4 flex justify-center">
+        <button
+          onClick={() => {
+            window.dispatchEvent(new Event('reforge:show-review-prompt'));
+          }}
+          className="text-[9px] font-mono tracking-widest text-gray-800 opacity-20 hover:opacity-85 transition-opacity"
+        >
+          RATE
+        </button>
+      </div>
+
       {/* Modals (non-portaled stay in AnimatePresence) */}
       <AnimatePresence>
         {showRank && <RankLadderModal player={player} onClose={() => setShowRank(false)} />}

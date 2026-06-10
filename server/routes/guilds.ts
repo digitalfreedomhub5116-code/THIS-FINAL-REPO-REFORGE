@@ -182,7 +182,7 @@ async function broadcastToGuild(
       },
       body: JSON.stringify({
         messages: [
-          { topic: `guild:${guildId}`, event, payload, private: false },
+          { topic: `realtime:guild:${guildId}`, event, payload, private: false },
         ],
       }),
     });

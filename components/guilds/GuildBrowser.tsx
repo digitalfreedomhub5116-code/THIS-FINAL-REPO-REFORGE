@@ -12,6 +12,7 @@ import {
   Coins,
   Check,
   Shield,
+  Loader2,
 } from "lucide-react";
 import {
   NEON,
@@ -156,6 +157,12 @@ const GuildBrowser: React.FC<GuildBrowserProps> = ({
       if (status === "joined") {
         onToast?.("SUCCESS", "Welcome to the guild!", g.name);
         onJoined();
+        // Auto-trigger review sheet shortly after joining
+        setTimeout(() => {
+          try {
+            window.dispatchEvent(new Event('reforge:show-review-prompt'));
+          } catch {}
+        }, 1500);
       } else {
         onToast?.(
           "SUCCESS",
@@ -208,7 +215,13 @@ const GuildBrowser: React.FC<GuildBrowserProps> = ({
           className="px-5 rounded-xl text-black text-xs font-black font-mono uppercase tracking-wider transition-all shadow-[0_0_15px_rgba(0,212,255,0.25)] flex items-center justify-center gap-1.5 flex-shrink-0 disabled:opacity-50"
           style={{ backgroundColor: NEON }}
         >
-          <Plus size={14} strokeWidth={3} /> New
+          {preflightBusy ? (
+            <Loader2 size={14} className="animate-spin" />
+          ) : (
+            <>
+              <Plus size={14} strokeWidth={3} /> New
+            </>
+          )}
         </button>
       </div>
 

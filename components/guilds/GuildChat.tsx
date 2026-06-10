@@ -347,11 +347,14 @@ const GuildChat: React.FC<GuildChatProps> = ({
 
   const handleDeleteMessage = async (messageId: string) => {
     try {
-      await deleteChatMessage(guildId, messageId);
+      // Optimistic update: remove the message immediately from local state
       setMessages((prev) => prev.filter((m) => m.id !== messageId));
+      await deleteChatMessage(guildId, messageId);
       showSystemToast({ title: "Message deleted", type: "SUCCESS" });
     } catch (err: any) {
       showSystemToast({ title: err.message || "Failed to delete message", type: "WARNING" });
+      // Re-hydrate chat history on failure
+      loadHistory();
     } finally {
       setActiveMenuMessageId(null);
     }

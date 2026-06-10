@@ -1,3 +1,6 @@
+import { AppReview } from '@capawesome/capacitor-app-review';
+import { Capacitor } from '@capacitor/core';
+
 // ── In-App Review helper ──────────────────────────────────────────────
 // Tracks lifetime dungeon clears in localStorage and triggers the native
 // Google Play In-App Review popup at the right moment.
@@ -7,7 +10,7 @@
 
 const STORAGE_KEY = 'reforge_review_state_v1';
 const PLAY_STORE_URL =
-  'https://play.google.com/store/apps/details?id=com.reforgesystem.app';
+  'https://play.google.com/store/apps/details?id=com.reforge.app';
 
 // Re-ask after this many days if the user dismissed/declined without leaving a review.
 const RE_ASK_AFTER_DAYS = 60;
@@ -97,28 +100,34 @@ export function markLeftReview(): void {
  * On web/dev, falls back to opening the Play Store listing in a new tab.
  */
 export async function launchNativeReview(): Promise<boolean> {
-  try {
-    // Dynamic import so the plugin is only loaded when needed and the web
-    // bundle does not break if the plugin isn't installed in dev.
-    const mod: any = await import('@capawesome/capacitor-app-review').catch(
-      () => null
-    );
-    const AppReview = mod?.AppReview;
-    if (AppReview && typeof AppReview.requestReview === 'function') {
+  const isNative = Capacitor.isNativePlatform();
+
+  if (isNative) {
+    try {
+      // 1. Attempt native in-app review popup dialog first
       await AppReview.requestReview();
       markLeftReview();
       return true;
+    } catch (err) {
+      console.warn('[appReview] Native requestReview failed, trying fallback openAppStore:', err);
+      // 2. Native fallback: open app store / play store page directly
+      try {
+        await AppReview.openAppStore();
+        markLeftReview();
+        return true;
+      } catch (storeErr) {
+        console.error('[appReview] Native openAppStore failed:', storeErr);
+      }
     }
-  } catch {
-    // Fall through to web fallback
   }
 
-  // Web / fallback path: open Play Store directly
+  // Web fallback or if native APIs completely failed
   try {
     window.open(PLAY_STORE_URL, '_blank', 'noopener,noreferrer');
     markLeftReview();
     return true;
-  } catch {
+  } catch (webErr) {
+    console.error('[appReview] Web/browser fallback failed:', webErr);
     return false;
   }
 }

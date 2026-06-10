@@ -82,6 +82,12 @@ const GuildInfo: React.FC<GuildInfoProps> = ({
   const [selected, setSelected] = useState<GuildMember | null>(null);
   const [confirm, setConfirm] = useState<null | "leave" | "disband">(null);
   const [infoTab, setInfoTab] = useState<"members" | "requests">("members");
+  const [leaving, setLeaving] = useState(false);
+  const [disbanding, setDisbanding] = useState(false);
+  const [processingRequestId, setProcessingRequestId] = useState<string | null>(null);
+  const [processingAction, setProcessingAction] = useState<"approve" | "reject" | null>(null);
+  const [kicking, setKicking] = useState(false);
+  const [updatingRole, setUpdatingRole] = useState(false);
   const [editingDesc, setEditingDesc] = useState(false);
   const [descDraft, setDescDraft] = useState("");
   const [savingDesc, setSavingDesc] = useState(false);
@@ -146,6 +152,8 @@ const GuildInfo: React.FC<GuildInfoProps> = ({
     r: GuildJoinRequest,
     action: "approve" | "reject"
   ) => {
+    setProcessingRequestId(r.id);
+    setProcessingAction(action);
     try {
       await resolveJoinRequest(guildId, r.id, action);
       setRequests((prev) => prev.filter((x) => x.id !== r.id));
@@ -155,10 +163,14 @@ const GuildInfo: React.FC<GuildInfoProps> = ({
       }
     } catch (e: any) {
       onToast?.("ERROR", "Action failed", e?.message);
+    } finally {
+      setProcessingRequestId(null);
+      setProcessingAction(null);
     }
   };
 
   const handleRole = async (m: GuildMember, role: "vice" | "member") => {
+    setUpdatingRole(true);
     try {
       await setMemberRole(guildId, m.userId, role);
       setSelected(null);
@@ -166,10 +178,13 @@ const GuildInfo: React.FC<GuildInfoProps> = ({
       load();
     } catch (e: any) {
       onToast?.("ERROR", "Could not update role", e?.message);
+    } finally {
+      setUpdatingRole(false);
     }
   };
 
   const handleKick = async (m: GuildMember) => {
+    setKicking(true);
     try {
       await kickMember(guildId, m.userId);
       setSelected(null);
@@ -177,24 +192,34 @@ const GuildInfo: React.FC<GuildInfoProps> = ({
       onToast?.("SUCCESS", `${m.name} removed`);
     } catch (e: any) {
       onToast?.("ERROR", "Could not kick", e?.message);
+    } finally {
+      setKicking(false);
     }
   };
 
   const handleLeave = async () => {
+    setLeaving(true);
     try {
       await leaveGuild(guildId);
       onLeft();
     } catch (e: any) {
       onToast?.("ERROR", "Could not leave", e?.message);
+    } finally {
+      setLeaving(false);
+      setConfirm(null);
     }
   };
 
   const handleDisband = async () => {
+    setDisbanding(true);
     try {
       await disbandGuild(guildId);
       onLeft();
     } catch (e: any) {
       onToast?.("ERROR", "Could not disband", e?.message);
+    } finally {
+      setDisbanding(false);
+      setConfirm(null);
     }
   };
 
@@ -411,23 +436,33 @@ const GuildInfo: React.FC<GuildInfoProps> = ({
                 </div>
                 <button
                   onClick={() => handleRequest(r, "approve")}
-                  className="w-8 h-8 rounded-lg flex items-center justify-center"
+                  disabled={processingRequestId !== null}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center disabled:opacity-50"
                   style={{
                     background: "rgba(16,185,129,0.2)",
                     color: "#10b981",
                   }}
                 >
-                  <Check size={16} />
+                  {processingRequestId === r.id && processingAction === "approve" ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <Check size={16} />
+                  )}
                 </button>
                 <button
                   onClick={() => handleRequest(r, "reject")}
-                  className="w-8 h-8 rounded-lg flex items-center justify-center"
+                  disabled={processingRequestId !== null}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center disabled:opacity-50"
                   style={{
                     background: "rgba(239,68,68,0.15)",
                     color: "#ef4444",
                   }}
                 >
-                  <X size={16} />
+                  {processingRequestId === r.id && processingAction === "reject" ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <X size={16} />
+                  )}
                 </button>
               </div>
             ))}
@@ -512,12 +547,14 @@ const GuildInfo: React.FC<GuildInfoProps> = ({
                     <ActionBtn
                       icon={<ChevronUp size={15} />}
                       label="Promote to Vice Master"
+                      loading={updatingRole}
                       onClick={() => handleRole(selected, "vice")}
                     />
                   ) : selected.role === "vice" ? (
                     <ActionBtn
                       icon={<ChevronDown size={15} />}
                       label="Demote to Member"
+                      loading={updatingRole}
                       onClick={() => handleRole(selected, "member")}
                     />
                   ) : null}
@@ -525,6 +562,7 @@ const GuildInfo: React.FC<GuildInfoProps> = ({
                     danger
                     icon={<Trash2 size={15} />}
                     label="Kick from Guild"
+                    loading={kicking}
                     onClick={() => handleKick(selected)}
                   />
                 </div>
@@ -537,6 +575,7 @@ const GuildInfo: React.FC<GuildInfoProps> = ({
                     danger
                     icon={<Trash2 size={15} />}
                     label="Kick from Guild"
+                    loading={kicking}
                     onClick={() => handleKick(selected)}
                   />
                 )}
@@ -580,7 +619,8 @@ const GuildInfo: React.FC<GuildInfoProps> = ({
               <div className="flex gap-2">
                 <button
                   onClick={() => setConfirm(null)}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
+                  disabled={leaving || disbanding}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
                   style={{
                     background: "rgba(255,255,255,0.06)",
                     color: "#cbd5e1",
@@ -590,10 +630,25 @@ const GuildInfo: React.FC<GuildInfoProps> = ({
                 </button>
                 <button
                   onClick={confirm === "disband" ? handleDisband : handleLeave}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white"
+                  disabled={leaving || disbanding}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-1.5 disabled:opacity-50"
                   style={{ background: "#ef4444" }}
                 >
-                  {confirm === "disband" ? "Disband" : "Leave"}
+                  {confirm === "disband" ? (
+                    disbanding ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin" /> Disbanding…
+                      </>
+                    ) : (
+                      "Disband"
+                    )
+                  ) : leaving ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" /> Leaving…
+                    </>
+                  ) : (
+                    "Leave"
+                  )}
                 </button>
               </div>
             </motion.div>
@@ -697,16 +752,19 @@ const ActionBtn: React.FC<{
   label: string;
   onClick: () => void;
   danger?: boolean;
-}> = ({ icon, label, onClick, danger }) => (
+  loading?: boolean;
+}> = ({ icon, label, onClick, danger, loading }) => (
   <button
     onClick={onClick}
-    className="w-full flex items-center gap-2.5 px-4 py-3 rounded-xl text-sm font-semibold transition"
+    disabled={loading}
+    className="w-full flex items-center justify-center sm:justify-start gap-2.5 px-4 py-3 rounded-xl text-sm font-semibold transition disabled:opacity-50"
     style={{
       background: danger ? "rgba(239,68,68,0.12)" : "rgba(0,212,255,0.1)",
       color: danger ? "#ef4444" : NEON,
     }}
   >
-    {icon} {label}
+    {loading ? <Loader2 size={15} className="animate-spin" /> : icon}
+    <span>{label}</span>
   </button>
 );
 
