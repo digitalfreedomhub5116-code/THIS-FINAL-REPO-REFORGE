@@ -6,6 +6,7 @@ export interface GuildRealtimeHandlers {
   onKicked?: (userId: string) => void;
   onDisbanded?: () => void;
   onMissionComplete?: (payload: { missionId: string; title: string }) => void;
+  onJoinRequest?: (payload: { guildId: string; action: string }) => void;
   /** Fired when the socket (re)subscribes — use it to re-hydrate missed history. */
   onResubscribe?: () => void;
 }
@@ -38,6 +39,9 @@ export function subscribeToGuild(guildId: string, handlers: GuildRealtimeHandler
     })
     .on('broadcast', { event: 'mission_complete' }, ({ payload }) => {
       handlers.onMissionComplete?.(payload as any);
+    })
+    .on('broadcast', { event: 'join_request' }, ({ payload }) => {
+      handlers.onJoinRequest?.(payload as any);
     })
     .subscribe((status) => {
       if (status === 'SUBSCRIBED') {

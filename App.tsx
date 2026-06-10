@@ -16,7 +16,7 @@ import GuildsTab from './components/guilds/GuildsTab';
 
 import GuildShareWorkout from './components/guilds/GuildShareWorkout';
 
-import { recordGuildContribution, fetchMyGuild, sendChatMessage } from './lib/guildApi';
+import { recordGuildContribution, fetchMyGuild, sendChatMessage, fetchJoinRequests } from './lib/guildApi';
 
 import SystemPersonalizationScreen from './components/SystemPersonalizationScreen';
 
@@ -957,26 +957,33 @@ const App: React.FC = () => {
   const [guildShareSummary, setGuildShareSummary] = useState<{ exercises: number; total: number; xp?: number } | null>(null);
   const [dungeonEntryTrigger, setDungeonEntryTrigger] = useState<{ equipment?: 'GYM' | 'HOME_DUMBBELLS' | 'BODYWEIGHT'; timestamp: number } | null>(null);
 
-  // ── Unread Guild Messages Realtime tracking ──
+  // ── Unread Guild Messages & Join Requests Realtime tracking ──
   const [myGuildId, setMyGuildId] = useState<string | null>(null);
+  const [myGuildRole, setMyGuildRole] = useState<string | null>(null);
   const [unseenMessagesCount, setUnseenMessagesCount] = useState(0);
+  const [joinRequestsCount, setJoinRequestsCount] = useState(0);
   const [activePortalTab, setActivePortalTab] = useState<string>('chat');
 
-  // Initialize guild ID on mount/login
+  // Initialize guild ID and role on mount/login
   useEffect(() => {
     if (!player.userId || isLocalUser(player.userId)) {
       setMyGuildId(null);
+      setMyGuildRole(null);
       return;
     }
     let active = true;
     fetchMyGuild()
-      .then(({ guild }) => {
+      .then(({ guild, membership }) => {
         if (active) {
           setMyGuildId(guild?.id || null);
+          setMyGuildRole(membership?.role || null);
         }
       })
       .catch(() => {
-        if (active) setMyGuildId(null);
+        if (active) {
+          setMyGuildId(null);
+          setMyGuildRole(null);
+        }
       });
     return () => {
       active = false;
@@ -986,11 +993,47 @@ const App: React.FC = () => {
   // Listen to guild changes (join/leave) dispatched from GuildsTab
   useEffect(() => {
     const handleGuildChange = (e: Event) => {
-      const gId = (e as CustomEvent).detail?.guildId;
-      setMyGuildId(gId || null);
+      const { guildId, role } = (e as CustomEvent).detail || {};
+      setMyGuildId(guildId || null);
+      setMyGuildRole(role || null);
     };
     window.addEventListener('guild:changed', handleGuildChange);
     return () => window.removeEventListener('guild:changed', handleGuildChange);
+  }, []);
+
+  // Fetch pending requests on mount/guild change
+  useEffect(() => {
+    if (!myGuildId || !myGuildRole || (myGuildRole !== 'master' && myGuildRole !== 'vice')) {
+      setJoinRequestsCount(0);
+      return;
+    }
+
+    let active = true;
+    fetchJoinRequests(myGuildId)
+      .then((reqs) => {
+        if (active) {
+          setJoinRequestsCount(reqs.length);
+        }
+      })
+      .catch(() => {
+        if (active) setJoinRequestsCount(0);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [myGuildId, myGuildRole]);
+
+  // Listen to join requests count updates from GuildInfo
+  useEffect(() => {
+    const handleRequestsUpdated = (e: Event) => {
+      const count = (e as CustomEvent).detail?.count;
+      if (typeof count === 'number') {
+        setJoinRequestsCount(count);
+      }
+    };
+    window.addEventListener('guild:requests_updated', handleRequestsUpdated);
+    return () => window.removeEventListener('guild:requests_updated', handleRequestsUpdated);
   }, []);
 
   // Listen to rewards claimed dispatched from GuildMissions
@@ -1027,10 +1070,17 @@ const App: React.FC = () => {
           setUnseenMessagesCount((prev) => prev + 1);
         }
       },
+      onJoinRequest: () => {
+        if (myGuildRole === 'master' || myGuildRole === 'vice') {
+          fetchJoinRequests(myGuildId)
+            .then((reqs) => setJoinRequestsCount(reqs.length))
+            .catch(() => {});
+        }
+      }
     });
 
     return unsub;
-  }, [myGuildId, activeTab, inGuildPortal, activePortalTab]);
+  }, [myGuildId, myGuildRole, activeTab, inGuildPortal, activePortalTab]);
 
   // Reset unseen message count when user actively enters chat tab
   useEffect(() => {
@@ -1040,13 +1090,14 @@ const App: React.FC = () => {
     }
   }, [activeTab, inGuildPortal, activePortalTab]);
 
-  // Map unseenMessagesCount to navBadges.GUILDS
+  // Map unseenMessagesCount and joinRequestsCount to navBadges.GUILDS
   useEffect(() => {
+    const total = unseenMessagesCount + joinRequestsCount;
     setNavBadges((prev) => ({
       ...prev,
-      GUILDS: unseenMessagesCount > 0 ? unseenMessagesCount : false,
+      GUILDS: total > 0 ? total : false,
     }));
-  }, [unseenMessagesCount]);
+  }, [unseenMessagesCount, joinRequestsCount]);
 
   // ── Guild contribution: every completed quest feeds the guild's daily mission & war ──
   useEffect(() => {
@@ -5536,6 +5587,7 @@ const App: React.FC = () => {
                         onToast={(type, title, subtitle) => showSystemToast({ type: type === 'ERROR' ? 'WARNING' : type, title, subtitle })}
                         unseenMessagesCount={unseenMessagesCount}
                         onTabChange={setActivePortalTab}
+                        joinRequestsCount={joinRequestsCount}
                       />
 
                     </ErrorBoundary>

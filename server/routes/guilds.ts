@@ -807,6 +807,7 @@ router.post("/:id/join", async (req: Request, res: Response) => {
         { guild_id: id, user_id: uid, status: "pending" },
         { onConflict: "guild_id,user_id" }
       );
+    await broadcastToGuild(id, "join_request", { guildId: id, action: "create" });
     return res.json({ status: "requested" });
   } catch (err) {
     console.error("[Guilds join]", err);
@@ -827,6 +828,7 @@ router.delete("/:id/request", async (req: Request, res: Response) => {
       .eq("guild_id", id)
       .eq("user_id", uid)
       .eq("status", "pending");
+    await broadcastToGuild(id, "join_request", { guildId: id, action: "cancel" });
     return res.json({ status: "cancelled" });
   } catch (err) {
     console.error("[Guilds cancel request]", err);
@@ -946,12 +948,14 @@ router.post("/:id/requests/:reqId", async (req: Request, res: Response) => {
         id,
         `${info[reqRow.user_id]?.name || "A hunter"} joined the guild.`
       );
+      await broadcastToGuild(id, "join_request", { guildId: id, action: "resolve" });
       return res.json({ status: "approved" });
     }
     await db
       .from("guild_join_requests")
       .update({ status: "rejected" })
       .eq("id", reqId);
+    await broadcastToGuild(id, "join_request", { guildId: id, action: "resolve" });
     return res.json({ status: "rejected" });
   } catch (err) {
     console.error("[Guilds request action]", err);

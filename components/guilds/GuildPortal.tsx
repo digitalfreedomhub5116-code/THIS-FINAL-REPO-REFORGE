@@ -7,6 +7,7 @@ import {
   Swords,
   Landmark,
   ArrowLeft,
+  Users,
 } from "lucide-react";
 import { NEON, glassPanel, getGuildIconUrl } from "./guildTheme";
 import { subscribeToGuild } from "../../lib/guildRealtime";
@@ -17,14 +18,14 @@ import GuildVault from "./GuildVault";
 import GuildWar from "./GuildWar";
 import type { Guild, GuildRole } from "../../types";
 
-type PortalTab = "info" | "mission" | "chat" | "war" | "vault";
+type PortalTab = "members" | "mission" | "chat" | "war" | "vault";
 
 const PORTAL_TABS: {
   key: PortalTab;
   label: string;
   icon: React.ComponentType<any>;
 }[] = [
-  { key: "info", label: "Info", icon: Info },
+  { key: "members", label: "Members", icon: Users },
   { key: "mission", label: "Mission", icon: Target },
   { key: "chat", label: "Chat", icon: MessageSquare },
   { key: "war", label: "War", icon: Swords },
@@ -49,6 +50,7 @@ interface GuildPortalProps {
   ) => void;
   unseenMessagesCount?: number;
   onTabChange?: (tab: string) => void;
+  joinRequestsCount?: number;
 }
 
 const GuildPortal: React.FC<GuildPortalProps> = ({
@@ -65,6 +67,7 @@ const GuildPortal: React.FC<GuildPortalProps> = ({
   onToast,
   unseenMessagesCount,
   onTabChange,
+  joinRequestsCount,
 }) => {
   const [tab, setTab] = useState<PortalTab>("chat"); // Chat is default
 
@@ -147,7 +150,7 @@ const GuildPortal: React.FC<GuildPortalProps> = ({
             transition={{ duration: 0.2 }}
             className="absolute inset-0"
           >
-            {tab === "info" && (
+            {tab === "members" && (
               <GuildInfo
                 guildId={guild.id}
                 myUserId={myUserId}
@@ -233,6 +236,14 @@ const GuildPortal: React.FC<GuildPortalProps> = ({
                     style={{ minWidth: '14px', height: '14px', fontSize: '8px', padding: '0 2px', borderRadius: '50%' }}
                   >
                     {unseenMessagesCount}
+                  </div>
+                ) : null}
+                {t.key === "members" && joinRequestsCount && joinRequestsCount > 0 ? (
+                  <div
+                    className="absolute -top-1.5 -right-1.5 bg-red-600 text-white rounded-full flex items-center justify-center font-mono font-bold shadow-[0_0_8px_rgba(239,68,68,0.9)]"
+                    style={{ minWidth: '14px', height: '14px', fontSize: '8px', padding: '0 2px', borderRadius: '50%' }}
+                  >
+                    {joinRequestsCount}
                   </div>
                 ) : null}
               </div>

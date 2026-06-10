@@ -107,6 +107,10 @@ const GuildInfo: React.FC<GuildInfoProps> = ({
     load();
   }, [load]);
 
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('guild:requests_updated', { detail: { count: requests.length } }));
+  }, [requests]);
+
   const canManage = myRole && RANK_ROLE[myRole] >= RANK_ROLE.vice;
 
   // Prefer the live icon/banner pushed from the portal (vault edits) over the fetched copy.

@@ -21,6 +21,7 @@ interface GuildsTabProps {
   ) => void;
   unseenMessagesCount?: number;
   onTabChange?: (tab: string) => void;
+  joinRequestsCount?: number;
 }
 
 const GuildsTab: React.FC<GuildsTabProps> = ({
@@ -31,6 +32,7 @@ const GuildsTab: React.FC<GuildsTabProps> = ({
   onToast,
   unseenMessagesCount,
   onTabChange,
+  joinRequestsCount,
 }) => {
   const [guild, setGuild] = useState<Guild | null>(null);
   const [myRole, setMyRole] = useState<GuildRole | null>(null);
@@ -102,6 +104,7 @@ const GuildsTab: React.FC<GuildsTabProps> = ({
         onToast={onToast}
         unseenMessagesCount={unseenMessagesCount}
         onTabChange={onTabChange}
+        joinRequestsCount={joinRequestsCount}
       />
     );
   }
