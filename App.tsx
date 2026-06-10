@@ -43,6 +43,7 @@ import { unlockItem } from './utils/storeEconomy';
 import DungeonLockScreen from './components/DungeonLockScreen';
 import { setRemoteStoreCache, StoreItem, StoreCategory, ItemTier } from './utils/storeItems';
 import { triggerHaptic, setupAudioPriming, playSystemSoundEffect } from './utils/soundEngine';
+import { UpdateChecker } from './components/UpdateChecker';
 
 import {
 
@@ -5944,6 +5945,7 @@ const App: React.FC = () => {
           </Layout>
 
           <SystemToastOverlay />
+          <UpdateChecker />
           <GuildShareWorkout summary={guildShareSummary} onDismiss={() => setGuildShareSummary(null)} />
         </>
 
