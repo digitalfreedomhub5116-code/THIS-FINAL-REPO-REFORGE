@@ -214,7 +214,7 @@ export async function fetchChatHistory(
   before?: string,
   after?: string,
   limit = 30
-): Promise<GuildMessage[]> {
+): Promise<{ messages: GuildMessage[]; readStates: { userId: string; lastReadMessageId: string | null }[] }> {
   const params = new URLSearchParams();
   if (before) params.set("before", before);
   if (after) params.set("after", after);
@@ -223,7 +223,20 @@ export async function fetchChatHistory(
     `${base}/${id}/chat?${params.toString()}`
   );
   const data = await jsonOrThrow(res);
-  return data.messages || [];
+  return {
+    messages: data.messages || [],
+    readStates: data.readStates || [],
+  };
+}
+
+export async function deleteChatMessage(
+  guildId: string,
+  messageId: string
+): Promise<{ success: boolean }> {
+  const res = await authenticatedFetch(`${base}/${guildId}/chat/${messageId}`, {
+    method: "DELETE",
+  });
+  return jsonOrThrow(res);
 }
 
 export async function markChatAsRead(

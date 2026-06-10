@@ -13,6 +13,10 @@ export interface GuildRealtimeHandlers {
   onPresenceSync?: (presenceState: any) => void;
   /** Fired when typing status broadcasts are received from other users. */
   onTyping?: (payload: { userId: string; name: string; isTyping: boolean }) => void;
+  /** Fired when a message is deleted. */
+  onMessageDeleted?: (payload: { messageId: string }) => void;
+  /** Fired when a member broadcasts a read receipt. */
+  onReadReceipt?: (payload: { userId: string; messageId: string }) => void;
 }
 
 /**
@@ -23,7 +27,11 @@ export function subscribeToGuild(
   guildId: string,
   handlers: GuildRealtimeHandlers,
   myPlayerInfo?: { userId: string; name: string } | null
-): { unsubscribe: () => void; sendTyping: (isTyping: boolean) => void } {
+): {
+  unsubscribe: () => void;
+  sendTyping: (isTyping: boolean) => void;
+  sendReadReceipt: (messageId: string) => void;
+} {
   const presenceKey = myPlayerInfo?.userId || 'anonymous';
   const channel = supabase.channel(`guild:${guildId}`, {
     config: { 
@@ -50,6 +58,12 @@ export function subscribeToGuild(
     })
     .on('broadcast', { event: 'typing' }, ({ payload }) => {
       handlers.onTyping?.(payload as any);
+    })
+    .on('broadcast', { event: 'message_deleted' }, ({ payload }) => {
+      handlers.onMessageDeleted?.(payload as any);
+    })
+    .on('broadcast', { event: 'read_receipt' }, ({ payload }) => {
+      handlers.onReadReceipt?.(payload as any);
     })
     .on('presence', { event: 'sync' }, () => {
       const state = channel.presenceState();
@@ -87,6 +101,14 @@ export function subscribeToGuild(
         type: 'broadcast',
         event: 'typing',
         payload: { userId: myPlayerInfo.userId, name: myPlayerInfo.name, isTyping }
+      });
+    },
+    sendReadReceipt: (messageId: string) => {
+      if (!myPlayerInfo) return;
+      channel.send({
+        type: 'broadcast',
+        event: 'read_receipt',
+        payload: { userId: myPlayerInfo.userId, messageId }
       });
     }
   };

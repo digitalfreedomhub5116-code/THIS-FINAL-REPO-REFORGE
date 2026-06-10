@@ -248,6 +248,7 @@ const GuildPortal: React.FC<GuildPortalProps> = ({
                   myUserId={myUserId}
                   myName={myName}
                   myAvatarUrl={myAvatarUrl}
+                  myRole={myRole}
                   onKicked={() => {
                     onToast?.("WARNING", "You were removed from the guild");
                     onLeftGuild();

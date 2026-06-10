@@ -1,17 +1,19 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Send, Dumbbell, AlertCircle, RotateCcw } from "lucide-react";
+import { Send, Dumbbell, AlertCircle, RotateCcw, Copy, Trash2, Check, CheckCheck } from "lucide-react";
 import { NEON, glassPanel, timeAgo } from "./guildTheme";
 import GuildAvatar from "./GuildAvatar";
-import { fetchChatHistory, sendChatMessage, markChatAsRead } from "../../lib/guildApi";
+import { fetchChatHistory, sendChatMessage, markChatAsRead, deleteChatMessage } from "../../lib/guildApi";
 import { subscribeToGuild } from "../../lib/guildRealtime";
-import type { GuildMessage } from "../../types";
+import type { GuildMessage, GuildRole } from "../../types";
+import { showSystemToast } from "../SystemToast";
 
 interface GuildChatProps {
   guildId: string;
   myUserId: string;
   myName: string;
   myAvatarUrl: string | null;
+  myRole?: GuildRole | null;
   onKicked: () => void;
   onDisbanded: () => void;
   onMissionComplete: (p: { missionId: string; title: string }) => void;
@@ -25,6 +27,7 @@ const GuildChat: React.FC<GuildChatProps> = ({
   myUserId,
   myName,
   myAvatarUrl,
+  myRole,
   onKicked,
   onDisbanded,
   onMissionComplete,
@@ -40,11 +43,16 @@ const GuildChat: React.FC<GuildChatProps> = ({
   // Pagination & Sync states
   const [fetchingMore, setFetchingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+
+  // Read receipts and deletion/copy states
+  const [readStates, setReadStates] = useState<Record<string, string | null>>({});
+  const [activeMenuMessageId, setActiveMenuMessageId] = useState<string | null>(null);
   
   const scrollRef = useRef<HTMLDivElement>(null);
   const atBottomRef = useRef(true);
   const lastReadMessageIdRef = useRef<string | null>(null);
   const latestRef = useRef<string | undefined>(undefined);
+  const sendReadReceiptRef = useRef<(messageId: string) => void>(() => {});
   
   // Typing states
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -73,7 +81,17 @@ const GuildChat: React.FC<GuildChatProps> = ({
   // Fetch history (optionally supporting after cursor for gap-filling)
   const loadHistory = useCallback(async (afterTimestamp?: string) => {
     try {
-      const history = await fetchChatHistory(guildId, undefined, afterTimestamp);
+      const res = await fetchChatHistory(guildId, undefined, afterTimestamp);
+      const history = res.messages;
+      
+      if (res.readStates) {
+        const statesMap: Record<string, string | null> = {};
+        for (const s of res.readStates) {
+          statesMap[s.userId] = s.lastReadMessageId;
+        }
+        setReadStates((prev) => ({ ...prev, ...statesMap }));
+      }
+
       setMessages((prev) => {
         const map = new Map<string, GuildMessage>();
         
@@ -110,18 +128,25 @@ const GuildChat: React.FC<GuildChatProps> = ({
   useEffect(() => {
     setLoading(true);
     loadHistory();
-    const { unsubscribe } = subscribeToGuild(guildId, {
+    const { unsubscribe, sendReadReceipt } = subscribeToGuild(guildId, {
       onMessage: (msg) => mergeMessages([msg]),
       onKicked: (uid) => {
         if (uid === myUserId) onKicked();
       },
       onDisbanded,
       onMissionComplete,
+      onMessageDeleted: ({ messageId }) => {
+        setMessages((prev) => prev.filter((m) => m.id !== messageId));
+      },
+      onReadReceipt: ({ userId, messageId }) => {
+        setReadStates((prev) => ({ ...prev, [userId]: messageId }));
+      },
       onResubscribe: () => {
         // Gap-fill history using virtual sync cursor on resubscription
         loadHistory(latestRef.current);
       },
     });
+    sendReadReceiptRef.current = sendReadReceipt;
     return unsubscribe;
   }, [
     guildId,
@@ -143,6 +168,8 @@ const GuildChat: React.FC<GuildChatProps> = ({
     markChatAsRead(guildId, latest.id).catch((err) => {
       console.warn("[Chat] Failed to mark chat as read:", err);
     });
+    // Broadcast realtime receipt to other online users
+    sendReadReceiptRef.current(latest.id);
   }, [guildId, messages]);
 
   // Run read tracker whenever messages change
@@ -175,7 +202,8 @@ const GuildChat: React.FC<GuildChatProps> = ({
         setFetchingMore(true);
         try {
           const oldScrollHeight = el.scrollHeight;
-          const older = await fetchChatHistory(guildId, oldestMsg.createdAt, undefined, 30);
+          const res = await fetchChatHistory(guildId, oldestMsg.createdAt, undefined, 30);
+          const older = res.messages;
           
           if (older.length < 30) {
             setHasMore(false);
@@ -289,8 +317,55 @@ const GuildChat: React.FC<GuildChatProps> = ({
     doSend(m._tempId!, m.body);
   };
 
+  const copyToClipboard = (text: string) => {
+    let success = false;
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text);
+      success = true;
+    } else {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.style.position = "fixed";
+      textArea.style.left = "-9999px";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        document.execCommand("copy");
+        success = true;
+      } catch (err) {
+        console.error("Fallback copy failed", err);
+      }
+      document.body.removeChild(textArea);
+    }
+    if (success) {
+      showSystemToast({ title: "Message copied", type: "SUCCESS" });
+    } else {
+      showSystemToast({ title: "Failed to copy message", type: "WARNING" });
+    }
+  };
+
+  const handleDeleteMessage = async (messageId: string) => {
+    try {
+      await deleteChatMessage(guildId, messageId);
+      setMessages((prev) => prev.filter((m) => m.id !== messageId));
+      showSystemToast({ title: "Message deleted", type: "SUCCESS" });
+    } catch (err: any) {
+      showSystemToast({ title: err.message || "Failed to delete message", type: "WARNING" });
+    } finally {
+      setActiveMenuMessageId(null);
+    }
+  };
+
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full relative">
+      {/* Click-away overlay to close open message context menus */}
+      {activeMenuMessageId && (
+        <div
+          className="fixed inset-0 z-[98] bg-transparent"
+          onClick={() => setActiveMenuMessageId(null)}
+        />
+      )}
       <div
         ref={scrollRef}
         onScroll={onScroll}
@@ -335,6 +410,15 @@ const GuildChat: React.FC<GuildChatProps> = ({
               mine={m.userId === myUserId}
               onRetry={retry}
               isOnline={m.userId ? onlineUserIds.has(m.userId) : false}
+              myRole={myRole}
+              activeMenuMessageId={activeMenuMessageId}
+              setActiveMenuMessageId={setActiveMenuMessageId}
+              onDeleteMessage={handleDeleteMessage}
+              onCopyMessage={copyToClipboard}
+              readStates={readStates}
+              messages={messages}
+              myUserId={myUserId}
+              onlineUserIds={onlineUserIds}
             />
           ))
         )}
@@ -387,12 +471,126 @@ const GuildChat: React.FC<GuildChatProps> = ({
   );
 };
 
+const MessageTicks: React.FC<{ status: "sending" | "failed" | "single" | "double" | "blue" }> = ({ status }) => {
+  if (status === "sending" || status === "failed") return null;
+  if (status === "single") {
+    return <Check size={11} className="text-gray-500" />;
+  }
+  if (status === "double") {
+    return <CheckCheck size={11} className="text-gray-500" />;
+  }
+  if (status === "blue") {
+    return <CheckCheck size={11} className="text-[#00d4ff]" />;
+  }
+  return null;
+};
+
 const MessageRow: React.FC<{
   m: GuildMessage;
   mine: boolean;
   onRetry: (m: GuildMessage) => void;
   isOnline?: boolean;
-}> = ({ m, mine, onRetry, isOnline = false }) => {
+  myRole?: GuildRole | null;
+  activeMenuMessageId: string | null;
+  setActiveMenuMessageId: (id: string | null) => void;
+  onDeleteMessage: (id: string) => void;
+  onCopyMessage: (text: string) => void;
+  readStates: Record<string, string | null>;
+  messages: GuildMessage[];
+  myUserId: string;
+  onlineUserIds: Set<string>;
+}> = ({
+  m,
+  mine,
+  onRetry,
+  isOnline = false,
+  myRole,
+  activeMenuMessageId,
+  setActiveMenuMessageId,
+  onDeleteMessage,
+  onCopyMessage,
+  readStates,
+  messages,
+  myUserId,
+  onlineUserIds,
+}) => {
+  const getMessageTickStatus = (): "sending" | "failed" | "single" | "double" | "blue" => {
+    if (m._status === "sending") return "sending";
+    if (m._status === "failed") return "failed";
+    if (m.id.startsWith("temp-")) return "sending";
+
+    // Filter read states for other users in the guild
+    const otherMembersRead = Object.entries(readStates).filter(([uid]) => uid !== myUserId);
+    
+    let hasBeenReadByOther = false;
+    for (const [uid, lastReadId] of otherMembersRead) {
+      if (!lastReadId) continue;
+      if (lastReadId === m.id) {
+        hasBeenReadByOther = true;
+        break;
+      }
+      const msgIndex = messages.findIndex((x) => x.id === m.id);
+      const readIndex = messages.findIndex((x) => x.id === lastReadId);
+      if (msgIndex !== -1 && readIndex !== -1 && readIndex > msgIndex) {
+        hasBeenReadByOther = true;
+        break;
+      }
+    }
+
+    if (hasBeenReadByOther) {
+      return "blue";
+    }
+
+    const otherOnline = Array.from(onlineUserIds).some((uid) => uid !== myUserId);
+    if (otherOnline) {
+      return "double";
+    }
+
+    return "single";
+  };
+
+  const renderDropdownMenu = () => {
+    if (m.id.startsWith("temp-")) return null;
+    return (
+      <div
+        className="absolute z-[99] min-w-[120px] rounded-xl border border-white/10 shadow-2xl py-1"
+        style={{
+          ...glassPanel,
+          background: "rgba(8,8,20,0.98)",
+          top: "100%",
+          left: mine ? "auto" : "0px",
+          right: mine ? "0px" : "auto",
+          marginTop: "4px",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={() => {
+            onCopyMessage(m.body);
+            setActiveMenuMessageId(null);
+          }}
+          className="w-full px-3 py-2 text-left text-xs text-gray-200 hover:bg-white/5 flex items-center gap-2 transition"
+        >
+          <Copy size={12} />
+          <span>Copy Text</span>
+        </button>
+
+        {(mine || myRole === "master" || myRole === "vice") && (
+          <button
+            onClick={() => {
+              onDeleteMessage(m.id);
+              setActiveMenuMessageId(null);
+            }}
+            className="w-full px-3 py-2 text-left text-xs text-red-400 hover:bg-red-500/10 flex items-center gap-2 transition border-t border-white/5"
+          >
+            <Trash2 size={12} />
+            <span>Delete</span>
+          </button>
+        )}
+      </div>
+    );
+  };
+
   if (m.type === "system") {
     return (
       <div className="flex justify-center">
@@ -410,14 +608,20 @@ const MessageRow: React.FC<{
         animate={{ opacity: 1, y: 0 }}
         className={`flex ${mine ? "justify-end" : "justify-start"}`}
       >
-        <div className="max-w-[78%]">
+        <div className="max-w-[78%] relative">
           {!mine && (
             <p className="text-[11px] text-gray-500 mb-1 ml-1">
               {m.author?.name || "Hunter"}
             </p>
           )}
           <div
-            className="rounded-2xl p-3"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!m.id.startsWith("temp-")) {
+                setActiveMenuMessageId(activeMenuMessageId === m.id ? null : m.id);
+              }
+            }}
+            className="rounded-2xl p-3 cursor-pointer select-none hover:brightness-110 active:scale-[0.99] transition-all relative"
             style={{ ...glassPanel, border: `1px solid ${NEON}` }}
           >
             <div className="flex items-center gap-2 mb-1">
@@ -440,6 +644,23 @@ const MessageRow: React.FC<{
                 )}
               </div>
             )}
+
+            {/* Context Dropdown Menu */}
+            {activeMenuMessageId === m.id && renderDropdownMenu()}
+          </div>
+          <div
+            className={`flex items-center gap-1.5 mt-0.5 ${
+              mine ? "justify-end" : ""
+            }`}
+          >
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] text-gray-600">
+                {timeAgo(m.createdAt)}
+              </span>
+              {mine && !m.id.startsWith("temp-") && (
+                <MessageTicks status={getMessageTickStatus()} />
+              )}
+            </div>
           </div>
         </div>
       </motion.div>
@@ -462,14 +683,20 @@ const MessageRow: React.FC<{
         animate={{ opacity: 1, y: 0 }}
         className={`flex ${mine ? "justify-end" : "justify-start"}`}
       >
-        <div className="max-w-[85%] w-72">
+        <div className="max-w-[85%] w-72 relative">
           {!mine && (
             <p className="text-[11px] text-gray-500 mb-1 ml-1">
               {m.author?.name || "Hunter"}
             </p>
           )}
           <div
-            className="rounded-2xl p-4 relative overflow-hidden"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!m.id.startsWith("temp-")) {
+                setActiveMenuMessageId(activeMenuMessageId === m.id ? null : m.id);
+              }
+            }}
+            className="rounded-2xl p-4 relative overflow-hidden cursor-pointer select-none hover:brightness-110 active:scale-[0.99] transition-all"
             style={{
               ...glassPanel,
               border: `1px solid rgba(0, 212, 255, 0.4)`,
@@ -520,6 +747,23 @@ const MessageRow: React.FC<{
                 />
               </div>
             </div>
+
+            {/* Context Dropdown Menu */}
+            {activeMenuMessageId === m.id && renderDropdownMenu()}
+          </div>
+          <div
+            className={`flex items-center gap-1.5 mt-0.5 ${
+              mine ? "justify-end" : ""
+            }`}
+          >
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] text-gray-600">
+                {timeAgo(m.createdAt)}
+              </span>
+              {mine && !m.id.startsWith("temp-") && (
+                <MessageTicks status={getMessageTickStatus()} />
+              )}
+            </div>
           </div>
         </div>
       </motion.div>
@@ -547,7 +791,13 @@ const MessageRow: React.FC<{
           </p>
         )}
         <div
-          className="px-3 py-2 rounded-2xl text-sm break-words"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (!m.id.startsWith("temp-")) {
+              setActiveMenuMessageId(activeMenuMessageId === m.id ? null : m.id);
+            }
+          }}
+          className="px-3 py-2 rounded-2xl text-sm break-words cursor-pointer select-none hover:brightness-110 active:scale-[0.99] transition-all relative"
           style={
             mine
               ? {
@@ -559,6 +809,9 @@ const MessageRow: React.FC<{
           }
         >
           {m.body}
+
+          {/* Context Dropdown Menu */}
+          {activeMenuMessageId === m.id && renderDropdownMenu()}
         </div>
         <div
           className={`flex items-center gap-1.5 mt-0.5 ${
@@ -576,9 +829,14 @@ const MessageRow: React.FC<{
               <RotateCcw size={10} /> retry
             </button>
           ) : (
-            <span className="text-[10px] text-gray-600">
-              {timeAgo(m.createdAt)}
-            </span>
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] text-gray-600">
+                {timeAgo(m.createdAt)}
+              </span>
+              {mine && !m.id.startsWith("temp-") && (
+                <MessageTicks status={getMessageTickStatus()} />
+              )}
+            </div>
           )}
         </div>
       </div>

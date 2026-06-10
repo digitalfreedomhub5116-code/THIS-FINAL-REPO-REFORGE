@@ -1160,12 +1160,75 @@ router.get("/:id/chat", async (req: Request, res: Response) => {
       db,
       ordered.filter((r: any) => r.user_id).map((r: any) => r.user_id)
     );
+
+    // Fetch other members' read states
+    const { data: memberReadStates } = await db
+      .from("guild_members")
+      .select("user_id, last_read_message_id")
+      .eq("guild_id", id);
+
     return res.json({
       messages: ordered.map((r: any) => serializeMessage(r, info)),
+      readStates: (memberReadStates || []).map((m: any) => ({
+        userId: m.user_id,
+        lastReadMessageId: m.last_read_message_id,
+      })),
     });
   } catch (err) {
     console.error("[Guilds chat GET]", err);
     return res.status(500).json({ error: "Failed to load chat" });
+  }
+});
+
+// DELETE /api/guilds/:id/chat/:messageId - delete a chat message (author or master/vice only)
+router.delete("/:id/chat/:messageId", async (req: Request, res: Response) => {
+  const uid = auth(req, res);
+  if (!uid) return;
+  try {
+    const db = supabaseServer() as any;
+    const { id, messageId } = req.params as Record<string, string>;
+
+    // 1. Verify caller membership in the guild
+    const callerMembership = await getMembershipIn(db, id, uid);
+    if (!callerMembership) {
+      return res.status(403).json({ error: "Not a member of this guild" });
+    }
+
+    // 2. Fetch the message to verify it belongs to this guild and check author
+    const { data: message, error: fetchError } = await db
+      .from("guild_chat")
+      .select("*")
+      .eq("id", messageId)
+      .eq("guild_id", id)
+      .maybeSingle();
+
+    if (fetchError || !message) {
+      return res.status(404).json({ error: "Message not found in this guild" });
+    }
+
+    // 3. Verify permissions: author, master, or vice
+    const isAuthor = message.user_id === uid;
+    const isMasterOrVice = ["master", "vice"].includes(callerMembership.role);
+
+    if (!isAuthor && !isMasterOrVice) {
+      return res.status(403).json({ error: "You do not have permission to delete this message" });
+    }
+
+    // 4. Perform database deletion
+    const { error: deleteError } = await db
+      .from("guild_chat")
+      .delete()
+      .eq("id", messageId);
+
+    if (deleteError) throw deleteError;
+
+    // 5. Broadcast realtime delete notification to the guild channel
+    await broadcastToGuild(id, "message_deleted", { messageId });
+
+    return res.json({ success: true });
+  } catch (err) {
+    console.error("[Guilds chat DELETE]", err);
+    return res.status(500).json({ error: "Failed to delete message" });
   }
 });
 
