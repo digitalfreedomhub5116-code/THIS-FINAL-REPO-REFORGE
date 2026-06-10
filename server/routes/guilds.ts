@@ -947,7 +947,7 @@ router.post("/:id/requests/:reqId", async (req: Request, res: Response) => {
         .select("member_cap")
         .eq("id", id)
         .maybeSingle();
-      if ((count || 0) >= (guild?.member_cap || 150))
+      if ((count || 0) >= (guild?.member_cap || 25))
         return res.status(409).json({ error: "Guild is full" });
 
       await db

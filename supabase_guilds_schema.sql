@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS guilds (
   banner        TEXT,                         -- asset key / gradient id
   privacy       VARCHAR(20) DEFAULT 'open',   -- 'open' | 'invite_only'
   master_id     TEXT NOT NULL,                -- players.supabase_id of the founder
-  member_cap    INTEGER DEFAULT 150,
+  member_cap    INTEGER DEFAULT 25,
   level         INTEGER DEFAULT 0,
   vault_balance INTEGER DEFAULT 0,
   war_registered_week DATE,                   -- opt-in war: the Thursday (week_start) the guild registered for
