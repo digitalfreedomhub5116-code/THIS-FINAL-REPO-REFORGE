@@ -285,9 +285,9 @@ const GuildInfo: React.FC<GuildInfoProps> = ({
           value={`${members.length}/${guild.memberCap}`}
         />
         <Stat
-          icon={<Sparkles size={15} />}
-          label="Glory"
-          value={guild.gloryPoints.toLocaleString()}
+          icon={<Shield size={15} className="text-[#00d4ff]" />}
+          label="Guild Level"
+          value={guild.level.toLocaleString()}
         />
         <Stat
           icon={<Trophy size={15} />}

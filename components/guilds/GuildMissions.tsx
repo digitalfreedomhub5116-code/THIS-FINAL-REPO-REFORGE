@@ -245,12 +245,6 @@ const GuildMissions: React.FC<GuildMissionsProps> = ({ guildId, completionSignal
                   <span className="text-amber-300 text-sm font-bold">{mission.reward.gold.toLocaleString()} G</span>
                 </div>
               )}
-              {mission.reward?.glory != null && (
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg" style={{ background: 'rgba(0,212,255,0.12)' }}>
-                  <Sparkles size={14} style={{ color: NEON }} />
-                  <span className="text-sm font-bold" style={{ color: NEON }}>{mission.reward.glory} Glory</span>
-                </div>
-              )}
             </div>
           </div>
         </div>

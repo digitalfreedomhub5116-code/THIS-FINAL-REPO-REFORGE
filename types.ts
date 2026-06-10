@@ -34,7 +34,7 @@ export interface GuildSummary {
   privacy: GuildPrivacy;
   memberCount: number;
   memberCap: number;
-  gloryPoints: number;
+  level: number;
   rank: number;
   /** True if the current user has a pending join request for this (closed) guild. */
   requested?: boolean;
@@ -50,7 +50,7 @@ export interface Guild {
   privacy: GuildPrivacy;
   masterId: string;
   memberCap: number;
-  gloryPoints: number;
+  level: number;
   vaultBalance: number;
   createdAt?: string;
 }
@@ -93,7 +93,7 @@ export interface GuildMission {
   title: string;
   target: number;
   progress: number;
-  reward: { gold?: number; glory?: number };
+  reward: { gold?: number };
   completed: boolean;
   date: string;
 }

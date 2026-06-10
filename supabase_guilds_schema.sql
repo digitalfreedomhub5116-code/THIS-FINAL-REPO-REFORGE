@@ -16,12 +16,15 @@ CREATE TABLE IF NOT EXISTS guilds (
   privacy       VARCHAR(20) DEFAULT 'open',   -- 'open' | 'invite_only'
   master_id     TEXT NOT NULL,                -- players.supabase_id of the founder
   member_cap    INTEGER DEFAULT 150,
-  glory_points  INTEGER DEFAULT 0,
+  level         INTEGER DEFAULT 0,
   vault_balance INTEGER DEFAULT 0,
   war_registered_week DATE,                   -- opt-in war: the Thursday (week_start) the guild registered for
   created_at    TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at    TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+-- Idempotent upgrades
+ALTER TABLE guilds ADD COLUMN IF NOT EXISTS level INTEGER DEFAULT 0;
+ALTER TABLE guilds DROP COLUMN IF EXISTS glory_points;
 -- Idempotent: add the column if upgrading an existing guilds table.
 ALTER TABLE guilds ADD COLUMN IF NOT EXISTS war_registered_week DATE;
 -- Premium guild icons the guild has unlocked via the Vault (array of icon keys).
@@ -124,15 +127,70 @@ CREATE TABLE IF NOT EXISTS guild_vault_transactions (
 CREATE INDEX IF NOT EXISTS idx_vault_txn_guild ON guild_vault_transactions(guild_id, created_at DESC);
 
 -- ── Atomic increment helpers (avoid read-modify-write races) ─────────────────
-CREATE OR REPLACE FUNCTION guild_add_glory(p_guild UUID, p_amount INTEGER)
-RETURNS VOID AS $$
-  UPDATE guilds SET glory_points = glory_points + p_amount, updated_at = NOW() WHERE id = p_guild;
-$$ LANGUAGE sql;
-
 CREATE OR REPLACE FUNCTION guild_add_vault(p_guild UUID, p_amount INTEGER)
 RETURNS VOID AS $$
   UPDATE guilds SET vault_balance = GREATEST(0, vault_balance + p_amount), updated_at = NOW() WHERE id = p_guild;
 $$ LANGUAGE sql;
+
+-- ── Real-time Guild Level Triggers (Sum of members' levels) ──────────────────
+CREATE OR REPLACE FUNCTION recalculate_guild_level(p_guild_id UUID)
+RETURNS VOID AS $$
+DECLARE
+  v_total_level INTEGER;
+BEGIN
+  SELECT COALESCE(SUM(p.level), 0)
+    INTO v_total_level
+    FROM guild_members m
+    JOIN players p ON m.user_id = p.supabase_id
+   WHERE m.guild_id = p_guild_id;
+
+  UPDATE guilds
+     SET level = v_total_level,
+         updated_at = NOW()
+   WHERE id = p_guild_id;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION trigger_on_guild_members_change()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF TG_OP = 'INSERT' OR TG_OP = 'UPDATE' THEN
+    PERFORM recalculate_guild_level(NEW.guild_id);
+  END IF;
+  IF TG_OP = 'DELETE' OR TG_OP = 'UPDATE' THEN
+    PERFORM recalculate_guild_level(OLD.guild_id);
+  END IF;
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_guild_members_change ON guild_members;
+CREATE TRIGGER trg_guild_members_change
+  AFTER INSERT OR UPDATE OR DELETE ON guild_members
+  FOR EACH ROW EXECUTE FUNCTION trigger_on_guild_members_change();
+
+CREATE OR REPLACE FUNCTION trigger_on_players_level_change()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_guild_id UUID;
+BEGIN
+  IF OLD.level IS DISTINCT FROM NEW.level THEN
+    SELECT guild_id INTO v_guild_id
+      FROM guild_members
+     WHERE user_id = NEW.supabase_id;
+
+    IF v_guild_id IS NOT NULL THEN
+      PERFORM recalculate_guild_level(v_guild_id);
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_players_level_change ON players;
+CREATE TRIGGER trg_players_level_change
+  AFTER UPDATE OF level ON players
+  FOR EACH ROW EXECUTE FUNCTION trigger_on_players_level_change();
 
 CREATE OR REPLACE FUNCTION guild_mission_progress(p_guild UUID, p_date DATE, p_amount INTEGER)
 RETURNS VOID AS $$

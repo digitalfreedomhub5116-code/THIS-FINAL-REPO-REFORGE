@@ -11,6 +11,7 @@ import {
   AlertCircle,
   Coins,
   Check,
+  Shield,
 } from "lucide-react";
 import {
   NEON,
@@ -343,7 +344,7 @@ const GuildBrowser: React.FC<GuildBrowserProps> = ({
                           className="flex items-center gap-1"
                           style={{ color: NEON }}
                         >
-                          <Sparkles size={11} /> {formatGlory(g.gloryPoints)}
+                          <Shield size={11} /> Lvl {formatGuildLevel(g.level)}
                         </span>
                       </div>
                     </div>
@@ -476,7 +477,7 @@ const GuildBrowser: React.FC<GuildBrowserProps> = ({
   );
 };
 
-function formatGlory(n: number): string {
+function formatGuildLevel(n: number): string {
   if (n >= 1000) return `${(n / 1000).toFixed(1)}K`;
   return String(n);
 }

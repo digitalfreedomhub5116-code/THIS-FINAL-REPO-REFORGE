@@ -222,7 +222,6 @@ interface MissionDef {
     gold: number;
     xp: number;
     vault_gold: number;
-    glory: number;
   };
 }
 
@@ -234,7 +233,7 @@ const MISSION_POOL: MissionDef[] = [
     titleTemplate: "Clear {target} dungeons collectively",
     baseMultiplier: 0.8,
     minTarget: 1,
-    reward: { gold: 250, xp: 150, vault_gold: 500, glory: 120 },
+    reward: { gold: 250, xp: 150, vault_gold: 500 },
   },
   {
     key: "complete_quests",
@@ -242,7 +241,7 @@ const MISSION_POOL: MissionDef[] = [
     titleTemplate: "Complete {target} daily quests collectively",
     baseMultiplier: 2.0,
     minTarget: 2,
-    reward: { gold: 200, xp: 120, vault_gold: 400, glory: 100 },
+    reward: { gold: 200, xp: 120, vault_gold: 400 },
   },
   {
     key: "complete_workouts",
@@ -250,7 +249,7 @@ const MISSION_POOL: MissionDef[] = [
     titleTemplate: "Log {target} workouts collectively",
     baseMultiplier: 0.6,
     minTarget: 1,
-    reward: { gold: 180, xp: 100, vault_gold: 350, glory: 80 },
+    reward: { gold: 180, xp: 100, vault_gold: 350 },
   },
   {
     key: "complete_exercises",
@@ -258,7 +257,7 @@ const MISSION_POOL: MissionDef[] = [
     titleTemplate: "Perform {target} exercises collectively",
     baseMultiplier: 4.0,
     minTarget: 5,
-    reward: { gold: 220, xp: 130, vault_gold: 450, glory: 110 },
+    reward: { gold: 220, xp: 130, vault_gold: 450 },
   },
   {
     key: "earn_xp",
@@ -266,7 +265,7 @@ const MISSION_POOL: MissionDef[] = [
     titleTemplate: "Earn {target} XP collectively as a guild",
     baseMultiplier: 150.0,
     minTarget: 150,
-    reward: { gold: 240, xp: 140, vault_gold: 480, glory: 115 },
+    reward: { gold: 240, xp: 140, vault_gold: 480 },
   },
   {
     key: "earn_gold",
@@ -274,7 +273,7 @@ const MISSION_POOL: MissionDef[] = [
     titleTemplate: "Earn {target} Gold collectively as a guild",
     baseMultiplier: 120.0,
     minTarget: 120,
-    reward: { gold: 200, xp: 125, vault_gold: 420, glory: 95 },
+    reward: { gold: 200, xp: 125, vault_gold: 420 },
   },
   {
     key: "scan_food",
@@ -282,7 +281,7 @@ const MISSION_POOL: MissionDef[] = [
     titleTemplate: "Scan {target} meals collectively (min 2 per member)",
     baseMultiplier: 1.0,
     minTarget: 2,
-    reward: { gold: 230, xp: 135, vault_gold: 460, glory: 105 },
+    reward: { gold: 230, xp: 135, vault_gold: 460 },
   },
 ];
 
@@ -369,7 +368,7 @@ router.get("/", async (req: Request, res: Response) => {
     let q = db
       .from("guilds")
       .select("*")
-      .order("glory_points", { ascending: false })
+      .order("level", { ascending: false })
       .limit(50);
     if (search) q = q.ilike("name", `%${search}%`);
     if (filter === "recruiting") q = q.eq("privacy", "open");
@@ -411,7 +410,7 @@ router.get("/", async (req: Request, res: Response) => {
       privacy: g.privacy,
       memberCount: counts[g.id] || 0,
       memberCap: g.member_cap,
-      gloryPoints: g.glory_points,
+      level: g.level,
       rank: i + 1,
       requested: requestedSet.has(g.id),
     }));
@@ -464,7 +463,7 @@ function serializeGuild(g: any) {
     privacy: g.privacy,
     masterId: g.master_id,
     memberCap: g.member_cap,
-    gloryPoints: g.glory_points,
+    level: g.level,
     vaultBalance: g.vault_balance,
     createdAt: g.created_at,
   };
@@ -1847,7 +1846,6 @@ export async function recordGuildContribution(
     p_user: userId,
     p_amount: amount,
   });
-  await db.rpc("guild_add_glory", { p_guild: guildId, p_amount: amount });
 
   // War points (Thu–Sat) if an active war exists for this guild
   const { data: war } = await db
@@ -1949,9 +1947,9 @@ export async function runGuildWarCron(db: any): Promise<void> {
     // Opt-in only: just guilds that registered for THIS week's matchmaking.
     const { data: guilds } = await db
       .from("guilds")
-      .select("id, glory_points")
+      .select("id, level")
       .eq("war_registered_week", weekStart)
-      .order("glory_points", { ascending: false });
+      .order("level", { ascending: false });
     const eligible = (guilds || []).filter((g: any) => !paired.has(g.id));
     for (let i = 0; i + 1 < eligible.length; i += 2) {
       await db.from("guild_wars").insert({
@@ -1985,12 +1983,11 @@ export async function runGuildWarCron(db: any): Promise<void> {
         })
         .eq("id", war.id);
       if (winner) {
-        await db.rpc("guild_add_glory", { p_guild: winner, p_amount: 500 });
         await db.rpc("guild_add_vault", { p_guild: winner, p_amount: 2000 });
         await postSystemMessage(
           db,
           winner,
-          "🏆 Your guild won this week's War! +500 Glory, +2000 G to the vault."
+          "🏆 Your guild won this week's War! +2000 G to the vault."
         );
         const loser = winner === war.guild_a ? war.guild_b : war.guild_a;
         await postSystemMessage(
