@@ -290,7 +290,7 @@ const GuildBrowser: React.FC<GuildBrowserProps> = ({
                       <img
                         src={getGuildIconUrl(g.icon)}
                         alt=""
-                        className="w-10 h-10 object-contain"
+                        className="w-10 h-10 object-contain rounded-lg"
                       />
                     </div>
                     <div className="flex-1 min-w-0">

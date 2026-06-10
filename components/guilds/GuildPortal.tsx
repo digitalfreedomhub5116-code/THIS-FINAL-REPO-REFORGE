@@ -184,7 +184,7 @@ const GuildPortal: React.FC<GuildPortalProps> = ({
           <img
             src={getGuildIconUrl(guild.icon)}
             alt=""
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover rounded-xl"
           />
         </div>
         <div className="flex-1 min-w-0">

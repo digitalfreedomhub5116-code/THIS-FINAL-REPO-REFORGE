@@ -247,7 +247,7 @@ const GuildInfo: React.FC<GuildInfoProps> = ({
             <img
               src={getGuildIconUrl(displayIcon)}
               alt=""
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover rounded-2xl"
             />
           </div>
           <div className="min-w-0">

@@ -439,7 +439,7 @@ const CreateGuildModal: React.FC<CreateGuildModalProps> = ({
                       <img
                         src={getGuildIconUrl(ic.key)}
                         alt={ic.label}
-                        className="absolute inset-0 w-full h-full object-cover"
+                        className="absolute inset-0 w-full h-full object-cover rounded-2xl"
                       />
 
                       {/* Badge */}
@@ -493,7 +493,7 @@ const CreateGuildModal: React.FC<CreateGuildModalProps> = ({
                 <img
                   src={getGuildIconUrl(selectedIcon?.key)}
                   alt=""
-                  className="w-5 h-5 object-contain"
+                  className="w-5 h-5 object-contain rounded-md"
                 />
                 <span className="font-bold text-white">
                   {selectedIcon?.label}
@@ -573,7 +573,7 @@ const CreateGuildModal: React.FC<CreateGuildModalProps> = ({
                 <img
                   src={getGuildIconUrl(selectedIcon?.key)}
                   alt={selectedIcon?.label}
-                  className="w-20 h-20 object-contain"
+                  className="w-20 h-20 object-contain rounded-2xl"
                 />
               </div>
               <h3 className="text-2xl font-heading font-extrabold text-white">
@@ -722,7 +722,7 @@ const CreateGuildModal: React.FC<CreateGuildModalProps> = ({
                 <img
                   src={getGuildIconUrl(purchaseConfirm)}
                   alt=""
-                  className="w-14 h-14 object-contain"
+                  className="w-14 h-14 object-contain rounded-xl"
                 />
               </div>
               <p className="text-white font-bold mb-1">

@@ -125,7 +125,7 @@ const Side: React.FC<{ side: GuildWarSide; label: string; color: string; winner:
     )}
     <span className="text-[10px] font-mono uppercase tracking-wider text-gray-500 mb-1">{label}</span>
     <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-2 overflow-hidden" style={{ ...bannerStyle(side.banner), boxShadow: `0 0 16px ${color}55` }}>
-      <img src={getGuildIconUrl(side.icon)} alt="" className="w-10 h-10 object-contain" />
+      <img src={getGuildIconUrl(side.icon)} alt="" className="w-10 h-10 object-contain rounded-lg" />
     </div>
     <p className="text-white font-heading font-bold text-lg leading-tight">{side.name}</p>
     <span className="text-[10px] font-mono uppercase tracking-wider text-gray-500 mt-1">War Points</span>

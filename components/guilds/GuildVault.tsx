@@ -370,7 +370,7 @@ const GuildVault: React.FC<GuildVaultProps> = ({
                   <img
                     src={getGuildIconUrl(ic.key)}
                     alt={ic.label}
-                    className="absolute inset-0 w-full h-full object-cover"
+                    className="absolute inset-0 w-full h-full object-cover rounded-2xl"
                   />
                   {ic.free ? (
                     <span
@@ -605,7 +605,7 @@ const GuildVault: React.FC<GuildVaultProps> = ({
                 <img
                   src={getGuildIconUrl(iconConfirm)}
                   alt=""
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover rounded-xl"
                 />
               </div>
               <p className="text-white font-bold mb-1">
