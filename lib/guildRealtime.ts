@@ -9,22 +9,27 @@ export interface GuildRealtimeHandlers {
   onJoinRequest?: (payload: { guildId: string; action: string }) => void;
   /** Fired when the socket (re)subscribes — use it to re-hydrate missed history. */
   onResubscribe?: () => void;
+  /** Fired when presence state changes (users join/leave). */
+  onPresenceSync?: (presenceState: any) => void;
+  /** Fired when typing status broadcasts are received from other users. */
+  onTyping?: (payload: { userId: string; name: string; isTyping: boolean }) => void;
 }
 
 /**
- * Subscribe to a guild's realtime broadcast channel.
- *
- * Production notes:
- * - Uses Supabase Broadcast (not Postgres Changes) so delivery does NOT depend on
- *   a per-user Supabase Auth session / RLS — works for every player regardless of
- *   how they authenticated with the Express backend.
- * - The server is the source of truth: it persists each event and fans it out here.
- * - Returns an unsubscribe function. ALWAYS call it on unmount / guild switch to
- *   avoid leaked channels (the #1 cause of Realtime connection exhaustion).
+ * Subscribe to a guild's realtime channel.
+ * Supports Broadcast events (messages, custom notifications) and Presence tracking.
  */
-export function subscribeToGuild(guildId: string, handlers: GuildRealtimeHandlers): () => void {
+export function subscribeToGuild(
+  guildId: string,
+  handlers: GuildRealtimeHandlers,
+  myPlayerInfo?: { userId: string; name: string } | null
+): { unsubscribe: () => void; sendTyping: (isTyping: boolean) => void } {
+  const presenceKey = myPlayerInfo?.userId || 'anonymous';
   const channel = supabase.channel(`guild:${guildId}`, {
-    config: { broadcast: { self: false } },
+    config: { 
+      broadcast: { self: false },
+      presence: { key: presenceKey }
+    },
   });
 
   channel
@@ -43,17 +48,46 @@ export function subscribeToGuild(guildId: string, handlers: GuildRealtimeHandler
     .on('broadcast', { event: 'join_request' }, ({ payload }) => {
       handlers.onJoinRequest?.(payload as any);
     })
-    .subscribe((status) => {
-      if (status === 'SUBSCRIBED') {
-        handlers.onResubscribe?.();
-      }
+    .on('broadcast', { event: 'typing' }, ({ payload }) => {
+      handlers.onTyping?.(payload as any);
+    })
+    .on('presence', { event: 'sync' }, () => {
+      const state = channel.presenceState();
+      handlers.onPresenceSync?.(state);
     });
 
-  return () => {
-    try {
-      supabase.removeChannel(channel);
-    } catch {
-      /* ignore */
+  channel.subscribe(async (status) => {
+    if (status === 'SUBSCRIBED') {
+      handlers.onResubscribe?.();
+      if (myPlayerInfo) {
+        try {
+          await channel.track({
+            userId: myPlayerInfo.userId,
+            name: myPlayerInfo.name,
+            onlineAt: new Date().toISOString(),
+          });
+        } catch (err) {
+          console.warn('[Presence] track failed:', err);
+        }
+      }
+    }
+  });
+
+  return {
+    unsubscribe: () => {
+      try {
+        supabase.removeChannel(channel);
+      } catch {
+        /* ignore */
+      }
+    },
+    sendTyping: (isTyping: boolean) => {
+      if (!myPlayerInfo) return;
+      channel.send({
+        type: 'broadcast',
+        event: 'typing',
+        payload: { userId: myPlayerInfo.userId, name: myPlayerInfo.name, isTyping }
+      });
     }
   };
 }

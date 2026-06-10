@@ -56,6 +56,8 @@ interface GuildInfoProps {
     title: string,
     msg?: string
   ) => void;
+  onlineUserIds?: Set<string>;
+  typingUsers?: Record<string, { name: string; timestamp: number }>;
 }
 
 const RANK_ROLE: Record<GuildRole, number> = { master: 3, vice: 2, member: 1 };
@@ -68,6 +70,8 @@ const GuildInfo: React.FC<GuildInfoProps> = ({
   onLeft,
   onGuildUpdated,
   onToast,
+  onlineUserIds = new Set(),
+  typingUsers = {},
 }) => {
   const [guild, setGuild] = useState<Guild | null>(null);
   const [members, setMembers] = useState<GuildMember[]>([]);
@@ -339,6 +343,7 @@ const GuildInfo: React.FC<GuildInfoProps> = ({
                 avatarUrl={m.avatarUrl}
                 size={36}
                 ring={ROLE_COLOR[m.role]}
+                isOnline={onlineUserIds.has(m.userId)}
               />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
@@ -350,6 +355,11 @@ const GuildInfo: React.FC<GuildInfoProps> = ({
                   )}
                   {m.role === "vice" && (
                     <Shield size={12} style={{ color: NEON }} />
+                  )}
+                  {typingUsers[m.userId] && (
+                    <span className="text-[10px] text-emerald-400 animate-pulse font-mono font-medium ml-1">
+                      typing…
+                    </span>
                   )}
                 </div>
                 <p

@@ -212,16 +212,30 @@ export async function kickMember(
 export async function fetchChatHistory(
   id: string,
   before?: string,
+  after?: string,
   limit = 30
 ): Promise<GuildMessage[]> {
   const params = new URLSearchParams();
   if (before) params.set("before", before);
+  if (after) params.set("after", after);
   params.set("limit", String(limit));
   const res = await authenticatedFetch(
     `${base}/${id}/chat?${params.toString()}`
   );
   const data = await jsonOrThrow(res);
   return data.messages || [];
+}
+
+export async function markChatAsRead(
+  guildId: string,
+  messageId: string
+): Promise<{ success: boolean }> {
+  const res = await authenticatedFetch(`${base}/${guildId}/chat/read`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ messageId }),
+  });
+  return jsonOrThrow(res);
 }
 
 export async function sendChatMessage(

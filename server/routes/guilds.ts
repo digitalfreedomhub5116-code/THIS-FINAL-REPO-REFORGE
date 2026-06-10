@@ -1119,7 +1119,7 @@ function serializeMessage(row: any, info: Record<string, any>) {
   };
 }
 
-// GET /api/guilds/:id/chat?before=<ISO>&limit=30
+// GET /api/guilds/:id/chat?before=<ISO>&after=<ISO>&limit=30
 router.get("/:id/chat", async (req: Request, res: Response) => {
   const uid = auth(req, res);
   if (!uid) return;
@@ -1137,6 +1137,8 @@ router.get("/:id/chat", async (req: Request, res: Response) => {
       .order("created_at", { ascending: false })
       .limit(limit);
     if (req.query.before) q = q.lt("created_at", req.query.before as string);
+    if (req.query.after) q = q.gt("created_at", req.query.after as string);
+    
     const { data: rows } = await q;
     const ordered = (rows || []).reverse();
     const info = await enrichPlayers(
@@ -1186,6 +1188,36 @@ router.post("/:id/chat", async (req: Request, res: Response) => {
   } catch (err) {
     console.error("[Guilds chat POST]", err);
     return res.status(500).json({ error: "Failed to send message" });
+  }
+});
+
+// POST /api/guilds/:id/chat/read { messageId } — update last read message status
+router.post("/:id/chat/read", async (req: Request, res: Response) => {
+  const uid = auth(req, res);
+  if (!uid) return;
+  try {
+    const db = supabaseServer() as any;
+    const { id } = req.params as Record<string, string>;
+    const { messageId } = req.body || {};
+    if (!messageId) return res.status(400).json({ error: "Missing messageId" });
+
+    if (!(await getMembershipIn(db, id, uid)))
+      return res.status(403).json({ error: "Not a member" });
+
+    const { error } = await db
+      .from("guild_members")
+      .update({
+        last_read_message_id: messageId,
+        last_read_at: new Date().toISOString()
+      })
+      .eq("guild_id", id)
+      .eq("user_id", uid);
+
+    if (error) throw error;
+    return res.json({ success: true });
+  } catch (err) {
+    console.error("[Guilds chat read POST]", err);
+    return res.status(500).json({ error: "Failed to update read state" });
   }
 });
 

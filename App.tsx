@@ -1063,7 +1063,7 @@ const App: React.FC = () => {
       return;
     }
 
-    const unsub = subscribeToGuild(myGuildId, {
+    const { unsubscribe } = subscribeToGuild(myGuildId, {
       onMessage: (msg) => {
         const isViewingChat = activeTab === 'GUILDS' && inGuildPortal && activePortalTab === 'chat';
         if (!isViewingChat) {
@@ -1079,7 +1079,7 @@ const App: React.FC = () => {
       }
     });
 
-    return unsub;
+    return unsubscribe;
   }, [myGuildId, myGuildRole, activeTab, inGuildPortal, activePortalTab]);
 
   // Reset unseen message count when user actively enters chat tab

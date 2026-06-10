@@ -1,13 +1,12 @@
-import React, { useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useEffect, useRef, useState, useCallback } from "react";
+import { motion } from "framer-motion";
 import {
-  Info,
+  ArrowLeft,
+  Users,
   Target,
   MessageSquare,
   Swords,
   Landmark,
-  ArrowLeft,
-  Users,
 } from "lucide-react";
 import { NEON, glassPanel, getGuildIconUrl } from "./guildTheme";
 import { subscribeToGuild } from "../../lib/guildRealtime";
@@ -70,34 +69,96 @@ const GuildPortal: React.FC<GuildPortalProps> = ({
   joinRequestsCount,
 }) => {
   const [tab, setTab] = useState<PortalTab>("chat"); // Chat is default
-
-  useEffect(() => {
-    onTabChange?.(tab);
-  }, [tab, onTabChange]);
   const [missionSignal, setMissionSignal] = useState(0);
+
+  // Keep-Alive lazy Visited Tabs state
+  const [visitedTabs, setVisitedTabs] = useState<Record<PortalTab, boolean>>(() => ({
+    chat: true, // Default tab is visited by default
+  } as Record<PortalTab, boolean>));
+
+  // Presence and Typing States
+  const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
+  const [typingUsers, setTypingUsers] = useState<Record<string, { name: string; timestamp: number }>>({});
+
+  const sendTypingRef = useRef<(isTyping: boolean) => void>(() => {});
+  const sendTyping = useCallback((isTyping: boolean) => {
+    sendTypingRef.current(isTyping);
+  }, []);
+
   const onLeftRef = useRef(onLeftGuild);
   onLeftRef.current = onLeftGuild;
 
-  // Persistent control-event subscription (works on every tab, not just Chat).
+  // Track visited tabs
   useEffect(() => {
-    const unsub = subscribeToGuild(guild.id, {
-      onKicked: (uid) => {
-        if (uid === myUserId) {
-          onToast?.("WARNING", "You were removed from the guild");
+    setVisitedTabs((prev) => ({ ...prev, [tab]: true }));
+    onTabChange?.(tab);
+  }, [tab, onTabChange]);
+
+  // Unified realtime subscription (including presence and typing indicators)
+  useEffect(() => {
+    const { unsubscribe, sendTyping: triggerSendTyping } = subscribeToGuild(
+      guild.id,
+      {
+        onKicked: (uid) => {
+          if (uid === myUserId) {
+            onToast?.("WARNING", "You were removed from the guild");
+            onLeftRef.current();
+          }
+        },
+        onDisbanded: () => {
+          onToast?.("WARNING", "This guild was disbanded");
           onLeftRef.current();
+        },
+        onMissionComplete: (p) => {
+          onToast?.("SUCCESS", "Mission completed!", p.title);
+          setMissionSignal((n) => n + 1);
+        },
+        onPresenceSync: (presenceState) => {
+          const ids = new Set<string>();
+          Object.keys(presenceState).forEach((key) => {
+            if (key !== "anonymous") {
+              ids.add(key);
+            }
+          });
+          setOnlineUserIds(ids);
+        },
+        onTyping: ({ userId, name, isTyping }) => {
+          setTypingUsers((prev) => {
+            const next = { ...prev };
+            if (isTyping) {
+              next[userId] = { name, timestamp: Date.now() };
+            } else {
+              delete next[userId];
+            }
+            return next;
+          });
+        },
+      },
+      { userId: myUserId, name: myName }
+    );
+
+    sendTypingRef.current = triggerSendTyping;
+    return unsubscribe;
+  }, [guild.id, myUserId, myName, onToast]);
+
+  // Periodic typing indicators timeout cleanup (every 2 seconds)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = Date.now();
+      setTypingUsers((prev) => {
+        let changed = false;
+        const next = { ...prev };
+        for (const [userId, info] of Object.entries(next)) {
+          if (now - info.timestamp > 4000) {
+            delete next[userId];
+            changed = true;
+          }
         }
-      },
-      onDisbanded: () => {
-        onToast?.("WARNING", "This guild was disbanded");
-        onLeftRef.current();
-      },
-      onMissionComplete: (p) => {
-        onToast?.("SUCCESS", "Mission completed!", p.title);
-        setMissionSignal((n) => n + 1);
-      },
-    });
-    return unsub;
-  }, [guild.id, myUserId, onToast]);
+        return changed ? next : prev;
+      });
+    }, 2000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div
@@ -140,67 +201,92 @@ const GuildPortal: React.FC<GuildPortalProps> = ({
       </div>
 
       {/* Screen */}
-      <div className="flex-1 min-h-0 relative">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={tab}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="absolute inset-0"
-          >
-            {tab === "members" && (
-              <GuildInfo
-                guildId={guild.id}
-                myUserId={myUserId}
-                liveIcon={guild.icon}
-                liveBanner={guild.banner}
-                onLeft={onLeftGuild}
-                onGuildUpdated={onGuildUpdated}
-                onToast={onToast}
-              />
-            )}
-            {tab === "mission" && (
-              <GuildMissions guildId={guild.id} completionSignal={missionSignal} onToast={onToast} />
-            )}
-            {tab === "chat" && (
-              <GuildChat
-                guildId={guild.id}
-                myUserId={myUserId}
-                myName={myName}
-                myAvatarUrl={myAvatarUrl}
-                onKicked={() => {
-                  onToast?.("WARNING", "You were removed from the guild");
-                  onLeftGuild();
-                }}
-                onDisbanded={() => {
-                  onToast?.("WARNING", "This guild was disbanded");
-                  onLeftGuild();
-                }}
-                onMissionComplete={(p) => {
-                  onToast?.("SUCCESS", "Mission completed!", p.title);
-                  setMissionSignal((n) => n + 1);
-                }}
-              />
-            )}
-            {tab === "war" && (
-              <GuildWar guildId={guild.id} myRole={myRole} onToast={onToast} />
-            )}
-            {tab === "vault" && (
-              <GuildVault
-                guildId={guild.id}
-                myRole={myRole}
-                guildIcon={guild.icon || "shield"}
-                guildBanner={guild.banner || "gradient-cyan"}
-                playerGold={playerGold}
-                onGoldChange={onGoldChange}
-                onGuildUpdated={onGuildUpdated}
-                onToast={onToast}
-              />
-            )}
-          </motion.div>
-        </AnimatePresence>
+      <div className="flex-1 min-h-0 relative overflow-hidden">
+        {PORTAL_TABS.map((t) => {
+          const isActive = tab === t.key;
+          const hasVisited = visitedTabs[t.key];
+          if (!hasVisited) return null;
+
+          return (
+            <motion.div
+              key={t.key}
+              initial={false}
+              animate={{
+                opacity: isActive ? 1 : 0,
+                scale: isActive ? 1 : 0.98,
+              }}
+              transition={{ duration: 0.15, ease: "easeInOut" }}
+              style={{
+                pointerEvents: isActive ? "auto" : "none",
+                visibility: isActive ? "visible" : "hidden",
+              }}
+              className="absolute inset-0"
+            >
+              {t.key === "members" && (
+                <GuildInfo
+                  guildId={guild.id}
+                  myUserId={myUserId}
+                  liveIcon={guild.icon}
+                  liveBanner={guild.banner}
+                  onLeft={onLeftGuild}
+                  onGuildUpdated={onGuildUpdated}
+                  onToast={onToast}
+                  onlineUserIds={onlineUserIds}
+                  typingUsers={typingUsers}
+                />
+              )}
+              {t.key === "mission" && (
+                <GuildMissions
+                  guildId={guild.id}
+                  completionSignal={missionSignal}
+                  onToast={onToast}
+                />
+              )}
+              {t.key === "chat" && (
+                <GuildChat
+                  guildId={guild.id}
+                  myUserId={myUserId}
+                  myName={myName}
+                  myAvatarUrl={myAvatarUrl}
+                  onKicked={() => {
+                    onToast?.("WARNING", "You were removed from the guild");
+                    onLeftGuild();
+                  }}
+                  onDisbanded={() => {
+                    onToast?.("WARNING", "This guild was disbanded");
+                    onLeftGuild();
+                  }}
+                  onMissionComplete={(p) => {
+                    onToast?.("SUCCESS", "Mission completed!", p.title);
+                    setMissionSignal((n) => n + 1);
+                  }}
+                  onlineUserIds={onlineUserIds}
+                  typingUsers={typingUsers}
+                  sendTyping={sendTyping}
+                />
+              )}
+              {t.key === "war" && (
+                <GuildWar
+                  guildId={guild.id}
+                  myRole={myRole}
+                  onToast={onToast}
+                />
+              )}
+              {t.key === "vault" && (
+                <GuildVault
+                  guildId={guild.id}
+                  myRole={myRole}
+                  guildIcon={guild.icon || "shield"}
+                  guildBanner={guild.banner || "gradient-cyan"}
+                  playerGold={playerGold}
+                  onGoldChange={onGoldChange}
+                  onGuildUpdated={onGuildUpdated}
+                  onToast={onToast}
+                />
+              )}
+            </motion.div>
+          );
+        })}
       </div>
 
       {/* Portal bottom navbar */}
@@ -233,7 +319,13 @@ const GuildPortal: React.FC<GuildPortalProps> = ({
                 {t.key === "chat" && unseenMessagesCount && unseenMessagesCount > 0 ? (
                   <div
                     className="absolute -top-1.5 -right-1.5 bg-red-600 text-white rounded-full flex items-center justify-center font-mono font-bold shadow-[0_0_8px_rgba(239,68,68,0.9)]"
-                    style={{ minWidth: '14px', height: '14px', fontSize: '8px', padding: '0 2px', borderRadius: '50%' }}
+                    style={{
+                      minWidth: "14px",
+                      height: "14px",
+                      fontSize: "8px",
+                      padding: "0 2px",
+                      borderRadius: "50%",
+                    }}
                   >
                     {unseenMessagesCount}
                   </div>
@@ -241,7 +333,13 @@ const GuildPortal: React.FC<GuildPortalProps> = ({
                 {t.key === "members" && joinRequestsCount && joinRequestsCount > 0 ? (
                   <div
                     className="absolute -top-1.5 -right-1.5 bg-red-600 text-white rounded-full flex items-center justify-center font-mono font-bold shadow-[0_0_8px_rgba(239,68,68,0.9)]"
-                    style={{ minWidth: '14px', height: '14px', fontSize: '8px', padding: '0 2px', borderRadius: '50%' }}
+                    style={{
+                      minWidth: "14px",
+                      height: "14px",
+                      fontSize: "8px",
+                      padding: "0 2px",
+                      borderRadius: "50%",
+                    }}
                   >
                     {joinRequestsCount}
                   </div>

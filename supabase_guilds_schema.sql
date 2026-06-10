@@ -35,8 +35,14 @@ CREATE TABLE IF NOT EXISTS guild_members (
   role                VARCHAR(20) DEFAULT 'member', -- 'master' | 'vice' | 'member'
   contribution_points INTEGER DEFAULT 0,
   joined_at           TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  last_read_message_id UUID,
+  last_read_at         TIMESTAMP WITH TIME ZONE,
   UNIQUE(guild_id, user_id)
 );
+-- Idempotent: add columns if upgrading an existing guild_members table.
+ALTER TABLE guild_members ADD COLUMN IF NOT EXISTS last_read_message_id UUID;
+ALTER TABLE guild_members ADD COLUMN IF NOT EXISTS last_read_at TIMESTAMP WITH TIME ZONE;
+
 -- Enforce ONE guild per user across the whole table.
 CREATE UNIQUE INDEX IF NOT EXISTS idx_guild_members_one_per_user ON guild_members(user_id);
 CREATE INDEX IF NOT EXISTS idx_guild_members_guild ON guild_members(guild_id);

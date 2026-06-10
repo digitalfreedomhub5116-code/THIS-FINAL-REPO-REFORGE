@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Send, Dumbbell, AlertCircle, RotateCcw } from "lucide-react";
 import { NEON, glassPanel, timeAgo } from "./guildTheme";
 import GuildAvatar from "./GuildAvatar";
-import { fetchChatHistory, sendChatMessage } from "../../lib/guildApi";
+import { fetchChatHistory, sendChatMessage, markChatAsRead } from "../../lib/guildApi";
 import { subscribeToGuild } from "../../lib/guildRealtime";
 import type { GuildMessage } from "../../types";
 
@@ -15,6 +15,9 @@ interface GuildChatProps {
   onKicked: () => void;
   onDisbanded: () => void;
   onMissionComplete: (p: { missionId: string; title: string }) => void;
+  onlineUserIds?: Set<string>;
+  typingUsers?: Record<string, { name: string; timestamp: number }>;
+  sendTyping?: (isTyping: boolean) => void;
 }
 
 const GuildChat: React.FC<GuildChatProps> = ({
@@ -25,20 +28,39 @@ const GuildChat: React.FC<GuildChatProps> = ({
   onKicked,
   onDisbanded,
   onMissionComplete,
+  onlineUserIds = new Set(),
+  typingUsers = {},
+  sendTyping,
 }) => {
   const [messages, setMessages] = useState<GuildMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  
+  // Pagination & Sync states
+  const [fetchingMore, setFetchingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  
   const scrollRef = useRef<HTMLDivElement>(null);
   const atBottomRef = useRef(true);
+  const lastReadMessageIdRef = useRef<string | null>(null);
+  const latestRef = useRef<string | undefined>(undefined);
+  
+  // Typing states
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastTypingBroadcastRef = useRef<number>(0);
+
+  // Maintain latest message timestamp in ref for gap-filling on reconnect
+  useEffect(() => {
+    const latestMsg = messages[messages.length - 1];
+    latestRef.current = latestMsg ? latestMsg.createdAt : undefined;
+  }, [messages]);
 
   const mergeMessages = useCallback((incoming: GuildMessage[]) => {
     setMessages((prev) => {
       const map = new Map<string, GuildMessage>();
       for (const m of prev) map.set(m.id, m);
       for (const m of incoming) {
-        // Reconcile optimistic temp messages by matching tempId echoed in meta (best effort)
         map.set(m.id, m);
       }
       return Array.from(map.values()).sort(
@@ -48,16 +70,27 @@ const GuildChat: React.FC<GuildChatProps> = ({
     });
   }, []);
 
-  const loadHistory = useCallback(async () => {
+  // Fetch history (optionally supporting after cursor for gap-filling)
+  const loadHistory = useCallback(async (afterTimestamp?: string) => {
     try {
-      const history = await fetchChatHistory(guildId);
+      const history = await fetchChatHistory(guildId, undefined, afterTimestamp);
       setMessages((prev) => {
         const map = new Map<string, GuildMessage>();
+        
+        // If gap-filling, preserve existing messages
+        if (afterTimestamp) {
+          for (const m of prev) map.set(m.id, m);
+        }
+        
         for (const m of history) map.set(m.id, m);
-        // keep any pending optimistic messages not yet acked
-        for (const m of prev)
-          if (m._status === "sending" || m._status === "failed")
+        
+        // Keep any pending optimistic messages
+        for (const m of prev) {
+          if (m._status === "sending" || m._status === "failed") {
             map.set(m._tempId || m.id, m);
+          }
+        }
+        
         return Array.from(map.values()).sort(
           (a, b) =>
             new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
@@ -65,7 +98,9 @@ const GuildChat: React.FC<GuildChatProps> = ({
       });
       setError("");
     } catch (e: any) {
-      setError(e?.message || "Could not load chat");
+      if (!afterTimestamp) {
+        setError(e?.message || "Could not load chat");
+      }
     } finally {
       setLoading(false);
     }
@@ -75,7 +110,7 @@ const GuildChat: React.FC<GuildChatProps> = ({
   useEffect(() => {
     setLoading(true);
     loadHistory();
-    const unsub = subscribeToGuild(guildId, {
+    const { unsubscribe } = subscribeToGuild(guildId, {
       onMessage: (msg) => mergeMessages([msg]),
       onKicked: (uid) => {
         if (uid === myUserId) onKicked();
@@ -83,10 +118,11 @@ const GuildChat: React.FC<GuildChatProps> = ({
       onDisbanded,
       onMissionComplete,
       onResubscribe: () => {
-        loadHistory();
-      }, // gap-fill on (re)connect
+        // Gap-fill history using virtual sync cursor on resubscription
+        loadHistory(latestRef.current);
+      },
     });
-    return unsub;
+    return unsubscribe;
   }, [
     guildId,
     myUserId,
@@ -97,6 +133,23 @@ const GuildChat: React.FC<GuildChatProps> = ({
     onMissionComplete,
   ]);
 
+  // Mark chat as read logic
+  const checkMarkAsRead = useCallback(() => {
+    if (messages.length === 0 || !atBottomRef.current) return;
+    const latest = messages[messages.length - 1];
+    if (!latest.id || latest.id.startsWith("temp-") || latest.id === lastReadMessageIdRef.current) return;
+    
+    lastReadMessageIdRef.current = latest.id;
+    markChatAsRead(guildId, latest.id).catch((err) => {
+      console.warn("[Chat] Failed to mark chat as read:", err);
+    });
+  }, [guildId, messages]);
+
+  // Run read tracker whenever messages change
+  useEffect(() => {
+    checkMarkAsRead();
+  }, [messages, checkMarkAsRead]);
+
   // Auto-scroll to bottom on new messages if user is already near the bottom.
   useEffect(() => {
     if (atBottomRef.current && scrollRef.current) {
@@ -104,25 +157,67 @@ const GuildChat: React.FC<GuildChatProps> = ({
     }
   }, [messages]);
 
-  const onScroll = () => {
+  const onScroll = async () => {
     const el = scrollRef.current;
     if (!el) return;
-    atBottomRef.current =
-      el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+    
+    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+    atBottomRef.current = atBottom;
+    
+    if (atBottom) {
+      checkMarkAsRead();
+    }
+
+    // Infinite scroll: fetch older messages when reaching the top
+    if (el.scrollTop < 50 && !loading && !fetchingMore && hasMore && messages.length > 0) {
+      const oldestMsg = messages.find((m) => !m.id.startsWith("temp-"));
+      if (oldestMsg) {
+        setFetchingMore(true);
+        try {
+          const oldScrollHeight = el.scrollHeight;
+          const older = await fetchChatHistory(guildId, oldestMsg.createdAt, undefined, 30);
+          
+          if (older.length < 30) {
+            setHasMore(false);
+          }
+          
+          if (older.length > 0) {
+            setMessages((prev) => {
+              const map = new Map<string, GuildMessage>();
+              for (const m of older) map.set(m.id, m);
+              for (const m of prev) map.set(m.id, m);
+              return Array.from(map.values()).sort(
+                (a, b) =>
+                  new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+              );
+            });
+
+            // Adjust scroll position to prevent jumping
+            setTimeout(() => {
+              if (scrollRef.current) {
+                scrollRef.current.scrollTop = scrollRef.current.scrollHeight - oldScrollHeight;
+              }
+            }, 0);
+          }
+        } catch (err) {
+          console.warn("[Chat] Failed to load older messages:", err);
+        } finally {
+          setFetchingMore(false);
+        }
+      }
+    }
   };
 
   const doSend = async (tempId: string, body: string) => {
     try {
       const { message } = await sendChatMessage(guildId, body);
-      // Reconcile by id: the realtime subscription may have already inserted this
-      // exact message. Dedupe through a Map so we never render it twice.
       setMessages((prev) => {
         const map = new Map<string, GuildMessage>();
         for (const m of prev) {
           if (m._tempId === tempId) continue; // drop our optimistic copy
           map.set(m.id, m);
         }
-        map.set(message.id, message); // server copy wins (and dedupes any realtime copy)
+        map.set(message.id, message);
         return Array.from(map.values()).sort(
           (a, b) =>
             new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
@@ -137,9 +232,35 @@ const GuildChat: React.FC<GuildChatProps> = ({
     }
   };
 
+  const handleInputChange = (val: string) => {
+    setInput(val);
+
+    if (!sendTyping) return;
+
+    // Send typing broadcast (throttled to once every 2 seconds)
+    const now = Date.now();
+    if (now - lastTypingBroadcastRef.current > 2000) {
+      lastTypingBroadcastRef.current = now;
+      sendTyping(true);
+    }
+
+    // Set timeout to clear typing state after 3 seconds of inactivity
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => {
+      sendTyping(false);
+      lastTypingBroadcastRef.current = 0;
+    }, 3000);
+  };
+
   const handleSend = () => {
     const body = input.trim();
     if (!body) return;
+
+    // Clear typing timeout and send typing = false broadcast immediately
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    sendTyping?.(false);
+    lastTypingBroadcastRef.current = 0;
+
     const tempId = `temp-${Date.now()}`;
     const optimistic: GuildMessage = {
       id: tempId,
@@ -192,7 +313,7 @@ const GuildChat: React.FC<GuildChatProps> = ({
             <AlertCircle size={28} className="text-red-400 mx-auto mb-2" />
             <p className="text-gray-400 text-sm mb-3">{error}</p>
             <button
-              onClick={loadHistory}
+              onClick={() => loadHistory()}
               className="px-4 py-2 rounded-xl text-sm"
               style={{ background: "rgba(0,212,255,0.15)", color: NEON }}
             >
@@ -213,10 +334,28 @@ const GuildChat: React.FC<GuildChatProps> = ({
               m={m}
               mine={m.userId === myUserId}
               onRetry={retry}
+              isOnline={m.userId ? onlineUserIds.has(m.userId) : false}
             />
           ))
         )}
       </div>
+
+      {/* Typing indicator */}
+      {Object.keys(typingUsers).length > 0 && (
+        <div className="px-4 py-1 text-xs text-gray-500 font-mono flex items-center gap-1.5 animate-pulse">
+          <div className="flex gap-0.5">
+            <span className="w-1 h-1 rounded-full bg-gray-500 animate-bounce" style={{ animationDelay: "0ms" }} />
+            <span className="w-1 h-1 rounded-full bg-gray-500 animate-bounce" style={{ animationDelay: "150ms" }} />
+            <span className="w-1 h-1 rounded-full bg-gray-500 animate-bounce" style={{ animationDelay: "300ms" }} />
+          </div>
+          <span>
+            {Object.values(typingUsers)
+              .map((u) => u.name)
+              .join(", ")}{" "}
+            {Object.keys(typingUsers).length === 1 ? "is" : "are"} typing…
+          </span>
+        </div>
+      )}
 
       {/* Composer */}
       <div className="px-3 py-3 border-t border-white/5">
@@ -226,7 +365,7 @@ const GuildChat: React.FC<GuildChatProps> = ({
         >
           <input
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(e) => handleInputChange(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") handleSend();
             }}
@@ -252,7 +391,8 @@ const MessageRow: React.FC<{
   m: GuildMessage;
   mine: boolean;
   onRetry: (m: GuildMessage) => void;
-}> = ({ m, mine, onRetry }) => {
+  isOnline?: boolean;
+}> = ({ m, mine, onRetry, isOnline = false }) => {
   if (m.type === "system") {
     return (
       <div className="flex justify-center">
@@ -397,6 +537,7 @@ const MessageRow: React.FC<{
           name={m.author?.name}
           avatarUrl={m.author?.avatarUrl}
           size={30}
+          isOnline={isOnline}
         />
       )}
       <div className={`max-w-[72%] ${mine ? "items-end" : ""}`}>
