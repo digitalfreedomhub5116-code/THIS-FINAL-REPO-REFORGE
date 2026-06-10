@@ -207,6 +207,33 @@ RETURNS VOID AS $$
    WHERE guild_id = p_guild AND user_id = p_user;
 $$ LANGUAGE sql;
 
+-- ── 8. Guild Mission Contributors ──────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS guild_mission_contributors (
+  id          UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  guild_id    UUID NOT NULL REFERENCES guilds(id) ON DELETE CASCADE,
+  user_id     TEXT NOT NULL,
+  mission_id  UUID NOT NULL REFERENCES guild_missions(id) ON DELETE CASCADE,
+  amount      INTEGER DEFAULT 0,
+  created_at  TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(mission_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_guild_mission_contrib_mission ON guild_mission_contributors(mission_id);
+
+CREATE OR REPLACE FUNCTION guild_mission_contribute(
+  p_guild UUID,
+  p_user TEXT,
+  p_mission UUID,
+  p_amount INTEGER
+) RETURNS VOID AS $$
+BEGIN
+  INSERT INTO guild_mission_contributors (guild_id, user_id, mission_id, amount)
+  VALUES (p_guild, p_user, p_mission, p_amount)
+  ON CONFLICT (mission_id, user_id)
+  DO UPDATE SET amount = guild_mission_contributors.amount + p_amount;
+END;
+$$ LANGUAGE plpgsql;
+
 -- updated_at trigger (reuses the shared function from the main schema if present)
 DO $$
 BEGIN
@@ -230,3 +257,4 @@ ALTER TABLE guild_missions            ENABLE ROW LEVEL SECURITY;
 ALTER TABLE guild_wars                ENABLE ROW LEVEL SECURITY;
 ALTER TABLE guild_war_contributions   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE guild_vault_transactions  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE guild_mission_contributors ENABLE ROW LEVEL SECURITY;

@@ -1281,7 +1281,7 @@ router.get("/:id/mission/rewards", async (req: Request, res: Response) => {
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
     const { data: rewards, error } = await db
       .from("guild_member_rewards")
-      .select("*")
+      .select("*, guild_missions(title)")
       .eq("guild_id", id)
       .eq("user_id", uid)
       .eq("claimed", false)
@@ -1843,6 +1843,15 @@ export async function recordGuildContribution(
       p_date: date,
       p_amount: amount,
     });
+
+    // Track contributor's progress
+    await db.rpc("guild_mission_contribute", {
+      p_guild: guildId,
+      p_user: userId,
+      p_mission: mission.id,
+      p_amount: amount,
+    });
+
     // Check mission completion -> reward broadcast
     const { data: updatedMission } = await db
       .from("guild_missions")

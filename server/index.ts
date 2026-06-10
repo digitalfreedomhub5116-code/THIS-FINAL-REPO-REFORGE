@@ -512,22 +512,28 @@ async function startServer() {
                 });
               }
               
-              // B. Fetch all members of this guild
-              const { data: members } = await db
-                .from('guild_members')
+              // B. Fetch members who participated in this mission
+              const { data: contributors } = await db
+                .from('guild_mission_contributors')
                 .select('user_id')
-                .eq('guild_id', guildId);
+                .eq('mission_id', m.id);
                 
-              if (members && members.length > 0) {
-                // Insert a reward snapshot for each member
-                const rewardSnapshots = members.map((mem: any) => ({
-                  user_id: mem.user_id,
-                  guild_id: guildId,
-                  mission_id: m.id,
-                  gold: goldReward,
-                  xp: xpReward,
-                  claimed: false,
-                }));
+              if (contributors && contributors.length > 0) {
+                // Insert a reward snapshot for each contributor
+                const rewardSnapshots = contributors.map((c: any) => {
+                  const xpReward = 100 + Math.floor(Math.random() * 201); // 100-300 XP
+                  const hasGold = Math.random() > 0.5; // 50% chance of gold
+                  const goldReward = hasGold ? (50 + Math.floor(Math.random() * 101)) : 0; // 50-150 Gold
+                  
+                  return {
+                    user_id: c.user_id,
+                    guild_id: guildId,
+                    mission_id: m.id,
+                    gold: goldReward,
+                    xp: xpReward,
+                    claimed: false,
+                  };
+                });
                 
                 const { error: snapErr } = await db
                   .from('guild_member_rewards')
@@ -539,7 +545,7 @@ async function startServer() {
               }
               
               // C. Post chat announcement
-              const chatMsg = `🎉 Daily Mission Completed: "${m.title}"! Members can now claim their rewards (+${goldReward} G, +${xpReward} XP) from the Mission tab. +${vaultGold} G added to the Guild Vault.`;
+              const chatMsg = `🎉 Daily Mission Completed: "${m.title}"! Participating members can now claim their rewards from the Mission tab. +${vaultGold} G added to the Guild Vault.`;
               await postGuildSystemMessage(db, guildId, chatMsg);
               
               // D. Mark rewards as distributed
