@@ -23,7 +23,11 @@ export const UpdateChecker: React.FC = () => {
   }, []);
 
   const parseVersion = (v: string): number[] => {
-    return v.split(".").map((x) => parseInt(x) || 0);
+    const parts = v.split(".").map((x) => parseInt(x) || 0);
+    while (parts.length < 3) {
+      parts.push(0);
+    }
+    return parts;
   };
 
   const isLessThan = (v1: string, v2: string): boolean => {
