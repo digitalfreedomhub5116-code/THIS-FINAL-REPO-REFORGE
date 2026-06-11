@@ -70,6 +70,17 @@ const DuskWelcomeScreen: React.FC<DuskWelcomeScreenProps> = ({ onComplete }) => 
   const [typingDone, setTypingDone] = useState(false);
   const [showButton, setShowButton] = useState(false);
 
+  const [showEntrance, setShowEntrance] = useState(true);
+  const entranceVideoRef = useRef<HTMLVideoElement>(null);
+  const loopVideoRef = useRef<HTMLVideoElement>(null);
+
+  const handleEntranceEnd = () => {
+    setShowEntrance(false);
+    if (loopVideoRef.current) {
+      loopVideoRef.current.play().catch(e => console.log("Loop play caught:", e));
+    }
+  };
+
   // ── Typewriter effect with haptic feedback ──
   useEffect(() => {
     let i = 0;
@@ -225,17 +236,30 @@ const DuskWelcomeScreen: React.FC<DuskWelcomeScreenProps> = ({ onComplete }) => 
         {/* ── RIGHT / Behind on mobile: Character Video Panel ── */}
         <div className="absolute inset-0 md:relative md:w-[45%] md:h-full flex-shrink-0 flex items-center justify-center overflow-hidden">
 
-          {/* Default shadow video player */}
+          {/* VIDEO LAYER 1: LOOP (Underneath) */}
           <video
-            autoPlay
+            ref={loopVideoRef}
+            src="/videos/intro/loop-bg.mp4"
+            className="absolute inset-0 w-full h-full"
+            style={{ objectFit: 'contain', objectPosition: 'center', zIndex: 0, maxHeight: '100%', maxWidth: '100%' }}
             loop
             muted
             playsInline
-            poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
-            src="https://res.cloudinary.com/dcnqnbvp0/video/upload/v1769167952/Subject_animestyle_shadow_202601231701_vl45_ayicwk.mp4"
+            preload="auto"
+          />
+
+          {/* VIDEO LAYER 2: ENTRANCE (On Top) */}
+          <motion.video
+            ref={entranceVideoRef}
+            src="/videos/intro/entrance.mp4"
             className="absolute inset-0 w-full h-full"
-            style={{ objectFit: 'contain', objectPosition: 'center', zIndex: 0, maxHeight: '100%', maxWidth: '100%' }}
-            onCanPlay={(e) => (e.target as HTMLVideoElement).classList.add('video-ready')}
+            style={{ objectFit: 'contain', objectPosition: 'center', zIndex: 5, maxHeight: '100%', maxWidth: '100%', pointerEvents: 'none' }}
+            autoPlay
+            muted
+            playsInline
+            onEnded={handleEntranceEnd}
+            animate={{ opacity: showEntrance ? 1 : 0 }}
+            transition={{ duration: 0.5 }}
           />
 
           {/* Heavy vignette overlay - all edges */}

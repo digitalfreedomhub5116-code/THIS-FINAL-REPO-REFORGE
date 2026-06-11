@@ -95,11 +95,29 @@ export async function authenticatedFetch(
   init?: RequestInit,
 ): Promise<Response> {
   // Build headers — merge auth headers with any caller-provided headers
-  const buildHeaders = (extraAuth?: Record<string, string>) => {
-    const h = new Headers(init?.headers);
+  const buildHeaders = (extraAuth?: Record<string, string>): Record<string, string> => {
+    const h: Record<string, string> = {};
+    if (init?.headers) {
+      if (init.headers instanceof Headers) {
+        init.headers.forEach((value, key) => {
+          h[key] = value;
+        });
+      } else if (Array.isArray(init.headers)) {
+        for (const [key, value] of init.headers) {
+          h[key] = value;
+        }
+      } else {
+        for (const [key, value] of Object.entries(init.headers)) {
+          h[key] = String(value);
+        }
+      }
+    }
     const auth = extraAuth || getPlayerAuthHeaders();
-    if (auth.Authorization && !h.has('Authorization')) {
-      h.set('Authorization', auth.Authorization);
+    if (auth.Authorization) {
+      const hasAuth = Object.keys(h).some(k => k.toLowerCase() === 'authorization');
+      if (!hasAuth) {
+        h['Authorization'] = auth.Authorization;
+      }
     }
     return h;
   };

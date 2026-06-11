@@ -316,12 +316,13 @@ interface NutritionLogCardProps {
    * full controls. If omitted, "View More" stays inside the in-card modal.
    */
   onOpenFullNutrition?: () => void;
+  onToggleNav?: (show: boolean) => void;
 }
 
 type ScanPhase = 'IDLE' | 'PICKING' | 'SCANNING' | 'ERROR';
 
 const NutritionLogCard: React.FC<NutritionLogCardProps> = ({
-  player, onLogMeal, onSaveProfile, onOpenFullNutrition,
+  player, onLogMeal, onSaveProfile, onOpenFullNutrition, onToggleNav,
 }) => {
   const profile = player.healthProfile;
 
@@ -359,6 +360,18 @@ const NutritionLogCard: React.FC<NutritionLogCardProps> = ({
   const [limitInput, setLimitInput]       = useState('');
   const [showScanSheet, setShowScanSheet] = useState(false);
   const [showKeysAlert, setShowKeysAlert] = useState(false);
+
+  // Toggle navigation visibility when scan sheet is open to prevent layout overlap
+  useEffect(() => {
+    if (onToggleNav) {
+      onToggleNav(!showScanSheet);
+    }
+    return () => {
+      if (onToggleNav) {
+        onToggleNav(true);
+      }
+    };
+  }, [showScanSheet, onToggleNav]);
 
   // ── Scan state ──
   const [scanPhase, setScanPhase]   = useState<ScanPhase>('IDLE');

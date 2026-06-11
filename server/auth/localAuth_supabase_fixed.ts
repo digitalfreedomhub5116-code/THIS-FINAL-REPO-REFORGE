@@ -1,12 +1,14 @@
 import express from 'express';
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 import { supabaseServer, isSupabaseDown } from '../lib/supabase.js';
 import { generatePlayerToken, getAuthenticatedUserId, verifyPlayerToken } from '../lib/playerAuth.js';
 import { generateOtp, storeOtp, sendOtpEmail, verifyOtp, sendPasswordResetEmail } from '../lib/otp.js';
 
 const router = express.Router();
 
+const JWT_SECRET = process.env.JWT_SECRET!;
 const SALT_ROUNDS = 12;
 
 function generateUserId(): string {
@@ -555,6 +557,47 @@ router.get('/whoami', async (req, res) => {
   } catch (err) {
     console.error('[Local Auth Whoami]', err);
     return res.status(500).json({ error: 'Failed to get user info' });
+  }
+});
+
+router.post('/refresh-token', async (req, res) => {
+  try {
+    const authHeader = req.headers['authorization'];
+    if (!authHeader?.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+    const token = authHeader.slice(7);
+    
+    // Verify the token, ignoring expiration so we can refresh expired tokens
+    let decoded: any;
+    try {
+      decoded = jwt.verify(token, JWT_SECRET, { ignoreExpiration: true }) as any;
+    } catch (err) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+
+    if (decoded?.role !== 'player' || !decoded?.sub) {
+      return res.status(401).json({ error: 'Invalid token payload' });
+    }
+
+    const userId = decoded.sub;
+    
+    // Verify that the user still exists in the database
+    const { data: user, error } = await (supabaseServer() as any)
+      .from('players')
+      .select('supabase_id')
+      .eq('supabase_id', userId)
+      .maybeSingle();
+
+    if (error || !user) {
+      return res.status(401).json({ error: 'User no longer exists' });
+    }
+
+    const playerToken = generatePlayerToken(userId);
+    return res.json({ playerToken });
+  } catch (err) {
+    console.error('[Local Auth RefreshToken] Unexpected error:', err);
+    return res.status(500).json({ error: 'Failed to refresh token' });
   }
 });
 

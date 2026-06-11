@@ -5186,6 +5186,7 @@ const App: React.FC = () => {
                           setHealthSubTab('NUTRITION');
                           setActiveTab('HEALTH' as Tab);
                         }}
+                        onToggleNav={handleToggleNav}
                       />
                     </ErrorBoundary>
 

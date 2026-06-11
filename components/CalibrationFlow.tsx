@@ -1142,12 +1142,9 @@ const EmpathyInsightScreen: React.FC<{ goal: string; profile: Partial<HealthProf
                         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-3 mb-5">
                             {cards.map((card, i) => (
                                 <motion.div key={i} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.15 }}
-                                    className="bg-[#111] border border-gray-800 rounded-xl p-4 flex items-start gap-3">
-                                    <span className="text-xl">{card.icon}</span>
-                                    <div>
-                                        <div className="text-white font-bold text-[13px] mb-0.5">{card.title}</div>
-                                        <div className="text-gray-400 text-[11px]">{card.desc}</div>
-                                    </div>
+                                    className="bg-[#111] border border-gray-800 rounded-xl p-4 flex flex-col gap-1.5">
+                                    <div className="text-white font-bold text-[14px] tracking-wide" style={{ fontFamily: 'Outfit, Inter, sans-serif' }}>{card.title}</div>
+                                    <div className="text-gray-400 text-[12px] font-sans leading-relaxed">{card.desc}</div>
                                 </motion.div>
                             ))}
                         </motion.div>
@@ -1629,13 +1626,6 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                   <h2 className="text-base font-bold text-white tracking-widest uppercase">
                       Step {step} of {TOTAL_STEPS}
                   </h2>
-                  <motion.span
-                      animate={{ opacity: [1, 0.5, 1] }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                      className="text-[10px] text-system-neon font-black bg-system-neon/10 px-2 py-0.5 rounded border border-system-neon/30"
-                  >
-                      ⚔️ CALIBRATING
-                  </motion.span>
               </div>
 
               {/* Scrollable content */}
@@ -2058,7 +2048,7 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                                       { label: '60+', val: 70 },
                                   ]).map(opt => (
                                       <button key={opt.val} onClick={() => { triggerHaptic('BUTTON_TAP'); setFormData(fd => ({ ...fd, baselineSquats: opt.val })); }}
-                                          className={`py-3 px-3 rounded-xl border text-center transition-all ${formData.baselineSquats === opt.val ? 'bg-green-500 text-black border-green-500' : 'border-gray-800 text-gray-400 hover:border-gray-600'}`}>
+                                          className={`py-3 px-3 rounded-xl border text-center transition-all ${formData.baselineSquats === opt.val ? 'bg-system-neon text-black border-system-neon' : 'border-gray-800 text-gray-400 hover:border-gray-600'}`}>
                                           <div className="font-bold text-[11px]">{opt.label}</div>
                                       </button>
                                   ))}
@@ -2076,7 +2066,7 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                                       { label: '5+ km', val: 6 },
                                   ]).map(opt => (
                                       <button key={opt.val} onClick={() => { triggerHaptic('BUTTON_TAP'); setFormData(fd => ({ ...fd, baselineRunKm: opt.val })); }}
-                                          className={`py-3 px-3 rounded-xl border text-center transition-all ${formData.baselineRunKm === opt.val ? 'bg-orange-500 text-black border-orange-500' : 'border-gray-800 text-gray-400 hover:border-gray-600'}`}>
+                                          className={`py-3 px-3 rounded-xl border text-center transition-all ${formData.baselineRunKm === opt.val ? 'bg-system-neon text-black border-system-neon' : 'border-gray-800 text-gray-400 hover:border-gray-600'}`}>
                                           <div className="font-bold text-[11px]">{opt.label}</div>
                                       </button>
                                   ))}
@@ -2095,7 +2085,7 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                                   ]).map(opt => (
                                       <button key={opt.label}
                                           onClick={() => { triggerHaptic('BUTTON_TAP'); setBaselines({ ...baselines, focusDuration: opt.focus, readingTime: opt.reading }); }}
-                                          className={`py-3 px-3 rounded-xl border text-center transition-all ${baselines.focusDuration === opt.focus ? 'bg-[#00d4ff] text-white border-[#00d4ff]' : 'border-gray-800 text-gray-400 hover:border-gray-600'}`}>
+                                          className={`py-3 px-3 rounded-xl border text-center transition-all ${baselines.focusDuration === opt.focus ? 'bg-system-neon text-black border-system-neon' : 'border-gray-800 text-gray-400 hover:border-gray-600'}`}>
                                           <div className="font-bold text-[11px]">{opt.label}</div>
                                       </button>
                                   ))}
@@ -2113,7 +2103,7 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                                       { label: '9+ hrs', val: 9 },
                                   ]).map(opt => (
                                       <button key={opt.val} onClick={() => { triggerHaptic('BUTTON_TAP'); setBaselines({ ...baselines, sleepAvg: opt.val }); }}
-                                          className={`py-3 px-3 rounded-xl border text-center transition-all ${baselines.sleepAvg === opt.val ? 'bg-indigo-500 text-white border-indigo-500' : 'border-gray-800 text-gray-400 hover:border-gray-600'}`}>
+                                          className={`py-3 px-3 rounded-xl border text-center transition-all ${baselines.sleepAvg === opt.val ? 'bg-system-neon text-black border-system-neon' : 'border-gray-800 text-gray-400 hover:border-gray-600'}`}>
                                           <div className="font-bold text-[11px]">{opt.label}</div>
                                       </button>
                                   ))}

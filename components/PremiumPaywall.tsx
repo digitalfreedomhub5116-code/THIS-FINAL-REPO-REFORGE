@@ -218,27 +218,19 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({
   const [selectedTestimonial, setSelectedTestimonial] = useState(0);
   const [isRestoring, setIsRestoring] = useState(false);
   const [showAllPerks, setShowAllPerks] = useState(false);
-  const autoPlayRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Mark paywall as seen immediately — so reload/kill always goes to home
   useEffect(() => {
     try { localStorage.setItem('reforge_paywall_seen', '1'); } catch {}
   }, []);
 
-  // Auto-advance feature carousel
-  useEffect(() => {
-    if (phase !== 'FEATURES') { if (autoPlayRef.current) clearInterval(autoPlayRef.current); return; }
-    autoPlayRef.current = setInterval(() => {
-      setFeatureSlide(prev => (prev + 1) % FEATURES.length);
-    }, 5000);
-    return () => { if (autoPlayRef.current) clearInterval(autoPlayRef.current); };
-  }, [phase]);
-
-  const resetAutoPlay = () => {
-    if (autoPlayRef.current) clearInterval(autoPlayRef.current);
-    autoPlayRef.current = setInterval(() => {
-      setFeatureSlide(prev => (prev + 1) % FEATURES.length);
-    }, 5000);
+  const handleNextSlide = () => {
+    triggerHaptic('BUTTON_TAP');
+    if (featureSlide < FEATURES.length - 1) {
+      setFeatureSlide(prev => prev + 1);
+    } else {
+      setPhase('TESTIMONIALS');
+    }
   };
 
   // Extract monthly package
@@ -322,8 +314,7 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({
             {/* ── Dot Tracker ── */}
             <div className="flex items-center justify-center gap-2 mb-5 py-2">
               {FEATURES.map((f, i) => (
-                <button key={i} onClick={() => { triggerHaptic('BUTTON_TAP'); setFeatureSlide(i); resetAutoPlay(); }}
-                  className="relative flex items-center justify-center"
+                <div key={i} className="relative flex items-center justify-center"
                   style={{ width: 20, height: 20 }}>
                   <motion.div
                     className="rounded-full"
@@ -335,16 +326,16 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({
                     }}
                     transition={{ type: 'spring', stiffness: 400, damping: 25 }}
                   />
-                </button>
+                </div>
               ))}
             </div>
 
             {/* CTA */}
             <motion.div initial={{ y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.35 }}>
-              <motion.button whileTap={{ scale: 0.97 }} onClick={() => { triggerHaptic('BUTTON_TAP'); setPhase('TESTIMONIALS'); }}
+              <motion.button whileTap={{ scale: 0.97 }} onClick={handleNextSlide}
                 className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-black text-[14px] tracking-wide"
                 style={{ background: 'linear-gradient(135deg, #00d4ff 0%, #0099cc 100%)', color: '#020208', boxShadow: '0 6px 30px rgba(0,212,255,0.25)' }}>
-                See Real Results <ChevronRight size={16} />
+                {featureSlide === FEATURES.length - 1 ? 'See Real Results' : 'NEXT'} <ChevronRight size={16} />
               </motion.button>
             </motion.div>
           </div>
@@ -583,7 +574,7 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({
             <motion.div animate={{ y: [-2, 4, -2] }} transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
               className="absolute top-[40%] left-[5%] w-1 h-1 rounded-full bg-white opacity-10" />
             {/* Image */}
-            <img src="/paywall/triple_mockup.jpeg" alt="App Preview" className="w-[95%] h-auto relative z-10" loading="lazy" />
+            <img src="/paywall/triple_mockup-removebg-preview.png" alt="App Preview" className="w-[95%] h-auto relative z-10" loading="lazy" />
           </motion.div>
 
           {/* Tagline under mockup */}
