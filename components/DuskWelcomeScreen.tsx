@@ -249,7 +249,7 @@ const DuskWelcomeScreen: React.FC<DuskWelcomeScreenProps> = ({ onComplete }) => 
           {/* VIDEO LAYER 1: LOOP (Underneath) */}
           <video
             ref={loopVideoRef}
-            src="https://res.cloudinary.com/dcnqnbvp0/video/upload/v1772384042/loopvideo_1_e9ya07.mp4"
+            src="/assets/outfits/defaultloop.mp4"
             className="absolute inset-0 w-full h-full"
             style={{ objectFit: 'contain', objectPosition: 'center', zIndex: 0, maxHeight: '100%', maxWidth: '100%' }}
             loop
@@ -262,7 +262,7 @@ const DuskWelcomeScreen: React.FC<DuskWelcomeScreenProps> = ({ onComplete }) => 
           {/* VIDEO LAYER 2: ENTRANCE (On Top) */}
           <motion.video
             ref={entranceVideoRef}
-            src="https://res.cloudinary.com/dcnqnbvp0/video/upload/v1772375473/introvideojinwoo_1_1_1_erfku0.mp4"
+            src="/assets/outfits/defaultintro.mp4"
             className="absolute inset-0 w-full h-full"
             style={{ objectFit: 'contain', objectPosition: 'center', zIndex: 5, maxHeight: '100%', maxWidth: '100%', pointerEvents: 'none' }}
             autoPlay
