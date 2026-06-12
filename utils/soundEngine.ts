@@ -1,3 +1,5 @@
+import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
+import { Capacitor } from '@capacitor/core';
 
 // AudioContext singleton to prevent multiple contexts
 let audioCtx: AudioContext | null = null;
@@ -99,11 +101,63 @@ const HAPTIC_PATTERNS: Record<string, number | number[]> = {
 
 export const triggerHaptic = (type: string = 'CLICK') => {
     try {
-        if (!navigator.vibrate) return;
-        // Respect a separate haptic mute flag (defaults to enabled)
         if (localStorage.getItem('system_haptic_disabled') === 'true') return;
-        const pattern = HAPTIC_PATTERNS[type] || HAPTIC_PATTERNS.CLICK;
-        navigator.vibrate(pattern);
+
+        if (Capacitor.isNativePlatform()) {
+            switch (type) {
+                case 'CLICK':
+                case 'BUTTON_TAP':
+                case 'TAB_SWITCH':
+                case 'TICK':
+                case 'SWIPE':
+                    Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
+                    break;
+                case 'SUCCESS':
+                case 'PURCHASE':
+                case 'LEVEL_UP':
+                case 'RANK_UP':
+                    Haptics.notification({ type: NotificationType.Success }).catch(() => {});
+                    break;
+                case 'WARNING':
+                    Haptics.notification({ type: NotificationType.Warning }).catch(() => {});
+                    break;
+                case 'CHEST_VIBRATE':
+                case 'PHASE_TRANSITION':
+                    Haptics.vibrate({ duration: 400 }).catch(() => {});
+                    break;
+                default:
+                    Haptics.impact({ style: ImpactStyle.Medium }).catch(() => {});
+                    break;
+            }
+        } else {
+            if (!navigator.vibrate) return;
+            const pattern = HAPTIC_PATTERNS[type] || HAPTIC_PATTERNS.CLICK;
+            navigator.vibrate(pattern);
+        }
+    } catch { /* silent fail */ }
+};
+
+export const triggerVibrate = (pattern: number | number[]) => {
+    try {
+        if (localStorage.getItem('system_haptic_disabled') === 'true') return;
+
+        if (Capacitor.isNativePlatform()) {
+            if (Array.isArray(pattern)) {
+                let duration = 0;
+                for (let i = 0; i < pattern.length; i += 2) {
+                    duration += pattern[i];
+                }
+                if (duration > 0) {
+                    Haptics.vibrate({ duration }).catch(() => {});
+                }
+            } else if (pattern > 0) {
+                Haptics.vibrate({ duration: pattern }).catch(() => {});
+            }
+        } else {
+            if (navigator.vibrate) {
+                navigator.vibrate(pattern);
+            }
+        }
     } catch { /* silent fail */ }
 };
 

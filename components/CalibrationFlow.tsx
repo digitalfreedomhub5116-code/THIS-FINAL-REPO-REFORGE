@@ -6,7 +6,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Refe
 import { HealthProfile, CoreStats, BaselineStats } from '../types';
 import SystemPersonalizationScreen from './SystemPersonalizationScreen';
 import OnboardingHook from './OnboardingHook';
-import { triggerHaptic } from '../utils/soundEngine';
+import { triggerHaptic, triggerVibrate } from '../utils/soundEngine';
 
 interface CalibrationFlowProps {
   onComplete: (profile: HealthProfile, calculatedStats: CoreStats) => void;
@@ -461,7 +461,7 @@ const AwakeningOverlay: React.FC<{ profile: Partial<HealthProfile>; onComplete: 
                 startStatsRef.current = [...to];
                 setIsTransitioning(false);
                 // Stop vibration when transition completes
-                try { navigator.vibrate(0); } catch {}
+                triggerVibrate(0);
             },
         });
         return () => ctrl.stop();
@@ -958,7 +958,7 @@ const HunterVowScreen: React.FC<{ onComplete: () => void; hunterName: string }> 
     const startHold = () => {
         if (isComplete) return;
         setIsHolding(true);
-        try { navigator.vibrate?.([10, 30]); } catch {}
+        triggerVibrate([10, 30]);
         holdRef.current = setInterval(() => {
             setHoldProgress(prev => {
                 const next = prev + 1.8;
@@ -967,11 +967,11 @@ const HunterVowScreen: React.FC<{ onComplete: () => void; hunterName: string }> 
                     setIsComplete(true);
                     setIsHolding(false);
                     triggerHaptic('SUCCESS');
-                    try { navigator.vibrate?.(200); } catch {}
+                    triggerVibrate(200);
                     setTimeout(onComplete, 1200);
                     return 100;
                 }
-                try { navigator.vibrate?.(8); } catch {}
+                triggerVibrate(8);
                 return next;
             });
         }, 30);
@@ -980,11 +980,11 @@ const HunterVowScreen: React.FC<{ onComplete: () => void; hunterName: string }> 
     const stopHold = () => {
         if (holdRef.current) clearInterval(holdRef.current);
         setIsHolding(false);
-        try { navigator.vibrate?.(0); } catch {}
+        triggerVibrate(0);
         if (!isComplete) setHoldProgress(prev => Math.max(0, prev - 5));
     };
 
-    useEffect(() => () => { if (holdRef.current) clearInterval(holdRef.current); try { navigator.vibrate?.(0); } catch {} }, []);
+    useEffect(() => () => { if (holdRef.current) clearInterval(holdRef.current); triggerVibrate(0); }, []);
 
     return (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-[200] bg-black flex flex-col items-center justify-center px-6 font-mono">
@@ -1100,7 +1100,7 @@ const EmpathyInsightScreen: React.FC<{ goal: string; profile: Partial<HealthProf
             i++;
             setTypedText(fullText.slice(0, i));
             // Subtle haptic tick every 3rd character
-            if (i % 3 === 0 && navigator.vibrate) navigator.vibrate(10);
+            if (i % 3 === 0) triggerVibrate(10);
             if (i >= fullText.length) {
                 clearInterval(interval);
                 setTimeout(() => setShowCards(true), 400);
@@ -1293,7 +1293,7 @@ const CommitmentSlider: React.FC<{ onComplete: (value: number) => void }> = ({ o
         if (newVal !== prevValueRef.current) {
             prevValueRef.current = newVal;
             setValue(newVal);
-            if (navigator.vibrate) navigator.vibrate(15);
+            triggerVibrate(15);
         }
     };
 

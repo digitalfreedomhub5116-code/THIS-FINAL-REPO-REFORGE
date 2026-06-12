@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Sparkles, Maximize2 } from 'lucide-react';
+import { triggerVibrate } from '../utils/soundEngine';
 
 // ═══════════════════════════════════════════════════════════════
 // Typewriter with per-word vibration
@@ -19,9 +20,7 @@ const TypewriterQuestion: React.FC<{ text: string; onComplete?: () => void }> = 
     const timeout = setTimeout(() => {
       setVisibleCount(prev => prev + 1);
       // Trigger a light haptic tap on each word render (guarded)
-      if (typeof navigator !== 'undefined' && navigator.vibrate) {
-        navigator.vibrate(12);
-      }
+      triggerVibrate(12);
     }, 120);
     return () => clearTimeout(timeout);
   }, [visibleCount, words.length, onComplete]);

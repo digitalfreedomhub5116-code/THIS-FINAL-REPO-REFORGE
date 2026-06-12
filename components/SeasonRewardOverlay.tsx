@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Lottie from 'lottie-react';
+import { triggerVibrate } from '../utils/soundEngine';
 
 // ── Types ──
 interface SeasonReward {
@@ -105,17 +106,17 @@ const SeasonRewardOverlay: React.FC<SeasonRewardOverlayProps> = ({ reward, onCla
       setTimeout(() => setPhase(3), 2800),       // cards settle bottom
       // Card 0 spotlight
       setTimeout(() => setPhase(4), 3500),       // card 0 rises
-      setTimeout(() => { setPhase(5); setFlippingCard(0); if (navigator.vibrate) navigator.vibrate(30); }, 4200),
+      setTimeout(() => { setPhase(5); setFlippingCard(0); triggerVibrate(30); }, 4200),
       setTimeout(() => { setRevealedCards(s => new Set([...s, 0])); }, 4500),
       setTimeout(() => { setFlippingCard(null); setPhase(6); }, 4800),
       // Card 1 spotlight
       setTimeout(() => setPhase(7), 5500),
-      setTimeout(() => { setPhase(8); setFlippingCard(1); if (navigator.vibrate) navigator.vibrate(30); }, 6200),
+      setTimeout(() => { setPhase(8); setFlippingCard(1); triggerVibrate(30); }, 6200),
       setTimeout(() => { setRevealedCards(s => new Set([...s, 1])); }, 6500),
       setTimeout(() => { setFlippingCard(null); setPhase(9); }, 6800),
       // Card 2 spotlight
       setTimeout(() => setPhase(10), 7500),
-      setTimeout(() => { setPhase(11); setFlippingCard(2); if (navigator.vibrate) navigator.vibrate(30); }, 8200),
+      setTimeout(() => { setPhase(11); setFlippingCard(2); triggerVibrate(30); }, 8200),
       setTimeout(() => { setRevealedCards(s => new Set([...s, 2])); }, 8500),
       setTimeout(() => { setFlippingCard(null); setPhase(12); }, 8800),
       // All revealed → claim
@@ -131,7 +132,7 @@ const SeasonRewardOverlay: React.FC<SeasonRewardOverlayProps> = ({ reward, onCla
 
   // Vibrate
   useEffect(() => {
-    if (phase === 1 && navigator.vibrate) navigator.vibrate([50, 30, 80, 30, 50]);
+    if (phase === 1) triggerVibrate([50, 30, 80, 30, 50]);
   }, [phase]);
 
   // Gold counter (phase 14)
