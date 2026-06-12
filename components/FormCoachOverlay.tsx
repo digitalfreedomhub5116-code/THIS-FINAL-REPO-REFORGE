@@ -18,7 +18,7 @@ interface FormCoachOverlayProps {
   onStateChange?: (state: FormCoachState) => void;
 }
 
-const WASM_CDN = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm';
+const WASM_CDN = '/wasm';
 
 const FormCoachOverlay: React.FC<FormCoachOverlayProps> = ({ exercise, isActive, targetReps, onStateChange }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -49,7 +49,7 @@ const FormCoachOverlay: React.FC<FormCoachOverlayProps> = ({ exercise, isActive,
         const vision = await FilesetResolver.forVisionTasks(WASM_CDN);
         const landmarker = await PoseLandmarker.createFromOptions(vision, {
           baseOptions: {
-            modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task',
+            modelAssetPath: '/models/pose_landmarker_lite.task',
             delegate: 'GPU',
           },
           runningMode: 'VIDEO',
