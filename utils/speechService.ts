@@ -71,6 +71,18 @@ export const SpeechService = {
 
   announceRepCounted: (count: number) => {
     speak(`${count}`, 1.2, 1.1);
+  },
+
+  announceFormScore: (score: number) => {
+    if (score >= 90) {
+      speak("Perfect form. Excellent work.", 1.0, 0.9);
+    } else if (score >= 75) {
+      speak("Good form. Minor adjustments needed.", 1.0, 0.9);
+    } else if (score >= 50) {
+      speak("Form needs improvement. Focus on technique.", 1.0, 0.9);
+    } else {
+      speak("Poor form detected. Reduce weight and focus on technique.", 1.0, 0.8);
+    }
   }
 };
 

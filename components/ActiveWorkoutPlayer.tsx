@@ -2,12 +2,32 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Pause, X, AlertOctagon, Check, Activity, Film, Timer as TimerIcon, ChevronRight, Zap, Clock, Dumbbell } from 'lucide-react';
+import { Play, Pause, X, AlertOctagon, Check, Activity, Film, Timer as TimerIcon, ChevronRight, Zap, Clock, Dumbbell, Camera, MapPin, Navigation } from 'lucide-react';
 import { EXERCISE_VIDEOS, getExerciseVideoUrl, fixVideoPath } from '../lib/exerciseVideos';
 import { WorkoutDay, FormCoachSession } from '../types';
 import { SpeechService } from '../utils/speechService';
 import { playSystemSoundEffect } from '../utils/soundEngine';
-import { useSystem, isEmbed } from '../hooks/useSystem';
+import { useSystem, isEmbed, isLocalUser } from '../hooks/useSystem';
+import { findFormCoachExercise } from '../lib/formCoachConfig';
+import type { FormCoachState } from '../utils/poseEngine';
+import FormCoachOverlay from './FormCoachOverlay';
+import FormCoachSummary from './FormCoachSummary';
+import { useSensors } from '../hooks/useSensors';
+import { API_BASE } from '../lib/apiConfig';
+import { getPlayerAuthHeaders } from '../lib/playerApi';
+
+/** Check if an exercise is rep-based (not time-based like "5 min" or "30s") */
+const isRepBasedExercise = (reps: string, type: string): boolean => {
+  if (type === 'CARDIO' || type === 'STRETCH') return false;
+  const lower = reps?.toLowerCase()?.trim() || '';
+  if (!lower) return false;
+  if (lower.includes('min') || lower.includes('sec') || /\d+s\b/.test(lower)) return false;
+  // Strip common suffixes: "10 each", "12 per side", "15 reps"
+  const cleaned = lower.replace(/\b(each|per side|per leg|reps)\b/gi, '').trim();
+  // Match pure numbers like "12" or comma-separated like "15, 15, 12"
+  const parts = cleaned.split(/[,\s]+/).filter(Boolean);
+  return parts.length > 0 && parts.every(p => /^\d+$/.test(p));
+};
 
 interface ActiveWorkoutPlayerProps {
   plan: WorkoutDay;
@@ -16,7 +36,6 @@ interface ActiveWorkoutPlayerProps {
   streak: number;
   savedSession?: SavedWorkoutSession | null;
 }
-
 
 export interface SavedWorkoutSession {
   currentIdx: number;
@@ -96,6 +115,12 @@ const getExerciseDuration = (reps: string): number => {
      if (match) return parseInt(match[1], 10);
   }
   
+  // KM (e.g., "1.5 km", "2 km")
+  if (lower.includes('km')) {
+    const match = lower.match(/([\d.]+)\s*km/);
+    if (match) return Math.ceil(parseFloat(match[1]) * 6) * 60; // ~6 min/km pace estimate
+  }
+  
   return 60; // fallback default
 };
 
@@ -129,9 +154,123 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
   const completedRef = useRef(false);
   const [phaseStartTime, setPhaseStartTime] = useState(Date.now());
 
+  // --- FORM COACH STATE ---
+  const [formCoachState, setFormCoachState] = useState<FormCoachState | null>(null);
+  const lastFormCoachStateRef = useRef<FormCoachState | null>(null);
+  const initialExercise = plan.exercises[savedSession?.currentIdx ?? 0] || plan.exercises[0];
+  const shouldStartCamera = initialExercise?.formCoachEnabled && !!findFormCoachExercise(initialExercise.name);
+
+  // Sub-phase for form coach exercises: PREVIEW (video full-screen) -> TRACKING (camera + PiP)
+  const [formCoachSubPhase, setFormCoachSubPhase] = useState<'PREVIEW' | 'TRACKING' | null>(
+    shouldStartCamera ? (savedSession?.phase === 'REST' ? 'PREVIEW' : 'TRACKING') : null
+  );
+  // User-selectable tracking mode: TIMER (default, classic) vs CAMERA (AI rep counting)
+  const [trackingMode, setTrackingMode] = useState<'TIMER' | 'CAMERA'>(
+    shouldStartCamera ? 'CAMERA' : 'TIMER'
+  );
+  // Accumulated form coach data across the entire workout
+  const formCoachAccumRef = useRef<{
+    exercises: Map<string, { scores: number[]; totalReps: number; sets: number }>;
+    totalBonusXp: number;
+    perfectSets: number;
+  }>({ exercises: new Map(), totalBonusXp: 0, perfectSets: 0 });
+
   // Derived Data
-  const exercise = plan.exercises[currentIdx] || plan.exercises[0]; // Fallback to avoid undefined crash
+  const exercise = plan.exercises[currentIdx] || plan.exercises[0];
   const totalExercises = plan.exercises.length;
+
+  // ── SENSOR TRACKING for Running Exercises (GPS + Steps hybrid) ──
+  const sensorReqs = (exercise as any)?.sensorRequirements as { distanceKm?: number } | undefined;
+  const isRunningExercise = !!sensorReqs?.distanceKm;
+  const { startTracking, stopTracking, finalizeTracking, clearStoredSession, snapshot: sensorSnapshot, tracking: sensorTracking, requestPermissions } = useSensors(player.userId || 'local');
+  const sensorStartedRef = useRef(false);
+  // Unique-per-entry questId so the next dungeon run never resumes leftover
+  // distance/steps from an earlier session in localStorage.
+  const runQuestIdRef = useRef<string>(`dungeon-run-${Date.now()}`);
+
+  // Step-based distance estimation: ~0.7m per step for running, ~0.65m for walking
+  const stepEstimatedKm = (sensorSnapshot?.stepsRecorded || 0) * 0.0007; // 0.7m per step
+  // Best distance = whichever is higher between GPS and step-estimated
+  const bestDistanceKm = Math.max(sensorSnapshot?.distanceRecorded || 0, stepEstimatedKm);
+
+  // Auto-start tracking when a running exercise becomes active.
+  // Fresh-start every time so the bar always begins at 0 km.
+  useEffect(() => {
+    if (isRunningExercise && phase === 'WORK' && !sensorStartedRef.current) {
+      sensorStartedRef.current = true;
+      // Generate a fresh questId for this entry so even cross-day localStorage
+      // entries can't leak in (defence in depth alongside freshStart).
+      runQuestIdRef.current = `dungeon-run-${Date.now()}`;
+      const qid = runQuestIdRef.current;
+      const targetKm = sensorReqs?.distanceKm;
+      (async () => {
+        try {
+          // Belt-and-suspenders: clear any legacy 'dungeon-run' key from older
+          // builds that hardcoded that questId.
+          clearStoredSession('dungeon-run');
+          await requestPermissions();
+          await startTracking(qid, { distanceKm: targetKm }, { freshStart: true });
+        } catch (err) {
+          console.warn('[ActiveWorkout] Sensor start failed:', err);
+          // Allow re-entry: the user can quit and resume; never crash.
+          sensorStartedRef.current = false;
+        }
+      })();
+    }
+    // Reset flag when moving away from running exercise
+    if (!isRunningExercise) {
+      sensorStartedRef.current = false;
+    }
+  }, [isRunningExercise, phase, currentIdx, requestPermissions, startTracking, clearStoredSession, sensorReqs?.distanceKm]);
+
+  // Auto-complete running exercise when distance target is met.
+  // Gate on `sensorTracking` so we never fire from a stale snapshot before
+  // the new session has actually started — that race used to crash the app.
+  const runAutoCompleteRef = useRef(false);
+  useEffect(() => {
+    if (!isRunningExercise || !sensorTracking || !sensorSnapshot || runAutoCompleteRef.current) return;
+    const targetKm = sensorReqs?.distanceKm || 1;
+    if (bestDistanceKm >= targetKm) {
+      runAutoCompleteRef.current = true;
+      const qid = runQuestIdRef.current;
+      (async () => {
+        try {
+          await stopTracking();
+        } catch { /* ignore */ }
+        try {
+          finalizeTracking(qid);
+        } catch { /* ignore */ }
+        completeSet();
+      })();
+    }
+  }, [bestDistanceKm, isRunningExercise, sensorTracking, sensorSnapshot, sensorReqs?.distanceKm, stopTracking, finalizeTracking]);
+
+  // On unmount: STOP tracking AND clear the stored session — nothing about a
+  // half-finished run should bleed into the next entry.
+  useEffect(() => {
+    return () => {
+      const qid = runQuestIdRef.current;
+      if (sensorStartedRef.current) {
+        stopTracking().catch(() => { /* ignore */ });
+        // Clear the unique-per-entry session so the next dungeon entry starts
+        // at zero distance even if the user quits mid-run.
+        try { finalizeTracking(qid); } catch { /* ignore */ }
+        try { clearStoredSession(qid); } catch { /* ignore */ }
+      }
+      // Also wipe the legacy hardcoded key for older app installs.
+      try { clearStoredSession('dungeon-run'); } catch { /* ignore */ }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Auto-detect if current exercise should use Form Coach (rep-based + has config)
+  // NOTE: Premium gate temporarily removed for testing — all users can use Form Coach
+  const formCoachConfig = React.useMemo(() => {
+    if (!exercise) return null;
+    if (!isRepBasedExercise(exercise.reps, exercise.type)) return null;
+    return findFormCoachExercise(exercise.name);
+  }, [exercise?.name, exercise?.reps, exercise?.type]);
+  const isFormCoachActive = !!formCoachConfig && phase === 'WORK' && trackingMode === 'CAMERA' && formCoachSubPhase === 'TRACKING';
   
   // Robust Video Lookup Strategy (checks EXERCISE_VIDEOS map → DB → exercise.videoUrl → focusVideos)
   const videoSource = React.useMemo(() => {
@@ -191,7 +330,7 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
 
   // --- LOGIC ---
 
-  // Initial Announcement Only
+  // Initial Announcement
   useEffect(() => {
     if (plan.exercises.length > 0) {
         const first = plan.exercises[0];
@@ -199,6 +338,15 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // PREVIEW → TRACKING auto-transition (4 seconds)
+  useEffect(() => {
+    if (formCoachSubPhase !== 'PREVIEW') return;
+    const timer = setTimeout(() => {
+      setFormCoachSubPhase('TRACKING');
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, [formCoachSubPhase]);
 
   const startNextSet = useCallback(() => {
       playSystemSoundEffect('SYSTEM');
@@ -208,18 +356,34 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
       setPhase('WORK');
       setPhaseStartTime(Date.now());
       setCurrentSet(nextSet);
+      setFormCoachState(null); // Reset for fresh tracking
       
       // Dynamic Duration Calculation based on current exercise
       const currentEx = plan.exercises[currentIdx];
       const duration = getExerciseDuration(currentEx.reps);
       setTimeLeft(duration);
 
+      // Form Coach: preserve user's tracking mode preference across sets
+      // Switch to CAMERA for new exercises if enabled by default
+      if (nextSet === 1) {
+        if (currentEx.formCoachEnabled && !!findFormCoachExercise(currentEx.name)) {
+          setTrackingMode('CAMERA');
+          setFormCoachSubPhase('PREVIEW');
+        } else {
+          setTrackingMode('TIMER');
+          setFormCoachSubPhase(null);
+        }
+      } else {
+        // If user has camera on, keep it going for subsequent sets
+        if (trackingMode === 'CAMERA') {
+          setFormCoachSubPhase('TRACKING');
+        }
+      }
+
       // AI Voice Logic
       if (nextSet === 1) {
-          // Starting new exercise (Set 1)
           SpeechService.announceStart(currentEx.name, currentEx.sets, currentEx.reps);
       } else {
-          // Next set of same exercise
           SpeechService.announceSetStart(nextSet);
       }
   }, [currentSet, currentIdx, plan.exercises]);
@@ -247,20 +411,57 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
       clearWorkoutSession(player.userId || 'local');
       SpeechService.announceVictory();
       playSystemSoundEffect('LEVEL_UP');
-      onComplete(totalExercises, totalExercises, results, anomalyPoints);
+
+      // Build FormCoachSession from accumulated data
+      const accum = formCoachAccumRef.current;
+      let formSession: FormCoachSession | undefined;
+      if (accum.exercises.size > 0) {
+        const exerciseEntries = Array.from(accum.exercises.entries()).map(([name, data]) => ({
+          name,
+          avgFormScore: data.scores.length > 0 ? Math.round(data.scores.reduce((a, b) => a + b, 0) / data.scores.length) : 100,
+          totalReps: data.totalReps,
+          sets: data.sets,
+        }));
+        const overallScore = exerciseEntries.length > 0
+          ? Math.round(exerciseEntries.reduce((a, e) => a + e.avgFormScore, 0) / exerciseEntries.length)
+          : 100;
+        formSession = {
+          date: new Date().toISOString().split('T')[0],
+          timestamp: Date.now(),
+          exercises: exerciseEntries,
+          overallScore,
+          totalBonusXp: accum.totalBonusXp,
+          perfectSets: accum.perfectSets,
+        };
+      }
+
+      onComplete(totalExercises, totalExercises, results, anomalyPoints, accum.totalBonusXp, formSession);
     }
   }, [currentIdx, totalExercises, onComplete, results, anomalyPoints, plan.exercises]);
 
   const completeSet = useCallback(() => {
       playSystemSoundEffect('SUCCESS');
-      
+
       // --- ANTI-CHEAT: Check if set was completed too fast (before 70% of duration) ---
-      if (!exercise.isSupplementary) {
+      // Skip the time check entirely when the user has a legitimate non-time
+      // completion source:
+      //   1. CAMERA mode + AI Coach counted >= target reps — reps are the truth.
+      //   2. Running exercises auto-completed by GPS/step distance target.
+      //   3. Supplementary exercises (already exempt below).
+      const targetReps = parseInt(exercise.reps) || 0;
+      const aiHitTarget = trackingMode === 'CAMERA'
+        && !!formCoachConfig
+        && targetReps > 0
+        && (lastFormCoachStateRef.current?.repCount ?? formCoachState?.repCount ?? 0) >= targetReps;
+      const isRunningAuto = !!(exercise as any)?.sensorRequirements?.distanceKm;
+      const skipTimeAnomaly = aiHitTarget || isRunningAuto;
+
+      if (!exercise.isSupplementary && !skipTimeAnomaly) {
         const totalDuration = getExerciseDuration(exercise.reps);
         const elapsedMs = Date.now() - phaseStartTime;
         const elapsedSec = elapsedMs / 1000;
         const threshold = totalDuration * 0.7;
-        
+
         if (elapsedSec < threshold && totalDuration > 10) {
           setAnomalyPoints(prev => prev + 1);
         }
@@ -268,17 +469,43 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
       
       setResults(prev => ({...prev, [`${exercise.name}_set${currentSet}`]: 1 }));
       
+      // --- FORM COACH: Accumulate set data for final summary ---
+      if (lastFormCoachStateRef.current && lastFormCoachStateRef.current.repResults.length > 0) {
+        const fcState = lastFormCoachStateRef.current;
+        const accum = formCoachAccumRef.current;
+        const existing = accum.exercises.get(exercise.name) || { scores: [], totalReps: 0, sets: 0 };
+        existing.scores.push(fcState.formScore);
+        existing.totalReps += fcState.repCount;
+        existing.sets += 1;
+        accum.exercises.set(exercise.name, existing);
+
+        // Calculate XP bonus for this set
+        let setBonus = 0;
+        if (fcState.formScore >= 90) { setBonus = 20; accum.perfectSets++; }
+        else if (fcState.formScore >= 75) setBonus = 10;
+        else if (fcState.formScore >= 50) setBonus = 5;
+        accum.totalBonusXp += setBonus;
+
+        // Clear for next set
+        lastFormCoachStateRef.current = null;
+      }
+      
       if (currentSet < exercise.sets) {
         // Transition to Next Set (Same Exercise)
         const restDuration = getIntraSetRest(exercise.type, setTimerSec, exercise.isSupplementary);
         setPhase('REST');
         setPhaseStartTime(Date.now());
         setTimeLeft(restDuration);
-        SpeechService.announceRest(restDuration);
+        // Announce form score if Form Coach was active
+        if (lastFormCoachStateRef.current && lastFormCoachStateRef.current.repResults.length > 0) {
+          SpeechService.announceFormScore(lastFormCoachStateRef.current.formScore);
+        } else {
+          SpeechService.announceRest(restDuration);
+        }
       } else {
         handleExerciseComplete();
       }
-  }, [currentSet, exercise?.sets, exercise?.name, exercise?.reps, exercise?.type, exercise?.isSupplementary, handleExerciseComplete, phaseStartTime]);
+  }, [currentSet, exercise?.sets, exercise?.name, exercise?.reps, exercise?.type, exercise?.isSupplementary, handleExerciseComplete, phaseStartTime, trackingMode, formCoachConfig, formCoachState?.repCount]);
 
   const handleTimerComplete = useCallback(() => {
     if (phase === 'WORK') {
@@ -288,9 +515,32 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
     }
   }, [phase, completeSet, startNextSet]);
 
+  // Auto-complete set when AI rep count reaches target (camera mode only)
+  const autoCompleteRef = useRef(false);
+  useEffect(() => {
+    if (trackingMode !== 'CAMERA' || !formCoachState || phase !== 'WORK') {
+      autoCompleteRef.current = false;
+      return;
+    }
+    const targetReps = parseInt(exercise.reps) || 0;
+    if (targetReps > 0 && formCoachState.repCount >= targetReps && !autoCompleteRef.current) {
+      autoCompleteRef.current = true;
+      playSystemSoundEffect('SYSTEM');
+      // Small delay so user sees the final rep count (reduced from 1200ms
+      // since the RepDetector now freezes at the target — no more drift)
+      const timer = setTimeout(() => {
+        completeSet();
+        autoCompleteRef.current = false;
+      }, 800);
+      return () => clearTimeout(timer);
+    }
+  }, [formCoachState?.repCount, trackingMode, phase, exercise.reps, completeSet]);
+
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
-    if (!isPaused && timeLeft > 0) {
+    // Pause timer when camera tracking is active (reps counted by AI instead)
+    const timerPaused = isPaused || (phase === 'WORK' && trackingMode === 'CAMERA' && formCoachSubPhase === 'TRACKING' && !!formCoachConfig);
+    if (!timerPaused && timeLeft > 0) {
       interval = setInterval(() => {
         setTimeLeft((prev) => {
           const next = prev - 1;
@@ -306,7 +556,7 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
       handleTimerComplete();
     }
     return () => clearInterval(interval);
-  }, [timeLeft, isPaused, phase, handleTimerComplete, currentIdx, plan.exercises]);
+  }, [timeLeft, isPaused, phase, handleTimerComplete, currentIdx, plan.exercises, trackingMode, formCoachSubPhase, formCoachConfig]);
 
   // --- SESSION PERSISTENCE: Save state whenever key values change ---
   // Skip saving once workout has been completed (prevents re-save after clear)
@@ -327,6 +577,15 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
   const confirmQuit = () => {
     // Clear the saved session so there's no resume prompt later
     clearWorkoutSession(player.userId || 'local');
+    // Notify server: this counts as a missed-workout day for the penalty cron
+    const userId = player.userId;
+    if (userId && !isLocalUser(userId)) {
+      fetch(`${API_BASE}/api/workout/quit-dungeon`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
+      }).catch(() => { /* offline — cron will still detect via missing last_workout_date */ });
+    }
     onFail();
   };
 
@@ -465,11 +724,9 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        // Dynamic background opacity: Opaque normally, Transparent when <= 5s to show video
                         className={`absolute inset-0 z-20 flex flex-col items-center justify-center p-8 text-center transition-colors duration-500 ${isUpNextPreview ? 'bg-black/20 backdrop-blur-sm' : 'bg-black/90'}`}
                     >
                         {isUpNextPreview ? (
-                            // PREVIEW STATE (LAST 5 SECONDS)
                             <motion.div
                                 initial={{ opacity: 0, scale: 0.8 }}
                                 animate={{ opacity: 1, scale: 1 }}
@@ -486,39 +743,154 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
                                 </div>
                             </motion.div>
                         ) : (
-                            // STANDARD RECOVERY STATE
                             <motion.div 
                                 initial={{ scale: 0.8 }}
                                 animate={{ scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.5 }}
-                                className="bg-gray-900/50 border border-system-success/30 p-8 rounded-2xl shadow-[0_0_50px_rgba(16,185,129,0.1)] backdrop-blur-md"
+                                className="w-full max-w-sm"
                             >
-                                <h3 className="text-system-success font-mono font-bold tracking-widest text-lg mb-4 flex items-center justify-center gap-2">
-                                    <Activity size={20} className="animate-pulse" /> RECOVERY
-                                </h3>
-                                <div className="text-8xl font-black font-mono text-white mb-4 tabular-nums">
-                                    {timeLeft}<span className="text-2xl text-gray-500 ml-2">s</span>
-                                </div>
-                                <div className="space-y-1">
-                                    <p className="text-xs text-gray-400 font-mono uppercase tracking-wider">
-                                        UP NEXT
-                                    </p>
-                                    <p className="text-sm font-bold text-white uppercase max-w-[200px] truncate mx-auto">
-                                        {exercise.name}
-                                    </p>
-                                    <p className="text-xs text-gray-500 font-mono">
-                                        SET {currentSet + 1}
-                                    </p>
-                                </div>
+                                {/* Form Coach Summary (shown during REST when form data available) */}
+                                {lastFormCoachStateRef.current && lastFormCoachStateRef.current.repResults.length > 0 ? (
+                                    <div className="space-y-4">
+                                        <FormCoachSummary
+                                            setNumber={currentSet}
+                                            state={lastFormCoachStateRef.current}
+                                            targetReps={parseInt(exercise.reps) || 10}
+                                        />
+                                        <div className="text-center">
+                                            <div className="text-4xl font-black font-mono text-white mb-1 tabular-nums">
+                                                {timeLeft}<span className="text-lg text-gray-500 ml-1">s</span>
+                                            </div>
+                                            <p className="text-[10px] text-gray-500 font-mono tracking-widest">RECOVERY</p>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="bg-gray-900/50 border border-system-success/30 p-8 rounded-2xl shadow-[0_0_50px_rgba(16,185,129,0.1)] backdrop-blur-md">
+                                        <h3 className="text-system-success font-mono font-bold tracking-widest text-lg mb-4 flex items-center justify-center gap-2">
+                                            <Activity size={20} className="animate-pulse" /> RECOVERY
+                                        </h3>
+                                        <div className="text-8xl font-black font-mono text-white mb-4 tabular-nums">
+                                            {timeLeft}<span className="text-2xl text-gray-500 ml-2">s</span>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <p className="text-xs text-gray-400 font-mono uppercase tracking-wider">UP NEXT</p>
+                                            <p className="text-sm font-bold text-white uppercase max-w-[200px] truncate mx-auto">{exercise.name}</p>
+                                            <p className="text-xs text-gray-500 font-mono">SET {currentSet + 1}</p>
+                                        </div>
+                                    </div>
+                                )}
                             </motion.div>
                         )}
                     </motion.div>
                 )}
             </AnimatePresence>
 
-            {/* Video Player */}
+            {/* Video Player / Form Coach Camera / PiP Layout */}
             <div className="w-full h-full flex items-center justify-center bg-black relative">
-                {videoSource ? (
+                {formCoachConfig && phase === 'WORK' && trackingMode === 'CAMERA' ? (
+                    /* ── Form Coach Mode: PREVIEW or TRACKING ── */
+                    <>
+                        {/* PREVIEW: Full-screen video with UPCOMING overlay */}
+                        {formCoachSubPhase === 'PREVIEW' && videoSource && (
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                className="absolute inset-0 z-10"
+                            >
+                                <video
+                                    key={`preview-${videoSource}`}
+                                    src={videoSource}
+                                    className="w-full h-full object-cover object-top"
+                                    autoPlay loop muted playsInline
+                                    poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+                                    onCanPlay={(e) => (e.target as HTMLVideoElement).classList.add('video-ready')}
+                                />
+                                {/* UPCOMING overlay */}
+                                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent flex flex-col items-center justify-end pb-16">
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: 0.3 }}
+                                        className="text-center"
+                                    >
+                                        <div className="inline-flex items-center gap-2 bg-orange-500/20 border border-orange-500/50 px-4 py-1.5 rounded-full text-orange-400 font-black text-xs tracking-[0.2em] mb-3 animate-pulse">
+                                            <Camera size={14} /> UPCOMING — WATCH FORM
+                                        </div>
+                                        <h2 className="text-3xl md:text-4xl font-black italic text-white uppercase mb-2 drop-shadow-[0_0_20px_rgba(0,0,0,0.8)]">
+                                            {exercise.name}
+                                        </h2>
+                                        <p className="text-xs text-gray-400 font-mono">
+                                            {exercise.sets} SETS × {exercise.reps} REPS — Camera opens in a moment
+                                        </p>
+                                        {/* Countdown dots */}
+                                        <div className="flex justify-center gap-2 mt-4">
+                                            {[0, 1, 2, 3].map(i => (
+                                                <motion.div
+                                                    key={i}
+                                                    className="w-2 h-2 rounded-full bg-orange-500"
+                                                    initial={{ opacity: 0.3 }}
+                                                    animate={{ opacity: 1 }}
+                                                    transition={{ delay: i * 1 }}
+                                                />
+                                            ))}
+                                        </div>
+                                    </motion.div>
+                                </div>
+                            </motion.div>
+                        )}
+
+                        {/* TRACKING: Full-screen camera + PiP video in top-right */}
+                        {formCoachSubPhase === 'TRACKING' && (
+                            <>
+                                <FormCoachOverlay
+                                    exercise={formCoachConfig}
+                                    isActive={!isPaused}
+                                    targetReps={parseInt(exercise.reps) || 0}
+                                    onStateChange={(s) => {
+                                        // Cap the rep count at the target so the UI
+                                        // never displays a number beyond the limit
+                                        const target = parseInt(exercise.reps) || 0;
+                                        const capped = target > 0 && s.repCount > target
+                                          ? { ...s, repCount: target }
+                                          : s;
+                                        setFormCoachState(capped);
+                                        lastFormCoachStateRef.current = capped;
+                                    }}
+                                />
+                                {/* PiP Video — top-right corner like a video call */}
+                                {videoSource && (
+                                    <motion.div
+                                        initial={{ opacity: 0, scale: 0.5, x: 20, y: -20 }}
+                                        animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
+                                        transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+                                        className="absolute top-14 right-3 z-40 w-[120px] h-[160px] rounded-xl overflow-hidden border-2 border-orange-500/60 shadow-[0_4px_20px_rgba(0,0,0,0.8),0_0_15px_rgba(249,115,22,0.2)]"
+                                    >
+                                        <video
+                                            key={`pip-${videoSource}`}
+                                            src={videoSource}
+                                            className="w-full h-full object-cover object-top"
+                                            autoPlay loop muted playsInline
+                                            poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+                                            onCanPlay={(e) => (e.target as HTMLVideoElement).classList.add('video-ready')}
+                                        />
+                                        {/* PiP label */}
+                                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent px-1.5 py-1">
+                                            <p className="text-[7px] font-mono font-bold text-orange-400 tracking-wider text-center truncate">REFERENCE</p>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </>
+                        )}
+
+                        {/* No video and no sub-phase yet — show loading */}
+                        {!formCoachSubPhase && (
+                            <div className="flex flex-col items-center justify-center text-gray-600">
+                                <div className="w-12 h-12 border-2 border-system-neon border-t-transparent rounded-full animate-spin mb-4" />
+                                <span className="font-mono text-xs tracking-widest">INITIALIZING FORM COACH...</span>
+                            </div>
+                        )}
+                    </>
+                ) : videoSource ? (
                     isEmbed(videoSource) ? (
                         <iframe 
                             src={videoSource}
@@ -528,7 +900,6 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
                         />
                     ) : (
                         <>
-                            {/* Skeleton shimmer — shows while video buffers */}
                             <div className="absolute inset-0 z-0 flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
                                 <div className="absolute inset-0 overflow-hidden">
                                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.03] to-transparent animate-[shimmer_2s_infinite]" 
@@ -549,6 +920,7 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
                                 loop 
                                 muted 
                                 playsInline 
+                                onCanPlay={(e) => (e.target as HTMLVideoElement).classList.add('video-ready')}
                             />
                         </>
                     )
@@ -578,37 +950,162 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
                 />
             </div>
 
-            <div className="p-5 md:p-8 space-y-5 md:space-y-6 pb-8 md:pb-8">
-                
+            <div className={phase === 'WORK' && trackingMode === 'CAMERA' && formCoachConfig ? 'px-4 py-3' : 'p-5 md:p-8 space-y-5 md:space-y-6 pb-8 md:pb-8'}>
+
+                {/* ═══════════════════════════════════════════════════════════ */}
+                {/* CAMERA MODE: Ultra-compact bottom strip                   */}
+                {/* ═══════════════════════════════════════════════════════════ */}
+                {phase === 'WORK' && trackingMode === 'CAMERA' && formCoachConfig ? (
+                    <div className="space-y-2">
+                        {/* Row 1: Exercise Name + Rep Counter */}
+                        <div className="flex justify-between items-center">
+                            <h2 className="text-base font-black italic text-white uppercase tracking-tight truncate flex-1 pr-3">
+                                {exercise.name}
+                            </h2>
+                            <div className="flex items-baseline gap-1 bg-orange-500/10 border border-orange-500/40 rounded-lg px-3 py-1">
+                                <span className="text-xl font-black font-mono text-orange-400">{formCoachState?.repCount ?? 0}</span>
+                                <span className="text-xs text-gray-500 font-mono">/{parseInt(exercise.reps) || '?'}</span>
+                            </div>
+                        </div>
+                        {/* Row 2: Set dots + AI COACH toggle */}
+                        <div className="flex items-center gap-3">
+                            <div className="flex gap-1 h-1 flex-1">
+                                {Array.from({ length: safeSetCount }).map((_, i) => {
+                                    let c = 'bg-gray-800';
+                                    if (i < currentSet - 1) c = 'bg-orange-500';
+                                    if (i === currentSet - 1) c = 'bg-white animate-pulse';
+                                    return <div key={i} className={`flex-1 rounded-full ${c}`} />;
+                                })}
+                            </div>
+                            {/* iOS Toggle */}
+                            <button
+                                onClick={() => { setTrackingMode('TIMER'); setFormCoachSubPhase(null); setFormCoachState(null); }}
+                                className="flex items-center gap-2 shrink-0"
+                            >
+                                <div className="relative w-[44px] h-[24px] rounded-full bg-gradient-to-r from-orange-500 to-amber-400 shadow-[0_0_10px_rgba(249,115,22,0.3)]">
+                                    <motion.div
+                                        className="absolute top-[3px] w-[18px] h-[18px] rounded-full bg-white shadow-sm"
+                                        animate={{ left: 23 }}
+                                        transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                                    />
+                                </div>
+                                <span className="text-[9px] font-mono font-bold text-orange-400 tracking-wider">AI COACH</span>
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                <>
+                {/* ═══════════════════════════════════════════════════════════ */}
+                {/* TIMER MODE: Original full bottom panel (untouched)        */}
+                {/* ═══════════════════════════════════════════════════════════ */}
+
                 {/* Exercise Info */}
-                <div className="flex justify-between items-start">
-                    <div className="flex-1 min-w-0 pr-4">
-                        <motion.h2 
+                {isRunningExercise && phase === 'WORK' ? (
+                    /* ═══════════════════════════════════════════════════════════ */
+                    /* RUNNING MODE: Live GPS distance tracker                    */
+                    /* ═══════════════════════════════════════════════════════════ */
+                    <div className="space-y-4">
+                        <motion.h2
                             key={exercise.name}
                             initial={{ opacity: 0, x: -10 }}
                             animate={{ opacity: 1, x: 0 }}
-                            className="text-xl md:text-3xl font-black italic text-white leading-tight uppercase tracking-tight truncate"
+                            className="text-xl md:text-3xl font-black italic text-white leading-tight uppercase tracking-tight"
                         >
                             {exercise.name}
                         </motion.h2>
-                        <div className="flex items-center gap-3 mt-2 text-xs font-mono text-gray-400">
-                            <span className="bg-gray-900 px-2 py-1 rounded border border-gray-800 text-gray-300">
-                                {exercise.sets} SETS
-                            </span>
-                            <span className="bg-gray-900 px-2 py-1 rounded border border-gray-800 text-system-neon font-bold">
-                                {exercise.reps} REPS
-                            </span>
+
+                        {/* Distance progress */}
+                        <div className="bg-gray-900/60 border border-gray-800 rounded-2xl p-4 space-y-3">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <Navigation size={14} className="text-[#00d4ff]" />
+                                    <span className="text-[9px] font-mono text-gray-500 uppercase tracking-wider">Distance</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-1">
+                                        <MapPin size={9} className={sensorTracking ? 'text-[#00d4ff] animate-pulse' : 'text-gray-600'} />
+                                        <span className="text-[7px] font-mono" style={{ color: sensorTracking ? '#00d4ff' : '#555' }}>GPS</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        <Activity size={9} className={sensorTracking ? 'text-[#00d4ff] animate-pulse' : 'text-gray-600'} />
+                                        <span className="text-[7px] font-mono" style={{ color: sensorTracking ? '#00d4ff' : '#555' }}>Steps</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Big distance number */}
+                            <div className="text-center">
+                                <span className="text-5xl font-black font-mono text-white tabular-nums">
+                                    {bestDistanceKm.toFixed(2)}
+                                </span>
+                                <span className="text-lg text-gray-400 ml-1">/ {sensorReqs?.distanceKm || 1} km</span>
+                            </div>
+
+                            {/* Progress bar */}
+                            <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
+                                <motion.div
+                                    className="h-full rounded-full"
+                                    style={{ background: 'linear-gradient(90deg, #00d4ff, #0099cc)' }}
+                                    initial={{ width: '0%' }}
+                                    animate={{
+                                        width: `${Math.min(100, (bestDistanceKm / (sensorReqs?.distanceKm || 1)) * 100)}%`
+                                    }}
+                                    transition={{ duration: 0.5 }}
+                                />
+                            </div>
+
+                            {/* Live stats row */}
+                            <div className="grid grid-cols-3 gap-2">
+                                <div className="text-center">
+                                    <div className="text-lg font-black font-mono text-white">{sensorSnapshot?.stepsRecorded || 0}</div>
+                                    <div className="text-[8px] font-mono text-gray-500 uppercase tracking-wider">Steps</div>
+                                </div>
+                                <div className="text-center">
+                                    <div className="text-lg font-black font-mono text-white">
+                                        {sensorSnapshot?.maxSpeedKmh ? `${sensorSnapshot.maxSpeedKmh.toFixed(1)}` : '0.0'}
+                                    </div>
+                                    <div className="text-[8px] font-mono text-gray-500 uppercase tracking-wider">km/h max</div>
+                                </div>
+                                <div className="text-center">
+                                    <div className="text-lg font-black font-mono text-white">
+                                        {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}
+                                    </div>
+                                    <div className="text-[8px] font-mono text-gray-500 uppercase tracking-wider">Timer</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    
-                    {/* Mini Timer (Visible during work) */}
-                    {phase === 'WORK' && (
-                        <div className="flex flex-col items-center justify-center bg-gray-900/50 border border-gray-800 rounded-lg p-2 min-w-[70px]">
-                            <TimerIcon size={14} className="text-system-neon mb-1" />
-                            <span className="text-xl font-bold font-mono text-white leading-none">{Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}</span>
+                ) : (
+                    /* Standard Exercise Info */
+                    <div className="flex justify-between items-start">
+                        <div className="flex-1 min-w-0 pr-4">
+                            <motion.h2
+                                key={exercise.name}
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                className="text-xl md:text-3xl font-black italic text-white leading-tight uppercase tracking-tight truncate"
+                            >
+                                {exercise.name}
+                            </motion.h2>
+                            <div className="flex items-center gap-3 mt-2 text-xs font-mono text-gray-400">
+                                <span className="bg-gray-900 px-2 py-1 rounded border border-gray-800 text-gray-300">
+                                    {exercise.sets} SETS
+                                </span>
+                                <span className="bg-gray-900 px-2 py-1 rounded border border-gray-800 text-system-neon font-bold">
+                                    {exercise.reps} REPS
+                                </span>
+                            </div>
                         </div>
-                    )}
-                </div>
+
+                        {/* Mini Timer */}
+                        {phase === 'WORK' && (
+                            <div className="flex flex-col items-center justify-center bg-gray-900/50 border border-gray-800 rounded-lg p-2 min-w-[70px]">
+                                <TimerIcon size={14} className="text-system-neon mb-1" />
+                                <span className="text-xl font-bold font-mono text-white leading-none">{Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}</span>
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {/* Set Indicators */}
                 <div className="flex gap-1.5 h-1.5 w-full">
@@ -616,10 +1113,10 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
                         let statusColor = 'bg-gray-800';
                         if (i < currentSet - 1) statusColor = 'bg-system-neon'; // Completed
                         if (i === currentSet - 1) statusColor = phase === 'WORK' ? 'bg-white animate-pulse' : 'bg-system-success'; // Current
-                        
+
                         return (
-                            <motion.div 
-                                key={i} 
+                            <motion.div
+                                key={i}
                                 className={`flex-1 rounded-full ${statusColor}`}
                                 layoutId={`set-dot-${i}`}
                             />
@@ -629,11 +1126,11 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
 
                 {/* Controls */}
                 <div className="grid grid-cols-4 gap-3">
-                    <button 
+                    <button
                         onClick={() => setIsPaused(!isPaused)}
                         className={`col-span-1 h-14 md:h-16 rounded-xl flex items-center justify-center border transition-all active:scale-95 ${
-                            isPaused 
-                            ? 'bg-yellow-500/10 border-yellow-500 text-yellow-500' 
+                            isPaused
+                            ? 'bg-yellow-500/10 border-yellow-500 text-yellow-500'
                             : 'bg-gray-900 border-gray-800 text-gray-400 hover:bg-gray-800'
                         }`}
                     >
@@ -642,9 +1139,25 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
 
                     {phase === 'WORK' ? (
                         <>
-                            <button 
+                            {/* AI COACH Toggle (iOS-style) — only for form coach exercises */}
+                            {formCoachConfig && (
+                                <button
+                                    onClick={() => {
+                                        setTrackingMode('CAMERA');
+                                        setFormCoachSubPhase('TRACKING');
+                                    }}
+                                    className="col-span-1 h-14 md:h-16 rounded-xl flex items-center justify-center gap-2 border transition-all active:scale-95 bg-gray-900 border-gray-800 hover:border-orange-500/30"
+                                >
+                                    {/* Off-state toggle */}
+                                    <div className="relative w-[36px] h-[20px] rounded-full bg-gray-700 transition-all">
+                                        <div className="absolute top-[2px] left-[2px] w-[16px] h-[16px] rounded-full bg-gray-400" />
+                                    </div>
+                                    <span className="text-[8px] font-mono font-bold text-gray-500 tracking-wider">AI</span>
+                                </button>
+                            )}
+                            <button
                                 onClick={completeSet}
-                                className="col-span-3 h-14 md:h-16 bg-system-neon text-black font-black text-lg rounded-xl flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(0,212,255,0.4)] hover:bg-white transition-all active:scale-95 group"
+                                className={`${formCoachConfig ? 'col-span-2' : 'col-span-3'} h-14 md:h-16 bg-system-neon text-black font-black text-lg rounded-xl flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(0,212,255,0.4)] hover:bg-white transition-all active:scale-95 group`}
                             >
                                 <Check size={24} strokeWidth={3} />
                                 <span>COMPLETE SET</span>
@@ -659,7 +1172,7 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
                             )}
                         </>
                     ) : (
-                        <button 
+                        <button
                             onClick={() => { setPhaseStartTime(Date.now()); setTimeLeft(0); }}
                             className="col-span-3 h-14 md:h-16 bg-system-success text-black font-black text-lg rounded-xl flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:bg-white transition-all active:scale-95 group"
                         >
@@ -668,6 +1181,8 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
                         </button>
                     )}
                 </div>
+                </>
+                )}
 
             </div>
         </div>
