@@ -103,6 +103,16 @@ const DuskWelcomeScreen: React.FC<DuskWelcomeScreenProps> = ({ onComplete }) => 
     return () => clearInterval(interval);
   }, []);
 
+  // ── Play both videos on mount to avoid layout flashes ──
+  useEffect(() => {
+    if (entranceVideoRef.current) {
+      entranceVideoRef.current.play().catch(() => {});
+    }
+    if (loopVideoRef.current) {
+      loopVideoRef.current.play().catch(() => {});
+    }
+  }, []);
+
 
 
   return (
@@ -239,19 +249,20 @@ const DuskWelcomeScreen: React.FC<DuskWelcomeScreenProps> = ({ onComplete }) => 
           {/* VIDEO LAYER 1: LOOP (Underneath) */}
           <video
             ref={loopVideoRef}
-            src="/videos/intro/loop-bg.mp4"
+            src="https://res.cloudinary.com/dcnqnbvp0/video/upload/v1772384042/loopvideo_1_e9ya07.mp4"
             className="absolute inset-0 w-full h-full"
             style={{ objectFit: 'contain', objectPosition: 'center', zIndex: 0, maxHeight: '100%', maxWidth: '100%' }}
             loop
             muted
             playsInline
             preload="auto"
+            onCanPlay={(e) => (e.target as HTMLVideoElement).classList.add('video-ready')}
           />
 
           {/* VIDEO LAYER 2: ENTRANCE (On Top) */}
           <motion.video
             ref={entranceVideoRef}
-            src="/videos/intro/entrance.mp4"
+            src="https://res.cloudinary.com/dcnqnbvp0/video/upload/v1772375473/introvideojinwoo_1_1_1_erfku0.mp4"
             className="absolute inset-0 w-full h-full"
             style={{ objectFit: 'contain', objectPosition: 'center', zIndex: 5, maxHeight: '100%', maxWidth: '100%', pointerEvents: 'none' }}
             autoPlay
@@ -260,6 +271,7 @@ const DuskWelcomeScreen: React.FC<DuskWelcomeScreenProps> = ({ onComplete }) => 
             onEnded={handleEntranceEnd}
             animate={{ opacity: showEntrance ? 1 : 0 }}
             transition={{ duration: 0.5 }}
+            onCanPlay={(e) => (e.target as HTMLVideoElement).classList.add('video-ready')}
           />
 
           {/* Heavy vignette overlay - all edges */}
