@@ -1314,6 +1314,18 @@ router.get("/:id/mission", async (req: Request, res: Response) => {
     if (!(await getMembershipIn(db, id, uid)))
       return res.status(403).json({ error: "Not a member" });
     const m = await ensureTodayMission(db, id);
+
+    // Check if user has claimed today's completed mission reward
+    const { data: claimedRow } = await db
+      .from("guild_member_rewards")
+      .select("id")
+      .eq("mission_id", m.id)
+      .eq("user_id", uid)
+      .eq("claimed", true)
+      .maybeSingle();
+
+    const userClaimed = !!claimedRow;
+
     return res.json({
       mission: {
         id: m.id,
@@ -1323,11 +1335,119 @@ router.get("/:id/mission", async (req: Request, res: Response) => {
         reward: m.reward,
         completed: m.completed,
         date: m.date,
+        userClaimed,
       },
     });
   } catch (err) {
     console.error("[Guilds mission]", err);
     return res.status(500).json({ error: "Failed to load mission" });
+  }
+});
+
+// POST /api/guilds/:id/mission/claim — claim today's active completed mission reward
+router.post("/:id/mission/claim", async (req: Request, res: Response) => {
+  const uid = auth(req, res);
+  if (!uid) return;
+  try {
+    const db = supabaseServer() as any;
+    const { id } = req.params as Record<string, string>;
+
+    if (!(await getMembershipIn(db, id, uid)))
+      return res.status(403).json({ error: "Not a member" });
+
+    // Fetch today's mission
+    const m = await ensureTodayMission(db, id);
+    if (!m.completed) {
+      return res.status(400).json({ error: "Mission is not completed yet" });
+    }
+
+    // Check if already claimed/recorded in rewards
+    const { data: existing } = await db
+      .from("guild_member_rewards")
+      .select("id")
+      .eq("mission_id", m.id)
+      .eq("user_id", uid)
+      .maybeSingle();
+
+    if (existing) {
+      return res.status(400).json({ error: "Reward already claimed" });
+    }
+
+    // Fetch player stats
+    const { data: player } = await db
+      .from("players")
+      .select("gold, level, current_xp, required_xp, total_xp, rank, raw_data")
+      .eq("supabase_id", uid)
+      .maybeSingle();
+
+    if (!player) {
+      return res.status(404).json({ error: "Player not found" });
+    }
+
+    const goldReward = m.reward?.gold || 0;
+    const xpReward = m.reward?.xp || 0;
+
+    const newGold = (player.gold || 0) + goldReward;
+    const newTotalXp = (player.total_xp || 0) + xpReward;
+    const initialCurrentXp = (player.current_xp || 0) + xpReward;
+
+    const lvlResult = safeLevelUp(initialCurrentXp, player.required_xp || 100, player.level || 1);
+
+    const newRawData = {
+      ...(player.raw_data || {}),
+      gold: newGold,
+      level: lvlResult.level,
+      currentXp: lvlResult.currentXp,
+      requiredXp: lvlResult.requiredXp,
+      totalXp: newTotalXp,
+      rank: lvlResult.rank,
+    };
+
+    const playerUpdate = {
+      gold: newGold,
+      level: lvlResult.level,
+      current_xp: lvlResult.currentXp,
+      required_xp: lvlResult.requiredXp,
+      total_xp: newTotalXp,
+      rank: lvlResult.rank,
+      raw_data: newRawData,
+      updated_at: new Date().toISOString(),
+    };
+
+    // Update player stats and record the claimed reward
+    await db
+      .from("players")
+      .update(playerUpdate)
+      .eq("supabase_id", uid);
+
+    await db
+      .from("guild_member_rewards")
+      .insert({
+        user_id: uid,
+        guild_id: id,
+        mission_id: m.id,
+        gold: goldReward,
+        xp: xpReward,
+        claimed: true,
+      });
+
+    return res.json({
+      success: true,
+      rewardGold: goldReward,
+      rewardXp: xpReward,
+      player: {
+        gold: newGold,
+        level: lvlResult.level,
+        currentXp: lvlResult.currentXp,
+        requiredXp: lvlResult.requiredXp,
+        totalXp: newTotalXp,
+        rank: lvlResult.rank,
+        leveledUp: lvlResult.leveledUp,
+      }
+    });
+  } catch (err) {
+    console.error("[Guilds active mission claim POST]", err);
+    return res.status(500).json({ error: "Failed to claim reward" });
   }
 });
 

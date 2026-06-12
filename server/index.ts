@@ -511,36 +511,40 @@ async function startServer() {
                   item_key: 'daily_mission_settlement',
                 });
               }
-              
-              // B. Fetch members who participated in this mission
-              const { data: contributors } = await db
-                .from('guild_mission_contributors')
+
+              // B. Fetch all guild members to distribute rewards to those who haven't claimed yet
+              const { data: members } = await db
+                .from('guild_members')
                 .select('user_id')
-                .eq('mission_id', m.id);
+                .eq('guild_id', guildId);
+                 
+              if (members && members.length > 0) {
+                // Find members who already claimed/received rewards for this mission
+                const { data: existingRewards } = await db
+                  .from('guild_member_rewards')
+                  .select('user_id')
+                  .eq('mission_id', m.id);
                 
-              if (contributors && contributors.length > 0) {
-                // Insert a reward snapshot for each contributor
-                const rewardSnapshots = contributors.map((c: any) => {
-                  const xpReward = 100 + Math.floor(Math.random() * 201); // 100-300 XP
-                  const hasGold = Math.random() > 0.5; // 50% chance of gold
-                  const goldReward = hasGold ? (50 + Math.floor(Math.random() * 101)) : 0; // 50-150 Gold
-                  
-                  return {
-                    user_id: c.user_id,
+                const claimedUserIds = new Set((existingRewards || []).map((r: any) => r.user_id));
+                const pendingMembers = members.filter((member: any) => !claimedUserIds.has(member.user_id));
+                
+                if (pendingMembers.length > 0) {
+                  const rewardSnapshots = pendingMembers.map((member: any) => ({
+                    user_id: member.user_id,
                     guild_id: guildId,
                     mission_id: m.id,
                     gold: goldReward,
                     xp: xpReward,
                     claimed: false,
-                  };
-                });
-                
-                const { error: snapErr } = await db
-                  .from('guild_member_rewards')
-                  .insert(rewardSnapshots);
+                  }));
                   
-                if (snapErr) {
-                  console.error(`[Cron] Failed to insert member rewards for guild ${guildId}:`, snapErr);
+                  const { error: snapErr } = await db
+                    .from('guild_member_rewards')
+                    .insert(rewardSnapshots);
+                    
+                  if (snapErr) {
+                    console.error(`[Cron] Failed to insert member rewards for guild ${guildId}:`, snapErr);
+                  }
                 }
               }
               

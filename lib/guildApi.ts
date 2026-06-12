@@ -287,6 +287,13 @@ export async function claimReward(id: string, rewardId: string): Promise<{ succe
   return jsonOrThrow(res);
 }
 
+export async function claimActiveMissionReward(id: string): Promise<{ success: boolean; rewardGold: number; rewardXp: number; player: any }> {
+  const res = await authenticatedFetch(`${base}/${id}/mission/claim`, {
+    method: "POST",
+  });
+  return jsonOrThrow(res);
+}
+
 // ── War ──
 export async function fetchWar(id: string): Promise<WarState> {
   const res = await authenticatedFetch(`${base}/${id}/war`);

@@ -96,6 +96,7 @@ export interface GuildMission {
   reward: { gold?: number };
   completed: boolean;
   date: string;
+  userClaimed?: boolean;
 }
 
 export interface GuildWarSide {

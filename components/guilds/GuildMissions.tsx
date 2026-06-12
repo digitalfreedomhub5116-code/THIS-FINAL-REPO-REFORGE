@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Target, Clock, Sparkles, Coins, Check, AlertCircle, Gift } from 'lucide-react';
 import { NEON, glassPanel } from './guildTheme';
-import { fetchMission, fetchUnclaimedRewards, claimReward } from '../../lib/guildApi';
+import { fetchMission, fetchUnclaimedRewards, claimReward, claimActiveMissionReward } from '../../lib/guildApi';
 import type { GuildMission } from '../../types';
 
 interface GuildMissionsProps {
@@ -30,6 +30,7 @@ const GuildMissions: React.FC<GuildMissionsProps> = ({ guildId, completionSignal
   const [unclaimedRewards, setUnclaimedRewards] = useState<MemberReward[]>([]);
   const [loading, setLoading] = useState(true);
   const [claiming, setClaiming] = useState(false);
+  const [claimingActive, setClaimingActive] = useState(false);
   const [error, setError] = useState('');
   const [countdown, setCountdown] = useState('');
   const [celebrate, setCelebrate] = useState(false);
@@ -107,6 +108,29 @@ const GuildMissions: React.FC<GuildMissionsProps> = ({ guildId, completionSignal
       onToast?.('ERROR', err?.message || 'Failed to claim rewards');
     } finally {
       setClaiming(false);
+    }
+  };
+
+  const handleClaimActiveMission = async () => {
+    if (!mission || claimingActive) return;
+    setClaimingActive(true);
+    try {
+      const res = await claimActiveMissionReward(guildId);
+      if (res.success) {
+        setCelebrate(true);
+        onToast?.('SUCCESS', 'Rewards Claimed!', `+${res.rewardGold} Gold and +${res.rewardXp} XP acquired.`);
+        // Dispatch event to sync player stats in App.tsx
+        window.dispatchEvent(new CustomEvent('player:rewards_claimed', { detail: { player: res.player } }));
+        // Update mission claimed state
+        setMission((prev) => prev ? { ...prev, userClaimed: true } : null);
+        setTimeout(() => setCelebrate(false), 4000);
+      } else {
+        onToast?.('ERROR', 'Failed to claim rewards');
+      }
+    } catch (err: any) {
+      onToast?.('ERROR', err?.message || 'Failed to claim rewards');
+    } finally {
+      setClaimingActive(false);
     }
   };
 
@@ -248,18 +272,55 @@ const GuildMissions: React.FC<GuildMissionsProps> = ({ guildId, completionSignal
             <Clock size={13} /> Resets in <span className="font-mono text-white">{countdown}</span>
           </div>
 
-          {/* Rewards */}
-          <div className="mt-4 pt-4 border-t border-white/5">
-            <p className="text-[11px] font-mono uppercase tracking-wider text-gray-500 mb-2">Guild Rewards</p>
-            <div className="flex gap-3">
-              {mission.reward?.gold != null && (
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg" style={{ background: 'rgba(251,191,36,0.12)' }}>
-                  <Coins size={14} className="text-amber-400" />
-                  <span className="text-amber-300 text-sm font-bold">{mission.reward.gold.toLocaleString()} G</span>
+          {/* Rewards & Claims Actions */}
+          {mission.completed ? (
+            <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between">
+              <div>
+                <p className="text-[11px] font-mono uppercase tracking-wider text-gray-500 mb-1">Guild Rewards</p>
+                <div className="flex gap-3">
+                  {mission.reward?.gold != null && (
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg" style={{ background: 'rgba(251,191,36,0.12)' }}>
+                      <Coins size={14} className="text-amber-400" />
+                      <span className="text-amber-300 text-sm font-bold">{mission.reward.gold.toLocaleString()} G</span>
+                    </div>
+                  )}
                 </div>
+              </div>
+
+              {mission.userClaimed ? (
+                <span className="flex items-center gap-1 text-xs font-bold px-3.5 py-1.5 rounded-xl bg-green-500/20 text-green-300 border border-green-500/30">
+                  <Check size={14} /> Claimed
+                </span>
+              ) : (
+                <button
+                  onClick={handleClaimActiveMission}
+                  disabled={claimingActive}
+                  className="px-5 py-2.5 rounded-xl text-xs font-heading font-extrabold uppercase tracking-wider transition-all duration-300"
+                  style={{
+                    background: claimingActive
+                      ? 'rgba(255,255,255,0.05)'
+                      : 'linear-gradient(135deg, #fbbf24, #d97706)',
+                    color: claimingActive ? '#6b7280' : '#000',
+                    boxShadow: claimingActive ? 'none' : '0 0 10px rgba(251, 191, 36, 0.4)',
+                  }}
+                >
+                  {claimingActive ? 'Claiming...' : 'Claim Reward'}
+                </button>
               )}
             </div>
-          </div>
+          ) : (
+            <div className="mt-4 pt-4 border-t border-white/5">
+              <p className="text-[11px] font-mono uppercase tracking-wider text-gray-500 mb-2">Guild Rewards</p>
+              <div className="flex gap-3">
+                {mission.reward?.gold != null && (
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg" style={{ background: 'rgba(251,191,36,0.12)' }}>
+                    <Coins size={14} className="text-amber-400" />
+                    <span className="text-amber-300 text-sm font-bold">{mission.reward.gold.toLocaleString()} G</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
