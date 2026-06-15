@@ -6,6 +6,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { User as UserIcon } from 'lucide-react';
 import { getItemById } from '../utils/storeItems';
+import { BORDERS_ACTIVE } from '../utils/gameData';
 
 /* ── Only these borders keep their glow (Tier 4 Exclusive) ── */
 const GLOW_WHITELIST = new Set([
@@ -40,8 +41,10 @@ const AvatarWithBorder: React.FC<AvatarWithBorderProps> = ({
   // on a component that renders circular/irregular PNG borders.
   // Callers should NEVER pass boxShadow; use CSS filter: drop-shadow instead.
   const { boxShadow: _stripped, ...safeStyle } = (style || {}) as any;
+  // ── BORDERS_ACTIVE toggle: when false, act as if no border is equipped ──
+  const effectiveBorderId = BORDERS_ACTIVE ? borderId : null;
   // Resolve as a Store item (image-based border)
-  const storeItem = borderId ? getItemById(borderId) : null;
+  const storeItem = effectiveBorderId ? getItemById(effectiveBorderId) : null;
   const hasImageBorder = !!storeItem?.imageBorder;
   const hasVideoBorder = !!storeItem?.videoBorder;
 

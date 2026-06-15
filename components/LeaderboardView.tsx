@@ -14,6 +14,7 @@ import { playSystemSoundEffect } from '../utils/soundEngine';
 import SeasonRewardOverlay from './SeasonRewardOverlay';
 import AvatarWithBorder from './AvatarWithBorder';
 import { getItemById } from '../utils/storeItems';
+import { BORDERS_ACTIVE } from '../utils/gameData';
 import { generateNPCsForUser } from '../utils/npcGenerator';
 
 // ── Types ──
@@ -933,7 +934,9 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player }) => {
                 {/* ── Banner — shows player's real equipped banner ── */}
                 {(() => {
                   const bannerStoreItem = pEntry.bannerId ? getItemById(pEntry.bannerId) : null;
-                  const bannerSrc = bannerStoreItem?.bannerImage || '/banners/defaultreforgebanner.webp';
+                  const bannerSrc = BORDERS_ACTIVE
+                    ? (bannerStoreItem?.bannerImage || '/banners/defaultreforgebanner.webp')
+                    : '/banners/defaultreforgebanner.webp';
                   return (
                     <div className="relative h-32 overflow-hidden">
                       <img

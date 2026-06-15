@@ -13,7 +13,7 @@ import { REWARD_SCHEDULE, DAILY_REWARDS_ENABLED } from '../lib/rewards';
 import { ShopItem } from '../types';
 import { API_BASE } from '../lib/apiConfig';
 import ErrorBoundary from './ErrorBoundary';
-import { PROFILE_BORDERS, getBorderConfig } from '../utils/gameData';
+import { PROFILE_BORDERS, getBorderConfig, BORDERS_ACTIVE } from '../utils/gameData';
 import AnimatedBorder from './AnimatedBorder';
 import OnboardingNotice from './OnboardingNotice';
 import { SystemCoin } from './icons/SystemCoin';
@@ -1069,8 +1069,8 @@ const ShopView: React.FC<ShopViewProps> = ({
             {/* ── Scrollable content ── */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '16px 18px 32px', WebkitOverflowScrolling: 'touch' }}>
 
-              {/* Borders */}
-              {(() => {
+              {/* Borders (hidden when BORDERS_ACTIVE is false) */}
+              {BORDERS_ACTIVE && (() => {
                 const ownedBorderItems = serverInventory.filter(i => i.item_type === 'border');
                 if (ownedBorderItems.length === 0) return null;
                 return (
@@ -1106,8 +1106,8 @@ const ShopView: React.FC<ShopViewProps> = ({
                 );
               })()}
 
-              {/* Banners */}
-              {(() => {
+              {/* Banners (hidden when BORDERS_ACTIVE is false) */}
+              {BORDERS_ACTIVE && (() => {
                 const ownedBannerItems = serverInventory.filter(i => i.item_type === 'banner');
                 if (ownedBannerItems.length === 0) return null;
                 return (
@@ -1230,7 +1230,7 @@ const ShopView: React.FC<ShopViewProps> = ({
       {/* ═══════════════════════════════════════════
            EVENT BANNER CAROUSEL (top hero)
          ═══════════════════════════════════════════ */}
-      {banners.length > 0 && (
+      {BORDERS_ACTIVE && banners.length > 0 && (
         <div className="relative w-full rounded-2xl overflow-hidden" style={{ minHeight: 200 }}>
           <AnimatePresence mode="wait">
             <motion.div
@@ -1280,7 +1280,7 @@ const ShopView: React.FC<ShopViewProps> = ({
       {/* ═══════════════════════════════════════════
            🔥 DEALS OF THE DAY
          ═══════════════════════════════════════════ */}
-      <section>
+      {BORDERS_ACTIVE && <section>
         <div className="store-section-hdr">
           <div className="hdr-icon" style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.2)' }}>
             <Flame size={15} style={{ color: '#EF4444' }} />
@@ -1309,7 +1309,7 @@ const ShopView: React.FC<ShopViewProps> = ({
             </div>
           ))}
         </div>
-      </section>
+      </section>}
 
       {/* ═══════════════════════════════════════════
            🎁 FREE KEY AD BANNER (Watch 3 ads → 1 Key)
@@ -1338,7 +1338,7 @@ const ShopView: React.FC<ShopViewProps> = ({
       {/* ═══════════════════════════════════════════
            🖼️ PROFILE BANNERS
          ═══════════════════════════════════════════ */}
-      <section>
+      {BORDERS_ACTIVE && <section>
         <div className="store-section-hdr">
           <div className="hdr-icon" style={{ background: 'rgba(6,182,212,0.12)', border: '1px solid rgba(6,182,212,0.2)' }}>
             <ImageIcon size={15} style={{ color: '#06B6D4' }} />
@@ -1384,14 +1384,14 @@ const ShopView: React.FC<ShopViewProps> = ({
             );
           })}
         </div>
-      </section>
+      </section>}
 
       {/* ═══════════════════════════════════════════
            👑 AVATAR BORDERS — 4 Thematic Tiers
          ═══════════════════════════════════════════ */}
 
       {/* ── Tier 1: Elements ── */}
-      <section>
+      {BORDERS_ACTIVE && <><section>
         <div className="store-section-hdr">
           <div className="hdr-icon" style={{ background: 'rgba(91,159,230,0.12)', border: '1px solid rgba(91,159,230,0.2)' }}>
             <Flame size={15} style={{ color: '#5B9FE6' }} />
@@ -1542,6 +1542,7 @@ const ShopView: React.FC<ShopViewProps> = ({
           </section>
         );
       })()}
+      </>}
 
       {/* ═══════════════════════════════════════════
            🪙 GOLD CRYSTAL STORE (IAP Gold)

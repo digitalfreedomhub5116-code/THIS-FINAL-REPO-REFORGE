@@ -14,6 +14,7 @@ import AvatarWithBorder from './AvatarWithBorder';
 import RankBadge from './RankBadge';
 import type { RankType } from './RankBadge';
 import { getItemById } from '../utils/storeItems';
+import { BORDERS_ACTIVE } from '../utils/gameData';
 import { getEconomy } from '../utils/storeEconomy';
 import ForgeGuardWidget from './ForgeGuardWidget';
 import { API_BASE } from '../lib/apiConfig';
@@ -198,7 +199,9 @@ const ProfileHero: React.FC<{
   const economy = getEconomy();
   const bannerItemId = player.equippedBanner || economy.equipped.banner;
   const bannerItem = bannerItemId ? getItemById(bannerItemId) : null;
-  const bannerSrc = bannerItem?.bannerImage || '/banners/defaultreforgebanner.webp';
+  const bannerSrc = BORDERS_ACTIVE
+    ? (bannerItem?.bannerImage || '/banners/defaultreforgebanner.webp')
+    : '/banners/defaultreforgebanner.webp';
   const borderId = player.equippedBorder || economy.equipped.border || null;
 
   const stats = player.stats || {} as CoreStats;

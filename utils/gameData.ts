@@ -1,6 +1,9 @@
 
 import { TierLevel, TierConfig, Outfit, Shadow, CombatStats } from '../types';
 
+// Set to true to restore avatar borders, profile banners, and shop deals in the app
+export const BORDERS_ACTIVE = false;
+
 export const TIERS: Record<TierLevel, TierConfig> = {
   E: { id: 'E', statCap: 70,   color: 'text-gray-400'   },
   D: { id: 'D', statCap: 150,  color: 'text-green-400'  },
