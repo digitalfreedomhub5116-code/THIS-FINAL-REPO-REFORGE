@@ -16,6 +16,7 @@ import GuildMissions from "./GuildMissions";
 import GuildVault from "./GuildVault";
 import GuildWar from "./GuildWar";
 import type { Guild, GuildRole } from "../../types";
+import { triggerHaptic } from "../../utils/soundEngine";
 
 type PortalTab = "members" | "mission" | "chat" | "war" | "vault";
 
@@ -305,7 +306,10 @@ const GuildPortal: React.FC<GuildPortalProps> = ({
           return (
             <button
               key={t.key}
-              onClick={() => setTab(t.key)}
+              onClick={() => {
+                triggerHaptic('TAB_SWITCH');
+                setTab(t.key);
+              }}
               className="relative flex flex-col items-center justify-center w-14 py-1 gap-1"
             >
               {active && (
