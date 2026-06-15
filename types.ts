@@ -421,6 +421,7 @@ export interface SystemNotification {
   id: string;
   message: string;
   type: NotificationType;
+  onClick?: () => void;
 }
 
 export interface HistoryEntry {

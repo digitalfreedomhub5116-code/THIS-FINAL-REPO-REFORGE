@@ -57,8 +57,11 @@ const SystemMessage: React.FC<SystemMessageProps> = ({ notifications, removeNoti
               transition: { duration: 0.3 } 
             }}
             transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-            className={`pointer-events-auto max-w-sm w-full border-l-4 rounded-r px-4 py-3 shadow-lg backdrop-blur-md flex items-start gap-3 font-mono text-sm relative overflow-hidden ${getStyles(note.type)}`}
-            onClick={() => removeNotification(note.id)}
+            className={`pointer-events-auto max-w-sm w-full border-l-4 rounded-r px-4 py-3 shadow-lg backdrop-blur-md flex items-start gap-3 font-mono text-sm relative overflow-hidden transition-all duration-200 active:scale-98 ${note.onClick ? 'cursor-pointer hover:brightness-110 active:brightness-95' : ''} ${getStyles(note.type)}`}
+            onClick={() => {
+              if (note.onClick) note.onClick();
+              removeNotification(note.id);
+            }}
           >
             {/* Scanline Effect */}
             <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/5 to-transparent opacity-20 animate-pulse pointer-events-none" />

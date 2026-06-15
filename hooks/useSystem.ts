@@ -573,10 +573,10 @@ export const useSystem = () => {
     return () => window.removeEventListener('goal-quest:completed', handleGoalQuestComplete);
   }, []);
 
-  const addNotification = useCallback((message: string, type: NotificationType) => {
+  const addNotification = useCallback((message: string, type: NotificationType, onClick?: () => void) => {
     const id = Date.now().toString();
     // Only 1 visible notification at a time — replace any existing one
-    setNotifications([{ id, message, type }]);
+    setNotifications([{ id, message, type, onClick }]);
     // Clear any previous timer
     notificationTimers.current.forEach(t => clearTimeout(t));
     notificationTimers.current.clear();

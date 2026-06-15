@@ -281,6 +281,7 @@ router.get('/:id/sync', async (req: Request, res: Response) => {
       maxMp: row.max_mp ?? 100,
       updatedAt: row.updated_at || null,
       syncVersion: finalSyncVersion,
+      lastLoginDate: todayStr,
       // D/W/M stats (server-authoritative after resets)
       dailyStats: serverDailyStats,
       weeklyStats: serverWeeklyStats,

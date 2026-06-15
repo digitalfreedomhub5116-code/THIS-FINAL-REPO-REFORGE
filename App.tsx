@@ -1066,9 +1066,66 @@ const App: React.FC = () => {
 
     const { unsubscribe } = subscribeToGuild(myGuildId, {
       onMessage: (msg) => {
+        // Ignore messages sent by ourselves
+        if (msg.userId === player.userId) return;
+
+        // Skip system messages from notifying
+        if (msg.type === 'system') return;
+
         const isViewingChat = activeTab === 'GUILDS' && inGuildPortal && activePortalTab === 'chat';
         if (!isViewingChat) {
           setUnseenMessagesCount((prev) => prev + 1);
+
+          // Play notification sound blip
+          playSystemSoundEffect('SYSTEM');
+
+          // Build notification message based on type
+          const senderName = msg.author?.name || 'Member';
+          const notifText = msg.type === 'user'
+            ? `💬 ${senderName}: ${msg.body}`
+            : msg.type === 'workout'
+            ? `💪 ${senderName} shared a workout!`
+            : `⚔️ ${senderName} shared a quest!`;
+
+          // Trigger interactive in-app notification toast
+          addNotification(
+            notifText,
+            'SYSTEM',
+            () => {
+              // Click to navigate directly to the chat portal
+              navigateTo('GUILDS');
+              setInGuildPortal(true);
+              setActivePortalTab('chat');
+            }
+          );
+
+          // If the app is in the background or minimized, trigger a native push-like local notification
+          if (document.visibilityState === 'hidden') {
+            (async () => {
+              try {
+                const { Capacitor } = await import('@capacitor/core');
+                if (Capacitor.isNativePlatform()) {
+                  const { LocalNotifications } = await import('@capacitor/local-notifications');
+                  await LocalNotifications.schedule({
+                    notifications: [{
+                      id: Math.floor(Math.random() * 1000000),
+                      title: 'Guild Message',
+                      body: msg.type === 'user'
+                        ? `${senderName}: ${msg.body}`
+                        : msg.type === 'workout'
+                        ? `${senderName} shared a workout!`
+                        : `${senderName} shared a quest!`,
+                      schedule: { at: new Date(Date.now() + 50) },
+                      smallIcon: 'ic_stat_notification',
+                      channelId: 'reforge_dusk',
+                    }]
+                  });
+                }
+              } catch (e) {
+                console.warn('[GuildNotif] Failed to schedule local notification:', e);
+              }
+            })();
+          }
         }
       },
       onJoinRequest: () => {
@@ -1081,7 +1138,7 @@ const App: React.FC = () => {
     });
 
     return unsubscribe;
-  }, [myGuildId, myGuildRole, activeTab, inGuildPortal, activePortalTab]);
+  }, [myGuildId, myGuildRole, activeTab, inGuildPortal, activePortalTab, player.userId, addNotification, navigateTo]);
 
   // Reset unseen message count when user actively enters chat tab
   useEffect(() => {
