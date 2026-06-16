@@ -20,6 +20,9 @@ export const SystemOverrideIntro: React.FC<SystemOverrideIntroProps> = ({ onComp
   const [typedText3, setTypedText3] = useState("");
   const [showFooter, setShowFooter] = useState(false);
   const [showProceed, setShowProceed] = useState(false);
+  
+  // Dynamic players counter
+  const [hunterCount, setHunterCount] = useState(9780);
 
   // Audio refs
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -589,6 +592,44 @@ export const SystemOverrideIntro: React.FC<SystemOverrideIntroProps> = ({ onComp
     return () => clearTimeout(startTimeout);
   }, [phase]);
 
+  // Counter animation with ticking sound & haptics
+  useEffect(() => {
+    if (!showProceed) return;
+    let start = 9780;
+    const end = 10000;
+    const duration = 1800; // 1.8s count up
+    const startTime = performance.now();
+    const ctx = getAudioContext();
+
+    let lastTickVal = start;
+    let animId: number;
+    const animate = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Easing out cubic
+      const ease = 1 - Math.pow(1 - progress, 3);
+      const current = Math.floor(start + (end - start) * ease);
+      
+      setHunterCount(current);
+
+      // Play click sound on changes (throttled slightly)
+      if (current > lastTickVal && current % 3 === 0) {
+        playTypewriterClack(ctx);
+        lastTickVal = current;
+      }
+
+      if (progress < 1) {
+        animId = requestAnimationFrame(animate);
+      } else {
+        // Satisfying final impact vibration
+        triggerAndroidVibration(true);
+      }
+    };
+    animId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animId);
+  }, [showProceed]);
+
   // Clean up sounds on unmount
   useEffect(() => {
     return () => {
@@ -670,13 +711,17 @@ export const SystemOverrideIntro: React.FC<SystemOverrideIntroProps> = ({ onComp
             </span>
           </div>
 
-          {/* Typewriter text console */}
-          <div className="flex-1 flex flex-col justify-center max-w-xl mx-auto w-full text-left gap-6 md:gap-8 font-sans">
-            <AnimatePresence mode="wait">
-              <div className="space-y-4">
+          {/* Typewriter text console or dynamic players counter screen */}
+          <div className="flex-1 flex flex-col justify-center items-center max-w-xl mx-auto w-full font-sans min-h-[350px]">
+            {!showProceed ? (
+              <div className="w-full text-left space-y-4">
                 {/* Line 1 */}
                 {typedText1 && (
-                  <p className="text-base md:text-lg text-white font-medium leading-relaxed tracking-wide">
+                  <motion.p 
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-base md:text-lg text-white font-medium leading-relaxed tracking-wide"
+                  >
                     {typedText1.split("*").map((chunk, idx) => {
                       if (idx % 2 !== 0) {
                         return (
@@ -687,28 +732,81 @@ export const SystemOverrideIntro: React.FC<SystemOverrideIntroProps> = ({ onComp
                       }
                       return chunk;
                     })}
-                  </p>
+                  </motion.p>
                 )}
 
                 {/* Line 2 */}
                 {typedText2 && (
-                  <p className="text-base md:text-lg text-white font-medium leading-relaxed tracking-wide">
+                  <motion.p 
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-base md:text-lg text-white font-medium leading-relaxed tracking-wide"
+                  >
                     {typedText2}
-                  </p>
+                  </motion.p>
                 )}
 
                 {/* Line 3 */}
                 {typedText3 && (
-                  <p className="text-base md:text-lg text-white font-medium leading-relaxed tracking-wide">
+                  <motion.p 
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-base md:text-lg text-white font-medium leading-relaxed tracking-wide"
+                  >
                     {typedText3}
-                  </p>
+                  </motion.p>
                 )}
               </div>
-            </AnimatePresence>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+                className="flex flex-col items-center justify-center text-center gap-6"
+              >
+                {/* SYSTEM PLAYERS REGISTERED */}
+                <div className="text-[11px] md:text-xs font-mono font-black tracking-[0.3em] text-[#3b82f6] uppercase select-none">
+                  SYSTEM PLAYERS REGISTERED
+                </div>
+
+                {/* Counter */}
+                <div 
+                  className="text-7xl md:text-8xl font-black tracking-wider text-white select-none drop-shadow-[0_0_35px_rgba(59,130,246,0.5)] py-2"
+                  style={{
+                    background: "linear-gradient(to bottom, #ffffff 40%, #888888 100%)",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                  }}
+                >
+                  {hunterCount === 10000 ? "10,000+" : hunterCount.toLocaleString()}
+                </div>
+
+                {/* Arise Button */}
+                <motion.button
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4, duration: 0.5 }}
+                  whileHover={{ scale: 1.05, boxShadow: "0 0 25px rgba(59, 130, 246, 0.4)" }}
+                  whileTap={{ scale: 0.96 }}
+                  onClick={handleProceed}
+                  className="mt-8 relative px-16 py-4 bg-[#0a1128]/90 border border-blue-500/40 text-white font-black text-xl tracking-[0.4em] transition-all hover:bg-[#101b40]/90 hover:border-blue-400/70"
+                  style={{
+                    transform: "skewX(-12deg)",
+                    boxShadow: "0 0 15px rgba(59, 130, 246, 0.15)",
+                    borderRightWidth: "2.5px",
+                    borderLeftWidth: "2.5px",
+                  }}
+                >
+                  <span style={{ display: "inline-block", transform: "skewX(12deg)" }}>
+                    ARISE
+                  </span>
+                </motion.button>
+              </motion.div>
+            )}
           </div>
 
           {/* Bottom Console info & Proceed trigger */}
-          <div className="flex items-end justify-between mb-4 w-full">
+          <div className="flex items-end justify-between mb-4 w-full h-8">
             <div className="h-6">
               {showFooter && (
                 <motion.div
@@ -720,22 +818,7 @@ export const SystemOverrideIntro: React.FC<SystemOverrideIntroProps> = ({ onComp
                 </motion.div>
               )}
             </div>
-
-            {/* Pulsing Proceed Button */}
-            <div className="h-14">
-              {showProceed && (
-                <motion.button
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={handleProceed}
-                  className="px-6 py-3 bg-cyan-950/45 border border-cyan-400/50 rounded-xl text-cyan-400 font-mono text-xs tracking-[0.2em] hover:bg-cyan-900/30 hover:border-cyan-400 shadow-[0_0_15px_rgba(0,212,255,0.15)] active:shadow-none transition-all"
-                >
-                  AWAKEN
-                </motion.button>
-              )}
-            </div>
+            {/* Omitted default proceed button */}
           </div>
 
         </div>
