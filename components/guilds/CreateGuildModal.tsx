@@ -630,8 +630,11 @@ const CreateGuildModal: React.FC<CreateGuildModalProps> = ({
 
         {/* ── Footer buttons ── */}
         <div
-          className="flex gap-3 px-5 py-4 flex-shrink-0"
-          style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+          className="flex gap-3 px-5 pt-4 flex-shrink-0"
+          style={{
+            borderTop: "1px solid rgba(255,255,255,0.06)",
+            paddingBottom: "calc(24px + env(safe-area-inset-bottom, 0px))",
+          }}
         >
           <button
             onClick={goBack}
