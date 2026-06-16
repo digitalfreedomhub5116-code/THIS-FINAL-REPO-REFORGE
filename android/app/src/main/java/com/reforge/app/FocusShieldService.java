@@ -364,7 +364,15 @@ public class FocusShieldService extends Service {
         openBtn.setText("COMPLETE QUEST IN REFORGE");
         openBtn.setAllCaps(true);
         openBtn.setTextColor(Color.WHITE);
-        openBtn.setBackgroundColor(Color.parseColor("#2563EB"));
+        openBtn.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        openBtn.setTypeface(android.graphics.Typeface.create("sans-serif-condensed", android.graphics.Typeface.BOLD));
+        
+        android.graphics.drawable.GradientDrawable btnBg = new android.graphics.drawable.GradientDrawable();
+        btnBg.setColor(Color.parseColor("#2563EB"));
+        btnBg.setCornerRadius(dp(10));
+        openBtn.setBackground(btnBg);
+        openBtn.setPadding(dp(24), dp(12), dp(24), dp(12));
+
         LinearLayout.LayoutParams btnLp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         btnLp.topMargin = dp(28);
