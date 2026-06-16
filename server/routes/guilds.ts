@@ -709,7 +709,7 @@ router.post("/", async (req: Request, res: Response) => {
       .insert({
         name: v.name,
         motto: motto ? String(motto).slice(0, 60) : "",
-        icon: iconDef.emoji,
+        icon: iconKey,
         banner: banner || "gradient-cyan",
         privacy: priv,
         master_id: uid,
