@@ -296,6 +296,149 @@ async function startServer() {
         { rank: 5, gold: 100, xp: 50, keys: 0 },
       ];
 
+      const postGuildSystemMessage = async (dbClient: any, gId: string, msgBody: string, meta: any = null) => {
+        const { data: row } = await dbClient
+          .from('guild_chat')
+          .insert({ guild_id: gId, user_id: null, type: 'system', body: msgBody, meta: meta || {} })
+          .select('*')
+          .single();
+        
+        if (row) {
+          try {
+            const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+            const key = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+            if (url && key) {
+              const payload = {
+                id: row.id,
+                guildId: row.guild_id,
+                userId: row.user_id,
+                type: row.type,
+                body: row.body,
+                meta: row.meta || {},
+                createdAt: row.created_at,
+                author: null,
+              };
+              await fetch(`${url}/realtime/v1/api/broadcast`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  apikey: key,
+                  Authorization: `Bearer ${key}`,
+                },
+                body: JSON.stringify({
+                  messages: [
+                    { topic: `guild:${gId}`, event: 'message', payload, private: false },
+                  ],
+                }),
+              });
+            }
+          } catch (err) {
+            console.warn('[Cron] Guild chat broadcast failed:', err);
+          }
+        }
+      };
+
+      let lastGuildSeasonCronDate = '';
+
+      const runGuildSeasonCron = async () => {
+        const now = new Date();
+        const day = now.getUTCDay(); // 0 = Sunday
+
+        // Only run on Sundays
+        if (day !== 0) return;
+
+        const todayStr = now.toISOString().slice(0, 10);
+        // Only run once per Sunday
+        if (todayStr === lastGuildSeasonCronDate) return;
+
+        const db = getDb() as any;
+
+        // Check if this Sunday has already been reset in guild_season_resets table
+        const { data: existing, error: checkErr } = await db
+          .from('guild_season_resets')
+          .select('id')
+          .eq('reset_date', todayStr)
+          .limit(1);
+
+        if (checkErr) {
+          console.error('[GuildSeasonCron] Failed to check existing reset:', checkErr);
+          return;
+        }
+
+        if (existing && existing.length > 0) {
+          lastGuildSeasonCronDate = todayStr;
+          return;
+        }
+
+        console.log(`[GuildSeasonCron] Starting weekly Guild Season reset for ${todayStr}`);
+
+        // Fetch all guilds ordered by level DESC, vault_balance DESC, name ASC
+        const { data: guilds, error: fetchErr } = await db
+          .from('guilds')
+          .select('id, name, level, icon')
+          .order('level', { ascending: false })
+          .order('vault_balance', { ascending: false })
+          .order('name', { ascending: true });
+
+        if (fetchErr) {
+          console.error('[GuildSeasonCron] Failed to fetch guilds:', fetchErr);
+          return;
+        }
+
+        if (!guilds || guilds.length === 0) {
+          console.log('[GuildSeasonCron] No guilds found to reward.');
+          // Insert reset record anyway to mark today as processed
+          await db.from('guild_season_resets').insert({ reset_date: todayStr });
+          lastGuildSeasonCronDate = todayStr;
+          return;
+        }
+
+        // Distribute rewards to each guild
+        for (let i = 0; i < guilds.length; i++) {
+          const guild = guilds[i];
+          const rank = i + 1;
+          let goldReward = 500; // default participation reward
+
+          if (rank === 1) goldReward = 5000;
+          else if (rank === 2) goldReward = 3000;
+          else if (rank === 3) goldReward = 1000;
+
+          try {
+            // Add gold directly to the Guild Vault
+            await db.rpc('guild_add_vault', { p_guild: guild.id, p_amount: goldReward });
+
+            // Log vault transaction
+            await db.from('guild_vault_transactions').insert({
+              guild_id: guild.id,
+              user_id: 'SYSTEM',
+              kind: 'donate',
+              amount: goldReward,
+              item_key: 'season_reward',
+            });
+
+            // Post chat announcement
+            const chatMsg = `🏆 Weekly Season Completed! Our guild achieved Rank #${rank} (Level ${guild.level || 0}) and received +${goldReward} G directly to the Guild Vault!`;
+            await postGuildSystemMessage(db, guild.id, chatMsg, { icon: guild.icon });
+
+            console.log(`[GuildSeasonCron] Guild "${guild.name}" (Rank #${rank}) rewarded +${goldReward} G`);
+          } catch (rewardErr) {
+            console.error(`[GuildSeasonCron] Failed to reward Guild ${guild.name} (${guild.id}):`, rewardErr);
+          }
+        }
+
+        // Mark this Sunday as processed
+        const { error: insertErr } = await db
+          .from('guild_season_resets')
+          .insert({ reset_date: todayStr });
+
+        if (insertErr) {
+          console.error('[GuildSeasonCron] Failed to record season reset:', insertErr);
+        } else {
+          lastGuildSeasonCronDate = todayStr;
+          console.log(`[GuildSeasonCron] Weekly Guild Season reset successfully complete for ${todayStr}`);
+        }
+      };
+
       let lastCronDate = '';
 
       const runDailyRewardCron = async () => {
@@ -436,48 +579,6 @@ async function startServer() {
         // ── Guild Daily Missions Settlement ──
         try {
           console.log(`[Cron] Settling guild daily missions for ${yesterdayStr}`);
-          
-          const postGuildSystemMessage = async (dbClient: any, gId: string, msgBody: string) => {
-            const { data: row } = await dbClient
-              .from('guild_chat')
-              .insert({ guild_id: gId, user_id: null, type: 'system', body: msgBody })
-              .select('*')
-              .single();
-            
-            if (row) {
-              try {
-                const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-                const key = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
-                if (url && key) {
-                  const payload = {
-                    id: row.id,
-                    guildId: row.guild_id,
-                    userId: row.user_id,
-                    type: row.type,
-                    body: row.body,
-                    meta: row.meta || {},
-                    createdAt: row.created_at,
-                    author: null,
-                  };
-                  await fetch(`${url}/realtime/v1/api/broadcast`, {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                      apikey: key,
-                      Authorization: `Bearer ${key}`,
-                    },
-                    body: JSON.stringify({
-                      messages: [
-                        { topic: `guild:${gId}`, event: 'message', payload, private: false },
-                      ],
-                    }),
-                  });
-                }
-              } catch (err) {
-                console.warn('[Cron] Guild chat broadcast failed:', err);
-              }
-            }
-          };
 
           // 1. Fetch completed missions from yesterday that haven't been distributed
           const { data: missions, error: misErr } = await db
@@ -549,8 +650,10 @@ async function startServer() {
               }
               
               // C. Post chat announcement
+              const { data: gData } = await db.from('guilds').select('icon').eq('id', guildId).single();
+              const gIcon = gData?.icon || 'shield';
               const chatMsg = `🎉 Daily Mission Completed: "${m.title}"! Participating members can now claim their rewards from the Mission tab. +${vaultGold} G added to the Guild Vault.`;
-              await postGuildSystemMessage(db, guildId, chatMsg);
+              await postGuildSystemMessage(db, guildId, chatMsg, { icon: gIcon });
               
               // D. Mark rewards as distributed
               await db
@@ -583,11 +686,13 @@ async function startServer() {
 
       // Run immediately on startup (catches up if server was down at midnight)
       runDailyRewardCron().catch(err => console.error('[Cron] Startup run failed:', err));
+      runGuildSeasonCron().catch(err => console.error('[GuildSeasonCron] Startup run failed:', err));
       // Then check every 60 seconds
       setInterval(() => {
         runDailyRewardCron().catch(err => console.error('[Cron] Interval run failed:', err));
+        runGuildSeasonCron().catch(err => console.error('[GuildSeasonCron] Interval run failed:', err));
       }, 60_000);
-      console.log('[Server] Daily reward cron scheduled (checks every 60s)');
+      console.log('[Server] Daily reward and Guild Season crons scheduled (checks every 60s)');
     } catch (err) {
       console.warn('[Server] Could not set up weekly reward cron:', err);
     }

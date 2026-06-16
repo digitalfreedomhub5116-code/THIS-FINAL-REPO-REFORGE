@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Send, Dumbbell, AlertCircle, RotateCcw, Copy, Trash2, Check, CheckCheck } from "lucide-react";
-import { NEON, glassPanel, timeAgo } from "./guildTheme";
+import { NEON, glassPanel, timeAgo, getGuildIconUrl } from "./guildTheme";
 import GuildAvatar from "./GuildAvatar";
 import { fetchChatHistory, sendChatMessage, markChatAsRead, deleteChatMessage } from "../../lib/guildApi";
 import { subscribeToGuild } from "../../lib/guildRealtime";
@@ -595,6 +595,58 @@ const MessageRow: React.FC<{
   };
 
   if (m.type === "system") {
+    const icon = m.meta?.icon;
+    if (icon) {
+      return (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex justify-center my-3 w-full"
+        >
+          <div
+            className="max-w-[90%] sm:max-w-[450px] w-full rounded-2xl p-4 relative overflow-hidden"
+            style={{
+              ...glassPanel,
+              border: "1px solid rgba(0, 212, 255, 0.25)",
+              background: "linear-gradient(180deg, rgba(0, 212, 255, 0.08) 0%, rgba(10, 10, 15, 0.95) 100%)",
+              boxShadow: "0 0 20px rgba(0, 212, 255, 0.08)",
+            }}
+          >
+            {/* Ambient glow */}
+            <div className="absolute -top-10 -left-10 w-28 h-28 bg-[#00d4ff]/10 rounded-full blur-2xl pointer-events-none" />
+            <div className="absolute -bottom-10 -right-10 w-28 h-28 bg-violet-600/10 rounded-full blur-2xl pointer-events-none" />
+
+            <div className="flex items-center gap-3">
+              {/* Guild Icon */}
+              <div className="shrink-0 p-1.5 rounded-full bg-slate-900 border border-slate-800 shadow-md">
+                <img
+                  src={getGuildIconUrl(icon)}
+                  className="w-12 h-12 object-contain"
+                  alt="Clan Icon"
+                />
+              </div>
+
+              {/* Message Content */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#00d4ff] animate-pulse" />
+                  <span className="text-[9px] font-mono font-bold tracking-[0.25em] text-[#00d4ff] uppercase">
+                    CLAN ANNOUNCEMENT
+                  </span>
+                </div>
+                <p className="text-xs text-gray-200 leading-relaxed font-medium">
+                  {m.body}
+                </p>
+                <div className="text-[9px] text-gray-600 font-mono mt-2">
+                  {timeAgo(m.createdAt)}
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      );
+    }
+
     return (
       <div className="flex justify-center">
         <span className="text-[11px] text-gray-500 bg-white/5 px-3 py-1 rounded-full">

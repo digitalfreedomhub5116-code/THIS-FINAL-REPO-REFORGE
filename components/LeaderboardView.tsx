@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Lottie from 'lottie-react';
 import {
   RefreshCw,
-  X, Zap, Flag, AlertTriangle, CheckSquare, Square, Send, Flame, Clock, Trophy, Gift, Coins,
+  X, Zap, Flag, AlertTriangle, CheckSquare, Square, Send, Flame, Clock, Trophy, Gift, Coins, Users,
 } from 'lucide-react';
 import { PlayerData } from '../types';
 import { API_BASE } from '../lib/apiConfig';
@@ -16,8 +16,21 @@ import AvatarWithBorder from './AvatarWithBorder';
 import { getItemById } from '../utils/storeItems';
 import { BORDERS_ACTIVE } from '../utils/gameData';
 import { generateNPCsForUser } from '../utils/npcGenerator';
+import { getGuildIconUrl } from './guilds/guildTheme';
 
 // ── Types ──
+interface GuildLeaderboardEntry {
+  id: string;
+  name: string;
+  tag: string;
+  icon: string | null;
+  level: number;
+  vault_balance: number;
+  memberCount: number;
+  memberCap: number;
+  rank: number;
+}
+
 interface LeaderboardEntry {
   player_id?: string;
   supabase_id?: string;
@@ -51,7 +64,7 @@ interface LeaderboardViewProps {
   player: PlayerData;
 }
 
-type TabMode = 'xp' | 'streak';
+type TabMode = 'streak' | 'guild';
 
 const GROUP_SIZE = 10;
 
@@ -96,9 +109,11 @@ function computeRankFromLevel(level: number): string {
 //  MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════
 const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player }) => {
-  const [xpEntries, setXpEntries] = useState<LeaderboardEntry[]>([]);
   const [streakEntries, setStreakEntries] = useState<LeaderboardEntry[]>([]);
-  const [activeTab, setActiveTab] = useState<TabMode>('xp');
+  const [guildEntries, setGuildEntries] = useState<GuildLeaderboardEntry[]>([]);
+  const [activeTab, setActiveTab] = useState<TabMode>('streak');
+  const [yourGuildRank, setYourGuildRank] = useState<number | null>(null);
+  const [yourGuildEntry, setYourGuildEntry] = useState<GuildLeaderboardEntry | null>(null);
 
   // Lottie animation data
   const [chestAnims, setChestAnims] = useState<Record<string, any>>({});
@@ -259,20 +274,10 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player }) => {
   const fetchLeaderboard = useCallback(async (showRefresh = false) => {
     if (showRefresh) setRefreshing(true);
     try {
-      const [xpRes, streakRes] = await Promise.all([
-        authenticatedFetch(`${API_BASE}/api/leaderboard?type=xp&userId=${encodeURIComponent(player.userId || '')}`),
+      const [streakRes, guildRes] = await Promise.all([
         authenticatedFetch(`${API_BASE}/api/leaderboard?type=streak&userId=${encodeURIComponent(player.userId || '')}`),
+        authenticatedFetch(`${API_BASE}/api/leaderboard?type=guild&userId=${encodeURIComponent(player.userId || '')}`),
       ]);
-      if (xpRes.ok) {
-        const xpData = await xpRes.json();
-        setXpEntries(xpData.entries || []);
-        if (xpData.weekEnd) setWeekEnd(xpData.weekEnd);
-        if (activeTab === 'xp') {
-          setYourRank(xpData.yourRank || null);
-          setYourEntry(xpData.yourEntry || null);
-          setNeighborhood(xpData.neighborhood || null);
-        }
-      }
       if (streakRes.ok) {
         const streakData = await streakRes.json();
         setStreakEntries(streakData.entries || []);
@@ -282,11 +287,17 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player }) => {
           setNeighborhood(streakData.neighborhood || null);
         }
       }
+      if (guildRes.ok) {
+        const guildData = await guildRes.json();
+        setGuildEntries(guildData.entries || []);
+        setYourGuildRank(guildData.yourRank || null);
+        setYourGuildEntry(guildData.yourEntry || null);
+      }
     } catch { /* offline */ } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [player.userId, activeTab]);
 
   // Poll every 10 seconds
   useEffect(() => {
@@ -332,7 +343,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player }) => {
 
   // ── Build entries with NPC merge ──
   // Generate NPCs unique to this user, mix with real entries
-  const rawEntries = activeTab === 'xp' ? xpEntries : streakEntries;
+  const rawEntries = streakEntries;
 
   // Generate NPCs (stable for this user + this week)
   const npcEntries = useMemo(() => {
@@ -342,63 +353,9 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player }) => {
 
   // Merge real entries + NPCs
   const entries = useMemo(() => {
-    // Remove ourselves from real entries (we'll re-add as the "me" row)
-    const myId = player.userId || '';
-    const myUsername = (player.username || '').trim().toLowerCase();
-    const realOthers = rawEntries.filter(e => {
-      if (myUsername && (e.username || '').trim().toLowerCase() === myUsername) return false;
-      if (myId && e.supabase_id === myId) return false;
-      return true;
-    });
-
-    // Find ourselves in the raw data
-    const meEntry = rawEntries.find(e =>
-      (myUsername && (e.username || '').trim().toLowerCase() === myUsername) ||
-      (myId && e.supabase_id === myId)
-    );
-
-    if (activeTab === 'xp') {
-      // XP tab: Build a unique league of 10
-      // = me + up to 2 real players + fill with NPCs to reach 10
-      const leagueMembers: LeaderboardEntry[] = [];
-
-      // Add me first (from raw data or synthesize from player object)
-      if (meEntry) {
-        leagueMembers.push(meEntry);
-      } else {
-        leagueMembers.push({
-          player_id: myId,
-          supabase_id: myId,
-          username: player.username || player.name || 'You',
-          name: player.name || player.username || 'You',
-          total_xp: player.totalXp || 0,
-          daily_xp: player.dailyXp || 0,
-          weekly_xp: player.dailyXp || 0,
-          level: player.level || 1,
-          rank: player.rank || 'E',
-          streak: player.streak || 0,
-          avatar_url: null,
-          equipped_outfit_id: 'outfit_starter',
-          equipped_border: null,
-          equipped_banner: null,
-        });
-      }
-
-      // Add up to 2 real players (nearest in XP)
-      const sortedReal = [...realOthers].sort((a, b) => (b.daily_xp || 0) - (a.daily_xp || 0));
-      const realToAdd = sortedReal.slice(0, Math.min(2, sortedReal.length));
-      leagueMembers.push(...realToAdd);
-
-      // Fill remaining slots with NPCs
-      const slotsNeeded = GROUP_SIZE - leagueMembers.length;
-      leagueMembers.push(...npcEntries.slice(0, slotsNeeded));
-
-      return leagueMembers;
-    } else {
-      // Streak tab: all real entries + NPCs mixed in
-      return [...rawEntries, ...npcEntries];
-    }
-  }, [rawEntries, npcEntries, player, activeTab]);
+    // Streak tab: all real entries + NPCs mixed in
+    return [...rawEntries, ...npcEntries];
+  }, [rawEntries, npcEntries]);
 
   const simulatedEntries: SimEntry[] = useMemo(() => {
     const myPlayerId = player.userId || '';
@@ -409,17 +366,11 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player }) => {
         (myUsername && (e.username || '').trim().toLowerCase() === myUsername) ||
         (myPlayerId && e.supabase_id === myPlayerId)
       );
-      let dominanceValue: number;
-      if (activeTab === 'xp') {
-        dominanceValue = e.weekly_xp || e.daily_xp || 0;
-      } else {
-        dominanceValue = e.streak || 0;
-      }
 
       return {
         ...e,
         isMe,
-        dominance: dominanceValue,
+        dominance: e.streak || 0,
         isDebuffed: false,
         computedRank: computeRankFromLevel(e.level || 1),
         outfitId: e.equipped_outfit_id || 'outfit_starter',
@@ -428,22 +379,17 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player }) => {
         bannerId: e.equipped_banner || null,
       };
     }).sort((a, b) => b.dominance - a.dominance);
-  }, [entries, player.userId, player.username, activeTab]);
+  }, [entries, player.userId, player.username]);
 
   const myIndex = simulatedEntries.findIndex(e => e.isMe);
   const globalMyRank = myIndex >= 0 ? myIndex + 1 : 999;
   const myRank = globalMyRank;
 
-  // ── Group-of-10 (XP tab: already a league of 10, Streak: use full list) ──
+  // Streak tab: show top 50
   const { groupEntries, groupStart, groupEnd } = useMemo(() => {
-    if (activeTab === 'xp') {
-      // XP tab: entries are already the user's league of 10
-      return { groupEntries: simulatedEntries, groupStart: 1, groupEnd: simulatedEntries.length };
-    }
-    // Streak tab: show top 50
     const top = simulatedEntries.slice(0, 50);
     return { groupEntries: top, groupStart: 1, groupEnd: top.length };
-  }, [simulatedEntries, activeTab]);
+  }, [simulatedEntries]);
 
 
   // ── Format XP ──
@@ -481,9 +427,10 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player }) => {
           <div>
             <h1 className="text-2xl font-black text-white tracking-tight">Leaderboard</h1>
             <div className="text-xs text-gray-400 mt-0.5">
-              {activeTab === 'xp' ? 'Your League · Weekly XP' : 'Top players by streak'}{myIndex >= 0 ? <span className="text-[#00d4ff] font-bold"> — #{myRank} overall</span> : ''}
-              {activeTab === 'xp' && countdown && (
-                <span className="text-[10px] font-mono text-gray-500 ml-1">· Rewards in {countdown}</span>
+              {activeTab === 'streak' ? (
+                <>Top players by streak{myIndex >= 0 ? <span className="text-[#00d4ff] font-bold"> — #{myRank} overall</span> : ''}</>
+              ) : (
+                <>Top clans by level{yourGuildRank !== null ? <span className="text-[#00d4ff] font-bold"> — #{yourGuildRank} overall</span> : ''}</>
               )}
             </div>
           </div>
@@ -501,7 +448,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player }) => {
 
       {/* ── TAB SWITCHER ── */}
       <div className="flex px-4 mb-3 gap-2">
-        {(['xp', 'streak'] as TabMode[]).map(tab => (
+        {(['streak', 'guild'] as TabMode[]).map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -511,8 +458,8 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player }) => {
               color: activeTab === tab ? '#ffffff' : 'rgba(255,255,255,0.3)',
             }}
           >
-            {tab === 'xp' ? <Zap size={13} /> : <Flame size={13} />}
-            {tab === 'xp' ? 'XP' : 'STREAK'}
+            {tab === 'streak' ? <Flame size={13} /> : <Users size={13} />}
+            {tab === 'streak' ? 'STREAK' : 'GUILD'}
           </button>
         ))}
       </div>
@@ -523,180 +470,219 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player }) => {
             Loading...
           </motion.div>
         </div>
-      ) : activeTab === 'xp' && simulatedEntries.length === 0 ? (
-        <div className="text-center py-16 px-6">
-          <div className="text-3xl mb-3">⚡</div>
-          <div className="text-sm font-black text-white mb-1">No Players Yet</div>
-          <div className="text-xs text-gray-500 font-mono">Complete quests to start climbing the leaderboard.</div>
-        </div>
-      ) : activeTab === 'xp' ? (
+      ) : activeTab === 'guild' ? (
         <>
-          {/* ═══ CHEST REWARDS BANNER ═══ */}
-          <div className="mx-4 mb-4 rounded-2xl overflow-hidden" style={{
-            background: 'linear-gradient(180deg, rgba(255,215,0,0.04) 0%, rgba(10,10,15,0.95) 100%)',
-            border: '1px solid rgba(255,215,0,0.12)',
+          {/* ═══ GUILD SEASON REWARDS INFO BANNER ═══ */}
+          <div className="mx-4 mb-4 rounded-2xl p-4 overflow-hidden" style={{
+            background: 'linear-gradient(180deg, rgba(0,212,255,0.04) 0%, rgba(10,10,15,0.95) 100%)',
+            border: '1px solid rgba(0,212,255,0.15)',
           }}>
-            {/* Title */}
-            <div className="text-center pt-4 pb-1">
-              <div className="text-[8px] font-mono tracking-[0.3em] uppercase text-gray-500 mb-1">// Weekly Rewards</div>
-              <div className="text-sm font-black text-white tracking-tight">Top 3 Chest Rewards</div>
-            </div>
-
-            {/* 3 Chests — centered: 2nd | 1st (big) | 3rd */}
-            <div className="flex items-end justify-center px-6 pt-2 pb-3" style={{ minHeight: 160 }}>
-              {/* 2nd Place */}
-              <div className="flex flex-col items-center" style={{ width: 100 }}>
-                <div className="relative" style={{ width: CHEST_REWARDS[1].size, height: CHEST_REWARDS[1].size, margin: '0 auto' }}>
-                  <div className="absolute inset-0" style={{ background: CHEST_REWARDS[1].bgGlow }} />
-                  {chestAnims[CHEST_REWARDS[1].lottie] && (
-                    <Lottie animationData={chestAnims[CHEST_REWARDS[1].lottie]} loop={false} autoplay={false} initialSegment={[0, 1]} style={{ width: '100%', height: '100%' }} />
-                  )}
-                </div>
-                <div className="mt-1 px-2 py-0.5 rounded-full text-[8px] font-black tracking-wider" style={{
-                  background: 'rgba(192,192,192,0.12)', border: '1px solid rgba(192,192,192,0.25)', color: '#C0C0C0',
-                }}>
-                  🥈 2ND
-                </div>
-              </div>
-
-              {/* 1st Place (center — BIGGEST, PREMIUM) */}
-              <div className="flex flex-col items-center -mt-4 relative mx-2" style={{ width: 130 }}>
-                {/* Golden halo pulse */}
-                <motion.div
-                  className="absolute rounded-full pointer-events-none"
-                  style={{
-                    width: CHEST_REWARDS[0].size + 30,
-                    height: CHEST_REWARDS[0].size + 30,
-                    top: -12,
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    background: 'radial-gradient(circle, rgba(255,215,0,0.12) 0%, transparent 70%)',
-                  }}
-                  animate={{ scale: [1, 1.12, 1], opacity: [0.5, 0.9, 0.5] }}
-                  transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-                />
-                {/* Floating particles */}
-                {[0, 1, 2, 3].map(i => (
-                  <motion.div
-                    key={`p-${i}`}
-                    className="absolute w-1 h-1 rounded-full pointer-events-none"
-                    style={{
-                      background: '#FFD700',
-                      left: `${25 + i * 18}%`,
-                      bottom: `${35 + (i % 2) * 20}%`,
-                      boxShadow: '0 0 6px #FFD700',
-                    }}
-                    animate={{ y: [-2, -16, -2], opacity: [0.7, 0.1, 0.7] }}
-                    transition={{ duration: 2 + i * 0.5, repeat: Infinity, delay: i * 0.35 }}
-                  />
+            <div className="text-center">
+              <div className="text-[8px] font-mono tracking-[0.3em] uppercase text-cyan-400/70 mb-1">// Season Rewards</div>
+              <div className="text-sm font-black text-white tracking-tight mb-2">Weekly Guild Season Gold Rewards</div>
+              <div className="grid grid-cols-4 gap-1.5 mt-2">
+                {[
+                  { place: '1ST 👑', reward: '5000 G' },
+                  { place: '2ND 🥈', reward: '3000 G' },
+                  { place: '3RD 🥉', reward: '1000 G' },
+                  { place: 'OTHERS 🛡️', reward: '500 G' },
+                ].map(r => (
+                  <div key={r.place} className="bg-slate-900/60 border border-slate-800 rounded-xl p-2 text-center">
+                    <div className="text-[7px] text-gray-400 font-mono tracking-wider mb-0.5">{r.place}</div>
+                    <div className="text-[10px] font-black text-[#00d4ff] font-mono">{r.reward}</div>
+                  </div>
                 ))}
-                <div className="relative" style={{ width: CHEST_REWARDS[0].size, height: CHEST_REWARDS[0].size, margin: '0 auto', filter: 'drop-shadow(0 0 18px rgba(255,215,0,0.35))' }}>
-                  {chestAnims[CHEST_REWARDS[0].lottie] && (
-                    <Lottie animationData={chestAnims[CHEST_REWARDS[0].lottie]} loop={false} autoplay={false} initialSegment={[0, 1]} style={{ width: '100%', height: '100%' }} />
-                  )}
-                </div>
-                <div className="mt-1 px-2.5 py-1 rounded-full text-[9px] font-black tracking-wider" style={{
-                  background: 'linear-gradient(135deg, rgba(255,215,0,0.2), rgba(234,179,8,0.15))',
-                  border: '1px solid rgba(255,215,0,0.4)',
-                  color: '#FFD700',
-                  boxShadow: '0 0 12px rgba(255,215,0,0.2)',
-                }}>
-                  👑 1ST
-                </div>
               </div>
-
-              {/* 3rd Place */}
-              <div className="flex flex-col items-center" style={{ width: 100 }}>
-                <div className="relative" style={{ width: CHEST_REWARDS[2].size, height: CHEST_REWARDS[2].size, margin: '0 auto' }}>
-                  <div className="absolute inset-0" style={{ background: CHEST_REWARDS[2].bgGlow }} />
-                  {chestAnims[CHEST_REWARDS[2].lottie] && (
-                    <Lottie animationData={chestAnims[CHEST_REWARDS[2].lottie]} loop={false} autoplay={false} initialSegment={[0, 1]} style={{ width: '100%', height: '100%' }} />
-                  )}
-                </div>
-                <div className="mt-1 px-2 py-0.5 rounded-full text-[8px] font-black tracking-wider" style={{
-                  background: 'rgba(205,127,50,0.12)', border: '1px solid rgba(205,127,50,0.25)', color: '#CD7F32',
-                }}>
-                  🥉 3RD
-                </div>
+              <div className="text-[8px] text-gray-500 font-mono mt-3 text-center uppercase tracking-wider">
+                Rewards are distributed automatically directly to each clan's Vault every Sunday at UTC midnight.
               </div>
             </div>
-
           </div>
 
-          {/* ═══ YOUR LEAGUE — GROUP OF 10 ═══ */}
-          <div className="px-4 mb-2 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: 'rgba(0,212,255,0.1)', border: '1px solid rgba(0,212,255,0.2)' }}>
-                <Trophy size={12} className="text-[#00d4ff]" />
-              </div>
-              <div>
-                <span className="text-xs font-black text-white tracking-tight">Your League</span>
-                <span className="text-[9px] font-mono text-gray-500 ml-2">Ranks {groupStart}–{groupEnd}</span>
-              </div>
+          {/* ── TOP 3 GUILD PODIUM ── */}
+          {guildEntries.length >= 3 && (
+            <div className="flex items-end justify-center gap-3 px-4 pt-2 pb-6">
+              {/* 2nd place (left) */}
+              {(() => {
+                const g = guildEntries[1];
+                return (
+                  <div className="flex flex-col items-center gap-1.5 flex-1 cursor-pointer">
+                    <div className="text-lg">🥈</div>
+                    <div className="relative p-0.5 rounded-full border border-slate-700/60 shadow-lg">
+                      <img src={getGuildIconUrl(g.icon)} className="w-16 h-16 object-contain" alt="Guild Icon" />
+                    </div>
+                    <div className="text-[11px] font-black text-white truncate max-w-[80px] text-center mt-1">
+                      {g.name} <span className="text-[9px] font-bold text-gray-400">[{g.tag}]</span>
+                    </div>
+                    <div className="text-[9px] font-bold font-mono text-cyan-400">
+                      LEVEL {g.level}
+                    </div>
+                    <div className="text-[8px] font-bold text-gray-500 font-mono">
+                      {g.memberCount}/{g.memberCap} members
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* 1st place (center, elevated) */}
+              {(() => {
+                const g = guildEntries[0];
+                return (
+                  <div className="flex flex-col items-center gap-1.5 flex-1 -mt-4 cursor-pointer relative">
+                    <motion.div
+                      className="absolute rounded-full pointer-events-none"
+                      style={{
+                        width: 90,
+                        height: 90,
+                        top: 10,
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        background: 'radial-gradient(circle, rgba(0,212,255,0.12) 0%, transparent 70%)',
+                      }}
+                      animate={{ scale: [1, 1.12, 1], opacity: [0.5, 0.9, 0.5] }}
+                      transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+                    />
+                    <div className="text-2xl">👑</div>
+                    <div className="relative p-0.5 rounded-full border border-cyan-500/30 shadow-cyan-500/10 shadow-xl" style={{ background: 'rgba(0,212,255,0.05)' }}>
+                      <img src={getGuildIconUrl(g.icon)} className="w-20 h-20 object-contain" alt="Guild Icon" />
+                    </div>
+                    <div className="text-xs font-black text-white truncate max-w-[90px] text-center mt-1">
+                      {g.name} <span className="text-[10px] font-bold text-gray-400">[{g.tag}]</span>
+                    </div>
+                    <div className="text-[10px] font-black font-mono text-cyan-400">
+                      LEVEL {g.level}
+                    </div>
+                    <div className="text-[8px] font-bold text-gray-400 font-mono">
+                      {g.memberCount}/{g.memberCap} members
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* 3rd place (right) */}
+              {(() => {
+                const g = guildEntries[2];
+                return (
+                  <div className="flex flex-col items-center gap-1.5 flex-1 cursor-pointer">
+                    <div className="text-lg">🥉</div>
+                    <div className="relative p-0.5 rounded-full border border-slate-700/60 shadow-lg">
+                      <img src={getGuildIconUrl(g.icon)} className="w-16 h-16 object-contain" alt="Guild Icon" />
+                    </div>
+                    <div className="text-[11px] font-black text-white truncate max-w-[80px] text-center mt-1">
+                      {g.name} <span className="text-[9px] font-bold text-gray-400">[{g.tag}]</span>
+                    </div>
+                    <div className="text-[9px] font-bold font-mono text-cyan-400">
+                      LEVEL {g.level}
+                    </div>
+                    <div className="text-[8px] font-bold text-gray-500 font-mono">
+                      {g.memberCount}/{g.memberCap} members
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
-            <span className="text-[9px] font-mono text-gray-600">{groupEntries.length} hunters</span>
-          </div>
+          )}
 
+          {/* ── GUILD LIST ── */}
           <div className="px-4 space-y-2">
-            {groupEntries.map((entry, index) => {
-              const actualRank = groupStart + index;
-              const rankInGroup = index + 1;
-              const isTop3 = rankInGroup <= 3;
-              const rankColors = ['#FFD700', '#C0C0C0', '#CD7F32'];
-              const rankColor = isTop3 ? rankColors[rankInGroup - 1] : undefined;
+            {guildEntries.slice(guildEntries.length >= 3 ? 3 : 0).map((entry, index) => {
+              const actualRank = guildEntries.length >= 3 ? index + 4 : index + 1;
+              const isMyGuild = yourGuildEntry?.id === entry.id;
 
               return (
                 <motion.div
-                  key={`xp-${entry.username || entry.name}`}
+                  key={`guild-${entry.id}`}
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.2, delay: index * 0.025 }}
-                  className="flex items-center gap-3 px-4 py-3.5 rounded-2xl cursor-pointer active:scale-[0.98] transition-transform"
+                  transition={{ duration: 0.2, delay: index * 0.02 }}
+                  className="flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-transform"
                   style={{
-                    background: entry.isMe
+                    background: isMyGuild
                       ? 'rgba(0,212,255,0.08)'
-                      : isTop3
-                      ? `rgba(${rankColor === '#FFD700' ? '255,215,0' : rankColor === '#C0C0C0' ? '192,192,192' : '205,127,50'},0.04)`
                       : 'rgba(255,255,255,0.03)',
-                    ...(entry.isMe ? { border: '1.5px solid rgba(0,212,255,0.25)', boxShadow: '0 0 16px rgba(0,212,255,0.1)' }
-                      : isTop3 ? { border: `1px solid ${rankColor}22` } : {}),
+                    ...(isMyGuild ? { border: '1.5px solid rgba(0,212,255,0.25)', boxShadow: '0 0 16px rgba(0,212,255,0.1)' } : {}),
                   }}
-                  onClick={() => setProfileTarget(entry)}
                 >
                   {/* Rank number */}
-                  <div className="w-7 text-center">
-                    {isTop3 ? (
-                      <span className="text-sm font-black font-mono" style={{ color: rankColor }}>{rankInGroup}</span>
-                    ) : (
-                      <span className={`text-sm font-black font-mono ${entry.isMe ? 'text-[#00d4ff]' : 'text-gray-500'}`}>{rankInGroup}</span>
-                    )}
+                  <div className="w-7 text-center shrink-0">
+                    <span className={`text-sm font-black font-mono ${isMyGuild ? 'text-[#00d4ff]' : 'text-gray-500'}`}>{actualRank}</span>
                   </div>
 
-                  {/* Avatar */}
-                  <AvatarWithBorder avatarUrl={entry.avatar_url} borderId={entry.equipped_border || null} size={44} className="shrink-0" />
+                  {/* Icon */}
+                  <div className="shrink-0 p-0.5 rounded-full bg-slate-900 border border-slate-800">
+                    <img src={getGuildIconUrl(entry.icon)} className="w-10 h-10 object-contain" alt="Guild Icon" />
+                  </div>
 
-                  {/* Name + tags */}
+                  {/* Name + Tag */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-black text-white truncate">{entry.username || entry.name}</span>
-                      {entry.isMe && <span className="text-[8px] px-1.5 py-0.5 rounded bg-[#00d4ff]/15 text-[#00d4ff] font-black tracking-wider">you</span>}
+                      <span className="text-sm font-black text-white truncate">{entry.name}</span>
+                      <span className="text-[10px] font-black text-gray-400 shrink-0">[{entry.tag}]</span>
+                      {isMyGuild && <span className="text-[8px] px-1.5 py-0.5 rounded bg-[#00d4ff]/15 text-[#00d4ff] font-black tracking-wider shrink-0">your clan</span>}
+                    </div>
+                    <div className="flex items-center gap-2 text-[10px] text-gray-500 font-mono mt-0.5">
+                      <span>{entry.memberCount}/{entry.memberCap} members</span>
+                      <span>•</span>
+                      <span className="flex items-center gap-0.5"><Coins size={10} className="text-amber-500 animate-pulse" /> {entry.vault_balance}</span>
                     </div>
                   </div>
 
-                  {/* XP value */}
-                  <div className="flex items-center gap-1 shrink-0">
-                    <span className={`text-base font-black ${isTop3 ? '' : 'text-cyan-400'}`} style={isTop3 ? { color: rankColor } : {}}>{formatXp(entry.dominance)}</span>
-                    <Zap size={15} className={isTop3 ? '' : 'text-cyan-400'} style={isTop3 ? { color: rankColor } : {}} />
+                  {/* Level */}
+                  <div className="flex flex-col items-end shrink-0">
+                    <span className={`text-sm font-black font-mono ${isMyGuild ? 'text-[#00d4ff]' : 'text-cyan-400'}`}>LVL {entry.level}</span>
+                    <span className="text-[8px] text-gray-500 font-mono tracking-wider mt-0.5">TOTAL LVL</span>
                   </div>
                 </motion.div>
               );
             })}
           </div>
 
+          {/* ── HIGHLIGHTED USER GUILD POSITION AT BOTTOM IF NOT IN TOP 50 ── */}
+          {yourGuildEntry && guildEntries.findIndex(e => e.id === yourGuildEntry.id) < 0 && (
+            <div className="px-4 mt-2">
+              <div style={{
+                height: 1,
+                margin: '12px 0',
+                background: 'repeating-linear-gradient(90deg, rgba(0,212,255,0.3) 0px, rgba(0,212,255,0.3) 4px, transparent 4px, transparent 12px)',
+              }} />
+              <div className="text-center text-[9px] font-mono text-gray-600 mb-2">YOUR CLAN POSITION</div>
+              
+              <div className="flex items-center gap-3 px-4 py-3.5 rounded-2xl"
+                style={{
+                  background: 'rgba(0,212,255,0.08)',
+                  border: '1.5px solid rgba(0,212,255,0.25)',
+                  boxShadow: '0 0 16px rgba(0,212,255,0.1)',
+                }}
+              >
+                <div className="w-7 text-center shrink-0">
+                  <span className="text-sm font-black text-[#00d4ff] font-mono">{yourGuildRank}</span>
+                </div>
+                <div className="shrink-0 p-0.5 rounded-full bg-slate-900 border border-slate-800">
+                  <img src={getGuildIconUrl(yourGuildEntry.icon)} className="w-10 h-10 object-contain" alt="Guild Icon" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-black text-white truncate">{yourGuildEntry.name}</span>
+                    <span className="text-[10px] font-black text-gray-400 shrink-0">[{yourGuildEntry.tag}]</span>
+                    <span className="text-[8px] px-1.5 py-0.5 rounded bg-[#00d4ff]/15 text-[#00d4ff] font-black tracking-wider shrink-0">your clan</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-[10px] text-gray-500 font-mono mt-0.5">
+                    <span>{yourGuildEntry.memberCount}/{yourGuildEntry.memberCap} members</span>
+                    <span>•</span>
+                    <span className="flex items-center gap-0.5"><Coins size={10} className="text-amber-500" /> {yourGuildEntry.vault_balance}</span>
+                  </div>
+                </div>
+                <div className="flex flex-col items-end shrink-0">
+                  <span className="text-sm font-black font-mono text-[#00d4ff]">LVL {yourGuildEntry.level}</span>
+                  <span className="text-[8px] text-gray-500 font-mono tracking-wider mt-0.5">TOTAL LVL</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Footer */}
           <div className="text-center py-4 mt-2">
-            <span className="text-[10px] text-gray-600 font-mono">
-              Weekly XP · Groups of {GROUP_SIZE} · Rewards at week end
-            </span>
+            <span className="text-[10px] text-gray-600 font-mono">Updated every 60 seconds · Top clans by level</span>
           </div>
         </>
       ) : simulatedEntries.length === 0 ? (

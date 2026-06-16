@@ -42,160 +42,110 @@ function getDayEndUTC(): Date {
 
 const router = Router();
 
-// ── GET /api/leaderboard?type=xp|streak ──
+// ── GET /api/leaderboard?type=streak|guild ──
 router.get('/', async (req: Request, res: Response) => {
-  const type = (req.query.type as string) || 'xp';
+  const type = (req.query.type as string) || 'streak';
 
   try {
     const dayEnd = getDayEndUTC();
 
-    if (type === 'xp') {
-      // ── XP LEADERBOARD: daily_xp, resets every midnight UTC ──
-      // Also fetch last_daily_reset to zero-out stale players at query time
-      const todayStr = getDayStartUTC().toISOString().split('T')[0]; // "2026-05-09"
-
-      const { data, error } = await (supabaseServer() as any)
-        .from('players')
-        .select('id, supabase_id, username, name, total_xp, daily_xp, last_daily_reset, level, rank, streak, avatar_url, raw_data, equipped_border, updated_at')
-        .eq('is_banned', false)
-        .order('daily_xp', { ascending: false })
-        .limit(100); // Fetch more to account for stale entries we'll zero out
+    if (type === 'guild') {
+      // ── GUILD LEADERBOARD: sorted by level (and secondary sort by vault_balance or name) ──
+      const db = supabaseServer() as any;
+      const { data: guilds, error } = await db
+        .from('guilds')
+        .select('id, name, tag, icon, level, vault_balance, master_id, member_cap, created_at')
+        .order('level', { ascending: false })
+        .order('vault_balance', { ascending: false })
+        .order('name', { ascending: true })
+        .limit(50);
 
       if (error) {
-        console.error('[Leaderboard GET xp]', error);
+        console.error('[Leaderboard GET guild]', error);
         return res.status(500).json({ error: 'Internal server error' });
       }
 
-      const entries = (data || []).map((row: any) => {
-        // Only count daily_xp if the player synced today — otherwise it's stale
-        const isToday = row.last_daily_reset === todayStr;
-        const effectiveDailyXp = isToday ? (row.daily_xp || 0) : 0;
+      // Fetch member counts for each guild in a batch query
+      const ids = (guilds || []).map((g: any) => g.id);
+      const counts: Record<string, number> = {};
+      if (ids.length) {
+        const { data: members } = await db
+          .from('guild_members')
+          .select('guild_id')
+          .in('guild_id', ids);
+        for (const m of members || []) {
+          counts[m.guild_id] = (counts[m.guild_id] || 0) + 1;
+        }
+      }
 
-        return {
-          player_id: row.id,
-          supabase_id: row.supabase_id,
-          username: row.username,
-          name: row.name,
-          total_xp: row.total_xp || 0,
-          daily_xp: effectiveDailyXp,
-          weekly_xp: effectiveDailyXp, // API compat — client reads weekly_xp
-          level: row.level || 1,
-          rank: row.rank || 'E',
-          streak: row.streak || 0,
-          avatar_url: row.avatar_url || null,
-          equipped_outfit_id: row.raw_data?.equippedOutfitId || 'outfit_starter',
-          equipped_border: row.equipped_border || row.raw_data?.equippedBorder || null,
-          equipped_banner: row.raw_data?.equippedBanner || null,
-        };
-      });
+      const entries = (guilds || []).map((g: any, i: number) => ({
+        id: g.id,
+        name: g.name,
+        tag: g.tag,
+        icon: g.icon,
+        level: g.level || 0,
+        vault_balance: g.vault_balance || 0,
+        memberCount: counts[g.id] || 0,
+        memberCap: g.member_cap || 25,
+        rank: i + 1,
+      }));
 
-      // Sort by effective daily XP (after stale detection) and take top 50
-      entries.sort((a: any, b: any) => b.daily_xp - a.daily_xp);
-      entries.splice(50); // Trim to top 50
-
-      // ── Neighborhood View: find user's position if not in top results ──
+      // Highlight user's own guild
       const userId = req.query.userId as string;
       let yourRank: number | null = null;
       let yourEntry: any = null;
-      let neighborhood: { above: any[]; below: any[] } | null = null;
 
       if (userId) {
-        const isInList = entries.some((e: any) => e.supabase_id === userId);
-        if (!isInList) {
-          try {
-            const { data: me } = await (supabaseServer() as any)
-              .from('players')
-              .select('id, supabase_id, username, name, total_xp, daily_xp, last_daily_reset, level, rank, streak, avatar_url, raw_data, equipped_border')
-              .eq('supabase_id', userId)
-              .eq('is_banned', false)
+        const { data: memberOf } = await db
+          .from('guild_members')
+          .select('guild_id')
+          .eq('user_id', userId)
+          .single();
+
+        if (memberOf) {
+          const myGuildId = memberOf.guild_id;
+          const myGuildIdx = entries.findIndex((e: any) => e.id === myGuildId);
+          if (myGuildIdx >= 0) {
+            yourRank = myGuildIdx + 1;
+            yourEntry = entries[myGuildIdx];
+          } else {
+            const { data: myGuild } = await db
+              .from('guilds')
+              .select('id, name, tag, icon, level, vault_balance, member_cap')
+              .eq('id', myGuildId)
               .single();
-
-            if (me) {
-              const meIsToday = me.last_daily_reset === todayStr;
-              const myDailyXp = meIsToday ? (me.daily_xp || 0) : 0;
-
-              // Count players above — only those who synced today
-              const { count } = await (supabaseServer() as any)
-                .from('players')
+            if (myGuild) {
+              const { count } = await db
+                .from('guilds')
                 .select('id', { count: 'exact', head: true })
-                .eq('is_banned', false)
-                .eq('last_daily_reset', todayStr)
-                .gt('daily_xp', myDailyXp);
+                .or(`level.gt.${myGuild.level},and(level.eq.${myGuild.level},vault_balance.gt.${myGuild.vault_balance})`);
+              
+              const { count: memberCountRes } = await db
+                .from('guild_members')
+                .select('id', { count: 'exact', head: true })
+                .eq('guild_id', myGuildId);
 
               yourRank = (count || 0) + 1;
               yourEntry = {
-                player_id: me.id,
-                supabase_id: me.supabase_id,
-                username: me.username,
-                name: me.name,
-                total_xp: me.total_xp || 0,
-                daily_xp: myDailyXp,
-                weekly_xp: myDailyXp,
-                level: me.level || 1,
-                rank: me.rank || 'E',
-                streak: me.streak || 0,
-                avatar_url: me.avatar_url || null,
-                equipped_outfit_id: me.raw_data?.equippedOutfitId || 'outfit_starter',
-                equipped_border: me.equipped_border || me.raw_data?.equippedBorder || null,
-                equipped_banner: me.raw_data?.equippedBanner || null,
-              };
-
-              // Get 2 players just above (higher daily_xp, synced today)
-              const { data: aboveData } = await (supabaseServer() as any)
-                .from('players')
-                .select('id, supabase_id, username, name, total_xp, daily_xp, last_daily_reset, level, rank, streak, avatar_url, raw_data, equipped_border')
-                .eq('is_banned', false)
-                .eq('last_daily_reset', todayStr)
-                .gt('daily_xp', myDailyXp)
-                .order('daily_xp', { ascending: true })
-                .limit(2);
-
-              // Get 2 players just below (lower daily_xp, synced today)
-              const { data: belowData } = await (supabaseServer() as any)
-                .from('players')
-                .select('id, supabase_id, username, name, total_xp, daily_xp, last_daily_reset, level, rank, streak, avatar_url, raw_data, equipped_border')
-                .eq('is_banned', false)
-                .eq('last_daily_reset', todayStr)
-                .lt('daily_xp', myDailyXp)
-                .order('daily_xp', { ascending: false })
-                .limit(2);
-
-              const mapEntry = (row: any) => ({
-                player_id: row.id,
-                supabase_id: row.supabase_id,
-                username: row.username,
-                name: row.name,
-                total_xp: row.total_xp || 0,
-                daily_xp: row.daily_xp || 0,
-                weekly_xp: row.daily_xp || 0,
-                level: row.level || 1,
-                rank: row.rank || 'E',
-                streak: row.streak || 0,
-                avatar_url: row.avatar_url || null,
-                equipped_outfit_id: row.raw_data?.equippedOutfitId || 'outfit_starter',
-                equipped_border: row.equipped_border || row.raw_data?.equippedBorder || null,
-                equipped_banner: row.raw_data?.equippedBanner || null,
-              });
-
-              neighborhood = {
-                above: (aboveData || []).reverse().map(mapEntry),
-                below: (belowData || []).map(mapEntry),
+                id: myGuild.id,
+                name: myGuild.name,
+                tag: myGuild.tag,
+                icon: myGuild.icon,
+                level: myGuild.level || 0,
+                vault_balance: myGuild.vault_balance || 0,
+                memberCount: memberCountRes || 0,
+                memberCap: myGuild.member_cap || 25,
+                rank: yourRank,
               };
             }
-          } catch (nErr) {
-            console.error('[Leaderboard] Neighborhood query failed:', nErr);
-            // Non-fatal: continue without neighborhood
           }
         }
       }
 
-      // Add day timing info
       return res.json({
         entries,
-        weekEnd: dayEnd.toISOString(),
         yourRank,
         yourEntry,
-        neighborhood,
       });
 
     } else {
