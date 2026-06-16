@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Haptics, ImpactStyle } from "@capacitor/haptics";
+import { Capacitor } from "@capacitor/core";
 
 interface SystemOverrideIntroProps {
   onComplete: () => void;
@@ -31,6 +33,55 @@ export const SystemOverrideIntro: React.FC<SystemOverrideIntroProps> = ({ onComp
   // Canvas refs
   const staticCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const voidCanvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  // Compulsory Android Vibration functions for immersive feel
+  const triggerAndroidVibration = (isPauseChar: boolean = false) => {
+    try {
+      const duration = isPauseChar ? 25 : 12;
+      
+      // 1. Direct Web vibration for Android WebView (ignores preference checks)
+      if (typeof navigator !== "undefined" && navigator.vibrate) {
+        navigator.vibrate(duration);
+      }
+      
+      // 2. Capacitor Haptics (works on native Android)
+      if (Capacitor.isNativePlatform()) {
+        if (isPauseChar) {
+          Haptics.impact({ style: ImpactStyle.Medium }).catch(() => {});
+        } else {
+          Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
+        }
+      }
+    } catch (e) {
+      console.warn("Vibration failed", e);
+    }
+  };
+
+  const triggerCrashVibration = () => {
+    try {
+      if (typeof navigator !== "undefined" && navigator.vibrate) {
+        navigator.vibrate([150, 80, 150]);
+      }
+      if (Capacitor.isNativePlatform()) {
+        Haptics.vibrate({ duration: 400 }).catch(() => {});
+      }
+    } catch (e) {
+      console.warn("Crash vibration failed", e);
+    }
+  };
+
+  const triggerStaticVibration = () => {
+    try {
+      if (typeof navigator !== "undefined" && navigator.vibrate) {
+        navigator.vibrate([40, 20, 30, 15, 50, 10, 40]);
+      }
+      if (Capacitor.isNativePlatform()) {
+        Haptics.vibrate({ duration: 200 }).catch(() => {});
+      }
+    } catch (e) {
+      console.warn("Static vibration failed", e);
+    }
+  };
 
   // Initializing Audio Context safely
   const getAudioContext = () => {
@@ -263,6 +314,7 @@ export const SystemOverrideIntro: React.FC<SystemOverrideIntroProps> = ({ onComp
     const flashTimer = setTimeout(() => {
       setPhase("BSOD");
       playGlitchSound(ctx);
+      triggerCrashVibration();
     }, 100); // 0.1 seconds flash
 
     return () => clearTimeout(flashTimer);
@@ -286,6 +338,7 @@ export const SystemOverrideIntro: React.FC<SystemOverrideIntroProps> = ({ onComp
           setPhase("STATIC");
           const ctx = getAudioContext();
           startStaticSound(ctx);
+          triggerStaticVibration();
         }, 300);
       }
       setPercentage(current);
@@ -448,18 +501,19 @@ export const SystemOverrideIntro: React.FC<SystemOverrideIntroProps> = ({ onComp
   // Sci-Fi Scrollytelling Typing Sequences
   const textSequences = [
     // Sequence 1
-    ["You think this is a malfunction.", "It isn't.", "This is us."],
+    [
+      "You think this is a malfunction.",
+      "It isn't.",
+      "This is us."
+    ],
     // Sequence 2
     [
       "How long have you been waiting for something that *will never come on its own?*",
-      "Today is not an accident.",
-      "You opened this because part of you already knows — it's time."
+      "Today is not an accident. You opened this because part of you already knows — it's time."
     ],
     // Sequence 3
     [
-      "You have skills. You have goals.",
-      "The System turns them into a Quest.",
-      "Your Rank. Your Attributes. Your First Mission. All of it — built around you."
+      "You have skills. You have goals. The System turns them into a Quest. Your Rank. Your Attributes. Your First Mission. All of it — built around you."
     ]
   ];
 
@@ -508,9 +562,11 @@ export const SystemOverrideIntro: React.FC<SystemOverrideIntroProps> = ({ onComp
 
         charIdx++;
         
-        // Play click clack audio for each character
+        // Play click clack audio and trigger haptic vibration for each character
         if (char !== " ") {
           playTypewriterClack(ctx);
+          const isPause = char === "." || char === "?" || char === "!" || char === "—";
+          triggerAndroidVibration(isPause);
         }
 
         // Variable typing speed for a organic mechanical feel
