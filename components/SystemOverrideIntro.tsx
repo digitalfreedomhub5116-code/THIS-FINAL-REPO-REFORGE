@@ -511,7 +511,7 @@ export const SystemOverrideIntro: React.FC<SystemOverrideIntroProps> = ({ onComp
     ],
     // Sequence 2
     [
-      "How long have you been waiting for something that *will never come on its own?*",
+      "How long have you lived as a shadow, waiting for a light that *was never meant to find you?*",
       "Today is not an accident. You opened this because part of you already knows — it's time."
     ],
     // Sequence 3
