@@ -472,121 +472,10 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player }) => {
         </div>
       ) : activeTab === 'guild' ? (
         <>
-          {/* ═══ GUILD SEASON REWARDS INFO BANNER ═══ */}
-          <div className="mx-4 mb-4 rounded-2xl p-4 overflow-hidden" style={{
-            background: 'linear-gradient(180deg, rgba(0,212,255,0.04) 0%, rgba(10,10,15,0.95) 100%)',
-            border: '1px solid rgba(0,212,255,0.15)',
-          }}>
-            <div className="text-center">
-              <div className="text-[8px] font-mono tracking-[0.3em] uppercase text-cyan-400/70 mb-1">// Season Rewards</div>
-              <div className="text-sm font-black text-white tracking-tight mb-2">Weekly Guild Season Gold Rewards</div>
-              <div className="grid grid-cols-4 gap-1.5 mt-2">
-                {[
-                  { place: '1ST 👑', reward: '5000 G' },
-                  { place: '2ND 🥈', reward: '3000 G' },
-                  { place: '3RD 🥉', reward: '1000 G' },
-                  { place: 'OTHERS 🛡️', reward: '500 G' },
-                ].map(r => (
-                  <div key={r.place} className="bg-slate-900/60 border border-slate-800 rounded-xl p-2 text-center">
-                    <div className="text-[7px] text-gray-400 font-mono tracking-wider mb-0.5">{r.place}</div>
-                    <div className="text-[10px] font-black text-[#00d4ff] font-mono">{r.reward}</div>
-                  </div>
-                ))}
-              </div>
-              <div className="text-[8px] text-gray-500 font-mono mt-3 text-center uppercase tracking-wider">
-                Rewards are distributed automatically directly to each clan's Vault every Sunday at UTC midnight.
-              </div>
-            </div>
-          </div>
-
-          {/* ── TOP 3 GUILD PODIUM ── */}
-          {guildEntries.length >= 3 && (
-            <div className="flex items-end justify-center gap-3 px-4 pt-2 pb-6">
-              {/* 2nd place (left) */}
-              {(() => {
-                const g = guildEntries[1];
-                return (
-                  <div className="flex flex-col items-center gap-1.5 flex-1 cursor-pointer">
-                    <div className="text-lg">🥈</div>
-                    <div className="relative p-0.5 rounded-full border border-slate-700/60 shadow-lg">
-                      <img src={getGuildIconUrl(g.icon)} className="w-16 h-16 object-contain" alt="Guild Icon" />
-                    </div>
-                    <div className="text-[11px] font-black text-white truncate max-w-[80px] text-center mt-1">
-                      {g.name} <span className="text-[9px] font-bold text-gray-400">[{g.tag}]</span>
-                    </div>
-                    <div className="text-[9px] font-bold font-mono text-cyan-400">
-                      LEVEL {g.level}
-                    </div>
-                    <div className="text-[8px] font-bold text-gray-500 font-mono">
-                      {g.memberCount}/{g.memberCap} members
-                    </div>
-                  </div>
-                );
-              })()}
-
-              {/* 1st place (center, elevated) */}
-              {(() => {
-                const g = guildEntries[0];
-                return (
-                  <div className="flex flex-col items-center gap-1.5 flex-1 -mt-4 cursor-pointer relative">
-                    <motion.div
-                      className="absolute rounded-full pointer-events-none"
-                      style={{
-                        width: 90,
-                        height: 90,
-                        top: 10,
-                        left: '50%',
-                        transform: 'translateX(-50%)',
-                        background: 'radial-gradient(circle, rgba(0,212,255,0.12) 0%, transparent 70%)',
-                      }}
-                      animate={{ scale: [1, 1.12, 1], opacity: [0.5, 0.9, 0.5] }}
-                      transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-                    />
-                    <div className="text-2xl">👑</div>
-                    <div className="relative p-0.5 rounded-full border border-cyan-500/30 shadow-cyan-500/10 shadow-xl" style={{ background: 'rgba(0,212,255,0.05)' }}>
-                      <img src={getGuildIconUrl(g.icon)} className="w-20 h-20 object-contain" alt="Guild Icon" />
-                    </div>
-                    <div className="text-xs font-black text-white truncate max-w-[90px] text-center mt-1">
-                      {g.name} <span className="text-[10px] font-bold text-gray-400">[{g.tag}]</span>
-                    </div>
-                    <div className="text-[10px] font-black font-mono text-cyan-400">
-                      LEVEL {g.level}
-                    </div>
-                    <div className="text-[8px] font-bold text-gray-400 font-mono">
-                      {g.memberCount}/{g.memberCap} members
-                    </div>
-                  </div>
-                );
-              })()}
-
-              {/* 3rd place (right) */}
-              {(() => {
-                const g = guildEntries[2];
-                return (
-                  <div className="flex flex-col items-center gap-1.5 flex-1 cursor-pointer">
-                    <div className="text-lg">🥉</div>
-                    <div className="relative p-0.5 rounded-full border border-slate-700/60 shadow-lg">
-                      <img src={getGuildIconUrl(g.icon)} className="w-16 h-16 object-contain" alt="Guild Icon" />
-                    </div>
-                    <div className="text-[11px] font-black text-white truncate max-w-[80px] text-center mt-1">
-                      {g.name} <span className="text-[9px] font-bold text-gray-400">[{g.tag}]</span>
-                    </div>
-                    <div className="text-[9px] font-bold font-mono text-cyan-400">
-                      LEVEL {g.level}
-                    </div>
-                    <div className="text-[8px] font-bold text-gray-500 font-mono">
-                      {g.memberCount}/{g.memberCap} members
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
-          )}
-
           {/* ── GUILD LIST ── */}
           <div className="px-4 space-y-2">
-            {guildEntries.slice(guildEntries.length >= 3 ? 3 : 0).map((entry, index) => {
-              const actualRank = guildEntries.length >= 3 ? index + 4 : index + 1;
+            {guildEntries.map((entry, index) => {
+              const actualRank = index + 1;
               const isMyGuild = yourGuildEntry?.id === entry.id;
 
               return (
@@ -608,9 +497,9 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player }) => {
                     <span className={`text-sm font-black font-mono ${isMyGuild ? 'text-[#00d4ff]' : 'text-gray-500'}`}>{actualRank}</span>
                   </div>
 
-                  {/* Icon */}
-                  <div className="shrink-0 p-0.5 rounded-full bg-slate-900 border border-slate-800">
-                    <img src={getGuildIconUrl(entry.icon)} className="w-10 h-10 object-contain" alt="Guild Icon" />
+                  {/* Icon with rounded corners */}
+                  <div className="shrink-0 p-1.5 rounded-xl bg-slate-900 border border-slate-800/80">
+                    <img src={getGuildIconUrl(entry.icon)} className="w-8 h-8 object-contain" alt="Guild Icon" />
                   </div>
 
                   {/* Name + Tag */}
@@ -620,17 +509,11 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player }) => {
                       <span className="text-[10px] font-black text-gray-400 shrink-0">[{entry.tag}]</span>
                       {isMyGuild && <span className="text-[8px] px-1.5 py-0.5 rounded bg-[#00d4ff]/15 text-[#00d4ff] font-black tracking-wider shrink-0">your clan</span>}
                     </div>
-                    <div className="flex items-center gap-2 text-[10px] text-gray-500 font-mono mt-0.5">
-                      <span>{entry.memberCount}/{entry.memberCap} members</span>
-                      <span>•</span>
-                      <span className="flex items-center gap-0.5"><Coins size={10} className="text-amber-500 animate-pulse" /> {entry.vault_balance}</span>
-                    </div>
                   </div>
 
                   {/* Level */}
-                  <div className="flex flex-col items-end shrink-0">
+                  <div className="shrink-0 flex items-center justify-end">
                     <span className={`text-sm font-black font-mono ${isMyGuild ? 'text-[#00d4ff]' : 'text-cyan-400'}`}>LVL {entry.level}</span>
-                    <span className="text-[8px] text-gray-500 font-mono tracking-wider mt-0.5">TOTAL LVL</span>
                   </div>
                 </motion.div>
               );
@@ -657,8 +540,8 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player }) => {
                 <div className="w-7 text-center shrink-0">
                   <span className="text-sm font-black text-[#00d4ff] font-mono">{yourGuildRank}</span>
                 </div>
-                <div className="shrink-0 p-0.5 rounded-full bg-slate-900 border border-slate-800">
-                  <img src={getGuildIconUrl(yourGuildEntry.icon)} className="w-10 h-10 object-contain" alt="Guild Icon" />
+                <div className="shrink-0 p-1.5 rounded-xl bg-slate-900 border border-slate-800/80">
+                  <img src={getGuildIconUrl(yourGuildEntry.icon)} className="w-8 h-8 object-contain" alt="Guild Icon" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
@@ -666,15 +549,9 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player }) => {
                     <span className="text-[10px] font-black text-gray-400 shrink-0">[{yourGuildEntry.tag}]</span>
                     <span className="text-[8px] px-1.5 py-0.5 rounded bg-[#00d4ff]/15 text-[#00d4ff] font-black tracking-wider shrink-0">your clan</span>
                   </div>
-                  <div className="flex items-center gap-2 text-[10px] text-gray-500 font-mono mt-0.5">
-                    <span>{yourGuildEntry.memberCount}/{yourGuildEntry.memberCap} members</span>
-                    <span>•</span>
-                    <span className="flex items-center gap-0.5"><Coins size={10} className="text-amber-500" /> {yourGuildEntry.vault_balance}</span>
-                  </div>
                 </div>
-                <div className="flex flex-col items-end shrink-0">
+                <div className="shrink-0 flex items-center justify-end">
                   <span className="text-sm font-black font-mono text-[#00d4ff]">LVL {yourGuildEntry.level}</span>
-                  <span className="text-[8px] text-gray-500 font-mono tracking-wider mt-0.5">TOTAL LVL</span>
                 </div>
               </div>
             </div>
@@ -1112,43 +989,23 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player }) => {
             onClaim={async () => {
               setShowRewardOverlay(false);
 
-              // Actually add gold, keys, and equip border on the player
+              // Actually add gold, keys
               const earnedGold = seasonRewardData.goldAmount;
               const earnedKeys = seasonRewardData.keys;
-              const earnedBorderId = (() => {
-                // Map border name to store item ID
-                const borderMap: Record<string, string> = {
-                  'Iron Will': 'border-streak-gold',
-                  'Inferno': 'border-streak-inferno',
-                  'Eternal Flame': 'border-streak-eternal',
-                  'Gold Dragon': 'border-gold-dragon',
-                  'Phoenix Blaze': 'border-phoenix',
-                  'Dragon Coil': 'border-dragon-img',
-                  'Ice Crown': 'border-ice-img',
-                  'Silversteel Aegis': 'border-podium-silver',
-                };
-                return borderMap[seasonRewardData.borderName] || null;
-              })();
 
               // Update local player state immediately
               setPlayer(prev => {
                 const newGold = (prev.gold || 0) + earnedGold;
                 const newKeys = (prev.keys || 0) + earnedKeys;
-                const newOwned = [...(prev.ownedBorders || [])];
-                if (earnedBorderId && !newOwned.includes(earnedBorderId)) {
-                  newOwned.push(earnedBorderId);
-                }
                 return {
                   ...prev,
                   gold: newGold,
                   keys: newKeys,
-                  ownedBorders: newOwned,
-                  equippedBorder: earnedBorderId || prev.equippedBorder,
                 };
               });
 
               addNotification(
-                `Season Reward: Rank #${pendingReward.rank} — +${earnedGold}G, +${earnedKeys} Keys, ${seasonRewardData.borderName} Border`,
+                `Season Reward: Rank #${pendingReward.rank} — +${earnedGold}G, +${earnedKeys} Keys`,
                 'SUCCESS'
               );
 
@@ -1161,7 +1018,7 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player }) => {
                     snapshotId: pendingReward.id,
                     goldAmount: earnedGold,
                     keys: earnedKeys,
-                    borderId: earnedBorderId,
+                    borderId: null,
                   }),
                 });
                 if (res.ok) {
@@ -1177,8 +1034,6 @@ const LeaderboardView: React.FC<LeaderboardViewProps> = ({ player }) => {
                       level: p.level ?? prev.level,
                       rank: p.rank ?? prev.rank,
                       totalXp: p.totalXp ?? prev.totalXp,
-                      equippedBorder: p.equippedBorder ?? prev.equippedBorder,
-                      ownedBorders: p.ownedBorders ?? prev.ownedBorders,
                     }));
                     updateServerBaseline(p.gold ?? 0);
                   }

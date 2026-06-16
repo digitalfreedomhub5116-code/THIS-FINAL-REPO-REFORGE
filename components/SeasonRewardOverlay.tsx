@@ -52,11 +52,6 @@ if (typeof document !== 'undefined' && !document.getElementById(STYLE_ID)) {
 function getCards(reward: SeasonReward) {
   return [
     {
-      id: 'border', label: 'BORDER', value: reward.borderName,
-      image: reward.borderImage,
-      accentColor: reward.rank === 1 ? '#9B5DE5' : reward.rank === 2 ? '#8B95A5' : '#5B9FE6',
-    },
-    {
       id: 'gold', label: 'GOLD', value: reward.goldAmount,
       image: COIN_IMAGE, accentColor: '#facc15',
     },
@@ -114,13 +109,8 @@ const SeasonRewardOverlay: React.FC<SeasonRewardOverlayProps> = ({ reward, onCla
       setTimeout(() => { setPhase(8); setFlippingCard(1); triggerVibrate(30); }, 6200),
       setTimeout(() => { setRevealedCards(s => new Set([...s, 1])); }, 6500),
       setTimeout(() => { setFlippingCard(null); setPhase(9); }, 6800),
-      // Card 2 spotlight
-      setTimeout(() => setPhase(10), 7500),
-      setTimeout(() => { setPhase(11); setFlippingCard(2); triggerVibrate(30); }, 8200),
-      setTimeout(() => { setRevealedCards(s => new Set([...s, 2])); }, 8500),
-      setTimeout(() => { setFlippingCard(null); setPhase(12); }, 8800),
       // All revealed → claim
-      setTimeout(() => setPhase(13), 9500),
+      setTimeout(() => setPhase(10), 7500),
     ];
     return () => {
       timers.forEach(clearTimeout);
@@ -135,9 +125,9 @@ const SeasonRewardOverlay: React.FC<SeasonRewardOverlayProps> = ({ reward, onCla
     if (phase === 1) triggerVibrate([50, 30, 80, 30, 50]);
   }, [phase]);
 
-  // Gold counter (phase 14)
+  // Gold counter (phase 11)
   useEffect(() => {
-    if (phase !== 14) return;
+    if (phase !== 11) return;
     const target = reward.goldAmount;
     const start = performance.now();
     const dur = 1400;
@@ -147,15 +137,15 @@ const SeasonRewardOverlay: React.FC<SeasonRewardOverlayProps> = ({ reward, onCla
       const eased = 1 - Math.pow(1 - p, 3);
       setGoldCounter(Math.floor(eased * target));
       if (p < 1) raf = requestAnimationFrame(tick);
-      else { setGoldCounter(target); setTimeout(() => setPhase(15), 600); }
+      else { setGoldCounter(target); setTimeout(() => setPhase(12), 600); }
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
   }, [phase, reward.goldAmount]);
 
-  // Keys counter animation (phase 15)
+  // Keys counter animation (phase 12)
   useEffect(() => {
-    if (phase !== 15) return;
+    if (phase !== 12) return;
     const target = reward.keys;
     const start = performance.now();
     const dur = 800;
@@ -165,37 +155,36 @@ const SeasonRewardOverlay: React.FC<SeasonRewardOverlayProps> = ({ reward, onCla
       const eased = 1 - Math.pow(1 - p, 3);
       setKeysCounter(Math.round(eased * target));
       if (p < 1) raf = requestAnimationFrame(tick);
-      else { setKeysCounter(target); setTimeout(() => setPhase(16), 600); }
+      else { setKeysCounter(target); setTimeout(() => setPhase(13), 600); }
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
   }, [phase, reward.keys]);
 
-  // Border → exit
+  // Exit
   useEffect(() => {
-    if (phase === 16) setTimeout(() => setPhase(17), 1500);
-    if (phase === 17) setTimeout(() => onClaim(), 600);
+    if (phase === 13) setTimeout(() => onClaim(), 600);
   }, [phase, onClaim]);
 
   const handleClaim = useCallback(() => {
-    if (phase === 13) setPhase(14);
+    if (phase === 10) setPhase(11);
   }, [phase]);
 
   // ── Card position/scale per phase ──
   const getCardPos = (idx: number) => {
     const spotBase = 4 + idx * 3;
     const isSpotlit = phase >= spotBase && phase <= spotBase + 1;
-    const bx = (idx - 1) * 80, by = 200;
+    const bx = (idx - 0.5) * 110, by = 200;
 
     if (phase < 2) return { x: 0, y: 0, scale: 0, opacity: 0 };
-    if (phase === 2) return { x: (idx - 1) * 30, y: 0, scale: 1, opacity: 1 };
-    if (phase === 3 || (phase > 3 && !isSpotlit && phase < 13))
+    if (phase === 2) return { x: (idx - 0.5) * 40, y: 0, scale: 1, opacity: 1 };
+    if (phase === 3 || (phase > 3 && !isSpotlit && phase < 10))
       return { x: bx, y: by, scale: 0.6, opacity: 0.7 };
     if (phase === spotBase) return { x: 0, y: 0, scale: 1, opacity: 1 };
     if (phase === spotBase + 1) return { x: 0, y: 0, scale: 1, opacity: 1 };
     if (phase === spotBase + 2) return { x: bx, y: by, scale: 0.6, opacity: 0.7 };
-    if (phase >= 13 && phase < 14) return { x: (idx - 1) * 100, y: 30, scale: 0.75, opacity: 1 };
-    if (phase >= 14) return { x: (idx - 1) * 100, y: 30, scale: 0.65, opacity: 0.3 };
+    if (phase >= 10 && phase < 11) return { x: (idx - 0.5) * 130, y: 30, scale: 0.85, opacity: 1 };
+    if (phase >= 11) return { x: (idx - 0.5) * 130, y: 30, scale: 0.75, opacity: 0.3 };
     return { x: bx, y: by, scale: 0.6, opacity: 0.7 };
   };
 
@@ -208,7 +197,7 @@ const SeasonRewardOverlay: React.FC<SeasonRewardOverlayProps> = ({ reward, onCla
       {/* Title */}
       <motion.div className="absolute top-12 text-center z-10"
         initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: phase < 14 ? 1 : 0.3, y: 0 }}
+        animate={{ opacity: phase < 11 ? 1 : 0.3, y: 0 }}
         transition={{ delay: 0.3, duration: 0.5 }}
       >
         <div className="text-[9px] font-mono tracking-[0.4em] uppercase text-gray-500 mb-1">// Season Rewards</div>
@@ -317,7 +306,7 @@ const SeasonRewardOverlay: React.FC<SeasonRewardOverlayProps> = ({ reward, onCla
 
       {/* CLAIM button */}
       <AnimatePresence>
-        {phase === 13 && (
+        {phase === 10 && (
           <motion.button
             initial={{ opacity: 0, y: 20, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -336,7 +325,7 @@ const SeasonRewardOverlay: React.FC<SeasonRewardOverlayProps> = ({ reward, onCla
 
       {/* GOLD COUNTER */}
       <AnimatePresence>
-        {phase === 14 && (
+        {phase === 11 && (
           <motion.div className="absolute flex flex-col items-center justify-center gap-2"
             initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }} transition={{ duration: 0.4, type: 'spring' }}
@@ -353,7 +342,7 @@ const SeasonRewardOverlay: React.FC<SeasonRewardOverlayProps> = ({ reward, onCla
 
       {/* KEYS COUNTER */}
       <AnimatePresence>
-        {phase === 15 && (
+        {phase === 12 && (
           <motion.div className="absolute flex flex-col items-center justify-center gap-2"
             initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }} transition={{ duration: 0.4, type: 'spring' }}
@@ -365,23 +354,6 @@ const SeasonRewardOverlay: React.FC<SeasonRewardOverlayProps> = ({ reward, onCla
             }}>+{keysCounter}</div>
             <div className="text-[9px] font-mono text-gray-500 tracking-widest">
               {reward.keys === 1 ? 'KEY RECEIVED' : 'KEYS RECEIVED'}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* BORDER EQUIPPED */}
-      <AnimatePresence>
-        {phase === 16 && (
-          <motion.div className="absolute flex flex-col items-center justify-center gap-3"
-            initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.1 }} transition={{ duration: 0.5, type: 'spring' }}>
-            <img src={reward.borderImage} alt="Border" className="w-24 h-24 object-contain"
-              style={{ filter: `drop-shadow(0 0 20px ${rankColor}60)` }} />
-            <div className="text-lg font-black text-white tracking-tight">{reward.borderName}</div>
-            <div className="px-4 py-1.5 rounded-full text-[9px] font-mono font-black tracking-[0.3em] uppercase"
-              style={{ background: `${rankColor}20`, border: `1px solid ${rankColor}40`, color: rankColor }}>
-              ✓ BORDER EQUIPPED
             </div>
           </motion.div>
         )}
