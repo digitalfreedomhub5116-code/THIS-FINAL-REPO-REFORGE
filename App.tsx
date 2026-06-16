@@ -169,7 +169,7 @@ const UpcomingQuests = lazy(() => import('./components/UpcomingQuests'));
 // ── New lazy imports ──
 
 const SystemAgreement = lazy(() => import('./components/SystemAgreement'));
-
+const SystemOverrideIntro = lazy(() => import('./components/SystemOverrideIntro').then(m => ({ default: m.SystemOverrideIntro })));
 const CalibrationFlow = lazy(() => import('./components/CalibrationFlow'));
 
 const NameOnboarding = lazy(() => import('./components/NameOnboarding'));
@@ -282,7 +282,7 @@ function PromoImg({ src, alt, style }: { src: string; alt: string; style?: React
 
 // ── Types ──
 
-type OnboardingPhase = 'SPLASH' | 'WELCOME' | 'AGREEMENT' | 'NAMING' | 'CALIBRATION' | 'AUTH' | 'AUTH_SIGN_IN_PAGE' | 'AUTH_CREATE_PAGE' | 'APP' | 'LOGOUT_CHOICE';
+type OnboardingPhase = 'SPLASH' | 'WELCOME' | 'OVERRIDE' | 'AGREEMENT' | 'NAMING' | 'CALIBRATION' | 'AUTH' | 'AUTH_SIGN_IN_PAGE' | 'AUTH_CREATE_PAGE' | 'APP' | 'LOGOUT_CHOICE';
 
 
 
@@ -3771,6 +3771,16 @@ const App: React.FC = () => {
 
     }
 
+    if (onboardingPhase === 'OVERRIDE') {
+      return (
+        <Suspense fallback={<SkeletonOnboardingPage />}>
+          <ErrorBoundary fallbackLabel="System override failed">
+            <SystemOverrideIntro onComplete={() => setOnboardingPhase('AGREEMENT')} />
+          </ErrorBoundary>
+        </Suspense>
+      );
+    }
+
     if (onboardingPhase === 'AGREEMENT') {
 
       return (
@@ -3961,7 +3971,7 @@ const App: React.FC = () => {
 
               ssSet(SS_AUTH, profile);
 
-              setOnboardingPhase('AGREEMENT');
+              setOnboardingPhase('OVERRIDE');
 
             }
 
@@ -4027,7 +4037,7 @@ const App: React.FC = () => {
 
               ssSet(SS_AUTH, profile);
 
-              setOnboardingPhase('AGREEMENT');
+              setOnboardingPhase('OVERRIDE');
 
             }
 
@@ -4095,7 +4105,7 @@ const App: React.FC = () => {
 
               ssSet(SS_AUTH, profile);
 
-              setOnboardingPhase('AGREEMENT');
+              setOnboardingPhase('OVERRIDE');
 
             }
 
