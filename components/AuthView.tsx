@@ -212,7 +212,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode = 'SIGN_IN' })
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ credential }),
+        body: JSON.stringify({ credential, mode: mode === 'SIGN_IN' ? 'login' : 'register' }),
       });
       const text = await res.text();
       let data: any;

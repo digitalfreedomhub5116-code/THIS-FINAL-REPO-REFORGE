@@ -284,7 +284,7 @@ const SignInPage: React.FC<SignInPageProps> = ({ onLogin, onNavigate }) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ credential }),
+        body: JSON.stringify({ credential, mode: 'login' }),
       });
       const text = await res.text();
       let data: any;

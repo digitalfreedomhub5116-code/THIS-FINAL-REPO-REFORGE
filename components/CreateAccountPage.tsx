@@ -339,7 +339,7 @@ const CreateAccountPage: React.FC<CreateAccountPageProps> = ({ onLogin, onNaviga
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ credential }),
+        body: JSON.stringify({ credential, mode: 'register' }),
       });
       const data = await res.json();
       if (!res.ok) {

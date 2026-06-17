@@ -38,7 +38,7 @@ export async function setupGoogleAuth(app: Express) {
   // Receives { credential } from the frontend Google popup / One-Tap / Native Android
   app.post('/api/auth/google/token', async (req, res) => {
     try {
-      const { credential } = req.body;
+      const { credential, mode = 'register' } = req.body;
       if (!credential) {
         return res.status(400).json({ error: 'Missing Google credential token' });
       }
@@ -54,7 +54,7 @@ export async function setupGoogleAuth(app: Express) {
            if (parsedErr.error_description) {
                errorMsg = `Google Token Error: ${parsedErr.error_description}`;
            }
-        } catch(e) {}
+         } catch(e) {}
         return res.status(401).json({ error: errorMsg });
       }
 
@@ -108,6 +108,11 @@ export async function setupGoogleAuth(app: Express) {
           updated_at: new Date().toISOString(),
         }).eq('supabase_id', userId);
       } else {
+        // If trying to log in, but user is not registered, block it.
+        if (mode === 'login') {
+          return res.status(404).json({ error: 'Account not found. Please register first.' });
+        }
+
         // New user — create player
         userId = googleId;
         // Generate unique username from email or Google ID
