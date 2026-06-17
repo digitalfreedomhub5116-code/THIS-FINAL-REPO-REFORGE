@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import { supabaseServer } from "../lib/supabase.js";
 import { getAuthenticatedUserId } from "../lib/playerAuth.js";
+import { sendPushNotification } from "../utils/fcm.js";
 
 const router = Router();
 
@@ -823,6 +824,57 @@ router.post("/:id/join", async (req: Request, res: Response) => {
         { onConflict: "guild_id,user_id" }
       );
     await broadcastToGuild(id, "join_request", { guildId: id, action: "create" });
+
+    // Send background push notifications to guild leaders (master and vice)
+    (async () => {
+      try {
+        const { data: leaders } = await db
+          .from("guild_members")
+          .select("user_id")
+          .eq("guild_id", id)
+          .in("role", ["master", "vice"]);
+
+        const leaderIds = (leaders || []).map((l: any) => l.user_id);
+        if (leaderIds.length > 0) {
+          const { data: tokens } = await db
+            .from("player_device_tokens")
+            .select("token")
+            .in("user_id", leaderIds);
+
+          const tokenStrings: string[] = (tokens || []).map((t: any) => t.token);
+          if (tokenStrings.length > 0) {
+            // Get requester username
+            const { data: requester } = await db
+              .from("players")
+              .select("username, name")
+              .eq("id", uid)
+              .maybeSingle();
+            
+            const requesterName = requester?.username || requester?.name || "A new player";
+            const payload = {
+              title: "Guild Request",
+              body: `${requesterName} requested to join your guild.`,
+              data: {
+                type: "guild_request",
+                guildId: id,
+                action: "create",
+              },
+            };
+
+            await Promise.all(
+              tokenStrings.map((token: string) =>
+                sendPushNotification(token, payload).catch((err) =>
+                  console.error("[Guild FCM] Failed to send push to token:", token, err)
+                )
+              )
+            );
+          }
+        }
+      } catch (fcmErr) {
+        console.error("[Guild Join FCM] Failed to notify leaders:", fcmErr);
+      }
+    })();
+
     return res.json({ status: "requested" });
   } catch (err) {
     console.error("[Guilds join]", err);

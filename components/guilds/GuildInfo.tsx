@@ -58,6 +58,8 @@ interface GuildInfoProps {
   ) => void;
   onlineUserIds?: Set<string>;
   typingUsers?: Record<string, { name: string; timestamp: number }>;
+  activeInfoTab?: "members" | "requests";
+  onInfoTabChange?: (tab: "members" | "requests") => void;
 }
 
 const RANK_ROLE: Record<GuildRole, number> = { master: 3, vice: 2, member: 1 };
@@ -72,6 +74,8 @@ const GuildInfo: React.FC<GuildInfoProps> = ({
   onToast,
   onlineUserIds = new Set(),
   typingUsers = {},
+  activeInfoTab,
+  onInfoTabChange,
 }) => {
   const [guild, setGuild] = useState<Guild | null>(null);
   const [members, setMembers] = useState<GuildMember[]>([]);
@@ -81,7 +85,7 @@ const GuildInfo: React.FC<GuildInfoProps> = ({
   const [error, setError] = useState("");
   const [selected, setSelected] = useState<GuildMember | null>(null);
   const [confirm, setConfirm] = useState<null | "leave" | "disband">(null);
-  const [infoTab, setInfoTab] = useState<"members" | "requests">("members");
+  const [infoTab, setInfoTab] = useState<"members" | "requests">(activeInfoTab || "members");
   const [leaving, setLeaving] = useState(false);
   const [disbanding, setDisbanding] = useState(false);
   const [processingRequestId, setProcessingRequestId] = useState<string | null>(null);
@@ -116,6 +120,12 @@ const GuildInfo: React.FC<GuildInfoProps> = ({
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    if (activeInfoTab) {
+      setInfoTab(activeInfoTab);
+    }
+  }, [activeInfoTab]);
 
   useEffect(() => {
     window.dispatchEvent(new CustomEvent('guild:requests_updated', { detail: { count: requests.length } }));
@@ -334,7 +344,10 @@ const GuildInfo: React.FC<GuildInfoProps> = ({
         ].map((t) => (
           <button
             key={t.key}
-            onClick={() => setInfoTab(t.key)}
+            onClick={() => {
+              setInfoTab(t.key);
+              onInfoTabChange?.(t.key);
+            }}
             className="flex-1 py-2 rounded-xl text-xs font-bold"
             style={{
               background:

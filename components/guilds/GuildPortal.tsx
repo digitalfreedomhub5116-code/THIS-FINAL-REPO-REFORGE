@@ -51,6 +51,9 @@ interface GuildPortalProps {
   unseenMessagesCount?: number;
   onTabChange?: (tab: string) => void;
   joinRequestsCount?: number;
+  activePortalTab?: string;
+  activeInfoTab?: "members" | "requests";
+  onInfoTabChange?: (tab: "members" | "requests") => void;
 }
 
 const GuildPortal: React.FC<GuildPortalProps> = ({
@@ -68,14 +71,20 @@ const GuildPortal: React.FC<GuildPortalProps> = ({
   unseenMessagesCount,
   onTabChange,
   joinRequestsCount,
+  activePortalTab,
+  activeInfoTab,
+  onInfoTabChange,
 }) => {
-  const [tab, setTab] = useState<PortalTab>("chat"); // Chat is default
+  const [tab, setTab] = useState<PortalTab>((activePortalTab as PortalTab) || "chat");
   const [missionSignal, setMissionSignal] = useState(0);
 
   // Keep-Alive lazy Visited Tabs state
-  const [visitedTabs, setVisitedTabs] = useState<Record<PortalTab, boolean>>(() => ({
-    chat: true, // Default tab is visited by default
-  } as Record<PortalTab, boolean>));
+  const [visitedTabs, setVisitedTabs] = useState<Record<PortalTab, boolean>>(() => {
+    const defaultTab = (activePortalTab as PortalTab) || "chat";
+    return {
+      [defaultTab]: true,
+    } as Record<PortalTab, boolean>;
+  });
 
   // Presence and Typing States
   const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
@@ -94,6 +103,13 @@ const GuildPortal: React.FC<GuildPortalProps> = ({
     setVisitedTabs((prev) => ({ ...prev, [tab]: true }));
     onTabChange?.(tab);
   }, [tab, onTabChange]);
+
+  // Synchronize internal tab state with prop changes (e.g. from local notifications)
+  useEffect(() => {
+    if (activePortalTab && (activePortalTab === "members" || activePortalTab === "mission" || activePortalTab === "chat" || activePortalTab === "war" || activePortalTab === "vault")) {
+      setTab(activePortalTab as PortalTab);
+    }
+  }, [activePortalTab]);
 
   // Unified realtime subscription (including presence and typing indicators)
   useEffect(() => {
@@ -234,6 +250,8 @@ const GuildPortal: React.FC<GuildPortalProps> = ({
                   onToast={onToast}
                   onlineUserIds={onlineUserIds}
                   typingUsers={typingUsers}
+                  activeInfoTab={activeInfoTab}
+                  onInfoTabChange={onInfoTabChange}
                 />
               )}
               {t.key === "mission" && (

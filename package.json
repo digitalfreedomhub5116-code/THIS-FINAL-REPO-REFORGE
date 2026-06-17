@@ -1,7 +1,7 @@
 {
   "name": "the-system",
   "private": true,
-  "version": "5.0.2",
+  "version": "5.0.3",
   "type": "module",
   "engines": {
     "node": ">=20.0.0"
@@ -33,6 +33,7 @@
     "@capacitor/local-notifications": "^8.0.2",
     "@capacitor/motion": "^8.0.0",
     "@capacitor/preferences": "^8.0.1",
+    "@capacitor/push-notifications": "^8.1.1",
     "@capawesome/capacitor-app-review": "^8.0.1",
     "@capawesome/capacitor-app-update": "^8.0.3",
     "@codetrix-studio/capacitor-google-auth": "^3.4.0-rc.4",
@@ -62,6 +63,7 @@
     "express-rate-limit": "^8.3.1",
     "express-session": "^1.19.0",
     "framer-motion": "^10.18.0",
+    "google-auth-library": "^10.7.0",
     "groq-sdk": "^1.1.2",
     "gsap": "^3.15.0",
     "jsonwebtoken": "^9.0.3",

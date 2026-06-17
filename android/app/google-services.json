@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "20910572316",
+    "project_id": "gen-lang-client-0615819029",
+    "storage_bucket": "gen-lang-client-0615819029.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:20910572316:android:0b997517c622ac34a4f0d9",
+        "android_client_info": {
+          "package_name": "com.reforge.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "20910572316-4d14c6df8bocnkt032m020vt0bavahlo.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAVtBeDIrMk8kl2L9w0mqCLyIxDwsjKE4w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "20910572316-4d14c6df8bocnkt032m020vt0bavahlo.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

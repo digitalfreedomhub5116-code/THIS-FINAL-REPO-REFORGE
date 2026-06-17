@@ -235,12 +235,11 @@ public class FocusShieldService extends Service {
         long startTime = calendar.getTimeInMillis();
         long endTime = System.currentTimeMillis();
 
-        List<UsageStats> stats = usm.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, startTime, endTime);
-        if (stats != null) {
-            for (UsageStats usageStats : stats) {
-                if (usageStats.getPackageName().equals(packageName)) {
-                    return usageStats.getTotalTimeInForeground();
-                }
+        java.util.Map<String, UsageStats> stats = usm.queryAndAggregateUsageStats(startTime, endTime);
+        if (stats != null && stats.containsKey(packageName)) {
+            UsageStats usageStats = stats.get(packageName);
+            if (usageStats != null) {
+                return usageStats.getTotalTimeInForeground();
             }
         }
         return 0;

@@ -22,6 +22,9 @@ interface GuildsTabProps {
   unseenMessagesCount?: number;
   onTabChange?: (tab: string) => void;
   joinRequestsCount?: number;
+  activePortalTab?: string;
+  activeInfoTab?: "members" | "requests";
+  onInfoTabChange?: (tab: "members" | "requests") => void;
 }
 
 const GuildsTab: React.FC<GuildsTabProps> = ({
@@ -33,6 +36,9 @@ const GuildsTab: React.FC<GuildsTabProps> = ({
   unseenMessagesCount,
   onTabChange,
   joinRequestsCount,
+  activePortalTab,
+  activeInfoTab,
+  onInfoTabChange,
 }) => {
   const [guild, setGuild] = useState<Guild | null>(null);
   const [myRole, setMyRole] = useState<GuildRole | null>(null);
@@ -105,6 +111,9 @@ const GuildsTab: React.FC<GuildsTabProps> = ({
         unseenMessagesCount={unseenMessagesCount}
         onTabChange={onTabChange}
         joinRequestsCount={joinRequestsCount}
+        activePortalTab={activePortalTab}
+        activeInfoTab={activeInfoTab}
+        onInfoTabChange={onInfoTabChange}
       />
     );
   }

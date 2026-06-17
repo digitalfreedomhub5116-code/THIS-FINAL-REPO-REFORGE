@@ -1018,4 +1018,55 @@ router.post('/streak-repair', async (req: Request, res: Response) => {
   }
 });
 
+// Register device token for push notifications
+router.post('/device-token', async (req: Request, res: Response) => {
+  const authUserId = getAuthenticatedUserId(req);
+  if (!authUserId) return res.status(401).json({ error: 'Unauthorized' });
+  const { token, platform } = req.body;
+  if (!token) return res.status(400).json({ error: 'Token is required' });
+
+  try {
+    const db = supabaseServer() as any;
+    const { error } = await db
+      .from('player_device_tokens')
+      .upsert({
+        user_id: authUserId,
+        token,
+        platform,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id,token' });
+
+    if (error) throw error;
+    console.log(`[Device Token] Registered token for player ${authUserId}:`, token.substring(0, 10) + '...');
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('[Device Token Register]', err);
+    return res.status(500).json({ error: 'Failed to register token' });
+  }
+});
+
+// Delete device token
+router.delete('/device-token', async (req: Request, res: Response) => {
+  const authUserId = getAuthenticatedUserId(req);
+  if (!authUserId) return res.status(401).json({ error: 'Unauthorized' });
+  const { token } = req.body;
+  if (!token) return res.status(400).json({ error: 'Token is required' });
+
+  try {
+    const db = supabaseServer() as any;
+    const { error } = await db
+      .from('player_device_tokens')
+      .delete()
+      .eq('user_id', authUserId)
+      .eq('token', token);
+
+    if (error) throw error;
+    console.log(`[Device Token] Deleted token for player ${authUserId}:`, token.substring(0, 10) + '...');
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('[Device Token Delete]', err);
+    return res.status(500).json({ error: 'Failed to delete token' });
+  }
+});
+
 export default router;

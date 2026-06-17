@@ -433,16 +433,16 @@ public class TrackingPlugin extends Plugin {
             long startTime = calendar.getTimeInMillis();
             long endTime = System.currentTimeMillis();
 
-            List<android.app.usage.UsageStats> stats =
-                usm.queryUsageStats(android.app.usage.UsageStatsManager.INTERVAL_DAILY, startTime, endTime);
+            java.util.Map<String, android.app.usage.UsageStats> stats =
+                usm.queryAndAggregateUsageStats(startTime, endTime);
 
             // Build a map of packageName -> usage minutes
             java.util.Map<String, Long> usageMap = new java.util.HashMap<>();
             if (stats != null) {
-                for (android.app.usage.UsageStats us : stats) {
-                    long ms = us.getTotalTimeInForeground();
+                for (java.util.Map.Entry<String, android.app.usage.UsageStats> entry : stats.entrySet()) {
+                    long ms = entry.getValue().getTotalTimeInForeground();
                     if (ms > 0) {
-                        usageMap.put(us.getPackageName(), ms / (1000 * 60));
+                        usageMap.put(entry.getKey(), ms / (1000 * 60));
                     }
                 }
             }

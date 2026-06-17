@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Shield, ShieldAlert, ShieldCheck, Settings, RefreshCw, AlertCircle, 
@@ -89,6 +89,12 @@ export default function FocusShieldSettings({ playerData, isPremium = false, onU
   // Premium lock dialog
   const [showProModal, setShowProModal] = useState(false);
 
+  // Keep a reference to permissions state to avoid resetting effect dependencies
+  const permissionsRef = useRef(permissions);
+  useEffect(() => {
+    permissionsRef.current = permissions;
+  }, [permissions]);
+
   // Check support and load initial permissions & configurations
   useEffect(() => {
     const isAndroid = (window as any).Capacitor?.getPlatform() === 'android';
@@ -98,15 +104,80 @@ export default function FocusShieldSettings({ playerData, isPremium = false, onU
     }
 
     loadSettingsAndApps();
-    checkPermissions();
-    fetchUsageStats();
+    checkPermissionsRef.current();
+    fetchUsageStatsRef.current();
 
     // Check permissions periodically on window focus
     const handleFocus = () => {
-      checkPermissions();
+      checkPermissionsRef.current();
+      fetchUsageStatsRef.current();
     };
     window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
+
+    // Dynamic dynamic app listener for Capacitor app state change
+    let appListener: any = null;
+    const initAppListener = async () => {
+      try {
+        const { App } = await import('@capacitor/app');
+        appListener = await App.addListener('appStateChange', (state) => {
+          if (state.isActive) {
+            checkPermissionsRef.current();
+            fetchUsageStatsRef.current();
+          }
+        });
+      } catch (err) {
+        console.error('Failed to bind appStateChange listener', err);
+      }
+    };
+    initAppListener();
+
+    // Visibility-aware polling loop to check permissions without draining battery
+    let intervalId: any = null;
+
+    const startPolling = () => {
+      if (intervalId) return;
+      intervalId = setInterval(() => {
+        // Stop polling if both permissions are granted
+        if (permissionsRef.current.usageGranted && permissionsRef.current.overlayGranted) {
+          stopPolling();
+          return;
+        }
+        checkPermissionsRef.current();
+      }, 1500);
+    };
+
+    const stopPolling = () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+    };
+
+    // Only start polling if we are currently visible and at least one permission is missing
+    if (document.visibilityState === 'visible' && (!permissionsRef.current.usageGranted || !permissionsRef.current.overlayGranted)) {
+      startPolling();
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        if (!permissionsRef.current.usageGranted || !permissionsRef.current.overlayGranted) {
+          startPolling();
+        }
+      } else {
+        stopPolling();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (appListener) {
+        appListener.remove();
+      }
+      stopPolling();
+    };
   }, []);
 
   // Force system off if premium runs out
@@ -178,7 +249,13 @@ export default function FocusShieldSettings({ playerData, isPremium = false, onU
       if (!plugin) return;
 
       const res = await plugin.checkFocusShieldPermissions();
+      const prevUsage = permissionsRef.current.usageGranted;
       setPermissions({ usageGranted: res.usageGranted, overlayGranted: res.overlayGranted });
+
+      // Dynamic reload: if usage access permission is newly granted, trigger stats load
+      if (res.usageGranted && !prevUsage) {
+        fetchUsageStats();
+      }
 
       // If permissions are active and shield is marked enabled, ensure native service is running
       const enabled = localStorage.getItem('reforge_focus_shield_enabled') === 'true' && isPremium;
@@ -238,6 +315,14 @@ export default function FocusShieldSettings({ playerData, isPremium = false, onU
     }
     setLoadingUsage(false);
   };
+
+  // Keep references to functions to avoid stale closures in listeners
+  const checkPermissionsRef = useRef(checkPermissions);
+  const fetchUsageStatsRef = useRef(fetchUsageStats);
+  useEffect(() => {
+    checkPermissionsRef.current = checkPermissions;
+    fetchUsageStatsRef.current = fetchUsageStats;
+  });
 
   const grantUsagePermission = async () => {
     try {
@@ -580,81 +665,83 @@ export default function FocusShieldSettings({ playerData, isPremium = false, onU
       </div>
 
       {/* SYSTEM GATES */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-2 px-1 text-slate-500 font-mono text-[10px] tracking-wider uppercase">
-          <Cpu className="w-4 h-4" /> System Gates
-        </div>
-        
-        <div className="space-y-2.5">
-          {/* Gate 1: Usage Access */}
-          <div className={`bg-[#0B0D13]/70 border border-[#171B26] rounded-xl flex items-center justify-between p-4 relative overflow-hidden ${
-            permissions.usageGranted ? 'border-l-4 border-l-[#00d4ff]' : 'border-l-4 border-l-rose-500/80'
-          }`}>
-            <div className="flex items-center gap-3">
-              <div className={`${permissions.usageGranted ? 'text-[#00d4ff]' : 'text-rose-500'}`}>
-                <RefreshCw className={`w-5 h-5 ${permissions.usageGranted ? 'animate-spin-slow' : ''}`} />
-              </div>
-              <span className="text-xs font-bold text-white font-mono tracking-wide">
-                Gate 1: Usage Access
-              </span>
+      <AnimatePresence>
+        {(!permissions.usageGranted || !permissions.overlayGranted) && (
+          <motion.div 
+            exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+            transition={{ duration: 0.4, ease: 'easeInOut' }}
+            className="space-y-3 overflow-hidden"
+          >
+            <div className="flex items-center gap-2 px-1 text-slate-500 font-mono text-[10px] tracking-wider uppercase">
+              <Cpu className="w-4 h-4" /> System Gates
             </div>
             
-            <div className="flex items-center gap-2">
-              {permissions.usageGranted ? (
-                <span className="text-[9px] font-mono text-[#00d4ff] font-bold bg-[#00d4ff]/10 border border-[#00d4ff]/30 px-2.5 py-1 rounded">
-                  GRANTED
-                </span>
-              ) : (
-                <>
-                  <span className="text-[9px] font-mono text-rose-400 font-bold bg-rose-950/20 border border-rose-500/30 px-2.5 py-1 rounded">
-                    DENIED
-                  </span>
-                  <button
-                    onClick={grantUsagePermission}
-                    className="bg-[#121620] border border-[#1e2535] text-slate-350 font-mono text-[9px] font-bold px-3 py-1.5 rounded-lg active:scale-95 transition-all hover:bg-slate-800 hover:text-white"
+            <div className="space-y-2.5">
+              <AnimatePresence initial={false}>
+                {/* Gate 1: Usage Access */}
+                {!permissions.usageGranted && (
+                  <motion.div 
+                    exit={{ opacity: 0, height: 0, padding: 0, marginTop: 0, border: 0 }}
+                    transition={{ duration: 0.35, ease: 'easeInOut' }}
+                    className="bg-[#0B0D13]/70 border border-[#171B26] rounded-xl flex items-center justify-between p-4 relative overflow-hidden border-l-4 border-l-rose-500/80"
                   >
-                    CONFIGURE
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
+                    <div className="flex items-center gap-3">
+                      <div className="text-rose-500">
+                        <RefreshCw className="w-5 h-5 animate-pulse" />
+                      </div>
+                      <span className="text-xs font-bold text-white font-mono tracking-wide">
+                        Gate 1: Usage Access
+                      </span>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <span className="text-[9px] font-mono text-rose-400 font-bold bg-rose-950/20 border border-rose-500/30 px-2.5 py-1 rounded">
+                        DENIED
+                      </span>
+                      <button
+                        onClick={grantUsagePermission}
+                        className="bg-[#121620] border border-[#1e2535] text-slate-350 font-mono text-[9px] font-bold px-3 py-1.5 rounded-lg active:scale-95 transition-all hover:bg-slate-800 hover:text-white"
+                      >
+                        CONFIGURE
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
 
-          {/* Gate 2: Draw Over Apps */}
-          <div className={`bg-[#0B0D13]/70 border border-[#171B26] rounded-xl flex items-center justify-between p-4 relative overflow-hidden ${
-            permissions.overlayGranted ? 'border-l-4 border-l-[#00d4ff]' : 'border-l-4 border-l-rose-500/80'
-          }`}>
-            <div className="flex items-center gap-3">
-              <div className={`${permissions.overlayGranted ? 'text-[#00d4ff]' : 'text-rose-500'}`}>
-                <Cpu className="w-5 h-5" />
-              </div>
-              <span className="text-xs font-bold text-white font-mono tracking-wide">
-                Gate 2: Draw Over Apps
-              </span>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              {permissions.overlayGranted ? (
-                <span className="text-[9px] font-mono text-[#00d4ff] font-bold bg-[#00d4ff]/10 border border-[#00d4ff]/30 px-2.5 py-1 rounded">
-                  GRANTED
-                </span>
-              ) : (
-                <>
-                  <span className="text-[9px] font-mono text-rose-400 font-bold bg-rose-950/20 border border-rose-500/30 px-2.5 py-1 rounded">
-                    DENIED
-                  </span>
-                  <button
-                    onClick={grantOverlayPermission}
-                    className="bg-[#121620] border border-[#1e2535] text-slate-350 font-mono text-[9px] font-bold px-3 py-1.5 rounded-lg active:scale-95 transition-all hover:bg-slate-800 hover:text-white"
+                {/* Gate 2: Draw Over Apps */}
+                {!permissions.overlayGranted && (
+                  <motion.div 
+                    exit={{ opacity: 0, height: 0, padding: 0, marginTop: 0, border: 0 }}
+                    transition={{ duration: 0.35, ease: 'easeInOut' }}
+                    className="bg-[#0B0D13]/70 border border-[#171B26] rounded-xl flex items-center justify-between p-4 relative overflow-hidden border-l-4 border-l-rose-500/80"
                   >
-                    CONFIGURE
-                  </button>
-                </>
-              )}
+                    <div className="flex items-center gap-3">
+                      <div className="text-rose-500">
+                        <Cpu className="w-5 h-5 animate-pulse" />
+                      </div>
+                      <span className="text-xs font-bold text-white font-mono tracking-wide">
+                        Gate 2: Draw Over Apps
+                      </span>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <span className="text-[9px] font-mono text-rose-400 font-bold bg-rose-950/20 border border-rose-500/30 px-2.5 py-1 rounded">
+                        DENIED
+                      </span>
+                      <button
+                        onClick={grantOverlayPermission}
+                        className="bg-[#121620] border border-[#1e2535] text-slate-350 font-mono text-[9px] font-bold px-3 py-1.5 rounded-lg active:scale-95 transition-all hover:bg-slate-800 hover:text-white"
+                      >
+                        CONFIGURE
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
-          </div>
-        </div>
-      </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Targeted Containment List */}
       <div className="space-y-3">

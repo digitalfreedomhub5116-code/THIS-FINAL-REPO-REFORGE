@@ -6,7 +6,7 @@
 import { Router, Request, Response } from 'express';
 import { getAuthenticatedUserId } from '../lib/playerAuth.js';
 import { supabaseServer } from '../lib/supabase.js';
-import { grantKeys, getKeyBalance } from '../lib/keyGate.js';
+import { grantKeys, getKeyBalance, deductKeys } from '../lib/keyGate.js';
 
 const router = Router();
 
@@ -187,6 +187,28 @@ router.post('/ad-reward', async (_req: Request, res: Response) => {
 // Previously granted bonus rewards for watching an ad after completion.
 router.post('/ad-double', async (_req: Request, res: Response) => {
   return res.status(410).json({ error: 'Ad-double rewards are no longer available.' });
+});
+
+// ── POST /spend-key — Spend a mana key (e.g. for Focus Shield bypass) ──
+router.post('/spend-key', async (req: Request, res: Response) => {
+  const userId = getAuthenticatedUserId(req);
+  if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+  const { amount, action } = req.body;
+  const spendAmount = typeof amount === 'number' ? amount : 1;
+
+  try {
+    const result = await deductKeys(userId, spendAmount);
+    if (!result.success) {
+      return res.status(402).json({ error: result.error || 'Not enough keys' });
+    }
+
+    console.log(`[Economy] ${userId.slice(-8)}: -${spendAmount}🔑 (${action || 'spend-key'}) → ${result.remaining} remaining`);
+    return res.json({ success: true, keys: result.remaining });
+  } catch (err) {
+    console.error('[Economy spend-key]', err);
+    return res.status(500).json({ error: 'Failed to process key deduction' });
+  }
 });
 
 export default router;

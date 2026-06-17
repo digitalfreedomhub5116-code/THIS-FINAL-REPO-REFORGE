@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldAlert, Zap, Swords, Lock, RefreshCw, Key } from 'lucide-react';
 import FormCoachOverlay from './FormCoachOverlay';
@@ -15,6 +15,122 @@ interface DungeonLockScreenProps {
   onClose: () => void;
 }
 
+const STYLES_ID = 'dls-component-styles';
+
+const STYLES_CSS = `
+.dls-hsw-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 380px;
+  margin: 0 auto;
+  aspect-ratio: 2400 / 1792;
+  user-select: none;
+  font-family: 'Rajdhani', 'Bai Jamjuree', monospace, sans-serif;
+}
+.dls-hsw-motion {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  will-change: transform, filter;
+}
+.dls-hsw-frame,
+.dls-hsw-frame-fallback {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 4px;
+  pointer-events: none;
+}
+.dls-hsw-frame { object-fit: fill; opacity: 0; transition: opacity 280ms ease-out; }
+.dls-hsw-frame.is-loaded { opacity: 1; }
+.dls-hsw-frame-fallback {
+  background: linear-gradient(180deg, #060d18 0%, #02060c 100%);
+  border: 1.5px solid #00d4ff;
+  box-shadow:
+    0 0 20px rgba(0, 212, 255, 0.45),
+    inset 0 0 16px rgba(0, 212, 255, 0.12);
+}
+.dls-hsw-frame-skeleton {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 4px;
+  pointer-events: none;
+  background: linear-gradient(180deg, #060d18 0%, #02060c 100%);
+  border: 1.5px solid rgba(0, 212, 255, 0.35);
+  box-shadow:
+    0 0 12px rgba(0, 212, 255, 0.18),
+    inset 0 0 14px rgba(0, 212, 255, 0.06);
+  overflow: hidden;
+}
+.dls-hsw-frame-skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 30%,
+    rgba(0, 212, 255, 0.08) 50%,
+    transparent 70%
+  );
+  background-size: 200% 100%;
+  animation: dls-hsw-shimmer 1.4s linear infinite;
+}
+@keyframes dls-hsw-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.dls-hsw-safezone {
+  position: absolute;
+  top: 14%;
+  right: 5%;
+  bottom: 12%;
+  left: 5%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 16px 14px;
+  background: rgba(4, 10, 20, 0.55);
+  backdrop-filter: blur(2px) saturate(110%);
+  -webkit-backdrop-filter: blur(2px) saturate(110%);
+  border-radius: 2px;
+}
+.dls-hsw-title-plate {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 4px 18px;
+  background: rgba(4, 10, 20, 0.92);
+  border: 1.5px solid #00d4ff;
+  border-radius: 2px;
+  box-shadow:
+    0 0 10px rgba(0, 212, 255, 0.35),
+    inset 0 0 8px rgba(0, 212, 255, 0.18);
+  font-family: 'Rajdhani', 'Bai Jamjuree', sans-serif;
+  font-weight: 700;
+  font-size: 9px;
+  letter-spacing: 0.32em;
+  color: #ffffff;
+  text-shadow: 0 0 6px rgba(0, 212, 255, 0.55);
+  white-space: nowrap;
+  z-index: 2;
+}
+`;
+
+function ensureStylesInjected(): void {
+  if (typeof document === 'undefined') return;
+  if (document.getElementById(STYLES_ID)) return;
+  const style = document.createElement('style');
+  style.id = STYLES_ID;
+  style.textContent = STYLES_CSS;
+  document.head.appendChild(style);
+}
+
 export default function DungeonLockScreen({
   packageName,
   appName,
@@ -28,8 +144,22 @@ export default function DungeonLockScreen({
   const [repCount, setRepCount] = useState(0);
   const [bypassLoading, setBypassLoading] = useState(false);
 
-  // Load real push-up configuration from FormCoach Config to ensure all landmarks,
-  // angle limits, and rep detection thresholds (like bottomAngleMax) are fully defined.
+  const [frameLoaded, setFrameLoaded] = useState(true);
+  const [frameReady, setFrameReady] = useState(false);
+  const imgRef = useRef<HTMLImageElement | null>(null);
+
+  useEffect(() => {
+    ensureStylesInjected();
+  }, []);
+
+  useEffect(() => {
+    const el = imgRef.current;
+    if (el && el.complete && el.naturalWidth > 0) {
+      setFrameReady(true);
+    }
+  }, []);
+
+  // Load real push-up configuration from FormCoach Config
   const PUSHUP_EXERCISE = findFormCoachExercise('Push-Up')!;
 
   const handleDungeonClear = async () => {
@@ -121,6 +251,30 @@ export default function DungeonLockScreen({
     }
   };
 
+  // Holographic window opening states matching status window unfold
+  const entrancePanel = {
+    scaleY: [0.02, 0.02, 1],
+    opacity: [0.85, 1, 1],
+  };
+  const entrancePanelTransition = {
+    duration: 0.8,
+    times: [0, 0.35, 1],
+    ease: [0.22, 1, 0.36, 1] as const,
+  };
+
+  const entranceContent = { opacity: [0, 0, 1] };
+  const entranceContentTransition = { duration: 0.9, times: [0, 0.55, 1], ease: 'easeOut' as const };
+
+  const floatAnim = {
+    y: [0, -3, 0, 3, 0],
+    filter: [
+      'drop-shadow(0 0 15px rgba(0, 212, 255, 0.22))',
+      'drop-shadow(0 0 25px rgba(0, 212, 255, 0.45))',
+      'drop-shadow(0 0 15px rgba(0, 212, 255, 0.22))',
+    ],
+  };
+  const floatTransition = { duration: 6, repeat: Infinity, ease: 'easeInOut' as const };
+
   return (
     <div className="fixed inset-0 bg-black z-50 flex flex-col justify-between p-6 select-none overflow-hidden">
       {/* Background RPG Atmosphere Grid */}
@@ -133,54 +287,103 @@ export default function DungeonLockScreen({
         }}
       />
 
-      {/* Header Warning Banner */}
-      <div className="w-full flex flex-col items-center text-center mt-6">
-        <div className="p-2 border border-red-500/30 bg-red-500/10 rounded-xl mb-4 animate-pulse">
-          <ShieldAlert className="w-6 h-6 text-red-500" />
-        </div>
-        <h1 className="text-[10px] font-black font-mono uppercase tracking-[0.3em] text-red-500">
-          Focus Shield Quarantine
-        </h1>
-        <div className="h-px w-24 bg-red-500/30 my-3" />
-        <p className="text-xs text-gray-400 max-w-xs leading-relaxed font-mono">
-          <span className="text-white font-bold">{appName}</span> has exceeded your configured daily focus limit. 
-          Complete the active dungeon to restore access.
-        </p>
-      </div>
+      {/* Spacing top */}
+      <div className="h-6" />
 
       {/* Center Camera Workspace or Lockdown Screen */}
       <div className="flex-1 w-full max-w-sm mx-auto flex items-center justify-center my-6">
         <AnimatePresence mode="wait">
           {!showCamera ? (
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full flex flex-col items-center p-6 bg-gray-950/50 border border-gray-900 rounded-2xl relative"
+            <motion.div
+              className="dls-hsw-wrapper"
+              initial={{ scaleY: 0.02, opacity: 0.85 }}
+              animate={entrancePanel}
+              transition={entrancePanelTransition}
+              style={{ transformOrigin: '50% 50%' }}
             >
-              {/* Outer tech circles */}
-              <div className="w-24 h-24 rounded-full border border-gray-800 flex items-center justify-center relative mb-4">
-                <Lock className="w-6 h-6 text-gray-500" />
-                <motion.div 
-                  className="absolute inset-0 rounded-full border border-dashed border-[#00d4ff]/30"
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 15, repeat: Infinity, ease: 'linear' }}
-                />
-              </div>
+              {/* Scan Line unfolding laser */}
+              <motion.div
+                aria-hidden="true"
+                initial={{ scaleX: 0, opacity: 0.9 }}
+                animate={{ scaleX: [0, 1, 1], opacity: [0.9, 0.9, 0] }}
+                transition={{ duration: 0.55, times: [0, 0.6, 1], ease: 'easeOut' }}
+                style={{
+                  position: 'absolute',
+                  left: 0,
+                  right: 0,
+                  top: '50%',
+                  height: 2,
+                  transform: 'translateY(-50%)',
+                  transformOrigin: '50% 50%',
+                  background:
+                    'linear-gradient(90deg, transparent 0%, rgba(0, 212, 255, 0.95) 50%, transparent 100%)',
+                  boxShadow:
+                    '0 0 14px rgba(0, 212, 255, 0.85), 0 0 28px rgba(0, 212, 255, 0.45)',
+                  pointerEvents: 'none',
+                  zIndex: 3,
+                }}
+              />
 
-              <span className="text-[9px] font-bold font-mono text-gray-500 uppercase tracking-widest">DUNGEON CLEAR QUEST</span>
-              <h2 className="text-lg font-black text-white uppercase tracking-wider mt-1">{requiredReps} PUSH-UPS</h2>
-              
-              <p className="text-[10px] text-gray-500 text-center font-mono mt-2 leading-normal max-w-[200px]">
-                Requires live camera tracking via Front Camera. Correct reps will be automatically counted.
-              </p>
-
-              <button
-                onClick={() => { playSystemSoundEffect('SELECT'); setShowCamera(true); }}
-                className="mt-6 w-full py-3 bg-[#00d4ff] hover:bg-[#00d4ff]/90 text-black text-xs font-black font-mono uppercase tracking-wider rounded-xl transition-all shadow-[0_0_20px_rgba(0,212,255,0.25)] flex items-center justify-center gap-2"
+              {/* Floating inner content wrapper */}
+              <motion.div
+                style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }}
+                animate={floatAnim}
+                transition={floatTransition}
               >
-                <Swords className="w-4 h-4" /> Enter Dungeon
-              </button>
+                <motion.div
+                  style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }}
+                  initial={{ opacity: 0 }}
+                  animate={entranceContent}
+                  transition={entranceContentTransition}
+                >
+                  {/* Status Frame Image / Fallback */}
+                  {frameLoaded ? (
+                    <>
+                      {!frameReady && <div className="dls-hsw-frame-skeleton" aria-hidden="true" />}
+                      <img
+                        ref={imgRef}
+                        className={`dls-hsw-frame${frameReady ? ' is-loaded' : ''}`}
+                        src="/assets/status-frame.jpg"
+                        alt=""
+                        aria-hidden="true"
+                        draggable={false}
+                        decoding="async"
+                        loading="eager"
+                        onLoad={() => setFrameReady(true)}
+                        onError={() => { setFrameLoaded(false); setFrameReady(true); }}
+                      />
+                    </>
+                  ) : (
+                    <div className="dls-hsw-frame-fallback" aria-hidden="true" />
+                  )}
+
+                  {/* Content safe zone overlay */}
+                  <div className="dls-hsw-safezone">
+                    <div className="dls-hsw-title-plate">SYSTEM LOCKDOWN</div>
+
+                    {/* Exceeded limit warning text (written directly, no typewriter animation) */}
+                    <div className="flex-1 flex flex-col justify-center items-center text-center px-2">
+                      <p className="text-[12px] md:text-sm font-bold tracking-wide text-white font-mono leading-relaxed">
+                        <span className="text-[#00d4ff] font-extrabold uppercase">{appName}</span> has exceeded the limit.
+                      </p>
+                      <p className="text-[10px] md:text-[11px] text-gray-400 font-mono mt-2 leading-relaxed">
+                        Complete the dungeon to unlock the access.
+                      </p>
+                    </div>
+
+                    {/* Unlock Button */}
+                    <button
+                      onClick={() => {
+                        playSystemSoundEffect('SELECT');
+                        setShowCamera(true);
+                      }}
+                      className="w-full py-2.5 bg-[#00d4ff] hover:bg-[#00d4ff]/90 text-black text-[11px] font-black font-mono uppercase tracking-wider rounded border border-[#00d4ff] shadow-[0_0_15px_rgba(0,212,255,0.3)] transition-all active:scale-[0.98] flex items-center justify-center gap-1.5"
+                    >
+                      <Swords className="w-3.5 h-3.5" /> Enter Dungeon
+                    </button>
+                  </div>
+                </motion.div>
+              </motion.div>
             </motion.div>
           ) : (
             <motion.div 
@@ -211,30 +414,37 @@ export default function DungeonLockScreen({
       <div className="w-full max-w-sm mx-auto flex flex-col items-center gap-4 mb-6">
         <div className="w-full h-px bg-gray-900/60" />
         
-        {/* Mana Key Emergency Bypass */}
-        <div className="w-full bg-gray-950/40 border border-gray-900/60 rounded-xl px-4 py-3 flex items-center justify-between">
-          <div className="flex-1">
-            <span className="text-[10px] text-gray-400 font-mono tracking-wider">
-              OR use a key to bypass
-            </span>
-            <p className="text-[8px] text-gray-600 font-mono mt-0.5">
-              Cost: 1 Mana Key for 15m unlock
-            </p>
+        {/* Refined Mana Key Emergency Bypass */}
+        <div className="w-full bg-gray-950/60 border border-purple-500/20 rounded-xl px-4 py-3.5 flex items-center justify-between shadow-[0_0_15px_rgba(168,85,247,0.05)] relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-purple-950/10 to-transparent pointer-events-none" />
+          
+          <div className="flex-1 flex items-center gap-3 relative z-10">
+            <div className="p-2 bg-purple-500/10 border border-purple-500/30 rounded-lg">
+              <Key className="w-4 h-4 text-purple-400 animate-pulse" />
+            </div>
+            <div>
+              <span className="text-[10px] text-gray-300 font-mono font-bold tracking-wider uppercase block">
+                Mana Key Bypass
+              </span>
+              <p className="text-[8.5px] text-purple-400/80 font-mono mt-0.5">
+                Cost: 1 Key for 15m bypass
+              </p>
+            </div>
           </div>
 
           <button
             onClick={handleShadowBypass}
             disabled={bypassLoading || clearing}
-            className={`px-3 py-2 border rounded-xl text-[9px] font-bold font-mono tracking-wider transition-all uppercase flex items-center gap-1.5 ${
+            className={`relative z-10 px-3.5 py-2 border rounded-lg text-[10px] font-black font-mono tracking-wider transition-all uppercase flex items-center gap-1.5 active:scale-95 ${
               (playerData?.keys ?? 0) < 1
-                ? 'border-gray-950 bg-gray-900/40 text-gray-600 cursor-not-allowed'
-                : 'border-purple-500/40 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400'
+                ? 'border-gray-800 bg-gray-900/40 text-gray-500 cursor-not-allowed'
+                : 'border-purple-500 bg-purple-500/10 hover:bg-purple-500/25 text-purple-300 shadow-[0_0_12px_rgba(168,85,247,0.2)]'
             }`}
           >
             {bypassLoading ? (
-              <Zap className="w-3 h-3 animate-spin" />
+              <Zap className="w-3.5 h-3.5 animate-spin" />
             ) : (
-              <>Use Key <span className="font-sans text-[8px] font-black">({playerData?.keys ?? 0})</span></>
+              <>Use Key <span className="text-white font-sans font-bold">({playerData?.keys ?? 0})</span></>
             )}
           </button>
         </div>

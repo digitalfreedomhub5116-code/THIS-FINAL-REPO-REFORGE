@@ -964,6 +964,80 @@ const App: React.FC = () => {
   const [unseenMessagesCount, setUnseenMessagesCount] = useState(0);
   const [joinRequestsCount, setJoinRequestsCount] = useState(0);
   const [activePortalTab, setActivePortalTab] = useState<string>('chat');
+  const [guildActiveInfoTab, setGuildActiveInfoTab] = useState<'members' | 'requests'>('members');
+
+  // ── Push Notifications Registration and Action Listener ──
+  useEffect(() => {
+    if (!player.userId || isLocalUser(player.userId)) return;
+
+    let regListener: any = null;
+    let errListener: any = null;
+    let recListener: any = null;
+    let actListener: any = null;
+
+    const setupPush = async () => {
+      try {
+        const { Capacitor } = await import('@capacitor/core');
+        if (!Capacitor.isNativePlatform()) return;
+
+        const { PushNotifications } = await import('@capacitor/push-notifications');
+
+        // Add listeners
+        regListener = await PushNotifications.addListener('registration', (token) => {
+          console.log('[Push] Registration token:', token.value);
+          localStorage.setItem('reforge_push_token', token.value);
+          authenticatedFetch(`${API_BASE}/api/player/device-token`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
+            body: JSON.stringify({
+              token: token.value,
+              platform: Capacitor.getPlatform(),
+            }),
+          }).catch((err) => console.error('[Push] Backend token registration failed:', err));
+        });
+
+        errListener = await PushNotifications.addListener('registrationError', (err) => {
+          console.error('[Push] Registration error:', err);
+        });
+
+        recListener = await PushNotifications.addListener('pushNotificationReceived', (notification) => {
+          console.log('[Push] Notification received in foreground:', notification);
+        });
+
+        actListener = await PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
+          console.log('[Push] Action performed:', action);
+          const data = action.notification.data;
+          if (data && (data.type === 'guild_request' || data.guildId)) {
+            navigateTo('GUILDS');
+            setInGuildPortal(true);
+            setActivePortalTab('members');
+            setGuildActiveInfoTab('requests');
+          }
+        });
+
+        // Request permissions and register
+        let permStatus = await PushNotifications.checkPermissions();
+        if (permStatus.receive === 'prompt') {
+          permStatus = await PushNotifications.requestPermissions();
+        }
+
+        if (permStatus.receive === 'granted') {
+          await PushNotifications.register();
+        }
+      } catch (err) {
+        console.warn('[Push] Setup failed:', err);
+      }
+    };
+
+    setupPush();
+
+    return () => {
+      if (regListener) regListener.remove();
+      if (errListener) errListener.remove();
+      if (recListener) recListener.remove();
+      if (actListener) actListener.remove();
+    };
+  }, [player.userId, navigateTo]);
 
   // Initialize guild ID and role on mount/login
   useEffect(() => {
@@ -1128,17 +1202,62 @@ const App: React.FC = () => {
           }
         }
       },
-      onJoinRequest: () => {
-        if (myGuildRole === 'master' || myGuildRole === 'vice') {
+      onJoinRequest: (payload) => {
+        if (myGuildId && (myGuildRole === 'master' || myGuildRole === 'vice')) {
           fetchJoinRequests(myGuildId)
             .then((reqs) => setJoinRequestsCount(reqs.length))
             .catch(() => {});
+
+          if (payload && payload.action === 'create') {
+            // Play notification sound
+            playSystemSoundEffect('SYSTEM');
+
+            // Add in-app toast notification
+            addNotification(
+              '⚔️ A player requested to join your guild.',
+              'SYSTEM',
+              () => {
+                navigateTo('GUILDS');
+                setInGuildPortal(true);
+                setActivePortalTab('members');
+                setGuildActiveInfoTab('requests');
+              }
+            );
+
+            // Also trigger a local fallback notification if the app is in background
+            if (document.visibilityState === 'hidden') {
+              (async () => {
+                try {
+                  const { Capacitor } = await import('@capacitor/core');
+                  if (Capacitor.isNativePlatform()) {
+                    const { LocalNotifications } = await import('@capacitor/local-notifications');
+                    await LocalNotifications.schedule({
+                      notifications: [{
+                        id: Math.floor(Math.random() * 1000000),
+                        title: 'Guild Request',
+                        body: 'A player has requested to join your guild.',
+                        schedule: { at: new Date(Date.now() + 50) },
+                        smallIcon: 'ic_stat_notification',
+                        channelId: 'reforge_dusk',
+                        extra: {
+                          type: 'guild_request',
+                          guildId: myGuildId,
+                        }
+                      }]
+                    });
+                  }
+                } catch (e) {
+                  console.warn('[GuildNotif] Failed to schedule local notification:', e);
+                }
+              })();
+            }
+          }
         }
       }
     });
 
     return unsubscribe;
-  }, [myGuildId, myGuildRole, activeTab, inGuildPortal, activePortalTab, player.userId, addNotification, navigateTo]);
+  }, [myGuildId, myGuildRole, activeTab, inGuildPortal, activePortalTab, player.userId, addNotification, navigateTo, setGuildActiveInfoTab]);
 
   // Reset unseen message count when user actively enters chat tab
   useEffect(() => {
@@ -5657,6 +5776,9 @@ const App: React.FC = () => {
                         unseenMessagesCount={unseenMessagesCount}
                         onTabChange={setActivePortalTab}
                         joinRequestsCount={joinRequestsCount}
+                        activePortalTab={activePortalTab}
+                        activeInfoTab={guildActiveInfoTab}
+                        onInfoTabChange={setGuildActiveInfoTab}
                       />
 
                     </ErrorBoundary>
@@ -5876,6 +5998,20 @@ const App: React.FC = () => {
                     // 3. Fire-and-forget: sync data & destroy session in background
 
                     (async () => {
+
+                      try {
+                        const pushToken = localStorage.getItem('reforge_push_token');
+                        if (pushToken && prevUserId && !isLocalUser(prevUserId)) {
+                          await authenticatedFetch(`${API_BASE}/api/player/device-token`, {
+                            method: 'DELETE',
+                            headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
+                            body: JSON.stringify({ token: pushToken }),
+                          });
+                          localStorage.removeItem('reforge_push_token');
+                        }
+                      } catch (e) {
+                        console.warn('[Push Logout] Failed to delete token:', e);
+                      }
 
                       try {
 
