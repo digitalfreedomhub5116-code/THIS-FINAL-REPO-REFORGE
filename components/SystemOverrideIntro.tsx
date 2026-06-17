@@ -336,16 +336,16 @@ export const SystemOverrideIntro: React.FC<SystemOverrideIntroProps> = ({ onComp
         current = 78;
         clearInterval(interval);
         
-        // Wait 300ms after reaching 78% then transition to TV Static
+        // Wait 450ms after reaching 78% then transition to TV Static
         setTimeout(() => {
           setPhase("STATIC");
           const ctx = getAudioContext();
           startStaticSound(ctx);
           triggerStaticVibration();
-        }, 300);
+        }, 450);
       }
       setPercentage(current);
-    }, 150); // Fast glitchy tick speed (~2 seconds total)
+    }, 460); // Slowed down tick speed to extend duration to 4 seconds
 
     return () => clearInterval(interval);
   }, [phase]);
@@ -360,7 +360,7 @@ export const SystemOverrideIntro: React.FC<SystemOverrideIntroProps> = ({ onComp
       
       const ctx = getAudioContext();
       startDroneSound(ctx);
-    }, 2500); // Static runs for 2.5 seconds
+    }, 3000); // Static runs for 3 seconds
 
     return () => clearTimeout(timer);
   }, [phase]);
@@ -384,8 +384,8 @@ export const SystemOverrideIntro: React.FC<SystemOverrideIntroProps> = ({ onComp
       const data = imgData.data;
       const elapsed = Date.now() - startTime;
       
-      // Shift toward red/orange static over the last 1.0 second (i.e. after 1500ms)
-      const staticProgress = Math.max(0, Math.min(1, (elapsed - 1400) / 1000));
+      // Shift toward red/orange static over the last 1.0 second (i.e. after 2000ms of a 3-second duration)
+      const staticProgress = Math.max(0, Math.min(1, (elapsed - 2000) / 1000));
 
       for (let i = 0; i < data.length; i += 4) {
         const noise = Math.floor(Math.random() * 255);
