@@ -3925,7 +3925,7 @@ const App: React.FC = () => {
 
             const cloudData = (profile as any).raw_data as Partial<PlayerData> | undefined;
 
-            const isReturningUser = !!(cloudData?.isConfigured || (cloudData as any)?.avatarUrl);
+            const isReturningUser = !!cloudData?.isConfigured;
 
             if (isReturningUser) {
 
@@ -3995,7 +3995,7 @@ const App: React.FC = () => {
 
             const cloudData = (profile as any).raw_data as Partial<PlayerData> | undefined;
 
-            const isReturningUser = !!(cloudData?.isConfigured || (cloudData as any)?.avatarUrl);
+            const isReturningUser = !!cloudData?.isConfigured;
 
             if (isReturningUser) {
 
@@ -4063,7 +4063,7 @@ const App: React.FC = () => {
 
             const cloudData = (profile as any).raw_data as Partial<PlayerData> | undefined;
 
-            const isReturningUser = !!(cloudData?.isConfigured || (cloudData as any)?.avatarUrl);
+            const isReturningUser = !!cloudData?.isConfigured;
 
             if (isReturningUser) {
 
