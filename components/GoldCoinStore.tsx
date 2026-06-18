@@ -199,7 +199,7 @@ const GoldCoinStore: React.FC<GoldCoinStoreProps> = ({ gold, rcState, rcActions,
 
       if (result.success) {
         // Credit gold on server after Google confirms — with retry for reliability
-        const transactionId = `rc_${Date.now()}_${pack.productId}`;
+        const transactionId = (result as any).transactionId || `rc_${Date.now()}_${pack.productId}`;
         let credited = false;
 
         for (let attempt = 1; attempt <= 3; attempt++) {
@@ -752,7 +752,10 @@ const GoldCoinStore: React.FC<GoldCoinStoreProps> = ({ gold, rcState, rcActions,
         currency="gold"
         packImage={celebrationPack?.image || ''}
         tierColor={celebrationPack?.catColor || '#F59E0B'}
-        onClose={() => setCelebrationPack(null)}
+        onClose={() => {
+          setCelebrationPack(null);
+          window.dispatchEvent(new CustomEvent('reforge:sync-needed'));
+        }}
       />
     </>
   );

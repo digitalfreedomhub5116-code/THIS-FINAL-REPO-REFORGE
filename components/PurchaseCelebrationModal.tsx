@@ -114,8 +114,11 @@ const PurchaseCelebrationModal: React.FC<PurchaseCelebrationProps> = ({
       setShowText(false);
       setShowButton(false);
       hasTriggeredRef.current = false;
+      window.dispatchEvent(new CustomEvent('reforge:show-nav'));
       return;
     }
+
+    window.dispatchEvent(new CustomEvent('reforge:hide-nav'));
 
     // Fire confetti burst
     if (!hasTriggeredRef.current) {
@@ -140,6 +143,7 @@ const PurchaseCelebrationModal: React.FC<PurchaseCelebrationProps> = ({
     const t3 = setTimeout(() => setShowButton(true), 1400);
 
     return () => {
+      window.dispatchEvent(new CustomEvent('reforge:show-nav'));
       clearTimeout(t1);
       clearTimeout(t2);
       clearTimeout(t3);
@@ -313,9 +317,11 @@ const PurchaseCelebrationModal: React.FC<PurchaseCelebrationProps> = ({
                     gap: 10,
                   }}
                 >
-                  <span style={{ fontSize: 40, filter: `drop-shadow(0 0 8px ${tierColor})` }}>
-                    {currencyIcon}
-                  </span>
+                  {currency !== 'keys' && (
+                    <span style={{ fontSize: 40, filter: `drop-shadow(0 0 8px ${tierColor})` }}>
+                      {currencyIcon}
+                    </span>
+                  )}
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
                     <span
                       style={{

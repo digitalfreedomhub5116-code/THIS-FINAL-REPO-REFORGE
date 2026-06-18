@@ -336,16 +336,16 @@ export const SystemOverrideIntro: React.FC<SystemOverrideIntroProps> = ({ onComp
         current = 78;
         clearInterval(interval);
         
-        // Wait 450ms after reaching 78% then transition to TV Static
+        // Wait 400ms after reaching 78% then transition to TV Static
         setTimeout(() => {
           setPhase("STATIC");
           const ctx = getAudioContext();
           startStaticSound(ctx);
           triggerStaticVibration();
-        }, 450);
+        }, 400);
       }
       setPercentage(current);
-    }, 460); // Slowed down tick speed to extend duration to 4 seconds
+    }, 320); // Sped up tick speed to target exactly 3.0 seconds duration (with 400ms pause)
 
     return () => clearInterval(interval);
   }, [phase]);
@@ -360,7 +360,7 @@ export const SystemOverrideIntro: React.FC<SystemOverrideIntroProps> = ({ onComp
       
       const ctx = getAudioContext();
       startDroneSound(ctx);
-    }, 3000); // Static runs for 3 seconds
+    }, 2000); // Static runs for 2 seconds
 
     return () => clearTimeout(timer);
   }, [phase]);
@@ -384,8 +384,8 @@ export const SystemOverrideIntro: React.FC<SystemOverrideIntroProps> = ({ onComp
       const data = imgData.data;
       const elapsed = Date.now() - startTime;
       
-      // Shift toward red/orange static over the last 1.0 second (i.e. after 2000ms of a 3-second duration)
-      const staticProgress = Math.max(0, Math.min(1, (elapsed - 2000) / 1000));
+      // Shift toward red/orange static over the last 1.0 second (i.e. after 1000ms of a 2-second duration)
+      const staticProgress = Math.max(0, Math.min(1, (elapsed - 1000) / 1000));
 
       for (let i = 0; i < data.length; i += 4) {
         const noise = Math.floor(Math.random() * 255);
@@ -512,7 +512,8 @@ export const SystemOverrideIntro: React.FC<SystemOverrideIntroProps> = ({ onComp
     // Sequence 2
     [
       "How long have you lived as a shadow, waiting for a light that *was never meant to find you?*",
-      "Today is not an accident. You opened this because part of you already knows — it's time."
+      "Today is not an accident. You opened this because part of you already knows — it's time.",
+      "*It's time to REFORGE.*"
     ],
     // Sequence 3
     [
@@ -725,7 +726,7 @@ export const SystemOverrideIntro: React.FC<SystemOverrideIntroProps> = ({ onComp
                     {typedText1.split("*").map((chunk, idx) => {
                       if (idx % 2 !== 0) {
                         return (
-                          <span key={idx} className="text-cyan-400 font-bold italic">
+                          <span key={idx} className="text-cyan-400 font-extrabold italic drop-shadow-[0_0_8px_rgba(6,182,212,0.65)]">
                             {chunk}
                           </span>
                         );
@@ -742,7 +743,16 @@ export const SystemOverrideIntro: React.FC<SystemOverrideIntroProps> = ({ onComp
                     animate={{ opacity: 1, y: 0 }}
                     className="text-base md:text-lg text-white font-medium leading-relaxed tracking-wide"
                   >
-                    {typedText2}
+                    {typedText2.split("*").map((chunk, idx) => {
+                      if (idx % 2 !== 0) {
+                        return (
+                          <span key={idx} className="text-cyan-400 font-extrabold italic drop-shadow-[0_0_8px_rgba(6,182,212,0.65)]">
+                            {chunk}
+                          </span>
+                        );
+                      }
+                      return chunk;
+                    })}
                   </motion.p>
                 )}
 
@@ -753,7 +763,16 @@ export const SystemOverrideIntro: React.FC<SystemOverrideIntroProps> = ({ onComp
                     animate={{ opacity: 1, y: 0 }}
                     className="text-base md:text-lg text-white font-medium leading-relaxed tracking-wide"
                   >
-                    {typedText3}
+                    {typedText3.split("*").map((chunk, idx) => {
+                      if (idx % 2 !== 0) {
+                        return (
+                          <span key={idx} className="text-cyan-400 font-extrabold italic drop-shadow-[0_0_8px_rgba(6,182,212,0.65)]">
+                            {chunk}
+                          </span>
+                        );
+                      }
+                      return chunk;
+                    })}
                   </motion.p>
                 )}
               </div>

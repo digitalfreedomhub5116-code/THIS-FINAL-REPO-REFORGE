@@ -106,6 +106,7 @@ router.post('/credit', async (req: Request, res: Response) => {
       transaction_id: transactionId || `manual_${Date.now()}`,
       credit_type: credit.type,
       credit_amount: credit.amount,
+      source: 'client_api',
       created_at: new Date().toISOString(),
     }).catch(() => {
       // Table might not exist yet — log but don't fail

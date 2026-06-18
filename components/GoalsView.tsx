@@ -894,7 +894,7 @@ function ProShowcasePage({
           Unlock All Pro Features
         </motion.button>
         <p className="text-center text-[8px] text-gray-600 font-mono mt-2">
-          14-DAY FREE TRIAL • CANCEL ANYTIME
+          REFORGE PRO • CANCEL ANYTIME
         </p>
       </motion.div>
 

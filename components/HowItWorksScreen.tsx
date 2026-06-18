@@ -386,7 +386,7 @@ const HowItWorksScreen: React.FC<HowItWorksScreenProps> = ({ onClose, onClaimTri
             }}
           >
             <Sparkles size={16} />
-            Claim 14 Days Free Trial
+            Unlock Reforge Pro
           </motion.button>
 
           {/* Skip — secondary exit (greyed out) */}

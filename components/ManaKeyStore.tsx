@@ -156,7 +156,7 @@ const ManaKeyStore: React.FC<ManaKeyStoreProps> = ({ keys, rcState, rcActions, o
 
       if (result.success) {
         // Credit keys on server after Google confirms — with retry for reliability
-        const transactionId = `rc_${Date.now()}_${pack.productId}`;
+        const transactionId = (result as any).transactionId || `rc_${Date.now()}_${pack.productId}`;
         let credited = false;
 
         for (let attempt = 1; attempt <= 3; attempt++) {
@@ -691,7 +691,10 @@ const ManaKeyStore: React.FC<ManaKeyStoreProps> = ({ keys, rcState, rcActions, o
         currency="keys"
         packImage={celebrationPack?.image || ''}
         tierColor={celebrationPack?.catColor || '#8B5CF6'}
-        onClose={() => setCelebrationPack(null)}
+        onClose={() => {
+          setCelebrationPack(null);
+          window.dispatchEvent(new CustomEvent('reforge:sync-needed'));
+        }}
       />
     </>
   );

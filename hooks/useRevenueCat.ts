@@ -171,6 +171,7 @@ export function useRevenueCat(): [RevenueCatState, RevenueCatActions] {
         success: true,
         creditType: credit?.type,
         creditAmount: credit?.amount,
+        transactionId: result.transaction?.transactionIdentifier || (result.transaction as any)?.transaction_id,
       };
     } catch (err: unknown) {
       const rcError = err as { code?: string; message?: string };

@@ -1,7 +1,7 @@
 {
   "name": "the-system",
   "private": true,
-  "version": "5.0.3",
+  "version": "4.0.0",
   "type": "module",
   "engines": {
     "node": ">=20.0.0"

@@ -606,16 +606,16 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({
             className="rounded-2xl p-5 mb-4 relative overflow-hidden"
             style={{ background: 'linear-gradient(135deg, rgba(0,212,255,0.06) 0%, rgba(0,212,255,0.02) 100%)', border: '1px solid rgba(0,212,255,0.12)' }}>
             <div className="absolute -top-0.5 right-4 px-2.5 py-1 rounded-b-lg"
-              style={{ background: 'linear-gradient(135deg, #4ade80, #22c55e)', boxShadow: '0 2px 12px rgba(74,222,128,0.3)' }}>
-              <span className="text-[7px] font-black font-mono tracking-[0.2em] text-black uppercase">Free Trial</span>
+              style={{ background: 'linear-gradient(135deg, #00d4ff, #0088cc)', boxShadow: '0 2px 12px rgba(0,212,255,0.25)' }}>
+              <span className="text-[7px] font-black font-mono tracking-[0.2em] text-black uppercase">Reforge Pro</span>
             </div>
             <div className="text-center mt-2">
               <div className="flex items-baseline justify-center gap-1.5">
-                <span className="text-[36px] font-black text-white">14 Days</span>
-                <span className="text-[12px] text-gray-500 font-mono">FREE</span>
+                <span className="text-[36px] font-black text-white">{priceString}</span>
+                <span className="text-[12px] text-gray-500 font-mono">/MONTH</span>
               </div>
               <p className="text-[11px] text-gray-500 font-mono mt-1">
-                Then {priceString}/month • <span className="text-[#4ade80] font-bold">Cancel anytime</span>
+                Instant S-Rank Access • <span className="text-[#00d4ff] font-bold">Cancel anytime</span>
               </p>
             </div>
           </motion.div>
@@ -625,7 +625,7 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({
             <motion.button onClick={() => { triggerHaptic('BUTTON_TAP'); handlePurchase(); }} disabled={isPurchasing || !monthlyPkg} whileTap={{ scale: 0.97 }}
               className="w-full flex items-center justify-center gap-2.5 py-4 rounded-2xl font-black text-[15px] tracking-wide transition-all disabled:opacity-40"
               style={{ background: 'linear-gradient(135deg, #00d4ff 0%, #0099cc 100%)', color: '#020208', boxShadow: '0 6px 30px rgba(0,212,255,0.25), 0 0 60px rgba(0,212,255,0.08)' }}>
-              {isPurchasing ? (<><Loader2 size={18} className="animate-spin" /> Processing...</>) : (<><Zap size={18} /> Start My Free Trial</>)}
+              {isPurchasing ? (<><Loader2 size={18} className="animate-spin" /> Processing...</>) : (<><Zap size={18} /> Unlock S-Rank Pro</>)}
             </motion.button>
             {!monthlyPkg && (
               <p className="text-center text-[9px] text-gray-600 font-mono mt-2">Loading subscription packages...</p>
@@ -649,12 +649,11 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({
                 Restore Purchases
               </button>
               <span className="text-gray-800 text-[8px]">•</span>
-              <span className="text-[10px] font-mono text-[#4ade80] font-bold">Cancel anytime</span>
+              <span className="text-[10px] font-mono text-[#00d4ff] font-bold">Cancel anytime</span>
             </div>
             <p className="text-center text-[8px] text-gray-700 font-mono leading-relaxed px-2">
-              Start with a 14-day free trial. After your trial, subscription auto-renews at {priceString}/month.
-              Payment charged to your Google Play account. Cancel at least 24 hours before the trial ends to avoid
-              charges. Manage or cancel anytime via Google Play Store → Subscriptions.
+              Subscription auto-renews at {priceString}/month. Payment charged to your Google Play account on purchase confirmation.
+              Cancel at least 24 hours before your billing cycle ends to avoid auto-renewal charges. Manage or cancel anytime via Google Play Store → Subscriptions.
             </p>
           </motion.div>
 

@@ -1183,7 +1183,7 @@ const YouView: React.FC<YouViewProps> = ({
             Upgrade to Reforge Pro
           </button>
           <div style={{ textAlign: 'center', marginTop: 6, fontSize: 10, color: 'rgba(0,212,255,0.5)', fontFamily: 'monospace', fontWeight: 700, letterSpacing: '0.1em' }}>
-            14 DAYS FREE TRIAL · CANCEL ANYTIME
+            REFORGE PRO · CANCEL ANYTIME
           </div>
         </div>
       )}
