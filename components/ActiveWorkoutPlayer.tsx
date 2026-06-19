@@ -673,14 +673,16 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
             </div>
             
             <div className="pointer-events-auto flex items-center gap-2">
-                <button
-                    onClick={() => setShowTimerPicker(p => !p)}
-                    className="flex items-center gap-1.5 bg-black/50 backdrop-blur border border-white/10 px-3 py-1 rounded-full text-[10px] font-mono font-bold text-gray-300 hover:border-system-neon/50 hover:text-system-neon transition-colors"
-                >
-                    <Clock size={10} /> <span>{setTimerSec}s</span>
-                    <span className="text-gray-600">|</span>
-                    <span>{repPace.toFixed(1)}s/rep</span>
-                </button>
+                {!(formCoachConfig && trackingMode === 'CAMERA') && (
+                    <button
+                        onClick={() => setShowTimerPicker(p => !p)}
+                        className="flex items-center gap-1.5 bg-black/50 backdrop-blur border border-white/10 px-3 py-1 rounded-full text-[10px] font-mono font-bold text-gray-300 hover:border-system-neon/50 hover:text-system-neon transition-colors"
+                    >
+                        <Clock size={10} /> <span>{setTimerSec}s</span>
+                        <span className="text-gray-600">|</span>
+                        <span>{repPace.toFixed(1)}s/rep</span>
+                    </button>
+                )}
                 <button 
                     onClick={() => setShowQuitConfirm(true)} 
                     className="w-8 h-8 flex items-center justify-center rounded-full bg-black/50 border border-white/10 text-gray-400 hover:text-red-500 hover:border-red-500/50 transition-colors backdrop-blur"
@@ -692,7 +694,7 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
 
         {/* --- SET TIMER PICKER --- */}
         <AnimatePresence>
-            {showTimerPicker && (
+            {showTimerPicker && !(formCoachConfig && trackingMode === 'CAMERA') && (
                 <motion.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
