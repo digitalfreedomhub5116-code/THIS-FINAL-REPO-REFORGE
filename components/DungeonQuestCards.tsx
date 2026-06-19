@@ -52,7 +52,7 @@ const EXERCISE_META: Record<string, {
 interface DungeonQuestCardsProps {
   dungeonState: DungeonState;
   onEnterDungeon: () => void;
-  onToggleFormCoach: (exercise: 'PUSHUPS' | 'SQUATS') => void;
+  onToggleFormCoach: (exercise: 'PUSHUPS' | 'SQUATS' | 'SITUPS') => void;
   playerGold?: number;
   userId?: string;
   onUpdateDungeonState?: (updater: (prev: DungeonState) => DungeonState) => void;
@@ -636,8 +636,8 @@ const DungeonQuestCards: React.FC<DungeonQuestCardsProps> = ({
             isCompleted={isExerciseCompletedToday(dungeonState, target.exercise)}
             index={i}
             onToggleCoach={
-              target.exercise === 'PUSHUPS' || target.exercise === 'SQUATS'
-                ? () => onToggleFormCoach(target.exercise as 'PUSHUPS' | 'SQUATS')
+              target.exercise === 'PUSHUPS' || target.exercise === 'SQUATS' || target.exercise === 'SITUPS'
+                ? () => onToggleFormCoach(target.exercise as 'PUSHUPS' | 'SQUATS' | 'SITUPS')
                 : undefined
             }
             playerGold={playerGold}

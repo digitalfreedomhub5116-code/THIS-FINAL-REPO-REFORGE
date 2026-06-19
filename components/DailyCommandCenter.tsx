@@ -1062,7 +1062,7 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
     // Instead, the dungeon state remains unchanged — user can re-enter and continue
   }, [onToggleNav, playerData?.userId, dungeonState, onUpdateDungeonState, dungeonPlan]);
 
-  const handleToggleFormCoach = useCallback((exercise: 'PUSHUPS' | 'SQUATS') => {
+  const handleToggleFormCoach = useCallback((exercise: 'PUSHUPS' | 'SQUATS' | 'SITUPS') => {
     if (!dungeonState || !onUpdateDungeonState) return;
     onUpdateDungeonState((prev) => toggleFormCoach(prev, exercise));
   }, [dungeonState, onUpdateDungeonState]);

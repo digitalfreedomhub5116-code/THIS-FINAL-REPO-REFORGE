@@ -222,7 +222,7 @@ export function recordDungeonFailure(state: DungeonState): DungeonState {
 }
 
 // ── Toggle form coach for a specific exercise ──
-export function toggleFormCoach(state: DungeonState, exercise: 'PUSHUPS' | 'SQUATS'): DungeonState {
+export function toggleFormCoach(state: DungeonState, exercise: 'PUSHUPS' | 'SQUATS' | 'SITUPS'): DungeonState {
   return {
     ...state,
     targets: state.targets.map(t =>

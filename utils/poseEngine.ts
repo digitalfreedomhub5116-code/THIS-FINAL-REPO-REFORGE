@@ -311,11 +311,11 @@ export class RepDetector {
     const p95 = sorted[Math.floor(sorted.length * 0.95)];
     const range = p95 - p5;
 
-    if (range > 20) { // Only calibrate if we see a meaningful range of motion
-      // Bottom = 25% up from the observed minimum
-      // Top = 25% down from the observed maximum
-      this.adaptiveBottom = p5 + range * 0.3;
-      this.adaptiveTop = p95 - range * 0.25;
+    if (range > 35) { // Only calibrate if we see a meaningful range of motion
+      // Bottom = 15% up from the observed minimum
+      // Top = 12% down from the observed maximum
+      this.adaptiveBottom = p5 + range * 0.15;
+      this.adaptiveTop = p95 - range * 0.12;
       this.calibrated = true;
       console.log(`[FormCoach] Calibrated: bottom=${this.adaptiveBottom.toFixed(0)}° top=${this.adaptiveTop.toFixed(0)}° (observed ${p5.toFixed(0)}°–${p95.toFixed(0)}°)`);
     }

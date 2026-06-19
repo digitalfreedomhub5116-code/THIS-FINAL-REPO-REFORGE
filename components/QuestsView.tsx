@@ -183,7 +183,7 @@ const QuestsView: React.FC<QuestsViewProps> = ({
     // Don't record full failure — user can re-enter to continue remaining exercises
   };
 
-  const handleToggleFormCoach = (exercise: 'PUSHUPS' | 'SQUATS') => {
+  const handleToggleFormCoach = (exercise: 'PUSHUPS' | 'SQUATS' | 'SITUPS') => {
     if (!dungeonState || !onUpdateDungeonState) return;
     onUpdateDungeonState((prev) => toggleFormCoach(prev, exercise));
   };

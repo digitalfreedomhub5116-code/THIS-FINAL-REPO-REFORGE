@@ -69,7 +69,7 @@ export const FORM_COACH_EXERCISES: FormCoachExercise[] = [
     aliases: ['Back Squat','Squat','Goblet Squat','Bodyweight Squat','Air Squat','Front Squat','Sumo Squat','Dumbbell Squat'],
     viewAngle: 'side',
     primaryAngle: L_KNEE,
-    repPhase: { bottomAngleMax: 130, topAngleMin: 145 },
+    repPhase: { bottomAngleMax: 110, topAngleMin: 160 },
     trackingMode: 'reps',
     formRules: [
       { id: 'squat_depth', label: 'Squat Depth', angle: L_KNEE, maxAngle: 140, errorMessage: 'Try going a bit deeper', severity: 'warning' },
@@ -83,7 +83,7 @@ export const FORM_COACH_EXERCISES: FormCoachExercise[] = [
     aliases: ['Push Up','Pushup','Push-Ups','Pushups','Wide Push-Up','Wide Push-Ups','Diamond Push-Up','Diamond Push-Ups','Pike Push-Up','Pike Push-Ups','Knee Push-Up','Knee Push-Ups'],
     viewAngle: 'side',
     primaryAngle: L_ELBOW,
-    repPhase: { bottomAngleMax: 130, topAngleMin: 140 },
+    repPhase: { bottomAngleMax: 115, topAngleMin: 155 },
     trackingMode: 'reps',
     formRules: [
       { id: 'pushup_depth', label: 'Depth', angle: L_ELBOW, maxAngle: 135, errorMessage: 'Try going a bit lower', severity: 'warning' },
@@ -91,6 +91,19 @@ export const FORM_COACH_EXERCISES: FormCoachExercise[] = [
     ],
     setupTips: ['Phone on floor, sideways','About 6 feet away','Full body visible'],
     requiredLandmarks: [11, 13, 15, 23, 25, 27],
+  },
+  {
+    name: 'Sit-Up',
+    aliases: ['Sit Up', 'Situps', 'Sit-ups', 'Sit Ups'],
+    viewAngle: 'side',
+    primaryAngle: L_HIP,
+    repPhase: { bottomAngleMax: 80, topAngleMin: 145 },
+    trackingMode: 'reps',
+    formRules: [
+      { id: 'situp_depth', label: 'Situp Range', angle: L_HIP, maxAngle: 95, errorMessage: 'Try sitting up higher', severity: 'warning' },
+    ],
+    setupTips: ['Sit sideways to the camera', 'Keep feet flat on floor', 'Lie flat then sit up fully'],
+    requiredLandmarks: [11, 23, 25, 27],
   },
   {
     name: 'Deadlift',
