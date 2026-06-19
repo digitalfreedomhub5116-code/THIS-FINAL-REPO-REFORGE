@@ -652,6 +652,7 @@ export interface HealthProfile {
 
   // Sung Jin-woo Daily Dungeon baselines (from calibration)
   baselinePushups?: number; // Max push-ups without stopping
+  baselineSitups?: number; // Max sit-ups without stopping
   baselineSquats?: number; // Max squats without stopping
   baselineRunMinutes?: number; // DEPRECATED — use baselineRunKm
   baselineRunKm?: number; // Max running distance (km) without stopping
@@ -1069,7 +1070,7 @@ export interface PlayerData {
 
 // --- DAILY DUNGEON (Sung Jin-woo Protocol) ---
 export interface DungeonExerciseTarget {
-  exercise: "PUSHUPS" | "SQUATS" | "RUNNING";
+  exercise: "PUSHUPS" | "SQUATS" | "RUNNING" | "SITUPS";
   sets: number;
   reps: number; // For push-ups/squats
   distanceKm?: number; // For running (km)
@@ -1122,6 +1123,7 @@ export interface DungeonState {
   // Baselines snapshot (from calibration, frozen at dungeon creation)
   baselinePushups: number;
   baselineSquats: number;
+  baselineSitups: number;
   baselineRunKm: number; // Max running distance (km)
   baselineRunMinutes?: number; // DEPRECATED — kept for migration
 
@@ -1134,6 +1136,7 @@ export interface DungeonState {
     completed: boolean;
     pushupsTarget: number;
     squatsTarget: number;
+    situpsTarget?: number;
     runKm: number;
   }[];
 }

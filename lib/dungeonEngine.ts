@@ -39,6 +39,7 @@ function daysBetween(date1: string, date2: string): number {
 // ── Compute targets from multiplier and baselines ──
 export function computeTargets(
   baselinePushups: number,
+  baselineSitups: number,
   baselineSquats: number,
   baselineRunKm: number,
   multiplier: number,
@@ -51,6 +52,12 @@ export function computeTargets(
       sets: 1,
       reps: Math.max(10, Math.round(baselinePushups * multiplier * 3)),
       formCoachEnabled: formCoachPushups,
+    },
+    {
+      exercise: 'SITUPS',
+      sets: 1,
+      reps: Math.max(10, Math.round(baselineSitups * multiplier * 3)),
+      formCoachEnabled: false, // Sit-ups do not use form coach
     },
     {
       exercise: 'SQUATS',
@@ -71,6 +78,7 @@ export function computeTargets(
 // ── Initialize a brand new dungeon state ──
 export function createInitialDungeonState(profile: HealthProfile): DungeonState {
   const pushups = profile.baselinePushups || 15;
+  const situps = profile.baselineSitups || 15;
   const squats = profile.baselineSquats || 20;
   // Migration: if baselineRunKm exists use it, else convert old minutes → km (approx 10min/km pace)
   const runKm = profile.baselineRunKm || (profile.baselineRunMinutes ? profile.baselineRunMinutes / 6 : 1.5);
@@ -83,9 +91,10 @@ export function createInitialDungeonState(profile: HealthProfile): DungeonState 
     consecutiveCompletions: 0,
     totalCompletions: 0,
     totalFailures: 0,
-    targets: computeTargets(pushups, squats, runKm, STARTING_MULTIPLIER),
+    targets: computeTargets(pushups, situps, squats, runKm, STARTING_MULTIPLIER),
     baselinePushups: pushups,
     baselineSquats: squats,
+    baselineSitups: situps,
     baselineRunKm: runKm,
     progressionMultiplier: STARTING_MULTIPLIER,
     history: [],
@@ -124,6 +133,7 @@ export function getDungeonTargetsForToday(state: DungeonState): {
       lastProgressionDate: today,
       targets: computeTargets(
         state.baselinePushups,
+        state.baselineSitups || 15,
         state.baselineSquats,
         state.baselineRunKm,
         newMultiplier,
@@ -145,6 +155,7 @@ export function getDungeonTargetsForToday(state: DungeonState): {
 export function recordDungeonCompletion(state: DungeonState): DungeonState {
   const today = todayStr();
   const pushTarget = state.targets.find(t => t.exercise === 'PUSHUPS');
+  const sitTarget = state.targets.find(t => t.exercise === 'SITUPS');
   const squatTarget = state.targets.find(t => t.exercise === 'SQUATS');
   const runTarget = state.targets.find(t => t.exercise === 'RUNNING');
 
@@ -160,6 +171,7 @@ export function recordDungeonCompletion(state: DungeonState): DungeonState {
         date: today,
         completed: true,
         pushupsTarget: pushTarget?.reps || 0,
+        situpsTarget: sitTarget?.reps || 0,
         squatsTarget: squatTarget?.reps || 0,
         runKm: runTarget?.distanceKm || 0,
       },
@@ -188,6 +200,7 @@ export function recordDungeonFailure(state: DungeonState): DungeonState {
     progressionMultiplier: deloadedMultiplier,
     targets: computeTargets(
       state.baselinePushups,
+      state.baselineSitups || 15,
       state.baselineSquats,
       state.baselineRunKm,
       deloadedMultiplier,
@@ -200,6 +213,7 @@ export function recordDungeonFailure(state: DungeonState): DungeonState {
         date: today,
         completed: false,
         pushupsTarget: state.targets.find(t => t.exercise === 'PUSHUPS')?.reps || 0,
+        situpsTarget: state.targets.find(t => t.exercise === 'SITUPS')?.reps || 0,
         squatsTarget: state.targets.find(t => t.exercise === 'SQUATS')?.reps || 0,
         runKm: state.targets.find(t => t.exercise === 'RUNNING')?.distanceKm || 0,
       },
@@ -391,21 +405,20 @@ export function buildDungeonWorkoutPlan(targets: DungeonExerciseTarget[]): Worko
 
     const isPushups = t.exercise === 'PUSHUPS';
     const isSquats = t.exercise === 'SQUATS';
+    const isSitups = t.exercise === 'SITUPS';
     let duration = t.sets * 60;
-    if (isPushups) {
-      duration = Math.max(60, t.reps * 4); // 4 seconds per rep, min 60 seconds
-    } else if (isSquats) {
-      duration = Math.max(60, t.reps * 5); // 5 seconds per rep, min 60 seconds
+    if (isPushups || isSquats || isSitups) {
+      duration = t.sets * Math.max(10, Math.ceil(t.reps * 1.5));
     }
 
     return {
-      name: t.exercise === 'PUSHUPS' ? 'Push Ups' : 'Squats',
+      name: t.exercise === 'PUSHUPS' ? 'Push Ups' : t.exercise === 'SITUPS' ? 'Sit Ups' : 'Squats',
       sets: t.sets,
       reps: String(t.reps),
       duration,
       completed: false,
       type: 'COMPOUND' as const,
-      notes: (isPushups || isSquats)
+      notes: (isPushups || isSquats || isSitups)
         ? `Sung Jin-woo Protocol — ${t.reps} reps`
         : `Sung Jin-woo Protocol — ${t.reps} reps × ${t.sets} sets`,
       formCoachEnabled: t.formCoachEnabled,
@@ -436,10 +449,12 @@ export function buildDungeonWorkoutPlanForEquipment(
   }
 
   const pushupTarget = state.targets.find(t => t.exercise === 'PUSHUPS');
+  const situpTarget = state.targets.find(t => t.exercise === 'SITUPS');
   const squatTarget = state.targets.find(t => t.exercise === 'SQUATS');
   const runTarget = state.targets.find(t => t.exercise === 'RUNNING');
 
   const baseReps = pushupTarget?.reps || 10;
+  const situpReps = situpTarget?.reps || 10;
   const squatReps = squatTarget?.reps || 12;
   const sets = pushupTarget?.sets || DEFAULT_SETS;
   const fcPushups = pushupTarget?.formCoachEnabled ?? true;
@@ -448,31 +463,25 @@ export function buildDungeonWorkoutPlanForEquipment(
   const isSingleSet = sets === 1;
 
   if (equipment === 'HOME_DUMBBELLS') {
-    const squatDur = isSingleSet ? Math.max(60, squatReps * 5) : sets * 60;
-    const pressDur = isSingleSet ? Math.max(60, baseReps * 4) : sets * 60;
+    const pressDur = sets * Math.max(10, Math.ceil(baseReps * 1.5));
+    const situpDur = sets * Math.max(10, Math.ceil(situpReps * 1.5));
+    const squatDur = sets * Math.max(10, Math.ceil(squatReps * 1.5));
     const rowDur = isSingleSet ? Math.max(60, baseReps * 4) : sets * 60;
 
-    const squatNotes = isSingleSet
-      ? `Hold one dumbbell at chest — ${squatReps} reps`
-      : `Hold one dumbbell at chest — ${squatReps} reps × ${sets} sets`;
     const pressNotes = isSingleSet
       ? `Lie on floor, press dumbbells up — ${baseReps} reps`
       : `Lie on floor, press dumbbells up — ${baseReps} reps × ${sets} sets`;
+    const situpNotes = isSingleSet
+      ? `Feet flat on floor, curl torso up — ${situpReps} reps`
+      : `Feet flat on floor, curl torso up — ${situpReps} reps × ${sets} sets`;
+    const squatNotes = isSingleSet
+      ? `Hold one dumbbell at chest — ${squatReps} reps`
+      : `Hold one dumbbell at chest — ${squatReps} reps × ${sets} sets`;
     const rowNotes = isSingleSet
       ? `Hinge at hips, row dumbbells to ribs — ${baseReps} reps`
       : `Hinge at hips, row dumbbells to ribs — ${baseReps} reps × ${sets} sets`;
 
     const exercises = [
-      {
-        name: 'Dumbbell Goblet Squats',
-        sets,
-        reps: String(squatReps),
-        duration: squatDur,
-        completed: false,
-        type: 'COMPOUND' as const,
-        notes: squatNotes,
-        formCoachEnabled: fcSquats,
-      },
       {
         name: 'Dumbbell Floor Press',
         sets,
@@ -482,6 +491,26 @@ export function buildDungeonWorkoutPlanForEquipment(
         type: 'COMPOUND' as const,
         notes: pressNotes,
         formCoachEnabled: fcPushups,
+      },
+      {
+        name: 'Sit Ups',
+        sets,
+        reps: String(situpReps),
+        duration: situpDur,
+        completed: false,
+        type: 'COMPOUND' as const,
+        notes: situpNotes,
+        formCoachEnabled: false,
+      },
+      {
+        name: 'Dumbbell Goblet Squats',
+        sets,
+        reps: String(squatReps),
+        duration: squatDur,
+        completed: false,
+        type: 'COMPOUND' as const,
+        notes: squatNotes,
+        formCoachEnabled: fcSquats,
       },
       {
         name: 'Bent-Over Dumbbell Rows',
@@ -521,31 +550,25 @@ export function buildDungeonWorkoutPlanForEquipment(
   const pressGymReps = Math.max(5, Math.round(baseReps * 0.7));
   const rowGymReps = Math.max(8, baseReps);
 
-  const squatDur = isSingleSet ? Math.max(60, squatGymReps * 5) : sets * 90;
-  const pressDur = isSingleSet ? Math.max(60, pressGymReps * 4) : sets * 90;
+  const pressDur = sets * Math.max(10, Math.ceil(pressGymReps * 1.5));
+  const situpDur = sets * Math.max(10, Math.ceil(situpReps * 1.5));
+  const squatDur = sets * Math.max(10, Math.ceil(squatGymReps * 1.5));
   const rowDur = isSingleSet ? Math.max(60, rowGymReps * 4) : sets * 60;
 
-  const squatNotes = isSingleSet
-    ? `Use a moderate weight — ${squatGymReps} reps`
-    : `Use a moderate weight — ${squatGymReps} reps × ${sets} sets`;
   const pressNotes = isSingleSet
     ? `Controlled tempo — ${pressGymReps} reps`
     : `Controlled tempo — ${pressGymReps} reps × ${sets} sets`;
+  const situpNotes = isSingleSet
+    ? `Feet flat on floor, curl torso up — ${situpReps} reps`
+    : `Feet flat on floor, curl torso up — ${situpReps} reps × ${sets} sets`;
+  const squatNotes = isSingleSet
+    ? `Use a moderate weight — ${squatGymReps} reps`
+    : `Use a moderate weight — ${squatGymReps} reps × ${sets} sets`;
   const rowNotes = isSingleSet
     ? `Wide grip — ${rowGymReps} reps`
     : `Wide grip — ${rowGymReps} reps × ${sets} sets`;
 
   const exercises = [
-    {
-      name: 'Barbell Back Squats',
-      sets,
-      reps: String(squatGymReps),
-      duration: squatDur,
-      completed: false,
-      type: 'COMPOUND' as const,
-      notes: squatNotes,
-      formCoachEnabled: fcSquats,
-    },
     {
       name: 'Barbell Bench Press',
       sets,
@@ -555,6 +578,26 @@ export function buildDungeonWorkoutPlanForEquipment(
       type: 'COMPOUND' as const,
       notes: pressNotes,
       formCoachEnabled: fcPushups,
+    },
+    {
+      name: 'Sit Ups',
+      sets,
+      reps: String(situpReps),
+      duration: situpDur,
+      completed: false,
+      type: 'COMPOUND' as const,
+      notes: situpNotes,
+      formCoachEnabled: false,
+    },
+    {
+      name: 'Barbell Back Squats',
+      sets,
+      reps: String(squatGymReps),
+      duration: squatDur,
+      completed: false,
+      type: 'COMPOUND' as const,
+      notes: squatNotes,
+      formCoachEnabled: fcSquats,
     },
     {
       name: 'Lat Pulldown',

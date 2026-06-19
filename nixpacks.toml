@@ -1,5 +1,5 @@
 [phases.install]
-cmds = ["npm ci --include=dev --ignore-scripts", "npm rebuild bcrypt"]
+cmds = ["npm ci --include=dev --ignore-scripts", "npm rebuild bcrypt", "npm rebuild sharp"]
 
 [phases.build]
 cmds = ["npm run build"]

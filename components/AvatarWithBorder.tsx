@@ -51,7 +51,7 @@ const AvatarWithBorder: React.FC<AvatarWithBorderProps> = ({
   // Avatar element — perfectly circular, transparent background (no dark square)
   const avatarElement = (
     <div
-      className="rounded-full overflow-hidden flex items-center justify-center"
+      className="rounded-full overflow-hidden flex items-center justify-center relative"
       style={{
         width: size,
         height: size,
@@ -188,12 +188,24 @@ const AvatarWithBorder: React.FC<AvatarWithBorderProps> = ({
 
   // ── No border — just avatar with subtle ring ──
   return (
-    <div className={`relative ${className}`} style={safeStyle}>
+    <div
+      className={`relative ${className}`}
+      style={{
+        width: size,
+        height: size,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        ...safeStyle,
+      }}
+    >
       <div
         className="absolute -inset-[1px] rounded-full z-0"
         style={{ border: '1px solid rgba(255,255,255,0.12)' }}
       />
-      <div className="relative z-10">{avatarElement}</div>
+      <div className="relative z-10 flex items-center justify-center w-full h-full">
+        {avatarElement}
+      </div>
     </div>
   );
 };
@@ -255,6 +267,9 @@ function AvatarImage({ src, size }: { src: string; size: number }) {
   const cachedUrl = optimizedUrl ? memCache.get(optimizedUrl) : undefined;
   const imgSrc = cachedUrl || optimizedUrl;
 
+  // Determine the active image URL (fallback to original src if optimized fails)
+  const activeUrl = error ? src : imgSrc;
+
   return (
     <>
       {/* Default PFP — shows instantly while real one loads */}
@@ -267,40 +282,28 @@ function AvatarImage({ src, size }: { src: string; size: number }) {
           className="w-full h-full object-cover rounded-full absolute inset-0"
         />
       )}
-      {imgSrc && (
+      {activeUrl && (
         <img
-          src={imgSrc}
+          src={activeUrl}
           alt=""
           width={size}
           height={size}
           decoding="async"
           className="w-full h-full object-cover rounded-full"
           style={{ opacity: loaded ? 1 : 0, transition: 'opacity 0.25s ease' }}
-          onLoad={(e) => {
+          onLoad={() => {
             setLoaded(true);
             // Cache the successful URL in memory for instant re-renders
-            if (optimizedUrl) memCache.set(optimizedUrl, imgSrc);
+            if (!error && optimizedUrl) memCache.set(optimizedUrl, activeUrl);
           }}
           onError={() => {
             if (!error && optimizedUrl !== src) {
               // Thumbnail API failed → fallback to original full-size URL
               setError(true);
+              setLoaded(false); // Reset load state so placeholder displays during fallback load
               failedUrls.add(optimizedUrl);
             }
           }}
-        />
-      )}
-      {/* If optimized URL failed, try original */}
-      {error && (
-        <img
-          src={src}
-          alt=""
-          width={size}
-          height={size}
-          decoding="async"
-          className="w-full h-full object-cover rounded-full"
-          style={{ opacity: loaded ? 1 : 0, transition: 'opacity 0.25s ease' }}
-          onLoad={() => setLoaded(true)}
         />
       )}
     </>

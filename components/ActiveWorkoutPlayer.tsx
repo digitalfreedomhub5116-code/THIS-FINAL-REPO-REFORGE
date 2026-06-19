@@ -98,8 +98,42 @@ export const clearWorkoutSession = (userId: string) => {
   try { localStorage.removeItem(getWorkoutSessionKey(userId)); } catch(e) {}
 };
 
+// Helper to parse the number of reps from a string (e.g., "15", "12, 10, 8", "3 x 8")
+const parseRepsCount = (repsStr: string, setIndex: number): number => {
+  const lower = repsStr?.toLowerCase()?.trim() || '';
+  if (!lower) return 10;
+  
+  // Check for pattern "X x Y" (e.g. "3 x 8" or "3x8")
+  const xPattern = lower.match(/(\d+)\s*x\s*(\d+)/);
+  if (xPattern) {
+    return parseInt(xPattern[2], 10);
+  }
+  
+  // Clean up common words
+  const cleaned = lower.replace(/\b(each|per side|per leg|reps)\b/gi, '').trim();
+  const parts = cleaned.split(/[,\s]+/).filter(Boolean);
+  
+  if (parts.length === 0) return 10;
+  
+  const idx = Math.min(setIndex, parts.length - 1);
+  const val = parseInt(parts[idx], 10);
+  return isNaN(val) ? 10 : val;
+};
+
+const loadRepPace = (userId: string): number => {
+  try {
+    const v = parseFloat(localStorage.getItem(`reforge_rep_pace_${userId || 'local'}`) || '');
+    if (!isNaN(v) && v > 0) return v;
+  } catch {}
+  return 1.5; // Default: 1.5s per rep
+};
+
+const saveRepPace = (v: number, userId: string) => {
+  try { localStorage.setItem(`reforge_rep_pace_${userId || 'local'}`, String(v)); } catch {}
+};
+
 // Helper to parse duration from reps string (e.g., "5 min" -> 300, "30s" -> 30)
-const getExerciseDuration = (reps: string): number => {
+const getExerciseDuration = (reps: string, name?: string, setIndex: number = 0, repPace: number = 1.5): number => {
   if (!reps) return 60;
   const lower = reps.toLowerCase();
   
@@ -121,6 +155,17 @@ const getExerciseDuration = (reps: string): number => {
     if (match) return Math.ceil(parseFloat(match[1]) * 6) * 60; // ~6 min/km pace estimate
   }
   
+  // Rep-based exercises: Squats, Push-ups and Sit-ups take repPace seconds per rep
+  const lowerName = name?.toLowerCase() || '';
+  const isSquat = lowerName.includes('squat');
+  const isPushup = lowerName.includes('pushup') || lowerName.includes('push-up');
+  const isSitup = lowerName.includes('situp') || lowerName.includes('sit-up') || lowerName.includes('sit ups') || lowerName.includes('sit-ups');
+  
+  if (isSquat || isPushup || isSitup) {
+    const repCount = parseRepsCount(reps, setIndex);
+    return Math.max(10, Math.ceil(repCount * repPace));
+  }
+  
   return 60; // fallback default
 };
 
@@ -129,6 +174,7 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
   
   // --- SET TIMER PREFERENCE ---
   const [setTimerSec, setSetTimerSec] = useState<SetTimerValue>(() => loadSetTimer(player.userId || 'local'));
+  const [repPace, setRepPace] = useState<number>(() => loadRepPace(player.userId || 'local'));
   const [showTimerPicker, setShowTimerPicker] = useState(false);
   const [pendingTimer, setPendingTimer] = useState<SetTimerValue | null>(null);
   
@@ -139,7 +185,8 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
   // Initialize timer based on first exercise or saved session
   const [timeLeft, setTimeLeft] = useState(() => {
       if (savedSession) return savedSession.timeLeft;
-      return plan.exercises.length > 0 ? getExerciseDuration(plan.exercises[0].reps) : setTimerSec;
+      const initialRepPace = loadRepPace(player.userId || 'local');
+      return plan.exercises.length > 0 ? getExerciseDuration(plan.exercises[0].reps, plan.exercises[0].name, 0, initialRepPace) : setTimerSec;
   });
 
   const [phase, setPhase] = useState<'WORK' | 'REST'>(savedSession?.phase ?? 'WORK');
@@ -359,8 +406,8 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
       setFormCoachState(null); // Reset for fresh tracking
       
       // Dynamic Duration Calculation based on current exercise
-      const currentEx = plan.exercises[currentIdx];
-      const duration = getExerciseDuration(currentEx.reps);
+      const currentEx = plan.exercises[currentIdx] || plan.exercises[0];
+      const duration = getExerciseDuration(currentEx.reps, currentEx.name, nextSet - 1, repPace);
       setTimeLeft(duration);
 
       // Form Coach: preserve user's tracking mode preference across sets
@@ -386,7 +433,7 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
       } else {
           SpeechService.announceSetStart(nextSet);
       }
-  }, [currentSet, currentIdx, plan.exercises]);
+  }, [currentSet, currentIdx, plan.exercises, trackingMode, repPace]);
 
   const handleExerciseComplete = useCallback(() => {
     if (currentIdx < totalExercises - 1) {
@@ -457,7 +504,7 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
       const skipTimeAnomaly = aiHitTarget || isRunningAuto;
 
       if (!exercise.isSupplementary && !skipTimeAnomaly) {
-        const totalDuration = getExerciseDuration(exercise.reps);
+        const totalDuration = getExerciseDuration(exercise.reps, exercise.name, currentSet - 1, repPace);
         const elapsedMs = Date.now() - phaseStartTime;
         const elapsedSec = elapsedMs / 1000;
         const threshold = totalDuration * 0.7;
@@ -505,7 +552,7 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
       } else {
         handleExerciseComplete();
       }
-  }, [currentSet, exercise?.sets, exercise?.name, exercise?.reps, exercise?.type, exercise?.isSupplementary, handleExerciseComplete, phaseStartTime, trackingMode, formCoachConfig, formCoachState?.repCount]);
+  }, [currentSet, exercise?.sets, exercise?.name, exercise?.reps, exercise?.type, exercise?.isSupplementary, handleExerciseComplete, phaseStartTime, trackingMode, formCoachConfig, formCoachState?.repCount, repPace]);
 
   const handleTimerComplete = useCallback(() => {
     if (phase === 'WORK') {
@@ -545,8 +592,8 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
         setTimeLeft((prev) => {
           const next = prev - 1;
           // Calculate max duration for halfway point based on current exercise
-          const curEx = plan.exercises[currentIdx];
-          const maxDuration = phase === 'WORK' ? getExerciseDuration(curEx.reps) : getInterExerciseRest(curEx.type, setTimerSec, curEx.isSupplementary);
+          const curEx = plan.exercises[currentIdx] || plan.exercises[0];
+          const maxDuration = phase === 'WORK' ? getExerciseDuration(curEx.reps, curEx.name, currentSet - 1, repPace) : getInterExerciseRest(curEx.type, setTimerSec, curEx.isSupplementary);
           if (phase === 'WORK' && next === Math.floor(maxDuration / 2)) SpeechService.announceHalfway();
           if (next <= 3 && next > 0) playSystemSoundEffect('TICK');
           return next;
@@ -556,7 +603,7 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
       handleTimerComplete();
     }
     return () => clearInterval(interval);
-  }, [timeLeft, isPaused, phase, handleTimerComplete, currentIdx, plan.exercises, trackingMode, formCoachSubPhase, formCoachConfig]);
+  }, [timeLeft, isPaused, phase, handleTimerComplete, currentIdx, plan.exercises, trackingMode, formCoachSubPhase, formCoachConfig, repPace]);
 
   // --- SESSION PERSISTENCE: Save state whenever key values change ---
   // Skip saving once workout has been completed (prevents re-save after clear)
@@ -628,9 +675,11 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
             <div className="pointer-events-auto flex items-center gap-2">
                 <button
                     onClick={() => setShowTimerPicker(p => !p)}
-                    className="flex items-center gap-1 bg-black/50 backdrop-blur border border-white/10 px-2.5 py-1 rounded-full text-[10px] font-mono font-bold text-gray-300 hover:border-system-neon/50 hover:text-system-neon transition-colors"
+                    className="flex items-center gap-1.5 bg-black/50 backdrop-blur border border-white/10 px-3 py-1 rounded-full text-[10px] font-mono font-bold text-gray-300 hover:border-system-neon/50 hover:text-system-neon transition-colors"
                 >
-                    <Clock size={10} /> {setTimerSec}s
+                    <Clock size={10} /> <span>{setTimerSec}s</span>
+                    <span className="text-gray-600">|</span>
+                    <span>{repPace.toFixed(1)}s/rep</span>
                 </button>
                 <button 
                     onClick={() => setShowQuitConfirm(true)} 
@@ -667,6 +716,36 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
                         ))}
                     </div>
                     <p className="text-[9px] text-gray-600 font-mono mt-2">Rest scales with this setting</p>
+                    
+                    <div className="border-t border-white/5 my-3 pt-3">
+                        <p className="text-[10px] text-gray-500 font-mono font-bold tracking-widest mb-2">REP PACE</p>
+                        <div className="flex gap-2">
+                            {[1.0, 1.5, 2.0, 2.5].map(opt => (
+                                <button
+                                    key={opt}
+                                    onClick={() => {
+                                        setRepPace(opt);
+                                        saveRepPace(opt, player.userId || 'local');
+                                        // Recalculate timeLeft for current set if it's rep-based
+                                        if (phase === 'WORK' && exercise) {
+                                            const lowerName = exercise.name.toLowerCase();
+                                            if (lowerName.includes('squat') || lowerName.includes('pushup') || lowerName.includes('push-up') || lowerName.includes('situp') || lowerName.includes('sit-up') || lowerName.includes('sit ups') || lowerName.includes('sit-ups')) {
+                                                setTimeLeft(getExerciseDuration(exercise.reps, exercise.name, currentSet - 1, opt));
+                                            }
+                                        }
+                                    }}
+                                    className={`px-2.5 py-2 rounded-lg text-xs font-mono font-bold transition-all ${
+                                        repPace === opt
+                                            ? 'bg-orange-500 text-black shadow-[0_0_12px_rgba(249,115,22,0.4)]'
+                                            : 'bg-gray-900 text-gray-400 border border-gray-800 hover:border-gray-600'
+                                    }`}
+                                >
+                                    {opt.toFixed(1)}s
+                                </button>
+                            ))}
+                        </div>
+                        <p className="text-[9px] text-gray-600 font-mono mt-2">Pacing for Squats, Push-ups & Sit-ups</p>
+                    </div>
                 </motion.div>
             )}
         </AnimatePresence>

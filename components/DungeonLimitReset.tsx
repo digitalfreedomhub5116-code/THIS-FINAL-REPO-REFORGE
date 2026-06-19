@@ -31,6 +31,7 @@ interface ExerciseConfig {
 
 const EXERCISE_CONFIG: Record<string, ExerciseConfig> = {
   PUSHUPS: { key: 'PUSHUPS', label: 'Push-ups', unit: 'reps', min: 5, max: 200, step: 5, field: 'baselinePushups' },
+  SITUPS: { key: 'SITUPS', label: 'Sit-ups', unit: 'reps', min: 5, max: 200, step: 5, field: 'baselineSitups' },
   SQUATS: { key: 'SQUATS', label: 'Squats', unit: 'reps', min: 5, max: 200, step: 5, field: 'baselineSquats' },
   RUNNING: { key: 'RUNNING', label: 'Running', unit: 'km', min: 0.5, max: 20, step: 0.5, field: 'baselineRunKm' },
 };
@@ -92,7 +93,7 @@ const StepperInput: React.FC<{
 
 // ── Per-Exercise Limit Reset (gear icon + modal for a single exercise) ──
 export interface SingleExerciseLimitResetProps {
-  exercise: 'PUSHUPS' | 'SQUATS' | 'RUNNING';
+  exercise: 'PUSHUPS' | 'SQUATS' | 'RUNNING' | 'SITUPS';
   dungeonState: DungeonState;
   playerGold: number;
   userId: string;
@@ -123,7 +124,7 @@ export const SingleExerciseLimitReset: React.FC<SingleExerciseLimitResetProps> =
   const currentTargetValue = isRunning
     ? (target?.distanceKm ?? dungeonState.baselineRunKm * multiplier)
     : (target?.reps ?? Math.round(
-        (exercise === 'PUSHUPS' ? dungeonState.baselinePushups : dungeonState.baselineSquats) * multiplier * 3
+        (exercise === 'PUSHUPS' ? dungeonState.baselinePushups : exercise === 'SITUPS' ? dungeonState.baselineSitups : dungeonState.baselineSquats) * multiplier * 3
       ));
 
   const [newValue, setNewValue] = useState(currentTargetValue);
@@ -162,6 +163,7 @@ export const SingleExerciseLimitReset: React.FC<SingleExerciseLimitResetProps> =
       onUpdateDungeonState((prev) => {
         const mult = prev.progressionMultiplier || 0.7;
         let bp = prev.baselinePushups;
+        let bsit = prev.baselineSitups || 15;
         let bs = prev.baselineSquats;
         let br = prev.baselineRunKm;
 
@@ -169,17 +171,19 @@ export const SingleExerciseLimitReset: React.FC<SingleExerciseLimitResetProps> =
         // We preserve bp, bs, and br as precise floats rather than rounding them. This avoids rounding drift,
         // ensuring that the target is set to EXACTLY newValue when computeTargets(bp, bs, br) runs.
         if (exercise === 'PUSHUPS') bp = newValue / (mult * 3);
+        if (exercise === 'SITUPS') bsit = newValue / (mult * 3);
         if (exercise === 'SQUATS') bs = newValue / (mult * 3);
         if (exercise === 'RUNNING') br = newValue / mult;
 
         const fcPushups = prev.targets.find(t => t.exercise === 'PUSHUPS')?.formCoachEnabled ?? true;
         const fcSquats = prev.targets.find(t => t.exercise === 'SQUATS')?.formCoachEnabled ?? true;
 
-        const newTargets = computeTargets(bp, bs, br, mult, fcPushups, fcSquats);
+        const newTargets = computeTargets(bp, bsit, bs, br, mult, fcPushups, fcSquats);
 
         return {
           ...prev,
           baselinePushups: bp,
+          baselineSitups: bsit,
           baselineSquats: bs,
           baselineRunKm: br,
           targets: newTargets,

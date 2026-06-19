@@ -64,6 +64,13 @@ const DungeonAddExercise: React.FC<DungeonAddExerciseProps> = ({ existingNames, 
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('reforge:hide-nav'));
+    return () => {
+      window.dispatchEvent(new CustomEvent('reforge:show-nav'));
+    };
+  }, []);
+
   const filtered = useMemo(() => {
     return exercises.filter(ex => {
       const q = search.toLowerCase();

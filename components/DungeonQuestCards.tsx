@@ -32,6 +32,11 @@ const EXERCISE_META: Record<string, {
     subtitle: 'Upper body strength protocol',
     image: '/dungeon/pushups.jpeg',
   },
+  SITUPS: {
+    label: 'Sit-ups',
+    subtitle: 'Core stability protocol',
+    image: '/dungeon/situps.jpeg',
+  },
   SQUATS: {
     label: 'Squats',
     subtitle: 'Lower body power training',
@@ -318,7 +323,7 @@ const ExerciseCard: React.FC<{
   if (!meta) return null;
 
   const isRunning = target.exercise === 'RUNNING';
-  const isCore = target.exercise === 'PUSHUPS' || target.exercise === 'SQUATS';
+  const isCore = target.exercise === 'PUSHUPS' || target.exercise === 'SQUATS' || target.exercise === 'SITUPS';
   const targetText = isRunning
     ? `${target.distanceKm || 1} km`
     : isCore
