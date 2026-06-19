@@ -16,7 +16,7 @@ import { fixVideoPath } from '../lib/exerciseVideos';
 import { OUTFITS, getOutfitXpBoost, getStoneConfig, getUnlockedBadgeCount, BADGE_TIERS } from '../utils/gameData';
 import { scheduleQuestDeadline, cancelDailyReminders } from './useLocalNotifications';
 import { safeLevelUp, computeRank } from '../lib/levelSystem';
-import { createInitialDungeonState, recordDungeonCompletion, getDungeonTargetsForToday, recordDungeonFailure } from '../lib/dungeonEngine';
+import { createInitialDungeonState, recordDungeonCompletion, getDungeonTargetsForToday, recordDungeonFailure, computeTargets } from '../lib/dungeonEngine';
 import { incrementDungeonClear, shouldTriggerReview, dispatchShowReviewPrompt } from '../lib/appReview';
 export { safeLevelUp, computeRank };
 
@@ -184,6 +184,26 @@ function migratePlayerData(raw: Partial<PlayerData>): PlayerData {
     if (merged.questOnboardingDone === undefined) merged.questOnboardingDone = false;
     if (merged.workoutOnboardingDone === undefined) merged.workoutOnboardingDone = false;
   }
+
+  // --- Backfill SITUPS for existing dungeonState ---
+  if (merged.dungeonState && merged.dungeonState.targets) {
+    const hasSitups = merged.dungeonState.targets.some(t => t.exercise === 'SITUPS');
+    if (!hasSitups) {
+      const bp = merged.dungeonState.baselinePushups || 15;
+      const bsit = merged.dungeonState.baselineSitups || (merged.healthProfile?.baselineSitups) || 15;
+      const bs = merged.dungeonState.baselineSquats || 20;
+      const br = merged.dungeonState.baselineRunKm || 1.5;
+      const mult = merged.dungeonState.progressionMultiplier || 0.7;
+      
+      const fcPushups = merged.dungeonState.targets.find(t => t.exercise === 'PUSHUPS')?.formCoachEnabled ?? true;
+      const fcSquats = merged.dungeonState.targets.find(t => t.exercise === 'SQUATS')?.formCoachEnabled ?? true;
+      
+      const newTargets = computeTargets(bp, bsit, bs, br, mult, fcPushups, fcSquats);
+      merged.dungeonState.baselineSitups = bsit;
+      merged.dungeonState.targets = newTargets;
+    }
+  }
+
   return merged;
 }
 
