@@ -964,7 +964,7 @@ export default function GoalsView({
 }: GoalsViewProps) {
   const [showCreate, setShowCreate] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
-  const [subTab, setSubTab] = useState<'SHADOW_MISSIONS' | 'FOCUS_SHIELD'>('SHADOW_MISSIONS');
+  const [subTab, setSubTab] = useState<'SHADOW_MISSIONS' | 'FOCUS_SHIELD'>('FOCUS_SHIELD');
 
   // Showcase goals state to support fully functional interaction & persistence
   const [showcaseGoals, setShowcaseGoals] = useState<Goal[]>(() => [
@@ -1283,21 +1283,6 @@ export default function GoalsView({
         className="flex p-1 bg-gray-950/80 border border-gray-800/80 rounded-xl mb-6 relative overflow-hidden max-w-sm mx-auto"
       >
         <button
-          onClick={() => { playSystemSoundEffect('TAB_SWITCH'); setSubTab('SHADOW_MISSIONS'); }}
-          className={`flex-1 text-center py-2 text-[10px] font-bold font-mono tracking-wider transition-colors relative z-10 ${
-            subTab === 'SHADOW_MISSIONS' ? 'text-black' : 'text-gray-400 hover:text-gray-200'
-          }`}
-        >
-          {subTab === 'SHADOW_MISSIONS' && (
-            <motion.div
-              layoutId="active-pro-tab"
-              className="absolute inset-0 bg-system-neon rounded-lg -z-10 shadow-[0_0_15px_#00d4ff]"
-              transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-            />
-          )}
-          GOALS
-        </button>
-        <button
           onClick={() => {
             playSystemSoundEffect('TAB_SWITCH');
             setSubTab('FOCUS_SHIELD');
@@ -1315,325 +1300,80 @@ export default function GoalsView({
           )}
           FOCUS SHIELD
         </button>
+        <button
+          onClick={() => { playSystemSoundEffect('TAB_SWITCH'); setSubTab('SHADOW_MISSIONS'); }}
+          className={`flex-1 text-center py-2 text-[10px] font-bold font-mono tracking-wider transition-colors relative z-10 ${
+            subTab === 'SHADOW_MISSIONS' ? 'text-black' : 'text-gray-400 hover:text-gray-200'
+          }`}
+        >
+          {subTab === 'SHADOW_MISSIONS' && (
+            <motion.div
+              layoutId="active-pro-tab"
+              className="absolute inset-0 bg-system-neon rounded-lg -z-10 shadow-[0_0_15px_#00d4ff]"
+              transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+            />
+          )}
+          GOALS
+        </button>
       </motion.div>
 
       {subTab === 'FOCUS_SHIELD' ? (
         <FocusShieldSettings playerData={playerData} isPremium={isPremium} onUpgradePro={onUpgradePro} />
       ) : (
-        <>
-          {/* ═══ NEXT QUESTS COUNTDOWN TIMER ═══ */}
-          {activeGoals.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="mb-4 rounded-xl px-4 py-2.5 flex items-center justify-between"
-              style={{
-                background: 'rgba(250,204,21,0.03)',
-                border: '1px solid rgba(250,204,21,0.1)',
-              }}
-            >
-              <div className="flex items-center gap-2">
-                <Clock size={13} style={{ color: '#facc15' }} />
-                <span className="text-[9px] font-mono font-bold uppercase tracking-[0.2em]" style={{ color: 'rgba(250,204,21,0.6)' }}>
-                  NEXT QUESTS IN
-                </span>
-              </div>
-              <div className="flex items-center gap-1">
-                <span
-                  className="text-sm font-black font-mono tabular-nums tracking-wider"
-                  style={{ color: '#facc15', textShadow: '0 0 12px rgba(250,204,21,0.4)' }}
-                >
-                  {timeToMidnight}
-                </span>
-              </div>
-            </motion.div>
-          )}
-
-          {/* ═══ HORIZONTAL TILTED GOAL CARDS (max 3) ═══ */}
-          {activeGoals.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-            >
-              {/* Section label */}
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-1 h-4 rounded-full" style={{ background: 'linear-gradient(180deg, #facc15, #f59e0b)' }} />
-                <span className="text-[9px] font-mono font-black tracking-[0.3em] uppercase" style={{ color: '#facc15' }}>
-                  ACTIVE GOALS
-                </span>
-                <span className="text-[8px] font-mono text-gray-600 ml-auto">
-                  {activeGoals.length} goal{activeGoals.length > 1 ? 's' : ''}
-                </span>
-              </div>
-
-              {/* Tilted card row */}
-              <div
-                className="no-scrollbar"
-                style={{
-                  display: 'flex',
-                  gap: '14px',
-                  overflowX: 'auto',
-                  scrollbarWidth: 'none',
-                  msOverflowStyle: 'none',
-                  paddingLeft: '20px',
-                  paddingRight: '20px',
-                  paddingBottom: '24px',
-                  paddingTop: '16px',
-                  WebkitOverflowScrolling: 'touch',
-                  alignItems: 'center',
-                }}
-              >
-                <style>{`.no-scrollbar::-webkit-scrollbar { display: none; }`}</style>
-                {activeGoals.slice(0, 3).map((goal, idx) => (
-                  <motion.div
-                    key={goal.id}
-                    initial={{ opacity: 0, y: 15 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 + idx * 0.06, duration: 0.4 }}
-                  >
-                    <ProGoalCard
-                      goal={goal}
-                      index={idx}
-                      onTap={(g) => setSelectedGoal(g)}
-                    />
-                  </motion.div>
-                ))}
-              </div>
-
-              {/* View More button (if >3 goals) */}
-              {activeGoals.length > 3 && (
-                <motion.button
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.4 }}
-                  onClick={() => { playSystemSoundEffect('SELECT'); setShowAllGoals(true); }}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-[10px] font-mono font-bold uppercase tracking-widest transition-all"
-                  style={{
-                    background: 'rgba(250,204,21,0.04)',
-                    border: '1px solid rgba(250,204,21,0.12)',
-                    color: 'rgba(250,204,21,0.7)',
-                    marginTop: '-8px',
-                    marginBottom: '12px',
-                  }}
-                >
-                  View All {activeGoals.length} Goals
-                  <ChevronRight size={12} />
-                </motion.button>
-              )}
-            </motion.div>
-          )}
-
-          {/* ═══ FORGE GOAL QUESTS — FUTURISTIC BUTTON ═══ */}
-          {activeGoals.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.25, duration: 0.4 }}
-              className="mb-5"
-            >
-              <motion.button
-                onClick={handleForgeGoalQuests}
-                disabled={forgeState === 'GENERATING' || allForgedToday}
-                whileTap={{ scale: forgeState === 'GENERATING' ? 1 : 0.95 }}
-                className="w-full relative overflow-hidden rounded-2xl transition-all"
-                style={{
-                  padding: 0,
-                  border: 'none',
-                  cursor: allForgedToday ? 'default' : 'pointer',
-                }}
-              >
-                {/* Outer glow border */}
-                <div
-                  className="absolute inset-0 rounded-2xl"
-                  style={{
-                    background: allForgedToday
-                      ? 'transparent'
-                      : 'linear-gradient(135deg, rgba(250,204,21,0.3), rgba(245,158,11,0.15), rgba(250,204,21,0.3))',
-                    filter: allForgedToday ? 'none' : 'blur(1px)',
-                  }}
-                />
-
-                {/* Inner content */}
-                <div
-                  className="relative rounded-2xl flex items-center justify-center gap-3 py-4 px-6"
-                  style={{
-                    background: allForgedToday
-                      ? 'rgba(255,255,255,0.02)'
-                      : 'linear-gradient(135deg, #1a1a2e 0%, #0f0f1a 50%, #1a1a2e 100%)',
-                    border: allForgedToday
-                      ? '1px solid rgba(255,255,255,0.06)'
-                      : '1px solid rgba(250,204,21,0.25)',
-                    boxShadow: allForgedToday
-                      ? 'none'
-                      : '0 0 30px rgba(250,204,21,0.15), inset 0 1px 0 rgba(250,204,21,0.1)',
-                    margin: '1px',
-                  }}
-                >
-                  {/* Animated scanning line */}
-                  {!allForgedToday && (
-                    <motion.div
-                      className="absolute top-0 left-0 right-0 h-[1px]"
-                      style={{ background: 'linear-gradient(90deg, transparent, rgba(250,204,21,0.6), transparent)' }}
-                      animate={{ x: ['-100%', '100%'] }}
-                      transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
-                    />
-                  )}
-
-                  {/* Generating spinner line */}
-                  {forgeState === 'GENERATING' && (
-                    <motion.div
-                      className="absolute bottom-0 left-0 right-0 h-[2px]"
-                      style={{ background: 'linear-gradient(90deg, transparent, #facc15, transparent)' }}
-                      animate={{ x: ['-100%', '100%'] }}
-                      transition={{ duration: 1.2, repeat: Infinity, ease: 'linear' }}
-                    />
-                  )}
-
-                  {/* Swords icon with glow */}
-                  <div className="relative">
-                    <Swords
-                      size={20}
-                      style={{
-                        color: allForgedToday ? 'rgba(255,255,255,0.2)' : '#facc15',
-                        filter: allForgedToday ? 'none' : 'drop-shadow(0 0 8px rgba(250,204,21,0.5))',
-                      }}
-                    />
-                    {!allForgedToday && (
-                      <motion.div
-                        className="absolute inset-0"
-                        animate={{ opacity: [0.5, 1, 0.5] }}
-                        transition={{ duration: 2, repeat: Infinity }}
-                        style={{ filter: 'blur(6px)', background: 'radial-gradient(circle, rgba(250,204,21,0.3), transparent)' }}
-                      />
-                    )}
-                  </div>
-
-                  {/* Button text */}
-                  {forgeState === 'GENERATING' ? (
-                    <div className="flex items-center gap-2">
-                      <Loader2 size={14} className="animate-spin" style={{ color: '#facc15' }} />
-                      <span className="text-xs font-black font-mono uppercase tracking-[0.15em]" style={{ color: '#facc15' }}>
-                        FORGING... {forgeProgress.current}/{forgeProgress.total}
-                      </span>
-                    </div>
-                  ) : allForgedToday ? (
-                    <span className="text-xs font-black font-mono uppercase tracking-[0.15em]" style={{ color: 'rgba(255,255,255,0.25)' }}>
-                      TODAY'S QUESTS FORGED
-                    </span>
-                  ) : (
-                    <span className="text-sm font-black font-mono uppercase tracking-[0.15em]" style={{ color: '#facc15', textShadow: '0 0 12px rgba(250,204,21,0.3)' }}>
-                      FORGE GOAL QUESTS
-                    </span>
-                  )}
-                </div>
-              </motion.button>
-            </motion.div>
-          )}
-
-          {/* ═══ GENERATED GOAL QUESTS DISPLAY (real QuestCards) ═══ */}
-          {goalFeedQuests.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3, duration: 0.4 }}
-              className="mb-6"
-            >
-              {/* Section header */}
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-1 h-4 rounded-full" style={{ background: 'linear-gradient(180deg, #00d4ff, #0088aa)' }} />
-                <span className="text-[9px] font-mono font-black tracking-[0.3em] uppercase" style={{ color: '#00d4ff' }}>
-                  GOAL QUESTS
-                </span>
-                <span className="text-[8px] font-mono text-gray-600 ml-auto">
-                  {goalFeedQuests.filter(q => q.isCompleted).length}/{goalFeedQuests.length} DONE
-                </span>
-              </div>
-
-              {/* Quest list — full QuestCards with complete / fail / delete actions */}
-              <div className="space-y-2">
-                {goalFeedQuests.map((quest, idx) => (
-                  <motion.div
-                    key={quest.id}
-                    layout
-                    initial={{ opacity: 0, x: -8 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ delay: 0.05 * idx, duration: 0.3 }}
-                  >
-                    <QuestCard
-                      quest={quest}
-                      onComplete={(id, asMini) => completeQuest?.(id, asMini)}
-                      onFail={(id) => failQuest?.(id)}
-                      onReset={(id) => resetQuest?.(id)}
-                      onDelete={(id) => deleteQuest?.(id)}
-                      onStartTracking={onStartTracking}
-                      onStopTracking={onStopTracking}
-                      onEnterDungeon={onEnterDungeon}
-                    />
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
-          )}
-
-          {/* Empty State */}
-          {activeGoals.length === 0 && (
-            <motion.div 
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4 }}
-              className="flex flex-col items-center justify-center py-16 px-6"
-            >
-              <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ background: 'rgba(34,211,238,0.06)' }}>
-                <Target className="w-7 h-7 text-[#00d4ff]" />
-              </div>
-              <h3 className="text-sm font-bold text-white mb-1">No Active Goals</h3>
-              <p className="text-[10px] text-gray-500 font-mono text-center mb-5 max-w-[240px]">
-                Set a long-term goal and AI will create a daily action plan to help you achieve it.
-              </p>
+        <div className="space-y-6 md:space-y-8">
+          {/* Header — title + create-custom-goal button */}
+          <div className="sticky top-0 z-20 pt-2 pb-3 px-0" style={{ backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
+            <div className="flex items-center justify-between px-1">
+              <span className="text-xs font-sans font-extrabold tracking-[0.25em] text-white uppercase">
+                GOALS
+              </span>
               <button
                 onClick={() => {
                   if (!isPremium) {
                     playSystemSoundEffect('DEBUFF_CAST');
                     showSystemToast({
                       type: 'WARNING',
-                      title: 'Premium Required',
-                      subtitle: 'Custom goals are a Reforge Pro feature.',
-                      durationMs: 4000
+                      title: 'Pro Feature Required',
+                      subtitle: 'Custom Goals is a Reforge Pro feature.',
+                      durationMs: 5000
                     });
                     onUpgradePro?.();
                     return;
                   }
                   setShowCreate(true);
                 }}
-                className="px-6 py-3 rounded-xl text-xs font-black text-black uppercase tracking-wider"
-                style={{ background: 'linear-gradient(135deg, #00d4ff, #00d4ff)' }}
+                className="w-11 h-11 md:w-13 md:h-13 rounded-full flex items-center justify-center active:scale-90 transition-all"
+                style={{ background: 'linear-gradient(135deg, #00d4ff, #0099cc)', boxShadow: '0 0 20px rgba(0,212,255,0.4), 0 4px 14px rgba(0,0,0,0.35)' }}
+                aria-label="Create custom goal"
               >
-                Create Goal
+                <Plus size={22} className="text-black" strokeWidth={3} />
               </button>
-            </motion.div>
-          )}
+            </div>
+          </div>
 
-          {/* Completed Goals */}
-          {completedGoals.length > 0 && (
-            <motion.div 
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2, duration: 0.4 }}
-              className="mt-6"
+          {/* Work in Progress placeholder */}
+          <div className="flex flex-col items-center justify-center py-16 px-6 bg-slate-950/40 border border-cyan-500/10 rounded-2xl text-center relative overflow-hidden shadow-[0_8px_32px_0_rgba(0,0,0,0.5)]">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,212,255,0.03),transparent)] pointer-events-none" />
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+              className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-cyan-950/30 border border-cyan-500/20"
             >
-              <div className="flex items-center gap-2 mb-3">
-                <Trophy className="w-3.5 h-3.5 text-amber-400" />
-                <span className="text-[10px] font-mono text-gray-500 uppercase tracking-wider">Completed Goals</span>
-              </div>
-              <div className="space-y-2">
-                {completedGoals.map(goal => (
-                  <GoalCard key={goal.id} goal={goal} onTap={(g) => setSelectedGoal(g)} />
-                ))}
-              </div>
+              <Swords className="w-6 h-6 text-[#00d4ff]" />
             </motion.div>
-          )}
+            <h3 className="text-sm font-sans font-black text-white uppercase tracking-widest mb-2">
+              Reforging Goals Protocol
+            </h3>
+            <p className="text-[10px] text-slate-400 font-sans leading-relaxed max-w-[260px]">
+              This section is currently undergoing system recalibration and enhancements. Return post-update to access your S-Rank protocol training.
+            </p>
+            <div className="mt-6 border-t border-slate-900 pt-4 w-full flex items-center justify-center gap-1.5 text-[8px] font-mono text-slate-650">
+              <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse" />
+              <span>WORK IN PROGRESS</span>
+              <span>•</span>
+              <span>SYSTEM CALIBRATION ACTIVE</span>
+            </div>
+          </div>
 
           {/* Creation Flow Modal */}
           <AnimatePresence>
@@ -1648,53 +1388,7 @@ export default function GoalsView({
               />
             )}
           </AnimatePresence>
-
-          {/* ═══ ALL GOALS FULL-SCREEN OVERLAY ═══ */}
-          <AnimatePresence>
-            {showAllGoals && (
-              <motion.div
-                initial={{ opacity: 0, y: '100%' }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: '100%' }}
-                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                className="fixed inset-0 z-[80] overflow-y-auto"
-                style={{ background: '#08081a', paddingBottom: 'env(safe-area-inset-bottom)' }}
-              >
-                {/* Header */}
-                <div
-                  className="sticky top-0 z-10 px-5 pt-5 pb-3 flex items-center gap-3"
-                  style={{ background: '#08081a', borderBottom: '1px solid rgba(255,255,255,0.05)' }}
-                >
-                  <button
-                    onClick={() => { playSystemSoundEffect('SELECT'); setShowAllGoals(false); }}
-                    className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/5 transition-all"
-                  >
-                    <ChevronLeft size={20} />
-                  </button>
-                  <h2 className="text-sm font-black text-white font-mono tracking-[0.15em]">ALL GOALS</h2>
-                  <span className="text-[9px] font-mono text-gray-600 ml-auto">{activeGoals.length} ACTIVE</span>
-                </div>
-
-                {/* Goal list */}
-                <div className="px-5 py-4 space-y-3 pb-20">
-                  {activeGoals.map((goal, idx) => (
-                    <motion.div
-                      key={goal.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: idx * 0.05, duration: 0.3 }}
-                    >
-                      <GoalCard
-                        goal={goal}
-                        onTap={(g) => { setSelectedGoal(g); setShowAllGoals(false); }}
-                      />
-                    </motion.div>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </>
+        </div>
       )}
     </div>
   );

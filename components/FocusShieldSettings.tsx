@@ -523,7 +523,7 @@ export default function FocusShieldSettings({ playerData, isPremium = false, onU
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(239,68,68,0.05),transparent)] pointer-events-none" />
         
         <ShieldAlert className="w-12 h-12 text-rose-500 mb-4 animate-pulse" />
-        <h3 className="text-sm font-extrabold text-white font-heading uppercase tracking-widest mb-2">
+        <h3 className="text-sm font-extrabold text-white font-sans uppercase tracking-widest mb-2">
           Gate Refused: iOS Restriction
         </h3>
         <p className="text-xs text-slate-400 font-sans leading-relaxed max-w-[280px]">
@@ -547,12 +547,10 @@ export default function FocusShieldSettings({ playerData, isPremium = false, onU
   return (
     <div className="space-y-6 max-w-md mx-auto pb-8 animate-fade-in px-4">
       {/* Visual Header matching the screenshot */}
-      <div className="flex items-center justify-between border-b border-slate-900 pb-3 mb-6 px-1">
-        <LayoutGrid className="w-5 h-5 text-slate-400 cursor-pointer active:scale-90 transition-transform" />
-        <span className="text-sm font-heading font-black text-white tracking-[0.05em] uppercase">
-          SYSTEM INTERFACE
+      <div className="flex items-center justify-center border-b border-slate-900 pb-3 mb-6 px-1">
+        <span className="text-sm font-sans font-black text-white tracking-[0.05em] uppercase">
+          FOCUS SHIELD
         </span>
-        <Settings className="w-5 h-5 text-slate-400 cursor-pointer active:scale-90 transition-transform" />
       </div>
 
       {/* ═══ App Screen Time Usage Dashboard ═══ */}
@@ -565,7 +563,7 @@ export default function FocusShieldSettings({ playerData, isPremium = false, onU
             </div>
             <div>
               <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest block">Today's Screen Time</span>
-              <span className="text-lg font-heading font-black text-white">
+              <span className="text-lg font-sans font-black text-white">
                 {loadingUsage ? (
                   <span className="text-xs text-slate-500 animate-pulse">Scanning...</span>
                 ) : (
@@ -588,9 +586,9 @@ export default function FocusShieldSettings({ playerData, isPremium = false, onU
             {topUsageApps.map((app, idx) => {
               const pct = Math.max(5, Math.round((app.usageMinutes / maxUsage) * 100));
               const barColors = [
-                'from-violet-500 to-purple-600',
-                'from-cyan-500 to-blue-600', 
-                'from-emerald-500 to-teal-600'
+                'from-[#00d4ff] to-[#0088cc]', // Protein
+                'from-[#3B82F6] to-[#1D4ED8]', // Fats
+                'from-[#9CA3AF] to-[#4B5563]'  // Carbs
               ];
               return (
                 <div key={app.packageName} className="space-y-1">
@@ -642,7 +640,7 @@ export default function FocusShieldSettings({ playerData, isPremium = false, onU
 
       {/* Switch Card (Master System Switch) */}
       <div className="flex flex-col items-center justify-center p-6 bg-[#0B0D13]/90 border border-[#171B26] rounded-2xl relative overflow-hidden">
-        <span className="text-xs font-heading font-black text-white uppercase tracking-widest text-center">
+        <span className="text-xs font-sans font-black text-white uppercase tracking-widest text-center">
           MASTER SYSTEM SWITCH
         </span>
         <span className="text-[9px] font-mono mt-1 text-center font-bold flex items-center gap-1.5 justify-center uppercase">
@@ -1016,7 +1014,7 @@ export default function FocusShieldSettings({ playerData, isPremium = false, onU
                 <span className="text-[10px] font-black font-mono uppercase tracking-[0.25em] text-cyan-400">
                   PRO Clearance Required
                 </span>
-                <h2 className="text-lg font-heading font-extrabold text-white uppercase tracking-wider mt-2">
+                <h2 className="text-lg font-sans font-extrabold text-white uppercase tracking-wider mt-2">
                   Focus Containment Core
                 </h2>
                 <div className="h-px w-16 bg-cyan-500/20 my-3" />
