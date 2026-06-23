@@ -12,11 +12,24 @@ router.post('/log', async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
+    const db = supabaseServer() as any;
+    // Resolve the internal player row UUID from the auth userId (supabase_id)
+    const { data: player, error: playerErr } = await db
+      .from('players')
+      .select('id')
+      .eq('supabase_id', userId)
+      .single();
+
+    if (playerErr || !player) {
+      console.warn('[Audit] Player not found for userId:', userId);
+      return res.status(404).json({ error: 'Player not found' });
+    }
+
     // Fire and forget insert into audit_logs
-    await (supabaseServer() as any)
+    await db
       .from('audit_logs')
       .insert({
-        user_id: userId,
+        user_id: player.id,
         quest_id: questId,
         quest_rank: questRank,
         outcome: outcome,

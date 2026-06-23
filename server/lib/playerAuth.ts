@@ -19,8 +19,10 @@ export function verifyPlayerToken(token: string): string | null {
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as any;
     if (decoded?.role === 'player' && decoded?.sub) return decoded.sub;
+    console.warn('[PlayerAuth] Token decoded but missing role/sub:', JSON.stringify({ role: decoded?.role, sub: decoded?.sub }));
     return null;
-  } catch {
+  } catch (err: any) {
+    console.warn('[PlayerAuth] Token verification FAILED:', err?.message, '| token preview:', token?.slice(0, 20) + '...');
     return null;
   }
 }
@@ -37,11 +39,15 @@ export function getAuthenticatedUserId(req: Request): string | null {
     const token = authHeader.slice(7);
     const userId = verifyPlayerToken(token);
     if (userId) return userId;
+    console.warn('[PlayerAuth] JWT auth failed for', req.method, req.path);
+  } else {
+    console.warn('[PlayerAuth] No Bearer token for', req.method, req.path, '| auth header:', authHeader || '(none)');
   }
 
   // 2. Fallback to Express session
   const sessionUserId = (req.session as any)?.userId;
   if (sessionUserId) return sessionUserId;
 
+  console.warn('[PlayerAuth] AUTH FAILED completely for', req.method, req.path, '— no JWT, no session');
   return null;
 }

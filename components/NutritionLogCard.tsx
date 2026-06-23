@@ -378,11 +378,13 @@ const NutritionLogCard: React.FC<NutritionLogCardProps> = ({
   const [scanError, setScanError]   = useState<string | null>(null);
   const [scanImage, setScanImage]   = useState<string | null>(null);
   const fileInputRef                = useRef<HTMLInputElement>(null);
+  const abortRef                    = useRef<AbortController | null>(null);
 
-  // Reset scan if component re-receives logs (e.g. cloud sync) so a stale
-  // SCANNING phase doesn't get stuck.
+  // Clear stale scan errors when new nutrition logs arrive from external sources
+  // (e.g. cloud sync). Guard ERROR phase so error messages stay visible until
+  // the user manually dismisses them.
   useEffect(() => {
-    if (scanPhase === 'SCANNING') return; // don't interrupt active scan
+    if (scanPhase === 'SCANNING' || scanPhase === 'ERROR') return;
     setScanError(null);
   }, [player.nutritionLogs?.length, scanPhase]);
 
@@ -414,13 +416,22 @@ const NutritionLogCard: React.FC<NutritionLogCardProps> = ({
     setScanPhase('SCANNING');
     setScanImage(compressedDataUrl);
     setScanError(null);
+
+    // Abort controller: enables both manual cancel (via CANCEL button) and
+    // automatic timeout (35 s) so the UI never gets stuck in SCANNING state.
+    const controller = new AbortController();
+    abortRef.current = controller;
+    const timeoutId = setTimeout(() => controller.abort(), 35_000);
+
     try {
       const imageBase64 = compressedDataUrl.split(',')[1];
       const res = await authenticatedFetch(`${API_BASE}/api/nutrition/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
         body: JSON.stringify({ imageBase64, mimeType: 'image/jpeg' }),
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
         throw new Error(j.error || `Analyze failed (${res.status})`);
@@ -456,10 +467,17 @@ const NutritionLogCard: React.FC<NutritionLogCardProps> = ({
       setScanPhase('IDLE');
       setScanImage(null);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Analysis failed';
+      clearTimeout(timeoutId);
+      // Translate AbortError (from timeout or manual cancel) into a friendly message.
+      const msg =
+        err instanceof DOMException && err.name === 'AbortError'
+          ? 'Scan timed out — please try again.'
+          : err instanceof Error ? err.message : 'Analysis failed';
       console.error('[NutritionLogCard scan]', msg);
       setScanError(msg);
       setScanPhase('ERROR');
+    } finally {
+      abortRef.current = null;
     }
   }, [onLogMeal]);
 
@@ -723,7 +741,7 @@ const NutritionLogCard: React.FC<NutritionLogCardProps> = ({
               />
               <div style={{
                 position: 'absolute', inset: 0,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10,
               }}>
                 <div style={{
                   background: 'rgba(0,0,0,0.7)',
@@ -738,6 +756,28 @@ const NutritionLogCard: React.FC<NutritionLogCardProps> = ({
                   <Loader2 size={14} className="animate-spin" />
                   SCANNING FOOD
                 </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    abortRef.current?.abort();
+                    setScanPhase('IDLE');
+                    setScanError(null);
+                    setScanImage(null);
+                  }}
+                  style={{
+                    background: 'rgba(255,255,255,0.08)',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    borderRadius: 8,
+                    padding: '5px 16px',
+                    color: COLOR.textLo,
+                    fontFamily: "'Rajdhani', 'Bai Jamjuree', sans-serif",
+                    fontWeight: 600, fontSize: 11, letterSpacing: '0.12em',
+                    cursor: 'pointer',
+                  }}
+                  aria-label="Cancel scan"
+                >
+                  CANCEL
+                </button>
               </div>
             </motion.div>
           )}

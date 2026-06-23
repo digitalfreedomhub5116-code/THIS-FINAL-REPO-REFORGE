@@ -847,7 +847,7 @@ router.post("/:id/join", async (req: Request, res: Response) => {
             const { data: requester } = await db
               .from("players")
               .select("username, name")
-              .eq("id", uid)
+              .eq("supabase_id", uid)
               .maybeSingle();
             
             const requesterName = requester?.username || requester?.name || "A new player";

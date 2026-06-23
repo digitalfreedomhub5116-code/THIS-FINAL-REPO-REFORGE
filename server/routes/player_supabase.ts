@@ -1027,17 +1027,29 @@ router.post('/device-token', async (req: Request, res: Response) => {
 
   try {
     const db = supabaseServer() as any;
+    // Resolve the internal player row UUID from the authUserId (supabase_id)
+    const { data: player, error: playerErr } = await db
+      .from('players')
+      .select('id')
+      .eq('supabase_id', authUserId)
+      .single();
+
+    if (playerErr || !player) {
+      console.warn('[Device Token] Player not found for authUserId:', authUserId);
+      return res.status(404).json({ error: 'Player not found' });
+    }
+
     const { error } = await db
       .from('player_device_tokens')
       .upsert({
-        user_id: authUserId,
+        user_id: player.id,
         token,
         platform,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'user_id,token' });
 
     if (error) throw error;
-    console.log(`[Device Token] Registered token for player ${authUserId}:`, token.substring(0, 10) + '...');
+    console.log(`[Device Token] Registered token for player ${authUserId} (${player.id}):`, token.substring(0, 10) + '...');
     return res.json({ success: true });
   } catch (err) {
     console.error('[Device Token Register]', err);
@@ -1054,14 +1066,26 @@ router.delete('/device-token', async (req: Request, res: Response) => {
 
   try {
     const db = supabaseServer() as any;
+    // Resolve the internal player row UUID from the authUserId (supabase_id)
+    const { data: player, error: playerErr } = await db
+      .from('players')
+      .select('id')
+      .eq('supabase_id', authUserId)
+      .single();
+
+    if (playerErr || !player) {
+      console.warn('[Device Token] Player not found for authUserId:', authUserId);
+      return res.status(404).json({ error: 'Player not found' });
+    }
+
     const { error } = await db
       .from('player_device_tokens')
       .delete()
-      .eq('user_id', authUserId)
+      .eq('user_id', player.id)
       .eq('token', token);
 
     if (error) throw error;
-    console.log(`[Device Token] Deleted token for player ${authUserId}:`, token.substring(0, 10) + '...');
+    console.log(`[Device Token] Deleted token for player ${authUserId} (${player.id}):`, token.substring(0, 10) + '...');
     return res.json({ success: true });
   } catch (err) {
     console.error('[Device Token Delete]', err);

@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { logUsage } from '../utils/logUsage.js';
 import { getAuthenticatedUserId } from '../lib/playerAuth.js';
 import { getSharedAI, generateWithFallback, DEFAULT_MODEL_CHAIN } from '../utils/geminiRetry.js';
-import { deductKeys } from '../lib/keyGate.js';
+import { deductKeys, grantKeys } from '../lib/keyGate.js';
 
 const router = Router();
 
@@ -94,11 +94,15 @@ router.post('/analyze', async (req: Request, res: Response) => {
       nutrition = JSON.parse(cleaned);
     } catch {
       console.error(`[Nutrition] ${modelName} returned non-JSON:`, text.substring(0, 200));
+      // Refund the key — AI returned an unusable response
+      if (userId) await grantKeys(userId, 1).catch(e => console.error('[Nutrition] Key refund failed:', (e as Error)?.message));
       return res.status(500).json({ error: 'Could not parse AI response. Try a clearer food photo.' });
     }
 
     if (nutrition.error === "NOT_FOOD") {
       console.log(`[Nutrition] Image rejected as non-food by ${modelName}`);
+      // Refund the key — image wasn't food, user shouldn't be penalised
+      if (userId) await grantKeys(userId, 1).catch(e => console.error('[Nutrition] Key refund failed:', (e as Error)?.message));
       return res.status(400).json({ error: "No food detected. Please scan a clear image of a meal or ingredients." });
     }
 
@@ -115,6 +119,8 @@ router.post('/analyze', async (req: Request, res: Response) => {
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     console.error(`[Nutrition] All models failed:`, message.substring(0, 200));
+    // Refund the key — AI analysis failed through no fault of the user
+    if (userId) await grantKeys(userId, 1).catch(e => console.error('[Nutrition] Key refund failed:', (e as Error)?.message));
     return res.status(500).json({ error: 'AI analysis temporarily unavailable. Please try again in a moment.' });
   }
 });
