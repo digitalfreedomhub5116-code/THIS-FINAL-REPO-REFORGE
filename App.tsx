@@ -167,9 +167,6 @@ const TutorialOverlay = lazy(() => import('./components/TutorialOverlay'));
 const UpcomingQuests = lazy(() => import('./components/UpcomingQuests'));
 
 // ── New lazy imports ──
-
-const SystemAgreement = lazy(() => import('./components/SystemAgreement'));
-const SystemOverrideIntro = lazy(() => import('./components/SystemOverrideIntro').then(m => ({ default: m.SystemOverrideIntro })));
 const CalibrationFlow = lazy(() => import('./components/CalibrationFlow'));
 
 const NameOnboarding = lazy(() => import('./components/NameOnboarding'));
@@ -3890,33 +3887,7 @@ const App: React.FC = () => {
 
     }
 
-    if (onboardingPhase === 'OVERRIDE') {
-      return (
-        <Suspense fallback={<SkeletonOnboardingPage />}>
-          <ErrorBoundary fallbackLabel="System override failed">
-            <SystemOverrideIntro onComplete={() => setOnboardingPhase('AGREEMENT')} />
-          </ErrorBoundary>
-        </Suspense>
-      );
-    }
 
-    if (onboardingPhase === 'AGREEMENT') {
-
-      return (
-
-        <Suspense fallback={<SkeletonOnboardingPage />}>
-
-          <ErrorBoundary fallbackLabel="Agreement failed">
-
-            <SystemAgreement onComplete={() => setOnboardingPhase('NAMING')} />
-
-          </ErrorBoundary>
-
-        </Suspense>
-
-      );
-
-    }
 
     if (onboardingPhase === 'NAMING') {
       // Auto-detect country/timezone and skip to CALIBRATION immediately
@@ -4090,7 +4061,7 @@ const App: React.FC = () => {
 
               ssSet(SS_AUTH, profile);
 
-              setOnboardingPhase('OVERRIDE');
+              setOnboardingPhase('NAMING');
 
             }
 
@@ -4156,7 +4127,7 @@ const App: React.FC = () => {
 
               ssSet(SS_AUTH, profile);
 
-              setOnboardingPhase('OVERRIDE');
+              setOnboardingPhase('NAMING');
 
             }
 
@@ -4224,7 +4195,7 @@ const App: React.FC = () => {
 
               ssSet(SS_AUTH, profile);
 
-              setOnboardingPhase('OVERRIDE');
+              setOnboardingPhase('NAMING');
 
             }
 
