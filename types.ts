@@ -59,6 +59,7 @@ export interface GuildMember {
   userId: string;
   role: GuildRole;
   contributionPoints: number;
+  coinsDonated: number;
   joinedAt?: string;
   name: string;
   avatarUrl: string | null;

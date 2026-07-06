@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Coins,
@@ -22,7 +22,6 @@ import {
 import {
   fetchVault,
   donateToVault,
-  purchaseVaultItem,
   equipGuildIcon,
   equipGuildBanner,
 } from "../../lib/guildApi";
@@ -43,42 +42,6 @@ interface GuildVaultProps {
   ) => void;
 }
 
-interface ShopItem {
-  key: string;
-  label: string;
-  desc: string;
-  price: number;
-  icon: string;
-  category: "cosmetic" | "buff";
-}
-
-const SHOP: ShopItem[] = [
-  {
-    key: "crest_of_valor",
-    label: "Crest of Valor",
-    desc: "Unlocks the S-Rank guild emblem.",
-    price: 6000,
-    icon: "🛡️",
-    category: "cosmetic",
-  },
-  {
-    key: "fortress_lvl2",
-    label: "Fortress Lvl 2",
-    desc: "+50% defense for all members in guild wars.",
-    price: 10000,
-    icon: "🏰",
-    category: "buff",
-  },
-  {
-    key: "xp_surge_24h",
-    label: "XP Surge (24h)",
-    desc: "+50% XP gained for all guildmates.",
-    price: 2500,
-    icon: "⚡",
-    category: "buff",
-  },
-];
-
 const RANK_ROLE: Record<GuildRole, number> = { master: 3, vice: 2, member: 1 };
 
 const GuildVault: React.FC<GuildVaultProps> = ({
@@ -92,13 +55,9 @@ const GuildVault: React.FC<GuildVaultProps> = ({
   onToast,
 }) => {
   const [balance, setBalance] = useState(0);
-  const [canPurchase, setCanPurchase] = useState(false);
   const [txns, setTxns] = useState<VaultTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [tab, setTab] = useState<"appearance" | "cosmetic" | "buff">(
-    "appearance"
-  );
   const [showDonate, setShowDonate] = useState(false);
   const [donateAmt, setDonateAmt] = useState("");
   const [busy, setBusy] = useState(false);
@@ -112,25 +71,35 @@ const GuildVault: React.FC<GuildVaultProps> = ({
 
   const canManage = RANK_ROLE[myRole] >= RANK_ROLE.vice;
 
+  // `cancelledRef` guards against stale responses: if `guildId` changes (or the
+  // component re-fetches) while an older request is in flight, the outdated
+  // response must not overwrite the current state.
+  const cancelledRef = useRef(false);
+
   const load = useCallback(async () => {
     try {
       const v = await fetchVault(guildId);
+      if (cancelledRef.current) return;
       setBalance(v.balance);
-      setCanPurchase(v.canPurchase);
       setTxns(v.transactions);
       setEquippedIcon(v.icon);
       setEquippedBanner(v.banner);
       setUnlockedIcons(v.unlockedIcons || []);
       setError("");
     } catch (e: any) {
+      if (cancelledRef.current) return;
       setError(e?.message || "Could not load vault");
     } finally {
-      setLoading(false);
+      if (!cancelledRef.current) setLoading(false);
     }
   }, [guildId]);
 
   useEffect(() => {
+    cancelledRef.current = false;
     load();
+    return () => {
+      cancelledRef.current = true;
+    };
   }, [load]);
 
   const ownsIcon = (key: string, free: boolean) =>
@@ -226,28 +195,6 @@ const GuildVault: React.FC<GuildVaultProps> = ({
     }
   };
 
-  const buy = async (item: ShopItem) => {
-    if (!canPurchase) {
-      onToast?.("WARNING", "Only Master & Vice can purchase");
-      return;
-    }
-    if (balance < item.price) {
-      onToast?.("WARNING", "Insufficient vault balance");
-      return;
-    }
-    setBusy(true);
-    try {
-      const { newBalance } = await purchaseVaultItem(guildId, item.key);
-      setBalance(newBalance);
-      onToast?.("SUCCESS", `Purchased ${item.label}`);
-      load();
-    } catch (e: any) {
-      onToast?.("ERROR", "Purchase failed", e?.message);
-    } finally {
-      setBusy(false);
-    }
-  };
-
   if (loading)
     return (
       <div className="p-4">
@@ -302,37 +249,9 @@ const GuildVault: React.FC<GuildVaultProps> = ({
         </button>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-2 mt-5 mb-3 overflow-x-auto">
-        {(
-          [
-            { key: "appearance", label: "Appearance" },
-            { key: "cosmetic", label: "Cosmetics" },
-            { key: "buff", label: "Guild Buffs" },
-          ] as const
-        ).map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap"
-            style={{
-              background:
-                tab === t.key
-                  ? "rgba(0,212,255,0.18)"
-                  : "rgba(255,255,255,0.04)",
-              color: tab === t.key ? NEON : "#94a3b8",
-              border:
-                tab === t.key ? `1px solid ${NEON}` : "1px solid transparent",
-            }}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
       {!canManage && (
         <div
-          className="mb-3 text-[10px] font-mono px-2 py-1 rounded inline-block"
+          className="mt-5 mb-3 text-[10px] font-mono px-2 py-1 rounded inline-block"
           style={{ background: "rgba(239,68,68,0.12)", color: "#ef4444" }}
         >
           Master & Vice can edit
@@ -340,8 +259,7 @@ const GuildVault: React.FC<GuildVaultProps> = ({
       )}
 
       {/* ── Appearance: Guild Icons ── */}
-      {tab === "appearance" && (
-        <>
+      <div className={canManage ? "mt-5" : ""}>
           <h3 className="text-[11px] font-mono uppercase tracking-wider text-gray-400 mb-2 flex items-center gap-1.5">
             <ImageIcon size={13} /> Guild Icons
           </h3>
@@ -469,59 +387,7 @@ const GuildVault: React.FC<GuildVaultProps> = ({
               );
             })}
           </div>
-        </>
-      )}
-
-      {/* ── Shop (cosmetic / buff) ── */}
-      {(tab === "cosmetic" || tab === "buff") && (
-        <>
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-[11px] font-mono uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
-              <ShoppingCart size={13} /> Vault Shop
-            </h3>
-            {!canPurchase && (
-              <span
-                className="text-[10px] font-mono px-2 py-0.5 rounded"
-                style={{ background: "rgba(239,68,68,0.12)", color: "#ef4444" }}
-              >
-                Master & Vice Only
-              </span>
-            )}
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            {SHOP.filter((s) => s.category === tab).map((item) => {
-              const affordable = balance >= item.price;
-              return (
-                <div
-                  key={item.key}
-                  className="rounded-2xl p-3 flex flex-col"
-                  style={glassPanel}
-                >
-                  <div className="text-3xl mb-2">{item.icon}</div>
-                  <p className="text-white text-sm font-bold">{item.label}</p>
-                  <p className="text-gray-400 text-[11px] flex-1 mt-0.5">
-                    {item.desc}
-                  </p>
-                  <button
-                    onClick={() => buy(item)}
-                    disabled={busy || !canPurchase || !affordable}
-                    className="mt-3 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-40"
-                    style={{
-                      background: affordable
-                        ? "rgba(251,191,36,0.15)"
-                        : "rgba(255,255,255,0.05)",
-                      color: affordable ? "#fbbf24" : "#64748b",
-                    }}
-                  >
-                    {!canPurchase ? <Lock size={12} /> : <Coins size={12} />}{" "}
-                    {item.price.toLocaleString()}
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        </>
-      )}
+      </div>
 
       {/* Activity */}
       <h3 className="text-[11px] font-mono uppercase tracking-wider text-gray-400 mt-5 mb-2 flex items-center gap-1.5">

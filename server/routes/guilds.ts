@@ -618,6 +618,17 @@ router.get("/:id", async (req: Request, res: Response) => {
     const myMembership =
       (members || []).find((m: any) => m.user_id === uid) || null;
 
+    // Sum total coins donated to the vault per member.
+    const { data: donations } = await db
+      .from("guild_vault_transactions")
+      .select("user_id, amount")
+      .eq("guild_id", id)
+      .eq("kind", "donate");
+    const donatedByUser: Record<string, number> = {};
+    for (const d of donations || []) {
+      donatedByUser[d.user_id] = (donatedByUser[d.user_id] || 0) + (d.amount || 0);
+    }
+
     return res.json({
       guild: serializeGuild(guild),
       myRole: myMembership?.role || null,
@@ -625,6 +636,7 @@ router.get("/:id", async (req: Request, res: Response) => {
         userId: m.user_id,
         role: m.role,
         contributionPoints: m.contribution_points,
+        coinsDonated: donatedByUser[m.user_id] || 0,
         joinedAt: m.joined_at,
         ...(info[m.user_id] || {
           name: "Hunter",
@@ -1954,18 +1966,16 @@ router.post("/:id/vault/donate", async (req: Request, res: Response) => {
     if (!amount || amount <= 0)
       return res.status(400).json({ error: "Invalid amount" });
 
-    const { data: player } = await db
-      .from("players")
-      .select("gold")
-      .eq("supabase_id", uid)
-      .maybeSingle();
-    if (!player || (player.gold || 0) < amount)
+    // Atomically deduct gold only if the player still has enough. This avoids
+    // a read-modify-write race where concurrent gold mutations lose updates.
+    const { data: newGold, error: spendErr } = await db.rpc("player_spend_gold", {
+      p_uid: uid,
+      p_amount: amount,
+    });
+    if (spendErr) throw spendErr;
+    if (newGold === null || newGold === undefined)
       return res.status(400).json({ error: "Not enough gold" });
 
-    await db
-      .from("players")
-      .update({ gold: player.gold - amount })
-      .eq("supabase_id", uid);
     await db.rpc("guild_add_vault", { p_guild: id, p_amount: amount });
     await db
       .from("guild_vault_transactions")
@@ -1987,7 +1997,7 @@ router.post("/:id/vault/donate", async (req: Request, res: Response) => {
     return res.json({
       status: "ok",
       newBalance: guild?.vault_balance || 0,
-      playerGold: player.gold - amount,
+      playerGold: newGold,
     });
   } catch (err) {
     console.error("[Guilds donate]", err);

@@ -16,6 +16,7 @@ import {
   AlertCircle,
   Pencil,
   Loader2,
+  Coins,
 } from "lucide-react";
 import {
   NEON,
@@ -404,8 +405,7 @@ const GuildInfo: React.FC<GuildInfoProps> = ({
                   className="text-[11px]"
                   style={{ color: ROLE_COLOR[m.role] }}
                 >
-                  {ROLE_LABEL[m.role]} · {m.contributionPoints.toLocaleString()}{" "}
-                  pts
+                  {ROLE_LABEL[m.role]}
                 </p>
               </div>
               <span className="text-[11px] font-mono text-gray-500">
@@ -546,9 +546,9 @@ const GuildInfo: React.FC<GuildInfoProps> = ({
                     {ROLE_LABEL[selected.role]} · Lv.{selected.level}{" "}
                     {selected.rank}
                   </p>
-                  <p className="text-gray-500 text-[11px]">
-                    {selected.contributionPoints.toLocaleString()} contribution
-                    pts
+                  <p className="text-amber-300 text-[11px] font-semibold flex items-center gap-1">
+                    <Coins size={11} className="text-amber-400" />
+                    {selected.coinsDonated.toLocaleString()} coins donated
                   </p>
                 </div>
               </div>
