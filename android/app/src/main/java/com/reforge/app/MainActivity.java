@@ -35,8 +35,12 @@ public class MainActivity extends BridgeActivity {
         createNotificationChannels();
 
         // Initialize In-App Update check
-        appUpdateManager = AppUpdateManagerFactory.create(this);
-        checkForAppUpdate();
+        try {
+            appUpdateManager = AppUpdateManagerFactory.create(this);
+            checkForAppUpdate();
+        } catch (Throwable t) {
+            Log.e(TAG, "In-app update init failed (non-fatal)", t);
+        }
         
         handleLockdownIntent(getIntent());
     }
@@ -207,17 +211,21 @@ public class MainActivity extends BridgeActivity {
         //   1. A forced update that the user backgrounded — re-trigger it.
         //   2. A flexible update whose download finished while the app was in
         //      the background — prompt the user to install it now.
-        appUpdateManager.getAppUpdateInfo().addOnSuccessListener(info -> {
-            if (info.updateAvailability() == UpdateAvailability.DEVELOPER_TRIGGERED_UPDATE_IN_PROGRESS) {
-                Log.d(TAG, "onResume: forced update still in progress — re-triggering.");
-                triggerImmediateUpdate(info);
-                return;
-            }
-            if (info.installStatus() == InstallStatus.DOWNLOADED) {
-                Log.d(TAG, "onResume: flexible update finished downloading — completing.");
-                appUpdateManager.completeUpdate();
-            }
-        });
+        try {
+            appUpdateManager.getAppUpdateInfo().addOnSuccessListener(info -> {
+                if (info.updateAvailability() == UpdateAvailability.DEVELOPER_TRIGGERED_UPDATE_IN_PROGRESS) {
+                    Log.d(TAG, "onResume: forced update still in progress — re-triggering.");
+                    triggerImmediateUpdate(info);
+                    return;
+                }
+                if (info.installStatus() == InstallStatus.DOWNLOADED) {
+                    Log.d(TAG, "onResume: flexible update finished downloading — completing.");
+                    appUpdateManager.completeUpdate();
+                }
+            });
+        } catch (Throwable t) {
+            Log.w(TAG, "onResume update re-check failed (non-fatal)", t);
+        }
     }
 
     @Override

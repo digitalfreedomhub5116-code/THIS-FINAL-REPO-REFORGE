@@ -19,7 +19,7 @@ interface GoogleTokenPayload {
 
 export async function setupGoogleAuth(app: Express) {
   const webClientId = process.env.VITE_GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID;
-  const androidClientId = process.env.GOOGLE_ANDROID_CLIENT_ID || '20910572316-5ofu2hcterdiov6q9f1h2373ddkqnpbg.apps.googleusercontent.com';
+  const androidClientId = process.env.GOOGLE_ANDROID_CLIENT_ID || '20910572316-ceq6sh3fi0182skvhv0035vtsuut61ul.apps.googleusercontent.com';
 
   if (!webClientId) {
     console.error('[Auth] No Google Client ID found (VITE_GOOGLE_CLIENT_ID or GOOGLE_CLIENT_ID). Google auth disabled.');

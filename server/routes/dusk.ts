@@ -4,6 +4,9 @@ import { getAuthenticatedUserId } from '../lib/playerAuth.js';
 import { getSharedAI, generateWithFallback, DEFAULT_MODEL_CHAIN } from '../utils/geminiRetry.js';
 import { deductKeys } from '../lib/keyGate.js';
 
+// In-memory message counter for key-gate (resets on server restart — acceptable tradeoff)
+const duskMsgCounters = new Map<string, number>();
+
 const router = Router();
 
 router.post('/chat', async (req: Request, res: Response) => {
@@ -15,28 +18,13 @@ router.post('/chat', async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    // Import supabase for counter tracking
-    const { createClient } = await import('@supabase/supabase-js');
-    const supabase = createClient(
-      process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '',
-      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || ''
-    );
-
-    // Atomically increment the dusk message counter
-    const { data: counterRow, error: counterErr } = await supabase
-      .from('players')
-      .select('dusk_msg_count')
-      .eq('id', userId)
-      .single();
-
-    const currentCount = (counterRow?.dusk_msg_count ?? 0) + 1;
-    const shouldDeduct = currentCount % 5 === 0; // every 5th message costs 1 key
-
-    // Update the counter
-    await supabase
-      .from('players')
-      .update({ dusk_msg_count: currentCount })
-      .eq('id', userId);
+    // ── KEY GATE: 1 key per 5 messages ──
+    // Use in-memory counter per user. Persists across requests but resets on server restart.
+    // This is intentionally lightweight — no extra DB column needed.
+    if (!duskMsgCounters.has(userId)) duskMsgCounters.set(userId, 0);
+    const currentCount = duskMsgCounters.get(userId)! + 1;
+    duskMsgCounters.set(userId, currentCount);
+    const shouldDeduct = currentCount % 5 === 0;
 
     if (shouldDeduct) {
       const keyResult = await deductKeys(userId, 1);

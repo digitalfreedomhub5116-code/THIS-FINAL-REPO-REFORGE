@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "20910572316-ceq6sh3fi0182skvhv0035vtsuut61ul.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.reforge.app",
+            "certificate_hash": "4a14806e1f984a4c914ee3a5ebf6c64a201c923c"
+          }
+        },
+        {
           "client_id": "20910572316-4d14c6df8bocnkt032m020vt0bavahlo.apps.googleusercontent.com",
           "client_type": 3
         }
