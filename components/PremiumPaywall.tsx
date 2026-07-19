@@ -2,7 +2,7 @@ import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { triggerHaptic } from '../utils/soundEngine';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Crown, Check, Loader2, RotateCcw, ChevronRight,
+  Crown, Check, Loader2, RotateCcw, ChevronRight, ChevronLeft,
   Target, Zap, Shield, Dumbbell, Camera, Star,
   UtensilsCrossed, Trophy, Sparkles, MessageCircle, ShieldAlert
 } from 'lucide-react';
@@ -233,6 +233,11 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({
     }
   };
 
+  const handlePrevSlide = () => {
+    triggerHaptic('BUTTON_TAP');
+    setFeatureSlide(prev => Math.max(0, prev - 1));
+  };
+
   // Extract monthly package
   const monthlyPkg = useMemo(() => {
     const current = offerings?.current;
@@ -259,56 +264,54 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({
           <div className="px-5 max-w-md mx-auto">
 
             {/* Header */}
-            <motion.div initial={{ y: -10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="text-center mb-5">
-              <h1 className="text-[24px] font-black text-white leading-tight">Here's What You Get</h1>
-              <p className="text-[11px] text-gray-500 font-mono mt-1 tracking-wide">EVERYTHING INCLUDED • NO LIMITS</p>
-            </motion.div>
+            <div className="relative mb-5">
+              {featureSlide > 0 && (
+                <button onClick={handlePrevSlide} aria-label="Previous slide"
+                  className="absolute left-0 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full flex items-center justify-center active:scale-90 transition-transform"
+                  style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)' }}>
+                  <ChevronLeft size={18} className="text-white" />
+                </button>
+              )}
+              <motion.div initial={{ y: -10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="text-center">
+                <h1 className="text-[24px] font-black text-white leading-tight">Here's What You Get</h1>
+                <p className="text-[11px] text-gray-500 font-mono mt-1 tracking-wide">EVERYTHING INCLUDED • NO LIMITS</p>
+              </motion.div>
+            </div>
 
-            {/* ── Full-width single image slider ── */}
+            {/* ── Fixed-frame image + caption slider ── */}
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
-              className="mb-4 relative overflow-hidden mx-auto"
-              style={{ width: '88%', background: '#0a0a1a', borderRadius: 12, paddingTop: 12 }}>
-
-              {/* Screenshot */}
+              className="mb-4 mx-auto" style={{ width: '88%' }}>
               <AnimatePresence mode="wait">
                 <motion.div key={featureSlide}
                   initial={{ opacity: 0, x: 60 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -60 }}
-                  transition={{ duration: 0.35, ease: 'easeInOut' }}
-                  className="relative w-full">
-                  {(feature as any).screenshot && (
-                    <SkeletonImage src={(feature as any).screenshot} alt={feature.title}
-                      className="w-full h-auto block" skeletonStyle={{ position: 'relative', width: '100%', paddingBottom: '177%', borderRadius: 0 }} />
-                  )}
+                  transition={{ duration: 0.35, ease: 'easeInOut' }}>
 
-                  {/* Heavy bottom shadow for text */}
-                  <div className="absolute inset-0 pointer-events-none"
-                    style={{ background: 'linear-gradient(to top, rgba(2,2,8,1) 0%, rgba(2,2,8,0.95) 10%, rgba(2,2,8,0.75) 20%, rgba(2,2,8,0.35) 32%, transparent 48%)' }} />
+                  {/* Fixed-size frame — all screenshots render in the same box */}
+                  <div className="relative w-full overflow-hidden"
+                    style={{ height: 330, background: '#0a0a1a', borderRadius: 12, border: '1px solid rgba(255,255,255,0.06)' }}>
+                    {(feature as any).screenshot && (
+                      <SkeletonImage src={(feature as any).screenshot} alt={feature.title}
+                        className="w-full h-full block"
+                        style={{ objectFit: 'contain', objectPosition: 'center' }}
+                        skeletonStyle={{ position: 'absolute', inset: 0, borderRadius: 12 }} />
+                    )}
+                  </div>
 
-                  {/* Feature info overlay */}
-                  <div className="absolute bottom-0 left-0 right-0 px-5 pb-5 z-10">
-                    <div className="flex items-center gap-2.5 mb-2.5">
-                      <div className="w-8 h-8 rounded-xl flex items-center justify-center"
-                        style={{ background: `${feature.color}20`, border: `1px solid ${feature.color}35`, backdropFilter: 'blur(8px)' }}>
+                  {/* Caption BELOW the image — no overlap, reserved space keeps layout stable */}
+                  <div className="mt-3 px-1" style={{ minHeight: 92 }}>
+                    <div className="flex items-center gap-2.5 mb-2">
+                      <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+                        style={{ background: `${feature.color}20`, border: `1px solid ${feature.color}35` }}>
                         <feature.icon size={16} style={{ color: feature.color }} />
                       </div>
-                      <span className="text-[16px] font-black text-white tracking-tight"
-                        style={{ textShadow: '0 2px 8px rgba(0,0,0,0.9), 0 0 20px rgba(0,0,0,0.5)' }}>
-                        {feature.title}
-                      </span>
+                      <span className="text-[16px] font-black text-white tracking-tight">{feature.title}</span>
                     </div>
-                    <p className="text-[12px] text-white leading-[1.7] font-medium"
-                      style={{ textShadow: '0 1px 6px rgba(0,0,0,0.9), 0 0 12px rgba(0,0,0,0.4)', opacity: 0.9 }}>
-                      {feature.desc}
-                    </p>
+                    <p className="text-[12px] text-white/85 leading-[1.6] font-medium">{feature.desc}</p>
                   </div>
                 </motion.div>
               </AnimatePresence>
-
-              {/* Subtle border */}
-              <div className="absolute inset-0 pointer-events-none"
-                style={{ border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12 }} />
             </motion.div>
 
             {/* ── Dot Tracker ── */}

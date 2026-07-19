@@ -1512,6 +1512,7 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
       readingTime: 0,
       sleepAvg: 0
   });
+  const [baselineSelected, setBaselineSelected] = useState({ pushups: false, squats: false, situps: false });
 
   const [heightUnit, setHeightUnit] = useState<'CM' | 'FT'>('CM');
   const [weightUnit, setWeightUnit] = useState<'KG' | 'LBS'>('KG');
@@ -2024,13 +2025,13 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                               <p className="text-[10px] text-gray-500 uppercase font-bold mb-2 tracking-widest">Max Push-ups (one set, no break)</p>
                               <div className="grid grid-cols-2 gap-2">
                                   {([
-                                      { label: '0 – 5', val: 5 },
+                                      { label: '0', val: 0 },
+                                      { label: '1 – 5', val: 5 },
                                       { label: '10 – 20', val: 15 },
                                       { label: '30 – 50', val: 40 },
-                                      { label: '50+', val: 60 },
                                   ]).map(opt => (
-                                      <button key={opt.val} onClick={() => { triggerHaptic('BUTTON_TAP'); setBaselines({ ...baselines, pushups: opt.val }); setFormData(fd => ({ ...fd, baselinePushups: opt.val })); }}
-                                          className={`py-3 px-3 rounded-xl border text-center transition-all ${baselines.pushups === opt.val ? 'bg-system-neon text-black border-system-neon' : 'border-gray-800 text-gray-400 hover:border-gray-600'}`}>
+                                      <button key={opt.val} onClick={() => { triggerHaptic('BUTTON_TAP'); setBaselines({ ...baselines, pushups: opt.val }); setFormData(fd => ({ ...fd, baselinePushups: opt.val })); setBaselineSelected(s => ({ ...s, pushups: true })); }}
+                                          className={`py-3 px-3 rounded-xl border text-center transition-all ${baselineSelected.pushups && baselines.pushups === opt.val ? 'bg-system-neon text-black border-system-neon' : 'border-gray-800 text-gray-400 hover:border-gray-600'}`}>
                                           <div className="font-bold text-[11px]">{opt.label}</div>
                                       </button>
                                   ))}
@@ -2042,13 +2043,31 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                               <p className="text-[10px] text-gray-500 uppercase font-bold mb-2 tracking-widest">Max Squats (one set, no break)</p>
                               <div className="grid grid-cols-2 gap-2">
                                   {([
-                                      { label: '0 – 10', val: 10 },
+                                      { label: '0', val: 0 },
+                                      { label: '1 – 10', val: 10 },
                                       { label: '15 – 30', val: 20 },
                                       { label: '40 – 60', val: 50 },
-                                      { label: '60+', val: 70 },
                                   ]).map(opt => (
-                                      <button key={opt.val} onClick={() => { triggerHaptic('BUTTON_TAP'); setFormData(fd => ({ ...fd, baselineSquats: opt.val })); }}
-                                          className={`py-3 px-3 rounded-xl border text-center transition-all ${formData.baselineSquats === opt.val ? 'bg-system-neon text-black border-system-neon' : 'border-gray-800 text-gray-400 hover:border-gray-600'}`}>
+                                      <button key={opt.val} onClick={() => { triggerHaptic('BUTTON_TAP'); setFormData(fd => ({ ...fd, baselineSquats: opt.val })); setBaselineSelected(s => ({ ...s, squats: true })); }}
+                                          className={`py-3 px-3 rounded-xl border text-center transition-all ${baselineSelected.squats && formData.baselineSquats === opt.val ? 'bg-system-neon text-black border-system-neon' : 'border-gray-800 text-gray-400 hover:border-gray-600'}`}>
+                                          <div className="font-bold text-[11px]">{opt.label}</div>
+                                      </button>
+                                  ))}
+                              </div>
+                          </motion.div>
+
+                          {/* Sit-ups */}
+                          <motion.div variants={setupItemVariants}>
+                              <p className="text-[10px] text-gray-500 uppercase font-bold mb-2 tracking-widest">Max Sit-ups (one set, no break)</p>
+                              <div className="grid grid-cols-2 gap-2">
+                                  {([
+                                      { label: '0', val: 0 },
+                                      { label: '1 – 10', val: 10 },
+                                      { label: '15 – 30', val: 20 },
+                                      { label: '40 – 60', val: 50 },
+                                  ]).map(opt => (
+                                      <button key={opt.val} onClick={() => { triggerHaptic('BUTTON_TAP'); setFormData(fd => ({ ...fd, baselineSitups: opt.val })); setBaselineSelected(s => ({ ...s, situps: true })); }}
+                                          className={`py-3 px-3 rounded-xl border text-center transition-all ${baselineSelected.situps && formData.baselineSitups === opt.val ? 'bg-system-neon text-black border-system-neon' : 'border-gray-800 text-gray-400 hover:border-gray-600'}`}>
                                           <div className="font-bold text-[11px]">{opt.label}</div>
                                       </button>
                                   ))}
@@ -2114,15 +2133,15 @@ const CalibrationFlow: React.FC<CalibrationFlowProps> = ({ onComplete }) => {
                               <button onClick={() => { triggerHaptic('BUTTON_TAP'); setStep(7); }} className="text-gray-600 hover:text-white flex items-center gap-1 font-bold text-xs uppercase"><ChevronLeft size={14} /> BACK</button>
                               <button 
                                   onClick={() => {
-                                      // Check if all three selections are made (not default values)
-                                      if (baselines.pushups !== 0 && baselines.focusDuration !== 0 && baselines.sleepAvg !== 0 && formData.baselineSquats && formData.baselineRunKm) {
+                                      // All selections made — genuine 0 counts as selected (tracked via baselineSelected)
+                                      if (baselineSelected.pushups && baselineSelected.squats && baselineSelected.situps && baselines.focusDuration !== 0 && baselines.sleepAvg !== 0 && formData.baselineRunKm) {
                                           triggerHaptic('SUCCESS');
                                           handleFinish();
                                       }
                                   }}
-                                  disabled={baselines.pushups === 0 || baselines.focusDuration === 0 || baselines.sleepAvg === 0 || !formData.baselineSquats || !formData.baselineRunKm}
+                                  disabled={!baselineSelected.pushups || !baselineSelected.squats || !baselineSelected.situps || baselines.focusDuration === 0 || baselines.sleepAvg === 0 || !formData.baselineRunKm}
                                   className={`px-10 py-3 rounded-full font-black text-xs transition-all uppercase flex items-center gap-2 ${
-                                      baselines.pushups === 0 || baselines.focusDuration === 0 || baselines.sleepAvg === 0 || !formData.baselineSquats || !formData.baselineRunKm
+                                      !baselineSelected.pushups || !baselineSelected.squats || !baselineSelected.situps || baselines.focusDuration === 0 || baselines.sleepAvg === 0 || !formData.baselineRunKm
                                           ? 'bg-gray-800 text-gray-600 cursor-not-allowed'
                                           : 'bg-system-neon text-black shadow-[0_0_15px_#00d4ff] hover:bg-white'
                                   }`}

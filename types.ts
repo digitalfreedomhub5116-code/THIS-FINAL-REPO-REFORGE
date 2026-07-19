@@ -1077,6 +1077,8 @@ export interface DungeonExerciseTarget {
   distanceKm?: number; // For running (km)
   durationMinutes?: number; // DEPRECATED — kept for backward compat
   formCoachEnabled: boolean;
+  variant?: "KNEE" | "STANDARD";
+  displayName?: string;
 }
 
 /**
@@ -1140,4 +1142,6 @@ export interface DungeonState {
     situpsTarget?: number;
     runKm: number;
   }[];
+
+  pushupVariant?: "KNEE" | "STANDARD"; // KNEE = user started at 0 push-ups; graduates to STANDARD after 21 days
 }

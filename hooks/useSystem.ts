@@ -16,7 +16,7 @@ import { fixVideoPath } from '../lib/exerciseVideos';
 import { OUTFITS, getOutfitXpBoost, getStoneConfig, getUnlockedBadgeCount, BADGE_TIERS } from '../utils/gameData';
 import { scheduleQuestDeadline, cancelDailyReminders } from './useLocalNotifications';
 import { safeLevelUp, computeRank } from '../lib/levelSystem';
-import { createInitialDungeonState, recordDungeonCompletion, getDungeonTargetsForToday, recordDungeonFailure, computeTargets } from '../lib/dungeonEngine';
+import { createInitialDungeonState, recordDungeonCompletion, getDungeonTargetsForToday, recordDungeonFailure, computeTargets, applyPushupVariant } from '../lib/dungeonEngine';
 import { incrementDungeonClear, shouldTriggerReview, dispatchShowReviewPrompt } from '../lib/appReview';
 export { safeLevelUp, computeRank };
 
@@ -201,6 +201,11 @@ function migratePlayerData(raw: Partial<PlayerData>): PlayerData {
       const newTargets = computeTargets(bp, bsit, bs, br, mult, fcPushups, fcSquats);
       merged.dungeonState.baselineSitups = bsit;
       merged.dungeonState.targets = newTargets;
+    }
+
+    // Keep knee push-up progression / 21-day graduation fresh on every load (no-op for standard users)
+    if (merged.dungeonState.pushupVariant === 'KNEE') {
+      merged.dungeonState = applyPushupVariant(merged.dungeonState);
     }
   }
 

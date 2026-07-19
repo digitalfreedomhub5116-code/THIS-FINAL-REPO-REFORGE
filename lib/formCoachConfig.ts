@@ -79,8 +79,21 @@ export const FORM_COACH_EXERCISES: FormCoachExercise[] = [
     requiredLandmarks: [11, 23, 25, 27],
   },
   {
+    name: 'Knee Push-Up',
+    aliases: ['Knee Push Ups','Knee Push-Ups','Knee Pushup','Knee Pushups','Kneeling Push-Up','Kneeling Push-Ups'],
+    viewAngle: 'side',
+    primaryAngle: L_ELBOW,
+    repPhase: { bottomAngleMax: 115, topAngleMin: 155 },
+    trackingMode: 'reps',
+    formRules: [
+      { id: 'knee_pushup_depth', label: 'Depth', angle: L_ELBOW, maxAngle: 135, errorMessage: 'Try going a bit lower', severity: 'warning' },
+    ],
+    setupTips: ['Phone on floor, sideways','Knees down, about 5 feet away','Upper body visible'],
+    requiredLandmarks: [11, 13, 15, 23],
+  },
+  {
     name: 'Push-Up',
-    aliases: ['Push Up','Pushup','Push-Ups','Pushups','Wide Push-Up','Wide Push-Ups','Diamond Push-Up','Diamond Push-Ups','Pike Push-Up','Pike Push-Ups','Knee Push-Up','Knee Push-Ups'],
+    aliases: ['Push Up','Pushup','Push-Ups','Pushups','Wide Push-Up','Wide Push-Ups','Diamond Push-Up','Diamond Push-Ups','Pike Push-Up','Pike Push-Ups'],
     viewAngle: 'side',
     primaryAngle: L_ELBOW,
     repPhase: { bottomAngleMax: 115, topAngleMin: 155 },

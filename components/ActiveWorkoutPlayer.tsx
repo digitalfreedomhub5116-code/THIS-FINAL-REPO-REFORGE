@@ -158,7 +158,7 @@ const getExerciseDuration = (reps: string, name?: string, setIndex: number = 0, 
   // Rep-based exercises: Squats, Push-ups and Sit-ups take repPace seconds per rep
   const lowerName = name?.toLowerCase() || '';
   const isSquat = lowerName.includes('squat');
-  const isPushup = lowerName.includes('pushup') || lowerName.includes('push-up');
+  const isPushup = lowerName.includes('pushup') || lowerName.includes('push-up') || lowerName.includes('push up');
   const isSitup = lowerName.includes('situp') || lowerName.includes('sit-up') || lowerName.includes('sit ups') || lowerName.includes('sit-ups');
   
   if (isSquat || isPushup || isSitup) {
@@ -878,14 +878,23 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
                                 animate={{ opacity: 1 }}
                                 className="absolute inset-0 z-10"
                             >
-                                <video
-                                    key={`preview-${videoSource}`}
-                                    src={videoSource}
-                                    className="w-full h-full object-cover object-top"
-                                    autoPlay loop muted playsInline
-                                    poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
-                                    onCanPlay={(e) => (e.target as HTMLVideoElement).classList.add('video-ready')}
-                                />
+                                {/\.gif(\?|$)/i.test(videoSource || '') ? (
+                                    <img
+                                        key={`preview-${videoSource}`}
+                                        src={videoSource}
+                                        alt={exercise.name}
+                                        className="w-full h-full object-cover object-top"
+                                    />
+                                ) : (
+                                    <video
+                                        key={`preview-${videoSource}`}
+                                        src={videoSource}
+                                        className="w-full h-full object-cover object-top"
+                                        autoPlay loop muted playsInline
+                                        poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+                                        onCanPlay={(e) => (e.target as HTMLVideoElement).classList.add('video-ready')}
+                                    />
+                                )}
                                 {/* UPCOMING overlay */}
                                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent flex flex-col items-center justify-end pb-16">
                                     <motion.div
@@ -946,14 +955,23 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
                                         transition={{ type: 'spring', damping: 20, stiffness: 300 }}
                                         className="absolute top-14 right-3 z-40 w-[120px] h-[160px] rounded-xl overflow-hidden border-2 border-orange-500/60 shadow-[0_4px_20px_rgba(0,0,0,0.8),0_0_15px_rgba(249,115,22,0.2)]"
                                     >
-                                        <video
-                                            key={`pip-${videoSource}`}
-                                            src={videoSource}
-                                            className="w-full h-full object-cover object-top"
-                                            autoPlay loop muted playsInline
-                                            poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
-                                            onCanPlay={(e) => (e.target as HTMLVideoElement).classList.add('video-ready')}
-                                        />
+                                        {/\.gif(\?|$)/i.test(videoSource || '') ? (
+                                            <img
+                                                key={`pip-${videoSource}`}
+                                                src={videoSource}
+                                                alt={exercise.name}
+                                                className="w-full h-full object-cover object-top"
+                                            />
+                                        ) : (
+                                            <video
+                                                key={`pip-${videoSource}`}
+                                                src={videoSource}
+                                                className="w-full h-full object-cover object-top"
+                                                autoPlay loop muted playsInline
+                                                poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+                                                onCanPlay={(e) => (e.target as HTMLVideoElement).classList.add('video-ready')}
+                                            />
+                                        )}
                                         {/* PiP label */}
                                         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent px-1.5 py-1">
                                             <p className="text-[7px] font-mono font-bold text-orange-400 tracking-wider text-center truncate">REFERENCE</p>
@@ -991,18 +1009,28 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
                                 </div>
                                 <div className="text-[10px] text-gray-600 font-mono tracking-widest uppercase">Loading...</div>
                             </div>
-                            <video 
-                                key={videoSource}
-                                src={videoSource} 
-                                poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
-                                className="w-full h-full object-cover object-top relative z-[1]" 
-                                style={{ opacity: 0.95 }}
-                                autoPlay 
-                                loop 
-                                muted 
-                                playsInline 
-                                onCanPlay={(e) => (e.target as HTMLVideoElement).classList.add('video-ready')}
-                            />
+                            {/\.gif(\?|$)/i.test(videoSource || '') ? (
+                                <img
+                                    key={videoSource}
+                                    src={videoSource}
+                                    alt={exercise.name}
+                                    className="w-full h-full object-cover object-top relative z-[1] video-ready"
+                                    style={{ opacity: 0.95 }}
+                                />
+                            ) : (
+                                <video 
+                                    key={videoSource}
+                                    src={videoSource} 
+                                    poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+                                    className="w-full h-full object-cover object-top relative z-[1]" 
+                                    style={{ opacity: 0.95 }}
+                                    autoPlay 
+                                    loop 
+                                    muted 
+                                    playsInline 
+                                    onCanPlay={(e) => (e.target as HTMLVideoElement).classList.add('video-ready')}
+                                />
+                            )}
                         </>
                     )
                 ) : (

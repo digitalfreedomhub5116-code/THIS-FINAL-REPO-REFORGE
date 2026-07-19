@@ -20,6 +20,10 @@ const PROGRESSION_CYCLE_DAYS = 3;   // Increase every 3 days
 const MAX_MULTIPLIER_30_DAYS = 1.4; // Cap at 140% (2x start = 2 * 0.7 = 1.4 of max)
 const DELOAD_FACTOR = 0.8;          // Reduce 20% after failure
 const DEFAULT_SETS = 3;             // Classic 3-set structure
+const KNEE_START_REPS = 8;
+const KNEE_WEEKLY_INCREMENT = 3;
+const KNEE_GRADUATION_DAYS = 21;
+const POST_GRADUATION_PUSHUP_BASELINE = 4; // seeds ~10 reps once graduated to standard push-ups
 
 // ── Helpers ──
 function todayStr(): string {
@@ -75,15 +79,46 @@ export function computeTargets(
   ];
 }
 
+// ── Knee push-up variant resolution ──
+// Only affects users whose dungeon.pushupVariant === 'KNEE' (baseline push-ups = 0).
+// Standard users are returned unchanged.
+export function applyPushupVariant(state: DungeonState): DungeonState {
+  if (state.pushupVariant !== 'KNEE') return state;
+  const startMs = state.startDate || Date.now();
+  const days = Math.max(0, Math.floor((Date.now() - startMs) / (1000 * 60 * 60 * 24)));
+
+  // Graduate to standard push-ups after 3 weeks
+  if (days >= KNEE_GRADUATION_DAYS) {
+    const newBaseline = state.baselinePushups && state.baselinePushups > 0 ? state.baselinePushups : POST_GRADUATION_PUSHUP_BASELINE;
+    const targets = state.targets.map(t =>
+      t.exercise === 'PUSHUPS'
+        ? { ...t, variant: 'STANDARD' as const, displayName: undefined, reps: Math.max(10, Math.round(newBaseline * state.progressionMultiplier * 3)), formCoachEnabled: true }
+        : t
+    );
+    return { ...state, pushupVariant: 'STANDARD', baselinePushups: newBaseline, targets };
+  }
+
+  // Knee phase: 8 -> 11 -> 14 over weeks 0,1,2
+  const week = Math.min(2, Math.floor(days / 7));
+  const kneeReps = KNEE_START_REPS + week * KNEE_WEEKLY_INCREMENT;
+  const targets = state.targets.map(t =>
+    t.exercise === 'PUSHUPS'
+      ? { ...t, variant: 'KNEE' as const, displayName: 'Knee Push Ups', reps: kneeReps, sets: 1, formCoachEnabled: true }
+      : t
+  );
+  return { ...state, targets };
+}
+
 // ── Initialize a brand new dungeon state ──
 export function createInitialDungeonState(profile: HealthProfile): DungeonState {
-  const pushups = profile.baselinePushups || 15;
+  const isKneeStart = profile.baselinePushups === 0;
+  const pushups = isKneeStart ? 0 : (profile.baselinePushups || 15);
   const situps = profile.baselineSitups || 15;
   const squats = profile.baselineSquats || 20;
   // Migration: if baselineRunKm exists use it, else convert old minutes → km (approx 10min/km pace)
   const runKm = profile.baselineRunKm || (profile.baselineRunMinutes ? profile.baselineRunMinutes / 6 : 1.5);
 
-  return {
+  const initialState: DungeonState = {
     currentDay: 1,
     startDate: Date.now(),
     lastCompletedDate: '',
@@ -98,7 +133,9 @@ export function createInitialDungeonState(profile: HealthProfile): DungeonState 
     baselineRunKm: runKm,
     progressionMultiplier: STARTING_MULTIPLIER,
     history: [],
+    pushupVariant: isKneeStart ? 'KNEE' : 'STANDARD',
   };
+  return applyPushupVariant(initialState);
 }
 
 // ── Get today's dungeon targets (may trigger progression) ──
@@ -143,6 +180,8 @@ export function getDungeonTargetsForToday(state: DungeonState): {
     };
     progressionTriggered = true;
   }
+
+  newState = applyPushupVariant(newState);
 
   return {
     targets: newState.targets,
@@ -191,7 +230,7 @@ export function recordDungeonFailure(state: DungeonState): DungeonState {
   const currentFCPushups = state.targets.find(t => t.exercise === 'PUSHUPS')?.formCoachEnabled ?? true;
   const currentFCSquats = state.targets.find(t => t.exercise === 'SQUATS')?.formCoachEnabled ?? true;
 
-  return {
+  const deloaded: DungeonState = {
     ...state,
     lastCompletedDate: today,
     consecutiveCompletions: 0, // Reset streak
@@ -219,6 +258,7 @@ export function recordDungeonFailure(state: DungeonState): DungeonState {
       },
     ],
   };
+  return applyPushupVariant(deloaded);
 }
 
 // ── Toggle form coach for a specific exercise ──
@@ -412,7 +452,7 @@ export function buildDungeonWorkoutPlan(targets: DungeonExerciseTarget[]): Worko
     }
 
     return {
-      name: t.exercise === 'PUSHUPS' ? 'Push Ups' : t.exercise === 'SITUPS' ? 'Sit Ups' : 'Squats',
+      name: t.displayName ? t.displayName : (t.exercise === 'PUSHUPS' ? 'Push Ups' : t.exercise === 'SITUPS' ? 'Sit Ups' : 'Squats'),
       sets: t.sets,
       reps: String(t.reps),
       duration,
