@@ -1,4 +1,4 @@
-import jwt, { TokenExpiredError } from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
 
 const JWT_SECRET = process.env.JWT_SECRET!;
@@ -28,7 +28,7 @@ function verifyPlayerTokenDetailed(token: string | undefined | null): VerifyResu
     console.warn('[PlayerAuth] Token decoded but missing role/sub:', JSON.stringify({ role: decoded?.role, sub: decoded?.sub }));
     return { ok: false, reason: 'invalid_token' };
   } catch (err: any) {
-    const expired = err instanceof TokenExpiredError || err?.name === 'TokenExpiredError';
+    const expired = err?.name === 'TokenExpiredError' || err instanceof (jwt as any).TokenExpiredError;
     // Do NOT log token contents or secret details — only the sanitized reason.
     console.warn('[PlayerAuth] Token verification FAILED:', expired ? 'expired' : 'invalid_token');
     return { ok: false, reason: expired ? 'expired' : 'invalid_token' };
