@@ -6,7 +6,7 @@ import {
   MessageCircle,
   X, ChevronRight, Lock as LockIcon,
   Swords, Dumbbell, Brain, Users, Shield, Target, Zap,
-  Camera, ImagePlus, Loader2, Flame, TrendingUp, Sparkles, Crown, ExternalLink,
+  Camera, ImagePlus, Loader2, Flame, TrendingUp, Sparkles, Crown,
   ArrowLeft, Edit3, LogOut,
 } from 'lucide-react';
 import { PlayerData, HealthProfile, Tab, Rank, CoreStats } from '../types';
@@ -1196,27 +1196,6 @@ const YouView: React.FC<YouViewProps> = ({
       {/* Journey log */}
       <div className="mt-4">
         <JourneyLog player={player} />
-      </div>
-
-      {/* Instagram CTA — Shadow Cult */}
-      <div className="mt-6 px-4 flex justify-center">
-        <motion.a
-          href="https://www.instagram.com/reforgesystem?igsh=MWx4YjQ1OHc5ODlpYQ=="
-          target="_blank"
-          rel="noopener noreferrer"
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          className="group relative inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold tracking-wide transition-all overflow-hidden"
-          style={{
-            background: 'linear-gradient(135deg, #E1306C 0%, #833AB4 50%, #F77737 100%)',
-            boxShadow: '0 4px 20px rgba(225,48,108,0.4), 0 0 0 1px rgba(255,255,255,0.1)',
-          }}
-        >
-          <span className="relative z-10 flex items-center gap-2 text-white">
-            Support the shadow cult on instagram
-            <ExternalLink size={12} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-          </span>
-        </motion.a>
       </div>
 
       {/* ── Sign Out ── */}
