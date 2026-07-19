@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { supabaseServer } from '../lib/supabase.js';
+import { getAuthenticatedUserId } from '../lib/playerAuth.js';
 import { logUsage } from '../utils/logUsage.js';
 import { EXERCISE_VIDEOS, getExerciseVideoUrl, fixVideoPath } from '../../lib/exerciseVideos.js';
 import { getSharedAI, generateWithFallback, DEFAULT_MODEL_CHAIN } from '../utils/geminiRetry.js';
@@ -201,8 +202,8 @@ Rules: use only library exercises, BULK=heavy reps like "12,10,8", CUT=more card
 
 router.post('/custom-plans', async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?.id || (req.session as any)?.userId;
-    if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+    const userId = getAuthenticatedUserId(req);
+    if (!userId) return res.status(401).json({ error: 'unauthorized' });
     const { name, days, plan_type } = req.body;
     if (!name || !Array.isArray(days)) return res.status(400).json({ error: 'name and days required' });
     const { data, error } = await (supabaseServer() as any)
@@ -220,8 +221,8 @@ router.post('/custom-plans', async (req: Request, res: Response) => {
 
 router.get('/custom-plans', async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?.id || (req.session as any)?.userId;
-    if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+    const userId = getAuthenticatedUserId(req);
+    if (!userId) return res.status(401).json({ error: 'unauthorized' });
     const { data, error } = await (supabaseServer() as any)
       .from('user_custom_plans')
       .select('id, name, days, plan_type, created_at')
@@ -238,8 +239,8 @@ router.get('/custom-plans', async (req: Request, res: Response) => {
 
 router.delete('/custom-plans/:id', async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?.id || (req.session as any)?.userId;
-    if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+    const userId = getAuthenticatedUserId(req);
+    if (!userId) return res.status(401).json({ error: 'unauthorized' });
     await (supabaseServer() as any)
       .from('user_custom_plans')
       .delete()
@@ -253,8 +254,8 @@ router.delete('/custom-plans/:id', async (req: Request, res: Response) => {
 
 router.post('/log-complete', async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?.id || (req.session as any)?.userId;
-    if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+    const userId = getAuthenticatedUserId(req);
+    if (!userId) return res.status(401).json({ error: 'unauthorized' });
     const { exercises_completed, total_exercises, xp_gained } = req.body;
     const { error } = await (supabaseServer() as any)
       .from('workouts')

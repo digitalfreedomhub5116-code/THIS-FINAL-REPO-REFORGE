@@ -13,7 +13,7 @@ import { buildDungeonWorkoutPlan, buildDungeonWorkoutPlanForEquipment, buildRema
 
 import { playSystemSoundEffect } from '../utils/soundEngine';
 import { API_BASE } from '../lib/apiConfig';
-import { getPlayerAuthHeaders } from '../lib/playerApi';
+import { authFetch } from '../lib/auth';
 import { scheduleQuestStartNotification } from '../hooks/useLocalNotifications';
 
 
@@ -231,10 +231,9 @@ const QuestsView: React.FC<QuestsViewProps> = ({
     setForgeError(null);
     playSystemSoundEffect('SYSTEM');
     try {
-      const res = await fetch(`${API_BASE}/api/forge-guard/analyze-quest`, {
+      const res = await authFetch(`${API_BASE}/api/forge-guard/analyze-quest`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
-        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: title.trim(),
           userStats: playerData?.stats,

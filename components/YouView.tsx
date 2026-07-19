@@ -18,7 +18,7 @@ import { BORDERS_ACTIVE } from '../utils/gameData';
 import { getEconomy } from '../utils/storeEconomy';
 import ForgeGuardWidget from './ForgeGuardWidget';
 import { API_BASE } from '../lib/apiConfig';
-import { getOrRefreshPlayerHeaders } from '../lib/playerApi';
+import { authFetch } from '../lib/auth';
 
 // Compress & resize image to max 512×512, returns base64 data URL.
 // Tries WebP first for smallest size; falls back to JPEG if WebView doesn't support WebP canvas.
@@ -1075,11 +1075,9 @@ const YouView: React.FC<YouViewProps> = ({
     setAvatarUploading(true);
     try {
       const compressed = await compressImage(file);
-      const authHeaders = await getOrRefreshPlayerHeaders(API_BASE);
-      const res = await fetch(`${API_BASE}/api/player/${player.userId}/avatar`, {
+      const res = await authFetch(`${API_BASE}/api/player/${player.userId}/avatar`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders },
-        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ imageBase64: compressed }),
       });
       if (!res.ok) {

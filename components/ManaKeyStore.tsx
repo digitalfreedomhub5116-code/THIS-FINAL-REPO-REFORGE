@@ -161,15 +161,13 @@ const ManaKeyStore: React.FC<ManaKeyStoreProps> = ({ keys, rcState, rcActions, o
 
         for (let attempt = 1; attempt <= 3; attempt++) {
           try {
-            const { getPlayerAuthHeaders } = await import('../lib/playerApi');
+            const { authFetch } = await import('../lib/auth');
             const { API_BASE } = await import('../lib/apiConfig');
-            const res = await fetch(`${API_BASE}/api/iap/credit`, {
+            const res = await authFetch(`${API_BASE}/api/iap/credit`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                ...getPlayerAuthHeaders(),
               },
-              credentials: 'include',
               body: JSON.stringify({
                 productId: pack.productId,
                 transactionId,

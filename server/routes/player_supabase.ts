@@ -754,10 +754,9 @@ router.delete('/:id/delete-account', async (req: Request, res: Response) => {
       await sb.storage.from('avatars').remove([`avatars/${id}.webp`]);
     } catch { /* avatar may not exist */ }
 
-    // 4. Destroy the session
-    if (req.session) {
-      req.session.destroy(() => {});
-    }
+    // 4. Stateless logout — the JWT lives on the client, so there is no server
+    // session to destroy. Best-effort clear the legacy session cookie.
+    res.clearCookie('connect.sid');
 
     console.log(`[Account Delete] User ${id} — account permanently deleted`);
     return res.json({ success: true, message: 'Account and all data permanently deleted.' });

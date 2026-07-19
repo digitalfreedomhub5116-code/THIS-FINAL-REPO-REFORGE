@@ -44,6 +44,19 @@ import { API_BASE } from '../lib/apiConfig';
 import { authenticatedFetch, getPlayerAuthHeaders } from '../lib/playerApi';
 import HudButton from './HudButton';
 
+// Per-scan idempotency id. Uses crypto.randomUUID when available, with a
+// fallback for WebViews where it may be missing (older Android). One id is
+// generated per scan attempt so a retry of the same attempt reuses it and the
+// server can dedupe the key charge.
+function genRequestId(): string {
+  try {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID();
+    }
+  } catch { /* randomUUID unavailable — fall through */ }
+  return Date.now() + '-' + Math.random().toString(36).slice(2);
+}
+
 // ────────────────────────────────────────────────────────────────────────────
 // Theme — exact colors taken from the reference image.
 // ────────────────────────────────────────────────────────────────────────────
@@ -379,6 +392,9 @@ const NutritionLogCard: React.FC<NutritionLogCardProps> = ({
   const [scanImage, setScanImage]   = useState<string | null>(null);
   const fileInputRef                = useRef<HTMLInputElement>(null);
   const abortRef                    = useRef<AbortController | null>(null);
+  // Synchronous in-flight guard: state updates are async, so this ref reliably
+  // blocks rapid double-taps from firing two analyze POSTs (double-charge).
+  const scanInFlightRef             = useRef(false);
 
   // Clear stale scan errors when new nutrition logs arrive from external sources
   // (e.g. cloud sync). Guard ERROR phase so error messages stay visible until
@@ -413,6 +429,12 @@ const NutritionLogCard: React.FC<NutritionLogCardProps> = ({
   // a pre-check purely for UX so we don't open the camera with no keys.
   // ───────────────────────────────────────────────────────────────────────
   const runAnalysis = useCallback(async (compressedDataUrl: string) => {
+    // In-flight guard: bail if a scan is already running (double-submit race).
+    if (scanInFlightRef.current) return;
+    scanInFlightRef.current = true;
+    // One requestId per scan attempt (reused across any internal retry).
+    const requestId = genRequestId();
+
     setScanPhase('SCANNING');
     setScanImage(compressedDataUrl);
     setScanError(null);
@@ -428,7 +450,7 @@ const NutritionLogCard: React.FC<NutritionLogCardProps> = ({
       const res = await authenticatedFetch(`${API_BASE}/api/nutrition/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
-        body: JSON.stringify({ imageBase64, mimeType: 'image/jpeg' }),
+        body: JSON.stringify({ imageBase64, mimeType: 'image/jpeg', requestId }),
         signal: controller.signal,
       });
       clearTimeout(timeoutId);
@@ -478,6 +500,7 @@ const NutritionLogCard: React.FC<NutritionLogCardProps> = ({
       setScanPhase('ERROR');
     } finally {
       abortRef.current = null;
+      scanInFlightRef.current = false;
     }
   }, [onLogMeal]);
 

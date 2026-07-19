@@ -1,12 +1,13 @@
 import { Router, Request, Response } from 'express';
 import { supabaseServer } from '../lib/supabase.js';
+import { getAuthenticatedUserId } from '../lib/playerAuth.js';
 
 const router = Router();
 
 // Create a new System Pact when player pledges Gold
 router.post('/create', async (req: Request, res: Response) => {
-  const userId = (req.session as any)?.userId;
-  if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+  const userId = getAuthenticatedUserId(req);
+  if (!userId) return res.status(401).json({ error: 'unauthorized' });
 
   const { quest_id, quest_title, quest_rank, pledge_amount } = req.body;
   if (!quest_id || !pledge_amount) {
@@ -37,8 +38,8 @@ router.post('/create', async (req: Request, res: Response) => {
 
 // Resolve a pact as honored
 router.post('/resolve', async (req: Request, res: Response) => {
-  const userId = (req.session as any)?.userId;
-  if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+  const userId = getAuthenticatedUserId(req);
+  if (!userId) return res.status(401).json({ error: 'unauthorized' });
 
   const { quest_id, status } = req.body;
   if (!quest_id || !status) {
@@ -65,8 +66,8 @@ router.post('/resolve', async (req: Request, res: Response) => {
 
 // Burn a pact — Gold goes to integrity pool
 router.post('/burn', async (req: Request, res: Response) => {
-  const userId = (req.session as any)?.userId;
-  if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+  const userId = getAuthenticatedUserId(req);
+  if (!userId) return res.status(401).json({ error: 'unauthorized' });
 
   const { quest_id, amount, week_start } = req.body;
   if (!quest_id || !amount || !week_start) {

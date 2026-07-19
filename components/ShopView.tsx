@@ -147,7 +147,7 @@ const REWARD_SHORT: Record<string, (a: number) => string> = {
 };
 
 // ── ITEMS TAB: Streak Shield & Repair ──
-import { getPlayerAuthHeaders, getOrRefreshPlayerHeaders, authenticatedFetch } from '../lib/playerApi';
+import { getPlayerAuthHeaders, authenticatedFetch } from '../lib/playerApi';
 
 const ItemsTab: React.FC<{ gold: number }> = ({ gold }) => {
   const [shieldCount, setShieldCount] = useState(0);
@@ -168,10 +168,7 @@ const ItemsTab: React.FC<{ gold: number }> = ({ gold }) => {
       try {
         const userId = localStorage.getItem('reforge_userId') || '';
         if (!userId) return;
-        const res = await fetch(`${API_BASE}/api/player/${userId}/sync`, {
-          credentials: 'include',
-          headers: { ...getPlayerAuthHeaders() },
-        });
+        const res = await authenticatedFetch(`${API_BASE}/api/player/${userId}/sync`);
         if (res.ok) {
           const data = await res.json();
           setShieldCount(data.streakShields ?? 0);
@@ -202,10 +199,9 @@ const ItemsTab: React.FC<{ gold: number }> = ({ gold }) => {
   const handleBuyShield = async () => {
     setBuying('shield');
     try {
-      const res = await fetch(`${API_BASE}/api/players/streak-shield`, {
+      const res = await authenticatedFetch(`${API_BASE}/api/players/streak-shield`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
-        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
       });
       const data = await res.json();
       if (res.ok) {
@@ -220,10 +216,9 @@ const ItemsTab: React.FC<{ gold: number }> = ({ gold }) => {
   const handleRepair = async () => {
     setBuying('repair');
     try {
-      const res = await fetch(`${API_BASE}/api/players/streak-repair`, {
+      const res = await authenticatedFetch(`${API_BASE}/api/players/streak-repair`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
-        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
       });
       const data = await res.json();
       if (res.ok) {
@@ -395,10 +390,7 @@ const FreeKeyAdBanner: React.FC<{
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/economy/ad-key-progress`, {
-          credentials: 'include',
-          headers: { ...getPlayerAuthHeaders() },
-        });
+        const res = await authenticatedFetch(`${API_BASE}/api/economy/ad-key-progress`);
         if (!res.ok) return;
         const data = await res.json().catch(() => ({}));
         if (!cancelled && typeof data.adsWatched === 'number') {
@@ -429,25 +421,18 @@ const FreeKeyAdBanner: React.FC<{
   // cumulative counter and, if it crosses a 2-ad boundary, atomically grants
   // 1 key. No client-side claim step.
   const reportAdWatch = useCallback(async (): Promise<{ ok: boolean; reason?: string }> => {
-    const doFetch = (headers: Record<string, string>) => fetch(`${API_BASE}/api/economy/ad-key-watch`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...headers },
-      credentials: 'include',
-      body: JSON.stringify({}),
-    });
-
     try {
-      let res = await doFetch(getPlayerAuthHeaders());
+      // authFetch attaches the Bearer token and performs a single-flight reissue
+      // on 401; an unrecoverable 401 comes back here so we can surface a clear
+      // "sign in again" message.
+      const res = await authenticatedFetch(`${API_BASE}/api/economy/ad-key-watch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
 
-      // 401: try one forced JWT refresh, then retry. If still 401, we surface
-      // a clear "sign in again" message because the session itself is dead.
       if (res.status === 401) {
-        const refreshed = await getOrRefreshPlayerHeaders(API_BASE, true);
-        if (refreshed.Authorization) {
-          res = await doFetch(refreshed);
-        } else {
-          return { ok: false, reason: 'Session expired — please sign in again' };
-        }
+        return { ok: false, reason: 'Session expired — please sign in again' };
       }
 
       const data = await res.json().catch(() => ({}));
@@ -481,10 +466,7 @@ const FreeKeyAdBanner: React.FC<{
     // Google's SSV ping as the source of truth).
     let ssvBefore = -1;
     try {
-      const r = await fetch(`${API_BASE}/api/economy/ad-key-progress`, {
-        credentials: 'include',
-        headers: { ...getPlayerAuthHeaders() },
-      });
+      const r = await authenticatedFetch(`${API_BASE}/api/economy/ad-key-progress`);
       if (r.ok) {
         const j = await r.json().catch(() => ({}));
         if (typeof j.adsSsvConfirmed === 'number') ssvBefore = j.adsSsvConfirmed;
@@ -517,10 +499,7 @@ const FreeKeyAdBanner: React.FC<{
         while (Date.now() < deadline) {
           await new Promise(r => setTimeout(r, 1000));
           try {
-            const r = await fetch(`${API_BASE}/api/economy/ad-key-progress`, {
-              credentials: 'include',
-              headers: { ...getPlayerAuthHeaders() },
-            });
+            const r = await authenticatedFetch(`${API_BASE}/api/economy/ad-key-progress`);
             if (!r.ok) continue;
             const j = await r.json().catch(() => ({}));
             if (typeof j.adsSsvConfirmed === 'number' && j.adsSsvConfirmed > ssvBefore) {
@@ -820,9 +799,9 @@ const ShopView: React.FC<ShopViewProps> = ({
             })
             .filter(Boolean);
           if (missingItems.length > 0) {
-            fetch(`${API_BASE}/api/inventory/migrate`, {
-              method: 'POST', headers: { 'Content-Type': 'application/json', ...headers },
-              credentials: 'include', body: JSON.stringify({ items: missingItems }),
+            authenticatedFetch(`${API_BASE}/api/inventory/migrate`, {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ items: missingItems }),
             }).then(r => r.ok ? r.json() : null).then(res => {
               if (res?.migrated > 0) {
                 // Re-fetch inventory after migration
@@ -850,8 +829,7 @@ const ShopView: React.FC<ShopViewProps> = ({
 
   // ── Fetch server-authoritative ad-unlock progress on mount ──
   useEffect(() => {
-    const headers = getPlayerAuthHeaders();
-    fetch(`${API_BASE}/api/ad-unlock/progress`, { credentials: 'include', headers })
+    authenticatedFetch(`${API_BASE}/api/ad-unlock/progress`)
       .then(r => (r.ok ? r.json() : { progress: {} }))
       .then(data => {
         if (data.progress && typeof data.progress === 'object') {

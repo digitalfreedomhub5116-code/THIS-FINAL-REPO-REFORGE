@@ -5,8 +5,7 @@ import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import { PlayerData, ReplitUser } from '../types';
 import { API_BASE, fetchWithRetry, checkServerHealth } from '../lib/apiConfig';
-import { getPlayerAuthHeaders } from '../lib/playerApi';
-import { saveAuthNative } from '../lib/nativeAuth';
+import { completeLogin, tryRestoreSession } from '../lib/authFlow';
 import { isNativePlatform } from '../lib/googleAuth';
 import NativeGoogleButton from './NativeGoogleButton';
 import { shuffleFacts } from '../lib/funFacts';
@@ -85,42 +84,13 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode = 'SIGN_IN' })
         setServerWaking(false);
         if (!woke) { setChecking(false); return; }
       }
-      try {
-        const res = await fetchWithRetry(`${API_BASE}/api/auth/local/whoami`, { credentials: 'include', headers: { ...getPlayerAuthHeaders() } });
-        if (res.ok) {
-          const json = await res.json();
-          if (json.playerToken) saveAuthNative(json.playerToken);
-          const user: ReplitUser = json.user || json;
-          if (user?.id || (user as any)?.supabase_id) {
-            await loginWithUser({ ...user, id: user.id || (user as any).supabase_id });
-            return;
-          }
-        }
-      } catch { /* not logged in */ }
+      // JWT-only auto-login (replaces the old cookie/session whoami flow)
+      const restored = await tryRestoreSession(onLogin);
+      if (restored) return;
       setChecking(false);
     };
     checkSession();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const loginWithUser = async (user: ReplitUser) => {
-    let playerData: Partial<PlayerData> | null = null;
-    try {
-      const token = localStorage.getItem('reforge_player_token');
-      const playerRes = await fetchWithRetry(`${API_BASE}/api/player/${user.id}`, { credentials: 'include', headers: token ? { Authorization: `Bearer ${token}` } : {} });
-      if (playerRes.ok) {
-        const row = await playerRes.json();
-        if (row?.raw_data) playerData = row.raw_data as Partial<PlayerData>;
-      }
-    } catch { /* no cloud data yet */ }
-    onLogin({
-      id: user.id,
-      name: playerData?.name || user.firstName || 'Hunter',
-      username: (user as any).username || playerData?.username,
-
-      raw_data: playerData || undefined,
-      replitUser: user,
-    } as any);
-  };
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -138,8 +108,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode = 'SIGN_IN' })
       let data: any;
       try { data = JSON.parse(text); } catch { data = { error: `Server error (${res.status})` }; }
       if (!res.ok) { setError(data.error || `Login failed (${res.status})`); return; }
-      if (data.playerToken) saveAuthNative(data.playerToken);
-      await loginWithUser(data.user || data);
+      await completeLogin(data.playerToken, data.user || data, onLogin);
     } catch (err: any) {
       setError(`Connection error — please check your internet and try again.`);
     } finally {
@@ -167,8 +136,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode = 'SIGN_IN' })
       let data: any;
       try { data = JSON.parse(text); } catch { data = { error: `Server error (${res.status})` }; }
       if (!res.ok) { setError(data.error || `Registration failed (${res.status})`); return; }
-      if (data.playerToken) saveAuthNative(data.playerToken);
-      await loginWithUser(data.user || data);
+      await completeLogin(data.playerToken, data.user || data, onLogin);
     } catch (err: any) {
       // ────────────────────────────────────────────────────────────────────
       // NETWORK-FAILURE AUTO-RECOVERY
@@ -188,8 +156,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode = 'SIGN_IN' })
         });
         if (loginRes.ok) {
           const loginData = await loginRes.json();
-          if (loginData.playerToken) saveAuthNative(loginData.playerToken);
-          await loginWithUser(loginData.user || loginData);
+          await completeLogin(loginData.playerToken, loginData.user || loginData, onLogin);
           return;
         }
       } catch { /* recovery attempt failed — fall through to error message */ }
@@ -221,8 +188,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onLogin, initialMode = 'SIGN_IN' })
         setError(data.error || `Google sign-in failed (${res.status})`);
         return;
       }
-      if (data.playerToken) saveAuthNative(data.playerToken);
-      await loginWithUser(data.user || data);
+      await completeLogin(data.playerToken, data.user || data, onLogin);
     } catch (err: any) {
       setError(`Connection error — please check your internet and try again.`);
     } finally {

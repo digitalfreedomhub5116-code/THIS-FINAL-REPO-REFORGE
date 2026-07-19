@@ -2,40 +2,17 @@ import { Router, Request, Response } from 'express';
 import { logUsage } from '../utils/logUsage.js';
 import { getAuthenticatedUserId } from '../lib/playerAuth.js';
 import { getSharedAI, generateWithFallback, DEFAULT_MODEL_CHAIN } from '../utils/geminiRetry.js';
-import { deductKeys } from '../lib/keyGate.js';
-
-// In-memory message counter for key-gate (resets on server restart — acceptable tradeoff)
-const duskMsgCounters = new Map<string, number>();
+import { deductKeys, grantKeys } from '../lib/keyGate.js';
+import { incrementDuskCounter } from '../lib/duskCounter.js';
 
 const router = Router();
 
 router.post('/chat', async (req: Request, res: Response) => {
   try {
-    // ── KEY GATE: 1 key per 5 messages ──
-    // Track message count per user. Deduct 1 key every 5th message.
+    // ── AUTH (not billable) ──
     const userId = getAuthenticatedUserId(req) || null;
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
-    }
-
-    // ── KEY GATE: 1 key per 5 messages ──
-    // Use in-memory counter per user. Persists across requests but resets on server restart.
-    // This is intentionally lightweight — no extra DB column needed.
-    if (!duskMsgCounters.has(userId)) duskMsgCounters.set(userId, 0);
-    const currentCount = duskMsgCounters.get(userId)! + 1;
-    duskMsgCounters.set(userId, currentCount);
-    const shouldDeduct = currentCount % 5 === 0;
-
-    if (shouldDeduct) {
-      const keyResult = await deductKeys(userId, 1);
-      if (!keyResult.success) {
-        return res.status(402).json({ 
-          error: 'Not enough keys',
-          keysRemaining: keyResult.remaining,
-          keysRequired: 1,
-          messagesUntilDeduct: 0,
-        });
-      }
     }
 
     let ai: ReturnType<typeof getSharedAI>;
@@ -46,6 +23,35 @@ router.post('/chat', async (req: Request, res: Response) => {
     const { message, playerContext, history } = req.body;
     if (!message) {
       return res.status(400).json({ error: 'message is required' });
+    }
+
+    // Detect system events BEFORE billing — they are notifications, not billable
+    // user messages, so they neither increment the counter nor deduct a key.
+    let userMessage = message;
+    let isSystemEvent = false;
+    if (message.startsWith('[SYSTEM_EVENT]')) {
+      isSystemEvent = true;
+      userMessage = message.replace('[SYSTEM_EVENT]', '').trim();
+    }
+
+    // ── KEY GATE: 1 key per 5 billable (non-system) messages ──
+    // Uses an atomic, persistent per-user DB counter. If the counter can't be
+    // read/written (graceful degradation → null), we skip billing this message
+    // rather than over-charge the user.
+    let didDeduct = false;
+    if (!isSystemEvent) {
+      const count = await incrementDuskCounter(userId);
+      if (count !== null && count % 5 === 0) {
+        const keyResult = await deductKeys(userId, 1);
+        if (!keyResult.success) {
+          return res.status(402).json({
+            error: 'Not enough keys',
+            keysRemaining: keyResult.remaining,
+            keysRequired: 1,
+          });
+        }
+        didDeduct = true;
+      }
     }
 
     const historyContext = (history || [])
@@ -91,16 +97,20 @@ ${injuryList !== 'None reported' ? `⚠️ USER HAS INJURIES: ${injuryList}. Do 
 8. Keep it short. Every word counts. No filler.
 9. Reply in the SAME language the user writes in. Hindi, Hinglish, Marathi, Telugu, Tamil, etc.`;
 
-    let userMessage = message;
-    let isSystemEvent = false;
-    if (message.startsWith('[SYSTEM_EVENT]')) {
-        isSystemEvent = true;
-        userMessage = message.replace('[SYSTEM_EVENT]', '').trim();
-    }
-
     const fullPrompt = `${systemPrompt}\n\nChat History:\n${historyContext}\n\n${isSystemEvent ? `[SYSTEM NOTIFICATION: ${userMessage}]\nReact to this event. Talk directly to the user in a helpful but firm way.` : `User: ${userMessage}`}\nDUSK:`;
 
-    const { result, modelName } = await generateWithFallback(ai, [...DEFAULT_MODEL_CHAIN], fullPrompt);
+    let result: Awaited<ReturnType<typeof generateWithFallback>>['result'];
+    let modelName: string;
+    try {
+      ({ result, modelName } = await generateWithFallback(ai, [...DEFAULT_MODEL_CHAIN], fullPrompt));
+    } catch (aiErr) {
+      // AI failed through no fault of the user — refund the key if we deducted one.
+      if (didDeduct) {
+        await grantKeys(userId, 1).catch(e => console.error('[Dusk chat] Key refund failed:', (e as Error)?.message));
+      }
+      throw aiErr;
+    }
+
     const text = result.response.text().trim();
 
     logUsage({

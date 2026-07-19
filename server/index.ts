@@ -7,17 +7,11 @@ import { existsSync, readFileSync } from 'fs';
 import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
 import dns from 'dns';
+import { reissuePlayerToken } from './lib/playerAuth.js';
 
 // Force IPv4 DNS resolution — Railway containers don't support IPv6,
 // and Supabase direct DB hosts resolve to IPv6 by default.
 dns.setDefaultResultOrder('ipv4first');
-
-// Import session using createRequire for ES modules
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-const session = require('express-session');
-const pgSession = require('connect-pg-simple')(session);
-const { Pool } = require('pg');
 
 // Load environment variables
 const __filename = fileURLToPath(import.meta.url);
@@ -97,36 +91,9 @@ async function startServer() {
     credentials: true
   }));
   app.use(json({ limit: '5mb' }));
-  const isProduction = process.env.NODE_ENV === 'production';
-  const sessionOptions: any = {
-    secret: process.env.SESSION_SECRET || process.env.JWT_SECRET!,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: isProduction,
-      httpOnly: true,
-      sameSite: isProduction ? 'none' as const : 'lax' as const,
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    },
-  };
 
-  if (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('postgresql')) {
-    const pgPool = new Pool({ connectionString: process.env.DATABASE_URL });
-    pgPool.query(`
-      CREATE TABLE IF NOT EXISTS session (
-        sid varchar NOT NULL COLLATE "default",
-        sess json NOT NULL,
-        expire timestamp(6) NOT NULL,
-        CONSTRAINT session_pkey PRIMARY KEY (sid) NOT DEFERRABLE INITIALLY IMMEDIATE
-      ) WITH (OIDS=FALSE);
-      CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON session (expire);
-    `).catch((err: unknown) => console.warn('[Server] Session table pre-create skipped:', (err as Error).message));
-    sessionOptions.store = new pgSession({ pool: pgPool, tableName: 'session', createTableIfMissing: false });
-    console.log('[Server] Session store: PostgreSQL (connect-pg-simple)');
-  } else {
-    console.warn('[Server] SESSION WARNING: Using MemoryStore — sessions will not survive restarts. Set DATABASE_URL to enable persistent sessions.');
-  }
-  app.use(session(sessionOptions));
+  // Player auth is stateless Bearer-JWT only — the Express session middleware
+  // (express-session + connect-pg-simple) has been removed. See playerAuth.ts.
 
   // Health check
   app.get('/health', (req, res) => {
@@ -175,6 +142,19 @@ async function startServer() {
       ? `https://${primaryDomain}/auth/google/callback`
       : 'http://localhost:5000/auth/google/callback';
     res.json({ callbackURL });
+  });
+
+  // Token reissue — accepts a valid Bearer JWT and returns a fresh 30-day JWT.
+  app.post('/api/auth/reissue', (req, res) => {
+    const authHeader = req.headers['authorization'];
+    if (authHeader?.startsWith('Bearer ')) {
+      const token = authHeader.slice(7);
+      const fresh = reissuePlayerToken(token);
+      if (fresh) {
+        return res.json({ playerToken: fresh });
+      }
+    }
+    return res.status(401).json({ error: 'unauthorized', reason: 'invalid_or_expired' });
   });
 
   // Rate limiter for AI routes — 10 requests per minute per IP
