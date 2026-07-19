@@ -3,6 +3,7 @@ import { logUsage } from '../utils/logUsage.js';
 import { getAuthenticatedUserId } from '../lib/playerAuth.js';
 import { getSharedAI, generateWithFallback, DEFAULT_MODEL_CHAIN } from '../utils/geminiRetry.js';
 import { deductKeys, grantKeys } from '../lib/keyGate.js';
+import { withIdempotency } from '../lib/idempotency.js';
 
 const router = Router();
 
@@ -47,21 +48,17 @@ router.post('/analyze', async (req: Request, res: Response) => {
     return res.status(500).json({ error: 'Gemini credentials not configured. Add GEMINI_API_KEY or Vertex AI credentials to environment secrets.' });
   }
 
-  // ── KEY GATE: 1 key per nutrition scan ──
+  // ── AUTH (not billable, runs OUTSIDE idempotency) ──
   const userId = getAuthenticatedUserId(req) || null;
   if (!userId) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
-  const keyResult = await deductKeys(userId, 1);
-  if (!keyResult.success) {
-    return res.status(402).json({
-      error: 'Not enough keys',
-      keysRemaining: keyResult.remaining,
-      keysRequired: 1,
-    });
-  }
 
-  const { imageBase64, mimeType } = req.body as { imageBase64?: string; mimeType?: string };
+  const { imageBase64, mimeType, requestId } = req.body as {
+    imageBase64?: string;
+    mimeType?: string;
+    requestId?: string;
+  };
 
   if (!imageBase64) {
     return res.status(400).json({ error: 'imageBase64 is required' });
@@ -74,55 +71,81 @@ router.post('/analyze', async (req: Request, res: Response) => {
     },
   };
 
-  try {
-    const ai = getSharedAI();
-    const { result, modelName } = await generateWithFallback(
-      ai,
-      [...DEFAULT_MODEL_CHAIN],
-      [NUTRITION_PROMPT, imagePart]
-    );
+  // ── KEY-SPENDING + AI + parse + refund, wrapped for idempotency ──
+  // A double-submit with the same requestId charges exactly ONE key and replays
+  // the same stored result. A falsy requestId (older clients) just runs the
+  // producer with no dedupe, still deducting once per call.
+  type ScanResult = { status: number; body: Record<string, unknown> };
 
-    const text = result.response.text().trim();
-    const cleaned = text
-      .replace(/^```json\s*/i, '')
-      .replace(/^```\s*/i, '')
-      .replace(/```\s*$/i, '')
-      .trim();
+  const producer = async (): Promise<ScanResult> => {
+    // KEY GATE: 1 key per nutrition scan
+    const keyResult = await deductKeys(userId, 1);
+    if (!keyResult.success) {
+      // Return a definitive result (don't throw) so the outcome can be cached.
+      return {
+        status: 402,
+        body: {
+          error: 'Not enough keys',
+          keysRemaining: keyResult.remaining,
+          keysRequired: 1,
+        },
+      };
+    }
 
-    let nutrition: Record<string, unknown>;
     try {
-      nutrition = JSON.parse(cleaned);
-    } catch {
-      console.error(`[Nutrition] ${modelName} returned non-JSON:`, text.substring(0, 200));
-      // Refund the key — AI returned an unusable response
-      if (userId) await grantKeys(userId, 1).catch(e => console.error('[Nutrition] Key refund failed:', (e as Error)?.message));
-      return res.status(500).json({ error: 'Could not parse AI response. Try a clearer food photo.' });
-    }
+      const ai = getSharedAI();
+      const { result, modelName } = await generateWithFallback(
+        ai,
+        [...DEFAULT_MODEL_CHAIN],
+        [NUTRITION_PROMPT, imagePart]
+      );
 
-    if (nutrition.error === "NOT_FOOD") {
-      console.log(`[Nutrition] Image rejected as non-food by ${modelName}`);
-      // Refund the key — image wasn't food, user shouldn't be penalised
-      if (userId) await grantKeys(userId, 1).catch(e => console.error('[Nutrition] Key refund failed:', (e as Error)?.message));
-      return res.status(400).json({ error: "No food detected. Please scan a clear image of a meal or ingredients." });
-    }
+      const text = result.response.text().trim();
+      const cleaned = text
+        .replace(/^```json\s*/i, '')
+        .replace(/^```\s*/i, '')
+        .replace(/```\s*$/i, '')
+        .trim();
 
-    console.log(`[Nutrition] Success with model: ${modelName}`);
-    logUsage({
-      route: 'nutrition/analyze',
-      model: modelName,
-      inputTokens: result.response.usageMetadata?.promptTokenCount ?? 0,
-      outputTokens: result.response.usageMetadata?.candidatesTokenCount ?? 0,
-      success: true,
-      userId: userId || undefined,
-    });
-    return res.json({ success: true, data: nutrition, model: modelName });
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    console.error(`[Nutrition] All models failed:`, message.substring(0, 200));
-    // Refund the key — AI analysis failed through no fault of the user
-    if (userId) await grantKeys(userId, 1).catch(e => console.error('[Nutrition] Key refund failed:', (e as Error)?.message));
-    return res.status(500).json({ error: 'AI analysis temporarily unavailable. Please try again in a moment.' });
-  }
+      let nutrition: Record<string, unknown>;
+      try {
+        nutrition = JSON.parse(cleaned);
+      } catch {
+        console.error(`[Nutrition] ${modelName} returned non-JSON:`, text.substring(0, 200));
+        // Refund the key — AI returned an unusable response
+        await grantKeys(userId, 1).catch(e => console.error('[Nutrition] Key refund failed:', (e as Error)?.message));
+        return { status: 500, body: { error: 'Could not parse AI response. Try a clearer food photo.' } };
+      }
+
+      if (nutrition.error === "NOT_FOOD") {
+        console.log(`[Nutrition] Image rejected as non-food by ${modelName}`);
+        // Refund the key — image wasn't food, user shouldn't be penalised
+        await grantKeys(userId, 1).catch(e => console.error('[Nutrition] Key refund failed:', (e as Error)?.message));
+        return { status: 400, body: { error: "No food detected. Please scan a clear image of a meal or ingredients." } };
+      }
+
+      console.log(`[Nutrition] Success with model: ${modelName}`);
+      logUsage({
+        route: 'nutrition/analyze',
+        model: modelName,
+        inputTokens: result.response.usageMetadata?.promptTokenCount ?? 0,
+        outputTokens: result.response.usageMetadata?.candidatesTokenCount ?? 0,
+        success: true,
+        userId: userId || undefined,
+      });
+      return { status: 200, body: { success: true, data: nutrition, model: modelName } };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      console.error(`[Nutrition] All models failed:`, message.substring(0, 200));
+      // Refund the key — AI analysis failed through no fault of the user.
+      // Return (don't rethrow) so the idempotency row stores a definitive result.
+      await grantKeys(userId, 1).catch(e => console.error('[Nutrition] Key refund failed:', (e as Error)?.message));
+      return { status: 500, body: { error: 'AI analysis temporarily unavailable. Please try again in a moment.' } };
+    }
+  };
+
+  const { result } = await withIdempotency<ScanResult>(userId, requestId ?? '', producer);
+  return res.status(result.status).json(result.body);
 });
 
 export default router;

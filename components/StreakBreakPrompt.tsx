@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Shield, Wrench, X, Flame, AlertTriangle } from 'lucide-react';
 import { API_BASE } from '../lib/apiConfig';
-import { getPlayerAuthHeaders } from '../lib/playerApi';
+import { authFetch } from '../lib/auth';
 import { SystemCoin } from './icons/SystemCoin';
 
 interface StreakBreakPromptProps {
@@ -56,10 +56,9 @@ const StreakBreakPrompt: React.FC<StreakBreakPromptProps> = ({
   const handleRepair = async () => {
     setRepairing(true);
     try {
-      const res = await fetch(`${API_BASE}/api/players/streak-repair`, {
+      const res = await authFetch(`${API_BASE}/api/players/streak-repair`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
-        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
       });
       if (res.ok) {
         const data = await res.json();
@@ -72,10 +71,9 @@ const StreakBreakPrompt: React.FC<StreakBreakPromptProps> = ({
   const handleBuyShield = async () => {
     setBuyingShield(true);
     try {
-      const res = await fetch(`${API_BASE}/api/players/streak-shield`, {
+      const res = await authFetch(`${API_BASE}/api/players/streak-shield`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
-        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
       });
       if (res.ok) {
         const data = await res.json();

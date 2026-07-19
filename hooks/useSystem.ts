@@ -8,6 +8,7 @@ import { recordGuildContribution } from '../lib/guildApi';
 import { playSystemSoundEffect } from '../utils/soundEngine';
 import { getPlayerAuthHeaders, authenticatedFetch } from '../lib/playerApi';
 import { clearAuthNative } from '../lib/nativeAuth';
+import { loadHistory as loadDuskHistory, appendMessage as appendDuskMessage } from '../lib/duskHistory';
 import { Preferences } from '@capacitor/preferences';
 import { REWARD_SCHEDULE } from '../lib/rewards';
 import { API_BASE } from '../lib/apiConfig';
@@ -2278,14 +2279,10 @@ export const useSystem = () => {
 
   const triggerDuskMessage = useCallback(async (eventText: string) => {
     if (!player.userId) return;
-    
-    // Read current history from local storage
-    const storageKey = `dusk_chat_history_${player.userId || 'local'}`;
-    const savedHistory = localStorage.getItem(storageKey);
-    let history: { id: string; sender: 'user'|'dusk'; text: string; timestamp: number }[] = [];
-    if (savedHistory) {
-      try { history = JSON.parse(savedHistory); } catch(e){}
-    }
+
+    // Read current history from the single-writer store (cached, no direct
+    // localStorage access) so we can send recent context to the server.
+    const history = loadDuskHistory(player.userId);
 
     try {
       const failedQuests = player.quests.filter(q => q.failed).map(q => q.title).join(', ');
@@ -2295,8 +2292,11 @@ export const useSystem = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          // [SYSTEM_EVENT] prefix marks this as a non-billable autonomous event.
+          // The server (routes/dusk.ts) strips it, and does NOT increment the
+          // paid counter or deduct a key. Do NOT remove this prefix.
           message: `[SYSTEM_EVENT] ${eventText}`,
-          history: history.slice(-8),
+          history: history.slice(-8).map(m => ({ sender: m.sender, text: m.text })),
           playerContext: {
             name: player.name,
             level: player.level,
@@ -2312,23 +2312,16 @@ export const useSystem = () => {
 
       const data = await res.json();
       if (data.text) {
-        const newMsg = {
-          id: Date.now().toString(),
-          sender: 'dusk' as const,
-          text: data.text,
-          timestamp: Date.now()
-        };
-        history.push(newMsg);
-        localStorage.setItem(storageKey, JSON.stringify(history));
-        
+        // Single-writer store append. This persists + notifies subscribers
+        // (e.g. an open DuskChat), so there is exactly ONE write of the history
+        // key and no double-append. No separate localStorage write here.
+        appendDuskMessage(player.userId, { sender: 'dusk', text: data.text });
+
         // Notify UI to show unread dot
         setPlayer(prev => ({ ...prev, duskUnreadCount: (prev.duskUnreadCount || 0) + 1 }));
-        
+
         // Push notification
         addNotification('DUSK: New Message', 'SYSTEM');
-        
-        // Fire event so DuskChat can update if it is currently open
-        window.dispatchEvent(new CustomEvent('dusk:new_message', { detail: newMsg }));
       }
     } catch (err) {
       console.error('Autonomous Dusk Error:', err);

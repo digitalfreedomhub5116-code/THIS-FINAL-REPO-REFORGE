@@ -28,7 +28,7 @@ import { buildDungeonWorkoutPlan, buildDungeonWorkoutPlanForEquipment, buildRema
 import { PLEDGE_AMOUNTS, MANDATORY_RANKS } from './SystemPactScreen';
 import { playSystemSoundEffect, triggerHaptic } from '../utils/soundEngine';
 import { API_BASE } from '../lib/apiConfig';
-import { getPlayerAuthHeaders } from '../lib/playerApi';
+import { authFetch } from '../lib/auth';
 import OnboardingNotice from './OnboardingNotice';
 import { scheduleSlotReminder, cancelScheduleSlotReminder, scheduleQuestStartNotification } from '../hooks/useLocalNotifications';
 
@@ -1297,10 +1297,9 @@ const DailyCommandCenter: React.FC<DailyCommandCenterProps> = ({
     setScheduleTime('');
     playSystemSoundEffect('SYSTEM');
     try {
-      const res = await fetch(`${API_BASE}/api/forge-guard/analyze-quest`, {
+      const res = await authFetch(`${API_BASE}/api/forge-guard/analyze-quest`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
-        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: title.trim(),
           userStats: playerData?.stats,

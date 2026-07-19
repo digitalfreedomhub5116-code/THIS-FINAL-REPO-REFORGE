@@ -502,13 +502,12 @@ router.post('/forgot-password/reset', async (req, res) => {
   }
 });
 
-router.post('/logout', (req, res) => {
-  req.session.destroy((err) => {
-    if (err) {
-      console.error('[Local Auth Logout]', err);
-    }
-    res.json({ message: 'Logged out successfully' });
-  });
+router.post('/logout', (_req, res) => {
+  // Stateless logout — the JWT lives on the client, so there is no server
+  // session to destroy. Best-effort clear the legacy session cookie (harmless
+  // if absent) and acknowledge.
+  res.clearCookie('connect.sid');
+  res.json({ message: 'logged out' });
 });
 
 router.get('/me', async (req, res) => {

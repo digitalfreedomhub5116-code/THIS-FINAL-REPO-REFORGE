@@ -162,31 +162,25 @@ export async function setupGoogleAuth(app: Express) {
         }
       }
 
-      // Set session — non-fatal if session store fails
-      (req as any).session.userId = userId;
-      (req as any).session.authType = 'google';
+      // JWT is the sole player credential — no session writes.
       const playerToken = generatePlayerToken(userId);
       const googlePayload = {
         message: 'Google login successful',
         user: { id: userId, username, name, email, avatar_url: picture },
         playerToken,
       };
-      (req as any).session.save((saveErr: any) => {
-        if (saveErr) console.error('[Auth Google] Session save error (non-fatal):', saveErr);
-        return res.json(googlePayload);
-      });
+      return res.json(googlePayload);
     } catch (err) {
       console.error('[Auth Google] Error:', err);
       return res.status(500).json({ error: 'Internal server error' });
     }
   });
 
-  // Keep the logout endpoint
-  app.get('/api/logout', (req: any, res) => {
-    req.session.destroy(() => {
-      res.clearCookie('connect.sid');
-      res.redirect('/');
-    });
+  // Keep the logout endpoint — stateless now (JWT lives on the client).
+  // Best-effort clear the legacy session cookie (harmless if absent) and redirect.
+  app.get('/api/logout', (_req: any, res) => {
+    res.clearCookie('connect.sid');
+    res.redirect('/');
   });
 }
 

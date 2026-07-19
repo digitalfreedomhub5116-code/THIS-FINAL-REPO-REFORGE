@@ -63,6 +63,19 @@ function updateScan(patch: Partial<ScanSessionStore>) {
   }
 }
 
+// Per-scan idempotency id. Uses crypto.randomUUID when available, with a
+// fallback for WebViews where it may be missing (older Android). One id is
+// generated per scan attempt so a retry of the same attempt reuses it and the
+// server can dedupe the key charge.
+function genRequestId(): string {
+  try {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID();
+    }
+  } catch { /* randomUUID unavailable — fall through */ }
+  return Date.now() + '-' + Math.random().toString(36).slice(2);
+}
+
 interface HealthViewProps {
   healthProfile?: HealthProfile;
   onSaveProfile: (profile: HealthProfile, identity: string) => void;
@@ -143,6 +156,10 @@ export const HealthView: React.FC<HealthViewProps> = ({
   const [aiSessionDuration, setAiSessionDuration] = useState(45);
   const [streakAnimKey, setStreakAnimKey] = useState(0);
   const prevStreakRef = useRef(playerData.streak);
+  // Synchronous in-flight guard for food scans. State updates are async, so a
+  // ref is the reliable way to block rapid double-taps from firing two POSTs
+  // (and double-charging a key). Shared by the native-pick and file-upload paths.
+  const scanInFlightRef = useRef(false);
   const [activeTab, setActiveTab] = useState<'WORKOUT' | 'NUTRITION' | 'SKILLS'>(initialSubTab || 'WORKOUT');
   const nutritionLocked = false;
 
@@ -472,7 +489,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
   // Fetch user custom plans (manual + AI saved)
   useEffect(() => {
       if (!playerData.userId || playerData.userId.startsWith('local-') || playerData.userId.startsWith('local_')) return;
-      fetch(`${API_BASE}/api/workout/custom-plans`, { credentials: 'include' })
+      authenticatedFetch(`${API_BASE}/api/workout/custom-plans`)
           .then(r => r.ok ? r.json() : [])
           .then(data => setCustomPlans(Array.isArray(data) ? data : []))
           .catch(() => {});
@@ -559,10 +576,9 @@ export const HealthView: React.FC<HealthViewProps> = ({
       setShowAIConfirm(false);
       try {
           const profile = healthProfile || formData;
-          const res = await fetch(`${API_BASE}/api/workout/generate-ai`, {
+          const res = await authenticatedFetch(`${API_BASE}/api/workout/generate-ai`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              credentials: 'include',
               body: JSON.stringify({
                   goal: profile.goal,
                   equipment: profile.equipment || 'GYM',
@@ -613,10 +629,9 @@ export const HealthView: React.FC<HealthViewProps> = ({
               console.warn('Max 10 plans reached. Oldest custom plan will not be replaced automatically.');
           }
           try {
-              const saved = await fetch(`${API_BASE}/api/workout/custom-plans`, {
+              const saved = await authenticatedFetch(`${API_BASE}/api/workout/custom-plans`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
-                  credentials: 'include',
                   body: JSON.stringify({ name: planName, days: planDays, plan_type: 'AI' }),
               });
               if (saved.ok) {
@@ -663,6 +678,12 @@ export const HealthView: React.FC<HealthViewProps> = ({
           return;
       }
 
+      // In-flight guard: bail if a scan is already running (double-tap race).
+      if (scanInFlightRef.current) return;
+      scanInFlightRef.current = true;
+      // One requestId per scan attempt (reused across any internal retry).
+      const requestId = genRequestId();
+
       try {
           const photo = await CapCamera.getPhoto({
               quality: 80,
@@ -693,7 +714,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
           const response = await authenticatedFetch(`${API_BASE}/api/nutrition/analyze`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
-              body: JSON.stringify({ imageBase64, mimeType: 'image/jpeg' }),
+              body: JSON.stringify({ imageBase64, mimeType: 'image/jpeg', requestId }),
           });
 
           if (!response.ok) {
@@ -739,6 +760,8 @@ export const HealthView: React.FC<HealthViewProps> = ({
           console.error('[Nutrition Scanner]', msg);
           updateScan({ state: 'ERROR', error: msg });
           // Server already deducted keys — no client refund needed
+      } finally {
+          scanInFlightRef.current = false;
       }
   };
 
@@ -751,6 +774,12 @@ export const HealthView: React.FC<HealthViewProps> = ({
 
       const file = e.target.files?.[0];
       if (!file) return;
+
+      // In-flight guard: bail if a scan is already running (double-tap race).
+      if (scanInFlightRef.current) { e.target.value = ''; return; }
+      scanInFlightRef.current = true;
+      // One requestId per scan attempt (reused across any internal retry).
+      const requestId = genRequestId();
 
       // Server deducts keys atomically during nutrition/analyze call
       // Client pre-check is UX only
@@ -774,7 +803,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
           const response = await authenticatedFetch(`${API_BASE}/api/nutrition/analyze`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
-              body: JSON.stringify({ imageBase64, mimeType: 'image/jpeg' }),
+              body: JSON.stringify({ imageBase64, mimeType: 'image/jpeg', requestId }),
           });
 
           if (!response.ok) {
@@ -813,6 +842,8 @@ export const HealthView: React.FC<HealthViewProps> = ({
           console.error('[Nutrition Scanner]', msg);
           updateScan({ state: 'ERROR', error: msg });
           // Server already deducted keys — no client refund needed
+      } finally {
+          scanInFlightRef.current = false;
       }
   };
 
@@ -1337,7 +1368,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         if (!confirm('Delete this custom plan?')) return;
-                                                        fetch(`${API_BASE}/api/workout/custom-plans/${cp.id}`, { method: 'DELETE', credentials: 'include' })
+                                                        authenticatedFetch(`${API_BASE}/api/workout/custom-plans/${cp.id}`, { method: 'DELETE' })
                                                             .then(() => setCustomPlans(prev => prev.filter(p => p.id !== cp.id)))
                                                             .catch(() => {});
                                                     }}
@@ -2174,7 +2205,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
                 onClose={() => {
                     setShowCustomPlanBuilder(false);
                     onToggleNav?.(true);
-                    fetch(`${API_BASE}/api/workout/custom-plans`, { credentials: 'include' })
+                    authenticatedFetch(`${API_BASE}/api/workout/custom-plans`)
                         .then(r => r.ok ? r.json() : [])
                         .then(data => setCustomPlans(Array.isArray(data) ? data : []))
                         .catch(() => {});
@@ -2182,7 +2213,7 @@ export const HealthView: React.FC<HealthViewProps> = ({
                 onStartWorkout={(day) => {
                     setShowCustomPlanBuilder(false);
                     onToggleNav?.(true);
-                    fetch(`${API_BASE}/api/workout/custom-plans`, { credentials: 'include' })
+                    authenticatedFetch(`${API_BASE}/api/workout/custom-plans`)
                         .then(r => r.ok ? r.json() : [])
                         .then(data => setCustomPlans(Array.isArray(data) ? data : []))
                         .catch(() => {});
@@ -2211,10 +2242,9 @@ export const HealthView: React.FC<HealthViewProps> = ({
                     } as HealthProfile;
                     onSaveProfile(updated, updated.category || 'Hunter');
                     // Persist to custom-plans API
-                    fetch(`${API_BASE}/api/workout/custom-plans`, {
+                    authenticatedFetch(`${API_BASE}/api/workout/custom-plans`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        credentials: 'include',
                         body: JSON.stringify({ name: name + ' (Custom)', days, plan_type: 'MANUAL' }),
                     })
                         .then(r => r.ok ? r.json() : null)

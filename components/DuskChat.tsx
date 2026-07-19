@@ -5,6 +5,13 @@ import { X, Send, RefreshCw, Zap, Dumbbell, Apple, BarChart3, Target, Brain, Moo
 import { PlayerData } from '../types';
 import { API_BASE } from '../lib/apiConfig';
 import { getPlayerAuthHeaders, authenticatedFetch } from '../lib/playerApi';
+import {
+  Message,
+  loadHistory,
+  appendMessage,
+  clearHistory as clearDuskHistory,
+  subscribe as subscribeDuskHistory,
+} from '../lib/duskHistory';
 
 
 interface DuskChatProps {
@@ -13,13 +20,6 @@ interface DuskChatProps {
   onClose: () => void;
   onMarkRead?: () => void;
   onWatchAdForKeys?: () => Promise<boolean>;
-}
-
-interface Message {
-  id: string;
-  sender: 'user' | 'dusk';
-  text: string;
-  timestamp: number;
 }
 
 // ── Dusk Avatar (hooded figure with glowing eyes) ──
@@ -186,49 +186,39 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, updatePlayer, onClose, onMa
     }).slice(0, 6);
   }, [player.quests, player.streak]);
 
-  // Load history from local storage on mount
+  // Seed state from the single-writer history store on mount, and subscribe to
+  // it so ALL updates (user sends, dusk replies, and autonomous system messages
+  // from useSystem.triggerDuskMessage) flow through one source of truth. The
+  // store is the only writer of localStorage['dusk_chat_history_...'], which
+  // removes the previous read-modify-write clobber race between this component
+  // and useSystem, and guarantees stable ordering via each message's `seq`.
   useEffect(() => {
     if (onMarkRead) onMarkRead();
 
-    const savedHistory = localStorage.getItem(`dusk_chat_history_${player.userId || 'local'}`);
-    if (savedHistory) {
-      try {
-        const parsed = JSON.parse(savedHistory);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setMessages(parsed);
-          setHasStartedChat(true);
-        }
-      } catch {
-        console.error("Failed to load chat history");
-      }
+    const initial = loadHistory(player.userId);
+    if (initial.length > 0) {
+      setMessages(initial);
+      setHasStartedChat(true);
     }
-  }, []);
 
-  // Auto-scroll — fires on new messages AND when loading state changes
+    const unsubscribe = subscribeDuskHistory((uid, history) => {
+      // Ignore updates for a different user's history.
+      if (uid !== (player.userId || 'local')) return;
+      setMessages(history);
+      if (history.length > 0) setHasStartedChat(true);
+    });
+    return unsubscribe;
+  }, [player.userId]);
+
+  // Auto-scroll — fires on new messages AND when loading state changes.
+  // (History persistence is handled by the duskHistory store, not here.)
   const bottomRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     // Use rAF to wait for DOM to paint, then scroll
     requestAnimationFrame(() => {
       bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
     });
-    if (messages.length > 0) {
-      localStorage.setItem(`dusk_chat_history_${player.userId || 'local'}`, JSON.stringify(messages));
-    }
-  }, [messages, isLoading, player.userId]);
-
-  // Listen for autonomous messages
-  useEffect(() => {
-    const handleNewMessage = (e: Event) => {
-      const msg = (e as CustomEvent).detail as Message;
-      setMessages(prev => {
-        if (prev.find(m => m.id === msg.id)) return prev;
-        return [...prev, msg];
-      });
-      setHasStartedChat(true);
-    };
-    window.addEventListener('dusk:new_message', handleNewMessage);
-    return () => window.removeEventListener('dusk:new_message', handleNewMessage);
-  }, []);
+  }, [messages, isLoading]);
 
   // ── Build full player context for the agent ──
   const buildPlayerContext = () => {
@@ -304,24 +294,15 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, updatePlayer, onClose, onMa
       
       const text = data.text || 'Something went wrong. Try again.';
 
-      setMessages(prev => [...prev, {
-        id: Date.now().toString(),
-        sender: 'dusk',
-        text,
-        timestamp: Date.now()
-      }]);
+      // Single-writer store append — subscription drives the UI update.
+      appendMessage(player.userId, { sender: 'dusk', text });
     } catch (error: any) {
       console.error('Dusk AI Error:', error);
       // Handle 402 (not enough keys) — show specific message
       const errMsg = error?.keysError
         ? `Not enough keys! You need 1 🔑 per 5 messages. You have ${error.keysRemaining || 0} left.`
         : 'Oops, something went wrong. Try again in a bit.';
-      setMessages(prev => [...prev, {
-        id: Date.now().toString(),
-        sender: 'dusk',
-        text: errMsg,
-        timestamp: Date.now()
-      }]);
+      appendMessage(player.userId, { sender: 'dusk', text: errMsg });
     } finally {
       setIsLoading(false);
     }
@@ -335,14 +316,8 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, updatePlayer, onClose, onMa
 
     setHasStartedChat(true);
 
-    const userMsg: Message = {
-      id: Date.now().toString(),
-      sender: 'user',
-      text,
-      timestamp: Date.now()
-    };
-
-    setMessages(prev => [...prev, userMsg]);
+    // Single-writer store append — subscription drives the UI update.
+    appendMessage(player.userId, { sender: 'user', text });
     setInputValue('');
     generateResponse(text);
   };
@@ -352,9 +327,10 @@ const DuskChat: React.FC<DuskChatProps> = ({ player, updatePlayer, onClose, onMa
   };
 
   const clearHistory = () => {
-    setMessages([]);
     setHasStartedChat(false);
-    localStorage.removeItem(`dusk_chat_history_${player.userId || 'local'}`);
+    // Store clears localStorage + cache and notifies the subscription (which
+    // will set messages to []).
+    clearDuskHistory(player.userId);
   };
 
   const firstName = (player.name || 'Hunter').split(' ')[0];

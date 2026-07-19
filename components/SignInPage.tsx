@@ -4,8 +4,7 @@ import { Eye, EyeOff, UserPlus, KeyRound, ArrowLeft } from 'lucide-react';
 import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import { PlayerData, ReplitUser } from '../types';
 import { API_BASE, fetchWithRetry, checkServerHealth } from '../lib/apiConfig';
-import { getPlayerAuthHeaders } from '../lib/playerApi';
-import { saveAuthNative } from '../lib/nativeAuth';
+import { completeLogin, tryRestoreSession } from '../lib/authFlow';
 import { isNativePlatform } from '../lib/googleAuth';
 import NativeGoogleButton from './NativeGoogleButton';
 import { shuffleFacts } from '../lib/funFacts';
@@ -186,56 +185,12 @@ const SignInPage: React.FC<SignInPageProps> = ({ onLogin, onNavigate }) => {
         setServerWaking(false);
         if (!woke) { setChecking(false); return; }
       }
-      try {
-        const res = await fetchWithRetry(`${API_BASE}/api/auth/local/whoami`, { credentials: 'include', headers: { ...getPlayerAuthHeaders() } });
-        if (res.ok) {
-          const json = await res.json();
-          if (json.playerToken) saveAuthNative(json.playerToken);
-          const user: ReplitUser = json.user || json;
-          if (user?.id || (user as any)?.supabase_id) {
-            await loginWithUser(user);
-            return;
-          }
-        }
-      } catch {
-        // No session exists
-      } finally {
-        setChecking(false);
-      }
+      // JWT-only auto-login (replaces the old cookie/session whoami flow)
+      const restored = await tryRestoreSession(onLogin);
+      if (!restored) setChecking(false);
     };
     checkSession();
   }, []);
-
-  const loginWithUser = async (user: ReplitUser) => {
-    let playerData: Partial<PlayerData> | null = null;
-    try {
-      const token = localStorage.getItem('reforge_player_token');
-      const playerRes = await fetchWithRetry(`${API_BASE}/api/player/${user.id}`, { credentials: 'include', headers: token ? { Authorization: `Bearer ${token}` } : {} });
-      if (playerRes.ok) {
-        const row = await playerRes.json();
-        if (row?.raw_data) {
-          playerData = row.raw_data as Partial<PlayerData>;
-          // Inject top-level avatar_url column into raw_data so player.avatarUrl gets populated
-          if (row.avatar_url && !playerData.avatarUrl) {
-            playerData.avatarUrl = row.avatar_url;
-          }
-        } else if (row?.avatar_url) {
-          // No raw_data yet (brand new user) — create minimal raw_data with avatar
-          playerData = { avatarUrl: row.avatar_url };
-        }
-      }
-    } catch { /* no cloud data yet */ }
-    // Also check profileImageUrl from Google auth (passed via ReplitUser)
-    const avatarFallback = (user as any).profileImageUrl || undefined;
-    onLogin({
-      id: user.id,
-      name: playerData?.name || user.firstName || 'Hunter',
-      username: (user as any).username || playerData?.username,
-      avatarUrl: playerData?.avatarUrl || avatarFallback,
-      raw_data: playerData ? { ...playerData, avatarUrl: playerData.avatarUrl || avatarFallback } : (avatarFallback ? { avatarUrl: avatarFallback } : undefined),
-      replitUser: user,
-    } as any);
-  };
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -259,8 +214,7 @@ const SignInPage: React.FC<SignInPageProps> = ({ onLogin, onNavigate }) => {
         setError(data.error || `Sign in failed (${res.status})`);
         return;
       }
-      if (data.playerToken) saveAuthNative(data.playerToken);
-      await loginWithUser(data.user || data);
+      await completeLogin(data.playerToken, data.user || data, onLogin);
     } catch (err: any) {
       console.error('[SignIn] Login network error:', err);
       const msg = err?.message || String(err) || 'Unknown network error';
@@ -293,7 +247,6 @@ const SignInPage: React.FC<SignInPageProps> = ({ onLogin, onNavigate }) => {
         setError(data.error || `Google sign-in failed (${res.status})`);
         return;
       }
-      if (data.playerToken) saveAuthNative(data.playerToken);
       const googleUser = data.user || data;
       const replitUser: ReplitUser = {
         id: googleUser.id,
@@ -302,7 +255,7 @@ const SignInPage: React.FC<SignInPageProps> = ({ onLogin, onNavigate }) => {
         lastName: '',
         profileImageUrl: googleUser.avatar_url,
       };
-      await loginWithUser(replitUser);
+      await completeLogin(data.playerToken, replitUser, onLogin);
     } catch (err: any) {
       console.error('[SignIn] Google auth network error:', err);
       const msg = err?.message || String(err) || 'Unknown network error';

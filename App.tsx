@@ -80,7 +80,7 @@ import { App as CapApp } from '@capacitor/app';
 
 import { DAILY_REWARDS_ENABLED } from './lib/rewards';
 
-import { getPlayerAuthHeaders, getOrRefreshPlayerHeaders, authenticatedFetch } from './lib/playerApi';
+import { getPlayerAuthHeaders, authenticatedFetch } from './lib/playerApi';
 
 import { saveAuthNative, clearAuthNative } from './lib/nativeAuth';
 import { clearEconomySession } from './utils/storeEconomy';
@@ -3750,7 +3750,7 @@ const App: React.FC = () => {
 
 
 
-    fetch(`${API_BASE}/api/audit/log`, {
+    authenticatedFetch(`${API_BASE}/api/audit/log`, {
 
       method: 'POST',
 
@@ -3767,8 +3767,6 @@ const App: React.FC = () => {
         timestamp: new Date().toISOString()
 
       }),
-
-      credentials: 'include'
 
     }).catch(() => { });
 
@@ -5778,8 +5776,6 @@ const App: React.FC = () => {
 
                             const uid = player.userId;
 
-                            const authHeaders = await getOrRefreshPlayerHeaders(API_BASE);
-
 
 
                             // 1. Call server to delete account data — this MUST succeed
@@ -5788,13 +5784,11 @@ const App: React.FC = () => {
 
                             try {
 
-                              res = await fetch(`${API_BASE}/api/player/${uid}/delete-account`, {
+                              res = await authenticatedFetch(`${API_BASE}/api/player/${uid}/delete-account`, {
 
                                 method: 'DELETE',
 
-                                headers: { 'Content-Type': 'application/json', ...authHeaders },
-
-                                credentials: 'include',
+                                headers: { 'Content-Type': 'application/json' },
 
                               });
 

@@ -1,0 +1,237 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1. Create working branch `feat/auth-jwt-rewire`": [
+      {
+        "executionId": "5d5ffdb3-e042-4235-ad2d-62feb95c9300",
+        "chatSessionId": "sess_84264e35-cee9-4db4-a8a2-694008d4fe5b",
+        "timestamp": 1784475349396
+      },
+      {
+        "executionId": "5d5ffdb3-e042-4235-ad2d-62feb95c9300",
+        "chatSessionId": "sess_84264e35-cee9-4db4-a8a2-694008d4fe5b",
+        "timestamp": 1784475379246
+      },
+      {
+        "executionId": "5d5ffdb3-e042-4235-ad2d-62feb95c9300",
+        "chatSessionId": "sess_84264e35-cee9-4db4-a8a2-694008d4fe5b",
+        "timestamp": 1784475663264
+      }
+    ],
+    "2.1 Wrap `deductKeys` optimistic update in a bounded retry loop (re-read + retry up to 3x) so concurrent modifications don't return a false \"Not enough keys\".": [
+      {
+        "executionId": "5d5ffdb3-e042-4235-ad2d-62feb95c9300",
+        "chatSessionId": "sess_84264e35-cee9-4db4-a8a2-694008d4fe5b",
+        "timestamp": 1784475350302
+      },
+      {
+        "executionId": "5d5ffdb3-e042-4235-ad2d-62feb95c9300",
+        "chatSessionId": "sess_84264e35-cee9-4db4-a8a2-694008d4fe5b",
+        "timestamp": 1784475678702
+      }
+    ],
+    "2.2 Make `grantKeys` atomic (Postgres RPC `keys = keys + amount`, or an optimistic retry loop) to remove the lost-update on concurrent refunds/grants.": [
+      {
+        "executionId": "5d5ffdb3-e042-4235-ad2d-62feb95c9300",
+        "chatSessionId": "sess_84264e35-cee9-4db4-a8a2-694008d4fe5b",
+        "timestamp": 1784475350442
+      }
+    ],
+    "2.3 Add an idempotency helper (table or short-TTL store keyed by `userId + requestId`) that records a spend result and returns the cached result on replay.": [
+      {
+        "executionId": "5d5ffdb3-e042-4235-ad2d-62feb95c9300",
+        "chatSessionId": "sess_84264e35-cee9-4db4-a8a2-694008d4fe5b",
+        "timestamp": 1784475350524
+      }
+    ],
+    "3.1 Add `requireAuth` middleware that verifies the Bearer JWT (signature, role, expiry), sets `req.userId`, and returns a consistent `401 { error:'unauthorized', reason }` otherwise.": [
+      {
+        "executionId": "5d5ffdb3-e042-4235-ad2d-62feb95c9300",
+        "chatSessionId": "sess_84264e35-cee9-4db4-a8a2-694008d4fe5b",
+        "timestamp": 1784475350608
+      }
+    ],
+    "3.2 Change `getAuthenticatedUserId` to Bearer-only (remove the `req.session` fallback) — keep the old behavior behind a temporary flag for rollback until Task 10.": [
+      {
+        "executionId": "5d5ffdb3-e042-4235-ad2d-62feb95c9300",
+        "chatSessionId": "sess_84264e35-cee9-4db4-a8a2-694008d4fe5b",
+        "timestamp": 1784475350698
+      }
+    ],
+    "3.3 Add a reissue helper that, given a still-valid token, mints a fresh 30-day JWT.": [
+      {
+        "executionId": "5d5ffdb3-e042-4235-ad2d-62feb95c9300",
+        "chatSessionId": "sess_84264e35-cee9-4db4-a8a2-694008d4fe5b",
+        "timestamp": 1784475350787
+      }
+    ],
+    "4.1 Add `POST /api/auth/reissue` (accepts valid Bearer, returns fresh JWT).": [
+      {
+        "executionId": "5d5ffdb3-e042-4235-ad2d-62feb95c9300",
+        "chatSessionId": "sess_84264e35-cee9-4db4-a8a2-694008d4fe5b",
+        "timestamp": 1784475350865
+      }
+    ],
+    "4.2 Remove `req.session` writes from `googleAuth.ts` and `localAuth_supabase_fixed.ts` (keep JWT minting).": [
+      {
+        "executionId": "5d5ffdb3-e042-4235-ad2d-62feb95c9300",
+        "chatSessionId": "sess_84264e35-cee9-4db4-a8a2-694008d4fe5b",
+        "timestamp": 1784475350940
+      }
+    ],
+    "5. Audit and isolate admin auth": [
+      {
+        "executionId": "5d5ffdb3-e042-4235-ad2d-62feb95c9300",
+        "chatSessionId": "sess_84264e35-cee9-4db4-a8a2-694008d4fe5b",
+        "timestamp": 1784475351014
+      }
+    ],
+    "6. Nutrition (food scan) idempotency (`server/routes/nutrition.ts`)": [
+      {
+        "executionId": "5d5ffdb3-e042-4235-ad2d-62feb95c9300",
+        "chatSessionId": "sess_84264e35-cee9-4db4-a8a2-694008d4fe5b",
+        "timestamp": 1784475351089
+      }
+    ],
+    "7.1 Replace the in-memory `duskMsgCounters` Map with an atomic per-user counter (DB column/RPC).": [
+      {
+        "executionId": "5d5ffdb3-e042-4235-ad2d-62feb95c9300",
+        "chatSessionId": "sess_84264e35-cee9-4db4-a8a2-694008d4fe5b",
+        "timestamp": 1784475351158
+      }
+    ],
+    "7.2 Exclude `[SYSTEM_EVENT]` messages from billing (no counter increment, no key deduction).": [
+      {
+        "executionId": "5d5ffdb3-e042-4235-ad2d-62feb95c9300",
+        "chatSessionId": "sess_84264e35-cee9-4db4-a8a2-694008d4fe5b",
+        "timestamp": 1784475351224
+      }
+    ],
+    "7.3 Refund the key if the AI call fails on a billed message (parity with nutrition).": [
+      {
+        "executionId": "5d5ffdb3-e042-4235-ad2d-62feb95c9300",
+        "chatSessionId": "sess_84264e35-cee9-4db4-a8a2-694008d4fe5b",
+        "timestamp": 1784475351300
+      }
+    ],
+    "8.1 Implement `login()`, `logout()`, `getToken()`, `isAuthed()`.": [
+      {
+        "executionId": "5d5ffdb3-e042-4235-ad2d-62feb95c9300",
+        "chatSessionId": "sess_84264e35-cee9-4db4-a8a2-694008d4fe5b",
+        "timestamp": 1784475351396
+      }
+    ],
+    "8.2 Implement `authFetch(url, init)`: attach Bearer token; on 401 do a single-flight reissue then retry once; on failure route to a global \"session expired\" state.": [
+      {
+        "executionId": "5d5ffdb3-e042-4235-ad2d-62feb95c9300",
+        "chatSessionId": "sess_84264e35-cee9-4db4-a8a2-694008d4fe5b",
+        "timestamp": 1784475351475
+      }
+    ],
+    "8.3 Add `authEpoch`: bump on login/logout; tag requests and drop stale-epoch responses (prevents cross-account writes).": [
+      {
+        "executionId": "5d5ffdb3-e042-4235-ad2d-62feb95c9300",
+        "chatSessionId": "sess_84264e35-cee9-4db4-a8a2-694008d4fe5b",
+        "timestamp": 1784475351551
+      }
+    ],
+    "8.4 Hard-gate startup on `restoreAuthFromNative()` before the first authed call.": [
+      {
+        "executionId": "5d5ffdb3-e042-4235-ad2d-62feb95c9300",
+        "chatSessionId": "sess_84264e35-cee9-4db4-a8a2-694008d4fe5b",
+        "timestamp": 1784475351625
+      }
+    ],
+    "9.1 `lib/playerApi.ts` delegates to `lib/auth.ts`; remove `whoami`/session recovery paths.": [
+      {
+        "executionId": "5d5ffdb3-e042-4235-ad2d-62feb95c9300",
+        "chatSessionId": "sess_84264e35-cee9-4db4-a8a2-694008d4fe5b",
+        "timestamp": 1784475351707
+      }
+    ],
+    "9.2 Replace raw `fetch(..., {credentials:'include'})` authed calls in `App.tsx`, `HealthView.tsx`, `AuthView.tsx`, `SignInPage.tsx`, `CreateAccountPage.tsx`, and others with `authFetch`.": [
+      {
+        "executionId": "5d5ffdb3-e042-4235-ad2d-62feb95c9300",
+        "chatSessionId": "sess_84264e35-cee9-4db4-a8a2-694008d4fe5b",
+        "timestamp": 1784475351785
+      }
+    ],
+    "10. Consolidate the three login screens": [
+      {
+        "executionId": "5d5ffdb3-e042-4235-ad2d-62feb95c9300",
+        "chatSessionId": "sess_84264e35-cee9-4db4-a8a2-694008d4fe5b",
+        "timestamp": 1784475351863
+      }
+    ],
+    "11. Remove player session middleware (`server/index.ts`)": [
+      {
+        "executionId": "5d5ffdb3-e042-4235-ad2d-62feb95c9300",
+        "chatSessionId": "sess_84264e35-cee9-4db4-a8a2-694008d4fe5b",
+        "timestamp": 1784475351955
+      }
+    ],
+    "12. Food-scan client hardening (`HealthView.tsx`, `NutritionLogCard.tsx`)": [
+      {
+        "executionId": "5d5ffdb3-e042-4235-ad2d-62feb95c9300",
+        "chatSessionId": "sess_84264e35-cee9-4db4-a8a2-694008d4fe5b",
+        "timestamp": 1784475353917
+      }
+    ],
+    "13.1 Single-writer Dusk history store; component subscribes instead of independently writing `localStorage['dusk_chat_history_...']`.": [
+      {
+        "executionId": "5d5ffdb3-e042-4235-ad2d-62feb95c9300",
+        "chatSessionId": "sess_84264e35-cee9-4db4-a8a2-694008d4fe5b",
+        "timestamp": 1784475353995
+      }
+    ],
+    "13.2 `triggerDuskMessage` tags system events so they are non-billable end-to-end.": [
+      {
+        "executionId": "5d5ffdb3-e042-4235-ad2d-62feb95c9300",
+        "chatSessionId": "sess_84264e35-cee9-4db4-a8a2-694008d4fe5b",
+        "timestamp": 1784475354085
+      }
+    ],
+    "13.3 Insert/order messages by a monotonic client id to prevent out-of-order append.": [
+      {
+        "executionId": "5d5ffdb3-e042-4235-ad2d-62feb95c9300",
+        "chatSessionId": "sess_84264e35-cee9-4db4-a8a2-694008d4fe5b",
+        "timestamp": 1784475354171
+      }
+    ],
+    "14.1 Static: `npx tsc --noEmit` clean; grep confirms no player-auth `req.session` reliance and no authed `credentials:'include'` bypassing `authFetch`.": [
+      {
+        "executionId": "5d5ffdb3-e042-4235-ad2d-62feb95c9300",
+        "chatSessionId": "sess_84264e35-cee9-4db4-a8a2-694008d4fe5b",
+        "timestamp": 1784475354250
+      }
+    ],
+    "14.2 Live probe: with a valid Bearer token, `POST /api/nutrition/analyze` and `POST /api/dusk/chat` from a Capacitor origin pass auth (non-401); with no token they return the consistent 401 shape.": [
+      {
+        "executionId": "5d5ffdb3-e042-4235-ad2d-62feb95c9300",
+        "chatSessionId": "sess_84264e35-cee9-4db4-a8a2-694008d4fe5b",
+        "timestamp": 1784475354334
+      }
+    ],
+    "14.3 Race checks: concurrent double food-scan (same `requestId`) charges exactly one key; concurrent Dusk messages keep the counter consistent; a system event charges zero keys; concurrent refund+grant shows no lost update.": [
+      {
+        "executionId": "5d5ffdb3-e042-4235-ad2d-62feb95c9300",
+        "chatSessionId": "sess_84264e35-cee9-4db4-a8a2-694008d4fe5b",
+        "timestamp": 1784475354410
+      }
+    ],
+    "14.4 Cross-platform matrix on web AND a freshly built release APK: fresh signup, returning login, food scan, Dusk chat, data sync, app-kill/restart persistence, logout.": [
+      {
+        "executionId": "5d5ffdb3-e042-4235-ad2d-62feb95c9300",
+        "chatSessionId": "sess_84264e35-cee9-4db4-a8a2-694008d4fe5b",
+        "timestamp": 1784475354500
+      }
+    ],
+    "14.5 Sign-off + build: document results, bump versionCode, rebuild APK, then ship.": [
+      {
+        "executionId": "5d5ffdb3-e042-4235-ad2d-62feb95c9300",
+        "chatSessionId": "sess_84264e35-cee9-4db4-a8a2-694008d4fe5b",
+        "timestamp": 1784475354591
+      }
+    ]
+  }
+}

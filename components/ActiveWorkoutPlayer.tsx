@@ -14,7 +14,7 @@ import FormCoachOverlay from './FormCoachOverlay';
 import FormCoachSummary from './FormCoachSummary';
 import { useSensors } from '../hooks/useSensors';
 import { API_BASE } from '../lib/apiConfig';
-import { getPlayerAuthHeaders } from '../lib/playerApi';
+import { authFetch } from '../lib/auth';
 
 /** Check if an exercise is rep-based (not time-based like "5 min" or "30s") */
 const isRepBasedExercise = (reps: string, type: string): boolean => {
@@ -627,10 +627,9 @@ const ActiveWorkoutPlayer: React.FC<ActiveWorkoutPlayerProps> = ({ plan, onCompl
     // Notify server: this counts as a missed-workout day for the penalty cron
     const userId = player.userId;
     if (userId && !isLocalUser(userId)) {
-      fetch(`${API_BASE}/api/workout/quit-dungeon`, {
+      authFetch(`${API_BASE}/api/workout/quit-dungeon`, {
         method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
+        headers: { 'Content-Type': 'application/json' },
       }).catch(() => { /* offline — cron will still detect via missing last_workout_date */ });
     }
     onFail();

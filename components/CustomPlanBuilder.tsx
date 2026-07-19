@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Search, X, Plus, Minus, CheckCircle, Play, Dumbbell, ArrowLeft, Save, Star } from 'lucide-react';
 import { WorkoutDay, WorkoutExercise } from '../types';
 import { API_BASE } from '../lib/apiConfig';
+import { authFetch } from '../lib/auth';
 import { useSystem } from '../hooks/useSystem';
 
 const getStarredKey = (userId: string) => `reforge_starred_exercises_${userId || 'local'}`;
@@ -159,11 +160,10 @@ const CustomPlanBuilder: React.FC<CustomPlanBuilderProps> = ({ onClose, onStartW
         totalDuration: selected.length * 5 + 10,
         exercises: buildExercises(),
       };
-      await fetch(`${API_BASE}/api/workout/custom-plans`, {
+      await authFetch(`${API_BASE}/api/workout/custom-plans`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: planName, days: [day] }),
-        credentials: 'include',
       });
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);

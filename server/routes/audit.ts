@@ -1,12 +1,13 @@
 import express, { Request, Response } from 'express';
 import { supabaseServer } from '../lib/supabase.js';
+import { getAuthenticatedUserId } from '../lib/playerAuth.js';
 
 const router = express.Router();
 
 router.post('/log', async (req: Request, res: Response) => {
   try {
     const { questId, questRank, outcome, timestamp } = req.body;
-    const userId = (req as any).user?.id || (req.session as any)?.userId;
+    const userId = getAuthenticatedUserId(req);
 
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
