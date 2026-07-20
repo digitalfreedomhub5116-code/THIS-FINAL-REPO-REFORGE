@@ -963,78 +963,7 @@ const App: React.FC = () => {
   const [activePortalTab, setActivePortalTab] = useState<string>('chat');
   const [guildActiveInfoTab, setGuildActiveInfoTab] = useState<'members' | 'requests'>('members');
 
-  // ── Push Notifications Registration and Action Listener ──
-  useEffect(() => {
-    if (!player.userId || isLocalUser(player.userId)) return;
 
-    let regListener: any = null;
-    let errListener: any = null;
-    let recListener: any = null;
-    let actListener: any = null;
-
-    const setupPush = async () => {
-      try {
-        const { Capacitor } = await import('@capacitor/core');
-        if (!Capacitor.isNativePlatform()) return;
-
-        const { PushNotifications } = await import('@capacitor/push-notifications');
-
-        // Add listeners
-        regListener = await PushNotifications.addListener('registration', (token) => {
-          console.log('[Push] Registration token:', token.value);
-          localStorage.setItem('reforge_push_token', token.value);
-          authenticatedFetch(`${API_BASE}/api/player/device-token`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...getPlayerAuthHeaders() },
-            body: JSON.stringify({
-              token: token.value,
-              platform: Capacitor.getPlatform(),
-            }),
-          }).catch((err) => console.error('[Push] Backend token registration failed:', err));
-        });
-
-        errListener = await PushNotifications.addListener('registrationError', (err) => {
-          console.error('[Push] Registration error:', err);
-        });
-
-        recListener = await PushNotifications.addListener('pushNotificationReceived', (notification) => {
-          console.log('[Push] Notification received in foreground:', notification);
-        });
-
-        actListener = await PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
-          console.log('[Push] Action performed:', action);
-          const data = action.notification.data;
-          if (data && (data.type === 'guild_request' || data.guildId)) {
-            navigateTo('GUILDS');
-            setInGuildPortal(true);
-            setActivePortalTab('members');
-            setGuildActiveInfoTab('requests');
-          }
-        });
-
-        // Request permissions and register
-        let permStatus = await PushNotifications.checkPermissions();
-        if (permStatus.receive === 'prompt') {
-          permStatus = await PushNotifications.requestPermissions();
-        }
-
-        if (permStatus.receive === 'granted') {
-          await PushNotifications.register();
-        }
-      } catch (err) {
-        console.warn('[Push] Setup failed:', err);
-      }
-    };
-
-    setupPush();
-
-    return () => {
-      if (regListener) regListener.remove();
-      if (errListener) errListener.remove();
-      if (recListener) recListener.remove();
-      if (actListener) actListener.remove();
-    };
-  }, [player.userId, navigateTo]);
 
   // Initialize guild ID and role on mount/login
   useEffect(() => {
