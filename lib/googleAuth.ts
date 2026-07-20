@@ -21,7 +21,7 @@ export async function initGoogleAuth() {
   try {
     GoogleAuthInstance = GoogleAuth;
     GoogleAuthInstance.initialize({
-      clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID || '20910572316-81krg6ag9ajbnvde8pu862rrc6pglp45.apps.googleusercontent.com',
+      clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID || '20910572316-t603mbpnpddklbncvj41fs99818gf3ej.apps.googleusercontent.com',
       scopes: ['profile', 'email'],
       grantOfflineAccess: false,
     });
